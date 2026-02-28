@@ -9,17 +9,19 @@ import type {Compartment} from '@codemirror/state';
 import type {EditorView, ViewUpdate} from '@codemirror/view';
 
 // CodeEditorConfig is also used by backend, defined in "editor_util.go"
-type CodeEditorConfig = {
-  filename: string; // the current filename (base name, not full path), used for language detection
-  autofocus: boolean; // whether to autofocus the editor on load
-  previewableExtensions: string[]; // file extensions that support preview rendering
-  indentStyle: string; // "space" or "tab", from .editorconfig
-  indentSize: number; // number of spaces per indent level, from .editorconfig
-  tabWidth: number; // display width of a tab character, from .editorconfig
-  lineWrapExtensions: string[]; // file extensions that enable line wrapping by default
-  lineWrap: boolean; // whether line wrapping is enabled for the current file
-  trimTrailingWhitespace: boolean; // whether to trim trailing whitespace on save, from .editorconfig
+const codeEditorConfigDefault = {
+  filename: '',  // the current filename (base name, not full path), used for language detection
+  autofocus: false, // whether to autofocus the editor on load
+  previewableExtensions: [] as string[], // file extensions that support preview rendering
+  lineWrapExtensions: [] as string[],  // file extensions that enable line wrapping by default
+  lineWrap: false, // whether line wrapping is enabled for the current file
+
+  indentStyle: '', // "space" or "tab", from .editorconfig, or empty for not specified (detect from source code)
+  indentSize: 0,  // number of spaces per indent level, from .editorconfig, or 0 for not specified (detect from source code)
+  tabWidth: 4, // display width of a tab character, from .editorconfig, defaults to 4
+  trimTrailingWhitespace: false, // whether to trim trailing whitespace on save, from .editorconfig
 };
+type CodeEditorConfig = typeof codeEditorConfigDefault;
 
 export type CodemirrorEditor = {
   view: EditorView;
@@ -71,19 +73,8 @@ function togglePreviewDisplay(previewable: boolean): void {
 }
 
 export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameInput?: HTMLInputElement): Promise<CodemirrorEditor> {
-  const configDefault: CodeEditorConfig = {
-    filename: '',
-    autofocus: false,
-    previewableExtensions: [],
-    indentStyle: '', // default to empty, detect from source code
-    indentSize: 0, // default to empty, detect from source code
-    tabWidth: 4,
-    lineWrapExtensions: [],
-    lineWrap: false,
-    trimTrailingWhitespace: false,
-  };
   const config: CodeEditorConfig = {
-    ...configDefault,
+    ...codeEditorConfigDefault,
     ...JSON.parse(textarea.getAttribute('data-code-editor-config')!),
   };
   const previewableExts = new Set(config.previewableExtensions || []);
