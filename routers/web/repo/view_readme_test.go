@@ -4,13 +4,12 @@
 package repo
 
 import (
-	"context"
-	"os"
+	"fmt"
 	"path"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -18,42 +17,35 @@ import (
 )
 
 func TestFindReadmeFileInEntriesWithSymlinkInSubfolder(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-
-	// Create a target README file content
-	targetContent := "This is the target README."
-
-	subdirs := []string{".github", ".gitea", "docs"}
-
-	for _, subdir := range subdirs {
+	for _, subdir := range []string{".github", ".gitea", "docs"} {
 		t.Run(subdir, func(t *testing.T) {
-			// Create a temporary git repository for each case to avoid interference
 			repoPath := t.TempDir()
-			require.NoError(t, git.InitRepository(context.Background(), repoPath, false, git.Sha1ObjectFormat.Name()))
-			repo, err := git.OpenRepository(context.Background(), repoPath)
+			stdin := fmt.Sprintf(`commit refs/heads/master
+author Test <test@example.com> 1700000000 +0000
+committer Test <test@example.com> 1700000000 +0000
+data <<EOT
+initial
+EOT
+M 100644 inline target.md
+data <<EOT
+target-content
+EOT
+M 120000 inline %s/README.md
+data 12
+../target.md
+`, subdir)
+
+			var err error
+			err = gitcmd.NewCommand("init", "--bare", ".").WithDir(repoPath).RunWithStderr(t.Context())
 			require.NoError(t, err)
-			defer repo.Close()
+			err = gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context())
+			require.NoError(t, err)
 
-			// Create a target README file
-			targetFile := "target.md"
-			require.NoError(t, os.WriteFile(path.Join(repoPath, targetFile), []byte(targetContent), 0o644))
+			gitRepo, err := git.OpenRepository(t.Context(), repoPath)
+			require.NoError(t, err)
+			defer gitRepo.Close()
 
-			// Create a symlinked README.md in the subfolder
-			dirPath := path.Join(repoPath, subdir)
-			require.NoError(t, os.Mkdir(dirPath, 0o755))
-			require.NoError(t, os.Symlink("../target.md", path.Join(dirPath, "README.md")))
-
-			// Commit the files
-			require.NoError(t, git.AddChanges(context.Background(), repoPath, true))
-			require.NoError(t, git.CommitChanges(context.Background(), repoPath, git.CommitChangesOptions{
-				Message: "Add symlinked README in " + subdir,
-				Author: &git.Signature{
-					Name:  "Test",
-					Email: "test@example.com",
-				},
-			}))
-
-			commit, err := repo.GetBranchCommit("master")
+			commit, err := gitRepo.GetBranchCommit("master")
 			require.NoError(t, err)
 
 			entries, err := commit.ListEntries()
@@ -62,12 +54,11 @@ func TestFindReadmeFileInEntriesWithSymlinkInSubfolder(t *testing.T) {
 			ctx, _ := contexttest.MockContext(t, "/")
 			ctx.Repo.Commit = commit
 			ctx.Repo.TreePath = ""
-
 			subfolder, readmeFile, err := findReadmeFileInEntries(ctx, "", entries, true)
 			require.NoError(t, err)
+			require.NotNil(t, readmeFile)
 
 			assert.Equal(t, subdir, subfolder)
-			require.NotNil(t, readmeFile)
 			assert.Equal(t, "README.md", readmeFile.Name())
 			assert.True(t, readmeFile.IsLink())
 
