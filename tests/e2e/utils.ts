@@ -20,10 +20,10 @@ async function apiRetry(fn: () => Promise<APIResponse>, label: string) {
   }
 }
 
-export async function apiCreateRepo(requestContext: APIRequestContext, {name, autoInit = true}: {name: string; autoInit?: boolean}) {
+export async function apiCreateRepo(requestContext: APIRequestContext, {name, auto_init = true}: {name: string; auto_init?: boolean}) {
   await apiRetry(() => requestContext.post(`/api/v1/user/repos`, {
     headers: apiHeaders,
-    data: {name, auto_init: autoInit},
+    data: {name, auto_init},
   }), 'apiCreateRepo');
 }
 
