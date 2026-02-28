@@ -67,6 +67,7 @@ func getClosestParentWithFiles(gitRepo *git.Repository, branchName, originTreePa
 
 // CodeEditorConfig is also used by frontend, defined in "codeeditor.ts"
 type CodeEditorConfig struct {
+	FilePath              string   `json:"file_path"`
 	Autofocus             bool     `json:"autofocus"`
 	PreviewableExtensions []string `json:"previewable_extensions"`
 	LineWrapExtensions    []string `json:"line_wrap_extensions"`

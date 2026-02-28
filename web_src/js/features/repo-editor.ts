@@ -169,7 +169,7 @@ export function initRepoEditor() {
   initEditPreviewTab(elForm);
 
   (async () => {
-    const editor = await createCodeEditor(editArea, {filenameInput});
+    const editor = await createCodeEditor(editArea, filenameInput);
 
     // Update the editor from query params, if available,
     // only after the dirtyFileClass initialization
