@@ -36,8 +36,6 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/model"
-	"go.yaml.in/yaml/v4"
-	"xorm.io/builder"
 )
 
 func getRunIndex(ctx *context_module.Context) int64 {
@@ -431,128 +429,31 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	// reset run's start and stop time
-	run.PreviousDuration = run.Duration()
-	run.Started = 0
-	run.Stopped = 0
-	run.Status = actions_model.StatusWaiting
-
-	vars, err := actions_model.GetVariablesOfRun(ctx, run)
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
 	if err != nil {
-		ctx.ServerError("GetVariablesOfRun", fmt.Errorf("get run %d variables: %w", run.ID, err))
+		ctx.ServerError("GetRunJobsByRunID", err)
+		return
+	}
+	if len(jobs) == 0 {
+		ctx.NotFound(nil)
 		return
 	}
 
-	if run.RawConcurrency != "" {
-		var rawConcurrency model.RawConcurrency
-		if err := yaml.Unmarshal([]byte(run.RawConcurrency), &rawConcurrency); err != nil {
-			ctx.ServerError("UnmarshalRawConcurrency", fmt.Errorf("unmarshal raw concurrency: %w", err))
-			return
-		}
-
-		err = actions_service.EvaluateRunConcurrencyFillModel(ctx, run, &rawConcurrency, vars, nil)
-		if err != nil {
-			ctx.ServerError("EvaluateRunConcurrencyFillModel", err)
-			return
-		}
-
-		run.Status, err = actions_service.PrepareToStartRunWithConcurrency(ctx, run)
-		if err != nil {
-			ctx.ServerError("PrepareToStartRunWithConcurrency", err)
-			return
+	var targetJob *actions_model.ActionRunJob
+	if jobIndexStr != "" {
+		if jobIndex >= 0 && jobIndex < int64(len(jobs)) {
+			targetJob = jobs[jobIndex]
+		} else {
+			targetJob = jobs[0]
 		}
 	}
-	if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration", "status", "concurrency_group", "concurrency_cancel"); err != nil {
-		ctx.ServerError("UpdateRun", err)
+
+	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs, targetJob); err != nil {
+		ctx.ServerError("RerunWorkflowRunJobs", err)
 		return
-	}
-
-	if err := run.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("run.LoadAttributes", err)
-		return
-	}
-	notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
-
-	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
-	if ctx.Written() {
-		return
-	}
-
-	isRunBlocked := run.Status == actions_model.StatusBlocked
-	if jobIndexStr == "" { // rerun all jobs
-		for _, j := range jobs {
-			// if the job has needs, it should be set to "blocked" status to wait for other jobs
-			shouldBlockJob := len(j.Needs) > 0 || isRunBlocked
-			if err := rerunJob(ctx, j, shouldBlockJob); err != nil {
-				ctx.ServerError("RerunJob", err)
-				return
-			}
-		}
-		ctx.JSONOK()
-		return
-	}
-
-	rerunJobs := actions_service.GetAllRerunJobs(job, jobs)
-
-	for _, j := range rerunJobs {
-		// jobs other than the specified one should be set to "blocked" status
-		shouldBlockJob := j.JobID != job.JobID || isRunBlocked
-		if err := rerunJob(ctx, j, shouldBlockJob); err != nil {
-			ctx.ServerError("RerunJob", err)
-			return
-		}
 	}
 
 	ctx.JSONOK()
-}
-
-func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shouldBlock bool) error {
-	status := job.Status
-	if !status.IsDone() {
-		return nil
-	}
-
-	job.TaskID = 0
-	job.Status = util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting)
-	job.Started = 0
-	job.Stopped = 0
-
-	job.ConcurrencyGroup = ""
-	job.ConcurrencyCancel = false
-	job.IsConcurrencyEvaluated = false
-	if err := job.LoadRun(ctx); err != nil {
-		return err
-	}
-
-	vars, err := actions_model.GetVariablesOfRun(ctx, job.Run)
-	if err != nil {
-		return fmt.Errorf("get run %d variables: %w", job.Run.ID, err)
-	}
-
-	if job.RawConcurrency != "" && !shouldBlock {
-		err = actions_service.EvaluateJobConcurrencyFillModel(ctx, job.Run, job, vars, nil)
-		if err != nil {
-			return fmt.Errorf("evaluate job concurrency: %w", err)
-		}
-
-		job.Status, err = actions_service.PrepareToStartJobWithConcurrency(ctx, job)
-		if err != nil {
-			return err
-		}
-	}
-
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		updateCols := []string{"task_id", "status", "started", "stopped", "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"}
-		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, updateCols...)
-		return err
-	}); err != nil {
-		return err
-	}
-
-	actions_service.CreateCommitStatusForRunJobs(ctx, job.Run, job)
-	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
-
-	return nil
 }
 
 func Logs(ctx *context_module.Context) {

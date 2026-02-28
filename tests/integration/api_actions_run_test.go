@@ -169,3 +169,130 @@ func testAPIActionsDeleteRunListTasks(t *testing.T, repo *repo_model.Repository,
 	assert.Equal(t, expected, findTask1)
 	assert.Equal(t, expected, findTask2)
 }
+
+func TestAPIActionsRerunWorkflowRun(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+
+	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	t.Run("Success", func(t *testing.T) {
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/rerun", repo.FullName())).
+			AddTokenAuth(writeToken)
+		resp := MakeRequest(t, req, http.StatusCreated)
+
+		var rerunResp api.ActionWorkflowRun
+		err := json.Unmarshal(resp.Body.Bytes(), &rerunResp)
+		require.NoError(t, err)
+		assert.Equal(t, int64(795), rerunResp.ID)
+		assert.Equal(t, "queued", rerunResp.Status)
+		assert.Equal(t, "c2d72f548424103f01ee1dc02889c1e2bff816b0", rerunResp.HeadSha)
+
+		run, err := actions_model.GetRunByRepoAndID(t.Context(), repo.ID, 795)
+		require.NoError(t, err)
+		assert.Equal(t, actions_model.StatusWaiting, run.Status)
+		assert.Equal(t, timeutil.TimeStamp(0), run.Started)
+		assert.Equal(t, timeutil.TimeStamp(0), run.Stopped)
+
+		job198, err := actions_model.GetRunJobByID(t.Context(), 198)
+		require.NoError(t, err)
+		assert.Equal(t, actions_model.StatusWaiting, job198.Status)
+		assert.Equal(t, int64(0), job198.TaskID)
+
+		job199, err := actions_model.GetRunJobByID(t.Context(), 199)
+		require.NoError(t, err)
+		assert.Equal(t, actions_model.StatusWaiting, job199.Status)
+		assert.Equal(t, int64(0), job199.TaskID)
+	})
+
+	t.Run("ForbiddenWithoutWriteScope", func(t *testing.T) {
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/rerun", repo.FullName())).
+			AddTokenAuth(readToken)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
+
+	t.Run("NotFound", func(t *testing.T) {
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/999999/rerun", repo.FullName())).
+			AddTokenAuth(writeToken)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+}
+
+func TestAPIActionsRerunWorkflowRunNotDone(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/rerun", repo.FullName())).
+		AddTokenAuth(writeToken)
+	MakeRequest(t, req, http.StatusBadRequest)
+}
+
+func TestAPIActionsRerunWorkflowJob(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+
+	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	t.Run("Success", func(t *testing.T) {
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/199/rerun", repo.FullName())).
+			AddTokenAuth(writeToken)
+		resp := MakeRequest(t, req, http.StatusCreated)
+
+		var rerunResp api.ActionWorkflowJob
+		err := json.Unmarshal(resp.Body.Bytes(), &rerunResp)
+		require.NoError(t, err)
+		assert.Equal(t, int64(199), rerunResp.ID)
+		assert.Equal(t, "queued", rerunResp.Status)
+
+		run, err := actions_model.GetRunByRepoAndID(t.Context(), repo.ID, 795)
+		require.NoError(t, err)
+		assert.Equal(t, actions_model.StatusWaiting, run.Status)
+
+		job198, err := actions_model.GetRunJobByID(t.Context(), 198)
+		require.NoError(t, err)
+		assert.Equal(t, actions_model.StatusSuccess, job198.Status)
+		assert.Equal(t, int64(53), job198.TaskID)
+
+		job199, err := actions_model.GetRunJobByID(t.Context(), 199)
+		require.NoError(t, err)
+		assert.Equal(t, actions_model.StatusWaiting, job199.Status)
+		assert.Equal(t, int64(0), job199.TaskID)
+	})
+
+	t.Run("ForbiddenWithoutWriteScope", func(t *testing.T) {
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/199/rerun", repo.FullName())).
+			AddTokenAuth(readToken)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
+
+	t.Run("NotFoundJob", func(t *testing.T) {
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/999999/rerun", repo.FullName())).
+			AddTokenAuth(writeToken)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+}
+
+func TestAPIActionsRerunWorkflowJobRunNotDone(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/jobs/194/rerun", repo.FullName())).
+		AddTokenAuth(writeToken)
+	MakeRequest(t, req, http.StatusBadRequest)
+}

@@ -5438,6 +5438,117 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runs/{run}/jobs/{job_id}/rerun": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reruns a specific workflow job in a run",
+        "operationId": "rerunWorkflowJob",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the job",
+            "name": "job_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/WorkflowJob"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/rerun": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reruns an entire workflow run",
+        "operationId": "rerunWorkflowRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/secrets": {
       "get": {
         "produces": [
