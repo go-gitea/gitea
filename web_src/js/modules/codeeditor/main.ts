@@ -33,12 +33,6 @@ export type CodemirrorEditor = {
   };
 };
 
-function getCodeEditorConfig(textarea: HTMLTextAreaElement): CodeEditorConfig {
-  const json = textarea.getAttribute('data-code-editor-config');
-  if (!json) throw new Error('data-code-editor-config attribute not found');
-  return JSON.parse(json);
-}
-
 export async function importCodemirror() {
   const [view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers, vscodeKeymap] = await Promise.all([
     import(/* webpackChunkName: "codemirror" */ '@codemirror/view'),
@@ -247,7 +241,7 @@ function togglePreviewDisplay(previewable: boolean): void {
 
 export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {filenameInput: HTMLInputElement} | {defaultFilename: string}): Promise<CodemirrorEditor> {
   const filename = 'filenameInput' in opts ? opts.filenameInput.value : opts.defaultFilename;
-  const editorOpts = getCodeEditorConfig(textarea);
+  const editorOpts: CodeEditorConfig = JSON.parse(textarea.getAttribute('data-code-editor-config')!);
   const previewableExts = new Set(editorOpts.previewable_extensions || []);
   const lineWrapExts = editorOpts.line_wrap_extensions || [];
 
