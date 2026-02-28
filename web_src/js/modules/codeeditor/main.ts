@@ -1,4 +1,4 @@
-import {extname, isObject} from '../../utils.ts';
+import {extname} from '../../utils.ts';
 import {createElementFromHTML, onInputDebounce, toggleElem} from '../../utils/dom.ts';
 import {html, htmlRaw} from '../../utils/html.ts';
 import {svg} from '../../svg.ts';
@@ -8,13 +8,16 @@ import type {LanguageDescription} from '@codemirror/language';
 import type {Compartment} from '@codemirror/state';
 import type {EditorView, ViewUpdate} from '@codemirror/view';
 
+// CodeEditorConfig is also used by backend, defined in "editor_util.go"
 type CodeEditorConfig = {
-  indent_style: string;
-  indent_size?: number;
-  tab_width?: number;
-  line_wrap_extensions?: string[];
-  line_wrap: boolean;
-  trim_trailing_whitespace: boolean;
+  is_new_file?: boolean; // whether the editor is creating a new file, only set on the edit page
+  previewable_extensions?: string[]; // file extensions that support preview rendering
+  indent_style: string; // "space" or "tab", from .editorconfig
+  indent_size?: number; // number of spaces per indent level, from .editorconfig
+  tab_width?: number; // display width of a tab character, from .editorconfig
+  line_wrap_extensions?: string[]; // file extensions that enable line wrapping by default
+  line_wrap: boolean; // whether line wrapping is enabled for the current file
+  trim_trailing_whitespace: boolean; // whether to trim trailing whitespace on save, from .editorconfig
 };
 
 export type CodemirrorEditor = {
@@ -30,16 +33,10 @@ export type CodemirrorEditor = {
   };
 };
 
-function getCodeEditorConfig(input: HTMLInputElement): CodeEditorConfig {
-  const defaults: CodeEditorConfig = {indent_style: 'space', line_wrap: false, trim_trailing_whitespace: false};
-  const json = input.getAttribute('data-code-editor-config');
-  if (!json) return defaults;
-  try {
-    const ec = JSON.parse(json);
-    return isObject(ec) ? {...defaults, ...ec} : defaults;
-  } catch {
-    return defaults;
-  }
+function getCodeEditorConfig(textarea: HTMLTextAreaElement): CodeEditorConfig {
+  const json = textarea.getAttribute('data-code-editor-config');
+  if (!json) throw new Error('data-code-editor-config attribute not found');
+  return JSON.parse(json);
 }
 
 export async function importCodemirror() {
@@ -250,15 +247,19 @@ function togglePreviewDisplay(previewable: boolean): void {
 
 export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {filenameInput: HTMLInputElement} | {defaultFilename: string}): Promise<CodemirrorEditor> {
   const filename = 'filenameInput' in opts ? opts.filenameInput.value : opts.defaultFilename;
-  const previewableExts = new Set((textarea.getAttribute('data-previewable-extensions') || '').split(','));
-
-  const filenameInput = 'filenameInput' in opts ? opts.filenameInput : null;
-  const editorOpts = filenameInput ? getCodeEditorConfig(filenameInput) : {indent_style: 'tab', tab_width: 4, line_wrap: false, trim_trailing_whitespace: false} as CodeEditorConfig;
+  const editorOpts = getCodeEditorConfig(textarea);
+  const previewableExts = new Set(editorOpts.previewable_extensions || []);
   const lineWrapExts = editorOpts.line_wrap_extensions || [];
 
   const editor = await createCodemirrorEditor(textarea, filename, editorOpts);
   setupEditorOptionListeners(textarea, editor);
 
+  // for new files, the autofocus will be on the filename input, for existing files focus the editor
+  if (editorOpts.is_new_file === false) {
+    editor.view.focus();
+  }
+
+  const filenameInput = 'filenameInput' in opts ? opts.filenameInput : null;
   if (filenameInput) {
     togglePreviewDisplay(previewableExts.has(extname(filename)));
     filenameInput.addEventListener('input', onInputDebounce(async () => {

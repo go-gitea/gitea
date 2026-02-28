@@ -318,7 +318,9 @@ func EditFile(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["CodeEditorConfig"] = getCodeEditorConfig(ctx, ctx.Repo.TreePath)
+	editorConfig := getCodeEditorConfig(ctx, ctx.Repo.TreePath)
+	editorConfig.IsNewFile = isNewFile
+	ctx.Data["CodeEditorConfig"] = editorConfig
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
 

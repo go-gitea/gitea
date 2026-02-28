@@ -67,6 +67,7 @@ func getClosestParentWithFiles(gitRepo *git.Repository, branchName, originTreePa
 
 // CodeEditorConfig is also used by frontend, defined in "codeeditor.ts"
 type CodeEditorConfig struct {
+	IsNewFile             bool     `json:"is_new_file"`
 	PreviewableExtensions []string `json:"previewable_extensions"`
 	LineWrapExtensions    []string `json:"line_wrap_extensions"`
 	LineWrap              bool     `json:"line_wrap"`
@@ -77,7 +78,8 @@ type CodeEditorConfig struct {
 	TrimTrailingWhitespace *bool  `json:"trim_trailing_whitespace,omitempty"`
 }
 
-func getCodeEditorConfig(ctx *context_service.Context, treePath string) (ret CodeEditorConfig) {
+func getCodeEditorConfig(ctx *context_service.Context, treePath string) CodeEditorConfig {
+	ret := CodeEditorConfig{IndentStyle: "space"}
 	ret.PreviewableExtensions = markup.PreviewableExtensions()
 	ret.LineWrapExtensions = setting.Repository.Editor.LineWrapExtensions
 	ret.LineWrap = util.SliceContainsString(ret.LineWrapExtensions, path.Ext(treePath), true)
@@ -85,7 +87,9 @@ func getCodeEditorConfig(ctx *context_service.Context, treePath string) (ret Cod
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
-			ret.IndentStyle = def.IndentStyle
+			if def.IndentStyle != "" {
+				ret.IndentStyle = def.IndentStyle
+			}
 			ret.IndentSize, _ = strconv.Atoi(def.IndentSize)
 			ret.TabWidth = def.TabWidth
 			ret.TrimTrailingWhitespace = def.TrimTrailingWhitespace

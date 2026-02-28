@@ -42,7 +42,7 @@ func GitHooksEdit(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Hook"] = hook
-	ctx.Data["CodeEditorConfig"] = repo.CodeEditorConfig{} // not really editing a repo file, so no editor config
+	ctx.Data["CodeEditorConfig"] = repo.CodeEditorConfig{IndentStyle: "tab", TabWidth: 4}
 	ctx.HTML(http.StatusOK, tplGithookEdit)
 }
 
