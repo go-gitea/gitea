@@ -63,7 +63,6 @@ export async function initRepoEditor() {
     }
     document.querySelector<HTMLInputElement>('#tree_path')!.value = parts.join('/');
   }
-
   filenameInput.addEventListener('input', function () {
     const parts = filenameInput.value.split('/');
     const links = Array.from(document.querySelectorAll('.breadcrumb span.section'));
