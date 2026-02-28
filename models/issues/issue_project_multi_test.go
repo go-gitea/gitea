@@ -173,6 +173,7 @@ func TestIssueRemoveFromOneProjectKeepOthers(t *testing.T) {
 
 	// Reload and verify issue is only in projects 1 and 3
 	issue1.Projects = nil
+	issue1.ResetAttributesLoaded()
 	err = issue1.LoadProjects(t.Context())
 	require.NoError(t, err)
 	assert.Len(t, issue1.Projects, 2, "Issue should be in only 2 projects after removal")
