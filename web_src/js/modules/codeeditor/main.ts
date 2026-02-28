@@ -10,10 +10,10 @@ import type {EditorView, ViewUpdate} from '@codemirror/view';
 
 // CodeEditorConfig is also used by backend, defined in "editor_util.go"
 const codeEditorConfigDefault = {
-  filename: '',  // the current filename (base name, not full path), used for language detection
+  filename: '', // the current filename (base name, not full path), used for language detection
   autofocus: false, // whether to autofocus the editor on load
   previewableExtensions: [] as string[], // file extensions that support preview rendering
-  lineWrapExtensions: [] as string[],  // file extensions that enable line wrapping by default
+  lineWrapExtensions: [] as string[], // file extensions that enable line wrapping by default
   lineWrap: false, // whether line wrapping is enabled for the current file
 
   indentStyle: '', // "space" or "tab", from .editorconfig, or empty for not specified (detect from source code)
