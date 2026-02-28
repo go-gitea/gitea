@@ -245,6 +245,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   };
 
   setupEditorOptionListeners(textarea, editor);
+  togglePreviewDisplay(previewableExts.has(extname(config.file_name)));
 
   if (config.autofocus) {
     editor.view.focus();

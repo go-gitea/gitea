@@ -170,7 +170,6 @@ export function initRepoEditor() {
 
   (async () => {
     const editor = await createCodeEditor(editArea, filenameInput);
-    await editor.updateFilename(filenameInput.value);
     filenameInput.addEventListener('input', () => {
       editor.updateFilename(filenameInput.value);
     });
