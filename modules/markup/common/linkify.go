@@ -21,7 +21,7 @@ import (
 
 type GlobalVarsType struct {
 	wwwURLRegexp *regexp.Regexp
-	LinkRegex   *regexp.Regexp // fast matching a URL link, no any extra validation.
+	LinkRegex    *regexp.Regexp // fast matching a URL link, no any extra validation.
 }
 
 var GlobalVars = sync.OnceValue(func() *GlobalVarsType {
