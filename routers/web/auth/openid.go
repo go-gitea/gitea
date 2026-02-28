@@ -82,7 +82,7 @@ func SignInOpenIDPost(ctx *context.Context) {
 
 	id, err := openid.Normalize(form.Openid)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &form)
+		ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &form)
 		return
 	}
 	form.Openid = id
@@ -91,7 +91,7 @@ func SignInOpenIDPost(ctx *context.Context) {
 
 	err = allowedOpenIDURI(id)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &form)
+		ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &form)
 		return
 	}
 
@@ -99,7 +99,7 @@ func SignInOpenIDPost(ctx *context.Context) {
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
 	if err != nil {
 		log.Error("Error in OpenID redirect URL: %s, %v", redirectTo, err.Error())
-		ctx.RenderWithErr("Unable to find OpenID provider in "+redirectTo, tplSignInOpenID, &form)
+		ctx.RenderWithErrDeprecated("Unable to find OpenID provider in "+redirectTo, tplSignInOpenID, &form)
 		return
 	}
 
@@ -129,7 +129,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 
 	id, err := openid.Verify(fullURL)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
+		ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 			Openid: id,
 		})
 		return
@@ -143,7 +143,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	u, err := user_model.GetUserByOpenID(ctx, id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
-			ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
+			ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 				Openid: id,
 			})
 			return
@@ -162,14 +162,14 @@ func signInOpenIDVerify(ctx *context.Context) {
 
 	parsedURL, err := url.Parse(fullURL)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
+		ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 			Openid: id,
 		})
 		return
 	}
 	values, err := url.ParseQuery(parsedURL.RawQuery)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
+		ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 			Openid: id,
 		})
 		return
@@ -183,7 +183,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 		u, err = user_model.GetUserByEmail(ctx, email)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {
-				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
+				ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 					Openid: id,
 				})
 				return
@@ -199,7 +199,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 		u, _ = user_model.GetUserByName(ctx, nickname)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {
-				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
+				ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 					Openid: id,
 				})
 				return
@@ -273,7 +273,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
 	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
-			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
 			return
 		}
 		ctx.ServerError("AddUserOpenID", err)
@@ -352,7 +352,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	length := max(setting.MinPasswordLength, 256)
 	password, err := util.CryptoRandomString(int64(length))
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSignUpOID, form)
+		ctx.RenderWithErrDeprecated(err.Error(), tplSignUpOID, form)
 		return
 	}
 
@@ -370,7 +370,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
 	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
-			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)
 			return
 		}
 		ctx.ServerError("AddUserOpenID", err)

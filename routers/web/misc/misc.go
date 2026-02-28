@@ -6,12 +6,15 @@ package misc
 import (
 	"net/http"
 	"path"
+	"strconv"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 )
 
 func SSHInfo(rw http.ResponseWriter, req *http.Request) {
@@ -46,4 +49,10 @@ func StaticRedirect(target string) func(w http.ResponseWriter, req *http.Request
 	return func(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, target), http.StatusMovedPermanently)
 	}
+}
+
+func WebBannerDismiss(ctx *context.Context) {
+	_, rev, _ := setting.Config().Instance.WebBanner.ValueRevision(ctx)
+	middleware.SetSiteCookie(ctx.Resp, middleware.CookieWebBannerDismissed, strconv.Itoa(rev), 48*3600)
+	ctx.JSONOK()
 }
