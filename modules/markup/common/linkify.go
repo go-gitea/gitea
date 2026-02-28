@@ -20,13 +20,13 @@ import (
 )
 
 type GlobalVarsType struct {
-	wwwURLRegxp *regexp.Regexp
+	wwwURLRegexp *regexp.Regexp
 	LinkRegex   *regexp.Regexp // fast matching a URL link, no any extra validation.
 }
 
 var GlobalVars = sync.OnceValue(func() *GlobalVarsType {
 	v := &GlobalVarsType{}
-	v.wwwURLRegxp = regexp.MustCompile(`^www\.[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}((?:/|[#?])[-a-zA-Z0-9@:%_\+.~#!?&//=\(\);,'">\^{}\[\]` + "`" + `]*)?`)
+	v.wwwURLRegexp = regexp.MustCompile(`^www\.[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}((?:/|[#?])[-a-zA-Z0-9@:%_\+.~#!?&//=\(\);,'">\^{}\[\]` + "`" + `]*)?`)
 	v.LinkRegex, _ = xurls.StrictMatchingScheme("https?://")
 	return v
 })
@@ -75,7 +75,7 @@ func (s *linkifyParser) Parse(parent ast.Node, block text.Reader, pc parser.Cont
 		m = GlobalVars().LinkRegex.FindSubmatchIndex(line)
 	}
 	if m == nil && bytes.HasPrefix(line, domainWWW) {
-		m = GlobalVars().wwwURLRegxp.FindSubmatchIndex(line)
+		m = GlobalVars().wwwURLRegexp.FindSubmatchIndex(line)
 		protocol = []byte("http")
 	}
 	if m != nil {

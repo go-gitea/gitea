@@ -72,7 +72,7 @@ type componentStatus struct {
 // And keep in mind: this health check should NEVER be used as a "restart" trigger, for example: Docker's "HEALTHCHECK".
 // * If Gitea is upgrading and migrating database, there will be a long time before this endpoint starts to return "pass" status.
 // In this case, if the checker restarts Gitea just because it doesn't get "pass" status in short time,
-// the instance will just be restarted again and again before the migation finishes and the sitution just goes worse.
+// the instance will just be restarted again and again before the migration finishes and the situation just goes worse.
 func Check(w http.ResponseWriter, r *http.Request) {
 	rsp := response{
 		Status:      pass,

@@ -514,10 +514,10 @@ func runTestCase(t *testing.T, testCase *requiredScopeTestCase, user *user_model
 			if unauthorizedLevel == auth_model.NoAccess {
 				continue
 			}
-			cateogoryUnauthorizedScopes := auth_model.GetRequiredScopes(
+			categoryUnauthorizedScopes := auth_model.GetRequiredScopes(
 				unauthorizedLevel,
 				category)
-			unauthorizedScopes = append(unauthorizedScopes, cateogoryUnauthorizedScopes...)
+			unauthorizedScopes = append(unauthorizedScopes, categoryUnauthorizedScopes...)
 		}
 
 		accessToken := createAPIAccessTokenWithoutCleanUp(t, "test-token", user, unauthorizedScopes)
