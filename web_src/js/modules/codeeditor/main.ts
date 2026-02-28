@@ -10,7 +10,7 @@ import type {EditorView, ViewUpdate} from '@codemirror/view';
 
 // CodeEditorConfig is also used by backend, defined in "editor_util.go"
 type CodeEditorConfig = {
-  is_new_file?: boolean; // whether the editor is creating a new file, only set on the edit page
+  autofocus?: boolean; // whether to autofocus the editor on load
   previewable_extensions?: string[]; // file extensions that support preview rendering
   indent_style: string; // "space" or "tab", from .editorconfig
   indent_size?: number; // number of spaces per indent level, from .editorconfig
@@ -239,8 +239,8 @@ function togglePreviewDisplay(previewable: boolean): void {
   }
 }
 
-export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {filenameInput: HTMLInputElement} | {defaultFilename: string}): Promise<CodemirrorEditor> {
-  const filename = 'filenameInput' in opts ? opts.filenameInput.value : opts.defaultFilename;
+export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {filenameInput: HTMLInputElement} | {fileName: string}): Promise<CodemirrorEditor> {
+  const filename = 'filenameInput' in opts ? opts.filenameInput.value : opts.fileName;
   const config: CodeEditorConfig = JSON.parse(textarea.getAttribute('data-code-editor-config')!);
   const previewableExts = new Set(config.previewable_extensions || []);
   const lineWrapExts = config.line_wrap_extensions || [];
@@ -248,12 +248,12 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {fil
   const editor = await createCodemirrorEditor(textarea, filename, config);
   setupEditorOptionListeners(textarea, editor);
 
-  // for new files, the autofocus will be on the filename input, for existing files focus the editor
-  if (config.is_new_file === false) {
-    editor.view.focus();
-  }
-
   const filenameInput = 'filenameInput' in opts ? opts.filenameInput : null;
+  if (config.autofocus) {
+    editor.view.focus();
+  } else if (filenameInput) {
+    filenameInput.focus();
+  }
   if (filenameInput) {
     togglePreviewDisplay(previewableExts.has(extname(filename)));
     filenameInput.addEventListener('input', onInputDebounce(async () => {
