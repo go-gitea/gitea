@@ -1002,7 +1002,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['*', 'tools/**/*'],
+    files: ['*', 'tools/**/*', 'tests/**/*'],
     languageOptions: {globals: globals.nodeBuiltin},
   },
   {

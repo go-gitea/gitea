@@ -1,23 +1,19 @@
 import {env} from 'node:process';
 import {expect} from '@playwright/test';
-import type {APIRequestContext, Locator, Page} from '@playwright/test';
+import type {APIRequestContext, APIResponse, Page} from '@playwright/test';
 
-export function apiBaseUrl() {
-  return env.GITEA_TEST_E2E_URL?.replace(/\/$/g, '');
-}
+const apiHeaders = {
+  Authorization: `Basic ${btoa(`${env.GITEA_TEST_E2E_USER}:${env.GITEA_TEST_E2E_PASSWORD}`)}`,
+};
 
-export function apiHeaders() {
-  return {Authorization: `Basic ${globalThis.btoa(`${env.GITEA_TEST_E2E_USER}:${env.GITEA_TEST_E2E_PASSWORD}`)}`};
-}
-
-async function apiRetry(fn: () => Promise<{ok: () => boolean; status: () => number; text: () => Promise<string>}>, label: string) {
+async function apiRetry(fn: () => Promise<APIResponse>, label: string) {
   const maxAttempts = 5;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const response = await fn();
     if (response.ok()) return;
     if ([500, 502, 503].includes(response.status()) && attempt < maxAttempts - 1) {
       const jitter = Math.random() * 500;
-      await new Promise((resolve) => globalThis.setTimeout(resolve, 1000 * (attempt + 1) + jitter));
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1) + jitter));
       continue;
     }
     throw new Error(`${label} failed: ${response.status()} ${await response.text()}`);
@@ -25,27 +21,22 @@ async function apiRetry(fn: () => Promise<{ok: () => boolean; status: () => numb
 }
 
 export async function apiCreateRepo(requestContext: APIRequestContext, {name, autoInit = true}: {name: string; autoInit?: boolean}) {
-  await apiRetry(() => requestContext.post(`${apiBaseUrl()}/api/v1/user/repos`, {
-    headers: apiHeaders(),
+  await apiRetry(() => requestContext.post(`/api/v1/user/repos`, {
+    headers: apiHeaders,
     data: {name, auto_init: autoInit},
   }), 'apiCreateRepo');
 }
 
 export async function apiDeleteRepo(requestContext: APIRequestContext, owner: string, name: string) {
-  await apiRetry(() => requestContext.delete(`${apiBaseUrl()}/api/v1/repos/${owner}/${name}`, {
-    headers: apiHeaders(),
+  await apiRetry(() => requestContext.delete(`/api/v1/repos/${owner}/${name}`, {
+    headers: apiHeaders,
   }), 'apiDeleteRepo');
 }
 
 export async function apiDeleteOrg(requestContext: APIRequestContext, name: string) {
-  await apiRetry(() => requestContext.delete(`${apiBaseUrl()}/api/v1/orgs/${name}`, {
-    headers: apiHeaders(),
+  await apiRetry(() => requestContext.delete(`/api/v1/orgs/${name}`, {
+    headers: apiHeaders,
   }), 'apiDeleteOrg');
-}
-
-export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {
-  await trigger.click();
-  await page.getByText(itemText).click();
 }
 
 export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, password = env.GITEA_TEST_E2E_PASSWORD) {
