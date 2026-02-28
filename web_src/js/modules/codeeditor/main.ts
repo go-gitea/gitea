@@ -23,7 +23,6 @@ type CodeEditorConfig = {
 
 export type CodemirrorEditor = {
   view: EditorView;
-  autofocus: boolean;
   trimTrailingWhitespace: boolean;
   togglePalette: (view: EditorView) => boolean;
   updateFilename: (filename: string) => Promise<void>;
@@ -52,12 +51,77 @@ export async function importCodemirror() {
   return {view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers, vscodeKeymap};
 }
 
-async function createCodemirrorEditor(
-  textarea: HTMLTextAreaElement,
-  config: CodeEditorConfig,
-): Promise<CodemirrorEditor> {
+function setupEditorOptionListeners(textarea: HTMLTextAreaElement, editor: CodemirrorEditor): void {
+  const elEditorOptions = textarea.closest('form')!.querySelector('.code-editor-options');
+  if (!elEditorOptions) return;
+
+  const {compartments, view} = editor;
+  const indentStyleSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-style-select')!;
+  const indentSizeSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-size-select')!;
+
+  const applyIndentSettings = async (style: string, size: number) => {
+    const cm = await importCodemirror();
+    view.dispatch({
+      effects: [
+        compartments.indentUnit.reconfigure(cm.language.indentUnit.of(style === 'tab' ? '\t' : ' '.repeat(size))),
+        compartments.tabSize.reconfigure(cm.state.EditorState.tabSize.of(size)),
+      ],
+    });
+  };
+
+  indentStyleSelect.addEventListener('change', () => {
+    applyIndentSettings(indentStyleSelect.value, Number(indentSizeSelect.value) || 4);
+  });
+
+  indentSizeSelect.addEventListener('change', () => {
+    applyIndentSettings(indentStyleSelect.value || 'space', Number(indentSizeSelect.value) || 4);
+  });
+
+  elEditorOptions.querySelector('.js-code-find')!.addEventListener('click', async () => {
+    const cm = await importCodemirror();
+    if (cm.search.searchPanelOpen(view.state)) {
+      cm.search.closeSearchPanel(view);
+    } else {
+      cm.search.openSearchPanel(view);
+    }
+  });
+
+  elEditorOptions.querySelector('.js-code-command-palette')!.addEventListener('click', () => {
+    editor.togglePalette(view);
+  });
+
+  elEditorOptions.querySelector<HTMLSelectElement>('.js-line-wrap-select')!.addEventListener('change', async (e) => {
+    const target = e.target as HTMLSelectElement;
+    const cm = await importCodemirror();
+    view.dispatch({
+      effects: compartments.wordWrap.reconfigure(target.value === 'on' ? cm.view.EditorView.lineWrapping : []),
+    });
+  });
+}
+
+function togglePreviewDisplay(previewable: boolean): void {
+  // FIXME: here and below, the selector is too broad, it should only query in the editor related scope
+  const previewTab = document.querySelector<HTMLElement>('a[data-tab="preview"]');
+  // the "preview tab" exists for "file code editor", but doesn't exist for "git hook editor"
+  if (!previewTab) return;
+
+  toggleElem(previewTab, previewable);
+  if (previewable) return;
+
+  // If not previewable but the "preview" tab was active (user changes the filename to a non-previewable one),
+  // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
+  if (previewTab.classList.contains('active')) {
+    const writeTab = document.querySelector<HTMLElement>('a[data-tab="write"]');
+    writeTab!.click();
+  }
+}
+
+export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameInput?: HTMLInputElement): Promise<CodemirrorEditor> {
+  const config: CodeEditorConfig = JSON.parse(textarea.getAttribute('data-code-editor-config')!);
+  const previewableExts = new Set(config.previewable_extensions || []);
+  const lineWrapExts = config.line_wrap_extensions || [];
   const cm = await importCodemirror();
-  const filename = config.file_name;
+
   const languageDescriptions = [
     ...cm.languageData.languages,
     cm.language.LanguageDescription.of({
@@ -81,7 +145,7 @@ async function createCodemirrorEditor(
       load: async () => (await import('@codemirror/lang-json')).json(),
     }),
   ];
-  const matchedLang = cm.language.LanguageDescription.matchFilename(languageDescriptions, filename);
+  const matchedLang = cm.language.LanguageDescription.matchFilename(languageDescriptions, config.file_name);
 
   const container = document.createElement('div');
   container.className = 'code-editor-container';
@@ -168,96 +232,27 @@ async function createCodemirrorEditor(
   const loading = document.querySelector('.editor-loading');
   if (loading) loading.remove();
 
-  return {
+  const editor: CodemirrorEditor = {
     view,
     trimTrailingWhitespace: config.trim_trailing_whitespace,
     togglePalette: palette.togglePalette,
-    languages: languageDescriptions,
-    compartments: {wordWrap, language, tabSize, indentUnit: indentUnitComp},
-  };
-}
-
-function setupEditorOptionListeners(textarea: HTMLTextAreaElement, editor: CodemirrorEditor): void {
-  const elEditorOptions = textarea.closest('form')!.querySelector('.code-editor-options');
-  if (!elEditorOptions) return;
-
-  const {compartments, view} = editor;
-  const indentStyleSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-style-select')!;
-  const indentSizeSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-size-select')!;
-
-  const applyIndentSettings = async (style: string, size: number) => {
-    const cm = await importCodemirror();
-    view.dispatch({
-      effects: [
-        compartments.indentUnit.reconfigure(cm.language.indentUnit.of(style === 'tab' ? '\t' : ' '.repeat(size))),
-        compartments.tabSize.reconfigure(cm.state.EditorState.tabSize.of(size)),
-      ],
-    });
-  };
-
-  indentStyleSelect.addEventListener('change', () => {
-    applyIndentSettings(indentStyleSelect.value, Number(indentSizeSelect.value) || 4);
-  });
-
-  indentSizeSelect.addEventListener('change', () => {
-    applyIndentSettings(indentStyleSelect.value || 'space', Number(indentSizeSelect.value) || 4);
-  });
-
-  elEditorOptions.querySelector('.js-code-find')!.addEventListener('click', async () => {
-    const cm = await importCodemirror();
-    if (cm.search.searchPanelOpen(view.state)) {
-      cm.search.closeSearchPanel(view);
-    } else {
-      cm.search.openSearchPanel(view);
-    }
-  });
-
-  elEditorOptions.querySelector('.js-code-command-palette')!.addEventListener('click', () => {
-    editor.togglePalette(view);
-  });
-
-  elEditorOptions.querySelector<HTMLSelectElement>('.js-line-wrap-select')!.addEventListener('change', async (e) => {
-    const target = e.target as HTMLSelectElement;
-    const cm = await importCodemirror();
-    view.dispatch({
-      effects: compartments.wordWrap.reconfigure(target.value === 'on' ? cm.view.EditorView.lineWrapping : []),
-    });
-  });
-}
-
-function togglePreviewDisplay(previewable: boolean): void {
-  // FIXME: here and below, the selector is too broad, it should only query in the editor related scope
-  const previewTab = document.querySelector<HTMLElement>('a[data-tab="preview"]');
-  // the "preview tab" exists for "file code editor", but doesn't exist for "git hook editor"
-  if (!previewTab) return;
-
-  toggleElem(previewTab, previewable);
-  if (previewable) return;
-
-  // If not previewable but the "preview" tab was active (user changes the filename to a non-previewable one),
-  // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
-  if (previewTab.classList.contains('active')) {
-    const writeTab = document.querySelector<HTMLElement>('a[data-tab="write"]');
-    writeTab!.click();
-  }
-}
-
-export async function createCodeEditor(textarea: HTMLTextAreaElement): Promise<CodemirrorEditor> {
-  const config: CodeEditorConfig = JSON.parse(textarea.getAttribute('data-code-editor-config')!);
-  const previewableExts = new Set(config.previewable_extensions || []);
-  const lineWrapExts = config.line_wrap_extensions || [];
-
-  const editor = await createCodemirrorEditor(textarea, config);
-  setupEditorOptionListeners(textarea, editor);
-
-  return {
-    ...editor,
-    autofocus: config.autofocus,
-    async updateFilename(filename: string) {
+    updateFilename: async (filename: string) => {
       togglePreviewDisplay(previewableExts.has(extname(filename)));
       await updateEditorLanguage(editor, filename, lineWrapExts);
     },
+    languages: languageDescriptions,
+    compartments: {wordWrap, language, tabSize, indentUnit: indentUnitComp},
   };
+
+  setupEditorOptionListeners(textarea, editor);
+
+  if (config.autofocus) {
+    editor.view.focus();
+  } else if (filenameInput) {
+    filenameInput.focus();
+  }
+
+  return editor;
 }
 
 async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, lineWrapExts: string[]): Promise<void> {

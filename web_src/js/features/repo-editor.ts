@@ -64,11 +64,11 @@ export async function initRepoEditor() {
     document.querySelector<HTMLInputElement>('#tree_path')!.value = parts.join('/');
   }
 
-  const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form')!;
-
   // on the upload page, there is no editor(textarea)
   const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
   if (!editArea) return;
+
+  const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form')!;
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
@@ -91,12 +91,7 @@ export async function initRepoEditor() {
 
   initEditPreviewTab(elForm);
 
-  const editor = await createCodeEditor(editArea);
-  if (editor.autofocus) {
-    editor.view.focus();
-  } else {
-    filenameInput.focus();
-  }
+  const editor = await createCodeEditor(editArea, filenameInput);
   await editor.updateFilename(filenameInput.value);
 
   filenameInput.addEventListener('input', function () {
