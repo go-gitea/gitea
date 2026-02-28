@@ -519,11 +519,8 @@ func TestActionsUserCrossRepoAccess(t *testing.T) {
 
 		t.Run("User Cross-Repo Access Denied (Explicit None)", doAPIGetRepository(testCtx, nil))
 
-		// Case B: Explicitly Enable AllowCrossRepoAccess All
-		user2, err := user_model.GetUserByName(t.Context(), userName)
-		require.NoError(t, err)
-
-		cfg := &repo_model.ActionsConfig{
+		// Case C: Explicitly Enable AllowCrossRepoAccess All
+		cfg = &repo_model.ActionsConfig{
 			CrossRepoMode: repo_model.ActionsCrossRepoModeAll,
 		}
 		err = actions_model.SetUserActionsConfig(t.Context(), user2.ID, cfg)
