@@ -87,7 +87,7 @@ export function commandPalette(cm: CodemirrorModules) {
       const keysEl = document.createElement('span');
       keysEl.className = 'cm-command-palette-keys';
       for (const [chordIndex, chord] of formatKeys(cmd.keys).entries()) {
-        if (chordIndex > 0) keysEl.append('\u2192');
+        if (chordIndex > 0) keysEl.append('→');
         for (const k of chord) {
           const kbd = document.createElement('kbd');
           kbd.textContent = k;
