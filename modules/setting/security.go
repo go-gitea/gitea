@@ -31,6 +31,7 @@ var (
 	ReverseProxyAuthEmail              string
 	ReverseProxyAuthFullName           string
 	ReverseProxyLimit                  int
+	ReverseProxyLogoutRedirect         string
 	ReverseProxyTrustedProxies         []string
 	MinPasswordLength                  int
 	ImportLocalPaths                   bool
@@ -124,6 +125,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	ReverseProxyAuthFullName = sec.Key("REVERSE_PROXY_AUTHENTICATION_FULL_NAME").MustString("X-WEBAUTH-FULLNAME")
 
 	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
+	ReverseProxyLogoutRedirect = sec.Key("REVERSE_PROXY_LOGOUT_REDIRECT").MustString("")
 	ReverseProxyTrustedProxies = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
 	if len(ReverseProxyTrustedProxies) == 0 {
 		ReverseProxyTrustedProxies = []string{"127.0.0.0/8", "::1/128"}
