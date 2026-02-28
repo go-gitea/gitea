@@ -36,7 +36,7 @@ const (
 	IndexArchiveFilename = "packages.db"
 )
 
-func AquireRegistryLock(ctx context.Context, ownerID int64) (globallock.ReleaseFunc, error) {
+func AcquireRegistryLock(ctx context.Context, ownerID int64) (globallock.ReleaseFunc, error) {
 	return globallock.Lock(ctx, fmt.Sprintf("packages_arch_%d", ownerID))
 }
 
