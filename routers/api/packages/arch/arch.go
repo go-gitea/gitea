@@ -91,7 +91,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	release, err := arch_service.AquireRegistryLock(ctx, ctx.Package.Owner.ID)
+	release, err := arch_service.AcquireRegistryLock(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -257,7 +257,7 @@ func DeletePackageVersion(ctx *context.Context) {
 	name := ctx.PathParam("name")
 	version := ctx.PathParam("version")
 
-	release, err := arch_service.AquireRegistryLock(ctx, ctx.Package.Owner.ID)
+	release, err := arch_service.AcquireRegistryLock(ctx, ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

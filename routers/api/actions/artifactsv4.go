@@ -269,9 +269,9 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 
 	artifactName := req.Name
 
-	rententionDays := setting.Actions.ArtifactRetentionDays
+	retentionDays := setting.Actions.ArtifactRetentionDays
 	if req.ExpiresAt != nil {
-		rententionDays = int64(time.Until(req.ExpiresAt.AsTime()).Hours() / 24)
+		retentionDays = int64(time.Until(req.ExpiresAt.AsTime()).Hours() / 24)
 	}
 	encoding := req.GetMimeType().GetValue()
 	fileName := artifactName

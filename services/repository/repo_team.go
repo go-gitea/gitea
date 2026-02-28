@@ -108,7 +108,7 @@ func removeAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (e
 			return err
 		}
 
-		// Remove watches from all users and now unaccessible repos
+		// Remove watches from all users and now inaccessible repos
 		for _, user := range t.Members {
 			has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo)
 			if err != nil {
