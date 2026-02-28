@@ -4,6 +4,7 @@
 -->
 {{- $size := Iif .size .size 16 -}}
 {{- $className := Iif .className .className "" -}}
+<!-- i18n-check: actions.status.* -->
 <span data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" .status)}}">
 {{if eq .status "success"}}
 	{{svg "octicon-check-circle-fill" $size (printf "tw-text-green %s" $className)}}

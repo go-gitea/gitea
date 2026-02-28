@@ -70,6 +70,7 @@ func (b *BaseConfig) DoNoticeOnSuccess() bool {
 // Please note the `status` string will be concatenated with `admin.dashboard.cron.` and `admin.dashboard.task.` to provide locale messages. Similarly `name` will be composed with `admin.dashboard.` to provide the locale name for the task.
 func (b *BaseConfig) FormatMessage(locale translation.Locale, name, status, doer string, args ...any) string {
 	realArgs := make([]any, 0, len(args)+2)
+	// i18n-check: admin.dashboard.*
 	realArgs = append(realArgs, locale.TrString("admin.dashboard."+name))
 	if doer == "" {
 		realArgs = append(realArgs, "(Cron)")
@@ -80,7 +81,9 @@ func (b *BaseConfig) FormatMessage(locale translation.Locale, name, status, doer
 		realArgs = append(realArgs, args...)
 	}
 	if doer == "" {
+		// i18n-check: admin.dashboard.cron.*
 		return locale.TrString("admin.dashboard.cron."+status, realArgs...)
 	}
+	// i18n-check: admin.dashboard.task.*
 	return locale.TrString("admin.dashboard.task."+status, realArgs...)
 }
