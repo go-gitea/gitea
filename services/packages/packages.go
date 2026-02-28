@@ -598,8 +598,8 @@ func OpenBlobStream(pb *packages_model.PackageBlob) (io.ReadSeekCloser, error) {
 }
 
 // OpenBlobForDownload returns the content of the specific package blob and increases the download counter.
-// If the storage supports direct serving and it's enabled, only the direct serving url is returned.
-func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, method string, serveDirectReqParams url.Values) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+// If the storage supports direct serving and it's enabled, only the direct serving url is returned; otherwise, forceInternalServe should be set to true.
+func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, method string, serveDirectReqParams url.Values, forceInternalServe ...bool) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	key := packages_module.BlobHash256Key(pb.HashSHA256)
 
 	cs := packages_module.NewContentStore()
@@ -608,7 +608,9 @@ func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb
 	var u *url.URL
 	var err error
 
-	if cs.ShouldServeDirect() {
+	internalServe := len(forceInternalServe) > 0 && forceInternalServe[0]
+
+	if !internalServe && cs.ShouldServeDirect() {
 		u, err = cs.GetServeDirectURL(key, pf.Name, method, serveDirectReqParams)
 		if err != nil && !errors.Is(err, storage.ErrURLNotSupported) {
 			log.Error("Error getting serve direct url (fallback to local reader): %v", err)

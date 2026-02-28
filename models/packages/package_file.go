@@ -5,6 +5,9 @@ package packages
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +24,8 @@ func init() {
 }
 
 var (
+	// ErrMetadataFile indicated a metadata file
+	ErrMetadataFile = errors.New("metadata file")
 	// ErrDuplicatePackageFile indicates a duplicated package file error
 	ErrDuplicatePackageFile = util.NewAlreadyExistErrorf("package file already exists")
 	// ErrPackageFileNotExist indicates a package file not exist error
@@ -229,6 +234,80 @@ func SearchFiles(ctx context.Context, opts *PackageFileSearchOptions) ([]*Packag
 // HasFiles tests if there are files of packages matching the search options
 func HasFiles(ctx context.Context, opts *PackageFileSearchOptions) (bool, error) {
 	return db.Exist[PackageFile](ctx, opts.toConds())
+}
+
+// GetFilesBelowBuildNumber retrieves all files for a Maven snapshot version where the build number is <= maxBuildNumber.
+// Returns two slices: one for filtered files and one for skipped files.
+func GetFilesBelowBuildNumber(ctx context.Context, versionID int64, maxBuildNumber int, classifiers ...string) ([]*PackageFile, []*PackageFile, error) {
+	if maxBuildNumber <= 0 {
+		return nil, nil, errors.New("maxBuildNumber must be a positive integer")
+	}
+
+	files, err := GetFilesByVersionID(ctx, versionID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to retrieve files: %w", err)
+	}
+
+	// Sort classifiers by length (longest first) once per call
+	sort.SliceStable(classifiers, func(i, j int) bool {
+		return len(classifiers[i]) > len(classifiers[j])
+	})
+
+	var filteredFiles, skippedFiles []*PackageFile
+	for _, file := range files {
+		buildNumber, err := extractBuildNumberFromFileName(file.Name, classifiers...)
+		if err != nil {
+			if !errors.Is(err, ErrMetadataFile) {
+				skippedFiles = append(skippedFiles, file)
+			}
+			continue
+		}
+
+		if buildNumber <= maxBuildNumber {
+			filteredFiles = append(filteredFiles, file)
+		}
+	}
+
+	return filteredFiles, skippedFiles, nil
+}
+
+// extractBuildNumberFromFileName extracts the build number from a Maven snapshot file name.
+// Expected formats:
+//
+//	"artifact-1.0.0-20250311.083409-9.tgz" returns 9
+//	"artifact-to-test-2.0.0-20250311.083409-10-sources.tgz" returns 10
+func extractBuildNumberFromFileName(filename string, classifiers ...string) (int, error) {
+	if strings.Contains(filename, "maven-metadata.xml") {
+		return 0, ErrMetadataFile
+	}
+
+	dotIdx := strings.LastIndex(filename, ".")
+	if dotIdx == -1 {
+		return 0, fmt.Errorf("extract build number from filename: no file extension found in '%s'", filename)
+	}
+	base := filename[:dotIdx]
+
+	// Remove classifier suffix if present.
+	for _, classifier := range classifiers {
+		suffix := "-" + classifier
+		if strings.HasSuffix(base, suffix) {
+			base = base[:len(base)-len(suffix)]
+			break
+		}
+	}
+
+	// The build number should be the token after the last dash.
+	lastDash := strings.LastIndex(base, "-")
+	if lastDash == -1 {
+		return 0, fmt.Errorf("extract build number from filename: invalid file name format in '%s'", filename)
+	}
+	buildNumberStr := base[lastDash+1:]
+	buildNumber, err := strconv.Atoi(buildNumberStr)
+	if err != nil {
+		return 0, fmt.Errorf("extract build number from filename: failed to convert build number '%s' to integer in '%s': %v", buildNumberStr, filename, err)
+	}
+
+	return buildNumber, nil
 }
 
 // CalculateFileSize sums up all blob sizes matching the search options.
