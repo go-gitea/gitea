@@ -15,7 +15,7 @@ test('projects + create an issue + create a pull request (PR via API)', async ({
   await page.goto(`/${owner}/${repoName}/projects/new`);
   await page.getByPlaceholder('Title').fill('Test Project - No default column');
   await page.getByRole('button', {name: 'Create Project'}).click();
-  await expect(page.locator('.milestone-list')).toContainText('Test Project - No default column');
+  await expect(page.locator('.project-list')).toContainText('Test Project - No default column');
 
   // Create project with default template
   await page.goto(`/${owner}/${repoName}/projects/new`);
@@ -23,7 +23,7 @@ test('projects + create an issue + create a pull request (PR via API)', async ({
   await page.getByText('Select a project template to get started None Basic Kanban Bug Triage').click();
   await page.getByRole('option', { name: 'Basic Kanban' }).click();
   await page.getByRole('button', { name: 'Create Project' }).click();
-  await expect(page.locator('.milestone-list')).toContainText('Test Project - Default column available');
+  await expect(page.locator('.project-list')).toContainText('Test Project - Default column available');
 
     // Create an issue via UI and verify
   await page.goto(`/${owner}/${repoName}/issues/new`);
