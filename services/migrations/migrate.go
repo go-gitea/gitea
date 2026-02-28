@@ -598,8 +598,13 @@ func MigrateOrganization(ctx context.Context, doer *user_model.User, opts OrgMig
 		for _, repo := range repos {
 			result.TotalRepos++
 
+			// Use the clone URL from the provider if available, otherwise construct it
+			cloneAddr := repo.CloneURL
+			if cloneAddr == "" {
+				cloneAddr = opts.CloneAddr + "/" + repo.Owner + "/" + repo.Name
+			}
 			repoOpts := base.MigrateOptions{
-				CloneAddr:      opts.CloneAddr + "/" + repo.Owner + "/" + repo.Name,
+				CloneAddr:      cloneAddr,
 				AuthUsername:   opts.AuthUsername,
 				AuthPassword:   opts.AuthPassword,
 				AuthToken:      opts.AuthToken,

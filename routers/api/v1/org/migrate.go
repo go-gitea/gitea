@@ -51,6 +51,12 @@ func MigrateOrg(ctx *context.APIContext) {
 		return
 	}
 
+	// Check if mirrors are allowed
+	if form.Mirror && setting.Mirror.DisableNewPull {
+		ctx.APIError(http.StatusBadRequest, errors.New("the site administrator has disabled creation of new mirrors"))
+		return
+	}
+
 	// Get target organization
 	targetOrg, err := organization.GetOrgByName(ctx, form.TargetOrgName)
 	if err != nil {
@@ -89,9 +95,9 @@ func MigrateOrg(ctx *context.APIContext) {
 		TargetOrgName:  form.TargetOrgName,
 		SourceOrgName:  form.SourceOrgName,
 		GitServiceType: form.Service,
-		Private:        form.Private,
+		Private:        form.Private || setting.Repository.ForcePrivate,
 		Mirror:         form.Mirror,
-		LFS:            form.LFS,
+		LFS:            form.LFS && setting.LFS.StartServer,
 		LFSEndpoint:    form.LFSEndpoint,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
