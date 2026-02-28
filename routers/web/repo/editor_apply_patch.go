@@ -20,7 +20,7 @@ func NewDiffPatch(ctx *context.Context) {
 	}
 
 	ctx.Data["PageIsPatch"] = true
-	ctx.Data["CodeEditorConfig"] = CodeEditorConfig{FileName: "diff.patch"}
+	ctx.Data["CodeEditorConfig"] = CodeEditorConfig{Filename: "diff.patch"}
 	ctx.HTML(http.StatusOK, tplPatchFile)
 }
 
