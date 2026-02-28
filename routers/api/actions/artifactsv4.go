@@ -280,7 +280,7 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 		fileName = artifactName + ".zip"
 	}
 	// create or get artifact with name and path
-	artifact, err := actions.CreateArtifact(ctx, ctx.ActionTask, artifactName, fileName, rententionDays)
+	artifact, err := actions.CreateArtifact(ctx, ctx.ActionTask, artifactName, fileName, retentionDays)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error create or get artifact")
