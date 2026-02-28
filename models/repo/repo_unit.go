@@ -268,13 +268,13 @@ func DefaultActionsTokenPermissions(mode ActionsTokenPermissionMode) ActionsToke
 	if mode == ActionsTokenPermissionModeRestricted {
 		return ActionsTokenPermissions{
 			Code:         perm.AccessModeRead,
-			Issues:       perm.AccessModeRead,
-			PullRequests: perm.AccessModeRead,
+			Issues:       perm.AccessModeNone,
+			PullRequests: perm.AccessModeNone,
 			Packages:     perm.AccessModeRead,
-			Actions:      perm.AccessModeRead,
-			Wiki:         perm.AccessModeRead,
+			Actions:      perm.AccessModeNone,
+			Wiki:         perm.AccessModeNone,
 			Releases:     perm.AccessModeRead,
-			Projects:     perm.AccessModeRead,
+			Projects:     perm.AccessModeNone,
 		}
 	}
 	// Permissive mode (default)
@@ -294,13 +294,13 @@ func DefaultActionsTokenPermissions(mode ActionsTokenPermissionMode) ActionsToke
 func GetReadOnlyPermissions() ActionsTokenPermissions {
 	return ActionsTokenPermissions{
 		Code:         perm.AccessModeRead,
-		Issues:       perm.AccessModeRead,
-		PullRequests: perm.AccessModeRead,
+		Issues:       perm.AccessModeNone,
+		PullRequests: perm.AccessModeNone,
 		Packages:     perm.AccessModeRead,
-		Actions:      perm.AccessModeRead,
-		Wiki:         perm.AccessModeRead,
+		Actions:      perm.AccessModeNone,
+		Wiki:         perm.AccessModeNone,
 		Releases:     perm.AccessModeRead,
-		Projects:     perm.AccessModeRead,
+		Projects:     perm.AccessModeNone,
 	}
 }
 

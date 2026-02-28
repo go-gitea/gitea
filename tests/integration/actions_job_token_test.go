@@ -503,9 +503,21 @@ func TestActionsUserCrossRepoAccess(t *testing.T) {
 
 		// Case A: Default (AllowCrossRepoAccess = false by default now) -> Should Fail (404 Not Found)
 		testCtx.ExpectedCode = http.StatusNotFound
-		t.Run("User Cross-Repo Access Denied (Default None)", doAPIGetRepository(testCtx, nil))
+		t.Run("User Cross-Repo Access Denied (Default)", doAPIGetRepository(testCtx, nil))
 
 		userObj := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: userName})
+
+		// Case B: Explicitly Set AllowedCrossRepoAccess to None -> Should Fail (404 Not Found)
+		user2, err := user_model.GetUserByName(t.Context(), userName)
+		require.NoError(t, err)
+
+		cfg := &repo_model.ActionsConfig{
+			CrossRepoMode: repo_model.ActionsCrossRepoModeNone,
+		}
+		err = actions_model.SetUserActionsConfig(t.Context(), user2.ID, cfg)
+		require.NoError(t, err)
+
+		t.Run("User Cross-Repo Access Denied (Explicit None)", doAPIGetRepository(testCtx, nil))
 
 		// Case B: Explicitly Enable AllowCrossRepoAccess All
 		user2, err := user_model.GetUserByName(t.Context(), userName)
