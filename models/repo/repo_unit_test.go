@@ -60,7 +60,7 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 		}
 		perms := cfg.GetDefaultTokenPermissions()
 		assert.Equal(t, perm.AccessModeRead, perms.Code)
-		assert.Equal(t, perm.AccessModeRead, perms.Issues)
+		assert.Equal(t, perm.AccessModeNone, perms.Issues)
 		assert.Equal(t, perm.AccessModeRead, perms.Packages)
 	})
 
