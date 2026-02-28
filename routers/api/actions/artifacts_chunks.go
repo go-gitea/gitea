@@ -147,7 +147,7 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 		if _, err := fmt.Sscanf(baseName, "block-%d-%d-%s", &item.RunID, &size, &b64chunkName); err != nil {
 			return fmt.Errorf("parse content range error: %v", err)
 		}
-		rchunkName, err := base64.RawURLEncoding.DecodeString(b64chunkName)
+		rchunkName, err := base64.URLEncoding.DecodeString(b64chunkName)
 		if err != nil {
 			return fmt.Errorf("failed to parse chunkName: %v", err)
 		}
