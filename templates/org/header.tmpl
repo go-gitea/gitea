@@ -1,4 +1,4 @@
-<div class="ui container tw-flex">
+<div class="ui container tw-flex org-head">
 	{{ctx.AvatarUtils.Avatar .Org 100 "org-avatar"}}
 	<div id="org-info" class="tw-flex tw-flex-col tw-flex-1 tw-break-anywhere">
 		<div class="ui header">
@@ -7,7 +7,7 @@
 				{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
 				{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
 			</span>
-			<span class="tw-flex tw-items-center tw-gap-1 tw-ml-auto tw-text-16 tw-whitespace-nowrap">
+			<span class="org-header-actions tw-flex tw-items-center tw-gap-1 tw-text-16">
 				{{if .EnableFeed}}
 					<a class="ui basic label button tw-mr-0" href="{{.Org.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
 						{{svg "octicon-rss" 24}}
