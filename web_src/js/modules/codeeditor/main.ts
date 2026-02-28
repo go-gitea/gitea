@@ -10,15 +10,15 @@ import type {EditorView, ViewUpdate} from '@codemirror/view';
 
 // CodeEditorConfig is also used by backend, defined in "editor_util.go"
 type CodeEditorConfig = {
-  file_name: string; // the current filename, used for language detection
-  autofocus?: boolean; // whether to autofocus the editor on load
-  previewable_extensions?: string[]; // file extensions that support preview rendering
-  indent_style: string; // "space" or "tab", from .editorconfig
-  indent_size?: number; // number of spaces per indent level, from .editorconfig
-  tab_width?: number; // display width of a tab character, from .editorconfig
-  line_wrap_extensions?: string[]; // file extensions that enable line wrapping by default
-  line_wrap: boolean; // whether line wrapping is enabled for the current file
-  trim_trailing_whitespace: boolean; // whether to trim trailing whitespace on save, from .editorconfig
+  filename: string; // the current filename (base name, not full path), used for language detection
+  autofocus: boolean; // whether to autofocus the editor on load
+  previewableExtensions: string[]; // file extensions that support preview rendering
+  indentStyle: string; // "space" or "tab", from .editorconfig
+  indentSize: number; // number of spaces per indent level, from .editorconfig
+  tabWidth: number; // display width of a tab character, from .editorconfig
+  lineWrapExtensions: string[]; // file extensions that enable line wrapping by default
+  lineWrap: boolean; // whether line wrapping is enabled for the current file
+  trimTrailingWhitespace: boolean; // whether to trim trailing whitespace on save, from .editorconfig
 };
 
 export type CodemirrorEditor = {
@@ -71,9 +71,23 @@ function togglePreviewDisplay(previewable: boolean): void {
 }
 
 export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameInput?: HTMLInputElement): Promise<CodemirrorEditor> {
-  const config: CodeEditorConfig = JSON.parse(textarea.getAttribute('data-code-editor-config')!);
-  const previewableExts = new Set(config.previewable_extensions || []);
-  const lineWrapExts = config.line_wrap_extensions || [];
+  const configDefault: CodeEditorConfig = {
+    filename: '',
+    autofocus: false,
+    previewableExtensions: [],
+    indentStyle: '', // default to empty, detect from source code
+    indentSize: 0, // default to empty, detect from source code
+    tabWidth: 4,
+    lineWrapExtensions: [],
+    lineWrap: false,
+    trimTrailingWhitespace: false,
+  };
+  const config: CodeEditorConfig = {
+    ...configDefault,
+    ...JSON.parse(textarea.getAttribute('data-code-editor-config')!),
+  };
+  const previewableExts = new Set(config.previewableExtensions || []);
+  const lineWrapExts = config.lineWrapExtensions || [];
   const cm = await importCodemirror();
 
   const languageDescriptions = [
@@ -99,7 +113,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       load: async () => (await import('@codemirror/lang-json')).json(),
     }),
   ];
-  const matchedLang = cm.language.LanguageDescription.matchFilename(languageDescriptions, config.file_name);
+  const matchedLang = cm.language.LanguageDescription.matchFilename(languageDescriptions, config.filename);
 
   const container = document.createElement('div');
   container.className = 'code-editor-container';
@@ -136,7 +150,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       cm.view.rectangularSelection(),
       cm.view.crosshairCursor(),
       textarea.getAttribute('data-placeholder') ? cm.view.placeholder(textarea.getAttribute('data-placeholder')!) : [],
-      config.trim_trailing_whitespace ? cm.view.highlightTrailingWhitespace() : [],
+      config.trimTrailingWhitespace ? cm.view.highlightTrailingWhitespace() : [],
       cm.search.search({top: true}),
       cm.search.highlightSelectionMatches(),
       cm.view.keymap.of([
@@ -154,7 +168,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       cm.language.bracketMatching(),
       indentUnitComp.of(
         cm.language.indentUnit.of(
-          config.indent_style === 'tab' ? '\t' : ' '.repeat(config.indent_size || 4),
+          config.indentStyle === 'tab' ? '\t' : ' '.repeat(config.indentSize || 4),
         ),
       ),
       cm.autocomplete.closeBrackets(),
@@ -171,8 +185,8 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       cm.commands.history(),
       palette.extensions,
       clickableUrls(cm),
-      tabSize.of(cm.state.EditorState.tabSize.of(config.tab_width || 4)),
-      wordWrap.of(config.line_wrap ? cm.view.EditorView.lineWrapping : []),
+      tabSize.of(cm.state.EditorState.tabSize.of(config.tabWidth || 4)),
+      wordWrap.of(config.lineWrap ? cm.view.EditorView.lineWrapping : []),
       language.of(matchedLang ? await matchedLang.load() : []),
       cm.view.EditorView.updateListener.of((update: ViewUpdate) => {
         if (update.docChanged) {
@@ -188,7 +202,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
 
   const editor: CodemirrorEditor = {
     view,
-    trimTrailingWhitespace: config.trim_trailing_whitespace,
+    trimTrailingWhitespace: config.trimTrailingWhitespace,
     togglePalette: palette.togglePalette,
     updateFilename: async (filename: string) => {
       togglePreviewDisplay(previewableExts.has(extname(filename)));
@@ -240,7 +254,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
     });
   }
 
-  togglePreviewDisplay(previewableExts.has(extname(config.file_name)));
+  togglePreviewDisplay(previewableExts.has(extname(config.filename)));
 
   if (config.autofocus) {
     editor.view.focus();
