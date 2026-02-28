@@ -22,14 +22,11 @@ func init() {
 	cli.HelpPrinter = cliHelpPrinterNew
 }
 
-// cliHelpPrinterNew helps to print "DEFAULT CONFIGURATION" for the following cases ( "-c" can apper in any position):
+// cliHelpPrinterNew helps to print "DEFAULT CONFIGURATION" for the following cases ("-c" must appear before "help"):
 // * ./gitea -c /dev/null -h
-// * ./gitea -c help /dev/null help
-// * ./gitea help -c /dev/null
-// * ./gitea help -c /dev/null web
-// * ./gitea help web -c /dev/null
-// * ./gitea web help -c /dev/null
-// * ./gitea web -h -c /dev/null
+// * ./gitea -c /dev/null help
+// * ./gitea web -c /dev/null -h
+// * ./gitea web -c /dev/null help
 func cliHelpPrinterNew(out io.Writer, templ string, data any) {
 	cmd, _ := data.(*cli.Command)
 	if cmd != nil {

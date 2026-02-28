@@ -94,10 +94,6 @@ func TestCliCmd(t *testing.T) {
 			cmd: "./gitea -c /dev/null help",
 			exp: "ConfigFile: /dev/null",
 		},
-		{
-			cmd: "./gitea help -c /dev/null",
-			exp: "ConfigFile: /dev/null",
-		},
 
 		{
 			cmd: "./gitea -c /dev/null test-cmd -h",
@@ -118,10 +114,6 @@ func TestCliCmd(t *testing.T) {
 		},
 		{
 			cmd: "./gitea test-cmd -c /dev/null help",
-			exp: "ConfigFile: /dev/null",
-		},
-		{
-			cmd: "./gitea test-cmd help -c /dev/null",
 			exp: "ConfigFile: /dev/null",
 		},
 
