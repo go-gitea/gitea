@@ -358,7 +358,7 @@ func gitlabClientMockTeardown(server *httptest.Server) {
 }
 
 type reviewTestCase struct {
-	repoID, prID, reviewerID int
+	repoID, prID, reviewerID int64
 	reviewerName             string
 	createdAt, updatedAt     *time.Time
 	expectedCreatedAt        time.Time
@@ -383,8 +383,8 @@ func convertTestCase(t reviewTestCase) (func(w http.ResponseWriter, r *http.Requ
 		fmt.Fprint(w, `
 {
   "id": 5,
-  "iid": `+strconv.Itoa(t.prID)+`,
-  "project_id": `+strconv.Itoa(t.repoID)+`,
+  "iid": `+strconv.FormatInt(t.prID, 10)+`,
+  "project_id": `+strconv.FormatInt(t.repoID, 10)+`,
   "title": "Approvals API",
   "description": "Test",
   "state": "opened",
@@ -398,7 +398,7 @@ func convertTestCase(t reviewTestCase) (func(w http.ResponseWriter, r *http.Requ
       "user": {
         "name": "Administrator",
         "username": "`+t.reviewerName+`",
-        "id": `+strconv.Itoa(t.reviewerID)+`,
+        "id": `+strconv.FormatInt(t.reviewerID, 10)+`,
         "state": "active",
         "avatar_url": "http://www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=80\u0026d=identicon",
         "web_url": "http://localhost:3000/root"
@@ -408,8 +408,8 @@ func convertTestCase(t reviewTestCase) (func(w http.ResponseWriter, r *http.Requ
 }`)
 	}
 	review := base.Review{
-		IssueIndex:   int64(t.prID),
-		ReviewerID:   int64(t.reviewerID),
+		IssueIndex:   t.prID,
+		ReviewerID:   t.reviewerID,
 		ReviewerName: t.reviewerName,
 		CreatedAt:    t.expectedCreatedAt,
 		State:        "APPROVED",
@@ -422,7 +422,7 @@ func TestGitlabGetReviews(t *testing.T) {
 	mux, server, client := gitlabClientMockSetup(t)
 	defer gitlabClientMockTeardown(server)
 
-	repoID := 1324
+	var repoID int64 = 1324
 	ctx := t.Context()
 	downloader := &GitlabDownloader{
 		client: client,
@@ -463,8 +463,7 @@ func TestGitlabGetReviews(t *testing.T) {
 		mock, review := convertTestCase(testCase)
 		mux.HandleFunc(fmt.Sprintf("/api/v4/projects/%d/merge_requests/%d/approvals", testCase.repoID, testCase.prID), mock)
 
-		id := int64(testCase.prID)
-		rvs, err := downloader.GetReviews(ctx, &base.Issue{Number: id, ForeignIndex: id})
+		rvs, err := downloader.GetReviews(ctx, &base.Issue{Number: testCase.prID, ForeignIndex: testCase.prID})
 		assert.NoError(t, err)
 		assertReviewsEqual(t, []*base.Review{&review}, rvs)
 	}
@@ -520,18 +519,10 @@ func TestNoteToComment(t *testing.T) {
 	downloader := &GitlabDownloader{}
 
 	now := time.Now()
-	makeTestNote := func(id int, body string, system bool) gitlab.Note {
+	makeTestNote := func(id int64, body string, system bool) gitlab.Note {
 		return gitlab.Note{
 			ID: id,
-			Author: struct {
-				ID        int    `json:"id"`
-				Username  string `json:"username"`
-				Email     string `json:"email"`
-				Name      string `json:"name"`
-				State     string `json:"state"`
-				AvatarURL string `json:"avatar_url"`
-				WebURL    string `json:"web_url"`
-			}{
+			Author: gitlab.NoteAuthor{
 				ID:       72,
 				Email:    "test@example.com",
 				Username: "test",
