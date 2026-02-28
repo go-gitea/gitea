@@ -799,9 +799,8 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		}
 	}
 
-	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(artifactName), artifactName))
-
 	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
+		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s; filename*=UTF-8''%s", url.PathEscape(artifacts[0].ArtifactPath), artifacts[0].ArtifactPath))
 		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
 			ctx.ServerError("DownloadArtifactV4", err)
@@ -809,6 +808,8 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		}
 		return
 	}
+
+	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(artifactName), artifactName))
 
 	// Artifacts using the v1-v3 backend are stored as multiple individual files per artifact on the backend
 	// Those need to be zipped for download

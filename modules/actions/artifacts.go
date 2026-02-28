@@ -5,6 +5,7 @@ package actions
 
 import (
 	"net/http"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/setting"
@@ -15,7 +16,7 @@ import (
 // Artifacts using the v4 backend are stored as a single combined zip file per artifact on the backend
 // The v4 backend ensures ContentEncoding is set to "application/zip", which is not the case for the old backend
 func IsArtifactV4(art *actions_model.ActionArtifact) bool {
-	return art.ArtifactName+".zip" == art.ArtifactPath && art.ContentEncoding == "application/zip"
+	return strings.Contains(art.ContentEncoding, "/")
 }
 
 func DownloadArtifactV4ServeDirectOnly(ctx *context.Base, art *actions_model.ActionArtifact) (bool, error) {
@@ -35,7 +36,8 @@ func DownloadArtifactV4Fallback(ctx *context.Base, art *actions_model.ActionArti
 		return err
 	}
 	defer f.Close()
-	http.ServeContent(ctx.Resp, ctx.Req, art.ArtifactName+".zip", art.CreatedUnix.AsLocalTime(), f)
+	ctx.Resp.Header().Set("Content-Type", art.ContentEncoding)
+	http.ServeContent(ctx.Resp, ctx.Req, art.ArtifactPath, art.CreatedUnix.AsLocalTime(), f)
 	return nil
 }
 

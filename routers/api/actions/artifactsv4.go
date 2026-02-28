@@ -94,6 +94,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -107,6 +108,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
+	"xorm.io/builder"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -170,7 +172,7 @@ func (r artifactV4Routes) buildSignature(endp, expires, artifactName string, tas
 func (r artifactV4Routes) buildArtifactURL(ctx *ArtifactContext, endp, artifactName string, taskID, artifactID int64) string {
 	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
 	uploadURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") + strings.TrimSuffix(r.prefix, "/") +
-		"/" + endp + "?sig=" + base64.URLEncoding.EncodeToString(r.buildSignature(endp, expires, artifactName, taskID, artifactID)) + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + strconv.FormatInt(taskID, 10) + "&artifactID=" + strconv.FormatInt(artifactID, 10)
+		"/" + endp + "?sig=" + base64.RawURLEncoding.EncodeToString(r.buildSignature(endp, expires, artifactName, taskID, artifactID)) + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + strconv.FormatInt(taskID, 10) + "&artifactID=" + strconv.FormatInt(artifactID, 10)
 	return uploadURL
 }
 
@@ -180,7 +182,7 @@ func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*a
 	sig := ctx.Req.URL.Query().Get("sig")
 	expires := ctx.Req.URL.Query().Get("expires")
 	artifactName := ctx.Req.URL.Query().Get("artifactName")
-	dsig, _ := base64.URLEncoding.DecodeString(sig)
+	dsig, _ := base64.RawURLEncoding.DecodeString(sig)
 	taskID, _ := strconv.ParseInt(rawTaskID, 10, 64)
 	artifactID, _ := strconv.ParseInt(rawArtifactID, 10, 64)
 
@@ -217,7 +219,7 @@ func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*a
 
 func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID int64, name string) (*actions.ActionArtifact, error) {
 	var art actions.ActionArtifact
-	has, err := db.GetEngine(ctx).Where("run_id = ? AND artifact_name = ? AND artifact_path = ? AND content_encoding = ?", runID, name, name+".zip", ArtifactV4ContentEncoding).Get(&art)
+	has, err := db.GetEngine(ctx).Where(builder.Eq{"run_id": runID, "artifact_name": name}, builder.Like{"content_encoding", "/"}).Get(&art)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -271,14 +273,20 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 	if req.ExpiresAt != nil {
 		rententionDays = int64(time.Until(req.ExpiresAt.AsTime()).Hours() / 24)
 	}
+	encoding := req.GetMimeType().GetValue()
+	fileName := artifactName
+	if !strings.Contains(encoding, "/") || req.GetVersion() < 7 {
+		encoding = ArtifactV4ContentEncoding
+		fileName = artifactName + ".zip"
+	}
 	// create or get artifact with name and path
-	artifact, err := actions.CreateArtifact(ctx, ctx.ActionTask, artifactName, artifactName+".zip", rententionDays)
+	artifact, err := actions.CreateArtifact(ctx, ctx.ActionTask, artifactName, fileName, rententionDays)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error create or get artifact")
 		return
 	}
-	artifact.ContentEncoding = ArtifactV4ContentEncoding
+	artifact.ContentEncoding = encoding
 	artifact.FileSize = 0
 	artifact.FileCompressedSize = 0
 	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
@@ -327,7 +335,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 				return
 			}
 		} else {
-			_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/block-%d-%d-%s", task.Job.RunID, task.Job.RunID, ctx.Req.ContentLength, base64.URLEncoding.EncodeToString([]byte(blockid))), ctx.Req.Body, -1)
+			_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/block-%d-%d-%s", task.Job.RunID, task.Job.RunID, ctx.Req.ContentLength, base64.RawURLEncoding.EncodeToString([]byte(blockid))), ctx.Req.Body, -1)
 			if err != nil {
 				log.Error("Error runner api getting task: task is not running")
 				ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task: task is not running")
@@ -398,12 +406,16 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 	if err != nil {
 		log.Warn("Failed to read BlockList, fallback to old behavior: %v", err)
 		chunkMap, err := listChunksByRunID(r.fs, runID)
-		if err != nil {
-			log.Error("Error merge chunks: %v", err)
-			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
-			return
+		if os.IsNotExist(err) {
+			chunks, err = listChunksByRunIDV4(r.fs, runID, artifact.ID, nil)
+		} else {
+			if err != nil {
+				log.Error("Error merge chunks: %v", err)
+				ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
+				return
+			}
+			chunks, ok = chunkMap[artifact.ID]
 		}
-		chunks, ok = chunkMap[artifact.ID]
 		if !ok {
 			log.Error("Error merge chunks")
 			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
@@ -449,8 +461,9 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 	}
 
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
-		RunID:  runID,
-		Status: int(actions.ArtifactStatusUploadConfirmed),
+		RunID:                runID,
+		Status:               int(actions.ArtifactStatusUploadConfirmed),
+		FinalizedArtifactsV4: true,
 	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
@@ -462,7 +475,7 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 
 	table := map[string]*ListArtifactsResponse_MonolithArtifact{}
 	for _, artifact := range artifacts {
-		if _, ok := table[artifact.ArtifactName]; ok || req.IdFilter != nil && artifact.ID != req.IdFilter.Value || req.NameFilter != nil && artifact.ArtifactName != req.NameFilter.Value || artifact.ArtifactName+".zip" != artifact.ArtifactPath || artifact.ContentEncoding != ArtifactV4ContentEncoding {
+		if _, ok := table[artifact.ArtifactName]; ok || req.IdFilter != nil && artifact.ID != req.IdFilter.Value || req.NameFilter != nil && artifact.ArtifactName != req.NameFilter.Value {
 			table[artifact.ArtifactName] = nil
 			continue
 		}
