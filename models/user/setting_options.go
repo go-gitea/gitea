@@ -11,10 +11,6 @@ const (
 	// SettingsKeyShowOutdatedComments is the setting key whether or not to show outdated comments in PRs
 	SettingsKeyShowOutdatedComments = "comment_code.show_outdated"
 
-	// UserActivityPubPrivPem is user's private key
-	UserActivityPubPrivPem = "activitypub.priv_pem"
-	// UserActivityPubPubPem is user's public key
-	UserActivityPubPubPem = "activitypub.pub_pem"
 	// SignupIP is the IP address that the user signed up with
 	SignupIP = "signup.ip"
 	// SignupUserAgent is the user agent that the user signed up with

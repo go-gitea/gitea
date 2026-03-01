@@ -46,3 +46,10 @@ type swaggerResponseActionWorkflowList struct {
 	// in:body
 	Body api.ActionWorkflowResponse `json:"body"`
 }
+
+// RunDetails
+// swagger:response RunDetails
+type swaggerResponseRunDetails struct {
+	// in:body
+	Body api.RunDetails `json:"body"`
+}
