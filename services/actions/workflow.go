@@ -44,7 +44,7 @@ func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnabl
 	return repo_model.UpdateRepoUnit(ctx, cfgUnit)
 }
 
-func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) (runID int64, workflowError error) {
+func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) (runID int64, _ error) {
 	if workflowID == "" {
 		return 0, util.ErrorWrapTranslatable(
 			util.NewNotExistErrorf("workflowID is empty"),
