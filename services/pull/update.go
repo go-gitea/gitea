@@ -107,7 +107,7 @@ func isUserAllowedToPushOrForcePushInRepoBranch(ctx context.Context, user *user_
 		return false, false, nil
 	}
 
-	// 1. check user push permission on head repository
+	// 1. check user push permission on the given repository
 	repoPerm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		if repo_model.IsErrUnitTypeNotExist(err) {
