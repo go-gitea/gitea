@@ -6,10 +6,12 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/setting"
@@ -521,6 +523,24 @@ func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err e
 		return false, err
 	}
 	return len(stdout) > 0, err
+}
+
+// GetBranchesContaining returns all local branch names that contain the given commit.
+// A timeout is applied to prevent slow lookups on large repositories.
+func (repo *Repository) GetBranchesContaining(commitID string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(repo.Ctx, 10*time.Second)
+	defer cancel()
+
+	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--format=%(refname:strip=2)").
+		AddOptionValues("--contains", commitID, BranchPrefix).
+		WithDir(repo.Path).
+		RunStdString(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	branches := strings.Fields(stdout)
+	return branches, nil
 }
 
 // GetCommitBranchStart returns the commit where the branch diverged
