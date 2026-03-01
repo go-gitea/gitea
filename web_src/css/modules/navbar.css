@@ -102,12 +102,14 @@
 }
 
 #navbar a.item:hover .notification_count,
-#navbar a.item:hover .header-stopwatch-dot {
+#navbar a.item:hover .header-stopwatch-dot,
+#navbar .item.active .navbar-admin-badge {
   border-color: var(--color-nav-hover-bg);
 }
 
 #navbar a.item .notification_count,
-#navbar a.item .header-stopwatch-dot {
+#navbar a.item .header-stopwatch-dot,
+#navbar .item .navbar-admin-badge {
   color: var(--color-nav-bg);
   padding: 0 3.75px;
   font-size: 12px;
@@ -134,15 +136,11 @@
   display: inline-flex;
 }
 
-.navbar-admin-badge {
+#navbar .item .navbar-admin-badge {
   position: absolute;
-  bottom: -4px;
-  right: 0;
+  bottom: calc(100% - 29px);
+  left: calc(100% - 17px);
   padding: 1px;
-  color: var(--color-black);
-  background: var(--color-success-text);
-  border: 2px solid var(--color-nav-bg);
-  border-radius: 10px; /* (height + 2 * borderThickness) / 2 */
 }
 
 .secondary-nav {
