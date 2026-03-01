@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -746,20 +747,25 @@ func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64
 	}
 }
 
+// splitInts splits a comma-separated string of integers into a slice.
+func splitInts(s string) ([]int, error) {
+	parts := strings.Split(s, ",")
+	result := make([]int, len(parts))
+	for i, p := range parts {
+		v, err := strconv.Atoi(strings.TrimSpace(p))
+		if err != nil {
+			return nil, err
+		}
+		result[i] = v
+	}
+	return result, nil
+}
+
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.PathParam("sha")
-	opts := gitdiff.BlobExcerptOptions{
-		LastLeft:      ctx.FormInt("last_left"),
-		LastRight:     ctx.FormInt("last_right"),
-		LeftIndex:     ctx.FormInt("left"),
-		RightIndex:    ctx.FormInt("right"),
-		LeftHunkSize:  ctx.FormInt("left_hunk_size"),
-		RightHunkSize: ctx.FormInt("right_hunk_size"),
-		Direction:     ctx.FormString("direction"),
-		Language:      ctx.FormString("filelang"),
-	}
 	filePath := ctx.FormString("path")
+	language := ctx.FormString("filelang")
 	gitRepo := ctx.Repo.GitRepo
 
 	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
@@ -778,6 +784,30 @@ func ExcerptBlob(ctx *context.Context) {
 		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
 	}
 
+	// Detect batch mode: comma in last_left means comma-separated arrays
+	isBatch := strings.Contains(ctx.FormString("last_left"), ",")
+
+	// Parse options: batch parses comma-separated arrays, single parses individual values
+	var optsList []gitdiff.BlobExcerptOptions
+	if isBatch {
+		var ok bool
+		optsList, ok = parseBatchBlobExcerptOptions(ctx, language)
+		if !ok {
+			return
+		}
+	} else {
+		optsList = []gitdiff.BlobExcerptOptions{{
+			LastLeft:      ctx.FormInt("last_left"),
+			LastRight:     ctx.FormInt("last_right"),
+			LeftIndex:     ctx.FormInt("left"),
+			RightIndex:    ctx.FormInt("right"),
+			LeftHunkSize:  ctx.FormInt("left_hunk_size"),
+			RightHunkSize: ctx.FormInt("right_hunk_size"),
+			Direction:     ctx.FormString("direction"),
+			Language:      language,
+		}}
+	}
+
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
@@ -788,26 +818,35 @@ func ExcerptBlob(ctx *context.Context) {
 		ctx.ServerError("GetBlobByPath", err)
 		return
 	}
+	if blob.Size() > setting.UI.MaxDisplayFileSize {
+		ctx.HTTPError(http.StatusRequestEntityTooLarge, "blob too large for expansion")
+		return
+	}
 	reader, err := blob.DataAsync()
 	if err != nil {
 		ctx.ServerError("DataAsync", err)
 		return
 	}
-	defer reader.Close()
-
-	section, err := gitdiff.BuildBlobExcerptDiffSection(filePath, reader, opts)
+	blobData, err := io.ReadAll(reader)
+	reader.Close()
 	if err != nil {
-		ctx.ServerError("BuildBlobExcerptDiffSection", err)
+		ctx.ServerError("ReadAll", err)
 		return
 	}
 
+	sections, err := gitdiff.BuildBlobExcerptDiffSections(filePath, blobData, optsList)
+	if err != nil {
+		ctx.ServerError("BuildBlobExcerptDiffSections", err)
+		return
+	}
+
+	// Fetch PR comments and attach to sections
 	diffBlobExcerptData.PullIssueIndex = ctx.FormInt64("pull_issue_index")
 	if diffBlobExcerptData.PullIssueIndex > 0 {
 		if !ctx.Repo.CanRead(unit.TypePullRequests) {
 			ctx.NotFound(nil)
 			return
 		}
-
 		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, diffBlobExcerptData.PullIssueIndex)
 		if err != nil {
 			log.Error("GetIssueByIndex error: %v", err)
@@ -824,8 +863,8 @@ func ExcerptBlob(ctx *context.Context) {
 			allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated"))
 			if err != nil {
 				log.Error("FetchCodeComments error: %v", err)
-			} else {
-				if lineComments, ok := allComments[filePath]; ok {
+			} else if lineComments, ok := allComments[filePath]; ok {
+				for _, section := range sections {
 					attachCommentsToLines(section, lineComments)
 					attachHiddenCommentIDs(section, lineComments)
 				}
@@ -833,9 +872,62 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["section"] = section
 	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
-	ctx.HTML(http.StatusOK, tplBlobExcerpt)
+	// Respond: single returns HTML, batch returns JSON array of HTML strings
+	if isBatch {
+		htmlStrings := make([]string, len(sections))
+		for i, section := range sections {
+			ctx.Data["section"] = section
+			html, err := ctx.RenderToHTML(tplBlobExcerpt, ctx.Data)
+			if err != nil {
+				ctx.ServerError("RenderToHTML", err)
+				return
+			}
+			htmlStrings[i] = string(html)
+		}
+		ctx.JSON(http.StatusOK, htmlStrings)
+	} else {
+		ctx.Data["section"] = sections[0]
+		ctx.HTML(http.StatusOK, tplBlobExcerpt)
+	}
+}
+
+// parseBatchBlobExcerptOptions parses comma-separated per-gap parameters for batch expansion.
+// Returns false if an error response has been sent.
+func parseBatchBlobExcerptOptions(ctx *context.Context, language string) ([]gitdiff.BlobExcerptOptions, bool) {
+	paramNames := [6]string{"last_left", "last_right", "left", "right", "left_hunk_size", "right_hunk_size"}
+	var parsed [6][]int
+	for i, name := range paramNames {
+		vals, err := splitInts(ctx.FormString(name))
+		if err != nil {
+			ctx.HTTPError(http.StatusBadRequest, "invalid "+name+" values")
+			return nil, false
+		}
+		parsed[i] = vals
+	}
+
+	n := len(parsed[0])
+	for i := 1; i < len(parsed); i++ {
+		if len(parsed[i]) != n {
+			ctx.HTTPError(http.StatusBadRequest, "all per-gap parameter arrays must have the same length")
+			return nil, false
+		}
+	}
+
+	optsList := make([]gitdiff.BlobExcerptOptions, n)
+	for i := range n {
+		optsList[i] = gitdiff.BlobExcerptOptions{
+			LastLeft:      parsed[0][i],
+			LastRight:     parsed[1][i],
+			LeftIndex:     parsed[2][i],
+			RightIndex:    parsed[3][i],
+			LeftHunkSize:  parsed[4][i],
+			RightHunkSize: parsed[5][i],
+			Direction:     "full",
+			Language:      language,
+		}
+	}
+	return optsList, true
 }

@@ -26,7 +26,9 @@ type BlobExcerptOptions struct {
 	Language      string
 }
 
-func fillExcerptLines(section *DiffSection, filePath string, reader io.Reader, lang string, idxLeft, idxRight, chunkSize int) error {
+// fillExcerptLines reads from reader and populates section.Lines.
+// It returns the accumulated content buffer for later highlighting.
+func fillExcerptLines(section *DiffSection, reader io.Reader, idxLeft, idxRight, chunkSize int) ([]byte, error) {
 	buf := &bytes.Buffer{}
 	scanner := bufio.NewScanner(reader)
 	var diffLines []*DiffLine
@@ -51,36 +53,36 @@ func fillExcerptLines(section *DiffSection, filePath string, reader io.Reader, l
 		diffLines = append(diffLines, diffLine)
 	}
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("fillExcerptLines scan: %w", err)
+		return nil, fmt.Errorf("fillExcerptLines scan: %w", err)
 	}
 	section.Lines = diffLines
-	// DiffLinePlain always uses right lines
-	section.highlightedRightLines.value = highlightCodeLines(filePath, lang, []*DiffSection{section}, false /* right */, buf.Bytes())
-	return nil
+	return buf.Bytes(), nil
 }
 
-func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExcerptOptions) (*DiffSection, error) {
+// buildExcerptDiffSection builds a single excerpt section without highlighting.
+// It returns the section and the accumulated content buffer.
+func buildExcerptDiffSection(filePath string, reader io.Reader, opts BlobExcerptOptions) (*DiffSection, []byte, error) {
 	lastLeft, lastRight, idxLeft, idxRight := opts.LastLeft, opts.LastRight, opts.LeftIndex, opts.RightIndex
 	leftHunkSize, rightHunkSize, direction := opts.LeftHunkSize, opts.RightHunkSize, opts.Direction
-	language := opts.Language
 
 	chunkSize := BlobExcerptChunkSize
 	section := &DiffSection{
-		language:              &diffVarMutable[string]{value: language},
+		language:              &diffVarMutable[string]{value: opts.Language},
 		highlightLexer:        &diffVarMutable[chroma.Lexer]{},
 		highlightedLeftLines:  &diffVarMutable[map[int]template.HTML]{},
 		highlightedRightLines: &diffVarMutable[map[int]template.HTML]{},
 		FileName:              filePath,
 	}
+	var bufContent []byte
 	var err error
 	if direction == "up" && (idxLeft-lastLeft) > chunkSize {
 		idxLeft -= chunkSize
 		idxRight -= chunkSize
 		leftHunkSize += chunkSize
 		rightHunkSize += chunkSize
-		err = fillExcerptLines(section, filePath, reader, language, idxLeft-1, idxRight-1, chunkSize)
+		bufContent, err = fillExcerptLines(section, reader, idxLeft-1, idxRight-1, chunkSize)
 	} else if direction == "down" && (idxLeft-lastLeft) > chunkSize {
-		err = fillExcerptLines(section, filePath, reader, language, lastLeft, lastRight, chunkSize)
+		bufContent, err = fillExcerptLines(section, reader, lastLeft, lastRight, chunkSize)
 		lastLeft += chunkSize
 		lastRight += chunkSize
 	} else {
@@ -88,14 +90,14 @@ func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExc
 		if direction == "down" {
 			offset = 0
 		}
-		err = fillExcerptLines(section, filePath, reader, language, lastLeft, lastRight, idxRight-lastRight+offset)
+		bufContent, err = fillExcerptLines(section, reader, lastLeft, lastRight, idxRight-lastRight+offset)
 		leftHunkSize = 0
 		rightHunkSize = 0
 		idxLeft = lastLeft
 		idxRight = lastRight
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	newLineSection := &DiffLine{
@@ -120,5 +122,39 @@ func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExc
 			section.Lines = append(section.Lines, newLineSection)
 		}
 	}
+	return section, bufContent, nil
+}
+
+// BuildBlobExcerptDiffSection builds a single excerpt section with highlighting.
+func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExcerptOptions) (*DiffSection, error) {
+	section, bufContent, err := buildExcerptDiffSection(filePath, reader, opts)
+	if err != nil {
+		return nil, err
+	}
+	// DiffLinePlain always uses right lines
+	section.highlightedRightLines.value = highlightCodeLines(filePath, opts.Language, []*DiffSection{section}, false /* right */, bufContent)
 	return section, nil
+}
+
+// BuildBlobExcerptDiffSections builds multiple excerpt sections from the same file content,
+// highlighting the content only once for all sections.
+func BuildBlobExcerptDiffSections(filePath string, content []byte, optsList []BlobExcerptOptions) ([]*DiffSection, error) {
+	sections := make([]*DiffSection, len(optsList))
+	for i, opts := range optsList {
+		section, _, err := buildExcerptDiffSection(filePath, bytes.NewReader(content), opts)
+		if err != nil {
+			return nil, err
+		}
+		sections[i] = section
+	}
+
+	// Highlight once for all sections
+	if len(optsList) > 0 {
+		highlighted := highlightCodeLines(filePath, optsList[0].Language, sections, false /* right */, content)
+		for _, section := range sections {
+			section.highlightedRightLines.value = highlighted
+		}
+	}
+
+	return sections, nil
 }
