@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/indexer/code/bleve"
 	"code.gitea.io/gitea/modules/indexer/code/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
+	"code.gitea.io/gitea/modules/indexer/code/zoekt"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
@@ -117,7 +118,7 @@ func Init() {
 
 	// Create the Queue
 	switch setting.Indexer.RepoType {
-	case "bleve", "elasticsearch":
+	case "bleve", "elasticsearch", "zoekt":
 		handler := func(items ...*internal.IndexerData) (unhandled []*internal.IndexerData) {
 			indexer := *globalIndexer.Load()
 			for _, indexerData := range items {
@@ -183,6 +184,25 @@ func Init() {
 				(*globalIndexer.Load()).Close()
 				close(waitChannel)
 				log.Fatal("PID: %d Unable to initialize the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), util.SanitizeCredentialURLs(setting.Indexer.RepoConnStr), err)
+			}
+		case "zoekt":
+			log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), setting.Indexer.RepoPath)
+			defer func() {
+				if err := recover(); err != nil {
+					log.Error("PANIC whilst initializing repository indexer: %v\nStacktrace: %s", err, log.Stack(2))
+					log.Error("The indexer files are likely corrupted and may need to be deleted")
+					log.Error("You can completely remove the \"%s\" directory to make Gitea recreate the indexes", setting.Indexer.RepoPath)
+				}
+			}()
+
+			rIndexer = zoekt.NewIndexer(setting.Indexer.RepoPath)
+			existed, err = rIndexer.Init(ctx)
+			if err != nil {
+				cancel()
+				(*globalIndexer.Load()).Close()
+				close(waitChannel)
+
+				log.Fatal("PID: %d Unable to initialize the zoekt Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
 			}
 
 		default:
