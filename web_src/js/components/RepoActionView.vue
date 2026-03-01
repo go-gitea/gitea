@@ -301,6 +301,18 @@ export default defineComponent({
       POST(`${this.run.link}/approve`);
     },
 
+    artifactBaseURL(name: string): string {
+      return `${this.run.link}/artifacts/${encodeURIComponent(name)}`;
+    },
+
+    artifactPreviewURL(name: string): string {
+      return `${this.artifactBaseURL(name)}/preview`;
+    },
+
+    artifactDownloadURL(name: string): string {
+      return this.artifactBaseURL(name);
+    },
+
     createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand | null) {
       const lineNum = createElementFromAttrs('a', {class: 'line-num muted', href: `#jobstep-${stepIndex}-${line.index}`},
         String(line.index),
@@ -354,8 +366,7 @@ export default defineComponent({
 
     async deleteArtifact(name: string) {
       if (!window.confirm(this.locale.confirmDeleteArtifact.replace('%s', name))) return;
-      // TODO: should escape the "name"?
-      await DELETE(`${this.run.link}/artifacts/${name}`);
+      await DELETE(this.artifactBaseURL(name));
       await this.loadJobForce();
     },
 
@@ -558,13 +569,18 @@ export default defineComponent({
             <template v-for="artifact in artifacts" :key="artifact.name">
               <li class="job-artifacts-item">
                 <template v-if="artifact.status !== 'expired'">
-                  <a class="flex-text-inline" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                  <a class="flex-text-inline" target="_blank" :href="artifactPreviewURL(artifact.name)">
                     <SvgIcon name="octicon-file" class="tw-text-text"/>
                     <span class="gt-ellipsis">{{ artifact.name }}</span>
                   </a>
-                  <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
-                    <SvgIcon name="octicon-trash" class="tw-text-text"/>
-                  </a>
+                  <span class="job-artifact-actions">
+                    <a target="_blank" :href="artifactDownloadURL(artifact.name)" :data-tooltip-content="locale.downloadFile">
+                      <SvgIcon name="octicon-download" class="tw-text-text"/>
+                    </a>
+                    <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
+                      <SvgIcon name="octicon-trash" class="tw-text-text"/>
+                    </a>
+                  </span>
                 </template>
                 <span v-else class="flex-text-inline tw-text-grey-light">
                   <SvgIcon name="octicon-file"/>
@@ -747,6 +763,13 @@ export default defineComponent({
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.job-artifact-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .job-artifacts-list {
