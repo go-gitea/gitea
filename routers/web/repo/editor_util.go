@@ -65,27 +65,31 @@ func getClosestParentWithFiles(gitRepo *git.Repository, branchName, originTreePa
 	return f(originTreePath, commit)
 }
 
-// CodeEditorConfig is also used by frontend, defined in "codeeditor.ts"
+// CodeEditorConfig is also used by frontend, defined in "codeeditor" module
 type CodeEditorConfig struct {
-	PreviewableExtensions []string `json:"previewable_extensions"`
-	LineWrapExtensions    []string `json:"line_wrap_extensions"`
-	LineWrapOn            bool     `json:"line_wrap_on"`
+	Filename              string   `json:"filename"` // the base name, not full path
+	Autofocus             bool     `json:"autofocus"`
+	PreviewableExtensions []string `json:"previewableExtensions,omitempty"`
+	LineWrapExtensions    []string `json:"lineWrapExtensions,omitempty"`
+	LineWrap              bool     `json:"lineWrap"`
 
-	IndentStyle            string `json:"indent_style"`
-	IndentSize             int    `json:"indent_size"`
-	TabWidth               int    `json:"tab_width"`
-	TrimTrailingWhitespace *bool  `json:"trim_trailing_whitespace,omitempty"`
+	// the following can be read from .editorconfig if exists, or use default value
+	IndentStyle            string `json:"indentStyle"` // in most cases, keep it empty by default, detected by the source code
+	IndentSize             int    `json:"indentSize"`
+	TabWidth               int    `json:"tabWidth"`
+	TrimTrailingWhitespace *bool  `json:"trimTrailingWhitespace,omitempty"`
 }
 
-func getCodeEditorConfig(ctx *context_service.Context, treePath string) (ret CodeEditorConfig) {
+func getCodeEditorConfigByEditorconfig(ctx *context_service.Context, treePath string) CodeEditorConfig {
+	ret := CodeEditorConfig{Filename: path.Base(treePath)}
 	ret.PreviewableExtensions = markup.PreviewableExtensions()
 	ret.LineWrapExtensions = setting.Repository.Editor.LineWrapExtensions
-	ret.LineWrapOn = util.SliceContainsString(ret.LineWrapExtensions, path.Ext(treePath), true)
+	ret.LineWrap = util.SliceContainsString(ret.LineWrapExtensions, path.Ext(treePath), true)
 	ec, _, err := ctx.Repo.GetEditorconfig()
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
-			ret.IndentStyle = def.IndentStyle
+			ret.IndentStyle = util.IfZero(def.IndentStyle, ret.IndentStyle)
 			ret.IndentSize, _ = strconv.Atoi(def.IndentSize)
 			ret.TabWidth = def.TabWidth
 			ret.TrimTrailingWhitespace = def.TrimTrailingWhitespace

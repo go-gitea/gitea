@@ -1,6 +1,6 @@
 import {html, htmlRaw} from '../utils/html.ts';
-import {createCodeEditor} from './codeeditor.ts';
-import {hideElem, queryElems, showElem, createElementFromHTML} from '../utils/dom.ts';
+import {createCodeEditor, trimTrailingWhitespaceFromView} from '../modules/codeeditor/main.ts';
+import {hideElem, queryElems, showElem, createElementFromHTML, onInputDebounce} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
@@ -50,6 +50,9 @@ export function initRepoEditor() {
     });
   }
 
+  // ATTENTION: two pages have this filename input
+  // * new/edit file page: there is a code editor
+  // * upload page: there is no code editor, but a uploader
   const filenameInput = document.querySelector<HTMLInputElement>('#file-name')!;
   if (!filenameInput) return;
   function joinTreePath() {
@@ -143,7 +146,8 @@ export function initRepoEditor() {
 
   const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form')!;
 
-  // on the upload page, there is no editor(textarea)
+  // see the ATTENTION above, on the upload page, there is no editor(textarea)
+  // so only the filename input above is initialized, the code below (for the code editor) will be skipped
   const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
   if (!editArea) return;
 
@@ -170,16 +174,22 @@ export function initRepoEditor() {
 
   (async () => {
     const editor = await createCodeEditor(editArea, filenameInput);
+    filenameInput.addEventListener('input', onInputDebounce(() => editor.updateFilename(filenameInput.value)));
 
     // Update the editor from query params, if available,
     // only after the dirtyFileClass initialization
     const params = new URLSearchParams(window.location.search);
     const value = params.get('value');
     if (value) {
-      editor.setValue(value);
+      editor.view.dispatch({
+        changes: {from: 0, to: editor.view.state.doc.length, insert: value},
+      });
     }
 
     commitButton.addEventListener('click', async (e) => {
+      if (editor.trimTrailingWhitespace) {
+        trimTrailingWhitespaceFromView(editor.view);
+      }
       // A modal which asks if an empty file should be committed
       if (!editArea.value) {
         e.preventDefault();

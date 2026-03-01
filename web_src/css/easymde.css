@@ -440,3 +440,26 @@
   border: 1px solid var(--color-secondary);
   padding: 5px;
 }
+
+.EasyMDEContainer .CodeMirror .cm-keyword { color: var(--color-syntax-keyword); }
+.EasyMDEContainer .CodeMirror .cm-atom { color: var(--color-syntax-keyword); }
+.EasyMDEContainer .CodeMirror .cm-number { color: var(--color-syntax-number); }
+.EasyMDEContainer .CodeMirror .cm-def { color: var(--color-syntax-name); }
+.EasyMDEContainer .CodeMirror .cm-variable-2 { color: var(--color-syntax-name); }
+.EasyMDEContainer .CodeMirror .cm-variable-3 { color: var(--color-syntax-type); }
+.EasyMDEContainer .CodeMirror .cm-property { color: var(--color-syntax-name); }
+.EasyMDEContainer .CodeMirror .cm-comment { color: var(--color-syntax-comment); }
+.EasyMDEContainer .CodeMirror .cm-string { color: var(--color-syntax-string); }
+.EasyMDEContainer .CodeMirror .cm-string-2 { color: var(--color-syntax-regexp); }
+.EasyMDEContainer .CodeMirror .cm-meta { color: var(--color-syntax-control); }
+.EasyMDEContainer .CodeMirror .cm-qualifier { color: var(--color-syntax-control); }
+.EasyMDEContainer .CodeMirror .cm-builtin { color: var(--color-syntax-keyword); }
+.EasyMDEContainer .CodeMirror .cm-bracket { color: var(--color-syntax-operator); }
+.EasyMDEContainer .CodeMirror .cm-tag { color: var(--color-syntax-type); }
+.EasyMDEContainer .CodeMirror .cm-attribute { color: var(--color-syntax-name); }
+.EasyMDEContainer .CodeMirror .cm-header { color: var(--color-syntax-type); }
+.EasyMDEContainer .CodeMirror .cm-quote { color: var(--color-syntax-comment); }
+.EasyMDEContainer .CodeMirror .cm-hr { color: var(--color-syntax-operator); }
+.EasyMDEContainer .CodeMirror .cm-url { color: var(--color-syntax-link); }
+.EasyMDEContainer .CodeMirror .cm-link { color: var(--color-syntax-link); }
+.EasyMDEContainer .CodeMirror .cm-error { color: var(--color-syntax-invalid); }

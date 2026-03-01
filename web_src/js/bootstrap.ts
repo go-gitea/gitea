@@ -8,19 +8,6 @@ import {html} from './utils/html.ts';
 // This file must be imported before any lazy-loading is being attempted.
 window.__webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/`;
 
-export function shouldIgnoreError(err: Error) {
-  const ignorePatterns: Array<RegExp> = [
-    // https://github.com/go-gitea/gitea/issues/30861
-    // https://github.com/microsoft/monaco-editor/issues/4496
-    // https://github.com/microsoft/monaco-editor/issues/4679
-    /\/assets\/js\/.*monaco/,
-  ];
-  for (const pattern of ignorePatterns) {
-    if (pattern.test(err.stack ?? '')) return true;
-  }
-  return false;
-}
-
 export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error') {
   const msgContainer = document.querySelector('.page-content') ?? document.body;
   if (!msgContainer) {
@@ -57,13 +44,9 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
     if (runModeIsProd) return;
   }
 
-  if (err instanceof Error) {
-    // If the error stack trace does not include the base URL of our script assets, it likely came
-    // from a browser extension or inline script. Do not show such errors in production.
-    if (!err.stack?.includes(assetBaseUrl) && runModeIsProd) return;
-    // Ignore some known errors that are unable to fix
-    if (shouldIgnoreError(err)) return;
-  }
+  // If the error stack trace does not include the base URL of our script assets, it likely came
+  // from a browser extension or inline script. Do not show such errors in production.
+  if (err instanceof Error && !err.stack?.includes(assetBaseUrl) && runModeIsProd) return;
 
   let msg = err?.message ?? message;
   if (lineno) msg += ` (${filename} @ ${lineno}:${colno})`;

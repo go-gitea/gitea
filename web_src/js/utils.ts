@@ -27,6 +27,14 @@ export function isObject<T = Record<string, any>>(obj: any): obj is T {
   return Object.prototype.toString.call(obj) === '[object Object]';
 }
 
+/** Whether the current platform is macOS or iOS. */
+export const isMac = /Mac/i.test(navigator.userAgent);
+
+/** Platform-aware display symbols for keyboard modifier and special keys. */
+export const keySymbols: Record<string, string> = isMac ?
+  {Mod: '⌘', Alt: '⌥', Shift: '⇧', Ctrl: '⌃', Up: '↑', Down: '↓', Enter: '⏎'} :
+  {Mod: 'Ctrl', Shift: 'Shift', Alt: 'Alt', Up: '↑', Down: '↓', Enter: '⏎'};
+
 /** returns whether a dark theme is enabled */
 export function isDarkTheme(): boolean {
   const style = window.getComputedStyle(document.documentElement);

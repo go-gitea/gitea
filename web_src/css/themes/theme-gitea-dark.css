@@ -1,6 +1,3 @@
-@import "../chroma/dark.css";
-@import "../codemirror/dark.css";
-
 gitea-theme-meta-info {
   --theme-display-name: "Dark";
   --theme-color-scheme: "dark";
@@ -225,7 +222,7 @@ gitea-theme-meta-info {
   --color-secondary-bg: #2a3137;
   --color-expand-button: #2f363d;
   --color-placeholder-text: var(--color-text-light-3);
-  --color-editor-line-highlight: var(--color-primary-light-5);
+  --color-editor-line-highlight: var(--color-secondary-alpha-30);
   --color-project-column-bg: var(--color-secondary-light-2);
   --color-caret: var(--color-text); /* should ideally be --color-text-dark, see #15651 */
   --color-reaction-bg: #e8f3ff12;
@@ -244,11 +241,50 @@ gitea-theme-meta-info {
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-5);
   --color-highlight-fg: #87651e;
-  --color-highlight-bg: #352c1c;
+  --color-highlight-bg: #443a27;
   --color-overlay-backdrop: #080808c0;
   --color-danger: var(--color-red);
   --color-transparency-grid-light: #2a2a2a;
   --color-transparency-grid-dark: #1a1a1a;
+  --color-syntax-keyword: #ff7540;
+  --color-syntax-control: #ffaa10;
+  --color-syntax-name: #fabd2f;
+  --color-syntax-type: #ff7b72;
+  --color-syntax-number: #649bc4;
+  --color-syntax-operator: #ff7540;
+  --color-syntax-regexp: #9075cd;
+  --color-syntax-string: #b8bb26;
+  --color-syntax-comment: #777e94;
+  --color-syntax-invalid: #ff4433;
+  --color-syntax-link: var(--color-primary);
+  --color-syntax-tag: #ff7540;
+  --color-syntax-attribute: #fabd2f;
+  --color-syntax-variable: #ebdbb2;
+  --color-syntax-string-special: #ffaa10;
+  --color-syntax-escape: #ff8540;
+  --color-syntax-entity: #fabd2f;
+  --color-syntax-preproc: #8ec07c;
+  --color-syntax-preproc-file: #649bc4;
+  --color-syntax-decorator: #8ec07c;
+  --color-syntax-namespace: #c9d1d9;
+  --color-syntax-name-pseudo: #fabd2f;
+  --color-syntax-comment-special: #9075cd;
+  --color-syntax-text: #c9d1d9;
+  --color-syntax-text-alt: #b6bac5;
+  --color-syntax-punctuation: #d2d4db;
+  --color-syntax-whitespace: #7f8699;
+  --color-syntax-diff-fg: #ffffff;
+  --color-syntax-deleted-bg: #5f3737;
+  --color-syntax-inserted-bg: #3a523a;
+  --color-syntax-emph: #ddee30;
+  --color-syntax-strong: #ebdbb2;
+  --color-syntax-heading: #ffaa10;
+  --color-syntax-subheading: #b8bb26;
+  --color-syntax-output: #777e94;
+  --color-syntax-prompt: #ebdbb2;
+  --color-syntax-traceback: #ff7540;
+  --color-syntax-matching-bracket-bg: #00918a48;
+  --color-syntax-nonmatching-bracket-bg: #cc484848;
   accent-color: var(--color-accent);
   color-scheme: dark;
 }

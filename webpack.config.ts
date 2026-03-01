@@ -2,7 +2,6 @@ import wrapAnsi from 'wrap-ansi';
 import AddAssetPlugin from 'add-asset-webpack-plugin';
 import LicenseCheckerWebpackPlugin from '@techknowlogick/license-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
-import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import {VueLoaderPlugin} from 'vue-loader';
 import {EsbuildPlugin} from 'esbuild-loader';
 import {parse} from 'node:path';
@@ -204,9 +203,6 @@ export default {
     sourceMaps !== 'false' && new SourceMapDevToolPlugin({
       filename: '[file].[contenthash:8].map',
       ...(sourceMaps === 'reduced' && {include: /^js\/index\.js$/}),
-    }),
-    new MonacoWebpackPlugin({
-      filename: 'js/monaco-[name].[contenthash:8].worker.js',
     }),
     isProduction ? new LicenseCheckerWebpackPlugin({
       outputFilename: 'licenses.txt',
