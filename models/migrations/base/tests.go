@@ -10,7 +10,6 @@ import (
 	"path"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
@@ -26,18 +25,6 @@ import (
 )
 
 // FIXME: this file shouldn't be in a normal package, it should only be compiled for tests
-
-func removeAllWithRetry(dir string) error {
-	var err error
-	for range 20 {
-		err = os.RemoveAll(dir)
-		if err == nil {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	return err
-}
 
 func newXORMEngine(t *testing.T) (*xorm.Engine, error) {
 	if err := db.InitEngine(t.Context()); err != nil {
@@ -213,13 +200,12 @@ func LoadTableSchemasMap(t *testing.T, x *xorm.Engine) map[string]*schemas.Table
 	return tableMap
 }
 
-func MainTest(m *testing.M) {
+func mainTest(m *testing.M) int {
 	testlogger.Init()
-	setting.SetupGiteaTestEnv()
 
 	tmpDataPath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("data")
 	if err != nil {
-		testlogger.Fatalf("Unable to create temporary data path %v\n", err)
+		testlogger.Panicf("Unable to create temporary data path %v\n", err)
 	}
 	defer cleanup()
 
@@ -227,15 +213,13 @@ func MainTest(m *testing.M) {
 
 	unittest.InitSettingsForTesting()
 	if err = git.InitFull(); err != nil {
-		testlogger.Fatalf("Unable to InitFull: %v\n", err)
+		testlogger.Panicf("Unable to InitFull: %v\n", err)
 	}
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
+	return m.Run()
+}
 
-	exitStatus := m.Run()
-
-	if err := removeAllWithRetry(setting.RepoRootPath); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
-	}
-	os.Exit(exitStatus)
+func MainTest(m *testing.M) {
+	os.Exit(mainTest(m))
 }

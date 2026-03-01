@@ -41,6 +41,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls(ctx)
 	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(unit.TypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
+	// TODO: Can be replaced by ctx.Repo.PullRequestCtx.CanCreateNewPull()
 	ctx.Data["CanPull"] = ctx.Repo.CanWrite(unit.TypeCode) ||
 		(ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID))
 	ctx.Data["PageIsViewCode"] = true

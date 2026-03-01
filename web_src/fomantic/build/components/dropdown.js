@@ -407,6 +407,9 @@ $.fn.dropdown = function(parameters) {
                 .html( templates.dropdown(selectValues, fields, settings.preserveHTML, settings.className) )
                 .insertBefore($input)
               ;
+
+              $module.attr('data-tooltip-content', $input.attr('data-tooltip-content') ?? null); // GITEA-PATCH: convert "select" to "dropdown" with attrs
+
               if($input.hasClass(className.multiple) && $input.prop('multiple') === false) {
                 module.error(error.missingMultiple);
                 $input.prop('multiple', true);
@@ -4155,7 +4158,7 @@ $.fn.dropdown.settings.templates = {
       html        = '',
       escape = $.fn.dropdown.settings.templates.escape
     ;
-    html +=  '<i class="dropdown icon"></i>';
+    html +=  '<i class="dropdown icon"><svg viewBox="0 0 16 16" class="svg octicon-triangle-down" aria-hidden="true" width="14" height="14"><path d="m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427"></path></svg></i>';
     if(placeholder) {
       html += '<div class="default text">' + escape(placeholder,preserveHTML) + '</div>';
     }

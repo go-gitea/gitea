@@ -304,7 +304,7 @@ func TestAPICreatePullBasePermission(t *testing.T) {
 		Base:  "master",
 		Title: prTitle,
 
-		AllowMaintainerEdit: util.ToPointer(true),
+		AllowMaintainerEdit: new(true),
 	}
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)

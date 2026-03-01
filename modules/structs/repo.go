@@ -58,26 +58,28 @@ type Repository struct {
 	Fork        bool   `json:"fork"`
 	Template    bool   `json:"template"`
 	// the original repository if this repository is a fork, otherwise null
-	Parent        *Repository `json:"parent,omitempty"`
-	Mirror        bool        `json:"mirror"`
-	Size          int         `json:"size"`
-	Language      string      `json:"language"`
-	LanguagesURL  string      `json:"languages_url"`
-	HTMLURL       string      `json:"html_url"`
-	URL           string      `json:"url"`
-	Link          string      `json:"link"`
-	SSHURL        string      `json:"ssh_url"`
-	CloneURL      string      `json:"clone_url"`
-	OriginalURL   string      `json:"original_url"`
-	Website       string      `json:"website"`
-	Stars         int         `json:"stars_count"`
-	Forks         int         `json:"forks_count"`
-	Watchers      int         `json:"watchers_count"`
-	OpenIssues    int         `json:"open_issues_count"`
-	OpenPulls     int         `json:"open_pr_counter"`
-	Releases      int         `json:"release_counter"`
-	DefaultBranch string      `json:"default_branch"`
-	Archived      bool        `json:"archived"`
+	Parent              *Repository `json:"parent,omitempty"`
+	Mirror              bool        `json:"mirror"`
+	Size                int         `json:"size"`
+	Language            string      `json:"language"`
+	LanguagesURL        string      `json:"languages_url"`
+	HTMLURL             string      `json:"html_url"`
+	URL                 string      `json:"url"`
+	Link                string      `json:"link"`
+	SSHURL              string      `json:"ssh_url"`
+	CloneURL            string      `json:"clone_url"`
+	OriginalURL         string      `json:"original_url"`
+	Website             string      `json:"website"`
+	Stars               int         `json:"stars_count"`
+	Forks               int         `json:"forks_count"`
+	Watchers            int         `json:"watchers_count"`
+	BranchCount         int         `json:"branch_count"`
+	OpenIssues          int         `json:"open_issues_count"`
+	OpenPulls           int         `json:"open_pr_counter"`
+	Releases            int         `json:"release_counter"`
+	DefaultBranch       string      `json:"default_branch"`
+	DefaultTargetBranch string      `json:"default_target_branch,omitempty"`
+	Archived            bool        `json:"archived"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -134,7 +136,7 @@ type CreateRepoOption struct {
 	// Whether the repository is private
 	Private bool `json:"private"`
 	// Label-Set to use
-	IssueLabels string `json:"issue_labels"`
+	IssueLabels string `json:"issue_labels" binding:"MaxSize(255)"`
 	// Whether the repository should be auto-initialized?
 	AutoInit bool `json:"auto_init"`
 	// Whether the repository is template
@@ -142,15 +144,15 @@ type CreateRepoOption struct {
 	// Gitignores to use
 	Gitignores string `json:"gitignores"`
 	// License to use
-	License string `json:"license"`
+	License string `json:"license" binding:"MaxSize(100)"`
 	// Readme of the repository to create
-	Readme string `json:"readme"`
+	Readme string `json:"readme" binding:"MaxSize(255)"`
 	// DefaultBranch of the repository (used when initializes and in template)
 	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
 	// TrustModel of the repository
 	// enum: default,collaborator,committer,collaboratorcommitter
 	TrustModel string `json:"trust_model"`
-	// ObjectFormatName of the underlying git repository
+	// ObjectFormatName of the underlying git repository, empty string for default (sha1)
 	// enum: sha1,sha256
 	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6)"`
 }

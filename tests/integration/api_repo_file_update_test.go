@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 
 	"github.com/stretchr/testify/assert"
@@ -59,9 +58,9 @@ func getExpectedFileResponseForUpdate(info apiFileResponseInfo) *api.FileRespons
 			Name:              path.Base(info.treePath),
 			Path:              info.treePath,
 			SHA:               sha,
-			LastCommitSHA:     util.ToPointer(info.lastCommitSHA),
-			LastCommitterDate: util.ToPointer(info.lastCommitterWhen),
-			LastAuthorDate:    util.ToPointer(info.lastAuthorWhen),
+			LastCommitSHA:     new(info.lastCommitSHA),
+			LastCommitterDate: new(info.lastCommitterWhen),
+			LastAuthorDate:    new(info.lastAuthorWhen),
 			Type:              "file",
 			Size:              20,
 			Encoding:          &encoding,

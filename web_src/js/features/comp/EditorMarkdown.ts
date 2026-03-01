@@ -223,6 +223,7 @@ function isTextExpanderShown(textarea: HTMLElement): boolean {
 
 export function initTextareaMarkdown(textarea: HTMLTextAreaElement) {
   textarea.addEventListener('keydown', (e) => {
+    if (e.isComposing) return;
     if (isTextExpanderShown(textarea)) return;
     if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       // use Tab/Shift-Tab to indent/unindent the selected lines

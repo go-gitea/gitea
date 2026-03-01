@@ -160,7 +160,7 @@
 					<div>
 						<!-- Email -->
 						<details class="optional field">
-							<summary class="right-content tw-py-2{{if .Err_SMTP}} text red{{end}}">
+							<summary class="right-content tw-py-2{{if .Err_SMTP}} tw-text-red{{end}}">
 								{{ctx.Locale.Tr "install.email_title"}}
 							</summary>
 							<div class="inline field">
@@ -200,27 +200,9 @@
 
 						<!-- Server and other services -->
 						<details class="optional field">
-							<summary class="right-content tw-py-2{{if .Err_Services}} text red{{end}}">
+							<summary class="right-content tw-py-2{{if .Err_Services}} tw-text-red{{end}}">
 								{{ctx.Locale.Tr "install.server_service_title"}}
 							</summary>
-							<div class="inline field">
-								<div class="ui checkbox" id="offline-mode">
-									<label data-tooltip-content="{{ctx.Locale.Tr "install.offline_mode_popup"}}">{{ctx.Locale.Tr "install.offline_mode"}}</label>
-									<input name="offline_mode" type="checkbox" {{if .offline_mode}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox" id="disable-gravatar">
-									<label data-tooltip-content="{{ctx.Locale.Tr "install.disable_gravatar_popup"}}">{{ctx.Locale.Tr "install.disable_gravatar"}}</label>
-									<input name="disable_gravatar" type="checkbox" {{if .disable_gravatar}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox" id="federated-avatar-lookup">
-									<label data-tooltip-content="{{ctx.Locale.Tr "install.federated_avatar_lookup_popup"}}">{{ctx.Locale.Tr "install.federated_avatar_lookup"}}</label>
-									<input name="enable_federated_avatar" type="checkbox" {{if .enable_federated_avatar}}checked{{end}}>
-								</div>
-							</div>
 							<div class="inline field">
 								<div class="ui checkbox" id="enable-openid-signin">
 									<label data-tooltip-content="{{ctx.Locale.Tr "install.openid_signin_popup"}}">{{ctx.Locale.Tr "install.openid_signin"}}</label>
@@ -298,7 +280,7 @@
 
 						<!-- Admin -->
 						<details class="optional field">
-							<summary class="right-content tw-py-2{{if .Err_Admin}} text red{{end}}">
+							<summary class="right-content tw-py-2{{if .Err_Admin}} tw-text-red{{end}}">
 								{{ctx.Locale.Tr "install.admin_title"}}
 							</summary>
 							<p class="center">{{ctx.Locale.Tr "install.admin_setting_desc"}}</p>

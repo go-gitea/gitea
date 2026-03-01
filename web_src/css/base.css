@@ -18,6 +18,7 @@
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
   --octicon-chevron-right: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg>');
+  --select-arrows: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="m4.074 9.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.043 9H4.251a.25.25 0 0 0-.177.427m0-1.957L7.47 4.073a.25.25 0 0 1 .354 0L11.22 7.47a.25.25 0 0 1-.177.426H4.251a.25.25 0 0 1-.177-.426"/></svg>');
   /* other variables */
   --border-radius: 4px;
   --border-radius-medium: 6px;
@@ -30,6 +31,7 @@
   --page-spacing: 16px; /* space between page elements */
   --page-margin-x: 32px; /* minimum space on left and right side of page */
   --page-space-bottom: 64px; /* space between last page element and footer */
+  --transition-hover-fade: opacity 0.2s ease; /* fade transition for elements that show on hover */
 
   /* z-index */
   --z-index-modal: 1001; /* modal dialog, hard-coded from Fomantic modal.css */
@@ -40,7 +42,7 @@
   --gap-inline: 0.25rem; /* gap for inline texts and elements, for example: the spaces for sentence with labels, button text, etc */
   --gap-block: 0.5rem; /* gap for element blocks, for example: spaces between buttons, menu image & title, header icon & title etc */
 
-  --background-view-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAG0lEQVQYlWN4+vTpf3SMDTAMBYXYBLFpHgoKAeiOf0SGE9kbAAAAAElFTkSuQmCC") right bottom var(--color-primary-light-7);
+  --background-view-image: repeating-conic-gradient(var(--color-transparency-grid-dark) 0 25%, var(--color-transparency-grid-light) 0 50%) 0 0 / 18px 18px;
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {
@@ -241,9 +243,7 @@ progress::-moz-progress-bar {
   color: var(--color-white);
 }
 
-::placeholder,
-.ui.dropdown:not(.button) > .default.text,
-.ui.default.dropdown:not(.button) > .text {
+::placeholder {
   color: var(--color-placeholder-text) !important;
   opacity: 1 !important;
 }
@@ -308,6 +308,34 @@ a.label,
   text-decoration-line: none !important;
 }
 
+.native-select {
+  position: relative;
+}
+
+.native-select > select {
+  appearance: none; /* hide default triangle */
+  padding: 6px 26px 6px 10px;
+  border-radius: var(--border-radius);
+}
+
+/* ::before and ::after pseudo elements don't work on select elements,
+   so we need to put it on the parent wrapper element. */
+.native-select::after {
+  position: absolute;
+  pointer-events: none; /* make the click event can pass through the svg to the select element */
+  top: 50%;
+  transform: translateY(-50%);
+  right: 5px;
+  content: "";
+  width: 16px;
+  height: 16px;
+  mask-size: cover;
+  -webkit-mask-size: cover;
+  mask-image: var(--select-arrows);
+  -webkit-mask-image: var(--select-arrows);
+  background: currentcolor;
+}
+
 .ui.search > .results {
   background: var(--color-body);
   border-color: var(--color-secondary);
@@ -367,81 +395,6 @@ a.label,
   color: var(--color-text-light-2);
 }
 
-.ui.dropdown .menu {
-  background: var(--color-menu);
-  border-color: var(--color-secondary);
-}
-
-.ui.dropdown .menu > .header {
-  text-transform: none; /* reset fomantic's "uppercase" */
-}
-
-.ui.dropdown .menu > .header:not(.ui) {
-  color: var(--color-text);
-  font-size: 0.95em; /* reset fomantic's small font-size */
-}
-
-.ui.dropdown .menu > .item {
-  color: var(--color-text);
-  line-height: var(--line-height-default);
-}
-
-.ui.dropdown .menu > .item:hover {
-  color: var(--color-text);
-  background: var(--color-hover);
-}
-
-.ui.dropdown .menu > .item:active {
-  color: var(--color-text);
-  background: var(--color-active);
-}
-
-.ui.dropdown .menu .active.item {
-  color: var(--color-text);
-  background: var(--color-active);
-  border-radius: 0;
-  font-weight: var(--font-weight-normal);
-}
-
-/* fix misaligned images in webhook dropdown */
-.ui.dropdown .menu > .item > img {
-  margin-top: -0.25rem;
-  margin-bottom: -0.25rem;
-}
-.ui.dropdown .menu > .item > svg {
-  margin-right: .78rem; /* use the same margin as for <img> */
-}
-
-.ui.selection.dropdown .menu > .item {
-  border-color: var(--color-secondary);
-}
-
-.ui.selection.visible.dropdown > .text:not(.default) {
-  color: var(--color-text);
-}
-
-.ui.dropdown.selected,
-.ui.dropdown .menu .selected.item {
-  color: var(--color-text);
-  background: var(--color-hover);
-}
-
-.ui.dropdown .menu > .message:not(.ui) {
-  color: var(--color-text-light-2);
-}
-
-/* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
-.ui.dropdown > .text > .img {
-  margin-left: 0;
-  float: none;
-  margin-right: 0.78571429rem;
-}
-
-.ui.dropdown > .text > .description,
-.ui.dropdown .menu > .item > .description {
-  color: var(--color-text-light-2);
-}
-
 /* styles from removed fomantic transition module */
 .hidden.transition {
   visibility: hidden;
@@ -450,23 +403,6 @@ a.label,
 .visible.transition {
   display: block !important;
   visibility: visible !important;
-}
-
-.ui.selection.active.dropdown,
-.ui.selection.active.dropdown:hover,
-.ui.selection.active.dropdown .menu,
-.ui.selection.active.dropdown:hover .menu {
-  border-color: var(--color-primary);
-}
-
-.ui.pointing.dropdown > .menu:not(.hidden)::after {
-  background: var(--color-menu);
-  box-shadow: -1px -1px 0 0 var(--color-secondary);
-}
-
-.ui.pointing.upward.dropdown .menu::after,
-.ui.top.pointing.upward.dropdown .menu::after {
-  box-shadow: 1px 1px 0 0 var(--color-secondary);
 }
 
 .ui.comments .comment .metadata {
@@ -521,88 +457,6 @@ img.ui.avatar,
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
-.text.primary {
-  color: var(--color-primary) !important;
-}
-
-.text.red {
-  color: var(--color-red) !important;
-}
-
-.text.orange {
-  color: var(--color-orange) !important;
-}
-
-.text.yellow {
-  color: var(--color-yellow) !important;
-}
-
-.text.green {
-  color: var(--color-green) !important;
-}
-
-.text.blue {
-  color: var(--color-blue) !important;
-}
-
-.text.purple {
-  color: var(--color-purple) !important;
-}
-
-/* it is different from tw-text-black: this one changes in dark theme */
-.text.black {
-  color: var(--color-text) !important;
-}
-
-.text.grey {
-  color: var(--color-text-light) !important;
-}
-
-.text.light {
-  color: var(--color-text-light) !important;
-}
-
-.text.light-2 {
-  color: var(--color-text-light-2) !important;
-}
-
-.text.light-3 {
-  color: var(--color-text-light-3) !important;
-}
-
-.text.light.grey {
-  color: var(--color-grey-light) !important;
-}
-
-.text.gold {
-  color: var(--color-gold) !important;
-}
-
-.text.small {
-  font-size: 0.75em;
-}
-
-/* popover box shadows */
-.ui.dropdown .menu,
-.ui.upward.dropdown > .menu,
-.ui.menu .dropdown.item .menu,
-.ui.selection.active.dropdown .menu,
-.ui.upward.selection.dropdown .menu,
-.ui.selection.active.dropdown:hover .menu,
-.ui.upward.active.selection.dropdown:hover .menu {
-  box-shadow: 0 6px 18px var(--color-shadow);
-}
-.ui.floating.dropdown .menu {
-  box-shadow: 0 6px 18px var(--color-shadow) !important;
-}
-
-.ui .text.truncate {
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
-}
-
 .ui .message.flash-message {
   text-align: center;
 }
@@ -654,25 +508,9 @@ img.ui.avatar,
   border: 1px solid;
 }
 
-.ui.dropdown .menu.context-user-switch .scrolling.menu {
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  border-bottom: 1px solid var(--color-secondary);
-  max-width: 80vw;
-}
-
 .user-menu > .item {
   width: 100%;
   border-radius: 0 !important;
-}
-
-.scrolling.menu .item.selected {
-  font-weight: var(--font-weight-semibold) !important;
-}
-
-.ui.dropdown .scrolling.menu {
-  border-color: var(--color-secondary);
-  border-radius: 0 0 var(--border-radius) var(--border-radius) !important;
 }
 
 .color-preview {
@@ -950,22 +788,6 @@ table th[data-sortt-desc] .svg {
   margin-left: 0.25rem;
 }
 
-.ui.dropdown .menu .item {
-  border-radius: 0;
-}
-
-.ui.dropdown .menu .item:first-of-type {
-  border-radius: var(--border-radius) var(--border-radius) 0 0;
-}
-
-.ui.dropdown .menu .item:last-of-type {
-  border-radius: 0 0 var(--border-radius) var(--border-radius);
-}
-
-.ui.multiple.dropdown > .label {
-  box-shadow: 0 0 0 1px var(--color-secondary) inset;
-}
-
 /* for "image" emojis like ":git:"  ":gitea:" and ":github:" (see CUSTOM_EMOJIS config option) */
 .emoji img {
   border-width: 0 !important;
@@ -1014,56 +836,7 @@ table th[data-sortt-desc] .svg {
   min-height: 0;
 }
 
-.ui.dropdown:not(.button) {
-  line-height: var(--line-height-default); /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
-}
-
-/* dropdown has some kinds of icons:
-- "> .dropdown.icon": the arrow for opening the dropdown
-- "> .remove.icon": the "x" icon for clearing the dropdown, only used in selection dropdown
-- "> .ui.label > .delete.icon": the "x" icon for removing a label item in multiple selection dropdown
-*/
-
-.ui.dropdown.mini.button,
-.ui.dropdown.tiny.button {
-  padding-right: 20px;
-}
-.ui.dropdown.button {
-  padding-right: 22px;
-}
-.ui.dropdown.large.button {
-  padding-right: 24px;
-}
-
-/* Gitea uses SVG images instead of Fomantic builtin "<i>" font icons, so we need to reset the icon styles */
-.ui.ui.dropdown > .icon.icon {
-  position: initial; /* plain dropdown and button dropdown use flex layout for icons */
-  padding: 0;
-  margin: 0;
-  height: auto;
-}
-
-.ui.ui.dropdown > .icon.icon:hover {
-  opacity: 1;
-}
-
-.ui.ui.button.dropdown > .icon.icon,
-.ui.ui.selection.dropdown > .icon.icon {
-  position: absolute; /* selection dropdown uses absolute layout for icons */
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.ui.ui.dropdown > .dropdown.icon {
-  right: 0.5em;
-}
-
-.ui.ui.dropdown > .remove.icon {
-  right: 2em;
-}
-
 .btn,
-.ui.ui.button,
 .ui.ui.dropdown,
 .flex-text-inline,
 .flex-text-inline > a,
@@ -1073,18 +846,6 @@ table th[data-sortt-desc] .svg {
   gap: var(--gap-inline);
   vertical-align: middle;
   min-width: 0; /* make ellipsis work */
-}
-
-.ui.multiple.selection.dropdown {
-  flex-wrap: wrap;
-}
-
-.ui.ui.dropdown.selection {
-  min-width: 14em; /* match the default min width */
-}
-
-.ui.dropdown .ui.label .svg {
-  vertical-align: middle;
 }
 
 .ui.ui.labeled.button {
@@ -1103,42 +864,9 @@ table th[data-sortt-desc] .svg {
   min-width: 0;
 }
 
-.ui.dropdown > .ui.button,
 .flex-text-block > .ui.button,
 .flex-text-inline > .ui.button {
   margin: 0; /* fomantic buttons have default margin, when we use them in a flex container with gap, we do not need these margins */
-}
-
-/* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content
-the "!important" is necessary to override Fomantic UI menu item styles, meanwhile we should keep the "hidden" items still hidden */
-.ui.dropdown .menu.flex-items-menu > .item:not(.hidden, .filtered, .tw-hidden) {
-  display: flex !important;
-  align-items: center;
-  gap: var(--gap-block);
-  min-width: 0;
-}
-.ui.dropdown .menu.flex-items-menu > .item img,
-.ui.dropdown .menu.flex-items-menu > .item svg {
-  margin: 0; /* use gap, but not margin */
-}
-
-.ui.dropdown.ellipsis-text-items {
-  /* reset y padding and use the line-height below instead, to avoid the "overflow: hidden" clips the larger image in the "text" element */
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.ui.dropdown.ellipsis-text-items > .text {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  line-height: 2.71; /* matches fomantic dropdown's default min-height */
-}
-
-.ui.dropdown.ellipsis-text-items .menu > .item {
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
 }
 
 .svg.octicon-file-directory-fill,

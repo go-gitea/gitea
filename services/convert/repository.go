@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -103,6 +104,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	defaultDeleteBranchAfterMerge := false
 	defaultMergeStyle := repo_model.MergeStyleMerge
 	defaultAllowMaintainerEdit := false
+	defaultTargetBranch := ""
 	if unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
@@ -118,6 +120,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		defaultDeleteBranchAfterMerge = config.DefaultDeleteBranchAfterMerge
 		defaultMergeStyle = config.GetDefaultMergeStyle()
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
+		defaultTargetBranch = config.DefaultTargetBranch
 	}
 	hasProjects := false
 	projectsMode := repo_model.ProjectsModeAll
@@ -141,6 +144,11 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		IncludeTags:   false,
 		RepoID:        repo.ID,
 	})
+
+	branchCount, err := git_model.CountBranches(ctx, repo.ID, false)
+	if err != nil {
+		log.Error("CountBranches [%d]: %v", repo.ID, err)
+	}
 
 	mirrorInterval := ""
 	var mirrorUpdated time.Time
@@ -203,6 +211,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		Stars:                         repo.NumStars,
 		Forks:                         repo.NumForks,
 		Watchers:                      repo.NumWatches,
+		BranchCount:                   int(branchCount),
 		OpenIssues:                    repo.NumOpenIssues,
 		OpenPulls:                     repo.NumOpenPulls,
 		Releases:                      int(numReleases),
@@ -235,6 +244,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		DefaultDeleteBranchAfterMerge: defaultDeleteBranchAfterMerge,
 		DefaultMergeStyle:             string(defaultMergeStyle),
 		DefaultAllowMaintainerEdit:    defaultAllowMaintainerEdit,
+		DefaultTargetBranch:           defaultTargetBranch,
 		AvatarURL:                     repo.AvatarLink(ctx),
 		Internal:                      !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		MirrorInterval:                mirrorInterval,

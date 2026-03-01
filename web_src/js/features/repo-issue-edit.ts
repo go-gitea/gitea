@@ -97,11 +97,9 @@ async function tryOnEditContent(e: Event) {
     cancelButton.addEventListener('click', cancelAndReset);
     form.addEventListener('submit', saveAndRefresh);
   }
-
-  // FIXME: ideally here should reload content and attachment list from backend for existing editor, to avoid losing data
-  if (!comboMarkdownEditor.value()) {
-    comboMarkdownEditor.value(rawContent.textContent);
-  }
+  // when the content has changed on server side, there is no sync, and this page doesn't have the latest content,
+  // the editor still shows the old content, server will reject end user's submit by "data-content-version" check
+  comboMarkdownEditor.value(rawContent.textContent);
   comboMarkdownEditor.switchTabToEditor();
   comboMarkdownEditor.focus();
   triggerUploadStateChanged(comboMarkdownEditor.container);

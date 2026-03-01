@@ -98,7 +98,7 @@ func CheckCollations(x *xorm.Engine) (*CheckCollationsResult, error) {
 			return nil, err
 		}
 	} else {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil for unsupported database types
 	}
 
 	if res.DatabaseCollation == "" {

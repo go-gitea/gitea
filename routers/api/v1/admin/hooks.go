@@ -57,8 +57,13 @@ func ListHooks(ctx *context.APIContext) {
 	case "all":
 		isSystemWebhook = optional.None[bool]()
 	}
+	listOptions := utils.GetListOptions(ctx)
+	opts := &webhook.ListSystemWebhookOptions{
+		ListOptions: listOptions,
+		IsSystem:    isSystemWebhook,
+	}
 
-	sysHooks, err := webhook.GetSystemOrDefaultWebhooks(ctx, isSystemWebhook)
+	sysHooks, total, err := webhook.GetGlobalWebhooks(ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -72,6 +77,8 @@ func ListHooks(ctx *context.APIContext) {
 		}
 		hooks[i] = h
 	}
+	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, hooks)
 }
 

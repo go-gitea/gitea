@@ -699,7 +699,7 @@ func (c *Comment) LoadTime(ctx context.Context) error {
 		return nil
 	}
 	var err error
-	c.Time, err = GetTrackedTimeByID(ctx, c.TimeID)
+	c.Time, err = GetTrackedTimeByID(ctx, c.IssueID, c.TimeID)
 	return err
 }
 
@@ -1030,6 +1030,20 @@ func GetCommentByID(ctx context.Context, id int64) (*Comment, error) {
 		return nil, err
 	} else if !has {
 		return nil, ErrCommentNotExist{id, 0}
+	}
+	return c, nil
+}
+
+func GetCommentWithRepoID(ctx context.Context, repoID, commentID int64) (*Comment, error) {
+	c, err := GetCommentByID(ctx, commentID)
+	if err != nil {
+		return nil, err
+	}
+	if err := c.LoadIssue(ctx); err != nil {
+		return nil, err
+	}
+	if c.Issue.RepoID != repoID {
+		return nil, ErrCommentNotExist{commentID, 0}
 	}
 	return c, nil
 }

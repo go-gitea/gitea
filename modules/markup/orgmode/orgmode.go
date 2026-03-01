@@ -56,7 +56,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 			}
 		}()
 
-		lexer := highlight.GetChromaLexerWithFallback("", lang, nil) // don't use content to detect, it is too slow
+		lexer := highlight.DetectChromaLexerByFileName("", lang) // don't use content to detect, it is too slow
 		lexer = chroma.Coalesce(lexer)
 
 		sb := &strings.Builder{}

@@ -59,14 +59,14 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		{
 			Title:   "1.1.0",
 			Created: time.Date(2019, 11, 28, 8, 42, 44, 575000000, time.UTC),
-			Updated: timePtr(time.Date(2019, 11, 28, 8, 42, 44, 575000000, time.UTC)),
+			Updated: new(time.Date(2019, 11, 28, 8, 42, 44, 575000000, time.UTC)),
 			State:   "active",
 		},
 		{
 			Title:   "1.0.0",
 			Created: time.Date(2019, 11, 28, 8, 42, 30, 301000000, time.UTC),
-			Updated: timePtr(time.Date(2019, 11, 28, 15, 57, 52, 401000000, time.UTC)),
-			Closed:  timePtr(time.Date(2019, 11, 28, 15, 57, 52, 401000000, time.UTC)),
+			Updated: new(time.Date(2019, 11, 28, 15, 57, 52, 401000000, time.UTC)),
+			Closed:  new(time.Date(2019, 11, 28, 15, 57, 52, 401000000, time.UTC)),
 			State:   "closed",
 		},
 	}, milestones)
@@ -161,7 +161,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 					Content:  "open_mouth",
 				},
 			},
-			Closed: timePtr(time.Date(2019, 11, 28, 8, 46, 23, 275000000, time.UTC)),
+			Closed: new(time.Date(2019, 11, 28, 8, 46, 23, 275000000, time.UTC)),
 		},
 		{
 			Number:     2,
@@ -210,7 +210,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 					Content:  "hearts",
 				},
 			},
-			Closed: timePtr(time.Date(2019, 11, 28, 8, 45, 44, 959000000, time.UTC)),
+			Closed: new(time.Date(2019, 11, 28, 8, 45, 44, 959000000, time.UTC)),
 		},
 	}, issues)
 

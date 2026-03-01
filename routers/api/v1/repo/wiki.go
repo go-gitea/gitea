@@ -333,6 +333,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		pages = append(pages, wiki_service.ToWikiPageMetaData(wikiName, c, ctx.Repo.Repository))
 	}
 
+	ctx.SetLinkHeader(len(entries), limit)
 	ctx.SetTotalCountHeader(int64(len(entries)))
 	ctx.JSON(http.StatusOK, pages)
 }
@@ -445,6 +446,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 		return
 	}
 
+	// FIXME: SetLinkHeader missing
 	ctx.SetTotalCountHeader(commitsCount)
 	ctx.JSON(http.StatusOK, convert.ToWikiCommitList(commitsHistory, commitsCount))
 }

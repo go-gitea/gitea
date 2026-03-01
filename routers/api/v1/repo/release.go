@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"net/http"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
@@ -20,6 +20,21 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	release_service "code.gitea.io/gitea/services/release"
 )
+
+func canAccessReleaseDraft(ctx *context.APIContext) bool {
+	if !ctx.IsSigned || !ctx.Repo.CanWrite(unit.TypeReleases) {
+		return false
+	}
+	if ctx.Data["IsApiToken"] != true {
+		// not API token request, the request is from a user session with write access
+		return true
+	}
+	// the request is from an access token with scope
+	scope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	requiredScopes := auth_model.GetRequiredScopes(auth_model.Write, auth_model.AccessTokenScopeCategoryRepository)
+	allow, _ := scope.HasScope(requiredScopes...) // err (invalid token) can be safely ignored
+	return allow
+}
 
 // GetRelease get a single release of a repository
 func GetRelease(ctx *context.APIContext) {
@@ -58,6 +73,11 @@ func GetRelease(ctx *context.APIContext) {
 		return
 	}
 	if err != nil && repo_model.IsErrReleaseNotExist(err) || release.IsTag {
+		ctx.APIErrorNotFound()
+		return
+	}
+
+	if release.IsDraft && !canAccessReleaseDraft(ctx) { // only the users with write access can see draft releases
 		ctx.APIErrorNotFound()
 		return
 	}
@@ -150,10 +170,12 @@ func ListReleases(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	listOptions := utils.GetListOptions(ctx)
-
+	if ctx.Written() {
+		return
+	}
 	opts := repo_model.FindReleasesOptions{
 		ListOptions:   listOptions,
-		IncludeDrafts: ctx.Repo.AccessMode >= perm.AccessModeWrite || ctx.Repo.UnitAccessMode(unit.TypeReleases) >= perm.AccessModeWrite,
+		IncludeDrafts: canAccessReleaseDraft(ctx),
 		IncludeTags:   false,
 		IsDraft:       ctx.FormOptionalBool("draft"),
 		IsPreRelease:  ctx.FormOptionalBool("pre-release"),

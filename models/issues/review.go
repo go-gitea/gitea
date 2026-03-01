@@ -215,25 +215,25 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	return err
 }
 
-// HTMLTypeColorName returns the color used in the ui indicating the review
-func (r *Review) HTMLTypeColorName() string {
+// HTMLTypeColorClass returns the CSS class used in the ui indicating the review
+func (r *Review) HTMLTypeColorClass() string {
 	switch r.Type {
 	case ReviewTypeApprove:
 		if !r.Official {
-			return "grey"
+			return "tw-text-text-light"
 		}
 		if r.Stale {
-			return "yellow"
+			return "tw-text-yellow"
 		}
-		return "green"
+		return "tw-text-green"
 	case ReviewTypeComment:
-		return "grey"
+		return "tw-text-text-light"
 	case ReviewTypeReject:
-		return "red"
+		return "tw-text-red"
 	case ReviewTypeRequest:
-		return "yellow"
+		return "tw-text-yellow"
 	}
-	return "grey"
+	return "tw-text-text-light"
 }
 
 // TooltipContent returns the locale string describing the review type
@@ -384,7 +384,7 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 // GetCurrentReview returns the current pending review of reviewer for given issue
 func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Issue) (*Review, error) {
 	if reviewer == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil when reviewer is nil
 	}
 	reviews, err := FindReviews(ctx, FindReviewOptions{
 		Types:      []ReviewType{ReviewTypePending},

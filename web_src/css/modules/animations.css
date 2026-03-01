@@ -82,15 +82,6 @@ code.language-math.is-loading::after {
   }
 }
 
-@keyframes fadeout {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
 /* 1p5 means 1-point-5. it can't use "pulse" here, otherwise the animation is not right (maybe due to some conflicts */
 @keyframes pulse-1p5 {
   0% {

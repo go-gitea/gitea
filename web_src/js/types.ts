@@ -2,6 +2,14 @@ export type IntervalId = ReturnType<typeof setInterval>;
 
 export type Intent = 'error' | 'warning' | 'info';
 
+export type MentionValue = {
+  key: string,
+  value: string,
+  name: string,
+  fullname: string,
+  avatar: string,
+};
+
 export type RequestData = string | FormData | URLSearchParams | Record<string, any>;
 
 export type RequestOpts = {

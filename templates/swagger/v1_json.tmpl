@@ -23,58 +23,6 @@
   },
   "basePath": "{{.SwaggerAppSubUrl}}/api/v1",
   "paths": {
-    "/activitypub/user-id/{user-id}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "activitypub"
-        ],
-        "summary": "Returns the Person actor for a user",
-        "operationId": "activitypubPerson",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "user ID of the user",
-            "name": "user-id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/ActivityPub"
-          }
-        }
-      }
-    },
-    "/activitypub/user-id/{user-id}/inbox": {
-      "post": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "activitypub"
-        ],
-        "summary": "Send to the inbox",
-        "operationId": "activitypubPersonInbox",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "user ID of the user",
-            "name": "user-id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          }
-        }
-      }
-    },
     "/admin/actions/jobs": {
       "get": {
         "produces": [
@@ -1522,23 +1470,6 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
-          }
-        }
-      }
-    },
-    "/nodeinfo": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "miscellaneous"
-        ],
-        "summary": "Returns the nodeinfo of the Gitea application",
-        "operationId": "getNodeInfo",
-        "responses": {
-          "200": {
-            "$ref": "#/responses/NodeInfo"
           }
         }
       }
@@ -4302,6 +4233,12 @@
           },
           {
             "type": "string",
+            "description": "Only show items which were created by the given user",
+            "name": "created_by",
+            "in": "query"
+          },
+          {
+            "type": "string",
             "description": "Filter by team (requires organization owner parameter)",
             "name": "team",
             "in": "query"
@@ -6094,11 +6031,20 @@
             "schema": {
               "$ref": "#/definitions/CreateActionWorkflowDispatch"
             }
+          },
+          {
+            "type": "boolean",
+            "description": "Whether the response should include the workflow run ID and URLs.",
+            "name": "return_run_details",
+            "in": "query"
           }
         ],
         "responses": {
+          "200": {
+            "$ref": "#/responses/RunDetails"
+          },
           "204": {
-            "description": "No Content"
+            "description": "No Content, if return_run_details is missing or false"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -13703,6 +13649,106 @@
           },
           "423": {
             "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/comments/{id}/resolve": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Resolve a pull request review comment",
+        "operationId": "repoResolvePullReviewComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/comments/{id}/unresolve": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Unresolve a pull request review comment",
+        "operationId": "repoUnresolvePullReviewComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -21665,18 +21711,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "ActivityPub": {
-      "description": "ActivityPub type",
-      "type": "object",
-      "properties": {
-        "@context": {
-          "description": "Context defines the JSON-LD context for ActivityPub",
-          "type": "string",
-          "x-go-name": "Context"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "AddCollaboratorOption": {
       "description": "AddCollaboratorOption options when adding a user as a collaborator of a repository",
       "type": "object",
@@ -23536,7 +23570,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CreatePullReviewOptions": {
-      "description": "CreatePullReviewOptions are options to create a pull review",
+      "description": "CreatePullReviewOptions are options to create a pull request review",
       "type": "object",
       "properties": {
         "body": {
@@ -23680,7 +23714,7 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
-          "description": "ObjectFormatName of the underlying git repository",
+          "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)",
           "type": "string",
           "enum": [
             "sha1",
@@ -24133,7 +24167,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "DismissPullReviewOptions": {
-      "description": "DismissPullReviewOptions are options to dismiss a pull review",
+      "description": "DismissPullReviewOptions are options to dismiss a pull request review",
       "type": "object",
       "properties": {
         "message": {
@@ -27645,7 +27679,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "PullReviewRequestOptions": {
-      "description": "PullReviewRequestOptions are options to add or remove pull review requests",
+      "description": "PullReviewRequestOptions are options to add or remove pull request review requests",
       "type": "object",
       "properties": {
         "reviewers": {
@@ -28022,6 +28056,11 @@
           "type": "string",
           "x-go-name": "AvatarURL"
         },
+        "branch_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "BranchCount"
+        },
         "clone_url": {
           "type": "string",
           "x-go-name": "CloneURL"
@@ -28046,6 +28085,10 @@
         "default_merge_style": {
           "type": "string",
           "x-go-name": "DefaultMergeStyle"
+        },
+        "default_target_branch": {
+          "type": "string",
+          "x-go-name": "DefaultTargetBranch"
         },
         "description": {
           "type": "string",
@@ -28285,6 +28328,26 @@
       "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "RunDetails": {
+      "description": "RunDetails returns workflow_dispatch runid and url",
+      "type": "object",
+      "properties": {
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "run_url": {
+          "type": "string",
+          "x-go-name": "RunURL"
+        },
+        "workflow_run_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "WorkflowRunID"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "SearchResults": {
       "description": "SearchResults results of a successful search",
       "type": "object",
@@ -28389,7 +28452,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "SubmitPullReviewOptions": {
-      "description": "SubmitPullReviewOptions are options to submit a pending pull review",
+      "description": "SubmitPullReviewOptions are options to submit a pending pull request review",
       "type": "object",
       "properties": {
         "body": {
@@ -29398,12 +29461,6 @@
         }
       }
     },
-    "ActivityPub": {
-      "description": "ActivityPub",
-      "schema": {
-        "$ref": "#/definitions/ActivityPub"
-      }
-    },
     "AnnotatedTag": {
       "description": "AnnotatedTag",
       "schema": {
@@ -30162,6 +30219,12 @@
         "items": {
           "$ref": "#/definitions/Repository"
         }
+      }
+    },
+    "RunDetails": {
+      "description": "RunDetails",
+      "schema": {
+        "$ref": "#/definitions/RunDetails"
       }
     },
     "Runner": {

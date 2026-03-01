@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/tempdir"
+	"code.gitea.io/gitea/modules/testlogger"
 
 	"github.com/hashicorp/go-version"
 )
@@ -88,12 +89,17 @@ func parseGitVersionLine(s string) (*version.Version, error) {
 		return nil, fmt.Errorf("invalid git version: %q", s)
 	}
 
-	// version string is like: "git version 2.29.3" or "git version 2.29.3.windows.1"
+	// version output is like: "git version {versionString}"
+	// versionString can be:
+	// * "2.5.3"
+	// * "2.29.3.windows.1"
+	// * "2.28.0.618.gf4bc123cb7": https://github.com/go-gitea/gitea/issues/12731
 	versionString := fields[2]
-	if pos := strings.Index(versionString, "windows"); pos >= 1 {
-		versionString = versionString[:pos-1]
+	versionFields := strings.Split(versionString, ".")
+	if len(versionFields) > 3 {
+		versionFields = versionFields[:3]
 	}
-	return version.NewVersion(versionString)
+	return version.NewVersion(strings.Join(versionFields, "."))
 }
 
 func checkGitVersionCompatibility(gitVer *version.Version) error {
@@ -180,21 +186,19 @@ func InitFull() (err error) {
 // RunGitTests helps to init the git module and run tests.
 // FIXME: GIT-PACKAGE-DEPENDENCY: the dependency is not right, setting.Git.HomePath is initialized in this package but used in gitcmd package
 func RunGitTests(m interface{ Run() int }) {
-	fatalf := func(exitCode int, format string, args ...any) {
-		_, _ = fmt.Fprintf(os.Stderr, format, args...)
-		os.Exit(exitCode)
-	}
+	os.Exit(runGitTests(m))
+}
+
+func runGitTests(m interface{ Run() int }) int {
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
-		fatalf(1, "unable to create temp dir: %s", err.Error())
+		testlogger.Panicf("unable to create temp dir: %s", err.Error())
 	}
 	defer cleanup()
 
 	setting.Git.HomePath = gitHomePath
 	if err = InitFull(); err != nil {
-		fatalf(1, "failed to call Init: %s", err.Error())
+		testlogger.Panicf("failed to call Init: %s", err.Error())
 	}
-	if exitCode := m.Run(); exitCode != 0 {
-		fatalf(exitCode, "run test failed, ExitCode=%d", exitCode)
-	}
+	return m.Run()
 }

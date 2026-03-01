@@ -16,10 +16,14 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+type themeCollection struct {
+	themeList []*ThemeMetaInfo
+	themeMap  map[string]*ThemeMetaInfo
+}
+
 var (
-	availableThemes   []*ThemeMetaInfo
-	availableThemeMap map[string]*ThemeMetaInfo
-	themeOnce         sync.Once
+	themeMu         sync.RWMutex
+	availableThemes *themeCollection
 )
 
 const (
@@ -129,23 +133,13 @@ func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 	return themeInfo
 }
 
-func initThemes() {
-	availableThemes = nil
-	defer func() {
-		availableThemeMap = map[string]*ThemeMetaInfo{}
-		for _, theme := range availableThemes {
-			availableThemeMap[theme.InternalName] = theme
-		}
-		if availableThemeMap[setting.UI.DefaultTheme] == nil {
-			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.UI.DefaultTheme)
-		}
-	}()
+func loadThemesFromAssets() (themeList []*ThemeMetaInfo, themeMap map[string]*ThemeMetaInfo) {
 	cssFiles, err := public.AssetFS().ListFiles("assets/css")
 	if err != nil {
 		log.Error("Failed to list themes: %v", err)
-		availableThemes = []*ThemeMetaInfo{defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)}
-		return
+		return nil, nil
 	}
+
 	var foundThemes []*ThemeMetaInfo
 	for _, fileName := range cssFiles {
 		if strings.HasPrefix(fileName, fileNamePrefix) && strings.HasSuffix(fileName, fileNameSuffix) {
@@ -157,39 +151,84 @@ func initThemes() {
 			foundThemes = append(foundThemes, parseThemeMetaInfo(fileName, util.UnsafeBytesToString(content)))
 		}
 	}
+
+	themeList = foundThemes
 	if len(setting.UI.Themes) > 0 {
+		themeList = nil // only allow the themes specified in the setting
 		allowedThemes := container.SetOf(setting.UI.Themes...)
 		for _, theme := range foundThemes {
 			if allowedThemes.Contains(theme.InternalName) {
-				availableThemes = append(availableThemes, theme)
+				themeList = append(themeList, theme)
 			}
 		}
-	} else {
-		availableThemes = foundThemes
 	}
-	sort.Slice(availableThemes, func(i, j int) bool {
-		if availableThemes[i].InternalName == setting.UI.DefaultTheme {
+
+	sort.Slice(themeList, func(i, j int) bool {
+		if themeList[i].InternalName == setting.UI.DefaultTheme {
 			return true
 		}
-		if availableThemes[i].ColorblindType != availableThemes[j].ColorblindType {
-			return availableThemes[i].ColorblindType < availableThemes[j].ColorblindType
+		if themeList[i].ColorblindType != themeList[j].ColorblindType {
+			return themeList[i].ColorblindType < themeList[j].ColorblindType
 		}
-		return availableThemes[i].DisplayName < availableThemes[j].DisplayName
+		return themeList[i].DisplayName < themeList[j].DisplayName
 	})
-	if len(availableThemes) == 0 {
-		setting.LogStartupProblem(1, log.ERROR, "No theme candidate in asset files, but Gitea requires there should be at least one usable theme")
-		availableThemes = []*ThemeMetaInfo{defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)}
+
+	themeMap = map[string]*ThemeMetaInfo{}
+	for _, theme := range themeList {
+		themeMap[theme.InternalName] = theme
 	}
+	return themeList, themeMap
+}
+
+func getAvailableThemes() (themeList []*ThemeMetaInfo, themeMap map[string]*ThemeMetaInfo) {
+	themeMu.RLock()
+	if availableThemes != nil {
+		themeList, themeMap = availableThemes.themeList, availableThemes.themeMap
+	}
+	themeMu.RUnlock()
+	if len(themeList) != 0 {
+		return themeList, themeMap
+	}
+
+	themeMu.Lock()
+	defer themeMu.Unlock()
+	// no need to double-check "availableThemes.themeList" since the loading isn't really slow, to keep code simple
+	themeList, themeMap = loadThemesFromAssets()
+	hasAvailableThemes := len(themeList) > 0
+	if !hasAvailableThemes {
+		defaultTheme := defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)
+		themeList = []*ThemeMetaInfo{defaultTheme}
+		themeMap = map[string]*ThemeMetaInfo{setting.UI.DefaultTheme: defaultTheme}
+	}
+
+	if setting.IsProd {
+		if !hasAvailableThemes {
+			setting.LogStartupProblem(1, log.ERROR, "No theme candidate in asset files, but Gitea requires there should be at least one usable theme")
+		}
+		if themeMap[setting.UI.DefaultTheme] == nil {
+			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.UI.DefaultTheme)
+		}
+		availableThemes = &themeCollection{themeList, themeMap}
+		return themeList, themeMap
+	}
+
+	// In dev mode, only store the loaded themes if the list is not empty, in case the frontend is still being built.
+	// TBH, there still could be a data-race that the themes are only partially built then the list is incomplete for first time loading.
+	// Such edge case can be handled by checking whether the loaded themes are the same in a period or there is a flag file, but it is an over-kill, so, no.
+	if hasAvailableThemes {
+		availableThemes = &themeCollection{themeList, themeMap}
+	}
+	return themeList, themeMap
 }
 
 func GetAvailableThemes() []*ThemeMetaInfo {
-	themeOnce.Do(initThemes)
-	return availableThemes
+	themes, _ := getAvailableThemes()
+	return themes
 }
 
 func GetThemeMetaInfo(internalName string) *ThemeMetaInfo {
-	themeOnce.Do(initThemes)
-	return availableThemeMap[internalName]
+	_, themeMap := getAvailableThemes()
+	return themeMap[internalName]
 }
 
 // GuaranteeGetThemeMetaInfo guarantees to return a non-nil ThemeMetaInfo,

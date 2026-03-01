@@ -14,6 +14,7 @@ func TestIsVendor(t *testing.T) {
 		path string
 		want bool
 	}{
+		// Original go-enry test cases
 		{"cache/", true},
 		{"random/cache/", true},
 		{"cache", false},
@@ -34,6 +35,14 @@ func TestIsVendor(t *testing.T) {
 		{"a/docs/_build/", true},
 		{"a/dasdocs/_build-vsdoc.js", true},
 		{"a/dasdocs/_build-vsdoc.j", false},
+
+		// Override: Git/GitHub/Gitea-related paths should NOT be detected as vendored
+		{".gitignore", false},
+		{".gitattributes", false},
+		{".gitmodules", false},
+		{"src/.gitignore", false},
+		{".github/workflows/ci.yml", false},
+		{".gitea/workflows/ci.yml", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {

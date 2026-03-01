@@ -1138,7 +1138,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		return nil, nil
 	}
 
-	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(util.IfZero(compareReq.BaseOriRef, baseRepo.DefaultBranch))
+	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx)))
 	headRef := headGitRepo.UnstableGuessRefByShortName(util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch))
 
 	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.RelativePath(), compareReq.BaseOriRef, baseRef, compareReq.HeadOriRef, headRef)

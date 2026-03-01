@@ -156,7 +156,7 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 		// FIXME: If another process are generating it, we think it's not ready and just return
 		// Or we should wait until the archive generated.
 		if archiver.Status == repo_model.ArchiverGenerating {
-			return nil, nil
+			return nil, nil //nolint:nilnil // return nil because the archive is still being generated
 		}
 	} else {
 		archiver = &repo_model.RepoArchiver{

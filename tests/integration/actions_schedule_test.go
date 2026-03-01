@@ -19,7 +19,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/migration"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -103,8 +102,8 @@ jobs:
 		doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
 			// enable manual-merge
 			doAPIEditRepository(testContext, &api.EditRepoOption{
-				HasPullRequests:  util.ToPointer(true),
-				AllowManualMerge: util.ToPointer(true),
+				HasPullRequests:  new(true),
+				AllowManualMerge: new(true),
 			})(t)
 
 			// update workflow file
@@ -170,7 +169,7 @@ func testScheduleUpdateMirrorSync(t *testing.T) {
 		// enable actions unit for mirror repo
 		assert.False(t, mirrorRepo.UnitEnabled(t.Context(), unit_model.TypeActions))
 		doAPIEditRepository(mirrorContext, &api.EditRepoOption{
-			HasActions: util.ToPointer(true),
+			HasActions: new(true),
 		})(t)
 		actionSchedule := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionSchedule{RepoID: mirrorRepo.ID})
 		scheduleSpec := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{RepoID: mirrorRepo.ID, ScheduleID: actionSchedule.ID})
@@ -201,11 +200,11 @@ func testScheduleUpdateMirrorSync(t *testing.T) {
 func testScheduleUpdateArchiveAndUnarchive(t *testing.T) {
 	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
 		doAPIEditRepository(testContext, &api.EditRepoOption{
-			Archived: util.ToPointer(true),
+			Archived: new(true),
 		})(t)
 		assert.Zero(t, unittest.GetCount(t, &actions_model.ActionSchedule{RepoID: repo.ID}))
 		doAPIEditRepository(testContext, &api.EditRepoOption{
-			Archived: util.ToPointer(false),
+			Archived: new(false),
 		})(t)
 		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
@@ -216,11 +215,11 @@ func testScheduleUpdateArchiveAndUnarchive(t *testing.T) {
 func testScheduleUpdateDisableAndEnableActionsUnit(t *testing.T) {
 	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
 		doAPIEditRepository(testContext, &api.EditRepoOption{
-			HasActions: util.ToPointer(false),
+			HasActions: new(false),
 		})(t)
 		assert.Zero(t, unittest.GetCount(t, &actions_model.ActionSchedule{RepoID: repo.ID}))
 		doAPIEditRepository(testContext, &api.EditRepoOption{
-			HasActions: util.ToPointer(true),
+			HasActions: new(true),
 		})(t)
 		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)

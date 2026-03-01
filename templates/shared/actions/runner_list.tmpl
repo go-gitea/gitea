@@ -41,7 +41,7 @@
 		</form>
 	</div>
 	<div class="ui attached table segment">
-		<table class="ui very basic striped table unstackable">
+		<table class="ui very basic table unstackable">
 			<thead>
 				<tr>
 					<th data-sortt-asc="online" data-sortt-desc="offline">
@@ -72,7 +72,7 @@
 						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
 						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString ctx.Locale}}</span></td>
 						<td>
-							<span class="flex-text-inline">{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}</span>
+							<span class="flex-text-inline tw-flex-wrap">{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}</span>
 						</td>
 						<td>{{if .LastOnline}}{{DateUtils.TimeSince .LastOnline}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
 						<td>

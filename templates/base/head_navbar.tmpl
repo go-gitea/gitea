@@ -55,7 +55,7 @@
 					</div>
 
 					<div class="divider"></div>
-					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout">
+					<a class="item" href="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}
 						{{ctx.Locale.Tr "sign_out"}}
 					</a>
@@ -87,8 +87,11 @@
 			</div><!-- end dropdown menu create new -->
 
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text">
-					{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-1"}}
+				<span class="text tw-flex tw-items-center">
+					<span class="navbar-avatar">
+						{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-2"}}
+						{{if .IsAdmin}}{{svg "octicon-shield-check" 16 "navbar-admin-badge"}}{{end}}
+					</span>
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
@@ -128,7 +131,7 @@
 					</a>
 					{{end}}
 					<div class="divider"></div>
-					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout">
+					<a class="item" href="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}
 						{{ctx.Locale.Tr "sign_out"}}
 					</a>
@@ -151,8 +154,8 @@
 	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
 	{{if $activeStopwatch}}
 		<div class="active-stopwatch-popup tippy-target">
-			<div class="tw-flex tw-items-center tw-gap-2 tw-p-3">
-				<a class="stopwatch-link tw-flex tw-items-center tw-gap-2 muted" href="{{$activeStopwatch.IssueLink}}">
+			<div class="flex-text-block tw-p-3">
+				<a class="stopwatch-link flex-text-block muted" href="{{$activeStopwatch.IssueLink}}">
 					{{svg "octicon-issue-opened" 16}}
 					<span class="stopwatch-issue">{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}</span>
 				</a>
@@ -176,3 +179,4 @@
 		</div>
 	{{end}}
 </nav>
+{{template "base/head_banner"}}

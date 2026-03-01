@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/graceful"
@@ -59,7 +59,7 @@ func prepareGitPath(gitRepo *git.Repository, defaultWikiBranch string, wikiPath 
 	// Look for both files
 	filesInIndex, err := gitRepo.LsTree(defaultWikiBranch, unescaped, gitPath)
 	if err != nil {
-		if strings.Contains(err.Error(), "Not a valid object name") {
+		if gitcmd.IsStdErrorNotValidObjectName(err) {
 			return false, gitPath, nil // branch doesn't exist
 		}
 		log.Error("Wiki LsTree failed, err: %v", err)
@@ -369,7 +369,7 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 	}
 
 	if err := gitrepo.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
-		desc := fmt.Sprintf("Delete wiki repository files [%s]: %v", repo.FullName(), err)
+		desc := fmt.Sprintf("Delete wiki repository files (%s): %v", repo.FullName(), err)
 		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
 		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)

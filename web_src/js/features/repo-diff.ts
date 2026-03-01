@@ -56,8 +56,7 @@ function initRepoDiffConversationForm() {
       const idx = newConversationHolder.getAttribute('data-idx');
 
       form.closest('.conversation-holder')!.replaceWith(newConversationHolder);
-      // @ts-expect-error -- prevent further usage of the form because it should have been replaced
-      form = null;
+      (form as any) = null; // prevent further usage of the form because it should have been replaced
 
       if (trLineType) {
         // if there is a line-type for the "tr", it means the form is on the diff page
@@ -171,7 +170,9 @@ async function loadMoreFiles(btn: Element): Promise<boolean> {
     const respFileBoxes = respDoc.querySelector('#diff-file-boxes')!;
     // the response is a full HTML page, we need to extract the relevant contents:
     // * append the newly loaded file list items to the existing list
-    document.querySelector('#diff-incomplete')!.replaceWith(...Array.from(respFileBoxes.children));
+    const respFileBoxesChildren = Array.from(respFileBoxes.children); // "children:HTMLCollection" will be empty after replaceWith
+    document.querySelector('#diff-incomplete')!.replaceWith(...respFileBoxesChildren);
+    for (const el of respFileBoxesChildren) window.htmx.process(el);
     onShowMoreFiles();
     return true;
   } catch (error) {
@@ -201,7 +202,7 @@ function initRepoDiffShowMore() {
       const resp = await response.text();
       const respDoc = parseDom(resp, 'text/html');
       const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body')!;
-      const respFileBodyChildren = Array.from(respFileBody.children); // respFileBody.children will be empty after replaceWith
+      const respFileBodyChildren = Array.from(respFileBody.children); // "children:HTMLCollection" will be empty after replaceWith
       el.parentElement!.replaceWith(...respFileBodyChildren);
       for (const el of respFileBodyChildren) window.htmx.process(el);
       // FIXME: calling onShowMoreFiles is not quite right here.

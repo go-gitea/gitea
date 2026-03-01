@@ -42,6 +42,7 @@ export function registerGlobalInitFunc<T extends HTMLElement>(name: string, hand
 }
 
 function callGlobalInitFunc(el: HTMLElement) {
+  // TODO: GLOBAL-INIT-MULTIPLE-FUNCTIONS: maybe in the future we need to extend it to support multiple functions, for example: `data-global-init="func1 func2 func3"`
   const initFunc = el.getAttribute('data-global-init')!;
   const func = globalInitFuncs[initFunc];
   if (!func) throw new Error(`Global init function "${initFunc}" not found`);

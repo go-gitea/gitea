@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/tempdir"
+	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -28,16 +29,10 @@ import (
 	"xorm.io/xorm/names"
 )
 
-var giteaRoot string
-
-func fatalTestError(fmtStr string, args ...any) {
-	_, _ = fmt.Fprintf(os.Stderr, fmtStr, args...)
-	os.Exit(1)
-}
-
 // InitSettingsForTesting initializes config provider and load common settings for tests
 func InitSettingsForTesting() {
-	setting.IsInTesting = true
+	setting.SetupGiteaTestEnv()
+
 	log.OsExiter = func(code int) {
 		if code != 0 {
 			// non-zero exit code (log.Fatal) shouldn't occur during testing, if it happens, show a full stacktrace for more details
@@ -49,8 +44,12 @@ func InitSettingsForTesting() {
 		setting.CustomConf = filepath.Join(setting.CustomPath, "conf/app-unittest-tmp.ini")
 		_ = os.Remove(setting.CustomConf)
 	}
-	setting.InitCfgProvider(setting.CustomConf)
-	setting.LoadCommonSettings()
+
+	// init paths and config system for testing
+	getTestEnv := func(key string) string {
+		return ""
+	}
+	setting.InitWorkPathAndCommonConfig(getTestEnv, setting.ArgWorkPathAndCustomConf{CustomConf: setting.CustomConf})
 
 	if err := setting.PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
@@ -71,16 +70,18 @@ type TestOptions struct {
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
-	testOpts := util.OptionalArg(testOptsArg, &TestOptions{})
-	giteaRoot = setting.SetupGiteaTestEnv()
-	InitSettingsForTesting()
+	os.Exit(mainTest(m, testOptsArg...))
+}
 
+func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
+	testOpts := util.OptionalArg(testOptsArg, &TestOptions{})
+	InitSettingsForTesting()
+	giteaRoot := setting.GetGiteaTestSourceRoot()
 	fixturesOpts := FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: testOpts.FixtureFiles}
 	if err := CreateTestEngine(fixturesOpts); err != nil {
-		fatalTestError("Error creating test engine: %v\n", err)
+		testlogger.Panicf("Error creating test engine: %v\n", err)
 	}
 
-	setting.IsInTesting = true
 	setting.AppURL = "https://try.gitea.io/"
 	setting.Domain = "try.gitea.io"
 	setting.RunUser = "runuser"
@@ -92,20 +93,18 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	repoRootPath, cleanup1, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("repos")
 	if err != nil {
-		fatalTestError("TempDir: %v\n", err)
+		testlogger.Panicf("TempDir: %v\n", err)
 	}
 	defer cleanup1()
 
 	setting.RepoRootPath = repoRootPath
 	appDataPath, cleanup2, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("appdata")
 	if err != nil {
-		fatalTestError("TempDir: %v\n", err)
+		testlogger.Panicf("TempDir: %v\n", err)
 	}
 	defer cleanup2()
 
 	setting.AppDataPath = appDataPath
-	setting.AppWorkPath = giteaRoot
-	setting.StaticRootPath = giteaRoot
 	setting.GravatarSource = "https://secure.gravatar.com/avatar/"
 
 	setting.Attachment.Storage.Path = filepath.Join(setting.AppDataPath, "attachments")
@@ -129,22 +128,22 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 	config.SetDynGetter(system.NewDatabaseDynKeyGetter())
 
 	if err = cache.Init(); err != nil {
-		fatalTestError("cache.Init: %v\n", err)
+		testlogger.Panicf("cache.Init: %v\n", err)
 	}
 	if err = storage.Init(); err != nil {
-		fatalTestError("storage.Init: %v\n", err)
+		testlogger.Panicf("storage.Init: %v\n", err)
 	}
 	if err = SyncDirs(filepath.Join(giteaRoot, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
-		fatalTestError("util.SyncDirs: %v\n", err)
+		testlogger.Panicf("util.SyncDirs: %v\n", err)
 	}
 
 	if err = git.InitFull(); err != nil {
-		fatalTestError("git.Init: %v\n", err)
+		testlogger.Panicf("git.Init: %v\n", err)
 	}
 
 	if testOpts.SetUp != nil {
 		if err := testOpts.SetUp(); err != nil {
-			fatalTestError("set up failed: %v\n", err)
+			testlogger.Panicf("set up failed: %v\n", err)
 		}
 	}
 
@@ -152,10 +151,10 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 
 	if testOpts.TearDown != nil {
 		if err := testOpts.TearDown(); err != nil {
-			fatalTestError("tear down failed: %v\n", err)
+			testlogger.Panicf("tear down failed: %v\n", err)
 		}
 	}
-	os.Exit(exitStatus)
+	return exitStatus
 }
 
 // FixturesOptions fixtures needs to be loaded options
@@ -196,7 +195,6 @@ func PrepareTestDatabase() error {
 // by tests that use the above MainTest(..) function.
 func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
-	metaPath := filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")
+	metaPath := filepath.Join(setting.GetGiteaTestSourceRoot(), "tests", "gitea-repositories-meta")
 	assert.NoError(t, SyncDirs(metaPath, setting.RepoRootPath))
-	setting.SetupGiteaTestEnv()
 }

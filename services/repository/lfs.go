@@ -123,10 +123,8 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		//
 		// It is likely that a week is potentially excessive but it should definitely be enough that any
 		// unassociated LFS object is genuinely unassociated.
-		OlderThan:                 timeutil.TimeStamp(opts.OlderThan.Unix()),
-		UpdatedLessRecentlyThan:   timeutil.TimeStamp(opts.UpdatedLessRecentlyThan.Unix()),
-		OrderByUpdated:            true,
-		LoopFunctionAlwaysUpdates: true,
+		OlderThan:               timeutil.TimeStamp(opts.OlderThan.Unix()),
+		UpdatedLessRecentlyThan: timeutil.TimeStamp(opts.UpdatedLessRecentlyThan.Unix()),
 	})
 
 	if err == errStop {

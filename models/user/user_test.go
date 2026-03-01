@@ -51,12 +51,27 @@ func TestOAuth2Application_LoadUser(t *testing.T) {
 
 func TestUserEmails(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.gitea.internal")()
 	t.Run("GetUserEmailsByNames", func(t *testing.T) {
-		// ignore none active user email
+		// ignore not active user email
 		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "user9"}))
 		assert.ElementsMatch(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "user5"}))
 		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "org7"}))
 	})
+
+	cases := []struct {
+		Email string
+		UID   int64
+	}{
+		{"UseR1@example.com", 1},
+		{"user1-2@example.COM", 1},
+		{"USER2@" + setting.Service.NoReplyAddress, 2},
+		{"2+user2@" + setting.Service.NoReplyAddress, 2},
+		{"2+oldUser2UsernameWhichDoesNotMatterForQuery@" + setting.Service.NoReplyAddress, 2},
+		{"99999+badUser@" + setting.Service.NoReplyAddress, 0},
+		{"user4@example.com", 4},
+		{"no-such", 0},
+	}
 	t.Run("GetUsersByEmails", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.gitea.internal")()
 		testGetUserByEmail := func(t *testing.T, email string, uid int64) {
@@ -70,15 +85,27 @@ func TestUserEmails(t *testing.T) {
 			require.NotNil(t, user)
 			assert.Equal(t, uid, user.ID)
 		}
-		cases := []struct {
-			Email string
-			UID   int64
-		}{
-			{"UseR1@example.com", 1},
-			{"user1-2@example.COM", 1},
-			{"USER2@" + setting.Service.NoReplyAddress, 2},
-			{"user4@example.com", 4},
-			{"no-such", 0},
+		for _, c := range cases {
+			t.Run(c.Email, func(t *testing.T) {
+				testGetUserByEmail(t, c.Email, c.UID)
+			})
+		}
+
+		t.Run("NoReplyConflict", func(t *testing.T) {
+			setting.Service.NoReplyAddress = "example.com"
+			testGetUserByEmail(t, "user1-2@example.COM", 1)
+		})
+	})
+	t.Run("GetUserByEmail", func(t *testing.T) {
+		testGetUserByEmail := func(t *testing.T, email string, uid int64) {
+			user, err := user_model.GetUserByEmail(t.Context(), email)
+			if uid == 0 {
+				require.Error(t, err)
+				assert.Nil(t, user)
+			} else {
+				require.NotNil(t, user)
+				assert.Equal(t, uid, user.ID)
+			}
 		}
 		for _, c := range cases {
 			t.Run(c.Email, func(t *testing.T) {

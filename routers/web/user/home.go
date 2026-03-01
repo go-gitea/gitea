@@ -54,8 +54,8 @@ const (
 	tplProfile    templates.TplName = "user/profile"
 )
 
-// getDashboardContextUser finds out which context user dashboard is being viewed as .
-func getDashboardContextUser(ctx *context.Context) *user_model.User {
+// prepareDashboardContextUserOrgTeams finds out which context user dashboard is being viewed as .
+func prepareDashboardContextUserOrgTeams(ctx *context.Context) *user_model.User {
 	ctxUser := ctx.Doer
 	orgName := ctx.PathParam("org")
 	if len(orgName) > 0 {
@@ -76,7 +76,7 @@ func getDashboardContextUser(ctx *context.Context) *user_model.User {
 
 // Dashboard render the dashboard page
 func Dashboard(ctx *context.Context) {
-	ctxUser := getDashboardContextUser(ctx)
+	ctxUser := prepareDashboardContextUserOrgTeams(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -109,15 +109,7 @@ func Dashboard(ctx *context.Context) {
 		"uid":         uid,
 	}
 
-	if setting.Service.EnableUserHeatmap {
-		data, err := activities_model.GetUserHeatmapDataByUserTeam(ctx, ctxUser, ctx.Org.Team, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
-			return
-		}
-		ctx.Data["HeatmapData"] = data
-		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
-	}
+	prepareHeatmapURL(ctx)
 
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
@@ -156,7 +148,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("milestones")
 	ctx.Data["PageIsMilestonesDashboard"] = true
 
-	ctxUser := getDashboardContextUser(ctx)
+	ctxUser := prepareDashboardContextUserOrgTeams(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -371,7 +363,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// Return with NotFound or ServerError if unsuccessful.
 	// ----------------------------------------------------
 
-	ctxUser := getDashboardContextUser(ctx)
+	ctxUser := prepareDashboardContextUserOrgTeams(ctx)
 	if ctx.Written() {
 		return
 	}

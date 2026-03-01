@@ -8,12 +8,15 @@ import {html} from './utils/html.ts';
 // This file must be imported before any lazy-loading is being attempted.
 window.__webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/`;
 
-function shouldIgnoreError(err: Error) {
-  const ignorePatterns = [
-    '/assets/js/monaco.', // https://github.com/go-gitea/gitea/issues/30861 , https://github.com/microsoft/monaco-editor/issues/4496
+export function shouldIgnoreError(err: Error) {
+  const ignorePatterns: Array<RegExp> = [
+    // https://github.com/go-gitea/gitea/issues/30861
+    // https://github.com/microsoft/monaco-editor/issues/4496
+    // https://github.com/microsoft/monaco-editor/issues/4679
+    /\/assets\/js\/.*monaco/,
   ];
   for (const pattern of ignorePatterns) {
-    if (err.stack?.includes(pattern)) return true;
+    if (pattern.test(err.stack ?? '')) return true;
   }
   return false;
 }
@@ -80,13 +83,12 @@ function initGlobalErrorHandler() {
   // we added an event handler for window error at the very beginning of <script> of page head the
   // handler calls `_globalHandlerErrors.push` (array method) to record all errors occur before
   // this init then in this init, we can collect all error events and show them.
-  for (const e of window._globalHandlerErrors || []) {
+  for (const e of (window._globalHandlerErrors as Iterable<ErrorEvent & PromiseRejectionEvent>) || []) {
     processWindowErrorEvent(e);
   }
   // then, change _globalHandlerErrors to an object with push method, to process further error
   // events directly
-  // @ts-expect-error -- this should be refactored to not use a fake array
-  window._globalHandlerErrors = {_inited: true, push: (e: ErrorEvent & PromiseRejectionEvent) => processWindowErrorEvent(e)};
+  window._globalHandlerErrors = {_inited: true, push: (e: ErrorEvent & PromiseRejectionEvent) => processWindowErrorEvent(e)} as any;
 }
 
 initGlobalErrorHandler();

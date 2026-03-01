@@ -9,7 +9,7 @@
 	<div class="conversation-holder" data-path="{{$comment.TreePath}}" data-side="{{if lt $comment.Line 0}}left{{else}}right{{end}}" data-idx="{{$comment.UnsignedLine}}">
 		{{if $resolved}}
 			<div class="resolved-placeholder">
-				<div class="flex-text-block tw-flex-wrap grey text">
+				<div class="flex-text-block tw-flex-wrap tw-text-text-light">
 					{{svg "octicon-check"}}
 					<b>{{$resolveDoer.Name}}</b> {{ctx.Locale.Tr "repo.issues.review.resolved_by"}}
 					{{if $invalid}}

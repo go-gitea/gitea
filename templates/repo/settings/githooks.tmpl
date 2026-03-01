@@ -8,7 +8,7 @@
 				<div class="item"><span>{{ctx.Locale.Tr "repo.settings.githooks_desc"}}</span></div>
 				{{range .Hooks}}
 				<div class="item">
-					<span class="text {{if .IsActive}}green{{else}}grey{{end}}">{{svg "octicon-dot-fill" 22}}</span>
+					<span class="{{if .IsActive}}tw-text-green{{else}}tw-text-text-light{{end}}">{{svg "octicon-dot-fill" 22}}</span>
 					<span class="gt-ellipsis tw-flex-1">{{.Name}}</span>
 					<a class="muted tw-p-2" href="{{$.RepoLink}}/settings/hooks/git/{{.Name|PathEscape}}">{{svg "octicon-pencil"}}</a>
 				</div>

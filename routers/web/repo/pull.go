@@ -282,7 +282,7 @@ func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 	compareInfo, err := git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo,
 		git.RefName(baseCommit), git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
-		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "unknown revision or path not in the working tree") {
+		if gitcmd.IsStdErrorNotValidObjectName(err) || strings.Contains(err.Error(), "unknown revision or path not in the working tree") {
 			ctx.Data["IsPullRequestBroken"] = true
 			ctx.Data["BaseTarget"] = pull.BaseBranch
 			ctx.Data["NumCommits"] = 0
@@ -342,6 +342,35 @@ func (d *pullCommitStatusCheckData) CommitStatusCheckPrompt(locale translation.L
 		return locale.TrString("repo.pulls.status_checks_error")
 	}
 	return locale.TrString("repo.pulls.status_checking")
+}
+
+func getViewPullHeadBranchInfo(ctx *context.Context, pull *issues_model.PullRequest, baseGitRepo *git.Repository) (headCommitID string, headCommitExists bool, err error) {
+	if pull.HeadRepo == nil {
+		return "", false, nil
+	}
+	headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pull.HeadRepo)
+	if err != nil {
+		return "", false, util.Iif(errors.Is(err, util.ErrNotExist), nil, err)
+	}
+	defer closer.Close()
+
+	if pull.Flow == issues_model.PullRequestFlowGithub {
+		headCommitExists, _ = git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.HeadBranch)
+	} else {
+		headCommitExists = gitrepo.IsReferenceExist(ctx, pull.BaseRepo, pull.GetGitHeadRefName())
+	}
+
+	if headCommitExists {
+		if pull.Flow != issues_model.PullRequestFlowGithub {
+			headCommitID, err = baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+		} else {
+			headCommitID, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
+		}
+		if err != nil {
+			return "", false, util.Iif(errors.Is(err, util.ErrNotExist), nil, err)
+		}
+	}
+	return headCommitID, headCommitExists, nil
 }
 
 // prepareViewPullInfo show meta information for a pull request preview page
@@ -413,7 +442,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
 			git.RefName(pull.MergeBase), git.RefName(pull.GetGitHeadRefName()), false, false)
 		if err != nil {
-			if strings.Contains(err.Error(), "fatal: Not a valid object name") {
+			if gitcmd.IsStdErrorNotValidObjectName(err) {
 				ctx.Data["IsPullRequestBroken"] = true
 				ctx.Data["BaseTarget"] = pull.BaseBranch
 				ctx.Data["NumCommits"] = 0
@@ -430,34 +459,10 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		return compareInfo
 	}
 
-	var headBranchExist bool
-	var headBranchSha string
-	// HeadRepo may be missing
-	if pull.HeadRepo != nil {
-		headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pull.HeadRepo)
-		if err != nil {
-			ctx.ServerError("RepositoryFromContextOrOpen", err)
-			return nil
-		}
-		defer closer.Close()
-
-		if pull.Flow == issues_model.PullRequestFlowGithub {
-			headBranchExist, _ = git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.HeadBranch)
-		} else {
-			headBranchExist = gitrepo.IsReferenceExist(ctx, pull.BaseRepo, pull.GetGitHeadRefName())
-		}
-
-		if headBranchExist {
-			if pull.Flow != issues_model.PullRequestFlowGithub {
-				headBranchSha, err = baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
-			} else {
-				headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
-			}
-			if err != nil {
-				ctx.ServerError("GetBranchCommitID", err)
-				return nil
-			}
-		}
+	headBranchSha, headBranchExist, err := getViewPullHeadBranchInfo(ctx, pull, baseGitRepo)
+	if err != nil {
+		ctx.ServerError("getViewPullHeadBranchInfo", err)
+		return nil
 	}
 
 	if headBranchExist {
@@ -579,7 +584,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
 		git.RefNameFromBranch(pull.BaseBranch), git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
-		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
+		if gitcmd.IsStdErrorNotValidObjectName(err) {
 			ctx.Data["IsPullRequestBroken"] = true
 			ctx.Data["BaseTarget"] = pull.BaseBranch
 			ctx.Data["NumCommits"] = 0

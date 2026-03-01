@@ -37,11 +37,46 @@ import (
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
-// PullRequest contains information to make a pull request
-type PullRequest struct {
-	BaseRepo *repo_model.Repository
-	Allowed  bool // it only used by the web tmpl: "PullRequestCtx.Allowed"
-	SameRepo bool // it only used by the web tmpl: "PullRequestCtx.SameRepo"
+// PullRequestContext contains context information for making a new pull request
+type PullRequestContext struct {
+	ctx *Context
+
+	baseRepo, headRepo *repo_model.Repository
+
+	canCreateNewPull    *bool
+	defaultTargetBranch *string
+}
+
+func (prc *PullRequestContext) SameRepo() bool {
+	return prc.baseRepo != nil && prc.headRepo != nil && prc.baseRepo.ID == prc.headRepo.ID
+}
+
+func (prc *PullRequestContext) CanCreateNewPull() bool {
+	if prc.canCreateNewPull != nil {
+		return *prc.canCreateNewPull
+	}
+	ctx := prc.ctx
+	// People who have push access or have forked repository can propose a new pull request.
+	can := prc.baseRepo.CanContentChange() &&
+		(ctx.Repo.CanWrite(unit_model.TypeCode) || (ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)))
+	prc.canCreateNewPull = &can
+	return can
+}
+
+func (prc *PullRequestContext) MakeDefaultCompareLink(headBranch string) string {
+	return prc.baseRepo.Link() + "/compare/" +
+		util.PathEscapeSegments(prc.DefaultTargetBranch()) + "..." +
+		util.Iif(prc.SameRepo(), "", util.PathEscapeSegments(prc.headRepo.OwnerName)+":") +
+		util.PathEscapeSegments(headBranch)
+}
+
+func (prc *PullRequestContext) DefaultTargetBranch() string {
+	if prc.defaultTargetBranch != nil {
+		return *prc.defaultTargetBranch
+	}
+	branchName := prc.baseRepo.GetPullRequestTargetBranch(prc.ctx)
+	prc.defaultTargetBranch = &branchName
+	return branchName
 }
 
 // Repository contains information to operate a repository
@@ -64,7 +99,7 @@ type Repository struct {
 	CommitID     string
 	CommitsCount int64
 
-	PullRequest *PullRequest
+	PullRequestCtx *PullRequestContext
 }
 
 // CanWriteToBranch checks if the branch is writable by the user
@@ -418,6 +453,12 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
 }
 
+func InitRepoPullRequestCtx(ctx *Context, base, head *repo_model.Repository) {
+	ctx.Repo.PullRequestCtx = &PullRequestContext{ctx: ctx}
+	ctx.Repo.PullRequestCtx.baseRepo, ctx.Repo.PullRequestCtx.headRepo = base, head
+	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequestCtx
+}
+
 // RepoAssignment returns a middleware to handle repository assignment
 func RepoAssignment(ctx *Context) {
 	if ctx.Data["Repository"] != nil {
@@ -666,28 +707,16 @@ func RepoAssignment(ctx *Context) {
 
 	ctx.Data["BranchesCount"] = branchesTotal
 
-	// People who have push access or have forked repository can propose a new pull request.
-	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) ||
-		(ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID))
-	canCompare := false
-
-	// Pull request is allowed if this is a fork repository
-	// and base repository accepts pull requests.
+	// Pull request is allowed if this is a fork repository, and base repository accepts pull requests.
 	if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls(ctx) {
-		canCompare = true
+		// TODO: this (and below) "BaseRepo" var is not clear and should be removed in the future
 		ctx.Data["BaseRepo"] = repo.BaseRepo
-		ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
-		ctx.Repo.PullRequest.Allowed = canPush
+		InitRepoPullRequestCtx(ctx, repo.BaseRepo, repo)
 	} else if repo.AllowsPulls(ctx) {
 		// Or, this is repository accepts pull requests between branches.
-		canCompare = true
 		ctx.Data["BaseRepo"] = repo
-		ctx.Repo.PullRequest.BaseRepo = repo
-		ctx.Repo.PullRequest.Allowed = canPush
-		ctx.Repo.PullRequest.SameRepo = true
+		InitRepoPullRequestCtx(ctx, repo, repo)
 	}
-	ctx.Data["CanCompareOrPull"] = canCompare
-	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
 		repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)

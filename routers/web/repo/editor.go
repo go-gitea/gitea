@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -78,8 +77,6 @@ func prepareEditorPageFormOptions(ctx *context.Context, editorAction string) *co
 	ctx.Data["CommitFormOptions"] = commitFormOptions
 
 	// for online editor
-	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
-	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["IsEditingFileOnly"] = ctx.FormString("return_uri") != ""
 	ctx.Data["ReturnURI"] = ctx.FormString("return_uri")
 
@@ -321,7 +318,7 @@ func EditFile(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["EditorconfigJson"] = getContextRepoEditorConfig(ctx, ctx.Repo.TreePath)
+	ctx.Data["CodeEditorConfig"] = getCodeEditorConfig(ctx, ctx.Repo.TreePath)
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
 

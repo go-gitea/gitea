@@ -72,7 +72,8 @@ func writeStrings(buf *bytes.Buffer, strs ...string) error {
 
 func HighlightSearchResultCode(filename, language string, lineNums []int, code string) []*ResultLine {
 	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
-	hl, _ := highlight.RenderCodeFast(filename, language, code)
+	lexer := highlight.DetectChromaLexerByFileName(filename, language)
+	hl := highlight.RenderCodeByLexer(lexer, code)
 	highlightedLines := strings.Split(string(hl), "\n")
 
 	// The lineNums outputted by render might not match the original lineNums, because "highlight" removes the last `\n`

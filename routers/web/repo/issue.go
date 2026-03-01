@@ -21,6 +21,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
@@ -108,11 +109,6 @@ func MustAllowPulls(ctx *context.Context) {
 	if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(unit.TypePullRequests) {
 		ctx.NotFound(nil)
 		return
-	}
-
-	// User can send pull request if owns a forked repository.
-	if ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
-		ctx.Repo.PullRequest.Allowed = true
 	}
 }
 
@@ -374,7 +370,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"content":        content,
+		"content":        commentContentHTML(ctx, content),
 		"contentVersion": issue.ContentVersion,
 		"attachments":    attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
@@ -632,6 +628,13 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 		return fmt.Errorf("unknown Type: %T", content)
 	}
 	return err
+}
+
+func commentContentHTML(ctx *context.Context, content template.HTML) template.HTML {
+	if strings.TrimSpace(string(content)) == "" {
+		return htmlutil.HTMLFormat(`<span class="no-content">%s</span>`, ctx.Tr("repo.issues.no_content"))
+	}
+	return content
 }
 
 func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment, content string) template.HTML {

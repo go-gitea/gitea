@@ -7,13 +7,13 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
@@ -77,23 +77,14 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
-	page := max(ctx.FormInt("page"), 1)
-	limit := ctx.FormInt("limit")
-	if limit == 0 {
-		limit = setting.API.DefaultPagingNum
-	} else if limit > setting.API.MaxResponseItems {
-		limit = setting.API.MaxResponseItems
-	}
+	listOptions := utils.GetListOptions(ctx)
 
 	canWrite := ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 
-	blockerIssues := make([]*issues_model.Issue, 0, limit)
+	blockerIssues := make([]*issues_model.Issue, 0, listOptions.PageSize)
 
 	// 2. Get the issues this issue depends on, i.e. the `<#b>`: `<issue> <- <#b>`
-	blockersInfo, err := issue.BlockedByDependencies(ctx, db.ListOptions{
-		Page:     page,
-		PageSize: limit,
-	})
+	blockersInfo, total, err := issue.BlockedByDependencies(ctx, listOptions)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -149,7 +140,8 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		}
 		blockerIssues = append(blockerIssues, &blocker.Issue)
 	}
-
+	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, blockerIssues))
 }
 

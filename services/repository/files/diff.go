@@ -12,7 +12,7 @@ import (
 )
 
 // GetDiffPreview produces and returns diff result of a file which is not yet committed.
-func GetDiffPreview(ctx context.Context, repo *repo_model.Repository, branch, treePath, content string) (*gitdiff.Diff, error) {
+func GetDiffPreview(ctx context.Context, repo *repo_model.Repository, branch, treePath, oldContent, newContent string) (*gitdiff.Diff, error) {
 	if branch == "" {
 		branch = repo.DefaultBranch
 	}
@@ -29,7 +29,7 @@ func GetDiffPreview(ctx context.Context, repo *repo_model.Repository, branch, tr
 	}
 
 	// Add the object to the database
-	objectHash, err := t.HashObjectAndWrite(ctx, strings.NewReader(content))
+	objectHash, err := t.HashObjectAndWrite(ctx, strings.NewReader(newContent))
 	if err != nil {
 		return nil, err
 	}
@@ -38,5 +38,5 @@ func GetDiffPreview(ctx context.Context, repo *repo_model.Repository, branch, tr
 	if err := t.AddObjectToIndex(ctx, "100644", objectHash, treePath); err != nil {
 		return nil, err
 	}
-	return t.DiffIndex(ctx)
+	return t.DiffIndex(ctx, oldContent, newContent)
 }

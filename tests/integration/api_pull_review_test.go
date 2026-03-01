@@ -15,9 +15,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	issue_service "code.gitea.io/gitea/services/issue"
+	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -360,6 +362,79 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo3.OwnerName, repo3.Name, pullIssue12.Index), &api.PullReviewRequestOptions{}).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
+}
+
+func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	ctx := t.Context()
+	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	require.NoError(t, pullIssue.LoadAttributes(ctx))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID})
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: pullIssue.PosterID})
+	require.NoError(t, pullIssue.LoadPullRequest(ctx))
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	latestCommitID, err := gitRepo.GetRefCommitID(pullIssue.PullRequest.GetGitHeadRefName())
+	require.NoError(t, err)
+
+	codeComment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, pullIssue, 1, "resolve comment", "README.md", false, 0, latestCommitID, nil)
+	require.NoError(t, err)
+	require.NotNil(t, codeComment)
+
+	session := loginUser(t, doer.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	resolveURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/comments/%d/resolve", repo.OwnerName, repo.Name, codeComment.ID)
+	unresolveURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/comments/%d/unresolve", repo.OwnerName, repo.Name, codeComment.ID)
+
+	req := NewRequest(t, http.MethodPost, resolveURL).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	// Verify comment is resolved
+	updatedComment, err := issues_model.GetCommentByID(ctx, codeComment.ID)
+	require.NoError(t, err)
+	assert.NotZero(t, updatedComment.ResolveDoerID)
+	assert.Equal(t, doer.ID, updatedComment.ResolveDoerID)
+
+	// Resolving again should be idempotent
+	MakeRequest(t, req, http.StatusNoContent)
+
+	req = NewRequest(t, http.MethodPost, unresolveURL).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	// Verify comment is unresolved
+	updatedComment, err = issues_model.GetCommentByID(ctx, codeComment.ID)
+	require.NoError(t, err)
+	assert.Zero(t, updatedComment.ResolveDoerID)
+
+	// Unresolving again should be idempotent
+	MakeRequest(t, req, http.StatusNoContent)
+
+	// Non-existing comment ID
+	req = NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/comments/999999/resolve", repo.OwnerName, repo.Name)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// Non-code-comment
+	plainComment, err := issue_service.CreateIssueComment(ctx, doer, repo, pullIssue, "not a review comment", nil)
+	require.NoError(t, err)
+	req = NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/comments/%d/resolve", repo.OwnerName, repo.Name, plainComment.ID)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusBadRequest)
+
+	// Test permission check: use a user without write access for target repo to test 403 response
+	unauthorizedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	require.NotEqual(t, pullIssue.PosterID, unauthorizedUser.ID)
+
+	unauthorizedSession := loginUser(t, unauthorizedUser.Name)
+	unauthorizedToken := getTokenForLoggedInUser(t, unauthorizedSession, auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteRepository)
+
+	req = NewRequest(t, http.MethodGet, fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d", repo.OwnerName, repo.Name, plainComment.ID)).AddTokenAuth(unauthorizedToken)
+	MakeRequest(t, req, http.StatusOK)
+	req = NewRequest(t, http.MethodPost, resolveURL).AddTokenAuth(unauthorizedToken)
+	MakeRequest(t, req, http.StatusForbidden)
 }
 
 func TestAPIPullReviewStayDismissed(t *testing.T) {

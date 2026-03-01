@@ -28,44 +28,37 @@ const (
 
 // GetRawDiff dumps diff results of repository in given commit ID to io.Writer.
 func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer io.Writer) (retErr error) {
-	diffOutput, diffFinish, err := getRepoRawDiffForFile(repo.Ctx, repo, "", commitID, diffType, "")
+	cmd, err := getRepoRawDiffForFileCmd(repo.Ctx, repo, "", commitID, diffType, "")
 	if err != nil {
-		return err
+		return fmt.Errorf("getRepoRawDiffForFileCmd: %w", err)
 	}
-	defer func() {
-		err := diffFinish()
-		if retErr == nil {
-			retErr = err // only return command's error if no previous error
-		}
-	}()
-	_, err = io.Copy(writer, diffOutput)
-	return err
+	return cmd.WithStdoutCopy(writer).RunWithStderr(repo.Ctx)
 }
 
 // GetFileDiffCutAroundLine cuts the old or new part of the diff of a file around a specific line number
 func GetFileDiffCutAroundLine(
 	repo *Repository, startCommit, endCommit, treePath string,
 	line int64, old bool, numbersOfLine int,
-) (_ string, retErr error) {
-	diffOutput, diffFinish, err := getRepoRawDiffForFile(repo.Ctx, repo, startCommit, endCommit, RawDiffNormal, treePath)
+) (ret string, retErr error) {
+	cmd, err := getRepoRawDiffForFileCmd(repo.Ctx, repo, startCommit, endCommit, RawDiffNormal, treePath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("getRepoRawDiffForFileCmd: %w", err)
 	}
-	defer func() {
-		err := diffFinish()
-		if retErr == nil {
-			retErr = err // only return command's error if no previous error
-		}
-	}()
-	return CutDiffAroundLine(diffOutput, line, old, numbersOfLine)
+	stdoutReader, stdoutClose := cmd.MakeStdoutPipe()
+	defer stdoutClose()
+	cmd.WithPipelineFunc(func(ctx gitcmd.Context) error {
+		ret, err = CutDiffAroundLine(stdoutReader, line, old, numbersOfLine)
+		return err
+	})
+	return ret, cmd.RunWithStderr(repo.Ctx)
 }
 
 // getRepoRawDiffForFile returns an io.Reader for the diff results of file in given commit ID
 // and a "finish" function to wait for the git command and clean up resources after reading is done.
-func getRepoRawDiffForFile(ctx context.Context, repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string) (io.Reader, func() gitcmd.RunStdError, error) {
+func getRepoRawDiffForFileCmd(_ context.Context, repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string) (*gitcmd.Command, error) {
 	commit, err := repo.GetCommit(endCommit)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	var files []string
 	if len(file) > 0 {
@@ -84,7 +77,7 @@ func getRepoRawDiffForFile(ctx context.Context, repo *Repository, startCommit, e
 		} else {
 			c, err := commit.Parent(0)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			cmd.AddArguments("diff").
 				AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold).
@@ -99,25 +92,15 @@ func getRepoRawDiffForFile(ctx context.Context, repo *Repository, startCommit, e
 		} else {
 			c, err := commit.Parent(0)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			query := fmt.Sprintf("%s...%s", endCommit, c.ID.String())
 			cmd.AddArguments("format-patch", "--no-signature", "--stdout").AddDynamicArguments(query).AddDashesAndList(files...)
 		}
 	default:
-		return nil, nil, util.NewInvalidArgumentErrorf("invalid diff type: %s", diffType)
+		return nil, util.NewInvalidArgumentErrorf("invalid diff type: %s", diffType)
 	}
-
-	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
-	err = cmd.StartWithStderr(ctx)
-	if err != nil {
-		stdoutReaderClose()
-		return nil, nil, err
-	}
-	return stdoutReader, func() gitcmd.RunStdError {
-		stdoutReaderClose()
-		return cmd.WaitWithStderr()
-	}, nil
+	return cmd, nil
 }
 
 // ParseDiffHunkString parse the diff hunk content and return
@@ -254,7 +237,7 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return "", err
+		return "", fmt.Errorf("CutDiffAroundLine: scan: %w", err)
 	}
 
 	// No hunk found

@@ -124,7 +124,7 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 	}
 
 	for _, id := range ids {
-		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).DeleteDocument(strconv.FormatInt(id, 10))
+		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).DeleteDocument(strconv.FormatInt(id, 10), nil)
 		if err != nil {
 			return err
 		}

@@ -117,7 +117,7 @@ func CommonRoutes() *web.Router {
 		&auth.OAuth2{},
 		&auth.Basic{},
 		&nuget.Auth{},
-		&conan.Auth{},
+		&Auth{},
 		&chef.Auth{},
 	})
 
@@ -537,7 +537,8 @@ func ContainerRoutes() *web.Router {
 
 	verifyAuth(r, []auth.Method{
 		&auth.Basic{},
-		&container.Auth{},
+		// container auth requires an token, so container.Authenticate issues a Ghost user token for anonymous access
+		&Auth{AllowGhostUser: true},
 	})
 
 	// TODO: Content Discovery / References (not implemented yet)

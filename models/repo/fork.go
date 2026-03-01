@@ -49,7 +49,7 @@ func GetUserFork(ctx context.Context, repoID, userID int64) (*Repository, error)
 		return nil, err
 	}
 	if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return &forkedRepo, nil
 }

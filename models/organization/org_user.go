@@ -174,13 +174,13 @@ func GetOrgAssignees(ctx context.Context, orgID int64) (_ []*user_model.User, er
 
 func loadOrganizationOwners(ctx context.Context, users user_model.UserList, orgID int64) (map[int64]*TeamUser, error) {
 	if len(users) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil when there are no users
 	}
 	ownerTeam, err := GetOwnerTeam(ctx, orgID)
 	if err != nil {
 		if IsErrTeamNotExist(err) {
 			log.Error("Organization does not have owner team: %d", orgID)
-			return nil, nil
+			return nil, nil //nolint:nilnil // return nil when owner team does not exist
 		}
 		return nil, err
 	}

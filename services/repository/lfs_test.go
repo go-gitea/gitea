@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,8 @@ import (
 func TestGarbageCollectLFSMetaObjects(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	setting.LFS.StartServer = true
+	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
+
 	err := storage.Init()
 	assert.NoError(t, err)
 
@@ -42,6 +44,32 @@ func TestGarbageCollectLFSMetaObjects(t *testing.T) {
 	assert.NoError(t, err)
 
 	// lfs meta has been deleted
+	_, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, lfsOid)
+	assert.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
+}
+
+func TestGarbageCollectLFSMetaObjectsForRepoAutoFix(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
+
+	err := storage.Init()
+	assert.NoError(t, err)
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	// add lfs object
+	lfsContent := []byte("gitea2")
+	lfsOid := storeObjectInRepo(t, repo.ID, &lfsContent)
+
+	err = repo_service.GarbageCollectLFSMetaObjectsForRepo(t.Context(), repo, repo_service.GarbageCollectLFSMetaObjectsOptions{
+		LogDetail:               func(string, ...any) {},
+		AutoFix:                 true,
+		OlderThan:               time.Now().Add(24 * time.Hour * 7),
+		UpdatedLessRecentlyThan: time.Now().Add(24 * time.Hour * 3),
+	})
+	assert.NoError(t, err)
+
 	_, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, lfsOid)
 	assert.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
 }

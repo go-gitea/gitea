@@ -8,20 +8,45 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"os"
-	"path"
+	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
-
-	"code.gitea.io/gitea/modules/container"
 )
 
 // regexp is based on go-license, excluding README and NOTICE
 // https://github.com/google/go-licenses/blob/master/licenses/find.go
 var licenseRe = regexp.MustCompile(`^(?i)((UN)?LICEN(S|C)E|COPYING).*$`)
+
+// primaryLicenseRe matches exact primary license filenames without suffixes.
+// When a directory has both primary and variant files (e.g. LICENSE and
+// LICENSE.docs), only the primary files are kept.
+var primaryLicenseRe = regexp.MustCompile(`^(?i)(LICEN[SC]E|COPYING)$`)
+
+// ignoredNames are LicenseEntry.Name values to exclude from the output.
+var ignoredNames = map[string]bool{
+	"code.gitea.io/gitea":                 true,
+	"code.gitea.io/gitea/options/license": true,
+}
+
+var excludedExt = map[string]bool{
+	".gitignore": true,
+	".go":        true,
+	".mod":       true,
+	".sum":       true,
+	".toml":      true,
+	".yaml":      true,
+	".yml":       true,
+}
+
+type ModuleInfo struct {
+	Path    string
+	Dir     string
+	PkgDirs []string // directories of packages imported from this module
+}
 
 type LicenseEntry struct {
 	Name        string `json:"name"`
@@ -29,77 +54,172 @@ type LicenseEntry struct {
 	LicenseText string `json:"licenseText"`
 }
 
-func main() {
-	if len(os.Args) != 3 {
-		fmt.Println("usage: go run generate-go-licenses.go <base-dir> <out-json-file>")
+// getModules returns all dependency modules with their local directory paths
+// and the package directories used from each module.
+func getModules(goCmd string) []ModuleInfo {
+	cmd := exec.Command(goCmd, "list", "-deps", "-f",
+		"{{if .Module}}{{.Module.Path}}\t{{.Module.Dir}}\t{{.Dir}}{{end}}", "./...")
+	cmd.Stderr = os.Stderr
+	// Use GOOS=linux with CGO to ensure we capture all platform-specific
+	// dependencies, matching the CI environment.
+	cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64", "CGO_ENABLED=1")
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to run 'go list -deps': %v\n", err)
 		os.Exit(1)
 	}
 
-	base, out := os.Args[1], os.Args[2]
-
-	// Add ext for excluded files because license_test.go will be included for some reason.
-	// And there are more files that should be excluded, check with:
-	//
-	// go run github.com/google/go-licenses@v1.6.0 save . --force --save_path=.go-licenses 2>/dev/null
-	// find .go-licenses -type f | while read FILE; do echo "${$(basename $FILE)##*.}"; done | sort -u
-	//    AUTHORS
-	//    COPYING
-	//    LICENSE
-	//    Makefile
-	//    NOTICE
-	//    gitignore
-	//    go
-	//    md
-	//    mod
-	//    sum
-	//    toml
-	//    txt
-	//    yml
-	//
-	// It could be removed once we have a better regex.
-	excludedExt := container.SetOf(".gitignore", ".go", ".mod", ".sum", ".toml", ".yml")
-
-	var paths []string
-	err := filepath.WalkDir(base, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
+	var modules []ModuleInfo
+	seen := make(map[string]int) // module path -> index in modules
+	for _, line := range strings.Split(string(output), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
 		}
-		if entry.IsDir() || !licenseRe.MatchString(entry.Name()) || excludedExt.Contains(filepath.Ext(entry.Name())) {
-			return nil
+		parts := strings.Split(line, "\t")
+		if len(parts) != 3 {
+			continue
 		}
-		paths = append(paths, path)
-		return nil
-	})
-	if err != nil {
-		panic(err)
+		modPath, modDir, pkgDir := parts[0], parts[1], parts[2]
+		if idx, ok := seen[modPath]; ok {
+			modules[idx].PkgDirs = append(modules[idx].PkgDirs, pkgDir)
+		} else {
+			seen[modPath] = len(modules)
+			modules = append(modules, ModuleInfo{
+				Path:    modPath,
+				Dir:     modDir,
+				PkgDirs: []string{pkgDir},
+			})
+		}
+	}
+	return modules
+}
+
+// findLicenseFiles scans a module's root directory and its used package
+// directories for license files. It also walks up from each package directory
+// to the module root, scanning intermediate directories. Subdirectory licenses
+// are only included if their text differs from the root license(s).
+func findLicenseFiles(mod ModuleInfo) []LicenseEntry {
+	var entries []LicenseEntry
+	seenTexts := make(map[string]bool)
+
+	// First, collect root-level license files.
+	entries = append(entries, scanDirForLicenses(mod.Dir, mod.Path, "")...)
+	for _, e := range entries {
+		seenTexts[e.LicenseText] = true
 	}
 
-	sort.Strings(paths)
+	// Then check each package directory and all intermediate parent directories
+	// up to the module root for license files with unique text.
+	seenDirs := map[string]bool{mod.Dir: true}
+	for _, pkgDir := range mod.PkgDirs {
+		for dir := pkgDir; dir != mod.Dir && strings.HasPrefix(dir, mod.Dir); dir = filepath.Dir(dir) {
+			if seenDirs[dir] {
+				continue
+			}
+			seenDirs[dir] = true
+			for _, e := range scanDirForLicenses(dir, mod.Path, mod.Dir) {
+				if !seenTexts[e.LicenseText] {
+					seenTexts[e.LicenseText] = true
+					entries = append(entries, e)
+				}
+			}
+		}
+	}
+	return entries
+}
+
+// scanDirForLicenses reads a single directory for license files and returns entries.
+// If moduleRoot is non-empty, paths are made relative to it.
+func scanDirForLicenses(dir, modulePath, moduleRoot string) []LicenseEntry {
+	dirEntries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
 
 	var entries []LicenseEntry
-	for _, filePath := range paths {
-		licenseText, err := os.ReadFile(filePath)
-		if err != nil {
-			panic(err)
+	for _, entry := range dirEntries {
+		if entry.IsDir() {
+			continue
 		}
-
-		pkgPath := filepath.ToSlash(filePath)
-		pkgPath = strings.TrimPrefix(pkgPath, base+"/")
-		pkgName := path.Dir(pkgPath)
-
-		// There might be a bug somewhere in go-licenses that sometimes interprets the
-		// root package as "." and sometimes as "code.gitea.io/gitea". Workaround by
-		// removing both of them for the sake of stable output.
-		if pkgName == "." || pkgName == "code.gitea.io/gitea" {
+		name := entry.Name()
+		if !licenseRe.MatchString(name) {
+			continue
+		}
+		if excludedExt[strings.ToLower(filepath.Ext(name))] {
 			continue
 		}
 
+		content, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			continue
+		}
+
+		entryName := modulePath
+		entryPath := modulePath + "/" + name
+		if moduleRoot != "" {
+			rel, _ := filepath.Rel(moduleRoot, dir)
+			if rel != "." {
+				relSlash := filepath.ToSlash(rel)
+				entryName = modulePath + "/" + relSlash
+				entryPath = modulePath + "/" + relSlash + "/" + name
+			}
+		}
+
 		entries = append(entries, LicenseEntry{
-			Name:        pkgName,
-			Path:        pkgPath,
-			LicenseText: string(licenseText),
+			Name:        entryName,
+			Path:        entryPath,
+			LicenseText: string(content),
 		})
 	}
+
+	// When multiple license files exist, prefer primary files (e.g. LICENSE)
+	// over variants with suffixes (e.g. LICENSE.docs, LICENSE-2.0.txt).
+	// If no primary file exists, keep only the first variant.
+	if len(entries) > 1 {
+		var primary []LicenseEntry
+		for _, e := range entries {
+			fileName := e.Path[strings.LastIndex(e.Path, "/")+1:]
+			if primaryLicenseRe.MatchString(fileName) {
+				primary = append(primary, e)
+			}
+		}
+		if len(primary) > 0 {
+			return primary
+		}
+		return entries[:1]
+	}
+
+	return entries
+}
+
+func main() {
+	if len(os.Args) != 2 {
+		fmt.Println("usage: go run generate-go-licenses.go <out-json-file>")
+		os.Exit(1)
+	}
+
+	out := os.Args[1]
+
+	goCmd := "go"
+	if env := os.Getenv("GO"); env != "" {
+		goCmd = env
+	}
+
+	modules := getModules(goCmd)
+
+	var entries []LicenseEntry
+	for _, mod := range modules {
+		entries = append(entries, findLicenseFiles(mod)...)
+	}
+
+	entries = slices.DeleteFunc(entries, func(e LicenseEntry) bool {
+		return ignoredNames[e.Name]
+	})
+
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Path < entries[j].Path
+	})
 
 	jsonBytes, err := json.MarshalIndent(entries, "", "  ")
 	if err != nil {

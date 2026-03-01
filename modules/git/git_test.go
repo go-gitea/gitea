@@ -23,6 +23,10 @@ func TestParseGitVersion(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "2.29.3", v.String())
 
+	v, err = parseGitVersionLine("git version 2.28.0.618.gf4bc123cb7")
+	assert.NoError(t, err)
+	assert.Equal(t, "2.28.0", v.String())
+
 	_, err = parseGitVersionLine("git version")
 	assert.Error(t, err)
 

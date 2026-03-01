@@ -13,7 +13,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
-	attachment_model "code.gitea.io/gitea/models/repo"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/optional"
@@ -25,6 +25,8 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	project_service "code.gitea.io/gitea/services/projects"
+
+	"xorm.io/builder"
 )
 
 const (
@@ -332,12 +334,26 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 	assigneeID := ctx.FormString("assignee")
+	milestoneID := ctx.FormInt64("milestone")
+
+	// Prepare milestone IDs for filtering
+	var milestoneIDs []int64
+	if milestoneID > 0 {
+		milestoneIDs = []int64{milestoneID}
+	} else if milestoneID == db.NoConditionID {
+		milestoneIDs = []int64{db.NoConditionID}
+	}
 
 	opts := issues_model.IssuesOptions{
-		LabelIDs:   preparedLabelFilter.SelectedLabelIDs,
-		AssigneeID: assigneeID,
-		Owner:      project.Owner,
-		Doer:       ctx.Doer,
+		LabelIDs:     preparedLabelFilter.SelectedLabelIDs,
+		AssigneeID:   assigneeID,
+		MilestoneIDs: milestoneIDs,
+		Owner:        project.Owner,
+	}
+	if ctx.Doer != nil {
+		opts.Doer = ctx.Doer
+	} else {
+		opts.AllPublic = true
 	}
 
 	issuesMap, err := project_service.LoadIssuesFromProject(ctx, project, &opts)
@@ -350,10 +366,10 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	if project.CardType != project_model.CardTypeTextOnly {
-		issuesAttachmentMap := make(map[int64][]*attachment_model.Attachment)
+		issuesAttachmentMap := make(map[int64][]*repo_model.Attachment)
 		for _, issuesList := range issuesMap {
 			for _, issue := range issuesList {
-				if issueAttachment, err := attachment_model.GetAttachmentsByIssueIDImagesLatest(ctx, issue.ID); err == nil {
+				if issueAttachment, err := repo_model.GetAttachmentsByIssueIDImagesLatest(ctx, issue.ID); err == nil {
 					issuesAttachmentMap[issue.ID] = issueAttachment
 				}
 			}
@@ -410,6 +426,42 @@ func ViewProject(ctx *context.Context) {
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)
+
+	// Get milestones for filtering
+	// For organization projects, we need to get milestones from all repos the user has access to
+	var milestones issues_model.MilestoneList
+	if project.RepoID > 0 {
+		// Repo-specific project
+		milestones, err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+			RepoID: project.RepoID,
+		})
+		if err != nil {
+			ctx.ServerError("GetRepoMilestones", err)
+			return
+		}
+	} else {
+		// Organization-wide project - get milestones from all organization repos
+		// but only from repositories the current user can access.
+		// Use RepoCond with a subquery to avoid materializing all repo IDs in memory
+		// which can hit SQL parameter limits for orgs with many repos.
+		accessCond := repo_model.AccessibleRepositoryCondition(ctx.Doer, unit.TypeIssues)
+		repoCond := builder.And(
+			builder.Eq{"owner_id": project.OwnerID},
+			accessCond,
+		)
+		milestones, err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+			RepoCond: repoCond,
+		})
+		if err != nil {
+			ctx.ServerError("GetOrgMilestones", err)
+			return
+		}
+	}
+
+	openMilestones, closedMilestones := milestones.SplitByOpenClosed()
+	ctx.Data["OpenMilestones"] = openMilestones
+	ctx.Data["ClosedMilestones"] = closedMilestones
+	ctx.Data["MilestoneID"] = milestoneID
 
 	// Get assignees.
 	assigneeUsers, err := org_model.GetOrgAssignees(ctx, project.OwnerID)

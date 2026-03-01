@@ -221,7 +221,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			ctx := &APIContext{
 				Base:  base,
 				Cache: cache.GetCache(),
-				Repo:  &Repository{PullRequest: &PullRequest{}},
+				Repo:  &Repository{},
 				Org:   &APIOrganization{},
 			}
 
@@ -235,8 +235,6 @@ func APIContexter() func(http.Handler) http.Handler {
 			}
 
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
-			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
-
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}

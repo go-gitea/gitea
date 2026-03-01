@@ -24,7 +24,18 @@ func urlIsRelative(s string, u *url.URL) bool {
 	if len(s) > 1 && (s[0] == '/' || s[0] == '\\') && (s[1] == '/' || s[1] == '\\') {
 		return false
 	}
-	return u != nil && u.Scheme == "" && u.Host == ""
+	if u == nil {
+		return false // invalid URL
+	}
+	if u.Scheme != "" || u.Host != "" {
+		return false // absolute URL with scheme or host
+	}
+	// Now, the URL is likely a relative URL
+	// HINT: GOLANG-HTTP-REDIRECT-BUG: Golang security vulnerability: "http.Redirect" calls "path.Clean" and changes the meaning of a path
+	// For example, `/a/../\b` will be changed to `/\b`, then it hits the first checked pattern and becomes an open redirect to "{current-scheme}://b"
+	// For a valid relative URL, its "path" shouldn't contain `\` because such char must be escaped.
+	// So if the "path" contains `\`, it is not a valid relative URL, then we can prevent open redirect.
+	return !strings.Contains(u.Path, "\\")
 }
 
 // IsRelativeURL detects if a URL is relative (no scheme or host)
@@ -61,6 +72,10 @@ func GuessCurrentAppURL(ctx context.Context) string {
 
 // GuessCurrentHostURL tries to guess the current full host URL (no sub-path) by http headers, there is no trailing slash.
 func GuessCurrentHostURL(ctx context.Context) string {
+	// "never" means always trust ROOT_URL and skip any request header detection.
+	if setting.PublicURLDetection == setting.PublicURLNever {
+		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
+	}
 	// Try the best guess to get the current host URL (will be used for public URL) by http headers.
 	// At the moment, if site admin doesn't configure the proxy headers correctly, then Gitea would guess wrong.
 	// There are some cases:

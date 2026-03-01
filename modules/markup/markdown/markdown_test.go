@@ -483,6 +483,9 @@ foo: bar
 }
 
 func TestRenderLinks(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, AppURL)()
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
+
 	input := `  space @mention-user${SPACE}${SPACE}
 /just/a/path.bin
 https://example.com/file.bin
@@ -520,9 +523,9 @@ mail@domain.com
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a>
 <a href="/image.jpg" rel="nofollow"><img src="/image.jpg" title="local image" alt="local image"/></a>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow">https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash</a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" aria-label="thumbs up">👍</span>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a>
@@ -530,10 +533,21 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 #123
 space</p>
 `
-	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	result, err := markdown.RenderString(markup.NewTestRenderContext(localMetas), input)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, string(result))
+
+	t.Run("LocalCommitAndCompare", func(t *testing.T) {
+		input := `http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb
+http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash`
+
+		expected := `<p><a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a>
+<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a></p>
+`
+		result, err := markdown.RenderString(markup.NewTestRenderContext(localMetas), input)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, string(result))
+	})
 }
 
 func TestMarkdownLink(t *testing.T) {

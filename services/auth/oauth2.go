@@ -156,12 +156,12 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 	detector := newAuthPathDetector(req)
 	if !detector.isAPIPath() && !detector.isAttachmentDownload() && !detector.isAuthenticatedTokenRequest() &&
 		!detector.isGitRawOrAttachPath() && !detector.isArchivePath() {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	token, ok := parseToken(req)
 	if !ok {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	user, err := o.userFromToken(req.Context(), token, store)

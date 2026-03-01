@@ -100,7 +100,7 @@ func (p *Parser) Err() error {
 func (p *Parser) parseRef(refBlock string) (map[string]string, error) {
 	if refBlock == "" {
 		// must be at EOF
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to signal EOF
 	}
 
 	fieldValues := make(map[string]string)

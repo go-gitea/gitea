@@ -312,15 +312,12 @@ func IterateRepositoryIDsWithLFSMetaObjects(ctx context.Context, f func(ctx cont
 
 // IterateLFSMetaObjectsForRepoOptions provides options for IterateLFSMetaObjectsForRepo
 type IterateLFSMetaObjectsForRepoOptions struct {
-	OlderThan                 timeutil.TimeStamp
-	UpdatedLessRecentlyThan   timeutil.TimeStamp
-	OrderByUpdated            bool
-	LoopFunctionAlwaysUpdates bool
+	OlderThan               timeutil.TimeStamp
+	UpdatedLessRecentlyThan timeutil.TimeStamp
 }
 
 // IterateLFSMetaObjectsForRepo provides a iterator for LFSMetaObjects per Repo
 func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(context.Context, *LFSMetaObject, int64) error, opts *IterateLFSMetaObjectsForRepoOptions) error {
-	var start int
 	batchSize := setting.Database.IterateBufferSize
 	engine := db.GetEngine(ctx)
 	type CountLFSMetaObject struct {
@@ -328,7 +325,7 @@ func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(cont
 		LFSMetaObject `xorm:"extends"`
 	}
 
-	id := int64(0)
+	lastID := int64(0)
 
 	for {
 		beans := make([]*CountLFSMetaObject, 0, batchSize)
@@ -341,21 +338,15 @@ func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(cont
 		if !opts.UpdatedLessRecentlyThan.IsZero() {
 			sess.And("`lfs_meta_object`.updated_unix < ?", opts.UpdatedLessRecentlyThan)
 		}
-		sess.GroupBy("`lfs_meta_object`.id")
-		if opts.OrderByUpdated {
-			sess.OrderBy("`lfs_meta_object`.updated_unix ASC")
-		} else {
-			sess.And("`lfs_meta_object`.id > ?", id)
-			sess.OrderBy("`lfs_meta_object`.id ASC")
-		}
-		if err := sess.Limit(batchSize, start).Find(&beans); err != nil {
+		sess.GroupBy("`lfs_meta_object`.id").
+			And("`lfs_meta_object`.id > ?", lastID).
+			OrderBy("`lfs_meta_object`.id ASC")
+
+		if err := sess.Limit(batchSize).Find(&beans); err != nil {
 			return err
 		}
 		if len(beans) == 0 {
 			return nil
-		}
-		if !opts.LoopFunctionAlwaysUpdates {
-			start += len(beans)
 		}
 
 		for _, bean := range beans {
@@ -363,7 +354,7 @@ func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(cont
 				return err
 			}
 		}
-		id = beans[len(beans)-1].ID
+		lastID = beans[len(beans)-1].ID
 	}
 }
 

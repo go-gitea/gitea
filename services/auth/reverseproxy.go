@@ -51,7 +51,7 @@ func (r *ReverseProxy) Name() string {
 func (r *ReverseProxy) getUserFromAuthUser(req *http.Request) (*user_model.User, error) {
 	username := r.getUserName(req)
 	if len(username) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 	log.Trace("ReverseProxy Authorization: Found username: %s", username)
 
@@ -111,7 +111,7 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 	if user == nil {
 		user = r.getUserFromAuthEmail(req)
 		if user == nil {
-			return nil, nil
+			return nil, nil //nolint:nilnil // the auth method is not applicable
 		}
 	}
 

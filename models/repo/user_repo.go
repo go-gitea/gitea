@@ -151,7 +151,7 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull bool, search string, isShowFullName bool) ([]*user_model.User, error) {
 	users := make([]*user_model.User, 0, 30)
 	var prefixCond builder.Cond = builder.Like{"lower_name", strings.ToLower(search) + "%"}
-	if isShowFullName {
+	if search != "" && isShowFullName {
 		prefixCond = prefixCond.Or(db.BuildCaseInsensitiveLike("full_name", "%"+search+"%"))
 	}
 

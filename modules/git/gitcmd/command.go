@@ -306,6 +306,10 @@ func (c *Command) MakeStdinPipe() (writer PipeWriter, closer func()) {
 // MakeStdoutPipe creates a reader for the command's stdout.
 // The returned closer function must be called by the caller to close the pipe.
 // After the pipe reader is closed, the unread data will be discarded.
+//
+// If the process (git command) still tries to write after the pipe is closed, the Wait error will be "signal: broken pipe".
+// WithPipelineFunc + Run won't return "broken pipe" error in this case if the callback returns no error.
+// But if you are calling Start / Wait family functions, you should either drain the pipe before close it, or handle the Wait error correctly.
 func (c *Command) MakeStdoutPipe() (reader PipeReader, closer func()) {
 	return c.makeStdoutStderr(&c.cmdStdout)
 }

@@ -364,11 +364,12 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 
 // SyncTags syncs releases with tags in the database
 func (g *GiteaLocalUploader) SyncTags(ctx context.Context) error {
-	return repo_module.SyncReleasesWithTags(ctx, g.repo, g.gitRepo)
+	_, err := repo_module.SyncReleasesWithTags(ctx, g.repo, g.gitRepo)
+	return err
 }
 
 func (g *GiteaLocalUploader) SyncBranches(ctx context.Context) error {
-	_, err := repo_module.SyncRepoBranchesWithRepo(ctx, g.repo, g.gitRepo, g.doer.ID)
+	_, _, err := repo_module.SyncRepoBranchesWithRepo(ctx, g.repo, g.gitRepo, g.doer.ID)
 	return err
 }
 

@@ -36,8 +36,6 @@ var currentEngine *xorm.Engine
 
 func initMigrationTest(t *testing.T) func() {
 	testlogger.Init()
-	setting.SetupGiteaTestEnv()
-
 	unittest.InitSettingsForTesting()
 
 	assert.NotEmpty(t, setting.RepoRootPath)

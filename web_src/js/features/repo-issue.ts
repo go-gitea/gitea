@@ -82,6 +82,7 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
   });
   // alt(or option) + enter to exclude selected label
   elDropdown.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.isComposing) return;
     if (e.altKey && e.key === 'Enter') {
       const selectedItem = elDropdown.querySelector('.label-filter-query-item.selected');
       if (selectedItem) excludeLabel(e, selectedItem);
@@ -512,7 +513,8 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
   const syncUiState = () => {
     const editorText = editor.value().trim(), isUploading = editor.isUploading();
     if (statusButton) {
-      statusButton.textContent = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
+      const statusText = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
+      statusButton.querySelector<HTMLElement>('.status-button-text')!.textContent = statusText;
       statusButton.disabled = isUploading;
     }
     if (commentButton) {

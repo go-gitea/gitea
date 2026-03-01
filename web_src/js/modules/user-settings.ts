@@ -58,8 +58,8 @@ export const localUserSettings = {
   getJsonObject: <T extends Record<string, any>>(key: string, def: T): T => {
     const value = getLocalStorageUserSetting(key);
     try {
-      const decoded = value !== null ? JSON.parse(value) : def;
-      return decoded ?? def;
+      const decoded = value !== null ? JSON.parse(value) : null;
+      return {...def, ...decoded};
     } catch (e) {
       console.error(`Unable to parse JSON value for local user settings ${key}=${value}`, e);
     }

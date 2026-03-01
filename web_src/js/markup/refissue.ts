@@ -1,7 +1,6 @@
 import {queryElems} from '../utils/dom.ts';
 import {parseIssueHref} from '../utils.ts';
 import {createApp} from 'vue';
-import ContextPopup from '../components/ContextPopup.vue';
 import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
 
 export function initMarkupRefIssue(el: HTMLElement) {
@@ -20,6 +19,14 @@ function showMarkupRefIssuePopup(e: MouseEvent | FocusEvent) {
   if (!issuePathInfo.ownerName) return;
 
   const el = document.createElement('div');
+  const onShowAsync = async () => {
+    const {default: ContextPopup} = await import(/* webpackChunkName: "ContextPopup" */ '../components/ContextPopup.vue');
+    const view = createApp(ContextPopup, {
+      // backend: GetIssueInfo
+      loadIssueInfoUrl: `${window.config.appSubUrl}/${issuePathInfo.ownerName}/${issuePathInfo.repoName}/issues/${issuePathInfo.indexString}/info`,
+    });
+    view.mount(el);
+  };
   const tippy = createTippy(refIssue, {
     theme: 'default',
     content: el,
@@ -29,13 +36,7 @@ function showMarkupRefIssuePopup(e: MouseEvent | FocusEvent) {
     role: 'dialog',
     interactiveBorder: 5,
     // onHide() { return false }, // help to keep the popup and debug the layout
-    onShow: () => {
-      const view = createApp(ContextPopup, {
-        // backend: GetIssueInfo
-        loadIssueInfoUrl: `${window.config.appSubUrl}/${issuePathInfo.ownerName}/${issuePathInfo.repoName}/issues/${issuePathInfo.indexString}/info`,
-      });
-      view.mount(el);
-    },
+    onShow: () => { onShowAsync() },
   });
   tippy.show();
 }

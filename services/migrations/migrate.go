@@ -131,8 +131,8 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
-		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
-			log.Error("create respotiry notice failed: ", err2)
+		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository (%s/%s) from %s failed: %v", ownerName, opts.RepoName, opts.OriginalURL, err)); err2 != nil {
+			log.Error("create repository notice failed: ", err2)
 		}
 		return nil, err
 	}

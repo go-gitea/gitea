@@ -318,7 +318,7 @@ func GetProtectedBranchRuleByName(ctx context.Context, repoID int64, ruleName st
 	if err != nil {
 		return nil, err
 	} else if !exist {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return rel, nil
 }
@@ -329,7 +329,7 @@ func GetProtectedBranchRuleByID(ctx context.Context, repoID, ruleID int64) (*Pro
 	if err != nil {
 		return nil, err
 	} else if !exist {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return rel, nil
 }

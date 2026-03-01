@@ -36,8 +36,3 @@ h4.divider {
 .divider.divider-text::after {
   margin-left: .75em;
 }
-
-.ui.dropdown .menu > .divider {
-  border-top: 1px solid var(--color-secondary);
-  margin: 4px 0;
-}

@@ -29,7 +29,7 @@
 						</span>
 					</div>
 					{{if .TotalTrackedTime}}
-					<div class="text grey flex-text-block">
+					<div class="tw-text-text-light flex-text-block">
 							{{svg "octicon-clock" 16}}
 							{{.TotalTrackedTime | Sec2Hour}}
 					</div>
@@ -98,7 +98,7 @@
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
 						<span class="due-date flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
-							<span{{if .IsOverdue}} class="text red"{{end}}>
+							<span{{if .IsOverdue}} class="tw-text-red"{{end}}>
 								{{svg "octicon-calendar" 14}}
 								{{DateUtils.AbsoluteShort .DeadlineUnix}}
 							</span>
@@ -138,7 +138,7 @@
 			{{if or .Assignees .NumComments}}
 			<div class="flex-item-trailing">
 				{{if .Assignees}}
-				<div class="text grey">
+				<div class="tw-text-text-light">
 					{{range .Assignees}}
 						<a class="ui assignee tw-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
 							{{ctx.AvatarUtils.Avatar . 20}}
@@ -147,7 +147,7 @@
 				</div>
 				{{end}}
 				{{if .NumComments}}
-				<div class="text grey">
+				<div class="tw-text-text-light">
 					<a class="tw-no-underline muted flex-text-block" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{svg "octicon-comment" 16}}{{.NumComments}}
 					</a>

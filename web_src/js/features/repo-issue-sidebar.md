@@ -23,6 +23,16 @@ When the selected items change, the `combo-value` input will be updated.
 If there is `data-update-url`, it also calls backend to attach/detach the changed items.
 
 Also, the changed items will be synchronized to the `ui list` items.
+The menu items must have correct `href`, otherwise the links of synchronized (cloned) items would be wrong.
+
+Synchronization logic:
+* On page load:
+  * If the dropdown menu contains checked items, there will be no synchronization.
+    In this case, it's assumed that the dropdown menu is already in sync with the list.
+  * If the dropdown menu doesn't contain checked items, it will use dropdown's value to mark the selected items as checked.
+    And the selected (checked) items will be synchronized to the list.
+* On dropdown selection change:
+  * The selected items will be synchronized to the list after the dropdown is hidden
 
 The items with the same data-scope only allow one selected at a time.
 

@@ -90,7 +90,7 @@ func GetBlocking(ctx context.Context, blockerID, blockeeID int64) (*Blocking, er
 		return nil, err
 	}
 	if len(blocks) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return blocks[0], nil
 }

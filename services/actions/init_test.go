@@ -18,7 +18,6 @@ import (
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m)
-	os.Exit(m.Run())
 }
 
 func TestInitToken(t *testing.T) {

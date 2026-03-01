@@ -24,11 +24,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func InitTest(requireGitea bool) {
+func InitTest() {
 	testlogger.Init()
-
-	setting.SetupGiteaTestEnv()
-
 	unittest.InitSettingsForTesting()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 
@@ -38,7 +35,7 @@ func InitTest(requireGitea bool) {
 
 	setting.LoadDBSetting()
 	if err := storage.Init(); err != nil {
-		testlogger.Fatalf("Init storage failed: %v\n", err)
+		testlogger.Panicf("Init storage failed: %v\n", err)
 	}
 
 	switch {
