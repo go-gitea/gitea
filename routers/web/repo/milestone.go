@@ -118,7 +118,7 @@ func NewMilestonePost(ctx *context.Context) {
 	deadlineUnix, err := common.ParseDeadlineDateToEndOfDay(form.Deadline)
 	if err != nil {
 		ctx.Data["Err_Deadline"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.milestones.invalid_due_date_format"), tplMilestoneNew, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.milestones.invalid_due_date_format"), tplMilestoneNew, &form)
 		return
 	}
 
@@ -174,7 +174,7 @@ func EditMilestonePost(ctx *context.Context) {
 	deadlineUnix, err := common.ParseDeadlineDateToEndOfDay(form.Deadline)
 	if err != nil {
 		ctx.Data["Err_Deadline"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.milestones.invalid_due_date_format"), tplMilestoneNew, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.milestones.invalid_due_date_format"), tplMilestoneNew, &form)
 		return
 	}
 

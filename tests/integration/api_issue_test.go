@@ -361,6 +361,34 @@ func TestAPISearchIssues(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
+
+	query = url.Values{"created": {"1"}} // issues created by the auth user
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 5)
+
+	query = url.Values{"created": {"1"}, "type": {"pulls"}} // prs created by the auth user
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 3)
+
+	query = url.Values{"created_by": {"user2"}} // issues created by the user2
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 9)
+
+	query = url.Values{"created_by": {"user2"}, "type": {"pulls"}} // prs created by user2
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 3)
 }
 
 func TestAPISearchIssuesWithLabels(t *testing.T) {

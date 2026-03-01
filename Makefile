@@ -15,13 +15,13 @@ XGO_VERSION := go-1.25.x
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.2
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.10.1
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
-MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
+MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.1
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
-ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.10
+ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.11
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -322,11 +322,11 @@ lint-md-fix: node_modules ## lint markdown files and fix issues
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
-	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error $(SPELLCHECK_FILES)
+	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error
 
 .PHONY: lint-spell-fix
 lint-spell-fix: ## lint spelling and fix issues
-	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w $(SPELLCHECK_FILES)
+	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w
 
 .PHONY: lint-go
 lint-go: ## lint go files
