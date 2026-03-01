@@ -147,13 +147,11 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		return false, false, err
 	}
 
-	// 2. check base repository's AllowRebaseUpdate configuration
-	// it is a config in base repo but controls the head (fork) repo's "Update" behavior
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		return false, false, err
 	}
 
-	// 3. if the pull creator allows maintainer to edit, we need to check whether
+	// 2. if the pull creator allows maintainer to edit, we need to check whether
 	// user is a maintainer and inherit pull request creator's permission
 	if pull.AllowMaintainerEdit && (!pushAllowed || !rebaseAllowed) {
 		baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, user)
@@ -184,7 +182,8 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		}
 	}
 
-	// 4. check AllowRebaseUpdate
+	// 3. check base repository's AllowRebaseUpdate configuration
+	// it is a config in base repo but controls the head (fork) repo's "Update" behavior
 	prBaseUnit, err := pull.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 	if repo_model.IsErrUnitTypeNotExist(err) {
 		return false, false, nil // the PR unit is disabled in base repo means no update allowed
