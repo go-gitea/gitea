@@ -15,3 +15,10 @@ func GetHighlightMapping() map[string]string {
 	}
 	return highlightMapping
 }
+
+func GetHighlightEnableGoTreeSitter() bool {
+	if CfgProvider == nil {
+		return true
+	}
+	return CfgProvider.Section("highlight").Key("ENABLE_GOTREESITTER").MustBool(true)
+}
