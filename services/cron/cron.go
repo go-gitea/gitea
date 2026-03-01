@@ -10,13 +10,22 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/translation"
 
-	"github.com/go-co-op/gocron"
+	"github.com/go-co-op/gocron/v2"
 )
 
-var scheduler = gocron.NewScheduler(time.Local)
+var scheduler gocron.Scheduler
+
+func init() {
+	var err error
+	scheduler, err = gocron.NewScheduler(gocron.WithLocation(time.Local))
+	if err != nil {
+		log.Fatal("Unable to create cron scheduler: %v", err)
+	}
+}
 
 // Init begins cron tasks
 // Each cron task is run within the shutdown context as a running server
@@ -35,11 +44,11 @@ func Init(original context.Context) {
 		}
 	}
 
-	scheduler.StartAsync()
+	scheduler.Start()
 	started = true
 	lock.Unlock()
 	graceful.GetManager().RunAtShutdown(context.Background(), func() {
-		scheduler.Stop()
+		_ = scheduler.Shutdown()
 		lock.Lock()
 		started = false
 		lock.Unlock()
@@ -74,14 +83,14 @@ type TaskTable []*TaskTableRow
 // ListTasks returns all running cron tasks.
 func ListTasks() TaskTable {
 	jobs := scheduler.Jobs()
-	jobMap := map[string]*gocron.Job{}
+	jobMap := map[string]gocron.Job{}
 	for _, job := range jobs {
 		// the first tag is the task name
 		tags := job.Tags()
 		if len(tags) == 0 { // should never happen
 			continue
 		}
-		jobMap[job.Tags()[0]] = job
+		jobMap[tags[0]] = job
 	}
 
 	lock.Lock()
@@ -99,8 +108,8 @@ func ListTasks() TaskTable {
 			if len(tags) > 1 {
 				spec = tags[1] // the second tag is the task spec
 			}
-			next = e.NextRun()
-			prev = e.PreviousRun()
+			next, _ = e.NextRun()
+			prev, _ = e.LastRun()
 		}
 
 		task.lock.Lock()

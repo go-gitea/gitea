@@ -213,6 +213,11 @@ jobs:
         env:
           GOOS: linux
           GOARCH: 386
+      - name: test-backend-pam
+        run: |
+          sudo apt-get install -y -qq libpam0g-dev
+          echo "auth required pam_deny.so" | sudo tee /etc/pam.d/gitea
+          go test -tags pam code.gitea.io/gitea/modules/auth/pam
 
   docs:
     if: needs.files-changed.outputs.docs == 'true' || needs.files-changed.outputs.actions == 'true'

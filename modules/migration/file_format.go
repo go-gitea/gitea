@@ -12,9 +12,16 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"gopkg.in/yaml.v3"
 )
+
+// schemaLoader implements jsonschema.URLLoader
+type schemaLoader struct{}
+
+func (l *schemaLoader) Load(url string) (any, error) {
+	return openSchema(url)
+}
 
 // Load project data from file, with optional validation
 func Load(filename string, data any, validation bool) error {
@@ -43,7 +50,7 @@ func unmarshal(bs []byte, data any, isJSON bool) error {
 
 func getSchema(filename string) (*jsonschema.Schema, error) {
 	c := jsonschema.NewCompiler()
-	c.LoadURL = openSchema
+	c.UseLoader(&schemaLoader{})
 	return c.Compile(filename)
 }
 

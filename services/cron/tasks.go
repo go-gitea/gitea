@@ -20,6 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+
+	"github.com/go-co-op/gocron/v2"
 )
 
 var (
@@ -224,12 +226,13 @@ func RegisterTaskFatal(name string, config Config, fun func(context.Context, *us
 
 func addTaskToScheduler(task *Task) error {
 	tags := []string{task.Name, task.config.GetSchedule()} // name and schedule can't be get from job, so we add them as tag
-	if scheduleHasSeconds(task.config.GetSchedule()) {
-		scheduler = scheduler.CronWithSeconds(task.config.GetSchedule())
-	} else {
-		scheduler = scheduler.Cron(task.config.GetSchedule())
-	}
-	if _, err := scheduler.Tag(tags...).Do(task.Run); err != nil {
+	withSeconds := scheduleHasSeconds(task.config.GetSchedule())
+	_, err := scheduler.NewJob(
+		gocron.CronJob(task.config.GetSchedule(), withSeconds),
+		gocron.NewTask(task.Run),
+		gocron.WithTags(tags...),
+	)
+	if err != nil {
 		log.Error("Unable to register cron task with name: %s Error: %v", task.Name, err)
 		return err
 	}

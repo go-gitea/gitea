@@ -8,7 +8,7 @@ package pam
 import (
 	"errors"
 
-	"github.com/msteinert/pam"
+	"github.com/msteinert/pam/v2"
 )
 
 // Supported is true when built with PAM
@@ -28,6 +28,7 @@ func Auth(serviceName, userName, passwd string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer t.End()
 
 	if err = t.Authenticate(0); err != nil {
 		return "", err
