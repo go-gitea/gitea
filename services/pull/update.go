@@ -102,7 +102,7 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 
 // isUserAllowedToPushOrForcePushInRepoBranch checks whether user is allowed to push or force push in the given repo and branch
 // it will check both user permission and branch protection rules
-func isUserAllowedToPushOrForcePushInRepoBranch(ctx context.Context, user *user_model.User, repo *repo_model.Repository, branch string) (pushAllowed, rebaseAllowed bool, err error) {
+func isUserAllowedToPushOrForcePushInRepoBranch(ctx context.Context, user *user_model.User, repo *repo_model.Repository, branch string) (pushAllowed, forcePushAllowed bool, err error) {
 	if user == nil {
 		return false, false, nil
 	}
@@ -116,7 +116,7 @@ func isUserAllowedToPushOrForcePushInRepoBranch(ctx context.Context, user *user_
 		return false, false, err
 	}
 	pushAllowed = repoPerm.CanWrite(unit.TypeCode)
-	rebaseAllowed = pushAllowed
+	forcePushAllowed = pushAllowed
 
 	// 2. check branch protection whether user can push or force push
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branch)
@@ -126,9 +126,9 @@ func isUserAllowedToPushOrForcePushInRepoBranch(ctx context.Context, user *user_
 	if pb != nil { // override previous results if there is a branch protection rule
 		pb.Repo = repo
 		pushAllowed = pb.CanUserPush(ctx, user)
-		rebaseAllowed = pb.CanUserForcePush(ctx, user)
+		forcePushAllowed = pb.CanUserForcePush(ctx, user)
 	}
-	return pushAllowed, rebaseAllowed, nil
+	return pushAllowed, forcePushAllowed, nil
 }
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
@@ -152,13 +152,6 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		return false, false, err
 	}
-	prBaseUnit, err := pull.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
-	if repo_model.IsErrUnitTypeNotExist(err) {
-		return false, false, nil // the PR unit is disabled in base repo means no update allowed
-	} else if err != nil {
-		return false, false, fmt.Errorf("get base repo unit: %v", err)
-	}
-	rebaseAllowed = rebaseAllowed && prBaseUnit.PullRequestsConfig().AllowRebaseUpdate
 
 	// 3. if the pull creator allows maintainer to edit, we needs to check whether
 	// user is a maintainer and inherit pull request creator's permission
@@ -191,7 +184,15 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		}
 	}
 
-	return pushAllowed, rebaseAllowed, nil
+	// 4. check AllowRebaseUpdate
+	prBaseUnit, err := pull.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
+	if repo_model.IsErrUnitTypeNotExist(err) {
+		return false, false, nil // the PR unit is disabled in base repo means no update allowed
+	} else if err != nil {
+		return false, false, fmt.Errorf("get base repo unit: %v", err)
+	}
+
+	return pushAllowed, rebaseAllowed && prBaseUnit.PullRequestsConfig().AllowRebaseUpdate, nil
 }
 
 func syncCommitDivergence(ctx context.Context, pr *issues_model.PullRequest) error {

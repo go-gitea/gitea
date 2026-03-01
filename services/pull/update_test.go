@@ -159,3 +159,38 @@ func TestIsUserAllowedToUpdateMaintainerEditInheritsPosterPermissions(t *testing
 	assert.True(t, pushAllowed)
 	assert.True(t, rebaseAllowed)
 }
+
+func TestIsUserAllowedToUpdateMaintainerEditInheritsPosterPermissionsRebaseDisabled(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
+	pr.AllowMaintainerEdit = true
+	assert.NoError(t, pr.LoadHeadRepo(t.Context()))
+	assert.NoError(t, pr.LoadIssue(t.Context()))
+	assert.NoError(t, pr.Issue.LoadPoster(t.Context()))
+
+	protectedBranch := &git_model.ProtectedBranch{
+		RepoID:       pr.HeadRepoID,
+		RuleName:     pr.HeadBranch,
+		CanPush:      true,
+		CanForcePush: true,
+	}
+	_, err := db.GetEngine(t.Context()).Insert(protectedBranch)
+	assert.NoError(t, err)
+
+	assert.NoError(t, db.Insert(t.Context(), &repo_model.Collaboration{
+		RepoID: pr.HeadRepoID,
+		UserID: pr.Issue.Poster.ID,
+		Mode:   perm.AccessModeWrite,
+	}))
+	assert.NoError(t, access_model.RecalculateUserAccess(t.Context(), pr.HeadRepo, pr.Issue.Poster.ID))
+
+	setRepoAllowRebaseUpdate(t, pr.BaseRepoID, false)
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 12})
+
+	pushAllowed, rebaseAllowed, err := IsUserAllowedToUpdate(t.Context(), pr, user)
+	assert.NoError(t, err)
+	assert.True(t, pushAllowed)
+	assert.False(t, rebaseAllowed)
+}
