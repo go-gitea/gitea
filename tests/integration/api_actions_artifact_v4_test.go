@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -54,36 +55,41 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 		blockId  bool
 		noLength bool
 	}{
-		// {
-		// 	name:    "artifact",
-		// 	version: 4,
-		// },
-		// {
-		// 	name:    "artifact2",
-		// 	version: 7,
-		// },
-		// {
-		// 	name:     "artifact3.json",
-		// 	version:  7,
-		// 	mimeType: "application/json",
-		// },
-		// {
-		// 	name:     "artifact4.json",
-		// 	version:  7,
-		// 	mimeType: "application/json",
-		// 	blockId:  true,
-		// },
-		// {
-		// 	name:     "artifact4.json",
-		// 	version:  7,
-		// 	mimeType: "application/json",
-		// 	blockId:  true,
-		// 	noLength: true,
-		// },
+		{
+			name:    "artifact",
+			version: 4,
+		},
+		{
+			name:    "artifact2",
+			version: 7,
+		},
+		{
+			name:     "artifact3.json",
+			version:  7,
+			mimeType: "application/json",
+		},
 		{
 			name:     "artifact4.json",
 			version:  7,
 			mimeType: "application/json",
+			blockId:  true,
+		},
+		{
+			name:     "artifact5.json",
+			version:  7,
+			mimeType: "application/json",
+			blockId:  true,
+			noLength: true,
+		},
+		{
+			name:     "artifact6.json",
+			version:  7,
+			mimeType: "application/json",
+			noLength: true,
+		},
+		{
+			name:     "artifact7",
+			version:  4,
 			noLength: true,
 		},
 	}
@@ -137,6 +143,13 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 		var finalizeResp actions.FinalizeArtifactResponse
 		protojson.Unmarshal(resp.Body.Bytes(), &finalizeResp)
 		assert.True(t, finalizeResp.Ok)
+
+		artifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{ID: finalizeResp.ArtifactId})
+		if entry.mimeType != "" {
+			assert.Equal(t, entry.mimeType, artifact.ContentEncoding)
+		} else {
+			assert.Equal(t, actions.ArtifactV4ContentEncoding, artifact.ContentEncoding)
+		}
 	}
 }
 
