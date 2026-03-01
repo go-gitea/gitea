@@ -590,26 +590,30 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	}
 
 	// database branch record not exist or it's a deleted branch
-	notExist := git_model.IsErrBranchNotExist(err) || rawBranch.IsDeleted
+	existAndNonDeletedInDB := err == nil && !rawBranch.IsDeleted
 
 	branchCommit, err := gitRepo.GetBranchCommit(branchName)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return err
 	}
+	if !existAndNonDeletedInDB && branchCommit == nil { // branch not exist or deleted from database and data are synced between db and git data
+		return git.ErrBranchNotExist{Name: branchName}
+	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if !notExist {
+		if existAndNonDeletedInDB {
 			if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, doer.ID); err != nil {
 				return err
 			}
-		}
 
-		if pr != nil {
-			if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
-				return fmt.Errorf("DeleteBranch: %v", err)
+			if pr != nil {
+				if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+					return fmt.Errorf("DeleteBranch: %v", err)
+				}
 			}
 		}
-		if branchCommit == nil {
+
+		if branchCommit == nil { // branch does not exist in git data, we just mark it as deleted in database
 			return nil
 		}
 
@@ -618,12 +622,12 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		return err
 	}
 
+	// if branch does not exist in git data, we don't need to send event
 	if branchCommit == nil {
 		return nil
 	}
 
 	// Don't return error below this
-
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 	if err := PushUpdate(
 		&repo_module.PushUpdateOptions{
