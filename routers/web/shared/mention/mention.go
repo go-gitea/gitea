@@ -87,11 +87,3 @@ func (c *Collector) AddMentionableTeams(ctx context.Context, doer, owner *user_m
 	}
 	return nil
 }
-
-// ResultOrEmpty returns the collected mentions, or an empty slice if none.
-func (c *Collector) ResultOrEmpty() []Mention {
-	if c.Result == nil {
-		return []Mention{}
-	}
-	return c.Result
-}

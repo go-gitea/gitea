@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/modules/util"
 	shared_mention "code.gitea.io/gitea/routers/web/shared/mention"
 	"code.gitea.io/gitea/services/context"
 )
@@ -35,5 +36,5 @@ func GetMentions(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, c.ResultOrEmpty())
+	ctx.JSON(http.StatusOK, util.SliceNilAsEmpty(c.Result))
 }
