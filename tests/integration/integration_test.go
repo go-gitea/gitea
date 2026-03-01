@@ -337,7 +337,7 @@ const NoExpectedStatus = 0
 
 func isEndpoint(st *setting.Storage, remoteAddr string) bool {
 	return st.Type == setting.MinioStorageType && remoteAddr == st.MinioConfig.Endpoint ||
-		st.Type == setting.AzureBlobStorageType && remoteAddr == st.AzureBlobConfig.Endpoint
+		st.Type == setting.AzureBlobStorageType && ("http://"+remoteAddr == st.AzureBlobConfig.Endpoint || "https://"+remoteAddr == st.AzureBlobConfig.Endpoint)
 }
 
 func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
@@ -355,7 +355,7 @@ func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest
 		rw.Request.RequestURI = ""
 		resp, err := http.DefaultClient.Do(rw.Request)
 		if err != nil {
-			recorder.WriteHeader(500)
+			recorder.WriteHeader(http.StatusInternalServerError)
 			_, _ = recorder.WriteString(err.Error())
 		} else {
 			defer func() { _ = resp.Body.Close() }()

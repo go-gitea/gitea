@@ -394,13 +394,13 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 			continue
 		}
 		t.Run(entry.Name, func(t *testing.T) {
-			if entry.ServeDirect {
-				switch setting.Actions.ArtifactStorage.Type {
-				case setting.AzureBlobStorageType:
-					defer test.MockVariableValue(&setting.Actions.ArtifactStorage.AzureBlobConfig.ServeDirect, true)()
-				case setting.MinioStorageType:
-					defer test.MockVariableValue(&setting.Actions.ArtifactStorage.MinioConfig.ServeDirect, true)()
-				default:
+			switch setting.Actions.ArtifactStorage.Type {
+			case setting.AzureBlobStorageType:
+				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.AzureBlobConfig.ServeDirect, entry.ServeDirect)()
+			case setting.MinioStorageType:
+				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.MinioConfig.ServeDirect, entry.ServeDirect)()
+			default:
+				if entry.ServeDirect {
 					t.Skip()
 				}
 			}
