@@ -106,6 +106,14 @@ func (p Pointer) RelativePath() string {
 		return p.Oid
 	}
 
+	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid)
+}
+
+// LegacyRelativePath returns the relative storage path of the pointer using the legacy format.
+func (p Pointer) LegacyRelativePath() string {
+	if len(p.Oid) < 5 {
+		return p.Oid
+	}
 	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid[4:])
 }
 
