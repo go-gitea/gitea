@@ -117,12 +117,8 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	task, err := actions_model.GetRunningTaskByToken(req.Context(), authToken)
 	if err == nil && task != nil {
 		log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
-
 		store.GetData()["LoginMethod"] = ActionTokenMethodName
-		store.GetData()["IsActionsToken"] = true
-		store.GetData()["ActionsTaskID"] = task.ID
-
-		return user_model.NewActionsUser(), nil
+		return user_model.NewActionsUserWithTaskID(task.ID), nil
 	}
 
 	if !setting.Service.EnableBasicAuth {

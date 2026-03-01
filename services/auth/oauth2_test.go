@@ -12,23 +12,26 @@ import (
 	"code.gitea.io/gitea/services/actions"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUserIDFromToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("Actions JWT", func(t *testing.T) {
-		const RunningTaskID = 47
+		const RunningTaskID int64 = 47
 		token, err := actions.CreateAuthorizationToken(RunningTaskID, 1, 2)
 		assert.NoError(t, err)
 
 		ds := make(reqctx.ContextData)
 
 		o := OAuth2{}
-		uid := o.userIDFromToken(t.Context(), token, ds)
-		assert.Equal(t, user_model.ActionsUserID, uid)
-		assert.Equal(t, true, ds["IsActionsToken"])
-		assert.Equal(t, ds["ActionsTaskID"], int64(RunningTaskID))
+		u, err := o.userFromToken(t.Context(), token, ds)
+		require.NoError(t, err)
+		assert.Equal(t, user_model.ActionsUserID, u.ID)
+		taskID, ok := user_model.GetActionsUserTaskID(u)
+		assert.True(t, ok)
+		assert.Equal(t, RunningTaskID, taskID)
 	})
 }
 
