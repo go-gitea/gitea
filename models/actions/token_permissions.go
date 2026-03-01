@@ -43,7 +43,7 @@ func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRe
 		effectivePerms = actionsCfg.GetDefaultTokenPermissions()
 	}
 
-	if !actionsCfg.OverrideOrgConfig {
+	if !actionsCfg.OverrideOwnerConfig {
 		ownerCfg, err := GetUserActionsConfig(ctx, runRepo.OwnerID)
 		if err != nil {
 			return nil, err

@@ -45,9 +45,9 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
 	ctx.Data["EnableMaxTokenPermissions"] = actionsCfg.MaxTokenPermissions != nil
 
-	// Follow org config (only for repos in orgs)
+	// Follow owner config (only for repos in orgs)
 	ctx.Data["IsInOrg"] = ctx.Repo.Repository.Owner.IsOrganization()
-	ctx.Data["OverrideOrgConfig"] = actionsCfg.OverrideOrgConfig
+	ctx.Data["OverrideOwnerConfig"] = actionsCfg.OverrideOwnerConfig
 
 	if ctx.Repo.Repository.IsPrivate {
 		collaborativeOwnerIDs := actionsCfg.CollaborativeOwnerIDs
@@ -147,13 +147,13 @@ func UpdateTokenPermissions(ctx *context.Context) {
 
 	actionsCfg := actionsUnit.ActionsConfig()
 
-	// Update Override Org Config (for repos in orgs)
+	// Update Override Owner Config (for repos in orgs)
 	// If checked, it means we WANT to override (opt-out of following)
-	actionsCfg.OverrideOrgConfig = ctx.FormBool("override_org_config")
+	actionsCfg.OverrideOwnerConfig = ctx.FormBool("override_owner_config")
 
-	// Update permission mode (only if overriding org config OR not in an org)
+	// Update permission mode (only if overriding owner config OR not in an org)
 	isOrg := ctx.Repo.Repository.Owner.IsOrganization()
-	shouldUpdate := !isOrg || actionsCfg.OverrideOrgConfig
+	shouldUpdate := !isOrg || actionsCfg.OverrideOwnerConfig
 
 	if shouldUpdate {
 		permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))

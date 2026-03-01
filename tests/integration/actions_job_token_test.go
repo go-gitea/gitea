@@ -974,7 +974,7 @@ func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.Ac
 	return task
 }
 
-func TestActionsOverrideOrgConfig(t *testing.T) {
+func TestActionsOverrideOwnerConfig(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
@@ -1013,7 +1013,7 @@ func TestActionsOverrideOrgConfig(t *testing.T) {
 				RepoID: repoID,
 				Type:   unit_model.TypeActions,
 				Config: &repo_model.ActionsConfig{
-					OverrideOrgConfig:   override,
+					OverrideOwnerConfig: override,
 					TokenPermissionMode: mode,
 					MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
 						Issues: perm.AccessModeWrite, // Repo tries to be more permissive than org
@@ -1024,7 +1024,7 @@ func TestActionsOverrideOrgConfig(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		// 3. Test OverrideOrgConfig = false (Org config clamping should apply)
+		// 3. Test OverrideOwnerConfig = false (Owner config clamping should apply)
 		enableActions(false, repo_model.ActionsTokenPermissionModePermissive)
 		task1 := createActionTask(t, repoID, false)
 
@@ -1035,9 +1035,9 @@ func TestActionsOverrideOrgConfig(t *testing.T) {
 			Reponame: "repo-override",
 		}
 
-		// Write should FAIL because Override=false means Org config (Max=READ, Default=RESTRICTED) is used
+		// Write should FAIL because Override=false means Owner config (Max=READ, Default=RESTRICTED) is used
 		testCtx.ExpectedCode = http.StatusForbidden
-		t.Run("Override=False Org Clamping (Should Fail Write)", doAPICreateFile(testCtx, "fail-file.txt", &structs.CreateFileOptions{
+		t.Run("Override=False Owner Clamping (Should Fail Write)", doAPICreateFile(testCtx, "fail-file.txt", &structs.CreateFileOptions{
 			FileOptions: structs.FileOptions{
 				BranchName: "master",
 				Message:    "fail write test",
@@ -1047,18 +1047,18 @@ func TestActionsOverrideOrgConfig(t *testing.T) {
 
 		// Read should SUCCEED
 		testCtx.ExpectedCode = http.StatusOK
-		t.Run("Override=False Org Clamping (Should Succeed Read)", doAPIGetRepository(testCtx, nil))
+		t.Run("Override=False Owner Clamping (Should Succeed Read)", doAPIGetRepository(testCtx, nil))
 
 		// Clean up the repo unit to reset
 		_, err = db.DeleteByBean(t.Context(), &repo_model.RepoUnit{RepoID: repoID, Type: unit_model.TypeActions})
 		require.NoError(t, err)
 
-		// 4. Test OverrideOrgConfig = true (Repo config should apply, clamping bypassed)
+		// 4. Test OverrideOwnerConfig = true (Repo config should apply, clamping bypassed)
 		enableActions(true, repo_model.ActionsTokenPermissionModePermissive)
 		task2 := createActionTask(t, repoID, false)
 		testCtx.Token = task2.Token
 
-		// Write should SUCCEED because Override=true bypasses Org restrictions
+		// Write should SUCCEED because Override=true bypasses Owner restrictions
 		testCtx.ExpectedCode = http.StatusCreated
 		t.Run("Override=True Repo Config (Should Succeed Write)", doAPICreateFile(testCtx, "success-file.txt", &structs.CreateFileOptions{
 			FileOptions: structs.FileOptions{

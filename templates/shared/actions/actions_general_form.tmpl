@@ -68,27 +68,7 @@
 
 			<div class="divider"></div>
 
-			<!-- Default Permission Mode -->
-			<div class="field">
-				<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode"}}</label>
-			</div>
-			<div class="grouped fields">
-				<div class="field">
-					<div class="ui radio checkbox">
-						<input type="radio" name="token_permission_mode" value="permissive" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}} class="js-permission-mode-radio">
-						<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive"}}</label>
-						<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive.desc"}}</div>
-					</div>
-				</div>
-				<div class="field">
-					<div class="ui radio checkbox">
-						<input type="radio" name="token_permission_mode" value="restricted" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}} class="js-permission-mode-radio">
-						<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted"}}</label>
-						<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted.desc"}}</div>
-					</div>
-				</div>
-			</div>
-
+			{{template "shared/actions/permission_mode_select" .}}
 			<div class="divider"></div>
 
 			<!-- Maximum Permissions Table -->
