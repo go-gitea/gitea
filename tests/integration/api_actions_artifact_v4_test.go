@@ -389,10 +389,6 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 	}
 
 	for _, entry := range table {
-		// Skip tests if not applicable
-		if entry.ServeDirect && setting.Actions.ArtifactStorage.Type != setting.AzureBlobStorageType && setting.Actions.ArtifactStorage.Type != setting.MinioStorageType {
-			continue
-		}
 		t.Run(entry.Name, func(t *testing.T) {
 			switch setting.Actions.ArtifactStorage.Type {
 			case setting.AzureBlobStorageType:

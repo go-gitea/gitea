@@ -246,6 +246,34 @@ func (a *AzureBlobStorage) Delete(path string) error {
 	return convertAzureBlobErr(err)
 }
 
+func (a *AzureBlobStorage) GetSasURL(b *blob.Client, template sas.BlobSignatureValues) (string, error) {
+	urlParts, err := blob.ParseURL(b.URL())
+	if err != nil {
+		return "", err
+	}
+
+	t, err := time.Parse(blob.SnapshotTimeFormat, urlParts.Snapshot)
+
+	if err != nil {
+		t = time.Time{}
+	}
+
+	template.ContainerName = urlParts.ContainerName
+	template.BlobName = urlParts.BlobName
+	template.SnapshotTime = t
+	template.Version = sas.Version
+
+	qps, err := template.SignWithSharedKey(a.credential)
+
+	if err != nil {
+		return "", err
+	}
+
+	endpoint := b.URL() + "?" + qps.Encode()
+
+	return endpoint, nil
+}
+
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
 func (a *AzureBlobStorage) URL(storePath, name, _ string, reqParams url.Values) (*url.URL, error) {
 	blobClient := a.getBlobClient(storePath)
@@ -283,23 +311,22 @@ func (a *AzureBlobStorage) URL(storePath, name, _ string, reqParams url.Values) 
 		reqParams.Set("rscd", fmt.Sprintf(`attachment; filename="%s"`, quoteEscaper.Replace(name)))
 	}
 
-	startTime := time.Now()
-	u, err := blobClient.GetSASURL(sas.BlobPermissions{
-		Read: true,
-	}, time.Now().Add(5*time.Minute), &blob.GetSASURLOptions{
-		StartTime: &startTime,
+	startTime := time.Now().UTC()
+
+	u, err := a.GetSasURL(blobClient, sas.BlobSignatureValues{
+		Permissions: (&sas.BlobPermissions{
+			Read: true,
+		}).String(),
+		StartTime:          startTime,
+		ExpiryTime:         startTime.Add(5 * time.Minute),
+		ContentDisposition: reqParams.Get("rscd"),
+		ContentType:        reqParams.Get("rsct"),
 	})
 	if err != nil {
 		return nil, convertAzureBlobErr(err)
 	}
 
-	// Append reqParams before returning
-	uu, err := url.Parse(u)
-	if err != nil {
-		return nil, err
-	}
-	uu.RawQuery += "&" + reqParams.Encode()
-	return uu, err
+	return url.Parse(u)
 }
 
 // IterateObjects iterates across the objects in the azureblobstorage

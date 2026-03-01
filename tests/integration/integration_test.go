@@ -336,8 +336,11 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *Re
 const NoExpectedStatus = 0
 
 func isEndpoint(st *setting.Storage, remoteAddr string) bool {
-	return st.Type == setting.MinioStorageType && remoteAddr == st.MinioConfig.Endpoint ||
-		st.Type == setting.AzureBlobStorageType && ("http://"+remoteAddr == st.AzureBlobConfig.Endpoint || "https://"+remoteAddr == st.AzureBlobConfig.Endpoint)
+	if st.Type == setting.AzureBlobStorageType {
+		endp, err := url.Parse(st.AzureBlobConfig.Endpoint)
+		return err != nil && endp.Host == remoteAddr
+	}
+	return st.Type == setting.MinioStorageType && remoteAddr == st.MinioConfig.Endpoint
 }
 
 func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
