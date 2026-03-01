@@ -151,7 +151,11 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	gitRepo := ctx.Repo.GitRepo
 	objectFormat := ctx.Repo.GetObjectFormat()
 
-	if branchName == repo.DefaultBranch && newCommitID == objectFormat.EmptyObjectID().String() {
+	defaultBranch := repo.DefaultBranch
+	if ctx.opts != nil && ctx.opts.IsWiki && repo.DefaultWikiBranch != "" {
+		defaultBranch = repo.DefaultWikiBranch
+	}
+	if branchName == defaultBranch && newCommitID == objectFormat.EmptyObjectID().String() {
 		log.Warn("Forbidden: Branch: %s is the default branch in %-v and cannot be deleted", branchName, repo)
 		ctx.JSON(http.StatusForbidden, private.Response{
 			UserMsg: fmt.Sprintf("branch %s is the default branch and cannot be deleted", branchName),
