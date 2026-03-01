@@ -113,8 +113,8 @@ func Install(ctx *context.Context) {
 	form.RegisterConfirm = setting.Service.RegisterEmailConfirm
 	form.MailNotify = setting.Service.EnableNotifyMail
 
-	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
-	form.EnableOpenIDSignUp = setting.Service.EnableOpenIDSignUp
+	form.EnableOpenIDSignIn = setting.OpenID.EnableSignIn
+	form.EnableOpenIDSignUp = setting.OpenID.EnableSignUp
 	form.DisableRegistration = setting.Service.DisableRegistration
 	form.AllowOnlyExternalRegistration = setting.Service.AllowOnlyExternalRegistration
 	form.EnableCaptcha = setting.Service.EnableCaptcha
