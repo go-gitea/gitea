@@ -22,8 +22,10 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/actions"
 	actions_service "code.gitea.io/gitea/services/actions"
@@ -378,33 +380,63 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 	token, err := actions_service.CreateAuthorizationToken(48, 792, 193)
 	assert.NoError(t, err)
 
-	// acquire artifact upload url
-	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts", toProtoJSON(&actions.ListArtifactsRequest{
-		NameFilter:              wrapperspb.String("artifact-v4-download"),
-		WorkflowRunBackendId:    "792",
-		WorkflowJobRunBackendId: "193",
-	})).AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var listResp actions.ListArtifactsResponse
-	protojson.Unmarshal(resp.Body.Bytes(), &listResp)
-	assert.Len(t, listResp.Artifacts, 1)
+	table := []struct {
+		Name        string
+		ServeDirect bool
+	}{
+		{Name: "Download"},
+		{Name: "ServeDirect", ServeDirect: true},
+	}
 
-	// confirm artifact upload
-	req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/GetSignedArtifactURL", toProtoJSON(&actions.GetSignedArtifactURLRequest{
-		Name:                    "artifact-v4-download",
-		WorkflowRunBackendId:    "792",
-		WorkflowJobRunBackendId: "193",
-	})).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	var finalizeResp actions.GetSignedArtifactURLResponse
-	protojson.Unmarshal(resp.Body.Bytes(), &finalizeResp)
-	assert.NotEmpty(t, finalizeResp.SignedUrl)
+	for _, entry := range table {
+		// Skip tests if not applicable
+		if entry.ServeDirect && setting.Actions.ArtifactStorage.Type != setting.AzureBlobStorageType && setting.Actions.ArtifactStorage.Type != setting.MinioStorageType {
+			continue
+		}
+		t.Run(entry.Name, func(t *testing.T) {
+			if entry.ServeDirect {
+				switch setting.Actions.ArtifactStorage.Type {
+				case setting.AzureBlobStorageType:
+					defer test.MockVariableValue(&setting.Actions.ArtifactStorage.AzureBlobConfig.ServeDirect, true)()
+				case setting.MinioStorageType:
+					defer test.MockVariableValue(&setting.Actions.ArtifactStorage.MinioConfig.ServeDirect, true)()
+				default:
+					t.Skip()
+				}
+			}
 
-	req = NewRequest(t, "GET", finalizeResp.SignedUrl)
-	resp = MakeRequest(t, req, http.StatusOK)
-	body := strings.Repeat("D", 1024)
-	assert.Equal(t, body, resp.Body.String())
+			// acquire artifact upload url
+			req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts", toProtoJSON(&actions.ListArtifactsRequest{
+				NameFilter:              wrapperspb.String("artifact-v4-download"),
+				WorkflowRunBackendId:    "792",
+				WorkflowJobRunBackendId: "193",
+			})).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			var listResp actions.ListArtifactsResponse
+			protojson.Unmarshal(resp.Body.Bytes(), &listResp)
+			assert.Len(t, listResp.Artifacts, 1)
+
+			// confirm artifact upload
+			req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/GetSignedArtifactURL", toProtoJSON(&actions.GetSignedArtifactURLRequest{
+				Name:                    "artifact-v4-download",
+				WorkflowRunBackendId:    "792",
+				WorkflowJobRunBackendId: "193",
+			})).
+				AddTokenAuth(token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			var finalizeResp actions.GetSignedArtifactURLResponse
+			protojson.Unmarshal(resp.Body.Bytes(), &finalizeResp)
+			assert.NotEmpty(t, finalizeResp.SignedUrl)
+
+			req = NewRequest(t, "GET", finalizeResp.SignedUrl)
+			resp = MakeRequest(t, req, http.StatusOK)
+			// TODO add test data for other file types
+			assert.Equal(t, actions.ArtifactV4ContentEncoding, resp.Header().Get("Content-Type"))
+			// TODO add a CSP test
+			body := strings.Repeat("D", 1024)
+			assert.Equal(t, body, resp.Body.String())
+		})
+	}
 }
 
 func TestActionsArtifactV4RunDownloadSinglePublicApi(t *testing.T) {

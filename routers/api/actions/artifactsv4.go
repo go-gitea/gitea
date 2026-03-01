@@ -524,7 +524,12 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 	respData := GetSignedArtifactURLResponse{}
 
 	if setting.Actions.ArtifactStorage.ServeDirect() {
-		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath, ctx.Req.Method, nil)
+		reqParams := url.Values{}
+		reqParams.Set("response-content-type", artifact.ContentEncoding)
+		reqParams.Set("rsct", artifact.ContentEncoding)
+		// TODO
+		// reqParams.Set("Content-Disposition", fmt.Sprintf("inline; filename=%s; filename*=UTF-8''%s", url.PathEscape(artifact.ArtifactPath), artifact.ArtifactPath))
+		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath, ctx.Req.Method, reqParams)
 		if u != nil && err == nil {
 			respData.SignedUrl = u.String()
 		}

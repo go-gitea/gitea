@@ -247,10 +247,41 @@ func (a *AzureBlobStorage) Delete(path string) error {
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (a *AzureBlobStorage) URL(path, name, _ string, reqParams url.Values) (*url.URL, error) {
-	blobClient := a.getBlobClient(path)
+func (a *AzureBlobStorage) URL(storePath, name, _ string, reqParams url.Values) (*url.URL, error) {
+	blobClient := a.getBlobClient(storePath)
 
 	// TODO: OBJECT-STORAGE-CONTENT-TYPE: "browser inline rendering images/PDF" needs proper Content-Type header from storage
+	// copy serveDirectReqParams
+	reqParams, err := url.ParseQuery(reqParams.Encode())
+	if err != nil {
+		return nil, err
+	}
+
+	// Here we might not know the real filename, and it's quite inefficient to detect the mine type by pre-fetching the object head.
+	// So we just do a quick detection by extension name, at least if works for the "View Raw File" for an LFS file on the Web UI.
+	// Detect content type by extension name, only support the well-known safe types for inline rendering.
+	// TODO: OBJECT-STORAGE-CONTENT-TYPE: need a complete solution and refactor for Azure in the future
+	ext := path.Ext(name)
+	inlineExtMimeTypes := map[string]string{
+		".png":  "image/png",
+		".jpg":  "image/jpeg",
+		".jpeg": "image/jpeg",
+		".gif":  "image/gif",
+		".webp": "image/webp",
+		".avif": "image/avif",
+		// ATTENTION! Don't support unsafe types like HTML/SVG due to security concerns: they can contain JS code, and maybe they need proper Content-Security-Policy
+		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context, it seems fine to render it inline
+		".pdf": "application/pdf",
+
+		// TODO: refactor with "modules/public/mime_types.go", for example: "DetectWellKnownSafeInlineMimeType"
+	}
+	if mimeType, ok := inlineExtMimeTypes[ext]; ok {
+		reqParams.Set("rsct", mimeType)
+		reqParams.Set("rscd", "inline")
+	} else {
+		reqParams.Set("rscd", fmt.Sprintf(`attachment; filename="%s"`, quoteEscaper.Replace(name)))
+	}
+
 	startTime := time.Now()
 	u, err := blobClient.GetSASURL(sas.BlobPermissions{
 		Read: true,
