@@ -94,10 +94,12 @@ func preparePullViewMergeFormData(ctx *context.Context, issue *issues_model.Issu
 		!params.IsBlockedByChangedProtectedFiles &&
 		(pb == nil || !pb.EnableStatusCheck || requiredStatusCheckSuccess)
 	isRepoAdmin := ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
+	// admin can merge without checks, writer can merge when checks succeed
 	canMergeNow := (((pb == nil || !pb.BlockAdminMergeOverride) && isRepoAdmin) || allOverridableChecksOk) &&
 		(pb == nil || !pb.RequireSignedCommits || params.WillSign)
 	ctx.Data["AllOverridableChecksOk"] = allOverridableChecksOk
 	ctx.Data["CanMergeNow"] = canMergeNow
+	// admin and writer both can make an auto merge schedule
 	hideAutoMerge := canMergeNow && allOverridableChecksOk
 
 	hasPendingPullRequestMergeTip := ""
