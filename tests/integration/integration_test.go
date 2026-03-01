@@ -338,7 +338,7 @@ const NoExpectedStatus = 0
 func isEndpoint(st *setting.Storage, remoteAddr string) bool {
 	if st.Type == setting.AzureBlobStorageType {
 		endp, err := url.Parse(st.AzureBlobConfig.Endpoint)
-		return err != nil && endp.Host == remoteAddr
+		return err == nil && endp.Host == remoteAddr
 	}
 	return st.Type == setting.MinioStorageType && remoteAddr == st.MinioConfig.Endpoint
 }
