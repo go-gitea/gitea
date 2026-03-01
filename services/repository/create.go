@@ -386,15 +386,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 				},
 			})
 		case unit.TypePullRequests:
-			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   tp,
-				Config: &repo_model.PullRequestsConfig{
-					AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, AllowFastForwardOnly: true,
-					DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle),
-					AllowRebaseUpdate: true,
-				},
-			})
+			units = append(units, repo_model.DefaultPullRequestsUnit(repo.ID))
 		case unit.TypeProjects:
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,

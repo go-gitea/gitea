@@ -67,3 +67,17 @@ func ParseBool(s string) Option[bool] {
 	}
 	return Some(v)
 }
+
+func AssignPtrValue[T comparable](changed *bool, target, src *T) {
+	if src != nil && *src != *target {
+		*target = *src
+		*changed = true
+	}
+}
+
+func AssignPtrString[TO, FROM ~string](changed *bool, target *TO, src *FROM) {
+	if src != nil && string(*src) != string(*target) {
+		*target = TO(*src)
+		*changed = true
+	}
+}
