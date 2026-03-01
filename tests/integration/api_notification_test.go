@@ -200,7 +200,7 @@ func TestAPINotificationPUT(t *testing.T) {
 	assert.False(t, apiNL[0].Pinned)
 
 	//
-	// Now nofication ID 2 is the first in the list and is unread.
+	// Now notification ID 2 is the first in the list and is unread.
 	//
 	req = NewRequest(t, "GET", "/api/v1/notifications?all=true").
 		AddTokenAuth(token)
