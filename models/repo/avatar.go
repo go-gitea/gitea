@@ -41,20 +41,14 @@ func generateRandomAvatar(ctx context.Context, repo *Repository) error {
 	idToString := strconv.FormatInt(repo.ID, 10)
 
 	seed := idToString
-	img, err := avatar.RandomImage([]byte(seed))
-	if err != nil {
-		return fmt.Errorf("RandomImage: %w", err)
-	}
+	img := avatar.RandomImageDefaultSize([]byte(seed))
 
 	repo.Avatar = idToString
 
 	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, img); err != nil {
-			log.Error("Encode: %v", err)
-		}
-		return err
+		return png.Encode(w, img)
 	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %w", repo.CustomAvatarRelativePath(), err)
+		return fmt.Errorf("failed to create dir %s: %w", repo.CustomAvatarRelativePath(), err)
 	}
 
 	log.Info("New random avatar created for repository: %d", repo.ID)
