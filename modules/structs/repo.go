@@ -401,6 +401,49 @@ type MigrateRepoOptions struct {
 	AWSSecretAccessKey string `json:"aws_secret_access_key"`
 }
 
+// MigrateOrgOptions options for migrating an organization's repositories
+// this is used to interact with api v1
+type MigrateOrgOptions struct {
+	// required: true
+	CloneAddr string `json:"clone_addr" binding:"Required"`
+	// required: true - the target organization name where repositories will be migrated
+	TargetOrgName string `json:"target_org_name" binding:"Required"`
+	// required: true - the source organization name to migrate from
+	SourceOrgName string `json:"source_org_name" binding:"Required"`
+
+	// enum: 0=git,1=plain,2=github,3=gitea,4=gitlab,5=gogs,6=onedev,7=gitbucket,8=codebase,9=codecommit
+	Service      GitServiceType `json:"service"`
+	AuthUsername string         `json:"auth_username"`
+	AuthPassword string         `json:"auth_password"`
+	AuthToken    string         `json:"auth_token"`
+
+	Mirror         bool   `json:"mirror"`
+	LFS            bool   `json:"lfs"`
+	LFSEndpoint    string `json:"lfs_endpoint"`
+	Private        bool   `json:"private"`
+	Wiki           bool   `json:"wiki"`
+	Milestones     bool   `json:"milestones"`
+	Labels         bool   `json:"labels"`
+	Issues         bool   `json:"issues"`
+	PullRequests   bool   `json:"pull_requests"`
+	Releases       bool   `json:"releases"`
+	ReleaseAssets  bool   `json:"release_assets"`
+	MirrorInterval string `json:"mirror_interval"`
+}
+
+// OrgMigrationResult represents the result of an organization migration
+type OrgMigrationResult struct {
+	TotalRepos    int                   `json:"total_repos"`
+	MigratedRepos []string              `json:"migrated_repos"`
+	FailedRepos   []OrgMigrationFailure `json:"failed_repos"`
+}
+
+// OrgMigrationFailure represents a failed repository migration
+type OrgMigrationFailure struct {
+	RepoName string `json:"repo_name"`
+	Error    string `json:"error"`
+}
+
 // TokenAuth represents whether a service type supports token-based auth
 func (gt GitServiceType) TokenAuth() bool {
 	switch gt {

@@ -264,3 +264,8 @@ func (c *CodeCommitDownloader) getUsernameFromARN(arn string) string {
 	}
 	return ""
 }
+
+// GetOrgRepositories returns all repositories in an organization
+func (c *CodeCommitDownloader) GetOrgRepositories(_ context.Context, _ string, _, _ int) ([]*base.Repository, bool, error) {
+	return nil, false, base.ErrNotSupported{Entity: "OrgRepositories"}
+}

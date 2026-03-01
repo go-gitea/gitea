@@ -712,3 +712,37 @@ func (g *GiteaDownloader) GetReviews(ctx context.Context, reviewable base.Review
 	}
 	return allReviews, nil
 }
+
+// GetOrgRepositories returns all repositories in an organization
+func (g *GiteaDownloader) GetOrgRepositories(ctx context.Context, orgName string, page, perPage int) ([]*base.Repository, bool, error) {
+	if perPage > g.maxPerPage {
+		perPage = g.maxPerPage
+	}
+
+	opt := gitea_sdk.ListOrgReposOptions{
+		ListOptions: gitea_sdk.ListOptions{
+			Page:     page,
+			PageSize: perPage,
+		},
+	}
+
+	repos, resp, err := g.client.ListOrgRepos(orgName, opt)
+	if err != nil {
+		return nil, false, err
+	}
+
+	result := make([]*base.Repository, 0, len(repos))
+	for _, repo := range repos {
+		result = append(result, &base.Repository{
+			Name:          repo.Name,
+			Owner:         repo.Owner.UserName,
+			IsPrivate:     repo.Private,
+			Description:   repo.Description,
+			OriginalURL:   repo.HTMLURL,
+			CloneURL:      repo.CloneURL,
+			DefaultBranch: repo.DefaultBranch,
+		})
+	}
+
+	return result, resp.NextPage == 0, nil
+}

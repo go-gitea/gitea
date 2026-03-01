@@ -900,3 +900,40 @@ func (g *GithubDownloaderV3) FormatCloneURL(opts MigrateOptions, remoteAddr stri
 	}
 	return u.String(), nil
 }
+
+// GetOrgRepositories returns all repositories in an organization
+func (g *GithubDownloaderV3) GetOrgRepositories(ctx context.Context, orgName string, page, perPage int) ([]*base.Repository, bool, error) {
+	if perPage > g.maxPerPage {
+		perPage = g.maxPerPage
+	}
+
+	g.waitAndPickClient(ctx)
+	opt := &github.RepositoryListByOrgOptions{
+		ListOptions: github.ListOptions{
+			Page:    page,
+			PerPage: perPage,
+		},
+		Type: "all",
+	}
+
+	repos, resp, err := g.getClient().Repositories.ListByOrg(ctx, orgName, opt)
+	if err != nil {
+		return nil, false, err
+	}
+	g.setRate(&resp.Rate)
+
+	result := make([]*base.Repository, 0, len(repos))
+	for _, repo := range repos {
+		result = append(result, &base.Repository{
+			Name:          repo.GetName(),
+			Owner:         repo.Owner.GetLogin(),
+			IsPrivate:     repo.GetPrivate(),
+			Description:   repo.GetDescription(),
+			OriginalURL:   repo.GetHTMLURL(),
+			CloneURL:      repo.GetCloneURL(),
+			DefaultBranch: repo.GetDefaultBranch(),
+		})
+	}
+
+	return result, resp.NextPage == 0, nil
+}

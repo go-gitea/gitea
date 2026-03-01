@@ -651,3 +651,52 @@ func (d *CodebaseDownloader) getHeadCommit(ctx context.Context, ref string) stri
 	}
 	return commitRef
 }
+
+// GetOrgRepositories returns all repositories in an organization
+func (d *CodebaseDownloader) GetOrgRepositories(ctx context.Context, orgName string, page, perPage int) ([]*base.Repository, bool, error) {
+	var rawProjects struct {
+		XMLName xml.Name `xml:"projects"`
+		Type    string   `xml:"type,attr"`
+		Project []struct {
+			Name        string `xml:"name"`
+			Permalink   string `xml:"permalink"`
+			Description string `xml:"description"`
+			CloneURL    string `xml:"clone-url"`
+		} `xml:"project"`
+	}
+
+	offset := (page - 1) * perPage
+	// Codebase API doesn't have direct pagination for project listing
+	// We'll query for all projects and then paginate in code
+	err := d.callAPI(
+		ctx,
+		"/"+orgName,
+		nil,
+		&rawProjects,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	result := make([]*base.Repository, 0, len(rawProjects.Project))
+	for _, project := range rawProjects.Project {
+		result = append(result, &base.Repository{
+			Name:        project.Name,
+			Owner:       orgName,
+			Description: project.Description,
+			CloneURL:    project.CloneURL,
+			OriginalURL: d.projectURL.String() + "/" + project.Permalink,
+		})
+	}
+
+	start := offset
+	end := offset + perPage
+	if start >= len(result) {
+		return []*base.Repository{}, true, nil
+	}
+	if end > len(result) {
+		end = len(result)
+	}
+
+	return result[start:end], end >= len(result), nil
+}

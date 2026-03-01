@@ -1803,6 +1803,41 @@
         }
       }
     },
+    "/orgs/migrate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Migrate an organization's repositories",
+        "operationId": "orgMigrate",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/MigrateOrgOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/OrgMigrationResult"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/orgs/{org}": {
       "get": {
         "produces": [
@@ -25696,6 +25731,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "GitServiceType": {
+      "description": "GitServiceType represents a git service",
+      "type": "integer",
+      "format": "int64",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "GitTreeResponse": {
       "description": "GitTreeResponse returns a git tree",
       "type": "object",
@@ -26420,6 +26461,93 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "MigrateOrgOptions": {
+      "description": "MigrateOrgOptions options for migrating an organization's repositories\nthis is used to interact with api v1",
+      "type": "object",
+      "required": [
+        "clone_addr"
+      ],
+      "properties": {
+        "auth_password": {
+          "type": "string",
+          "x-go-name": "AuthPassword"
+        },
+        "auth_token": {
+          "type": "string",
+          "x-go-name": "AuthToken"
+        },
+        "auth_username": {
+          "type": "string",
+          "x-go-name": "AuthUsername"
+        },
+        "clone_addr": {
+          "type": "string",
+          "x-go-name": "CloneAddr"
+        },
+        "issues": {
+          "type": "boolean",
+          "x-go-name": "Issues"
+        },
+        "labels": {
+          "type": "boolean",
+          "x-go-name": "Labels"
+        },
+        "lfs": {
+          "type": "boolean",
+          "x-go-name": "LFS"
+        },
+        "lfs_endpoint": {
+          "type": "string",
+          "x-go-name": "LFSEndpoint"
+        },
+        "milestones": {
+          "type": "boolean",
+          "x-go-name": "Milestones"
+        },
+        "mirror": {
+          "type": "boolean",
+          "x-go-name": "Mirror"
+        },
+        "mirror_interval": {
+          "type": "string",
+          "x-go-name": "MirrorInterval"
+        },
+        "private": {
+          "type": "boolean",
+          "x-go-name": "Private"
+        },
+        "pull_requests": {
+          "type": "boolean",
+          "x-go-name": "PullRequests"
+        },
+        "release_assets": {
+          "type": "boolean",
+          "x-go-name": "ReleaseAssets"
+        },
+        "releases": {
+          "type": "boolean",
+          "x-go-name": "Releases"
+        },
+        "service": {
+          "$ref": "#/definitions/GitServiceType"
+        },
+        "source_org_name": {
+          "description": "required: true - the source organization name to migrate from",
+          "type": "string",
+          "x-go-name": "SourceOrgName"
+        },
+        "target_org_name": {
+          "description": "required: true - the target organization name where repositories will be migrated",
+          "type": "string",
+          "x-go-name": "TargetOrgName"
+        },
+        "wiki": {
+          "type": "boolean",
+          "x-go-name": "Wiki"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "MigrateRepoOptions": {
       "description": "MigrateRepoOptions options for migrating repository's\nthis is used to interact with api v1",
       "type": "object",
@@ -26901,6 +27029,47 @@
           "description": "Whether to skip secondary authorization",
           "type": "boolean",
           "x-go-name": "SkipSecondaryAuthorization"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "OrgMigrationFailure": {
+      "description": "OrgMigrationFailure represents a failed repository migration",
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "x-go-name": "Error"
+        },
+        "repo_name": {
+          "type": "string",
+          "x-go-name": "RepoName"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "OrgMigrationResult": {
+      "description": "OrgMigrationResult represents the result of an organization migration",
+      "type": "object",
+      "properties": {
+        "failed_repos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OrgMigrationFailure"
+          },
+          "x-go-name": "FailedRepos"
+        },
+        "migrated_repos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "MigratedRepos"
+        },
+        "total_repos": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalRepos"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -29978,6 +30147,12 @@
         "items": {
           "$ref": "#/definitions/OAuth2Application"
         }
+      }
+    },
+    "OrgMigrationResult": {
+      "description": "OrgMigrationResult",
+      "schema": {
+        "$ref": "#/definitions/OrgMigrationResult"
       }
     },
     "Organization": {
