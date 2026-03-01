@@ -396,11 +396,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 
-	_, mergeInputs := preparePullViewPullInfo(ctx, issue)
-	if ctx.Written() {
-		return
-	}
-	preparePullViewReviewAndMerge(ctx, issue, mergeInputs)
+	preparePullViewReviewAndMergeAll(ctx, issue)
 	if ctx.Written() {
 		return
 	}
@@ -450,8 +446,7 @@ func ViewPullMergeBox(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	_, mergeInputs := preparePullViewPullInfo(ctx, issue)
-	preparePullViewReviewAndMerge(ctx, issue, mergeInputs)
+	preparePullViewReviewAndMergeAll(ctx, issue)
 	ctx.Data["PullMergeBoxReloading"] = issue.PullRequest.IsChecking()
 
 	// TODO: it should use a dedicated struct to render the pull merge box, to make sure all data is prepared correctly
@@ -835,6 +830,14 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 	// prepare for sidebar participants
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
+}
+
+func preparePullViewReviewAndMergeAll(ctx *context.Context, issue *issues_model.Issue) {
+	_, mergeInputs := preparePullViewPullInfo(ctx, issue)
+	if ctx.Written() {
+		return
+	}
+	preparePullViewReviewAndMerge(ctx, issue, mergeInputs)
 }
 
 func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Issue, mergeInputs pullViewMergeInputs) {
