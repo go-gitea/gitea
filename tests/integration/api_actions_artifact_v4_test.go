@@ -52,7 +52,7 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 		name     string
 		version  int32
 		mimeType string
-		blockId  bool
+		blockID  bool
 		noLength bool
 	}{
 		{
@@ -72,13 +72,13 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 			name:     "artifact4.json",
 			version:  7,
 			mimeType: "application/json",
-			blockId:  true,
+			blockID:  true,
 		},
 		{
 			name:     "artifact5.json",
 			version:  7,
 			mimeType: "application/json",
-			blockId:  true,
+			blockID:  true,
 			noLength: true,
 		},
 		{
@@ -95,7 +95,6 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 	}
 
 	for _, entry := range table {
-
 		// acquire artifact upload url
 		req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact", toProtoJSON(&actions.CreateArtifactRequest{
 			Version:                 entry.version,
@@ -113,7 +112,7 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 		// get upload url
 		idx := strings.Index(uploadResp.SignedUploadUrl, "/twirp/")
 		url := uploadResp.SignedUploadUrl[idx:] + "&comp=block"
-		if entry.blockId {
+		if entry.blockID {
 			url += "&blockid=" + base64.RawURLEncoding.EncodeToString([]byte("SOME_BIG_BLOCK_ID"))
 		}
 
