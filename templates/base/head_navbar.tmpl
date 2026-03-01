@@ -151,8 +151,8 @@
 	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
 	{{if $activeStopwatch}}
 		<div class="active-stopwatch-popup tippy-target">
-			<div class="tw-flex tw-items-center tw-gap-2 tw-p-3">
-				<a class="stopwatch-link tw-flex tw-items-center tw-gap-2 muted" href="{{$activeStopwatch.IssueLink}}">
+			<div class="flex-text-block tw-p-3">
+				<a class="stopwatch-link flex-text-block muted" href="{{$activeStopwatch.IssueLink}}">
 					{{svg "octicon-issue-opened" 16}}
 					<span class="stopwatch-issue">{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}</span>
 				</a>

@@ -414,7 +414,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		sha := strings.TrimSpace(stdout)
 
 		_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
-			AddDynamicArguments("100644", sha, "somewher-over-the-rainbow").
+			AddDynamicArguments("100644", sha, "somewhere-over-the-rainbow").
 			WithDir(path).
 			RunStdString(t.Context())
 		assert.NoError(t, err)
