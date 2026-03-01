@@ -17,7 +17,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	db_install "code.gitea.io/gitea/models/db/install"
-	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/generate"
@@ -114,11 +113,6 @@ func Install(ctx *context.Context) {
 	form.RegisterConfirm = setting.Service.RegisterEmailConfirm
 	form.MailNotify = setting.Service.EnableNotifyMail
 
-	// Server and other services settings
-	form.OfflineMode = setting.OfflineMode
-	form.DisableGravatar = setting.DisableGravatar             // when installing, there is no database connection so that given a default value
-	form.EnableFederatedAvatar = setting.EnableFederatedAvatar // when installing, there is no database connection so that given a default value
-
 	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
 	form.EnableOpenIDSignUp = setting.Service.EnableOpenIDSignUp
 	form.DisableRegistration = setting.Service.DisableRegistration
@@ -141,7 +135,7 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	if (setting.Database.Type == "sqlite3") &&
 		len(setting.Database.Path) == 0 {
 		ctx.Data["Err_DbPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.err_empty_db_path"), tplInstall, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.err_empty_db_path"), tplInstall, form)
 		return false
 	}
 
@@ -152,10 +146,10 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	if err = db.InitEngine(ctx); err != nil {
 		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
 			ctx.Data["Err_DbType"] = true
-			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.com/installation/install-from-binary"), tplInstall, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.com/installation/install-from-binary"), tplInstall, form)
 		} else {
 			ctx.Data["Err_DbSetting"] = true
-			ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
 		}
 		return false
 	}
@@ -163,20 +157,20 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	err = db_install.CheckDatabaseConnection(ctx)
 	if err != nil {
 		ctx.Data["Err_DbSetting"] = true
-		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
 		return false
 	}
 
 	hasPostInstallationUser, err := db_install.HasPostInstallationUsers(ctx)
 	if err != nil {
 		ctx.Data["Err_DbSetting"] = true
-		ctx.RenderWithErr(ctx.Tr("install.invalid_db_table", "user", err), tplInstall, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_table", "user", err), tplInstall, form)
 		return false
 	}
 	dbMigrationVersion, err := db_install.GetMigrationVersion(ctx)
 	if err != nil {
 		ctx.Data["Err_DbSetting"] = true
-		ctx.RenderWithErr(ctx.Tr("install.invalid_db_table", "version", err), tplInstall, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_table", "version", err), tplInstall, form)
 		return false
 	}
 
@@ -185,7 +179,7 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 		confirmed := form.ReinstallConfirmFirst && form.ReinstallConfirmSecond && form.ReinstallConfirmThird
 		if !confirmed {
 			ctx.Data["Err_DbInstalledBefore"] = true
-			ctx.RenderWithErr(ctx.Tr("install.reinstall_error"), tplInstall, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.reinstall_error"), tplInstall, form)
 			return false
 		}
 
@@ -225,7 +219,7 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	if _, err = exec.LookPath("git"); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.test_git_failed", err), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.test_git_failed", err), tplInstall, &form)
 		return
 	}
 
@@ -248,7 +242,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	// Prepare AppDataPath, it is very important for Gitea
 	if err = setting.PrepareAppDataPath(); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.invalid_app_data_path", err), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_app_data_path", err), tplInstall, &form)
 		return
 	}
 
@@ -256,7 +250,7 @@ func SubmitInstall(ctx *context.Context) {
 	form.RepoRootPath = strings.ReplaceAll(form.RepoRootPath, "\\", "/")
 	if err = os.MkdirAll(form.RepoRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_RepoRootPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.invalid_repo_path", err), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_repo_path", err), tplInstall, &form)
 		return
 	}
 
@@ -265,7 +259,7 @@ func SubmitInstall(ctx *context.Context) {
 		form.LFSRootPath = strings.ReplaceAll(form.LFSRootPath, "\\", "/")
 		if err := os.MkdirAll(form.LFSRootPath, os.ModePerm); err != nil {
 			ctx.Data["Err_LFSRootPath"] = true
-			ctx.RenderWithErr(ctx.Tr("install.invalid_lfs_path", err), tplInstall, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_lfs_path", err), tplInstall, &form)
 			return
 		}
 	}
@@ -274,14 +268,14 @@ func SubmitInstall(ctx *context.Context) {
 	form.LogRootPath = strings.ReplaceAll(form.LogRootPath, "\\", "/")
 	if err = os.MkdirAll(form.LogRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_LogRootPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.invalid_log_root_path", err), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_log_root_path", err), tplInstall, &form)
 		return
 	}
 
 	currentUser, match := setting.IsRunUserMatchCurrentUser(form.RunUser)
 	if !match {
 		ctx.Data["Err_RunUser"] = true
-		ctx.RenderWithErr(ctx.Tr("install.run_user_not_match", form.RunUser, currentUser), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.run_user_not_match", form.RunUser, currentUser), tplInstall, &form)
 		return
 	}
 
@@ -289,7 +283,7 @@ func SubmitInstall(ctx *context.Context) {
 	if form.DisableRegistration && len(form.AdminName) == 0 {
 		ctx.Data["Err_Services"] = true
 		ctx.Data["Err_Admin"] = true
-		ctx.RenderWithErr(ctx.Tr("install.no_admin_and_disable_registration"), tplInstall, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.no_admin_and_disable_registration"), tplInstall, form)
 		return
 	}
 
@@ -300,33 +294,33 @@ func SubmitInstall(ctx *context.Context) {
 			ctx.Data["Err_Admin"] = true
 			ctx.Data["Err_AdminName"] = true
 			if db.IsErrNameReserved(err) {
-				ctx.RenderWithErr(ctx.Tr("install.err_admin_name_is_reserved"), tplInstall, form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("install.err_admin_name_is_reserved"), tplInstall, form)
 				return
 			} else if db.IsErrNamePatternNotAllowed(err) {
-				ctx.RenderWithErr(ctx.Tr("install.err_admin_name_pattern_not_allowed"), tplInstall, form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("install.err_admin_name_pattern_not_allowed"), tplInstall, form)
 				return
 			}
-			ctx.RenderWithErr(ctx.Tr("install.err_admin_name_is_invalid"), tplInstall, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.err_admin_name_is_invalid"), tplInstall, form)
 			return
 		}
 		// Check Admin email
 		if len(form.AdminEmail) == 0 {
 			ctx.Data["Err_Admin"] = true
 			ctx.Data["Err_AdminEmail"] = true
-			ctx.RenderWithErr(ctx.Tr("install.err_empty_admin_email"), tplInstall, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.err_empty_admin_email"), tplInstall, form)
 			return
 		}
 		// Check admin password.
 		if len(form.AdminPasswd) == 0 {
 			ctx.Data["Err_Admin"] = true
 			ctx.Data["Err_AdminPasswd"] = true
-			ctx.RenderWithErr(ctx.Tr("install.err_empty_admin_password"), tplInstall, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.err_empty_admin_password"), tplInstall, form)
 			return
 		}
 		if form.AdminPasswd != form.AdminConfirmPasswd {
 			ctx.Data["Err_Admin"] = true
 			ctx.Data["Err_AdminPasswd"] = true
-			ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplInstall, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.password_not_match"), tplInstall, form)
 			return
 		}
 	}
@@ -335,7 +329,7 @@ func SubmitInstall(ctx *context.Context) {
 	if err = db.InitEngineWithMigration(ctx, versioned_migration.Migrate); err != nil {
 		db.UnsetDefaultEngine()
 		ctx.Data["Err_DbSetting"] = true
-		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
 		return
 	}
 
@@ -379,7 +373,7 @@ func SubmitInstall(ctx *context.Context) {
 		cfg.Section("lfs").Key("PATH").SetValue(form.LFSRootPath)
 		var lfsJwtSecret string
 		if _, lfsJwtSecret, err = generate.NewJwtSecretWithBase64(); err != nil {
-			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
 			return
 		}
 		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(lfsJwtSecret)
@@ -389,7 +383,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	if len(strings.TrimSpace(form.SMTPAddr)) > 0 {
 		if _, err := mail.ParseAddress(form.SMTPFrom); err != nil {
-			ctx.RenderWithErr(ctx.Tr("install.smtp_from_invalid"), tplInstall, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.smtp_from_invalid"), tplInstall, &form)
 			return
 		}
 
@@ -404,15 +398,6 @@ func SubmitInstall(ctx *context.Context) {
 	}
 	cfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").SetValue(strconv.FormatBool(form.RegisterConfirm))
 	cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").SetValue(strconv.FormatBool(form.MailNotify))
-
-	cfg.Section("server").Key("OFFLINE_MODE").SetValue(strconv.FormatBool(form.OfflineMode))
-	if err := system_model.SetSettings(ctx, map[string]string{
-		setting.Config().Picture.DisableGravatar.DynKey():       strconv.FormatBool(form.DisableGravatar),
-		setting.Config().Picture.EnableFederatedAvatar.DynKey(): strconv.FormatBool(form.EnableFederatedAvatar),
-	}); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
-		return
-	}
 
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(strconv.FormatBool(form.EnableOpenIDSignIn))
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(strconv.FormatBool(form.EnableOpenIDSignUp))
@@ -443,7 +428,7 @@ func SubmitInstall(ctx *context.Context) {
 	if setting.InternalToken == "" {
 		var internalToken string
 		if internalToken, err = generate.NewInternalToken(); err != nil {
-			ctx.RenderWithErr(ctx.Tr("install.internal_token_failed", err), tplInstall, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.internal_token_failed", err), tplInstall, &form)
 			return
 		}
 		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
@@ -454,7 +439,7 @@ func SubmitInstall(ctx *context.Context) {
 	if !cfg.Section("oauth2").HasKey("JWT_SECRET") && !cfg.Section("oauth2").HasKey("JWT_SECRET_URI") {
 		_, jwtSecretBase64, err := generate.NewJwtSecretWithBase64()
 		if err != nil {
-			ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
 			return
 		}
 		cfg.Section("oauth2").Key("JWT_SECRET").SetValue(jwtSecretBase64)
@@ -464,7 +449,7 @@ func SubmitInstall(ctx *context.Context) {
 	if setting.SecretKey == "" {
 		var secretKey string
 		if secretKey, err = generate.NewSecretKey(); err != nil {
-			ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
 			return
 		}
 		cfg.Section("security").Key("SECRET_KEY").SetValue(secretKey)
@@ -474,7 +459,7 @@ func SubmitInstall(ctx *context.Context) {
 		var algorithm *hash.PasswordHashAlgorithm
 		setting.PasswordHashAlgo, algorithm = hash.SetDefaultPasswordHashAlgorithm(form.PasswordAlgorithm)
 		if algorithm == nil {
-			ctx.RenderWithErr(ctx.Tr("install.invalid_password_algorithm"), tplInstall, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_password_algorithm"), tplInstall, &form)
 			return
 		}
 		cfg.Section("security").Key("PASSWORD_HASH_ALGO").SetValue(form.PasswordAlgorithm)
@@ -484,14 +469,14 @@ func SubmitInstall(ctx *context.Context) {
 
 	err = os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
 	if err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
 
 	setting.EnvironmentToConfig(cfg, os.Environ())
 
 	if err = cfg.SaveTo(setting.CustomConf); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
 
@@ -527,7 +512,7 @@ func SubmitInstall(ctx *context.Context) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true
 				ctx.Data["Err_AdminEmail"] = true
-				ctx.RenderWithErr(ctx.Tr("install.invalid_admin_setting", err), tplInstall, &form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_admin_setting", err), tplInstall, &form)
 				return
 			}
 			log.Info("Admin account already exist")
@@ -544,16 +529,16 @@ func SubmitInstall(ctx *context.Context) {
 
 		// Auto-login for admin
 		if err = ctx.Session.Set("uid", u.ID); err != nil {
-			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}
 		if err = ctx.Session.Set("uname", u.Name); err != nil {
-			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}
 
 		if err = ctx.Session.Release(); err != nil {
-			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}
 	}

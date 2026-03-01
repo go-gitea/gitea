@@ -668,7 +668,7 @@ func NewWikiPost(ctx *context.Context) {
 	}
 
 	if util.IsEmptyString(form.Title) {
-		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplWikiNew, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.issues.new.title_empty"), tplWikiNew, form)
 		return
 	}
 
@@ -681,10 +681,10 @@ func NewWikiPost(ctx *context.Context) {
 	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
 		if repo_model.IsErrWikiReservedName(err) {
 			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.wiki.reserved_page", wikiName), tplWikiNew, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.wiki.reserved_page", wikiName), tplWikiNew, &form)
 		} else if repo_model.IsErrWikiAlreadyExist(err) {
 			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.wiki.page_already_exists"), tplWikiNew, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.wiki.page_already_exists"), tplWikiNew, &form)
 		} else {
 			ctx.ServerError("AddWikiPage", err)
 		}

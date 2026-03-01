@@ -108,6 +108,9 @@ func LoadCommonSettings() {
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
 func loadCommonSettingsFrom(cfg ConfigProvider) error {
+	// a lot of logic depends on InstallLock value, so it must be loaded before any other settings
+	InstallLock = HasInstallLock(cfg)
+
 	// WARNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadLogGlobalFrom(cfg)
