@@ -12,7 +12,8 @@
 				{{with .Hook}}
 					<div class="field">
 						<textarea id="content" name="content" class="tw-hidden"
-							data-code-editor-config="{{JsonUtils.EncodeToString $.CodeEditorConfig}}">{{if .IsActive}}{{.Content}}{{else}}{{.Sample}}{{end}}</textarea>
+							data-code-editor-config="{{JsonUtils.EncodeToString $.CodeEditorConfig}}"
+							placeholder="{{ctx.Locale.Tr "editor.code_editor.placeholder"}}">{{if .IsActive}}{{.Content}}{{else}}{{.Sample}}{{end}}</textarea>
 						<div class="editor-loading is-loading"></div>
 					</div>
 					<div class="inline field">

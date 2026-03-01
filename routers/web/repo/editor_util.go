@@ -69,7 +69,6 @@ func getClosestParentWithFiles(gitRepo *git.Repository, branchName, originTreePa
 type CodeEditorConfig struct {
 	Filename              string   `json:"filename"` // the base name, not full path
 	Autofocus             bool     `json:"autofocus"`
-	Placeholder           string   `json:"placeholder"`
 	PreviewableExtensions []string `json:"previewableExtensions,omitempty"`
 	LineWrapExtensions    []string `json:"lineWrapExtensions,omitempty"`
 	LineWrap              bool     `json:"lineWrap"`
