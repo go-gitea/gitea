@@ -8,8 +8,6 @@ package identicon
 
 import (
 	"crypto/sha256"
-	"errors"
-	"fmt"
 	"image"
 	"image/color"
 )
@@ -28,21 +26,18 @@ type Identicon struct {
 // size image size
 // back background color
 // fore all possible foreground colors. only one foreground color will be picked randomly for one image
-func New(size int, back color.Color, fore ...color.Color) (*Identicon, error) {
+func New(size int, back color.Color, fore ...color.Color) *Identicon {
 	if len(fore) == 0 {
-		return nil, errors.New("foreground is not set")
+		fore = DarkColors
 	}
-
-	if size < minImageSize {
-		return nil, fmt.Errorf("size %d is smaller than min size %d", size, minImageSize)
-	}
-
+	size = max(size, minImageSize)
+	size = min(size, 2048)
 	return &Identicon{
 		foreColors: fore,
 		backColor:  back,
 		size:       size,
 		rect:       image.Rect(0, 0, size, size),
-	}, nil
+	}
 }
 
 // Make generates an avatar by data
