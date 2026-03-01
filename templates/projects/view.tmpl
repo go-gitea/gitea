@@ -77,7 +77,7 @@
 		<div class="divider"></div>
 	</div>
 
-	<div id="project-board" class="board {{if $canWriteProject}}sortable{{end}}" data-project-borad-writable="{{$canWriteProject}}" {{if $canWriteProject}}data-url="{{$.Link}}/move"{{end}}>
+	<div id="project-board" class="board {{if $canWriteProject}}sortable{{end}}" data-project-board-writable="{{$canWriteProject}}" {{if $canWriteProject}}data-url="{{$.Link}}/move"{{end}}>
 		{{range .Columns}}
 			<div class="project-column" {{if .Color}}style="background: {{.Color}} !important; color: {{ContrastColor .Color}} !important"{{end}} data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
 				<div class="project-column-header{{if $canWriteProject}} tw-cursor-grab{{end}}">

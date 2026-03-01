@@ -69,9 +69,6 @@ func prepareHomeSidebarRepoTopics(ctx *context.Context) {
 func prepareOpenWithEditorApps(ctx *context.Context) {
 	var tmplApps []map[string]any
 	apps := setting.Config().Repository.OpenWithEditorApps.Value(ctx)
-	if len(apps) == 0 {
-		apps = setting.DefaultOpenWithEditorApps()
-	}
 	for _, app := range apps {
 		schema, _, _ := strings.Cut(app.OpenURL, ":")
 

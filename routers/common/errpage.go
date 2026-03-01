@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -36,9 +37,7 @@ func renderServerErrorPage(w http.ResponseWriter, req *http.Request, respCode in
 		w.Header().Set(`X-Frame-Options`, setting.Security.XFrameOptions)
 	}
 
-	tmplCtx := context.NewTemplateContext(req.Context(), req)
-	tmplCtx["Locale"] = middleware.Locale(w, req)
-
+	tmplCtx := context.NewTemplateContextForWeb(reqctx.FromContext(req.Context()), req, middleware.Locale(w, req))
 	w.WriteHeader(respCode)
 
 	outBuf := &bytes.Buffer{}

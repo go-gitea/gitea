@@ -301,13 +301,13 @@ func LFSFileGet(ctx *context.Context) {
 			if index != len(lines)-1 {
 				line += "\n"
 			}
-			output.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, line))
+			fmt.Fprintf(&output, `<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, line)
 		}
 		ctx.Data["FileContent"] = gotemplate.HTML(output.String())
 
 		output.Reset()
 		for i := 0; i < len(lines); i++ {
-			output.WriteString(fmt.Sprintf(`<span id="L%d">%d</span>`, i+1, i+1))
+			fmt.Fprintf(&output, `<span id="L%d">%d</span>`, i+1, i+1)
 		}
 		ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 

@@ -414,7 +414,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		sha := strings.TrimSpace(stdout)
 
 		_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
-			AddDynamicArguments("100644", sha, "somewher-over-the-rainbow").
+			AddDynamicArguments("100644", sha, "somewhere-over-the-rainbow").
 			WithDir(path).
 			RunStdString(t.Context())
 		assert.NoError(t, err)
@@ -997,10 +997,10 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		err := os.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content"), 0o666)
 		assert.NoError(t, err)
 
-		err = git.AddChanges(t.Context(), dstPath, true)
+		err = gitAddChangesDeprecated(t.Context(), dstPath, true)
 		assert.NoError(t, err)
 
-		err = git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
+		err = gitCommitChangesDeprecated(t.Context(), dstPath, gitCommitChangesOptions{
 			Committer: &git.Signature{
 				Email: "user2@example.com",
 				Name:  "user2",
