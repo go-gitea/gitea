@@ -250,7 +250,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		oldHeadCommitID := pr.HeadCommitID
 
 		pr.HeadCommitID = opts.NewCommitIDs[i]
-		if err = pull_service.UpdateRef(ctx, pr); err != nil {
+		if err = pull_service.UpdateRefWithOldCommit(ctx, pr, oldCommitID); err != nil {
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
 		}
 

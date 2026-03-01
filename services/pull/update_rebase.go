@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -51,6 +52,17 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		}
 	}
 
+	gitRepo, err := gitrepo.OpenRepository(ctx, pr.HeadRepo)
+	if err != nil {
+		return fmt.Errorf("failed to open head repo: %w", err)
+	}
+	defer gitRepo.Close()
+
+	oldCommitID, err := gitRepo.GetRefCommitID(git.BranchPrefix + pr.HeadBranch)
+	if err != nil {
+		return fmt.Errorf("failed to get head branch commit: %w", err)
+	}
+
 	// Now determine who the pushing author should be
 	var headUser *user_model.User
 	if err := pr.HeadRepo.LoadOwner(ctx); err != nil {
@@ -64,43 +76,21 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		headUser = pr.HeadRepo.Owner
 	}
 
-	pushCmd := gitcmd.NewCommand("push", "-f", "head_repo").
-		AddDynamicArguments(tmpRepoStagingBranch + ":" + git.BranchPrefix + pr.HeadBranch)
-
 	// Push back to the head repository.
 	// TODO: this cause an api call to "/api/internal/hook/post-receive/...",
 	//       that prevents us from doint the whole merge in one db transaction
-	mergeCtx.outbuf.Reset()
-
-	if err := pushCmd.
-		WithEnv(repo_module.FullPushingEnvironment(
+	return git.Push(ctx, mergeCtx.tmpBasePath, git.PushOptions{
+		Remote:         "head_repo",
+		LocalRefName:   tmpRepoStagingBranch,
+		Branch:         git.BranchPrefix + pr.HeadBranch,
+		ForceWithLease: fmt.Sprintf("%s:%s", git.BranchPrefix+pr.HeadBranch, oldCommitID),
+		Env: repo_module.FullPushingEnvironment(
 			headUser,
 			doer,
 			pr.HeadRepo,
 			pr.HeadRepo.Name,
 			pr.ID,
 			pr.Index,
-		)).
-		WithDir(mergeCtx.tmpBasePath).
-		WithStdoutBuffer(mergeCtx.outbuf).
-		RunWithStderr(ctx); err != nil {
-		if strings.Contains(err.Stderr(), "non-fast-forward") {
-			return &git.ErrPushOutOfDate{
-				StdOut: mergeCtx.outbuf.String(),
-				StdErr: err.Stderr(),
-				Err:    err,
-			}
-		} else if strings.Contains(err.Stderr(), "! [remote rejected]") {
-			err := &git.ErrPushRejected{
-				StdOut: mergeCtx.outbuf.String(),
-				StdErr: err.Stderr(),
-				Err:    err,
-			}
-			err.GenerateMessage()
-			return err
-		}
-		return fmt.Errorf("git push: %s", err.Stderr())
-	}
-	mergeCtx.outbuf.Reset()
-	return nil
+		),
+	})
 }

@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
@@ -407,28 +408,28 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	)
 
 	mergeCtx.env = append(mergeCtx.env, repo_module.EnvPushTrigger+"="+string(pushTrigger))
-	pushCmd := gitcmd.NewCommand("push", "origin").AddDynamicArguments(tmpRepoBaseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
+	baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	if err != nil {
+		return "", fmt.Errorf("failed to open base repo: %w", err)
+	}
+	defer baseGitRepo.Close()
+
+	oldCommitID, err := baseGitRepo.GetRefCommitID(git.BranchPrefix + pr.BaseBranch)
+	if err != nil {
+		return "", fmt.Errorf("failed to get base branch commit: %w", err)
+	}
 
 	// Push back to upstream.
 	// This cause an api call to "/api/internal/hook/post-receive/...",
 	// If it's merge, all db transaction and operations should be there but not here to prevent deadlock.
-	if err := mergeCtx.PrepareGitCmd(pushCmd).RunWithStderr(ctx); err != nil {
-		if strings.Contains(err.Stderr(), "non-fast-forward") {
-			return "", &git.ErrPushOutOfDate{
-				StdOut: mergeCtx.outbuf.String(),
-				StdErr: err.Stderr(),
-				Err:    err,
-			}
-		} else if strings.Contains(err.Stderr(), "! [remote rejected]") {
-			err := &git.ErrPushRejected{
-				StdOut: mergeCtx.outbuf.String(),
-				StdErr: err.Stderr(),
-				Err:    err,
-			}
-			err.GenerateMessage()
-			return "", err
-		}
-		return "", fmt.Errorf("git push: %s", err.Stderr())
+	if err := git.Push(ctx, mergeCtx.tmpBasePath, git.PushOptions{
+		Remote:         "origin",
+		LocalRefName:   tmpRepoBaseBranch,
+		Branch:         git.BranchPrefix + pr.BaseBranch,
+		ForceWithLease: fmt.Sprintf("%s:%s", git.BranchPrefix+pr.BaseBranch, oldCommitID),
+		Env:            mergeCtx.env,
+	}); err != nil {
+		return "", err
 	}
 	mergeCtx.outbuf.Reset()
 	return mergeCommitID, nil
