@@ -185,7 +185,7 @@ func (u *User) BeforeUpdate() {
 	}
 
 	// FIXME: this email doesn't need to be in lowercase, because the emails are mainly managed by the email table with lower_email field
-	// This trick could be removed in new releases to display the user inputed email as-is.
+	// This trick could be removed in new releases to display the user inputted email as-is.
 	u.Email = strings.ToLower(u.Email)
 	if !u.IsOrganization() {
 		if len(u.AvatarEmail) == 0 {
