@@ -260,7 +260,9 @@ func rebaseTrackingOnToBase(ctx *mergeContext, mergeStyle repo_model.MergeStyle)
 	ctx.outbuf.Reset()
 
 	// Rebase before merging
-	if err := ctx.PrepareGitCmd(gitcmd.NewCommand("rebase").AddDynamicArguments(tmpRepoBaseBranch)).
+	cmdRebase := gitcmd.NewCommand("rebase").AddDynamicArguments(tmpRepoBaseBranch)
+	addCommitSigningOptions(cmdRebase, ctx.signKey)
+	if err := ctx.PrepareGitCmd(cmdRebase).
 		RunWithStderr(ctx); err != nil {
 		// Rebase will leave a REBASE_HEAD file in .git if there is a conflict
 		if _, statErr := os.Stat(filepath.Join(ctx.tmpBasePath, ".git", "REBASE_HEAD")); statErr == nil {
