@@ -1175,7 +1175,7 @@ func Routes() *web.Router {
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
 
-			addActionsRoutes(m, reqOwner(), repo.NewAction(), auth_model.AccessTokenScopeCategoryRepository) // it adds the routes for secrets/variables and runner management
+				addActionsRoutes(m, reqOwner(), repo.NewAction(), auth_model.AccessTokenScopeCategoryRepository) // it adds the routes for secrets/variables and runner management
 
 				m.Group("/actions/workflows", func() {
 					m.Get("", repo.ActionsListRepositoryWorkflows)
