@@ -176,7 +176,7 @@ func (r artifactV4Routes) buildArtifactURL(ctx *ArtifactContext, endp, artifactN
 	return uploadURL
 }
 
-func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*actions.ActionTask, string, bool) {
+func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*actions.ActionTask, int64, bool) {
 	rawTaskID := ctx.Req.URL.Query().Get("taskID")
 	rawArtifactID := ctx.Req.URL.Query().Get("artifactID")
 	sig := ctx.Req.URL.Query().Get("sig")
@@ -190,31 +190,42 @@ func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*a
 	if !hmac.Equal(dsig, expecedsig) {
 		log.Error("Error unauthorized")
 		ctx.HTTPError(http.StatusUnauthorized, "Error unauthorized")
-		return nil, "", false
+		return nil, 0, false
 	}
 	t, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", expires)
 	if err != nil || t.Before(time.Now()) {
 		log.Error("Error link expired")
 		ctx.HTTPError(http.StatusUnauthorized, "Error link expired")
-		return nil, "", false
+		return nil, 0, false
 	}
 	task, err := actions.GetTaskByID(ctx, taskID)
 	if err != nil {
 		log.Error("Error runner api getting task by ID: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task by ID")
-		return nil, "", false
+		return nil, 0, false
 	}
 	if task.Status != actions.StatusRunning {
 		log.Error("Error runner api getting task: task is not running")
 		ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task: task is not running")
-		return nil, "", false
+		return nil, 0, false
 	}
 	if err := task.LoadJob(ctx); err != nil {
 		log.Error("Error runner api getting job: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting job")
-		return nil, "", false
+		return nil, 0, false
 	}
-	return task, artifactName, true
+	return task, artifactID, true
+}
+
+func (r *artifactV4Routes) getArtifactByID(ctx *ArtifactContext, runID int64, id int64) (*actions.ActionArtifact, error) {
+	var art actions.ActionArtifact
+	has, err := db.GetEngine(ctx).Where(builder.Eq{"run_id": runID, "id": id}, builder.Like{"content_encoding", "/"}).Get(&art)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.ErrNotExist
+	}
+	return &art, nil
 }
 
 func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID int64, name string) (*actions.ActionArtifact, error) {
@@ -303,7 +314,7 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 }
 
 func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
-	task, artifactName, ok := r.verifySignature(ctx, "UploadArtifact")
+	task, artifactID, ok := r.verifySignature(ctx, "UploadArtifact")
 	if !ok {
 		return
 	}
@@ -314,7 +325,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 		blockid := ctx.Req.URL.Query().Get("blockid")
 		if blockid == "" {
 			// get artifact by name
-			artifact, err := r.getArtifactByName(ctx, task.Job.RunID, artifactName)
+			artifact, err := r.getArtifactByID(ctx, task.Job.RunID, artifactID)
 			if err != nil {
 				log.Error("Error artifact not found: %v", err)
 				ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
@@ -335,7 +346,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 				return
 			}
 		} else {
-			_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/block-%d-%d-%s", task.Job.RunID, task.Job.RunID, ctx.Req.ContentLength, base64.URLEncoding.EncodeToString([]byte(blockid))), ctx.Req.Body, -1)
+			_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/block-%d-%d-%d-%s", task.Job.RunID, task.Job.RunID, artifactID, ctx.Req.ContentLength, base64.URLEncoding.EncodeToString([]byte(blockid))), ctx.Req.Body, -1)
 			if err != nil {
 				log.Error("Error runner api getting task: task is not running")
 				ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task: task is not running")
@@ -522,13 +533,13 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 }
 
 func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
-	task, artifactName, ok := r.verifySignature(ctx, "DownloadArtifact")
+	task, artifactID, ok := r.verifySignature(ctx, "DownloadArtifact")
 	if !ok {
 		return
 	}
 
 	// get artifact by name
-	artifact, err := r.getArtifactByName(ctx, task.Job.RunID, artifactName)
+	artifact, err := r.getArtifactByID(ctx, task.Job.RunID, artifactID)
 	if err != nil {
 		log.Error("Error artifact not found: %v", err)
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")

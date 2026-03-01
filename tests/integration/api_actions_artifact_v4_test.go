@@ -6,6 +6,7 @@ package integration
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
@@ -22,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/actions"
 	actions_service "code.gitea.io/gitea/services/actions"
 
@@ -45,45 +47,97 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 	token, err := actions_service.CreateAuthorizationToken(48, 792, 193)
 	assert.NoError(t, err)
 
-	// acquire artifact upload url
-	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact", toProtoJSON(&actions.CreateArtifactRequest{
-		Version:                 4,
-		Name:                    "artifact",
-		WorkflowRunBackendId:    "792",
-		WorkflowJobRunBackendId: "193",
-	})).AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var uploadResp actions.CreateArtifactResponse
-	protojson.Unmarshal(resp.Body.Bytes(), &uploadResp)
-	assert.True(t, uploadResp.Ok)
-	assert.Contains(t, uploadResp.SignedUploadUrl, "/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact")
+	table := []struct {
+		name     string
+		version  int32
+		mimeType string
+		blockId  bool
+		noLength bool
+	}{
+		// {
+		// 	name:    "artifact",
+		// 	version: 4,
+		// },
+		// {
+		// 	name:    "artifact2",
+		// 	version: 7,
+		// },
+		// {
+		// 	name:     "artifact3.json",
+		// 	version:  7,
+		// 	mimeType: "application/json",
+		// },
+		// {
+		// 	name:     "artifact4.json",
+		// 	version:  7,
+		// 	mimeType: "application/json",
+		// 	blockId:  true,
+		// },
+		// {
+		// 	name:     "artifact4.json",
+		// 	version:  7,
+		// 	mimeType: "application/json",
+		// 	blockId:  true,
+		// 	noLength: true,
+		// },
+		{
+			name:     "artifact4.json",
+			version:  7,
+			mimeType: "application/json",
+			noLength: true,
+		},
+	}
 
-	// get upload url
-	idx := strings.Index(uploadResp.SignedUploadUrl, "/twirp/")
-	url := uploadResp.SignedUploadUrl[idx:] + "&comp=block"
+	for _, entry := range table {
 
-	// upload artifact chunk
-	body := strings.Repeat("A", 1024)
-	req = NewRequestWithBody(t, "PUT", url, strings.NewReader(body))
-	MakeRequest(t, req, http.StatusCreated)
+		// acquire artifact upload url
+		req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact", toProtoJSON(&actions.CreateArtifactRequest{
+			Version:                 entry.version,
+			Name:                    entry.name,
+			WorkflowRunBackendId:    "792",
+			WorkflowJobRunBackendId: "193",
+			MimeType:                util.Iif(entry.mimeType != "", wrapperspb.String(entry.mimeType), nil),
+		})).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var uploadResp actions.CreateArtifactResponse
+		protojson.Unmarshal(resp.Body.Bytes(), &uploadResp)
+		assert.True(t, uploadResp.Ok)
+		assert.Contains(t, uploadResp.SignedUploadUrl, "/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact")
 
-	t.Logf("Create artifact confirm")
+		// get upload url
+		idx := strings.Index(uploadResp.SignedUploadUrl, "/twirp/")
+		url := uploadResp.SignedUploadUrl[idx:] + "&comp=block"
+		if entry.blockId {
+			url += "&blockid=" + base64.RawURLEncoding.EncodeToString([]byte("SOME_BIG_BLOCK_ID"))
+		}
 
-	sha := sha256.Sum256([]byte(body))
+		// upload artifact chunk
+		body := strings.Repeat("A", 1024)
+		var bodyReader io.Reader = strings.NewReader(body)
+		if entry.noLength {
+			bodyReader = io.MultiReader(bodyReader)
+		}
+		req = NewRequestWithBody(t, "PUT", url, bodyReader)
+		MakeRequest(t, req, http.StatusCreated)
 
-	// confirm artifact upload
-	req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/FinalizeArtifact", toProtoJSON(&actions.FinalizeArtifactRequest{
-		Name:                    "artifact",
-		Size:                    1024,
-		Hash:                    wrapperspb.String("sha256:" + hex.EncodeToString(sha[:])),
-		WorkflowRunBackendId:    "792",
-		WorkflowJobRunBackendId: "193",
-	})).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	var finalizeResp actions.FinalizeArtifactResponse
-	protojson.Unmarshal(resp.Body.Bytes(), &finalizeResp)
-	assert.True(t, finalizeResp.Ok)
+		t.Logf("Create artifact confirm")
+
+		sha := sha256.Sum256([]byte(body))
+
+		// confirm artifact upload
+		req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/FinalizeArtifact", toProtoJSON(&actions.FinalizeArtifactRequest{
+			Name:                    entry.name,
+			Size:                    1024,
+			Hash:                    wrapperspb.String("sha256:" + hex.EncodeToString(sha[:])),
+			WorkflowRunBackendId:    "792",
+			WorkflowJobRunBackendId: "193",
+		})).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		var finalizeResp actions.FinalizeArtifactResponse
+		protojson.Unmarshal(resp.Body.Bytes(), &finalizeResp)
+		assert.True(t, finalizeResp.Ok)
+	}
 }
 
 func TestActionsArtifactV4UploadSingleFileWrongChecksum(t *testing.T) {

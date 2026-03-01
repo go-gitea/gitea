@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
@@ -54,7 +55,7 @@ func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
 			checkErr = errors.New("md5 not match")
 		}
 	}
-	if writtenSize != contentSize {
+	if writtenSize != contentSize && contentSize != -1 {
 		checkErr = errors.Join(checkErr, fmt.Errorf("writtenSize %d not match contentSize %d", writtenSize, contentSize))
 	}
 	if checkErr != nil {
@@ -88,7 +89,7 @@ func appendUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 	start, contentSize, runID int64,
 ) (int64, error) {
 	end := start + contentSize - 1
-	return saveUploadChunkBase(st, ctx, artifact, contentSize, runID, start, end, contentSize, false)
+	return saveUploadChunkBase(st, ctx, artifact, util.Iif(contentSize == 0, -1, contentSize), runID, start, end, contentSize, false)
 }
 
 type chunkFileItem struct {
@@ -109,6 +110,13 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 		item := chunkFileItem{Path: storageDir + "/" + baseName}
 		if _, err := fmt.Sscanf(baseName, "%d-%d-%d-%d.chunk", &item.RunID, &item.ArtifactID, &item.Start, &item.End); err != nil {
 			return fmt.Errorf("parse content range error: %v", err)
+		}
+		if (item.End + 1 - item.Start) == 0 {
+			fi, err := st.Stat(fpath)
+			if err != nil {
+				return err
+			}
+			item.End = item.Start + fi.Size() - 1
 		}
 		chunks = append(chunks, &item)
 		return nil
@@ -144,12 +152,25 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 		item := chunkFileItem{Path: storageDir + "/" + baseName, ArtifactID: artifactID}
 		var size int64
 		var b64chunkName string
-		if _, err := fmt.Sscanf(baseName, "block-%d-%d-%s", &item.RunID, &size, &b64chunkName); err != nil {
-			return fmt.Errorf("parse content range error: %v", err)
+		var fArtifactID int64
+		if _, err := fmt.Sscanf(baseName, "block-%d-%d-%d-%s", &item.RunID, &fArtifactID, &size, &b64chunkName); err != nil {
+			log.Warn("parse content range error: %v", err)
+			return nil
 		}
 		rchunkName, err := base64.URLEncoding.DecodeString(b64chunkName)
 		if err != nil {
-			return fmt.Errorf("failed to parse chunkName: %v", err)
+			log.Warn("failed to parse chunkName: %v", err)
+			return nil
+		}
+		if fArtifactID != artifactID {
+			return nil
+		}
+		if size == 0 {
+			fi, err := st.Stat(fpath)
+			if err != nil {
+				return err
+			}
+			size = fi.Size()
 		}
 		chunkName := string(rchunkName)
 		item.End = item.Start + size - 1
@@ -171,7 +192,7 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 		if err != nil {
 			return nil, err
 		}
-		chunks, _ = chunkMap[artifactID]
+		chunks = chunkMap[artifactID]
 	}
 	if blist != nil {
 		for i, name := range blist.Latest {
