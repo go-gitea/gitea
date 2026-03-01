@@ -253,7 +253,6 @@ func (a *AzureBlobStorage) GetSasURL(b *blob.Client, template sas.BlobSignatureV
 	}
 
 	t, err := time.Parse(blob.SnapshotTimeFormat, urlParts.Snapshot)
-
 	if err != nil {
 		t = time.Time{}
 	}
@@ -264,7 +263,6 @@ func (a *AzureBlobStorage) GetSasURL(b *blob.Client, template sas.BlobSignatureV
 	template.Version = sas.Version
 
 	qps, err := template.SignWithSharedKey(a.credential)
-
 	if err != nil {
 		return "", err
 	}

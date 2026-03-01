@@ -336,6 +336,9 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *Re
 const NoExpectedStatus = 0
 
 func isEndpoint(st *setting.Storage, remoteAddr string) bool {
+	if !st.ServeDirect() {
+		return false
+	}
 	if st.Type == setting.AzureBlobStorageType {
 		endp, err := url.Parse(st.AzureBlobConfig.Endpoint)
 		return err == nil && endp.Host == remoteAddr
