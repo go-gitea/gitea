@@ -161,7 +161,7 @@ function initRepoProjectToggleFullScreen(): void {
 export function initRepoProject(): void {
   initRepoProjectToggleFullScreen();
 
-  const writableProjectBoard = document.querySelector('#project-board[data-project-borad-writable="true"]');
+  const writableProjectBoard = document.querySelector('#project-board[data-project-board-writable="true"]');
   if (!writableProjectBoard) return;
 
   initRepoProjectSortable(); // no await
