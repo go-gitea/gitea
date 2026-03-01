@@ -20,12 +20,14 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/httpauth"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
@@ -45,6 +47,10 @@ type requestContext struct {
 	Method        string
 	RepoGitURL    string
 }
+
+const (
+	lfsRefQueryKey = "lfs-ref"
+)
 
 // Claims is a JWT Token Claims
 type Claims struct {
@@ -86,14 +92,22 @@ func (rc *requestContext) DownloadLink(p lfs_module.Pointer) string {
 	return rc.RepoGitURL + "/info/lfs/objects/" + url.PathEscape(p.Oid)
 }
 
+func appendRefQuery(baseURL, ref string) string {
+	if ref == "" {
+		return baseURL
+	}
+	return baseURL + "?" + lfsRefQueryKey + "=" + url.QueryEscape(ref)
+}
+
 // UploadLink builds a URL to upload the object.
-func (rc *requestContext) UploadLink(p lfs_module.Pointer) string {
-	return rc.RepoGitURL + "/info/lfs/objects/" + url.PathEscape(p.Oid) + "/" + strconv.FormatInt(p.Size, 10)
+func (rc *requestContext) UploadLink(p lfs_module.Pointer, ref string) string {
+	base := rc.RepoGitURL + "/info/lfs/objects/" + url.PathEscape(p.Oid) + "/" + strconv.FormatInt(p.Size, 10)
+	return appendRefQuery(base, ref)
 }
 
 // VerifyLink builds a URL for verifying the object.
-func (rc *requestContext) VerifyLink(p lfs_module.Pointer) string {
-	return rc.RepoGitURL + "/info/lfs/verify"
+func (rc *requestContext) VerifyLink(p lfs_module.Pointer, ref string) string {
+	return appendRefQuery(rc.RepoGitURL+"/info/lfs/verify", ref)
 }
 
 // CheckAcceptMediaType checks if the client accepts the LFS media type.
@@ -114,7 +128,7 @@ func DownloadHandler(ctx *context.Context) {
 	rc := getRequestContext(ctx)
 	p := lfs_module.Pointer{Oid: ctx.PathParam("oid")}
 
-	meta := getAuthenticatedMeta(ctx, rc, p, false)
+	meta := getAuthenticatedMeta(ctx, rc, p, false, "")
 	if meta == nil {
 		return
 	}
@@ -184,6 +198,13 @@ func DownloadHandler(ctx *context.Context) {
 	}
 }
 
+func refNameFromBatchRequest(br *lfs_module.BatchRequest) string {
+	if br.Ref == nil {
+		return ""
+	}
+	return br.Ref.Name
+}
+
 // BatchHandler provides the batch api
 func BatchHandler(ctx *context.Context) {
 	var br lfs_module.BatchRequest
@@ -206,8 +227,9 @@ func BatchHandler(ctx *context.Context) {
 	}
 
 	rc := getRequestContext(ctx)
+	refName := refNameFromBatchRequest(&br)
 
-	repository := getAuthenticatedRepository(ctx, rc, isUpload)
+	repository := getAuthenticatedRepository(ctx, rc, isUpload, refName)
 	if repository == nil {
 		return
 	}
@@ -226,7 +248,7 @@ func BatchHandler(ctx *context.Context) {
 			responseObjects = append(responseObjects, buildObjectResponse(rc, p, false, false, &lfs_module.ObjectError{
 				Code:    http.StatusUnprocessableEntity,
 				Message: "Oid or size are invalid",
-			}))
+			}, refName))
 			continue
 		}
 
@@ -248,7 +270,7 @@ func BatchHandler(ctx *context.Context) {
 			responseObjects = append(responseObjects, buildObjectResponse(rc, p, false, false, &lfs_module.ObjectError{
 				Code:    http.StatusUnprocessableEntity,
 				Message: fmt.Sprintf("Object %s is not %d bytes", p.Oid, p.Size),
-			}))
+			}, refName))
 			continue
 		}
 
@@ -281,7 +303,7 @@ func BatchHandler(ctx *context.Context) {
 				}
 			}
 
-			responseObject = buildObjectResponse(rc, p, false, !exists, err)
+			responseObject = buildObjectResponse(rc, p, false, !exists, err, refName)
 		} else {
 			var err *lfs_module.ObjectError
 			if !exists || meta == nil {
@@ -291,7 +313,7 @@ func BatchHandler(ctx *context.Context) {
 				}
 			}
 
-			responseObject = buildObjectResponse(rc, p, true, false, err)
+			responseObject = buildObjectResponse(rc, p, true, false, err, refName)
 		}
 		responseObjects = append(responseObjects, responseObject)
 	}
@@ -308,6 +330,7 @@ func BatchHandler(ctx *context.Context) {
 
 // UploadHandler receives data from the client and puts it into the content store
 func UploadHandler(ctx *context.Context) {
+	ref := ctx.Req.URL.Query().Get(lfsRefQueryKey)
 	rc := getRequestContext(ctx)
 
 	p := lfs_module.Pointer{Oid: ctx.PathParam("oid")}
@@ -322,7 +345,7 @@ func UploadHandler(ctx *context.Context) {
 		return
 	}
 
-	repository := getAuthenticatedRepository(ctx, rc, true)
+	repository := getAuthenticatedRepository(ctx, rc, true, ref)
 	if repository == nil {
 		return
 	}
@@ -393,9 +416,10 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
+	ref := ctx.Req.URL.Query().Get(lfsRefQueryKey)
 	rc := getRequestContext(ctx)
 
-	meta := getAuthenticatedMeta(ctx, rc, p, true)
+	meta := getAuthenticatedMeta(ctx, rc, p, true, ref)
 	if meta == nil {
 		return
 	}
@@ -432,14 +456,14 @@ func getRequestContext(ctx *context.Context) *requestContext {
 	}
 }
 
-func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool) *git_model.LFSMetaObject {
+func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool, ref string) *git_model.LFSMetaObject {
 	if !p.IsValid() {
 		log.Info("Attempt to access invalid LFS OID[%s] in %s/%s", p.Oid, rc.User, rc.Repo)
 		writeStatusMessage(ctx, http.StatusUnprocessableEntity, "Oid or size are invalid")
 		return nil
 	}
 
-	repository := getAuthenticatedRepository(ctx, rc, requireWrite)
+	repository := getAuthenticatedRepository(ctx, rc, requireWrite, ref)
 	if repository == nil {
 		return nil
 	}
@@ -454,7 +478,7 @@ func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module
 	return meta
 }
 
-func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool) *repo_model.Repository {
+func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool, ref string) *repo_model.Repository {
 	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rc.User, rc.Repo)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
@@ -462,7 +486,7 @@ func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requir
 		return nil
 	}
 
-	if !authenticate(ctx, repository, rc.Authorization, false, requireWrite) {
+	if !authenticate(ctx, repository, rc.Authorization, false, requireWrite, ref) {
 		requireAuth(ctx)
 		return nil
 	}
@@ -480,7 +504,7 @@ func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requir
 	return repository
 }
 
-func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, download, upload bool, err *lfs_module.ObjectError) *lfs_module.ObjectResponse {
+func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, download, upload bool, err *lfs_module.ObjectError, ref string) *lfs_module.ObjectResponse {
 	rep := &lfs_module.ObjectResponse{Pointer: pointer}
 	if err != nil {
 		rep.Error = err
@@ -503,13 +527,13 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 		if upload {
 			// Set Transfer-Encoding header to enable chunked uploads. Required by git-lfs client to do chunked transfer.
 			// See: https://github.com/git-lfs/git-lfs/blob/main/tq/basic_upload.go#L58-59
-			rep.Actions["upload"] = lfs_module.NewLink(rc.UploadLink(pointer)).
+			rep.Actions["upload"] = lfs_module.NewLink(rc.UploadLink(pointer, ref)).
 				WithHeader("Authorization", rc.Authorization).
 				WithHeader("Transfer-Encoding", "chunked")
 
 			// "Accept" header is the workaround for git-lfs < 2.8.0 (before 2019).
 			// This workaround could be removed in the future: https://github.com/git-lfs/git-lfs/issues/3662
-			rep.Actions["verify"] = lfs_module.NewLink(rc.VerifyLink(pointer)).
+			rep.Actions["verify"] = lfs_module.NewLink(rc.VerifyLink(pointer, ref)).
 				WithHeader("Authorization", rc.Authorization).
 				WithHeader("Accept", lfs_module.AcceptHeader)
 		}
@@ -533,9 +557,28 @@ func writeStatusMessage(ctx *context.Context, status int, message string) {
 	}
 }
 
+func canMaintainerWriteLFS(ctx *context.Context, perm access_model.Permission, user *user_model.User, ref string) bool {
+	if user == nil {
+		return false
+	}
+	refName := git.RefName(ref)
+	if refName == "" {
+		return false
+	}
+
+	branchName := refName.BranchName()
+	if branchName == "" {
+		if strings.HasPrefix(ref, "refs/") {
+			return false
+		}
+		branchName = ref
+	}
+	return issues_model.CanMaintainerWriteToBranch(ctx, perm, branchName, user)
+}
+
 // authenticate uses the authorization string to determine whether
 // to proceed. This server assumes an HTTP Basic auth format.
-func authenticate(ctx *context.Context, repository *repo_model.Repository, authorization string, requireSigned, requireWrite bool) bool {
+func authenticate(ctx *context.Context, repository *repo_model.Repository, authorization string, requireSigned, requireWrite bool, ref string) bool {
 	accessMode := perm_model.AccessModeRead
 	if requireWrite {
 		accessMode = perm_model.AccessModeWrite
@@ -558,6 +601,9 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	}
 
 	canAccess := perm.CanAccess(accessMode, unit.TypeCode)
+	if requireWrite && !canAccess && canMaintainerWriteLFS(ctx, perm, ctx.Doer, ref) {
+		canAccess = true
+	}
 	// if it doesn't require sign-in and anonymous user has access, return true
 	// if the user is already signed in (for example: by session auth method), and the doer can access, return true
 	if canAccess && (!requireSigned || ctx.IsSigned) {
@@ -574,7 +620,27 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		return false
 	}
 	ctx.Doer = user
-	return true
+
+	if !requireWrite {
+		return true
+	}
+
+	perm, err = access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
+	if err != nil {
+		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
+		return false
+	}
+
+	canAccess = perm.CanAccess(accessMode, unit.TypeCode)
+	if !canAccess && canMaintainerWriteLFS(ctx, perm, ctx.Doer, ref) {
+		canAccess = true
+	}
+	if canAccess {
+		return true
+	}
+
+	log.Warn("Authentication failure for provided token: insufficient permissions for %s/%s", repository.OwnerName, repository.Name)
+	return false
 }
 
 func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repository, mode perm_model.AccessMode) (*user_model.User, error) {
