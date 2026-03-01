@@ -49,7 +49,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/cors v1.2.2
 	github.com/go-co-op/gocron/v2 v2.19.1
-	github.com/go-enry/go-enry/v2 v2.9.4
+	github.com/go-enry/go-enry/v2 v2.9.5
 	github.com/go-git/go-billy/v5 v5.8.0
 	github.com/go-git/go-git/v5 v5.17.0
 	github.com/go-ldap/ldap/v3 v3.4.12
