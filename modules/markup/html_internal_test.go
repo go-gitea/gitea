@@ -382,6 +382,9 @@ func TestRegExp_anySHA1Pattern(t *testing.T) {
 		"https://github.com/jquery/jquery/commit/0705be4": {
 			CommitID: "0705be4",
 		},
+		// short hex strings in non-commit URLs should not match
+		"http://localhost:3000/foo/bar/src/main/20260304.txt":  {},
+		"http://localhost:3000/foo/bar/blob/main/abcdef1/file": {},
 		"non-url": {},
 		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678?a=b#L1-L2": {
 			CommitID:  "1234567812345678123456781234567812345678123456781234567812345678",
