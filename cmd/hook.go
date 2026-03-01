@@ -205,6 +205,7 @@ Gitea or set your environment appropriately.`, "")
 		PullRequestID:                   prID,
 		DeployKeyID:                     deployKeyID,
 		ActionPerm:                      actionPerm,
+		IsWiki:                          isWiki,
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -366,6 +367,7 @@ Gitea or set your environment appropriately.`, "")
 		GitPushOptions:                  pushOptions(),
 		PullRequestID:                   prID,
 		PushTrigger:                     repo_module.PushTrigger(os.Getenv(repo_module.EnvPushTrigger)),
+		IsWiki:                          isWiki,
 	}
 	oldCommitIDs := make([]string, hookBatchSize)
 	newCommitIDs := make([]string, hookBatchSize)
@@ -513,6 +515,7 @@ Gitea or set your environment appropriately.`, "")
 
 	reader := bufio.NewReader(os.Stdin)
 	repoUser := os.Getenv(repo_module.EnvRepoUsername)
+	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
 	repoName := os.Getenv(repo_module.EnvRepoName)
 	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	pusherName := os.Getenv(repo_module.EnvPusherName)
@@ -590,6 +593,7 @@ Gitea or set your environment appropriately.`, "")
 		UserName:       pusherName,
 		UserID:         pusherID,
 		GitPushOptions: make(map[string]string),
+		IsWiki:         isWiki,
 	}
 	hookOptions.OldCommitIDs = make([]string, 0, hookBatchSize)
 	hookOptions.NewCommitIDs = make([]string, 0, hookBatchSize)
