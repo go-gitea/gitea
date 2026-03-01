@@ -937,7 +937,7 @@ func Routes() *web.Router {
 
 		if setting.Federation.Enabled {
 			m.Get("/nodeinfo", activitypub.NotImplemented)
-			m.Any("/activitypub", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub), activitypub.NotImplemented)
+			m.Any("/activitypub/*", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub), activitypub.NotImplemented)
 		}
 
 		// Misc (public accessible)
