@@ -1,5 +1,4 @@
 import {createApp} from 'vue';
-import ActivityHeatmap from '../components/ActivityHeatmap.vue';
 import {translateMonth, translateDay} from '../utils.ts';
 import {GET} from '../modules/fetch.ts';
 
@@ -46,6 +45,7 @@ export async function initHeatmap() {
       noDataText: el.getAttribute('data-locale-no-contributions'),
     };
 
+    const {default: ActivityHeatmap} = await import(/* webpackChunkName: "ActivityHeatmap" */ '../components/ActivityHeatmap.vue');
     const View = createApp(ActivityHeatmap, {values, locale});
     View.mount(el);
     el.classList.remove('is-loading');

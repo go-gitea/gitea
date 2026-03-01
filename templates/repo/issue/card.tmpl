@@ -16,13 +16,13 @@
 			</div>
 			<a class="issue-card-title muted issue-title tw-break-anywhere" href="{{.Link}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 			{{if and $.isPinnedIssueCard $.Page.IsRepoAdmin}}
-				<a role="button" class="issue-card-unpin muted tw-flex tw-items-center" data-tooltip-content={{ctx.Locale.Tr "repo.issues.unpin"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Page.Link}}/unpin/{{.Index}}">
+				<a role="button" class="issue-card-unpin muted flex-text-inline" data-tooltip-content={{ctx.Locale.Tr "repo.issues.unpin"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Page.Link}}/unpin/{{.Index}}">
 					{{svg "octicon-x" 16}}
 				</a>
 			{{end}}
 		</div>
 		<div class="meta">
-			<span class="text light grey muted-links">
+			<span class="tw-text-grey-light muted-links">
 				{{if not $.Page.Repository}}{{.Repo.FullName}}{{end}}#{{.Index}}
 				{{$timeStr := DateUtils.TimeSince .GetLastEventTimestamp}}
 				{{if .OriginalAuthor}}
@@ -46,8 +46,8 @@
 		{{range index $.Page.LinkedPRs .ID}}
 		<div class="meta tw-my-1">
 			<a href="{{.Repo.Link}}/pulls/{{.Index}}">
-				<span class="tw-m-0 text {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "tw-mr-1 tw-align-middle"}}</span>
-				<span class="tw-align-middle">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
+				<span class="tw-m-0 {{if .PullRequest.HasMerged}}tw-text-purple{{else if .IsClosed}}tw-text-red{{else}}tw-text-green{{end}}">{{svg "octicon-git-merge" 16 "tw-mr-1 tw-align-middle"}}</span>
+				<span class="tw-align-middle">{{.Title}} <span class="tw-text-grey-light">#{{.Index}}</span></span>
 			</a>
 		</div>
 		{{end}}

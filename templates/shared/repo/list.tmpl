@@ -12,9 +12,9 @@
 				<div class="flex-item-header">
 					<div class="flex-item-title">
 						{{if and $.ShowRepoOwnerOnList .Owner}}
-						<a class="text primary name" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
+						<a class="tw-text-primary name" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
 						{{end}}
-						<a class="text primary name" href="{{.Link}}">{{.Name}}</a>
+						<a class="tw-text-primary name" href="{{.Link}}">{{.Name}}</a>
 						<span class="label-list">
 							{{if .IsArchived}}
 								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>

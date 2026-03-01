@@ -14,7 +14,7 @@
 			{{range .Teams}}
 				<div class="column">
 					<div class="ui top attached header">
-						<a class="text black" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
+						<a class="tw-text-text" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
 						<div class="ui right">
 							<a class="ui primary tiny button" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}">{{ctx.Locale.Tr "view"}}</a>
 							{{if .IsMember ctx $.SignedUser.ID}}

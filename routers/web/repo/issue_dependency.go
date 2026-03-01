@@ -119,7 +119,7 @@ func RemoveDependency(ctx *context.Context) {
 	case "blocking":
 		depType = issues_model.DependencyTypeBlocking
 	default:
-		ctx.HTTPError(http.StatusBadRequest, "GetDependecyType")
+		ctx.HTTPError(http.StatusBadRequest, "GetDependencyType")
 		return
 	}
 

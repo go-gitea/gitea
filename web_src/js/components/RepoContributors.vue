@@ -392,7 +392,7 @@ export default defineComponent({
           <SvgIcon name="gitea-running" class="tw-mr-2 rotate-clockwise"/>
           {{ locale.loadingInfo }}
         </div>
-        <div v-else class="text red">
+        <div v-else class="tw-text-red">
           <SvgIcon name="octicon-x-circle-fill"/>
           {{ errorText }}
         </div>
@@ -424,8 +424,8 @@ export default defineComponent({
                   {{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}
                 </a>
               </strong>
-              <strong v-if="contributor.total_additions" class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
-              <strong v-if="contributor.total_deletions" class="text red">
+              <strong v-if="contributor.total_additions" class="tw-text-green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
+              <strong v-if="contributor.total_deletions" class="tw-text-red">
                 {{ contributor.total_deletions.toLocaleString() }}--</strong>
             </p>
           </div>

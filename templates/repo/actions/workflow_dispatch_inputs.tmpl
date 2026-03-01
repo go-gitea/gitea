@@ -40,7 +40,7 @@
 {{range .workflows}}
 	{{if and .ErrMsg (eq .Entry.Name $.CurWorkflow)}}
 		<div class="ui field">
-			<div>{{svg "octicon-alert" 16 "text red"}} {{.ErrMsg}}</div>
+			<div>{{svg "octicon-alert" 16 "tw-text-red"}} {{.ErrMsg}}</div>
 		</div>
 	{{end}}
 {{end}}

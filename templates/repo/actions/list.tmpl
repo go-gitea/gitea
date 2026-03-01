@@ -14,7 +14,7 @@
 							<span class="gt-ellipsis">{{.Entry.Name}}</span>
 
 							{{if .ErrMsg}}
-								<span class="flex-text-inline" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "text red"}}</span>
+								<span class="flex-text-inline" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
 							{{end}}
 
 							{{if $.ActionsConfig.IsWorkflowDisabled .Entry.Name}}

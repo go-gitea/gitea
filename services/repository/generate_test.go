@@ -74,7 +74,7 @@ func TestFilePathSanitize(t *testing.T) {
 	assert.Equal(t, ".", filePathSanitize("/"))
 }
 
-func TestProcessGiteaTemplateFile(t *testing.T) {
+func TestProcessGiteaTemplateFileGenerate(t *testing.T) {
 	tmpDir := filepath.Join(t.TempDir(), "gitea-template-test")
 
 	assertFileContent := func(path, expected string) {
@@ -97,6 +97,8 @@ func TestProcessGiteaTemplateFile(t *testing.T) {
 		assert.Equal(t, expected, link, "symlink target mismatch for %s", path)
 	}
 
+	require.NoError(t, os.MkdirAll(tmpDir+"/.git", 0o755))
+	require.NoError(t, os.WriteFile(tmpDir+"/.git/config", []byte("git-config-dummy"), 0o644))
 	require.NoError(t, os.MkdirAll(tmpDir+"/.gitea", 0o755))
 	require.NoError(t, os.WriteFile(tmpDir+"/.gitea/template", []byte("*\ninclude/**"), 0o644))
 	require.NoError(t, os.MkdirAll(tmpDir+"/sub", 0o755))
@@ -127,10 +129,20 @@ func TestProcessGiteaTemplateFile(t *testing.T) {
 		assertFileContent("subst-${TEMPLATE_NAME}-to-link", toLinkContent)
 		assertFileContent("subst-${TEMPLATE_NAME}-from-link", fromLinkContent)
 	}
+
+	// case-5
+	{
+		require.NoError(t, os.MkdirAll(tmpDir+"/real-dir", 0o755))
+		require.NoError(t, os.WriteFile(tmpDir+"/real-dir/real-file", []byte("origin content"), 0o644))
+		require.NoError(t, os.MkdirAll(tmpDir+"/include/subst-${TEMPLATE_NAME}-link-dir", 0o755))
+		require.NoError(t, os.WriteFile(tmpDir+"/include/subst-${TEMPLATE_NAME}-link-dir/real-file", []byte("template content"), 0o644))
+		require.NoError(t, os.Symlink(tmpDir+"/real-dir", tmpDir+"/include/subst-TemplateRepoName-link-dir"))
+	}
+
 	{
 		// will succeed
 		require.NoError(t, os.WriteFile(tmpDir+"/subst-${TEMPLATE_NAME}-normal", []byte("dummy subst template name normal"), 0o644))
-		// will skil if the path subst result is a link
+		// will be skipped if the path subst result is a link
 		require.NoError(t, os.WriteFile(tmpDir+"/subst-${TEMPLATE_NAME}-to-link", []byte("dummy subst template name to link"), 0o644))
 		require.NoError(t, os.Symlink(tmpDir+"/sub/link-target", tmpDir+"/subst-TemplateRepoName-to-link"))
 		// will be skipped since the source is a symlink
@@ -143,9 +155,20 @@ func TestProcessGiteaTemplateFile(t *testing.T) {
 	{
 		templateRepo := &repo_model.Repository{Name: "TemplateRepoName"}
 		generatedRepo := &repo_model.Repository{Name: "/../.gIt/name"}
+		assertFileContent(".git/config", "git-config-dummy")
 		fileMatcher, _ := readGiteaTemplateFile(tmpDir)
-		err := processGiteaTemplateFile(t.Context(), tmpDir, templateRepo, generatedRepo, fileMatcher)
+		skippedFiles, err := processGiteaTemplateFile(t.Context(), tmpDir, templateRepo, generatedRepo, fileMatcher)
 		require.NoError(t, err)
+		assert.Equal(t, []string{
+			"include/subst-${TEMPLATE_NAME}-link-dir/real-file",
+			"include/subst-TemplateRepoName-link-dir",
+			"link",
+			"subst-${TEMPLATE_NAME}-from-link",
+			"subst-${TEMPLATE_NAME}-to-link",
+			"subst-TemplateRepoName-to-link",
+		}, skippedFiles)
+		assertFileContent(".git/config", "")
+		assertFileContent(".gitea/template", "")
 		assertFileContent("include/foo/bar/test.txt", "include subdir TemplateRepoName")
 	}
 
@@ -182,30 +205,36 @@ func TestProcessGiteaTemplateFile(t *testing.T) {
 		assertSymLink("subst-${TEMPLATE_NAME}-from-link", tmpDir+"/sub/link-target")
 	}
 
+	// case-5
 	{
-		templateFilePath := tmpDir + "/.gitea/template"
-
-		_ = os.Remove(templateFilePath)
-		_, err := os.Lstat(templateFilePath)
-		require.ErrorIs(t, err, fs.ErrNotExist)
-		_, err = readGiteaTemplateFile(tmpDir) // no template file
-		require.ErrorIs(t, err, fs.ErrNotExist)
-
-		_ = os.WriteFile(templateFilePath+".target", []byte("test-data-target"), 0o644)
-		_ = os.Symlink(templateFilePath+".target", templateFilePath)
-		content, _ := os.ReadFile(templateFilePath)
-		require.Equal(t, "test-data-target", string(content))
-		_, err = readGiteaTemplateFile(tmpDir) // symlinked template file
-		require.ErrorIs(t, err, fs.ErrNotExist)
-
-		_ = os.Remove(templateFilePath)
-		_ = os.WriteFile(templateFilePath, []byte("test-data-regular"), 0o644)
-		content, _ = os.ReadFile(templateFilePath)
-		require.Equal(t, "test-data-regular", string(content))
-		fm, err := readGiteaTemplateFile(tmpDir) // regular template file
-		require.NoError(t, err)
-		assert.Len(t, fm.globs, 1)
+		assertFileContent("real-dir/real-file", "origin content")
 	}
+}
+
+func TestProcessGiteaTemplateFileRead(t *testing.T) {
+	tmpDir := t.TempDir()
+	_ = os.Mkdir(tmpDir+"/.gitea", 0o755)
+	templateFilePath := tmpDir + "/.gitea/template"
+	_ = os.Remove(templateFilePath)
+	_, err := os.Lstat(templateFilePath)
+	require.ErrorIs(t, err, fs.ErrNotExist)
+	_, err = readGiteaTemplateFile(tmpDir) // no template file
+	require.ErrorIs(t, err, fs.ErrNotExist)
+
+	_ = os.WriteFile(templateFilePath+".target", []byte("test-data-target"), 0o644)
+	_ = os.Symlink(templateFilePath+".target", templateFilePath)
+	content, _ := os.ReadFile(templateFilePath)
+	require.Equal(t, "test-data-target", string(content))
+	_, err = readGiteaTemplateFile(tmpDir) // symlinked template file
+	require.ErrorIs(t, err, fs.ErrNotExist)
+
+	_ = os.Remove(templateFilePath)
+	_ = os.WriteFile(templateFilePath, []byte("test-data-regular"), 0o644)
+	content, _ = os.ReadFile(templateFilePath)
+	require.Equal(t, "test-data-regular", string(content))
+	fm, err := readGiteaTemplateFile(tmpDir) // regular template file
+	require.NoError(t, err)
+	assert.Len(t, fm.globs, 1)
 }
 
 func TestTransformers(t *testing.T) {

@@ -117,7 +117,7 @@ func RegisterTypeConfig(typ Type, exemplar Config) {
 type Source struct {
 	ID              int64 `xorm:"pk autoincr"`
 	Type            Type
-	Name            string `xorm:"UNIQUE"`
+	Name            string `xorm:"UNIQUE"` // it can be the OIDC's provider name, see services/auth/source/oauth2/source_register.go: RegisterSource
 	IsActive        bool   `xorm:"INDEX NOT NULL DEFAULT false"`
 	IsSyncEnabled   bool   `xorm:"INDEX NOT NULL DEFAULT false"`
 	TwoFactorPolicy string `xorm:"two_factor_policy NOT NULL DEFAULT ''"`

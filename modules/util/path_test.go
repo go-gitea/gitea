@@ -6,6 +6,7 @@ package util
 import (
 	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"testing"
 
@@ -229,4 +230,71 @@ func TestListDirRecursively(t *testing.T) {
 	res, err = ListDirRecursively(tmpDir, &ListDirOptions{SkipCommonHiddenNames: true})
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"d1/f-d1", "d1/s1/f-d1s1"}, res)
+}
+
+func TestReadWriteRegularPathFile(t *testing.T) {
+	const readLimit = 10000
+	tmpDir := t.TempDir()
+	rootDir := tmpDir + "/root"
+	_ = os.Mkdir(rootDir, 0o755)
+	_ = os.WriteFile(tmpDir+"/other-file", []byte("other-content"), 0o755)
+	_ = os.Mkdir(rootDir+"/real-dir", 0o755)
+	_ = os.WriteFile(rootDir+"/real-dir/real-file", []byte("dummy-content"), 0o644)
+	_ = os.Symlink(rootDir+"/real-dir", rootDir+"/link-dir")
+	_ = os.Symlink(rootDir+"/real-dir/real-file", rootDir+"/real-dir/link-file")
+
+	t.Run("Read", func(t *testing.T) {
+		content, err := os.ReadFile(filepath.Join(rootDir, "../other-file"))
+		require.NoError(t, err)
+		assert.Equal(t, "other-content", string(content))
+
+		content, err = ReadRegularPathFile(rootDir, "../other-file", readLimit)
+		require.ErrorIs(t, err, os.ErrNotExist)
+		assert.Empty(t, string(content))
+
+		content, err = ReadRegularPathFile(rootDir, "real-dir/real-file", readLimit)
+		require.NoError(t, err)
+		assert.Equal(t, "dummy-content", string(content))
+
+		_, err = ReadRegularPathFile(rootDir, "link-dir/real-file", readLimit)
+		require.ErrorIs(t, err, ErrNotRegularPathFile)
+		_, err = ReadRegularPathFile(rootDir, "real-dir/link-file", readLimit)
+		require.ErrorIs(t, err, ErrNotRegularPathFile)
+		_, err = ReadRegularPathFile(rootDir, "link-dir/link-file", readLimit)
+		require.ErrorIs(t, err, ErrNotRegularPathFile)
+	})
+
+	t.Run("Write", func(t *testing.T) {
+		assertFileContent := func(path, expected string) {
+			data, err := os.ReadFile(path)
+			if expected == "" {
+				assert.ErrorIs(t, err, os.ErrNotExist)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, expected, string(data), "file content mismatch for %s", path)
+		}
+
+		err := WriteRegularPathFile(rootDir, "new-dir/new-file", []byte("new-content"), 0o755, 0o644)
+		require.NoError(t, err)
+		assertFileContent(rootDir+"/new-dir/new-file", "new-content")
+
+		err = WriteRegularPathFile(rootDir, "link-dir/real-file", []byte("new-content"), 0o755, 0o644)
+		require.ErrorIs(t, err, ErrNotRegularPathFile)
+		err = WriteRegularPathFile(rootDir, "link-dir/link-file", []byte("new-content"), 0o755, 0o644)
+		require.ErrorIs(t, err, ErrNotRegularPathFile)
+		err = WriteRegularPathFile(rootDir, "link-dir/new-file", []byte("new-content"), 0o755, 0o644)
+		require.ErrorIs(t, err, ErrNotRegularPathFile)
+		err = WriteRegularPathFile(rootDir, "real-dir/link-file", []byte("new-content"), 0o755, 0o644)
+		require.ErrorIs(t, err, ErrNotRegularPathFile)
+
+		err = WriteRegularPathFile(rootDir, "../other-file", []byte("new-content"), 0o755, 0o644)
+		require.NoError(t, err)
+		assertFileContent(rootDir+"/../other-file", "other-content")
+		assertFileContent(rootDir+"/other-file", "new-content")
+
+		err = WriteRegularPathFile(rootDir, "real-dir/real-file", []byte("changed-content"), 0o755, 0o644)
+		require.NoError(t, err)
+		assertFileContent(rootDir+"/real-dir/real-file", "changed-content")
+	})
 }

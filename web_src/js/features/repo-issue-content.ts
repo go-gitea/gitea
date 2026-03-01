@@ -20,7 +20,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
       ${i18nTextOptions}
       ${svg('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
-        <div class="item red text" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
+        <div class="item tw-text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
       </div>
     </div>
   </div>

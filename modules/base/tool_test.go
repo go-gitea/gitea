@@ -29,8 +29,10 @@ func TestShortSha(t *testing.T) {
 func TestVerifyTimeLimitCode(t *testing.T) {
 	defer test.MockVariableValue(&setting.InstallLock, true)()
 	initGeneralSecret := func(secret string) {
-		setting.InstallLock = true
 		setting.CfgProvider, _ = setting.NewConfigProviderFromData(fmt.Sprintf(`
+[security]
+INTERNAL_TOKEN = dummy
+INSTALL_LOCK = true
 [oauth2]
 JWT_SECRET = %s
 `, secret))
