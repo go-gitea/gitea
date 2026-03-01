@@ -75,6 +75,11 @@ func anyHashPatternExtract(s string) (ret anyHashPatternResult, ok bool) {
 	}
 
 	ret.CommitID = s[m[pos]:m[pos+1]]
+	// For abbreviated hashes (< 40 chars), only match commit URLs to avoid
+	// false positives like "http://host/org/repo/src/main/20260304.txt"
+	if len(ret.CommitID) < 40 && !strings.HasSuffix(s[ret.PosStart:m[pos]], "/commit/") {
+		return ret, false
+	}
 	pos += 2
 
 	ret.CommitExt = s[m[pos]:m[pos+1]]
