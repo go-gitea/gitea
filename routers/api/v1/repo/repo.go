@@ -901,6 +901,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowSquash:                   true,
 					AllowFastForwardOnly:          true,
 					AllowManualMerge:              true,
+					AllowAgitPullRequests:         true,
 					AutodetectManualMerge:         false,
 					AllowRebaseUpdate:             true,
 					DefaultDeleteBranchAfterMerge: false,

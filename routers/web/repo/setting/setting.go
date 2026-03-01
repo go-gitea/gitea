@@ -623,6 +623,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			AllowSquash:                   form.PullsAllowSquash,
 			AllowFastForwardOnly:          form.PullsAllowFastForwardOnly,
 			AllowManualMerge:              form.PullsAllowManualMerge,
+			AllowAgitPullRequests:         form.PullsAllowAgit,
 			AutodetectManualMerge:         form.EnableAutodetectManualMerge,
 			AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
 			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
