@@ -299,6 +299,8 @@ replace github.com/urfave/cli/v3 => github.com/urfave/cli/v3 v3.4.1 // v3.6.2 br
 
 replace github.com/urfave/cli-docs/v3 => github.com/urfave/cli-docs/v3 v3.0.0-alpha6 // pin to match cli/v3 v3.4.1
 
+replace go.yaml.in/yaml/v4 => go.yaml.in/yaml/v4 v4.0.0-rc.2 // rc.4 changes block scalar serialization, wait for stable release
+
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 
 exclude github.com/gofrs/uuid v4.0.0+incompatible
