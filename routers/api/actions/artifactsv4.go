@@ -324,7 +324,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 	case "block", "appendBlock":
 		blockid := ctx.Req.URL.Query().Get("blockid")
 		if blockid == "" {
-			// get artifact by name
+			// get artifact by id
 			artifact, err := r.getArtifactByID(ctx, task.Job.RunID, artifactID)
 			if err != nil {
 				log.Error("Error artifact not found: %v", err)
@@ -538,7 +538,7 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	// get artifact by name
+	// get artifact by id
 	artifact, err := r.getArtifactByID(ctx, task.Job.RunID, artifactID)
 	if err != nil {
 		log.Error("Error artifact not found: %v", err)
