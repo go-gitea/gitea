@@ -17,9 +17,4 @@
 			<span class="notification_count{{if not $notificationUnreadCount}} tw-hidden{{end}}">{{$notificationUnreadCount}}</span>
 		</div>
 	</a>
-	{{if $data.IsSiteAdmin}}
-	<a class="item {{$itemExtraClass}}" href="{{AppSubUrl}}/-/admin" data-tooltip-content="{{ctx.Locale.Tr "admin_panel"}}">
-		{{svg "octicon-server"}}
-	</a>
-	{{end}}
 {{end}}
