@@ -156,7 +156,7 @@ func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	}
 	if opts.FinalizedArtifactsV4 {
 		cond = cond.And(builder.Eq{"status": ArtifactStatusUploadConfirmed}.Or(builder.Eq{"status": ArtifactStatusExpired}))
-		cond = cond.And(builder.Eq{"content_encoding": "application/zip"})
+		cond = cond.And(builder.Like{"content_encoding", "/"})
 	}
 
 	return cond

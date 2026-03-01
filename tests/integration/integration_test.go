@@ -10,6 +10,7 @@ import (
 	"hash"
 	"hash/fnv"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -334,14 +335,46 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *Re
 
 const NoExpectedStatus = 0
 
+func isEndpoint(st *setting.Storage, remoteAddr string) bool {
+	if !st.ServeDirect() {
+		return false
+	}
+	if st.Type == setting.AzureBlobStorageType {
+		endp, err := url.Parse(st.AzureBlobConfig.Endpoint)
+		return err == nil && endp.Host == remoteAddr
+	}
+	return st.Type == setting.MinioStorageType && remoteAddr == st.MinioConfig.Endpoint
+}
+
 func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
 	req := rw.Request
 	recorder := httptest.NewRecorder()
-	if req.RemoteAddr == "" {
-		req.RemoteAddr = "test-mock:12345"
+	if isEndpoint(setting.Avatar.Storage, req.URL.Host) ||
+		isEndpoint(setting.Attachment.Storage, req.URL.Host) ||
+		isEndpoint(setting.LFS.Storage, req.URL.Host) ||
+		isEndpoint(setting.RepoAvatar.Storage, req.URL.Host) ||
+		isEndpoint(setting.RepoArchive.Storage, req.URL.Host) ||
+		isEndpoint(setting.Packages.Storage, req.URL.Host) ||
+		isEndpoint(setting.Actions.LogStorage, req.URL.Host) ||
+		isEndpoint(setting.Actions.ArtifactStorage, req.URL.Host) {
+		rw.Request.RequestURI = ""
+		resp, err := http.DefaultClient.Do(rw.Request)
+		if err != nil {
+			recorder.WriteHeader(http.StatusInternalServerError)
+			_, _ = recorder.WriteString(err.Error())
+		} else {
+			defer func() { _ = resp.Body.Close() }()
+			maps.Copy(recorder.Header(), resp.Header)
+			recorder.WriteHeader(resp.StatusCode)
+			io.Copy(recorder.Body, resp.Body)
+		}
+	} else {
+		if req.RemoteAddr == "" {
+			req.RemoteAddr = "test-mock:12345"
+		}
+		testWebRoutes.ServeHTTP(recorder, req)
 	}
-	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if expectedStatus != recorder.Code {
 			logUnexpectedResponse(t, recorder)
