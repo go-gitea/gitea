@@ -32,7 +32,7 @@ const DefaultAvatarSize = 256
 // in custom size (height and width).
 func RandomImageWithSize(size int, data []byte) image.Image {
 	// we use white as background, and use dark colors to draw blocks
-	imgMaker := identicon.New(size, color.White, identicon.DarkColors...)
+	imgMaker := identicon.New(size, color.White, identicon.DarkColors)
 	return imgMaker.Make(data)
 }
 

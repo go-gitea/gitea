@@ -12,7 +12,10 @@ import (
 	"image/color"
 )
 
-const minImageSize = 16
+const (
+	minImageSize = 16
+	maxImageSize = 2048
+)
 
 // Identicon is used to generate pseudo-random avatars
 type Identicon struct {
@@ -22,19 +25,14 @@ type Identicon struct {
 	rect       image.Rectangle
 }
 
-// New returns an Identicon struct with the correct settings
-// size image size
-// back background color
-// fore all possible foreground colors. only one foreground color will be picked randomly for one image
-func New(size int, back color.Color, fore ...color.Color) *Identicon {
-	if len(fore) == 0 {
-		fore = DarkColors
-	}
+// New returns an Identicon struct.
+// Only one foreground color will be picked randomly for one image.
+func New(size int, backColor color.Color, foreColors []color.Color) *Identicon {
 	size = max(size, minImageSize)
-	size = min(size, 2048)
+	size = min(size, maxImageSize)
 	return &Identicon{
-		foreColors: fore,
-		backColor:  back,
+		foreColors: foreColors,
+		backColor:  backColor,
 		size:       size,
 		rect:       image.Rect(0, 0, size, size),
 	}
