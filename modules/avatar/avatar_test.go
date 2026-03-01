@@ -15,19 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_RandomImageSize(t *testing.T) {
-	_, err := RandomImageSize(0, []byte("gitea@local"))
-	assert.Error(t, err)
-
-	_, err = RandomImageSize(64, []byte("gitea@local"))
-	assert.NoError(t, err)
-}
-
-func Test_RandomImage(t *testing.T) {
-	_, err := RandomImage([]byte("gitea@local"))
-	assert.NoError(t, err)
-}
-
 func Test_ProcessAvatarPNG(t *testing.T) {
 	setting.Avatar.MaxWidth = 4096
 	setting.Avatar.MaxHeight = 4096
@@ -133,4 +120,19 @@ func Test_ProcessAvatarImage(t *testing.T) {
 	origin = newImgData(10)
 	_, err = processAvatarImage(origin, 262144)
 	assert.ErrorContains(t, err, "image width is too large: 10 > 5")
+}
+
+func BenchmarkRandomImage(b *testing.B) {
+	b.Run("size-48", func(b *testing.B) {
+		for b.Loop() {
+			// BenchmarkRandomImage/size-48-12         	   49549	     22899 ns/op
+			RandomImageWithSize(48, []byte("test-content"))
+		}
+	})
+	b.Run("size-96", func(b *testing.B) {
+		for b.Loop() {
+			// BenchmarkRandomImage/size-96-12         	   13816	     88187 ns/op
+			RandomImageWithSize(96, []byte("test-content"))
+		}
+	})
 }

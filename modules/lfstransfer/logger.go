@@ -17,5 +17,5 @@ func newLogger() transfer.Logger {
 }
 
 // Log implements transfer.Logger
-func (g *GiteaLogger) Log(msg string, itms ...any) {
+func (g *GiteaLogger) Log(msg string, items ...any) {
 }

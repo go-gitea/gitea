@@ -26,6 +26,7 @@ var defaultOpenIDBlocklist = []string{
 	"localhost",
 	hostmatcher.MatchBuiltinLoopback,
 	hostmatcher.MatchBuiltinPrivate,
+	"169.254.0.0/16",
 	"fe80::/10",
 }
 

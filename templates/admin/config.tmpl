@@ -15,8 +15,6 @@
 				<dd>{{.AppUrl}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.domain"}}</dt>
 				<dd>{{.Domain}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.offline_mode"}}</dt>
-				<dd>{{svg (Iif .OfflineMode "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.disable_router_log"}}</dt>
 				<dd>{{svg (Iif .DisableRouterLog "octicon-check" "octicon-x")}}</dd>
 
@@ -140,9 +138,9 @@
 				<dt>{{ctx.Locale.Tr "admin.config.show_registration_button"}}</dt>
 				<dd>{{svg (Iif .Service.ShowRegistrationButton "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.enable_openid_signup"}}</dt>
-				<dd>{{svg (Iif .Service.EnableOpenIDSignUp "octicon-check" "octicon-x")}}</dd>
+				<dd>{{svg (Iif .OpenID.EnableSignUp "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.enable_openid_signin"}}</dt>
-				<dd>{{svg (Iif .Service.EnableOpenIDSignIn "octicon-check" "octicon-x")}}</dd>
+				<dd>{{svg (Iif .OpenID.EnableSignIn "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.require_sign_in_view"}}</dt>
 				<dd>{{svg (Iif .Service.RequireSignInViewStrict "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.mail_notify"}}</dt>
@@ -225,7 +223,7 @@
 					<dt>{{ctx.Locale.Tr "admin.config.mailer_user"}}</dt>
 					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd>
 					<div class="divider"></div>
-					<dt class="tw-py-1 tw-flex tw-items-center">{{ctx.Locale.Tr "admin.config.send_test_mail"}}</dt>
+					<dt class="flex-text-block tw-py-1">{{ctx.Locale.Tr "admin.config.send_test_mail"}}</dt>
 					<dd class="tw-py-0">
 						<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/test_mail" method="post">
 							<div class="ui tiny input">
@@ -256,7 +254,7 @@
 					<dd>{{.CacheItemTTL}}</dd>
 				{{end}}
 				<div class="divider"></div>
-				<dt class="tw-py-1 tw-flex tw-items-center">{{ctx.Locale.Tr "admin.config.cache_test"}}</dt>
+				<dt class="flex-text-block tw-py-1">{{ctx.Locale.Tr "admin.config.cache_test"}}</dt>
 				<dd class="tw-py-0">
 					<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/test_cache" method="post">
 						<button class="ui tiny primary button">{{ctx.Locale.Tr "test"}}</button>
