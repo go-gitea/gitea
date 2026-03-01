@@ -301,48 +301,56 @@ func checkTokenPublicOnly() func(ctx *context.APIContext) {
 // if a token is not being used, reqToken will enforce other sign in methods
 func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeCategory) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		// no scope required
-		if len(requiredScopeCategories) == 0 {
-			return
-		}
-
-		// Need OAuth2 token to be present.
-		scope, scopeExists := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-		if ctx.Data["IsApiToken"] != true || !scopeExists {
-			return
-		}
-
-		// use the http method to determine the access level
 		requiredScopeLevel := auth_model.Read
 		if ctx.Req.Method == http.MethodPost || ctx.Req.Method == http.MethodPut || ctx.Req.Method == http.MethodPatch || ctx.Req.Method == http.MethodDelete {
 			requiredScopeLevel = auth_model.Write
 		}
-
-		// get the required scope for the given access level and category
-		requiredScopes := auth_model.GetRequiredScopes(requiredScopeLevel, requiredScopeCategories...)
-		allow, err := scope.HasScope(requiredScopes...)
-		if err != nil {
-			ctx.APIError(http.StatusForbidden, "checking scope failed: "+err.Error())
-			return
-		}
-
-		if !allow {
-			ctx.APIError(http.StatusForbidden, fmt.Sprintf("token does not have at least one of required scope(s), required=%v, token scope=%v", requiredScopes, scope))
-			return
-		}
-
-		ctx.Data["requiredScopeCategories"] = requiredScopeCategories
-
-		// check if scope only applies to public resources
-		publicOnly, err := scope.PublicOnly()
-		if err != nil {
-			ctx.APIError(http.StatusForbidden, "parsing public resource scope failed: "+err.Error())
-			return
-		}
-
-		// assign to true so that those searching should only filter public repositories/users/organizations
-		ctx.PublicOnly = publicOnly
+		checkTokenScopes(ctx, requiredScopeLevel, requiredScopeCategories...)
 	}
+}
+
+func tokenRequiresScopesLevel(requiredScopeLevel auth_model.AccessTokenScopeLevel, requiredScopeCategories ...auth_model.AccessTokenScopeCategory) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		checkTokenScopes(ctx, requiredScopeLevel, requiredScopeCategories...)
+	}
+}
+
+func checkTokenScopes(ctx *context.APIContext, requiredScopeLevel auth_model.AccessTokenScopeLevel, requiredScopeCategories ...auth_model.AccessTokenScopeCategory) {
+	// no scope required
+	if len(requiredScopeCategories) == 0 {
+		return
+	}
+
+	// Need OAuth2 token to be present.
+	scope, scopeExists := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if ctx.Data["IsApiToken"] != true || !scopeExists {
+		return
+	}
+
+	// get the required scope for the given access level and category
+	requiredScopes := auth_model.GetRequiredScopes(requiredScopeLevel, requiredScopeCategories...)
+	allow, err := scope.HasScope(requiredScopes...)
+	if err != nil {
+		ctx.APIError(http.StatusForbidden, "checking scope failed: "+err.Error())
+		return
+	}
+
+	if !allow {
+		ctx.APIError(http.StatusForbidden, fmt.Sprintf("token does not have at least one of required scope(s), required=%v, token scope=%v", requiredScopes, scope))
+		return
+	}
+
+	ctx.Data["requiredScopeCategories"] = requiredScopeCategories
+
+	// check if scope only applies to public resources
+	publicOnly, err := scope.PublicOnly()
+	if err != nil {
+		ctx.APIError(http.StatusForbidden, "parsing public resource scope failed: "+err.Error())
+		return
+	}
+
+	// assign to true so that those searching should only filter public repositories/users/organizations
+	ctx.PublicOnly = publicOnly
 }
 
 // Contexter middleware already checks token for user sign in process.
@@ -897,6 +905,7 @@ func Routes() *web.Router {
 		m *web.Router,
 		reqChecker func(ctx *context.APIContext),
 		act actions.API,
+		requiredScopeCategories ...auth_model.AccessTokenScopeCategory,
 	) {
 		m.Group("/actions", func() {
 			m.Group("/secrets", func() {
@@ -917,7 +926,7 @@ func Routes() *web.Router {
 
 			m.Group("/runners", func() {
 				m.Get("", reqToken(), reqChecker, act.ListRunners)
-				m.Get("/registration-token", reqToken(), reqChecker, act.GetRegistrationToken)
+				m.Get("/registration-token", reqToken(), reqChecker, tokenRequiresScopesLevel(auth_model.Write, requiredScopeCategories...), act.GetRegistrationToken)
 				m.Post("/registration-token", reqToken(), reqChecker, act.CreateRegistrationToken)
 				m.Get("/{runner_id}", reqToken(), reqChecker, act.GetRunner)
 				m.Delete("/{runner_id}", reqToken(), reqChecker, act.DeleteRunner)
@@ -1045,7 +1054,7 @@ func Routes() *web.Router {
 
 				m.Group("/runners", func() {
 					m.Get("", reqToken(), user.ListRunners)
-					m.Get("/registration-token", reqToken(), user.GetRegistrationToken)
+					m.Get("/registration-token", reqToken(), tokenRequiresScopesLevel(auth_model.Write, auth_model.AccessTokenScopeCategoryUser), user.GetRegistrationToken)
 					m.Post("/registration-token", reqToken(), user.CreateRegistrationToken)
 					m.Get("/{runner_id}", reqToken(), user.GetRunner)
 					m.Delete("/{runner_id}", reqToken(), user.DeleteRunner)
@@ -1166,7 +1175,7 @@ func Routes() *web.Router {
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
 
-				addActionsRoutes(m, reqOwner(), repo.NewAction()) // it adds the routes for secrets/variables and runner management
+				addActionsRoutes(m, reqOwner(), repo.NewAction(), auth_model.AccessTokenScopeCategoryRepository) // it adds the routes for secrets/variables and runner management
 
 				m.Group("/actions/workflows", func() {
 					m.Get("", repo.ActionsListRepositoryWorkflows)
@@ -1621,6 +1630,7 @@ func Routes() *web.Router {
 				m,
 				reqOrgOwnership(),
 				org.NewAction(),
+				auth_model.AccessTokenScopeCategoryOrganization,
 			)
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
@@ -1735,7 +1745,7 @@ func Routes() *web.Router {
 				m.Get("/jobs", admin.ListWorkflowJobs)
 			})
 			m.Group("/runners", func() {
-				m.Get("/registration-token", admin.GetRegistrationToken)
+				m.Get("/registration-token", tokenRequiresScopesLevel(auth_model.Write, auth_model.AccessTokenScopeCategoryAdmin), admin.GetRegistrationToken)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin())
 
