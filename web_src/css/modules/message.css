@@ -101,6 +101,15 @@
   border-color: var(--color-warning-border);
 }
 
+/* use opaque colors for buttons inside colored messages */
+.ui.message .ui.button:hover {
+  background: var(--color-secondary);
+}
+
+.ui.message .ui.button:active {
+  background: var(--color-secondary-hover);
+}
+
 .ui.message > .close.icon {
   cursor: pointer;
   position: absolute;
