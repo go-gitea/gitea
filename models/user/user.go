@@ -502,11 +502,6 @@ func (u *User) IsMailable() bool {
 	return u.IsActive && !u.IsGiteaActions() && !u.IsGhost()
 }
 
-// HasAvatar check if user has avatar
-func (u *User) HasAvatar() bool {
-	return len(u.Avatar) > 0
-}
-
 // IsUserExist checks if given username exist,
 // the username should be non-cased unique.
 // If uid is presented, then check will rule out that one,
@@ -947,6 +942,16 @@ func ValidateUser(u *User, cols ...string) error {
 	}
 
 	return nil
+}
+
+// RefreshUserCols get user according special columns
+func RefreshUserCols(ctx context.Context, u *User, cols ...string) error {
+	if err := ValidateUser(u, cols...); err != nil {
+		return err
+	}
+
+	_, err := db.GetEngine(ctx).ID(u.ID).Cols(cols...).Get(u)
+	return err
 }
 
 // UpdateUserCols update user according special columns

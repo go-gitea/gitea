@@ -18,15 +18,26 @@ import (
 )
 
 // UploadAvatar saves custom avatar for user.
-func UploadAvatar(ctx context.Context, u *user_model.User, data []byte) error {
+func UploadAvatar(ctx context.Context, u *user_model.User, data []byte) (string, error) {
 	avatarData, err := avatar.ProcessAvatarImage(data)
+	oldAvatarHash := ""
 	if err != nil {
-		return fmt.Errorf("UploadAvatar: failed to process user avatar image: %w", err)
+		return oldAvatarHash, fmt.Errorf("UploadAvatar: failed to process user avatar image: %w", err)
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	result := db.WithTx(ctx, func(ctx context.Context) error {
+		if err = user_model.RefreshUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
+			return fmt.Errorf("UploadAvatar: failed to refresh user avatar: %w", err)
+		}
 		u.UseCustomAvatar = true
-		u.Avatar = avatar.HashAvatar(u.ID, data)
+		oldAvatarHash = u.Avatar
+		oldPath := u.CustomAvatarRelativePath()
+		newAvatar := avatar.HashAvatar(u.ID, data)
+		if oldAvatarHash == newAvatar {
+			return nil
+		}
+
+		u.Avatar = newAvatar
 		if err = user_model.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
 			return fmt.Errorf("UploadAvatar: failed to update user avatar: %w", err)
 		}
@@ -38,24 +49,36 @@ func UploadAvatar(ctx context.Context, u *user_model.User, data []byte) error {
 			return fmt.Errorf("UploadAvatar: failed to save user avatar %s: %w", u.CustomAvatarRelativePath(), err)
 		}
 
+		if len(oldAvatarHash) > 0 {
+			if err := storage.Avatars.Delete(oldPath); err != nil {
+				log.Warn("UploadAvatar: Deleting avatar %s: %s", oldPath, err)
+			}
+		}
+
 		return nil
 	})
+
+	return oldAvatarHash, result
 }
 
 // DeleteAvatar deletes the user's custom avatar.
-func DeleteAvatar(ctx context.Context, u *user_model.User) error {
-	aPath := u.CustomAvatarRelativePath()
-	log.Trace("DeleteAvatar[%d]: %s", u.ID, aPath)
+func DeleteAvatar(ctx context.Context, u *user_model.User) (string, error) {
+	oldAvatarHash := ""
+	result := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := user_model.RefreshUserCols(ctx, u, "avatar, use_custom_avatar"); err != nil {
+			return fmt.Errorf("DeleteAvatar: %w", err)
+		}
+		aPath := u.CustomAvatarRelativePath()
+		log.Trace("DeleteAvatar[%d]: %s", u.ID, aPath)
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		hasAvatar := len(u.Avatar) > 0
 		u.UseCustomAvatar = false
+		oldAvatarHash = u.Avatar
 		u.Avatar = ""
-		if _, err := db.GetEngine(ctx).ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
+		if err := user_model.UpdateUserCols(ctx, u, "avatar, use_custom_avatar"); err != nil {
 			return fmt.Errorf("DeleteAvatar: %w", err)
 		}
 
-		if hasAvatar {
+		if len(oldAvatarHash) > 0 {
 			if err := storage.Avatars.Delete(aPath); err != nil {
 				if !errors.Is(err, os.ErrNotExist) {
 					return fmt.Errorf("failed to remove %s: %w", aPath, err)
@@ -66,4 +89,6 @@ func DeleteAvatar(ctx context.Context, u *user_model.User) error {
 
 		return nil
 	})
+
+	return oldAvatarHash, result
 }

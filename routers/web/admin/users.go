@@ -545,7 +545,7 @@ func DeleteAvatar(ctx *context.Context) {
 		return
 	}
 
-	if err := user_service.DeleteAvatar(ctx, u); err != nil {
+	if _, err := user_service.DeleteAvatar(ctx, u); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 

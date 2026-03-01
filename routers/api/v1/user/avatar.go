@@ -40,15 +40,13 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
-	hasAvatar := ctx.Doer.HasAvatar()
-
-	err = user_service.UploadAvatar(ctx, ctx.Doer, content)
+	oldAvatar, err := user_service.UploadAvatar(ctx, ctx.Doer, content)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	if hasAvatar {
+	if len(oldAvatar) > 0 {
 		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.Status(http.StatusCreated)
@@ -65,15 +63,14 @@ func DeleteAvatar(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	hasAvatar := ctx.Doer.HasAvatar()
 
-	err := user_service.DeleteAvatar(ctx, ctx.Doer)
+	oldAvatar, err := user_service.DeleteAvatar(ctx, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	if hasAvatar {
+	if len(oldAvatar) > 0 {
 		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.Status(http.StatusNotFound)

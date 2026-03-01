@@ -33,6 +33,12 @@ func UpdateRepositoryUpdatedTime(ctx context.Context, repoID int64, updateTime t
 	return err
 }
 
+// RefreshRepositoryCols get repository's columns
+func RefreshRepositoryCols(ctx context.Context, repo *Repository, colName string, moreColNames ...string) error {
+	_, err := db.GetEngine(ctx).ID(repo.ID).Cols(append([]string{colName}, moreColNames...)...).Get(repo)
+	return err
+}
+
 // UpdateRepositoryColsWithAutoTime updates repository's columns and the timestamp fields automatically
 func UpdateRepositoryColsWithAutoTime(ctx context.Context, repo *Repository, colName string, moreColNames ...string) error {
 	_, err := db.GetEngine(ctx).ID(repo.ID).Cols(append([]string{colName}, moreColNames...)...).Update(repo)

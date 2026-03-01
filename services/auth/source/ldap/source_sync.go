@@ -141,7 +141,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			}
 
 			if err == nil && source.AttributeAvatar != "" {
-				_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
+				_, _ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
@@ -181,7 +181,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			if source.AttributeAvatar != "" {
 				if len(su.Avatar) > 0 && usr.IsUploadAvatarChanged(su.Avatar) {
 					log.Trace("SyncExternalUsers[%s]: Uploading new avatar for %s", source.AuthSource.Name, usr.Name)
-					_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
+					_, _ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 				}
 			}
 		}
