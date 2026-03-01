@@ -132,15 +132,12 @@
 .navbar-avatar {
   position: relative;
   display: inline-flex;
-  vertical-align: top;
-  margin-top: -0.25rem;
-  margin-bottom: -0.25rem;
 }
 
 .navbar-admin-badge {
   position: absolute;
   bottom: -4px;
-  right: -6px;
+  right: 0;
   padding: 1px;
   color: var(--color-black);
   background: var(--color-success-text);

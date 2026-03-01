@@ -87,9 +87,9 @@
 			</div><!-- end dropdown menu create new -->
 
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text">
-					<span class="navbar-avatar tw-mr-1">
-						{{ctx.AvatarUtils.Avatar .SignedUser 24}}
+				<span class="text tw-flex tw-items-center">
+					<span class="navbar-avatar">
+						{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-2"}}
 						{{if .IsAdmin}}{{svg "octicon-shield-check" 16 "navbar-admin-badge"}}{{end}}
 					</span>
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
