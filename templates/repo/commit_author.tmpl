@@ -1,0 +1,55 @@
+{{/* Template Attributes:
+* User: The user associated with the commit, if any
+* Commit: The commit
+* Author: The author, currently only the commit page passes this
+* AvatarSize: Avatar size in pixels
+* AuthorBold: Whether to render the author as bold text
+*/}}
+<div class="flex-text-inline{{if .AuthorBold}} tw-font-semibold{{end}}">
+	{{if .User}}
+		{{ctx.AvatarUtils.Avatar .User .AvatarSize}}
+		{{$username := ""}}
+		{{if and .User.FullName DefaultShowFullName}}
+			{{$username = .User.FullName}}
+		{{else if .User.Name}}
+			{{$username = .User.Name}}
+		{{end}}
+		<a class="muted author-wrapper" href="{{.User.HomeLink}}" data-tooltip-content="{{$username}}">
+			{{$username}}
+		</a>
+	{{else if .Author}}
+		{{$username := ""}}
+		{{if and .Author.FullName DefaultShowFullName}}
+			{{$username = .Author.FullName}}
+		{{else if .Author.Name}}
+			{{$username = .Author.Name}}
+		{{else if .Commit.Author.Name}}
+			{{$username = .Commit.Author.Name}}
+		{{end}}
+		{{ctx.AvatarUtils.AvatarByEmail .Author.Email $username .AvatarSize}}
+		<span{{if ctx.RootData.IsSigned}} title="{{.Author.Email}}"{{end}}>
+			{{if .Author.HomeLink}}
+				<a class="muted author-wrapper" href="{{.Author.HomeLink}}">
+					{{$username}}
+				</a>
+			{{else}}
+				{{$username}}
+			{{end}}
+		</span>
+	{{else}}
+		{{$username := ""}}
+		{{if .Commit.Author.Name}}
+			{{$username = .Commit.Author.Name}}
+		{{else}}
+			{{$username = .Author.Name}}
+		{{end}}
+		{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email $username .AvatarSize}}
+		<span class="author-wrapper" {{if ctx.RootData.IsSigned}} title="{{.Commit.Author.Email}}"{{end}}>
+			{{if .Commit.Author.Name}}
+				{{.Commit.Author.Name}}
+			{{else}}
+				{{.Author.Name}}
+			{{end}}
+		</span>
+	{{end}}
+</div>

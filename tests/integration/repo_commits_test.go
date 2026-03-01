@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"strings"
 	"sync"
 	"testing"
 
@@ -65,7 +66,7 @@ func TestRepoCommits(t *testing.T) {
 		commitHref := doc.doc.Find("#commits-table tr:first-child .commit-id-short").AttrOr("href", "")
 		assert.Equal(t, "/user2/repo1/commit/985f0301dba5e7b34be866819cd15ad3d8f508ee", commitHref)
 		authorElem := doc.doc.Find("#commits-table tr:first-child .author-wrapper")
-		assert.Equal(t, "6543", authorElem.Text())
+		assert.Equal(t, "6543", strings.TrimSpace(authorElem.Text()))
 		assert.Equal(t, "span", authorElem.Nodes[0].Data)
 	})
 
@@ -76,7 +77,7 @@ func TestRepoCommits(t *testing.T) {
 		commitHref := doc.doc.Find(".latest-commit .commit-id-short").AttrOr("href", "")
 		assert.Equal(t, "/user2/repo1/commit/985f0301dba5e7b34be866819cd15ad3d8f508ee", commitHref)
 		authorElem := doc.doc.Find(".latest-commit .author-wrapper")
-		assert.Equal(t, "6543", authorElem.Text())
+		assert.Equal(t, "6543", strings.TrimSpace(authorElem.Text()))
 		assert.Equal(t, "span", authorElem.Nodes[0].Data)
 	})
 }
