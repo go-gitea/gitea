@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect} from '@playwright/test';
-import type {APIRequestContext, Locator, Page} from '@playwright/test';
+import type {APIRequestContext, Page} from '@playwright/test';
 
 export function apiBaseUrl() {
   return env.GITEA_TEST_E2E_URL?.replace(/\/$/g, '');
@@ -76,11 +76,6 @@ export async function apiSetBranchProtection(requestContext: APIRequestContext, 
       status_check_contexts: statusCheckContexts,
     },
   }), 'apiSetBranchProtection');
-}
-
-export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {
-  await trigger.click();
-  await page.getByText(itemText).click();
 }
 
 export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, password = env.GITEA_TEST_E2E_PASSWORD) {
