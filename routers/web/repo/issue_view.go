@@ -980,9 +980,21 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		return
 	}
 
-	ctx.Data["StillCanManualMerge"] = !pull.HasMerged && !issue.IsClosed && ctx.IsSigned &&
-		!pull.CanAutoMerge() && !pull.IsWorkInProgress(ctx) && !pull.IsChecking() &&
-		allowMerge && prConfig.AllowManualMerge
+	stillCanManualMerge := func() bool {
+		if pull.HasMerged || issue.IsClosed || !ctx.IsSigned {
+			return false
+		}
+		if pull.CanAutoMerge() || pull.IsWorkInProgress(ctx) || pull.IsChecking() {
+			return false
+		}
+		if allowMerge && prConfig.AllowManualMerge {
+			return true
+		}
+
+		return false
+	}
+
+	ctx.Data["StillCanManualMerge"] = stillCanManualMerge()
 
 	// Check if there is a pending pr merge
 	_, pendingPullRequestMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
