@@ -206,8 +206,9 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 				chunk.End += chunk.Start
 			}
 		}
-	} else if len(chunks) < 1 {
-		return nil, errors.New("missing Chunk (no block map)")
+	}
+	if len(chunks) < 1 {
+		return nil, errors.New("no Chunk found")
 	}
 	return chunks, nil
 }

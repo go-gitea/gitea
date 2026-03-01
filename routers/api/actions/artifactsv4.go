@@ -390,7 +390,10 @@ func (r *artifactV4Routes) readBlockList(runID, artifactID int64) (*BlockList, e
 	if delerr != nil {
 		log.Warn("Failed to delete blockList %s: %v", blockListName, delerr)
 	}
-	return blockList, err
+	if err != nil {
+		return nil, err
+	}
+	return blockList, nil
 }
 
 func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
