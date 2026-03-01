@@ -74,7 +74,7 @@ func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
 	switch {
 	case u.UseCustomAvatar:
 		useLocalAvatar = true
-	case disableGravatar, setting.OfflineMode:
+	case disableGravatar:
 		useLocalAvatar = true
 		autoGenerateAvatar = true
 	}

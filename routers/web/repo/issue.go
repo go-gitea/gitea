@@ -20,6 +20,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
@@ -368,7 +369,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"content":        content,
+		"content":        commentContentHTML(ctx, content),
 		"contentVersion": issue.ContentVersion,
 		"attachments":    attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
@@ -626,6 +627,13 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 		return fmt.Errorf("unknown Type: %T", content)
 	}
 	return err
+}
+
+func commentContentHTML(ctx *context.Context, content template.HTML) template.HTML {
+	if strings.TrimSpace(string(content)) == "" {
+		return htmlutil.HTMLFormat(`<span class="no-content">%s</span>`, ctx.Tr("repo.issues.no_content"))
+	}
+	return content
 }
 
 func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment, content string) template.HTML {

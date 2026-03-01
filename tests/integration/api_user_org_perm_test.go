@@ -123,7 +123,7 @@ func TestCanReadUser(t *testing.T) {
 	})
 }
 
-func TestUnknowUser(t *testing.T) {
+func TestUnknownUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
