@@ -11,7 +11,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
@@ -21,6 +24,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	feed_service "code.gitea.io/gitea/services/feed"
 	"code.gitea.io/gitea/services/org"
+	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -492,4 +496,56 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 	ctx.SetTotalCountHeader(count)
 
 	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
+}
+
+func DeleteOrgRepos(ctx *context.APIContext) {
+	// swagger:operation DELETE /orgs/{org}/repos organization orgDeleteRepos
+	// ---
+	// summary: Delete all repositories in an organization
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// responses:
+	//   "202":
+	//     description: Deletion started
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	org := ctx.Org.Organization
+	repos, err := repo_model.GetOrgRepositories(ctx, org.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	doer := ctx.Doer
+
+	// Start deletion in background with detached context
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error("Panic during org repo deletion: %v", r)
+			}
+		}()
+
+		// Use HammerContext so deletion continues even if client disconnects
+		bgCtx := graceful.GetManager().HammerContext()
+
+		for _, repo := range repos {
+			if err := repo_service.DeleteRepository(bgCtx, doer, repo, true); err != nil {
+				log.Error("Failed to delete repository %s (ID: %d) in org %s: %v", repo.Name, repo.ID, org.Name, err)
+			} else {
+				log.Info("Successfully deleted repository %s (ID: %d) in org %s", repo.Name, repo.ID, org.Name)
+			}
+		}
+		log.Info("Completed deletion of %d repositories in org %s", len(repos), org.Name)
+	}()
+
+	ctx.Status(http.StatusAccepted)
 }
