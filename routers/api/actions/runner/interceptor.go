@@ -46,11 +46,19 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		}
 
 		cols := []string{"last_online"}
-		runner.LastOnline = timeutil.TimeStampNow()
+
 		if methodName == "UpdateTask" || methodName == "UpdateLog" {
+			if runner.Deleted > 0 && timeutil.TimeStampNow()-runner.Deleted > timeutil.TimeStamp(10) {
+				return nil, status.Error(codes.Internal, "Runner is deleted")
+			}
 			runner.LastActive = timeutil.TimeStampNow()
 			cols = append(cols, "last_active")
+		} else if runner.Deleted != 0 {
+			return nil, status.Error(codes.Internal, "Runner is deleted")
 		}
+
+		runner.LastOnline = timeutil.TimeStampNow()
+
 		if err := actions_model.UpdateRunner(ctx, runner, cols...); err != nil {
 			log.Error("can't update runner status: %v", err)
 		}
