@@ -35,5 +35,5 @@ func TestBuildBlobExcerptDiffSection(t *testing.T) {
 	assert.NotEmpty(t, diffSection.highlightedRightLines.value[lineMiddle-2]) // 0-based
 
 	diffInline := diffSection.GetComputedInlineDiffFor(diffSection.Lines[1], locale)
-	assert.Equal(t, `<span class="n">a</span> <span class="o">=</span> <span class="mi">30</span>`+"\n", string(diffInline.Content))
+	assert.Equal(t, `<span class="nv">a</span> <span class="o">=</span> <span class="m">30</span>`+"\n", string(diffInline.Content))
 }

@@ -349,10 +349,7 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 	if setting.Git.DisableDiffHighlight {
 		return template.HTML(html.EscapeString(diffLine.Content[1:]))
 	}
-	if diffSection.highlightLexer.value == nil {
-		diffSection.highlightLexer.value = highlight.DetectChromaLexerByFileName(diffSection.FileName, fileLanguage)
-	}
-	return highlight.RenderCodeByLexer(diffSection.highlightLexer.value, diffLine.Content[1:])
+	return highlight.RenderCode(diffSection.FileName, fileLanguage, diffLine.Content[1:])
 }
 
 func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, leftLine, rightLine *DiffLine, locale translation.Locale) DiffInline {
@@ -1407,8 +1404,7 @@ func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool,
 	}
 
 	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))
-	lexer := highlight.DetectChromaLexerByFileName(name, lang)
-	highlightedNewContent := highlight.RenderCodeByLexer(lexer, content)
+	highlightedNewContent := highlight.RenderCode(name, lang, content)
 	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
 	lines := make(map[int]template.HTML, len(unsafeLines))
 	// only save the highlighted lines we need, but not the whole file, to save memory

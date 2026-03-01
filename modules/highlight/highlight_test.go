@@ -63,26 +63,26 @@ func TestFile(t *testing.T) {
 		{
 			name:      "tags.py",
 			code:      "<>",
-			want:      lines(`<span class="o">&lt;</span><span class="o">&gt;</span>`),
+			want:      lines("&lt;&gt;"),
 			lexerName: "Python",
 		},
 		{
 			name:      "eol-no.py",
 			code:      "a=1",
-			want:      lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>`),
+			want:      lines(`<span class="nv">a</span><span class="o">=</span><span class="m">1</span>`),
 			lexerName: "Python",
 		},
 		{
 			name:      "eol-newline1.py",
 			code:      "a=1\n",
-			want:      lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n`),
+			want:      lines(`<span class="nv">a</span><span class="o">=</span><span class="m">1</span>\n`),
 			lexerName: "Python",
 		},
 		{
 			name: "eol-newline2.py",
 			code: "a=1\n\n",
 			want: lines(`
-<span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n
+<span class="nv">a</span><span class="o">=</span><span class="m">1</span>\n
 \n
 			`,
 			),
@@ -99,19 +99,19 @@ b=''
 c=2
 			`), "{space}", "    "),
 			want: lines(`
-<span class="n">def</span><span class="p">:</span>\n
-    <span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n
+<span class="k">def</span>:\n
+    <span class="nv">a</span>=1\n
 \n
-<span class="n">b</span><span class="o">=</span><span class="sa"></span><span class="s1">&#39;</span><span class="s1">&#39;</span>\n
+b=&#39;&#39;\n
     \n
-<span class="n">c</span><span class="o">=</span><span class="mi">2</span>`,
+c=2`,
 			),
 			lexerName: "Python",
 		},
 		{
 			name:      "test.sql",
 			code:      "--\nSELECT",
-			want:      []template.HTML{"<span class=\"c1\">--\n</span>", `<span class="k">SELECT</span>`},
+			want:      []template.HTML{"<span class=\"c\">--</span>\n", `<span class="k">SELECT</span>`},
 			lexerName: "SQL",
 		},
 	}

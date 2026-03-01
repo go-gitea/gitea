@@ -20,6 +20,7 @@ import (
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 )
 
@@ -93,12 +94,39 @@ func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML,
 		return template.HTML(template.HTMLEscapeString(code)), nil, ""
 	}
 
+	if rendered, displayName, ok := tryRenderCodeByTreeSitter(fileName, language, util.UnsafeStringToBytes(code), true, true); ok {
+		return rendered, nil, displayName
+	}
+
 	lexer = detectChromaLexerWithAnalyze(fileName, language, util.UnsafeStringToBytes(code)) // it is also slow
-	return RenderCodeByLexer(lexer, code), lexer, formatLexerName(lexer.Config().Name)
+	return renderCodeByChromaLexer(lexer, code), lexer, formatLexerName(lexer.Config().Name)
+}
+
+// RenderCode returns highlighted HTML for a snippet, preferring gotreesitter and
+// falling back to Chroma.
+func RenderCode(fileName, language, code string) template.HTML {
+	if rendered, _, ok := tryRenderCodeByTreeSitter(fileName, language, util.UnsafeStringToBytes(code), false, true); ok {
+		return rendered
+	}
+	lexer := DetectChromaLexerByFileName(fileName, language)
+	return renderCodeByChromaLexer(lexer, code)
 }
 
 // RenderCodeByLexer returns a HTML version of code string with chroma syntax highlighting classes
 func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
+	if lexer != nil {
+		if rendered, _, ok := tryRenderCodeByTreeSitterWithLexer(lexer.Config().Name, util.UnsafeStringToBytes(code), true); ok {
+			return rendered
+		}
+	}
+	return renderCodeByChromaLexer(lexer, code)
+}
+
+func renderCodeByChromaLexer(lexer chroma.Lexer, code string) template.HTML {
+	if lexer == nil {
+		lexer = lexers.Fallback
+	}
+
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
 		html.PreventSurroundingPre(true),
@@ -131,6 +159,13 @@ func RenderFullFile(fileName, language string, code []byte) ([]template.HTML, st
 		return RenderPlainText(code), "", nil
 	}
 
+	if renderedLines, displayName, err := renderFullFileByTreeSitter(fileName, language, code); err == nil {
+		return renderedLines, displayName, nil
+	}
+	return renderFullFileByChroma(fileName, language, code)
+}
+
+func renderFullFileByChroma(fileName, language string, code []byte) ([]template.HTML, string, error) {
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
 		html.PreventSurroundingPre(true),

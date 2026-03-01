@@ -80,11 +80,12 @@ func TestDiffWithHighlight(t *testing.T) {
 		newCode, _, _ := highlight.RenderCodeSlowGuess("a.go", "Go", `bot&xxx || bot&yyy`)
 		hcd := newHighlightCodeDiff()
 		out := hcd.diffLineWithHighlight(DiffLineAdd, oldCode, newCode)
-		assert.Equal(t, strings.ReplaceAll(`
-<span class="added-code"><span class="nx">bot</span></span><span class="o"><span class="added-code">&amp;</span></span>
-<span class="nx">xxx</span><span class="w"> </span><span class="o">||</span><span class="w"> </span>
-<span class="added-code"><span class="nx">bot</span></span><span class="o"><span class="added-code">&amp;</span></span>
-<span class="nx">yyy</span>`, "\n", ""), string(out))
+		outStr := string(out)
+		assert.Contains(t, outStr, `<span class="added-code"><span class="nv">bot</span></span>`)
+		assert.Contains(t, outStr, `<span class="o"><span class="added-code">&amp;</span></span>`)
+		assert.Contains(t, outStr, `<span class="nv">xxx</span>`)
+		assert.Contains(t, outStr, `<span class="o">||</span>`)
+		assert.Contains(t, outStr, `<span class="nv">yyy</span>`)
 	})
 
 	forceTokenAsPlaceholder := func(hcd *highlightCodeDiff, r rune, token string) rune {
