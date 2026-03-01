@@ -42,7 +42,7 @@ func GitHooksEdit(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Hook"] = hook
-	ctx.Data["CodeEditorConfig"] = repo.CodeEditorConfig{Filename: name + ".sh", IndentStyle: "tab", TabWidth: 4}
+	ctx.Data["CodeEditorConfig"] = repo.CodeEditorConfig{Filename: name + ".sh", IndentStyle: "tab", TabWidth: 4, Placeholder: ctx.Locale.TrString("editor.code_editor.placeholder")}
 	ctx.HTML(http.StatusOK, tplGithookEdit)
 }
 

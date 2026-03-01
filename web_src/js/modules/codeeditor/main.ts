@@ -12,6 +12,7 @@ import type {EditorView, ViewUpdate} from '@codemirror/view';
 const codeEditorConfigDefault = {
   filename: '', // the current filename (base name, not full path), used for language detection
   autofocus: false, // whether to autofocus the editor on load
+  placeholder: '', // placeholder text shown when editor is empty
   previewableExtensions: [] as string[], // file extensions that support preview rendering
   lineWrapExtensions: [] as string[], // file extensions that enable line wrapping by default
   lineWrap: false, // whether line wrapping is enabled for the current file
@@ -140,7 +141,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       cm.view.dropCursor(),
       cm.view.rectangularSelection(),
       cm.view.crosshairCursor(),
-      textarea.getAttribute('data-placeholder') ? cm.view.placeholder(textarea.getAttribute('data-placeholder')!) : [],
+      config.placeholder ? cm.view.placeholder(config.placeholder) : [],
       config.trimTrailingWhitespace ? cm.view.highlightTrailingWhitespace() : [],
       cm.search.search({top: true}),
       cm.search.highlightSelectionMatches(),

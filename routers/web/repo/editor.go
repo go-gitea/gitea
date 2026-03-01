@@ -320,6 +320,7 @@ func EditFile(ctx *context.Context) {
 
 	editorConfig := getCodeEditorConfigByEditorconfig(ctx, ctx.Repo.TreePath)
 	editorConfig.Autofocus = !isNewFile
+	editorConfig.Placeholder = ctx.Locale.TrString("editor.code_editor.placeholder")
 	ctx.Data["CodeEditorConfig"] = editorConfig
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
