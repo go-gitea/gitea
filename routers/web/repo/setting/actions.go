@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
+	shared_actions "code.gitea.io/gitea/routers/web/shared/actions"
 	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -34,8 +35,22 @@ func ActionsGeneralSettings(ctx *context.Context) {
 		return
 	}
 
+	actionsCfg := actionsUnit.ActionsConfig()
+
+	// Token permission settings
+	ctx.Data["TokenPermissionMode"] = actionsCfg.GetTokenPermissionMode()
+	ctx.Data["TokenPermissionModePermissive"] = repo_model.ActionsTokenPermissionModePermissive
+	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
+	ctx.Data["TokenPermissionModeCustom"] = repo_model.ActionsTokenPermissionModeCustom
+	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
+	ctx.Data["EnableMaxTokenPermissions"] = actionsCfg.MaxTokenPermissions != nil
+
+	// Follow owner config (only for repos in orgs)
+	ctx.Data["IsInOrg"] = ctx.Repo.Repository.Owner.IsOrganization()
+	ctx.Data["OverrideOwnerConfig"] = actionsCfg.OverrideOwnerConfig
+
 	if ctx.Repo.Repository.IsPrivate {
-		collaborativeOwnerIDs := actionsUnit.ActionsConfig().CollaborativeOwnerIDs
+		collaborativeOwnerIDs := actionsCfg.CollaborativeOwnerIDs
 		collaborativeOwners, err := user_model.GetUsersByIDs(ctx, collaborativeOwnerIDs)
 		if err != nil {
 			ctx.ServerError("GetUsersByIDs", err)
@@ -89,8 +104,8 @@ func AddCollaborativeOwner(ctx *context.Context) {
 	}
 	actionsCfg := actionsUnit.ActionsConfig()
 	actionsCfg.AddCollaborativeOwner(ownerID)
-	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {
-		ctx.ServerError("UpdateRepoUnit", err)
+	if err := repo_model.UpdateRepoUnitConfig(ctx, actionsUnit); err != nil {
+		ctx.ServerError("UpdateRepoUnitConfig", err)
 		return
 	}
 
@@ -112,10 +127,63 @@ func DeleteCollaborativeOwner(ctx *context.Context) {
 		return
 	}
 	actionsCfg.RemoveCollaborativeOwner(ownerID)
-	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {
-		ctx.ServerError("UpdateRepoUnit", err)
+	if err := repo_model.UpdateRepoUnitConfig(ctx, actionsUnit); err != nil {
+		ctx.ServerError("UpdateRepoUnitConfig", err)
 		return
 	}
 
 	ctx.JSONOK()
+}
+
+// UpdateTokenPermissions updates the token permission settings for the repository
+func UpdateTokenPermissions(ctx *context.Context) {
+	redirectURL := ctx.Repo.RepoLink + "/settings/actions/general"
+
+	actionsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeActions)
+	if err != nil {
+		ctx.ServerError("GetUnit", err)
+		return
+	}
+
+	actionsCfg := actionsUnit.ActionsConfig()
+
+	// Update Override Owner Config (for repos in orgs)
+	// If checked, it means we WANT to override (opt-out of following)
+	actionsCfg.OverrideOwnerConfig = ctx.FormBool("override_owner_config")
+
+	// Update permission mode (only if overriding owner config OR not in an org)
+	isOrg := ctx.Repo.Repository.Owner.IsOrganization()
+	shouldUpdate := !isOrg || actionsCfg.OverrideOwnerConfig
+
+	if shouldUpdate {
+		permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))
+		if permissionMode == repo_model.ActionsTokenPermissionModeRestricted ||
+			permissionMode == repo_model.ActionsTokenPermissionModePermissive ||
+			permissionMode == repo_model.ActionsTokenPermissionModeCustom {
+			actionsCfg.TokenPermissionMode = permissionMode
+		} else {
+			ctx.Flash.Error("Invalid token permission mode")
+			ctx.Redirect(redirectURL)
+			return
+		}
+	}
+
+	// Update Maximum Permissions (radio buttons: none/read/write)
+	enableMaxPermissions := ctx.FormBool("enable_max_permissions")
+	if shouldUpdate {
+		if enableMaxPermissions {
+			actionsCfg.MaxTokenPermissions = shared_actions.ParseMaxTokenPermissions(ctx)
+		} else {
+			// If not enabled, ensure any sent permissions are ignored and set to nil
+			actionsCfg.MaxTokenPermissions = nil
+		}
+	}
+
+	if err := repo_model.UpdateRepoUnitConfig(ctx, actionsUnit); err != nil {
+		ctx.ServerError("UpdateRepoUnitConfig", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+	ctx.Redirect(redirectURL)
 }

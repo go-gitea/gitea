@@ -41,7 +41,7 @@ func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnabl
 		cfg.DisableWorkflow(workflow.ID)
 	}
 
-	return repo_model.UpdateRepoUnit(ctx, cfgUnit)
+	return repo_model.UpdateRepoUnitConfig(ctx, cfgUnit)
 }
 
 func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) error {

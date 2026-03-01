@@ -1,4 +1,5 @@
 <div class="repo-setting-content">
+	<!-- Enable/Disable Actions Section (First) -->
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.general.enable_actions"}}
 	</h4>
@@ -22,8 +23,60 @@
 		</form>
 	</div>
 
+	<!-- Token Permissions Section -->
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.actions"}} - {{ctx.Locale.Tr "settings.general"}}
+	</h4>
+	<div class="ui attached segment">
+		<form class="ui form" action="{{.RepoLink}}/settings/actions/general/token_permissions" method="post">
+			{{if .IsInOrg}}
+			<!-- Override Owner Configuration -->
+			<div class="field">
+				<div class="ui checkbox">
+					<input type="checkbox" name="override_owner_config" id="override-owner-config" {{if .OverrideOwnerConfig}}checked{{end}} class="js-override-owner-config">
+					<label><strong>{{ctx.Locale.Tr "actions.general.token_permissions.override_owner"}}</strong></label>
+				</div>
+				<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.override_owner_desc"}}</div>
+			</div>
+
+			<div class="divider"></div>
+			{{end}}
+
+			{{template "shared/actions/permission_mode_select" .}}
+			<div class="divider"></div>
+
+			<!-- Maximum Permissions Table -->
+			<div id="max-permissions-section">
+				<h5 class="ui header">
+					{{ctx.Locale.Tr "actions.general.token_permissions.maximum"}}
+				</h5>
+				<div class="help">
+					{{ctx.Locale.Tr "actions.general.token_permissions.maximum.description"}}
+					<br>
+					{{ctx.Locale.Tr "actions.general.token_permissions.fork_pr_note"}}
+				</div>
+
+				<div class="field">
+					<div class="ui checkbox">
+						<input type="checkbox" name="enable_max_permissions" class="js-enable-max-permissions" {{if .EnableMaxTokenPermissions}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.customize_max_permissions"}}</label>
+					</div>
+				</div>
+			</div>
+
+			{{template "shared/actions/permissions_table" .}}
+
+			<div class="divider"></div>
+
+			<div class="field">
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
+			</div>
+		</form>
+	</div>
+
 {{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
 	{{if .Repository.IsPrivate}}
+	<!-- Collaborative Owners Section -->
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.general.collaborative_owners_management"}}
 	</h4>

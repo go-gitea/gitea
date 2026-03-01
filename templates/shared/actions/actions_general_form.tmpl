@@ -1,0 +1,86 @@
+			<!-- Cross-Repository Access -->
+			<div class="field">
+				<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo"}}</label>
+				<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_desc"}}</div>
+			</div>
+			<div class="grouped fields">
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="cross_repo_mode" value="none" {{if eq .CrossRepoMode .ActionsCrossRepoModeNone}}checked{{end}} class="js-cross-repo-mode">
+						<label>{{ctx.Locale.Tr "disabled"}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="cross_repo_mode" value="all" {{if eq .CrossRepoMode .ActionsCrossRepoModeAll}}checked{{end}} class="js-cross-repo-mode">
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_all"}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="cross_repo_mode" value="selected" {{if eq .CrossRepoMode .ActionsCrossRepoModeSelected}}checked{{end}} class="js-cross-repo-mode">
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_selected"}}</label>
+					</div>
+				</div>
+			</div>
+
+			<!-- Allowed Repositories List -->
+			<div id="allowed-repos-section" class="field">
+				<h5 class="ui header">
+					{{ctx.Locale.Tr "actions.general.token_permissions.allowed_repos"}}
+				</h5>
+				<div class="ui attached segment">
+					<div class="flex-list">
+						{{range .AllowedRepos}}
+							<div class="flex-item tw-items-center">
+								<div class="flex-item-leading">
+									{{template "repo/icon" .}}
+								</div>
+								<div class="flex-item-main">
+									<a class="flex-item-title text primary" href="{{.Link}}">
+										{{.FullName}}
+									</a>
+								</div>
+								<div class="flex-item-trailing">
+									<button class="ui red small button" type="submit" formaction="{{$.Link}}/allowed_repos/remove?repo_id={{.ID}}">{{ctx.Locale.Tr "remove"}}</button>
+								</div>
+							</div>
+						{{else}}
+							<div class="flex-item">
+								<span class="text grey">{{ctx.Locale.Tr "org.repos.none"}}</span>
+							</div>
+						{{end}}
+					</div>
+				</div>
+
+				<h5 class="ui header">
+					{{ctx.Locale.Tr "actions.general.token_permissions.add_repo"}}
+				</h5>
+				<div class="ui form tw-flex tw-gap-2">
+					<div data-global-init="initSearchRepoBox" data-uid="{{.OwnerID}}" class="ui search tw-flex-1">
+						<div class="ui input">
+							<input class="prompt" name="repo_name" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off">
+						</div>
+					</div>
+					<button class="ui primary button" type="submit" formaction="{{$.Link}}/allowed_repos/add">{{ctx.Locale.Tr "add"}}</button>
+				</div>
+			</div>
+
+			<div class="divider"></div>
+
+			{{template "shared/actions/permission_mode_select" .}}
+			<div class="divider"></div>
+
+			<!-- Maximum Permissions Table -->
+			<div class="field">
+				<label>{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions"}}</label>
+				<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions.desc"}}</div>
+			</div>
+			<div class="field" id="max-permissions-section">
+				<div class="ui checkbox">
+					<input type="checkbox" name="enable_max_permissions" class="js-enable-max-permissions" {{if .EnableMaxTokenPermissions}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "actions.general.token_permissions.customize_max_permissions"}}</label>
+				</div>
+			</div>
+
+			{{template "shared/actions/permissions_table" .}}

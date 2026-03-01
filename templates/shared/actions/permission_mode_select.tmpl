@@ -1,0 +1,19 @@
+<div class="field js-permission-mode-section">
+	<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode"}}</label>
+	<div class="grouped fields">
+		<div class="field">
+			<div class="ui radio checkbox">
+				<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModePermissive}}" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}} class="js-permission-mode-radio">
+				<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive"}}</label>
+				<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive.desc"}}</div>
+			</div>
+		</div>
+		<div class="field">
+			<div class="ui radio checkbox">
+				<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModeRestricted}}" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}} class="js-permission-mode-radio">
+				<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted"}}</label>
+				<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted.desc"}}</div>
+			</div>
+		</div>
+	</div>
+</div>

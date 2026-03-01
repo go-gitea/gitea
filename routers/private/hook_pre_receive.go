@@ -492,16 +492,23 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 	}
 
 	if ctx.opts.UserID == user_model.ActionsUserID {
-		ctx.user = user_model.NewActionsUser()
-		ctx.userPerm.AccessMode = perm_model.AccessMode(ctx.opts.ActionPerm)
-		if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
-			log.Error("Unable to get User id %d Error: %v", ctx.opts.UserID, err)
+		taskID := ctx.opts.ActionsTaskID
+		ctx.user = user_model.NewActionsUserWithTaskID(taskID)
+		// Use the new GetActionsUserRepoPermission to respect token permission settings
+		// Passing 0 as taskID will trigger extraction from ctx.user
+		if taskID == 0 {
+			log.Warn("HookPreReceive: ActionsUser with task ID 0, falling back to repository default Actions configuration")
+		}
+
+		userPerm, err := access_model.GetActionsUserRepoPermission(ctx, ctx.Repo.Repository, ctx.user, taskID)
+		if err != nil {
+			log.Error("Unable to get Actions user repo permission for task %d Error: %v", taskID, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Unable to get User id %d Error: %v", ctx.opts.UserID, err),
+				Err: fmt.Sprintf("Unable to get Actions user repo permission for task %d Error: %v", taskID, err),
 			})
 			return false
 		}
-		ctx.userPerm.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, ctx.userPerm.AccessMode)
+		ctx.userPerm = userPerm
 	} else {
 		user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
 		if err != nil {
