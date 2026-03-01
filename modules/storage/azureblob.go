@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/url"
 	"os"
 	"path"
@@ -292,7 +293,14 @@ func (a *AzureBlobStorage) URL(storePath, name, _ string, reqParams url.Values) 
 		return nil, convertAzureBlobErr(err)
 	}
 
-	return url.Parse(u)
+	// Merge reqParams before returning
+	uu, err := url.Parse(u)
+	if err != nil {
+		return nil, err
+	}
+	maps.Copy(reqParams, uu.Query())
+	uu.RawQuery = reqParams.Encode()
+	return uu, err
 }
 
 // IterateObjects iterates across the objects in the azureblobstorage
