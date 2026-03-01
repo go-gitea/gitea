@@ -90,11 +90,11 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -402,35 +402,15 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 	}
 
 	var chunks []*chunkFileItem
-	blockList, err := r.readBlockList(runID, artifact.ID)
+	blockList, blockListErr := r.readBlockList(runID, artifact.ID)
+	chunks, err = listChunksByRunIDV4(r.fs, runID, artifact.ID, blockList)
 	if err != nil {
-		log.Warn("Failed to read BlockList, fallback to old behavior: %v", err)
-		chunkMap, err := listChunksByRunID(r.fs, runID)
-		if err == nil {
-			chunks, ok = chunkMap[artifact.ID]
-			if !ok {
-				log.Error("Error merge chunks")
-				ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
-				return
-			}
-		} else if os.IsNotExist(err) {
-			chunks, err = listChunksByRunIDV4(r.fs, runID, artifact.ID, nil)
-		}
-		if err != nil {
-			log.Error("Error merge chunks: %v", err)
-			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
-			return
-		}
-	} else {
-		chunks, err = listChunksByRunIDV4(r.fs, runID, artifact.ID, blockList)
-		if err != nil {
-			log.Error("Error merge chunks: %v", err)
-			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
-			return
-		}
-		artifact.FileSize = chunks[len(chunks)-1].End + 1
-		artifact.FileCompressedSize = chunks[len(chunks)-1].End + 1
+		log.Error("Error merge chunks: %v", errors.Join(blockListErr, err))
+		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
+		return
 	}
+	artifact.FileSize = chunks[len(chunks)-1].End + 1
+	artifact.FileCompressedSize = chunks[len(chunks)-1].End + 1
 
 	checksum := ""
 	if req.Hash != nil {

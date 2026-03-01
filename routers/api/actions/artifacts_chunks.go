@@ -156,12 +156,22 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 		// Single chunk upload with blockid
 		if _, ok := chunkMap[chunkName]; ok {
 			chunkMap[chunkName] = &item
-		} else if chunks == nil && chunkMap == nil {
+		} else if chunkMap == nil {
+			if chunks != nil {
+				return errors.New("blockmap is required for chunks > 1")
+			}
 			chunks = []*chunkFileItem{&item}
 		}
 		return nil
-	}); err != nil {
+	}); err != nil && (chunks != nil || blist != nil) {
 		return nil, err
+	} else if blist == nil && chunks == nil {
+		var chunkMap map[int64][]*chunkFileItem
+		chunkMap, err = listChunksByRunID(st, runID)
+		if err != nil {
+			return nil, err
+		}
+		chunks, _ = chunkMap[artifactID]
 	}
 	if blist != nil {
 		for i, name := range blist.Latest {
@@ -175,6 +185,8 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 				chunk.End += chunk.Start
 			}
 		}
+	} else if len(chunks) < 1 {
+		return nil, errors.New("missing Chunk (no block map)")
 	}
 	return chunks, nil
 }
