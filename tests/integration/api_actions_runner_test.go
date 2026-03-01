@@ -27,6 +27,10 @@ func TestAPIActionsRunner(t *testing.T) {
 func testActionsRunnerAdmin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
+	readToken := getUserToken(t, adminUsername, auth_model.AccessTokenScopeReadAdmin)
+	readReq := NewRequest(t, "GET", "/api/v1/admin/runners/registration-token").AddTokenAuth(readToken)
+	MakeRequest(t, readReq, http.StatusForbidden)
+
 	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeWriteAdmin)
 	req := NewRequest(t, "POST", "/api/v1/admin/actions/runners/registration-token").AddTokenAuth(token)
 	tokenResp := MakeRequest(t, req, http.StatusOK)
@@ -76,6 +80,10 @@ func testActionsRunnerAdmin(t *testing.T) {
 func testActionsRunnerUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	userUsername := "user1"
+	readToken := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadUser)
+	readReq := NewRequest(t, "GET", "/api/v1/user/actions/runners/registration-token").AddTokenAuth(readToken)
+	MakeRequest(t, readReq, http.StatusForbidden)
+
 	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteUser)
 	req := NewRequest(t, "POST", "/api/v1/user/actions/runners/registration-token").AddTokenAuth(token)
 	tokenResp := MakeRequest(t, req, http.StatusOK)
@@ -202,6 +210,13 @@ func testActionsRunnerOwner(t *testing.T) {
 		MakeRequest(t, req, http.StatusForbidden)
 	})
 
+	t.Run("GetRegistrationTokenReadScopeForbidden", func(t *testing.T) {
+		userUsername := "user2"
+		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadOrganization)
+		req := NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runners/registration-token").AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
+
 	t.Run("GetRepoScopeForbidden", func(t *testing.T) {
 		userUsername := "user2"
 		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadRepository)
@@ -303,6 +318,13 @@ func testActionsRunnerRepo(t *testing.T) {
 
 		// Verify delete the runner by id is forbidden with read scope
 		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34348)).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
+
+	t.Run("GetRegistrationTokenReadScopeForbidden", func(t *testing.T) {
+		userUsername := "user2"
+		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadRepository)
+		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/actions/runners/registration-token").AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
 
