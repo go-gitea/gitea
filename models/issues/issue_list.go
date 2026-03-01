@@ -185,7 +185,7 @@ func (issues IssueList) LoadMilestones(ctx context.Context) error {
 
 func (issues IssueList) LoadProjects(ctx context.Context) error {
 	issueIDs := issues.getIssueIDs()
-	projectMaps := make(map[int64]*project_model.Project, len(issues))
+	issueProjectMaps := make(map[int64][]*project_model.Project, len(issues))
 	left := len(issueIDs)
 
 	type projectWithIssueID struct {
@@ -207,14 +207,15 @@ func (issues IssueList) LoadProjects(ctx context.Context) error {
 			return err
 		}
 		for _, project := range projects {
-			projectMaps[project.IssueID] = project.Project
+			issueProjectMaps[project.IssueID] = append(issueProjectMaps[project.IssueID], project.Project)
 		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
 
 	for _, issue := range issues {
-		issue.Project = projectMaps[issue.ID]
+		issue.Projects = issueProjectMaps[issue.ID]
+		issue.isProjectsLoaded = true
 	}
 	return nil
 }

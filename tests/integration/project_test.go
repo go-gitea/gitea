@@ -195,8 +195,8 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 	defaultColumnID := columns[0].ID
 
 	// Add issues to the project
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user1, project.ID, defaultColumnID))
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue17, user1, project.ID, defaultColumnID))
+	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user1, []int64{project.ID}, defaultColumnID))
+	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue17, user1, []int64{project.ID}, defaultColumnID))
 
 	sess := loginUser(t, "user1")
 	projectURL := fmt.Sprintf("/org3/-/projects/%d", project.ID)

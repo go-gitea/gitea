@@ -19,6 +19,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	db_indexer "code.gitea.io/gitea/modules/indexer/issues/db"
 	"code.gitea.io/gitea/modules/log"
@@ -156,9 +157,21 @@ func SearchIssues(ctx *context.Context) {
 		}
 	}
 
-	projectID := optional.None[int64]()
-	if v := ctx.FormInt64("project"); v > 0 {
-		projectID = optional.Some(v)
+	var includedProjectIDs []int64
+	{
+		projectID := ctx.FormInt64("project")
+		if projectID > 0 {
+			includedProjectIDs = append(includedProjectIDs, projectID)
+		}
+
+		projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormTrim("projects"), ","))
+		if err != nil {
+			ctx.HTTPError(http.StatusInternalServerError, "StringsToInt64s", err.Error())
+			return
+		}
+		if len(projectIDs) > 0 {
+			includedProjectIDs = projectIDs
+		}
 	}
 
 	// this api is also used in UI,
@@ -182,7 +195,7 @@ func SearchIssues(ctx *context.Context) {
 		IsClosed:            isClosed,
 		IncludedAnyLabelIDs: includedAnyLabels,
 		MilestoneIDs:        includedMilestones,
-		ProjectID:           projectID,
+		ProjectIDs:          includedProjectIDs,
 		SortBy:              issue_indexer.SortByCreatedDesc,
 	}
 
@@ -298,11 +311,6 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		}
 	}
 
-	projectID := optional.None[int64]()
-	if v := ctx.FormInt64("project"); v > 0 {
-		projectID = optional.Some(v)
-	}
-
 	isPull := optional.None[bool]()
 	switch ctx.FormString("type") {
 	case "pulls":
@@ -330,12 +338,12 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		Keyword:   keyword,
-		RepoIDs:   []int64{ctx.Repo.Repository.ID},
-		IsPull:    isPull,
-		IsClosed:  isClosed,
-		ProjectID: projectID,
-		SortBy:    issue_indexer.SortByCreatedDesc,
+		Keyword:    keyword,
+		RepoIDs:    []int64{ctx.Repo.Repository.ID},
+		ProjectIDs: []int64{ctx.FormInt64("project")},
+		IsPull:     isPull,
+		IsClosed:   isClosed,
+		SortBy:     issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)
@@ -507,6 +515,11 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		mileIDs = []int64{milestoneID}
 	}
 
+	var projectIDs []int64
+	if projectID != 0 {
+		projectIDs = []int64{projectID}
+	}
+
 	preparedLabelFilter := issue.PrepareFilterIssueLabels(ctx, repo.ID, ctx.Repo.Owner)
 	if ctx.Written() {
 		return
@@ -520,7 +533,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		RepoIDs:           []int64{repo.ID},
 		LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 		MilestoneIDs:      mileIDs,
-		ProjectID:         projectID,
+		ProjectIDs:        projectIDs,
 		AssigneeID:        assigneeID,
 		MentionedID:       mentionedID,
 		PosterID:          posterUserID,
@@ -529,6 +542,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		IsPull:            isPullOption,
 		IssueIDs:          nil,
 	}
+
 	if keyword != "" {
 		keywordMatchedIssueIDs, _, err = issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, statsOpts))
 		if err != nil {
@@ -600,7 +614,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 			ReviewRequestedID: reviewRequestedID,
 			ReviewedID:        reviewedID,
 			MilestoneIDs:      mileIDs,
-			ProjectID:         projectID,
+			ProjectIDs:        projectIDs,
 			IsClosed:          isShowClosed,
 			IsPull:            isPullOption,
 			LabelIDs:          preparedLabelFilter.SelectedLabelIDs,

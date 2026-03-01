@@ -301,38 +301,20 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
-		Name: "ProjectID",
+		Name: "ProjectIDs",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectID: optional.Some(int64(1)),
+			ProjectIDs: []int64{1},
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(1), data[v.ID].ProjectID)
+				assert.Contains(t, data[v.ID].ProjectIDs, int64(1))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectID == 1
-			}), result.Total)
-		},
-	},
-	{
-		Name: "no ProjectID",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			ProjectID: optional.Some(int64(0)),
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Len(t, result.Hits, 5)
-			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].ProjectID)
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectID == 0
+				return slices.Contains(v.ProjectIDs, int64(1))
 			}), result.Total)
 		},
 	},
@@ -706,6 +688,10 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 			for i := range subscriberIDs {
 				subscriberIDs[i] = int64(i) + 1 // SubscriberID should not be 0
 			}
+			projectIDs := make([]int64, id%5)
+			for i := range projectIDs {
+				projectIDs[i] = int64(i) + 1 // projectID should not be 0
+			}
 
 			data = append(data, &internal.IndexerData{
 				ID:                 id,
@@ -719,7 +705,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				LabelIDs:           labelIDs,
 				NoLabel:            len(labelIDs) == 0,
 				MilestoneID:        issueIndex % 4,
-				ProjectID:          issueIndex % 5,
+				ProjectIDs:         projectIDs,
 				ProjectColumnID:    issueIndex % 6,
 				PosterID:           id%10 + 1, // PosterID should not be 0
 				AssigneeID:         issueIndex % 10,
