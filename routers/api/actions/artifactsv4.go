@@ -554,6 +554,10 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
+	ctx.Resp.Header().Set("Content-Type", artifact.ContentEncoding)
+	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s; filename*=UTF-8''%s", url.PathEscape(artifact.ArtifactPath), artifact.ArtifactPath))
+	ctx.Resp.Header().Set("Content-Security-Policy", "sandbox; default-src 'none';")
+
 	file, _ := r.fs.Open(artifact.StoragePath)
 
 	_, _ = io.Copy(ctx.Resp, file)
