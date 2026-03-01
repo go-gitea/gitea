@@ -73,6 +73,7 @@ type Repository struct {
 	Stars               int         `json:"stars_count"`
 	Forks               int         `json:"forks_count"`
 	Watchers            int         `json:"watchers_count"`
+	BranchCount         int         `json:"branch_count"`
 	OpenIssues          int         `json:"open_issues_count"`
 	OpenPulls           int         `json:"open_pr_counter"`
 	Releases            int         `json:"release_counter"`

@@ -452,13 +452,13 @@ func NewReleasePost(ctx *context.Context) {
 	}
 
 	if exist, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, form.Target); !exist {
-		ctx.RenderWithErr(ctx.Tr("form.target_branch_not_exist"), tplReleaseNew, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.target_branch_not_exist"), tplReleaseNew, &form)
 		return
 	}
 
 	if !form.TagOnly && form.Title == "" {
 		// if not "tag only", then the title of the release cannot be empty
-		ctx.RenderWithErr(ctx.Tr("repo.release.title_empty"), tplReleaseNew, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.release.title_empty"), tplReleaseNew, &form)
 		return
 	}
 
@@ -466,13 +466,13 @@ func NewReleasePost(ctx *context.Context) {
 		ctx.Data["Err_TagName"] = true
 		switch {
 		case release_service.IsErrTagAlreadyExists(err):
-			ctx.RenderWithErr(ctx.Tr("repo.branch.tag_collision", form.TagName), tplReleaseNew, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.branch.tag_collision", form.TagName), tplReleaseNew, &form)
 		case repo_model.IsErrReleaseAlreadyExist(err):
-			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
 		case release_service.IsErrInvalidTagName(err):
-			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_invalid"), tplReleaseNew, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.release.tag_name_invalid"), tplReleaseNew, &form)
 		case release_service.IsErrProtectedTagName(err):
-			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_protected"), tplReleaseNew, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.release.tag_name_protected"), tplReleaseNew, &form)
 		default:
 			ctx.ServerError("handleTagReleaseError", err)
 		}
@@ -525,7 +525,7 @@ func NewReleasePost(ctx *context.Context) {
 	// add new logic: if tag-only, do not convert the tag to a release
 	if form.TagOnly || !rel.IsTag {
 		ctx.Data["Err_TagName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
 		return
 	}
 

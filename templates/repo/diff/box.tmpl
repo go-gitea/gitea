@@ -1,7 +1,7 @@
 {{$showFileTree := (and (not .DiffNotAvailable) (gt .DiffShortStat.NumFiles 1))}}
 <div>
 	<div class="diff-detail-box">
-		<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-2 tw-ml-0.5">
+		<div class="flex-text-block tw-flex-wrap tw-ml-0.5">
 			{{if $showFileTree}}
 				<button class="diff-toggle-file-tree-button not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}

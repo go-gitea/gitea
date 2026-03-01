@@ -23,58 +23,6 @@
   },
   "basePath": "{{.SwaggerAppSubUrl}}/api/v1",
   "paths": {
-    "/activitypub/user-id/{user-id}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "activitypub"
-        ],
-        "summary": "Returns the Person actor for a user",
-        "operationId": "activitypubPerson",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "user ID of the user",
-            "name": "user-id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/ActivityPub"
-          }
-        }
-      }
-    },
-    "/activitypub/user-id/{user-id}/inbox": {
-      "post": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "activitypub"
-        ],
-        "summary": "Send to the inbox",
-        "operationId": "activitypubPersonInbox",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "user ID of the user",
-            "name": "user-id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          }
-        }
-      }
-    },
     "/admin/actions/jobs": {
       "get": {
         "produces": [
@@ -1522,23 +1470,6 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
-          }
-        }
-      }
-    },
-    "/nodeinfo": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "miscellaneous"
-        ],
-        "summary": "Returns the nodeinfo of the Gitea application",
-        "operationId": "getNodeInfo",
-        "responses": {
-          "200": {
-            "$ref": "#/responses/NodeInfo"
           }
         }
       }
@@ -6100,11 +6031,20 @@
             "schema": {
               "$ref": "#/definitions/CreateActionWorkflowDispatch"
             }
+          },
+          {
+            "type": "boolean",
+            "description": "Whether the response should include the workflow run ID and URLs.",
+            "name": "return_run_details",
+            "in": "query"
           }
         ],
         "responses": {
+          "200": {
+            "$ref": "#/responses/RunDetails"
+          },
           "204": {
-            "description": "No Content"
+            "description": "No Content, if return_run_details is missing or false"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -21771,18 +21711,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "ActivityPub": {
-      "description": "ActivityPub type",
-      "type": "object",
-      "properties": {
-        "@context": {
-          "description": "Context defines the JSON-LD context for ActivityPub",
-          "type": "string",
-          "x-go-name": "Context"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "AddCollaboratorOption": {
       "description": "AddCollaboratorOption options when adding a user as a collaborator of a repository",
       "type": "object",
@@ -28128,6 +28056,11 @@
           "type": "string",
           "x-go-name": "AvatarURL"
         },
+        "branch_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "BranchCount"
+        },
         "clone_url": {
           "type": "string",
           "x-go-name": "CloneURL"
@@ -28393,6 +28326,26 @@
     "ReviewStateType": {
       "description": "ReviewStateType review state type",
       "type": "string",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "RunDetails": {
+      "description": "RunDetails returns workflow_dispatch runid and url",
+      "type": "object",
+      "properties": {
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "run_url": {
+          "type": "string",
+          "x-go-name": "RunURL"
+        },
+        "workflow_run_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "WorkflowRunID"
+        }
+      },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "SearchResults": {
@@ -29508,12 +29461,6 @@
         }
       }
     },
-    "ActivityPub": {
-      "description": "ActivityPub",
-      "schema": {
-        "$ref": "#/definitions/ActivityPub"
-      }
-    },
     "AnnotatedTag": {
       "description": "AnnotatedTag",
       "schema": {
@@ -30272,6 +30219,12 @@
         "items": {
           "$ref": "#/definitions/Repository"
         }
+      }
+    },
+    "RunDetails": {
+      "description": "RunDetails",
+      "schema": {
+        "$ref": "#/definitions/RunDetails"
       }
     },
     "Runner": {

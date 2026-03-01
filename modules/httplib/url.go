@@ -72,6 +72,10 @@ func GuessCurrentAppURL(ctx context.Context) string {
 
 // GuessCurrentHostURL tries to guess the current full host URL (no sub-path) by http headers, there is no trailing slash.
 func GuessCurrentHostURL(ctx context.Context) string {
+	// "never" means always trust ROOT_URL and skip any request header detection.
+	if setting.PublicURLDetection == setting.PublicURLNever {
+		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
+	}
 	// Try the best guess to get the current host URL (will be used for public URL) by http headers.
 	// At the moment, if site admin doesn't configure the proxy headers correctly, then Gitea would guess wrong.
 	// There are some cases:
