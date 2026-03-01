@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"maps"
 	"net/url"
 	"os"
 	"path"
@@ -276,6 +275,7 @@ func (a *AzureBlobStorage) URL(storePath, name, _ string, reqParams url.Values) 
 
 		// TODO: refactor with "modules/public/mime_types.go", for example: "DetectWellKnownSafeInlineMimeType"
 	}
+	// https://learn.microsoft.com/en-us/rest/api/storageservices/service-sas-examples
 	if mimeType, ok := inlineExtMimeTypes[ext]; ok {
 		reqParams.Set("rsct", mimeType)
 		reqParams.Set("rscd", "inline")
@@ -293,13 +293,12 @@ func (a *AzureBlobStorage) URL(storePath, name, _ string, reqParams url.Values) 
 		return nil, convertAzureBlobErr(err)
 	}
 
-	// Merge reqParams before returning
+	// Append reqParams before returning
 	uu, err := url.Parse(u)
 	if err != nil {
 		return nil, err
 	}
-	maps.Copy(reqParams, uu.Query())
-	uu.RawQuery = reqParams.Encode()
+	uu.RawQuery += "&" + reqParams.Encode()
 	return uu, err
 }
 
