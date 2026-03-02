@@ -158,14 +158,15 @@ func resolveTreeSitterEntry(fileName, fileLang string) *tsgrammars.LangEntry {
 		}
 	}
 
-	// Prefer filename detection first. This avoids expensive name-resolution
-	// initialization on the hot path when extension detection already succeeds.
+	// Prefer explicit language metadata (enry/gitattributes) before extension
+	// fallback. This avoids wrong grammar selection on ambiguous extensions
+	// like ".h" where metadata can disambiguate C vs Objective-C vs C++.
 	var entry *tsgrammars.LangEntry
-	if fileName != "" {
-		entry = tsgrammars.DetectLanguage(fileName)
-	}
-	if entry == nil && fileLang != "" {
+	if fileLang != "" {
 		entry = lookupTreeSitterEntryByLanguageName(fileLang)
+	}
+	if entry == nil && fileName != "" {
+		entry = tsgrammars.DetectLanguage(fileName)
 	}
 	return entry
 }
