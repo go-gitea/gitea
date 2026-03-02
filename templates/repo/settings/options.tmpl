@@ -827,6 +827,29 @@
 						{{end}}
 					</div>
 				</div>
+
+				<div class="flex-item">
+					<div class="flex-item-main">
+						<div class="flex-item-title">{{ctx.Locale.Tr "repo.reparent"}}</div>
+						<div class="flex-item-body">
+							{{if .RepoReparent}}
+								{{ctx.Locale.Tr "repo.reparent.desc" .RepoReparent.TargetOwner.DisplayName}}
+							{{else}}
+								Move the upstream parent of the repository to a new fork
+							{{end}}
+						</div>
+					</div>
+					<div class="flex-item-trailing">
+						{{if .RepoReparent}}
+							<form class="ui form" action="{{.Link}}" method="post">
+								<input type="hidden" name="action" value="cancel_reparent">
+								<button class="ui red button">{{ctx.Locale.Tr "repo.reparent.reject"}}</button>
+							</form>
+						{{else}}
+							<button class="ui basic red show-modal button" data-modal="#reparent-repo-modal">{{ctx.Locale.Tr "repo.reparent"}}</button>
+						{{end}}
+					</div>
+				</div>
 				{{if .Permission.CanRead ctx.Consts.RepoUnitTypeWiki}}
 					<div class="flex-item">
 						<div class="flex-item-main">
@@ -967,6 +990,40 @@
 				<div class="actions">
 					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 					<button class="ui red button">{{ctx.Locale.Tr "repo.settings.transfer_perform"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<div class="ui small modal" id="reparent-repo-modal">
+		<div class="header">
+			{{ctx.Locale.Tr "repo.reparent"}}
+		</div>
+		<div class="content">
+			<div class="ui warning message">
+				Move the upstream parent of the repository to a new fork. <br>
+				The repository will become a fork of the repository with the same name owned by the new owner.
+			</div>
+			<form class="ui form" action="{{.Link}}" method="post">
+				<input type="hidden" name="action" value="reparent">
+				<div class="field">
+					<label>
+						{{ctx.Locale.Tr "repo.settings.transfer_form_title"}}
+						<span class="tw-text-red">{{.Repository.Name}}</span>
+					</label>
+				</div>
+				<div class="required field">
+					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+					<input name="repo_name" required>
+				</div>
+				<div class="required field">
+					<label for="new_reparent_owner_name">{{ctx.Locale.Tr "repo.settings.transfer_owner"}}</label>
+					<input id="new_reparent_owner_name" name="new_owner_name" required>
+				</div>
+
+				<div class="actions">
+					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+					<button class="ui red button">{{ctx.Locale.Tr "repo.reparent"}}</button>
 				</div>
 			</form>
 		</div>

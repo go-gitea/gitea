@@ -309,13 +309,21 @@ type UpdateBranchRepoOption struct {
 	Force bool `json:"force"`
 }
 
-// TransferRepoOption options when transfer a repository's ownership
+// TransferRepoOption options when transferring a repository's ownership
 // swagger:model
 type TransferRepoOption struct {
 	// required: true
 	NewOwner string `json:"new_owner"`
 	// ID of the team or teams to add to the repository. Teams can only be added to organization-owned repositories.
 	TeamIDs *[]int64 `json:"team_ids"`
+}
+
+// ReparentRepoOption options when reparenting a repository
+// swagger:model
+type ReparentRepoOption struct {
+	// name of the organization or user that owns the fork to be promoted
+	// required: true
+	NewOwner string `json:"new_owner"`
 }
 
 // GitServiceType represents a git service

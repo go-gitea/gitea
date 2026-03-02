@@ -15896,6 +15896,135 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/reparent": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reparent a repo",
+        "operationId": "repoReparent",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo to reparent",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to reparent",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Reparent Options",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ReparentRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/reparent/accept": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Accept a reparenting request",
+        "operationId": "acceptRepoReparent",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo to accept reparenting for",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to accept reparenting for",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/reparent/reject": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reject a reparenting request",
+        "operationId": "rejectRepoReparent",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo to reject reparenting for",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to reject reparenting for",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/reviewers": {
       "get": {
         "produces": [
@@ -27947,6 +28076,21 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ReparentRepoOption": {
+      "description": "ReparentRepoOption options when reparenting a repository",
+      "type": "object",
+      "required": [
+        "new_owner"
+      ],
+      "properties": {
+        "new_owner": {
+          "description": "name of the organization or user that owns the fork to be promoted",
+          "type": "string",
+          "x-go-name": "NewOwner"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "RepoCollaboratorPermission": {
       "description": "RepoCollaboratorPermission to get repository permission for a collaborator",
       "type": "object",
@@ -28877,7 +29021,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "TransferRepoOption": {
-      "description": "TransferRepoOption options when transfer a repository's ownership",
+      "description": "TransferRepoOption options when transferring a repository's ownership",
       "type": "object",
       "required": [
         "new_owner"

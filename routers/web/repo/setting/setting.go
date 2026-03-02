@@ -146,6 +146,10 @@ func SettingsPost(ctx *context.Context) {
 		handleSettingsPostTransfer(ctx)
 	case "cancel_transfer":
 		handleSettingsPostCancelTransfer(ctx)
+	case "reparent":
+		handleSettingsPostReparent(ctx)
+	case "cancel_reparent":
+		handleSettingsPostCancelReparent(ctx)
 	case "delete":
 		handleSettingsPostDelete(ctx)
 	case "delete-wiki":
@@ -884,6 +888,91 @@ func handleSettingsPostCancelTransfer(ctx *context.Context) {
 
 	log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
 	ctx.Flash.Success(ctx.Tr("repo.settings.transfer_abort_success", repoTransfer.Recipient.Name))
+	ctx.Redirect(repo.Link() + "/settings")
+}
+
+func handleSettingsPostReparent(ctx *context.Context) {
+	repo := ctx.Repo.Repository
+	if !ctx.Repo.IsOwner() {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
+
+	if repo.Name != ctx.FormString("repo_name") {
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		return
+	}
+
+	newOwner, err := user_model.GetUserByName(ctx, ctx.FormString("new_owner_name"))
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+			return
+		}
+		ctx.ServerError("GetUserByName", err)
+		return
+	}
+
+	if newOwner.Type == user_model.UserTypeOrganization {
+		if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
+			// The user shouldn't know about this organization
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+			return
+		}
+	}
+
+	// Close the GitRepo if open
+	if ctx.Repo.GitRepo != nil {
+		ctx.Repo.GitRepo.Close()
+		ctx.Repo.GitRepo = nil
+	}
+
+	repo, err = repo_service.StartRepositoryReparent(ctx, ctx.Doer, repo, newOwner.ID)
+	if err != nil {
+		if repo_model.IsErrRepoTransferInProgress(err) {
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
+		} else {
+			ctx.ServerError("StartRepositoryReparent", err)
+		}
+		return
+	}
+
+	log.Trace("Repository reparent process was initiated: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner.Name)
+
+	// Auto-accept ONLY if initiator is instance admin
+	if ctx.Doer.IsAdmin {
+		if err := repo_service.AcceptReparent(ctx, ctx.Doer, repo); err == nil {
+			ctx.Flash.Success(ctx.Tr("repo.reparent.success"))
+			ctx.Redirect(repo.Link())
+			return
+		}
+		// If auto-accept fails, it stays pending
+	}
+
+	ctx.Flash.Info(ctx.Tr("repo.settings.transfer_started", newOwner.DisplayName()))
+	ctx.Redirect(repo.Link() + "/settings")
+}
+
+func handleSettingsPostCancelReparent(ctx *context.Context) {
+	repo := ctx.Repo.Repository
+	if !ctx.Repo.IsOwner() {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
+
+	err := repo_service.CancelRepositoryReparent(ctx, ctx.Doer, ctx.Repo.Repository)
+	if err != nil {
+		if repo_model.IsErrNoPendingTransfer(err) || errors.Is(err, repo_model.ErrNoPendingRepoTransfer{}) {
+			ctx.Flash.Error("repo.settings.transfer_abort_invalid")
+			ctx.Redirect(repo.Link() + "/settings")
+		} else {
+			ctx.ServerError("CancelRepositoryReparent", err)
+		}
+		return
+	}
+
+	log.Trace("Repository reparent process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
+	ctx.Flash.Success(ctx.Tr("repo.reparent.rejected"))
 	ctx.Redirect(repo.Link() + "/settings")
 }
 
