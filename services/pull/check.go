@@ -364,10 +364,13 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 
 	var merger *user_model.User
 	if branch, err := git_model.GetBranch(ctx, pr.BaseRepoID, pr.BaseBranch); err == nil {
-		if err := branch.LoadPusher(ctx); err != nil {
+		if err := branch.LoadPusher(ctx); err == nil {
+			if branch.Pusher.ID > 0 {
+				merger = branch.Pusher
+			}
+		} else {
 			log.Error("LoadPusher[%d:%s]: %v", pr.BaseRepoID, pr.BaseBranch, err)
 		}
-		merger = branch.Pusher
 	}
 
 	// When the doer (pusher) is unknown set the BaseRepo owner as merger
