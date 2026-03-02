@@ -173,6 +173,17 @@ func testAPIActionsDeleteRunListTasks(t *testing.T, repo *repo_model.Repository,
 func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
+	t.Run("NotDone", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+		session := loginUser(t, user.Name)
+		writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/rerun", repo.FullName())).
+			AddTokenAuth(writeToken)
+		MakeRequest(t, req, http.StatusBadRequest)
+	})
+
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, user.Name)
@@ -222,21 +233,19 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 	})
 }
 
-func TestAPIActionsRerunWorkflowRunNotDone(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/rerun", repo.FullName())).
-		AddTokenAuth(writeToken)
-	MakeRequest(t, req, http.StatusBadRequest)
-}
-
 func TestAPIActionsRerunWorkflowJob(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
+
+	t.Run("NotDone", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+		session := loginUser(t, user.Name)
+		writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/jobs/194/rerun", repo.FullName())).
+			AddTokenAuth(writeToken)
+		MakeRequest(t, req, http.StatusBadRequest)
+	})
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -282,17 +291,4 @@ func TestAPIActionsRerunWorkflowJob(t *testing.T) {
 			AddTokenAuth(writeToken)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
-}
-
-func TestAPIActionsRerunWorkflowJobRunNotDone(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/jobs/194/rerun", repo.FullName())).
-		AddTokenAuth(writeToken)
-	MakeRequest(t, req, http.StatusBadRequest)
 }
