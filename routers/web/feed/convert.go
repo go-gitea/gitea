@@ -286,7 +286,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 		if rel.IsTag {
 			title = rel.TagName
 		} else {
-			title = rel.Title
+			title = html.EscapeString(rel.Title)
 		}
 
 		link := &feeds.Link{Href: rel.HTMLURL()}
