@@ -941,6 +941,9 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 	ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
 	ctx.Data["DefaultSquashMergeBody"] = defaultSquashMergeBody
 
+	ctx.Data["CanBypassBranchProtection"] = false
+	ctx.Data["CanAdminBypassBranchProtection"] = false
+
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
 	if err != nil {
 		ctx.ServerError("LoadProtectedBranch", err)
@@ -960,6 +963,12 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
 		ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)
 		ctx.Data["RequireApprovalsWhitelist"] = pb.EnableApprovalsWhitelist
+
+		isRepoAdmin := ctx.Repo.Permission.IsAdmin()
+		canAdminBypass := isRepoAdmin && !pb.BlockAdminMergeOverride
+		canBypass := git_model.CanBypassBranchProtection(ctx, pb, ctx.Doer, isRepoAdmin)
+		ctx.Data["CanBypassBranchProtection"] = canBypass
+		ctx.Data["CanAdminBypassBranchProtection"] = canAdminBypass
 	}
 
 	preparePullViewSigning(ctx, issue)

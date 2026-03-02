@@ -404,6 +404,37 @@ func TestAPIBranchProtection(t *testing.T) {
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
 }
 
+func TestAPIBranchProtectionBypassAllowlistValidationWhenDisabled(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+
+	t.Run("IgnoreInvalidBypassUsernamesWhenDisabled", func(t *testing.T) {
+		ruleName := "bypass-disabled-invalid-user"
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
+			RuleName:                 ruleName,
+			EnableBypassAllowlist:    false,
+			BypassAllowlistUsernames: []string{"nonexistent-user"},
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+		testAPIDeleteBranchProtection(t, ruleName, http.StatusNoContent)
+	})
+
+	t.Run("IgnoreInvalidBypassTeamsWhenDisabled", func(t *testing.T) {
+		ruleName := "bypass-disabled-invalid-team"
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/org3/repo3/branch_protections", &api.BranchProtection{
+			RuleName:              ruleName,
+			EnableBypassAllowlist: false,
+			BypassAllowlistTeams:  []string{"nonexistent-team"},
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		deleteReq := NewRequestf(t, "DELETE", "/api/v1/repos/org3/repo3/branch_protections/%s", ruleName).
+			AddTokenAuth(token)
+		MakeRequest(t, deleteReq, http.StatusNoContent)
+	})
+}
+
 func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

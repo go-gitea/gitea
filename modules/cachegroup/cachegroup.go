@@ -9,4 +9,5 @@ const (
 	UserEmailAddresses = "user_email_addresses"
 	GPGKeyWithSubKeys  = "gpg_key_with_subkeys"
 	RepoUserPermission = "repo_user_permission"
+	BypassAllowlist    = "bypass_allowlist"
 )

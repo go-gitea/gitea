@@ -50,6 +50,9 @@ type BranchProtection struct {
 	EnableMergeWhitelist          bool     `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
 	MergeWhitelistTeams           []string `json:"merge_whitelist_teams"`
+	EnableBypassAllowlist         bool     `json:"enable_bypass_allowlist"`
+	BypassAllowlistUsernames      []string `json:"bypass_allowlist_usernames"`
+	BypassAllowlistTeams          []string `json:"bypass_allowlist_teams"`
 	EnableStatusCheck             bool     `json:"enable_status_check"`
 	StatusCheckContexts           []string `json:"status_check_contexts"`
 	RequiredApprovals             int64    `json:"required_approvals"`
@@ -90,6 +93,9 @@ type CreateBranchProtectionOption struct {
 	EnableMergeWhitelist          bool     `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
 	MergeWhitelistTeams           []string `json:"merge_whitelist_teams"`
+	EnableBypassAllowlist         bool     `json:"enable_bypass_allowlist"`
+	BypassAllowlistUsernames      []string `json:"bypass_allowlist_usernames"`
+	BypassAllowlistTeams          []string `json:"bypass_allowlist_teams"`
 	EnableStatusCheck             bool     `json:"enable_status_check"`
 	StatusCheckContexts           []string `json:"status_check_contexts"`
 	RequiredApprovals             int64    `json:"required_approvals"`
@@ -123,6 +129,9 @@ type EditBranchProtectionOption struct {
 	EnableMergeWhitelist          *bool    `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
 	MergeWhitelistTeams           []string `json:"merge_whitelist_teams"`
+	EnableBypassAllowlist         *bool    `json:"enable_bypass_allowlist"`
+	BypassAllowlistUsernames      []string `json:"bypass_allowlist_usernames"`
+	BypassAllowlistTeams          []string `json:"bypass_allowlist_teams"`
 	EnableStatusCheck             *bool    `json:"enable_status_check"`
 	StatusCheckContexts           []string `json:"status_check_contexts"`
 	RequiredApprovals             *int64   `json:"required_approvals"`
