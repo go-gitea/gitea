@@ -616,6 +616,8 @@ github.com/odvcencio/gotreesitter v0.6.1-0.20260302195045-b814814f5811 h1:gDpsEi
 github.com/odvcencio/gotreesitter v0.6.1-0.20260302195045-b814814f5811/go.mod h1:CEjhRXmfP38AHqxwWxNcLaMsLQ3YoGMrwNGle1huZdU=
 github.com/odvcencio/gotreesitter v0.6.1-0.20260302213701-1fdab5f3cc1c h1:n2NH3cpzFVNbnvJxXhr3mY2EDccBzhXlvlL+6YLOOxY=
 github.com/odvcencio/gotreesitter v0.6.1-0.20260302213701-1fdab5f3cc1c/go.mod h1:CEjhRXmfP38AHqxwWxNcLaMsLQ3YoGMrwNGle1huZdU=
+github.com/odvcencio/gotreesitter v0.6.1-0.20260302223957-bd9865ae7488 h1:gy/cXcsn3gS44DPCM/ARrAz+isppXvbhLaLqAEzsPu4=
+github.com/odvcencio/gotreesitter v0.6.1-0.20260302223957-bd9865ae7488/go.mod h1:4HnA6/TfJ9WKjJNN4V7sQK0LrfjFxcBcFVFz9Mg+XeQ=
 github.com/olekukonko/cat v0.0.0-20250817074551-3280053e4e00 h1:ZCnkxe9GgWqqBxAk3cIKlQJuaqgOUF/nUtQs8flVTHM=
 github.com/olekukonko/cat v0.0.0-20250817074551-3280053e4e00/go.mod h1:rEKTHC9roVVicUIfZK7DYrdIoM0EOr8mK1Hj5s3JjH0=
 github.com/olekukonko/errors v1.1.0 h1:RNuGIh15QdDenh+hNvKrJkmxxjV4hcS50Db478Ou5sM=

@@ -88,7 +88,7 @@ require (
 	github.com/msteinert/pam v1.2.0
 	github.com/nektos/act v0.2.63
 	github.com/niklasfasching/go-org v1.9.1
-	github.com/odvcencio/gotreesitter v0.6.1-0.20260302213701-1fdab5f3cc1c
+	github.com/odvcencio/gotreesitter v0.6.1-0.20260302223957-bd9865ae7488
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1

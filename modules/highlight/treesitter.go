@@ -12,15 +12,10 @@ import (
 
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/odvcencio/gotreesitter"
 	tsgrammars "github.com/odvcencio/gotreesitter/grammars"
 )
-
-type treeSitterRegistryType struct {
-	byCanonicalName map[string]*tsgrammars.LangEntry
-}
 
 type treeSitterRenderer struct {
 	displayName       string
@@ -39,108 +34,27 @@ type normalizedHighlightRange struct {
 	class string
 }
 
-var (
-	treeSitterRegistry = sync.OnceValue(func() *treeSitterRegistryType {
-		registry := &treeSitterRegistryType{
-			byCanonicalName: map[string]*tsgrammars.LangEntry{},
-		}
+var treeSitterRendererCache sync.Map // map[string]*treeSitterRenderer
 
-		languages := tsgrammars.AllLanguages()
-		for i := range languages {
-			entry := &languages[i]
-			if strings.TrimSpace(entry.HighlightQuery) == "" {
-				continue
-			}
-			registry.byCanonicalName[canonicalLanguageKey(entry.Name)] = entry
-		}
-
-		for alias, canonical := range treeSitterLanguageAliases {
-			entry, ok := registry.byCanonicalName[canonical]
-			if ok {
-				registry.byCanonicalName[alias] = entry
-			}
-		}
-		return registry
-	})
-
-	treeSitterRendererCache sync.Map // map[string]*treeSitterRenderer
-)
-
-var treeSitterLanguageAliases = map[string]string{
-	"csharp":          "csharp",
-	"cpp":             "cpp",
-	"golang":          "go",
-	"javascriptreact": "javascript",
-	"makefile":        "make",
-	"objectivec":      "objc",
-	"objc":            "objc",
-	"plaintext":       "",
-	"shell":           "bash",
-	"shellscript":     "bash",
-	"text":            "",
-	"typescriptreact": "tsx",
-}
-
-func canonicalLanguageKey(name string) string {
-	name = strings.TrimSpace(strings.ToLower(name))
-	if name == "" {
-		return ""
-	}
-	replacer := strings.NewReplacer(
-		"+", "p",
-		"#", "sharp",
-		" ", "",
-		"-", "",
-		"_", "",
-		".", "",
-		"/", "",
-	)
-	return replacer.Replace(name)
-}
-
+// lookupTreeSitterEntryByLanguageName resolves a language name to a
+// tree-sitter grammar entry using gotreesitter's built-in linguist
+// name mapping. Accepts any linguist name, alias, or grammar name
+// (e.g., "C++", "golang", "Shell", "bash").
 func lookupTreeSitterEntryByLanguageName(name string) *tsgrammars.LangEntry {
-	key := canonicalLanguageKey(name)
-	if key == "" {
+	name = strings.TrimSpace(name)
+	if name == "" {
 		return nil
 	}
-	return treeSitterRegistry().byCanonicalName[key]
-}
-
-func treeSitterDisplayName(entry *tsgrammars.LangEntry) string {
-	if entry == nil {
-		return ""
+	// Reject plaintext/text — these have no grammar.
+	switch strings.ToLower(name) {
+	case "plaintext", "text":
+		return nil
 	}
-
-	switch entry.Name {
-	case "css":
-		return "CSS"
-	case "c_sharp":
-		return "C#"
-	case "cpp":
-		return "C++"
-	case "html":
-		return "HTML"
-	case "json":
-		return "JSON"
-	case "javascript":
-		return "JavaScript"
-	case "php":
-		return "PHP"
-	case "objc":
-		return "Objective-C"
-	case "sql":
-		return "SQL"
-	case "toml":
-		return "TOML"
-	case "typescript":
-		return "TypeScript"
-	case "xml":
-		return "XML"
-	case "yaml":
-		return "YAML"
-	default:
-		return util.ToTitleCaseNoLower(strings.ReplaceAll(entry.Name, "_", " "))
+	entry := tsgrammars.DetectLanguageByName(name)
+	if entry != nil && strings.TrimSpace(entry.HighlightQuery) == "" {
+		return nil // grammar exists but has no highlight query
 	}
+	return entry
 }
 
 func resolveTreeSitterEntry(fileName, fileLang string) *tsgrammars.LangEntry {
@@ -158,15 +72,21 @@ func resolveTreeSitterEntry(fileName, fileLang string) *tsgrammars.LangEntry {
 		}
 	}
 
-	// Prefer explicit language metadata (enry/gitattributes) before extension
+	// Prefer explicit language metadata (enry/gitattributes) before filename
 	// fallback. This avoids wrong grammar selection on ambiguous extensions
 	// like ".h" where metadata can disambiguate C vs Objective-C vs C++.
 	var entry *tsgrammars.LangEntry
 	if fileLang != "" {
 		entry = lookupTreeSitterEntryByLanguageName(fileLang)
 	}
+	// DetectLanguage now checks registry extensions, linguist filenames
+	// (e.g. "Makefile", ".bashrc"), and linguist extended extensions.
 	if entry == nil && fileName != "" {
 		entry = tsgrammars.DetectLanguage(fileName)
+		// Filter out entries without highlight queries.
+		if entry != nil && strings.TrimSpace(entry.HighlightQuery) == "" {
+			entry = nil
+		}
 	}
 	return entry
 }
@@ -212,7 +132,7 @@ func getTreeSitterRenderer(entry *tsgrammars.LangEntry) *treeSitterRenderer {
 	}
 
 	renderer := &treeSitterRenderer{
-		displayName:       treeSitterDisplayName(entry),
+		displayName:       tsgrammars.DisplayName(entry),
 		lang:              lang,
 		parser:            gotreesitter.NewParser(lang),
 		query:             query,
