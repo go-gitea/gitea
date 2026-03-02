@@ -153,7 +153,20 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
-	ws, err := db.Find[webhook.Webhook](ctx, webhook.ListWebhookOptions{OwnerID: ctx.Org.Organization.ID})
+	// Capture the page number from the request
+	page := max(ctx.FormInt("page"), 1)
+
+	// Define the pagination options
+	opts := webhook.ListWebhookOptions{
+		OwnerID: ctx.Org.Organization.ID,
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.Admin.UserPagingNum,
+		},
+	}
+
+	// Get both the slice and the total count
+	ws, count, err := db.FindAndCount[webhook.Webhook](ctx, opts)
 	if err != nil {
 		ctx.ServerError("ListWebhooksByOpts", err)
 		return
@@ -164,6 +177,8 @@ func Webhooks(ctx *context.Context) {
 		return
 	}
 
+	// Set the Pagination object for the template
+	ctx.Data["Page"] = context.NewPagination(int(count), opts.PageSize, page, 5)
 	ctx.Data["Webhooks"] = ws
 	ctx.HTML(http.StatusOK, tplSettingsHooks)
 }
