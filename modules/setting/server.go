@@ -44,6 +44,7 @@ const (
 const (
 	PublicURLAuto   = "auto"
 	PublicURLLegacy = "legacy"
+	PublicURLNever  = "never"
 )
 
 // Server settings
@@ -286,7 +287,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
 	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLLegacy)
-	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy {
+	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy && PublicURLDetection != PublicURLNever {
 		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLDetection)
 	}
 
