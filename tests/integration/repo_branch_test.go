@@ -36,16 +36,14 @@ func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubU
 	return test.RedirectURL(resp)
 }
 
-func TestCreateBranch(t *testing.T) {
-	onGiteaRun(t,
-		func(t *testing.T, u *url.URL) {
-			testCreateBranches(t, u)
-			testDeleteBranchReturnsNotFoundWhenMissing(t, u)
-		},
-	)
+func TestCreateDeleteBranch(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		testCreateBranches(t, u)
+		testDeleteBranch(t, u)
+	})
 }
 
-func testDeleteBranchReturnsNotFoundWhenMissing(t *testing.T, giteaURL *url.URL) {
+func testDeleteBranch(t *testing.T, giteaURL *url.URL) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
@@ -53,12 +51,12 @@ func testDeleteBranchReturnsNotFoundWhenMissing(t *testing.T, giteaURL *url.URL)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
-	require.NoError(t, repo_service.DeleteBranch(t.Context(), doer, repo, gitRepo, "branch2", nil))
+	require.NoError(t, repo_service.DeleteBranch(t.Context(), doer, repo, gitRepo, "branch2"))
 
-	err = repo_service.DeleteBranch(t.Context(), doer, repo, gitRepo, "branch2", nil)
+	err = repo_service.DeleteBranch(t.Context(), doer, repo, gitRepo, "branch2")
 	assert.True(t, git.IsErrBranchNotExist(err))
 
-	err = repo_service.DeleteBranch(t.Context(), doer, repo, gitRepo, "branch-does-not-exist", nil)
+	err = repo_service.DeleteBranch(t.Context(), doer, repo, gitRepo, "branch-does-not-exist")
 	assert.True(t, git.IsErrBranchNotExist(err))
 }
 
