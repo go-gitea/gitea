@@ -283,8 +283,13 @@ func (m *MinioStorage) URL(storePath, name, method string, serveDirectReqParams 
 	reqParams := url.Values{}
 
 	param := serveDirectReqParams.WithDefaults(name)
-	reqParams.Set("response-content-type", param.ContentType)
-	reqParams.Set("response-content-disposition", param.ContentDisposition)
+	// minio does not ignore empty params
+	if param.ContentType != "" {
+		reqParams.Set("response-content-type", param.ContentType)
+	}
+	if param.ContentDisposition != "" {
+		reqParams.Set("response-content-disposition", param.ContentDisposition)
+	}
 
 	expires := 5 * time.Minute
 	if method == http.MethodHead {
