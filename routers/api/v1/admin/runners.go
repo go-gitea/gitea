@@ -10,21 +10,6 @@ import (
 
 // https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-organization
 
-// GetRegistrationToken returns the token to register global runners
-func GetRegistrationToken(ctx *context.APIContext) {
-	// swagger:operation GET /admin/runners/registration-token admin adminGetRunnerRegistrationToken
-	// ---
-	// summary: Get a global actions runner registration token
-	// produces:
-	// - application/json
-	// parameters:
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/RegistrationToken"
-
-	shared.GetRegistrationToken(ctx, 0, 0)
-}
-
 // CreateRegistrationToken returns the token to register global runners
 func CreateRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation POST /admin/actions/runners/registration-token admin adminCreateRunnerRegistrationToken
