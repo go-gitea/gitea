@@ -31,6 +31,9 @@ import (
 	"github.com/nektos/act/pkg/model"
 )
 
+// MaxWorkflowRunDepth is the maximum depth of recursive workflow_run event chains
+const MaxWorkflowRunDepth = 5
+
 type methodCtxKeyType struct{}
 
 var methodCtxKey methodCtxKeyType
@@ -264,7 +267,7 @@ func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) 
 	}
 	if input.Event == webhook_module.HookEventWorkflowRun {
 		wrun, ok := input.Payload.(*api.WorkflowRunPayload)
-		for i := 0; i < 5 && ok && wrun.WorkflowRun != nil; i++ {
+		for i := 0; i < MaxWorkflowRunDepth && ok && wrun.WorkflowRun != nil; i++ {
 			if wrun.WorkflowRun.Event != "workflow_run" {
 				return false
 			}
@@ -279,8 +282,8 @@ func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) 
 				return true
 			}
 		}
-		// skip workflow runs events exceeding the maximum of 5 recursive events
-		log.Debug("repo %s: skipped workflow_run because of recursive event of 5", input.Repo.RelativePath())
+		// skip workflow_run events exceeding the maximum depth of recursive events
+		log.Debug("repo %s: skipped workflow_run because of recursive event of %d", input.Repo.RelativePath(), MaxWorkflowRunDepth)
 		return true
 	}
 	return false
