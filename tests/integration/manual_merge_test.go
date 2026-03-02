@@ -13,6 +13,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -29,36 +30,33 @@ func TestManualMergeAutodetect(t *testing.T) {
 
 		// Create a repo owned by user2
 		repoName := "manual-merge-autodetect"
-		var repo api.Repository
+		defaultBranch := setting.Repository.DefaultBranch
 		user2Ctx := NewAPITestContext(t, user2.Name, repoName, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-		doAPICreateRepository(user2Ctx, false, func(t *testing.T, r api.Repository) {
-			repo = r
-		})(t)
+		doAPICreateRepository(user2Ctx, false)(t)
 
 		// Enable autodetect manual merge
-		TrueValue := true
 		doAPIEditRepository(user2Ctx, &api.EditRepoOption{
-			HasPullRequests:       &TrueValue,
-			AllowManualMerge:      &TrueValue,
-			AutodetectManualMerge: &TrueValue,
+			HasPullRequests:       new(true),
+			AllowManualMerge:      new(true),
+			AutodetectManualMerge: new(true),
 		})(t)
 
 		// Create a PR from a branch
 		branchName := "feature"
-		testEditFileToNewBranch(t, session2, user2.Name, repo.Name, repo.DefaultBranch, branchName, "README.md", "Manual Merge Test")
+		testEditFileToNewBranch(t, session2, user2.Name, repoName, defaultBranch, branchName, "README.md", "Manual Merge Test")
 
-		apiPull, err := doAPICreatePullRequest(NewAPITestContext(t, user1.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository), user2.Name, repo.Name, repo.DefaultBranch, branchName)(t)
+		apiPull, err := doAPICreatePullRequest(NewAPITestContext(t, user1.Name, repoName, auth_model.AccessTokenScopeWriteRepository), user2.Name, repoName, defaultBranch, branchName)(t)
 		assert.NoError(t, err)
 
 		// user1 clones and pushes the branch to master (fast-forward)
 		dstPath := t.TempDir()
 		u, _ := url.Parse(giteaURL.String())
-		u.Path = fmt.Sprintf("%s/%s.git", user2.Name, repo.Name)
+		u.Path = fmt.Sprintf("%s/%s.git", user2.Name, repoName)
 		u.User = url.UserPassword(user1.Name, userPassword)
 
 		doGitClone(dstPath, u)(t)
 		doGitMerge(dstPath, "origin/"+branchName)(t)
-		doGitPushTestRepository(dstPath, "origin", repo.DefaultBranch)(t)
+		doGitPushTestRepository(dstPath, "origin", defaultBranch)(t)
 
 		// Wait for the PR to be marked as merged by the background task
 		var pr *issues_model.PullRequest
