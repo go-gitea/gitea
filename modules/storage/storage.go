@@ -65,7 +65,7 @@ type SignedURLParam struct {
 }
 
 func (s *SignedURLParam) WithDefaults(name string) *SignedURLParam {
-	// Here we might not know the real filename, and it's quite inefficient to detect the mine type by pre-fetching the object head.
+	// Here we might not know the real filename, and it's quite inefficient to detect the MIME type by pre-fetching the object head.
 	// So we just do a quick detection by extension name, at least it works for the "View Raw File" for an LFS file on the Web UI.
 	// Detect content type by extension name, only support the well-known safe types for inline rendering.
 	// TODO: OBJECT-STORAGE-CONTENT-TYPE: need a complete solution and refactor for Azure in the future
@@ -75,7 +75,7 @@ func (s *SignedURLParam) WithDefaults(name string) *SignedURLParam {
 
 	isSafe := false
 	if param.ContentType != "" {
-		isSafe = public.IsWellKnownSafeInlineMimeType(s.ContentType)
+		isSafe = public.IsWellKnownSafeInlineMimeType(param.ContentType)
 	} else if mimeType, safe := public.DetectWellKnownSafeInlineMimeType(ext); safe {
 		param.ContentType = mimeType
 		isSafe = true
