@@ -81,7 +81,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 		"data-markdown-generated-content", "data-attr-class",
 	}
 	generalSafeElements := []string{
-		"h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8", "br", "b", "i", "strong", "em", "a", "pre", "code", "img", "tt",
+		"h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8", "br", "b", "center", "i", "strong", "em", "a", "pre", "code", "img", "tt",
 		"div", "ins", "del", "sup", "sub", "p", "ol", "ul", "table", "thead", "tbody", "tfoot", "blockquote", "label",
 		"dl", "dt", "dd", "kbd", "q", "samp", "var", "hr", "ruby", "rt", "rp", "li", "tr", "td", "th", "s", "strike", "summary",
 		"details", "caption", "figure", "figcaption",

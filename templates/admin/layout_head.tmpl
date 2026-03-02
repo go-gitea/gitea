@@ -1,5 +1,5 @@
 {{template "base/head" .ctxData}}
-<div role="main" aria-label="{{.ctxData.Title}}" class="page-content {{.pageClass}}">
+<div role="main" aria-label="{{.ctxData.Title}}" class="page-content {{.pageClass}}" {{if .dataGlobalInit}}data-global-init="{{.dataGlobalInit}}"{{end}}>
 	<div class="ui container fluid padded flex-container">
 		{{template "admin/navbar" .ctxData}}
 		<div class="flex-container-main">

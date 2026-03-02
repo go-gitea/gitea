@@ -1594,10 +1594,10 @@ func generatePatchForUnchangedLineFromReader(reader io.Reader, treePath string, 
 
 	// Generate synthetic patch
 	var patchBuilder strings.Builder
-	patchBuilder.WriteString(fmt.Sprintf("diff --git a/%s b/%s\n", treePath, treePath))
-	patchBuilder.WriteString(fmt.Sprintf("--- a/%s\n", treePath))
-	patchBuilder.WriteString(fmt.Sprintf("+++ b/%s\n", treePath))
-	patchBuilder.WriteString(fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", startLine, len(lines), startLine, len(lines)))
+	fmt.Fprintf(&patchBuilder, "diff --git a/%s b/%s\n", treePath, treePath)
+	fmt.Fprintf(&patchBuilder, "--- a/%s\n", treePath)
+	fmt.Fprintf(&patchBuilder, "+++ b/%s\n", treePath)
+	fmt.Fprintf(&patchBuilder, "@@ -%d,%d +%d,%d @@\n", startLine, len(lines), startLine, len(lines))
 
 	for _, lineContent := range lines {
 		patchBuilder.WriteString(" ")

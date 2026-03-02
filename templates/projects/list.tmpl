@@ -67,7 +67,7 @@
 					{{else}}
 						<a class="link-action flex-text-inline" href data-url="{{.Link ctx}}/close">{{svg "octicon-skip" 14}}{{ctx.Locale.Tr "repo.projects.close"}}</a>
 					{{end}}
-					<a class="link-action flex-text-inline text red" href data-modal-confirm="#repo-project-delete-modal" data-url="{{.Link ctx}}/delete">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
+					<a class="link-action flex-text-inline tw-text-red" href data-modal-confirm="#repo-project-delete-modal" data-url="{{.Link ctx}}/delete">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
 				</div>
 				{{end}}
 			</div>

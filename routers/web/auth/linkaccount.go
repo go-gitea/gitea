@@ -99,10 +99,10 @@ func LinkAccount(ctx *context.Context) {
 
 func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl templates.TplName, invoker string, err error) {
 	if errors.Is(err, util.ErrNotExist) {
-		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
 	} else if errors.Is(err, util.ErrInvalidArgument) {
 		ctx.Data["user_exists"] = true
-		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
 	} else if user_model.IsErrUserProhibitLogin(err) {
 		ctx.Data["user_exists"] = true
 		log.Info("Failed authentication attempt for %s from %s: %v", userName, ctx.RemoteAddr(), err)
@@ -266,7 +266,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	}
 
 	if !form.IsEmailDomainAllowed() {
-		ctx.RenderWithErr(ctx.Tr("auth.email_domain_blacklisted"), tplLinkAccount, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("auth.email_domain_blacklisted"), tplLinkAccount, &form)
 		return
 	}
 
@@ -280,12 +280,12 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	} else {
 		if (len(strings.TrimSpace(form.Password)) > 0 || len(strings.TrimSpace(form.Retype)) > 0) && form.Password != form.Retype {
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplLinkAccount, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.password_not_match"), tplLinkAccount, &form)
 			return
 		}
 		if len(strings.TrimSpace(form.Password)) > 0 && len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplLinkAccount, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplLinkAccount, &form)
 			return
 		}
 	}

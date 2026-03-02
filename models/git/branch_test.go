@@ -6,14 +6,17 @@ package git_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -61,6 +64,36 @@ func TestGetDeletedBranch(t *testing.T) {
 	firstBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{ID: 1})
 
 	assert.NotNil(t, getDeletedBranch(t, firstBranch))
+}
+
+func TestFindRecentlyPushedNewBranchesUsesPushTime(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 12})
+	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: "outdated-new-branch"})
+
+	commitUnix := time.Now().Add(-3 * time.Hour).Unix()
+	pushUnix := time.Now().Add(-30 * time.Minute).Unix()
+	_, err := db.GetEngine(t.Context()).Exec(
+		"UPDATE branch SET commit_time = ?, updated_unix = ? WHERE id = ?",
+		commitUnix,
+		pushUnix,
+		branch.ID,
+	)
+	assert.NoError(t, err)
+
+	branches, err := git_model.FindRecentlyPushedNewBranches(t.Context(), doer, git_model.FindRecentlyPushedNewBranchesOptions{
+		Repo:            repo,
+		BaseRepo:        repo,
+		PushedAfterUnix: time.Now().Add(-time.Hour).Unix(),
+		MaxCount:        1,
+	})
+	assert.NoError(t, err)
+	if assert.Len(t, branches, 1) {
+		assert.Equal(t, branch.Name, branches[0].BranchName)
+		assert.Equal(t, timeutil.TimeStamp(pushUnix), branches[0].PushedTime)
+	}
 }
 
 func TestDeletedBranchLoadUser(t *testing.T) {
@@ -229,4 +262,26 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 	// Expect no error, and the returned branch to be not nil.
 	assert.NoError(t, err)
 	assert.NotNil(t, deletedBranch)
+}
+
+func TestCountBranches(t *testing.T) {
+	// 1. Setup - Exactly like TestAddDeletedBranch
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	// 2. Execution - Using t.Context() to match the rest of the file
+	initialCount, err := git_model.CountBranches(t.Context(), repo.ID, false)
+	assert.NoError(t, err)
+
+	// 3. Database Action - Using t.Context()
+	err = db.Insert(t.Context(), &git_model.Branch{
+		RepoID: repo.ID,
+		Name:   "test-branch-for-counting",
+	})
+	assert.NoError(t, err)
+
+	// 4. Verification
+	newCount, err := git_model.CountBranches(t.Context(), repo.ID, false)
+	assert.NoError(t, err)
+	assert.Equal(t, initialCount+1, newCount)
 }

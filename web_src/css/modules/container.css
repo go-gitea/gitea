@@ -14,3 +14,21 @@
 .ui.container.medium-width {
   width: 800px;
 }
+
+.ui.message.web-banner-container {
+  position: relative;
+  margin: 0;
+  border-radius: 0;
+}
+
+.ui.message.web-banner-container > .web-banner-content {
+  width: 1280px;
+  max-width: calc(100% - calc(2 * var(--page-margin-x)));
+  margin: auto;
+}
+
+.ui.message.web-banner-container > button.dismiss-banner {
+  position: absolute;
+  right: 20px;
+  top: 15px;
+}
