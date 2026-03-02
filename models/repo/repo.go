@@ -447,9 +447,10 @@ func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit
 		ru.Config = new(ProjectsConfig)
 	default: // other units don't have config
 	}
-	err = ru.Config.FromDB(nil)
-	if err != nil {
-		setting.PanicInDevOrTesting("Failed to load default config for unit %v of repository %d: %v", tp, repo.ID, err)
+	if ru.Config != nil {
+		if err = ru.Config.FromDB(nil); err != nil {
+			setting.PanicInDevOrTesting("Failed to load default config for unit %v of repository %d: %v", tp, repo.ID, err)
+		}
 	}
 	return ru
 }

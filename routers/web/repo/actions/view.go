@@ -431,14 +431,14 @@ func Rerun(ctx *context_module.Context) {
 		ctx.ServerError("GetRunJobsByRunID", err)
 		return
 	}
-	if len(jobs) == 0 {
-		ctx.NotFound(nil)
-		return
-	}
 
 	var targetJob *actions_model.ActionRunJob // nil means rerun all jobs
-	if jobIndexHas && jobIndex >= 0 && jobIndex < len(jobs) {
-		targetJob = jobs[jobIndex]
+	if jobIndexHas {
+		if jobIndex < 0 || jobIndex >= len(jobs) {
+			ctx.JSONError(ctx.Locale.Tr("error.not_found"))
+			return
+		}
+		targetJob = jobs[jobIndex] // only rerun the selected job
 	}
 
 	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs, targetJob); err != nil {
