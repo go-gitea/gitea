@@ -67,13 +67,13 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 			noLength: true,
 		},
 		{
-			name:     "artifact3",
+			name:     "artifact4",
 			version:  4,
 			blockID:  true,
 			noLength: true,
 		},
 		{
-			name:    "artifact4",
+			name:    "artifact5",
 			version: 7,
 			blockID: true,
 		},

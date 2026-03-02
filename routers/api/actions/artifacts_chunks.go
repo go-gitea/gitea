@@ -111,7 +111,7 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 		if _, err := fmt.Sscanf(baseName, "%d-%d-%d-%d.chunk", &item.RunID, &item.ArtifactID, &item.Start, &item.End); err != nil {
 			return fmt.Errorf("parse content range error: %v", err)
 		}
-		if (item.End + 1 - item.Start) == 0 {
+		if (item.End + 1 - item.Start) <= 0 {
 			fi, err := st.Stat(fpath)
 			if err != nil {
 				return err
@@ -165,7 +165,7 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 		if fArtifactID != artifactID {
 			return nil
 		}
-		if size == 0 {
+		if size <= 0 {
 			fi, err := st.Stat(fpath)
 			if err != nil {
 				return err

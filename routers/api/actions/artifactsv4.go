@@ -367,6 +367,8 @@ func (r *artifactV4Routes) readBlockList(runID, artifactID int64) (*BlockList, e
 	blockList := &BlockList{}
 	err = xdec.Decode(blockList)
 
+	_ = s.Close()
+
 	delerr := r.fs.Delete(blockListName)
 	if delerr != nil {
 		log.Warn("Failed to delete blockList %s: %v", blockListName, delerr)
