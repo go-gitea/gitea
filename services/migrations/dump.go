@@ -293,7 +293,9 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 				return err
 			}
 			for _, asset := range release.Assets {
-				attachLocalPath := filepath.Join(attachDir, asset.Name)
+				p := uuid.New().String()
+				// we cannot use asset.Name because it might contains special characters.
+				attachLocalPath := filepath.Join(attachDir, p)
 
 				// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
 				// ... we must assume that they are safe and simply download the attachment
