@@ -10,9 +10,12 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrURLNotSupported represents url is not supported
@@ -56,6 +59,37 @@ type Object interface {
 	Stat() (os.FileInfo, error)
 }
 
+type SignedURLParam struct {
+	ContentType        string
+	ContentDisposition string
+}
+
+func (s *SignedURLParam) WithDefaults(name string) *SignedURLParam {
+	// Here we might not know the real filename, and it's quite inefficient to detect the mine type by pre-fetching the object head.
+	// So we just do a quick detection by extension name, at least it works for the "View Raw File" for an LFS file on the Web UI.
+	// Detect content type by extension name, only support the well-known safe types for inline rendering.
+	// TODO: OBJECT-STORAGE-CONTENT-TYPE: need a complete solution and refactor for Azure in the future
+
+	ext := path.Ext(name)
+	param := util.Iif(s == nil, &SignedURLParam{}, s)
+
+	isSafe := false
+	if param.ContentType != "" {
+		isSafe = public.IsWellKnownSafeInlineMimeType(s.ContentType)
+	} else if mimeType, safe := public.DetectWellKnownSafeInlineMimeType(ext); safe {
+		param.ContentType = mimeType
+		isSafe = true
+	}
+	if param.ContentDisposition == "" {
+		if isSafe {
+			param.ContentDisposition = "inline"
+		} else {
+			param.ContentDisposition = fmt.Sprintf(`attachment; filename="%s"`, quoteEscaper.Replace(name))
+		}
+	}
+	return param
+}
+
 // ObjectStorage represents an object storage to handle a bucket and files
 type ObjectStorage interface {
 	Open(path string) (Object, error)
@@ -67,7 +101,7 @@ type ObjectStorage interface {
 
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
-	URL(path, name, method string, reqParams url.Values) (*url.URL, error)
+	URL(path, name, method string, reqParams *SignedURLParam) (*url.URL, error)
 	IterateObjects(path string, iterator func(path string, obj Object) error) error
 }
 

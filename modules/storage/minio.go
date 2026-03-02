@@ -279,37 +279,12 @@ func (m *MinioStorage) Delete(path string) error {
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (m *MinioStorage) URL(storePath, name, method string, serveDirectReqParams url.Values) (*url.URL, error) {
-	// copy serveDirectReqParams
-	reqParams, err := url.ParseQuery(serveDirectReqParams.Encode())
-	if err != nil {
-		return nil, err
-	}
+func (m *MinioStorage) URL(storePath, name, method string, serveDirectReqParams *SignedURLParam) (*url.URL, error) {
+	reqParams := url.Values{}
 
-	// Here we might not know the real filename, and it's quite inefficient to detect the mine type by pre-fetching the object head.
-	// So we just do a quick detection by extension name, at least if works for the "View Raw File" for an LFS file on the Web UI.
-	// Detect content type by extension name, only support the well-known safe types for inline rendering.
-	// TODO: OBJECT-STORAGE-CONTENT-TYPE: need a complete solution and refactor for Azure in the future
-	ext := path.Ext(name)
-	inlineExtMimeTypes := map[string]string{
-		".png":  "image/png",
-		".jpg":  "image/jpeg",
-		".jpeg": "image/jpeg",
-		".gif":  "image/gif",
-		".webp": "image/webp",
-		".avif": "image/avif",
-		// ATTENTION! Don't support unsafe types like HTML/SVG due to security concerns: they can contain JS code, and maybe they need proper Content-Security-Policy
-		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context, it seems fine to render it inline
-		".pdf": "application/pdf",
-
-		// TODO: refactor with "modules/public/mime_types.go", for example: "DetectWellKnownSafeInlineMimeType"
-	}
-	if mimeType, ok := inlineExtMimeTypes[ext]; ok {
-		reqParams.Set("response-content-type", mimeType)
-		reqParams.Set("response-content-disposition", "inline")
-	} else {
-		reqParams.Set("response-content-disposition", fmt.Sprintf(`attachment; filename="%s"`, quoteEscaper.Replace(name)))
-	}
+	param := serveDirectReqParams.WithDefaults(name)
+	reqParams.Set("response-content-type", param.ContentType)
+	reqParams.Set("response-content-disposition", param.ContentDisposition)
 
 	expires := 5 * time.Minute
 	if method == http.MethodHead {
