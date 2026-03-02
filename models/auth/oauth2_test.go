@@ -5,12 +5,46 @@ package auth_test
 
 import (
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestOAuth2AuthorizationCodeValidity(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	t.Run("GenerateSetsValidUntil", func(t *testing.T) {
+		mockNow := time.Date(2024, 1, 1, 1, 2, 3, 0, time.UTC)
+		defer timeutil.MockSet(mockNow)()
+
+		grant := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Grant{ID: 1})
+		code, err := grant.GenerateNewAuthorizationCode(t.Context(), "http://127.0.0.1/", "", "")
+		assert.NoError(t, err)
+		assert.Equal(t, timeutil.TimeStamp(mockNow.Unix()+600), code.ValidUntil)
+		assert.False(t, code.IsExpired())
+		assert.NoError(t, code.Invalidate(t.Context()))
+	})
+
+	t.Run("Expired", func(t *testing.T) {
+		defer timeutil.MockSet(time.Unix(2, 0).UTC())()
+
+		code := &auth_model.OAuth2AuthorizationCode{ValidUntil: timeutil.TimeStamp(1)}
+		assert.True(t, code.IsExpired())
+	})
+
+	t.Run("InvalidateTwice", func(t *testing.T) {
+		code, err := auth_model.GetOAuth2AuthorizationByCode(t.Context(), "authcode")
+		assert.NoError(t, err)
+		if assert.NotNil(t, code) {
+			assert.NoError(t, code.Invalidate(t.Context()))
+			assert.ErrorIs(t, code.Invalidate(t.Context()), auth_model.ErrOAuth2AuthorizationCodeInvalidated)
+		}
+	})
+}
 
 func TestOAuth2Application_GenerateClientSecret(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

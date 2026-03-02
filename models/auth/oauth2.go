@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/container"
@@ -26,6 +27,10 @@ import (
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
+
+const oauth2AuthorizationCodeValidity = 10 * time.Minute
+
+var ErrOAuth2AuthorizationCodeInvalidated = errors.New("oauth2 authorization code already invalidated")
 
 // OAuth2Application represents an OAuth2 client (RFC 6749)
 type OAuth2Application struct {
@@ -386,6 +391,14 @@ func (code *OAuth2AuthorizationCode) TableName() string {
 	return "oauth2_authorization_code"
 }
 
+// IsExpired reports whether the authorization code is expired.
+func (code *OAuth2AuthorizationCode) IsExpired() bool {
+	if code.ValidUntil.IsZero() {
+		return true
+	}
+	return code.ValidUntil <= timeutil.TimeStampNow()
+}
+
 // GenerateRedirectURI generates a redirect URI for a successful authorization request. State will be used if not empty.
 func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (*url.URL, error) {
 	redirect, err := url.Parse(code.RedirectURI)
@@ -403,8 +416,14 @@ func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (*url.URL
 
 // Invalidate deletes the auth code from the database to invalidate this code
 func (code *OAuth2AuthorizationCode) Invalidate(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).ID(code.ID).NoAutoCondition().Delete(code)
-	return err
+	affected, err := db.GetEngine(ctx).ID(code.ID).NoAutoCondition().Delete(code)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrOAuth2AuthorizationCodeInvalidated
+	}
+	return nil
 }
 
 // ValidateCodeChallenge validates the given verifier against the saved code challenge. This is part of the PKCE implementation.
@@ -472,6 +491,7 @@ func (grant *OAuth2Grant) GenerateNewAuthorizationCode(ctx context.Context, redi
 	// for code scanners to grab sensitive tokens.
 	codeSecret := "gta_" + base32Lower.EncodeToString(rBytes)
 
+	validUntil := timeutil.TimeStampNow() + timeutil.TimeStamp(oauth2AuthorizationCodeValidity/time.Second)
 	code = &OAuth2AuthorizationCode{
 		Grant:               grant,
 		GrantID:             grant.ID,
@@ -479,6 +499,7 @@ func (grant *OAuth2Grant) GenerateNewAuthorizationCode(ctx context.Context, redi
 		Code:                codeSecret,
 		CodeChallenge:       codeChallenge,
 		CodeChallengeMethod: codeChallengeMethod,
+		ValidUntil:          validUntil,
 	}
 	if err := db.Insert(ctx, code); err != nil {
 		return nil, err
