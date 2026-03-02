@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
@@ -54,7 +55,7 @@ func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
 			checkErr = errors.New("md5 not match")
 		}
 	}
-	if writtenSize != contentSize {
+	if writtenSize != contentSize && contentSize != -1 {
 		checkErr = errors.Join(checkErr, fmt.Errorf("writtenSize %d not match contentSize %d", writtenSize, contentSize))
 	}
 	if checkErr != nil {
@@ -88,7 +89,7 @@ func appendUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 	start, contentSize, runID int64,
 ) (int64, error) {
 	end := start + contentSize - 1
-	return saveUploadChunkBase(st, ctx, artifact, contentSize, runID, start, end, contentSize, false)
+	return saveUploadChunkBase(st, ctx, artifact, util.Iif(contentSize == 0, -1, contentSize), runID, start, end, contentSize, false)
 }
 
 type chunkFileItem struct {
@@ -110,6 +111,13 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 		if _, err := fmt.Sscanf(baseName, "%d-%d-%d-%d.chunk", &item.RunID, &item.ArtifactID, &item.Start, &item.End); err != nil {
 			return fmt.Errorf("parse content range error: %v", err)
 		}
+		if (item.End + 1 - item.Start) == 0 {
+			fi, err := st.Stat(fpath)
+			if err != nil {
+				return err
+			}
+			item.End = item.Start + fi.Size() - 1
+		}
 		chunks = append(chunks, &item)
 		return nil
 	}); err != nil {
@@ -126,10 +134,13 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blist *BlockList) ([]*chunkFileItem, error) {
 	storageDir := fmt.Sprintf("tmpv4%d", runID)
 	var chunks []*chunkFileItem
-	chunkMap := map[string]*chunkFileItem{}
-	dummy := &chunkFileItem{}
-	for _, name := range blist.Latest {
-		chunkMap[name] = dummy
+	var chunkMap map[string]*chunkFileItem
+	if blist != nil {
+		chunkMap = map[string]*chunkFileItem{}
+		dummy := &chunkFileItem{}
+		for _, name := range blist.Latest {
+			chunkMap[name] = dummy
+		}
 	}
 	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
 		baseName := filepath.Base(fpath)
@@ -141,32 +152,63 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 		item := chunkFileItem{Path: storageDir + "/" + baseName, ArtifactID: artifactID}
 		var size int64
 		var b64chunkName string
-		if _, err := fmt.Sscanf(baseName, "block-%d-%d-%s", &item.RunID, &size, &b64chunkName); err != nil {
-			return fmt.Errorf("parse content range error: %v", err)
+		var fArtifactID int64
+		if _, err := fmt.Sscanf(baseName, "block-%d-%d-%d-%s", &item.RunID, &fArtifactID, &size, &b64chunkName); err != nil {
+			log.Warn("parse content range error: %v", err)
+			return nil
 		}
 		rchunkName, err := base64.URLEncoding.DecodeString(b64chunkName)
 		if err != nil {
-			return fmt.Errorf("failed to parse chunkName: %v", err)
+			log.Warn("failed to parse chunkName: %v", err)
+			return nil
+		}
+		if fArtifactID != artifactID {
+			return nil
+		}
+		if size == 0 {
+			fi, err := st.Stat(fpath)
+			if err != nil {
+				return err
+			}
+			size = fi.Size()
 		}
 		chunkName := string(rchunkName)
 		item.End = item.Start + size - 1
+		// Single chunk upload with blockid
 		if _, ok := chunkMap[chunkName]; ok {
 			chunkMap[chunkName] = &item
+		} else if chunkMap == nil {
+			if chunks != nil {
+				return errors.New("blockmap is required for chunks > 1")
+			}
+			chunks = []*chunkFileItem{&item}
 		}
 		return nil
-	}); err != nil {
+	}); err != nil && (chunks != nil || blist != nil) {
 		return nil, err
+	} else if blist == nil && chunks == nil {
+		var chunkMap map[int64][]*chunkFileItem
+		chunkMap, err = listChunksByRunID(st, runID)
+		if err != nil {
+			return nil, err
+		}
+		chunks = chunkMap[artifactID]
 	}
-	for i, name := range blist.Latest {
-		chunk, ok := chunkMap[name]
-		if !ok || chunk.Path == "" {
-			return nil, fmt.Errorf("missing Chunk (%d/%d): %s", i, len(blist.Latest), name)
+	if blist != nil {
+		for i, name := range blist.Latest {
+			chunk, ok := chunkMap[name]
+			if !ok || chunk.Path == "" {
+				return nil, fmt.Errorf("missing Chunk (%d/%d): %s", i, len(blist.Latest), name)
+			}
+			chunks = append(chunks, chunk)
+			if i > 0 {
+				chunk.Start = chunkMap[blist.Latest[i-1]].End + 1
+				chunk.End += chunk.Start
+			}
 		}
-		chunks = append(chunks, chunk)
-		if i > 0 {
-			chunk.Start = chunkMap[blist.Latest[i-1]].End + 1
-			chunk.End += chunk.Start
-		}
+	}
+	if len(chunks) < 1 {
+		return nil, errors.New("no Chunk found")
 	}
 	return chunks, nil
 }
