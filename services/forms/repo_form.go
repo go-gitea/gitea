@@ -544,6 +544,8 @@ type CodeCommentForm struct {
 	Content        string `binding:"Required"`
 	Side           string `binding:"Required;In(previous,proposed)"`
 	Line           int64
+	LineStart      int64  `form:"line_start"`
+	LineEnd        int64  `form:"line_end"`
 	TreePath       string `form:"path" binding:"Required"`
 	SingleReview   bool   `form:"single_review"`
 	Reply          int64  `form:"reply"`

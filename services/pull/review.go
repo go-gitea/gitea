@@ -113,7 +113,7 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 }
 
 // CreateCodeComment creates a comment on the code line
-func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line int64, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string, attachments []string) (*issues_model.Comment, error) {
+func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line, lineStart, lineEnd int64, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string, attachments []string) (*issues_model.Comment, error) {
 	var (
 		existsReview bool
 		err          error
@@ -145,6 +145,8 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			content,
 			treePath,
 			line,
+			lineStart,
+			lineEnd,
 			replyReviewID,
 			attachments,
 		)
@@ -186,6 +188,8 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		content,
 		treePath,
 		line,
+		lineStart,
+		lineEnd,
 		review.ID,
 		attachments,
 	)
@@ -206,7 +210,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 }
 
 // createCodeComment creates a plain code comment at the specified line / path
-func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, treePath string, line, reviewID int64, attachments []string) (*issues_model.Comment, error) {
+func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, treePath string, line, lineStart, lineEnd, reviewID int64, attachments []string) (*issues_model.Comment, error) {
 	var commitID, patch string
 	if err := issue.LoadPullRequest(ctx); err != nil {
 		return nil, fmt.Errorf("LoadPullRequest: %w", err)
@@ -292,18 +296,20 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		}
 	}
 	return issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
-		Type:        issues_model.CommentTypeCode,
-		Doer:        doer,
-		Repo:        repo,
-		Issue:       issue,
-		Content:     content,
-		LineNum:     line,
-		TreePath:    treePath,
-		CommitSHA:   commitID,
-		ReviewID:    reviewID,
-		Patch:       patch,
-		Invalidated: invalidated,
-		Attachments: attachments,
+		Type:                 issues_model.CommentTypeCode,
+		Doer:                 doer,
+		Repo:                 repo,
+		Issue:                issue,
+		Content:              content,
+		LineNum:              line,
+		CodeCommentLineStart: lineStart,
+		CodeCommentLineEnd:   lineEnd,
+		TreePath:             treePath,
+		CommitSHA:            commitID,
+		ReviewID:             reviewID,
+		Patch:                patch,
+		Invalidated:          invalidated,
+		Attachments:          attachments,
 	})
 }
 
