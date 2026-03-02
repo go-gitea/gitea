@@ -64,14 +64,14 @@ type SignedURLParam struct {
 	ContentDisposition string
 }
 
-func (s *SignedURLParam) WithDefaults(name string) *SignedURLParam {
+func (s *SignedURLParam) withDefaults(name string) *SignedURLParam {
 	// Here we might not know the real filename, and it's quite inefficient to detect the MIME type by pre-fetching the object head.
 	// So we just do a quick detection by extension name, at least it works for the "View Raw File" for an LFS file on the Web UI.
 	// Detect content type by extension name, only support the well-known safe types for inline rendering.
 	// TODO: OBJECT-STORAGE-CONTENT-TYPE: need a complete solution and refactor for Azure in the future
 
 	ext := path.Ext(name)
-	param := util.Iif(s == nil, &SignedURLParam{}, s)
+	param := *util.Iif(s == nil, &SignedURLParam{}, s)
 
 	isSafe := false
 	if param.ContentType != "" {
@@ -87,7 +87,7 @@ func (s *SignedURLParam) WithDefaults(name string) *SignedURLParam {
 			param.ContentDisposition = fmt.Sprintf(`attachment; filename="%s"`, quoteEscaper.Replace(name))
 		}
 	}
-	return param
+	return &param
 }
 
 // ObjectStorage represents an object storage to handle a bucket and files

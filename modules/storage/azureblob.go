@@ -246,7 +246,7 @@ func (a *AzureBlobStorage) Delete(path string) error {
 	return convertAzureBlobErr(err)
 }
 
-func (a *AzureBlobStorage) GetSasURL(b *blob.Client, template sas.BlobSignatureValues) (string, error) {
+func (a *AzureBlobStorage) getSasURL(b *blob.Client, template sas.BlobSignatureValues) (string, error) {
 	urlParts, err := blob.ParseURL(b.URL())
 	if err != nil {
 		return "", err
@@ -278,9 +278,9 @@ func (a *AzureBlobStorage) URL(storePath, name, _ string, reqParams *SignedURLPa
 
 	startTime := time.Now().UTC()
 
-	param := reqParams.WithDefaults(name)
+	param := reqParams.withDefaults(name)
 
-	u, err := a.GetSasURL(blobClient, sas.BlobSignatureValues{
+	u, err := a.getSasURL(blobClient, sas.BlobSignatureValues{
 		Permissions: (&sas.BlobPermissions{
 			Read: true,
 		}).String(),

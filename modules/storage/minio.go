@@ -282,7 +282,7 @@ func (m *MinioStorage) Delete(path string) error {
 func (m *MinioStorage) URL(storePath, name, method string, serveDirectReqParams *SignedURLParam) (*url.URL, error) {
 	reqParams := url.Values{}
 
-	param := serveDirectReqParams.WithDefaults(name)
+	param := serveDirectReqParams.withDefaults(name)
 	// minio does not ignore empty params
 	if param.ContentType != "" {
 		reqParams.Set("response-content-type", param.ContentType)
