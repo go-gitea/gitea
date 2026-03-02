@@ -640,7 +640,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 	}
 	// remove token from database to deny duplicate usage
 	if err := authorizationCode.Invalidate(ctx); err != nil {
-		errDescription := "cannot proceed your request"
+		errDescription := "cannot process your request"
 		errCode := oauth2_provider.AccessTokenErrorCodeInvalidRequest
 		if errors.Is(err, auth.ErrOAuth2AuthorizationCodeInvalidated) {
 			errDescription = "authorization code already used"
