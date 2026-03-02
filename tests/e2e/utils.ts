@@ -1,6 +1,22 @@
 import {env} from 'node:process';
-import {expect} from '@playwright/test';
+import {test as baseTest, expect} from '@playwright/test';
 import type {APIRequestContext, Locator, Page} from '@playwright/test';
+
+export {expect};
+
+export const test = baseTest.extend<{consoleCheck: void}>({
+  consoleCheck: [async ({page}, use) => {
+    page.on('console', (msg) => {
+      const text = msg.text();
+      if (/the server responded with a status of 4\d{2}/.test(text)) return;
+      console.info(`console.${msg.type()}: ${text}`);
+    });
+    page.on('pageerror', (err) => {
+      console.error(`pageerror: ${err.message}`);
+    });
+    await use();
+  }, {auto: true}],
+});
 
 export function apiBaseUrl() {
   return env.GITEA_TEST_E2E_URL?.replace(/\/$/g, '');

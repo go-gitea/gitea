@@ -1,4 +1,4 @@
-import {test, expect} from '@playwright/test';
+import {test, expect} from './utils.ts';
 
 test('explore repositories', async ({page}) => {
   await page.goto('/explore/repos');

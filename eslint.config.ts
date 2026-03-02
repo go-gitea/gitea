@@ -915,6 +915,13 @@ export default defineConfig([
     rules: {
       ...playwright.configs['flat/recommended'].rules,
       'playwright/expect-expect': [0],
+      'no-restricted-imports': [2, {
+        paths: [{
+          name: '@playwright/test',
+          importNames: ['test', 'expect'],
+          message: 'Import from ./utils.ts instead',
+        }],
+      }],
     },
   },
   {
@@ -1002,7 +1009,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['*', 'tools/**/*'],
+    files: ['*', 'tools/**/*', 'tests/**/*'],
     languageOptions: {globals: globals.nodeBuiltin},
   },
   {

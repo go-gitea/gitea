@@ -1,6 +1,5 @@
 import {env} from 'node:process';
-import {test, expect} from '@playwright/test';
-import {login, logout} from './utils.ts';
+import {test, expect, login, logout} from './utils.ts';
 
 test.beforeEach(async ({page}) => {
   await page.goto('/user/sign_up');
