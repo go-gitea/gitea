@@ -287,6 +287,7 @@ func (g *RepositoryDumper) CreateLabels(_ context.Context, labels ...*base.Label
 // CreateReleases creates releases
 func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.Release) error {
 	if g.opts.ReleaseAssets {
+		httpClient := NewMigrationHTTPClient()
 		for _, release := range releases {
 			attachDir := filepath.Join("release_assets", release.TagName)
 			if err := os.MkdirAll(filepath.Join(g.baseDir, attachDir), os.ModePerm); err != nil {
@@ -307,7 +308,7 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 						}
 						defer rc.Close()
 					} else if asset.DownloadURL != nil {
-						resp, err := NewMigrationHTTPClient().Get(*asset.DownloadURL)
+						resp, err := httpClient.Get(*asset.DownloadURL)
 						if err != nil {
 							return err
 						}
