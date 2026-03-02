@@ -4,10 +4,18 @@
 package private
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
@@ -16,11 +24,13 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/agit"
@@ -105,21 +115,653 @@ func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
 	return true
 }
 
+// calculateSizeOfObject calculates the size of one git object via git cat-file -s command
+func calculateSizeOfObject(ctx *gitea_context.PrivateContext, dir string, env []string, objectID string) (int64, error) {
+	objectSizeStr, _, err := gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(objectID).WithDir(dir).WithEnv(env).RunStdString(ctx)
+	if err != nil {
+		log.Trace("CalculateSizeOfRemovedObjects: Error during git cat-file -s on object: %s", objectID)
+		return 0, err
+	}
+
+	objectSize, errParse := strconv.ParseInt(strings.TrimSpace(objectSizeStr), 10, 64)
+	if errParse != nil {
+		log.Trace("CalculateSizeOfRemovedObjects: Error during ParseInt on string '%s'", objectID)
+		return 0, errParse
+	}
+	return objectSize, nil
+}
+
+// calculateSizeOfObjectsFromCache calculates the size of objects added and removed from the repository by new push
+// it uses data that was cached about the repository for this run
+func calculateSizeOfObjectsFromCache(newCommitObjects, oldCommitObjects, otherCommitObjects map[string]bool, commitObjectsSizes map[string]int64) (addedSize, removedSize int64) {
+	// Calculate size of objects that were added
+	for objectID := range newCommitObjects {
+		if _, exists := oldCommitObjects[objectID]; !exists {
+			addedSize += commitObjectsSizes[objectID]
+		}
+	}
+
+	// Calculate size of objects that were removed
+	for objectID := range oldCommitObjects {
+		if _, exists := newCommitObjects[objectID]; !exists {
+			if _, exists := otherCommitObjects[objectID]; !exists {
+				removedSize += commitObjectsSizes[objectID]
+			}
+		}
+	}
+	return addedSize, removedSize
+}
+
+// convertObjectsToMap takes a newline-separated string of git objects and
+// converts it into a map for efficient lookup.
+func convertObjectsToMap(objects string) map[string]bool {
+	objectsMap := make(map[string]bool)
+	for object := range strings.SplitSeq(objects, "\n") {
+		if len(object) == 0 {
+			continue
+		}
+		objectID := strings.Split(object, " ")[0]
+		objectsMap[objectID] = true
+	}
+	return objectsMap
+}
+
+// convertObjectsToSlice converts a list of hashes in a string from the git rev-list --objects command to a slice of string objects
+func convertObjectsToSlice(objects string) (objectIDs []string) {
+	for object := range strings.SplitSeq(objects, "\n") {
+		if len(object) == 0 {
+			continue
+		}
+		objectID := strings.Split(object, " ")[0]
+		objectIDs = append(objectIDs, objectID)
+	}
+	return objectIDs
+}
+
+// loadObjectSizesFromPack access all packs that this push or repo has
+// and load compressed object size in bytes into objectSizes map
+// using `git verify-pack -v` output
+func loadObjectSizesFromPack(ctx *gitea_context.PrivateContext, dir string, env []string, objectsSizes map[string]int64) error {
+	// Find the path from GIT_QUARANTINE_PATH environment variable (path to the pack file)
+	var packPath string
+	var errExec error
+	for _, envVar := range env {
+		split := strings.SplitN(envVar, "=", 2)
+		if split[0] == "GIT_QUARANTINE_PATH" {
+			packPath = split[1]
+			break
+		}
+	}
+
+	// if no quarantinPath determined we silently ignore
+	if packPath == "" {
+		log.Trace("GIT_QUARANTINE_PATH not found in the environment variables. Will read the pack files from main repo instead")
+		packPath = filepath.Join(ctx.Repo.Repository.RepoPath(), "./objects/")
+	}
+	log.Trace("packPath: %s", packPath)
+
+	// Find all pack files *.idx in the quarantine directory
+	packFiles, err := filepath.Glob(filepath.Join(packPath, "./pack/*.idx"))
+	// if pack file not found we silently ignore
+	if err != nil {
+		log.Trace("Error during finding pack files %s: %v", filepath.Join(packPath, "./pack/*.idx"), err)
+	}
+
+	// Loop over each pack file
+	i := 0
+	for _, packFile := range packFiles {
+		log.Trace("Processing packfile %s", packFile)
+		// Extract and store in cache objectsSizes the sizes of the object parsing output of the `git verify-pack` command
+		output, _, err := gitcmd.NewCommand("verify-pack", "-v").AddDynamicArguments(packFile).WithDir(dir).WithEnv(env).RunStdString(ctx)
+		if err != nil {
+			log.Trace("Error during git verify-pack on pack file: %s", packFile)
+			if errExec == nil {
+				errExec = err
+			} else {
+				errExec = fmt.Errorf("%w; %v", errExec, err)
+			}
+			continue
+		}
+
+		// Parsing the output of the git verify-pack command
+		lines := strings.SplitSeq(output, "\n")
+		for line := range lines {
+			fields := strings.Fields(line)
+			if len(fields) < 4 {
+				continue
+			}
+
+			// Second field has object type
+			objectType := fields[1]
+			if objectType != "commit" && objectType != "tree" && objectType != "blob" && objectType != "tag" {
+				continue
+			}
+
+			// First field would have an object hash
+			objectID := fields[0]
+
+			// Forth field would have an object compressed size
+			size, err := strconv.ParseInt(fields[3], 10, 64)
+			if err != nil {
+				log.Trace("Failed to parse size for object %s: %v", objectID, err)
+				continue
+			}
+			i++
+			objectsSizes[objectID] = size
+		}
+	}
+
+	log.Trace("Loaded %d items from packfiles", i)
+	return errExec
+}
+
+// loadObjectsSizesViaCatFile uses hashes from objectIDs and runs `git cat-file -s` in 10 workers to return each object sizes
+// Objects for which size is already loaded are skipped
+// can't use `git cat-file --batch-check` here as it only provides data from git DB before the commit applied and has no knowledge on new commit objects
+func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, dir string, env, objectIDs []string, objectsSizes map[string]int64) error {
+	// This is the number of workers that will simultaneously process CalculateSizeOfObject.
+	const numWorkers = 10
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
+	// errExec will hold the first error.
+	var errOnce sync.Once
+	var errExec error
+
+	// errCount will count how many *additional* errors occurred after the first one.
+	var errCount int64
+
+	// Prepare numWorkers slices to store the work
+	reducedObjectIDs := make([][]string, numWorkers)
+	for i := range reducedObjectIDs {
+		reducedObjectIDs[i] = make([]string, 0, len(objectIDs)/numWorkers+1)
+	}
+
+	// Loop over all objectIDs and find which ones are missing size information
+	i := 0
+	for _, objectID := range objectIDs {
+		_, exists := objectsSizes[objectID]
+		if !exists {
+			reducedObjectIDs[i%numWorkers] = append(reducedObjectIDs[i%numWorkers], objectID)
+			i++
+		}
+	}
+
+	// Start workers and determine size using `git cat-file -s`, store in objectsSizes cache
+	for w := 1; w <= numWorkers; w++ {
+		wg.Add(1)
+		go func(reducedObjectIDs *[]string) {
+			defer wg.Done()
+			for _, objectID := range *reducedObjectIDs {
+				workerCtx := ctx
+				// Ensure that each worker has its own copy of the env environment to prevent races
+				env := append([]string(nil), env...)
+
+				objectSize, err := calculateSizeOfObject(workerCtx, dir, env, objectID)
+				// Upon error we store the first error and continue processing, as we can't stop the push
+				// if we were not able to calculate the size of the object, but we keep one error to
+				// return at the end, along with a count of subsequent similar errors.
+				if err != nil {
+					ran := false
+					errOnce.Do(func() {
+						errExec = err
+						ran = true
+					})
+					if !ran {
+						atomic.AddInt64(&errCount, 1)
+					}
+				}
+
+				mu.Lock() // Protecting shared resource
+				objectsSizes[objectID] = objectSize
+				mu.Unlock() // Releasing shared resource for other goroutines
+			}
+		}(&reducedObjectIDs[(w-1)%numWorkers])
+	}
+
+	wg.Wait()
+
+	if errExec == nil {
+		return nil
+	}
+	if n := atomic.LoadInt64(&errCount); n > 0 {
+		return fmt.Errorf("%w (and %d subsequent similar errors)", errExec, n)
+	}
+	return errExec
+}
+
+// loadObjectsSizesViaBatch uses hashes from objectIDs and uses `git cat-file --batch` command to retrieve object sizes
+// This function can't be used for new commit objects.
+func loadObjectsSizesViaBatch(ctx *gitea_context.PrivateContext, repoPath string, objectIDs []string, objectsSizes map[string]int64) error {
+	reducedObjectIDs := make([]string, 0, len(objectIDs))
+	for _, objectID := range objectIDs {
+		_, exists := objectsSizes[objectID]
+		if !exists {
+			reducedObjectIDs = append(reducedObjectIDs, objectID)
+		}
+	}
+
+	batch, err := git.NewBatch(ctx, repoPath)
+	if err != nil {
+		log.Error("Unable to create CatFileBatch in %s Error: %v", repoPath, err)
+		return fmt.Errorf("Fail to create CatFileBatch: %v", err)
+	}
+	defer batch.Close()
+
+	for _, objectID := range reducedObjectIDs {
+		info, err := batch.QueryInfo(objectID)
+		if err != nil {
+			log.Trace("Failed to query info for object %s: %v", objectID, err)
+			continue
+		}
+		objectsSizes[objectID] = info.Size
+	}
+
+	return nil
+}
+
+/*
+LFS pointer scanning (fast-ish, bounded)
+
+We look for pointer blobs (small, <= 4KiB) and parse:
+
+	oid sha256:<64hex>
+	size <bytes>
+
+This lets us compute:
+- incomingNewToRepoLFS: pointers that are new vs old AND not referenced in "other" parts of repo
+- removedLFSSize: pointers removed vs new AND not referenced in "other"
+*/
+var (
+	lfsPointerMarker = []byte("version https://git-lfs.github.com/spec/v1")
+	lfsOIDRe         = regexp.MustCompile(`(?m)^oid sha256:([0-9a-f]{64})$`)
+	lfsSizeRe        = regexp.MustCompile(`(?m)^size ([0-9]+)$`)
+)
+
+func sumLFSSizes(m map[string]int64) int64 {
+	var s int64
+	for _, v := range m {
+		s += v
+	}
+	return s
+}
+
+// scanLFSPointersFromObjectIDs finds LFS pointer blobs among objectIDs and returns map[oid]size.
+// It only reads small blobs via cat-file, so it stays bounded.
+func scanLFSPointersFromObjectIDs(ctx *gitea_context.PrivateContext, repoPath string, env, objectIDs []string, maxBlobSize int64) (map[string]int64, error) {
+	out := make(map[string]int64)
+	if len(objectIDs) == 0 {
+		return out, nil
+	}
+
+	// 1) batch-check: filter small blobs only
+	var input bytes.Buffer
+	for _, oid := range objectIDs {
+		if oid == "" {
+			continue
+		}
+		input.WriteString(oid)
+		input.WriteByte('\n')
+	}
+
+	// Use batch-check to get object type and size for each object ID
+	checkCmd := gitcmd.NewCommand("cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)").
+		WithDir(repoPath).
+		WithEnv(env).
+		WithStdinCopy(bytes.NewReader(input.Bytes()))
+
+	checkBytes, _, err := checkCmd.RunStdBytes(ctx)
+	if err != nil {
+		return out, err
+	}
+
+	smallBlobs := make([]string, 0, 1024)
+	for line := range bytes.SplitSeq(checkBytes, []byte{'\n'}) {
+		// "<sha> blob <size>"
+		fields := bytes.Fields(line)
+		if len(fields) != 3 {
+			continue
+		}
+		if !bytes.Equal(fields[1], []byte("blob")) {
+			continue
+		}
+		size, perr := strconv.ParseInt(string(fields[2]), 10, 64)
+		if perr != nil {
+			continue
+		}
+		if size <= maxBlobSize {
+			smallBlobs = append(smallBlobs, string(fields[0]))
+		}
+	}
+
+	if len(smallBlobs) == 0 {
+		return out, nil
+	}
+
+	// 2) batch: read contents of small blobs, parse LFS pointers
+	var input2 bytes.Buffer
+	for _, oid := range smallBlobs {
+		input2.WriteString(oid)
+		input2.WriteByte('\n')
+	}
+
+	catCmd := gitcmd.NewCommand("cat-file", "--batch").
+		WithDir(repoPath).
+		WithEnv(env).
+		WithStdinCopy(bytes.NewReader(input2.Bytes()))
+
+	catBytes, _, err := catCmd.RunStdBytes(ctx)
+	if err != nil {
+		return out, err
+	}
+
+	data := catBytes
+	i := 0
+	for i < len(data) {
+		j := bytes.IndexByte(data[i:], '\n')
+		if j < 0 {
+			break
+		}
+		j += i
+		header := data[i:j]
+		i = j + 1
+
+		hf := bytes.Fields(header)
+		if len(hf) < 3 {
+			break
+		}
+		blobSize, perr := strconv.ParseInt(string(hf[2]), 10, 64)
+		if perr != nil || blobSize < 0 {
+			break
+		}
+		if i+int(blobSize) > len(data) {
+			break
+		}
+
+		content := data[i : i+int(blobSize)]
+		i += int(blobSize)
+
+		if i < len(data) && data[i] == '\n' {
+			i++
+		}
+
+		if !bytes.Contains(content, lfsPointerMarker) {
+			continue
+		}
+
+		oidm := lfsOIDRe.FindSubmatch(content)
+		if len(oidm) != 2 {
+			continue
+		}
+		sizem := lfsSizeRe.FindSubmatch(content)
+		if len(sizem) != 2 {
+			continue
+		}
+
+		oid := string(oidm[1])
+		sz, perr := strconv.ParseInt(string(sizem[1]), 10, 64)
+		if perr != nil || sz < 0 {
+			continue
+		}
+
+		if prev, ok := out[oid]; !ok || sz > prev {
+			out[oid] = sz
+		}
+	}
+
+	return out, nil
+}
+
 // HookPreReceive checks whether a individual commit is acceptable
 func HookPreReceive(ctx *gitea_context.PrivateContext) {
+	startTime := time.Now()
+	const maxLFSPointerBlobSize = int64(4096)
+
 	opts := web.GetForm(ctx).(*private.HookOptions)
 
 	ourCtx := &preReceiveContext{
 		PrivateContext: ctx,
-		env:            generateGitEnv(opts), // Generate git environment for checking commits
+		env:            generateGitEnv(opts),
 		opts:           opts,
 	}
 
-	// Iterate across the provided old commit IDs
+	repo := ourCtx.Repo.Repository
+
+	var addedSize int64
+	var removedSize int64
+
+	// LFS sizes derived from pointers
+	var incomingNewToRepoLFS int64 // best proxy for “incoming LFS objects”
+	var removedLFSSize int64
+	var addedLFSSize int64 // new-vs-old pointers (can include already-known-to-repo)
+
+	var isRepoOversized bool
+	var pushSize *git.CountObject
+	var repoSize *git.CountObject
+	var err error
+	var duration time.Duration
+
+	needGitDelta := repo.ShouldCheckRepoSize()
+	needLFSDelta := repo.ShouldCheckLFSSize()
+
+	// Only do CountObjects (push/repo) when we're doing the repo-size limit at all
+	if needGitDelta {
+		repoSize, err = gitrepo.CountObjects(ctx, repo)
+		if err != nil {
+			log.Error("Unable to get repository size with env %v: %s Error: %v", repo.RepoPath(), ourCtx.env, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]any{
+				"err": err.Error(),
+			})
+			return
+		}
+
+		pushSize, err = gitrepo.CountObjectsWithEnv(ctx, repo, ourCtx.env)
+		if err != nil {
+			log.Error("Unable to get push size with env %v: %s Error: %v", repo.RepoPath(), ourCtx.env, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]any{
+				"err": err.Error(),
+			})
+			return
+		}
+
+		isRepoOversized = repo.IsRepoSizeOversized(pushSize.Size + pushSize.SizePack)
+		log.Trace("Push counts %+v", pushSize)
+		log.Trace("Repo counts %+v", repoSize)
+	}
+
 	for i := range opts.OldCommitIDs {
 		oldCommitID := opts.OldCommitIDs[i]
 		newCommitID := opts.NewCommitIDs[i]
 		refFullName := opts.RefFullNames[i]
+
+		log.Trace("Processing old commit: %s, new commit: %s, ref: %s", oldCommitID, newCommitID, refFullName)
+
+		// Deep work is only needed if:
+		// - repo is oversized (git deep path), OR
+		// - we need LFS delta (LFS limit enabled OR combined mode enabled)
+		if isRepoOversized || needLFSDelta {
+			var gitObjects string
+			var errLoop error
+			var errLFS error
+
+			// Keep pointer maps so we can compute delta at the end
+			var oldLFSPtrs, otherLFSPtrs, newLFSPtrs map[string]int64
+
+			// Only allocate object-size cache if we'll actually do git delta calc
+			var commitObjectsSizes map[string]int64
+			if isRepoOversized {
+				commitObjectsSizes = make(map[string]int64)
+			}
+
+			// OLD commit objects
+			if oldCommitID != "0000000000000000000000000000000000000000" {
+				gitObjects, _, err = gitcmd.NewCommand("rev-list", "--objects").
+					AddDynamicArguments(oldCommitID).
+					WithDir(repo.RepoPath()).WithEnv(ourCtx.env).RunStdString(ctx)
+				if err != nil {
+					log.Error("Unable to list objects in old commit: %s in %-v Error: %v", oldCommitID, repo, err)
+					ctx.JSON(http.StatusInternalServerError, private.Response{
+						Err: fmt.Sprintf("Fail to list objects in old commit: %v", err),
+					})
+					return
+				}
+			}
+
+			oldCommitObjects := convertObjectsToMap(gitObjects)
+			objectIDs := convertObjectsToSlice(gitObjects)
+
+			// LFS pointers for OLD (only if needed)
+			oldLFSPtrs = map[string]int64{}
+			if needLFSDelta {
+				oldLFSPtrs, errLFS = scanLFSPointersFromObjectIDs(ctx, repo.RepoPath(), ourCtx.env, objectIDs, maxLFSPointerBlobSize)
+				if errLFS != nil {
+					log.Error("Unable to scan old commit LFS pointers for %s in %-v: %v", oldCommitID, repo, errLFS)
+					oldLFSPtrs = map[string]int64{}
+				} else {
+					log.Trace("LFS(old): pointers=%d total=%s", len(oldLFSPtrs), base.FileSize(sumLFSSizes(oldLFSPtrs)))
+				}
+			}
+
+			// OTHER objects (repo excluding old+new)
+			if oldCommitID == "0000000000000000000000000000000000000000" {
+				gitObjects, _, err = gitcmd.NewCommand("rev-list", "--objects", "--all").
+					AddDynamicArguments("^" + newCommitID).
+					WithDir(repo.RepoPath()).WithEnv(ourCtx.env).RunStdString(ctx)
+				if err != nil {
+					log.Error("Unable to list objects in the repo that are missing from both old %s and new %s commits in %-v Error: %v", oldCommitID, newCommitID, repo, err)
+					ctx.JSON(http.StatusInternalServerError, private.Response{
+						Err: fmt.Sprintf("Fail to list objects missing from both old and new commits: %v", err),
+					})
+					return
+				}
+			} else {
+				gitObjects, _, err = gitcmd.NewCommand("rev-list", "--objects", "--all").
+					AddDynamicArguments("^"+oldCommitID, "^"+newCommitID).
+					WithDir(repo.RepoPath()).WithEnv(ourCtx.env).RunStdString(ctx)
+				if err != nil {
+					log.Error("Unable to list objects in the repo that are missing from both old %s and new %s commits in %-v Error: %v", oldCommitID, newCommitID, repo, err)
+					ctx.JSON(http.StatusInternalServerError, private.Response{
+						Err: fmt.Sprintf("Fail to list objects missing from both old and new commits: %v", err),
+					})
+					return
+				}
+			}
+
+			otherCommitObjects := convertObjectsToMap(gitObjects)
+			objectIDs = append(objectIDs, convertObjectsToSlice(gitObjects)...)
+
+			// LFS pointers for OTHER (only if needed)
+			otherLFSPtrs = map[string]int64{}
+			if needLFSDelta {
+				otherLFSPtrs, errLFS = scanLFSPointersFromObjectIDs(ctx, repo.RepoPath(), ourCtx.env, objectIDs, maxLFSPointerBlobSize)
+				if errLFS != nil {
+					log.Error("Unable to scan other-objects LFS pointers for repo %-v: %v", repo, errLFS)
+					otherLFSPtrs = map[string]int64{}
+				} else {
+					log.Trace("LFS(other): pointers=%d total=%s", len(otherLFSPtrs), base.FileSize(sumLFSSizes(otherLFSPtrs)))
+				}
+			}
+
+			// Load sizes of OLD+OTHER objects (existing in DB): pack + batch (git deep only)
+			if isRepoOversized {
+				if repoSize != nil && repoSize.InPack > 0 {
+					errLoop = loadObjectSizesFromPack(ctx, repo.RepoPath(), nil, commitObjectsSizes)
+					if errLoop != nil {
+						log.Error("Unable to get sizes of objects from the pack in %-v Error: %v", repo, errLoop)
+					}
+				}
+
+				errLoop = loadObjectsSizesViaBatch(ctx, repo.RepoPath(), objectIDs, commitObjectsSizes)
+				if errLoop != nil {
+					log.Error("Unable to get sizes of objects that are missing in both old %s and new commits %s in %-v Error: %v", oldCommitID, newCommitID, repo, errLoop)
+					ctx.JSON(http.StatusInternalServerError, private.Response{
+						Err: fmt.Sprintf("Fail to get sizes of objects missing in both old and new commit and those in old commit: %v", errLoop),
+					})
+					return
+				}
+			}
+
+			// NEW commit objects
+			gitObjects, _, err = gitcmd.NewCommand("rev-list", "--objects").
+				AddDynamicArguments(newCommitID).
+				WithDir(repo.RepoPath()).WithEnv(ourCtx.env).RunStdString(ctx)
+			if err != nil {
+				log.Error("Unable to list objects in new commit %s in %-v Error: %v", newCommitID, repo, err)
+				ctx.JSON(http.StatusInternalServerError, private.Response{
+					Err: fmt.Sprintf("Fail to list objects in new commit: %v", err),
+				})
+				return
+			}
+
+			newCommitObjects := convertObjectsToMap(gitObjects)
+			objectIDs = convertObjectsToSlice(gitObjects)
+
+			// LFS pointers for NEW (only if needed)
+			newLFSPtrs = map[string]int64{}
+			if needLFSDelta {
+				newLFSPtrs, errLFS = scanLFSPointersFromObjectIDs(ctx, repo.RepoPath(), ourCtx.env, objectIDs, maxLFSPointerBlobSize)
+				if errLFS != nil {
+					log.Error("Unable to scan new commit LFS pointers for %s in %-v: %v", newCommitID, repo, errLFS)
+					newLFSPtrs = map[string]int64{}
+				} else {
+					log.Trace("LFS(new): pointers=%d total=%s", len(newLFSPtrs), base.FileSize(sumLFSSizes(newLFSPtrs)))
+				}
+			}
+
+			// Load sizes of NEW objects (may be in quarantine packs, etc.) (git deep only)
+			if isRepoOversized {
+				if pushSize != nil && pushSize.InPack > 0 {
+					errLoop = loadObjectSizesFromPack(ctx, repo.RepoPath(), ourCtx.env, commitObjectsSizes)
+					if errLoop != nil {
+						log.Error("Unable to get sizes of objects from the pack in new commit %s in %-v Error: %v", newCommitID, repo, errLoop)
+					}
+				}
+
+				errLoop = loadObjectsSizesViaCatFile(ctx, repo.RepoPath(), ourCtx.env, objectIDs, commitObjectsSizes)
+				if errLoop != nil {
+					log.Error("Unable to get sizes of objects in new commit %s in %-v Error: %v", newCommitID, repo, errLoop)
+				}
+
+				// Git object delta (git deep only)
+				addedSize, removedSize = calculateSizeOfObjectsFromCache(newCommitObjects, oldCommitObjects, otherCommitObjects, commitObjectsSizes)
+			}
+
+			// LFS delta based on pointer presence (LFS deep only)
+			if needLFSDelta {
+				for oid, sz := range newLFSPtrs {
+					if _, inOld := oldLFSPtrs[oid]; !inOld {
+						addedLFSSize += sz
+						if _, inOther := otherLFSPtrs[oid]; !inOther {
+							// Check if the object is already in the database for this repository (e.g. orphan or referenced by hidden ref)
+							if _, err := git_model.GetLFSMetaObjectByOid(ctx, repo.ID, oid); err == nil {
+								continue
+							}
+							incomingNewToRepoLFS += sz
+						}
+					}
+				}
+
+				for oid, sz := range oldLFSPtrs {
+					if _, inNew := newLFSPtrs[oid]; inNew {
+						continue
+					}
+					if _, inOther := otherLFSPtrs[oid]; inOther {
+						continue
+					}
+					removedLFSSize += sz
+				}
+
+				log.Trace(
+					"LFS(delta): incoming-new-to-repo=%s added(vs old)=%s removed=%s current(repo.LFSSize)=%s predicted=%s",
+					base.FileSize(incomingNewToRepoLFS),
+					base.FileSize(addedLFSSize),
+					base.FileSize(removedLFSSize),
+					base.FileSize(repo.LFSSize),
+					base.FileSize(repo.LFSSize+incomingNewToRepoLFS-removedLFSSize),
+				)
+			}
+		}
 
 		switch {
 		case refFullName.IsBranch():
@@ -132,6 +774,69 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			ourCtx.AssertCanWriteCode()
 		}
 		if ctx.Written() {
+			return
+		}
+	}
+
+	// --------- Final accounting + enforcement (one timing) ---------
+	duration = time.Since(startTime)
+
+	currentGit := repo.GitSize
+	currentLFS := repo.LFSSize
+
+	gitDelta := addedSize - removedSize
+	predictedGitAfter := currentGit + gitDelta
+
+	lfsDelta := incomingNewToRepoLFS - removedLFSSize
+	predictedLFSAfter := currentLFS + lfsDelta
+
+	// One summary line (time included here only)
+	if repo.ShouldCheckRepoSize() || repo.ShouldCheckLFSSize() {
+		log.Warn(
+			"SizeCheck summary: took=%s repo=%s/%s git(pred=%s cur=%s delta=%s) lfs(pred=%s cur=%s delta=%s) limits(git=%s lfs=%s)",
+			duration,
+			repo.OwnerName, repo.Name,
+			base.FileSize(predictedGitAfter), base.FileSize(currentGit), base.FileSize(gitDelta),
+			base.FileSize(predictedLFSAfter), base.FileSize(currentLFS), base.FileSize(lfsDelta),
+			setting.FormatRepositorySizeLimit(setting.Repository.GitSizeMax),
+			setting.FormatRepositorySizeLimit(setting.Repository.LFSSizeMax),
+		)
+	}
+
+	// 1) LFS size limit: compare against predicted LFS after push
+	if repo.ShouldCheckLFSSize() {
+		lfsLimit := repo.GetActualLFSSizeLimit()
+		if lfsLimit >= 0 && predictedLFSAfter > lfsLimit && predictedLFSAfter > currentLFS {
+			log.Warn("Forbidden: LFS size limit exceeded: %s > %s for repo %-v",
+				base.FileSize(predictedLFSAfter),
+				base.FileSize(lfsLimit),
+				repo,
+			)
+			ctx.JSON(http.StatusForbidden, private.Response{
+				UserMsg: fmt.Sprintf("LFS size limit exceeded: %s > than limit of %s",
+					base.FileSize(predictedLFSAfter),
+					base.FileSize(lfsLimit),
+				),
+			})
+			return
+		}
+	}
+
+	// 2) Git size limit
+	if repo.ShouldCheckRepoSize() {
+		limit := repo.GetActualSizeLimit()
+		if limit >= 0 && predictedGitAfter > limit && predictedGitAfter > currentGit {
+			log.Warn("Forbidden: Repository git size limit exceeded: %s > %s for repo %-v",
+				base.FileSize(predictedGitAfter),
+				base.FileSize(limit),
+				repo,
+			)
+			ctx.JSON(http.StatusForbidden, private.Response{
+				UserMsg: fmt.Sprintf("Repository git size limit exceeded: %s > than limit of %s",
+					base.FileSize(predictedGitAfter),
+					base.FileSize(limit),
+				),
+			})
 			return
 		}
 	}
@@ -168,17 +873,11 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		return
 	}
 
-	// Allow pushes to non-protected branches
 	if protectBranch == nil {
 		return
 	}
 	protectBranch.Repo = repo
 
-	// This ref is a protected branch.
-	//
-	// First of all we need to enforce absolutely:
-	//
-	// 1. Detect and prevent deletion of the branch
 	if newCommitID == objectFormat.EmptyObjectID().String() {
 		log.Warn("Forbidden: Branch: %s in %-v is protected from deletion", branchName, repo)
 		ctx.JSON(http.StatusForbidden, private.Response{
@@ -189,7 +888,6 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 	isForcePush := false
 
-	// 2. Disallow force pushes to protected branches
 	if oldCommitID != objectFormat.EmptyObjectID().String() {
 		output, _, err := gitrepo.RunCmdString(ctx,
 			repo,
@@ -216,7 +914,6 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		}
 	}
 
-	// 3. Enforce require signed commits
 	if protectBranch.RequireSignedCommits {
 		err := verifyCommits(oldCommitID, newCommitID, gitRepo, ctx.env)
 		if err != nil {
@@ -236,9 +933,6 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		}
 	}
 
-	// Now there are several tests which can be overridden:
-	//
-	// 4. Check protected file patterns - this is overridable from the UI
 	changedProtectedfiles := false
 	protectedFilePath := ""
 
@@ -259,10 +953,8 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		}
 	}
 
-	// 5. Check if the doer is allowed to push (and force-push if the incoming push is a force-push)
 	var canPush bool
 	if ctx.opts.DeployKeyID != 0 {
-		// This flag is only ever true if protectBranch.CanForcePush is true
 		if isForcePush {
 			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableForcePushAllowlist || protectBranch.ForcePushAllowlistDeployKeys)
 		} else {
@@ -284,13 +976,8 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		}
 	}
 
-	// 6. If we're not allowed to push directly
 	if !canPush {
-		// Is this is a merge from the UI/API?
 		if ctx.opts.PullRequestID == 0 {
-			// 6a. If we're not merging from the UI/API then there are two ways we got here:
-			//
-			// We are changing a protected file and we're not allowed to do that
 			if changedProtectedfiles {
 				log.Warn("Forbidden: Branch: %s in %-v is protected from changing file %s", branchName, repo, protectedFilePath)
 				ctx.JSON(http.StatusForbidden, private.Response{
@@ -299,7 +986,6 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 				return
 			}
 
-			// Allow commits that only touch unprotected files
 			globs := protectBranch.GetUnprotectedFilePatterns()
 			if len(globs) > 0 {
 				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(gitRepo, branchName, oldCommitID, newCommitID, globs, ctx.env)
@@ -311,12 +997,10 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 					return
 				}
 				if unprotectedFilesOnly {
-					// Commit only touches unprotected files, this is allowed
 					return
 				}
 			}
 
-			// Or we're simply not able to push to this protected branch
 			if isForcePush {
 				log.Warn("Forbidden: User %d is not allowed to force-push to protected branch: %s in %-v", ctx.opts.UserID, branchName, repo)
 				ctx.JSON(http.StatusForbidden, private.Response{
@@ -330,9 +1014,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			})
 			return
 		}
-		// 6b. Merge (from UI or API)
 
-		// Get the PR, user and permissions for the user in the repository
 		pr, err := issues_model.GetPullRequestByID(ctx, ctx.opts.PullRequestID)
 		if err != nil {
 			log.Error("Unable to get PullRequest %d Error: %v", ctx.opts.PullRequestID, err)
@@ -342,14 +1024,10 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			return
 		}
 
-		// although we should have called `loadPusherAndPermission` before, here we call it explicitly again because we need to access ctx.user below
 		if !ctx.loadPusherAndPermission() {
-			// if error occurs, loadPusherAndPermission had written the error response
 			return
 		}
 
-		// Now check if the user is allowed to merge PRs for this repository
-		// Note: we can use ctx.perm and ctx.user directly as they will have been loaded above
 		allowedMerge, err := pull_service.IsUserAllowedToMerge(ctx, pr, ctx.userPerm, ctx.user)
 		if err != nil {
 			log.Error("Error calculating if allowed to merge: %v", err)
@@ -367,12 +1045,10 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			return
 		}
 
-		// If we're an admin for the repository we can ignore status checks, reviews and override protected files
 		if ctx.userPerm.IsAdmin() {
 			return
 		}
 
-		// Now if we're not an admin - we can't overwrite protected files so fail now
 		if changedProtectedfiles {
 			log.Warn("Forbidden: Branch: %s in %-v is protected from changing file %s", branchName, repo, protectedFilePath)
 			ctx.JSON(http.StatusForbidden, private.Response{
@@ -381,7 +1057,6 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			return
 		}
 
-		// Check all status checks and reviews are ok
 		if err := pull_service.CheckPullBranchProtections(ctx, pr, true); err != nil {
 			if errors.Is(err, pull_service.ErrNotReadyToMerge) {
 				log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", ctx.opts.UserID, branchName, repo, pr.Index, err.Error())
@@ -471,16 +1146,13 @@ func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
 func generateGitEnv(opts *private.HookOptions) (env []string) {
 	env = os.Environ()
 	if opts.GitAlternativeObjectDirectories != "" {
-		env = append(env,
-			private.GitAlternativeObjectDirectories+"="+opts.GitAlternativeObjectDirectories)
+		env = append(env, private.GitAlternativeObjectDirectories+"="+opts.GitAlternativeObjectDirectories)
 	}
 	if opts.GitObjectDirectory != "" {
-		env = append(env,
-			private.GitObjectDirectory+"="+opts.GitObjectDirectory)
+		env = append(env, private.GitObjectDirectory+"="+opts.GitObjectDirectory)
 	}
 	if opts.GitQuarantinePath != "" {
-		env = append(env,
-			private.GitQuarantinePath+"="+opts.GitQuarantinePath)
+		env = append(env, private.GitQuarantinePath+"="+opts.GitQuarantinePath)
 	}
 	return env
 }

@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"hash"
 	"strconv"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -93,6 +94,17 @@ func CreateTimeLimitCode[T time.Time | string](data string, minutes int, startTi
 // FileSize calculates the file size and generate user-friendly string.
 func FileSize(s int64) string {
 	return humanize.IBytes(uint64(s))
+}
+
+// GetFileSize gets FileSize bytes value from String.
+func GetFileSize(s string) (int64, error) {
+	s = strings.TrimSpace(s)
+	// default to bytes if no unit is provided
+	if _, err := strconv.ParseInt(s, 10, 64); err == nil {
+		s += " B"
+	}
+	v, err := humanize.ParseBytes(s)
+	return int64(v), err
 }
 
 // StringsToInt64s converts a slice of string to a slice of int64.

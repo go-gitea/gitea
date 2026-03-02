@@ -6,9 +6,12 @@ package setting
 import (
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+
+	"github.com/dustin/go-humanize"
 )
 
 // enumerates all the policy repository creating
@@ -53,6 +56,8 @@ var (
 		DisableDownloadSourceArchives           bool
 		AllowForkWithoutMaximumLimit            bool
 		AllowForkIntoSameOwner                  bool
+		GitSizeMax                              int64 `ini:"GIT_SIZE_MAX"`
+		LFSSizeMax                              int64 `ini:"LFS_SIZE_MAX"`
 
 		// StreamArchives makes Gitea stream git archive files to the client directly instead of creating an archive first.
 		// Ideally all users should use this streaming method. However, at the moment we don't know whether there are
@@ -281,10 +286,56 @@ var (
 	ScriptType   = "bash"
 )
 
+func UpdateGlobalRepositoryLimit(gitSizeMax, lfsSizeMax int64) {
+	Repository.GitSizeMax = gitSizeMax
+	Repository.LFSSizeMax = lfsSizeMax
+}
+
+// FormatRepositorySizeLimit returns "-1" for disabled limits, otherwise returns human-readable size.
+func FormatRepositorySizeLimit(sizeInBytes int64) string {
+	if sizeInBytes == -1 {
+		return "-1"
+	}
+	return humanize.IBytes(uint64(sizeInBytes))
+}
+
+// ParseRepositorySizeLimit accepts "-1" to disable the limit, otherwise parses as a byte size.
+func ParseRepositorySizeLimit(s string) (int64, error) {
+	s = strings.TrimSpace(s)
+	if s == "-1" {
+		return -1, nil
+	}
+	// default to bytes if no unit is provided
+	if _, err := strconv.ParseInt(s, 10, 64); err == nil {
+		s += " B"
+	}
+	v, err := humanize.ParseBytes(s)
+	return int64(v), err
+}
+
+func parseSize(sec ConfigSection, key string, def int64) int64 {
+	v := sec.Key(key).MustString("")
+	if v == "" {
+		return def
+	}
+	if v == "-1" {
+		return -1
+	}
+	size, err := humanize.ParseBytes(v)
+	if err != nil {
+		return def
+	}
+	return int64(size)
+}
+
 func loadRepositoryFrom(rootCfg ConfigProvider) {
 	var err error
+
 	// Determine and create root git repository path.
 	sec := rootCfg.Section("repository")
+	Repository.GitSizeMax = parseSize(sec, "GIT_SIZE_MAX", -1)
+	Repository.LFSSizeMax = parseSize(sec, "LFS_SIZE_MAX", -1)
+
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").MustString("https")

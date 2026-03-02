@@ -61,6 +61,9 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
+	ctx.Data["Err_RepoSize"] = ctx.Repo.Repository.IsRepoSizeOversized(ctx.Repo.Repository.GetActualSizeLimit() / 10) // less than 10% left
+	ctx.Data["GitSizeMax"] = ctx.Repo.Repository.GetActualSizeLimit()
+	ctx.Data["LFSSizeMax"] = ctx.Repo.Repository.GetActualLFSSizeLimit()
 
 	signing, _ := gitrepo.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
@@ -114,6 +117,9 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+
+	repo := ctx.Repo.Repository
+	ctx.Data["Err_RepoSize"] = repo.IsRepoSizeOversized(repo.GetActualSizeLimit() / 10) // less than 10% left
 
 	switch ctx.FormString("action") {
 	case "update":
