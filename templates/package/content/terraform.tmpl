@@ -1,0 +1,26 @@
+{{if eq .PackageDescriptor.Package.Type "terraform"}}
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.terraform.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>terraform {
+	backend "http" {
+		address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/state/{{$.PackageDescriptor.Package.Name}}"></origin-url>"
+		lock_address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/state/{{$.PackageDescriptor.Package.Name}}/lock"></origin-url>"
+		unlock_address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/state/{{$.PackageDescriptor.Package.Name}}/lock"></origin-url>"
+		lock_method = "POST"
+		unlock_method = "DELETE"
+	}
+}</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.terraform.install2"}}</label>
+				<div class="markup"><pre class="code-block"><code>terraform init -migrate-state</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Terraform" "https://docs.gitea.com/usage/packages/terraform"}}</label>
+			</div>
+		</div>
+	</div>
+{{end}}

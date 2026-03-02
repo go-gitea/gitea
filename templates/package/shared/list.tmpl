@@ -20,7 +20,11 @@
 		<div class="flex-item">
 			<div class="flex-item-main">
 				<div class="flex-item-title">
+					{{if eq .Package.Type "terraform"}}
+					<a href="{{.PackageWebLink}}/versions">{{.Package.Name}}</a>
+					{{else}}
 					<a href="{{.VersionWebLink}}">{{.Package.Name}}</a>
+					{{end}}
 					<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
 				</div>
 				<div class="flex-item-body">

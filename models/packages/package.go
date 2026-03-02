@@ -30,28 +30,29 @@ type Type string
 
 // List of supported packages
 const (
-	TypeAlpine    Type = "alpine"
-	TypeArch      Type = "arch"
-	TypeCargo     Type = "cargo"
-	TypeChef      Type = "chef"
-	TypeComposer  Type = "composer"
-	TypeConan     Type = "conan"
-	TypeConda     Type = "conda"
-	TypeContainer Type = "container"
-	TypeCran      Type = "cran"
-	TypeDebian    Type = "debian"
-	TypeGeneric   Type = "generic"
-	TypeGo        Type = "go"
-	TypeHelm      Type = "helm"
-	TypeMaven     Type = "maven"
-	TypeNpm       Type = "npm"
-	TypeNuGet     Type = "nuget"
-	TypePub       Type = "pub"
-	TypePyPI      Type = "pypi"
-	TypeRpm       Type = "rpm"
-	TypeRubyGems  Type = "rubygems"
-	TypeSwift     Type = "swift"
-	TypeVagrant   Type = "vagrant"
+	TypeAlpine         Type = "alpine"
+	TypeArch           Type = "arch"
+	TypeCargo          Type = "cargo"
+	TypeChef           Type = "chef"
+	TypeComposer       Type = "composer"
+	TypeConan          Type = "conan"
+	TypeConda          Type = "conda"
+	TypeContainer      Type = "container"
+	TypeCran           Type = "cran"
+	TypeDebian         Type = "debian"
+	TypeGeneric        Type = "generic"
+	TypeGo             Type = "go"
+	TypeHelm           Type = "helm"
+	TypeMaven          Type = "maven"
+	TypeNpm            Type = "npm"
+	TypeNuGet          Type = "nuget"
+	TypePub            Type = "pub"
+	TypePyPI           Type = "pypi"
+	TypeRpm            Type = "rpm"
+	TypeRubyGems       Type = "rubygems"
+	TypeSwift          Type = "swift"
+	TypeTerraformState Type = "terraformstate"
+	TypeVagrant        Type = "vagrant"
 )
 
 var TypeList = []Type{
@@ -76,6 +77,7 @@ var TypeList = []Type{
 	TypeRpm,
 	TypeRubyGems,
 	TypeSwift,
+	TypeTerraformState,
 	TypeVagrant,
 }
 
@@ -124,6 +126,8 @@ func (pt Type) Name() string {
 		return "RubyGems"
 	case TypeSwift:
 		return "Swift"
+	case TypeTerraformState:
+		return "Terraform"
 	case TypeVagrant:
 		return "Vagrant"
 	}
@@ -175,6 +179,8 @@ func (pt Type) SVGName() string {
 		return "gitea-rubygems"
 	case TypeSwift:
 		return "gitea-swift"
+	case TypeTerraformState:
+		return "gitea-terraform"
 	case TypeVagrant:
 		return "gitea-vagrant"
 	}
