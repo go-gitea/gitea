@@ -438,7 +438,7 @@ jobs:
 		assert.NotNil(t, run)
 
 		// delete the branch
-		err = repo_service.DeleteBranch(t.Context(), user2, repo, gitRepo, "test-create-branch", nil)
+		err = repo_service.DeleteBranch(t.Context(), user2, repo, gitRepo, "test-create-branch")
 		assert.NoError(t, err)
 		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
