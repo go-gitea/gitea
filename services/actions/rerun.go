@@ -57,12 +57,9 @@ func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run 
 		return util.NewInvalidArgumentErrorf("this workflow run is not done")
 	}
 
-	// Rerun is not allowed when workflow is disabled.
-	cfgUnit, err := repo.GetUnit(ctx, unit.TypeActions)
-	if err != nil {
-		return err
-	}
+	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 
+	// Rerun is not allowed when workflow is disabled.
 	cfg := cfgUnit.ActionsConfig()
 	if cfg.IsWorkflowDisabled(run.WorkflowID) {
 		return util.NewInvalidArgumentErrorf("workflow %s is disabled", run.WorkflowID)
