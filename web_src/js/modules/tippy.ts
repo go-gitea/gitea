@@ -200,6 +200,7 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
   tooltipTippy.setContent(content);
   tooltipTippy.setProps({getReferenceClientRect: () => refClientRect});
   if (!tooltipTippy.state.isShown) tooltipTippy.show();
+
   tooltipTippy.setProps({
     onHidden: (tippy) => {
       // reset the default tooltip content, if no default, then this temporary tooltip could be destroyed
@@ -208,6 +209,14 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
       }
     },
   });
+
+  // on elements where the tooltip is re-located like "Copy Link" inside fomantic dropdowns, tippy.js gets
+  // no `mouseout` event and the tooltip stays visible, hide it with timeout.
+  if (!popupTippyId) {
+    setTimeout(() => {
+      if (tooltipTippy.state.isVisible) tooltipTippy.hide();
+    }, 1500);
+  }
 }
 
 export function getAttachedTippyInstance(el: Element): Instance | null {

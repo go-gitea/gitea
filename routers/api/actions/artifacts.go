@@ -112,7 +112,7 @@ func ArtifactsRoutes(prefix string) *web.Router {
 
 	m.Group(artifactRouteBase, func() {
 		// retrieve, list and confirm artifacts
-		m.Combo("").Get(r.listArtifacts).Post(r.getUploadArtifactURL).Patch(r.comfirmUploadArtifact)
+		m.Combo("").Get(r.listArtifacts).Post(r.getUploadArtifactURL).Patch(r.confirmUploadArtifact)
 		// handle container artifacts list and download
 		m.Put("/{artifact_hash}/upload", r.uploadArtifact)
 		// handle artifacts download
@@ -297,9 +297,9 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	})
 }
 
-// comfirmUploadArtifact confirm upload artifact.
+// confirmUploadArtifact confirm upload artifact.
 // if all chunks are uploaded, merge them to one file.
-func (ar artifactRoutes) comfirmUploadArtifact(ctx *ArtifactContext) {
+func (ar artifactRoutes) confirmUploadArtifact(ctx *ArtifactContext) {
 	_, runID, ok := validateRunID(ctx)
 	if !ok {
 		return
@@ -419,8 +419,8 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 	}
 
 	if itemPath != artifacts[0].ArtifactName {
-		log.Error("Error dismatch artifact name, itemPath: %v, artifact: %v", itemPath, artifacts[0].ArtifactName)
-		ctx.HTTPError(http.StatusBadRequest, "Error dismatch artifact name")
+		log.Error("Error mismatch artifact name, itemPath: %v, artifact: %v", itemPath, artifacts[0].ArtifactName)
+		ctx.HTTPError(http.StatusBadRequest, "Error mismatch artifact name")
 		return
 	}
 

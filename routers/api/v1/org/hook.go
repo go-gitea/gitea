@@ -13,7 +13,7 @@ import (
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
-// ListHooks list an organziation's webhooks
+// ListHooks list an organization's webhooks
 func ListHooks(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/hooks organization orgListHooks
 	// ---

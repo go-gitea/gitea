@@ -186,11 +186,11 @@ func EmailPost(ctx *context.Context) {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			loadAccountData(ctx)
 
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
 		} else if user_model.IsErrEmailCharIsNotSupported(err) || user_model.IsErrEmailInvalid(err) {
 			loadAccountData(ctx)
 
-			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)
 		} else {
 			ctx.ServerError("AddEmailAddresses", err)
 		}
@@ -251,19 +251,19 @@ func DeleteAccount(ctx *context.Context) {
 		case user_model.IsErrUserNotExist(err):
 			loadAccountData(ctx)
 
-			ctx.RenderWithErr(ctx.Tr("form.user_not_exist"), tplSettingsAccount, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.user_not_exist"), tplSettingsAccount, nil)
 		case errors.Is(err, smtp.ErrUnsupportedLoginType):
 			loadAccountData(ctx)
 
-			ctx.RenderWithErr(ctx.Tr("form.unsupported_login_type"), tplSettingsAccount, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.unsupported_login_type"), tplSettingsAccount, nil)
 		case errors.As(err, &db.ErrUserPasswordNotSet{}):
 			loadAccountData(ctx)
 
-			ctx.RenderWithErr(ctx.Tr("form.unset_password"), tplSettingsAccount, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.unset_password"), tplSettingsAccount, nil)
 		case errors.As(err, &db.ErrUserPasswordInvalid{}):
 			loadAccountData(ctx)
 
-			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
 		default:
 			ctx.ServerError("UserSignIn", err)
 		}

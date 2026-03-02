@@ -218,7 +218,7 @@ func assertRepositoryEqual(t *testing.T, expected, actual *base.Repository) {
 
 func assertReviewEqual(t *testing.T, expected, actual *base.Review) {
 	assert.Equal(t, expected.ID, actual.ID, "ID")
-	assert.Equal(t, expected.IssueIndex, actual.IssueIndex, "IsssueIndex")
+	assert.Equal(t, expected.IssueIndex, actual.IssueIndex, "IssueIndex")
 	assert.Equal(t, expected.ReviewerID, actual.ReviewerID, "ReviewerID")
 	assert.Equal(t, expected.ReviewerName, actual.ReviewerName, "ReviewerName")
 	assert.Equal(t, expected.Official, actual.Official, "Official")

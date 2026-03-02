@@ -266,8 +266,8 @@ export class ComboMarkdownEditor {
     addTableButton.addEventListener('click', () => addTablePanelTippy.show());
 
     addTablePanel.querySelector('.ui.button.primary')!.addEventListener('click', () => {
-      let rows = parseInt(addTablePanel.querySelector<HTMLInputElement>('[name=rows]')!.value);
-      let cols = parseInt(addTablePanel.querySelector<HTMLInputElement>('[name=cols]')!.value);
+      let rows = parseInt(addTablePanel.querySelector<HTMLInputElement>('.add-table-rows')!.value);
+      let cols = parseInt(addTablePanel.querySelector<HTMLInputElement>('.add-table-cols')!.value);
       rows = Math.max(1, Math.min(100, rows));
       cols = Math.max(1, Math.min(100, cols));
       replaceTextareaSelection(this.textarea, `\n${this.generateMarkdownTable(rows, cols)}\n\n`);
@@ -318,8 +318,10 @@ export class ComboMarkdownEditor {
 
   async switchToEasyMDE() {
     if (this.easyMDE) return;
-    // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
-    const {default: EasyMDE} = await import(/* webpackChunkName: "easymde" */'easymde');
+    const [{default: EasyMDE}] = await Promise.all([
+      import(/* webpackChunkName: "easymde" */'easymde'),
+      import(/* webpackChunkName: "easymde" */'../../../css/easymde.css'),
+    ]);
     const easyMDEOpt: EasyMDE.Options = {
       autoDownloadFontAwesome: false,
       element: this.textarea,

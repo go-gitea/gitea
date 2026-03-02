@@ -806,7 +806,7 @@ func SearchTeam(ctx *context.APIContext) {
 		ListOptions: listOptions,
 	}
 
-	// Only admin is allowd to search for all teams
+	// Only admin is allowed to search for all teams
 	if !ctx.Doer.IsAdmin {
 		opts.UserID = ctx.Doer.ID
 	}
