@@ -151,3 +151,25 @@ func TestUnknownOrganization(t *testing.T) {
 	DecodeJSON(t, resp, &apiError)
 	assert.Equal(t, "GetUserByName", apiError.Message)
 }
+
+func TestHiddenMemberPermissionsForbidden(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user8")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
+
+	req := NewRequest(t, "GET", "/api/v1/users/user4/orgs/org3/permissions").
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+}
+
+func TestPrivateOrgPermissionsNotFound(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user8")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
+
+	req := NewRequest(t, "GET", "/api/v1/users/user5/orgs/privated_org/permissions").
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+}
