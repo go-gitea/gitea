@@ -575,6 +575,8 @@ func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchNam
 
 // DeleteBranch delete branch
 func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string, pr *issues_model.PullRequest) error {
+	var branchCommit *git.Commit
+	branchExistsInGit := false
 	err := repo.MustNotBeArchived()
 	if err != nil {
 		return err
@@ -584,41 +586,49 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		return err
 	}
 
-	rawBranch, err := git_model.GetBranch(ctx, repo.ID, branchName)
-	if err != nil && !git_model.IsErrBranchNotExist(err) {
-		return fmt.Errorf("GetBranch: %vc", err)
-	}
-
-	// database branch record not exist or it's a deleted branch
-	notExist := git_model.IsErrBranchNotExist(err) || rawBranch.IsDeleted
-
-	branchCommit, err := gitRepo.GetBranchCommit(branchName)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		return err
-	}
-
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if !notExist {
+		branchExistsInDB, err := git_model.IsBranchExist(ctx, repo.ID, branchName)
+		if err != nil {
+			return fmt.Errorf("GetBranch: %vc", err)
+		}
+
+		branchCommit, err = gitRepo.GetBranchCommit(branchName)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			return err
+		}
+		branchExistsInGit = branchCommit != nil
+
+		if !branchExistsInDB {
+			if branchExistsInGit {
+				err := gitrepo.DeleteBranch(ctx, repo, branchName, true)
+				return err
+			} else {
+				return git.ErrBranchNotExist{
+					Name: branchName,
+				}
+			}
+		} else {
 			if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, doer.ID); err != nil {
 				return err
 			}
-		}
 
-		if pr != nil {
-			if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
-				return fmt.Errorf("DeleteBranch: %v", err)
+			if pr != nil {
+				if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+					return fmt.Errorf("DeleteBranch: %v", err)
+				}
+			}
+
+			if branchExistsInGit {
+				return gitrepo.DeleteBranch(ctx, repo, branchName, true)
+			} else {
+				return nil
 			}
 		}
-		if branchCommit == nil {
-			return nil
-		}
-
-		return gitrepo.DeleteBranch(ctx, repo, branchName, true)
 	}); err != nil {
 		return err
 	}
 
-	if branchCommit == nil {
+	if !branchExistsInGit {
 		return nil
 	}
 
