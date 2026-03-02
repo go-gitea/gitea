@@ -403,11 +403,8 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 // If jobIndexStr is a blank string, it means rerun all jobs
 func Rerun(ctx *context_module.Context) {
 	runIndex := getRunIndex(ctx)
-	jobIndexStr := ctx.PathParam("job")
-	var jobIndex int64
-	if jobIndexStr != "" {
-		jobIndex, _ = strconv.ParseInt(jobIndexStr, 10, 64)
-	}
+	jobIndexHas := ctx.PathParam("job") != ""
+	jobIndex := ctx.PathParamInt("job")
 
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
@@ -439,13 +436,9 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	var targetJob *actions_model.ActionRunJob
-	if jobIndexStr != "" {
-		if jobIndex >= 0 && jobIndex < int64(len(jobs)) {
-			targetJob = jobs[jobIndex]
-		} else {
-			targetJob = jobs[0]
-		}
+	var targetJob *actions_model.ActionRunJob // nil means rerun all jobs
+	if jobIndexHas && jobIndex >= 0 && jobIndex < len(jobs) {
+		targetJob = jobs[jobIndex]
 	}
 
 	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs, targetJob); err != nil {

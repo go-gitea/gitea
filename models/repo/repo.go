@@ -428,7 +428,7 @@ func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit
 	if errors.Is(err, util.ErrNotExist) {
 		return ru
 	} else if err != nil {
-		setting.PanicInDevOrTesting("Failed to get unit %q for repository %d: %v", tp, repo.ID, err)
+		setting.PanicInDevOrTesting("Failed to get unit %v for repository %d: %v", tp, repo.ID, err)
 	}
 	ru = &RepoUnit{RepoID: repo.ID, Type: tp}
 	switch tp {
@@ -447,9 +447,9 @@ func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit
 	default:
 		panic("unknown unit type")
 	}
-	err = ru.Config.FromDB([]byte("{}"))
+	err = ru.Config.FromDB(nil)
 	if err != nil {
-		setting.PanicInDevOrTesting("Failed to load default config for unit %q of repository %d: %v", tp, repo.ID, err)
+		setting.PanicInDevOrTesting("Failed to load default config for unit %v of repository %d: %v", tp, repo.ID, err)
 	}
 	return ru
 }
