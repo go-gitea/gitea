@@ -152,7 +152,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	objectFormat := ctx.Repo.GetObjectFormat()
 
 	defaultBranch := repo.DefaultBranch
-	if ctx.opts != nil && ctx.opts.IsWiki && repo.DefaultWikiBranch != "" {
+	if ctx.opts.IsWiki && repo.DefaultWikiBranch != "" {
 		defaultBranch = repo.DefaultWikiBranch
 	}
 	if branchName == defaultBranch && newCommitID == objectFormat.EmptyObjectID().String() {
