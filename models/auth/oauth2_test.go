@@ -18,13 +18,11 @@ func TestOAuth2AuthorizationCodeValidity(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("GenerateSetsValidUntil", func(t *testing.T) {
-		mockNow := time.Date(2024, 1, 1, 1, 2, 3, 0, time.UTC)
-		defer timeutil.MockSet(mockNow)()
-
 		grant := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Grant{ID: 1})
+		expectedValidUntil := timeutil.TimeStamp(time.Now().Unix() + 600)
 		code, err := grant.GenerateNewAuthorizationCode(t.Context(), "http://127.0.0.1/", "", "")
 		assert.NoError(t, err)
-		assert.Equal(t, timeutil.TimeStamp(mockNow.Unix()+600), code.ValidUntil)
+		assert.Equal(t, expectedValidUntil, code.ValidUntil)
 		assert.False(t, code.IsExpired())
 		assert.NoError(t, code.Invalidate(t.Context()))
 	})
