@@ -28,7 +28,7 @@ import (
 	"xorm.io/xorm"
 )
 
-// the expired time should less than 10 minutes per https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2
+// Authorization codes should expire within 10 minutes per https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2
 const oauth2AuthorizationCodeValidity = 10 * time.Minute
 
 var ErrOAuth2AuthorizationCodeInvalidated = errors.New("oauth2 authorization code already invalidated")
