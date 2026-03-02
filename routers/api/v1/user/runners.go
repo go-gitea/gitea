@@ -10,21 +10,6 @@ import (
 
 // https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-organization
 
-// GetRegistrationToken returns the token to register user runners
-func GetRegistrationToken(ctx *context.APIContext) {
-	// swagger:operation GET /user/actions/runners/registration-token user userGetRunnerRegistrationToken
-	// ---
-	// summary: Get an user's actions runner registration token
-	// produces:
-	// - application/json
-	// parameters:
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/RegistrationToken"
-
-	shared.GetRegistrationToken(ctx, ctx.Doer.ID, 0)
-}
-
 // CreateRegistrationToken returns the token to register user runners
 func CreateRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation POST /user/actions/runners/registration-token user userCreateRunnerRegistrationToken

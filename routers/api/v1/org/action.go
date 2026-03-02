@@ -171,27 +171,6 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 }
 
 // https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-organization
-// GetRegistrationToken returns the token to register org runners
-func (Action) GetRegistrationToken(ctx *context.APIContext) {
-	// swagger:operation GET /orgs/{org}/actions/runners/registration-token organization orgGetRunnerRegistrationToken
-	// ---
-	// summary: Get an organization's actions runner registration token
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: org
-	//   in: path
-	//   description: name of the organization
-	//   type: string
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/RegistrationToken"
-
-	shared.GetRegistrationToken(ctx, ctx.Org.Organization.ID, 0)
-}
-
-// https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-organization
 // CreateRegistrationToken returns the token to register org runners
 func (Action) CreateRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation POST /orgs/{org}/actions/runners/registration-token organization orgCreateRunnerRegistrationToken
