@@ -4,9 +4,11 @@
 package auth_test
 
 import (
+	"fmt"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -261,4 +263,49 @@ func TestOAuth2AuthorizationCode_Invalidate(t *testing.T) {
 
 func TestOAuth2AuthorizationCode_TableName(t *testing.T) {
 	assert.Equal(t, "oauth2_authorization_code", new(auth_model.OAuth2AuthorizationCode).TableName())
+}
+
+func TestOAuth2Device_GetDeviceByDeviceCode(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
+
+	device, err := app.CreateDevice(t.Context(), "")
+	assert.NoError(t, err)
+
+	device2, err := app.GetDeviceByDeviceCode(t.Context(), device.DeviceCode)
+	assert.NoError(t, err)
+	assert.Equal(t, device.ID, device2.ID)
+}
+
+func TestOAuth2Device_GetDeviceByUserCode(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
+
+	device, err := app.CreateDevice(t.Context(), "")
+	assert.NoError(t, err)
+
+	device2, err := auth_model.GetDeviceByUserCode(t.Context(), device.UserCode)
+	assert.NoError(t, err)
+	assert.Equal(t, device.ID, device2.ID)
+
+	device2.CreateGrant(t.Context(), 1)
+
+	_, err = auth_model.GetDeviceByUserCode(t.Context(), device.UserCode)
+	assert.EqualError(t, err, fmt.Sprintf("oauth2 device not found: [user_code: %s. id: 0]", device.UserCode))
+}
+
+func TestOAuth2Device_GetDeviceByUserCode_Expired(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
+
+	device, err := app.CreateDevice(t.Context(), "")
+	assert.NoError(t, err)
+
+	db.GetEngine(t.Context()).ID(device.ID).Cols("expired_unix").Update(&auth_model.OAuth2Device{ExpiredUnix: 1})
+
+	_, err = auth_model.GetDeviceByUserCode(t.Context(), device.UserCode)
+	assert.EqualError(t, err, fmt.Sprintf("oauth2 device not found: [user_code: %s. id: 0]", device.UserCode))
 }
