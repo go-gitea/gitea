@@ -3,6 +3,7 @@ import {createElementFromHTML, toggleElem} from '../../utils/dom.ts';
 import {html, htmlRaw} from '../../utils/html.ts';
 import {svg} from '../../svg.ts';
 import {commandPalette} from './command-palette.ts';
+import {createJsonLinter, createSyntaxErrorLinter} from './linter.ts';
 import {clickableUrls, trimTrailingWhitespaceFromView} from './utils.ts';
 import type {LanguageDescription} from '@codemirror/language';
 import type {Compartment, Extension} from '@codemirror/state';
@@ -265,11 +266,9 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
 async function getLinterExtension(cm: CodemirrorModules, filename: string, matchedLang: LanguageDescription | null): Promise<Extension> {
   const ext = extname(filename);
   if (ext === '.json' || ext === '.map') {
-    const {createJsonLinter} = await import('./linter.ts');
     return createJsonLinter(cm);
   }
   if (matchedLang) {
-    const {createSyntaxErrorLinter} = await import('./linter.ts');
     return createSyntaxErrorLinter(cm);
   }
   return [];
