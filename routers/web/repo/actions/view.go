@@ -143,11 +143,13 @@ type ViewResponse struct {
 }
 
 type ViewJob struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	Status   string `json:"status"`
-	CanRerun bool   `json:"canRerun"`
-	Duration string `json:"duration"`
+	ID       int64    `json:"id"`
+	JobID    string   `json:"jobId,omitempty"`
+	Name     string   `json:"name"`
+	Status   string   `json:"status"`
+	CanRerun bool     `json:"canRerun"`
+	Duration string   `json:"duration"`
+	Needs    []string `json:"needs,omitempty"`
 }
 
 type ViewCommit struct {
@@ -248,10 +250,12 @@ func ViewPost(ctx *context_module.Context) {
 	for _, v := range jobs {
 		resp.State.Run.Jobs = append(resp.State.Run.Jobs, &ViewJob{
 			ID:       v.ID,
+			JobID:    v.JobID,
 			Name:     v.Name,
 			Status:   v.Status.String(),
 			CanRerun: resp.State.Run.CanRerun,
 			Duration: v.Duration().String(),
+			Needs:    v.Needs,
 		})
 	}
 
@@ -932,7 +936,7 @@ func Run(ctx *context_module.Context) {
 		ctx.ServerError("ref", nil)
 		return
 	}
-	err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
+	_, err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
 		for name, config := range workflowDispatch.Inputs {
 			value := ctx.Req.PostFormValue(name)
 			if config.Type == "boolean" {

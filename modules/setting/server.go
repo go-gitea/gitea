@@ -44,6 +44,7 @@ const (
 const (
 	PublicURLAuto   = "auto"
 	PublicURLLegacy = "legacy"
+	PublicURLNever  = "never"
 )
 
 // Server settings
@@ -91,7 +92,6 @@ var (
 	RedirectOtherPort          bool
 	RedirectorUseProxyProtocol bool
 	PortToRedirect             string
-	OfflineMode                bool
 	CertFile                   string
 	KeyFile                    string
 	StaticRootPath             string
@@ -287,7 +287,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
 	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLLegacy)
-	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy {
+	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy && PublicURLDetection != PublicURLNever {
 		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLDetection)
 	}
 
@@ -346,7 +346,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
-	OfflineMode = sec.Key("OFFLINE_MODE").MustBool(true)
 	if len(StaticRootPath) == 0 {
 		StaticRootPath = AppWorkPath
 	}

@@ -1,5 +1,4 @@
 import {createApp} from 'vue';
-import RepoFileSearch from '../components/RepoFileSearch.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 const threshold = 50;
@@ -69,7 +68,8 @@ export function filterRepoFilesWeighted(files: Array<string>, filter: string) {
 }
 
 export function initRepoFileSearch() {
-  registerGlobalInitFunc('initRepoFileSearch', (el) => {
+  registerGlobalInitFunc('initRepoFileSearch', async (el) => {
+    const {default: RepoFileSearch} = await import(/* webpackChunkName: "RepoFileSearch" */ '../components/RepoFileSearch.vue');
     createApp(RepoFileSearch, {
       repoLink: el.getAttribute('data-repo-link'),
       currentRefNameSubURL: el.getAttribute('data-current-ref-name-sub-url'),

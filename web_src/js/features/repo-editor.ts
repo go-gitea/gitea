@@ -197,5 +197,5 @@ export function initRepoEditor() {
 
 export function renderPreviewPanelContent(previewPanel: Element, htmlContent: string) {
   // the content is from the server, so it is safe to use innerHTML
-  previewPanel.innerHTML = html`<div class="render-content markup">${htmlRaw(htmlContent)}</div>`;
+  previewPanel.innerHTML = html`<div class="render-content render-preview markup">${htmlRaw(htmlContent)}</div>`;
 }
