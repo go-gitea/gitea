@@ -63,5 +63,5 @@ func IsWellKnownSafeInlineMimeType(mimeType string) bool {
 func DetectWellKnownSafeInlineMimeType(ext string) (mimeType string, safe bool) {
 	mimeType = detectWellKnownMimeType(ext)
 	safe = IsWellKnownSafeInlineMimeType(mimeType)
-	return
+	return mimeType, safe
 }

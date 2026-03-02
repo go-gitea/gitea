@@ -53,7 +53,7 @@ func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
 	}
 }
 
-func testSingleBlobStorageURLContentTypeAndDisposition(t *testing.T, s ObjectStorage, path string, name string, expected SignedURLParam, reqParams *SignedURLParam) {
+func testSingleBlobStorageURLContentTypeAndDisposition(t *testing.T, s ObjectStorage, path, name string, expected SignedURLParam, reqParams *SignedURLParam) {
 	u, err := s.URL(path, name, http.MethodGet, reqParams)
 	require.NoError(t, err)
 	resp, err := http.Get(u.String())
