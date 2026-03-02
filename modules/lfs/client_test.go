@@ -12,10 +12,10 @@ import (
 
 func TestNewClient(t *testing.T) {
 	u, _ := url.Parse("file:///test")
-	c := NewClient(u, nil)
+	c := NewClient(u, nil, nil)
 	assert.IsType(t, &FilesystemClient{}, c)
 
 	u, _ = url.Parse("https://test.com/lfs")
-	c = NewClient(u, nil)
+	c = NewClient(u, nil, nil)
 	assert.IsType(t, &HTTPClient{}, c)
 }
