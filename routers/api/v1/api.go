@@ -917,7 +917,6 @@ func Routes() *web.Router {
 
 			m.Group("/runners", func() {
 				m.Get("", reqToken(), reqChecker, act.ListRunners)
-				m.Get("/registration-token", reqToken(), reqChecker, act.GetRegistrationToken)
 				m.Post("/registration-token", reqToken(), reqChecker, act.CreateRegistrationToken)
 				m.Get("/{runner_id}", reqToken(), reqChecker, act.GetRunner)
 				m.Delete("/{runner_id}", reqToken(), reqChecker, act.DeleteRunner)
@@ -1045,7 +1044,6 @@ func Routes() *web.Router {
 
 				m.Group("/runners", func() {
 					m.Get("", reqToken(), user.ListRunners)
-					m.Get("/registration-token", reqToken(), user.GetRegistrationToken)
 					m.Post("/registration-token", reqToken(), user.CreateRegistrationToken)
 					m.Get("/{runner_id}", reqToken(), user.GetRunner)
 					m.Delete("/{runner_id}", reqToken(), user.DeleteRunner)
@@ -1733,9 +1731,6 @@ func Routes() *web.Router {
 				})
 				m.Get("/runs", admin.ListWorkflowRuns)
 				m.Get("/jobs", admin.ListWorkflowJobs)
-			})
-			m.Group("/runners", func() {
-				m.Get("/registration-token", admin.GetRegistrationToken)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin())
 
