@@ -241,6 +241,8 @@ type ProjectsConfig struct {
 
 // FromDB fills up a ProjectsConfig from serialized format.
 func (cfg *ProjectsConfig) FromDB(bs []byte) error {
+	// TODO: remove GetProjectsMode, only use ProjectsMode
+	cfg.ProjectsMode = ProjectsModeAll
 	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 

@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -61,16 +60,9 @@ func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run 
 	// Rerun is not allowed when workflow is disabled.
 	cfgUnit, err := repo.GetUnit(ctx, unit.TypeActions)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			// Keep behavior compatible with MustGetUnit: treat missing unit as default ActionsConfig.
-			cfgUnit = &repo_model.RepoUnit{
-				Type:   unit.TypeActions,
-				Config: new(repo_model.ActionsConfig),
-			}
-		} else {
-			return err
-		}
+		return err
 	}
+
 	cfg := cfgUnit.ActionsConfig()
 	if cfg.IsWorkflowDisabled(run.WorkflowID) {
 		return util.NewInvalidArgumentErrorf("workflow %s is disabled", run.WorkflowID)
