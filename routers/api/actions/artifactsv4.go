@@ -95,6 +95,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -181,10 +182,15 @@ func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*a
 	sig := ctx.Req.URL.Query().Get("sig")
 	expires := ctx.Req.URL.Query().Get("expires")
 	artifactName := ctx.Req.URL.Query().Get("artifactName")
-	dsig, _ := base64.RawURLEncoding.DecodeString(sig)
-	taskID, _ := strconv.ParseInt(rawTaskID, 10, 64)
-	artifactID, _ := strconv.ParseInt(rawArtifactID, 10, 64)
-
+	dsig, errSig := base64.RawURLEncoding.DecodeString(sig)
+	taskID, errTask := strconv.ParseInt(rawTaskID, 10, 64)
+	artifactID, errArtifactID := strconv.ParseInt(rawArtifactID, 10, 64)
+	err := errors.Join(errSig, errTask, errArtifactID)
+	if err != nil {
+		log.Error("Error decoding signature values: %v", err)
+		ctx.HTTPError(http.StatusBadRequest, "Error decoding signature values")
+		return nil, "", false
+	}
 	expecedsig := r.buildSignature(endp, expires, artifactName, taskID, artifactID)
 	if !hmac.Equal(dsig, expecedsig) {
 		log.Error("Error unauthorized")
@@ -406,6 +412,9 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
 		return
 	}
+	sort.Slice(chunks, func(i, j int) bool {
+		return chunks[i].Start < chunks[j].Start
+	})
 	artifact.FileSize = chunks[len(chunks)-1].End + 1
 	artifact.FileCompressedSize = chunks[len(chunks)-1].End + 1
 
