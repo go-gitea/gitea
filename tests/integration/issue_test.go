@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/indexer/issues"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -246,6 +247,40 @@ func TestIssueCommentClose(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	val := htmlDoc.doc.Find(".comment-list .comment .render-content p").First().Text()
 	assert.Equal(t, "Description", val)
+}
+
+// Test that error responses from NewComment are clean JSON without
+// appended redirect JSON from the deferred function.
+func TestIssueCommentErrorResponse(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user34 is blocked by user2 (repo1 owner), so commenting should fail
+	session := loginUser(t, "the_34-user.with.all.allowedChars")
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+
+	req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/1/comments", map[string]string{
+		"content": "blocked comment",
+	})
+	resp := session.MakeRequest(t, req, http.StatusBadRequest)
+
+	// Before the fix, the response body contained both a JSON error and a
+	// JSON redirect appended by the deferred function, producing an invalid
+	// response. Verify the body is valid JSON with only the error.
+	var result map[string]any
+	err := json.Unmarshal(resp.Body.Bytes(), &result)
+	assert.NoError(t, err, "response body should be valid JSON, got: %s", resp.Body.String())
+	assert.Contains(t, result, "errorMessage")
+	assert.NotContains(t, result, "redirect")
+
+	// Verify no comment was created
+	comments, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
+		IssueID: issue.ID,
+		Type:    issues_model.CommentTypeComment,
+	})
+	assert.NoError(t, err)
+	for _, c := range comments {
+		assert.NotEqual(t, "blocked comment", c.Content)
+	}
 }
 
 func TestIssueCommentDelete(t *testing.T) {

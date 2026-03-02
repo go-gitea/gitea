@@ -77,6 +77,10 @@ func NewComment(ctx *context.Context) {
 
 	var comment *issues_model.Comment
 	defer func() {
+		if ctx.Written() {
+			return
+		}
+
 		// Check if issue admin/poster changes the status of issue.
 		if (ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.Doer.ID))) &&
 			(form.Status == "reopen" || form.Status == "close") &&
