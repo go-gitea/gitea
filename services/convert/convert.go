@@ -533,6 +533,7 @@ func ToActionRunner(ctx context.Context, runner *actions_model.ActionRunner) *ap
 		Name:      runner.Name,
 		Status:    apiStatus,
 		Busy:      status == runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE,
+		Disabled:  runner.IsDisabled,
 		Ephemeral: runner.Ephemeral,
 		Labels:    labels,
 	}

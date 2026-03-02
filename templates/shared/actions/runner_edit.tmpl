@@ -11,6 +11,16 @@
 					<span class="ui {{if .Runner.IsOnline}}green{{else}}basic{{end}} label">{{.Runner.StatusLocaleName ctx.Locale}}</span>
 				</div>
 				<div class="field tw-inline-block tw-mr-4">
+					<label>{{ctx.Locale.Tr "actions.runners.availability"}}</label>
+					<span class="ui {{if .Runner.IsDisabled}}basic{{else}}green{{end}} label">
+						{{if .Runner.IsDisabled}}
+							{{ctx.Locale.Tr "actions.runners.disabled"}}
+						{{else}}
+							{{ctx.Locale.Tr "actions.runners.enabled"}}
+						{{end}}
+					</span>
+				</div>
+				<div class="field tw-inline-block tw-mr-4">
 					<label>{{ctx.Locale.Tr "actions.runners.last_online"}}</label>
 					<span>{{if .Runner.LastOnline}}{{DateUtils.TimeSince .Runner.LastOnline}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</span>
 				</div>
@@ -39,6 +49,11 @@
 
 			<div class="field">
 				<button class="ui primary button" data-url="{{.Link}}">{{ctx.Locale.Tr "actions.runners.update_runner"}}</button>
+				{{if .Runner.IsDisabled}}
+					<button class="ui button" formaction="{{.Link}}/enable">{{ctx.Locale.Tr "actions.runners.enable_runner"}}</button>
+				{{else}}
+					<button class="ui button" formaction="{{.Link}}/disable">{{ctx.Locale.Tr "actions.runners.disable_runner"}}</button>
+				{{end}}
 				<button class="ui red button delete-button" data-url="{{.Link}}/delete" data-modal="#runner-delete-modal">
 					{{ctx.Locale.Tr "actions.runners.delete_runner"}}</button>
 			</div>

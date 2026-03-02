@@ -572,6 +572,62 @@ func (Action) DeleteRunner(ctx *context.APIContext) {
 	shared.DeleteRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 
+// DisableRunner disable an org-level runner
+func (Action) DisableRunner(ctx *context.APIContext) {
+	// swagger:operation PUT /orgs/{org}/actions/runners/{runner_id}/disable organization disableOrgRunner
+	// ---
+	// summary: Disable an org-level runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.DisableRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
+}
+
+// EnableRunner enable an org-level runner
+func (Action) EnableRunner(ctx *context.APIContext) {
+	// swagger:operation PUT /orgs/{org}/actions/runners/{runner_id}/enable organization enableOrgRunner
+	// ---
+	// summary: Enable an org-level runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.EnableRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
+}
+
 func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/actions/jobs organization getOrgWorkflowJobs
 	// ---

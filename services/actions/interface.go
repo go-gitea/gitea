@@ -33,6 +33,10 @@ type API interface {
 	GetRunner(*context.APIContext)
 	// DeleteRunner delete runner
 	DeleteRunner(*context.APIContext)
+	// DisableRunner disable runner
+	DisableRunner(*context.APIContext)
+	// EnableRunner enable runner
+	EnableRunner(*context.APIContext)
 	// ListWorkflowJobs list jobs
 	ListWorkflowJobs(*context.APIContext)
 	// ListWorkflowRuns list runs

@@ -27,6 +27,7 @@ import (
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestJobWithNeeds(t *testing.T) {
@@ -346,6 +347,56 @@ jobs:
 				}
 			})
 		}
+	})
+}
+
+func TestRunnerDisableEnable(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		apiRepo := createActionsTestRepo(t, token, "actions-runner-disable-enable", false)
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, user2.Name, apiRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+		wfTreePath := ".gitea/workflows/runner-disable-enable.yml"
+		wfContent := `name: runner-disable-enable
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo runner-disable-enable
+`
+		opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create workflow", wfContent)
+		createWorkflowFile(t, token, user2.Name, apiRepo.Name, wfTreePath, opts)
+
+		task1 := runner.fetchTask(t)
+		require.NotNil(t, task1)
+
+		opts2 := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "second push", "second run")
+		createWorkflowFile(t, token, user2.Name, apiRepo.Name, "second-push.txt", opts2)
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners", user2.Name, apiRepo.Name)).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		runnerList := api.ActionRunnersResponse{}
+		DecodeJSON(t, resp, &runnerList)
+		require.Len(t, runnerList.Entries, 1)
+		runnerID := runnerList.Entries[0].ID
+
+		req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d/disable", user2.Name, apiRepo.Name, runnerID)).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+		runner.fetchNoTask(t, 2*time.Second)
+
+		req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d/enable", user2.Name, apiRepo.Name, runnerID)).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		task2 := runner.fetchTask(t, 5*time.Second)
+		require.NotNil(t, task2)
+		runner.execTask(t, task2, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 	})
 }
 

@@ -588,11 +588,11 @@ func (Action) ListRunners(ctx *context.APIContext) {
 	shared.ListRunners(ctx, 0, ctx.Repo.Repository.ID)
 }
 
-// GetRunner get an repo-level runner
+// GetRunner get a repo-level runner
 func (Action) GetRunner(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/runners/{runner_id} repository getRepoRunner
 	// ---
-	// summary: Get an repo-level runner
+	// summary: Get a repo-level runner
 	// produces:
 	// - application/json
 	// parameters:
@@ -621,11 +621,11 @@ func (Action) GetRunner(ctx *context.APIContext) {
 	shared.GetRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
 }
 
-// DeleteRunner delete an repo-level runner
+// DeleteRunner delete a repo-level runner
 func (Action) DeleteRunner(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/actions/runners/{runner_id} repository deleteRepoRunner
 	// ---
-	// summary: Delete an repo-level runner
+	// summary: Delete a repo-level runner
 	// produces:
 	// - application/json
 	// parameters:
@@ -652,6 +652,72 @@ func (Action) DeleteRunner(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
+}
+
+// DisableRunner disable a repo-level runner
+func (Action) DisableRunner(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/actions/runners/{runner_id}/disable repository disableRepoRunner
+	// ---
+	// summary: Disable a repo-level runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.DisableRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
+}
+
+// EnableRunner enable a repo-level runner
+func (Action) EnableRunner(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/actions/runners/{runner_id}/enable repository enableRepoRunner
+	// ---
+	// summary: Enable a repo-level runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.EnableRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
 }
 
 // GetWorkflowRunJobs Lists all jobs for a workflow run.

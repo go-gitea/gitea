@@ -321,6 +321,56 @@ func RunnerDeletePost(ctx *context.Context) {
 	ctx.JSONRedirect(successRedirectTo)
 }
 
+func updateRunnerDisabled(ctx *context.Context, isDisabled bool) {
+	rCtx, err := getRunnersCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getRunnersCtx", err)
+		return
+	}
+
+	runner := findActionsRunner(ctx, rCtx)
+	if ctx.Written() {
+		return
+	}
+
+	if !runner.EditableInContext(rCtx.OwnerID, rCtx.RepoID) {
+		ctx.NotFound(util.NewPermissionDeniedErrorf("no permission to edit this runner"))
+		return
+	}
+
+	redirectTo := rCtx.RedirectLink + url.PathEscape(ctx.PathParam("runnerid"))
+	successKey := "actions.runners.enable_runner_success"
+	failedKey := "actions.runners.enable_runner_failed"
+	if isDisabled {
+		successKey = "actions.runners.disable_runner_success"
+		failedKey = "actions.runners.disable_runner_failed"
+	}
+
+	if runner.IsDisabled == isDisabled {
+		ctx.Flash.Success(ctx.Tr(successKey))
+		ctx.Redirect(redirectTo)
+		return
+	}
+
+	if err := actions_model.SetRunnerDisabled(ctx, runner, isDisabled); err != nil {
+		log.Warn("updateRunnerDisabled.SetRunnerDisabled failed: %v, url: %s", err, ctx.Req.URL)
+		ctx.Flash.Warning(ctx.Tr(failedKey))
+		ctx.Redirect(redirectTo)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr(successKey))
+	ctx.Redirect(redirectTo)
+}
+
+func RunnerDisablePost(ctx *context.Context) {
+	updateRunnerDisabled(ctx, true)
+}
+
+func RunnerEnablePost(ctx *context.Context) {
+	updateRunnerDisabled(ctx, false)
+}
+
 func RedirectToDefaultSetting(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/actions/runners")
 }
