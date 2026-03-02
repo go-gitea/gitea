@@ -14,8 +14,10 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,7 +48,7 @@ func TestRepositoryDumperReleaseAssetPrefersDownloadFunc(t *testing.T) {
 	}
 
 	baseDir := t.TempDir()
-	dumper, err := NewRepositoryDumper(context.Background(), baseDir, "owner", "repo", base.MigrateOptions{})
+	dumper, err := NewRepositoryDumper(context.Background(), baseDir, "owner", "repo", base.MigrateOptions{ReleaseAssets: true})
 	require.NoError(t, err)
 
 	require.NoError(t, dumper.CreateReleases(context.Background(), release))
@@ -63,20 +65,11 @@ func TestRepositoryDumperReleaseAssetPrefersDownloadFunc(t *testing.T) {
 }
 
 func TestRepositoryDumperReleaseAssetUsesMigrationClient(t *testing.T) {
-	oldAllowed := setting.Migrations.AllowedDomains
-	oldBlocked := setting.Migrations.BlockedDomains
-	oldAllowLocal := setting.Migrations.AllowLocalNetworks
-	t.Cleanup(func() {
-		setting.Migrations.AllowedDomains = oldAllowed
-		setting.Migrations.BlockedDomains = oldBlocked
-		setting.Migrations.AllowLocalNetworks = oldAllowLocal
-		_ = Init()
-	})
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	setting.Migrations.AllowedDomains = ""
-	setting.Migrations.BlockedDomains = ""
-	setting.Migrations.AllowLocalNetworks = false
-	require.NoError(t, Init())
+	test.MockVariableValue(&setting.Migrations.AllowedDomains, "github.com")()
+	test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, false)()
+	assert.NoError(t, Init())
 
 	var downloadURLHits int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +90,7 @@ func TestRepositoryDumperReleaseAssetUsesMigrationClient(t *testing.T) {
 	}
 
 	baseDir := t.TempDir()
-	dumper, err := NewRepositoryDumper(context.Background(), baseDir, "owner", "repo", base.MigrateOptions{})
+	dumper, err := NewRepositoryDumper(context.Background(), baseDir, "owner", "repo", base.MigrateOptions{ReleaseAssets: true})
 	require.NoError(t, err)
 
 	assert.Error(t, dumper.CreateReleases(context.Background(), release))
