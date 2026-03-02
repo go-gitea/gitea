@@ -134,24 +134,34 @@ func isUserAllowedToPushOrForcePushInRepoBranch(ctx context.Context, user *user_
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
 // update PR means send new commits to PR head branch from base branch
 func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, user *user_model.User) (pushAllowed, rebaseAllowed bool, err error) {
-	if pull.Flow == issues_model.PullRequestFlowAGit {
-		return false, false, nil
-	}
 	if user == nil {
 		return false, false, nil
-	}
-
-	// 1. check user push permission on head repository
-	pushAllowed, rebaseAllowed, err = isUserAllowedToPushOrForcePushInRepoBranch(ctx, user, pull.HeadRepo, pull.HeadBranch)
-	if err != nil {
-		return false, false, err
 	}
 
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		return false, false, err
 	}
 
-	// 2. if the pull creator allows maintainer to edit, we need to check whether
+	// 1. check whether pull request enabled.
+	prBaseUnit, err := pull.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
+	if repo_model.IsErrUnitTypeNotExist(err) {
+		return false, false, nil // the PR unit is disabled in base repo means no update allowed
+	} else if err != nil {
+		return false, false, fmt.Errorf("get base repo unit: %v", err)
+	}
+
+	// 2. only support Github style pull request
+	if pull.Flow == issues_model.PullRequestFlowAGit {
+		return false, false, nil
+	}
+
+	// 3. check user push permission on head repository
+	pushAllowed, rebaseAllowed, err = isUserAllowedToPushOrForcePushInRepoBranch(ctx, user, pull.HeadRepo, pull.HeadBranch)
+	if err != nil {
+		return false, false, err
+	}
+
+	// 4. if the pull creator allows maintainer to edit, we need to check whether
 	// user is a maintainer and inherit pull request creator's permission
 	if pull.AllowMaintainerEdit && (!pushAllowed || !rebaseAllowed) {
 		baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, user)
@@ -182,15 +192,8 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		}
 	}
 
-	// 3. check base repository's AllowRebaseUpdate configuration
+	// 5. check base repository's AllowRebaseUpdate configuration
 	// it is a config in base repo but controls the head (fork) repo's "Update" behavior
-	prBaseUnit, err := pull.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
-	if repo_model.IsErrUnitTypeNotExist(err) {
-		return false, false, nil // the PR unit is disabled in base repo means no update allowed
-	} else if err != nil {
-		return false, false, fmt.Errorf("get base repo unit: %v", err)
-	}
-
 	return pushAllowed, rebaseAllowed && prBaseUnit.PullRequestsConfig().AllowRebaseUpdate, nil
 }
 
