@@ -1,6 +1,5 @@
 import {env} from 'node:process';
-import {test, expect} from '@playwright/test';
-import {apiCreateRepo, apiDeleteRepo} from './utils.ts';
+import {test, expect, apiCreateRepo, apiDeleteRepo} from './utils.ts';
 
 test('repo readme', async ({page}) => {
   const repoName = `e2e-readme-${Date.now()}`;

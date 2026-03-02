@@ -1,5 +1,4 @@
-import {test, expect} from '@playwright/test';
-import {login, logout} from './utils.ts';
+import {test, expect, login, logout} from './utils.ts';
 
 test('homepage', async ({page}) => {
   await page.goto('/');

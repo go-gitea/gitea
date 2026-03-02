@@ -1,5 +1,4 @@
-import {test, expect} from '@playwright/test';
-import {login, apiDeleteOrg} from './utils.ts';
+import {test, expect, login, apiDeleteOrg} from './utils.ts';
 
 test('create an organization', async ({page}) => {
   const orgName = `e2e-org-${Date.now()}`;

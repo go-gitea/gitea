@@ -1,6 +1,5 @@
 import {env} from 'node:process';
-import {test, expect} from '@playwright/test';
-import {login, apiCreateRepo, apiDeleteRepo} from './utils.ts';
+import {test, expect, login, apiCreateRepo, apiDeleteRepo} from './utils.ts';
 
 test('create a milestone', async ({page}) => {
   const repoName = `e2e-milestone-${Date.now()}`;
