@@ -425,9 +425,10 @@ func (repo *Repository) UnitEnabled(ctx context.Context, tp unit.Type) bool {
 // MustGetUnit always returns a RepoUnit object even if the unit doesn't exist (not enabled)
 func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit {
 	ru, err := repo.GetUnit(ctx, tp)
-	if errors.Is(err, util.ErrNotExist) {
+	if err == nil {
 		return ru
-	} else if err != nil {
+	}
+	if !errors.Is(err, util.ErrNotExist) {
 		setting.PanicInDevOrTesting("Failed to get unit %v for repository %d: %v", tp, repo.ID, err)
 	}
 	ru = &RepoUnit{RepoID: repo.ID, Type: tp}
@@ -444,8 +445,7 @@ func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit
 		ru.Config = new(ActionsConfig)
 	case unit.TypeProjects:
 		ru.Config = new(ProjectsConfig)
-	default:
-		panic("unknown unit type")
+	default: // other units don't have config
 	}
 	err = ru.Config.FromDB(nil)
 	if err != nil {
