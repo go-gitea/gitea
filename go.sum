@@ -604,6 +604,8 @@ github.com/nwaples/rardecode/v2 v2.2.0/go.mod h1:7uz379lSxPe6j9nvzxUZ+n7mnJNgjsR
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
 github.com/nxadm/tail v1.4.8 h1:nPr65rt6Y5JFSKQO7qToXr7pePgD6Gwiw05lkbyAQTE=
 github.com/nxadm/tail v1.4.8/go.mod h1:+ncqLTQzXmGhMZNUePPaPqPvBxHAIsmXswZKocGu+AU=
+github.com/odvcencio/gotreesitter v0.6.0 h1:ENWx9c9pj/HadusA9Rdig5KvxyKBDKQXq7pX5k1h62o=
+github.com/odvcencio/gotreesitter v0.6.0/go.mod h1:CEjhRXmfP38AHqxwWxNcLaMsLQ3YoGMrwNGle1huZdU=
 github.com/olekukonko/cat v0.0.0-20250817074551-3280053e4e00 h1:ZCnkxe9GgWqqBxAk3cIKlQJuaqgOUF/nUtQs8flVTHM=
 github.com/olekukonko/cat v0.0.0-20250817074551-3280053e4e00/go.mod h1:rEKTHC9roVVicUIfZK7DYrdIoM0EOr8mK1Hj5s3JjH0=
 github.com/olekukonko/errors v1.1.0 h1:RNuGIh15QdDenh+hNvKrJkmxxjV4hcS50Db478Ou5sM=
