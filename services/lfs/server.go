@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/httpauth"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
@@ -462,12 +463,19 @@ func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requir
 		return nil
 	}
 
-	if !authenticate(ctx, repository, rc.Authorization, false, requireWrite) {
+	// Because of special ref "refs/for" (AGit), we need to delay/relax write permission check
+	// for LFS object uploads. LFS locks still require full write access.
+	lfsWriteMode := requireWrite
+	if lfsWriteMode && git.DefaultFeatures().SupportProcReceive {
+		lfsWriteMode = false
+	}
+
+	if !authenticate(ctx, repository, rc.Authorization, false, lfsWriteMode) {
 		requireAuth(ctx)
 		return nil
 	}
 
-	if requireWrite {
+	if lfsWriteMode {
 		context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
 	} else {
 		context.CheckRepoScopedToken(ctx, repository, auth_model.Read)

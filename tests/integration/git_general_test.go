@@ -166,13 +166,18 @@ func doSSHLFSAccessTest(_ APITestContext, keyID int64) func(*testing.T) {
 		t.Run("User2AccessOther", func(t *testing.T) {
 			sshCmdUser2Other := append(slices.Clone(sshCmdParts),
 				"-p", strconv.Itoa(setting.SSH.ListenPort), "git@"+setting.SSH.ListenHost,
-				"git-lfs-authenticate", "user5/repo4.git", "upload", // inaccessible to other's (user5/repo4)
+				"git-lfs-authenticate", "user5/repo4.git", "upload", // accessible to other's (user5/repo4) if AGit is supported
 			)
 			cmd := exec.CommandContext(t.Context(), sshCmdUser2Other[0], sshCmdUser2Other[1:]...)
 			_, err := cmd.Output()
-			var errExit *exec.ExitError
-			require.ErrorAs(t, err, &errExit) // inaccessible, error
-			assert.Contains(t, string(errExit.Stderr), fmt.Sprintf("User: 2:user2 with Key: %d:test-key is not authorized to write to user5/repo4.", keyID))
+
+			if git.DefaultFeatures().SupportProcReceive {
+				assert.NoError(t, err) // relaxed for AGit
+			} else {
+				var errExit *exec.ExitError
+				require.ErrorAs(t, err, &errExit) // inaccessible, error
+				assert.Contains(t, string(errExit.Stderr), fmt.Sprintf("User: 2:user2 with Key: %d:test-key is not authorized to write to user5/repo4.", keyID))
+			}
 		})
 	}
 }
