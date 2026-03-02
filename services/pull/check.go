@@ -337,7 +337,7 @@ func getMergerForManuallyMergedPullRequest(ctx context.Context, pr *issues_model
 	var errs []error
 	if branch, err := git_model.GetBranch(ctx, pr.BaseRepoID, pr.BaseBranch); err == nil {
 		// LoadPusher uses ghost for non-existing user
-		if err := branch.LoadPusher(ctx); err == nil && branch.Pusher.ID > 0 {
+		if err := branch.LoadPusher(ctx); branch.Pusher != nil && branch.Pusher.ID > 0 {
 			return branch.Pusher, nil
 		} else if err != nil {
 			errs = append(errs, err)
