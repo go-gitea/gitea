@@ -51,7 +51,7 @@ func getRunIndex(ctx *context_module.Context) int64 {
 func View(ctx *context_module.Context) {
 	ctx.Data["PageIsActions"] = true
 	runIndex := getRunIndex(ctx)
-	jobIndex := ctx.PathParamInt64("job")
+	jobIndex := ctx.PathParamInt("job")
 	ctx.Data["RunIndex"] = runIndex
 	ctx.Data["JobIndex"] = jobIndex
 	ctx.Data["ActionsURL"] = ctx.Repo.RepoLink + "/actions"
@@ -209,7 +209,7 @@ func getActionsViewArtifacts(ctx context.Context, repoID, runIndex int64) (artif
 func ViewPost(ctx *context_module.Context) {
 	req := web.GetForm(ctx).(*ViewRequest)
 	runIndex := getRunIndex(ctx)
-	jobIndex := ctx.PathParamInt64("job")
+	jobIndex := ctx.PathParamInt("job")
 
 	current, jobs := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
@@ -609,7 +609,7 @@ func Delete(ctx *context_module.Context) {
 // getRunJobs gets the jobs of runIndex, and returns jobs[jobIndex], jobs.
 // Any error will be written to the ctx.
 // It never returns a nil job of an empty jobs, if the jobIndex is out of range, it will be treated as 0.
-func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob) {
+func getRunJobs(ctx *context_module.Context, runIndex int64, jobIndex int) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob) {
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -634,7 +634,7 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions
 		v.Run = run
 	}
 
-	if jobIndex >= 0 && jobIndex < int64(len(jobs)) {
+	if jobIndex >= 0 && jobIndex < len(jobs) {
 		return jobs[jobIndex], jobs
 	}
 	return jobs[0], jobs

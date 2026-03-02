@@ -1064,7 +1064,7 @@ jobs:
 		})
 
 		// rerun cancel true scenario
-
+		// FIXME: is the jobIndex 0-based or 1-based? From code, it should be 0-based, but here it uses 1, and cause failure
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index, 1))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
