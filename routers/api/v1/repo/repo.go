@@ -905,7 +905,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowRebaseUpdate:             true,
 					DefaultDeleteBranchAfterMerge: false,
 					DefaultMergeStyle:             repo_model.MergeStyleMerge,
-					DefaultAllowMaintainerEdit:    false,
+					DefaultAllowMaintainerEdit:    true,
 				}
 			} else {
 				config = unit.PullRequestsConfig()
