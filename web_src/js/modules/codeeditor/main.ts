@@ -264,12 +264,12 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
 }
 
 // files that are JSONC despite having a .json extension
-const jsoncByFilename = /^([jt]sconfig(\..*)?|devcontainer)\.json$/;
+const jsoncFilesRegex = /^([jt]sconfig.*|devcontainer)\.json$/;
 
 async function getLinterExtension(cm: CodemirrorModules, filename: string, matchedLang: LanguageDescription | null): Promise<Extension> {
   const ext = extname(filename).toLowerCase();
   if (ext === '.json' || ext === '.map') {
-    return jsoncByFilename.test(filename) ? [] : createJsonLinter(cm);
+    return jsoncFilesRegex.test(filename) ? [] : createJsonLinter(cm);
   }
   if (matchedLang) {
     return createSyntaxErrorLinter(cm);
