@@ -58,6 +58,7 @@ func testSingleBlobStorageURLContentTypeAndDisposition(t *testing.T, s ObjectSto
 	require.NoError(t, err)
 	resp, err := http.Get(u.String())
 	require.NoError(t, err)
+	defer resp.Body.Close()
 	assert.Equal(t, expected.ContentType, resp.Header.Get("Content-Type"))
 	if expected.ContentDisposition != "" {
 		assert.Equal(t, expected.ContentDisposition, resp.Header.Get("Content-Disposition"))
