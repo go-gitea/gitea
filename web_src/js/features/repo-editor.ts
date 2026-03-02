@@ -151,7 +151,6 @@ export function initRepoEditor() {
   // so only the filename input above is initialized, the code below (for the code editor) will be skipped
   const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
   if (!editArea) return;
-  editArea.value = editArea.defaultValue; // prevent browser from restoring form values on refresh
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button

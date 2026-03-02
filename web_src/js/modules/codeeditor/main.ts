@@ -120,7 +120,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   const palette = commandPalette(cm);
 
   const view = new cm.view.EditorView({
-    doc: textarea.defaultValue,
+    doc: textarea.defaultValue, // use defaultValue to prevent browser from restoring form values on refresh
     parent: container,
     extensions: [
       cm.view.lineNumbers(),
