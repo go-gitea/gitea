@@ -643,7 +643,7 @@ jobs:
 		assert.Equal(t, "job-main-v1.24.0", wf2Job2Rerun1Job.ConcurrencyGroup)
 
 		// rerun wf2-job2
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, wf2Run.Index, 1))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/1/rerun", user2.Name, repo.Name, wf2Run.Index))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 		// (rerun2) fetch and exec wf2-job2
 		wf2Job2Rerun2Task := runner1.fetchTask(t)
@@ -1065,10 +1065,10 @@ jobs:
 
 		// rerun cancel true scenario
 		// FIXME: is the jobIndex 0-based or 1-based? From code, it should be 0-based, but here it uses 1, and cause failure
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index, 1))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/0/rerun", user2.Name, apiRepo.Name, run2.Index))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run4.Index, 1))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/0/rerun", user2.Name, apiRepo.Name, run4.Index))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		task5 := runner.fetchTask(t)
@@ -1084,13 +1084,13 @@ jobs:
 
 		// rerun cancel false scenario
 
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index, 1))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/0/rerun", user2.Name, apiRepo.Name, run2.Index))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		run2_2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
 		assert.Equal(t, actions_model.StatusWaiting, run2_2.Status)
 
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index+1, 1))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/0/rerun", user2.Name, apiRepo.Name, run2.Index+1))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		task6 := runner.fetchTask(t)
