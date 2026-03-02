@@ -288,7 +288,8 @@ func (g *RepositoryDumper) CreateLabels(_ context.Context, labels ...*base.Label
 func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.Release) error {
 	if g.opts.ReleaseAssets {
 		for _, release := range releases {
-			attachDir := filepath.Join("release_assets", release.TagName)
+			relDir := uuid.New().String()
+			attachDir := filepath.Join("release_assets", relDir)
 			if err := os.MkdirAll(filepath.Join(g.baseDir, attachDir), os.ModePerm); err != nil {
 				return err
 			}
