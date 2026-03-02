@@ -335,15 +335,15 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 
 func getMergerForManuallyMergedPullRequest(ctx context.Context, pr *issues_model.PullRequest) (*user_model.User, error) {
 	var errs []error
-	if branch, err := git_model.GetBranch(ctx, pr.BaseRepoID, pr.BaseBranch); err == nil {
-		// LoadPusher uses ghost for non-existing user
-		if err := branch.LoadPusher(ctx); branch.Pusher != nil && branch.Pusher.ID > 0 {
+	if branch, err := git_model.GetBranch(ctx, pr.BaseRepoID, pr.BaseBranch); err != nil {
+		errs = append(errs, err)
+	} else {
+		err := branch.LoadPusher(ctx) // LoadPusher uses ghost for non-existing user
+		if branch.Pusher != nil && branch.Pusher.ID > 0 {
 			return branch.Pusher, nil
 		} else if err != nil {
 			errs = append(errs, err)
 		}
-	} else {
-		errs = append(errs, err)
 	}
 
 	// When the doer (pusher) is unknown set the BaseRepo owner as merger
