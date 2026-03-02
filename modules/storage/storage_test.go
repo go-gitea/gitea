@@ -4,12 +4,14 @@
 package storage
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
@@ -49,4 +51,55 @@ func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
 		assert.NoError(t, err)
 		assert.Len(t, expected, count)
 	}
+}
+
+func testSingleBlobStorageURLContentTypeAndDisposition(t *testing.T, s ObjectStorage, path, name string, expected SignedURLParam, reqParams *SignedURLParam) {
+	u, err := s.URL(path, name, http.MethodGet, reqParams)
+	require.NoError(t, err)
+	resp, err := http.Get(u.String())
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, expected.ContentType, resp.Header.Get("Content-Type"))
+	if expected.ContentDisposition != "" {
+		assert.Equal(t, expected.ContentDisposition, resp.Header.Get("Content-Disposition"))
+	}
+}
+
+func testBlobStorageURLContentTypeAndDisposition(t *testing.T, typStr Type, cfg *setting.Storage) {
+	s, err := NewStorage(typStr, cfg)
+	assert.NoError(t, err)
+
+	data := "Q2xTckt6Y1hDOWh0"
+	_, err = s.Save("test.txt", strings.NewReader(data), int64(len(data)))
+	assert.NoError(t, err)
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, "test.txt", "test.txt", SignedURLParam{
+		ContentType:        "text/plain; charset=utf-8",
+		ContentDisposition: "inline",
+	}, nil)
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, "test.txt", "test.pdf", SignedURLParam{
+		ContentType:        "application/pdf",
+		ContentDisposition: "inline",
+	}, nil)
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, "test.txt", "test.wasm", SignedURLParam{
+		ContentType:        "application/octet-stream",
+		ContentDisposition: `attachment; filename="test.wasm"`,
+	}, nil)
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, "test.txt", "test.wasm", SignedURLParam{
+		ContentType:        "application/octet-stream",
+		ContentDisposition: `attachment; filename="test.wasm"`,
+	}, &SignedURLParam{})
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, "test.txt", "test.txt", SignedURLParam{
+		ContentType:        "application/octet-stream",
+		ContentDisposition: `inline; filename="test.xml"`,
+	}, &SignedURLParam{
+		ContentType:        "application/octet-stream",
+		ContentDisposition: `inline; filename="test.xml"`,
+	})
+
+	assert.NoError(t, s.Delete("test.txt"))
 }

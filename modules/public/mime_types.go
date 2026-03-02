@@ -3,7 +3,10 @@
 
 package public
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // wellKnownMimeTypesLower comes from Golang's builtin mime package: `builtinTypesLower`, see the comment of detectWellKnownMimeType
 var wellKnownMimeTypesLower = map[string]string{
@@ -28,6 +31,19 @@ var wellKnownMimeTypesLower = map[string]string{
 	".txt": "text/plain; charset=utf-8",
 }
 
+var wellKnownSafeMimeTypes = []string{
+	"text/plain",
+	"text/plain; charset=utf-8",
+	"image/png",
+	"image/jpeg",
+	"image/gif",
+	"image/webp",
+	"image/avif",
+	// ATTENTION! Don't support unsafe types like HTML/SVG due to security concerns: they can contain JS code, and maybe they need proper Content-Security-Policy
+	// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context, it seems fine to render it inline
+	"application/pdf",
+}
+
 // detectWellKnownMimeType will return the mime-type for a well-known file ext name
 // The purpose of this function is to bypass the unstable behavior of Golang's mime.TypeByExtension
 // mime.TypeByExtension would use OS's mime-type config to overwrite the well-known types (see its document).
@@ -37,4 +53,15 @@ var wellKnownMimeTypesLower = map[string]string{
 func detectWellKnownMimeType(ext string) string {
 	ext = strings.ToLower(ext)
 	return wellKnownMimeTypesLower[ext]
+}
+
+func IsWellKnownSafeInlineMimeType(mimeType string) bool {
+	mimeType = strings.ToLower(mimeType)
+	return slices.Contains(wellKnownSafeMimeTypes, mimeType)
+}
+
+func DetectWellKnownSafeInlineMimeType(ext string) (mimeType string, safe bool) {
+	mimeType = detectWellKnownMimeType(ext)
+	safe = IsWellKnownSafeInlineMimeType(mimeType)
+	return mimeType, safe
 }

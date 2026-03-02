@@ -599,7 +599,7 @@ func OpenBlobStream(pb *packages_model.PackageBlob) (io.ReadSeekCloser, error) {
 
 // OpenBlobForDownload returns the content of the specific package blob and increases the download counter.
 // If the storage supports direct serving and it's enabled, only the direct serving url is returned.
-func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, method string, serveDirectReqParams url.Values) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, method string, serveDirectReqParams *storage.SignedURLParam) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	key := packages_module.BlobHash256Key(pb.HashSHA256)
 
 	cs := packages_module.NewContentStore()

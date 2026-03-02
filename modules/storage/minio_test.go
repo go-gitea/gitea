@@ -32,6 +32,22 @@ func TestMinioStorageIterator(t *testing.T) {
 	})
 }
 
+func TestMinioStorageURLContentTypeAndDisposition(t *testing.T) {
+	if os.Getenv("CI") == "" {
+		t.Skip("minioStorage not present outside of CI")
+		return
+	}
+	testBlobStorageURLContentTypeAndDisposition(t, setting.MinioStorageType, &setting.Storage{
+		MinioConfig: setting.MinioStorageConfig{
+			Endpoint:        "localhost:9000",
+			AccessKeyID:     "123456",
+			SecretAccessKey: "12345678",
+			Bucket:          "gitea",
+			Location:        "us-east-1",
+		},
+	})
+}
+
 func TestMinioStoragePath(t *testing.T) {
 	m := &MinioStorage{basePath: ""}
 	assert.Empty(t, m.buildMinioPath("/"))

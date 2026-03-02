@@ -26,6 +26,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -704,9 +705,9 @@ func DeleteManifest(ctx *context.Context) {
 }
 
 func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) {
-	serveDirectReqParams := make(url.Values)
-	serveDirectReqParams.Set("response-content-type", pfd.Properties.GetByName(container_module.PropertyMediaType))
-	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, ctx.Req.Method, serveDirectReqParams)
+	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, ctx.Req.Method, &storage.SignedURLParam{
+		ContentType: pfd.Properties.GetByName(container_module.PropertyMediaType),
+	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

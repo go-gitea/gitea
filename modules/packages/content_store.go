@@ -36,7 +36,7 @@ func (s *ContentStore) ShouldServeDirect() bool {
 	return setting.Packages.Storage.ServeDirect()
 }
 
-func (s *ContentStore) GetServeDirectURL(key BlobHash256Key, filename, method string, reqParams url.Values) (*url.URL, error) {
+func (s *ContentStore) GetServeDirectURL(key BlobHash256Key, filename, method string, reqParams *storage.SignedURLParam) (*url.URL, error) {
 	return s.store.URL(KeyToRelativePath(key), filename, method, reqParams)
 }
 
