@@ -24,9 +24,9 @@ type Client interface {
 }
 
 // NewClient creates a LFS client
-func NewClient(endpoint *url.URL, httpTransport *http.Transport) Client {
+func NewClient(endpoint *url.URL, httpTransport *http.Transport, checkRedirect func(req *http.Request, via []*http.Request) error) Client {
 	if endpoint.Scheme == "file" {
 		return newFilesystemClient(endpoint)
 	}
-	return newHTTPClient(endpoint, httpTransport)
+	return newHTTPClient(endpoint, httpTransport, checkRedirect)
 }

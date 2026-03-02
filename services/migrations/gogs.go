@@ -113,6 +113,7 @@ func (g *GogsDownloader) client(ctx context.Context) *gogs.Client {
 			}
 			return httpTransport.RoundTrip(req.WithContext(ctx))
 		}),
+		CheckRedirect: CheckMigrateRedirect,
 	})
 	return gogsClient
 }
