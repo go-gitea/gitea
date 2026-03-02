@@ -66,16 +66,15 @@ func resetTreeSitterRendererCacheForBench() {
 
 func BenchmarkHighlightRendererMatrix(b *testing.B) {
 	for _, tc := range highlightBenchmarkCases {
-		tc := tc
 		b.Run(tc.name+"/render_code", func(b *testing.B) {
 			b.Run("treesitter", func(b *testing.B) {
 				b.ReportAllocs()
 				b.SetBytes(int64(len(tc.code)))
-				if _, _, ok := tryRenderCodeByTreeSitter(tc.fileName, tc.fileLang, tc.code, false, true); !ok {
+				if _, _, ok := tryRenderCodeByTreeSitter(tc.fileName, tc.fileLang, tc.code, false); !ok {
 					b.Skip("tree-sitter renderer is unavailable")
 				}
 				for b.Loop() {
-					if _, _, ok := tryRenderCodeByTreeSitter(tc.fileName, tc.fileLang, tc.code, false, true); !ok {
+					if _, _, ok := tryRenderCodeByTreeSitter(tc.fileName, tc.fileLang, tc.code, false); !ok {
 						b.Fatal("tree-sitter renderer became unavailable")
 					}
 				}
@@ -129,12 +128,12 @@ func BenchmarkHighlightRendererParallelGo(b *testing.B) {
 	b.Run("treesitter", func(b *testing.B) {
 		b.ReportAllocs()
 		b.SetBytes(int64(len(code)))
-		if _, _, ok := tryRenderCodeByTreeSitter(fileName, fileLang, code, false, true); !ok {
+		if _, _, ok := tryRenderCodeByTreeSitter(fileName, fileLang, code, false); !ok {
 			b.Skip("tree-sitter renderer is unavailable")
 		}
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				if _, _, ok := tryRenderCodeByTreeSitter(fileName, fileLang, code, false, true); !ok {
+				if _, _, ok := tryRenderCodeByTreeSitter(fileName, fileLang, code, false); !ok {
 					b.Fatal("tree-sitter renderer became unavailable")
 				}
 			}
@@ -164,7 +163,7 @@ func BenchmarkHighlightRendererColdStartGo(b *testing.B) {
 		b.SetBytes(int64(len(code)))
 		for b.Loop() {
 			resetTreeSitterRendererCacheForBench()
-			if _, _, ok := tryRenderCodeByTreeSitter(fileName, fileLang, code, false, true); !ok {
+			if _, _, ok := tryRenderCodeByTreeSitter(fileName, fileLang, code, false); !ok {
 				b.Fatal("tree-sitter renderer is unavailable")
 			}
 		}
@@ -384,7 +383,7 @@ func parseHighlightBenchTree(parser *gotreesitter.Parser, entry *tsgrammars.Lang
 	return parser.Parse(code)
 }
 
-func renderHighlightMatchesForBench(code []byte, matches []gotreesitter.QueryMatch) (spanCount int, renderedLen int) {
+func renderHighlightMatchesForBench(code []byte, matches []gotreesitter.QueryMatch) (spanCount, renderedLen int) {
 	if len(matches) == 0 {
 		return 0, 0
 	}
@@ -443,7 +442,7 @@ func renderHighlightMatchesForBench(code []byte, matches []gotreesitter.QueryMat
 	return len(normalized), out.Len()
 }
 
-func renderHighlightCursorForBench(query *gotreesitter.Query, tree *gotreesitter.Tree, lang *gotreesitter.Language, code []byte) (spanCount int, renderedLen int) {
+func renderHighlightCursorForBench(query *gotreesitter.Query, tree *gotreesitter.Tree, lang *gotreesitter.Language, code []byte) (spanCount, renderedLen int) {
 	if query == nil || tree == nil || lang == nil {
 		return 0, 0
 	}

@@ -23,12 +23,38 @@ func BenchmarkRenderCodeTreeSitterGo(b *testing.B) {
 	b.ReportAllocs()
 	code := benchmarkGoSnippet
 
-	if _, _, ok := tryRenderCodeByTreeSitter("bench.go", "Go", code, false, true); !ok {
+	if _, _, ok := tryRenderCodeByTreeSitter("bench.go", "Go", code, false); !ok {
 		b.Skip("tree-sitter renderer is unavailable for Go")
 	}
 
 	for b.Loop() {
-		if _, _, ok := tryRenderCodeByTreeSitter("bench.go", "Go", code, false, true); !ok {
+		if _, _, ok := tryRenderCodeByTreeSitter("bench.go", "Go", code, false); !ok {
+			b.Fatal("tree-sitter renderer became unavailable for Go")
+		}
+	}
+}
+
+func BenchmarkRenderCodeTreeSitterGoCold(b *testing.B) {
+	b.ReportAllocs()
+	base := benchmarkGoSnippet
+
+	if _, _, ok := tryRenderCodeByTreeSitter("bench.go", "Go", base, false); !ok {
+		b.Skip("tree-sitter renderer is unavailable for Go")
+	}
+
+	codeA := make([]byte, 0, len(base)+32)
+	codeA = append(codeA, base...)
+	codeA = append(codeA, []byte("// cold-a\n")...)
+	codeB := make([]byte, 0, len(base)+32)
+	codeB = append(codeB, base...)
+	codeB = append(codeB, []byte("// cold-b\n")...)
+
+	for i := 0; i < b.N; i++ {
+		buf := codeA
+		if i&1 == 1 {
+			buf = codeB
+		}
+		if _, _, ok := tryRenderCodeByTreeSitter("bench.go", "Go", buf, false); !ok {
 			b.Fatal("tree-sitter renderer became unavailable for Go")
 		}
 	}
@@ -54,6 +80,32 @@ func BenchmarkRenderFullFileTreeSitterGo(b *testing.B) {
 
 	for b.Loop() {
 		if _, _, err := renderFullFileByTreeSitter("bench.go", "Go", code); err != nil {
+			b.Fatalf("tree-sitter renderer became unavailable for Go: %v", err)
+		}
+	}
+}
+
+func BenchmarkRenderFullFileTreeSitterGoCold(b *testing.B) {
+	b.ReportAllocs()
+	base := benchmarkGoSnippet
+
+	if _, _, err := renderFullFileByTreeSitter("bench.go", "Go", base); err != nil {
+		b.Skipf("tree-sitter renderer is unavailable for Go: %v", err)
+	}
+
+	codeA := make([]byte, 0, len(base)+32)
+	codeA = append(codeA, base...)
+	codeA = append(codeA, []byte("// cold-a\n")...)
+	codeB := make([]byte, 0, len(base)+32)
+	codeB = append(codeB, base...)
+	codeB = append(codeB, []byte("// cold-b\n")...)
+
+	for i := 0; i < b.N; i++ {
+		buf := codeA
+		if i&1 == 1 {
+			buf = codeB
+		}
+		if _, _, err := renderFullFileByTreeSitter("bench.go", "Go", buf); err != nil {
 			b.Fatalf("tree-sitter renderer became unavailable for Go: %v", err)
 		}
 	}

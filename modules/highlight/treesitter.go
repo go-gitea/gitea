@@ -58,6 +58,8 @@ type normalizedHighlightRange struct {
 	class string
 }
 
+const htmlEscapeChars = "&<>\"'"
+
 var (
 	treeSitterRegistry = sync.OnceValue(func() *treeSitterRegistryType {
 		registry := &treeSitterRegistryType{
@@ -289,24 +291,24 @@ func (renderer *treeSitterRenderer) render(code []byte, trimTrailingNewline bool
 		}
 
 		if start > last {
-			template.HTMLEscape(&out, code[last:start])
+			writeEscapedBytes(&out, code[last:start])
 		}
 
 		className := hr.class
 		if className == "" {
-			template.HTMLEscape(&out, code[start:end])
+			writeEscapedBytes(&out, code[start:end])
 		} else {
 			out.WriteString(`<span class="`)
 			out.WriteString(className)
 			out.WriteString(`">`)
-			template.HTMLEscape(&out, code[start:end])
+			writeEscapedBytes(&out, code[start:end])
 			out.WriteString(`</span>`)
 		}
 		last = end
 	}
 
 	if last < len(code) {
-		template.HTMLEscape(&out, code[last:])
+		writeEscapedBytes(&out, code[last:])
 	}
 
 	content := out.String()
@@ -371,12 +373,12 @@ func (renderer *treeSitterRenderer) renderLines(code []byte) ([]template.HTML, b
 			}
 			if len(part) > 0 {
 				if className == "" {
-					template.HTMLEscape(&line, part)
+					writeEscapedBytes(&line, part)
 				} else {
 					line.WriteString(`<span class="`)
 					line.WriteString(className)
 					line.WriteString(`">`)
-					template.HTMLEscape(&line, part)
+					writeEscapedBytes(&line, part)
 					line.WriteString(`</span>`)
 				}
 			}
@@ -585,14 +587,6 @@ func (renderer *treeSitterRenderer) queryNormalizedRanges(tree *gotreesitter.Tre
 		return nil
 	}
 
-	sort.Slice(ranges, func(i, j int) bool {
-		if ranges[i].StartByte != ranges[j].StartByte {
-			return ranges[i].StartByte < ranges[j].StartByte
-		}
-		wi := ranges[i].EndByte - ranges[i].StartByte
-		wj := ranges[j].EndByte - ranges[j].StartByte
-		return wi > wj
-	})
 	resolved := resolveHighlightOverlaps(ranges)
 	if len(resolved) == 0 {
 		return nil
@@ -648,74 +642,91 @@ func resolveHighlightOverlaps(ranges []gotreesitter.HighlightRange) []gotreesitt
 		return nil
 	}
 
-	type event struct {
-		pos     uint32
-		isStart bool
-		idx     int
-	}
-
-	events := make([]event, 0, len(ranges)*2)
+	sorted := make([]gotreesitter.HighlightRange, 0, len(ranges))
 	for i := range ranges {
-		events = append(events,
-			event{pos: ranges[i].StartByte, isStart: true, idx: i},
-			event{pos: ranges[i].EndByte, isStart: false, idx: i},
-		)
+		r := ranges[i]
+		if r.EndByte > r.StartByte {
+			sorted = append(sorted, r)
+		}
 	}
-	sort.Slice(events, func(i, j int) bool {
-		if events[i].pos != events[j].pos {
-			return events[i].pos < events[j].pos
+	if len(sorted) == 0 {
+		return nil
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].StartByte != sorted[j].StartByte {
+			return sorted[i].StartByte < sorted[j].StartByte
 		}
-		if events[i].isStart != events[j].isStart {
-			return !events[i].isStart
-		}
-		if events[i].isStart {
-			return events[i].idx < events[j].idx
-		}
-		return events[i].idx > events[j].idx
+		wi := sorted[i].EndByte - sorted[i].StartByte
+		wj := sorted[j].EndByte - sorted[j].StartByte
+		return wi > wj
 	})
 
-	type stackEntry struct{ idx int }
-	var stack []stackEntry
-	active := make([]bool, len(ranges))
-	var result []gotreesitter.HighlightRange
-	var lastPos uint32
-	var lastCapture string
-	hasLast := false
-
-	flush := func(end uint32) {
-		if hasLast && end > lastPos && lastCapture != "" {
-			result = append(result, gotreesitter.HighlightRange{
-				StartByte: lastPos,
-				EndByte:   end,
-				Capture:   lastCapture,
-			})
+	stack := make([]gotreesitter.HighlightRange, 0, 32)
+	result := make([]gotreesitter.HighlightRange, 0, len(sorted))
+	emit := func(start, end uint32, capture string) {
+		if capture == "" || end <= start {
+			return
 		}
+		n := len(result)
+		if n > 0 && result[n-1].Capture == capture && result[n-1].EndByte == start {
+			result[n-1].EndByte = end
+			return
+		}
+		result = append(result, gotreesitter.HighlightRange{
+			StartByte: start,
+			EndByte:   end,
+			Capture:   capture,
+		})
 	}
 
-	for _, ev := range events {
-		if ev.pos > lastPos && hasLast {
-			flush(ev.pos)
+	curPos := sorted[0].StartByte
+	nextStartIdx := 0
+	for nextStartIdx < len(sorted) || len(stack) > 0 {
+		nextStartPos := ^uint32(0)
+		if nextStartIdx < len(sorted) {
+			nextStartPos = sorted[nextStartIdx].StartByte
 		}
-		if ev.isStart {
-			stack = append(stack, stackEntry{idx: ev.idx})
-			active[ev.idx] = true
-		} else {
-			active[ev.idx] = false
-			for len(stack) > 0 && !active[stack[len(stack)-1].idx] {
+		nextEndPos := ^uint32(0)
+		if len(stack) > 0 {
+			nextEndPos = stack[len(stack)-1].EndByte
+		}
+		nextPos := nextStartPos
+		if nextEndPos < nextPos {
+			nextPos = nextEndPos
+		}
+
+		if len(stack) > 0 && nextPos > curPos {
+			emit(curPos, nextPos, stack[len(stack)-1].Capture)
+			curPos = nextPos
+		} else if curPos < nextPos {
+			curPos = nextPos
+		}
+
+		// End events at this boundary are processed before start events.
+		for len(stack) > 0 && stack[len(stack)-1].EndByte <= curPos {
+			stack = stack[:len(stack)-1]
+		}
+		for nextStartIdx < len(sorted) && sorted[nextStartIdx].StartByte == curPos {
+			stack = append(stack, sorted[nextStartIdx])
+			nextStartIdx++
+		}
+
+		if len(stack) == 0 && nextStartIdx < len(sorted) && curPos < sorted[nextStartIdx].StartByte {
+			curPos = sorted[nextStartIdx].StartByte
+		}
+		if len(stack) == 0 && nextStartIdx >= len(sorted) {
+			break
+		}
+		if len(stack) > 0 && curPos < stack[len(stack)-1].StartByte {
+			curPos = stack[len(stack)-1].StartByte
+		}
+		if len(stack) > 0 && curPos > stack[len(stack)-1].EndByte {
+			for len(stack) > 0 && curPos >= stack[len(stack)-1].EndByte {
 				stack = stack[:len(stack)-1]
 			}
 		}
-
-		lastPos = ev.pos
-		lastCapture = ""
-		hasLast = true
-		for i := len(stack) - 1; i >= 0; i-- {
-			if active[stack[i].idx] {
-				lastCapture = ranges[stack[i].idx].Capture
-				break
-			}
-		}
 	}
+
 	return result
 }
 
@@ -745,10 +756,7 @@ func computeSingleInputEdit(oldSource, newSource []byte) (gotreesitter.InputEdit
 		return gotreesitter.InputEdit{}, false
 	}
 
-	minLen := len(oldSource)
-	if len(newSource) < minLen {
-		minLen = len(newSource)
-	}
+	minLen := min(len(oldSource), len(newSource))
 	prefix := 0
 	for prefix < minLen && oldSource[prefix] == newSource[prefix] {
 		prefix++
@@ -834,7 +842,7 @@ func normalizeHighlightRanges(codeLen int, ranges []gotreesitter.HighlightRange)
 	return out
 }
 
-func tryRenderCodeByTreeSitter(fileName, fileLang string, code []byte, allowAnalyze, trimTrailingNewline bool) (template.HTML, string, bool) {
+func tryRenderCodeByTreeSitter(fileName, fileLang string, code []byte, allowAnalyze bool) (template.HTML, string, bool) {
 	var entry *tsgrammars.LangEntry
 	if allowAnalyze {
 		entry = resolveTreeSitterEntryWithAnalyze(fileName, fileLang, code)
@@ -847,20 +855,20 @@ func tryRenderCodeByTreeSitter(fileName, fileLang string, code []byte, allowAnal
 		return "", "", false
 	}
 
-	rendered, ok := renderer.render(code, trimTrailingNewline)
+	rendered, ok := renderer.render(code, true)
 	if !ok {
 		return "", "", false
 	}
 	return rendered, renderer.displayName, true
 }
 
-func tryRenderCodeByTreeSitterWithLexer(lexerName string, code []byte, trimTrailingNewline bool) (template.HTML, string, bool) {
+func tryRenderCodeByTreeSitterWithLexer(lexerName string, code []byte) (template.HTML, string, bool) {
 	entry := lookupTreeSitterEntryByLanguageName(lexerName)
 	renderer := getTreeSitterRenderer(entry)
 	if renderer == nil {
 		return "", "", false
 	}
-	rendered, ok := renderer.render(code, trimTrailingNewline)
+	rendered, ok := renderer.render(code, true)
 	if !ok {
 		return "", "", false
 	}
@@ -931,15 +939,6 @@ func treeSitterCaptureToChromaClass(capture string) string {
 	}
 }
 
-func splitTreeSitterRenderedLines(code template.HTML) []template.HTML {
-	rawLines := UnsafeSplitHighlightedLines(code)
-	lines := make([]template.HTML, 0, len(rawLines))
-	for _, line := range rawLines {
-		lines = append(lines, template.HTML(util.UnsafeBytesToString(line)))
-	}
-	return lines
-}
-
 func renderFullFileByTreeSitter(fileName, language string, code []byte) ([]template.HTML, string, error) {
 	entry := resolveTreeSitterEntryWithAnalyze(fileName, language, code)
 	renderer := getTreeSitterRenderer(entry)
@@ -951,4 +950,15 @@ func renderFullFileByTreeSitter(fileName, language string, code []byte) ([]templ
 		return nil, "", errors.New("tree-sitter renderer unavailable")
 	}
 	return lines, renderer.displayName, nil
+}
+
+func writeEscapedBytes(out *strings.Builder, src []byte) {
+	if len(src) == 0 {
+		return
+	}
+	if bytes.IndexAny(src, htmlEscapeChars) == -1 {
+		_, _ = out.Write(src)
+		return
+	}
+	template.HTMLEscape(out, src)
 }
