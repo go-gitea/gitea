@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -94,7 +95,7 @@ func (r *mockRunner) registerAsRepoRunner(t *testing.T, ownerName, repoName, run
 
 func (r *mockRunner) fetchTask(t *testing.T, timeout ...time.Duration) *runnerv1.Task {
 	task := r.tryFetchTask(t, timeout...)
-	assert.NotNil(t, task, "failed to fetch a task")
+	require.NotNil(t, task, "failed to fetch a task")
 	return task
 }
 
