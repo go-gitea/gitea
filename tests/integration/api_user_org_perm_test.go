@@ -158,9 +158,26 @@ func TestHiddenMemberPermissionsForbidden(t *testing.T) {
 	session := loginUser(t, "user8")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
 
-	req := NewRequest(t, "GET", "/api/v1/users/user4/orgs/org3/permissions").
+	req := NewRequest(t, "GET", "/api/v1/users/user5/orgs/privated_org/permissions").
 		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	adminSession := loginUser(t, "user1")
+	adminToken := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
+
+	adminReq := NewRequest(t, "GET", "/api/v1/users/user5/orgs/privated_org/permissions").
+		AddTokenAuth(adminToken)
+	resp := MakeRequest(t, adminReq, http.StatusOK)
+
+	var apiOP api.OrganizationPermissions
+	DecodeJSON(t, resp, &apiOP)
+	assert.Equal(t, api.OrganizationPermissions{
+		IsOwner:             false,
+		IsAdmin:             false,
+		CanWrite:            true,
+		CanRead:             true,
+		CanCreateRepository: true,
+	}, apiOP)
 }
 
 func TestPrivateOrgPermissionsNotFound(t *testing.T) {

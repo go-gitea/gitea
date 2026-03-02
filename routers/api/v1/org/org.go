@@ -141,17 +141,6 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	}
 
 	org := organization.OrgFromUser(o)
-	if ctx.Doer.ID != ctx.ContextUser.ID && !ctx.Doer.IsAdmin {
-		isOrgAdmin, err := org.IsOrgAdmin(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		if !isOrgAdmin {
-			ctx.APIError(http.StatusForbidden, nil)
-			return
-		}
-	}
 	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
