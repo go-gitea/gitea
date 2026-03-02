@@ -5,7 +5,7 @@ import {svg} from '../../svg.ts';
 import {commandPalette} from './command-palette.ts';
 import {clickableUrls, trimTrailingWhitespaceFromView} from './utils.ts';
 import type {LanguageDescription} from '@codemirror/language';
-import type {Compartment} from '@codemirror/state';
+import type {Compartment, Extension} from '@codemirror/state';
 import type {EditorView, ViewUpdate} from '@codemirror/view';
 
 // CodeEditorConfig is also used by backend, defined in "editor_util.go"
@@ -34,25 +34,27 @@ export type CodemirrorEditor = {
     language: Compartment;
     tabSize: Compartment;
     indentUnit: Compartment;
+    lint: Compartment;
   };
 };
 
 export type CodemirrorModules = Awaited<ReturnType<typeof importCodemirror>>;
 
 async function importCodemirror() {
-  const [view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers, vscodeKeymap] = await Promise.all([
-    import(/* webpackChunkName: "codemirror" */ '@codemirror/view'),
-    import(/* webpackChunkName: "codemirror" */ '@codemirror/state'),
-    import(/* webpackChunkName: "codemirror" */ '@codemirror/search'),
-    import(/* webpackChunkName: "codemirror" */ '@codemirror/language'),
-    import(/* webpackChunkName: "codemirror" */ '@codemirror/commands'),
+  const [autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap] = await Promise.all([
     import(/* webpackChunkName: "codemirror" */ '@codemirror/autocomplete'),
+    import(/* webpackChunkName: "codemirror" */ '@codemirror/commands'),
+    import(/* webpackChunkName: "codemirror" */ '@codemirror/language'),
     import(/* webpackChunkName: "codemirror" */ '@codemirror/language-data'),
+    import(/* webpackChunkName: "codemirror" */ '@codemirror/lint'),
+    import(/* webpackChunkName: "codemirror" */ '@codemirror/search'),
+    import(/* webpackChunkName: "codemirror" */ '@codemirror/state'),
+    import(/* webpackChunkName: "codemirror" */ '@codemirror/view'),
     import(/* webpackChunkName: "codemirror" */ '@lezer/highlight'),
     import(/* webpackChunkName: "codemirror" */ '@replit/codemirror-indentation-markers'),
     import(/* webpackChunkName: "codemirror" */ '@replit/codemirror-vscode-keymap'),
   ]);
-  return {view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers, vscodeKeymap};
+  return {autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap};
 }
 
 function togglePreviewDisplay(previewable: boolean): void {
@@ -114,6 +116,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   const language = new cm.state.Compartment();
   const tabSize = new cm.state.Compartment();
   const indentUnitComp = new cm.state.Compartment();
+  const lintComp = new cm.state.Compartment();
   const palette = commandPalette(cm);
 
   const view = new cm.view.EditorView({
@@ -121,6 +124,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
     parent: container,
     extensions: [
       cm.view.lineNumbers(),
+      cm.lint.lintGutter(),
       cm.language.codeFolding({
         placeholderDOM(_view: EditorView, onclick: (event: Event) => void) {
           const el = createElementFromHTML(html`<span class="cm-foldPlaceholder">${htmlRaw(svg('octicon-kebab-horizontal', 16))}</span>`);
@@ -147,6 +151,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       cm.view.keymap.of([
         ...cm.vscodeKeymap.vscodeKeymap,
         ...cm.search.searchKeymap,
+        ...cm.lint.lintKeymap,
         cm.commands.indentWithTab,
         {key: 'Mod-k Mod-x', run: (view) => { trimTrailingWhitespaceFromView(view); return true }, preventDefault: true},
         {key: 'Mod-Enter', run: cm.commands.insertBlankLine, preventDefault: true},
@@ -179,6 +184,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       tabSize.of(cm.state.EditorState.tabSize.of(config.tabWidth || 4)),
       wordWrap.of(config.lineWrap ? cm.view.EditorView.lineWrapping : []),
       language.of(matchedLang ? await matchedLang.load() : []),
+      lintComp.of(await getLinterExtension(cm, config.filename, matchedLang)),
       cm.view.EditorView.updateListener.of((update: ViewUpdate) => {
         if (update.docChanged) {
           textarea.value = update.state.doc.toString();
@@ -200,7 +206,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       await updateEditorLanguage(editor, filename, lineWrapExts);
     },
     languages: languageDescriptions,
-    compartments: {wordWrap, language, tabSize, indentUnit: indentUnitComp},
+    compartments: {wordWrap, language, tabSize, indentUnit: indentUnitComp, lint: lintComp},
   };
 
   const elEditorOptions = textarea.closest('form')!.querySelector('.code-editor-options');
@@ -256,19 +262,37 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   return editor;
 }
 
+async function getLinterExtension(cm: CodemirrorModules, filename: string, matchedLang: LanguageDescription | null): Promise<Extension> {
+  const ext = extname(filename);
+  if (ext === '.json' || ext === '.map') {
+    const {createJsonLinter} = await import('./linter.ts');
+    return createJsonLinter(cm);
+  }
+  if (matchedLang) {
+    const {createSyntaxErrorLinter} = await import('./linter.ts');
+    return createSyntaxErrorLinter(cm);
+  }
+  return [];
+}
+
 async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, lineWrapExts: string[]): Promise<void> {
-  const {view: cmView, language: cmLanguage} = await importCodemirror();
+  const cm = await importCodemirror();
   const {compartments, view, languages: editorLanguages} = editor;
 
-  const newLanguage = cmLanguage.LanguageDescription.matchFilename(editorLanguages, filename);
-  view.dispatch({
-    effects: [
-      compartments.wordWrap.reconfigure(
-        lineWrapExts.includes(extname(filename)) ? cmView.EditorView.lineWrapping : [],
-      ),
-      compartments.language.reconfigure(newLanguage ? await newLanguage.load() : []),
-    ],
-  });
+  const newLanguage = cm.language.LanguageDescription.matchFilename(editorLanguages, filename);
+  view.dispatch(
+    {
+      effects: [
+        compartments.wordWrap.reconfigure(
+          lineWrapExts.includes(extname(filename)) ? cm.view.EditorView.lineWrapping : [],
+        ),
+        compartments.language.reconfigure(newLanguage ? await newLanguage.load() : []),
+        compartments.lint.reconfigure(await getLinterExtension(cm, filename, newLanguage)),
+      ],
+    },
+    // clear stale diagnostics from the previous language on filename change
+    cm.lint.setDiagnostics(view.state, []),
+  );
 }
 
 export {trimTrailingWhitespaceFromView} from './utils.ts';
