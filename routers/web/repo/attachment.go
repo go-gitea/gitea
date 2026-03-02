@@ -187,7 +187,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		}
 	}
 
-	if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+attach.UUID+`"`) {
+	if httpcache.HandleGenericETagPrivateCache(ctx.Req, ctx.Resp, `"`+attach.UUID+`"`, attach.CreatedUnix.AsTimePtr()) {
 		return
 	}
 

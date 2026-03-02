@@ -77,6 +77,21 @@ func TestGuessCurrentHostURL(t *testing.T) {
 		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
 		assert.Equal(t, "https://req-host:3000", GuessCurrentHostURL(ctx))
 	})
+
+	t.Run("Never", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLNever)()
+
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(t.Context()))
+
+		ctx := context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000"})
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
+
+		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", TLS: &tls.ConnectionState{}})
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
+
+		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
+	})
 }
 
 func TestMakeAbsoluteURL(t *testing.T) {

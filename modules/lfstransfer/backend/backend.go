@@ -95,7 +95,7 @@ func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args trans
 	var respBody lfs.BatchResponse
 	err = json.Unmarshal(respBytes, &respBody)
 	if err != nil {
-		g.logger.Log("json umarshal error", err)
+		g.logger.Log("json unmarshal error", err)
 		return nil, err
 	}
 
