@@ -370,7 +370,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		merger = branch.Pusher
 	}
 
-	// When the commit author is unknown set the BaseRepo owner as merger
+	// When the doer (pusher) is unknown set the BaseRepo owner as merger
 	if merger == nil {
 		if pr.BaseRepo.Owner == nil {
 			if err = pr.BaseRepo.LoadOwner(ctx); err != nil {
