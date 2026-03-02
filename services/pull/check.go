@@ -370,10 +370,6 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		merger = branch.Pusher
 	}
 
-	if merger == nil {
-		merger, _ = user_model.GetUserByEmail(ctx, commit.Author.Email)
-	}
-
 	// When the commit author is unknown set the BaseRepo owner as merger
 	if merger == nil {
 		if pr.BaseRepo.Owner == nil {
