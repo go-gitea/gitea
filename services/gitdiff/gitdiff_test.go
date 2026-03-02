@@ -1138,8 +1138,8 @@ func TestHighlightCodeLines(t *testing.T) {
 		const nl = "\n"
 		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("a\nb\n"))
 		assert.Equal(t, map[int]template.HTML{
-			0: `<span class="kt">a</span><span class="nv">` + nl + `</span>`,
-			1: `<span class="nv">b</span><span class="nv">` + nl + `</span>`,
+			0: `<span class="kt">a</span>` + nl,
+			1: `<span class="nv">b</span>`,
 		}, ret)
 	})
 }
