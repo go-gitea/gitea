@@ -169,6 +169,9 @@ td .commit-summary {
   padding: 8px;
   vertical-align: middle;
   color: var(--color-text);
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
 .non-diff-file-content .header .file-actions .btn-octicon:hover {
