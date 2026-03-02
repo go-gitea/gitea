@@ -125,7 +125,7 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 			// See https://learn.microsoft.com/en-us/rest/api/storageservices/append-block
 			// See https://learn.microsoft.com/en-us/rest/api/storageservices/put-block
 			if entry.blockID {
-				blockID := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprint("SOME_BIG_BLOCK_ID_", i)))
+				blockID := base64.RawURLEncoding.EncodeToString(fmt.Append([]byte("SOME_BIG_BLOCK_ID_"), i))
 				blocks = append(blocks, blockID)
 				url += "&comp=block&blockid=" + blockID
 			} else {
@@ -164,7 +164,7 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 		req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/FinalizeArtifact", toProtoJSON(&actions.FinalizeArtifactRequest{
 			Name:                    entry.name,
 			Size:                    int64(entry.append+1) * 1024,
-			Hash:                    wrapperspb.String("sha256:" + hex.EncodeToString(sha[:])),
+			Hash:                    wrapperspb.String("sha256:" + hex.EncodeToString(sha)),
 			WorkflowRunBackendId:    "792",
 			WorkflowJobRunBackendId: "193",
 		})).
