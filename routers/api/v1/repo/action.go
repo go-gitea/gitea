@@ -510,31 +510,6 @@ func (Action) ListVariables(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, variables)
 }
 
-// GetRegistrationToken returns the token to register repo runners
-func (Action) GetRegistrationToken(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/runners/registration-token repository repoGetRunnerRegistrationToken
-	// ---
-	// summary: Get a repository's actions runner registration token
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/RegistrationToken"
-
-	shared.GetRegistrationToken(ctx, 0, ctx.Repo.Repository.ID)
-}
-
 // CreateRegistrationToken returns the token to register repo runners
 func (Action) CreateRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/actions/runners/registration-token repository repoCreateRunnerRegistrationToken
