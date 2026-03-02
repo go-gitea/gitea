@@ -25,7 +25,7 @@ func TestUploadAvatar(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
-	err := UploadAvatar(t.Context(), repo, buff.Bytes())
+	_, err := UploadAvatar(t.Context(), repo, buff.Bytes())
 	assert.NoError(t, err)
 	assert.Equal(t, avatar.HashAvatar(10, buff.Bytes()), repo.Avatar)
 }
@@ -39,7 +39,7 @@ func TestUploadBigAvatar(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
-	err := UploadAvatar(t.Context(), repo, buff.Bytes())
+	_, err := UploadAvatar(t.Context(), repo, buff.Bytes())
 	assert.Error(t, err)
 }
 
@@ -52,10 +52,10 @@ func TestDeleteAvatar(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
-	err := UploadAvatar(t.Context(), repo, buff.Bytes())
+	_, err := UploadAvatar(t.Context(), repo, buff.Bytes())
 	assert.NoError(t, err)
 
-	err = DeleteAvatar(t.Context(), repo)
+	_, err = DeleteAvatar(t.Context(), repo)
 	assert.NoError(t, err)
 
 	assert.Empty(t, repo.Avatar)

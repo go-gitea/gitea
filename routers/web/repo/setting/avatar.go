@@ -49,7 +49,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Locale.TrString("settings.uploaded_avatar_not_a_image"))
 	}
-	if err = repo_service.UploadAvatar(ctx, ctxRepo, data); err != nil {
+	if _, err = repo_service.UploadAvatar(ctx, ctxRepo, data); err != nil {
 		return fmt.Errorf("UploadAvatar: %w", err)
 	}
 	return nil
@@ -69,7 +69,7 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar delete repository avatar
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := repo_service.DeleteAvatar(ctx, ctx.Repo.Repository); err != nil {
+	if _, err := repo_service.DeleteAvatar(ctx, ctx.Repo.Repository); err != nil {
 		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
 	}
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")

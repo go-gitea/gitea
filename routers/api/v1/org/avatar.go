@@ -31,8 +31,12 @@ func UpdateAvatar(ctx *context.APIContext) {
 	//   schema:
 	//     "$ref": "#/definitions/UpdateUserAvatarOption"
 	// responses:
+	//   "201":
+	//     "$ref": "#/responses/empty"
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.UpdateUserAvatarOption)
@@ -43,13 +47,17 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
-	err = user_service.UploadAvatar(ctx, ctx.Org.Organization.AsUser(), content)
+	oldAvatar, err := user_service.UploadAvatar(ctx, ctx.Org.Organization.AsUser(), content)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	if len(oldAvatar) > 0 {
+		ctx.Status(http.StatusNoContent)
+	} else {
+		ctx.Status(http.StatusCreated)
+	}
 }
 
 // DeleteAvatar deletes the Avatar of an Organisation
@@ -70,11 +78,15 @@ func DeleteAvatar(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	err := user_service.DeleteAvatar(ctx, ctx.Org.Organization.AsUser())
+	oldAvatar, err := user_service.DeleteAvatar(ctx, ctx.Org.Organization.AsUser())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	if len(oldAvatar) > 0 {
+		ctx.Status(http.StatusNoContent)
+	} else {
+		ctx.Status(http.StatusNotFound)
+	}
 }

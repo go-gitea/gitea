@@ -944,6 +944,16 @@ func ValidateUser(u *User, cols ...string) error {
 	return nil
 }
 
+// RefreshUserCols get user according special columns
+func RefreshUserCols(ctx context.Context, u *User, cols ...string) error {
+	if err := ValidateUser(u, cols...); err != nil {
+		return err
+	}
+
+	_, err := db.GetEngine(ctx).ID(u.ID).Cols(cols...).Get(u)
+	return err
+}
+
 // UpdateUserCols update user according special columns
 func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 	if err := ValidateUser(u, cols...); err != nil {
