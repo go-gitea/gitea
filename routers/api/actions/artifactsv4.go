@@ -313,14 +313,14 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 		}
 		blockid := ctx.Req.URL.Query().Get("blockid")
 		if blockid == "" {
-			_, err = appendUploadChunk(r.fs, ctx, artifact, artifact.FileSize, ctx.Req.ContentLength, artifact.RunID)
+			uploadedLength, err := appendUploadChunk(r.fs, ctx, artifact, artifact.FileSize, ctx.Req.ContentLength, artifact.RunID)
 			if err != nil {
-				log.Error("Error runner api getting task: task is not running")
-				ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+				log.Error("Error appending Chunk %v", err)
+				ctx.HTTPError(http.StatusInternalServerError, "Error appending Chunk")
 				return
 			}
-			artifact.FileCompressedSize += ctx.Req.ContentLength
-			artifact.FileSize += ctx.Req.ContentLength
+			artifact.FileCompressedSize += uploadedLength
+			artifact.FileSize += uploadedLength
 			if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 				log.Error("Error UpdateArtifactByID: %v", err)
 				ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
@@ -329,8 +329,8 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 		} else {
 			_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/block-%d-%d-%d-%s", task.Job.RunID, task.Job.RunID, artifact.ID, ctx.Req.ContentLength, base64.URLEncoding.EncodeToString([]byte(blockid))), ctx.Req.Body, -1)
 			if err != nil {
-				log.Error("Error runner api getting task: task is not running")
-				ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+				log.Error("Error uploading block blob %v", err)
+				ctx.HTTPError(http.StatusInternalServerError, "Error uploading block blob")
 				return
 			}
 		}
@@ -340,8 +340,8 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 		artifactID, _ := strconv.ParseInt(rawArtifactID, 10, 64)
 		_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/%d-%d-blocklist", task.Job.RunID, task.Job.RunID, artifactID), ctx.Req.Body, -1)
 		if err != nil {
-			log.Error("Error runner api getting task: task is not running")
-			ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+			log.Error("Error uploading blocklist %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "Error uploading blocklist")
 			return
 		}
 		ctx.JSON(http.StatusCreated, "created")
@@ -408,6 +408,12 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 	}
 	artifact.FileSize = chunks[len(chunks)-1].End + 1
 	artifact.FileCompressedSize = chunks[len(chunks)-1].End + 1
+
+	if req.Size != artifact.FileSize {
+		log.Error("Error merge chunks size mismatch")
+		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks size mismatch")
+		return
+	}
 
 	checksum := ""
 	if req.Hash != nil {

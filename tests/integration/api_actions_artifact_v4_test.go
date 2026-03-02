@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/actions"
 	actions_service "code.gitea.io/gitea/services/actions"
 
@@ -51,6 +52,7 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 		version  int32
 		blockID  bool
 		noLength bool
+		append   int
 	}{
 		{
 			name:    "artifact",
@@ -77,6 +79,25 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 			version: 7,
 			blockID: true,
 		},
+		{
+			name:     "artifact6",
+			version:  7,
+			append:   2,
+			noLength: true,
+		},
+		{
+			name:     "artifact7",
+			version:  7,
+			append:   3,
+			blockID:  true,
+			noLength: true,
+		},
+		{
+			name:    "artifact8",
+			version: 7,
+			append:  4,
+			blockID: true,
+		},
 	}
 
 	for _, entry := range table {
@@ -93,30 +114,56 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 		assert.True(t, uploadResp.Ok)
 		assert.Contains(t, uploadResp.SignedUploadUrl, "/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact")
 
+		h := sha256.New()
+
+		blocks := make([]string, 0, util.Iif(entry.blockID, entry.append+1, 0))
+
 		// get upload url
 		idx := strings.Index(uploadResp.SignedUploadUrl, "/twirp/")
-		url := uploadResp.SignedUploadUrl[idx:] + "&comp=block"
-		if entry.blockID {
-			url += "&blockid=" + base64.RawURLEncoding.EncodeToString([]byte("SOME_BIG_BLOCK_ID"))
+		for i := range entry.append + 1 {
+			url := uploadResp.SignedUploadUrl[idx:]
+			// See https://learn.microsoft.com/en-us/rest/api/storageservices/append-block
+			// See https://learn.microsoft.com/en-us/rest/api/storageservices/put-block
+			if entry.blockID {
+				blockID := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprint("SOME_BIG_BLOCK_ID_", i)))
+				blocks = append(blocks, blockID)
+				url += "&comp=block&blockid=" + blockID
+			} else {
+				url += "&comp=appendBlock"
+			}
+
+			// upload artifact chunk
+			body := strings.Repeat("A", 1024)
+			_, _ = h.Write([]byte(body))
+			var bodyReader io.Reader = strings.NewReader(body)
+			if entry.noLength {
+				bodyReader = io.MultiReader(bodyReader)
+			}
+			req = NewRequestWithBody(t, "PUT", url, bodyReader)
+			MakeRequest(t, req, http.StatusCreated)
 		}
 
-		// upload artifact chunk
-		body := strings.Repeat("A", 1024)
-		var bodyReader io.Reader = strings.NewReader(body)
-		if entry.noLength {
-			bodyReader = io.MultiReader(bodyReader)
+		if entry.blockID && entry.append > 0 {
+			// https://learn.microsoft.com/en-us/rest/api/storageservices/put-block-list
+			blockListURL := uploadResp.SignedUploadUrl[idx:] + "&comp=blocklist"
+			// upload artifact blockList
+			blockList := &actions.BlockList{
+				Latest: blocks,
+			}
+			rawBlockList, err := xml.Marshal(blockList)
+			assert.NoError(t, err)
+			req = NewRequestWithBody(t, "PUT", blockListURL, bytes.NewReader(rawBlockList))
+			MakeRequest(t, req, http.StatusCreated)
 		}
-		req = NewRequestWithBody(t, "PUT", url, bodyReader)
-		MakeRequest(t, req, http.StatusCreated)
+
+		sha := h.Sum(nil)
 
 		t.Logf("Create artifact confirm")
-
-		sha := sha256.Sum256([]byte(body))
 
 		// confirm artifact upload
 		req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/FinalizeArtifact", toProtoJSON(&actions.FinalizeArtifactRequest{
 			Name:                    entry.name,
-			Size:                    1024,
+			Size:                    int64(entry.append+1) * 1024,
 			Hash:                    wrapperspb.String("sha256:" + hex.EncodeToString(sha[:])),
 			WorkflowRunBackendId:    "792",
 			WorkflowJobRunBackendId: "193",

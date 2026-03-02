@@ -65,9 +65,9 @@ func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
 		return -1, checkErr
 	}
 	log.Info("[artifact] save chunk %s, size: %d, artifact id: %d, start: %d, end: %d",
-		storagePath, contentSize, artifact.ID, start, end)
-	// return chunk total size
-	return length, nil
+		storagePath, writtenSize, artifact.ID, start, end)
+	// return chunk total size if length is provided, otherwise return writtenSize
+	return util.Iif(length != -1, length, writtenSize), nil
 }
 
 func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
@@ -84,12 +84,13 @@ func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 	return saveUploadChunkBase(st, ctx, artifact, contentSize, runID, start, end, length, true)
 }
 
+// Returns uploaded length
 func appendUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 	artifact *actions.ActionArtifact,
 	start, contentSize, runID int64,
 ) (int64, error) {
 	end := start + contentSize - 1
-	return saveUploadChunkBase(st, ctx, artifact, util.Iif(contentSize == 0, -1, contentSize), runID, start, end, contentSize, false)
+	return saveUploadChunkBase(st, ctx, artifact, contentSize, runID, start, end, -1, false)
 }
 
 type chunkFileItem struct {
