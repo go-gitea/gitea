@@ -263,10 +263,13 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   return editor;
 }
 
+// files that are JSONC despite having a .json extension
+const jsoncByFilename = /^([jt]sconfig(\..*)?|devcontainer)\.json$/;
+
 async function getLinterExtension(cm: CodemirrorModules, filename: string, matchedLang: LanguageDescription | null): Promise<Extension> {
-  const ext = extname(filename);
+  const ext = extname(filename).toLowerCase();
   if (ext === '.json' || ext === '.map') {
-    return createJsonLinter(cm);
+    return jsoncByFilename.test(filename) ? [] : createJsonLinter(cm);
   }
   if (matchedLang) {
     return createSyntaxErrorLinter(cm);
