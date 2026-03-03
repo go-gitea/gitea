@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 )
 
@@ -173,7 +174,7 @@ func listV3UnorderedChunksMapByRunID(st storage.ObjectStorage, runID int64) (map
 	return chunksMap, nil
 }
 
-func listOrderedChunksByRunID(st storage.ObjectStorage, runID, artifactID int64, blist *BlockList) ([]*chunkFileItem, error) {
+func listOrderedChunksForArtifact(st storage.ObjectStorage, runID, artifactID int64, blist *BlockList) ([]*chunkFileItem, error) {
 	emptyListAsError := func(chunks []*chunkFileItem) ([]*chunkFileItem, error) {
 		if len(chunks) == 0 {
 			return nil, fmt.Errorf("no chunk found for artifact id: %d", artifactID)
@@ -230,7 +231,7 @@ func listOrderedChunksByRunID(st storage.ObjectStorage, runID, artifactID int64,
 		for i, name := range blist.Latest {
 			chunk, ok := chunkMapV4[name]
 			if !ok || chunk.Path == "" {
-				return nil, fmt.Errorf("missing Chunk (%d/%d): %s", i, len(blist.Latest), name)
+				return nil, fmt.Errorf("missing chunk (%d/%d): %s", i, len(blist.Latest), name)
 			}
 			chunks = append(chunks, chunk)
 		}
@@ -318,7 +319,7 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	if strings.HasPrefix(checksum, shaPrefix) {
 		hashSha256 = sha256.New()
 	} else if checksum != "" {
-		log.Error("unsupported checksum format: %s, will skip the checksum verification", checksum)
+		setting.PanicInDevOrTesting("unsupported checksum format: %s, will skip the checksum verification", checksum)
 	}
 	if hashSha256 != nil {
 		mergedReader = io.TeeReader(mergedReader, hashSha256)

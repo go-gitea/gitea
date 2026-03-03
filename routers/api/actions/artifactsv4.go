@@ -364,7 +364,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 		if blockID == "" {
 			uploadedLength, err := appendUploadChunkV3(r.fs, ctx, artifact, artifact.RunID, artifact.FileSize)
 			if err != nil {
-				log.Error("Error appending Chunk %v", err)
+				log.Error("Error appending chunk %v", err)
 				ctx.HTTPError(http.StatusInternalServerError, "Error appending Chunk")
 				return
 			}
@@ -450,7 +450,7 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 
 	var chunks []*chunkFileItem
 	blockList, blockListErr := r.readBlockList(runID, artifact.ID)
-	chunks, err = listOrderedChunksByRunID(r.fs, runID, artifact.ID, blockList)
+	chunks, err = listOrderedChunksForArtifact(r.fs, runID, artifact.ID, blockList)
 	if err != nil {
 		log.Error("Error list chunks: %v", errors.Join(blockListErr, err))
 		ctx.HTTPError(http.StatusInternalServerError, "Error list chunks")
