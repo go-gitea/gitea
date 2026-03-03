@@ -276,7 +276,7 @@ func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID int64, 
 	return &art, nil
 }
 
-func (r *artifactV4Routes) parseProtbufBody(ctx *ArtifactContext, req protoreflect.ProtoMessage) bool {
+func (r *artifactV4Routes) parseProtobufBody(ctx *ArtifactContext, req protoreflect.ProtoMessage) bool {
 	body, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
 		log.Error("Error decode request body: %v", err)
@@ -307,7 +307,7 @@ func (r *artifactV4Routes) sendProtobufBody(ctx *ArtifactContext, req protorefle
 func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 	var req CreateArtifactRequest
 
-	if ok := r.parseProtbufBody(ctx, &req); !ok {
+	if ok := r.parseProtobufBody(ctx, &req); !ok {
 		return
 	}
 	_, _, ok := validateRunIDV4(ctx, req.WorkflowRunBackendId)
@@ -433,7 +433,7 @@ func (r *artifactV4Routes) readBlockList(runID, artifactID int64) (*BlockList, e
 func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 	var req FinalizeArtifactRequest
 
-	if ok := r.parseProtbufBody(ctx, &req); !ok {
+	if ok := r.parseProtobufBody(ctx, &req); !ok {
 		return
 	}
 	_, runID, ok := validateRunIDV4(ctx, req.WorkflowRunBackendId)
@@ -486,7 +486,7 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 	var req ListArtifactsRequest
 
-	if ok := r.parseProtbufBody(ctx, &req); !ok {
+	if ok := r.parseProtobufBody(ctx, &req); !ok {
 		return
 	}
 	_, runID, ok := validateRunIDV4(ctx, req.WorkflowRunBackendId)
@@ -537,7 +537,7 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 	var req GetSignedArtifactURLRequest
 
-	if ok := r.parseProtbufBody(ctx, &req); !ok {
+	if ok := r.parseProtobufBody(ctx, &req); !ok {
 		return
 	}
 	_, runID, ok := validateRunIDV4(ctx, req.WorkflowRunBackendId)
@@ -601,7 +601,7 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 func (r *artifactV4Routes) deleteArtifact(ctx *ArtifactContext) {
 	var req DeleteArtifactRequest
 
-	if ok := r.parseProtbufBody(ctx, &req); !ok {
+	if ok := r.parseProtobufBody(ctx, &req); !ok {
 		return
 	}
 	_, runID, ok := validateRunIDV4(ctx, req.WorkflowRunBackendId)
