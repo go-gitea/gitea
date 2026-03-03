@@ -28,8 +28,8 @@ func TestAddDeletedBranch(t *testing.T) {
 	firstBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{ID: 1})
 
 	assert.True(t, firstBranch.IsDeleted)
-	assert.NoError(t, git_model.AddDeletedBranch(t.Context(), repo.ID, firstBranch.Name, firstBranch.DeletedByID))
-	assert.NoError(t, git_model.AddDeletedBranch(t.Context(), repo.ID, "branch2", int64(1)))
+	assert.NoError(t, git_model.MarkBranchAsDeleted(t.Context(), repo.ID, firstBranch.Name, firstBranch.DeletedByID))
+	assert.NoError(t, git_model.MarkBranchAsDeleted(t.Context(), repo.ID, "branch2", int64(1)))
 
 	secondBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: "branch2"})
 	assert.True(t, secondBranch.IsDeleted)
@@ -262,4 +262,26 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 	// Expect no error, and the returned branch to be not nil.
 	assert.NoError(t, err)
 	assert.NotNil(t, deletedBranch)
+}
+
+func TestCountBranches(t *testing.T) {
+	// 1. Setup - Exactly like TestAddDeletedBranch
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	// 2. Execution - Using t.Context() to match the rest of the file
+	initialCount, err := git_model.CountBranches(t.Context(), repo.ID, false)
+	assert.NoError(t, err)
+
+	// 3. Database Action - Using t.Context()
+	err = db.Insert(t.Context(), &git_model.Branch{
+		RepoID: repo.ID,
+		Name:   "test-branch-for-counting",
+	})
+	assert.NoError(t, err)
+
+	// 4. Verification
+	newCount, err := git_model.CountBranches(t.Context(), repo.ID, false)
+	assert.NoError(t, err)
+	assert.Equal(t, initialCount+1, newCount)
 }

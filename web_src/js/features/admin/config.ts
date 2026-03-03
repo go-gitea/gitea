@@ -6,14 +6,23 @@ import {submitFormFetchAction} from '../common-fetch-action.ts';
 
 const {appSubUrl} = window.config;
 
+function collectCheckboxBooleanValue(el: HTMLInputElement): boolean {
+  const valType = el.getAttribute('data-config-value-type') as ConfigValueType;
+  if (valType === 'boolean') return el.checked;
+  if (valType === 'flipped') return !el.checked;
+  requireExplicitValueType(el);
+}
+
 function initSystemConfigAutoCheckbox(el: HTMLInputElement) {
   el.addEventListener('change', async () => {
     // if the checkbox is inside a form, we assume it's handled by the form submit and do not send an individual request
     if (el.closest('form')) return;
     try {
-      const resp = await POST(`${appSubUrl}/-/admin/config`, {
-        data: new URLSearchParams({key: el.getAttribute('data-config-dyn-key')!, value: String(el.checked)}),
+      const data = new URLSearchParams({
+        key: el.getAttribute('data-config-dyn-key')!,
+        value: String(collectCheckboxBooleanValue(el)),
       });
+      const resp = await POST(`${appSubUrl}/-/admin/config`, {data});
       const json: Record<string, any> = await resp.json();
       if (json.errorMessage) throw new Error(json.errorMessage);
     } catch (ex) {
@@ -47,7 +56,7 @@ function extractElemConfigSubKey(el: GeneralFormFieldElement, dynKey: string): s
 
 // Due to the different design between HTML form elements and the JSON struct of the config values, we need to explicitly define some types.
 // * checkbox can be used for boolean value, it can also be used for multiple values (array)
-type ConfigValueType = 'boolean' | 'string' | 'number' | 'timestamp'; // TODO: support more types like array, not used at the moment.
+type ConfigValueType = 'boolean' | 'flipped' | 'string' | 'number' | 'timestamp'; // TODO: support more types like array, not used at the moment.
 
 function toDatetimeLocalValue(unixSeconds: number) {
   const d = new Date(unixSeconds * 1000);
@@ -102,13 +111,14 @@ export class ConfigFormValueMapper {
     return true;
   }
 
-  collectConfigValueFromElement(el: GeneralFormFieldElement, _oldVal: any = null) {
+  collectConfigValueFromElement(el: GeneralFormFieldElement) {
     let val: any;
     const valType = this.presetValueTypes[el.name];
     if (el.matches('[type="checkbox"]')) {
-      if (valType !== 'boolean') requireExplicitValueType(el);
-      val = el.checked;
-      // oldVal: for future use when we support array value with checkbox
+      // TODO: if it needs to support array values in the future,
+      //  it needs to iterate the "namedElems" to find all the checkboxes with the same name and collect values accordingly,
+      //  and set the namedElems[matchedIdx] to null to avoid duplicate processing.
+      val = collectCheckboxBooleanValue(el);
     } else if (el.matches('[type="datetime-local"]')) {
       if (valType !== 'timestamp') requireExplicitValueType(el);
       val = Math.floor(new Date(el.value).getTime() / 1000) ?? 0; // NaN is fine to JSON.stringify, it becomes null.
@@ -128,7 +138,7 @@ export class ConfigFormValueMapper {
       if (!el) continue;
       const subKey = extractElemConfigSubKey(el, dynKey);
       if (!subKey) continue; // if not match, skip
-      cfgVal[subKey] = this.collectConfigValueFromElement(el, cfgVal[subKey]);
+      cfgVal[subKey] = this.collectConfigValueFromElement(el);
       namedElems[idx] = null;
     }
   }
@@ -180,6 +190,7 @@ export class ConfigFormValueMapper {
 
     // now, the namedElems should only contain the config options without sub values,
     // directly store the value in formData with key as the element name, for example:
+    // "foo.enabled" => "true"
     for (const el of namedElems) {
       if (!el) continue;
       const dynKey = el.name;

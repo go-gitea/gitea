@@ -359,7 +359,7 @@ func NewTeamPost(ctx *context.Context) {
 	}
 
 	if t.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
-		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
 
@@ -367,7 +367,7 @@ func NewTeamPost(ctx *context.Context) {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):
-			ctx.RenderWithErr(ctx.Tr("form.team_name_been_taken"), tplTeamNew, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_name_been_taken"), tplTeamNew, &form)
 		default:
 			ctx.ServerError("NewTeam", err)
 		}
@@ -536,7 +536,7 @@ func EditTeamPost(ctx *context.Context) {
 	}
 
 	if t.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
-		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
 
@@ -544,7 +544,7 @@ func EditTeamPost(ctx *context.Context) {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):
-			ctx.RenderWithErr(ctx.Tr("form.team_name_been_taken"), tplTeamNew, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_name_been_taken"), tplTeamNew, &form)
 		default:
 			ctx.ServerError("UpdateTeam", err)
 		}

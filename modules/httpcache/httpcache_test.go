@@ -6,92 +6,73 @@ package httpcache
 import (
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
+	"time"
+
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func countFormalHeaders(h http.Header) (c int) {
-	for k := range h {
-		// ignore our headers for internal usage
-		if strings.HasPrefix(k, "X-Gitea-") {
-			continue
-		}
-		c++
-	}
-	return c
-}
-
 func TestHandleGenericETagCache(t *testing.T) {
-	etag := `"test"`
+	matchedEtag := `"matched-etag"`
+	lastModifiedTime := new(time.Date(2021, time.January, 2, 15, 4, 5, 0, time.FixedZone("test-zone", 8*3600)))
+	lastModified := lastModifiedTime.UTC().Format(http.TimeFormat)
+	cacheControl := "max-age=0, private, must-revalidate, no-transform"
+	type testCase struct {
+		name        string
+		reqHeaders  map[string]string
+		wantHandled bool
+		wantHeaders map[string]string
+		wantStatus  int
+	}
+	cases := []testCase{
+		{
+			name:        "No If-None-Match",
+			wantHandled: false,
+			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": cacheControl, "Etag": matchedEtag},
+		},
+		{
+			name:        "Mismatched If-None-Match",
+			reqHeaders:  map[string]string{"If-None-Match": `"mismatched-etag"`},
+			wantHandled: false,
+			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": cacheControl, "Etag": matchedEtag},
+		},
+		{
+			name:        "Matched If-None-Match",
+			reqHeaders:  map[string]string{"If-None-Match": matchedEtag},
+			wantHandled: true,
+			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": "", "Etag": matchedEtag},
+			wantStatus:  http.StatusNotModified,
+		},
+		{
+			name:        "Multiple Mismatched If-None-Match",
+			reqHeaders:  map[string]string{"If-None-Match": `"mismatched-etag1", "mismatched-etag2"`},
+			wantHandled: false,
+			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": cacheControl, "Etag": matchedEtag},
+		},
+		{
+			name:        "Multiple Matched If-None-Match",
+			reqHeaders:  map[string]string{"If-None-Match": `"mismatched-etag", ` + matchedEtag},
+			wantHandled: true,
+			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": "", "Etag": matchedEtag},
+			wantStatus:  http.StatusNotModified,
+		},
+	}
 
-	t.Run("No_If-None-Match", func(t *testing.T) {
-		req := &http.Request{Header: make(http.Header)}
-		w := httptest.NewRecorder()
-
-		handled := HandleGenericETagCache(req, w, etag)
-
-		assert.False(t, handled)
-		assert.Equal(t, 2, countFormalHeaders(w.Header()))
-		assert.Contains(t, w.Header(), "Cache-Control")
-		assert.Contains(t, w.Header(), "Etag")
-		assert.Equal(t, etag, w.Header().Get("Etag"))
-	})
-	t.Run("Wrong_If-None-Match", func(t *testing.T) {
-		req := &http.Request{Header: make(http.Header)}
-		w := httptest.NewRecorder()
-
-		req.Header.Set("If-None-Match", `"wrong etag"`)
-
-		handled := HandleGenericETagCache(req, w, etag)
-
-		assert.False(t, handled)
-		assert.Equal(t, 2, countFormalHeaders(w.Header()))
-		assert.Contains(t, w.Header(), "Cache-Control")
-		assert.Contains(t, w.Header(), "Etag")
-		assert.Equal(t, etag, w.Header().Get("Etag"))
-	})
-	t.Run("Correct_If-None-Match", func(t *testing.T) {
-		req := &http.Request{Header: make(http.Header)}
-		w := httptest.NewRecorder()
-
-		req.Header.Set("If-None-Match", etag)
-
-		handled := HandleGenericETagCache(req, w, etag)
-
-		assert.True(t, handled)
-		assert.Equal(t, 1, countFormalHeaders(w.Header()))
-		assert.Contains(t, w.Header(), "Etag")
-		assert.Equal(t, etag, w.Header().Get("Etag"))
-		assert.Equal(t, http.StatusNotModified, w.Code)
-	})
-	t.Run("Multiple_Wrong_If-None-Match", func(t *testing.T) {
-		req := &http.Request{Header: make(http.Header)}
-		w := httptest.NewRecorder()
-
-		req.Header.Set("If-None-Match", `"wrong etag", "wrong etag "`)
-
-		handled := HandleGenericETagCache(req, w, etag)
-
-		assert.False(t, handled)
-		assert.Equal(t, 2, countFormalHeaders(w.Header()))
-		assert.Contains(t, w.Header(), "Cache-Control")
-		assert.Contains(t, w.Header(), "Etag")
-		assert.Equal(t, etag, w.Header().Get("Etag"))
-	})
-	t.Run("Multiple_Correct_If-None-Match", func(t *testing.T) {
-		req := &http.Request{Header: make(http.Header)}
-		w := httptest.NewRecorder()
-
-		req.Header.Set("If-None-Match", `"wrong etag", `+etag)
-
-		handled := HandleGenericETagCache(req, w, etag)
-
-		assert.True(t, handled)
-		assert.Equal(t, 1, countFormalHeaders(w.Header()))
-		assert.Contains(t, w.Header(), "Etag")
-		assert.Equal(t, etag, w.Header().Get("Etag"))
-		assert.Equal(t, http.StatusNotModified, w.Code)
-	})
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "http://example.com/test", nil)
+			for k, v := range tc.reqHeaders {
+				req.Header.Set(k, v)
+			}
+			w := httptest.NewRecorder()
+			assert.Equal(t, tc.wantHandled, HandleGenericETagPrivateCache(req, w, matchedEtag, lastModifiedTime))
+			resp := w.Result()
+			for k, v := range tc.wantHeaders {
+				assert.Equal(t, v, resp.Header.Get(k))
+			}
+			assert.Equal(t, tc.wantStatus, util.Iif(resp.StatusCode == http.StatusOK, 0, resp.StatusCode))
+		})
+	}
 }
