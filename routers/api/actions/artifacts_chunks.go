@@ -44,7 +44,8 @@ func parseChunkFileItemV3(st storage.ObjectStorage, storageDir, subPath string) 
 	}
 
 	var item chunkFileItem
-	if _, err := fmt.Sscanf(baseName, "%d-%d-%d-%d.chunk", &item.RunID, &item.ArtifactID, &item.Start, &item.End); err != nil {
+	var unusedRunID int64
+	if _, err := fmt.Sscanf(baseName, "%d-%d-%d-%d.chunk", &unusedRunID, &item.ArtifactID, &item.Start, &item.End); err != nil {
 		return nil, err
 	}
 
@@ -130,7 +131,7 @@ func saveUploadChunkV3GetTotalSize(st storage.ObjectStorage, ctx *ArtifactContex
 
 // Returns uploaded length
 func appendUploadChunkV3(st storage.ObjectStorage, ctx *ArtifactContext, artifact *actions.ActionArtifact, runID, start int64) (int64, error) {
-	opts := saveUploadChunkOptions{start: start, checkMd5: true}
+	opts := saveUploadChunkOptions{start: start}
 	if ctx.Req.ContentLength > 0 {
 		opts.end = new(start + ctx.Req.ContentLength - 1)
 	}
@@ -138,14 +139,14 @@ func appendUploadChunkV3(st storage.ObjectStorage, ctx *ArtifactContext, artifac
 }
 
 type chunkFileItem struct {
-	RunID int64
-	Path  string
-
 	ArtifactID int64
-	Size       int64
 
-	Start     int64  // v3 only
-	End       int64  // v3 only
+	Path string
+	Size int64
+
+	Start int64 // v3 only
+	End   int64 // v3 only
+
 	ChunkName string // v4 only
 }
 

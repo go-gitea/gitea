@@ -189,8 +189,9 @@ func parseChunkFileItemV4(st storage.ObjectStorage, artifactID int64, storageDir
 		return nil, errSkipChunkFile
 	}
 	var item chunkFileItem
+	var unusedRunID int64
 	var b64chunkName string
-	_, err := fmt.Sscanf(baseName, "block-%d-%d-%d-%s", &item.RunID, &item.ArtifactID, &item.Size, &b64chunkName)
+	_, err := fmt.Sscanf(baseName, "block-%d-%d-%d-%s", &unusedRunID, &item.ArtifactID, &item.Size, &b64chunkName)
 	if err != nil {
 		return nil, err
 	}
