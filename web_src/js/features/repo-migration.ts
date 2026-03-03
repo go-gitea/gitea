@@ -23,6 +23,23 @@ export function initOrgMigration() {
   };
   checkOrgItems();
   orgToken.addEventListener('input', checkOrgItems);
+
+  const orgLfs = document.querySelector<HTMLInputElement>('#lfs');
+  const orgLfsSettings = document.querySelector<HTMLElement>('#lfs_settings');
+  const orgLfsEndpoint = document.querySelector<HTMLElement>('#lfs_endpoint');
+  if (orgLfs && orgLfsSettings && orgLfsEndpoint) {
+    const setOrgLFSVisibility = () => {
+      toggleElem(orgLfsSettings, orgLfs.checked);
+      hideElem(orgLfsEndpoint);
+    };
+    setOrgLFSVisibility();
+    orgLfs.addEventListener('change', setOrgLFSVisibility);
+    document.querySelector('#lfs_settings_show')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      showElem(orgLfsEndpoint);
+    });
+  }
 }
 
 export function initRepoMigration() {
