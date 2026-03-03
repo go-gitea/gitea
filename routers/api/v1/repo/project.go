@@ -360,14 +360,6 @@ func ListProjectColumns(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
-	// - name: page
-	//   in: query
-	//   description: page number of results
-	//   type: integer
-	// - name: limit
-	//   in: query
-	//   description: page size of results
-	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectColumnList"
@@ -384,42 +376,13 @@ func ListProjectColumns(ctx *context.APIContext) {
 		return
 	}
 
-	// Get all columns
-	allColumns, err := project.GetColumns(ctx)
+	columns, err := project.GetColumns(ctx)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	totalCount := int64(len(allColumns))
-
-	// Parse pagination parameters
-	page := ctx.FormInt("page")
-	if page <= 0 {
-		page = 1
-	}
-
-	limit := ctx.FormInt("limit")
-	if limit <= 0 {
-		limit = setting.UI.IssuePagingNum
-	}
-
-	// Apply pagination
-	start := (page - 1) * limit
-	end := start + limit
-
-	var columns project_model.ColumnList
-	if start < len(allColumns) {
-		if end > len(allColumns) {
-			end = len(allColumns)
-		}
-		columns = allColumns[start:end]
-	} else {
-		columns = make([]*project_model.Column, 0)
-	}
-
-	ctx.SetLinkHeader(int(totalCount), limit)
-	ctx.SetTotalCountHeader(totalCount)
+	ctx.SetTotalCountHeader(int64(len(columns)))
 	ctx.JSON(http.StatusOK, convert.ToProjectColumnList(ctx, columns))
 }
 
