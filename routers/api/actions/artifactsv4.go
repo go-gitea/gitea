@@ -111,7 +111,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 
 	"google.golang.org/protobuf/encoding/protojson"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -159,25 +159,31 @@ func ArtifactsV4Routes(prefix string) *web.Router {
 	return m
 }
 
-func (r artifactV4Routes) buildSignature(endp, expires, artifactName string, taskID, artifactID int64) []byte {
+func (r *artifactV4Routes) buildSignature(endpoint, expires, artifactName string, taskID, artifactID int64) []byte {
 	mac := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
-	mac.Write([]byte(endp))
+	mac.Write([]byte(endpoint))
 	mac.Write([]byte(expires))
 	mac.Write([]byte(artifactName))
-	fmt.Fprint(mac, taskID)
-	fmt.Fprint(mac, artifactID)
+	_, _ = fmt.Fprint(mac, taskID)
+	_, _ = fmt.Fprint(mac, artifactID)
 	return mac.Sum(nil)
 }
 
-func (r artifactV4Routes) buildArtifactURL(ctx *ArtifactContext, endp, artifactName string, taskID, artifactID int64) string {
+func (r *artifactV4Routes) buildArtifactURL(ctx *ArtifactContext, endpoint, artifactName string, taskID, artifactID int64) string {
 	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
 	uploadURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") + strings.TrimSuffix(r.prefix, "/") +
-		"/" + endp + "?sig=" + base64.RawURLEncoding.EncodeToString(r.buildSignature(endp, expires, artifactName, taskID, artifactID)) + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + strconv.FormatInt(taskID, 10) + "&artifactID=" + strconv.FormatInt(artifactID, 10)
+		"/" + endpoint +
+		"?sig=" + base64.RawURLEncoding.EncodeToString(r.buildSignature(endpoint, expires, artifactName, taskID, artifactID)) +
+		"&expires=" + url.QueryEscape(expires) +
+		"&artifactName=" + url.QueryEscape(artifactName) +
+		"&taskID=" + strconv.FormatInt(taskID, 10) +
+		"&artifactID=" + strconv.FormatInt(artifactID, 10)
 	return uploadURL
 }
 
 func makeBlockFilenameV4(runID, artifactID, size int64, blockID string) string {
-	return fmt.Sprintf("block-%d-%d-%d-%s", runID, artifactID, size, base64.URLEncoding.EncodeToString([]byte(blockID)))
+	sizeInName := max(size, 0) // do not use "-1" in filename
+	return fmt.Sprintf("block-%d-%d-%d-%s", runID, artifactID, sizeInName, base64.URLEncoding.EncodeToString([]byte(blockID)))
 }
 
 var errSkipChunkFile = errors.New("skip this chunk file")
@@ -213,7 +219,7 @@ func parseChunkFileItemV4(st storage.ObjectStorage, artifactID int64, fpath stri
 	return &item, nil
 }
 
-func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*actions.ActionTask, string, bool) {
+func (r *artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*actions.ActionTask, string, bool) {
 	rawTaskID := ctx.Req.URL.Query().Get("taskID")
 	rawArtifactID := ctx.Req.URL.Query().Get("artifactID")
 	sig := ctx.Req.URL.Query().Get("sig")
@@ -286,7 +292,7 @@ func (r *artifactV4Routes) parseProtbufBody(ctx *ArtifactContext, req protorefle
 	return true
 }
 
-func (r *artifactV4Routes) sendProtbufBody(ctx *ArtifactContext, req protoreflect.ProtoMessage) {
+func (r *artifactV4Routes) sendProtobufBody(ctx *ArtifactContext, req protoreflect.ProtoMessage) {
 	resp, err := protojson.Marshal(req)
 	if err != nil {
 		log.Error("Error encode response body: %v", err)
@@ -335,7 +341,7 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 		Ok:              true,
 		SignedUploadUrl: r.buildArtifactURL(ctx, "UploadArtifact", artifactName, ctx.ActionTask.ID, artifact.ID),
 	}
-	r.sendProtbufBody(ctx, &respData)
+	r.sendProtobufBody(ctx, &respData)
 }
 
 func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
@@ -354,8 +360,8 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 			ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 			return
 		}
-		blockid := ctx.Req.URL.Query().Get("blockid")
-		if blockid == "" {
+		blockID := ctx.Req.URL.Query().Get("blockid")
+		if blockID == "" {
 			uploadedLength, err := appendUploadChunkV3(r.fs, ctx, artifact, artifact.RunID, artifact.FileSize)
 			if err != nil {
 				log.Error("Error appending Chunk %v", err)
@@ -371,7 +377,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 			}
 		} else {
 			// FIXME: why "ctx.Req.ContentLength" is used for filename, but "-1" is used for "Save"
-			blockFilename := makeBlockFilenameV4(task.Job.RunID, artifact.ID, ctx.Req.ContentLength, blockid)
+			blockFilename := makeBlockFilenameV4(task.Job.RunID, artifact.ID, ctx.Req.ContentLength, blockID)
 			_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/%s", task.Job.RunID, blockFilename), ctx.Req.Body, -1)
 			if err != nil {
 				log.Error("Error uploading block blob %v", err)
@@ -478,7 +484,7 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 		Ok:         true,
 		ArtifactId: artifact.ID,
 	}
-	r.sendProtbufBody(ctx, &respData)
+	r.sendProtobufBody(ctx, &respData)
 }
 
 func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
@@ -529,7 +535,7 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 	respData := ListArtifactsResponse{
 		Artifacts: list,
 	}
-	r.sendProtbufBody(ctx, &respData)
+	r.sendProtobufBody(ctx, &respData)
 }
 
 func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
@@ -569,7 +575,7 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 	if respData.SignedUrl == "" {
 		respData.SignedUrl = r.buildArtifactURL(ctx, "DownloadArtifact", artifactName, ctx.ActionTask.ID, artifact.ID)
 	}
-	r.sendProtbufBody(ctx, &respData)
+	r.sendProtobufBody(ctx, &respData)
 }
 
 func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
@@ -626,5 +632,5 @@ func (r *artifactV4Routes) deleteArtifact(ctx *ArtifactContext) {
 		Ok:         true,
 		ArtifactId: artifact.ID,
 	}
-	r.sendProtbufBody(ctx, &respData)
+	r.sendProtobufBody(ctx, &respData)
 }

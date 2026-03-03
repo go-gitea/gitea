@@ -300,12 +300,12 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	}
 	mergedReader := io.MultiReader(readers...)
 	shaPrefix := "sha256:"
-	var hash hash.Hash
+	var hashMd5 hash.Hash
 	if strings.HasPrefix(checksum, shaPrefix) {
-		hash = sha256.New()
+		hashMd5 = sha256.New()
 	}
-	if hash != nil {
-		mergedReader = io.TeeReader(mergedReader, hash)
+	if hashMd5 != nil {
+		mergedReader = io.TeeReader(mergedReader, hashMd5)
 	}
 
 	// if chunk is gzip, use gz as extension
@@ -335,8 +335,8 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		}
 	}()
 
-	if hash != nil {
-		rawChecksum := hash.Sum(nil)
+	if hashMd5 != nil {
+		rawChecksum := hashMd5.Sum(nil)
 		actualChecksum := hex.EncodeToString(rawChecksum)
 		if !strings.HasSuffix(checksum, actualChecksum) {
 			return fmt.Errorf("update artifact error checksum is invalid %v vs %v", checksum, actualChecksum)
