@@ -1164,6 +1164,12 @@ func Routes() *web.Router {
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
 
+				m.Group("/reparent", func() {
+					m.Post("", reqToken(), bind(api.ReparentRepoOption{}), repo.Reparent)
+					m.Post("/accept", reqToken(), repo.AcceptReparent)
+					m.Post("/reject", reqToken(), repo.RejectReparent)
+				})
+
 				addActionsRoutes(m, reqOwner(), repo.NewAction()) // it adds the routes for secrets/variables and runner management
 
 				m.Group("/actions/workflows", func() {

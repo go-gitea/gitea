@@ -147,6 +147,7 @@ const (
 	RepositoryReady           RepositoryStatus = iota // a normal repository
 	RepositoryBeingMigrated                           // repository is migrating
 	RepositoryPendingTransfer                         // repository pending in ownership transfer state
+	RepositoryPendingReparent                         // repository pending in reparenting state
 	RepositoryBroken                                  // repository is in a permanently broken state
 )
 

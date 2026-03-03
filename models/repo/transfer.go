@@ -67,6 +67,7 @@ type RepoTransfer struct { //nolint:revive // export stutter
 	Doer        *user_model.User `xorm:"-"`
 	RecipientID int64
 	Recipient   *user_model.User `xorm:"-"`
+	TargetOwner *user_model.User `xorm:"-"`
 	RepoID      int64
 	Repo        *Repository `xorm:"-"`
 	TeamIDs     []int64
@@ -92,6 +93,20 @@ func (r *RepoTransfer) LoadRecipient(ctx context.Context) error {
 	return nil
 }
 
+func (r *RepoTransfer) LoadTargetOwner(ctx context.Context) error {
+	if r.TargetOwner == nil && r.IsReparent(ctx) {
+		targetOwnerID := r.GetTargetOwnerID()
+		if targetOwnerID != 0 {
+			u, err := user_model.GetUserByID(ctx, targetOwnerID)
+			if err != nil {
+				return err
+			}
+			r.TargetOwner = u
+		}
+	}
+	return nil
+}
+
 func (r *RepoTransfer) LoadRepo(ctx context.Context) error {
 	if r.Repo == nil {
 		repo, err := GetRepositoryByID(ctx, r.RepoID)
@@ -104,13 +119,35 @@ func (r *RepoTransfer) LoadRepo(ctx context.Context) error {
 	return nil
 }
 
+// IsReparent returns true if this transfer is actually a reparenting request
+func (r *RepoTransfer) IsReparent(ctx context.Context) bool {
+	if err := r.LoadRepo(ctx); err != nil {
+		return false
+	}
+	return r.RecipientID == r.Repo.OwnerID
+}
+
+// GetTargetOwnerID returns the target owner ID for reparenting
+func (r *RepoTransfer) GetTargetOwnerID() int64 {
+	if len(r.TeamIDs) > 0 {
+		return r.TeamIDs[0]
+	}
+	return 0
+}
+
 // LoadAttributes fetches the transfer recipient from the database
 func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
 	if err := r.LoadRecipient(ctx); err != nil {
 		return err
 	}
+	if err := r.LoadRepo(ctx); err != nil {
+		return err
+	}
+	if err := r.LoadTargetOwner(ctx); err != nil {
+		return err
+	}
 
-	if r.Recipient.IsOrganization() && r.Teams == nil {
+	if !r.IsReparent(ctx) && r.Recipient.IsOrganization() && r.Teams == nil {
 		teamsMap, err := organization.GetTeamsByIDs(ctx, r.TeamIDs)
 		if err != nil {
 			return err
@@ -118,10 +155,6 @@ func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
 		for _, team := range teamsMap {
 			r.Teams = append(r.Teams, team)
 		}
-	}
-
-	if err := r.LoadRepo(ctx); err != nil {
-		return err
 	}
 
 	if r.Doer == nil {
@@ -135,26 +168,56 @@ func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-// CanUserAcceptOrRejectTransfer checks if the user has the rights to accept/decline a repo transfer.
-// For user, it checks if it's himself
-// For organizations, it checks if the user is able to create repos
-func (r *RepoTransfer) CanUserAcceptOrRejectTransfer(ctx context.Context, u *user_model.User) bool {
+// CanUserAcceptTransfer checks if the user has the rights to accept a repo transfer.
+func (r *RepoTransfer) CanUserAcceptTransfer(ctx context.Context, u *user_model.User) bool {
+	if u.IsAdmin {
+		return true
+	}
 	if err := r.LoadAttributes(ctx); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return false
 	}
 
-	if !r.Recipient.IsOrganization() {
-		return r.RecipientID == u.ID
+	targetOwnerID := r.RecipientID
+	if r.IsReparent(ctx) {
+		targetOwnerID = r.GetTargetOwnerID()
 	}
 
-	allowed, err := organization.CanCreateOrgRepo(ctx, r.RecipientID, u.ID)
+	targetOwner, err := user_model.GetUserByID(ctx, targetOwnerID)
+	if err != nil {
+		log.Error("GetUserByID: %v", err)
+		return false
+	}
+
+	if !targetOwner.IsOrganization() {
+		return targetOwner.ID == u.ID
+	}
+
+	allowed, err := organization.CanCreateOrgRepo(ctx, targetOwner.ID, u.ID)
 	if err != nil {
 		log.Error("CanCreateOrgRepo: %v", err)
 		return false
 	}
 
 	return allowed
+}
+
+// CanUserRejectTransfer checks if the user has the rights to reject/cancel a repo transfer.
+func (r *RepoTransfer) CanUserRejectTransfer(ctx context.Context, u *user_model.User) bool {
+	if u.IsAdmin {
+		return true
+	}
+	if r.DoerID == u.ID {
+		return true
+	}
+	return r.CanUserAcceptTransfer(ctx, u)
+}
+
+// CanUserAcceptOrRejectTransfer checks if the user has the rights to accept/decline a repo transfer.
+// For user, it checks if it's himself
+// For organizations, it checks if the user is able to create repos
+func (r *RepoTransfer) CanUserAcceptOrRejectTransfer(ctx context.Context, u *user_model.User) bool {
+	return r.CanUserAcceptTransfer(ctx, u)
 }
 
 type PendingRepositoryTransferOptions struct {
@@ -213,7 +276,7 @@ func TestRepositoryReadyForTransfer(status RepositoryStatus) error {
 	switch status {
 	case RepositoryBeingMigrated:
 		return errors.New("repo is not ready, currently migrating")
-	case RepositoryPendingTransfer:
+	case RepositoryPendingTransfer, RepositoryPendingReparent:
 		return ErrRepoTransferInProgress{}
 	}
 	return nil

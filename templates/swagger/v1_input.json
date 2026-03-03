@@ -2,5 +2,22 @@
   "info": {
     "version": "{{.SwaggerAppVer}}"
   },
-  "basePath": "{{.SwaggerAppSubUrl}}/api/v1"
+  "basePath": "{{.SwaggerAppSubUrl}}/api/v1",
+  "definitions": {
+    "ReparentRepoOption": {
+      "description": "ReparentRepoOption options when reparenting a repository",
+      "type": "object",
+      "required": [
+        "new_owner"
+      ],
+      "properties": {
+        "new_owner": {
+          "description": "name of the organization or user that owns the fork to be promoted",
+          "type": "string",
+          "x-go-name": "NewOwner"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    }
+  }
 }

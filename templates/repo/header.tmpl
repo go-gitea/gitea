@@ -55,6 +55,23 @@
 							</div>
 						</form>
 					{{end}}
+					{{if $.RepoReparent}}
+						<div class="ui yellow label">{{ctx.Locale.Tr "repo.reparent.desc" $.RepoReparent.TargetOwner.DisplayName}}</div>
+						<form method="post" action="{{$.RepoLink}}/action/accept_reparent?redirect_to={{$.RepoLink}}">
+							<div class="flex-text-inline" data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{ctx.Locale.Tr "repo.reparent.accept"}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
+								<button type="submit" class="ui compact small basic button {{if $.CanUserAcceptTransfer}}primary {{end}} ok small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+									{{ctx.Locale.Tr "repo.reparent.accept"}}
+								</button>
+							</div>
+						</form>
+						<form method="post" action="{{$.RepoLink}}/action/reject_reparent?redirect_to={{$.RepoLink}}">
+							<div class="flex-text-inline" data-tooltip-content="{{if $.CanUserRejectTransfer}}{{ctx.Locale.Tr "repo.reparent.reject"}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
+								<button type="submit" class="ui compact small basic button {{if $.CanUserRejectTransfer}}red {{end}}ok small"{{if not $.CanUserRejectTransfer}} disabled{{end}}>
+									{{ctx.Locale.Tr "repo.reparent.reject"}}
+								</button>
+							</div>
+						</form>
+					{{end}}
 					{{if $.EnableFeed}}
 					{{/* An extra div-element is not necessary here, as this button does not secretly contain two buttons. */}}
 					<a class="ui compact small basic button" href="{{$.RepoLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
