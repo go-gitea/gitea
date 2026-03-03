@@ -18,7 +18,6 @@ func TestResolveTreeSitterEntryPrefersLanguageMetadataForAmbiguousExtension(t *t
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.fileLang, func(t *testing.T) {
 			entry := resolveTreeSitterEntry(tc.fileName, tc.fileLang)
 			if entry == nil {
@@ -40,4 +39,3 @@ func TestResolveTreeSitterEntryFallsBackToFilename(t *testing.T) {
 		t.Fatalf("resolveTreeSitterEntry(%q, \"\") = %q, want %q", "main.go", entry.Name, "go")
 	}
 }
-
