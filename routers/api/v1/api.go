@@ -895,34 +895,35 @@ func Routes() *web.Router {
 
 	addActionsRoutes := func(
 		m *web.Router,
-		reqChecker func(ctx *context.APIContext),
+		readReqChecker func(ctx *context.APIContext),
+		ownerReqChecker func(ctx *context.APIContext),
 		act actions.API,
 	) {
 		m.Group("/actions", func() {
 			m.Group("/secrets", func() {
-				m.Get("", reqToken(), reqChecker, act.ListActionsSecrets)
+				m.Get("", reqToken(), ownerReqChecker, act.ListActionsSecrets)
 				m.Combo("/{secretname}").
-					Put(reqToken(), reqChecker, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
-					Delete(reqToken(), reqChecker, act.DeleteSecret)
+					Put(reqToken(), ownerReqChecker, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
+					Delete(reqToken(), ownerReqChecker, act.DeleteSecret)
 			})
 
 			m.Group("/variables", func() {
-				m.Get("", reqToken(), reqChecker, act.ListVariables)
+				m.Get("", reqToken(), ownerReqChecker, act.ListVariables)
 				m.Combo("/{variablename}").
-					Get(reqToken(), reqChecker, act.GetVariable).
-					Delete(reqToken(), reqChecker, act.DeleteVariable).
-					Post(reqToken(), reqChecker, bind(api.CreateVariableOption{}), act.CreateVariable).
-					Put(reqToken(), reqChecker, bind(api.UpdateVariableOption{}), act.UpdateVariable)
+					Get(reqToken(), ownerReqChecker, act.GetVariable).
+					Delete(reqToken(), ownerReqChecker, act.DeleteVariable).
+					Post(reqToken(), ownerReqChecker, bind(api.CreateVariableOption{}), act.CreateVariable).
+					Put(reqToken(), ownerReqChecker, bind(api.UpdateVariableOption{}), act.UpdateVariable)
 			})
 
 			m.Group("/runners", func() {
-				m.Get("", reqToken(), reqChecker, act.ListRunners)
-				m.Post("/registration-token", reqToken(), reqChecker, act.CreateRegistrationToken)
-				m.Get("/{runner_id}", reqToken(), reqChecker, act.GetRunner)
-				m.Delete("/{runner_id}", reqToken(), reqChecker, act.DeleteRunner)
+				m.Get("", reqToken(), ownerReqChecker, act.ListRunners)
+				m.Post("/registration-token", reqToken(), ownerReqChecker, act.CreateRegistrationToken)
+				m.Get("/{runner_id}", reqToken(), ownerReqChecker, act.GetRunner)
+				m.Delete("/{runner_id}", reqToken(), ownerReqChecker, act.DeleteRunner)
 			})
-			m.Get("/runs", reqToken(), reqRepoReader(unit.TypeActions), act.ListWorkflowRuns)
-			m.Get("/jobs", reqToken(), reqRepoReader(unit.TypeActions), act.ListWorkflowJobs)
+			m.Get("/runs", reqToken(), readReqChecker, act.ListWorkflowRuns)
+			m.Get("/jobs", reqToken(), readReqChecker, act.ListWorkflowJobs)
 		})
 	}
 
@@ -1164,7 +1165,8 @@ func Routes() *web.Router {
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
 
-				addActionsRoutes(m, reqOwner(), repo.NewAction()) // it adds the routes for secrets/variables and runner management
+				// Adds the routes for secrets/variables and runner management
+				addActionsRoutes(m, reqRepoReader(unit.TypeActions), reqOwner(), repo.NewAction())
 
 				m.Group("/actions/workflows", func() {
 					m.Get("", repo.ActionsListRepositoryWorkflows)
@@ -1619,6 +1621,7 @@ func Routes() *web.Router {
 			})
 			addActionsRoutes(
 				m,
+				reqOrgMembership(),
 				reqOrgOwnership(),
 				org.NewAction(),
 			)
