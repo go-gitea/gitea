@@ -7,10 +7,10 @@ test('safeLinkHref', () => {
   // eslint-disable-next-line no-script-url
   expect(safeLinkHref('javascript:void(0);')).toBeNull();
   expect(safeLinkHref('data:image/svg+xml;utf8,<svg></svg>')).toBeNull();
-  // for safety and consistency, it converts non-string input to string (just like window.location.href = 0)
-  expect(safeLinkHref(0 as any)).toBe('http://localhost:3000/0');
-  expect(safeLinkHref({} as any)).toBe('http://localhost:3000/[object%20Object]');
-  expect(safeLinkHref(null as any)).toBe('http://localhost:3000/null');
+  // for safety and consistency, it converts non-string input to string, just like `window.location.href = 0`
+  expect(safeLinkHref(0)).toBe('http://localhost:3000/0');
+  expect(safeLinkHref({})).toBe('http://localhost:3000/[object%20Object]');
+  expect(safeLinkHref(null)).toBe('http://localhost:3000/null');
 });
 
 test('navigateToIframeLink', () => {
@@ -31,6 +31,11 @@ test('navigateToIframeLink', () => {
 
   navigateToIframeLink('/path', '');
   expect(assignSpy).toHaveBeenCalledWith('http://localhost:3000/path');
+  vi.clearAllMocks();
+
+  // input can be any type & any value, keep the same behavior as `window.location.href = 123`
+  navigateToIframeLink(123, {});
+  expect(assignSpy).toHaveBeenCalledWith('http://localhost:3000/123');
   vi.clearAllMocks();
 
   // eslint-disable-next-line no-script-url

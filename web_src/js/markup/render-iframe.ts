@@ -1,7 +1,8 @@
 import {generateElemId, queryElemChildren} from '../utils/dom.ts';
 import {isDarkTheme} from '../utils.ts';
 
-export function safeLinkHref(link: string): string | null {
+// arguments can be any type & any value, they are from "message" event's data
+export function safeLinkHref(link: any): string | null {
   try {
     const url = new URL(`${link}`, window.location.href);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
@@ -15,7 +16,8 @@ export function safeLinkHref(link: string): string | null {
   }
 }
 
-export function navigateToIframeLink(unsafeLink: string, target: string | null) {
+// arguments can be any type & any value, they are from "message" event's data
+export function navigateToIframeLink(unsafeLink: any, target: any) {
   const linkHref = safeLinkHref(unsafeLink);
   if (linkHref === null) return;
   if (target === '_blank') {
