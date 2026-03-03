@@ -15,16 +15,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIEditReleaseAttachmentWithUnallowedFile(t *testing.T) {
+func testAPIEditReleaseAttachmentWithUnallowedFile(t *testing.T) {
 	// Limit the allowed release types (since by default there is no restriction)
 	defer test.MockVariableValue(&setting.Repository.Release.AllowedTypes, ".exe")()
-	defer tests.PrepareTestEnv(t)()
-
 	attachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 9})
 	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: attachment.ReleaseID})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: attachment.RepoID})
@@ -42,9 +39,7 @@ func TestAPIEditReleaseAttachmentWithUnallowedFile(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 }
 
-func TestAPIDraftReleaseAttachmentAccess(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIDraftReleaseAttachmentAccess(t *testing.T) {
 	attachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 13})
 	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: attachment.ReleaseID})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: attachment.RepoID})

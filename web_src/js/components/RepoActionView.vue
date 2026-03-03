@@ -626,7 +626,7 @@ export default defineComponent({
                 </a>
 
                 <div class="divider"/>
-                <a :class="['item', !currentJob.steps.length ? 'disabled' : '']" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
+                <a :class="['item', !currentJob.steps.length ? 'disabled' : '']" :href="run.link+'/jobs/'+jobIndex+'/logs'" download>
                   <i class="icon"><SvgIcon name="octicon-download"/></i>
                   {{ locale.downloadLogs }}
                 </a>
@@ -945,6 +945,9 @@ export default defineComponent({
   background-color: var(--color-console-active-bg);
   position: sticky;
   top: 60px;
+  /* workaround ansi_up issue related to faintStyle generating a CSS stacking context via `opacity`
+     inline style which caused such elements to render above the .job-step-summary header. */
+  z-index: 1;
 }
 
 @media (max-width: 767.98px) {

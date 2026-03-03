@@ -1,0 +1,442 @@
+/* Inlined styles from easymde.min.css (includes EasyMDE and CodeMirror base) */
+.EasyMDEContainer {
+  display: block;
+}
+
+/* CodeMirror base layout (from codemirror.css) */
+.EasyMDEContainer .CodeMirror {
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  height: auto;
+  border: 1px solid var(--color-input-border);
+  border-bottom-left-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
+  padding: 10px;
+  font: 14px var(--fonts-monospace);
+  z-index: 0;
+  overflow-wrap: break-word;
+  color: var(--color-input-text);
+  background-color: var(--color-input-background);
+  direction: ltr;
+}
+
+.EasyMDEContainer .CodeMirror.cm-s-default {
+  border-radius: var(--border-radius);
+  padding: 0;
+}
+
+.EasyMDEContainer .CodeMirror-lines {
+  padding: 4px 0;
+  cursor: text;
+  min-height: 1px;
+}
+
+.EasyMDEContainer .CodeMirror pre.CodeMirror-line,
+.EasyMDEContainer .CodeMirror pre.CodeMirror-line-like {
+  padding: 0 4px;
+  border-radius: 0;
+  border-width: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  margin: 0;
+  white-space: pre;
+  overflow-wrap: normal;
+  line-height: inherit;
+  color: inherit;
+  z-index: 2;
+  position: relative;
+  overflow: visible;
+  font-variant-ligatures: contextual;
+}
+
+.EasyMDEContainer .CodeMirror-wrap pre.CodeMirror-line,
+.EasyMDEContainer .CodeMirror-wrap pre.CodeMirror-line-like {
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  word-break: normal;
+}
+
+.EasyMDEContainer .CodeMirror-scroll {
+  overflow: scroll !important; /* things will break if this is overridden */
+  margin-bottom: -50px;
+  margin-right: -50px;
+  padding-bottom: 50px;
+  height: 100%;
+  outline: none;
+  position: relative;
+  z-index: 0;
+  cursor: text;
+}
+
+.EasyMDEContainer .CodeMirror-sizer {
+  position: relative;
+  border-right: 50px solid transparent;
+}
+
+.EasyMDEContainer .CodeMirror-vscrollbar,
+.EasyMDEContainer .CodeMirror-hscrollbar,
+.EasyMDEContainer .CodeMirror-scrollbar-filler,
+.EasyMDEContainer .CodeMirror-gutter-filler {
+  position: absolute;
+  z-index: 6;
+  display: none;
+  outline: none;
+}
+
+.EasyMDEContainer .CodeMirror-vscrollbar {
+  right: 0;
+  top: 0;
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
+
+.EasyMDEContainer .CodeMirror-hscrollbar {
+  bottom: 0;
+  left: 0;
+  overflow-y: hidden;
+  overflow-x: scroll;
+}
+
+.EasyMDEContainer .CodeMirror-scrollbar-filler {
+  right: 0;
+  bottom: 0;
+}
+
+/* Cursor */
+.EasyMDEContainer .CodeMirror-cursor {
+  position: absolute;
+  pointer-events: none;
+  border-left: 1px solid var(--color-caret);
+  border-right: none;
+  width: 0;
+}
+
+.EasyMDEContainer div.CodeMirror-cursors {
+  visibility: hidden;
+  position: relative;
+  z-index: 3;
+}
+
+.EasyMDEContainer div.CodeMirror-dragcursors {
+  visibility: visible;
+}
+
+.EasyMDEContainer .CodeMirror-focused div.CodeMirror-cursors {
+  visibility: visible;
+}
+
+/* Selection */
+.EasyMDEContainer .CodeMirror-selected {
+  background: var(--color-primary-light-1);
+}
+
+.EasyMDEContainer .CodeMirror-focused .CodeMirror-selected {
+  background: var(--color-primary-light-1);
+}
+
+.EasyMDEContainer .CodeMirror-line::selection,
+.EasyMDEContainer .CodeMirror-line > span::selection,
+.EasyMDEContainer .CodeMirror-line > span > span::selection {
+  background: var(--color-primary-light-1);
+}
+
+/* Misc */
+.EasyMDEContainer .cm-tab {
+  display: inline-block;
+  text-decoration: inherit;
+}
+
+.EasyMDEContainer .CodeMirror-rtl pre {
+  direction: rtl;
+}
+
+.EasyMDEContainer .CodeMirror-code {
+  font: 14px var(--fonts-monospace);
+  outline: none;
+}
+
+.EasyMDEContainer .CodeMirror-scroll,
+.EasyMDEContainer .CodeMirror-sizer {
+  box-sizing: content-box;
+}
+
+.EasyMDEContainer .CodeMirror-measure {
+  position: absolute;
+  width: 100%;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.EasyMDEContainer .CodeMirror-measure pre {
+  position: static;
+}
+
+.EasyMDEContainer .CodeMirror-composing {
+  border-bottom: 2px solid;
+}
+
+.EasyMDEContainer span.CodeMirror-selectedtext {
+  background: none;
+}
+
+@media print {
+  .EasyMDEContainer .CodeMirror div.CodeMirror-cursors {
+    visibility: hidden;
+  }
+}
+
+/* Default theme overrides */
+.EasyMDEContainer .cm-header,
+.EasyMDEContainer .cm-strong {
+  font-weight: var(--font-weight-bold);
+}
+
+.EasyMDEContainer .cm-em {
+  font-style: italic;
+}
+
+.EasyMDEContainer .cm-link {
+  text-decoration: underline;
+}
+
+.EasyMDEContainer .cm-strikethrough {
+  text-decoration: line-through;
+}
+
+.EasyMDEContainer .cm-comment {
+  background: inherit;
+}
+
+/* Placeholder */
+.EasyMDEContainer .CodeMirror-placeholder {
+  color: var(--color-placeholder-text);
+  opacity: 1;
+}
+
+/* Focus */
+.EasyMDEContainer .CodeMirror-focused {
+  border-color: var(--color-primary);
+}
+
+.EasyMDEContainer .CodeMirror :focus {
+  outline: none;
+}
+
+/* Fullscreen */
+.EasyMDEContainer .CodeMirror-fullscreen {
+  background: var(--color-body);
+  position: fixed;
+  inset: 50px 0 0;
+  height: auto;
+  z-index: 8;
+  border-right: none;
+  border-bottom-right-radius: 0;
+}
+
+.EasyMDEContainer .CodeMirror-fullscreen.CodeMirror-focused {
+  border-right: 1px solid var(--color-primary);
+}
+
+/* Statusbar */
+.ui .field:not(:last-child) .EasyMDEContainer .editor-statusbar {
+  margin-bottom: -1em; /* when there is a statusbar, the "margin-bottom: 1em" of the "field" is not needed, because the statusbar is likely a blank line */
+}
+
+/* Toolbar */
+.EasyMDEContainer .editor-toolbar {
+  position: relative;
+  user-select: none;
+  padding: 9px 10px;
+  border-top: 1px solid var(--color-input-border);
+  border-left: 1px solid var(--color-input-border);
+  border-right: 1px solid var(--color-input-border);
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+
+.EasyMDEContainer .editor-toolbar.fullscreen {
+  width: 100%;
+  height: 50px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  box-sizing: border-box;
+  background: var(--color-body);
+  border: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  opacity: 1;
+  z-index: 9;
+}
+
+.EasyMDEContainer .editor-toolbar button {
+  background: transparent;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+  height: 30px;
+  margin: 0;
+  padding: 0 6px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: var(--font-weight-bold);
+  min-width: 30px;
+  white-space: nowrap;
+  color: var(--color-text-light);
+}
+
+.EasyMDEContainer .editor-toolbar button:not(:hover) {
+  background-color: transparent;
+}
+
+.EasyMDEContainer .editor-toolbar button:hover {
+  background: var(--color-hover);
+}
+
+.EasyMDEContainer .editor-toolbar button.active {
+  background: var(--color-active);
+}
+
+.EasyMDEContainer .editor-toolbar i.separator {
+  display: inline-block;
+  width: 0;
+  border-left: none;
+  border-right: 1px solid var(--color-input-border);
+  color: transparent;
+  text-indent: -10px;
+  margin: 0 6px;
+}
+
+.EasyMDEContainer .editor-toolbar button::after {
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  font-size: 65%;
+  vertical-align: text-bottom;
+  position: relative;
+  top: 2px;
+}
+
+.EasyMDEContainer .editor-toolbar button.heading-1::after {
+  content: "1";
+}
+
+.EasyMDEContainer .editor-toolbar button.heading-2::after {
+  content: "2";
+}
+
+.EasyMDEContainer .editor-toolbar button.heading-3::after {
+  content: "3";
+}
+
+.EasyMDEContainer .editor-toolbar button.heading-bigger::after {
+  content: "\25B2";
+}
+
+.EasyMDEContainer .editor-toolbar button.heading-smaller::after {
+  content: "\25BC";
+}
+
+.EasyMDEContainer .editor-toolbar.disabled-for-preview button:not(.no-disable) {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* hide preview button, we have the preview tab for this */
+.EasyMDEContainer .editor-toolbar:not(.fullscreen) .preview {
+  display: none;
+}
+
+/* hide revert button in fullscreen, it breaks the page */
+.EasyMDEContainer .editor-toolbar.fullscreen .revert-to-textarea {
+  display: none;
+}
+
+@media only screen and (max-width: 700px) {
+  .EasyMDEContainer .editor-toolbar i.no-mobile {
+    display: none;
+  }
+}
+
+/* Statusbar */
+.EasyMDEContainer .editor-statusbar {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--color-text-light);
+  text-align: right;
+}
+
+.EasyMDEContainer .editor-statusbar span {
+  display: inline-block;
+  min-width: 4em;
+  margin-left: 1em;
+}
+
+.EasyMDEContainer .editor-statusbar .lines::before {
+  content: "lines: ";
+}
+
+.EasyMDEContainer .editor-statusbar .words::before {
+  content: "words: ";
+}
+
+.EasyMDEContainer .editor-statusbar .characters::before {
+  content: "characters: ";
+}
+
+/* Preview */
+.EasyMDEContainer .editor-preview-full {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 7;
+  overflow: auto;
+  display: none;
+  box-sizing: border-box;
+}
+
+.EasyMDEContainer .editor-preview-side {
+  position: fixed;
+  bottom: 0;
+  width: 50%;
+  top: 50px;
+  right: 0;
+  z-index: 9;
+  overflow: auto;
+  display: none;
+  box-sizing: border-box;
+  border: 1px solid var(--color-secondary);
+  overflow-wrap: break-word;
+}
+
+.EasyMDEContainer .editor-preview-active-side {
+  display: block;
+}
+
+.EasyMDEContainer .editor-preview-active {
+  display: block;
+}
+
+.EasyMDEContainer .editor-preview {
+  padding: 10px;
+  background-color: var(--color-body);
+}
+
+.EasyMDEContainer .editor-preview > p {
+  margin-top: 0;
+}
+
+.EasyMDEContainer .editor-preview pre {
+  background: var(--color-markup-code-block);
+  margin-bottom: 10px;
+}
+
+.EasyMDEContainer .editor-preview table td,
+.EasyMDEContainer .editor-preview table th {
+  border: 1px solid var(--color-secondary);
+  padding: 5px;
+}

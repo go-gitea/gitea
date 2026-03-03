@@ -917,7 +917,6 @@ func Routes() *web.Router {
 
 			m.Group("/runners", func() {
 				m.Get("", reqToken(), reqChecker, act.ListRunners)
-				m.Get("/registration-token", reqToken(), reqChecker, act.GetRegistrationToken)
 				m.Post("/registration-token", reqToken(), reqChecker, act.CreateRegistrationToken)
 				m.Get("/{runner_id}", reqToken(), reqChecker, act.GetRunner)
 				m.Delete("/{runner_id}", reqToken(), reqChecker, act.DeleteRunner)
@@ -936,18 +935,8 @@ func Routes() *web.Router {
 		}
 
 		if setting.Federation.Enabled {
-			m.Get("/nodeinfo", misc.NodeInfo)
-			m.Group("/activitypub", func() {
-				// deprecated, remove in 1.20, use /user-id/{user-id} instead
-				m.Group("/user/{username}", func() {
-					m.Get("", activitypub.Person)
-					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
-				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
-				m.Group("/user-id/{user-id}", func() {
-					m.Get("", activitypub.Person)
-					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
-				}, context.UserIDAssignmentAPI(), checkTokenPublicOnly())
-			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub))
+			m.Get("/nodeinfo", activitypub.NotImplemented)
+			m.Any("/activitypub/*", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub), activitypub.NotImplemented)
 		}
 
 		// Misc (public accessible)
@@ -1055,7 +1044,6 @@ func Routes() *web.Router {
 
 				m.Group("/runners", func() {
 					m.Get("", reqToken(), user.ListRunners)
-					m.Get("/registration-token", reqToken(), user.GetRegistrationToken)
 					m.Post("/registration-token", reqToken(), user.CreateRegistrationToken)
 					m.Get("/{runner_id}", reqToken(), user.GetRunner)
 					m.Delete("/{runner_id}", reqToken(), user.DeleteRunner)
@@ -1271,7 +1259,9 @@ func Routes() *web.Router {
 						m.Group("/{run}", func() {
 							m.Get("", repo.GetWorkflowRun)
 							m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
+							m.Post("/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowRun)
 							m.Get("/jobs", repo.ListWorkflowRunJobs)
+							m.Post("/jobs/{job_id}/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowJob)
 							m.Get("/artifacts", repo.GetArtifactsOfRun)
 						})
 					})
@@ -1743,9 +1733,6 @@ func Routes() *web.Router {
 				})
 				m.Get("/runs", admin.ListWorkflowRuns)
 				m.Get("/jobs", admin.ListWorkflowJobs)
-			})
-			m.Group("/runners", func() {
-				m.Get("/registration-token", admin.GetRegistrationToken)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin())
 
