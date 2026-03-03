@@ -895,35 +895,35 @@ func Routes() *web.Router {
 
 	addActionsRoutes := func(
 		m *web.Router,
-		readReqChecker func(ctx *context.APIContext),
-		ownerReqChecker func(ctx *context.APIContext),
+		reqReaderCheck func(ctx *context.APIContext),
+		reqOwnerCheck func(ctx *context.APIContext),
 		act actions.API,
 	) {
 		m.Group("/actions", func() {
 			m.Group("/secrets", func() {
-				m.Get("", reqToken(), ownerReqChecker, act.ListActionsSecrets)
+				m.Get("", reqToken(), reqOwnerCheck, act.ListActionsSecrets)
 				m.Combo("/{secretname}").
-					Put(reqToken(), ownerReqChecker, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
-					Delete(reqToken(), ownerReqChecker, act.DeleteSecret)
+					Put(reqToken(), reqOwnerCheck, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
+					Delete(reqToken(), reqOwnerCheck, act.DeleteSecret)
 			})
 
 			m.Group("/variables", func() {
-				m.Get("", reqToken(), ownerReqChecker, act.ListVariables)
+				m.Get("", reqToken(), reqOwnerCheck, act.ListVariables)
 				m.Combo("/{variablename}").
-					Get(reqToken(), ownerReqChecker, act.GetVariable).
-					Delete(reqToken(), ownerReqChecker, act.DeleteVariable).
-					Post(reqToken(), ownerReqChecker, bind(api.CreateVariableOption{}), act.CreateVariable).
-					Put(reqToken(), ownerReqChecker, bind(api.UpdateVariableOption{}), act.UpdateVariable)
+					Get(reqToken(), reqOwnerCheck, act.GetVariable).
+					Delete(reqToken(), reqOwnerCheck, act.DeleteVariable).
+					Post(reqToken(), reqOwnerCheck, bind(api.CreateVariableOption{}), act.CreateVariable).
+					Put(reqToken(), reqOwnerCheck, bind(api.UpdateVariableOption{}), act.UpdateVariable)
 			})
 
 			m.Group("/runners", func() {
-				m.Get("", reqToken(), ownerReqChecker, act.ListRunners)
-				m.Post("/registration-token", reqToken(), ownerReqChecker, act.CreateRegistrationToken)
-				m.Get("/{runner_id}", reqToken(), ownerReqChecker, act.GetRunner)
-				m.Delete("/{runner_id}", reqToken(), ownerReqChecker, act.DeleteRunner)
+				m.Get("", reqToken(), reqOwnerCheck, act.ListRunners)
+				m.Post("/registration-token", reqToken(), reqOwnerCheck, act.CreateRegistrationToken)
+				m.Get("/{runner_id}", reqToken(), reqOwnerCheck, act.GetRunner)
+				m.Delete("/{runner_id}", reqToken(), reqOwnerCheck, act.DeleteRunner)
 			})
-			m.Get("/runs", reqToken(), readReqChecker, act.ListWorkflowRuns)
-			m.Get("/jobs", reqToken(), readReqChecker, act.ListWorkflowJobs)
+			m.Get("/runs", reqToken(), reqReaderCheck, act.ListWorkflowRuns)
+			m.Get("/jobs", reqToken(), reqReaderCheck, act.ListWorkflowJobs)
 		})
 	}
 
