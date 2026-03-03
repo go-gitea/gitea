@@ -47,6 +47,8 @@ func TestGuessCurrentHostURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "http://cfg-host/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
 	headersWithProto := http.Header{"X-Forwarded-Proto": {"https"}}
+	maliciousProtoHeaders := http.Header{"X-Forwarded-Proto": {"http://attacker.host/?trash="}}
+	listProtoHeaders := http.Header{"X-Forwarded-Proto": {"https, http"}}
 
 	t.Run("Legacy", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLLegacy)()
@@ -59,6 +61,12 @@ func TestGuessCurrentHostURL(t *testing.T) {
 
 		// if "X-Forwarded-Proto" exists, then use it and "Host" header
 		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
+		assert.Equal(t, "https://req-host:3000", GuessCurrentHostURL(ctx))
+
+		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: maliciousProtoHeaders})
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
+
+		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: listProtoHeaders})
 		assert.Equal(t, "https://req-host:3000", GuessCurrentHostURL(ctx))
 	})
 
@@ -76,6 +84,9 @@ func TestGuessCurrentHostURL(t *testing.T) {
 
 		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
 		assert.Equal(t, "https://req-host:3000", GuessCurrentHostURL(ctx))
+
+		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: maliciousProtoHeaders})
+		assert.Equal(t, "http://req-host:3000", GuessCurrentHostURL(ctx))
 	})
 
 	t.Run("Never", func(t *testing.T) {

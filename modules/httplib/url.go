@@ -46,20 +46,30 @@ func IsRelativeURL(s string) bool {
 
 func getRequestScheme(req *http.Request) string {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto
-	if s := req.Header.Get("X-Forwarded-Proto"); s != "" {
+	if s := normalizeForwardedProto(req.Header.Get("X-Forwarded-Proto")); s != "" {
 		return s
 	}
-	if s := req.Header.Get("X-Forwarded-Protocol"); s != "" {
+	if s := normalizeForwardedProto(req.Header.Get("X-Forwarded-Protocol")); s != "" {
 		return s
 	}
-	if s := req.Header.Get("X-Url-Scheme"); s != "" {
+	if s := normalizeForwardedProto(req.Header.Get("X-Url-Scheme")); s != "" {
 		return s
 	}
 	if s := req.Header.Get("Front-End-Https"); s != "" {
-		return util.Iif(s == "on", "https", "http")
+		return util.Iif(strings.EqualFold(s, "on"), "https", "http")
 	}
 	if s := req.Header.Get("X-Forwarded-Ssl"); s != "" {
-		return util.Iif(s == "on", "https", "http")
+		return util.Iif(strings.EqualFold(s, "on"), "https", "http")
+	}
+	return ""
+}
+
+func normalizeForwardedProto(value string) string {
+	value, _, _ = strings.Cut(value, ",")
+	value = strings.TrimSpace(value)
+	value = strings.ToLower(value)
+	if value == "http" || value == "https" {
+		return value
 	}
 	return ""
 }
