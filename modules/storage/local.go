@@ -5,6 +5,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -118,31 +119,35 @@ func (l *LocalStorage) URL(path, name, _ string, reqParams url.Values) (*url.URL
 	return nil, ErrURLNotSupported
 }
 
+func (l *LocalStorage) normalizeWalkError(err error) error {
+	if errors.Is(err, os.ErrNotExist) {
+		// ignore it because the file may be deleted during the walk, and we don't care about it
+		return nil
+	}
+	return err
+}
+
 // IterateObjects iterates across the objects in the local storage
 func (l *LocalStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
 	dir := l.buildLocalPath(dirName)
-	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
+	return filepath.WalkDir(dir, func(path string, d os.DirEntry, errWalk error) error {
+		if err := l.ctx.Err(); err != nil {
 			return err
 		}
-		select {
-		case <-l.ctx.Done():
-			return l.ctx.Err()
-		default:
+		if errWalk != nil {
+			return l.normalizeWalkError(errWalk)
 		}
-		if path == l.dir {
+		if path == l.dir || d.IsDir() {
 			return nil
 		}
-		if d.IsDir() {
-			return nil
-		}
+
 		relPath, err := filepath.Rel(l.dir, path)
 		if err != nil {
-			return err
+			return l.normalizeWalkError(err)
 		}
 		obj, err := os.Open(path)
 		if err != nil {
-			return err
+			return l.normalizeWalkError(err)
 		}
 		defer obj.Close()
 		return fn(filepath.ToSlash(relPath), obj)
