@@ -376,9 +376,8 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 				return
 			}
 		} else {
-			// FIXME: why "ctx.Req.ContentLength" is used for filename, but "-1" is used for "Save"
 			blockFilename := makeBlockFilenameV4(task.Job.RunID, artifact.ID, ctx.Req.ContentLength, blockID)
-			_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/%s", task.Job.RunID, blockFilename), ctx.Req.Body, -1)
+			_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/%s", task.Job.RunID, blockFilename), ctx.Req.Body, ctx.Req.ContentLength)
 			if err != nil {
 				log.Error("Error uploading block blob %v", err)
 				ctx.HTTPError(http.StatusInternalServerError, "Error uploading block blob")
