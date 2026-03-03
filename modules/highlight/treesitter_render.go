@@ -38,8 +38,11 @@ func (renderer *treeSitterRenderer) render(code []byte, trimTrailingNewline bool
 		renderer.mu.Unlock()
 		return cached, true
 	}
-	ranges := renderer.highlightRangesLocked(code)
+	ranges, ok := renderer.highlightRangesLocked(code)
 	renderer.mu.Unlock()
+	if !ok {
+		return "", false
+	}
 
 	var out strings.Builder
 	out.Grow(len(code) + len(ranges)*32)
@@ -119,8 +122,11 @@ func (renderer *treeSitterRenderer) renderLines(code []byte) ([]template.HTML, b
 		renderer.mu.Unlock()
 		return out, true
 	}
-	ranges := renderer.highlightRangesLocked(code)
+	ranges, ok := renderer.highlightRangesLocked(code)
 	renderer.mu.Unlock()
+	if !ok {
+		return nil, false
+	}
 
 	lines := make([]template.HTML, 0, bytes.Count(code, []byte("\n"))+1)
 	var line strings.Builder
@@ -186,12 +192,25 @@ func (renderer *treeSitterRenderer) renderLines(code []byte) ([]template.HTML, b
 	return lines, true
 }
 
-func (renderer *treeSitterRenderer) highlightRangesLocked(code []byte) []normalizedHighlightRange {
+func (renderer *treeSitterRenderer) highlightRangesLocked(code []byte) ([]normalizedHighlightRange, bool) {
 	if renderer.cache.matches(code) && renderer.cache.ranges != nil {
-		return renderer.cache.ranges
+		return renderer.cache.ranges, true
 	}
 
-	ranges, tree := renderer.highlightIncrementalLocked(code)
+	ranges, tree, ok := renderer.highlightIncrementalLocked(code)
+	if !ok {
+		// Invalidate cache on parse failures so callers can fallback to Chroma
+		// rather than reusing stale tree-sitter output.
+		renderer.cache.setTree(nil)
+		renderer.cache.setSource(nil)
+		renderer.cache.setRanges(nil)
+		renderer.cache.clearDerived()
+		renderer.cache.altSource = renderer.cache.altSource[:0]
+		renderer.cache.altCode = ""
+		renderer.cache.altTrim = false
+		renderer.cache.altLines = nil
+		return nil, false
+	}
 	if !renderer.cache.matches(code) {
 		renderer.cache.archiveCurrentDerivedToAlt()
 	}
@@ -199,36 +218,32 @@ func (renderer *treeSitterRenderer) highlightRangesLocked(code []byte) []normali
 	renderer.cache.setTree(tree)
 	renderer.cache.setRanges(ranges)
 	renderer.cache.clearDerived()
-	return renderer.cache.ranges
+	return renderer.cache.ranges, true
 }
 
-func (renderer *treeSitterRenderer) highlightIncrementalLocked(code []byte) ([]normalizedHighlightRange, *gotreesitter.Tree) {
+func (renderer *treeSitterRenderer) highlightIncrementalLocked(code []byte) ([]normalizedHighlightRange, *gotreesitter.Tree, bool) {
 	oldTree := renderer.cache.tree
 	oldSource := renderer.cache.source
 	if oldTree != nil && len(oldSource) > 0 {
 		if edit, ok := computeSingleInputEdit(oldSource, code); ok {
 			oldTree.Edit(edit)
-			newTree := renderer.parseTree(code, oldTree)
-			if oldTree != newTree {
-				oldTree.Release()
+			newTree, parseOK := renderer.parseTree(code, oldTree)
+			if !parseOK || newTree == nil || newTree.RootNode() == nil {
+				return nil, newTree, false
 			}
-			if newTree == nil || newTree.RootNode() == nil {
-				return nil, newTree
-			}
-			return renderer.queryNormalizedRanges(newTree), newTree
+			return renderer.queryNormalizedRanges(newTree), newTree, true
 		}
-		oldTree.Release()
 	}
-	tree := renderer.parseTree(code, nil)
-	if tree == nil || tree.RootNode() == nil {
-		return nil, tree
+	tree, parseOK := renderer.parseTree(code, nil)
+	if !parseOK || tree == nil || tree.RootNode() == nil {
+		return nil, tree, false
 	}
-	return renderer.queryNormalizedRanges(tree), tree
+	return renderer.queryNormalizedRanges(tree), tree, true
 }
 
-func (renderer *treeSitterRenderer) parseTree(code []byte, oldTree *gotreesitter.Tree) *gotreesitter.Tree {
+func (renderer *treeSitterRenderer) parseTree(code []byte, oldTree *gotreesitter.Tree) (*gotreesitter.Tree, bool) {
 	if renderer == nil || renderer.parser == nil {
-		return nil
+		return nil, false
 	}
 
 	var (
@@ -248,9 +263,9 @@ func (renderer *treeSitterRenderer) parseTree(code []byte, oldTree *gotreesitter
 		tree, err = renderer.parser.Parse(code)
 	}
 	if err != nil {
-		return gotreesitter.NewTree(nil, code, renderer.lang)
+		return nil, false
 	}
-	return tree
+	return tree, true
 }
 
 func (renderer *treeSitterRenderer) queryNormalizedRanges(tree *gotreesitter.Tree) []normalizedHighlightRange {
