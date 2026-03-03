@@ -9,7 +9,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -56,11 +55,6 @@ func ListProjects(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ProjectList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
-	if !ctx.Repo.CanRead(unit.TypeProjects) {
-		ctx.APIErrorNotFound()
-		return
-	}
 
 	state := ctx.FormTrim("state")
 	var isClosed optional.Option[bool]
@@ -141,11 +135,6 @@ func GetProject(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if !ctx.Repo.CanRead(unit.TypeProjects) {
-		ctx.APIErrorNotFound()
-		return
-	}
-
 	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
@@ -195,11 +184,6 @@ func CreateProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
-	if !ctx.Repo.CanWrite(unit.TypeProjects) {
-		ctx.APIError(http.StatusForbidden, "no permission")
-		return
-	}
 
 	form := web.GetForm(ctx).(*api.CreateProjectOption)
 
@@ -263,11 +247,6 @@ func EditProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
-	if !ctx.Repo.CanWrite(unit.TypeProjects) {
-		ctx.APIError(http.StatusForbidden, "no permission")
-		return
-	}
 
 	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -338,11 +317,6 @@ func DeleteProject(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if !ctx.Repo.CanWrite(unit.TypeProjects) {
-		ctx.APIError(http.StatusForbidden, "no permission")
-		return
-	}
-
 	// Verify project exists and belongs to this repository
 	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -399,11 +373,6 @@ func ListProjectColumns(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ProjectColumnList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
-	if !ctx.Repo.CanRead(unit.TypeProjects) {
-		ctx.APIErrorNotFound()
-		return
-	}
 
 	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -492,11 +461,6 @@ func CreateProjectColumn(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	if !ctx.Repo.CanWrite(unit.TypeProjects) {
-		ctx.APIError(http.StatusForbidden, "no permission")
-		return
-	}
-
 	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
@@ -561,11 +525,6 @@ func EditProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
-	if !ctx.Repo.CanWrite(unit.TypeProjects) {
-		ctx.APIError(http.StatusForbidden, "no permission")
-		return
-	}
 
 	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -635,11 +594,6 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
-	if !ctx.Repo.CanWrite(unit.TypeProjects) {
-		ctx.APIError(http.StatusForbidden, "no permission")
-		return
-	}
 
 	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -716,11 +670,6 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
-	if !ctx.Repo.CanWrite(unit.TypeProjects) {
-		ctx.APIError(http.StatusForbidden, "no permission")
-		return
-	}
 
 	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
