@@ -30,6 +30,16 @@ type saveUploadChunkOptions struct {
 	checkMd5 bool
 }
 
+func makeTmpPathNameV3(runID int64) string {
+	// TODO: maybe use "tmp-upload/run-12345" in the future
+	return fmt.Sprintf("tmp%d", runID)
+}
+
+func makeTmpPathNameV4(runID int64) string {
+	// TODO: maybe use "tmp-upload/run-12345-v4" in the future
+	return fmt.Sprintf("tmpv4%d", runID)
+}
+
 func makeChunkFilenameV3(runID, artifactID, start int64, endPtr *int64) string {
 	var end int64
 	if endPtr != nil {
@@ -68,7 +78,7 @@ func saveUploadChunkV3(st storage.ObjectStorage, ctx *ArtifactContext, artifact 
 	runID int64, opts saveUploadChunkOptions,
 ) (writtenSize int64, retErr error) {
 	// build chunk store path
-	storagePath := fmt.Sprintf("tmp%d/%s", runID, makeChunkFilenameV3(runID, artifact.ID, opts.start, opts.end))
+	storagePath := fmt.Sprintf("%s/%s", makeTmpPathNameV3(runID), makeChunkFilenameV3(runID, artifact.ID, opts.start, opts.end))
 
 	// "end" is optional, so "contentSize=-1" means read until EOF
 	contentSize := int64(-1)
@@ -152,7 +162,7 @@ type chunkFileItem struct {
 }
 
 func listV3UnorderedChunksMapByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chunkFileItem, error) {
-	storageDir := fmt.Sprintf("tmp%d", runID)
+	storageDir := makeTmpPathNameV3(runID)
 	var chunks []*chunkFileItem
 	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
 		item, err := parseChunkFileItemV3(st, fpath)
@@ -182,7 +192,7 @@ func listOrderedChunksForArtifact(st storage.ObjectStorage, runID, artifactID in
 		return chunks, nil
 	}
 
-	storageDir := fmt.Sprintf("tmpv4%d", runID)
+	storageDir := makeTmpPathNameV4(runID)
 	var chunks []*chunkFileItem
 	var chunkMapV4 map[string]*chunkFileItem
 

@@ -377,7 +377,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 			}
 		} else {
 			blockFilename := makeBlockFilenameV4(task.Job.RunID, artifact.ID, ctx.Req.ContentLength, blockID)
-			_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/%s", task.Job.RunID, blockFilename), ctx.Req.Body, ctx.Req.ContentLength)
+			_, err := r.fs.Save(fmt.Sprintf("%s/%s", makeTmpPathNameV4(task.Job.RunID), blockFilename), ctx.Req.Body, ctx.Req.ContentLength)
 			if err != nil {
 				log.Error("Error uploading block blob %v", err)
 				ctx.HTTPError(http.StatusInternalServerError, "Error uploading block blob")
@@ -388,7 +388,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 	case "blocklist":
 		rawArtifactID := ctx.Req.URL.Query().Get("artifactID")
 		artifactID, _ := strconv.ParseInt(rawArtifactID, 10, 64)
-		_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/%d-%d-blocklist", task.Job.RunID, task.Job.RunID, artifactID), ctx.Req.Body, -1)
+		_, err := r.fs.Save(fmt.Sprintf("%s/%d-%d-blocklist", makeTmpPathNameV4(task.Job.RunID), task.Job.RunID, artifactID), ctx.Req.Body, -1)
 		if err != nil {
 			log.Error("Error uploading blocklist %v", err)
 			ctx.HTTPError(http.StatusInternalServerError, "Error uploading blocklist")
@@ -407,7 +407,7 @@ type Latest struct {
 }
 
 func (r *artifactV4Routes) readBlockList(runID, artifactID int64) (*BlockList, error) {
-	blockListName := fmt.Sprintf("tmpv4%d/%d-%d-blocklist", runID, runID, artifactID)
+	blockListName := fmt.Sprintf("%s/%d-%d-blocklist", makeTmpPathNameV4(runID), runID, artifactID)
 	s, err := r.fs.Open(blockListName)
 	if err != nil {
 		return nil, err
