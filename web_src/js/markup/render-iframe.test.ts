@@ -1,85 +1,46 @@
-import {initMarkupRenderIframe} from './render-iframe.ts';
+import {navigateToIframeLink, safeLinkHref} from './render-iframe.ts';
 
-function setupIframe() {
-  document.body.innerHTML = '<div id="root"><iframe class="external-render-iframe" data-src="/render"></iframe></div>';
-  const root = document.getElementById('root')!;
-  initMarkupRenderIframe(root);
+test('safeLinkHref', () => {
+  expect(safeLinkHref('http://example.com')).toBe('http://example.com/');
+  expect(safeLinkHref('https://example.com')).toBe('https://example.com/');
+  expect(safeLinkHref('/path')).toBe('http://localhost:3000/path');
+  // eslint-disable-next-line no-script-url
+  expect(safeLinkHref('javascript:void(0);')).toBeNull();
+  expect(safeLinkHref('data:image/svg+xml;utf8,<svg></svg>')).toBeNull();
+  // for safety and consistency, it converts non-string input to string (just like window.location.href = 0)
+  expect(safeLinkHref(0 as any)).toBe('http://localhost:3000/0');
+  expect(safeLinkHref({} as any)).toBe('http://localhost:3000/[object%20Object]');
+  expect(safeLinkHref(null as any)).toBe('http://localhost:3000/null');
+});
 
-  const iframe = root.querySelector<HTMLIFrameElement>('iframe.external-render-iframe')!;
-  const iframeWindow = iframe.contentWindow ?? ({} as Window);
-  if (!iframe.contentWindow) {
-    Object.defineProperty(iframe, 'contentWindow', {value: iframeWindow});
-  }
+test('navigateToIframeLink', () => {
+  const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+  const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
 
-  return {iframe, iframeWindow};
-}
-
-function dispatchMessage(source: Window, data: Record<string, unknown>) {
-  window.dispatchEvent(new MessageEvent('message', {data, source} as MessageEventInit));
-}
-
-beforeEach(() => {
-  document.body.innerHTML = '';
+  navigateToIframeLink('http://example.com', '_blank');
+  expect(openSpy).toHaveBeenCalledWith('http://example.com/', '_blank', 'noopener,noreferrer');
   vi.clearAllMocks();
-});
 
-test('open-link allows http/https and respects target', () => {
-  const {iframe, iframeWindow} = setupIframe();
-  const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
-  const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
+  navigateToIframeLink('https://example.com', '_self');
+  expect(assignSpy).toHaveBeenCalledWith('https://example.com/');
+  vi.clearAllMocks();
 
-  dispatchMessage(iframeWindow, {
-    giteaIframeCmd: 'open-link',
-    giteaIframeId: iframe.id,
-    openLink: 'https://example.com/path',
-    anchorTarget: '_blank',
-  });
+  navigateToIframeLink('https://example.com', null);
+  expect(assignSpy).toHaveBeenCalledWith('https://example.com/');
+  vi.clearAllMocks();
 
-  expect(openSpy).toHaveBeenCalledWith('https://example.com/path', '_blank', 'noopener');
-  expect(assignSpy).not.toHaveBeenCalled();
+  navigateToIframeLink('/path', '');
+  expect(assignSpy).toHaveBeenCalledWith('http://localhost:3000/path');
+  vi.clearAllMocks();
 
-  openSpy.mockClear();
-  assignSpy.mockClear();
+  // eslint-disable-next-line no-script-url
+  navigateToIframeLink('javascript:void(0);', '_blank');
+  expect(openSpy).toHaveBeenCalledTimes(0);
+  expect(assignSpy).toHaveBeenCalledTimes(0);
+  vi.clearAllMocks();
 
-  dispatchMessage(iframeWindow, {
-    giteaIframeCmd: 'open-link',
-    giteaIframeId: iframe.id,
-    openLink: 'https://example.com/next',
-    anchorTarget: '',
-  });
-
-  expect(openSpy).not.toHaveBeenCalled();
-  expect(assignSpy).toHaveBeenCalledWith('https://example.com/next');
-});
-
-test('open-link rejects non-http schemes', () => {
-  const {iframe, iframeWindow} = setupIframe();
-  const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
-  const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
-
-  dispatchMessage(iframeWindow, {
-    giteaIframeCmd: 'open-link',
-    giteaIframeId: iframe.id,
-    openLink: 'javascript:alert(1)',
-    anchorTarget: '',
-  });
-
-  expect(openSpy).not.toHaveBeenCalled();
-  expect(assignSpy).not.toHaveBeenCalled();
-});
-
-test('open-link ignores messages from other windows', () => {
-  const {iframe} = setupIframe();
-  const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
-  const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
-
-  dispatchMessage({} as Window, {
-    giteaIframeCmd: 'open-link',
-    giteaIframeId: iframe.id,
-    openLink: 'https://example.com/path',
-    anchorTarget: '_blank',
-  });
-
-  expect(openSpy).not.toHaveBeenCalled();
-  expect(assignSpy).not.toHaveBeenCalled();
+  navigateToIframeLink('data:image/svg+xml;utf8,<svg></svg>', '');
+  expect(openSpy).toHaveBeenCalledTimes(0);
+  expect(assignSpy).toHaveBeenCalledTimes(0);
+  vi.clearAllMocks();
 });

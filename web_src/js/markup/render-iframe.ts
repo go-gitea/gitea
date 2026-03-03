@@ -1,39 +1,45 @@
 import {generateElemId, queryElemChildren} from '../utils/dom.ts';
 import {isDarkTheme} from '../utils.ts';
 
+export function safeLinkHref(link: string): string | null {
+  try {
+    const url = new URL(`${link}`, window.location.href);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      console.error(`Unsupported link protocol: ${link}`);
+      return null;
+    }
+    return url.href;
+  } catch (e) {
+    console.error(`Failed to parse link: ${link}, error: ${e}`);
+    return null;
+  }
+}
+
+export function navigateToIframeLink(unsafeLink: string, target: string | null) {
+  const linkHref = safeLinkHref(unsafeLink);
+  if (linkHref === null) return;
+  if (target === '_blank') {
+    window.open(linkHref, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  // treat all other targets including ("_top", "_self", etc) as same tab navigation
+  window.location.assign(linkHref);
+}
+
 async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
   const iframeSrcUrl = iframe.getAttribute('data-src')!;
   if (!iframe.id) iframe.id = generateElemId('gitea-iframe-');
 
-  const normalizeOpenLink = (openLink: unknown): string | null => {
-    if (typeof openLink !== 'string' || openLink === '') return null;
-    let url: URL;
-    try {
-      url = new URL(openLink, window.location.href);
-    } catch {
-      return null;
-    }
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
-    return url.href;
-  };
-
   window.addEventListener('message', (e) => {
     if (e.source !== iframe.contentWindow) return;
-    const data = e.data;
-    if (!data?.giteaIframeCmd || data?.giteaIframeId !== iframe.id) return;
-    const cmd = data.giteaIframeCmd;
+    if (!e.data?.giteaIframeCmd || e.data?.giteaIframeId !== iframe.id) return;
+    const cmd = e.data.giteaIframeCmd;
     if (cmd === 'resize') {
       // TODO: sometimes the reported iframeHeight is not the size we need, need to figure why. Example: openapi swagger.
       //  As a workaround, add some pixels here.
-      iframe.style.height = `${data.iframeHeight + 2}px`;
+      iframe.style.height = `${e.data.iframeHeight + 2}px`;
     } else if (cmd === 'open-link') {
-      const openLink = normalizeOpenLink(data.openLink);
-      if (!openLink) return;
-      if (data.anchorTarget === '_blank') {
-        window.open(openLink, '_blank', 'noopener');
-      } else {
-        window.location.assign(openLink);
-      }
+      navigateToIframeLink(e.data.openLink, e.data.anchorTarget);
     } else {
       throw new Error(`Unknown gitea iframe cmd: ${cmd}`);
     }
