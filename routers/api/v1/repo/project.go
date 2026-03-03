@@ -711,8 +711,8 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 		return
 	}
 
-	// Add or update issue in column
-	if err := project_model.AddOrUpdateIssueToColumn(ctx, form.IssueID, column); err != nil {
+	// Assign issue to column, creating an audit comment on the issue timeline
+	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, column.ProjectID, column.ID); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
