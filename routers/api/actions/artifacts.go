@@ -268,7 +268,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	// save chunk to storage, if success, return chunks total size
 	// if artifact is not gzip when uploading, chunksTotalSize ==  fileRealTotalSize
 	// if artifact is gzip when uploading, chunksTotalSize <  fileRealTotalSize
-	chunksTotalSize, err := saveUploadChunkGetTotalSize(ar.fs, ctx, artifact, runID)
+	chunksTotalSize, err := saveUploadChunkV3GetTotalSize(ar.fs, ctx, artifact, runID)
 	if err != nil {
 		log.Error("Error save upload chunk: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error save upload chunk")

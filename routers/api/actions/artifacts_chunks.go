@@ -62,7 +62,7 @@ func parseChunkFileItemV3(st storage.ObjectStorage, storageDir, subPath string) 
 	return &item, nil
 }
 
-func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext, artifact *actions.ActionArtifact,
+func saveUploadChunkV3(st storage.ObjectStorage, ctx *ArtifactContext, artifact *actions.ActionArtifact,
 	runID int64, opts saveUploadChunkOptions,
 ) (writtenSize int64, retErr error) {
 	// build chunk store path
@@ -114,14 +114,14 @@ func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext, artifac
 	return writtenSize, nil
 }
 
-func saveUploadChunkGetTotalSize(st storage.ObjectStorage, ctx *ArtifactContext, artifact *actions.ActionArtifact, runID int64) (totalSize int64, _ error) {
+func saveUploadChunkV3GetTotalSize(st storage.ObjectStorage, ctx *ArtifactContext, artifact *actions.ActionArtifact, runID int64) (totalSize int64, _ error) {
 	// parse content-range header, format: bytes 0-1023/146515
 	contentRange := ctx.Req.Header.Get("Content-Range")
 	var start, end int64
 	if _, err := fmt.Sscanf(contentRange, "bytes %d-%d/%d", &start, &end, &totalSize); err != nil {
 		return 0, fmt.Errorf("parse content range error: %v", err)
 	}
-	_, err := saveUploadChunkBase(st, ctx, artifact, runID, saveUploadChunkOptions{start: start, end: new(end), checkMd5: true})
+	_, err := saveUploadChunkV3(st, ctx, artifact, runID, saveUploadChunkOptions{start: start, end: new(end), checkMd5: true})
 	if err != nil {
 		return 0, err
 	}
@@ -129,12 +129,12 @@ func saveUploadChunkGetTotalSize(st storage.ObjectStorage, ctx *ArtifactContext,
 }
 
 // Returns uploaded length
-func appendUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext, artifact *actions.ActionArtifact, runID, start int64) (int64, error) {
+func appendUploadChunkV3(st storage.ObjectStorage, ctx *ArtifactContext, artifact *actions.ActionArtifact, runID, start int64) (int64, error) {
 	opts := saveUploadChunkOptions{start: start, checkMd5: true}
 	if ctx.Req.ContentLength > 0 {
 		opts.end = new(start + ctx.Req.ContentLength - 1)
 	}
-	return saveUploadChunkBase(st, ctx, artifact, runID, opts)
+	return saveUploadChunkV3(st, ctx, artifact, runID, opts)
 }
 
 type chunkFileItem struct {
@@ -205,7 +205,7 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 	}); err != nil && (chunks != nil || blist != nil) {
 		return nil, err
 	} else if blist == nil && chunks == nil {
-		var chunkMap map[int64][]*chunkFileItem
+		var chunkMap map[int64][]*chunkFileItem // FIXME: why it overwrite the chunkMap from parent scope?
 		chunkMap, err = listChunksByRunID(st, runID)
 		if err != nil {
 			return nil, err
