@@ -95,6 +95,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -174,6 +175,34 @@ func (r artifactV4Routes) buildArtifactURL(ctx *ArtifactContext, endp, artifactN
 	uploadURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") + strings.TrimSuffix(r.prefix, "/") +
 		"/" + endp + "?sig=" + base64.RawURLEncoding.EncodeToString(r.buildSignature(endp, expires, artifactName, taskID, artifactID)) + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + strconv.FormatInt(taskID, 10) + "&artifactID=" + strconv.FormatInt(artifactID, 10)
 	return uploadURL
+}
+
+func makeBlockFilenameV4(runID, artifactID, size int64, blockID string) string {
+	return fmt.Sprintf("block-%d-%d-%d-%s", runID, artifactID, size, base64.URLEncoding.EncodeToString([]byte(blockID)))
+}
+
+func parseChunkFileItemV4(st storage.ObjectStorage, storageDir, subPath string) (*chunkFileItem, error) {
+	var item chunkFileItem
+	var b64chunkName string
+	_, err := fmt.Sscanf(path.Base(subPath), "block-%d-%d-%d-%s", &item.RunID, &item.ArtifactID, &item.Size, &b64chunkName)
+	if err != nil {
+		return nil, err
+	}
+	chunkName, err := base64.URLEncoding.DecodeString(b64chunkName)
+	if err != nil {
+		return nil, err
+	}
+	item.ChunkName = string(chunkName)
+	item.Path = storageDir + "/" + subPath
+	if item.Size <= 0 {
+		fi, err := st.Stat(item.Path)
+		if err != nil {
+			return nil, err
+		}
+		item.Size = fi.Size()
+	}
+	item.End = item.Start + item.End - 1 // FIXME: not right, there is no "item.Start"
+	return &item, nil
 }
 
 func (r artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*actions.ActionTask, string, bool) {
@@ -333,7 +362,9 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 				return
 			}
 		} else {
-			_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/block-%d-%d-%d-%s", task.Job.RunID, task.Job.RunID, artifact.ID, ctx.Req.ContentLength, base64.URLEncoding.EncodeToString([]byte(blockid))), ctx.Req.Body, -1)
+			// FIXME: why "ctx.Req.ContentLength" is used for filename, but "-1" is used for "Save"
+			blockFilename := makeBlockFilenameV4(task.Job.RunID, artifact.ID, ctx.Req.ContentLength, blockid)
+			_, err := r.fs.Save(fmt.Sprintf("tmpv4%d/%s", task.Job.RunID, blockFilename), ctx.Req.Body, -1)
 			if err != nil {
 				log.Error("Error uploading block blob %v", err)
 				ctx.HTTPError(http.StatusInternalServerError, "Error uploading block blob")

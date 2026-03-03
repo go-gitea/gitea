@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"path/filepath"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -29,11 +29,38 @@ type saveUploadChunkOptions struct {
 	checkMd5 bool
 }
 
+func makeChunkFilenameV3(runID, artifactID, start int64, endPtr *int64) string {
+	end := 0
+	if endPtr != nil {
+		end = int(*endPtr)
+	}
+	return fmt.Sprintf("%d-%d-%d-%d.chunk", runID, artifactID, start, end)
+}
+
+func parseChunkFileItemV3(st storage.ObjectStorage, storageDir, subPath string) (*chunkFileItem, error) {
+	var item chunkFileItem
+	if _, err := fmt.Sscanf(path.Base(subPath), "%d-%d-%d-%d.chunk", &item.RunID, &item.ArtifactID, &item.Start, &item.End); err != nil {
+		return nil, err
+	}
+
+	item.Path = storageDir + "/" + subPath
+	if item.End == 0 {
+		fi, err := st.Stat(item.Path)
+		if err != nil {
+			return nil, err
+		}
+		item.End = item.Start + fi.Size() - 1
+	} else {
+		item.Size = item.End - item.Start + 1
+	}
+	return &item, nil
+}
+
 func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext, artifact *actions.ActionArtifact,
 	runID int64, opts saveUploadChunkOptions,
 ) (writtenSize int64, retErr error) {
 	// build chunk store path
-	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d.chunk", runID, runID, artifact.ID, opts.start)
+	storagePath := fmt.Sprintf("tmp%d/%s.chunk", runID, makeChunkFilenameV3(runID, artifact.ID, opts.start, opts.end))
 
 	// "end" is optional, so "contentSize=-1" means read until EOF
 	contentSize := int64(-1)
@@ -105,32 +132,26 @@ func appendUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext, artifact 
 }
 
 type chunkFileItem struct {
-	RunID      int64
+	RunID int64
+	Path  string
+
 	ArtifactID int64
-	Start      int64
-	End        int64
-	Path       string
+	Size       int64
+
+	Start     int64  // v3 only
+	End       int64  // v3 only
+	ChunkName string // v4 only
 }
 
 func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chunkFileItem, error) {
 	storageDir := fmt.Sprintf("tmp%d", runID)
 	var chunks []*chunkFileItem
 	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
-		baseName := filepath.Base(fpath)
-		// when read chunks from storage, it only contains storage dir and basename,
-		// no matter the subdirectory setting in storage config
-		item := chunkFileItem{Path: storageDir + "/" + baseName}
-		if _, err := fmt.Sscanf(baseName, "%d-%d-%d-%d.chunk", &item.RunID, &item.ArtifactID, &item.Start, &item.End); err != nil {
-			return fmt.Errorf("parse content range error: %v", err)
+		item, err := parseChunkFileItemV3(st, storageDir, fpath)
+		if err != nil {
+			return fmt.Errorf("unable to parse chunk name: %v", fpath)
 		}
-		if (item.End + 1 - item.Start) <= 0 {
-			fi, err := st.Stat(fpath)
-			if err != nil {
-				return err
-			}
-			item.End = item.Start + fi.Size() - 1
-		}
-		chunks = append(chunks, &item)
+		chunks = append(chunks, item)
 		return nil
 	}); err != nil {
 		return nil, err
@@ -155,45 +176,21 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 		}
 	}
 	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
-		baseName := filepath.Base(fpath)
-		if !strings.HasPrefix(baseName, "block-") {
-			return nil
-		}
-		// when read chunks from storage, it only contains storage dir and basename,
-		// no matter the subdirectory setting in storage config
-		item := chunkFileItem{Path: storageDir + "/" + baseName, ArtifactID: artifactID}
-		var size int64
-		var b64chunkName string
-		var fArtifactID int64
-		if _, err := fmt.Sscanf(baseName, "block-%d-%d-%d-%s", &item.RunID, &fArtifactID, &size, &b64chunkName); err != nil {
-			log.Warn("parse content range error: %v", err)
-			return nil
-		}
-		rchunkName, err := base64.URLEncoding.DecodeString(b64chunkName)
+		item, err := parseChunkFileItemV4(st, storageDir, fpath)
 		if err != nil {
-			log.Warn("failed to parse chunkName: %v", err)
+			return fmt.Errorf("unable to parse chunk name: %v", fpath)
+		}
+		if item.ArtifactID != artifactID {
 			return nil
 		}
-		if fArtifactID != artifactID {
-			return nil
-		}
-		if size <= 0 {
-			fi, err := st.Stat(fpath)
-			if err != nil {
-				return err
-			}
-			size = fi.Size()
-		}
-		chunkName := string(rchunkName)
-		item.End = item.Start + size - 1
-		// Single chunk upload with blockid
-		if _, ok := chunkMap[chunkName]; ok {
-			chunkMap[chunkName] = &item
+		// Single chunk upload with block id
+		if _, ok := chunkMap[item.ChunkName]; ok {
+			chunkMap[item.ChunkName] = item
 		} else if chunkMap == nil {
 			if chunks != nil {
 				return errors.New("blockmap is required for chunks > 1")
 			}
-			chunks = []*chunkFileItem{&item}
+			chunks = []*chunkFileItem{item}
 		}
 		return nil
 	}); err != nil && (chunks != nil || blist != nil) {
