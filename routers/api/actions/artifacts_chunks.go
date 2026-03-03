@@ -38,8 +38,13 @@ func makeChunkFilenameV3(runID, artifactID, start int64, endPtr *int64) string {
 }
 
 func parseChunkFileItemV3(st storage.ObjectStorage, storageDir, subPath string) (*chunkFileItem, error) {
+	baseName := path.Base(subPath)
+	if !strings.HasSuffix(baseName, ".chunk") {
+		return nil, errSkipChunkFile
+	}
+
 	var item chunkFileItem
-	if _, err := fmt.Sscanf(path.Base(subPath), "%d-%d-%d-%d.chunk", &item.RunID, &item.ArtifactID, &item.Start, &item.End); err != nil {
+	if _, err := fmt.Sscanf(baseName, "%d-%d-%d-%d.chunk", &item.RunID, &item.ArtifactID, &item.Start, &item.End); err != nil {
 		return nil, err
 	}
 
@@ -49,7 +54,8 @@ func parseChunkFileItemV3(st storage.ObjectStorage, storageDir, subPath string) 
 		if err != nil {
 			return nil, err
 		}
-		item.End = item.Start + fi.Size() - 1
+		item.Size = fi.Size()
+		item.End = item.Start + item.Size - 1
 	} else {
 		item.Size = item.End - item.Start + 1
 	}
@@ -60,7 +66,7 @@ func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext, artifac
 	runID int64, opts saveUploadChunkOptions,
 ) (writtenSize int64, retErr error) {
 	// build chunk store path
-	storagePath := fmt.Sprintf("tmp%d/%s.chunk", runID, makeChunkFilenameV3(runID, artifact.ID, opts.start, opts.end))
+	storagePath := fmt.Sprintf("tmp%d/%s", runID, makeChunkFilenameV3(runID, artifact.ID, opts.start, opts.end))
 
 	// "end" is optional, so "contentSize=-1" means read until EOF
 	contentSize := int64(-1)
@@ -148,7 +154,9 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 	var chunks []*chunkFileItem
 	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
 		item, err := parseChunkFileItemV3(st, storageDir, fpath)
-		if err != nil {
+		if errors.Is(err, errSkipChunkFile) {
+			return nil
+		} else if err != nil {
 			return fmt.Errorf("unable to parse chunk name: %v", fpath)
 		}
 		chunks = append(chunks, item)
@@ -164,6 +172,7 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 	return chunksMap, nil
 }
 
+// TODO: move it to artifactsv4.go
 func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blist *BlockList) ([]*chunkFileItem, error) {
 	storageDir := fmt.Sprintf("tmpv4%d", runID)
 	var chunks []*chunkFileItem
@@ -176,13 +185,13 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 		}
 	}
 	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
-		item, err := parseChunkFileItemV4(st, storageDir, fpath)
-		if err != nil {
+		item, err := parseChunkFileItemV4(st, artifactID, storageDir, fpath)
+		if errors.Is(err, errSkipChunkFile) {
+			return nil
+		} else if err != nil {
 			return fmt.Errorf("unable to parse chunk name: %v", fpath)
 		}
-		if item.ArtifactID != artifactID {
-			return nil
-		}
+
 		// Single chunk upload with block id
 		if _, ok := chunkMap[item.ChunkName]; ok {
 			chunkMap[item.ChunkName] = item

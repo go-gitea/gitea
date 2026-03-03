@@ -181,12 +181,21 @@ func makeBlockFilenameV4(runID, artifactID, size int64, blockID string) string {
 	return fmt.Sprintf("block-%d-%d-%d-%s", runID, artifactID, size, base64.URLEncoding.EncodeToString([]byte(blockID)))
 }
 
-func parseChunkFileItemV4(st storage.ObjectStorage, storageDir, subPath string) (*chunkFileItem, error) {
+var errSkipChunkFile = errors.New("skip this chunk file")
+
+func parseChunkFileItemV4(st storage.ObjectStorage, artifactID int64, storageDir, subPath string) (*chunkFileItem, error) {
+	baseName := path.Base(subPath)
+	if !strings.HasPrefix(baseName, "block-") {
+		return nil, errSkipChunkFile
+	}
 	var item chunkFileItem
 	var b64chunkName string
-	_, err := fmt.Sscanf(path.Base(subPath), "block-%d-%d-%d-%s", &item.RunID, &item.ArtifactID, &item.Size, &b64chunkName)
+	_, err := fmt.Sscanf(baseName, "block-%d-%d-%d-%s", &item.RunID, &item.ArtifactID, &item.Size, &b64chunkName)
 	if err != nil {
 		return nil, err
+	}
+	if item.ArtifactID != artifactID {
+		return nil, errSkipChunkFile
 	}
 	chunkName, err := base64.URLEncoding.DecodeString(b64chunkName)
 	if err != nil {
