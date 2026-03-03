@@ -37,8 +37,8 @@ func makeChunkFilenameV3(runID, artifactID, start int64, endPtr *int64) string {
 	return fmt.Sprintf("%d-%d-%d-%d.chunk", runID, artifactID, start, end)
 }
 
-func parseChunkFileItemV3(st storage.ObjectStorage, storageDir, subPath string) (*chunkFileItem, error) {
-	baseName := path.Base(subPath)
+func parseChunkFileItemV3(st storage.ObjectStorage, fpath string) (*chunkFileItem, error) {
+	baseName := path.Base(fpath)
 	if !strings.HasSuffix(baseName, ".chunk") {
 		return nil, errSkipChunkFile
 	}
@@ -49,7 +49,7 @@ func parseChunkFileItemV3(st storage.ObjectStorage, storageDir, subPath string) 
 		return nil, err
 	}
 
-	item.Path = storageDir + "/" + subPath
+	item.Path = fpath
 	if item.End == 0 {
 		fi, err := st.Stat(item.Path)
 		if err != nil {
@@ -154,7 +154,7 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 	storageDir := fmt.Sprintf("tmp%d", runID)
 	var chunks []*chunkFileItem
 	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
-		item, err := parseChunkFileItemV3(st, storageDir, fpath)
+		item, err := parseChunkFileItemV3(st, fpath)
 		if errors.Is(err, errSkipChunkFile) {
 			return nil
 		} else if err != nil {
@@ -186,7 +186,7 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 		}
 	}
 	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
-		item, err := parseChunkFileItemV4(st, artifactID, storageDir, fpath)
+		item, err := parseChunkFileItemV4(st, artifactID, fpath)
 		if errors.Is(err, errSkipChunkFile) {
 			return nil
 		} else if err != nil {

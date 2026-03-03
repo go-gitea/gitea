@@ -145,7 +145,7 @@ func (l *LocalStorage) IterateObjects(dirName string, fn func(path string, obj O
 			return err
 		}
 		defer obj.Close()
-		return fn(relPath, obj)
+		return fn(filepath.ToSlash(relPath), obj)
 	})
 }
 

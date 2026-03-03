@@ -183,8 +183,8 @@ func makeBlockFilenameV4(runID, artifactID, size int64, blockID string) string {
 
 var errSkipChunkFile = errors.New("skip this chunk file")
 
-func parseChunkFileItemV4(st storage.ObjectStorage, artifactID int64, storageDir, subPath string) (*chunkFileItem, error) {
-	baseName := path.Base(subPath)
+func parseChunkFileItemV4(st storage.ObjectStorage, artifactID int64, fpath string) (*chunkFileItem, error) {
+	baseName := path.Base(fpath)
 	if !strings.HasPrefix(baseName, "block-") {
 		return nil, errSkipChunkFile
 	}
@@ -203,7 +203,7 @@ func parseChunkFileItemV4(st storage.ObjectStorage, artifactID int64, storageDir
 		return nil, err
 	}
 	item.ChunkName = string(chunkName)
-	item.Path = storageDir + "/" + subPath
+	item.Path = fpath
 	if item.Size <= 0 {
 		fi, err := st.Stat(item.Path)
 		if err != nil {
