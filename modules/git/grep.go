@@ -40,6 +40,10 @@ type GrepOptions struct {
 	PathspecList      []string
 }
 
+// grepSearchTimeout is the timeout for git grep search, it should be long enough to get results
+// but not too long to cause performance issues
+const grepSearchTimeout = 30 * time.Second
+
 func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepOptions) ([]*GrepResult, error) {
 	/*
 	 The output is like this ( "^@" means \x00):
@@ -77,7 +81,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
 	err := cmd.WithDir(repo.Path).
-		WithTimeout(30 * time.Second).
+		WithTimeout(grepSearchTimeout).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			isInBlock := false
 			rd := bufio.NewReaderSize(stdoutReader, util.IfZero(opts.MaxLineLength, 16*1024))
