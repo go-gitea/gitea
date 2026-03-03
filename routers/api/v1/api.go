@@ -921,8 +921,8 @@ func Routes() *web.Router {
 				m.Get("/{runner_id}", reqToken(), reqChecker, act.GetRunner)
 				m.Delete("/{runner_id}", reqToken(), reqChecker, act.DeleteRunner)
 			})
-			m.Get("/runs", reqToken(), reqChecker, act.ListWorkflowRuns)
-			m.Get("/jobs", reqToken(), reqChecker, act.ListWorkflowJobs)
+			m.Get("/runs", reqToken(), reqRepoReader(unit.TypeActions), act.ListWorkflowRuns)
+			m.Get("/jobs", reqToken(), reqRepoReader(unit.TypeActions), act.ListWorkflowJobs)
 		})
 	}
 
