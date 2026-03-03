@@ -21,18 +21,29 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 )
 
-func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
-	artifact *actions.ActionArtifact,
-	contentSize, runID, start, end, length int64, checkMd5 bool,
-) (int64, error) {
+type saveUploadChunkOptions struct {
+	start    int64
+	end      *int64
+	checkMd5 bool
+}
+
+func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext, artifact *actions.ActionArtifact,
+	runID int64, opts saveUploadChunkOptions,
+) (writtenSize int64, retErr error) {
 	// build chunk store path
-	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d-%d.chunk", runID, runID, artifact.ID, start, end)
+	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d.chunk", runID, runID, artifact.ID, opts.start)
+
+	// "end" is optional, so "contentSize=-1" means read until EOF
+	contentSize := int64(-1)
+	if opts.end != nil {
+		contentSize = *opts.end - opts.start + 1
+	}
+
 	var r io.Reader = ctx.Req.Body
 	var hasher hash.Hash
-	if checkMd5 {
+	if opts.checkMd5 {
 		// use io.TeeReader to avoid reading all body to md5 sum.
 		// it writes data to hasher after reading end
 		// if hash is not matched, delete the read-end result
@@ -42,55 +53,55 @@ func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
 	// save chunk to storage
 	writtenSize, err := st.Save(storagePath, r, contentSize)
 	if err != nil {
-		return -1, fmt.Errorf("save chunk to storage error: %v", err)
+		return 0, fmt.Errorf("save chunk to storage error: %v", err)
 	}
-	var checkErr error
-	if checkMd5 {
+
+	defer func() {
+		if retErr != nil {
+			if err := st.Delete(storagePath); err != nil {
+				log.Error("Error deleting chunk: %s, %v", storagePath, err)
+			}
+		}
+	}()
+
+	if contentSize != -1 && writtenSize != contentSize {
+		return writtenSize, fmt.Errorf("writtenSize %d does not match contentSize %d", writtenSize, contentSize)
+	}
+	if opts.checkMd5 {
 		// check md5
 		reqMd5String := ctx.Req.Header.Get(artifactXActionsResultsMD5Header)
 		chunkMd5String := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
-		log.Info("[artifact] check chunk md5, sum: %s, header: %s", chunkMd5String, reqMd5String)
+		log.Debug("[artifact] check chunk md5, sum: %s, header: %s", chunkMd5String, reqMd5String)
 		// if md5 not match, delete the chunk
 		if reqMd5String != chunkMd5String {
-			checkErr = errors.New("md5 not match")
+			return writtenSize, errors.New("md5 not match")
 		}
 	}
-	if writtenSize != contentSize && contentSize != -1 {
-		checkErr = errors.Join(checkErr, fmt.Errorf("writtenSize %d not match contentSize %d", writtenSize, contentSize))
-	}
-	if checkErr != nil {
-		if err := st.Delete(storagePath); err != nil {
-			log.Error("Error deleting chunk: %s, %v", storagePath, err)
-		}
-		return -1, checkErr
-	}
-	log.Info("[artifact] save chunk %s, size: %d, artifact id: %d, start: %d, end: %d",
-		storagePath, writtenSize, artifact.ID, start, end)
-	// return chunk total size if length is provided, otherwise return writtenSize
-	return util.Iif(length != -1, length, writtenSize), nil
+	log.Debug("[artifact] save chunk %s, size: %d, artifact id: %d, start: %d, size: %d", storagePath, writtenSize, artifact.ID, opts.start, contentSize)
+	return writtenSize, nil
 }
 
-func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
-	artifact *actions.ActionArtifact,
-	contentSize, runID int64,
-) (int64, error) {
+func saveUploadChunkGetTotalSize(st storage.ObjectStorage, ctx *ArtifactContext, artifact *actions.ActionArtifact, runID int64) (totalSize int64, _ error) {
 	// parse content-range header, format: bytes 0-1023/146515
 	contentRange := ctx.Req.Header.Get("Content-Range")
-	start, end, length := int64(0), int64(0), int64(0)
-	if _, err := fmt.Sscanf(contentRange, "bytes %d-%d/%d", &start, &end, &length); err != nil {
-		log.Warn("parse content range error: %v, content-range: %s", err, contentRange)
-		return -1, fmt.Errorf("parse content range error: %v", err)
+	var start, end int64
+	if _, err := fmt.Sscanf(contentRange, "bytes %d-%d/%d", &start, &end, &totalSize); err != nil {
+		return 0, fmt.Errorf("parse content range error: %v", err)
 	}
-	return saveUploadChunkBase(st, ctx, artifact, contentSize, runID, start, end, length, true)
+	_, err := saveUploadChunkBase(st, ctx, artifact, runID, saveUploadChunkOptions{start: start, end: new(end), checkMd5: true})
+	if err != nil {
+		return 0, err
+	}
+	return totalSize, nil
 }
 
 // Returns uploaded length
-func appendUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
-	artifact *actions.ActionArtifact,
-	start, contentSize, runID int64,
-) (int64, error) {
-	end := start + contentSize - 1
-	return saveUploadChunkBase(st, ctx, artifact, contentSize, runID, start, end, -1, false)
+func appendUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext, artifact *actions.ActionArtifact, runID, start int64) (int64, error) {
+	opts := saveUploadChunkOptions{start: start, checkMd5: true}
+	if ctx.Req.ContentLength > 0 {
+		opts.end = new(start + ctx.Req.ContentLength - 1)
+	}
+	return saveUploadChunkBase(st, ctx, artifact, runID, opts)
 }
 
 type chunkFileItem struct {

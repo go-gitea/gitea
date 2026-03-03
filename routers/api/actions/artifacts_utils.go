@@ -84,11 +84,10 @@ func parseArtifactItemPath(ctx *ArtifactContext) (string, string, bool) {
 
 // getUploadFileSize returns the size of the file to be uploaded.
 // The raw size is the size of the file as reported by the header X-TFS-FileLength.
-func getUploadFileSize(ctx *ArtifactContext) (int64, int64) {
-	contentLength := ctx.Req.ContentLength
+func getUploadFileSize(ctx *ArtifactContext) int64 {
 	xTfsLength, _ := strconv.ParseInt(ctx.Req.Header.Get(artifactXTfsFileLengthHeader), 10, 64)
 	if xTfsLength > 0 {
-		return xTfsLength, contentLength
+		return xTfsLength
 	}
-	return contentLength, contentLength
+	return ctx.Req.ContentLength
 }

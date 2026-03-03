@@ -319,7 +319,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 		}
 		blockid := ctx.Req.URL.Query().Get("blockid")
 		if blockid == "" {
-			uploadedLength, err := appendUploadChunk(r.fs, ctx, artifact, artifact.FileSize, ctx.Req.ContentLength, artifact.RunID)
+			uploadedLength, err := appendUploadChunk(r.fs, ctx, artifact, artifact.RunID, artifact.FileSize)
 			if err != nil {
 				log.Error("Error appending Chunk %v", err)
 				ctx.HTTPError(http.StatusInternalServerError, "Error appending Chunk")
