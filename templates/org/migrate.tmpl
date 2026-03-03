@@ -36,7 +36,15 @@
 					<span class="help">{{ctx.Locale.Tr "repo.migrate.github_token_desc"}}</span>
 				</div>
 
-				{{template "repo/migrate/options" .}}
+				{{if not .DisableNewPullMirrors}}
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.migrate_options"}}</label>
+					<div class="ui checkbox">
+						<input id="mirror" name="mirror" type="checkbox" {{if .mirror}} checked{{end}}>
+						<label>{{ctx.Locale.Tr "org.migrate.mirror_helper"}}</label>
+					</div>
+				</div>
+				{{end}}
 
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.migrate_items"}}</label>
@@ -85,13 +93,20 @@
 				<div class="divider"></div>
 
 				<div class="inline required field {{if .Err_TargetOrgName}}error{{end}}">
-					<label for="target_org_name">{{ctx.Locale.Tr "org.migrate.target_org_name"}}</label>
-					<select id="target_org_name" name="target_org_name" class="ui search selection dropdown" required>
-						<option value="">{{ctx.Locale.Tr "org.migrate.select_target_org"}}</option>
-						{{range .Orgs}}
-							<option value="{{.Name}}" {{if eq $.target_org_name .Name}}selected{{end}}>{{.DisplayName}}</option>
-						{{end}}
-					</select>
+					<label>{{ctx.Locale.Tr "org.migrate.target_org_name"}}</label>
+					<div class="ui selection owner dropdown ellipsis-text-items">
+						<input type="hidden" id="target_org_name" name="target_org_name" value="{{.target_org_name}}" required>
+						<span class="text">{{ctx.Locale.Tr "org.migrate.select_target_org"}}</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							{{range .Orgs}}
+								<div class="item" data-value="{{.Name}}" title="{{.Name}}">
+									{{ctx.AvatarUtils.Avatar . 28 "mini"}}
+									{{.ShortName 40}}
+								</div>
+							{{end}}
+						</div>
+					</div>
 				</div>
 
 				<div class="inline field">
@@ -102,7 +117,7 @@
 							<label>{{ctx.Locale.Tr "repo.visibility_helper_forced"}}</label>
 						{{else}}
 							<input name="private" type="checkbox" {{if .private}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "repo.visibility_helper"}}</label>
+							<label>{{ctx.Locale.Tr "org.migrate.private_helper"}}</label>
 						{{end}}
 					</div>
 				</div>
