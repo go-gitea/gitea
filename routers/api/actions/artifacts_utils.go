@@ -20,8 +20,8 @@ const (
 	artifactXActionsResultsMD5Header = "x-actions-results-md5"
 )
 
-// The rules are from https://github.com/actions/toolkit/blob/main/packages/artifact/src/internal/path-and-artifact-name-validation.ts#L32
-var invalidArtifactNameChars = strings.Join([]string{"\\", "/", "\"", ":", "<", ">", "|", "*", "?", "\r", "\n"}, "")
+// The rules are from https://github.com/actions/toolkit/blob/main/packages/artifact/src/internal/upload/path-and-artifact-name-validation.ts
+const invalidArtifactNameChars = "\\/\":<>|*?\r\n"
 
 func validateArtifactName(ctx *ArtifactContext, artifactName string) bool {
 	if strings.ContainsAny(artifactName, invalidArtifactNameChars) {
