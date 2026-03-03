@@ -96,7 +96,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -211,7 +210,6 @@ func parseChunkFileItemV4(st storage.ObjectStorage, artifactID int64, fpath stri
 		}
 		item.Size = fi.Size()
 	}
-	item.End = item.Start + item.End - 1 // FIXME: not right, there is no "item.Start"
 	return &item, nil
 }
 
@@ -449,15 +447,16 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 	blockList, blockListErr := r.readBlockList(runID, artifact.ID)
 	chunks, err = listChunksByRunIDV4(r.fs, runID, artifact.ID, blockList)
 	if err != nil {
-		log.Error("Error merge chunks: %v", errors.Join(blockListErr, err))
-		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
+		log.Error("Error list chunks: %v", errors.Join(blockListErr, err))
+		ctx.HTTPError(http.StatusInternalServerError, "Error list chunks")
 		return
 	}
-	sort.Slice(chunks, func(i, j int) bool {
-		return chunks[i].Start < chunks[j].Start
-	})
-	artifact.FileSize = chunks[len(chunks)-1].End + 1
-	artifact.FileCompressedSize = chunks[len(chunks)-1].End + 1
+	mergedFileSize := int64(0)
+	for _, chunk := range chunks {
+		mergedFileSize += chunk.Size
+	}
+	artifact.FileSize = mergedFileSize
+	artifact.FileCompressedSize = mergedFileSize
 
 	if req.Size != artifact.FileSize {
 		log.Error("Error merge chunks size mismatch")
