@@ -30,9 +30,9 @@ type saveUploadChunkOptions struct {
 }
 
 func makeChunkFilenameV3(runID, artifactID, start int64, endPtr *int64) string {
-	end := 0
+	var end int64
 	if endPtr != nil {
-		end = int(*endPtr)
+		end = *endPtr
 	}
 	return fmt.Sprintf("%d-%d-%d-%d.chunk", runID, artifactID, start, end)
 }
@@ -140,11 +140,12 @@ func appendUploadChunkV3(st storage.ObjectStorage, ctx *ArtifactContext, artifac
 
 type chunkFileItem struct {
 	ArtifactID int64
+	Path       string
 
-	Path  string
+	// these offset/size related fields might be missing when parsing, they will be filled in the listing functions
 	Size  int64
 	Start int64
-	End   int64 // inclusive
+	End   int64 // inclusive: Size=10, Start=0, End=9
 
 	ChunkName string // v4 only
 }
@@ -313,12 +314,14 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	}
 	mergedReader := io.MultiReader(readers...)
 	shaPrefix := "sha256:"
-	var hashMd5 hash.Hash
+	var hashSha256 hash.Hash
 	if strings.HasPrefix(checksum, shaPrefix) {
-		hashMd5 = sha256.New()
+		hashSha256 = sha256.New()
+	} else if checksum != "" {
+		log.Error("unsupported checksum format: %s, will skip the checksum verification", checksum)
 	}
-	if hashMd5 != nil {
-		mergedReader = io.TeeReader(mergedReader, hashMd5)
+	if hashSha256 != nil {
+		mergedReader = io.TeeReader(mergedReader, hashSha256)
 	}
 
 	// if chunk is gzip, use gz as extension
@@ -348,8 +351,8 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		}
 	}()
 
-	if hashMd5 != nil {
-		rawChecksum := hashMd5.Sum(nil)
+	if hashSha256 != nil {
+		rawChecksum := hashSha256.Sum(nil)
 		actualChecksum := hex.EncodeToString(rawChecksum)
 		if !strings.HasSuffix(checksum, actualChecksum) {
 			return fmt.Errorf("update artifact error checksum is invalid %v vs %v", checksum, actualChecksum)
