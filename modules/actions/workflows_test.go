@@ -190,7 +190,7 @@ func TestDetectMatched(t *testing.T) {
 			expected:     true,
 		},
 		{
-			desc:         "HookEventSchedue(schedule) matches GithubEventSchedule(schedule)",
+			desc:         "HookEventSchedule(schedule) matches GithubEventSchedule(schedule)",
 			triggedEvent: webhook_module.HookEventSchedule,
 			payload:      nil,
 			yamlOn:       "on: schedule",
