@@ -11,7 +11,22 @@ const lfsSettings = document.querySelector<HTMLElement>('#lfs_settings')!;
 const lfsEndpoint = document.querySelector<HTMLElement>('#lfs_endpoint')!;
 const items = document.querySelectorAll<HTMLInputElement>('#migrate_items input[type=checkbox]');
 
+export function initOrgMigration() {
+  const orgToken = document.querySelector<HTMLInputElement>('#auth_token');
+  if (!orgToken) return;
+  if (!document.querySelector('.page-content.organization.migrate')) return;
+
+  const orgItems = document.querySelectorAll<HTMLInputElement>('#migrate_items input[type=checkbox]');
+  const checkOrgItems = () => {
+    const enable = orgToken.value !== '';
+    for (const item of orgItems) item.disabled = !enable;
+  };
+  checkOrgItems();
+  orgToken.addEventListener('input', checkOrgItems);
+}
+
 export function initRepoMigration() {
+  if (!document.querySelector('.page-content.repository.migrate')) return;
   checkAuth();
   setLFSSettingsVisibility();
 
