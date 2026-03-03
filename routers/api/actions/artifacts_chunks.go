@@ -141,16 +141,15 @@ func appendUploadChunkV3(st storage.ObjectStorage, ctx *ArtifactContext, artifac
 type chunkFileItem struct {
 	ArtifactID int64
 
-	Path string
-	Size int64
-
-	Start int64 // v3 only
-	End   int64 // v3 only
+	Path  string
+	Size  int64
+	Start int64
+	End   int64 // inclusive
 
 	ChunkName string // v4 only
 }
 
-func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chunkFileItem, error) {
+func listV3UnorderedChunksMapByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chunkFileItem, error) {
 	storageDir := fmt.Sprintf("tmp%d", runID)
 	var chunks []*chunkFileItem
 	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
@@ -173,18 +172,25 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 	return chunksMap, nil
 }
 
-// TODO: move it to artifactsv4.go
-func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blist *BlockList) ([]*chunkFileItem, error) {
+func listOrderedChunksByRunID(st storage.ObjectStorage, runID, artifactID int64, blist *BlockList) ([]*chunkFileItem, error) {
+	emptyListAsError := func(chunks []*chunkFileItem) ([]*chunkFileItem, error) {
+		if len(chunks) == 0 {
+			return nil, fmt.Errorf("no chunk found for artifact id: %d", artifactID)
+		}
+		return chunks, nil
+	}
+
 	storageDir := fmt.Sprintf("tmpv4%d", runID)
 	var chunks []*chunkFileItem
-	var chunkMap map[string]*chunkFileItem
+	var chunkMapV4 map[string]*chunkFileItem
+
 	if blist != nil {
-		chunkMap = map[string]*chunkFileItem{}
-		dummy := &chunkFileItem{}
+		chunkMapV4 = map[string]*chunkFileItem{}
 		for _, name := range blist.Latest {
-			chunkMap[name] = dummy
+			chunkMapV4[name] = nil
 		}
 	}
+
 	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
 		item, err := parseChunkFileItemV4(st, artifactID, fpath)
 		if errors.Is(err, errSkipChunkFile) {
@@ -194,42 +200,49 @@ func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blis
 		}
 
 		// Single chunk upload with block id
-		if _, ok := chunkMap[item.ChunkName]; ok {
-			chunkMap[item.ChunkName] = item
-		} else if chunkMap == nil {
+		if _, ok := chunkMapV4[item.ChunkName]; ok {
+			chunkMapV4[item.ChunkName] = item
+		} else if chunkMapV4 == nil {
 			if chunks != nil {
 				return errors.New("blockmap is required for chunks > 1")
 			}
 			chunks = []*chunkFileItem{item}
 		}
 		return nil
-	}); err != nil && (chunks != nil || blist != nil) {
+	}); err != nil {
 		return nil, err
-	} else if blist == nil && chunks == nil {
-		var chunkMap map[int64][]*chunkFileItem // FIXME: why it overwrite the chunkMap from parent scope?
-		chunkMap, err = listChunksByRunID(st, runID)
+	}
+
+	if blist == nil && chunks == nil {
+		chunkUnorderedItemsMapV3, err := listV3UnorderedChunksMapByRunID(st, runID)
 		if err != nil {
 			return nil, err
 		}
-		chunks = chunkMap[artifactID]
+		chunks = chunkUnorderedItemsMapV3[artifactID]
+		sort.Slice(chunks, func(i, j int) bool {
+			return chunks[i].Start < chunks[j].Start
+		})
+		return emptyListAsError(chunks)
 	}
-	if blist != nil {
+
+	if len(chunks) == 0 && blist != nil {
 		for i, name := range blist.Latest {
-			chunk, ok := chunkMap[name]
+			chunk, ok := chunkMapV4[name]
 			if !ok || chunk.Path == "" {
 				return nil, fmt.Errorf("missing Chunk (%d/%d): %s", i, len(blist.Latest), name)
 			}
 			chunks = append(chunks, chunk)
-			if i > 0 {
-				chunk.Start = chunkMap[blist.Latest[i-1]].End + 1
-				chunk.End += chunk.Start
-			}
 		}
 	}
-	if len(chunks) < 1 {
-		return nil, errors.New("no Chunk found")
+	for i, chunk := range chunks {
+		if i == 0 {
+			chunk.End += chunk.Size - 1
+		} else {
+			chunk.Start = chunkMapV4[blist.Latest[i-1]].End + 1
+			chunk.End = chunk.Start + chunk.Size - 1
+		}
 	}
-	return chunks, nil
+	return emptyListAsError(chunks)
 }
 
 func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int64, artifactName string) error {
@@ -242,13 +255,13 @@ func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int
 		return err
 	}
 	// read all uploading chunks from storage
-	chunksMap, err := listChunksByRunID(st, runID)
+	unorderedChunksMap, err := listV3UnorderedChunksMapByRunID(st, runID)
 	if err != nil {
 		return err
 	}
 	// range db artifacts to merge chunks
 	for _, art := range artifacts {
-		chunks, ok := chunksMap[art.ID]
+		chunks, ok := unorderedChunksMap[art.ID]
 		if !ok {
 			log.Debug("artifact %d chunks not found", art.ID)
 			continue

@@ -451,18 +451,14 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 
 	var chunks []*chunkFileItem
 	blockList, blockListErr := r.readBlockList(runID, artifact.ID)
-	chunks, err = listChunksByRunIDV4(r.fs, runID, artifact.ID, blockList)
+	chunks, err = listOrderedChunksByRunID(r.fs, runID, artifact.ID, blockList)
 	if err != nil {
 		log.Error("Error list chunks: %v", errors.Join(blockListErr, err))
 		ctx.HTTPError(http.StatusInternalServerError, "Error list chunks")
 		return
 	}
-	mergedFileSize := int64(0)
-	for _, chunk := range chunks {
-		mergedFileSize += chunk.Size
-	}
-	artifact.FileSize = mergedFileSize
-	artifact.FileCompressedSize = mergedFileSize
+	artifact.FileSize = chunks[len(chunks)-1].End + 1
+	artifact.FileCompressedSize = chunks[len(chunks)-1].End + 1
 
 	if req.Size != artifact.FileSize {
 		log.Error("Error merge chunks size mismatch")
