@@ -39,3 +39,25 @@ func TestResolveTreeSitterEntryFallsBackToFilename(t *testing.T) {
 		t.Fatalf("resolveTreeSitterEntry(%q, \"\") = %q, want %q", "main.go", entry.Name, "go")
 	}
 }
+
+func TestResolveTreeSitterEntryFallsBackToChromaAlias(t *testing.T) {
+	// "ksh" is a chroma alias for Bash. It is a realistic metadata value from
+	// external detectors, and should still resolve to a tree-sitter grammar.
+	entry := resolveTreeSitterEntry("unknown.ext", "ksh")
+	if entry == nil {
+		t.Fatalf("resolveTreeSitterEntry(%q, %q) returned nil", "unknown.ext", "ksh")
+	}
+	if entry.Name != "bash" {
+		t.Fatalf("resolveTreeSitterEntry(%q, %q) = %q, want %q", "unknown.ext", "ksh", entry.Name, "bash")
+	}
+}
+
+func TestResolveTreeSitterEntryWithAnalyzeFallsBackToChromaAlias(t *testing.T) {
+	entry := resolveTreeSitterEntryWithAnalyze("unknown.ext", "ksh", []byte("echo hi\n"))
+	if entry == nil {
+		t.Fatalf("resolveTreeSitterEntryWithAnalyze(%q, %q, code) returned nil", "unknown.ext", "ksh")
+	}
+	if entry.Name != "bash" {
+		t.Fatalf("resolveTreeSitterEntryWithAnalyze(%q, %q, code) = %q, want %q", "unknown.ext", "ksh", entry.Name, "bash")
+	}
+}

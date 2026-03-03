@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
 
+	"github.com/alecthomas/chroma/v2"
 	"github.com/odvcencio/gotreesitter"
 	tsgrammars "github.com/odvcencio/gotreesitter/grammars"
 )
@@ -57,6 +58,32 @@ func lookupTreeSitterEntryByLanguageName(name string) *tsgrammars.LangEntry {
 	return entry
 }
 
+func lookupTreeSitterEntryByChromaLexer(lexer chroma.Lexer) *tsgrammars.LangEntry {
+	if lexer == nil || lexer.Config() == nil {
+		return nil
+	}
+	cfg := lexer.Config()
+	candidates := make([]string, 0, 1+len(cfg.Aliases))
+	if cfg.Name != "" {
+		candidates = append(candidates, cfg.Name)
+	}
+	candidates = append(candidates, cfg.Aliases...)
+	for _, candidate := range candidates {
+		if entry := lookupTreeSitterEntryByLanguageName(candidate); entry != nil {
+			return entry
+		}
+	}
+	return nil
+}
+
+func resolveTreeSitterEntryByChroma(fileName, fileLang string, code []byte, allowAnalyze bool) *tsgrammars.LangEntry {
+	if allowAnalyze {
+		return lookupTreeSitterEntryByChromaLexer(detectChromaLexerWithAnalyze(fileName, fileLang, code))
+	}
+	lexer, _ := detectChromaLexerByFileName(fileName, fileLang)
+	return lookupTreeSitterEntryByChromaLexer(lexer)
+}
+
 func resolveTreeSitterEntry(fileName, fileLang string) *tsgrammars.LangEntry {
 	fileName, fileLang = normalizeFileNameLang(fileName, fileLang)
 	fileExt := path.Ext(fileName)
@@ -88,6 +115,11 @@ func resolveTreeSitterEntry(fileName, fileLang string) *tsgrammars.LangEntry {
 			entry = nil
 		}
 	}
+	if entry == nil {
+		// Final fallback: use chroma/enry heuristics, then map lexer names back
+		// to a tree-sitter grammar when possible.
+		entry = resolveTreeSitterEntryByChroma(fileName, fileLang, nil, false)
+	}
 	return entry
 }
 
@@ -98,7 +130,11 @@ func resolveTreeSitterEntryWithAnalyze(fileName, fileLang string, code []byte) *
 	}
 
 	analyzedLanguage := analyze.GetCodeLanguage(fileName, code)
-	return lookupTreeSitterEntryByLanguageName(analyzedLanguage)
+	entry = lookupTreeSitterEntryByLanguageName(analyzedLanguage)
+	if entry != nil {
+		return entry
+	}
+	return resolveTreeSitterEntryByChroma(fileName, fileLang, code, true)
 }
 
 func getTreeSitterRenderer(entry *tsgrammars.LangEntry) *treeSitterRenderer {
