@@ -46,32 +46,32 @@ func IsRelativeURL(s string) bool {
 
 func getRequestScheme(req *http.Request) string {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto
-	if s := normalizeForwardedProto(req.Header.Get("X-Forwarded-Proto")); s != "" {
-		return s
+	if proto, ok := parseForwardedProtoValue(req.Header.Get("X-Forwarded-Proto")); ok {
+		return proto
 	}
-	if s := normalizeForwardedProto(req.Header.Get("X-Forwarded-Protocol")); s != "" {
-		return s
+	if proto, ok := parseForwardedProtoValue(req.Header.Get("X-Forwarded-Protocol")); ok {
+		return proto
 	}
-	if s := normalizeForwardedProto(req.Header.Get("X-Url-Scheme")); s != "" {
-		return s
+	if proto, ok := parseForwardedProtoValue(req.Header.Get("X-Url-Scheme")); ok {
+		return proto
 	}
 	if s := req.Header.Get("Front-End-Https"); s != "" {
-		return util.Iif(strings.EqualFold(s, "on"), "https", "http")
+		return util.Iif(util.AsciiEqualFold(s, "on"), "https", "http")
 	}
 	if s := req.Header.Get("X-Forwarded-Ssl"); s != "" {
-		return util.Iif(strings.EqualFold(s, "on"), "https", "http")
+		return util.Iif(util.AsciiEqualFold(s, "on"), "https", "http")
 	}
 	return ""
 }
 
-func normalizeForwardedProto(value string) string {
-	value, _, _ = strings.Cut(value, ",")
-	value = strings.TrimSpace(value)
-	value = strings.ToLower(value)
-	if value == "http" || value == "https" {
-		return value
+func parseForwardedProtoValue(val string) (string, bool) {
+	if val != "" {
+		lower := strings.ToLower(val)
+		if lower == "http" || lower == "https" {
+			return lower, true
+		}
 	}
-	return ""
+	return "", false
 }
 
 // GuessCurrentAppURL tries to guess the current full public URL (with sub-path) by http headers. It always has a '/' suffix, exactly the same as setting.AppURL
