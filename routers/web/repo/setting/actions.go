@@ -151,9 +151,8 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	// If checked, it means we WANT to override (opt-out of following)
 	actionsCfg.OverrideOwnerConfig = ctx.FormBool("override_owner_config")
 
-	// Update permission mode (only if overriding owner config OR not in an org)
-	isOrg := ctx.Repo.Repository.Owner.IsOrganization()
-	shouldUpdate := !isOrg || actionsCfg.OverrideOwnerConfig
+	// Update permission mode (only if overriding owner config)
+	shouldUpdate := actionsCfg.OverrideOwnerConfig
 
 	if shouldUpdate {
 		permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))

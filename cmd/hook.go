@@ -205,7 +205,6 @@ Gitea or set your environment appropriately.`, "")
 		PullRequestID:                   prID,
 		DeployKeyID:                     deployKeyID,
 		ActionsTaskID:                   actionsTaskID,
-		ActionPerm:                      actionPerm,
 		IsWiki:                          isWiki,
 	}
 

@@ -4,18 +4,18 @@ export function initActionsPermissionsTable(): void {
   const modeRadios = document.querySelectorAll<HTMLInputElement>('.js-permission-mode-radio');
   const permTable = document.querySelector<HTMLTableElement>('table.js-permissions-table');
   const tableSection = document.querySelector<HTMLElement>('#max-permissions-section');
-  const overrideOrgCheckbox = document.querySelector<HTMLInputElement>('.js-override-org-config');
+  const overrideOwnerCheckbox = document.querySelector<HTMLInputElement>('.js-override-owner-config');
   const modeSection = document.querySelector<HTMLElement>('.js-permission-mode-section');
   const enableMaxCheckbox = document.querySelector<HTMLInputElement>('.js-enable-max-permissions');
 
-  if (!modeRadios.length) return;
+  if (!modeRadios.length && !overrideOwnerCheckbox) return;
 
   function updateTableState(): void {
     // If the checkbox exists (Repo settings), we are disabled if it is NOT checked (Follow mode).
-    // If the checkbox does not exist (Org settings), we are never disabled by this rule.
-    const shouldDisable = overrideOrgCheckbox ? !overrideOrgCheckbox.checked : false;
+    // If the checkbox does not exist (Org/User settings), we are never disabled by this rule.
+    const shouldDisable = overrideOwnerCheckbox ? !overrideOwnerCheckbox.checked : false;
 
-    // Disable entire form when following org config (Override unchecked)
+    // Disable entire form when following owner config (Override unchecked)
     for (const radio of modeRadios) {
       radio.disabled = shouldDisable;
     }
@@ -54,7 +54,7 @@ export function initActionsPermissionsTable(): void {
     radio.addEventListener('change', updateTableState);
   }
 
-  overrideOrgCheckbox?.addEventListener('change', updateTableState);
+  overrideOwnerCheckbox?.addEventListener('change', updateTableState);
   enableMaxCheckbox?.addEventListener('change', updateTableState);
 
   updateTableState();

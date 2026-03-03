@@ -29,7 +29,6 @@
 	</h4>
 	<div class="ui attached segment">
 		<form class="ui form" action="{{.RepoLink}}/settings/actions/general/token_permissions" method="post">
-			{{if .IsInOrg}}
 			<!-- Override Owner Configuration -->
 			<div class="field">
 				<div class="ui checkbox">
@@ -40,7 +39,6 @@
 			</div>
 
 			<div class="divider"></div>
-			{{end}}
 
 			{{template "shared/actions/permission_mode_select" .}}
 			<div class="divider"></div>
