@@ -15,13 +15,12 @@
 				<tr>
 					<td class="author">
 						<span class="author-wrapper">
-							{{$userName := .Author.Name}}
 							{{if .User}}
 								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}
 								{{.User.GetShortDisplayNameLinkHTML}}
 							{{else}}
 								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "tw-mr-2"}}
-								{{$userName}}
+								{{.Author.Name}}
 							{{end}}
 						</span>
 					</td>
