@@ -37,7 +37,8 @@ function mainExternalRenderIframe() {
   // the easiest way to handle dynamic content changes and easy to debug, can be fine-tuned in the future
   setInterval(updateIframeHeight, 1000);
 
-  //  no way to open an absolute link with CSP frame-src, it also needs some tricks like "postMessage" or "copy the link to clipboard"
+  // no way to open an absolute link with CSP frame-src, it needs some tricks like "postMessage" (let parent window to handle) or "copy the link to clipboard" (let users manually paste it to open).
+  // here we choose "postMessage" way for better user experience.
   const openIframeLink = (link: string, target: string) => postIframeMsg('open-link', {openLink: link, anchorTarget: target});
   document.addEventListener('click', (e) => {
     const el = e.target as HTMLAnchorElement;
