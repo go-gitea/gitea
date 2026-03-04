@@ -36,9 +36,12 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 		gitRawOrAttachPathRe: regexp.MustCompile(`^/[-.\w]+/[-.\w]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/)|(?:attachments/))`),
 		lfsPathRe:            regexp.MustCompile(`^/[-.\w]+/[-.\w]+/info/lfs/`),
 		archivePathRe:        regexp.MustCompile(`^/[-.\w]+/[-.\w]+/archive/`),
-		feedPathRe:           regexp.MustCompile(`^/[-.\w]+(/[-.\w]+)?\.(rss|atom)$`),                       // "/owner.rss" or "/owner/repo.atom"
-		feedRefPathRe:        regexp.MustCompile(`^/[-.\w]+/[-.\w]+/(rss|atom)/`),                           // "/owner/repo/rss/branch/..."
-		badgePathRe:          regexp.MustCompile(`^/[-.\w]+/[-.\w]+/actions/workflows/[-.\w]+/badge\.svg$`), // "/owner/repo/actions/workflows/foo/badge.svg"
+		// "/owner.rss" or "/owner/repo.atom"
+		feedPathRe: regexp.MustCompile(`^/[-.\w]+(/[-.\w]+)?\.(rss|atom)$`),
+		// "/owner/repo/rss/branch/..."
+		feedRefPathRe: regexp.MustCompile(`^/[-.\w]+/[-.\w]+/(rss|atom)/`),
+		// "/owner/repo/actions/workflows/foo/badge.svg"
+		badgePathRe: regexp.MustCompile(`^/[-.\w]+/[-.\w]+/actions/workflows/[-.\w]+/badge\.svg$`),
 	}
 })
 
