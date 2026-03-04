@@ -54,24 +54,25 @@ func GetContentHistoryList(ctx *context.Context) {
 	// value is historyId
 	var results []map[string]any
 	for _, item := range items {
-		var actionText template.HTML
+		var actionHTML template.HTML
 		if item.IsDeleted {
-			actionText = htmlutil.HTMLFormat(`<i data-history-is-deleted="1">%s</i>`, ctx.Locale.TrString("repo.issues.content_history.deleted"))
+			actionHTML = htmlutil.HTMLFormat(`<i data-history-is-deleted="1">%s</i>`, ctx.Locale.TrString("repo.issues.content_history.deleted"))
 		} else if item.IsFirstCreated {
-			actionText = ctx.Locale.Tr("repo.issues.content_history.created")
+			actionHTML = ctx.Locale.Tr("repo.issues.content_history.created")
 		} else {
-			actionText = ctx.Locale.Tr("repo.issues.content_history.edited")
+			actionHTML = ctx.Locale.Tr("repo.issues.content_history.edited")
 		}
 
-		userName, fullNamePart := item.UserName, strings.TrimSpace(item.UserFullName)
-		if fullNamePart != "" {
-			fullNamePart = " (" + fullNamePart + ")"
+		var fullNameHTML template.HTML
+		userName, fullName := item.UserName, strings.TrimSpace(item.UserFullName)
+		if fullName != "" {
+			fullNameHTML = htmlutil.HTMLFormat(` (<span class="tw-inline-flex tw-max-w-[160px]"><span class="gt-ellipsis">%s</span></span>)`, fullName)
 		}
 
 		avatarHTML := templates.AvatarHTML(item.UserAvatarLink, 24, avatars.DefaultAvatarClass+" tw-mr-2", userName)
 		timeSinceHTML := templates.TimeSince(item.EditedUnix)
 		results = append(results, map[string]any{
-			"name":  htmlutil.HTMLFormat("%s <strong>%s</strong>%s %s %s", avatarHTML, userName, fullNamePart, actionText, timeSinceHTML),
+			"name":  htmlutil.HTMLFormat("%s <strong>%s</strong>%s %s %s", avatarHTML, userName, fullNameHTML, actionHTML, timeSinceHTML),
 			"value": item.HistoryID,
 		})
 	}

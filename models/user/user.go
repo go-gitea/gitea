@@ -437,10 +437,12 @@ func (u *User) EmailTo() string {
 	return fmt.Sprintf("%s <%s>", mime.QEncoding.Encode("utf-8", add.Name), add.Address)
 }
 
-// TODO: there are already too many methods to display a user's "name", need to refactor them
-// * user.Name / user.FullName (DefaultShowFullName): directly used in templates
+// TODO: DefaultShowFullName causes messy logic, there are already too many methods to display a user's "display name", need to refactor them
+// * user.Name / user.FullName: directly used in templates
 // * user.DisplayName(): always show FullName if it's not empty, otherwise show Name
 // * user.GetDisplayName(): show FullName if it's not empty and DefaultShowFullName is set, otherwise show Name
+// * user.ShortName(): used a lot in templates, but it should be removed and let frontend use "ellipsis" styles
+// * activity action.ShortActUserName/GetActDisplayName/GetActDisplayNameTitle, etc: duplicate and messy
 
 // DisplayName returns full name if it's not empty, returns username otherwise.
 func (u *User) DisplayName() string {

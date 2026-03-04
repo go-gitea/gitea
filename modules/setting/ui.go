@@ -43,7 +43,11 @@ var UI = struct {
 	AmbiguousUnicodeDetection bool
 
 	// TODO: DefaultShowFullName is introduced by https://github.com/go-gitea/gitea/pull/6710
-	// But that PR didn't do it right. For most cases, either "username" or "username (Full Name)" should be used.
+	// But there are still many edge cases:
+	// * Many places still use "username", not respecting this setting
+	// * Many places use "Full Name" if it is not empty, cause inconsistent UI for users who have set their full name but some others don't
+	// * Even if DefaultShowFullName=false, many places still need to show the full name
+	// For most cases, either "username" or "username (Full Name)" should be used and are good enough.
 	// Only in very few cases (e.g.: unimportant lists, narrow layout), "username" or "Full Name" can be used.
 	DefaultShowFullName bool
 
