@@ -15,13 +15,13 @@
 				<tr>
 					<td class="author">
 						<span class="author-wrapper">
-							{{if .User}}
-								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}
-								{{.User.GetShortDisplayNameLinkHTML}}
-							{{else}}
-								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "tw-mr-2"}}
-								{{.Author.Name}}
-							{{end}}
+							{{- if .User -}}
+								{{- ctx.AvatarUtils.Avatar .User 20 "tw-mr-2" -}}
+								{{- .User.GetShortDisplayNameLinkHTML -}}
+							{{- else -}}
+								{{- ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 20 "tw-mr-2" -}}
+								{{- .Author.Name -}}
+							{{- end -}}
 						</span>
 					</td>
 					<td class="sha">

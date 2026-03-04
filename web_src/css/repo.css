@@ -1970,6 +1970,7 @@ tbody.commit-list {
 }
 
 .username-display {
+  max-width: 100%; /* the inner part might have "gt-ellipsis" */
   display: inline-flex;
   gap: var(--gap-inline);
   align-items: center;

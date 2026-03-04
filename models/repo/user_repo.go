@@ -147,7 +147,7 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 }
 
 // GetIssuePostersWithSearch returns users with limit of 30 whose username started with prefix that have authored an issue/pull request for the given repository
-// If isShowFullName is set to true, also include full name prefix search
+// It searches with the "user.name" and "user.full_name" fields case-insensitively.
 func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull bool, search string) ([]*user_model.User, error) {
 	users := make([]*user_model.User, 0, 30)
 
