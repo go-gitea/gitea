@@ -46,7 +46,8 @@ function mainExternalRenderIframe() {
     // safe links: "./any", "../any", "/any", "//host/any", "http://host/any", "https://host/any"
     if (href.startsWith('.') || href.startsWith('/') || href.startsWith('http://') || href.startsWith('https://')) {
       e.preventDefault();
-      openIframeLink(href, el.getAttribute('target')!);
+      const forceTarget = (e.metaKey || e.ctrlKey) ? '_blank' : null;
+      openIframeLink(href, forceTarget ?? el.getAttribute('target')!);
     }
   });
 }
