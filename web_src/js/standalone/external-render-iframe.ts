@@ -39,16 +39,16 @@ function mainExternalRenderIframe() {
 
   // no way to open an absolute link with CSP frame-src, it needs some tricks like "postMessage" (let parent window to handle) or "copy the link to clipboard" (let users manually paste it to open).
   // here we choose "postMessage" way for better user experience.
-  const openIframeLink = (link: string, target: string) => postIframeMsg('open-link', {openLink: link, anchorTarget: target});
+  const openIframeLink = (link: string, target: string | null) => postIframeMsg('open-link', {openLink: link, anchorTarget: target});
   document.addEventListener('click', (e) => {
     const el = e.target as HTMLAnchorElement;
     if (el.nodeName !== 'A') return;
-    const href = el.getAttribute('href') || '';
+    const href = el.getAttribute('href') ?? '';
     // safe links: "./any", "../any", "/any", "//host/any", "http://host/any", "https://host/any"
     if (href.startsWith('.') || href.startsWith('/') || href.startsWith('http://') || href.startsWith('https://')) {
       e.preventDefault();
       const forceTarget = (e.metaKey || e.ctrlKey) ? '_blank' : null;
-      openIframeLink(href, forceTarget ?? el.getAttribute('target')!);
+      openIframeLink(href, forceTarget ?? el.getAttribute('target'));
     }
   });
 }
