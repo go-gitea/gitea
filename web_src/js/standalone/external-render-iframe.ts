@@ -20,7 +20,15 @@ function mainExternalRenderIframe() {
     window.parent.postMessage({giteaIframeCmd: cmd, giteaIframeId: iframeId, ...data}, '*');
   };
 
-  const updateIframeHeight = () => postIframeMsg('resize', {iframeHeight: document.documentElement.scrollHeight});
+  const updateIframeHeight = () => {
+    // Don't use integer heights from the DOM node.
+    // Use getBoundingClientRect(), then ceil the height to avoid fractional pixels which causes incorrect scrollbars.
+    const rect = document.documentElement.getBoundingClientRect();
+    postIframeMsg('resize', {iframeHeight: Math.ceil(rect.height)});
+    // As long as the parent page is responsible for the iframe height, the iframe itself doesn't need scrollbars.
+    // This style should only be dynamically set here when our code can run.
+    document.documentElement.style.overflowY = 'hidden';
+  };
   const resizeObserver = new ResizeObserver(() => updateIframeHeight());
   resizeObserver.observe(window.document.documentElement);
 

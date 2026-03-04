@@ -1,6 +1,8 @@
 import {generateElemId, queryElemChildren} from '../utils/dom.ts';
 import {isDarkTheme} from '../utils.ts';
 
+// This "safe" only makes sense in the specific context of "open-link" command from iframe.
+// Because other link protocols are directly handled by the iframe, but not here.
 // arguments can be any type & any value, they are from "message" event's data
 export function safeLinkHref(link: any): string | null {
   try {
@@ -16,6 +18,8 @@ export function safeLinkHref(link: any): string | null {
   }
 }
 
+// This function is only designed for "open-link" command from iframe, is not suitable for other contexts.
+// Because other link protocols are directly handled by the iframe, but not here.
 // arguments can be any type & any value, they are from "message" event's data
 export function navigateToIframeLink(unsafeLink: any, target: any) {
   const linkHref = safeLinkHref(unsafeLink);
@@ -37,9 +41,7 @@ async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
     if (!e.data?.giteaIframeCmd || e.data?.giteaIframeId !== iframe.id) return;
     const cmd = e.data.giteaIframeCmd;
     if (cmd === 'resize') {
-      // TODO: sometimes the reported iframeHeight is not the size we need, need to figure why. Example: openapi swagger.
-      //  As a workaround, add some pixels here.
-      iframe.style.height = `${e.data.iframeHeight + 2}px`;
+      iframe.style.height = `${e.data.iframeHeight}px`;
     } else if (cmd === 'open-link') {
       navigateToIframeLink(e.data.openLink, e.data.anchorTarget);
     } else {
