@@ -48,11 +48,14 @@
 					</tr>
 				</thead>
 				<tbody>
-					{{range .Users}}
+					{{range $org := .Users}}
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="{{.HomeLink}}">{{if and DefaultShowFullName .FullName}}{{.FullName}} ({{.Name}}){{else}}{{.Name}}{{end}}</a>
+								<span class="username-display">
+									<a href="{{$org.HomeLink}}">{{$org.Name}}</a>
+									{{if $org.FullName}}<span class="username-fullname">({{$org.FullName}})</span>{{end}}
+								</span>
 								{{if .Visibility.IsPrivate}}
 									<span class="tw-text-gold">{{svg "octicon-lock"}}</span>
 								{{end}}
