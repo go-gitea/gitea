@@ -185,7 +185,7 @@ func deleteColumnByID(ctx context.Context, columnID int64) error {
 		return err
 	}
 
-	if err = moveIssuesToAnotherColumn(ctx, column, defaultColumn); err != nil {
+	if err = column.moveIssuesToAnotherColumn(ctx, defaultColumn); err != nil {
 		return err
 	}
 
@@ -257,12 +257,26 @@ func (p *Project) GetColumns(ctx context.Context) (ColumnList, error) {
 	return columns, nil
 }
 
-// getDefaultColumnWithFallback return default column if one exists
-// otherwise return the first column by sorting and set it as default column
-func (p *Project) getDefaultColumnWithFallback(ctx context.Context) (*Column, error) {
-	var column Column
+// CountColumns returns the total number of columns for a project
+func (p *Project) CountColumns(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where("project_id=?", p.ID).Count(&Column{})
+}
 
-	// try to find a column "default=true"
+// GetColumnsPaginated fetches a page of columns for a project
+func (p *Project) GetColumnsPaginated(ctx context.Context, opts db.ListOptions) (ColumnList, error) {
+	columns := make([]*Column, 0, opts.PageSize)
+	if err := db.SetSessionPagination(db.GetEngine(ctx), &opts).
+		Where("project_id=?", p.ID).
+		OrderBy("sorting, id").
+		Find(&columns); err != nil {
+		return nil, err
+	}
+	return columns, nil
+}
+
+// getDefaultColumn return default column and ensure only one exists
+func (p *Project) getDefaultColumn(ctx context.Context) (*Column, error) {
+	var column Column
 	has, err := db.GetEngine(ctx).
 		Where("project_id=? AND `default` = ?", p.ID, true).
 		Desc("id").Get(&column)
@@ -273,9 +287,23 @@ func (p *Project) getDefaultColumnWithFallback(ctx context.Context) (*Column, er
 	if has {
 		return &column, nil
 	}
+	return nil, ErrProjectColumnNotExist{ColumnID: 0}
+}
 
-	// try to find the first column by sorting
-	has, err = db.GetEngine(ctx).Where("project_id=?", p.ID).OrderBy("sorting, id").Get(&column)
+// MustDefaultColumn returns the default column for a project.
+// If one exists, it is returned
+// If none exists, the first column will be elevated to the default column of this project
+func (p *Project) MustDefaultColumn(ctx context.Context) (*Column, error) {
+	c, err := p.getDefaultColumn(ctx)
+	if err != nil && !IsErrProjectColumnNotExist(err) {
+		return nil, err
+	}
+	if c != nil {
+		return c, nil
+	}
+
+	var column Column
+	has, err := db.GetEngine(ctx).Where("project_id=?", p.ID).OrderBy("sorting, id").Get(&column)
 	if err != nil {
 		return nil, err
 	}
@@ -287,24 +315,8 @@ func (p *Project) getDefaultColumnWithFallback(ctx context.Context) (*Column, er
 		return &column, nil
 	}
 
-	return nil, ErrProjectColumnNotExist{ColumnID: 0}
-}
-
-// MustDefaultColumn returns the default column for a project.
-// If one exists, it is returned
-// If none exists, the first column will be elevated to the default column of this project
-// If there is no column, it creates a default column and returns it
-func (p *Project) MustDefaultColumn(ctx context.Context) (*Column, error) {
-	c, err := p.getDefaultColumnWithFallback(ctx)
-	if err != nil && !IsErrProjectColumnNotExist(err) {
-		return nil, err
-	}
-	if c != nil {
-		return c, nil
-	}
-
 	// create a default column if none is found
-	column := Column{
+	column = Column{
 		ProjectID: p.ID,
 		Default:   true,
 		Title:     "Uncategorized",
@@ -334,6 +346,20 @@ func SetDefaultColumn(ctx context.Context, projectID, columnID int64) error {
 			Where(builder.Eq{"project_id": projectID}).
 			Cols("`default`").Update(&Column{Default: true})
 		return err
+	})
+}
+
+// UpdateColumnSorting update project column sorting
+func UpdateColumnSorting(ctx context.Context, cl ColumnList) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for i := range cl {
+			if _, err := db.GetEngine(ctx).ID(cl[i].ID).Cols(
+				"sorting",
+			).Update(cl[i]); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 

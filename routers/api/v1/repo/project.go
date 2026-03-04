@@ -13,10 +13,10 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	project_service "code.gitea.io/gitea/services/projects"
-	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListProjects lists all projects in a repository
@@ -398,6 +398,7 @@ func ListProjectColumns(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetLinkHeader(int(total), listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToProjectColumnList(ctx, columns))
 }
