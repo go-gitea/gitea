@@ -25,7 +25,6 @@ var UI = struct {
 	ReactionMaxUserNum      int
 	MaxDisplayFileSize      int64
 	ShowUserEmail           bool
-	DefaultShowFullName     bool
 	DefaultTheme            string
 	Themes                  []string
 	FileIconTheme           string
@@ -42,6 +41,11 @@ var UI = struct {
 	PreferredTimestampTense string
 
 	AmbiguousUnicodeDetection bool
+
+	// TODO: DefaultShowFullName is introduced by https://github.com/go-gitea/gitea/pull/6710
+	// But that PR didn't do it right. For most cases, either "username" or "username (Full Name)" should be used.
+	// Only in very few cases (e.g.: unimportant lists, narrow layout), "username" or "Full Name" can be used.
+	DefaultShowFullName bool
 
 	Notification struct {
 		MinTimeout            time.Duration

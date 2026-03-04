@@ -416,16 +416,6 @@ func (u *User) IsTokenAccessAllowed() bool {
 	return u.Type == UserTypeIndividual || u.Type == UserTypeBot
 }
 
-// DisplayName returns full name if it's not empty,
-// returns username otherwise.
-func (u *User) DisplayName() string {
-	trimmed := strings.TrimSpace(u.FullName)
-	if len(trimmed) > 0 {
-		return trimmed
-	}
-	return u.Name
-}
-
 // EmailTo returns a string suitable to be put into a e-mail `To:` header.
 func (u *User) EmailTo() string {
 	sanitizedDisplayName := globalVars().emailToReplacer.Replace(u.DisplayName())
@@ -442,6 +432,22 @@ func (u *User) EmailTo() string {
 	}
 
 	return fmt.Sprintf("%s <%s>", mime.QEncoding.Encode("utf-8", add.Name), add.Address)
+}
+
+// TODO: there are 4-5 methods to display a user's "name", need to refactor them
+// * user.Name / user.FullName (DefaultShowFullName): directly used in templates
+// * user.DisplayName(): always show FullName if it's not empty, otherwise show Name
+// * user.GetDisplayName(): show FullName if it's not empty and DefaultShowFullName is set, otherwise show Name
+// * user.GetCompleteName(): show "FullName (Name)" if FullName is not empty, otherwise show Name
+
+// DisplayName returns full name if it's not empty,
+// returns username otherwise.
+func (u *User) DisplayName() string {
+	trimmed := strings.TrimSpace(u.FullName)
+	if len(trimmed) > 0 {
+		return trimmed
+	}
+	return u.Name
 }
 
 // GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
