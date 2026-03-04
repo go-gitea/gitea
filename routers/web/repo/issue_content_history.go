@@ -6,11 +6,13 @@ package repo
 import (
 	"bytes"
 	"html"
+	"html/template"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models/avatars"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
@@ -52,29 +54,24 @@ func GetContentHistoryList(ctx *context.Context) {
 	// value is historyId
 	var results []map[string]any
 	for _, item := range items {
-		var actionText string
+		var actionText template.HTML
 		if item.IsDeleted {
-			actionTextDeleted := ctx.Locale.TrString("repo.issues.content_history.deleted")
-			actionText = "<i data-history-is-deleted='1'>" + actionTextDeleted + "</i>"
+			actionText = htmlutil.HTMLFormat(`<i data-history-is-deleted="1">%s</i>`, ctx.Locale.TrString("repo.issues.content_history.deleted"))
 		} else if item.IsFirstCreated {
-			actionText = ctx.Locale.TrString("repo.issues.content_history.created")
+			actionText = ctx.Locale.Tr("repo.issues.content_history.created")
 		} else {
-			actionText = ctx.Locale.TrString("repo.issues.content_history.edited")
+			actionText = ctx.Locale.Tr("repo.issues.content_history.edited")
 		}
 
-		displayName := item.UserName
-		if fullName := strings.TrimSpace(item.UserFullName); fullName != "" {
-			displayName += " (" + fullName + ")"
+		userName, fullNamePart := item.UserName, strings.TrimSpace(item.UserFullName)
+		if fullNamePart != "" {
+			fullNamePart = " (" + fullNamePart + ")"
 		}
 
-		src := html.EscapeString(item.UserAvatarLink)
-		class := avatars.DefaultAvatarClass + " tw-mr-2"
-		name := html.EscapeString(displayName)
-		avatarHTML := string(templates.AvatarHTML(src, 28, class, displayName))
-		timeSinceHTML := string(templates.TimeSince(item.EditedUnix))
-
+		avatarHTML := templates.AvatarHTML(item.UserAvatarLink, 24, avatars.DefaultAvatarClass+" tw-mr-2", userName)
+		timeSinceHTML := templates.TimeSince(item.EditedUnix)
 		results = append(results, map[string]any{
-			"name":  avatarHTML + "<strong>" + name + "</strong> " + actionText + " " + timeSinceHTML,
+			"name":  htmlutil.HTMLFormat("%s <strong>%s</strong>%s %s %s", avatarHTML, userName, fullNamePart, actionText, timeSinceHTML),
 			"value": item.HistoryID,
 		})
 	}
