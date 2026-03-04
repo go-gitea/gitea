@@ -1,17 +1,4 @@
-import {navigateToIframeLink, safeLinkHref} from './render-iframe.ts';
-
-test('safeLinkHref', () => {
-  expect(safeLinkHref('http://example.com')).toBe('http://example.com/');
-  expect(safeLinkHref('https://example.com')).toBe('https://example.com/');
-  expect(safeLinkHref('/path')).toBe('http://localhost:3000/path');
-  // eslint-disable-next-line no-script-url
-  expect(safeLinkHref('javascript:void(0);')).toBeNull();
-  expect(safeLinkHref('data:image/svg+xml;utf8,<svg></svg>')).toBeNull();
-  // for safety and consistency, it converts non-string input to string, just like `window.location.href = 0`
-  expect(safeLinkHref(0)).toBe('http://localhost:3000/0');
-  expect(safeLinkHref({})).toBe('http://localhost:3000/[object%20Object]');
-  expect(safeLinkHref(null)).toBe('http://localhost:3000/null');
-});
+import {navigateToIframeLink} from './render-iframe.ts';
 
 describe('navigateToIframeLink', () => {
   const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
@@ -34,9 +21,9 @@ describe('navigateToIframeLink', () => {
     expect(assignSpy).toHaveBeenCalledWith('http://localhost:3000/path');
     vi.clearAllMocks();
 
-    // input can be any type & any value, keep the same behavior as `window.location.href = 123`
-    navigateToIframeLink(123, {});
-    expect(assignSpy).toHaveBeenCalledWith('http://localhost:3000/123');
+    // input can be any type & any value, keep the same behavior as `window.location.href = 0`
+    navigateToIframeLink(0, {});
+    expect(assignSpy).toHaveBeenCalledWith('http://localhost:3000/0');
     vi.clearAllMocks();
   });
 

@@ -1,10 +1,7 @@
 import {generateElemId, queryElemChildren} from '../utils/dom.ts';
 import {isDarkTheme} from '../utils.ts';
 
-// This "safe" only makes sense in the specific context of "open-link" command from iframe.
-// Because other link protocols are directly handled by the iframe, but not here.
-// arguments can be any type & any value, they are from "message" event's data
-export function safeLinkHref(link: any): string | null {
+function safeRenderIframeLink(link: any): string | null {
   try {
     const url = new URL(`${link}`, window.location.href);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
@@ -20,15 +17,15 @@ export function safeLinkHref(link: any): string | null {
 
 // This function is only designed for "open-link" command from iframe, is not suitable for other contexts.
 // Because other link protocols are directly handled by the iframe, but not here.
-// arguments can be any type & any value, they are from "message" event's data
+// Arguments can be any type & any value, they are from "message" event's data which is not controlled by us.
 export function navigateToIframeLink(unsafeLink: any, target: any) {
-  const linkHref = safeLinkHref(unsafeLink);
+  const linkHref = safeRenderIframeLink(unsafeLink);
   if (linkHref === null) return;
   if (target === '_blank') {
     window.open(linkHref, '_blank', 'noopener,noreferrer');
     return;
   }
-  // treat all other targets including ("_top", "_self", etc) as same tab navigation
+  // treat all other targets including ("_top", "_self", etc.) as same tab navigation
   window.location.assign(linkHref);
 }
 
