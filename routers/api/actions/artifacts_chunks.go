@@ -31,13 +31,11 @@ type saveUploadChunkOptions struct {
 }
 
 func makeTmpPathNameV3(runID int64) string {
-	// TODO: maybe use "tmp-upload/run-12345" in the future
-	return fmt.Sprintf("tmp%d", runID)
+	return fmt.Sprintf("tmp-upload/run-%d", runID)
 }
 
 func makeTmpPathNameV4(runID int64) string {
-	// TODO: maybe use "tmp-upload/run-12345-v4" in the future
-	return fmt.Sprintf("tmpv4%d", runID)
+	return fmt.Sprintf("tmp-upload/run-%d-v4", runID)
 }
 
 func makeChunkFilenameV3(runID, artifactID, start int64, endPtr *int64) string {
