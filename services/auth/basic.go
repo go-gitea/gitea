@@ -121,7 +121,7 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 		store.GetData()["LoginMethod"] = ActionTokenMethodName
 		return user_model.NewActionsUserWithTaskID(task.ID), nil
 	}
-	return nil, nil
+	return nil, nil //nolint:nilnil // the auth method is not applicable
 }
 
 // Verify extracts and validates Basic data (username and password/token) from the
@@ -132,7 +132,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	parseBasicRet := b.parseAuthBasic(req)
 	authToken, uname, passwd := parseBasicRet.authToken, parseBasicRet.uname, parseBasicRet.passwd
 	if authToken == "" && uname == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 	u, err := b.VerifyAuthToken(req, w, store, sess, authToken)
 	if u != nil || err != nil {
@@ -140,7 +140,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	if !setting.Service.EnableBasicAuth {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	log.Trace("Basic Authorization: Attempting SignIn for %s", uname)

@@ -339,7 +339,7 @@ func findFileMetaByID(ctx context.Context, metaID int64) (*dbfsMeta, error) {
 	} else if ok {
 		return &fileMeta, nil
 	}
-	return nil, nil
+	return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 }
 
 func buildPath(path string) string {

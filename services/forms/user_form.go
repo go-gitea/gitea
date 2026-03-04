@@ -45,9 +45,6 @@ type InstallForm struct {
 	RegisterConfirm bool
 	MailNotify      bool
 
-	OfflineMode                    bool
-	DisableGravatar                bool
-	EnableFederatedAvatar          bool
 	EnableOpenIDSignIn             bool
 	EnableOpenIDSignUp             bool
 	DisableRegistration            bool

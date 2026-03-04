@@ -462,14 +462,7 @@ func renderMilestones(ctx *context.Context) {
 		return
 	}
 
-	openMilestones, closedMilestones := issues_model.MilestoneList{}, issues_model.MilestoneList{}
-	for _, milestone := range milestones {
-		if milestone.IsClosed {
-			closedMilestones = append(closedMilestones, milestone)
-		} else {
-			openMilestones = append(openMilestones, milestone)
-		}
-	}
+	openMilestones, closedMilestones := issues_model.MilestoneList(milestones).SplitByOpenClosed()
 	ctx.Data["OpenMilestones"] = openMilestones
 	ctx.Data["ClosedMilestones"] = closedMilestones
 }

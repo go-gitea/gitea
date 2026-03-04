@@ -258,7 +258,7 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 		t.Run("DefaultEmailKeepPrivate", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			paramsForKeepPrivate["commit_email"] = ""
-			resp1 = makeReq(t, linkForKeepPrivate, paramsForKeepPrivate, "User Two", "user2@noreply.example.org")
+			resp1 = makeReq(t, linkForKeepPrivate, paramsForKeepPrivate, "User Two", "2+user2@noreply.example.org")
 		})
 		t.Run("ChooseEmail", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()

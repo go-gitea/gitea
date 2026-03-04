@@ -63,7 +63,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		return nil, sspiAuthErrInit
 	}
 	if !s.shouldAuthenticate(req) {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	cfg, err := s.getConfig(req.Context())
@@ -97,7 +97,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 	username := sanitizeUsername(userInfo.Username, cfg)
 	if len(username) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 	log.Info("Authenticated as %s\n", username)
 
@@ -109,7 +109,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		}
 		if !cfg.AutoCreateUsers {
 			log.Error("User '%s' not found", username)
-			return nil, nil
+			return nil, nil //nolint:nilnil // the auth method is not applicable
 		}
 		user, err = s.newUser(req.Context(), username, cfg)
 		if err != nil {

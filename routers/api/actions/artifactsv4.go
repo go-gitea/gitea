@@ -267,12 +267,12 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 
 	artifactName := req.Name
 
-	rententionDays := setting.Actions.ArtifactRetentionDays
+	retentionDays := setting.Actions.ArtifactRetentionDays
 	if req.ExpiresAt != nil {
-		rententionDays = int64(time.Until(req.ExpiresAt.AsTime()).Hours() / 24)
+		retentionDays = int64(time.Until(req.ExpiresAt.AsTime()).Hours() / 24)
 	}
 	// create or get artifact with name and path
-	artifact, err := actions.CreateArtifact(ctx, ctx.ActionTask, artifactName, artifactName+".zip", rententionDays)
+	artifact, err := actions.CreateArtifact(ctx, ctx.ActionTask, artifactName, artifactName+".zip", retentionDays)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error create or get artifact")

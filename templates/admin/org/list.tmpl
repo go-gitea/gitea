@@ -57,7 +57,7 @@
 									{{if $org.FullName}}<span class="username-fullname">({{$org.FullName}})</span>{{end}}
 								</span>
 								{{if .Visibility.IsPrivate}}
-									<span class="text gold">{{svg "octicon-lock"}}</span>
+									<span class="tw-text-gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 								{{if eq .Type 3}}{{/* Reserved organization */}}
 									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.reserved"}}</span>

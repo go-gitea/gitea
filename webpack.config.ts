@@ -39,7 +39,6 @@ const webComponents = new Set([
   // our own, in web_src/js/webcomponents
   'overflow-menu',
   'origin-url',
-  'absolute-date',
   // from dependencies
   'markdown-toolbar',
   'relative-time',

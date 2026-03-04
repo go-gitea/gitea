@@ -106,7 +106,7 @@ func (g *LogNameStatusRepoParser) Next(treepath string, paths2ids map[string]int
 			case bufio.ErrBufferFull:
 				g.buffull = true
 			case io.EOF:
-				return nil, nil
+				return nil, nil //nolint:nilnil // return nil to signal EOF
 			default:
 				return nil, err
 			}
@@ -121,7 +121,7 @@ func (g *LogNameStatusRepoParser) Next(treepath string, paths2ids map[string]int
 			case bufio.ErrBufferFull:
 				g.buffull = true
 			case io.EOF:
-				return nil, nil
+				return nil, nil //nolint:nilnil // return nil to signal EOF
 			default:
 				return nil, err
 			}

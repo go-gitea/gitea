@@ -9,11 +9,11 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
-	"github.com/nektos/act/pkg/jobparser"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // PrepareRunAndInsert prepares a run and inserts it into the database
@@ -35,7 +35,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 	}
 
 	if wfRawConcurrency != nil {
-		err = EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars)
+		err = EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars, inputsWithDefaults)
 		if err != nil {
 			return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
 		}
@@ -52,7 +52,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		run.Title = jobs[0].RunName
 	}
 
-	if err = InsertRun(ctx, run, jobs, vars); err != nil {
+	if err = InsertRun(ctx, run, jobs, vars, inputsWithDefaults); err != nil {
 		return fmt.Errorf("InsertRun: %w", err)
 	}
 
@@ -74,7 +74,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
-func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow, vars map[string]string) error {
+func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
@@ -137,7 +137,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 
 				// do not evaluate job concurrency when it requires `needs`, the jobs with `needs` will be evaluated later by job emitter
 				if len(needs) == 0 {
-					err = EvaluateJobConcurrencyFillModel(ctx, run, runJob, vars)
+					err = EvaluateJobConcurrencyFillModel(ctx, run, runJob, vars, inputs)
 					if err != nil {
 						return fmt.Errorf("evaluate job concurrency: %w", err)
 					}

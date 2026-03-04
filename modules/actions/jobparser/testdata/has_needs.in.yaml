@@ -1,0 +1,16 @@
+name: test
+jobs:
+  job1:
+    runs-on: linux
+    steps:
+      - run: uname -a
+  job2:
+    runs-on: linux
+    steps:
+      - run: uname -a
+    needs: job1
+  job3:
+    runs-on: linux
+    steps:
+      - run: uname -a
+    needs: [job1, job2]

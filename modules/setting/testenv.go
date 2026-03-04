@@ -13,7 +13,18 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func SetupGiteaTestEnv() string {
+var giteaTestSourceRoot *string
+
+func GetGiteaTestSourceRoot() string {
+	return *giteaTestSourceRoot
+}
+
+func SetupGiteaTestEnv() {
+	if giteaTestSourceRoot != nil {
+		return // already initialized
+	}
+
+	IsInTesting = true
 	giteaRoot := os.Getenv("GITEA_TEST_ROOT")
 	if giteaRoot == "" {
 		_, filename, _, _ := runtime.Caller(0)
@@ -27,6 +38,7 @@ func SetupGiteaTestEnv() string {
 	appWorkPathBuiltin = giteaRoot
 	AppWorkPath = giteaRoot
 	AppPath = filepath.Join(giteaRoot, "gitea") + util.Iif(IsWindows, ".exe", "")
+	StaticRootPath = giteaRoot // need to load assets (options, public) from the source code directory for testing
 
 	// giteaConf (GITEA_CONF) must be relative because it is used in the git hooks as "$GITEA_ROOT/$GITEA_CONF"
 	giteaConf := os.Getenv("GITEA_TEST_CONF")
@@ -56,6 +68,5 @@ func SetupGiteaTestEnv() string {
 	// TODO: some git repo hooks (test fixtures) still use these env variables, need to be refactored in the future
 	_ = os.Setenv("GITEA_ROOT", giteaRoot)
 	_ = os.Setenv("GITEA_CONF", giteaConf) // test fixture git hooks use "$GITEA_ROOT/$GITEA_CONF" in their scripts
-
-	return giteaRoot
+	giteaTestSourceRoot = &giteaRoot
 }

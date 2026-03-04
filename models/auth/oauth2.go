@@ -209,7 +209,7 @@ func (app *OAuth2Application) GetGrantByUserID(ctx context.Context, userID int64
 	if has, err := db.GetEngine(ctx).Where("user_id = ? AND application_id = ?", userID, app.ID).Get(grant); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return grant, nil
 }
@@ -431,13 +431,13 @@ func GetOAuth2AuthorizationByCode(ctx context.Context, code string) (auth *OAuth
 	if has, err := db.GetEngine(ctx).Where("code = ?", code).Get(auth); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	auth.Grant = new(OAuth2Grant)
 	if has, err := db.GetEngine(ctx).ID(auth.GrantID).Get(auth.Grant); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return auth, nil
 }
@@ -521,7 +521,7 @@ func GetOAuth2GrantByID(ctx context.Context, id int64) (grant *OAuth2Grant, err 
 	if has, err := db.GetEngine(ctx).ID(id).Get(grant); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return grant, err
 }

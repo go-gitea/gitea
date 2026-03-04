@@ -150,14 +150,18 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 // If isShowFullName is set to true, also include full name prefix search
 func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull bool, search string) ([]*user_model.User, error) {
 	users := make([]*user_model.User, 0, 30)
-	var prefixCond builder.Cond = builder.Like{"lower_name", strings.ToLower(search) + "%"}
-	prefixCond = prefixCond.Or(db.BuildCaseInsensitiveLike("full_name", "%"+search+"%"))
 
 	cond := builder.In("`user`.id",
 		builder.Select("poster_id").From("issue").Where(
 			builder.Eq{"repo_id": repo.ID}.
 				And(builder.Eq{"is_pull": isPull}),
-		).GroupBy("poster_id")).And(prefixCond)
+		).GroupBy("poster_id"))
+
+	if search != "" {
+		var prefixCond builder.Cond = builder.Like{"lower_name", strings.ToLower(search) + "%"}
+		prefixCond = prefixCond.Or(db.BuildCaseInsensitiveLike("full_name", "%"+search+"%"))
+		cond = cond.And(prefixCond)
+	}
 
 	return users, db.GetEngine(ctx).
 		Where(cond).

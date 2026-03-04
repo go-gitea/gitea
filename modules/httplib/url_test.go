@@ -23,6 +23,7 @@ func TestIsRelativeURL(t *testing.T) {
 		"foo",
 		"/",
 		"/foo?k=%20#abc",
+		"/foo?k=\\",
 	}
 	for _, s := range rel {
 		assert.True(t, IsRelativeURL(s), "rel = %q", s)
@@ -32,6 +33,8 @@ func TestIsRelativeURL(t *testing.T) {
 		"\\\\",
 		"/\\",
 		"\\/",
+		"/a/../\\b",
+		"/any\\thing",
 		"mailto:a@b.com",
 		"https://test.com",
 	}
@@ -73,6 +76,21 @@ func TestGuessCurrentHostURL(t *testing.T) {
 
 		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
 		assert.Equal(t, "https://req-host:3000", GuessCurrentHostURL(ctx))
+	})
+
+	t.Run("Never", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLNever)()
+
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(t.Context()))
+
+		ctx := context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000"})
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
+
+		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", TLS: &tls.ConnectionState{}})
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
+
+		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
 	})
 }
 

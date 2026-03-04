@@ -312,12 +312,12 @@ func removeTeamMember(ctx context.Context, team *organization.Team, user *user_m
 			return err
 		}
 
-		// Remove watches from now unaccessible
+		// Remove watches from now inaccessible
 		if err := repo_service.ReconsiderWatches(ctx, repo, user); err != nil {
 			return err
 		}
 
-		// Remove issue assignments from now unaccessible
+		// Remove issue assignments from now inaccessible
 		if err := repo_service.ReconsiderRepoIssuesAssignee(ctx, repo, user); err != nil {
 			return err
 		}

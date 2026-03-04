@@ -299,7 +299,7 @@ func TestRender_AutoLink(t *testing.T) {
 
 	// render other commit URLs
 	tmp = "https://external-link.gitea.io/go-gitea/gitea/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2"
-	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code>d8a994ef24 (diff-2)</code></a>")
+	test(tmp, "<a href=\""+tmp+"\">"+tmp+"</a>")
 }
 
 func TestRender_FullIssueURLs(t *testing.T) {

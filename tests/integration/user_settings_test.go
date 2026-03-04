@@ -158,6 +158,34 @@ func TestUserSettingsUpdateEmail(t *testing.T) {
 		req := NewRequest(t, "POST", "/user/settings/account/email")
 		session.MakeRequest(t, req, http.StatusNotFound)
 	})
+
+	t.Run("primary email not found", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		session := loginUser(t, "user2")
+		req := NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
+			"_method": "PRIMARY",
+			"id":      "9999",
+		})
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, "/user/settings/account", resp.Header().Get("Location"))
+		flashMsg := session.GetCookieFlashMessage()
+		assert.Equal(t, "The selected email address could not be found.", flashMsg.ErrorMsg)
+	})
+
+	t.Run("primary email not owned by user", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		session := loginUser(t, "user2")
+		req := NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
+			"_method": "PRIMARY",
+			"id":      "6",
+		})
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, "/user/settings/account", resp.Header().Get("Location"))
+		flashMsg := session.GetCookieFlashMessage()
+		assert.Equal(t, "The selected email address could not be found.", flashMsg.ErrorMsg)
+	})
 }
 
 func TestUserSettingsDeleteEmail(t *testing.T) {

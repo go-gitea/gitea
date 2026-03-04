@@ -895,35 +895,35 @@ func Routes() *web.Router {
 
 	addActionsRoutes := func(
 		m *web.Router,
-		reqChecker func(ctx *context.APIContext),
+		reqReaderCheck func(ctx *context.APIContext),
+		reqOwnerCheck func(ctx *context.APIContext),
 		act actions.API,
 	) {
 		m.Group("/actions", func() {
 			m.Group("/secrets", func() {
-				m.Get("", reqToken(), reqChecker, act.ListActionsSecrets)
+				m.Get("", reqToken(), reqOwnerCheck, act.ListActionsSecrets)
 				m.Combo("/{secretname}").
-					Put(reqToken(), reqChecker, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
-					Delete(reqToken(), reqChecker, act.DeleteSecret)
+					Put(reqToken(), reqOwnerCheck, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
+					Delete(reqToken(), reqOwnerCheck, act.DeleteSecret)
 			})
 
 			m.Group("/variables", func() {
-				m.Get("", reqToken(), reqChecker, act.ListVariables)
+				m.Get("", reqToken(), reqOwnerCheck, act.ListVariables)
 				m.Combo("/{variablename}").
-					Get(reqToken(), reqChecker, act.GetVariable).
-					Delete(reqToken(), reqChecker, act.DeleteVariable).
-					Post(reqToken(), reqChecker, bind(api.CreateVariableOption{}), act.CreateVariable).
-					Put(reqToken(), reqChecker, bind(api.UpdateVariableOption{}), act.UpdateVariable)
+					Get(reqToken(), reqOwnerCheck, act.GetVariable).
+					Delete(reqToken(), reqOwnerCheck, act.DeleteVariable).
+					Post(reqToken(), reqOwnerCheck, bind(api.CreateVariableOption{}), act.CreateVariable).
+					Put(reqToken(), reqOwnerCheck, bind(api.UpdateVariableOption{}), act.UpdateVariable)
 			})
 
 			m.Group("/runners", func() {
-				m.Get("", reqToken(), reqChecker, act.ListRunners)
-				m.Get("/registration-token", reqToken(), reqChecker, act.GetRegistrationToken)
-				m.Post("/registration-token", reqToken(), reqChecker, act.CreateRegistrationToken)
-				m.Get("/{runner_id}", reqToken(), reqChecker, act.GetRunner)
-				m.Delete("/{runner_id}", reqToken(), reqChecker, act.DeleteRunner)
+				m.Get("", reqToken(), reqOwnerCheck, act.ListRunners)
+				m.Post("/registration-token", reqToken(), reqOwnerCheck, act.CreateRegistrationToken)
+				m.Get("/{runner_id}", reqToken(), reqOwnerCheck, act.GetRunner)
+				m.Delete("/{runner_id}", reqToken(), reqOwnerCheck, act.DeleteRunner)
 			})
-			m.Get("/runs", reqToken(), reqChecker, act.ListWorkflowRuns)
-			m.Get("/jobs", reqToken(), reqChecker, act.ListWorkflowJobs)
+			m.Get("/runs", reqToken(), reqReaderCheck, act.ListWorkflowRuns)
+			m.Get("/jobs", reqToken(), reqReaderCheck, act.ListWorkflowJobs)
 		})
 	}
 
@@ -936,18 +936,8 @@ func Routes() *web.Router {
 		}
 
 		if setting.Federation.Enabled {
-			m.Get("/nodeinfo", misc.NodeInfo)
-			m.Group("/activitypub", func() {
-				// deprecated, remove in 1.20, use /user-id/{user-id} instead
-				m.Group("/user/{username}", func() {
-					m.Get("", activitypub.Person)
-					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
-				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
-				m.Group("/user-id/{user-id}", func() {
-					m.Get("", activitypub.Person)
-					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
-				}, context.UserIDAssignmentAPI(), checkTokenPublicOnly())
-			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub))
+			m.Get("/nodeinfo", activitypub.NotImplemented)
+			m.Any("/activitypub/*", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub), activitypub.NotImplemented)
 		}
 
 		// Misc (public accessible)
@@ -1055,7 +1045,6 @@ func Routes() *web.Router {
 
 				m.Group("/runners", func() {
 					m.Get("", reqToken(), user.ListRunners)
-					m.Get("/registration-token", reqToken(), user.GetRegistrationToken)
 					m.Post("/registration-token", reqToken(), user.CreateRegistrationToken)
 					m.Get("/{runner_id}", reqToken(), user.GetRunner)
 					m.Delete("/{runner_id}", reqToken(), user.DeleteRunner)
@@ -1176,7 +1165,8 @@ func Routes() *web.Router {
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
 
-				addActionsRoutes(m, reqOwner(), repo.NewAction()) // it adds the routes for secrets/variables and runner management
+				// Adds the routes for secrets/variables and runner management
+				addActionsRoutes(m, reqRepoReader(unit.TypeActions), reqOwner(), repo.NewAction())
 
 				m.Group("/actions/workflows", func() {
 					m.Get("", repo.ActionsListRepositoryWorkflows)
@@ -1271,7 +1261,9 @@ func Routes() *web.Router {
 						m.Group("/{run}", func() {
 							m.Get("", repo.GetWorkflowRun)
 							m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
+							m.Post("/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowRun)
 							m.Get("/jobs", repo.ListWorkflowRunJobs)
+							m.Post("/jobs/{job_id}/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowJob)
 							m.Get("/artifacts", repo.GetArtifactsOfRun)
 						})
 					})
@@ -1629,6 +1621,7 @@ func Routes() *web.Router {
 			})
 			addActionsRoutes(
 				m,
+				reqOrgMembership(),
 				reqOrgOwnership(),
 				org.NewAction(),
 			)
@@ -1743,9 +1736,6 @@ func Routes() *web.Router {
 				})
 				m.Get("/runs", admin.ListWorkflowRuns)
 				m.Get("/jobs", admin.ListWorkflowJobs)
-			})
-			m.Group("/runners", func() {
-				m.Get("/registration-token", admin.GetRegistrationToken)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin())
 

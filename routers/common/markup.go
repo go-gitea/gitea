@@ -46,7 +46,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 		return
 	}
 
-	// Ideally, this handler should be called with RepoAssigment and get the related repo from context "/owner/repo/markup"
+	// Ideally, this handler should be called with RepoAssignment and get the related repo from context "/owner/repo/markup"
 	// then render could use the repo to do various things (the permission check has passed)
 	//
 	// However, this handler is also exposed as "/markup" without any repo context,
