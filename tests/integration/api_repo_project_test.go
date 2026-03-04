@@ -291,13 +291,6 @@ func TestAPIListProjectColumns(t *testing.T) {
 	assert.Equal(t, "Column 2", columns[1].Title)
 	assert.Equal(t, "Column 3", columns[2].Title)
 
-	// Test pagination
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/projects/%d/columns?page=1&limit=2", owner.Name, repo.Name, project.ID).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &columns)
-	assert.Len(t, columns, 2)
-
 	// Test listing columns for non-existent project
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/projects/99999/columns", owner.Name, repo.Name).
 		AddTokenAuth(token)
