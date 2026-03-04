@@ -438,7 +438,6 @@ func (u *User) EmailTo() string {
 // * user.Name / user.FullName (DefaultShowFullName): directly used in templates
 // * user.DisplayName(): always show FullName if it's not empty, otherwise show Name
 // * user.GetDisplayName(): show FullName if it's not empty and DefaultShowFullName is set, otherwise show Name
-// * user.GetCompleteName(): show "FullName (Name)" if FullName is not empty, otherwise show Name
 
 // DisplayName returns full name if it's not empty,
 // returns username otherwise.
@@ -458,17 +457,6 @@ func (u *User) GetDisplayName() string {
 		if len(trimmed) > 0 {
 			return trimmed
 		}
-	}
-	return u.Name
-}
-
-// GetCompleteName returns the full name and username in the form of
-// "Full Name (username)" if full name is not empty, otherwise it returns
-// "username".
-func (u *User) GetCompleteName() string {
-	trimmedFullName := strings.TrimSpace(u.FullName)
-	if len(trimmedFullName) > 0 {
-		return fmt.Sprintf("%s (%s)", trimmedFullName, u.Name)
 	}
 	return u.Name
 }
