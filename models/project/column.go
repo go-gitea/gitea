@@ -265,9 +265,9 @@ func (p *Project) CountColumns(ctx context.Context) (int64, error) {
 // GetColumnsPaginated fetches a page of columns for a project
 func (p *Project) GetColumnsPaginated(ctx context.Context, opts db.ListOptions) (ColumnList, error) {
 	columns := make([]*Column, 0, opts.PageSize)
-	if err := db.GetEngine(ctx).Where("project_id=?", p.ID).
+	if err := db.SetSessionPagination(db.GetEngine(ctx), &opts).
+		Where("project_id=?", p.ID).
 		OrderBy("sorting, id").
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
 		Find(&columns); err != nil {
 		return nil, err
 	}
