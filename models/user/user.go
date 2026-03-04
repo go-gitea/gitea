@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"html/template"
 	"mime"
 	"net/mail"
 	"net/url"
@@ -27,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -434,31 +436,44 @@ func (u *User) EmailTo() string {
 	return fmt.Sprintf("%s <%s>", mime.QEncoding.Encode("utf-8", add.Name), add.Address)
 }
 
-// TODO: there are 4-5 methods to display a user's "name", need to refactor them
+// TODO: there are already too many methods to display a user's "name", need to refactor them
 // * user.Name / user.FullName (DefaultShowFullName): directly used in templates
 // * user.DisplayName(): always show FullName if it's not empty, otherwise show Name
 // * user.GetDisplayName(): show FullName if it's not empty and DefaultShowFullName is set, otherwise show Name
 
-// DisplayName returns full name if it's not empty,
-// returns username otherwise.
+// DisplayName returns full name if it's not empty, returns username otherwise.
 func (u *User) DisplayName() string {
-	trimmed := strings.TrimSpace(u.FullName)
-	if len(trimmed) > 0 {
-		return trimmed
+	fullName := strings.TrimSpace(u.FullName)
+	if fullName != "" {
+		return fullName
 	}
 	return u.Name
 }
 
-// GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
-// returns username otherwise.
+// GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set, otherwise, username.
 func (u *User) GetDisplayName() string {
 	if setting.UI.DefaultShowFullName {
-		trimmed := strings.TrimSpace(u.FullName)
-		if len(trimmed) > 0 {
-			return trimmed
+		fullName := strings.TrimSpace(u.FullName)
+		if fullName != "" {
+			return fullName
 		}
 	}
 	return u.Name
+}
+
+// ShortName ellipses username to length (still used by many templates), it calls GetDisplayName and respects DEFAULT_SHOW_FULL_NAME
+func (u *User) ShortName(length int) string {
+	return util.EllipsisDisplayString(u.GetDisplayName(), length)
+}
+
+func (u *User) GetShortDisplayNameLinkHTML() template.HTML {
+	displayName, displayTooltip := u.Name, u.FullName
+	if setting.UI.DefaultShowFullName {
+		if fullName := strings.TrimSpace(u.FullName); fullName != "" {
+			displayName, displayTooltip = fullName, u.Name
+		}
+	}
+	return htmlutil.HTMLFormat(`<a class="muted" href="%s" data-tooltip-content="%s">%s</a>`, u.HomeLink(), displayTooltip, displayName)
 }
 
 func gitSafeName(name string) string {
@@ -479,14 +494,6 @@ func (u *User) GitName() string {
 	}
 	// Totally pathological name so it's got to be:
 	return fmt.Sprintf("user-%d", u.ID)
-}
-
-// ShortName ellipses username to length
-func (u *User) ShortName(length int) string {
-	if setting.UI.DefaultShowFullName && len(u.FullName) > 0 {
-		return util.EllipsisDisplayString(u.FullName, length)
-	}
-	return util.EllipsisDisplayString(u.Name, length)
 }
 
 // IsMailable checks if a user is eligible

@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/avatars"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 
@@ -63,15 +62,15 @@ func GetContentHistoryList(ctx *context.Context) {
 			actionText = ctx.Locale.TrString("repo.issues.content_history.edited")
 		}
 
-		username := item.UserName
-		if setting.UI.DefaultShowFullName && strings.TrimSpace(item.UserFullName) != "" {
-			username = strings.TrimSpace(item.UserFullName)
+		displayName := item.UserName
+		if fullName := strings.TrimSpace(item.UserFullName); fullName != "" {
+			displayName += " (" + fullName + ")"
 		}
 
 		src := html.EscapeString(item.UserAvatarLink)
 		class := avatars.DefaultAvatarClass + " tw-mr-2"
-		name := html.EscapeString(username)
-		avatarHTML := string(templates.AvatarHTML(src, 28, class, username))
+		name := html.EscapeString(displayName)
+		avatarHTML := string(templates.AvatarHTML(src, 28, class, displayName))
 		timeSinceHTML := string(templates.TimeSince(item.EditedUnix))
 
 		results = append(results, map[string]any{

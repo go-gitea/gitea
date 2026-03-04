@@ -14,18 +14,16 @@
 			{{range .Commits}}
 				<tr>
 					<td class="author">
-						<div class="tw-flex">
+						<span class="author-wrapper">
 							{{$userName := .Author.Name}}
 							{{if .User}}
-								{{if and .User.FullName DefaultShowFullName}}
-									{{$userName = .User.FullName}}
-								{{end}}
-								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}<a class="muted author-wrapper" href="{{.User.HomeLink}}">{{$userName}}</a>
+								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}
+								{{.User.GetShortDisplayNameLinkHTML}}
 							{{else}}
 								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "tw-mr-2"}}
-								<span class="author-wrapper">{{$userName}}</span>
+								{{$userName}}
 							{{end}}
-						</div>
+						</span>
 					</td>
 					<td class="sha">
 						{{$commitBaseLink := ""}}

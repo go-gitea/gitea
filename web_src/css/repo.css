@@ -1969,7 +1969,13 @@ tbody.commit-list {
   padding-right: 0.5em; /* To match the alignment with the "required" label */
 }
 
-.search-fullname {
+.username-display {
+  display: inline-flex;
+  gap: var(--gap-inline);
+  align-items: center;
+}
+
+.username-display > .username-fullname {
   color: var(--color-text-light-2);
 }
 
