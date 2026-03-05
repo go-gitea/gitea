@@ -80,3 +80,20 @@ permissions:
 
 ### 3. Public Repositories in Cross-Repo Access
 - As mentioned in Cross-Repository Access, truly public repositories can always be read by the token, regardless of the `ActionsCrossRepoMode` setting. The `CrossRepoMode` only governs access to private/internal repositories owned by the same user or organization.
+
+## Packages Registry
+
+"Packages" belong to "owner" but not "repository". Although there is a function "linking a package to a repository", in most cases it doesn't really work.
+When accessing a package, usually there is no information about a repository. So the "packages" permission should be designed separately from other permissions.
+
+A possible approach is like this: let owner set packages permissions, and make the repositories follow.
+
+- On owner-level:
+   - Add a "Packages" permission section
+   - "Default permissions for all repositories" can be set to none/read/write
+   - Set different permissions for selected repositories (if needed), like the "Collaborators" permission setting
+
+- On repository-level:
+   - Now a repository can have "Packages" permission
+   - The repository-level "Packages" permission is clamped by the owner-level "Packages" permission
+   - If the owner-level "Packages" permission for this repository is read, then the repository cannot set its "Packages" permission to write
