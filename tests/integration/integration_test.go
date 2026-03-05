@@ -375,6 +375,11 @@ func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest
 		}
 		testWebRoutes.ServeHTTP(recorder, req)
 	}
+	// Ensure unknown contentLength is seen as -1
+	if req.Body != nil && req.ContentLength == 0 {
+		req.ContentLength = -1
+	}
+	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if expectedStatus != recorder.Code {
 			logUnexpectedResponse(t, recorder)

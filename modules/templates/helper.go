@@ -96,9 +96,6 @@ func NewFuncMap() template.FuncMap {
 		"AssetVersion": func() string {
 			return setting.AssetVersion
 		},
-		"DefaultShowFullName": func() bool {
-			return setting.UI.DefaultShowFullName
-		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
 		},

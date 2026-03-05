@@ -425,8 +425,21 @@ func SignOut(ctx *context.Context) {
 			Data: ctx.Session.ID(),
 		})
 	}
+
+	// prepare the sign-out URL before destroying the session
+	redirectTo := buildSignOutRedirectURL(ctx)
 	HandleSignOut(ctx)
-	ctx.JSONRedirect(setting.AppSubURL + "/")
+	ctx.Redirect(redirectTo)
+}
+
+func buildSignOutRedirectURL(ctx *context.Context) string {
+	// TODO: can also support REVERSE_PROXY_AUTHENTICATION logout URL in the future
+	if ctx.Doer != nil && ctx.Doer.LoginType == auth.OAuth2 {
+		if s := buildOIDCEndSessionURL(ctx, ctx.Doer); s != "" {
+			return s
+		}
+	}
+	return setting.AppSubURL + "/"
 }
 
 // SignUp render the register page
