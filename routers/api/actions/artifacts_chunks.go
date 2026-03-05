@@ -131,7 +131,7 @@ func saveUploadChunkV3GetTotalSize(st storage.ObjectStorage, ctx *ArtifactContex
 	if _, err := fmt.Sscanf(contentRange, "bytes %d-%d/%d", &start, &end, &totalSize); err != nil {
 		return 0, fmt.Errorf("parse content range error: %v", err)
 	}
-	_, err := saveUploadChunkV3(st, ctx, artifact, runID, saveUploadChunkOptions{start: start, end: new(end), checkMd5: true})
+	_, err := saveUploadChunkV3(st, ctx, artifact, runID, saveUploadChunkOptions{start: start, end: &end, checkMd5: true})
 	if err != nil {
 		return 0, err
 	}
@@ -142,7 +142,8 @@ func saveUploadChunkV3GetTotalSize(st storage.ObjectStorage, ctx *ArtifactContex
 func appendUploadChunkV3(st storage.ObjectStorage, ctx *ArtifactContext, artifact *actions.ActionArtifact, runID, start int64) (int64, error) {
 	opts := saveUploadChunkOptions{start: start}
 	if ctx.Req.ContentLength > 0 {
-		opts.end = new(start + ctx.Req.ContentLength - 1)
+		end := start + ctx.Req.ContentLength - 1
+		opts.end = &end
 	}
 	return saveUploadChunkV3(st, ctx, artifact, runID, opts)
 }
