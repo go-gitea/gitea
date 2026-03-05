@@ -117,8 +117,8 @@ func (a *authPathDetector) isArchivePath() bool {
 	return a.vars.archivePathRe.MatchString(a.req.URL.Path)
 }
 
-func (a *authPathDetector) isActionsBadgePath() bool {
-	return a.vars.actionsBadgePathRe.MatchString(a.req.URL.Path)
+func (a *authPathDetector) isActionsBadgeRequest() bool {
+	return a.req.Method == http.MethodGet && a.vars.actionsBadgePathRe.MatchString(a.req.URL.Path)
 }
 
 func (a *authPathDetector) isAuthenticatedTokenRequest() bool {
