@@ -894,6 +894,88 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 	})
 }
 
+func TestPullAutoMergeAfterCommitStatusSucceedForkNonAdmin(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// create a fork PR from user5 to user2/repo1
+		forkSession := loginUser(t, "user5")
+		forkedName := "repo1-automerge-fork"
+		testRepoFork(t, forkSession, "user2", "repo1", "user5", forkedName, "")
+		defer func() {
+			testDeleteRepository(t, forkSession, "user5", forkedName)
+		}()
+		testEditFile(t, forkSession, "user5", forkedName, "master", "README.md", "Hello, World (Edited for automerge)\n")
+		testPullCreate(t, forkSession, "user5", forkedName, false, "master", "master", "Fork PR automerge non-admin test")
+
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user5", Name: forkedName})
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			BaseRepoID: baseRepo.ID,
+			BaseBranch: "master",
+			HeadRepoID: forkedRepo.ID,
+			HeadBranch: "master",
+		})
+
+		// Change the "master" branch to "protected" as user2 (non-admin, base repo owner)
+		baseSession := loginUser(t, "user2")
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
+			"rule_name":             "master",
+			"enable_push":           "true",
+			"enable_status_check":   "true",
+			"status_check_contexts": "gitea/actions",
+		})
+		baseSession.MakeRequest(t, req, http.StatusSeeOther)
+
+		// schedule automerge as user2, who has no access to user5's fork
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		oldAutoMergeAddToQueue := automergequeue.AddToQueue
+		addToQueueShaChan := make(chan string, 1)
+		automergequeue.AddToQueue = func(pr *issues_model.PullRequest, sha string) {
+			addToQueueShaChan <- sha
+		}
+		scheduled, err := automerge.ScheduleAutoMerge(t.Context(), user2, pr, repo_model.MergeStyleMerge, "auto merge test", false)
+		assert.NoError(t, err)
+		assert.True(t, scheduled)
+		select {
+		case <-addToQueueShaChan:
+		case <-time.After(time.Second):
+			assert.FailNow(t, "Timeout: nothing was added to automergequeue")
+		}
+		automergequeue.AddToQueue = oldAutoMergeAddToQueue
+
+		// reload pr again
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+		assert.False(t, pr.HasMerged)
+		assert.Empty(t, pr.MergedCommitID)
+
+		// update commit status to success, then it should be merged automatically
+		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
+		assert.NoError(t, err)
+		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		assert.NoError(t, err)
+		masterCommitID, err := baseGitRepo.GetBranchCommitID("master")
+		assert.NoError(t, err)
+		baseGitRepo.Close()
+		defer func() {
+			testResetRepo(t, baseRepo, "master", masterCommitID)
+		}()
+
+		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user2, sha, &git_model.CommitStatus{
+			State:     commitstatus.CommitStatusSuccess,
+			TargetURL: "https://gitea.com",
+			Context:   "gitea/actions",
+		})
+		assert.NoError(t, err)
+
+		assert.Eventually(t, func() bool {
+			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+			return pr.HasMerged
+		}, 2*time.Second, 100*time.Millisecond)
+		assert.NotEmpty(t, pr.MergedCommitID)
+		unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+	})
+}
+
 func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// create a pull request
