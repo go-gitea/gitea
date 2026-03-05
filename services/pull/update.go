@@ -162,7 +162,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	}
 
 	// 4. if the pull creator allows maintainer to edit, we need to check whether
-	// user is a maintainer and inherit pull request creator's permission
+	// user is a maintainer (has permission to merge into base branch) and inherit pull request poster's permission
 	if pull.AllowMaintainerEdit && (!pushAllowed || !rebaseAllowed) {
 		baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, user)
 		if err != nil {
