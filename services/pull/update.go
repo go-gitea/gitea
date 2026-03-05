@@ -137,8 +137,10 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	if user == nil {
 		return false, false, nil
 	}
-
 	if err := pull.LoadBaseRepo(ctx); err != nil {
+		return false, false, err
+	}
+	if err := pull.LoadHeadRepo(ctx); err != nil {
 		return false, false, err
 	}
 
@@ -173,8 +175,8 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 			return false, false, err
 		}
 		if userAllowedToMergePR {
-			// if user is maintainer (can merge PR), and this PR is allowed to be edited by maintainers, 
-			// then the user can inherit the PR poster's push/rebase permission for the head branch
+			// the user is maintainer (can merge PR), and this PR is allowed to be edited by maintainers,
+			// then the user should inherit the PR poster's push/rebase permission for the head branch
 			if err := pull.LoadIssue(ctx); err != nil {
 				return false, false, err
 			}
