@@ -78,11 +78,12 @@ func FilePathJoinAbs(base string, sub ...string) string {
 	elems := make([]string, 1, len(sub)+1)
 
 	// POSIX filesystem can have `\` in file names. Windows: `\` and `/` are both used for path separators
-	// to keep the behavior consistent, we do not allow `\` in file names, replace all `\` with `/`
+	// to keep the behavior consistent, we do not allow `\` in file names, replace all `\` with `/`.
+	// The base path will be cleaned together at the last step (return) by "Join".
 	if isOSWindows() {
-		elems[0] = filepath.Clean(base)
+		elems[0] = base
 	} else {
-		elems[0] = filepath.Clean(strings.ReplaceAll(base, "\\", filepathSeparator))
+		elems[0] = strings.ReplaceAll(base, "\\", filepathSeparator)
 	}
 	if !filepath.IsAbs(elems[0]) {
 		// This shouldn't happen. If there is really necessary to pass in relative path, return the full path with filepath.Abs() instead
