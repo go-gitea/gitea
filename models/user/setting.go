@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/json"
 	setting_module "code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -210,4 +211,25 @@ func upsertUserSettingValue(ctx context.Context, userID int64, key, value string
 		_, err = e.Insert(&Setting{UserID: userID, SettingKey: key, SettingValue: value})
 		return err
 	})
+}
+
+func GetUserSettingJSON[T any](ctx context.Context, userID int64, key string, def T) (ret T, _ error) {
+	ret = def
+	str, err := GetUserSetting(ctx, userID, key)
+	if err != nil {
+		return ret, err
+	}
+	if str == "" {
+		return ret, nil
+	}
+	err = json.Unmarshal(util.UnsafeStringToBytes(str), &ret)
+	return ret, err
+}
+
+func SetUserSettingJSON[T any](ctx context.Context, userID int64, key string, def T)  error {
+	str, err := json.Marshal(def)
+	if err != nil {
+		return err
+	}
+	return SetUserSetting(ctx, userID, key, util.UnsafeBytesToString(str))
 }

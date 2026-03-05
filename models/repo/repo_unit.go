@@ -6,7 +6,6 @@ package repo
 import (
 	"context"
 	"slices"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -351,10 +350,6 @@ func (cfg *ActionsConfig) EnableWorkflow(file string) {
 	cfg.DisabledWorkflows = util.SliceRemoveAll(cfg.DisabledWorkflows, file)
 }
 
-func (cfg *ActionsConfig) ToString() string {
-	return strings.Join(cfg.DisabledWorkflows, ",")
-}
-
 func (cfg *ActionsConfig) IsWorkflowDisabled(file string) bool {
 	return slices.Contains(cfg.DisabledWorkflows, file)
 }
@@ -418,18 +413,6 @@ func (cfg *ActionsConfig) GetMaxTokenPermissions() ActionsTokenPermissions {
 func (cfg *ActionsConfig) ClampPermissions(perms ActionsTokenPermissions) ActionsTokenPermissions {
 	maxPerms := cfg.GetMaxTokenPermissions()
 	return perms.ClampPermissions(maxPerms)
-}
-
-// IsRepoAllowedCrossAccess checks if a specific repo is allowed for cross-repo access
-func (cfg *ActionsConfig) IsRepoAllowedCrossAccess(repoID int64) bool {
-	switch cfg.CrossRepoMode {
-	case ActionsCrossRepoModeAll:
-		return true
-	case ActionsCrossRepoModeSelected:
-		return slices.Contains(cfg.AllowedCrossRepoIDs, repoID)
-	default: // ActionsCrossRepoModeNone or invalid
-		return false
-	}
 }
 
 // FromDB fills up a ActionsConfig from serialized format.

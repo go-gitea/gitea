@@ -654,9 +654,7 @@ func registerWebRoutes(m *web.Router) {
 		}, packagesEnabled)
 
 		m.Group("/actions", func() {
-			m.Get("", func(ctx *context.Context) {
-				ctx.Redirect(setting.AppSubURL + "/user/settings/actions/general")
-			})
+			m.Get("", misc.LocationRedirect("./actions/general"))
 			m.Group("/general", func() {
 				m.Get("", shared_actions.GeneralSettings)
 				m.Post("", shared_actions.UpdateTokenPermissions)
@@ -817,7 +815,7 @@ func registerWebRoutes(m *web.Router) {
 		}, oauth2Enabled)
 
 		m.Group("/actions", func() {
-			m.Get("", admin.RedirectToDefaultSetting)
+			m.Get("", misc.LocationRedirect("./actions/runners"))
 			addSettingsRunnersRoutes()
 			addSettingsVariablesRoutes()
 		})
@@ -967,9 +965,7 @@ func registerWebRoutes(m *web.Router) {
 				})
 
 				m.Group("/actions", func() {
-					m.Get("", func(ctx *context.Context) {
-						ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/general")
-					})
+					m.Get("", misc.LocationRedirect("./actions/general"))
 					m.Group("/general", func() {
 						m.Get("", shared_actions.GeneralSettings)
 						m.Post("", shared_actions.UpdateTokenPermissions)
@@ -1173,9 +1169,9 @@ func registerWebRoutes(m *web.Router) {
 		m.Group("/actions/general", func() {
 			m.Get("", repo_setting.ActionsGeneralSettings)
 			m.Post("/actions_unit", repo_setting.ActionsUnitPost)
-		})
+		}) // doesn't require actions enabled
 		m.Group("/actions", func() {
-			m.Get("", shared_actions.RedirectToDefaultSetting)
+			m.Get("", misc.LocationRedirect("./actions/general"))
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()

@@ -25,12 +25,7 @@ func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRe
 		return nil, err
 	}
 
-	var actionsCfg *repo_model.ActionsConfig
-	if actionsUnit, err := runRepo.GetUnit(ctx, unit.TypeActions); err == nil {
-		actionsCfg = actionsUnit.ActionsConfig()
-	} else {
-		actionsCfg = &repo_model.ActionsConfig{}
-	}
+	actionsCfg := runRepo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 
 	var effectivePerms repo_model.ActionsTokenPermissions
 	if job.TokenPermissions != "" {

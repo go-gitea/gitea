@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -86,14 +87,12 @@ func GeneralSettings(ctx *context.Context) {
 	ctx.Data["ActionsCrossRepoModeSelected"] = repo_model.ActionsCrossRepoModeSelected
 
 	// Load Allowed Repositories
-	var allowedRepos []*repo_model.Repository
-	if len(actionsCfg.AllowedCrossRepoIDs) > 0 {
-		allowedRepos, err = repo_model.GetRepositoriesByIDs(ctx, actionsCfg.AllowedCrossRepoIDs)
-		if err != nil {
-			ctx.ServerError("GetRepositoriesByIDs", err)
-			return
-		}
+	allowedRepos, err := repo_model.GetOwnerRepositoriesByIDs(ctx, rCtx.OwnerID, actionsCfg.AllowedCrossRepoIDs)
+	if err != nil {
+		ctx.ServerError("GetOwnerRepositoriesByIDs", err)
+		return
 	}
+
 	ctx.Data["AllowedRepos"] = allowedRepos
 	ctx.Data["OwnerID"] = rCtx.OwnerID
 
@@ -259,14 +258,7 @@ func AllowedReposRemove(ctx *context.Context) {
 		return
 	}
 
-	// Filter out the ID
-	newIDs := make([]int64, 0, len(actionsCfg.AllowedCrossRepoIDs))
-	for _, id := range actionsCfg.AllowedCrossRepoIDs {
-		if id != repoID {
-			newIDs = append(newIDs, id)
-		}
-	}
-	actionsCfg.AllowedCrossRepoIDs = newIDs
+	actionsCfg.AllowedCrossRepoIDs = util.SliceRemoveAll(actionsCfg.AllowedCrossRepoIDs, repoID)
 
 	if err := actions_model.SetUserActionsConfig(ctx, rCtx.OwnerID, actionsCfg); err != nil {
 		ctx.ServerError("SetUserActionsConfig", err)

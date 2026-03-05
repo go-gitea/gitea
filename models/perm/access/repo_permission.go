@@ -258,6 +258,26 @@ func finalProcessRepoUnitPermission(user *user_model.User, perm *Permission) {
 	}
 }
 
+func checkSameOwnerCrossRepoAccess(ctx context.Context, taskRepo, targetRepo *repo_model.Repository) bool {
+	if taskRepo.OwnerID != targetRepo.OwnerID {
+		return false
+	}
+	ownerCfg, err := actions_model.GetUserActionsConfig(ctx, targetRepo.OwnerID)
+	if err != nil {
+		log.Error("GetUserActionsConfig: %v", err)
+		return false
+	}
+
+	switch ownerCfg.CrossRepoMode {
+	case repo_model.ActionsCrossRepoModeAll:
+		return true
+	case repo_model.ActionsCrossRepoModeSelected:
+		return slices.Contains(ownerCfg.AllowedCrossRepoIDs, targetRepo.ID)
+	default: // ActionsCrossRepoModeNone or invalid
+		return false
+	}
+}
+
 // GetActionsUserRepoPermission returns the actions user permissions to the repository
 func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Repository, actionsUser *user_model.User, taskID int64) (perm Permission, err error) {
 	if actionsUser.ID != user_model.ActionsUserID {
@@ -292,8 +312,6 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		return perm, err
 	}
 
-	isSameRepo := task.RepoID == repo.ID
-
 	var maxPerm Permission
 
 	// Set up per-unit access modes based on configured permissions
@@ -309,6 +327,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	maxPerm.unitsMode[unit.TypeProjects] = effectivePerms.Projects
 
 	// Set base access mode to the maximum of all unit maxPermissions
+	// FIXME: it's not right. AccessMode can't be the "max mode"
 	maxMode := perm_model.AccessModeNone
 	for _, mode := range maxPerm.unitsMode {
 		if mode > maxMode {
@@ -326,6 +345,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	if botPerm.AccessMode >= perm_model.AccessModeRead {
 		// Public repo allows read access, increase permissions to at least read
 		// Otherwise you cannot access your own repository if your permissions are set to none but the repository is public
+		// FIXME: it's not right. AccessMode can't be the "max mode"
 		maxPerm.AccessMode = max(maxPerm.AccessMode, perm_model.AccessModeRead)
 		for _, u := range repo.Units {
 			if botPerm.CanRead(u.Type) {
@@ -334,47 +354,32 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		}
 	}
 
-	if isSameRepo {
-		perm = maxPerm
-	} else {
-		if err := repo.LoadOwner(ctx); err != nil {
-			return perm, err
-		}
+	if task.RepoID == repo.ID {
+		return maxPerm, nil
+	}
 
-		// Check Owner Cross-Repo Access Policy
-		if repo.OwnerID == taskRepo.OwnerID {
-			ownerCfg, err := actions_model.GetUserActionsConfig(ctx, repo.OwnerID)
-			if err != nil {
-				return perm, err
-			}
-			if ownerCfg.IsRepoAllowedCrossAccess(repo.ID) {
-				// Access allowed by owner policy (grants access to private repos)
-				perm = maxPerm
-				return perm, nil
-			}
-			// Fall through to allow public repository read access via botPerm check below
-		}
+	if checkSameOwnerCrossRepoAccess(ctx, taskRepo, repo) {
+		// Access allowed by owner policy (grants access to private repos)
+		return maxPerm, nil
+	}
 
-		// Check if the repo is public or the Bot has explicit access
-		if botPerm.AccessMode >= perm_model.AccessModeRead {
-			perm = maxPerm
-			return perm, nil
-		}
+	// Fall through to allow public repository read access via botPerm check below
 
-		// Check Collaborative Owner and explicit Bot permissions
-		// We allow access if:
-		// 1. It's a collaborative owner relationship
-		// 2. The Actions Bot user has been explicitly granted access and repository is private
-		// 3. The repository is public (handled by botPerm above)
+	// Check if the repo is public or the Bot has explicit access
+	if botPerm.AccessMode >= perm_model.AccessModeRead {
+		return maxPerm, nil
+	}
 
-		if taskRepo.IsPrivate {
-			actionsUnit, err := repo.GetUnit(ctx, unit.TypeActions)
-			if err != nil {
-				log.Warn("GetActionsUserRepoPermission: failed to load actions unit for repo %d: %v", repo.ID, err)
-			} else if actionsUnit != nil && actionsUnit.ActionsConfig().IsCollaborativeOwner(taskRepo.OwnerID) {
-				perm = maxPerm
-				return perm, nil
-			}
+	// Check Collaborative Owner and explicit Bot permissions
+	// We allow access if:
+	// 1. It's a collaborative owner relationship
+	// 2. The Actions Bot user has been explicitly granted access and repository is private
+	// 3. The repository is public (handled by botPerm above)
+
+	if taskRepo.IsPrivate {
+		actionsUnit := repo.MustGetUnit(ctx, unit.TypeActions)
+		if actionsUnit.ActionsConfig().IsCollaborativeOwner(taskRepo.OwnerID) {
+			return maxPerm, nil
 		}
 	}
 

@@ -198,8 +198,8 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 				accessMode = perm.AccessModeRead
 			}
 
-			taskID, ok := user_model.GetActionsUserTaskID(ctx.Doer)
-			if ok && taskID != 0 {
+			taskID, isActionsUser := user_model.GetActionsUserTaskID(ctx.Doer)
+			if isActionsUser {
 				p, err := access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
 				if err != nil {
 					ctx.ServerError("GetActionsUserRepoPermission", err)

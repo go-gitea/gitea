@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/perm"
@@ -28,7 +29,7 @@ func TestActionsConfig(t *testing.T) {
 	cfg.DisableWorkflow("test1.yaml")
 	cfg.DisableWorkflow("test2.yaml")
 	cfg.DisableWorkflow("test3.yaml")
-	assert.Equal(t, "test1.yaml,test2.yaml,test3.yaml", cfg.ToString())
+	assert.Equal(t, "test1.yaml,test2.yaml,test3.yaml", strings.Join(cfg.DisabledWorkflows, ","))
 }
 
 func TestActionsConfigTokenPermissions(t *testing.T) {
