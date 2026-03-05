@@ -310,8 +310,8 @@ importers:
         specifier: 0.47.0
         version: 0.47.0
       material-icon-theme:
-        specifier: 5.31.0
-        version: 5.31.0
+        specifier: 5.32.0
+        version: 5.32.0
       nolyfill:
         specifier: 1.0.44
         version: 1.0.44
@@ -3141,8 +3141,8 @@ packages:
     engines: {node: '>= 12'}
     hasBin: true
 
-  material-icon-theme@5.31.0:
-    resolution: {integrity: sha512-PPeGSRa+8stQEKvCr2Xym9KIqf2SPwl1chc7cxbK+aY6ORpwOcowtARQEXstZBjQwXTE5GnfE0zg0MFFy+XPzA==}
+  material-icon-theme@5.32.0:
+    resolution: {integrity: sha512-SxJxCcnk6cJIbd+AxmoeghXJ24joXGmUzjiGci16sX4mXZdXprGEzM6ZZ0VHGAofxNlMqznEbExINwFLsxf8eQ==}
     engines: {vscode: ^1.55.0}
 
   mathml-tag-names@4.0.0:
@@ -7132,7 +7132,7 @@ snapshots:
 
   marked@4.3.0: {}
 
-  material-icon-theme@5.31.0:
+  material-icon-theme@5.32.0:
     dependencies:
       chroma-js: 3.2.0
       events: 3.3.0
