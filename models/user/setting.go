@@ -226,7 +226,7 @@ func GetUserSettingJSON[T any](ctx context.Context, userID int64, key string, de
 	return ret, err
 }
 
-func SetUserSettingJSON[T any](ctx context.Context, userID int64, key string, def T)  error {
+func SetUserSettingJSON[T any](ctx context.Context, userID int64, key string, def T) error {
 	str, err := json.Marshal(def)
 	if err != nil {
 		return err
