@@ -422,52 +422,37 @@ func (repo *Repository) UnitEnabled(ctx context.Context, tp unit.Type) bool {
 	return false
 }
 
-// MustGetUnit always returns a RepoUnit object
+// MustGetUnit always returns a RepoUnit object even if the unit doesn't exist (not enabled)
 func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit {
 	ru, err := repo.GetUnit(ctx, tp)
 	if err == nil {
 		return ru
 	}
-
+	if !errors.Is(err, util.ErrNotExist) {
+		setting.PanicInDevOrTesting("Failed to get unit %v for repository %d: %v", tp, repo.ID, err)
+	}
+	ru = &RepoUnit{RepoID: repo.ID, Type: tp}
 	switch tp {
 	case unit.TypeExternalWiki:
-		return &RepoUnit{
-			Type:   tp,
-			Config: new(ExternalWikiConfig),
-		}
+		ru.Config = new(ExternalWikiConfig)
 	case unit.TypeExternalTracker:
-		return &RepoUnit{
-			Type:   tp,
-			Config: new(ExternalTrackerConfig),
-		}
+		ru.Config = new(ExternalTrackerConfig)
 	case unit.TypePullRequests:
-		return &RepoUnit{
-			Type:   tp,
-			Config: new(PullRequestsConfig),
-		}
+		ru.Config = new(PullRequestsConfig)
 	case unit.TypeIssues:
-		return &RepoUnit{
-			Type:   tp,
-			Config: new(IssuesConfig),
-		}
+		ru.Config = new(IssuesConfig)
 	case unit.TypeActions:
-		return &RepoUnit{
-			Type:   tp,
-			Config: new(ActionsConfig),
-		}
+		ru.Config = new(ActionsConfig)
 	case unit.TypeProjects:
-		cfg := new(ProjectsConfig)
-		cfg.ProjectsMode = ProjectsModeNone
-		return &RepoUnit{
-			Type:   tp,
-			Config: cfg,
+		ru.Config = new(ProjectsConfig)
+	default: // other units don't have config
+	}
+	if ru.Config != nil {
+		if err = ru.Config.FromDB(nil); err != nil {
+			setting.PanicInDevOrTesting("Failed to load default config for unit %v of repository %d: %v", tp, repo.ID, err)
 		}
 	}
-
-	return &RepoUnit{
-		Type:   tp,
-		Config: new(UnitConfig),
-	}
+	return ru
 }
 
 // GetUnit returns a RepoUnit object
