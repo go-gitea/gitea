@@ -131,9 +131,9 @@ func Test_isGitRawOrLFSPath(t *testing.T) {
 	}
 }
 
-func Test_isBadgePath(t *testing.T) {
+func Test_isActionsBadgePath(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "http://localhost/owner/repo/actions/workflows/build.yml/badge.svg", nil)
-	assert.True(t, newAuthPathDetector(req).isBadgePath())
+	assert.True(t, newAuthPathDetector(req).isActionsBadgePath())
 }
 
 func Test_isFeedRequest(t *testing.T) {

@@ -155,7 +155,7 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 	// These paths are not API paths, but we still want to check for tokens because they maybe in the API returned URLs
 	detector := newAuthPathDetector(req)
 	if !detector.isAPIPath() && !detector.isAttachmentDownload() && !detector.isAuthenticatedTokenRequest() &&
-		!detector.isGitRawOrAttachPath() && !detector.isArchivePath() && !detector.isBadgePath() {
+		!detector.isGitRawOrAttachPath() && !detector.isArchivePath() && !detector.isActionsBadgePath() {
 		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 

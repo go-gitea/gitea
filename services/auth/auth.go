@@ -28,7 +28,7 @@ type globalVarsStruct struct {
 	archivePathRe        *regexp.Regexp
 	feedPathRe           *regexp.Regexp
 	feedRefPathRe        *regexp.Regexp
-	badgePathRe          *regexp.Regexp
+	actionsBadgePathRe   *regexp.Regexp
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
@@ -41,7 +41,7 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 		// "/owner/repo/rss/branch/..."
 		feedRefPathRe: regexp.MustCompile(`^/[-.\w]+/[-.\w]+/(rss|atom)/`),
 		// "/owner/repo/actions/workflows/foo/badge.svg"
-		badgePathRe: regexp.MustCompile(`^/[-.\w]+/[-.\w]+/actions/workflows/[-.\w]+/badge\.svg$`),
+		actionsBadgePathRe: regexp.MustCompile(`^/[-.\w]+/[-.\w]+/actions/workflows/[-.\w]+/badge\.svg$`),
 	}
 })
 
@@ -117,8 +117,8 @@ func (a *authPathDetector) isArchivePath() bool {
 	return a.vars.archivePathRe.MatchString(a.req.URL.Path)
 }
 
-func (a *authPathDetector) isBadgePath() bool {
-	return a.vars.badgePathRe.MatchString(a.req.URL.Path)
+func (a *authPathDetector) isActionsBadgePath() bool {
+	return a.vars.actionsBadgePathRe.MatchString(a.req.URL.Path)
 }
 
 func (a *authPathDetector) isAuthenticatedTokenRequest() bool {
