@@ -28,11 +28,11 @@
 		{{ctx.Locale.Tr "actions.actions"}} - {{ctx.Locale.Tr "settings.general"}}
 	</h4>
 	<div class="ui attached segment">
-		<form class="ui form" action="{{.RepoLink}}/settings/actions/general/token_permissions" method="post">
+		<form class="ui form" action="{{.RepoLink}}/settings/actions/general/token_permissions" method="post" data-global-init="initRepoActionsPermissionsForm">
 			<!-- Override Owner Configuration -->
 			<div class="field">
 				<div class="ui checkbox">
-					<input type="checkbox" name="override_owner_config" id="override-owner-config" {{if .OverrideOwnerConfig}}checked{{end}} class="js-override-owner-config">
+					<input type="checkbox" name="override_owner_config" {{if .OverrideOwnerConfig}}checked{{end}}>
 					<label><strong>{{ctx.Locale.Tr "actions.general.token_permissions.override_owner"}}</strong></label>
 				</div>
 				<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.override_owner_desc"}}</div>
@@ -40,29 +40,31 @@
 
 			<div class="divider"></div>
 
-			{{template "shared/actions/permission_mode_select" .}}
-			<div class="divider"></div>
+			<div class="js-repo-token-permissions-config">
+				{{template "shared/actions/permission_mode_select" .}}
+				<div class="divider"></div>
 
-			<!-- Maximum Permissions Table -->
-			<div id="max-permissions-section">
-				<h5 class="ui header">
-					{{ctx.Locale.Tr "actions.general.token_permissions.maximum"}}
-				</h5>
-				<div class="help">
-					{{ctx.Locale.Tr "actions.general.token_permissions.maximum.description"}}
-					<br>
-					{{ctx.Locale.Tr "actions.general.token_permissions.fork_pr_note"}}
-				</div>
+				<!-- Maximum Permissions Table -->
+				<div id="max-permissions-section">
+					<h5 class="ui header">
+						{{ctx.Locale.Tr "actions.general.token_permissions.maximum"}}
+					</h5>
+					<div class="help">
+						{{ctx.Locale.Tr "actions.general.token_permissions.maximum.description"}}
+						<br>
+						{{ctx.Locale.Tr "actions.general.token_permissions.fork_pr_note"}}
+					</div>
 
-				<div class="field">
-					<div class="ui checkbox">
-						<input type="checkbox" name="enable_max_permissions" class="js-enable-max-permissions" {{if .EnableMaxTokenPermissions}}checked{{end}}>
-						<label>{{ctx.Locale.Tr "actions.general.token_permissions.customize_max_permissions"}}</label>
+					<div class="field">
+						<div class="ui checkbox">
+							<input type="checkbox" name="enable_max_permissions" {{if .EnableMaxTokenPermissions}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "actions.general.token_permissions.customize_max_permissions"}}</label>
+						</div>
 					</div>
 				</div>
-			</div>
 
-			{{template "shared/actions/permissions_table" .}}
+				{{template "shared/actions/permissions_table" .}}
+			</div>
 
 			<div class="divider"></div>
 

@@ -6,26 +6,26 @@
 			<div class="grouped fields">
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="cross_repo_mode" value="none" {{if eq .CrossRepoMode .ActionsCrossRepoModeNone}}checked{{end}} class="js-cross-repo-mode">
+						<input type="radio" name="cross_repo_mode" value="none" {{if eq .CrossRepoMode .ActionsCrossRepoModeNone}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "disabled"}}</label>
 					</div>
 				</div>
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="cross_repo_mode" value="all" {{if eq .CrossRepoMode .ActionsCrossRepoModeAll}}checked{{end}} class="js-cross-repo-mode">
+						<input type="radio" name="cross_repo_mode" value="all" {{if eq .CrossRepoMode .ActionsCrossRepoModeAll}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_all"}}</label>
 					</div>
 				</div>
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="cross_repo_mode" value="selected" {{if eq .CrossRepoMode .ActionsCrossRepoModeSelected}}checked{{end}} class="js-cross-repo-mode">
+						<input type="radio" name="cross_repo_mode" value="selected" {{if eq .CrossRepoMode .ActionsCrossRepoModeSelected}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_selected"}}</label>
 					</div>
 				</div>
 			</div>
 
 			<!-- Allowed Repositories List -->
-			<div id="allowed-repos-section" class="field">
+			<div class="field js-cross-repo-selected-only">
 				<h5 class="ui header">
 					{{ctx.Locale.Tr "actions.general.token_permissions.allowed_repos"}}
 				</h5>
@@ -78,7 +78,7 @@
 			</div>
 			<div class="field" id="max-permissions-section">
 				<div class="ui checkbox">
-					<input type="checkbox" name="enable_max_permissions" class="js-enable-max-permissions" {{if .EnableMaxTokenPermissions}}checked{{end}}>
+					<input type="checkbox" name="enable_max_permissions" {{if .EnableMaxTokenPermissions}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "actions.general.token_permissions.customize_max_permissions"}}</label>
 				</div>
 			</div>
