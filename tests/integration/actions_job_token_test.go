@@ -281,6 +281,7 @@ func TestActionsTokenPermissionsClamping(t *testing.T) {
 		// Set Clamping Config: Permissive Mode, Max Code = Read
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
 			"token_permission_mode":  "permissive",
+			"override_owner_config":  "true",
 			"enable_max_permissions": "true",
 			"max_code":               "read",
 		})
@@ -868,6 +869,7 @@ func TestActionsPermission(t *testing.T) {
 		// set actions token permission mode to "permissive"
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
 			"token_permission_mode": "permissive",
+			"override_owner_config": "true",
 		})
 		resp := session.MakeRequest(t, req, http.StatusSeeOther)
 		require.Equal(t, fmt.Sprintf("/%s/%s/settings/actions/general", repo.OwnerName, repo.Name), test.RedirectURL(resp))

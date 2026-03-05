@@ -55,7 +55,7 @@ func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRe
 	isSameRepo := job.RepoID == targetRepo.ID
 	maxReadOnly := job.Run.IsForkPullRequest || !isSameRepo
 	if maxReadOnly {
-		effectivePerms = effectivePerms.ClampPermissions(repo_model.GetReadOnlyPermissions())
+		effectivePerms = effectivePerms.ClampPermissions(repo_model.GetRestrictedPermissions())
 	}
 
 	return &effectivePerms, nil

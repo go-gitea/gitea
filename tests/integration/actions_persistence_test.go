@@ -33,6 +33,7 @@ func TestActionsTokenPermissionsPersistence(t *testing.T) {
 		// 1. Enable Max Permissions
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
 			"token_permission_mode":  "permissive",
+			"override_owner_config":  "true",
 			"enable_max_permissions": "true",
 			"max_code":               "read",
 		})
@@ -47,9 +48,10 @@ func TestActionsTokenPermissionsPersistence(t *testing.T) {
 		require.NotNil(t, cfg.MaxTokenPermissions, "MaxTokenPermissions should NOT be nil")
 		assert.Equal(t, "read", cfg.MaxTokenPermissions.Code.ToString())
 
-		// 2. Disable Max Permissions
+		// 2. Disable Max Permissions (Keep Override checked)
 		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
 			"token_permission_mode": "permissive",
+			"override_owner_config": "true",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 

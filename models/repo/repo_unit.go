@@ -296,8 +296,8 @@ func DefaultActionsTokenPermissions(mode ActionsTokenPermissionMode) ActionsToke
 	}
 }
 
-// GetReadOnlyPermissions returns the restricted permissions for fork pull requests
-func GetReadOnlyPermissions() ActionsTokenPermissions {
+// GetRestrictedPermissions returns the restricted permissions for fork pull requests
+func GetRestrictedPermissions() ActionsTokenPermissions {
 	return ActionsTokenPermissions{
 		Code:         perm.AccessModeRead,
 		Issues:       perm.AccessModeNone,

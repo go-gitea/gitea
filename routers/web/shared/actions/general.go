@@ -177,7 +177,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	if rCtx.IsOrg {
 		ctx.Flash.Success(ctx.Tr("org.settings.update_setting_success"))
 	} else {
-		ctx.Flash.Success(ctx.Tr("settings.update_settings_success"))
+		ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
 	}
 	ctx.Redirect(generalLink)
 }
