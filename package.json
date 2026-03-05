@@ -111,7 +111,7 @@
     "stylelint-declaration-block-no-ignored-properties": "3.0.0",
     "stylelint-declaration-strict-value": "1.11.0",
     "stylelint-value-no-unknown-custom-properties": "6.1.1",
-    "svgo": "4.0.0",
+    "svgo": "4.0.1",
     "typescript": "5.9.3",
     "typescript-eslint": "8.56.0",
     "updates": "17.6.2",
