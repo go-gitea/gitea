@@ -56,20 +56,17 @@ func getRequestScheme(req *http.Request) string {
 		return proto
 	}
 	if s := req.Header.Get("Front-End-Https"); s != "" {
-		return util.Iif(util.AsciiEqualFold(s, "on"), "https", "http")
+		return util.Iif(s == "on", "https", "http")
 	}
 	if s := req.Header.Get("X-Forwarded-Ssl"); s != "" {
-		return util.Iif(util.AsciiEqualFold(s, "on"), "https", "http")
+		return util.Iif(s == "on", "https", "http")
 	}
 	return ""
 }
 
 func parseForwardedProtoValue(val string) (string, bool) {
-	if val != "" {
-		lower := strings.ToLower(val)
-		if lower == "http" || lower == "https" {
-			return lower, true
-		}
+	if val == "http" || val == "https" {
+		return val, true
 	}
 	return "", false
 }
