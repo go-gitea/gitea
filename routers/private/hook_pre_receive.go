@@ -498,10 +498,12 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 	if ctx.opts.UserID == user_model.ActionsUserID {
 		taskID := ctx.opts.ActionsTaskID
 		ctx.user = user_model.NewActionsUserWithTaskID(taskID)
-		// Use the new GetActionsUserRepoPermission to respect token permission settings
-		// Passing 0 as taskID will trigger extraction from ctx.user
 		if taskID == 0 {
-			log.Warn("HookPreReceive: ActionsUser with task ID 0, falling back to repository default Actions configuration")
+			log.Error("HookPreReceive: ActionsUser with task ID 0")
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: "ActionsUser with task ID 0",
+			})
+			return false
 		}
 
 		userPerm, err := access_model.GetActionsUserRepoPermission(ctx, ctx.Repo.Repository, ctx.user, taskID)
