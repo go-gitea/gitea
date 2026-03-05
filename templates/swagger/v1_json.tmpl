@@ -564,23 +564,6 @@
         }
       }
     },
-    "/admin/runners/registration-token": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Get a global actions runner registration token",
-        "operationId": "adminGetRunnerRegistrationToken",
-        "responses": {
-          "200": {
-            "$ref": "#/responses/RegistrationToken"
-          }
-        }
-      }
-    },
     "/admin/unadopted": {
       "get": {
         "produces": [
@@ -1980,30 +1963,6 @@
       }
     },
     "/orgs/{org}/actions/runners/registration-token": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "organization"
-        ],
-        "summary": "Get an organization's actions runner registration token",
-        "operationId": "orgGetRunnerRegistrationToken",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "name of the organization",
-            "name": "org",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/RegistrationToken"
-          }
-        }
-      },
       "post": {
         "produces": [
           "application/json"
@@ -4929,37 +4888,6 @@
       }
     },
     "/repos/{owner}/{repo}/actions/runners/registration-token": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Get a repository's actions runner registration token",
-        "operationId": "repoGetRunnerRegistrationToken",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/RegistrationToken"
-          }
-        }
-      },
       "post": {
         "produces": [
           "application/json"
@@ -5365,6 +5293,117 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/jobs/{job_id}/rerun": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reruns a specific workflow job in a run",
+        "operationId": "rerunWorkflowJob",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the job",
+            "name": "job_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/WorkflowJob"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/rerun": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reruns an entire workflow run",
+        "operationId": "rerunWorkflowRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -18416,21 +18455,6 @@
       }
     },
     "/user/actions/runners/registration-token": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "user"
-        ],
-        "summary": "Get an user's actions runner registration token",
-        "operationId": "userGetRunnerRegistrationToken",
-        "responses": {
-          "200": {
-            "$ref": "#/responses/RegistrationToken"
-          }
-        }
-      },
       "post": {
         "produces": [
           "application/json"

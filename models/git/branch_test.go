@@ -28,8 +28,8 @@ func TestAddDeletedBranch(t *testing.T) {
 	firstBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{ID: 1})
 
 	assert.True(t, firstBranch.IsDeleted)
-	assert.NoError(t, git_model.AddDeletedBranch(t.Context(), repo.ID, firstBranch.Name, firstBranch.DeletedByID))
-	assert.NoError(t, git_model.AddDeletedBranch(t.Context(), repo.ID, "branch2", int64(1)))
+	assert.NoError(t, git_model.MarkBranchAsDeleted(t.Context(), repo.ID, firstBranch.Name, firstBranch.DeletedByID))
+	assert.NoError(t, git_model.MarkBranchAsDeleted(t.Context(), repo.ID, "branch2", int64(1)))
 
 	secondBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: "branch2"})
 	assert.True(t, secondBranch.IsDeleted)
