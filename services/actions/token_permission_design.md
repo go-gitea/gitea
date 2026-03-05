@@ -21,7 +21,8 @@ The maximum allowable permissions (`MaxTokenPermissions`) are set at the Reposit
 
 ### 3. Actions Token Permissions
 - A structure representing the granular permission scopes available to a token.
-- Includes scopes like: Code, Releases (both grouped under `contents` in workflow syntax), Issues, PullRequests, Packages, Actions, Wiki, and Projects.
+- Includes scopes like: Code, Releases (both grouped under `contents` in workflow syntax), Issues, PullRequests, Actions, Wiki, and Projects.
+- **Note**: The `Packages` scope is supported in workflow/job `permissions:` blocks but is currently hidden from the settings UI.
 
 ### 4. Cross-Repository Access
 - By default, a token can access the repository where the workflow is running, as well as any **public repositories (read-only)** on the instance.
