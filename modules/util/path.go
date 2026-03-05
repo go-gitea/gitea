@@ -75,19 +75,21 @@ const filepathSeparator = string(os.PathSeparator)
 //	{`/foo`, ``, `bar`} => `/foo/bar`
 //	{`/foo`, `..`, `bar`} => `/foo/bar`
 func FilePathJoinAbs(base string, sub ...string) string {
-	elems := make([]string, 1, len(sub)+1)
-
 	// POSIX filesystem can have `\` in file names. Windows: `\` and `/` are both used for path separators
 	// to keep the behavior consistent, we do not allow `\` in file names, replace all `\` with `/`
-	if isOSWindows() {
-		elems[0] = filepath.Clean(base)
-	} else {
-		elems[0] = filepath.Clean(strings.ReplaceAll(base, "\\", filepathSeparator))
+	if !isOSWindows() {
+		base = strings.ReplaceAll(base, "\\", filepathSeparator)
 	}
-	if !filepath.IsAbs(elems[0]) {
-		// This shouldn't happen. If there is really necessary to pass in relative path, return the full path with filepath.Abs() instead
-		panic(fmt.Sprintf("FilePathJoinAbs: %q (for path %v) is not absolute, do not guess a relative path based on current working directory", elems[0], elems))
+	if !filepath.IsAbs(base) {
+		// This shouldn't happen. If it is really necessary to handle relative paths, use filepath.Abs() to get absolute paths first
+		panic(fmt.Sprintf("FilePathJoinAbs: %q (for path %v) is not absolute, do not guess a relative path based on current working directory", base, sub))
 	}
+	if len(sub) == 0 {
+		return filepath.Clean(base)
+	}
+
+	elems := make([]string, 1, len(sub)+1)
+	elems[0] = base
 	for _, s := range sub {
 		if s == "" {
 			continue
@@ -98,7 +100,7 @@ func FilePathJoinAbs(base string, sub ...string) string {
 			elems = append(elems, filepath.Clean(filepathSeparator+strings.ReplaceAll(s, "\\", filepathSeparator)))
 		}
 	}
-	// the elems[0] must be an absolute path, just join them together
+	// the elems[0] must be an absolute path, just join them together, and Join will also do Clean
 	return filepath.Join(elems...)
 }
 
