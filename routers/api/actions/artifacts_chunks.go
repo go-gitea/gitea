@@ -195,6 +195,7 @@ func listOrderedChunksForArtifact(st storage.ObjectStorage, runID, artifactID in
 	var chunkMapV4 map[string]*chunkFileItem
 
 	if blist != nil {
+		// make a dummy map for quick lookup of chunk names, the values are nil now and will be filled after iterating storage objects
 		chunkMapV4 = map[string]*chunkFileItem{}
 		for _, name := range blist.Latest {
 			chunkMapV4[name] = nil
@@ -237,8 +238,8 @@ func listOrderedChunksForArtifact(st storage.ObjectStorage, runID, artifactID in
 
 	if len(chunks) == 0 && blist != nil {
 		for i, name := range blist.Latest {
-			chunk, ok := chunkMapV4[name]
-			if !ok || chunk.Path == "" {
+			chunk := chunkMapV4[name]
+			if chunk == nil {
 				return nil, fmt.Errorf("missing chunk (%d/%d): %s", i, len(blist.Latest), name)
 			}
 			chunks = append(chunks, chunk)
