@@ -1,7 +1,4 @@
 // Vendored and simplified from @github/relative-time-element
-// with hourCycle support from PR #329 and part="root" from PR #341
-
-// -- Duration format ponyfill and Duration class --
 
 type FormatStyle = 'long' | 'short' | 'narrow';
 
