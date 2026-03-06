@@ -428,8 +428,9 @@ class RelativeTime extends HTMLElement {
     if (oldValue === newValue) return;
     if (attrName === 'title') {
       this.#customTitle = Boolean(newValue) && (this.date && this.#getFormattedTitle(this.date)) !== newValue;
+      return;
     }
-    if (!this.#updating && !(attrName === 'title' && this.#customTitle)) {
+    if (!this.#updating) {
       this.#updating = true;
       queueMicrotask(() => {
         this.update();
