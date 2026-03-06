@@ -48,6 +48,8 @@ func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRe
 	effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
 
 	isSameRepo := job.RepoID == targetRepo.ID
+	// Cross-repository access and fork pull requests are strictly read-only for security.
+	// This ensures a "task repo" cannot gain write access to other repositories via CrossRepoAccess settings.
 	maxReadOnly := job.Run.IsForkPullRequest || !isSameRepo
 	if maxReadOnly {
 		effectivePerms = effectivePerms.ClampPermissions(repo_model.GetRestrictedPermissions())

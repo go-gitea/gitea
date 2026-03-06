@@ -26,7 +26,7 @@ The maximum allowable permissions (`MaxTokenPermissions`) are set at the Reposit
 
 ### 4. Cross-Repository Access
 - By default, a token can access the repository where the workflow is running, as well as any **public repositories (read-only)** on the instance.
-- Users and organizations can configure `ActionsCrossRepoMode` to grant the token access to other private/internal repositories they own.
+- Users and organizations can configure `ActionsCrossRepoMode` to grant the token **read-only** access to other private/internal repositories they own.
 - Allowed modes:
   - **None**: No cross-repository access to other private repositories (default for enhanced security).
   - **All**: The token can access all repositories owned by the user/org (subject to the target repository's own permissions).

@@ -351,7 +351,9 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	}
 
 	if checkSameOwnerCrossRepoAccess(ctx, taskRepo, repo) {
-		// Access allowed by owner policy (grants access to private repos)
+		// Access allowed by owner policy (grants access to private repos).
+		// Note: maxPerm has already been restricted to Read-Only in ComputeJobTokenPermissions
+		// because isSameRepo is false.
 		return maxPerm, nil
 	}
 
