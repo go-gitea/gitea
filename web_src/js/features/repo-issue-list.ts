@@ -1,6 +1,6 @@
 import {updateIssuesMeta} from './repo-common.ts';
 import {toggleElem, queryElems, isElemVisible} from '../utils/dom.ts';
-import {html} from '../utils/html.ts';
+import {html, htmlRaw} from '../utils/html.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createSortable} from '../modules/sortable.ts';
@@ -138,10 +138,11 @@ function initDropdownUserRemoteSearch(el: Element) {
         // the content is provided by backend IssuePosters handler
         processedResults.length = 0;
         for (const item of resp.results) {
-          let nameHtml = html`<img class="ui avatar tw-align-middle" src="${item.avatar_link}" aria-hidden="true" alt width="20" height="20"><span class="gt-ellipsis">${item.username}</span>`;
-          if (item.full_name) nameHtml += html`<span class="search-fullname tw-ml-2">${item.full_name}</span>`;
+          const htmlAvatar = html`<img class="ui avatar tw-align-middle" src="${item.avatar_link}" aria-hidden="true" alt width="20" height="20">`;
+          const htmlFullName = item.full_name ? html`<span class="username-fullname gt-ellipsis">(${item.full_name})</span>` : '';
+          const htmlItem = html`<span class="username-display">${htmlRaw(htmlAvatar)}<span>${item.username}</span>${htmlRaw(htmlFullName)}</span>`;
           if (selectedUsername.toLowerCase() === item.username.toLowerCase()) selectedUsername = item.username;
-          processedResults.push({value: item.username, name: nameHtml});
+          processedResults.push({value: item.username, name: htmlItem});
         }
         resp.results = processedResults;
         return resp;
