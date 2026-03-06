@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/test"
-	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDbfsBasic(t *testing.T) {
@@ -134,8 +134,10 @@ func TestDbfsBasic(t *testing.T) {
 
 	t.Run("Existing", func(t *testing.T) {
 		assertFileContent := func(f File, expected string) {
-			_, _ = f.Seek(0, io.SeekStart)
-			buf, _ := io.ReadAll(f)
+			_, err := f.Seek(0, io.SeekStart)
+			require.NoError(t, err)
+			buf, err := io.ReadAll(f)
+			require.NoError(t, err)
 			assert.Equal(t, expected, string(buf))
 		}
 
@@ -197,28 +199,30 @@ func TestDbfsReadWrite(t *testing.T) {
 func TestDbfsSeekWrite(t *testing.T) {
 	defer test.MockVariableValue(&defaultFileBlockSize, 4)()
 
-	f, err := OpenFile(t.Context(), "test2.log", os.O_RDWR|os.O_CREATE)
-	assert.NoError(t, err)
-	defer f.Close()
+	// write something
+	fw, err := OpenFile(t.Context(), "test2.log", os.O_RDWR|os.O_CREATE)
+	require.NoError(t, err)
+	defer fw.Close()
 
-	n, err := f.Write([]byte("111"))
-	assert.NoError(t, err)
-
-	_, err = f.Seek(int64(n), io.SeekStart)
+	n, err := fw.Write([]byte("111"))
 	assert.NoError(t, err)
 
-	_, err = f.Write([]byte("222"))
+	_, err = fw.Seek(int64(n), io.SeekStart)
 	assert.NoError(t, err)
 
-	_, err = f.Seek(int64(n), io.SeekStart)
+	_, err = fw.Write([]byte("222"))
 	assert.NoError(t, err)
 
-	_, err = f.Write([]byte("333"))
+	_, err = fw.Seek(int64(n), io.SeekStart)
 	assert.NoError(t, err)
 
+	_, err = fw.Write([]byte("333"))
+	assert.NoError(t, err)
+
+	// then read it
 	fr, err := OpenFile(t.Context(), "test2.log", os.O_RDONLY)
-	assert.NoError(t, err)
-	defer f.Close()
+	require.NoError(t, err)
+	defer fr.Close()
 
 	buf, err := io.ReadAll(fr)
 	assert.NoError(t, err)
