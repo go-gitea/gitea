@@ -268,34 +268,7 @@ func (p ActionsTokenPermissions) ClampPermissions(maxPerms ActionsTokenPermissio
 	}
 }
 
-// DefaultActionsTokenPermissions returns the default permissions for permissive mode
-func DefaultActionsTokenPermissions(mode ActionsTokenPermissionMode) ActionsTokenPermissions {
-	if mode == ActionsTokenPermissionModeRestricted {
-		return ActionsTokenPermissions{
-			Code:         perm.AccessModeRead,
-			Issues:       perm.AccessModeNone,
-			PullRequests: perm.AccessModeNone,
-			Packages:     perm.AccessModeRead,
-			Actions:      perm.AccessModeNone,
-			Wiki:         perm.AccessModeNone,
-			Releases:     perm.AccessModeRead,
-			Projects:     perm.AccessModeNone,
-		}
-	}
-	// Permissive mode (default)
-	return ActionsTokenPermissions{
-		Code:         perm.AccessModeWrite,
-		Issues:       perm.AccessModeWrite,
-		PullRequests: perm.AccessModeWrite,
-		Packages:     perm.AccessModeRead, // Packages read by default for security
-		Actions:      perm.AccessModeWrite,
-		Wiki:         perm.AccessModeWrite,
-		Releases:     perm.AccessModeWrite,
-		Projects:     perm.AccessModeWrite,
-	}
-}
-
-// GetRestrictedPermissions returns the restricted permissions for fork pull requests
+// GetRestrictedPermissions returns the restricted permissions
 func GetRestrictedPermissions() ActionsTokenPermissions {
 	return ActionsTokenPermissions{
 		Code:         perm.AccessModeRead,
@@ -386,9 +359,36 @@ func (cfg *ActionsConfig) GetTokenPermissionMode() ActionsTokenPermissionMode {
 	}
 }
 
-// GetDefaultTokenPermissions returns the default token permissions based on settings and context
+// GetDefaultTokenPermissions returns the default token permissions by its TokenPermissionMode.
+// It does not apply MaxTokenPermissions; callers must clamp if needed.
 func (cfg *ActionsConfig) GetDefaultTokenPermissions() ActionsTokenPermissions {
-	return cfg.ClampPermissions(DefaultActionsTokenPermissions(cfg.GetTokenPermissionMode()))
+	mode := cfg.GetTokenPermissionMode()
+	switch mode {
+	case ActionsTokenPermissionModeRestricted:
+		return GetRestrictedPermissions()
+	case ActionsTokenPermissionModePermissive:
+		return ActionsTokenPermissions{
+			Code:         perm.AccessModeWrite,
+			Issues:       perm.AccessModeWrite,
+			PullRequests: perm.AccessModeWrite,
+			Packages:     perm.AccessModeRead, // Packages read by default for security
+			Actions:      perm.AccessModeWrite,
+			Wiki:         perm.AccessModeWrite,
+			Releases:     perm.AccessModeWrite,
+			Projects:     perm.AccessModeWrite,
+		}
+	default:
+		return ActionsTokenPermissions{
+			Code:         perm.AccessModeNone,
+			Issues:       perm.AccessModeNone,
+			PullRequests: perm.AccessModeNone,
+			Packages:     perm.AccessModeNone,
+			Actions:      perm.AccessModeNone,
+			Wiki:         perm.AccessModeNone,
+			Releases:     perm.AccessModeNone,
+			Projects:     perm.AccessModeNone,
+		}
+	}
 }
 
 // GetMaxTokenPermissions returns the maximum allowed permissions

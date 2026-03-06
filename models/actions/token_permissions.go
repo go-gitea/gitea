@@ -8,10 +8,12 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ComputeJobTokenPermissions computes the effective permissions for a job token against the target repository.
 // It uses the job's stored permissions (if any), then applies org/repo clamps and fork/cross-repo restrictions.
+// Note: target repository access policy checks are enforced in GetActionsUserRepoPermission; this function only computes the job token's effective permission ceiling.
 func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRepo *repo_model.Repository) (*repo_model.ActionsTokenPermissions, error) {
 	if err := job.LoadRepo(ctx); err != nil {
 		return nil, err
@@ -25,27 +27,25 @@ func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRe
 		return nil, err
 	}
 
-	actionsCfg := runRepo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+	repoActionsCfg := runRepo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+	ownerActionsCfg, err := GetUserActionsConfig(ctx, runRepo.OwnerID)
+	if err != nil {
+		return nil, err
+	}
 
-	var effectivePerms repo_model.ActionsTokenPermissions
+	var defaultPerms repo_model.ActionsTokenPermissions
+
 	if job.TokenPermissions != "" {
 		perms, err := repo_model.UnmarshalTokenPermissions(job.TokenPermissions)
 		if err != nil {
 			return nil, err
 		}
-		effectivePerms = perms
+		defaultPerms = perms
 	} else {
-		effectivePerms = actionsCfg.GetDefaultTokenPermissions()
+		defaultPerms = util.Iif(repoActionsCfg.OverrideOwnerConfig, repoActionsCfg.GetDefaultTokenPermissions(), ownerActionsCfg.GetDefaultTokenPermissions())
 	}
 
-	if !actionsCfg.OverrideOwnerConfig {
-		ownerCfg, err := GetUserActionsConfig(ctx, runRepo.OwnerID)
-		if err != nil {
-			return nil, err
-		}
-		effectivePerms = ownerCfg.ClampPermissions(effectivePerms)
-	}
-	effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+	effectivePerms := util.Iif(repoActionsCfg.OverrideOwnerConfig, repoActionsCfg.ClampPermissions(defaultPerms), ownerActionsCfg.ClampPermissions(defaultPerms))
 
 	isSameRepo := job.RepoID == targetRepo.ID
 	// Cross-repository access and fork pull requests are strictly read-only for security.

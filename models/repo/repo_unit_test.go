@@ -49,7 +49,8 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 		cfg := &ActionsConfig{
 			TokenPermissionMode: ActionsTokenPermissionModePermissive,
 		}
-		perms := cfg.GetDefaultTokenPermissions()
+		defaultPerms := cfg.GetDefaultTokenPermissions()
+		perms := cfg.ClampPermissions(defaultPerms)
 		assert.Equal(t, perm.AccessModeWrite, perms.Code)
 		assert.Equal(t, perm.AccessModeWrite, perms.Issues)
 		assert.Equal(t, perm.AccessModeRead, perms.Packages) // Packages read by default for security
@@ -59,7 +60,8 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 		cfg := &ActionsConfig{
 			TokenPermissionMode: ActionsTokenPermissionModeRestricted,
 		}
-		perms := cfg.GetDefaultTokenPermissions()
+		defaultPerms := cfg.GetDefaultTokenPermissions()
+		perms := cfg.ClampPermissions(defaultPerms)
 		assert.Equal(t, perm.AccessModeRead, perms.Code)
 		assert.Equal(t, perm.AccessModeNone, perms.Issues)
 		assert.Equal(t, perm.AccessModeRead, perms.Packages)
