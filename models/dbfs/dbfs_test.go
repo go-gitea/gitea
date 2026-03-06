@@ -9,22 +9,29 @@ import (
 	"os"
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func changeDefaultFileBlockSize(n int64) (restore func()) {
-	old := defaultFileBlockSize
-	defaultFileBlockSize = n
-	return func() {
-		defaultFileBlockSize = old
-	}
-}
-
 func TestDbfsBasic(t *testing.T) {
-	defer changeDefaultFileBlockSize(4)()
+	defer test.MockVariableValue(&defaultFileBlockSize, 4)()
+
+	// test non-existing
+	f, err := OpenFile(t.Context(), "test.txt", os.O_RDONLY)
+	assert.ErrorIs(t, err, os.ErrNotExist)
+	assert.Nil(t, f)
+
+	f, err = OpenFile(t.Context(), "test.txt", os.O_WRONLY)
+	assert.ErrorIs(t, err, os.ErrNotExist)
+	assert.Nil(t, f)
+
+	f, err = OpenFile(t.Context(), "test.txt", os.O_WRONLY|os.O_APPEND|os.O_TRUNC)
+	assert.ErrorIs(t, err, os.ErrNotExist)
+	assert.Nil(t, f)
 
 	// test basic write/read
-	f, err := OpenFile(t.Context(), "test.txt", os.O_RDWR|os.O_CREATE)
+	f, err = OpenFile(t.Context(), "test.txt", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)
 
 	n, err := f.Write([]byte("0123456789")) // blocks: 0123 4567 89
@@ -125,7 +132,7 @@ func TestDbfsBasic(t *testing.T) {
 }
 
 func TestDbfsReadWrite(t *testing.T) {
-	defer changeDefaultFileBlockSize(4)()
+	defer test.MockVariableValue(&defaultFileBlockSize, 4)()
 
 	f1, err := OpenFile(t.Context(), "test.log", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)
@@ -157,7 +164,7 @@ func TestDbfsReadWrite(t *testing.T) {
 }
 
 func TestDbfsSeekWrite(t *testing.T) {
-	defer changeDefaultFileBlockSize(4)()
+	defer test.MockVariableValue(&defaultFileBlockSize, 4)()
 
 	f, err := OpenFile(t.Context(), "test2.log", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)

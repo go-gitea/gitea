@@ -41,13 +41,13 @@ func WriteLogs(ctx context.Context, filename string, offset int64, rows []*runne
 	name := DBFSPrefix + filename
 	f, err := dbfs.OpenFile(ctx, name, flag)
 	if err != nil {
-		return nil, fmt.Errorf("dbfs OpenFile %q: %w", name, err)
+		return nil, fmt.Errorf("dbfs.OpenFile %q (flag:0x%x,offset:%d): %w", name, flag, offset, err)
 	}
 	defer f.Close()
 
 	stat, err := f.Stat()
 	if err != nil {
-		return nil, fmt.Errorf("dbfs Stat %q: %w", name, err)
+		return nil, fmt.Errorf("dbfs.Stat %q: %w", name, err)
 	}
 	if stat.Size() < offset {
 		// If the size is less than offset, refuse to write, or it could result in content holes.
@@ -56,7 +56,7 @@ func WriteLogs(ctx context.Context, filename string, offset int64, rows []*runne
 	}
 
 	if _, err := f.Seek(offset, io.SeekStart); err != nil {
-		return nil, fmt.Errorf("dbfs Seek %q: %w", name, err)
+		return nil, fmt.Errorf("dbfs.Seek %q: %w", name, err)
 	}
 
 	writer := bufio.NewWriterSize(f, defaultBufSize)
