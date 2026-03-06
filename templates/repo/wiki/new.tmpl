@@ -25,6 +25,7 @@
 				"CustomInit" true
 				"MarkdownPreviewInRepo" $.Repository
 				"MarkdownPreviewMode" "wiki"
+				"MentionsUrl" (print $.Repository.Link "/-/mentions")
 				"TextareaName" "content"
 				"TextareaContent" $content
 				"TextareaPlaceholder" (ctx.Locale.Tr "repo.wiki.page_content")

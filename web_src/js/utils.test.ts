@@ -61,7 +61,6 @@ test('parseIssueHref', () => {
 test('parseRepoOwnerPathInfo', () => {
   expect(parseRepoOwnerPathInfo('/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo'});
   expect(parseRepoOwnerPathInfo('/owner/repo/releases')).toEqual({ownerName: 'owner', repoName: 'repo'});
-  expect(parseRepoOwnerPathInfo('/owner/-/projects/new')).toEqual({ownerName: 'owner', repoName: '-'});
   expect(parseRepoOwnerPathInfo('/other')).toEqual({});
   window.config.appSubUrl = '/sub';
   expect(parseRepoOwnerPathInfo('/sub/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo'});

@@ -1,7 +1,7 @@
 import emojis from '../../../assets/emoji.json' with {type: 'json'};
 import {GET} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {parseIssueHref, parseRepoOwnerPathInfo} from '../utils.ts';
+import {parseIssuePageInfo} from '../utils.ts';
 import type {Issue, Mention} from '../types.ts';
 
 const maxMatches = 6;
@@ -31,42 +31,35 @@ export function matchEmoji(queryText: string): string[] {
   return sortAndReduce(results);
 }
 
-let cachedMentions: Mention[];
+let cachedMentionsPromise: Promise<Mention[]> | undefined;
+let cachedMentionsUrl: string;
 
-export async function fetchMentions(): Promise<Mention[]> {
-  if (!cachedMentions) {
-    cachedMentions = [];
-    const {ownerName, repoName} = parseRepoOwnerPathInfo(window.location.pathname);
-    if (ownerName && repoName) {
-      try {
-        let mentionsUrl: string;
-        if (repoName === '-') {
-          // org/user-level page: /{owner}/-/mentions
-          mentionsUrl = `${window.config.appSubUrl}/${ownerName}/-/mentions`;
-        } else {
-          // repo-level page: /{owner}/{repo}/-/mentions
-          const {indexString} = parseIssueHref(window.location.href);
-          const query = indexString ? `?issue_index=${indexString}` : '';
-          mentionsUrl = `${window.config.appSubUrl}/${ownerName}/${repoName}/-/mentions${query}`;
-        }
-        const res = await GET(mentionsUrl);
-        if (!res.ok) throw new Error(res.statusText);
-        cachedMentions = await res.json();
-      } catch (e) {
-        showErrorToast(`Failed to load mentions: ${e}`);
-      }
-    }
+export function fetchMentions(mentionsUrl: string): Promise<Mention[]> {
+  if (cachedMentionsPromise && cachedMentionsUrl === mentionsUrl) {
+    return cachedMentionsPromise;
   }
-  return cachedMentions;
+  cachedMentionsUrl = mentionsUrl;
+  cachedMentionsPromise = (async () => {
+    try {
+      const issueIndex = parseIssuePageInfo().issueNumber;
+      const query = issueIndex ? `?issue_index=${issueIndex}` : '';
+      const res = await GET(`${mentionsUrl}${query}`);
+      if (!res.ok) throw new Error(res.statusText);
+      return await res.json() as Mention[];
+    } catch (e) {
+      showErrorToast(`Failed to load mentions: ${e}`);
+      return [];
+    }
+  })();
+  return cachedMentionsPromise;
 }
 
-type MentionSuggestion = {value: string; name: string; fullname: string; avatar: string};
-export async function matchMention(queryText: string): Promise<MentionSuggestion[]> {
-  const values = await fetchMentions();
+export async function matchMention(mentionsUrl: string, queryText: string): Promise<Mention[]> {
+  const values = await fetchMentions(mentionsUrl);
   const query = queryText.toLowerCase();
 
   // results is a map of weights, lower is better
-  const results = new Map<MentionSuggestion, number>();
+  const results = new Map<Mention, number>();
   for (const obj of values) {
     const index = obj.key.toLowerCase().indexOf(query);
     if (index === -1) continue;

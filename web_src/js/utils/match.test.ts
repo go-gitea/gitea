@@ -72,10 +72,7 @@ test('matchEmoji', () => {
 });
 
 test('matchMention', async () => {
-  const oldLocation = String(window.location);
-  window.location.assign('http://localhost/owner/repo/issues/1');
   vi.mocked(GET).mockResolvedValue({ok: true, json: () => Promise.resolve(testMentions)} as Response);
-  expect(await matchMention('')).toEqual(testMentions.slice(0, 6));
-  expect(await matchMention('user4')).toEqual([testMentions[3]]);
-  window.location.assign(oldLocation);
+  expect(await matchMention('/owner/repo/-/mentions', '')).toEqual(testMentions.slice(0, 6));
+  expect(await matchMention('/owner/repo/-/mentions', 'user4')).toEqual([testMentions[3]]);
 });

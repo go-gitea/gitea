@@ -19,10 +19,17 @@
 			<label>{{ctx.Locale.Tr "repo.projects.description"}}</label>
 			{{/* TODO: repo-level project and org-level project have different behaviors to render */}}
 			{{/* the "Repository" is nil when the project is org-level */}}
+			{{$mentionsUrl := ""}}
+			{{if $.Repository}}
+				{{$mentionsUrl = print $.Repository.Link "/-/mentions"}}
+			{{else if .HomeLink}}
+				{{$mentionsUrl = print .HomeLink "/-/mentions"}}
+			{{end}}
 			{{template "shared/combomarkdowneditor" (dict
 				"MarkdownPreviewInRepo" $.Repository
 				"MarkdownPreviewContext" (Iif $.Repository "" .HomeLink)
 				"MarkdownPreviewMode" (Iif $.Repository "comment")
+				"MentionsUrl" $mentionsUrl
 				"TextareaName" "content"
 				"TextareaContent" .content
 				"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.description_placeholder")

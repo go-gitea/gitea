@@ -13,6 +13,7 @@
 			"CustomInit" true
 			"MarkdownPreviewInRepo" $.root.Repository
 			"MarkdownPreviewMode" "comment"
+			"MentionsUrl" (print $.root.Repository.Link "/-/mentions")
 			"TextareaName" "content"
 			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
 			"DropzoneParentContainer" "form"

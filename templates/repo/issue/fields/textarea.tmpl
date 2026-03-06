@@ -11,6 +11,7 @@
 			"ContainerClasses" "tw-hidden"
 			"MarkdownPreviewInRepo" $.root.Repository
 			"MarkdownPreviewMode" "comment"
+			"MentionsUrl" (print $.root.Repository.Link "/-/mentions")
 			"TextareaContent" .item.Attributes.value
 			"TextareaPlaceholder" .item.Attributes.placeholder
 			"DropzoneParentContainer" ".combo-editor-dropzone"

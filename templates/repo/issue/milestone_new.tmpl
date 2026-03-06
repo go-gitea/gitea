@@ -38,6 +38,7 @@
 					{{template "shared/combomarkdowneditor" (dict
 						"MarkdownPreviewInRepo" $.Repository
 						"MarkdownPreviewMode" "comment"
+						"MentionsUrl" (print $.Repository.Link "/-/mentions")
 						"TextareaName" "content"
 						"TextareaContent" .content
 						"TextareaPlaceholder" (ctx.Locale.Tr "repo.milestones.desc")

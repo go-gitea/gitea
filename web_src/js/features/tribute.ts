@@ -6,6 +6,7 @@ import type {Mention} from '../types.ts';
 
 export async function attachTribute(element: HTMLElement) {
   const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
+  const mentionsUrl = element.closest('.combo-markdown-editor')?.getAttribute('data-mentions-url');
 
   const emojiCollection: TributeCollection<string> = { // emojis
     trigger: ':',
@@ -32,7 +33,7 @@ export async function attachTribute(element: HTMLElement) {
 
   const mentionCollection: TributeCollection<Mention> = {
     values: async (_query: string, cb: (matches: Mention[]) => void) => { // eslint-disable-line @typescript-eslint/no-misused-promises
-      cb(await fetchMentions());
+      cb(mentionsUrl ? await fetchMentions(mentionsUrl) : []);
     },
     requireLeadingSpace: true,
     menuItemTemplate: (item) => {

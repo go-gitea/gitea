@@ -8,6 +8,7 @@
 		"CustomInit" true
 		"MarkdownPreviewInRepo" $.Repository
 		"MarkdownPreviewMode" "comment"
+		"MentionsUrl" (print $.Repository.Link "/-/mentions")
 		"TextareaName" "content"
 		"TextareaContent" $textareaContent
 		"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
