@@ -3,18 +3,7 @@
 
 // -- Duration format ponyfill and Duration class --
 
-class ListFormatPonyFill {
-  formatToParts(members: string[]): {type: string, value: string}[] {
-    const parts: {type: string, value: string}[] = [];
-    for (const value of members) {
-      parts.push({type: 'element', value});
-      parts.push({type: 'literal', value: ', '});
-    }
-    return parts.slice(0, -1);
-  }
-}
-
-const ListFormat: any = (typeof Intl !== 'undefined' && Intl.ListFormat) || ListFormatPonyFill;
+type FormatStyle = 'long' | 'short' | 'narrow';
 
 const partsTable: [string, string][] = [
   ['years', 'year'],
@@ -24,99 +13,47 @@ const partsTable: [string, string][] = [
   ['hours', 'hour'],
   ['minutes', 'minute'],
   ['seconds', 'second'],
-  ['milliseconds', 'millisecond'],
 ];
 
-const twoDigitFormatOptions = {minimumIntegerDigits: 2};
-
-type DurationFormatStyle = 'long' | 'short' | 'narrow' | 'digital';
-type DurationFormatOptions = Partial<{
-  style: DurationFormatStyle;
-  years: string;
-  yearsDisplay: 'always' | 'auto';
-  months: string;
-  monthsDisplay: 'always' | 'auto';
-  weeks: string;
-  weeksDisplay: 'always' | 'auto';
-  days: string;
-  daysDisplay: 'always' | 'auto';
-  hours: string;
-  hoursDisplay: 'always' | 'auto';
-  minutes: string;
-  minutesDisplay: 'always' | 'auto';
-  seconds: string;
-  secondsDisplay: 'always' | 'auto';
-  milliseconds: string;
-  millisecondsDisplay: 'always' | 'auto';
-  [key: string]: any;
-}>;
-
 class DurationFormat {
-  #options: any;
+  #locale: string;
+  #style: FormatStyle;
+  #unitStyles: Record<string, string>;
+  #unitDisplays: Record<string, string>;
 
-  constructor(locale: string, options: DurationFormatOptions = {}) {
+  constructor(locale: string, options: {style?: string; [key: string]: any} = {}) {
     let style = options.style || 'short';
-    if (style !== 'long' && style !== 'short' && style !== 'narrow' && style !== 'digital') style = 'short';
-    let prevStyle = style === 'digital' ? 'numeric' : style;
-    const hours = options.hours || prevStyle;
-    prevStyle = hours === '2-digit' ? 'numeric' : hours;
-    const minutes = options.minutes || prevStyle;
-    prevStyle = minutes === '2-digit' ? 'numeric' : minutes;
-    const seconds = options.seconds || prevStyle;
-    prevStyle = seconds === '2-digit' ? 'numeric' : seconds;
-    const milliseconds = options.milliseconds || prevStyle;
-    this.#options = {
-      locale,
-      style,
-      years: options.years || (style === 'digital' ? 'short' : style),
-      yearsDisplay: options.yearsDisplay === 'always' ? 'always' : 'auto',
-      months: options.months || (style === 'digital' ? 'short' : style),
-      monthsDisplay: options.monthsDisplay === 'always' ? 'always' : 'auto',
-      weeks: options.weeks || (style === 'digital' ? 'short' : style),
-      weeksDisplay: options.weeksDisplay === 'always' ? 'always' : 'auto',
-      days: options.days || (style === 'digital' ? 'short' : style),
-      daysDisplay: options.daysDisplay === 'always' ? 'always' : 'auto',
-      hours,
-      hoursDisplay: options.hoursDisplay === 'always' ? 'always' : style === 'digital' ? 'always' : 'auto',
-      minutes,
-      minutesDisplay: options.minutesDisplay === 'always' ? 'always' : style === 'digital' ? 'always' : 'auto',
-      seconds,
-      secondsDisplay: options.secondsDisplay === 'always' ? 'always' : style === 'digital' ? 'always' : 'auto',
-      milliseconds,
-      millisecondsDisplay: options.millisecondsDisplay === 'always' ? 'always' : 'auto',
-    };
+    if (style !== 'long' && style !== 'short' && style !== 'narrow') style = 'short';
+    this.#locale = locale;
+    this.#style = style as FormatStyle;
+    this.#unitStyles = {};
+    this.#unitDisplays = {};
+    for (const [unit] of partsTable) {
+      this.#unitStyles[unit] = options[unit] || style;
+      this.#unitDisplays[unit] = options[`${unit}Display`] === 'always' ? 'always' : 'auto';
+    }
   }
 
   format(duration: Duration): string {
     const list: string[] = [];
-    const options = this.#options;
-    const style = options.style;
-    const locale = options.locale;
     for (const [unit, nfUnit] of partsTable) {
       const value = (duration as any)[unit];
-      if (options[`${unit}Display`] === 'auto' && !value) continue;
-      const unitStyle = options[unit];
-      const nfOpts: Intl.NumberFormatOptions = unitStyle === '2-digit' ?
-        twoDigitFormatOptions :
-        unitStyle === 'numeric' ?
-          {} :
-          {style: 'unit' as const, unit: nfUnit, unitDisplay: unitStyle};
-      let formattedValue = new Intl.NumberFormat(locale, nfOpts).format(value);
-      if (unit === 'months' && (unitStyle === 'narrow' || (style === 'narrow' && formattedValue.endsWith('m')))) {
-        formattedValue = formattedValue.replace(/(\d+)m$/, '$1mo');
+      if (this.#unitDisplays[unit] === 'auto' && !value) continue;
+      const unitStyle = this.#unitStyles[unit];
+      const nfOpts: Intl.NumberFormatOptions = {style: 'unit' as const, unit: nfUnit, unitDisplay: unitStyle as Intl.NumberFormatOptions['unitDisplay']};
+      let formatted = new Intl.NumberFormat(this.#locale, nfOpts).format(value);
+      if (unit === 'months' && (unitStyle === 'narrow' || (this.#style === 'narrow' && formatted.endsWith('m')))) {
+        formatted = formatted.replace(/(\d+)m$/, '$1mo');
       }
-      list.push(formattedValue);
+      list.push(formatted);
     }
-    return new ListFormat(locale, {
-      type: 'unit',
-      style: style === 'digital' ? 'short' : style,
-    }).formatToParts(list).map((p: {value: string}) => p.value).join('');
+    return new Intl.ListFormat(this.#locale, {type: 'unit', style: this.#style})
+      .formatToParts(list).map((p) => p.value).join('');
   }
 }
 
 const durationRe = /^[-+]?P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/;
-const unitNames = ['year', 'month', 'week', 'day', 'hour', 'minute', 'second', 'millisecond'] as const;
-type Unit = typeof unitNames[number];
+const unitNames = ['year', 'month', 'week', 'day', 'hour', 'minute', 'second'] as const;
 
 function isDuration(str: string): boolean {
   return durationRe.test(str);
@@ -132,13 +69,12 @@ class Duration {
   readonly hours: number;
   readonly minutes: number;
   readonly seconds: number;
-  readonly milliseconds: number;
   readonly sign: Sign;
   readonly blank: boolean;
 
   constructor(
     years = 0, months = 0, weeks = 0, days = 0,
-    hours = 0, minutes = 0, seconds = 0, milliseconds = 0,
+    hours = 0, minutes = 0, seconds = 0,
   ) {
     this.years = years || 0;
     this.months = months || 0;
@@ -147,42 +83,37 @@ class Duration {
     this.hours = hours || 0;
     this.minutes = minutes || 0;
     this.seconds = seconds || 0;
-    this.milliseconds = milliseconds || 0;
     this.sign = (Math.sign(this.years) || Math.sign(this.months) || Math.sign(this.weeks) ||
       Math.sign(this.days) || Math.sign(this.hours) || Math.sign(this.minutes) ||
-      Math.sign(this.seconds) || Math.sign(this.milliseconds)) as Sign;
+      Math.sign(this.seconds)) as Sign;
     this.blank = this.sign === 0;
   }
 
   abs(): Duration {
     return new Duration(
       Math.abs(this.years), Math.abs(this.months), Math.abs(this.weeks), Math.abs(this.days),
-      Math.abs(this.hours), Math.abs(this.minutes), Math.abs(this.seconds), Math.abs(this.milliseconds),
+      Math.abs(this.hours), Math.abs(this.minutes), Math.abs(this.seconds),
     );
   }
 
-  static from(durationLike: unknown): Duration {
-    if (typeof durationLike === 'string') {
-      const str = durationLike.trim();
-      const factor = str.startsWith('-') ? -1 : 1;
-      const parsed = durationRe.exec(str)?.slice(1).map((x) => (Number(x) || 0) * factor);
-      if (!parsed) return new Duration();
-      return new Duration(...parsed);
-    } else if (typeof durationLike === 'object') {
-      const {years, months, weeks, days, hours, minutes, seconds, milliseconds} = durationLike as any;
-      return new Duration(years, months, weeks, days, hours, minutes, seconds, milliseconds);
-    }
-    throw new RangeError('invalid duration');
+  static from(str: string): Duration {
+    const s = str.trim();
+    const factor = s.startsWith('-') ? -1 : 1;
+    const parsed = durationRe.exec(s)?.slice(1).map((x) => (Number(x) || 0) * factor);
+    if (!parsed) return new Duration();
+    return new Duration(...parsed);
   }
 
-  static compare(one: unknown, two: unknown): -1 | 0 | 1 {
+  static compare(one: Duration | string, two: Duration | string): -1 | 0 | 1 {
     const now = Date.now();
-    const oneApplied = Math.abs(applyDuration(now, Duration.from(one)).getTime() - now);
-    const twoApplied = Math.abs(applyDuration(now, Duration.from(two)).getTime() - now);
+    const d1 = typeof one === 'string' ? Duration.from(one) : one;
+    const d2 = typeof two === 'string' ? Duration.from(two) : two;
+    const oneApplied = Math.abs(applyDuration(now, d1).getTime() - now);
+    const twoApplied = Math.abs(applyDuration(now, d2).getTime() - now);
     return oneApplied > twoApplied ? -1 : oneApplied < twoApplied ? 1 : 0;
   }
 
-  toLocaleString(locale: string, opts: DurationFormatOptions): string {
+  toLocaleString(locale: string, opts: {style?: string; [key: string]: any}): string {
     return new DurationFormat(locale, opts).format(this);
   }
 }
@@ -207,7 +138,7 @@ function applyDuration(date: Date | number, duration: Duration): Date {
   return r;
 }
 
-function elapsedTime(date: Date, precision: Unit = 'second', now = Date.now()): Duration {
+function elapsedTime(date: Date, now = Date.now()): Duration {
   const delta = date.getTime() - now;
   if (delta === 0) return new Duration();
   const sign = Math.sign(delta);
@@ -218,16 +149,14 @@ function elapsedTime(date: Date, precision: Unit = 'second', now = Date.now()): 
   const day = Math.floor(hr / 24);
   const month = Math.floor(day / 30);
   const year = Math.floor(month / 12);
-  const i = unitNames.indexOf(precision) || unitNames.length;
   return new Duration(
-    i >= 0 ? year * sign : 0,
-    i >= 1 ? (month - year * 12) * sign : 0,
+    year * sign,
+    (month - year * 12) * sign,
     0,
-    i >= 3 ? (day - month * 30) * sign : 0,
-    i >= 4 ? (hr - day * 24) * sign : 0,
-    i >= 5 ? (min - hr * 60) * sign : 0,
-    i >= 6 ? (sec - min * 60) * sign : 0,
-    i >= 7 ? (ms - sec * 1000) * sign : 0,
+    (day - month * 30) * sign,
+    (hr - day * 24) * sign,
+    (min - hr * 60) * sign,
+    (sec - min * 60) * sign,
   );
 }
 
@@ -242,9 +171,6 @@ function roundToSingleUnit(duration: Duration, {relativeTo = Date.now()}: {relat
   let hours = Math.abs(duration.hours);
   let minutes = Math.abs(duration.minutes);
   let seconds = Math.abs(duration.seconds);
-  let milliseconds = Math.abs(duration.milliseconds);
-  if (milliseconds >= 900) seconds += Math.round(milliseconds / 1000);
-  if (seconds || minutes || hours || days || weeks || months || years) milliseconds = 0;
   if (seconds >= 55) minutes += Math.round(seconds / 60);
   if (minutes || hours || days || weeks || months || years) seconds = 0;
   if (minutes >= 55) hours += Math.round(minutes / 60);
@@ -294,14 +220,13 @@ function roundToSingleUnit(duration: Duration, {relativeTo = Date.now()}: {relat
     weeks += Math.round(days / 7);
     days = 0;
   }
-  return new Duration(years * sign, months * sign, weeks * sign, days * sign, hours * sign, minutes * sign, seconds * sign, milliseconds * sign);
+  return new Duration(years * sign, months * sign, weeks * sign, days * sign, hours * sign, minutes * sign, seconds * sign);
 }
 
 function getRelativeTimeUnit(duration: Duration, opts?: {relativeTo?: Date | number}): [number, Intl.RelativeTimeFormatUnit] {
   const rounded = roundToSingleUnit(duration, opts);
   if (rounded.blank) return [0, 'second'];
   for (const unit of unitNames) {
-    if (unit === 'millisecond') continue;
     const val = (rounded as any)[`${unit}s`];
     if (val) return [val, unit];
   }
@@ -312,7 +237,6 @@ function getRelativeTimeUnit(duration: Duration, opts?: {relativeTo?: Date | num
 
 type Format = 'auto' | 'datetime' | 'relative' | 'duration';
 type ResolvedFormat = 'datetime' | 'relative' | 'duration';
-type FormatStyle = 'long' | 'short' | 'narrow';
 type Tense = 'auto' | 'past' | 'future';
 
 const emptyDuration = new Duration();
@@ -325,11 +249,7 @@ function isBrowser12hCycle(): boolean {
 
 function getUnitFactor(el: RelativeTime): number {
   if (!el.date) return Infinity;
-  if (el.format === 'duration') {
-    const precision = el.precision;
-    if (precision === 'second') return 1000;
-    if (precision === 'minute') return 60 * 1000;
-  }
+  if (el.format === 'duration') return 1000;
   const ms = Math.abs(Date.now() - el.date.getTime());
   if (ms < 60 * 1000) return 1000;
   if (ms < 60 * 60 * 1000) return 60 * 1000;
@@ -392,9 +312,8 @@ class RelativeTime extends HTMLElement {
   static get observedAttributes(): string[] {
     return [
       'second', 'minute', 'hour', 'weekday', 'day', 'month', 'year',
-      'time-zone-name', 'prefix', 'threshold', 'tense', 'precision',
-      'format', 'format-style', 'no-title', 'datetime', 'lang', 'title',
-      'time-zone', 'hour-cycle',
+      'prefix', 'threshold', 'tense', 'format', 'format-style',
+      'datetime', 'lang', 'title', 'hour-cycle',
     ];
   }
 
@@ -415,20 +334,10 @@ class RelativeTime extends HTMLElement {
     }
   }
 
-  get timeZone(): string | undefined {
-    const tz = this.closest('[time-zone]')?.getAttribute('time-zone') ||
-      this.ownerDocument.documentElement.getAttribute('time-zone');
-    return tz || undefined;
-  }
-
   get second(): 'numeric' | '2-digit' | undefined {
     const v = this.getAttribute('second');
     if (v === 'numeric' || v === '2-digit') return v;
     return undefined;
-  }
-
-  set second(value: string | undefined) {
-    this.setAttribute('second', value || '');
   }
 
   get minute(): 'numeric' | '2-digit' | undefined {
@@ -437,18 +346,10 @@ class RelativeTime extends HTMLElement {
     return undefined;
   }
 
-  set minute(value: string | undefined) {
-    this.setAttribute('minute', value || '');
-  }
-
   get hour(): 'numeric' | '2-digit' | undefined {
     const v = this.getAttribute('hour');
     if (v === 'numeric' || v === '2-digit') return v;
     return undefined;
-  }
-
-  set hour(value: string | undefined) {
-    this.setAttribute('hour', value || '');
   }
 
   get weekday(): 'long' | 'short' | 'narrow' | undefined {
@@ -458,18 +359,10 @@ class RelativeTime extends HTMLElement {
     return undefined;
   }
 
-  set weekday(value: string | undefined) {
-    this.setAttribute('weekday', value || '');
-  }
-
   get day(): 'numeric' | '2-digit' | undefined {
     const day = this.getAttribute('day') ?? 'numeric';
     if (day === 'numeric' || day === '2-digit') return day;
     return undefined;
-  }
-
-  set day(value: string | undefined) {
-    this.setAttribute('day', value || '');
   }
 
   get month(): 'numeric' | '2-digit' | 'short' | 'long' | 'narrow' | undefined {
@@ -483,10 +376,6 @@ class RelativeTime extends HTMLElement {
     return undefined;
   }
 
-  set month(value: string | undefined) {
-    this.setAttribute('month', value || '');
-  }
-
   get year(): 'numeric' | '2-digit' | undefined {
     const year = this.getAttribute('year');
     if (year === 'numeric' || year === '2-digit') return year;
@@ -496,38 +385,13 @@ class RelativeTime extends HTMLElement {
     return undefined;
   }
 
-  set year(value: string | undefined) {
-    this.setAttribute('year', value || '');
-  }
-
-  get timeZoneName(): 'long' | 'short' | 'shortOffset' | 'longOffset' | 'shortGeneric' | 'longGeneric' | undefined {
-    const name = this.getAttribute('time-zone-name');
-    if (name === 'long' || name === 'short' || name === 'shortOffset' ||
-        name === 'longOffset' || name === 'shortGeneric' || name === 'longGeneric') {
-      return name;
-    }
-    return undefined;
-  }
-
-  set timeZoneName(value: string | undefined) {
-    this.setAttribute('time-zone-name', value || '');
-  }
-
   get prefix(): string {
     return this.getAttribute('prefix') ?? (this.format === 'datetime' ? '' : 'on');
-  }
-
-  set prefix(value: string) {
-    this.setAttribute('prefix', value);
   }
 
   get threshold(): string {
     const threshold = this.getAttribute('threshold');
     return threshold && isDuration(threshold) ? threshold : 'P30D';
-  }
-
-  set threshold(value: string) {
-    this.setAttribute('threshold', value);
   }
 
   get tense(): Tense {
@@ -537,30 +401,12 @@ class RelativeTime extends HTMLElement {
     return 'auto';
   }
 
-  set tense(value: string) {
-    this.setAttribute('tense', value);
-  }
-
-  get precision(): Unit {
-    const precision = this.getAttribute('precision');
-    if ((unitNames as readonly string[]).includes(precision!)) return precision as Unit;
-    return 'second';
-  }
-
-  set precision(value: string) {
-    this.setAttribute('precision', value);
-  }
-
   get format(): Format {
     const format = this.getAttribute('format');
     if (format === 'datetime') return 'datetime';
     if (format === 'relative') return 'relative';
     if (format === 'duration') return 'duration';
     return 'auto';
-  }
-
-  set format(value: string) {
-    this.setAttribute('format', value);
   }
 
   get formatStyle(): FormatStyle {
@@ -572,33 +418,13 @@ class RelativeTime extends HTMLElement {
     return 'long';
   }
 
-  set formatStyle(value: string) {
-    this.setAttribute('format-style', value);
-  }
-
-  get noTitle(): boolean {
-    return this.hasAttribute('no-title');
-  }
-
-  set noTitle(value: boolean) {
-    this.toggleAttribute('no-title', value);
-  }
-
   get datetime(): string {
     return this.getAttribute('datetime') || '';
-  }
-
-  set datetime(value: string) {
-    this.setAttribute('datetime', value);
   }
 
   get date(): Date | null {
     const parsed = Date.parse(this.datetime);
     return Number.isNaN(parsed) ? null : new Date(parsed);
-  }
-
-  set date(value: Date | null) {
-    this.datetime = value?.toISOString() || '';
   }
 
   connectedCallback(): void {
@@ -653,9 +479,8 @@ class RelativeTime extends HTMLElement {
     if ((tense === 'past' && duration.sign !== -1) || (tense === 'future' && duration.sign !== 1)) {
       duration = emptyDuration;
     }
-    const display = `${this.precision}sDisplay`;
     if (duration.blank) {
-      return emptyDuration.toLocaleString(locale, {style, [display]: 'always'});
+      return emptyDuration.toLocaleString(locale, {style, secondsDisplay: 'always'});
     }
     return duration.abs().toLocaleString(locale, {style});
   }
@@ -670,7 +495,7 @@ class RelativeTime extends HTMLElement {
     if (tense === 'past' && duration.sign !== -1) duration = emptyDuration;
     const [int, unit] = getRelativeTimeUnit(duration);
     if (unit === 'second' && int < 10) {
-      return relativeFormat.format(0, this.precision === 'millisecond' ? 'second' : this.precision);
+      return relativeFormat.format(0, 'second');
     }
     return relativeFormat.format(int, unit);
   }
@@ -684,8 +509,6 @@ class RelativeTime extends HTMLElement {
       day: this.day,
       month: this.month,
       year: this.year,
-      timeZoneName: this.timeZoneName,
-      timeZone: this.timeZone,
       hourCycle: this.hour ? this.hourCycle as Intl.DateTimeFormatOptions['hourCycle'] : undefined,
     });
     return `${this.prefix} ${formatter.format(date)}`.trim();
@@ -707,10 +530,10 @@ class RelativeTime extends HTMLElement {
     }
     const now = Date.now();
     if (!this.#customTitle) {
-      const newTitle = this.#getFormattedTitle(date) || '';
-      if (newTitle && !this.noTitle) this.setAttribute('title', newTitle);
+      const newTitle = this.#getFormattedTitle(date);
+      if (newTitle) this.setAttribute('title', newTitle);
     }
-    const duration = elapsedTime(date, this.precision, now);
+    const duration = elapsedTime(date, now);
     const format = this.#resolveFormat(duration);
     let newText: string;
     if (format === 'duration') {
