@@ -176,6 +176,7 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 			actionsUnit, err := repo.GetUnit(t.Context(), unit_model.TypeActions)
 			require.NoError(t, err, "Actions unit should exist for repo4")
 			actionsCfg := actionsUnit.ActionsConfig()
+			actionsCfg.OverrideOwnerConfig = true
 			actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionMode(mode)
 			actionsCfg.MaxTokenPermissions = nil // Ensure no max permissions interfere
 			// Update the config
@@ -632,6 +633,7 @@ func TestActionsTokenPermissionsWorkflowScenario(t *testing.T) {
 				Type:   unit_model.TypeActions,
 				Config: &repo_model.ActionsConfig{
 					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
+					OverrideOwnerConfig: true,
 					// No MaxTokenPermissions - allows full write access
 				},
 			})
