@@ -126,8 +126,8 @@ importers:
         specifier: 4.1.1
         version: 4.1.1
       katex:
-        specifier: 0.16.35
-        version: 0.16.35
+        specifier: 0.16.37
+        version: 0.16.37
       mermaid:
         specifier: 11.12.3
         version: 11.12.3
@@ -346,8 +346,8 @@ importers:
         specifier: 8.56.1
         version: 8.56.1(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
       updates:
-        specifier: 17.8.2
-        version: 17.8.2
+        specifier: 17.8.3
+        version: 17.8.3
       vite-string-plugin:
         specifier: 2.0.1
         version: 2.0.1(vite@7.3.1(@types/node@25.3.5)(jiti@2.6.1)(terser@5.46.0)(yaml@2.8.2))
@@ -697,8 +697,8 @@ packages:
       eslint:
         optional: true
 
-  '@eslint/config-array@0.21.1':
-    resolution: {integrity: sha512-aw1gNayWpdI/jSYVgzN5pL0cfzU02GT3NBpeT/DXbx1/1x7ZKxFPd9bwrzygx/qiwIQiJ1sw/zD8qY/kRvlGHA==}
+  '@eslint/config-array@0.21.2':
+    resolution: {integrity: sha512-nJl2KGTlrf9GjLimgIru+V/mzgSK0ABCDQRvxw5BjURL7WfH5uoWmizbH7QB6MmnMBd8cIC9uceWnezL1VZWWw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@eslint/config-helpers@0.4.2':
@@ -2991,8 +2991,8 @@ packages:
   just-extend@5.1.1:
     resolution: {integrity: sha512-b+z6yF1d4EOyDgylzQo5IminlUmzSeqR1hs/bzjBNjuGras4FXq/6TrzjxfN0j+TmI0ltJzTNlqXUMCniciwKQ==}
 
-  katex@0.16.35:
-    resolution: {integrity: sha512-S0+riEvy1CK4VKse1ivMff8gmabe/prY7sKB3njjhyoLLsNFDQYtKNgXrbWUggGDCJBz7Fctl5i8fLCESHXzSg==}
+  katex@0.16.37:
+    resolution: {integrity: sha512-TIGjO2cCGYono+uUzgkE7RFF329mLLWGuHUlSr6cwIVj9O8f0VQZ783rsanmJpFUo32vvtj7XT04NGRPh+SZFg==}
     hasBin: true
 
   keyv@4.5.4:
@@ -4046,8 +4046,8 @@ packages:
     peerDependencies:
       browserslist: '>= 4.21.0'
 
-  updates@17.8.2:
-    resolution: {integrity: sha512-GTqgl0BcO5/VWniegsFGaRfpuFr0y0ANep6lKa6dRC2KH23+cjjn+JFsiCmYFayHnunQqAbjPtVnjZs/9UNLTg==}
+  updates@17.8.3:
+    resolution: {integrity: sha512-YTCzRy4rGdrDCuX8wrnDKn2KXYp5kJS1T94k/JKQED60+lMAxdxoasX61EG0zbWYBxQQpTvC3uAzyDu3U+2zZA==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -4580,7 +4580,7 @@ snapshots:
     optionalDependencies:
       eslint: 9.39.2(jiti@2.6.1)
 
-  '@eslint/config-array@0.21.1':
+  '@eslint/config-array@0.21.2':
     dependencies:
       '@eslint/object-schema': 2.1.7
       debug: 4.4.3
@@ -6483,7 +6483,7 @@ snapshots:
     dependencies:
       '@eslint-community/eslint-utils': 4.9.1(eslint@9.39.2(jiti@2.6.1))
       '@eslint-community/regexpp': 4.12.2
-      '@eslint/config-array': 0.21.1
+      '@eslint/config-array': 0.21.2
       '@eslint/config-helpers': 0.4.2
       '@eslint/core': 0.17.0
       '@eslint/eslintrc': 3.3.4
@@ -6897,7 +6897,7 @@ snapshots:
 
   just-extend@5.1.1: {}
 
-  katex@0.16.35:
+  katex@0.16.37:
     dependencies:
       commander: 8.3.0
 
@@ -7065,7 +7065,7 @@ snapshots:
       dagre-d3-es: 7.0.13
       dayjs: 1.11.19
       dompurify: 3.3.2
-      katex: 0.16.35
+      katex: 0.16.37
       khroma: 2.1.0
       lodash-es: 4.17.23
       marked: 16.4.2
@@ -7133,7 +7133,7 @@ snapshots:
     dependencies:
       '@types/katex': 0.16.8
       devlop: 1.1.0
-      katex: 0.16.35
+      katex: 0.16.37
       micromark-factory-space: 2.0.1
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
@@ -8096,7 +8096,7 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.1
 
-  updates@17.8.2: {}
+  updates@17.8.3: {}
 
   uri-js@4.4.1:
     dependencies:

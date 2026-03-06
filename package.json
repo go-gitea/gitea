@@ -39,7 +39,7 @@
     "idiomorph": "0.7.4",
     "jquery": "4.0.0",
     "js-yaml": "4.1.1",
-    "katex": "0.16.35",
+    "katex": "0.16.37",
     "mermaid": "11.12.3",
     "mini-css-extract-plugin": "2.10.0",
     "monaco-editor": "0.55.1",
@@ -114,7 +114,7 @@
     "svgo": "4.0.1",
     "typescript": "5.9.3",
     "typescript-eslint": "8.56.1",
-    "updates": "17.8.2",
+    "updates": "17.8.3",
     "vite-string-plugin": "2.0.1",
     "vitest": "4.0.18",
     "vue-tsc": "3.2.5"
