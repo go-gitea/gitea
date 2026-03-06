@@ -292,12 +292,12 @@ lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backen
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js and ts files
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 $(ESLINT_FILES)
+	$(NODE_VARS) node tools/eslint.ts --color --max-warnings=0 $(ESLINT_FILES)
 	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js and ts files and fix issues
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 $(ESLINT_FILES) --fix
+	$(NODE_VARS) node tools/eslint.ts --color --max-warnings=0 $(ESLINT_FILES) --fix
 	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-css
@@ -368,11 +368,11 @@ lint-yaml: .venv ## lint yaml files
 
 .PHONY: lint-json
 lint-json: node_modules ## lint json files
-	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0
+	$(NODE_VARS) node tools/eslint.ts -c eslint.json.config.ts --color --max-warnings=0
 
 .PHONY: lint-json-fix
 lint-json-fix: node_modules ## lint and fix json files
-	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --fix
+	$(NODE_VARS) node tools/eslint.ts -c eslint.json.config.ts --color --max-warnings=0 --fix
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
