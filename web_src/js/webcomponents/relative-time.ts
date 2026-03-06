@@ -292,10 +292,9 @@ class RelativeTime extends HTMLElement {
   static observedAttributes = [
     'second', 'minute', 'hour', 'weekday', 'day', 'month', 'year',
     'prefix', 'threshold', 'tense', 'format', 'format-style',
-    'datetime', 'lang', 'title', 'hour-cycle',
+    'datetime', 'lang', 'hour-cycle',
   ];
 
-  #customTitle = false;
   #updating = false;
   #renderRoot: ShadowRoot | HTMLElement;
   #span = document.createElement('span');
@@ -424,12 +423,8 @@ class RelativeTime extends HTMLElement {
     dateObserver.unobserve(this);
   }
 
-  attributeChangedCallback(attrName: string, oldValue: string | null, newValue: string | null): void {
+  attributeChangedCallback(_attrName: string, oldValue: string | null, newValue: string | null): void {
     if (oldValue === newValue) return;
-    if (attrName === 'title') {
-      this.#customTitle = Boolean(newValue) && (this.date && this.#getFormattedTitle(this.date)) !== newValue;
-      return;
-    }
     if (!this.#updating) {
       this.#updating = true;
       queueMicrotask(() => {
@@ -510,9 +505,10 @@ class RelativeTime extends HTMLElement {
       return;
     }
     const now = Date.now();
-    if (!this.#customTitle) {
-      const newTitle = this.#getFormattedTitle(date);
-      if (newTitle) this.setAttribute('title', newTitle);
+    const tooltip = this.#getFormattedTitle(date);
+    if (tooltip && this.getAttribute('data-tooltip-content') !== tooltip) {
+      this.setAttribute('data-tooltip-content', tooltip);
+      this.setAttribute('aria-label', tooltip);
     }
     const duration = elapsedTime(date, now);
     const format = this.#resolveFormat(duration);
