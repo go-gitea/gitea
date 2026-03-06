@@ -241,7 +241,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	}
 
 	// get upload file size
-	fileRealTotalSize, contentLength := getUploadFileSize(ctx)
+	fileRealTotalSize := getUploadFileSize(ctx)
 
 	// get artifact retention days
 	expiredDays := setting.Actions.ArtifactRetentionDays
@@ -265,17 +265,17 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	// save chunk to storage, if success, return chunk stotal size
+	// save chunk to storage, if success, return chunks total size
 	// if artifact is not gzip when uploading, chunksTotalSize ==  fileRealTotalSize
 	// if artifact is gzip when uploading, chunksTotalSize <  fileRealTotalSize
-	chunksTotalSize, err := saveUploadChunk(ar.fs, ctx, artifact, contentLength, runID)
+	chunksTotalSize, err := saveUploadChunkV3GetTotalSize(ar.fs, ctx, artifact, runID)
 	if err != nil {
 		log.Error("Error save upload chunk: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error save upload chunk")
 		return
 	}
 
-	// update artifact size if zero or not match, over write artifact size
+	// update artifact size if zero or not match, overwrite artifact size
 	if artifact.FileSize == 0 ||
 		artifact.FileCompressedSize == 0 ||
 		artifact.FileSize != fileRealTotalSize ||
