@@ -2,15 +2,8 @@
 
 type FormatStyle = 'long' | 'short' | 'narrow';
 
-const partsTable: [string, string][] = [
-  ['years', 'year'],
-  ['months', 'month'],
-  ['weeks', 'week'],
-  ['days', 'day'],
-  ['hours', 'hour'],
-  ['minutes', 'minute'],
-  ['seconds', 'second'],
-];
+const unitNames = ['year', 'month', 'week', 'day', 'hour', 'minute', 'second'] as const;
+const partsTable = unitNames.map((u) => [`${u}s`, u] as [string, string]);
 
 class DurationFormat {
   #locale: string;
@@ -50,7 +43,6 @@ class DurationFormat {
 }
 
 const durationRe = /^[-+]?P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/;
-const unitNames = ['year', 'month', 'week', 'day', 'hour', 'minute', 'second'] as const;
 
 function isDuration(str: string): boolean {
   return durationRe.test(str);
@@ -297,35 +289,33 @@ const dateObserver = new (class {
 })();
 
 class RelativeTime extends HTMLElement {
+  static observedAttributes = [
+    'second', 'minute', 'hour', 'weekday', 'day', 'month', 'year',
+    'prefix', 'threshold', 'tense', 'format', 'format-style',
+    'datetime', 'lang', 'title', 'hour-cycle',
+  ];
+
   #customTitle = false;
   #updating = false;
   #renderRoot: ShadowRoot | HTMLElement;
+  #span = document.createElement('span');
 
   constructor() {
     super();
     this.#renderRoot = this.shadowRoot || this.attachShadow?.({mode: 'open'}) || this;
-  }
-
-  static get observedAttributes(): string[] {
-    return [
-      'second', 'minute', 'hour', 'weekday', 'day', 'month', 'year',
-      'prefix', 'threshold', 'tense', 'format', 'format-style',
-      'datetime', 'lang', 'title', 'hour-cycle',
-    ];
+    this.#span.setAttribute('part', 'root');
+    this.#renderRoot.replaceChildren(this.#span);
   }
 
   get hourCycle(): string | undefined {
-    const hc = this.closest('[hour-cycle]')?.getAttribute('hour-cycle') ||
-      this.ownerDocument.documentElement.getAttribute('hour-cycle');
+    const hc = this.closest('[hour-cycle]')?.getAttribute('hour-cycle');
     if (hc === 'h11' || hc === 'h12' || hc === 'h23' || hc === 'h24') return hc;
     return isBrowser12hCycle() ? 'h12' : 'h23';
   }
 
   get #lang(): string {
-    const lang = this.closest('[lang]')?.getAttribute('lang') ||
-      this.ownerDocument.documentElement.getAttribute('lang');
     try {
-      return new Intl.Locale(lang ?? '').toString();
+      return new Intl.Locale(this.closest('[lang]')?.getAttribute('lang') ?? '').toString();
     } catch {
       return 'default';
     }
@@ -511,15 +501,6 @@ class RelativeTime extends HTMLElement {
     return `${this.prefix} ${formatter.format(date)}`.trim();
   }
 
-  #updateRenderRootContent(content: string): void {
-    const existing = this.#renderRoot.firstChild;
-    if (existing instanceof HTMLSpanElement && existing.textContent === content) return;
-    const span = document.createElement('span');
-    span.setAttribute('part', 'root');
-    span.textContent = content;
-    (this.#renderRoot as Element).replaceChildren(span);
-  }
-
   update(): void {
     const date = this.date;
     if (typeof Intl === 'undefined' || !Intl.DateTimeFormat || !date) {
@@ -540,11 +521,8 @@ class RelativeTime extends HTMLElement {
     } else {
       newText = this.#getDateTimeFormat(date);
     }
-    if (newText) {
-      this.#updateRenderRootContent(newText);
-    } else if (this.shadowRoot === this.#renderRoot && this.textContent) {
-      this.#updateRenderRootContent(this.textContent);
-    }
+    newText ||= (this.shadowRoot === this.#renderRoot && this.textContent) || '';
+    if (this.#span.textContent !== newText) this.#span.textContent = newText;
     if (format === 'relative' || format === 'duration') {
       dateObserver.observe(this);
     } else {
