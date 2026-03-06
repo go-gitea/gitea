@@ -222,8 +222,6 @@ function getRelativeTimeUnit(duration: Duration, opts?: {relativeTo?: Date | num
   return [0, 'second'];
 }
 
-// -- RelativeTime custom element --
-
 type Format = 'auto' | 'datetime' | 'relative' | 'duration';
 type ResolvedFormat = 'datetime' | 'relative' | 'duration';
 type Tense = 'auto' | 'past' | 'future';
