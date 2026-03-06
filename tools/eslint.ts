@@ -26,18 +26,28 @@ try {
     h.update(readFileSync(join(pwd, 'pnpm-lock.yaml')));
   } catch {}
   hash = h.digest('hex').slice(0, 12);
-} catch {}
+} catch (err) {
+  console.error('Failed to compute ESLint cache key:', err);
+}
 
-try {
-  execFileSync('pnpm', ['exec', 'eslint',
+const eslintArgs = ['exec', 'eslint'];
+if (hash) {
+  eslintArgs.push(
     '--cache',
     '--cache-location', `node_modules/.cache/eslint/${hash}/`,
     '--cache-strategy', 'content',
-    ...args,
-  ], {
+  );
+}
+eslintArgs.push(...args);
+
+try {
+  execFileSync(platform === 'win32' ? 'pnpm.cmd' : 'pnpm', eslintArgs, {
     stdio: 'inherit',
-    shell: platform === 'win32',
   });
 } catch (err: any) {
-  exit(err?.status ?? 1);
+  if (err?.status === undefined || err?.status === null) {
+    console.error(err?.message ?? err);
+    exit(1);
+  }
+  exit(err.status);
 }
