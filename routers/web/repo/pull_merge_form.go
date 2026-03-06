@@ -41,7 +41,7 @@ type mergeFormField struct {
 	DefaultMergeStyle              string            `json:"defaultMergeStyle"`
 	DefaultDeleteBranchAfterMerge  bool              `json:"defaultDeleteBranchAfterMerge"`
 	MergeMessageFieldPlaceHolder   string            `json:"mergeMessageFieldPlaceHolder"`
-	DefaultMergeMessage            string            `json:"defaultMergeMessage"`
+	DefaultMergeBody               string            `json:"defaultMergeBody"`
 	HasPendingPullRequestMerge     bool              `json:"hasPendingPullRequestMerge"`
 	HasPendingPullRequestMergeTip  string            `json:"hasPendingPullRequestMergeTip"`
 	MergeStyles                    []mergeStyleField `json:"mergeStyles"`
@@ -50,7 +50,7 @@ type mergeFormField struct {
 type pullViewMergeInputs struct {
 	PullHeadCommitID  string
 	HeadTarget        string
-	GetCommitMessages string
+	SquashCommitMessages string
 	StatusCheckData   *pullCommitStatusCheckData
 }
 
@@ -126,7 +126,7 @@ func preparePullViewMergeFormData(ctx *context.Context, issue *issues_model.Issu
 		DefaultMergeStyle:              string(params.MergeStyle),
 		DefaultDeleteBranchAfterMerge:  prConfig.DefaultDeleteBranchAfterMerge,
 		MergeMessageFieldPlaceHolder:   ctx.Locale.TrString("repo.editor.commit_message_desc"),
-		DefaultMergeMessage:            params.DefaultMergeBody,
+		DefaultMergeBody:               params.DefaultMergeBody,
 		HasPendingPullRequestMerge:     params.PendingPullRequestMerge != nil,
 		HasPendingPullRequestMergeTip:  hasPendingPullRequestMergeTip,
 		MergeStyles: []mergeStyleField{
@@ -158,7 +158,7 @@ func preparePullViewMergeFormData(ctx *context.Context, issue *issues_model.Issu
 				Allowed:               prConfig.AllowSquash,
 				TextDoMerge:           ctx.Locale.TrString("repo.pulls.squash_merge_pull_request"),
 				MergeTitleFieldText:   params.DefaultSquashMergeMessage,
-				MergeMessageFieldText: params.GetCommitMessages + params.DefaultSquashMergeBody,
+				MergeMessageFieldText: params.SquashCommitMessages + params.DefaultSquashMergeBody,
 				HideAutoMerge:         hideAutoMerge,
 			},
 			{

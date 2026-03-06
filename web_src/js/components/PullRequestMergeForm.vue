@@ -74,7 +74,7 @@ function switchMergeStyle(name: string, autoMerge = false) {
 }
 
 function clearMergeMessage() {
-  mergeMessageFieldValue.value = mergeForm.defaultMergeMessage;
+  mergeMessageFieldValue.value = mergeForm.defaultMergeBody;
 }
 </script>
 
@@ -105,7 +105,7 @@ function clearMergeMessage() {
         </div>
         <div class="field">
           <textarea name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
-          <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage">
+          <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeBody">
             <button @click.prevent="clearMergeMessage" class="btn tw-mt-1 tw-p-1 interact-fg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
               {{ mergeForm.textClearMergeMessage }}
             </button>
