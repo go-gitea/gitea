@@ -48,7 +48,9 @@ func Init(original context.Context) {
 	started = true
 	lock.Unlock()
 	graceful.GetManager().RunAtShutdown(context.Background(), func() {
-		_ = scheduler.Shutdown()
+		if err := scheduler.Shutdown(); err != nil {
+			log.Error("Unable to shutdown cron scheduler: %v", err)
+		}
 		lock.Lock()
 		started = false
 		lock.Unlock()
