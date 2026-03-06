@@ -1,4 +1,4 @@
 import './polyfills.ts';
-import '@github/relative-time-element';
+import './relative-time.ts';
 import './origin-url.ts';
 import './overflow-menu.ts';

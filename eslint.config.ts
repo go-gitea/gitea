@@ -896,7 +896,7 @@ export default defineConfig([
       'wc/no-closed-shadow-root': [2],
       'wc/no-constructor-attributes': [2],
       'wc/no-constructor-params': [2],
-      'wc/no-constructor': [2],
+      'wc/no-constructor': [0],
       'wc/no-customized-built-in-elements': [2],
       'wc/no-exports-with-element': [0],
       'wc/no-invalid-element-name': [2],

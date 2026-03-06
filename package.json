@@ -12,7 +12,6 @@
     "@citation-js/plugin-software-formats": "0.6.2",
     "@github/markdown-toolbar-element": "2.2.3",
     "@github/paste-markdown": "1.5.3",
-    "@github/relative-time-element": "5.0.0",
     "@github/text-expander-element": "2.9.4",
     "@mcaptcha/vanilla-glue": "0.1.0-alpha-3",
     "@mermaid-js/layout-elk": "0.2.0",
