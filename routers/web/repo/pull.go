@@ -614,10 +614,10 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) (compa
 	ctx.Data["NumFiles"] = ci.NumFiles
 	compareInfo = ci
 	mergeInputs = pullViewMergeInputs{
-		PullHeadCommitID:  sha,
-		HeadTarget:        fmt.Sprint(ctx.Data["HeadTarget"]),
+		PullHeadCommitID:     sha,
+		HeadTarget:           fmt.Sprint(ctx.Data["HeadTarget"]),
 		SquashCommitMessages: getCommitMessages,
-		StatusCheckData:   statusCheckData,
+		StatusCheckData:      statusCheckData,
 	}
 	return compareInfo, mergeInputs
 }

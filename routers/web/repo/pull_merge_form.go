@@ -48,10 +48,10 @@ type mergeFormField struct {
 }
 
 type pullViewMergeInputs struct {
-	PullHeadCommitID  string
-	HeadTarget        string
+	PullHeadCommitID     string
+	HeadTarget           string
 	SquashCommitMessages string
-	StatusCheckData   *pullCommitStatusCheckData
+	StatusCheckData      *pullCommitStatusCheckData
 }
 
 type mergeFormParams struct {
