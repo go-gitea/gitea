@@ -784,5 +784,5 @@ func GetOwnerRepositoriesByIDs(ctx context.Context, ownerID int64, repoIDs []int
 		return RepositoryList{}, nil
 	}
 	repos := make(RepositoryList, 0, len(repoIDs))
-	return repos, db.GetEngine(ctx).Where("owner_id", ownerID).In("id", repoIDs).Find(&repos)
+	return repos, db.GetEngine(ctx).Where(builder.Eq{"owner_id": ownerID}).In("id", repoIDs).Find(&repos)
 }
