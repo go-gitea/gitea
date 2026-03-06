@@ -228,19 +228,16 @@ func (f *file) open(flag int) (err error) {
 				if f.metaID != 0 {
 					return os.ErrExist
 				}
-			} else {
-				// create a new file if none exists.
-				if f.metaID == 0 {
-					if err = f.createEmpty(); err != nil {
-						return err
-					}
+			}
+			// create a new file if not exists.
+			if f.metaID == 0 {
+				if err = f.createEmpty(); err != nil {
+					return err
 				}
 			}
-		} else /* no O_CREATE flag */ {
-			// file must exist.
-			if f.metaID == 0 {
-				return os.ErrNotExist
-			}
+		}
+		if f.metaID == 0 {
+			return os.ErrNotExist
 		}
 		if flag&os.O_TRUNC != 0 {
 			if err = f.truncate(); err != nil {
