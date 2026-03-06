@@ -33,8 +33,8 @@ interface Window {
     mermaidMaxSourceCharacters: number,
     i18n: Record<string, string>,
   },
-  $: typeof import('@types/jquery'),
-  jQuery: typeof import('@types/jquery'),
+  $: JQueryStatic,
+  jQuery: JQueryStatic,
   htmx: typeof import('htmx.org').default,
   _globalHandlerErrors: Array<ErrorEvent & PromiseRejectionEvent> & {
     _inited: boolean,
