@@ -326,15 +326,8 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	maxPerm.unitsMode[unit.TypeReleases] = effectivePerms.Releases
 	maxPerm.unitsMode[unit.TypeProjects] = effectivePerms.Projects
 
-	// Set base access mode to the maximum of all unit maxPermissions
-	// FIXME: it's not right. AccessMode can't be the "max mode"
-	maxMode := perm_model.AccessModeNone
-	for _, mode := range maxPerm.unitsMode {
-		if mode > maxMode {
-			maxMode = mode
-		}
-	}
-	maxPerm.AccessMode = maxMode
+	// Set base access mode to None by default
+	maxPerm.AccessMode = perm_model.AccessModeNone
 
 	// Check permission like simple user but limit to read-only (PR #36095)
 	// Enhanced to also grant read-only access if isSameRepo is true and target repository is public
@@ -345,7 +338,6 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	if botPerm.AccessMode >= perm_model.AccessModeRead {
 		// Public repo allows read access, increase permissions to at least read
 		// Otherwise you cannot access your own repository if your permissions are set to none but the repository is public
-		// FIXME: it's not right. AccessMode can't be the "max mode"
 		maxPerm.AccessMode = max(maxPerm.AccessMode, perm_model.AccessModeRead)
 		for _, u := range repo.Units {
 			if botPerm.CanRead(u.Type) {
