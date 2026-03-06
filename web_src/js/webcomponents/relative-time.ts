@@ -254,7 +254,7 @@ const dateObserver = new (class {
     if (this.elements.has(element)) return;
     this.elements.add(element);
     const date = element.date;
-    if (date?.getTime()) {
+    if (date && !Number.isNaN(date.getTime())) {
       const ms = getUnitFactor(element);
       const time = Date.now() + ms;
       if (time < this.time) {
@@ -300,7 +300,7 @@ class RelativeTime extends HTMLElement {
   #renderRoot: ShadowRoot | HTMLElement;
   #span = document.createElement('span');
 
-  constructor() {
+  constructor() { // eslint-disable-line wc/no-constructor -- shadow DOM setup requires constructor
     super();
     this.#renderRoot = this.shadowRoot || this.attachShadow?.({mode: 'open'}) || this;
     this.#span.setAttribute('part', 'root');
@@ -314,10 +314,12 @@ class RelativeTime extends HTMLElement {
   }
 
   get #lang(): string {
+    const lang = this.closest('[lang]')?.getAttribute('lang');
+    if (!lang) return navigator.language;
     try {
-      return new Intl.Locale(this.closest('[lang]')?.getAttribute('lang') ?? '').toString();
+      return new Intl.Locale(lang).toString();
     } catch {
-      return 'default';
+      return navigator.language;
     }
   }
 
@@ -366,7 +368,7 @@ class RelativeTime extends HTMLElement {
   get year(): 'numeric' | '2-digit' | undefined {
     const year = this.getAttribute('year');
     if (year === 'numeric' || year === '2-digit') return year;
-    if (!this.hasAttribute('year') && new Date().getUTCFullYear() !== this.date?.getUTCFullYear()) {
+    if (!this.hasAttribute('year') && new Date().getFullYear() !== this.date?.getFullYear()) {
       return 'numeric';
     }
     return undefined;
@@ -425,7 +427,7 @@ class RelativeTime extends HTMLElement {
   attributeChangedCallback(attrName: string, oldValue: string | null, newValue: string | null): void {
     if (oldValue === newValue) return;
     if (attrName === 'title') {
-      this.#customTitle = newValue !== null && (this.date && this.#getFormattedTitle(this.date)) !== newValue;
+      this.#customTitle = Boolean(newValue) && (this.date && this.#getFormattedTitle(this.date)) !== newValue;
     }
     if (!this.#updating && !(attrName === 'title' && this.#customTitle)) {
       this.#updating = true;
