@@ -103,7 +103,7 @@ func init() {
 
 func ArtifactsRoutes(prefix string) *web.Router {
 	m := web.NewRouter()
-	m.Use(ArtifactContexter())
+	m.AfterRouting(ArtifactContexter())
 
 	r := artifactRoutes{
 		prefix: prefix,
