@@ -914,7 +914,7 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 
 	ctx.Data["AutodetectManualMerge"] = prConfig.AutodetectManualMerge
 
-	mergeStyle := prConfig.GetDefaultMergeStyle()
+	mergeStyle := prConfig.DefaultMergeStyle
 	if !prConfig.IsMergeStyleAllowed(mergeStyle) {
 		if prConfig.AllowMerge {
 			mergeStyle = repo_model.MergeStyleMerge

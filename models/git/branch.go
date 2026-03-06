@@ -247,7 +247,7 @@ func DeleteBranches(ctx context.Context, repoID, doerID int64, branchIDs []int64
 			return err
 		}
 		for _, branch := range branches {
-			if err := AddDeletedBranch(ctx, repoID, branch.Name, doerID); err != nil {
+			if err := MarkBranchAsDeleted(ctx, repoID, branch.Name, doerID); err != nil {
 				return err
 			}
 		}
@@ -268,8 +268,8 @@ func UpdateBranch(ctx context.Context, repoID, pusherID int64, branchName string
 		})
 }
 
-// AddDeletedBranch adds a deleted branch to the database
-func AddDeletedBranch(ctx context.Context, repoID int64, branchName string, deletedByID int64) error {
+// MarkBranchAsDeleted marks branch as deleted
+func MarkBranchAsDeleted(ctx context.Context, repoID int64, branchName string, deletedByID int64) error {
 	branch, err := GetBranch(ctx, repoID, branchName)
 	if err != nil {
 		return err
