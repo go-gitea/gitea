@@ -1217,7 +1217,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// end "/{username}/{reponame}/settings"
 
 	// user/org home, including rss feeds like "/{username}/{reponame}.rss"
-	m.Get("/{username}/{reponame}", optSignIn, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)
+	m.Get("/{username}/{reponame}", optSignIn, webAuth.AllowBasic, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)
 
 	m.Post("/{username}/{reponame}/markup", optSignIn, context.RepoAssignment, reqUnitsWithMarkdown, web.Bind(structs.MarkupOption{}), misc.Markup)
 
