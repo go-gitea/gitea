@@ -7,12 +7,23 @@
 			{{template "org/team/sidebar" .}}
 			<div class="ui ten wide column">
 				{{template "org/team/navbar" .}}
+
+				{{/* ── Members section ────────────────────────────────── */}}
+				<h4 class="ui top attached header tw-mt-4">
+					{{ctx.Locale.Tr "org.teams.members"}}
+					{{if .Team.Members}}<span class="ui small circular label">{{len .Team.Members}}</span>{{end}}
+				</h4>
 				{{if .IsOrganizationOwner}}
-					<div class="ui top attached segment">
-						<form class="ui form ignore-dirty tw-flex tw-flex-wrap tw-gap-2" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
+					<div class="ui attached segment">
+						<form class="ui form ignore-dirty tw-flex tw-flex-wrap tw-gap-2"
+							action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
-							<div id="search-user-box" class="ui search tw-mr-2"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{ctx.Locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
-								<div class="ui input">
+							<div id="search-user-box" class="ui search tw-flex-1"
+								{{if .IsEmailInviteEnabled}}
+									data-allow-email="true"
+									data-allow-email-description="{{ctx.Locale.Tr "org.teams.invite_team_member" $.Team.Name}}"
+								{{end}}>
+								<div class="ui fluid input">
 									<input class="prompt" name="uname" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" required>
 								</div>
 							</div>
@@ -20,10 +31,10 @@
 						</form>
 					</div>
 				{{end}}
-				<div class="ui{{if not .IsOrganizationOwner}} top{{end}} attached segment">
-								<div class="flex-divided-list items-with-main">
-										{{range .Team.Members}}
-											<div class="item tw-items-center">
+				<div class="ui attached segment">
+					<div class="flex-divided-list items-with-main">
+						{{range .Team.Members}}
+							<div class="item tw-items-center">
 								<div class="item-leading">
 									<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 								</div>
@@ -35,10 +46,13 @@
 								<div class="item-trailing">
 									{{if and $.IsOrganizationOwner (not (and ($.Team.IsOwnerTeam) (eq (len $.Team.Members) 1)))}}
 										<form>
-											<button class="ui red button delete-button" data-modal-id="remove-team-member"
-												data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove" data-datauid="{{.ID}}"
+											<button class="ui red tiny button delete-button" data-modal-id="remove-team-member"
+												data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove"
+												data-datauid="{{.ID}}"
 												data-name="{{.DisplayName}}"
-												data-data-team-name="{{$.Team.Name}}">{{ctx.Locale.Tr "org.members.remove"}}</button>
+												data-data-team-name="{{$.Team.Name}}">
+												{{ctx.Locale.Tr "org.members.remove"}}
+											</button>
 										</form>
 									{{end}}
 								</div>
@@ -50,30 +64,104 @@
 						{{end}}
 					</div>
 				</div>
-				{{if and .Invites $.IsOrganizationOwner}}
-				<h4 class="ui top attached header">{{ctx.Locale.Tr "org.teams.invite_team_member.list"}}</h4>
+
+				{{/* ── User Groups section ─────────────────────────────── */}}
+				<h4 class="ui top attached header tw-mt-4">
+					{{ctx.Locale.Tr "org.teams.user_groups"}}
+					{{if .TeamGroups}}<span class="ui small circular label">{{len .TeamGroups}}</span>{{end}}
+				</h4>
+				{{if .IsOrganizationOwner}}
+					<div class="ui attached segment">
+					{{if .AvailableGroups}}
+						<form class="ui form ignore-dirty tw-flex tw-gap-2"
+							action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add_group" method="post">
+							<div class="ui search selection dropdown tw-flex-1">
+								<input type="hidden" name="gid">
+								<div class="default text">{{ctx.Locale.Tr "org.teams.user_groups.select_placeholder"}}</div>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="menu">
+									{{range .AvailableGroups}}
+										<div class="item" data-value="{{.ID}}" data-text="{{index $.AvailableGroupPaths .ID}}">
+											<div class="content">
+												<div class="header">{{index $.AvailableGroupPaths .ID}}</div>
+												<div class="description">
+													{{index $.AvailableGroupMemberCounts .ID}} {{ctx.Locale.Tr "org.lower_members"}}
+													{{if .Description}} · <span class="tw-inline-block tw-max-w-[28rem] tw-align-bottom tw-truncate" data-tooltip-content="{{.Description}}">{{.Description}}</span>{{end}}
+												</div>
+											</div>
+										</div>
+									{{end}}
+								</div>
+							</div>
+							<button class="ui primary button">{{ctx.Locale.Tr "org.teams.add_user_group"}}</button>
+						</form>
+						{{else}}
+							<p class="tw-text-text-light tw-italic tw-m-0">{{ctx.Locale.Tr "org.teams.user_groups.no_available"}}</p>
+						{{end}}
+					</div>
+				{{end}}
 				<div class="ui attached segment">
 					<div class="flex-divided-list items-with-main">
-						{{range .Invites}}
+						{{range .TeamGroups}}
 							<div class="item tw-items-center">
+								<div class="item-leading">
+									{{svg "octicon-people" 20}}
+								</div>
 								<div class="item-main">
-									{{.Email}}
+									<div class="item-title">
+										<a href="{{AppSubUrl}}/-/user-groups/{{.ID}}?org={{QueryEscape $.Org.Name}}">{{index $.TeamGroupPaths .ID}}</a>
+									</div>
+									<div class="item-body">
+										{{index $.TeamGroupMemberCounts .ID}} {{ctx.Locale.Tr "org.lower_members"}}
+										{{if .Description}} · <span class="tw-inline-block tw-max-w-[28rem] tw-align-bottom tw-truncate" data-tooltip-content="{{.Description}}">{{.Description}}</span>{{end}}
+									</div>
 								</div>
 								<div class="item-trailing">
-									<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
-										<input type="hidden" name="iid" value="{{.ID}}">
-										<button class="ui red button">{{ctx.Locale.Tr "org.members.remove"}}</button>
-									</form>
+									<a class="ui tiny button" href="{{AppSubUrl}}/-/user-groups/{{.ID}}?org={{QueryEscape $.Org.Name}}">{{ctx.Locale.Tr "org.user_groups.view_members"}}</a>
+									{{if $.IsOrganizationOwner}}
+										<a class="ui red tiny button link-action"
+											data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_group?gid={{.ID}}"
+											data-modal-confirm="{{ctx.Locale.Tr "org.teams.remove_user_group.confirm"}}">
+											{{ctx.Locale.Tr "org.teams.remove_user_group"}}
+										</a>
+									{{end}}
 								</div>
+							</div>
+						{{else}}
+							<div class="item">
+								<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "org.teams.user_groups.none"}}</span>
 							</div>
 						{{end}}
 					</div>
 				</div>
+
+				{{/* ── Pending Invitations section ──────────────────────── */}}
+				{{if and .Invites $.IsOrganizationOwner}}
+					<h4 class="ui top attached header">{{ctx.Locale.Tr "org.teams.invite_team_member.list"}}</h4>
+					<div class="ui attached segment">
+						<div class="flex-divided-list items-with-main">
+							{{range .Invites}}
+								<div class="item tw-items-center">
+									<div class="item-main">
+										{{.Email}}
+									</div>
+									<div class="item-trailing">
+										<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
+											<input type="hidden" name="iid" value="{{.ID}}">
+											<button class="ui red tiny button">{{ctx.Locale.Tr "org.members.remove"}}</button>
+										</form>
+									</div>
+								</div>
+							{{end}}
+						</div>
+					</div>
 				{{end}}
+
 			</div>
 		</div>
 	</div>
 </div>
+
 <div class="ui g-modal-confirm delete modal" id="remove-team-member">
 	<div class="header">
 		{{ctx.Locale.Tr "org.members.remove"}}

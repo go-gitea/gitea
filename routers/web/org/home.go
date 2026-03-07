@@ -100,8 +100,20 @@ func home(ctx *context.Context, viewRepositories bool) {
 	}
 
 	const orgOverviewTeamsLimit = 5
+	overviewTeams := ctx.Org.Teams[:min(len(ctx.Org.Teams), orgOverviewTeamsLimit)]
+	teamIDs := make([]int64, 0, len(overviewTeams))
+	for _, team := range overviewTeams {
+		teamIDs = append(teamIDs, team.ID)
+	}
+	teamGroupCounts, err := organization.GetTeamUserGroupCounts(ctx, teamIDs)
+	if err != nil {
+		ctx.ServerError("GetTeamUserGroupCounts", err)
+		return
+	}
+
 	ctx.Data["OrgOverviewMembers"] = members
-	ctx.Data["OrgOverviewTeams"] = ctx.Org.Teams[:min(len(ctx.Org.Teams), orgOverviewTeamsLimit)]
+	ctx.Data["OrgOverviewTeams"] = overviewTeams
+	ctx.Data["OrgOverviewTeamGroupCounts"] = teamGroupCounts
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 

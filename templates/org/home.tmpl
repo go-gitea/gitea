@@ -80,6 +80,7 @@
 								<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
 								<p class="tw-text-text-light">
 									<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{ctx.Locale.Tr "org.lower_members"}}</a> ·
+									<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{index $.OrgOverviewTeamGroupCounts .ID}}</strong> {{ctx.Locale.Tr "org.lower_groups"}}</a> ·
 									<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{ctx.Locale.Tr "org.lower_repositories"}}</a>
 								</p>
 							</div>

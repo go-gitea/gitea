@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/models/usergroup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -213,11 +214,11 @@ func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 		// have relations with repository.
 		if t.IsOwnerTeam() {
 			t.AccessMode = perm.AccessModeOwner
-		} else if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repo.ID) {
+		} else if !t.IncludesAllRepositories && !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repo.ID) {
 			continue
 		}
 
-		if err = t.LoadMembers(ctx); err != nil {
+		if err = t.LoadMembersWithGroups(ctx); err != nil {
 			return fmt.Errorf("getMembers '%d': %w", t.ID, err)
 		}
 		for _, m := range t.Members {
@@ -264,6 +265,37 @@ func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid
 			}
 
 			accessMode = maxAccessMode(accessMode, t.AccessMode)
+		}
+
+		// Also compute access through user groups: find teams that assign a user
+		// group that is an ancestor-of (or equal to) one of the user's own groups.
+		userGroupIDs, err := usergroup.GetUserGroupIDsByUser(ctx, uid)
+		if err != nil {
+			return fmt.Errorf("GetUserGroupIDsByUser: %w", err)
+		}
+		if len(userGroupIDs) > 0 {
+			// Expand upward: if team assigns "Engineering" and user is in
+			// "Engineering/Backend", the ancestor list contains "Engineering".
+			ancestorIDs, err := usergroup.ExpandUserGroupIDsToAncestors(ctx, userGroupIDs)
+			if err != nil {
+				return fmt.Errorf("ExpandUserGroupIDsToAncestors: %w", err)
+			}
+			var groupTeams []organization.Team
+			if err := e.
+				Join("INNER", "team_repo", "team_repo.team_id = team.id").
+				Join("INNER", "team_user_group", "team_user_group.team_id = team.id").
+				Where("team.org_id = ?", repo.OwnerID).
+				And("team_repo.repo_id = ?", repo.ID).
+				In("team_user_group.group_id", ancestorIDs).
+				Find(&groupTeams); err != nil {
+				return fmt.Errorf("find user group teams: %w", err)
+			}
+			for _, t := range groupTeams {
+				if t.IsOwnerTeam() {
+					t.AccessMode = perm.AccessModeOwner
+				}
+				accessMode = maxAccessMode(accessMode, t.AccessMode)
+			}
 		}
 	}
 
