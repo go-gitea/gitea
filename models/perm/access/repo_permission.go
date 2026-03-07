@@ -258,7 +258,11 @@ func finalProcessRepoUnitPermission(user *user_model.User, perm *Permission) {
 	}
 }
 
-func checkSameOwnerCrossRepoAccess(ctx context.Context, taskRepo, targetRepo *repo_model.Repository) bool {
+func checkSameOwnerCrossRepoAccess(ctx context.Context, taskRepo, targetRepo *repo_model.Repository, isForkPR bool) bool {
+	if isForkPR {
+		// Fork PRs are never allowed cross-repo access to other private repositories of the owner.
+		return false
+	}
 	if taskRepo.OwnerID != targetRepo.OwnerID {
 		return false
 	}
@@ -363,7 +367,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		return maxPerm, nil
 	}
 
-	if checkSameOwnerCrossRepoAccess(ctx, taskRepo, repo) {
+	if checkSameOwnerCrossRepoAccess(ctx, taskRepo, repo, task.IsForkPullRequest) {
 		// Access allowed by owner policy (grants access to private repos).
 		// Note: maxPerm has already been restricted to Read-Only in ComputeJobTokenPermissions
 		// because isSameRepo is false.
