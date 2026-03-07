@@ -26,7 +26,7 @@ func DownloadArtifactV4ServeDirectOnly(ctx *context.Base, art *actions_model.Act
 		reqParams := url.Values{}
 		reqParams.Set("response-content-type", art.ContentEncoding)
 		reqParams.Set("response-content-disposition", fmt.Sprintf("inline; filename=%s; filename*=UTF-8''%s", url.PathEscape(art.ArtifactPath), art.ArtifactPath))
-		u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, ctx.Req.Method, nil)
+		u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, ctx.Req.Method, reqParams)
 		if u != nil && err == nil {
 			ctx.Redirect(u.String(), http.StatusFound)
 			return true, nil

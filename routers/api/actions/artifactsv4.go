@@ -573,7 +573,7 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 		reqParams := url.Values{}
 		reqParams.Set("response-content-type", artifact.ContentEncoding)
 		reqParams.Set("response-content-disposition", fmt.Sprintf("inline; filename=%s; filename*=UTF-8''%s", url.PathEscape(artifact.ArtifactPath), artifact.ArtifactPath))
-		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath, ctx.Req.Method, reqParams)
+		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath, http.MethodGet, reqParams)
 		if u != nil && err == nil {
 			respData.SignedUrl = u.String()
 		}
@@ -603,11 +603,16 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
+	file, err := r.fs.Open(artifact.StoragePath)
+	if err != nil {
+		log.Error("Error artifact not found: %v", err)
+		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
+	}
+	defer func() { _ = file.Close() }()
+
 	ctx.Resp.Header().Set("Content-Type", artifact.ContentEncoding)
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s; filename*=UTF-8''%s", url.PathEscape(artifact.ArtifactPath), artifact.ArtifactPath))
 	ctx.Resp.Header().Set("Content-Security-Policy", "sandbox; default-src 'none';")
-
-	file, _ := r.fs.Open(artifact.StoragePath)
 
 	_, _ = io.Copy(ctx.Resp, file)
 }
