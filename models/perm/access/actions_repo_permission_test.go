@@ -26,7 +26,7 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}) // Private repo
 	owner1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	owner2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	actionsUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user_model.ActionsUserID})
+	actionsUser := user_model.NewActionsUser()
 
 	t.Run("SameRepo_Public", func(t *testing.T) {
 		// Task 47 belongs to repo 4 (public)
