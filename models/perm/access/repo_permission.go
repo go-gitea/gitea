@@ -307,6 +307,19 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	if err != nil {
 		return perm, err
 	}
+	if task.RepoID != repo.ID {
+		// Cross-repo access must also respect the target repo's permission ceiling.
+		targetRepoActionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+		if targetRepoActionsCfg.OverrideOwnerConfig {
+			effectivePerms = targetRepoActionsCfg.ClampPermissions(effectivePerms)
+		} else {
+			targetRepoOwnerActionsCfg, err := actions_model.GetUserActionsConfig(ctx, repo.OwnerID)
+			if err != nil {
+				return perm, err
+			}
+			effectivePerms = targetRepoOwnerActionsCfg.ClampPermissions(effectivePerms)
+		}
+	}
 
 	if err := repo.LoadUnits(ctx); err != nil {
 		return perm, err

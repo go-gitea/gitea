@@ -1094,3 +1094,91 @@ func TestActionsOverrideOwnerConfig(t *testing.T) {
 		}))
 	})
 }
+
+func TestActionsTokenPermissionsExceedsTargetRepoLimit(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		req := NewRequestWithValues(t, "POST", "/user/settings/actions/general", map[string]string{
+			"cross_repo_mode": "all",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		// create repos
+		repo1 := createActionsTestRepo(t, token, "actions-permission-repo1", false)
+		repo2 := createActionsTestRepo(t, token, "actions-permission-repo2", true)
+		// create the runner for repo1
+		runner1 := newMockRunner()
+		runner1.registerAsRepoRunner(t, user2.Name, repo1.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+		// set actions token permission mode to "permissive" for repo1
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo1.Name), map[string]string{
+			"token_permission_mode": "permissive",
+			"override_owner_config": "true",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+		// set actions token permission mode to "restricted" for repo2 and set max permissions
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo2.Name), map[string]string{
+			"token_permission_mode":  "restricted",
+			"override_owner_config":  "true",
+			"enable_max_permissions": "true",
+			"max_code":               "none",
+			"max_issues":             "read",
+			"max_pull_requests":      "none",
+			"max_packages":           "none",
+			"max_wiki":               "none",
+			"max_actions":            "none",
+			"max_releases":           "none",
+			"max_projects":           "none",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		// create a workflow file with "permission" keyword for repo1
+		wfTreePath := ".gitea/workflows/test_permissions.yml"
+		wfFileContent := `name: Test Permissions
+on:
+  push:
+    paths:
+      - '.gitea/workflows/test_permissions.yml'
+
+jobs:
+  job-override:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - run: echo "test perms"
+`
+		opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
+		createWorkflowFile(t, token, user2.Name, repo1.Name, wfTreePath, opts)
+
+		task1 := runner1.fetchTask(t)
+		task1Token := task1.Secrets["GITEA_TOKEN"]
+		require.NotEmpty(t, task1Token)
+
+		// should fail: target repo does not allow code access
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo2.Name)).AddTokenAuth(task1Token)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		// set "max_code" to "read" so that the actions token can access code
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo2.Name), map[string]string{
+			"token_permission_mode":  "restricted",
+			"override_owner_config":  "true",
+			"enable_max_permissions": "true",
+			"max_code":               "read",
+			"max_issues":             "read",
+			"max_pull_requests":      "none",
+			"max_packages":           "none",
+			"max_wiki":               "none",
+			"max_actions":            "none",
+			"max_releases":           "none",
+			"max_projects":           "none",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		// should succeed: target repo now allows code read access for this token
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo2.Name)).AddTokenAuth(task1Token)
+		MakeRequest(t, req, http.StatusOK)
+	})
+}
