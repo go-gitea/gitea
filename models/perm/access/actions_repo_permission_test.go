@@ -102,7 +102,7 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 
 		// Set owner policy to Selected
 		cfg := &repo_model.ActionsConfig{
-			CrossRepoMode:      repo_model.ActionsCrossRepoModeSelected,
+			CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
 			AllowedCrossRepoIDs: []int64{repo1.ID},
 		}
 		require.NoError(t, actions_model.SetUserActionsConfig(ctx, owner1.ID, cfg))
@@ -117,7 +117,7 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		// Task 53 is in repo 2. Let's make it a fork PR task.
 		task53 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 53})
 		task53.IsForkPullRequest = true
-		require.NoError(t, actions_model.UpdateRunTask(ctx, task53, "is_fork_pull_request"))
+		require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
 
 		// Even if policy is "All", fork PR should not have cross-repo access to other private repos.
 		repo5 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
@@ -142,7 +142,7 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		// Repo 2 (Private). Task 53.
 		task53 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 53})
 		task53.IsForkPullRequest = false
-		require.NoError(t, actions_model.UpdateRunTask(ctx, task53, "is_fork_pull_request"))
+		require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
 
 		// Owner policy: Restricted mode (Read-only Code)
 		ownerCfg := &repo_model.ActionsConfig{
