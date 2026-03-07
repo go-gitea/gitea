@@ -203,6 +203,9 @@ type MarkdownEditorContext struct {
 }
 
 func (m *MiscUtils) MarkdownEditorComment(repo *repo_model.Repository) *MarkdownEditorContext {
+	if repo == nil {
+		return nil
+	}
 	return &MarkdownEditorContext{
 		PreviewMode:  "comment",
 		PreviewLink:  repo.Link() + "/markup",
@@ -211,6 +214,9 @@ func (m *MiscUtils) MarkdownEditorComment(repo *repo_model.Repository) *Markdown
 }
 
 func (m *MiscUtils) MarkdownEditorWiki(repo *repo_model.Repository) *MarkdownEditorContext {
+	if repo == nil {
+		return nil
+	}
 	return &MarkdownEditorContext{
 		PreviewMode:  "wiki",
 		PreviewLink:  repo.Link() + "/markup",
@@ -219,9 +225,7 @@ func (m *MiscUtils) MarkdownEditorWiki(repo *repo_model.Repository) *MarkdownEdi
 }
 
 func (m *MiscUtils) MarkdownEditorGeneral(owner *user_model.User) *MarkdownEditorContext {
-	ret := &MarkdownEditorContext{
-		PreviewLink: setting.AppSubURL + "/-/markup",
-	}
+	ret := &MarkdownEditorContext{PreviewLink: setting.AppSubURL + "/-/markup"}
 	if owner != nil {
 		ret.MentionsLink = owner.HomeLink() + "/-/mentions-in-owner"
 	}

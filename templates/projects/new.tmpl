@@ -18,13 +18,8 @@
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.projects.description"}}</label>
 			{{/* TODO: repo-level project and org-level project have different behaviors to render */}}
-			{{/* the "Repository" is nil when the project is org-level */}}
-			{{$markdownEditorContext := NIL}}
-			{{if $.Repository}}
-				{{$markdownEditorContext = ctx.MiscUtils.MarkdownEditorComment $.Repository}}
-			{{else}}
-				{{$markdownEditorContext = ctx.MiscUtils.MarkdownEditorGeneral $.Org.AsUser}}
-			{{end}}
+			{{/* "Repository" is nil when the project is owner-level, "Org" can be nil when owner is indivdual user */}}
+			{{$markdownEditorContext := or (ctx.MiscUtils.MarkdownEditorComment $.Repository) (ctx.MiscUtils.MarkdownEditorGeneral $.Org.AsUser)}}
 			{{template "shared/combomarkdowneditor" (dict
 				"MarkdownEditorContext" $markdownEditorContext
 				"TextareaName" "content"
