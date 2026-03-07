@@ -9,19 +9,14 @@ import (
 	"os"
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func changeDefaultFileBlockSize(n int64) (restore func()) {
-	old := defaultFileBlockSize
-	defaultFileBlockSize = n
-	return func() {
-		defaultFileBlockSize = old
-	}
-}
-
 func TestDbfsBasic(t *testing.T) {
-	defer changeDefaultFileBlockSize(4)()
+	defer test.MockVariableValue(&defaultFileBlockSize, 4)()
 
 	// test basic write/read
 	f, err := OpenFile(t.Context(), "test.txt", os.O_RDWR|os.O_CREATE)
@@ -122,10 +117,55 @@ func TestDbfsBasic(t *testing.T) {
 	stat, err = f.Stat()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 10, stat.Size())
+
+	t.Run("NonExisting", func(t *testing.T) {
+		f, err := OpenFile(t.Context(), "non-existing.txt", os.O_RDONLY)
+		assert.ErrorIs(t, err, os.ErrNotExist)
+		assert.Nil(t, f)
+
+		f, err = OpenFile(t.Context(), "non-existing.txt", os.O_WRONLY)
+		assert.ErrorIs(t, err, os.ErrNotExist)
+		assert.Nil(t, f)
+
+		f, err = OpenFile(t.Context(), "non-existing.txt", os.O_WRONLY|os.O_APPEND|os.O_TRUNC)
+		assert.ErrorIs(t, err, os.ErrNotExist)
+		assert.Nil(t, f)
+	})
+
+	t.Run("Existing", func(t *testing.T) {
+		assertFileContent := func(f File, expected string) {
+			_, err := f.Seek(0, io.SeekStart)
+			require.NoError(t, err)
+			buf, err := io.ReadAll(f)
+			require.NoError(t, err)
+			assert.Equal(t, expected, string(buf))
+		}
+
+		f, err := OpenFile(t.Context(), "existing.txt", os.O_RDWR|os.O_CREATE)
+		require.NoError(t, err)
+		_, _ = f.Write([]byte("test"))
+		assertFileContent(f, "test")
+		assert.NoError(t, f.Close())
+
+		f, err = OpenFile(t.Context(), "existing.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND)
+		require.NoError(t, err)
+		_, _ = f.Write([]byte("\nnew"))
+		assertFileContent(f, "test\nnew")
+		assert.NoError(t, f.Close())
+
+		f, err = OpenFile(t.Context(), "existing.txt", os.O_RDWR|os.O_TRUNC)
+		require.NoError(t, err)
+		assertFileContent(f, "")
+		assert.NoError(t, f.Close())
+
+		f, err = OpenFile(t.Context(), "existing.txt", os.O_RDWR|os.O_CREATE|os.O_EXCL)
+		assert.ErrorIs(t, err, os.ErrExist)
+		assert.Nil(t, f)
+	})
 }
 
 func TestDbfsReadWrite(t *testing.T) {
-	defer changeDefaultFileBlockSize(4)()
+	defer test.MockVariableValue(&defaultFileBlockSize, 4)()
 
 	f1, err := OpenFile(t.Context(), "test.log", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)
@@ -157,30 +197,32 @@ func TestDbfsReadWrite(t *testing.T) {
 }
 
 func TestDbfsSeekWrite(t *testing.T) {
-	defer changeDefaultFileBlockSize(4)()
+	defer test.MockVariableValue(&defaultFileBlockSize, 4)()
 
-	f, err := OpenFile(t.Context(), "test2.log", os.O_RDWR|os.O_CREATE)
-	assert.NoError(t, err)
-	defer f.Close()
+	// write something
+	fw, err := OpenFile(t.Context(), "test2.log", os.O_RDWR|os.O_CREATE)
+	require.NoError(t, err)
+	defer fw.Close()
 
-	n, err := f.Write([]byte("111"))
-	assert.NoError(t, err)
-
-	_, err = f.Seek(int64(n), io.SeekStart)
+	n, err := fw.Write([]byte("111"))
 	assert.NoError(t, err)
 
-	_, err = f.Write([]byte("222"))
+	_, err = fw.Seek(int64(n), io.SeekStart)
 	assert.NoError(t, err)
 
-	_, err = f.Seek(int64(n), io.SeekStart)
+	_, err = fw.Write([]byte("222"))
 	assert.NoError(t, err)
 
-	_, err = f.Write([]byte("333"))
+	_, err = fw.Seek(int64(n), io.SeekStart)
 	assert.NoError(t, err)
 
+	_, err = fw.Write([]byte("333"))
+	assert.NoError(t, err)
+
+	// then read it
 	fr, err := OpenFile(t.Context(), "test2.log", os.O_RDONLY)
-	assert.NoError(t, err)
-	defer f.Close()
+	require.NoError(t, err)
+	defer fr.Close()
 
 	buf, err := io.ReadAll(fr)
 	assert.NoError(t, err)
