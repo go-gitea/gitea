@@ -6,14 +6,12 @@ package common
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -32,12 +30,9 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 	// and the urlPathContext is "/gitea/owner/repo/src/branch/features/feat-123/doc"
 
 	if mode == "" || mode == "markdown" {
-		// raw Markdown doesn't need any special handling
-		baseLink := urlPathContext
-		if baseLink == "" {
-			baseLink = fmt.Sprintf("%s%s", httplib.GuessCurrentHostURL(ctx), urlPathContext)
-		}
-		rctx := renderhelper.NewRenderContextSimpleDocument(ctx, baseLink).WithUseAbsoluteLink(true).
+		// raw Markdown doesn't do any special handling
+		// TODO: raw markdown doesn't do any link processing, so "urlPathContext" doesn't take effect
+		rctx := renderhelper.NewRenderContextSimpleDocument(ctx, urlPathContext).WithUseAbsoluteLink(true).
 			WithMarkupType(markdown.MarkupName)
 		if err := markdown.RenderRaw(rctx, strings.NewReader(text), ctx.Resp); err != nil {
 			log.Error("RenderMarkupRaw: %v", err)

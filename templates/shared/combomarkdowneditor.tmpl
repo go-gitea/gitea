@@ -2,9 +2,7 @@
 * CustomInit: do not initialize the editor automatically
 * ContainerId: id attribute for the container element
 * ContainerClasses: additional classes for the container element
-* MarkdownPreviewInRepo: the repo to preview markdown
-* MarkdownPreviewContext: preview context (the related url path when rendering) for the preview tab, eg: repo link or user home link
-* MarkdownPreviewMode: content mode for the editor, eg: wiki, comment or default, can be disabled by "none"
+* MarkdownEditorContext: the context data for the editor, see backend MarkdownEditorContext
 * TextareaName: name attribute for the textarea
 * TextareaContent: content for the textarea
 * TextareaMaxLength: maxlength attribute for the textarea
@@ -14,20 +12,19 @@
 * DisableAutosize: whether to disable automatic height resizing
 */}}
 {{$ariaLabel := or .TextareaAriaLabel .TextareaPlaceholder}}
-{{$repo := .MarkdownPreviewInRepo}}
-{{$previewContext := .MarkdownPreviewContext}}
-{{$previewMode := .MarkdownPreviewMode}}
-{{$previewUrl := print AppSubUrl "/-/markup"}}
-{{if $repo}}
-	{{$previewUrl = print $repo.Link "/markup"}}
-{{end}}
+{{$editorContext := .MarkdownEditorContext}}
+{{$previewMode := or $editorContext.PreviewMode ""}}
+{{$previewContext := or $editorContext.PreviewContext ""}}
+{{$previewLink := or $editorContext.PreviewLink (print AppSubUrl "/-/markup")}}
+{{$mentionsLink := or $editorContext.MentionsLink ""}}
 {{$supportEasyMDE := or (eq $previewMode "comment") (eq $previewMode "wiki")}}
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{if .CustomInit}}custom-init{{end}} {{.ContainerClasses}}"
 		data-dropzone-parent-container="{{.DropzoneParentContainer}}"
 		data-content-mode="{{$previewMode}}"
 		data-support-easy-mde="{{$supportEasyMDE}}"
-		data-preview-url="{{$previewUrl}}"
+		data-preview-url="{{$previewLink}}"
 		data-preview-context="{{$previewContext}}"
+		{{if $mentionsLink}}data-mentions-url="{{$mentionsLink}}"{{end}}
 >
 	{{if ne $previewMode "none"}}
 	<div class="ui top tabular menu">
@@ -58,7 +55,7 @@
 				<md-task-list class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.list.task.tooltip"}}">{{svg "octicon-tasklist"}}</md-task-list>
 				<button class="markdown-toolbar-button markdown-button-table-add" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.add.tooltip"}}">{{svg "octicon-table"}}</button>
 			</div>
-			{{if eq $previewMode "comment"}}
+			{{if $mentionsLink}}
 			<div class="markdown-toolbar-group">
 				<md-mention class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.mention.tooltip"}}">{{svg "octicon-mention"}}</md-mention>
 				<md-ref class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.ref.tooltip"}}">{{svg "octicon-cross-reference"}}</md-ref>
