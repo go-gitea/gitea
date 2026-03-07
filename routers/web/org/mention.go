@@ -12,13 +12,15 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-// GetMentions returns JSON data for mention autocomplete on org-level pages (members and teams).
-func GetMentions(ctx *context.Context) {
+// GetMentionsInOwner returns JSON data for mention autocomplete on owner-level pages.
+func GetMentionsInOwner(ctx *context.Context) {
+	// for individual users, we don't have a concept of "mentionable" users or teams, so just return an empty list
 	if !ctx.ContextUser.IsOrganization() {
 		ctx.JSON(http.StatusOK, []shared_mention.Mention{})
 		return
 	}
 
+	// for org, return members and teams
 	c := shared_mention.NewCollector()
 	org := organization.OrgFromUser(ctx.ContextUser)
 

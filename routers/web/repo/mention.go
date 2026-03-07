@@ -14,8 +14,8 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-// GetMentions returns JSON data for mention autocomplete (assignees, participants, mentionable teams).
-func GetMentions(ctx *context.Context) {
+// GetMentionsInRepo returns JSON data for mention autocomplete (assignees, participants, mentionable teams).
+func GetMentionsInRepo(ctx *context.Context) {
 	c := shared_mention.NewCollector()
 
 	// Get participants if issue_index is provided

@@ -36,9 +36,7 @@
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.milestones.desc"}}</label>
 					{{template "shared/combomarkdowneditor" (dict
-						"MarkdownPreviewInRepo" $.Repository
-						"MarkdownPreviewMode" "comment"
-						"MentionsUrl" (print $.Repository.Link "/-/mentions")
+						"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorComment $.Repository)
 						"TextareaName" "content"
 						"TextareaContent" .content
 						"TextareaPlaceholder" (ctx.Locale.Tr "repo.milestones.desc")

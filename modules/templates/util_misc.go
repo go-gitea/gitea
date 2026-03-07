@@ -14,10 +14,12 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
@@ -184,4 +186,44 @@ func tabSizeClass(ec *editorconfig.Editorconfig, filename string) string {
 		}
 	}
 	return "tab-size-4"
+}
+
+type MiscUtils struct {
+	ctx context.Context
+}
+
+func NewMiscUtils(ctx context.Context) *MiscUtils {
+	return &MiscUtils{ctx: ctx}
+}
+
+type MarkdownEditorContext struct {
+	PreviewMode  string
+	PreviewLink  string
+	MentionsLink string
+}
+
+func (m *MiscUtils) MarkdownEditorComment(repo *repo_model.Repository) *MarkdownEditorContext {
+	return &MarkdownEditorContext{
+		PreviewMode:  "comment",
+		PreviewLink:  repo.Link() + "/markup",
+		MentionsLink: repo.Link() + "/-/mentions-in-repo",
+	}
+}
+
+func (m *MiscUtils) MarkdownEditorWiki(repo *repo_model.Repository) *MarkdownEditorContext {
+	return &MarkdownEditorContext{
+		PreviewMode:  "wiki",
+		PreviewLink:  repo.Link() + "/markup",
+		MentionsLink: repo.Link() + "/-/mentions-in-repo",
+	}
+}
+
+func (m *MiscUtils) MarkdownEditorGeneral(owner *user_model.User) *MarkdownEditorContext {
+	ret := &MarkdownEditorContext{
+		PreviewLink: setting.AppSubURL + "/-/markup",
+	}
+	if owner != nil {
+		ret.MentionsLink = owner.HomeLink() + "/-/mentions-in-owner"
+	}
+	return ret
 }
