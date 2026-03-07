@@ -303,10 +303,10 @@ func (a *AzureBlobStorage) URL(storePath, name, _ string, reqParams url.Values) 
 	}
 	// https://learn.microsoft.com/en-us/rest/api/storageservices/service-sas-examples
 	if mimeType, ok := inlineExtMimeTypes[ext]; ok {
-		reqParams.Set("rsct", mimeType)
-		reqParams.Set("rscd", "inline")
+		reqParams.Set("response-content-type", mimeType)
+		reqParams.Set("response-content-disposition", "inline")
 	} else {
-		reqParams.Set("rscd", fmt.Sprintf(`attachment; filename="%s"`, quoteEscaper.Replace(name)))
+		reqParams.Set("response-content-disposition", fmt.Sprintf(`attachment; filename="%s"`, quoteEscaper.Replace(name)))
 	}
 
 	startTime := time.Now().UTC()
@@ -318,7 +318,7 @@ func (a *AzureBlobStorage) URL(storePath, name, _ string, reqParams url.Values) 
 		StartTime:          startTime,
 		ExpiryTime:         startTime.Add(5 * time.Minute),
 		ContentDisposition: reqParams.Get("rscd"),
-		ContentType:        reqParams.Get("rsct"),
+		ContentType:        reqParams.Get("response-content-type"),
 	})
 	if err != nil {
 		return nil, convertAzureBlobErr(err)
