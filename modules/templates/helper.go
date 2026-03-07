@@ -141,7 +141,7 @@ func NewFuncMap() template.FuncMap {
 		"ReactionToEmoji": reactionToEmoji,
 
 		// -----------------------------------------------------------------
-		// misc
+		// misc (TODO: move them to MiscUtils to avoid bloating the main func map)
 		"ShortSha":                 base.ShortSha,
 		"ActionContent2Commits":    ActionContent2Commits,
 		"IsMultilineCommitMessage": isMultilineCommitMessage,
