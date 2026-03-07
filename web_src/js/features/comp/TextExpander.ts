@@ -38,7 +38,7 @@ export function initTextExpander(expander: TextExpanderElement) {
   if (!expander) return;
 
   const textarea = expander.querySelector<HTMLTextAreaElement>('textarea')!;
-  const mentionsUrl = expander.closest('.combo-markdown-editor')?.getAttribute('data-mentions-url');
+  const mentionsUrl = expander.closest('[data-mentions-url]')?.getAttribute('data-mentions-url');
 
   // help to fix the text-expander "multiword+promise" bug: do not show the popup when there is no "#" before current line
   const shouldShowIssueSuggestions = () => {
