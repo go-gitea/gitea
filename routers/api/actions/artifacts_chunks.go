@@ -221,7 +221,7 @@ func listOrderedChunksForArtifact(st storage.ObjectStorage, runID, artifactID in
 			chunks = []*chunkFileItem{item}
 		}
 		return nil
-	}); err != nil && (chunks != nil || blist != nil) {
+	}); err != nil {
 		return nil, err
 	}
 
