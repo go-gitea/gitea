@@ -14,6 +14,7 @@
 {{$ariaLabel := or .TextareaAriaLabel .TextareaPlaceholder}}
 {{$editorContext := .MarkdownEditorContext}}
 {{$previewMode := or $editorContext.PreviewMode ""}}
+{{$previewContext := or $editorContext.PreviewContext ""}}
 {{$previewLink := or $editorContext.PreviewLink (print AppSubUrl "/-/markup")}}
 {{$mentionsLink := or $editorContext.MentionsLink ""}}
 {{$supportEasyMDE := or (eq $previewMode "comment") (eq $previewMode "wiki")}}
@@ -22,7 +23,7 @@
 		data-content-mode="{{$previewMode}}"
 		data-support-easy-mde="{{$supportEasyMDE}}"
 		data-preview-url="{{$previewLink}}"
-		data-preview-context="{{$previewMode}}"
+		data-preview-context="{{$previewContext}}"
 		{{if $mentionsLink}}data-mentions-url="{{$mentionsLink}}"{{end}}
 >
 	{{if ne $previewMode "none"}}

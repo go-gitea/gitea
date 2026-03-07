@@ -197,9 +197,10 @@ func NewMiscUtils(ctx context.Context) *MiscUtils {
 }
 
 type MarkdownEditorContext struct {
-	PreviewMode  string
-	PreviewLink  string
-	MentionsLink string
+	PreviewMode    string // "comment", "wiki", or empty for general
+	PreviewContext string // the path for resolving the links in the preview (repo preview already has default correct value)
+	PreviewLink    string
+	MentionsLink   string
 }
 
 func (m *MiscUtils) MarkdownEditorComment(repo *repo_model.Repository) *MarkdownEditorContext {
@@ -227,6 +228,7 @@ func (m *MiscUtils) MarkdownEditorWiki(repo *repo_model.Repository) *MarkdownEdi
 func (m *MiscUtils) MarkdownEditorGeneral(owner *user_model.User) *MarkdownEditorContext {
 	ret := &MarkdownEditorContext{PreviewLink: setting.AppSubURL + "/-/markup"}
 	if owner != nil {
+		ret.PreviewContext = owner.HomeLink()
 		ret.MentionsLink = owner.HomeLink() + "/-/mentions-in-owner"
 	}
 	return ret
