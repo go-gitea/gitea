@@ -34,7 +34,7 @@
   --transition-hover-fade: opacity 0.2s ease; /* fade transition for elements that show on hover */
 
   /* z-index */
-  --z-index-modal: 1001; /* modal dialog, hard-coded from Fomantic modal.css */
+  --z-index-modal: 1001; /* modal dialog */
   --z-index-toast: 1002; /* should be larger than modal */
 
   --font-size-label: 12px; /* font size of individual labels */
