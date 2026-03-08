@@ -130,7 +130,7 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 }
 
 // PerformSearch perform a search on a repository
-func PerformSearch(ctx context.Context, opts *SearchOptions) (int, []*Result, []*SearchResultLanguages, error) {
+func PerformSearch(ctx context.Context, opts *SearchOptions) (int64, []*Result, []*SearchResultLanguages, error) {
 	if opts == nil || len(opts.Keyword) == 0 {
 		return 0, nil, nil, nil
 	}
@@ -149,5 +149,5 @@ func PerformSearch(ctx context.Context, opts *SearchOptions) (int, []*Result, []
 			return 0, nil, nil, err
 		}
 	}
-	return int(total), displayResults, resultLanguages, nil
+	return total, displayResults, resultLanguages, nil
 }

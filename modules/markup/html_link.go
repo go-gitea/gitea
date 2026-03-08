@@ -113,16 +113,17 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 		}
 		childNode.Parent = linkNode
 		absoluteLink := IsFullURLString(link)
-		if !absoluteLink {
+		// FIXME: it should be fully refactored in the future, it uses various hacky approaches to guess how to encode a path for wiki
+		// When a link contains "/", then we assume that the user has provided a well-encoded link.
+		if !absoluteLink && !strings.Contains(link, "/") {
+			// So only guess for links without "/".
 			if image {
 				link = strings.ReplaceAll(link, " ", "+")
 			} else {
 				// the hacky wiki name encoding: space to "-"
 				link = strings.ReplaceAll(link, " ", "-") // FIXME: it should support dashes in the link, eg: "the-dash-support.-"
 			}
-			if !strings.Contains(link, "/") {
-				link = url.PathEscape(link) // FIXME: it doesn't seem right and it might cause double-escaping
-			}
+			link = url.PathEscape(link)
 		}
 		if image {
 			title := props["title"]
