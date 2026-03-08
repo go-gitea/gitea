@@ -36,7 +36,7 @@ func SanitizeCredentialURLs(s string) string {
 	if schemeSepPos == -1 || bytes.IndexByte(bs[schemeSepPos:], '@') == -1 {
 		return s // fast return if there is no URL scheme or no userinfo
 	}
-	out := make([]byte, 0, len(bs)+len(userPlaceholder))
+	out := make([]byte, 0, len(bs))
 	for schemeSepPos != -1 {
 		schemeSepPos += 3         // skip the "://"
 		sepAtPos := -1            // the possible '@' position: "https://foo@[^here]host"

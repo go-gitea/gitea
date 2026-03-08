@@ -79,7 +79,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 		}
 		res.Entries[i] = convertedWorkflowJob
 	}
-	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &res)
 }
@@ -185,7 +185,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 		}
 		res.Entries[i] = convertedRun
 	}
-	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &res)
 }

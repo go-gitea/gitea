@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates/scopedtmpl"
-	"code.gitea.io/gitea/modules/util"
 )
 
 type TemplateExecutor scopedtmpl.TemplateExecutor
@@ -159,15 +158,15 @@ func (p *templateErrorPrettier) makeDetailedError(errMsg, tmplName string, lineN
 	if err != nil {
 		return fmt.Sprintf("template error: %s, and unable to find template file %q", errMsg, tmplName)
 	}
-	line, err := util.ToInt64(lineNum)
+	line, err := strconv.Atoi(fmt.Sprint(lineNum))
 	if err != nil {
 		return fmt.Sprintf("template error: %s, unable to parse template %q line number %q", errMsg, tmplName, lineNum)
 	}
-	pos, err := util.ToInt64(posNum)
+	pos, err := strconv.Atoi(fmt.Sprint(posNum))
 	if err != nil {
 		return fmt.Sprintf("template error: %s, unable to parse template %q pos number %q", errMsg, tmplName, posNum)
 	}
-	detail := extractErrorLine(code, int(line), int(pos), target)
+	detail := extractErrorLine(code, line, pos, target)
 
 	var msg string
 	if pos >= 0 {
