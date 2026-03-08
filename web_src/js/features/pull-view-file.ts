@@ -15,7 +15,7 @@ function refreshViewedFilesSummary() {
   const viewedFilesProgress = document.querySelector('#viewed-files-summary');
   viewedFilesProgress?.setAttribute('value', prReview.numberOfViewedFiles);
   const summaryLabel = document.querySelector('#viewed-files-summary-label')!;
-  if (summaryLabel) summaryLabel.innerHTML = summaryLabel.getAttribute('data-text-changed-template')!
+  if (summaryLabel) summaryLabel.textContent = summaryLabel.getAttribute('data-text-changed-template')!
     .replace('%[1]d', prReview.numberOfViewedFiles)
     .replace('%[2]d', prReview.numberOfFiles);
 }
