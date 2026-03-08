@@ -540,7 +540,7 @@
 .code-editor-container .tok-inserted { color: var(--color-syntax-string); }
 .code-editor-container .tok-deleted { color: var(--color-syntax-invalid); }
 
-/* language-specific overrides: in data formats, property names are structural keys */
+/* language-specific overrides */
 .code-editor-container[data-language="json"] .tok-propertyName,
 .code-editor-container[data-language="json5"] .tok-propertyName,
 .code-editor-container[data-language="yaml"] .tok-propertyName { color: var(--color-syntax-tag); }
