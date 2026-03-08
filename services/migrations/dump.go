@@ -288,12 +288,13 @@ func (g *RepositoryDumper) CreateLabels(_ context.Context, labels ...*base.Label
 func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.Release) error {
 	if g.opts.ReleaseAssets {
 		for _, release := range releases {
-			attachDir := filepath.Join("release_assets", release.TagName)
+			attachDir := filepath.Join("release_assets", uuid.New().String())
 			if err := os.MkdirAll(filepath.Join(g.baseDir, attachDir), os.ModePerm); err != nil {
 				return err
 			}
 			for _, asset := range release.Assets {
-				attachLocalPath := filepath.Join(attachDir, asset.Name)
+				// we cannot use asset.Name because it might contains special characters.
+				attachLocalPath := filepath.Join(attachDir, uuid.New().String())
 
 				// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
 				// ... we must assume that they are safe and simply download the attachment

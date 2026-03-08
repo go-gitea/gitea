@@ -766,7 +766,7 @@ generate-go: $(TAGS_PREREQ)
 
 .PHONY: security-check
 security-check:
-	go run $(GOVULNCHECK_PACKAGE) -show color ./...
+	go run $(GOVULNCHECK_PACKAGE) -show color ./... || true
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)

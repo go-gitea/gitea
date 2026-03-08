@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/util"
@@ -40,6 +41,10 @@ type GrepOptions struct {
 	MaxLineLength     int // the maximum length of a line to parse, exceeding chars will be truncated
 	PathspecList      []string
 }
+
+// grepSearchTimeout is the timeout for git grep search, it should be long enough to get results
+// but not too long to cause performance issues
+const grepSearchTimeout = 30 * time.Second
 
 func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepOptions) ([]*GrepResult, error) {
 	stdoutReader, stdoutWriter, err := os.Pipe()
@@ -85,9 +90,10 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	opts.MaxResultLimit = util.IfZero(opts.MaxResultLimit, 50)
 	stderr := bytes.Buffer{}
 	err = cmd.Run(ctx, &gitcmd.RunOpts{
-		Dir:    repo.Path,
-		Stdout: stdoutWriter,
-		Stderr: &stderr,
+		Dir:     repo.Path,
+		Stdout:  stdoutWriter,
+		Stderr:  &stderr,
+		Timeout: grepSearchTimeout,
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			defer stdoutReader.Close()
