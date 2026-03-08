@@ -229,12 +229,11 @@ func signInOpenIDVerify(ctx *context.Context) {
 	}
 }
 
-// ConnectOpenID shows a form to connect an OpenID URI to an existing account
-func ConnectOpenID(ctx *context.Context) {
-	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
+func prepareConnectOpenIDPageData(ctx *context.Context) (oid string) {
+	oid, _ = ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
-		return
+		return ""
 	}
 	ctx.Data["Title"] = "OpenID connect"
 	ctx.Data["PageIsSignIn"] = true
@@ -242,6 +241,15 @@ func ConnectOpenID(ctx *context.Context) {
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["OpenID"] = oid
+	return oid
+}
+
+// ConnectOpenID shows a form to connect an OpenID URI to an existing account
+func ConnectOpenID(ctx *context.Context) {
+	oid := prepareConnectOpenIDPageData(ctx)
+	if oid == "" {
+		return
+	}
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
 		ctx.Data["user_name"] = userName
@@ -252,16 +260,10 @@ func ConnectOpenID(ctx *context.Context) {
 // ConnectOpenIDPost handles submission of a form to connect an OpenID URI to an existing account
 func ConnectOpenIDPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.ConnectOpenIDForm)
-	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
+	oid := prepareConnectOpenIDPageData(ctx)
 	if oid == "" {
-		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
 		return
 	}
-	ctx.Data["Title"] = "OpenID connect"
-	ctx.Data["PageIsSignIn"] = true
-	ctx.Data["PageIsOpenIDConnect"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
-	ctx.Data["OpenID"] = oid
 
 	u, _, err := auth.UserSignIn(ctx, form.UserName, form.Password)
 	if err != nil {
@@ -298,7 +300,7 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
 
-	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
+	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha,
 	})
 
@@ -326,9 +328,8 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	ctx.Data["Title"] = "OpenID signup"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 
-	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
+	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha,
 	})
 

@@ -49,12 +49,14 @@ type CommonAuthOptions struct {
 	EnableCaptcha bool
 }
 
-func prepareCommonAuthTemplateData(ctx *context.Context, opt CommonAuthOptions) {
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
-	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
 	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
+
+	// for OpenID Connect
+	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 
 	if opt.EnableCaptcha {
 		ctx.Data["EnableCaptcha"] = true
@@ -226,7 +228,7 @@ func prepareSignInPageData(ctx *context.Context) {
 	ctx.Data["PageIsLogin"] = true
 	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
 
-	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
+	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin,
 	})
 }
@@ -481,7 +483,7 @@ func SignUp(ctx *context.Context) {
 	}
 
 	ctx.Data["OAuth2Providers"] = oauth2Providers
-	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
+	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha,
 	})
 
@@ -509,7 +511,7 @@ func SignUpPost(ctx *context.Context) {
 	}
 
 	ctx.Data["OAuth2Providers"] = oauth2Providers
-	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
+	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha,
 	})
 
