@@ -35,7 +35,7 @@ func TestToCommitMeta(t *testing.T) {
 	assert.NotNil(t, commitMeta)
 	assert.Equal(t, &api.CommitMeta{
 		SHA:     sha1.EmptyObjectID().String(),
-		URL:     util.URLJoinDeprecated(headRepo.APIURL(), "git/commits", sha1.EmptyObjectID().String()),
+		URL:     util.URLJoin(headRepo.APIURL(), "git/commits", sha1.EmptyObjectID().String()),
 		Created: time.Unix(0, 0),
 	}, commitMeta)
 }

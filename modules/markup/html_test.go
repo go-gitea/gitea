@@ -34,15 +34,15 @@ func TestRender_Commits(t *testing.T) {
 
 	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
 	repo := markup.TestAppURL + testRepoOwnerName + "/" + testRepoName + "/"
-	commit := util.URLJoinDeprecated(repo, "commit", sha)
+	commit := util.URLJoin(repo, "commit", sha)
 	commitPath := "/user13/repo11/commit/" + sha
-	tree := util.URLJoinDeprecated(repo, "tree", sha, "src")
+	tree := util.URLJoin(repo, "tree", sha, "src")
 
-	file := util.URLJoinDeprecated(repo, "commit", sha, "example.txt")
+	file := util.URLJoin(repo, "commit", sha, "example.txt")
 	fileWithExtra := file + ":"
 	fileWithHash := file + "#L2"
 	fileWithHasExtra := file + "#L2:"
-	commitCompare := util.URLJoinDeprecated(repo, "compare", sha+"..."+sha)
+	commitCompare := util.URLJoin(repo, "compare", sha+"..."+sha)
 	commitCompareWithHash := commitCompare + "#L2"
 
 	test(sha, `<p><a href="`+commitPath+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
@@ -90,14 +90,14 @@ func TestRender_CrossReferences(t *testing.T) {
 		"/home/gitea/go-gitea/gitea#12345",
 		`<p>/home/gitea/go-gitea/gitea#12345</p>`)
 	test(
-		util.URLJoinDeprecated(markup.TestAppURL, "gogitea", "gitea", "issues", "12345"),
-		`<p><a href="`+util.URLJoinDeprecated(markup.TestAppURL, "gogitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/gitea#12345</a></p>`)
+		util.URLJoin(markup.TestAppURL, "gogitea", "gitea", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/gitea#12345</a></p>`)
 	test(
-		util.URLJoinDeprecated(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345"),
-		`<p><a href="`+util.URLJoinDeprecated(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+		util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
 	test(
-		util.URLJoinDeprecated(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
-		`<p><a href="`+util.URLJoinDeprecated(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
+		util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
 
 	inputURL := setting.AppURL + "a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
 	test(
@@ -375,7 +375,7 @@ func TestRender_emoji(t *testing.T) {
 
 func TestRender_ShortLinks(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
-	tree := util.URLJoinDeprecated(markup.TestRepoURL, "src", "master")
+	tree := util.URLJoin(markup.TestRepoURL, "src", "master")
 
 	test := func(input, expected string) {
 		buffer, err := markdown.RenderString(markup.NewTestRenderContext(tree), input)
@@ -383,15 +383,15 @@ func TestRender_ShortLinks(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
 
-	url := util.URLJoinDeprecated(tree, "Link")
-	otherURL := util.URLJoinDeprecated(tree, "Other-Link")
-	encodedURL := util.URLJoinDeprecated(tree, "Link%3F")
-	imgurl := util.URLJoinDeprecated(tree, "Link.jpg")
-	otherImgurl := util.URLJoinDeprecated(tree, "Link+Other.jpg")
-	encodedImgurl := util.URLJoinDeprecated(tree, "Link+%23.jpg")
-	notencodedImgurl := util.URLJoinDeprecated(tree, "some", "path", "Link+#.jpg")
-	renderableFileURL := util.URLJoinDeprecated(tree, "markdown_file.md")
-	unrenderableFileURL := util.URLJoinDeprecated(tree, "file.zip")
+	url := util.URLJoin(tree, "Link")
+	otherURL := util.URLJoin(tree, "Other-Link")
+	encodedURL := util.URLJoin(tree, "Link%3F")
+	imgurl := util.URLJoin(tree, "Link.jpg")
+	otherImgurl := util.URLJoin(tree, "Link+Other.jpg")
+	encodedImgurl := util.URLJoin(tree, "Link+%23.jpg")
+	notencodedImgurl := util.URLJoin(tree, "some", "path", "Link+#.jpg")
+	renderableFileURL := util.URLJoin(tree, "markdown_file.md")
+	unrenderableFileURL := util.URLJoin(tree, "file.zip")
 	favicon := "http://google.com/favicon.ico"
 
 	test(

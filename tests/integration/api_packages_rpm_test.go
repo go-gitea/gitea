@@ -99,7 +99,7 @@ gpgcheck=1
 gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					strings.Join(append([]string{user.LowerName}, groupParts...), "-"),
 					strings.Join(append([]string{user.Name, setting.AppName}, groupParts...), " - "),
-					util.URLJoinDeprecated(setting.AppURL, groupURL),
+					util.URLJoin(setting.AppURL, groupURL),
 					setting.AppURL,
 					user.Name,
 				)

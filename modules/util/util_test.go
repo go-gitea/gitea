@@ -40,7 +40,7 @@ func TestURLJoin(t *testing.T) {
 		newTest("/a/b/c#hash",
 			"/a", "b/c#hash"),
 	} {
-		assert.Equal(t, test.Expected, URLJoinDeprecated(test.Base, test.Elements...))
+		assert.Equal(t, test.Expected, URLJoin(test.Base, test.Elements...))
 	}
 }
 

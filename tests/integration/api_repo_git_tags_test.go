@@ -58,7 +58,7 @@ func TestAPIGitTags(t *testing.T) {
 	assert.Equal(t, aTagMessage+"\n", tag.Message)
 	assert.Equal(t, user.Name, tag.Tagger.Name)
 	assert.Equal(t, user.Email, tag.Tagger.Email)
-	assert.Equal(t, util.URLJoinDeprecated(repo.APIURL(), "git/tags", aTag.ID.String()), tag.URL)
+	assert.Equal(t, util.URLJoin(repo.APIURL(), "git/tags", aTag.ID.String()), tag.URL)
 
 	// Should NOT work for lightweight tags
 	badReq := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s", user.Name, repo.Name, commit.ID.String()).
