@@ -289,22 +289,29 @@ func ConnectOpenIDPost(ctx *context.Context) {
 	handleSignIn(ctx, u, remember)
 }
 
-// RegisterOpenID shows a form to create a new user authenticated via an OpenID URI
-func RegisterOpenID(ctx *context.Context) {
-	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
+func prepareRegisterOpenIDPageData(ctx *context.Context) (oid string) {
+	oid, _ = ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
-		return
+		return ""
 	}
 	ctx.Data["Title"] = "OpenID signup"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
-
+	ctx.Data["OpenID"] = oid
 	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha,
 	})
+	return oid
+}
 
-	ctx.Data["OpenID"] = oid
+// RegisterOpenID shows a form to create a new user authenticated via an OpenID URI
+func RegisterOpenID(ctx *context.Context) {
+	oid := prepareRegisterOpenIDPageData(ctx)
+	if oid == "" {
+		return
+	}
+
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
 		ctx.Data["user_name"] = userName
@@ -318,22 +325,12 @@ func RegisterOpenID(ctx *context.Context) {
 
 // RegisterOpenIDPost handles submission of a form to create a new user authenticated via an OpenID URI
 func RegisterOpenIDPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.SignUpOpenIDForm)
-	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
+	oid := prepareRegisterOpenIDPageData(ctx)
 	if oid == "" {
-		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
 		return
 	}
 
-	ctx.Data["Title"] = "OpenID signup"
-	ctx.Data["PageIsSignIn"] = true
-	ctx.Data["PageIsOpenIDRegister"] = true
-
-	prepareCommonAuthPageData(ctx, CommonAuthOptions{
-		EnableCaptcha: setting.Service.EnableCaptcha,
-	})
-
-	ctx.Data["OpenID"] = oid
+	form := web.GetForm(ctx).(*forms.SignUpOpenIDForm)
 
 	if setting.Service.AllowOnlyInternalRegistration {
 		ctx.HTTPError(http.StatusForbidden)
