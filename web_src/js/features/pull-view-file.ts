@@ -15,9 +15,11 @@ function refreshViewedFilesSummary() {
   const viewedFilesProgress = document.querySelector('#viewed-files-summary');
   viewedFilesProgress?.setAttribute('value', prReview.numberOfViewedFiles);
   const summaryLabel = document.querySelector('#viewed-files-summary-label')!;
-  if (summaryLabel) summaryLabel.textContent = summaryLabel.getAttribute('data-text-changed-template')!
-    .replace('%[1]d', prReview.numberOfViewedFiles)
-    .replace('%[2]d', prReview.numberOfFiles);
+  if (summaryLabel) {
+    summaryLabel.textContent = summaryLabel.getAttribute('data-text-changed-template')!
+      .replace('%[1]d', prReview.numberOfViewedFiles)
+      .replace('%[2]d', prReview.numberOfFiles);
+  }
 }
 
 // Initializes a listener for all children of the given html element
