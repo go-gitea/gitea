@@ -42,7 +42,7 @@ func TestRenderHTMLCache(t *testing.T) {
 	assert.Contains(t, realHTML, svgRealContent)
 
 	t.Run("CacheWithLimit", func(t *testing.T) {
-		assert.NotZero(t, len(svgRenderedCache))
+		assert.NotEmpty(t, svgRenderedCache)
 		const testLimit = 3
 		defer test.MockVariableValue(&svgRenderedLimit, testLimit)()
 		for i := range 10 {
