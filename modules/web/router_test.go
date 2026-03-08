@@ -30,6 +30,71 @@ func chiURLParamsToMap(chiCtx *chi.Context) map[string]string {
 	return util.Iif(len(m) == 0, nil, m)
 }
 
+type testResult struct {
+	method          string
+	pathParams      map[string]string
+	handlerMarks    []string
+	chiRoutePattern *string
+}
+
+type testRecorder struct {
+	res testResult
+}
+
+func (r *testRecorder) reset() {
+	r.res = testResult{}
+}
+
+func (r *testRecorder) handle(optMark ...string) func(resp http.ResponseWriter, req *http.Request) {
+	mark := util.OptionalArg(optMark, "")
+	return func(resp http.ResponseWriter, req *http.Request) {
+		chiCtx := chi.RouteContext(req.Context())
+		r.res.method = req.Method
+		r.res.pathParams = chiURLParamsToMap(chiCtx)
+		r.res.chiRoutePattern = new(chiCtx.RoutePattern())
+		if mark != "" {
+			r.res.handlerMarks = append(r.res.handlerMarks, mark)
+		}
+	}
+}
+
+func (r *testRecorder) provider(optMark ...string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			r.handle(optMark...)(resp, req)
+			next.ServeHTTP(resp, req)
+		})
+	}
+}
+
+func (r *testRecorder) stop(optMark ...string) func(resp http.ResponseWriter, req *http.Request) {
+	mark := util.OptionalArg(optMark, "")
+	return func(resp http.ResponseWriter, req *http.Request) {
+		if stop := req.FormValue("stop"); stop != "" && (mark == "" || mark == stop) {
+			r.handle(stop)(resp, req)
+			resp.WriteHeader(http.StatusOK)
+		} else if mark != "" {
+			r.res.handlerMarks = append(r.res.handlerMarks, mark)
+		}
+	}
+}
+
+func (r *testRecorder) test(t *testing.T, rt *Router, methodPath string, expected testResult) {
+	r.reset()
+	methodPathFields := strings.Fields(methodPath)
+	req, err := http.NewRequest(methodPathFields[0], methodPathFields[1], nil)
+	assert.NoError(t, err)
+
+	buff := &bytes.Buffer{}
+	httpRecorder := httptest.NewRecorder()
+	httpRecorder.Body = buff
+	rt.ServeHTTP(httpRecorder, req)
+	if expected.chiRoutePattern == nil {
+		r.res.chiRoutePattern = nil
+	}
+	assert.Equal(t, expected, r.res)
+}
+
 func TestPathProcessor(t *testing.T) {
 	testProcess := func(pattern, uri string, expectedPathParams map[string]string) {
 		chiCtx := chi.NewRouteContext()
@@ -51,42 +116,10 @@ func TestPathProcessor(t *testing.T) {
 }
 
 func TestRouter(t *testing.T) {
-	buff := &bytes.Buffer{}
-	recorder := httptest.NewRecorder()
-	recorder.Body = buff
-
-	type resultStruct struct {
-		method          string
-		pathParams      map[string]string
-		handlerMarks    []string
-		chiRoutePattern *string
-	}
-
-	var res resultStruct
-	h := func(optMark ...string) func(resp http.ResponseWriter, req *http.Request) {
-		mark := util.OptionalArg(optMark, "")
-		return func(resp http.ResponseWriter, req *http.Request) {
-			chiCtx := chi.RouteContext(req.Context())
-			res.method = req.Method
-			res.pathParams = chiURLParamsToMap(chiCtx)
-			res.chiRoutePattern = new(chiCtx.RoutePattern())
-			if mark != "" {
-				res.handlerMarks = append(res.handlerMarks, mark)
-			}
-		}
-	}
-
-	stopMark := func(optMark ...string) func(resp http.ResponseWriter, req *http.Request) {
-		mark := util.OptionalArg(optMark, "")
-		return func(resp http.ResponseWriter, req *http.Request) {
-			if stop := req.FormValue("stop"); stop != "" && (mark == "" || mark == stop) {
-				h(stop)(resp, req)
-				resp.WriteHeader(http.StatusOK)
-			} else if mark != "" {
-				res.handlerMarks = append(res.handlerMarks, mark)
-			}
-		}
-	}
+	type resultStruct = testResult
+	resRecorder := &testRecorder{}
+	h := resRecorder.handle
+	stopMark := resRecorder.stop
 
 	r := NewRouter()
 	r.NotFound(h("not-found:/"))
@@ -123,15 +156,7 @@ func TestRouter(t *testing.T) {
 
 	testRoute := func(t *testing.T, methodPath string, expected resultStruct) {
 		t.Run(methodPath, func(t *testing.T) {
-			res = resultStruct{}
-			methodPathFields := strings.Fields(methodPath)
-			req, err := http.NewRequest(methodPathFields[0], methodPathFields[1], nil)
-			assert.NoError(t, err)
-			r.ServeHTTP(recorder, req)
-			if expected.chiRoutePattern == nil {
-				res.chiRoutePattern = nil
-			}
-			assert.Equal(t, expected, res)
+			resRecorder.test(t, r, methodPath, expected)
 		})
 	}
 
@@ -272,4 +297,40 @@ func TestRouteNormalizePath(t *testing.T) {
 	testPath("/v2", paths{EscapedPath: "/v2", RawPath: "/v2", Path: "/v2"})
 	testPath("/v2/", paths{EscapedPath: "/v2", RawPath: "/v2", Path: "/v2"})
 	testPath("/v2/%2f", paths{EscapedPath: "/v2/%2f", RawPath: "/v2/%2f", Path: "/v2//"})
+}
+
+func TestPreMiddlewareProvider(t *testing.T) {
+	resRecorder := &testRecorder{}
+	h := resRecorder.handle
+	p := resRecorder.provider
+
+	root := NewRouter()
+	root.BeforeRouting(h("before-root"))
+	root.AfterRouting(h("root"))
+	root.Get("/a/1", h("mid"), PreMiddlewareProvider(p("pre-root")), h("end1"))
+
+	sub := NewRouter()
+	sub.BeforeRouting(h("before-sub"))
+	sub.AfterRouting(h("sub"))
+	sub.Get("/2", h("mid"), PreMiddlewareProvider(p("pre-sub")), h("end2"))
+	sub.NotFound(h("not-found"))
+
+	root.Mount("/a", sub)
+
+	resRecorder.test(t, root, "GET /a/1", testResult{
+		method:       "GET",
+		handlerMarks: []string{"before-root", "pre-root", "root", "mid", "end1"},
+	})
+	resRecorder.test(t, root, "GET /a/2", testResult{
+		method:       "GET",
+		handlerMarks: []string{"before-root", "root", "before-sub", "pre-sub", "sub", "mid", "end2"},
+	})
+	resRecorder.test(t, root, "GET /no-such", testResult{
+		method:       "GET",
+		handlerMarks: []string{"before-root"},
+	})
+	resRecorder.test(t, root, "GET /a/no-such", testResult{
+		method:       "GET",
+		handlerMarks: []string{"before-root", "root", "before-sub", "sub", "not-found"},
+	})
 }

@@ -46,7 +46,9 @@ var (
 // The SSPI plugin is expected to be executed last, as it returns 401 status code if negotiation
 // fails (or if negotiation should continue), which would prevent other authentication methods
 // to execute at all.
-type SSPI struct{}
+type SSPI struct {
+	CreateSession bool
+}
 
 // Name represents the name of auth method
 func (s *SSPI) Name() string {
@@ -118,9 +120,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		}
 	}
 
-	// Make sure requests to API paths and PWA resources do not create a new session
-	detector := newAuthPathDetector(req)
-	if !detector.isAPIPath() && !detector.isAttachmentDownload() {
+	if s.CreateSession {
 		handleSignIn(w, req, sess, user)
 	}
 
@@ -147,18 +147,9 @@ func (s *SSPI) getConfig(ctx context.Context) (*sspi.Source, error) {
 }
 
 func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
-	shouldAuth = false
-	path := strings.TrimSuffix(req.URL.Path, "/")
-	if path == "/user/login" {
-		if req.FormValue("user_name") != "" && req.FormValue("password") != "" {
-			shouldAuth = false
-		} else if req.FormValue("auth_with_sspi") == "1" {
-			shouldAuth = true
-		}
-	} else {
-		detector := newAuthPathDetector(req)
-		shouldAuth = detector.isAPIPath() || detector.isAttachmentDownload()
-	}
+	// SSPI is only applicable for login requests with "auth_with_sspi" form value set to "1"
+	// See the template code with "auth_with_sspi"
+	shouldAuth = req.URL.Path == "/user/login" && req.FormValue("auth_with_sspi") == "1"
 	return shouldAuth
 }
 
