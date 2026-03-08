@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates/scopedtmpl"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type TemplateExecutor scopedtmpl.TemplateExecutor
@@ -88,7 +89,7 @@ func (p *templateErrorPrettier) handleGenericTemplateError(err error) string {
 		return ""
 	}
 	tmplName, lineStr, message := groups[1], groups[2], groups[3]
-	return p.makeDetailedError(message, tmplName, lineStr, -1, "")
+	return p.makeDetailedError(message, tmplName, lineStr, "", "")
 }
 
 var reFuncNotDefinedError = regexp.MustCompile(`^template: (.*):([0-9]+): (function "(.*)" not defined)`)
@@ -100,7 +101,7 @@ func (p *templateErrorPrettier) handleFuncNotDefinedError(err error) string {
 	}
 	tmplName, lineStr, message, funcName := groups[1], groups[2], groups[3], groups[4]
 	funcName, _ = strconv.Unquote(`"` + funcName + `"`)
-	return p.makeDetailedError(message, tmplName, lineStr, -1, funcName)
+	return p.makeDetailedError(message, tmplName, lineStr, "", funcName)
 }
 
 var reUnexpectedOperandError = regexp.MustCompile(`^template: (.*):([0-9]+): (unexpected "(.*)" in operand)`)
@@ -112,7 +113,7 @@ func (p *templateErrorPrettier) handleUnexpectedOperandError(err error) string {
 	}
 	tmplName, lineStr, message, unexpected := groups[1], groups[2], groups[3], groups[4]
 	unexpected, _ = strconv.Unquote(`"` + unexpected + `"`)
-	return p.makeDetailedError(message, tmplName, lineStr, -1, unexpected)
+	return p.makeDetailedError(message, tmplName, lineStr, "", unexpected)
 }
 
 var reExpectedEndError = regexp.MustCompile(`^template: (.*):([0-9]+): (expected end; found (.*))`)
@@ -123,7 +124,7 @@ func (p *templateErrorPrettier) handleExpectedEndError(err error) string {
 		return ""
 	}
 	tmplName, lineStr, message, unexpected := groups[1], groups[2], groups[3], groups[4]
-	return p.makeDetailedError(message, tmplName, lineStr, -1, unexpected)
+	return p.makeDetailedError(message, tmplName, lineStr, "", unexpected)
 }
 
 var (
@@ -153,18 +154,18 @@ func HandleTemplateRenderingError(err error) string {
 
 const dashSeparator = "----------------------------------------------------------------------"
 
-func (p *templateErrorPrettier) makeDetailedError(errMsg, tmplName string, lineNum, posNum any, target string) string {
+func (p *templateErrorPrettier) makeDetailedError(errMsg, tmplName string, lineNumStr, posNumStr, target string) string {
 	code, layer, err := p.assets.ReadLayeredFile(tmplName + ".tmpl")
 	if err != nil {
 		return fmt.Sprintf("template error: %s, and unable to find template file %q", errMsg, tmplName)
 	}
-	line, err := strconv.Atoi(fmt.Sprint(lineNum))
+	line, err := strconv.Atoi(lineNumStr)
 	if err != nil {
-		return fmt.Sprintf("template error: %s, unable to parse template %q line number %q", errMsg, tmplName, lineNum)
+		return fmt.Sprintf("template error: %s, unable to parse template %q line number %s", errMsg, tmplName, lineNumStr)
 	}
-	pos, err := strconv.Atoi(fmt.Sprint(posNum))
+	pos, err := strconv.Atoi(util.IfZero(posNumStr, "-1"))
 	if err != nil {
-		return fmt.Sprintf("template error: %s, unable to parse template %q pos number %q", errMsg, tmplName, posNum)
+		return fmt.Sprintf("template error: %s, unable to parse template %q pos number %s", errMsg, tmplName, posNumStr)
 	}
 	detail := extractErrorLine(code, line, pos, target)
 
