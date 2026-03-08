@@ -20,8 +20,8 @@ require (
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
 	github.com/42wim/httpsig v1.2.3
 	github.com/42wim/sshsig v0.0.0-20250502153856-5100632e8920
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.21.0
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.4
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.0
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.2
 	github.com/Azure/go-ntlmssp v0.1.0
 	github.com/ProtonMail/go-crypto v1.4.0
 	github.com/PuerkitoBio/goquery v1.11.0
@@ -81,7 +81,7 @@ require (
 	github.com/meilisearch/meilisearch-go v0.36.1
 	github.com/mholt/archives v0.1.5
 	github.com/microcosm-cc/bluemonday v1.0.27
-	github.com/microsoft/go-mssqldb v1.9.8
+	github.com/microsoft/go-mssqldb v1.9.7
 	github.com/minio/minio-go/v7 v7.0.99
 	github.com/msteinert/pam/v2 v2.1.0
 	github.com/nektos/act v0.2.63
