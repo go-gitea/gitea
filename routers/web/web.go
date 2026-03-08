@@ -336,14 +336,14 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	validation.AddBindingRules()
 
 	openIDSignInEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignIn {
+		if !setting.OpenID.EnableSignIn {
 			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	openIDSignUpEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignUp {
+		if !setting.OpenID.EnableSignUp {
 			ctx.HTTPError(http.StatusForbidden)
 			return
 		}

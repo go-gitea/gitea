@@ -138,9 +138,9 @@
 				<dt>{{ctx.Locale.Tr "admin.config.show_registration_button"}}</dt>
 				<dd>{{svg (Iif .Service.ShowRegistrationButton "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.enable_openid_signup"}}</dt>
-				<dd>{{svg (Iif .Service.EnableOpenIDSignUp "octicon-check" "octicon-x")}}</dd>
+				<dd>{{svg (Iif .OpenID.EnableSignUp "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.enable_openid_signin"}}</dt>
-				<dd>{{svg (Iif .Service.EnableOpenIDSignIn "octicon-check" "octicon-x")}}</dd>
+				<dd>{{svg (Iif .OpenID.EnableSignIn "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.require_sign_in_view"}}</dt>
 				<dd>{{svg (Iif .Service.RequireSignInViewStrict "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.mail_notify"}}</dt>

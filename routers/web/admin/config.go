@@ -142,6 +142,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["LFS"] = setting.LFS
 
 	ctx.Data["Service"] = setting.Service
+	ctx.Data["OpenID"] = setting.OpenID
 	ctx.Data["DbCfg"] = setting.Database
 	ctx.Data["Webhook"] = setting.Webhook
 	ctx.Data["MailerEnabled"] = false
