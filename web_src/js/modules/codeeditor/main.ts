@@ -5,7 +5,7 @@ import {svg} from '../../svg.ts';
 import {commandPalette} from './command-palette.ts';
 import {createJsonLinter, createSyntaxErrorLinter} from './linter.ts';
 import {clickableUrls, trimTrailingWhitespaceFromView} from './utils.ts';
-import type {LanguageDescription, LanguageSupport} from '@codemirror/language';
+import type {LanguageDescription} from '@codemirror/language';
 import type {Compartment, Extension} from '@codemirror/state';
 import type {EditorView, ViewUpdate} from '@codemirror/view';
 
@@ -88,7 +88,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
     ...cm.languageData.languages.filter((l: LanguageDescription) => l.name !== 'Markdown'),
     cm.language.LanguageDescription.of({
       name: 'Markdown', extensions: ['md', 'markdown', 'mkd'],
-      load: async (): Promise<LanguageSupport> => (await import('@codemirror/lang-markdown')).markdown({codeLanguages: languageDescriptions}),
+      load: async () => (await import('@codemirror/lang-markdown')).markdown({codeLanguages: languageDescriptions}),
     }),
     cm.language.LanguageDescription.of({
       name: 'Elixir', extensions: ['ex', 'exs'],
