@@ -301,6 +301,12 @@ replace github.com/urfave/cli-docs/v3 => github.com/urfave/cli-docs/v3 v3.0.0-al
 
 replace go.yaml.in/yaml/v4 => go.yaml.in/yaml/v4 v4.0.0-rc.2 // rc.4 changes block scalar serialization, wait for stable release
 
+replace github.com/Azure/azure-sdk-for-go/sdk/azcore => github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.0 // v1.21.0+ uses API version unsupported by Azurite in CI
+
+replace github.com/Azure/azure-sdk-for-go/sdk/storage/azblob => github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.2 // v1.6.4+ uses API version unsupported by Azurite in CI
+
+replace github.com/microsoft/go-mssqldb => github.com/microsoft/go-mssqldb v1.9.7 // downgraded with Azure SDK
+
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 
 exclude github.com/gofrs/uuid v4.0.0+incompatible
