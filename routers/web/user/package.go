@@ -48,6 +48,29 @@ const (
 	tplPackagesSettings   templates.TplName = "package/settings"
 )
 
+type terraformLockInfo struct {
+	ID        string    `json:"ID"`
+	Operation string    `json:"Operation"`
+	Who       string    `json:"Who"`
+	Created   time.Time `json:"Created"`
+}
+
+func getTerraformLock(ctx *context.Context, packageID int64) (*terraformLockInfo, error) {
+	locks, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, packageID, "terraform.lock")
+	if err != nil {
+		return nil, err
+	}
+	if len(locks) == 0 || locks[0].Value == "" {
+		return nil, nil
+	}
+
+	var lock terraformLockInfo
+	if err := json.Unmarshal([]byte(locks[0].Value), &lock); err != nil {
+		return nil, err
+	}
+	return &lock, nil
+}
+
 // ListPackages displays a list of all packages of the context user
 func ListPackages(ctx *context.Context) {
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
@@ -333,18 +356,8 @@ func ViewPackageVersion(ctx *context.Context) {
 		ctx.Data["IsLatestVersion"] = isLatest
 
 		if isLatest {
-			lockProps, _ := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, pd.Package.ID, "terraform.lock")
-			if len(lockProps) > 0 && lockProps[0].Value != "" {
-				var lockInfo struct {
-					ID        string    `json:"ID"`
-					Who       string    `json:"Who"`
-					Operation string    `json:"Operation"`
-					Created   time.Time `json:"Created"`
-				}
-				if err := json.Unmarshal([]byte(lockProps[0].Value), &lockInfo); err == nil {
-					ctx.Data["TerraformLock"] = lockInfo
-				}
-			}
+			lockInfo, _ := getTerraformLock(ctx, pd.Package.ID)
+			ctx.Data["TerraformLock"] = lockInfo
 		}
 	}
 
@@ -523,7 +536,36 @@ func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSett
 }
 
 func packageSettingsPostActionDelete(ctx *context.Context) {
-	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
+	pd := ctx.Package.Descriptor
+
+	if pd.Package.Type == packages_model.TypeTerraformState {
+		lock, err := getTerraformLock(ctx, pd.Package.ID)
+		if err != nil {
+			ctx.ServerError("getTerraformLock", err)
+			return
+		}
+		if lock != nil {
+			ctx.Flash.Error(ctx.Tr("packages.terraform.delete.locked"))
+			ctx.Redirect(pd.VersionWebLink() + "/settings")
+			return
+		}
+
+		latestPvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
+			PackageID:  pd.Package.ID,
+			IsInternal: optional.Some(false),
+		})
+		if err != nil {
+			ctx.ServerError("SearchLatestVersions", err)
+			return
+		}
+		if len(latestPvs) > 0 && latestPvs[0].ID == pd.Version.ID {
+			ctx.Flash.Error(ctx.Tr("packages.terraform.delete.latest"))
+			ctx.Redirect(pd.VersionWebLink() + "/settings")
+			return
+		}
+	}
+
+	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pd.Version)
 	if err != nil {
 		log.Error("Error deleting package: %v", err)
 		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
