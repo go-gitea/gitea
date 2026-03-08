@@ -55,20 +55,18 @@ type terraformLockInfo struct {
 	Created   time.Time `json:"Created"`
 }
 
-func getTerraformLock(ctx *context.Context, packageID int64) (*terraformLockInfo, error) {
+func getTerraformLock(ctx *context.Context, packageID int64) (terraformLockInfo, error) {
+	var lock terraformLockInfo
 	locks, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, packageID, "terraform.lock")
 	if err != nil {
-		return nil, err
+		return lock, err
 	}
 	if len(locks) == 0 || locks[0].Value == "" {
-		return nil, nil
+		return lock, nil
 	}
 
-	var lock terraformLockInfo
-	if err := json.Unmarshal([]byte(locks[0].Value), &lock); err != nil {
-		return nil, err
-	}
-	return &lock, nil
+	err = json.Unmarshal([]byte(locks[0].Value), &lock)
+	return lock, err
 }
 
 // ListPackages displays a list of all packages of the context user
@@ -544,7 +542,7 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 			ctx.ServerError("getTerraformLock", err)
 			return
 		}
-		if lock != nil {
+		if lock.ID != "" {
 			ctx.Flash.Error(ctx.Tr("packages.terraform.delete.locked"))
 			ctx.Redirect(pd.VersionWebLink() + "/settings")
 			return
