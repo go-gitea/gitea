@@ -209,14 +209,14 @@ func SearchIssues(ctx *context.APIContext) {
 
 	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
-	var includedAnyLabels []int64
+	var includedLabels []int64
 	{
 		labels := ctx.FormTrim("labels")
 		var includedLabelNames []string
 		if len(labels) > 0 {
 			includedLabelNames = strings.Split(labels, ",")
 		}
-		includedAnyLabels, err = issues_model.GetLabelIDsByNames(ctx, includedLabelNames)
+		includedLabels, err = issues_model.GetLabelIDsByNames(ctx, includedLabelNames)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -244,14 +244,14 @@ func SearchIssues(ctx *context.APIContext) {
 			PageSize: limit,
 			Page:     ctx.FormInt("page"),
 		},
-		Keyword:             keyword,
-		RepoIDs:             repoIDs,
-		AllPublic:           allPublic,
-		IsPull:              isPull,
-		IsClosed:            isClosed,
-		IncludedLabelIDs: includedAnyLabels,
-		MilestoneIDs:        includedMilestones,
-		SortBy:              issue_indexer.SortByCreatedDesc,
+		Keyword:          keyword,
+		RepoIDs:          repoIDs,
+		AllPublic:        allPublic,
+		IsPull:           isPull,
+		IsClosed:         isClosed,
+		IncludedLabelIDs: includedLabels,
+		MilestoneIDs:     includedMilestones,
+		SortBy:           issue_indexer.SortByCreatedDesc,
 	}
 
 	if since != 0 {
