@@ -201,7 +201,7 @@ func prepareSignInPageData(ctx *context.Context) {
 	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
 
 	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
-		EnableCaptcha: setting.Service.EnableCaptcha,
+		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin,
 	})
 }
 
