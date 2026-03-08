@@ -13,20 +13,26 @@ import (
 )
 
 func TestMakeAbsoluteAssetURL(t *testing.T) {
-	appURL, _ := url.Parse("https://localhost:1234")
-	appURLSub, _ := url.Parse("https://localhost:1234/foo")
-	assert.Equal(t, "https://localhost:2345", MakeAbsoluteAssetURL(appURL, "https://localhost:2345"))
-	assert.Equal(t, "https://localhost:2345", MakeAbsoluteAssetURL(appURL, "https://localhost:2345"))
-	assert.Equal(t, "https://localhost:2345", MakeAbsoluteAssetURL(appURL, "https://localhost:2345/"))
-	assert.Equal(t, "https://localhost:1234/foo", MakeAbsoluteAssetURL(appURL, "/foo"))
-	assert.Equal(t, "https://localhost:1234/foo", MakeAbsoluteAssetURL(appURL, "/foo"))
-	assert.Equal(t, "https://localhost:1234/foo", MakeAbsoluteAssetURL(appURL, "/foo/"))
-	assert.Equal(t, "https://localhost:1234/foo", MakeAbsoluteAssetURL(appURLSub, "/foo"))
-	assert.Equal(t, "https://localhost:1234/foo", MakeAbsoluteAssetURL(appURLSub, "/foo"))
-	assert.Equal(t, "https://localhost:1234/foo", MakeAbsoluteAssetURL(appURLSub, "/foo/"))
-	assert.Equal(t, "https://localhost:1234/bar", MakeAbsoluteAssetURL(appURLSub, "/bar"))
-	assert.Equal(t, "https://localhost:1234/bar", MakeAbsoluteAssetURL(appURLSub, "/bar"))
-	assert.Equal(t, "https://localhost:1234/bar", MakeAbsoluteAssetURL(appURLSub, "/bar/"))
+	appURL1, _ := url.Parse("https://localhost:1234")
+	appURL2, _ := url.Parse("https://localhost:1234/")
+	appURLSub1, _ := url.Parse("https://localhost:1234/foo")
+	appURLSub2, _ := url.Parse("https://localhost:1234/foo/")
+
+	// static URL is an absolute URL, so should be used
+	assert.Equal(t, "https://localhost:2345", MakeAbsoluteAssetURL(appURL1, "https://localhost:2345"))
+	assert.Equal(t, "https://localhost:2345", MakeAbsoluteAssetURL(appURL1, "https://localhost:2345/"))
+
+	assert.Equal(t, "https://localhost:1234/foo", MakeAbsoluteAssetURL(appURL1, "/foo"))
+	assert.Equal(t, "https://localhost:1234/foo", MakeAbsoluteAssetURL(appURL2, "/foo"))
+	assert.Equal(t, "https://localhost:1234/foo", MakeAbsoluteAssetURL(appURL1, "/foo/"))
+
+	assert.Equal(t, "https://localhost:1234/foo", MakeAbsoluteAssetURL(appURLSub1, "/foo"))
+	assert.Equal(t, "https://localhost:1234/foo", MakeAbsoluteAssetURL(appURLSub2, "/foo"))
+	assert.Equal(t, "https://localhost:1234/foo", MakeAbsoluteAssetURL(appURLSub1, "/foo/"))
+
+	assert.Equal(t, "https://localhost:1234/bar", MakeAbsoluteAssetURL(appURLSub1, "/bar"))
+	assert.Equal(t, "https://localhost:1234/bar", MakeAbsoluteAssetURL(appURLSub2, "/bar"))
+	assert.Equal(t, "https://localhost:1234/bar", MakeAbsoluteAssetURL(appURLSub1, "/bar/"))
 }
 
 func TestMakeManifestData(t *testing.T) {
