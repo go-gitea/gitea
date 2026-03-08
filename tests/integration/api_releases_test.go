@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -27,6 +28,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIReleaseRead(t *testing.T) {
@@ -232,6 +234,185 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	}
 	unittest.AssertExistsAndLoadBean(t, rel)
 	assert.Equal(t, rel.Note, newRelease.Note)
+}
+
+func TestAPIReleasePublishedAt(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, owner.LowerName)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases", owner.Name, repo.Name)
+
+	t.Run("DirectPublish", func(t *testing.T) {
+		timeBefore := time.Now().Truncate(time.Second)
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
+			TagName: "v0.0.1-pub",
+			Title:   "Direct Publish",
+			Target:  "master",
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+
+		var release api.Release
+		DecodeJSON(t, resp, &release)
+		require.NotNil(t, release.PublishedAt)
+		assert.False(t, release.PublishedAt.IsZero())
+		assert.False(t, release.PublishedAt.Before(timeBefore))
+	})
+
+	t.Run("DraftHasNullPublishedAt", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
+			TagName: "v0.0.2-draft",
+			Title:   "Draft Release",
+			IsDraft: true,
+			Target:  "master",
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+
+		var release api.Release
+		DecodeJSON(t, resp, &release)
+		assert.Nil(t, release.PublishedAt)
+		// Verify raw JSON contains null (GitHub-compatible)
+		assert.Contains(t, resp.Body.String(), `"published_at":null`)
+	})
+
+	t.Run("FallbackToCreatedAtWhenPublishedUnixZero", func(t *testing.T) {
+		// Simulate a pre-migration release with published_unix=0
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
+			TagName: "v0.0.2b-fallback",
+			Title:   "Fallback Test",
+			Target:  "master",
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		var release api.Release
+		DecodeJSON(t, resp, &release)
+
+		_, err := db.GetEngine(t.Context()).Exec("UPDATE `release` SET published_unix = 0 WHERE id = ?", release.ID)
+		require.NoError(t, err)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/%d", urlStr, release.ID)).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		var fetched api.Release
+		DecodeJSON(t, resp, &fetched)
+		require.NotNil(t, fetched.PublishedAt)
+		assert.Equal(t, fetched.CreatedAt.Unix(), fetched.PublishedAt.Unix())
+	})
+
+	t.Run("PublishDraftSetsPublishedAt", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
+			TagName: "v0.0.3-pubdraft",
+			Title:   "Will Publish",
+			IsDraft: true,
+			Target:  "master",
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		var draft api.Release
+		DecodeJSON(t, resp, &draft)
+		draftCreatedAt := draft.CreatedAt
+
+		isDraft := false
+		timeBefore := time.Now().Truncate(time.Second)
+		editURL := fmt.Sprintf("%s/%d", urlStr, draft.ID)
+		req = NewRequestWithJSON(t, "PATCH", editURL, &api.EditReleaseOption{
+			IsDraft: &isDraft,
+		}).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		var published api.Release
+		DecodeJSON(t, resp, &published)
+
+		require.NotNil(t, published.PublishedAt)
+		assert.False(t, published.PublishedAt.IsZero())
+		assert.False(t, published.PublishedAt.Before(timeBefore))
+
+		// Verify published_unix is set in DB and >= draft's created_at
+		rel := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: published.ID})
+		assert.NotZero(t, rel.PublishedUnix)
+		assert.GreaterOrEqual(t, int64(rel.PublishedUnix), draftCreatedAt.Unix())
+	})
+
+	t.Run("EditDoesNotChangePublishedAt", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
+			TagName: "v0.0.4-edit",
+			Title:   "Edit Test",
+			Target:  "master",
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		var original api.Release
+		DecodeJSON(t, resp, &original)
+
+		editURL := fmt.Sprintf("%s/%d", urlStr, original.ID)
+		req = NewRequestWithJSON(t, "PATCH", editURL, &api.EditReleaseOption{
+			Title: "Edit Test - Updated",
+			Note:  "updated body",
+		}).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		var edited api.Release
+		DecodeJSON(t, resp, &edited)
+
+		assert.Equal(t, "Edit Test - Updated", edited.Title)
+		require.NotNil(t, original.PublishedAt)
+		require.NotNil(t, edited.PublishedAt)
+		assert.Equal(t, original.PublishedAt.Unix(), edited.PublishedAt.Unix())
+	})
+
+	t.Run("RepublishUpdatesPublishedAt", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
+			TagName: "v0.0.5-repub",
+			Title:   "Republish Test",
+			Target:  "master",
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		var original api.Release
+		DecodeJSON(t, resp, &original)
+
+		// Set back to draft
+		isDraft := true
+		editURL := fmt.Sprintf("%s/%d", urlStr, original.ID)
+		req = NewRequestWithJSON(t, "PATCH", editURL, &api.EditReleaseOption{
+			IsDraft: &isDraft,
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		// Re-publish
+		isDraft = false
+		timeBefore := time.Now().Truncate(time.Second)
+		req = NewRequestWithJSON(t, "PATCH", editURL, &api.EditReleaseOption{
+			IsDraft: &isDraft,
+		}).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		var republished api.Release
+		DecodeJSON(t, resp, &republished)
+
+		require.NotNil(t, republished.PublishedAt)
+		assert.False(t, republished.PublishedAt.Before(timeBefore))
+	})
+
+	t.Run("ExistingTagSetsPublishedAt", func(t *testing.T) {
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+
+		err = gitRepo.CreateTag("v0.0.6-tagfirst", "master")
+		assert.NoError(t, err)
+
+		timeBefore := time.Now().Truncate(time.Second)
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
+			TagName: "v0.0.6-tagfirst",
+			Title:   "Tag First Release",
+			Target:  "master",
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		var release api.Release
+		DecodeJSON(t, resp, &release)
+
+		require.NotNil(t, release.PublishedAt)
+		assert.False(t, release.PublishedAt.Before(timeBefore))
+
+		rel := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: release.ID})
+		assert.NotZero(t, rel.PublishedUnix)
+	})
 }
 
 func TestAPICreateProtectedTagRelease(t *testing.T) {
