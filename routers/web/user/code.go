@@ -59,7 +59,7 @@ func CodeSearch(ctx *context.Context) {
 	}
 
 	var (
-		total                 int
+		total                 int64
 		searchResults         []*code_indexer.Result
 		searchResultLanguages []*code_indexer.SearchResultLanguages
 	)

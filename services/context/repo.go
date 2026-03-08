@@ -961,7 +961,8 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				}
 				// If short commit ID add canonical link header
 				if len(refShortName) < ctx.Repo.GetObjectFormat().FullLength() {
-					canonicalURL := util.URLJoin(httplib.GuessCurrentAppURL(ctx), strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refShortName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1))
+					// FIXME: the dirty hack of "strings.Replace" should be fixed
+					canonicalURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") + strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refShortName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1)
 					ctx.RespHeader().Set("Link", fmt.Sprintf(`<%s>; rel="canonical"`, canonicalURL))
 				}
 			} else {
