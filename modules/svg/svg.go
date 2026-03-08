@@ -86,7 +86,7 @@ func RenderHTML(icon string, others ...any) template.HTML {
 	}
 	size, class := gitea_html.ParseSizeAndClass(defaultSize, "", others...)
 	if svgStr, ok := svgIcons[icon]; ok {
-    // fast path for default size and no classes
+		// fast path for default size and no classes
 		if size == defaultSize && class == "" {
 			return template.HTML(svgStr)
 		}
