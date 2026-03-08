@@ -45,6 +45,32 @@ const (
 	TplActivatePrompt templates.TplName = "user/auth/activate_prompt" // for showing a message for user activation
 )
 
+type CommonAuthOptions struct {
+	EnableCaptcha bool
+}
+
+func prepareCommonAuthTemplateData(ctx *context.Context, opt CommonAuthOptions) {
+	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
+	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
+	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
+
+	if opt.EnableCaptcha {
+		ctx.Data["EnableCaptcha"] = true
+		ctx.Data["RecaptchaAPIScriptURL"] = strings.TrimSuffix(setting.Service.RecaptchaURL, "/") + "/api.js"
+		ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+		ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+		ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+		ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+		ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+		ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
+		if setting.Service.CaptchaType == setting.ImageCaptcha {
+			ctx.Data["Captcha"] = context.GetImageCaptcha()
+		}
+	}
+}
+
 // autoSignIn reads cookie and try to auto-login.
 func autoSignIn(ctx *context.Context) (bool, error) {
 	isSucceed := false

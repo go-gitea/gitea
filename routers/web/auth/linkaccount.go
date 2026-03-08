@@ -24,19 +24,26 @@ import (
 
 var tplLinkAccount templates.TplName = "user/auth/link_account"
 
-// LinkAccount shows the page where the user can decide to login or create a new account
-func LinkAccount(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("link_account")
-	ctx.Data["LinkAccountMode"] = true
-
-	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
-		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha,
-	})
+func prepareLinkAccountPageData(ctx *context.Context) {
+	// TODO Make insecure passwords optional for local accounts also, once email-based Second-Factor Auth is available
+	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
 
 	// use this to set the right link into the signIn and signUp templates in the link_account template
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
 	ctx.Data["ShowRegistrationButton"] = false
+
+	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
+		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha,
+	})
+}
+
+// LinkAccount shows the page where the user can decide to login or create a new account
+func LinkAccount(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("link_account")
+	ctx.Data["LinkAccountMode"] = true
+
+	prepareLinkAccountPageData(ctx)
 
 	linkAccountData := oauth2GetLinkAccountData(ctx)
 
@@ -119,15 +126,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeSignIn"] = true
 
-	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
-		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha,
-	})
-
-	// use this to set the right link into the signIn and signUp templates in the link_account template
-	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
-	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
-	ctx.Data["ShowRegistrationButton"] = false
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha
+	prepareLinkAccountPageData(ctx)
 
 	linkAccountData := oauth2GetLinkAccountData(ctx)
 	if linkAccountData == nil {
@@ -195,34 +194,6 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
 }
 
-type CommonAuthOptions struct {
-	EnableCaptcha bool
-}
-
-func prepareCommonAuthTemplateData(ctx *context.Context, opt CommonAuthOptions) {
-	// TODO Make insecure passwords optional for local accounts also, once email-based Second-Factor Auth is available
-	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
-	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
-	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
-	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
-	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
-
-	if opt.EnableCaptcha {
-		ctx.Data["EnableCaptcha"] = true
-		ctx.Data["RecaptchaAPIScriptURL"] = strings.TrimSuffix(setting.Service.RecaptchaURL, "/") + "/api.js"
-		ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-		ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-		ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-		ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-		ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
-		ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
-		if setting.Service.CaptchaType == setting.ImageCaptcha {
-			ctx.Data["Captcha"] = context.GetImageCaptcha()
-		}
-	}
-}
-
 // LinkAccountPostRegister handle the creation of a new account for an external account using signUp
 func LinkAccountPostRegister(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RegisterForm)
@@ -231,14 +202,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeRegister"] = true
 
-	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
-		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha,
-	})
-
-	// use this to set the right link into the signIn and signUp templates in the link_account template
-	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
-	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
-	ctx.Data["ShowRegistrationButton"] = false
+	prepareLinkAccountPageData(ctx)
 
 	linkAccountData := oauth2GetLinkAccountData(ctx)
 	if linkAccountData == nil {
