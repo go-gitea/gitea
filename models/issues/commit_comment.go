@@ -35,20 +35,15 @@ type CommitCommentsForDiff map[string]*FileCommitComments
 
 // FindCommitCommentsByCommitSHA returns all comments for a given commit in a repo.
 func FindCommitCommentsByCommitSHA(ctx context.Context, repoID int64, commitSHA string) ([]*Comment, error) {
-	var refs []CommitComment
-	if err := db.GetEngine(ctx).
+	var commentIDs []int64
+	if err := db.GetEngine(ctx).Cols("comment_id").Table("commit_comment").
 		Where("repo_id = ? AND commit_sha = ?", repoID, commitSHA).
-		Find(&refs); err != nil {
+		Find(&commentIDs); err != nil {
 		return nil, err
 	}
 
-	if len(refs) == 0 {
+	if len(commentIDs) == 0 {
 		return nil, nil
-	}
-
-	commentIDs := make([]int64, 0, len(refs))
-	for _, ref := range refs {
-		commentIDs = append(commentIDs, ref.CommentID)
 	}
 
 	comments := make([]*Comment, 0, len(commentIDs))
