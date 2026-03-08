@@ -341,7 +341,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx, ctx.Locale)
 
-	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0

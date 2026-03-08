@@ -27,11 +27,7 @@ func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request)
 	for _, m := range g.matchers {
 		if m.matchPath(chiCtx, path) {
 			chiCtx.RoutePatterns = append(chiCtx.RoutePatterns, m.pattern)
-			handler := m.handlerFunc
-			for i := len(m.middlewares) - 1; i >= 0; i-- {
-				handler = m.middlewares[i](handler).ServeHTTP
-			}
-			handler(resp, req)
+			executeMiddlewaresHandler(resp, req, m.middlewares, m.handlerFunc)
 			return
 		}
 	}
@@ -67,7 +63,7 @@ type routerPathMatcher struct {
 	pattern     string
 	re          *regexp.Regexp
 	params      []routerPathParam
-	middlewares []func(http.Handler) http.Handler
+	middlewares []middlewareProvider
 	handlerFunc http.HandlerFunc
 }
 
@@ -111,7 +107,10 @@ func isValidMethod(name string) bool {
 }
 
 func newRouterPathMatcher(methods string, patternRegexp *RouterPathGroupPattern, h ...any) *routerPathMatcher {
-	middlewares, handlerFunc := wrapMiddlewareAndHandler(patternRegexp.middlewares, h)
+	middlewares, handlerFunc, hasPreMiddlewares := wrapMiddlewareAndHandler(nil, patternRegexp.middlewares, h)
+	if hasPreMiddlewares {
+		panic("pre-middlewares are not supported in router path matcher")
+	}
 	p := &routerPathMatcher{methods: make(container.Set[string]), middlewares: middlewares, handlerFunc: handlerFunc}
 	for method := range strings.SplitSeq(methods, ",") {
 		method = strings.TrimSpace(method)

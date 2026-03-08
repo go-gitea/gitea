@@ -45,7 +45,7 @@ func listMembers(ctx *context.APIContext, isMember bool) {
 		apiMembers[i] = convert.ToUser(ctx, member, ctx.Doer)
 	}
 
-	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiMembers)
 }

@@ -926,7 +926,7 @@ export default defineConfig([
     },
     extends: [
       vue.configs['flat/recommended'],
-      vueScopedCss.configs['flat/recommended'] as any,
+      vueScopedCss.configs.recommended as any,
     ],
     rules: {
       'vue/attributes-order': [0],
