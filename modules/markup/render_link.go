@@ -20,7 +20,7 @@ func resolveLinkRelative(ctx context.Context, base, cur, link string, absolute b
 	if err != nil {
 		return link // invalid URL, return as is
 	}
-	if linkURL.Host != "" {
+	if linkURL.Scheme != "" || linkURL.Host != "" {
 		return link // absolute URL, return as is
 	}
 

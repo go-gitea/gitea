@@ -25,6 +25,7 @@ func TestResolveLinkRelative(t *testing.T) {
 	assert.Equal(t, "http://localhost:3000/a", resolveLinkRelative(ctx, "/a", "", "", true))
 
 	// absolute link is returned as is
+	assert.Equal(t, "mailto:user@domain.com", resolveLinkRelative(ctx, "/a", "", "mailto:user@domain.com", false))
 	assert.Equal(t, "http://other/path/", resolveLinkRelative(ctx, "/a", "", "http://other/path/", false))
 
 	// some users might have used absolute paths a lot, so if the prefix overlaps and has enough slashes, we should tolerate it

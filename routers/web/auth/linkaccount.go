@@ -32,6 +32,7 @@ func prepareLinkAccountPageData(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
 	ctx.Data["ShowRegistrationButton"] = false
+	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 
 	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha,

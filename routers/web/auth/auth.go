@@ -50,7 +50,6 @@ type CommonAuthOptions struct {
 }
 
 func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
-	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
 	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
 
@@ -468,18 +467,22 @@ func buildSignOutRedirectURL(ctx *context.Context) string {
 	return setting.AppSubURL + "/"
 }
 
-// SignUp render the register page
-func SignUp(ctx *context.Context) {
+func prepareSignUpPageData(ctx *context.Context) bool {
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
+	ctx.Data["PageIsSignUp"] = true
 
-	hasUsers, _ := user_model.HasUsers(ctx)
+	hasUsers, err := user_model.HasUsers(ctx)
+	if err != nil {
+		ctx.ServerError("HasUsers", err)
+		return false
+	}
 	ctx.Data["IsFirstTimeRegistration"] = !hasUsers.HasAnyUser
 
 	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
-		ctx.ServerError("UserSignUp", err)
-		return
+		ctx.ServerError("prepareSignUpPageData", err)
+		return false
 	}
 
 	ctx.Data["OAuth2Providers"] = oauth2Providers
@@ -487,35 +490,27 @@ func SignUp(ctx *context.Context) {
 		EnableCaptcha: setting.Service.EnableCaptcha,
 	})
 
-	ctx.Data["PageIsSignUp"] = true
-
 	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration
+	return true
+}
 
+// SignUp render the register page
+func SignUp(ctx *context.Context) {
+	if !prepareSignUpPageData(ctx) {
+		return
+	}
 	rememberAuthRedirectLink(ctx)
-
 	ctx.HTML(http.StatusOK, tplSignUp)
 }
 
 // SignUpPost response for sign up information submission
 func SignUpPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RegisterForm)
-	ctx.Data["Title"] = ctx.Tr("sign_up")
-
-	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
-
-	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
-	if err != nil {
-		ctx.ServerError("UserSignUp", err)
+	if !prepareSignUpPageData(ctx) {
 		return
 	}
 
-	ctx.Data["OAuth2Providers"] = oauth2Providers
-	prepareCommonAuthPageData(ctx, CommonAuthOptions{
-		EnableCaptcha: setting.Service.EnableCaptcha,
-	})
-
-	ctx.Data["PageIsSignUp"] = true
+	form := web.GetForm(ctx).(*forms.RegisterForm)
 
 	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
