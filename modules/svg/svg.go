@@ -29,9 +29,10 @@ type svgCacheKey struct {
 var (
 	svgIcons map[string]svgIconItem
 
-	svgRenderedMu    sync.RWMutex
-	svgRenderedCache map[svgCacheKey]template.HTML
-	svgRenderedLimit = 10000
+	svgCacheMu    sync.Mutex
+	svgCache      sync.Map
+	svgCacheCount int
+	svgCacheLimit = 10000
 )
 
 const defaultSize = 16
@@ -56,7 +57,6 @@ func Init() error {
 			svgIcons[file[:len(file)-4]] = svgIconItem{html: string(Normalize(bs, defaultSize))}
 		}
 	}
-	svgRenderedCache = make(map[svgCacheKey]template.HTML)
 	return nil
 }
 
@@ -97,11 +97,9 @@ func renderHTML(icon string, others ...any) (_ template.HTML, usingCache bool) {
 		}
 
 		cacheKey := svgCacheKey{icon, size, class}
-		svgRenderedMu.RLock()
-		cachedHTML, cached := svgRenderedCache[cacheKey]
-		svgRenderedMu.RUnlock()
+		cachedHTML, cached := svgCache.Load(cacheKey)
 		if cached && !svgItem.mocking {
-			return cachedHTML, true
+			return cachedHTML.(template.HTML), true
 		}
 
 		// the code is somewhat hacky, but it just works, because the SVG contents are all normalized
@@ -116,12 +114,13 @@ func renderHTML(icon string, others ...any) (_ template.HTML, usingCache bool) {
 
 		if !svgItem.mocking {
 			// no need to double-check, the rendering is fast enough and the cache is just an optimization
-			svgRenderedMu.Lock()
-			if len(svgRenderedCache) >= svgRenderedLimit {
-				svgRenderedCache = make(map[svgCacheKey]template.HTML)
+			svgCacheMu.Lock()
+			if svgCacheCount >= svgCacheLimit {
+				svgCache.Clear()
+				svgCacheCount = 0
 			}
-			svgRenderedCache[cacheKey] = result
-			svgRenderedMu.Unlock()
+			svgCache.Store(cacheKey, result)
+			svgCacheMu.Unlock()
 		}
 
 		return result, false

@@ -4,7 +4,6 @@
 package svg
 
 import (
-	"html/template"
 	"testing"
 
 	"code.gitea.io/gitea/modules/test"
@@ -17,7 +16,6 @@ func TestRenderHTMLCache(t *testing.T) {
 	svgIcons = map[string]svgIconItem{
 		"test": {html: `<svg class="svg test" width="16" height="16">` + svgRealContent + `</svg>`},
 	}
-	svgRenderedCache = make(map[svgCacheKey]template.HTML)
 
 	// default params: no cache entry
 	_, usingCache := renderHTML("test")
@@ -42,15 +40,15 @@ func TestRenderHTMLCache(t *testing.T) {
 	assert.Contains(t, realHTML, svgRealContent)
 
 	t.Run("CacheWithLimit", func(t *testing.T) {
-		assert.NotEmpty(t, svgRenderedCache)
+		assert.NotZero(t, svgCacheCount)
 		const testLimit = 3
-		defer test.MockVariableValue(&svgRenderedLimit, testLimit)()
+		defer test.MockVariableValue(&svgCacheLimit, testLimit)()
 		for i := range 10 {
 			_, usingCache = renderHTML("test", 100+i)
 			assert.False(t, usingCache)
 			_, usingCache = renderHTML("test", 100+i)
 			assert.True(t, usingCache)
-			assert.LessOrEqual(t, len(svgRenderedCache), testLimit)
+			assert.LessOrEqual(t, svgCacheCount, testLimit)
 		}
 	})
 }
