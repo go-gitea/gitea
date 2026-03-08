@@ -238,9 +238,8 @@ func prepareConnectOpenIDPageData(ctx *context.Context) (oid string) {
 	ctx.Data["Title"] = "OpenID connect"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDConnect"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
-	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["OpenID"] = oid
+	prepareCommonAuthPageData(ctx, CommonAuthOptions{EnableCaptcha: false})
 	return oid
 }
 
