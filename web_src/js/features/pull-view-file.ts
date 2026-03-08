@@ -12,14 +12,12 @@ const collapseFilesBtnSelector = '#collapse-files-btn';
 // Refreshes the summary of viewed files if present
 // The data used will be window.config.pageData.prReview.numberOf{Viewed}Files
 function refreshViewedFilesSummary() {
-  const viewedFilesProgress = document.querySelector('#viewed-files-summary');
-  viewedFilesProgress?.setAttribute('value', prReview.numberOfViewedFiles);
-  const summaryLabel = document.querySelector<HTMLElement>('#viewed-files-summary-label');
-  if (summaryLabel) {
-    summaryLabel.textContent = summaryLabel.getAttribute('data-text-changed-template')!
-      .replace('%[1]d', prReview.numberOfViewedFiles)
-      .replace('%[2]d', prReview.numberOfFiles);
-  }
+  const viewedFilesProgress = document.querySelector('#viewed-files-summary')!;
+  viewedFilesProgress.setAttribute('value', prReview.numberOfViewedFiles);
+  const summaryLabel = document.querySelector<HTMLElement>('#viewed-files-summary-label')!;
+  summaryLabel.textContent = summaryLabel.getAttribute('data-text-changed-template')!
+    .replace('%[1]d', prReview.numberOfViewedFiles)
+    .replace('%[2]d', prReview.numberOfFiles);
 }
 
 // Initializes a listener for all children of the given html element
