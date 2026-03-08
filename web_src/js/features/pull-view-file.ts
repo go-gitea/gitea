@@ -14,7 +14,7 @@ const collapseFilesBtnSelector = '#collapse-files-btn';
 function refreshViewedFilesSummary() {
   const viewedFilesProgress = document.querySelector('#viewed-files-summary');
   viewedFilesProgress?.setAttribute('value', prReview.numberOfViewedFiles);
-  const summaryLabel = document.querySelector('#viewed-files-summary-label')!;
+  const summaryLabel = document.querySelector<HTMLElement>('#viewed-files-summary-label');
   if (summaryLabel) {
     summaryLabel.textContent = summaryLabel.getAttribute('data-text-changed-template')!
       .replace('%[1]d', prReview.numberOfViewedFiles)
