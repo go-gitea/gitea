@@ -19,7 +19,7 @@ func TestResolveLinkRelative(t *testing.T) {
 	assert.Equal(t, "/a/b/c", resolveLinkRelative(ctx, "/a", "b", "c", false))
 	assert.Equal(t, "/a/c", resolveLinkRelative(ctx, "/a", "b", "/c", false))
 	assert.Equal(t, "/a/c", resolveLinkRelative(ctx, "/a", "b", "/c", false))
-	assert.Equal(t, "/a/c?k=v", resolveLinkRelative(ctx, "/a", "b", "\\..\\c?k=v", false))
+	assert.Equal(t, "/a/c?k=v#id", resolveLinkRelative(ctx, "/a", "b", "\\..\\c?k=v#id", false))
 	assert.Equal(t, "http://localhost:3000/a", resolveLinkRelative(ctx, "/a", "", "", true))
 
 	// some users might have used absolute paths a lot, so if the prefix overlaps and has enough slashes, we should tolerate it

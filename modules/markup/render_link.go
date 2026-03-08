@@ -39,6 +39,9 @@ func resolveLinkRelative(ctx context.Context, base, cur, link string, absolute b
 			if linkURL.RawQuery != "" {
 				finalLink += "?" + linkURL.RawQuery
 			}
+			if linkURL.Fragment != "" {
+				finalLink += "#" + linkURL.Fragment
+			}
 		}
 	}
 	finalLink = strings.TrimSuffix(finalLink, "/")
