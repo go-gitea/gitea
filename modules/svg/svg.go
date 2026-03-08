@@ -119,6 +119,7 @@ func renderHTML(icon string, others ...any) (_ template.HTML, usingCache bool) {
 				svgCache.Clear()
 				svgCacheCount = 0
 			}
+			svgCacheCount++
 			svgCache.Store(cacheKey, result)
 			svgCacheMu.Unlock()
 		}
