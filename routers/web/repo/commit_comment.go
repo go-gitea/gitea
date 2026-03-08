@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	tplNewCommitComment      templates.TplName = "repo/diff/new_commit_comment"
-	tplCommitConversation    templates.TplName = "repo/diff/commit_conversation"
+	tplNewCommitComment   templates.TplName = "repo/diff/new_commit_comment"
+	tplCommitConversation templates.TplName = "repo/diff/commit_conversation"
 )
 
 // RenderNewCommitCommentForm renders the comment form for inline commit comments.
