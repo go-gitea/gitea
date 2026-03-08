@@ -64,8 +64,7 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 
 			defer func() {
 				if recovered := recover(); recovered != nil {
-					err := fmt.Errorf("%v\n%s", recovered, log.Stack(2))
-					RenderPanicErrorPage(respWriter, req, err) // it should never panic
+					renderPanicErrorPage(respWriter, req, recovered) // it should never panic, and it handles the stack trace internally
 				}
 			}()
 

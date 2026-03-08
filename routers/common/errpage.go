@@ -53,14 +53,14 @@ func renderServerErrorPage(w http.ResponseWriter, req *http.Request, respCode in
 	_, _ = io.Copy(w, outBuf)
 }
 
-// RenderPanicErrorPage renders a 500 page, and it never panics
-func RenderPanicErrorPage(w http.ResponseWriter, req *http.Request, err error) {
-	combinedErr := fmt.Errorf("%w\n%s", err, log.Stack(2))
+// renderPanicErrorPage renders a 500 page with the recovered panic value, it handles the stack trace, and it never panics
+func renderPanicErrorPage(w http.ResponseWriter, req *http.Request, recovered any) {
+	combinedErr := fmt.Errorf("%v\n%s", recovered, log.Stack(2))
 	log.Error("PANIC: %v", combinedErr)
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error("Panic occurs again when rendering error page: %v. Stack:\n%s", err, log.Stack(2))
+			log.Error("Panic occurs again when rendering error page: %v. Stack:\n%s", combinedErr, log.Stack(2))
 		}
 	}()
 
