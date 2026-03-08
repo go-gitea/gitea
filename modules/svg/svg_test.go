@@ -13,7 +13,6 @@ func TestRenderHTMLCache(t *testing.T) {
 	svgIcons = map[string]string{
 		"test": `<svg class="svg test" width="16" height="16"></svg>`,
 	}
-	svgRenderedHTMLCache.Clear()
 
 	// default params: no cache entry
 	RenderHTML("test")
