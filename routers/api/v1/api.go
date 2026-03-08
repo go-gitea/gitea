@@ -77,7 +77,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -756,13 +755,9 @@ func buildAuthGroup() *auth.Group {
 		&auth.Basic{}, // FIXME: this should be removed once we don't allow basic auth in API
 	)
 	if setting.Service.EnableReverseProxyAuthAPI {
-		group.Add(&auth.ReverseProxy{})
+		group.Add(&auth.ReverseProxy{}) // TODO: does it still make sense to support reverse proxy auth in API?
 	}
-
-	if setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext()) {
-		group.Add(&auth.SSPI{}) // it MUST be the last, see the comment of SSPI
-	}
-
+	// others: API doesn't support SSPI auth because the caller should use token
 	return group
 }
 
@@ -872,9 +867,9 @@ func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 func Routes() *web.Router {
 	m := web.NewRouter()
 
-	m.Use(securityHeaders())
+	m.BeforeRouting(securityHeaders())
 	if setting.CORSConfig.Enabled {
-		m.Use(cors.Handler(cors.Options{
+		m.BeforeRouting(cors.Handler(cors.Options{
 			AllowedOrigins:   setting.CORSConfig.AllowDomain,
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
@@ -882,47 +877,48 @@ func Routes() *web.Router {
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}
-	m.Use(context.APIContexter())
 
-	m.Use(checkDeprecatedAuthMethods)
+	m.AfterRouting(context.APIContexter())
+	m.AfterRouting(checkDeprecatedAuthMethods)
 
 	// Get user from session if logged in.
-	m.Use(apiAuth(buildAuthGroup()))
+	m.AfterRouting(apiAuth(buildAuthGroup()))
 
-	m.Use(verifyAuthWithOptions(&common.VerifyOptions{
+	m.AfterRouting(verifyAuthWithOptions(&common.VerifyOptions{
 		SignInRequired: setting.Service.RequireSignInViewStrict,
 	}))
 
 	addActionsRoutes := func(
 		m *web.Router,
-		reqChecker func(ctx *context.APIContext),
+		reqReaderCheck func(ctx *context.APIContext),
+		reqOwnerCheck func(ctx *context.APIContext),
 		act actions.API,
 	) {
 		m.Group("/actions", func() {
 			m.Group("/secrets", func() {
-				m.Get("", reqToken(), reqChecker, act.ListActionsSecrets)
+				m.Get("", reqToken(), reqOwnerCheck, act.ListActionsSecrets)
 				m.Combo("/{secretname}").
-					Put(reqToken(), reqChecker, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
-					Delete(reqToken(), reqChecker, act.DeleteSecret)
+					Put(reqToken(), reqOwnerCheck, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
+					Delete(reqToken(), reqOwnerCheck, act.DeleteSecret)
 			})
 
 			m.Group("/variables", func() {
-				m.Get("", reqToken(), reqChecker, act.ListVariables)
+				m.Get("", reqToken(), reqOwnerCheck, act.ListVariables)
 				m.Combo("/{variablename}").
-					Get(reqToken(), reqChecker, act.GetVariable).
-					Delete(reqToken(), reqChecker, act.DeleteVariable).
-					Post(reqToken(), reqChecker, bind(api.CreateVariableOption{}), act.CreateVariable).
-					Put(reqToken(), reqChecker, bind(api.UpdateVariableOption{}), act.UpdateVariable)
+					Get(reqToken(), reqOwnerCheck, act.GetVariable).
+					Delete(reqToken(), reqOwnerCheck, act.DeleteVariable).
+					Post(reqToken(), reqOwnerCheck, bind(api.CreateVariableOption{}), act.CreateVariable).
+					Put(reqToken(), reqOwnerCheck, bind(api.UpdateVariableOption{}), act.UpdateVariable)
 			})
 
 			m.Group("/runners", func() {
-				m.Get("", reqToken(), reqChecker, act.ListRunners)
-				m.Post("/registration-token", reqToken(), reqChecker, act.CreateRegistrationToken)
-				m.Get("/{runner_id}", reqToken(), reqChecker, act.GetRunner)
-				m.Delete("/{runner_id}", reqToken(), reqChecker, act.DeleteRunner)
+				m.Get("", reqToken(), reqOwnerCheck, act.ListRunners)
+				m.Post("/registration-token", reqToken(), reqOwnerCheck, act.CreateRegistrationToken)
+				m.Get("/{runner_id}", reqToken(), reqOwnerCheck, act.GetRunner)
+				m.Delete("/{runner_id}", reqToken(), reqOwnerCheck, act.DeleteRunner)
 			})
-			m.Get("/runs", reqToken(), reqChecker, act.ListWorkflowRuns)
-			m.Get("/jobs", reqToken(), reqChecker, act.ListWorkflowJobs)
+			m.Get("/runs", reqToken(), reqReaderCheck, act.ListWorkflowRuns)
+			m.Get("/jobs", reqToken(), reqReaderCheck, act.ListWorkflowJobs)
 		})
 	}
 
@@ -1164,7 +1160,8 @@ func Routes() *web.Router {
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
 
-				addActionsRoutes(m, reqOwner(), repo.NewAction()) // it adds the routes for secrets/variables and runner management
+				// Adds the routes for secrets/variables and runner management
+				addActionsRoutes(m, reqRepoReader(unit.TypeActions), reqOwner(), repo.NewAction())
 
 				m.Group("/actions/workflows", func() {
 					m.Get("", repo.ActionsListRepositoryWorkflows)
@@ -1619,6 +1616,7 @@ func Routes() *web.Router {
 			})
 			addActionsRoutes(
 				m,
+				reqOrgMembership(),
 				reqOrgOwnership(),
 				org.NewAction(),
 			)

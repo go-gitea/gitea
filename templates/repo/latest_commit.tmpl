@@ -2,19 +2,15 @@
 {{if not .LatestCommit}}
 	…
 {{else}}
-	{{if .LatestCommitUser}}
-		{{ctx.AvatarUtils.Avatar .LatestCommitUser 24}}
-		{{if and .LatestCommitUser.FullName DefaultShowFullName}}
-			<a class="muted author-wrapper" title="{{.LatestCommitUser.FullName}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
-		{{else}}
-			<a class="muted author-wrapper" title="{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
-		{{end}}
-	{{else}}
-		{{if .LatestCommit.Author}}
-			{{ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
-			<span class="author-wrapper" title="{{.LatestCommit.Author.Name}}"><strong>{{.LatestCommit.Author.Name}}</strong></span>
-		{{end}}
-	{{end}}
+	<span class="author-wrapper">
+	{{- if .LatestCommitUser -}}
+		{{- ctx.AvatarUtils.Avatar .LatestCommitUser 20 "tw-mr-2" -}}
+		<strong>{{.LatestCommitUser.GetShortDisplayNameLinkHTML}}</strong>
+	{{- else if .LatestCommit.Author -}}
+		{{- ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 20 "tw-mr-2" -}}
+		<strong>{{.LatestCommit.Author.Name}}</strong>
+	{{- end -}}
+	</span>
 
 	{{template "repo/commit_sign_badge" dict "Commit" .LatestCommit "CommitBaseLink" (print .RepoLink "/commit") "CommitSignVerification" .LatestCommitVerification}}
 

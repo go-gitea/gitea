@@ -1969,7 +1969,15 @@ tbody.commit-list {
   padding-right: 0.5em; /* To match the alignment with the "required" label */
 }
 
-.search-fullname {
+.username-display {
+  max-width: 100%; /* the inner part might have "gt-ellipsis" */
+  min-width: 0; /* if it is the top flex container, "max-width" works; but if it is inside another flex container, the parent needs to handle the x-axis and here also needs "min-width" */
+  display: inline-flex;
+  gap: var(--gap-inline);
+  align-items: center;
+}
+
+.username-display > .username-fullname {
   color: var(--color-text-light-2);
 }
 

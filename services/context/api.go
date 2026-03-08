@@ -163,7 +163,7 @@ func GetAPIContext(req *http.Request) *APIContext {
 	return req.Context().Value(apiContextKey).(*APIContext)
 }
 
-func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
+func genAPILinks(curURL *url.URL, total int64, pageSize, curPage int) []string {
 	page := NewPagination(total, pageSize, curPage, 0)
 	paginater := page.Paginater
 	links := make([]string, 0, 4)
@@ -204,7 +204,8 @@ func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
 }
 
 // SetLinkHeader sets pagination link header by given total number and page size.
-func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
+// "count" is usually from database result "count int64", so it also uses int64,
+func (ctx *APIContext) SetLinkHeader(total int64, pageSize int) {
 	links := genAPILinks(ctx.Req.URL, total, pageSize, ctx.FormInt("page"))
 
 	if len(links) > 0 {
