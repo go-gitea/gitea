@@ -13,10 +13,17 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// resolveLinkRelative tries to resolve the link relative to the "{base}/{cur}", and returns the final link.
+// It only resolves the link, doesn't do any sanitization or validation, invalid links will be returned as is.
 func resolveLinkRelative(ctx context.Context, base, cur, link string, absolute bool) (finalLink string) {
-	if IsFullURLString(link) {
-		return link
+	linkURL, err := url.Parse(link)
+	if err != nil {
+		return link // invalid URL, return as is
 	}
+	if linkURL.Host != "" {
+		return link // absolute URL, return as is
+	}
+
 	if strings.HasPrefix(link, "/") {
 		if strings.HasPrefix(link, base) && strings.Count(base, "/") >= 4 {
 			// a trick to tolerate that some users were using absolute paths (the old Gitea's behavior)
@@ -29,22 +36,16 @@ func resolveLinkRelative(ctx context.Context, base, cur, link string, absolute b
 	} // else: link is relative to "{base}/{cur}"
 
 	if finalLink == "" {
-		linkURL, err := url.Parse(link)
-		if err != nil {
-			finalLink = strings.TrimSuffix(base, "/") + path.Join("/"+cur)
-		} else {
-			// HINT: GOLANG-HTTP-REDIRECT-BUG: Golang security vulnerability: "http.Redirect" calls "path.Clean" and changes the meaning of a path
-			linkPath := strings.ReplaceAll(linkURL.Path, "\\", "/")
-			finalLink = strings.TrimSuffix(base, "/") + path.Join("/"+cur, "/"+linkPath)
-			if linkURL.RawQuery != "" {
-				finalLink += "?" + linkURL.RawQuery
-			}
-			if linkURL.Fragment != "" {
-				finalLink += "#" + linkURL.Fragment
-			}
+		finalLink = strings.TrimSuffix(base, "/") + path.Join("/"+cur, "/"+linkURL.Path)
+		finalLink = strings.TrimSuffix(finalLink, "/")
+		if linkURL.RawQuery != "" {
+			finalLink += "?" + linkURL.RawQuery
+		}
+		if linkURL.Fragment != "" {
+			finalLink += "#" + linkURL.Fragment
 		}
 	}
-	finalLink = strings.TrimSuffix(finalLink, "/")
+
 	if absolute {
 		finalLink = httplib.MakeAbsoluteURL(ctx, finalLink)
 	}

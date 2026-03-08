@@ -219,6 +219,7 @@ func redirectForCommitChoice[T any](ctx *context.Context, parsed *preparedEditor
 
 	// redirect to the newly updated file
 	redirectTo := ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(parsed.NewBranchName) + "/" + util.PathEscapeSegments(treePath)
+	redirectTo = strings.TrimSuffix(redirectTo, "/")
 	ctx.JSONRedirect(redirectTo)
 }
 
