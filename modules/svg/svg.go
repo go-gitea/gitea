@@ -28,10 +28,6 @@ var (
 
 const defaultSize = 16
 
-func clearSVGRenderCache() {
-	svgRenderedHTMLCache.Clear()
-}
-
 // Init discovers SVG icons and populates the `svgIcons` variable
 func Init() error {
 	const svgAssetsPath = "assets/img/svg"
@@ -40,7 +36,6 @@ func Init() error {
 		return err
 	}
 
-	clearSVGRenderCache()
 	svgIcons = make(map[string]string, len(files))
 	for _, file := range files {
 		if path.Ext(file) != ".svg" {
@@ -60,11 +55,9 @@ func MockIcon(icon string) func() {
 	if svgIcons == nil {
 		svgIcons = make(map[string]string)
 	}
-	clearSVGRenderCache()
 	orig, exist := svgIcons[icon]
 	svgIcons[icon] = fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d"></svg>`, icon, defaultSize, defaultSize)
 	return func() {
-		clearSVGRenderCache()
 		if exist {
 			svgIcons[icon] = orig
 		} else {
