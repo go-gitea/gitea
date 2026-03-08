@@ -23,7 +23,6 @@
   "components": [
     "api",
     "modal",
-    "search",
     "tab"
   ]
 }

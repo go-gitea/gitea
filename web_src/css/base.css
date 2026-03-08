@@ -336,37 +336,6 @@ a.label,
   background: currentcolor;
 }
 
-.ui.search > .results {
-  background: var(--color-body);
-  border-color: var(--color-secondary);
-  overflow-wrap: anywhere; /* allow text to wrap as fomantic limits this to 18em width */
-}
-
-.ui.search > .results .result {
-  background: var(--color-body);
-  border-color: var(--color-secondary);
-  display: flex;
-  align-items: center;
-}
-
-.ui.search > .results .result .title {
-  color: var(--color-text-dark);
-}
-
-.ui.search > .results .result .description {
-  color: var(--color-text-light-2);
-}
-
-.ui.search > .results .result .image {
-  width: auto;
-  height: auto;
-}
-
-.ui.search > .results .result:hover,
-.ui.category.search > .results .category .result:hover {
-  background: var(--color-hover);
-}
-
 .empty-placeholder {
   display: flex;
   flex-direction: column;
