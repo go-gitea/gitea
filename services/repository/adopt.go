@@ -240,7 +240,7 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 
 type unadoptedRepositories struct {
 	repositories []string
-	index        int
+	index        int // FIXME: it should be int64 and the name should be "counter"
 	start        int
 	end          int
 }
