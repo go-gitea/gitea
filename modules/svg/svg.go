@@ -80,15 +80,20 @@ func MockIcon(icon string) func() {
 
 // RenderHTML renders icons - arguments icon name (string), size (int), class (string)
 func RenderHTML(icon string, others ...any) template.HTML {
+	result, _ := renderHTML(icon, others...)
+	return result
+}
+
+func renderHTML(icon string, others ...any) (_ template.HTML, usingCache bool) {
 	if icon == "" {
-		return ""
+		return "", false
 	}
 	size, class := gitea_html.ParseSizeAndClass(defaultSize, "", others...)
 	if svgItem, ok := svgIcons[icon]; ok {
 		svgStr := svgItem.html
 		// fast path for default size and no classes
 		if size == defaultSize && class == "" {
-			return template.HTML(svgStr)
+			return template.HTML(svgStr), false
 		}
 
 		cacheKey := svgCacheKey{icon, size, class}
@@ -96,7 +101,7 @@ func RenderHTML(icon string, others ...any) template.HTML {
 		cachedHTML, cached := svgRenderedCache[cacheKey]
 		svgRenderedMu.RUnlock()
 		if cached && !svgItem.mocking {
-			return cachedHTML
+			return cachedHTML, true
 		}
 
 		// the code is somewhat hacky, but it just works, because the SVG contents are all normalized
@@ -112,15 +117,17 @@ func RenderHTML(icon string, others ...any) template.HTML {
 		if !svgItem.mocking {
 			// no need to double-check, the rendering is fast enough and the cache is just an optimization
 			svgRenderedMu.Lock()
-			if len(svgRenderedCache) > svgRenderedLimit {
+			if len(svgRenderedCache) >= svgRenderedLimit {
 				svgRenderedCache = make(map[svgCacheKey]template.HTML)
 			}
 			svgRenderedCache[cacheKey] = result
 			svgRenderedMu.Unlock()
 		}
 
-		return result
+		return result, false
 	}
+
 	// during test (or something wrong happens), there is no SVG loaded, so use a dummy span to tell that the icon is missing
-	return template.HTML(fmt.Sprintf("<span>%s(%d/%s)</span>", template.HTMLEscapeString(icon), size, template.HTMLEscapeString(class)))
+	dummy := template.HTML(fmt.Sprintf("<span>%s(%d/%s)</span>", template.HTMLEscapeString(icon), size, template.HTMLEscapeString(class)))
+	return dummy, false
 }

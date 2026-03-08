@@ -4,23 +4,53 @@
 package svg
 
 import (
+	"html/template"
 	"testing"
+
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRenderHTMLCache(t *testing.T) {
-	svgIcons = map[string]string{
-		"test": `<svg class="svg test" width="16" height="16"></svg>`,
+	const svgRealContent = "RealContent"
+	svgIcons = map[string]svgIconItem{
+		"test": {html: `<svg class="svg test" width="16" height="16">` + svgRealContent + `</svg>`},
 	}
+	svgRenderedCache = make(map[svgCacheKey]template.HTML)
 
 	// default params: no cache entry
-	RenderHTML("test")
-	_, ok := svgRenderedHTMLCache.Load(svgCacheKey{"test", 16, ""})
-	assert.False(t, ok)
+	_, usingCache := renderHTML("test")
+	assert.False(t, usingCache)
+	_, usingCache = renderHTML("test")
+	assert.False(t, usingCache)
 
 	// non-default params: cached
-	RenderHTML("test", 24)
-	_, ok = svgRenderedHTMLCache.Load(svgCacheKey{"test", 24, ""})
-	assert.True(t, ok)
+	_, usingCache = renderHTML("test", 24)
+	assert.False(t, usingCache)
+	_, usingCache = renderHTML("test", 24)
+	assert.True(t, usingCache)
+
+	// mocked svg shouldn't be cached
+	revertMock := MockIcon("test")
+	mockedHTML, usingCache := renderHTML("test", 24)
+	assert.False(t, usingCache)
+	assert.NotContains(t, mockedHTML, svgRealContent)
+	revertMock()
+	realHTML, usingCache := renderHTML("test", 24)
+	assert.True(t, usingCache)
+	assert.Contains(t, realHTML, svgRealContent)
+
+	t.Run("CacheWithLimit", func(t *testing.T) {
+		assert.NotZero(t, len(svgRenderedCache))
+		const testLimit = 3
+		defer test.MockVariableValue(&svgRenderedLimit, testLimit)()
+		for i := range 10 {
+			_, usingCache = renderHTML("test", 100+i)
+			assert.False(t, usingCache)
+			_, usingCache = renderHTML("test", 100+i)
+			assert.True(t, usingCache)
+			assert.LessOrEqual(t, len(svgRenderedCache), testLimit)
+		}
+	})
 }
