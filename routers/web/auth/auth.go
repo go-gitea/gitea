@@ -199,12 +199,10 @@ func prepareSignInPageData(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
 	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
-	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
-	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
 
-	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
-		context.SetCaptchaData(ctx)
-	}
+	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
+		EnableCaptcha: setting.Service.EnableCaptcha,
+	})
 }
 
 // SignIn render sign in page
@@ -457,7 +455,9 @@ func SignUp(ctx *context.Context) {
 	}
 
 	ctx.Data["OAuth2Providers"] = oauth2Providers
-	context.SetCaptchaData(ctx)
+	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
+		EnableCaptcha: setting.Service.EnableCaptcha,
+	})
 
 	ctx.Data["PageIsSignUp"] = true
 
@@ -483,7 +483,9 @@ func SignUpPost(ctx *context.Context) {
 	}
 
 	ctx.Data["OAuth2Providers"] = oauth2Providers
-	context.SetCaptchaData(ctx)
+	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
+		EnableCaptcha: setting.Service.EnableCaptcha,
+	})
 
 	ctx.Data["PageIsSignUp"] = true
 

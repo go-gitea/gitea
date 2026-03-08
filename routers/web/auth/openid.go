@@ -297,17 +297,11 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["Title"] = "OpenID signup"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
-	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-	ctx.Data["Captcha"] = context.GetImageCaptcha()
-	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
-	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
-	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
+
+	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
+		EnableCaptcha: setting.Service.EnableCaptcha,
+	})
+
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
@@ -333,7 +327,11 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
-	context.SetCaptchaData(ctx)
+
+	prepareCommonAuthTemplateData(ctx, CommonAuthOptions{
+		EnableCaptcha: setting.Service.EnableCaptcha,
+	})
+
 	ctx.Data["OpenID"] = oid
 
 	if setting.Service.AllowOnlyInternalRegistration {
