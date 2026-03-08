@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -18,6 +19,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
@@ -35,6 +37,8 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -316,6 +320,34 @@ func ViewPackageVersion(ctx *context.Context) {
 	ctx.Data["LatestVersions"] = pvs
 	ctx.Data["TotalVersionCount"] = pvsTotal
 
+	if pd.Package.Type == packages_model.TypeTerraformState {
+		latestPvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
+			PackageID:  pd.Package.ID,
+			IsInternal: optional.Some(false),
+		})
+		if err != nil {
+			ctx.ServerError("SearchLatestVersions", err)
+			return
+		}
+		isLatest := len(latestPvs) > 0 && latestPvs[0].ID == pd.Version.ID
+		ctx.Data["IsLatestVersion"] = isLatest
+
+		if isLatest {
+			lockProps, _ := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, pd.Package.ID, "terraform.lock")
+			if len(lockProps) > 0 && lockProps[0].Value != "" {
+				var lockInfo struct {
+					ID        string    `json:"ID"`
+					Who       string    `json:"Who"`
+					Operation string    `json:"Operation"`
+					Created   time.Time `json:"Created"`
+				}
+				if err := json.Unmarshal([]byte(lockProps[0].Value), &lockInfo); err == nil {
+					ctx.Data["TerraformLock"] = lockInfo
+				}
+			}
+		}
+	}
+
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
 	hasRepositoryAccess := false
@@ -527,4 +559,52 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 
 	packages_helper.ServePackageFile(ctx, s, u, pf)
+}
+
+// ActionPackageTerraformLock locks a terraform state
+func ActionPackageTerraformLock(ctx *context.Context) {
+	pd := ctx.Package.Descriptor
+	if pd.Package.Type != packages_model.TypeTerraformState {
+		ctx.NotFound(nil)
+		return
+	}
+
+	lockID := uuid.New().String()
+	lockInfo := struct {
+		ID        string    `json:"ID"`
+		Operation string    `json:"Operation"`
+		Who       string    `json:"Who"`
+		Created   time.Time `json:"Created"`
+	}{
+		ID:        lockID,
+		Operation: "Manual UI Lock",
+		Who:       ctx.Doer.Name,
+		Created:   time.Now(),
+	}
+
+	lockJSON, _ := json.Marshal(lockInfo)
+	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, pd.Package.ID, "terraform.lock", string(lockJSON)); err != nil {
+		ctx.ServerError("InsertOrUpdateProperty", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("packages.terraform.lock.success"))
+	ctx.Redirect(pd.VersionWebLink())
+}
+
+// ActionPackageTerraformUnlock unlocks a terraform state
+func ActionPackageTerraformUnlock(ctx *context.Context) {
+	pd := ctx.Package.Descriptor
+	if pd.Package.Type != packages_model.TypeTerraformState {
+		ctx.NotFound(nil)
+		return
+	}
+
+	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, pd.Package.ID, "terraform.lock", ""); err != nil {
+		ctx.ServerError("InsertOrUpdateProperty", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("packages.terraform.unlock.success"))
+	ctx.Redirect(pd.VersionWebLink())
 }

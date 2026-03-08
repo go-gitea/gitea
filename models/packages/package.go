@@ -51,7 +51,7 @@ const (
 	TypeRpm            Type = "rpm"
 	TypeRubyGems       Type = "rubygems"
 	TypeSwift          Type = "swift"
-	TypeTerraformState Type = "terraformstate"
+	TypeTerraformState Type = "terraform"
 	TypeVagrant        Type = "vagrant"
 )
 

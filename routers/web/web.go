@@ -1054,6 +1054,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Group("/{version}", func() {
 						m.Get("", user.ViewPackageVersion)
 						m.Get("/{version_sub}", user.ViewPackageVersion)
+						m.Post("/terraform/lock", user.ActionPackageTerraformLock)
+						m.Post("/terraform/unlock", user.ActionPackageTerraformUnlock)
 						m.Get("/files/{fileid}", user.DownloadPackageFile)
 						m.Group("/settings", func() {
 							m.Get("", user.PackageSettings)
