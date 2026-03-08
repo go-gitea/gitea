@@ -20,7 +20,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
@@ -99,7 +98,7 @@ gpgcheck=1
 gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					strings.Join(append([]string{user.LowerName}, groupParts...), "-"),
 					strings.Join(append([]string{user.Name, setting.AppName}, groupParts...), " - "),
-					util.URLJoin(setting.AppURL, groupURL),
+					strings.TrimSuffix(setting.AppURL, "/")+groupURL,
 					setting.AppURL,
 					user.Name,
 				)
