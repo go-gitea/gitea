@@ -23,7 +23,7 @@ type Pagination struct {
 }
 
 // NewPagination creates a new instance of the Pagination struct.
-// "total" is from database result "count int64", so it also uses int64
+// "total" is usually from database result "count int64", so it also uses int64
 // "pagingNum" is "page size" or "limit", "current" is "page"
 // total=-1 means only showing prev/next
 func NewPagination(total int64, pagingNum, current, numPages int) *Pagination {

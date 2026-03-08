@@ -204,6 +204,7 @@ func genAPILinks(curURL *url.URL, total int64, pageSize, curPage int) []string {
 }
 
 // SetLinkHeader sets pagination link header by given total number and page size.
+// "count" is usually from database result "count int64", so it also uses int64,
 func (ctx *APIContext) SetLinkHeader(total int64, pageSize int) {
 	links := genAPILinks(ctx.Req.URL, total, pageSize, ctx.FormInt("page"))
 
