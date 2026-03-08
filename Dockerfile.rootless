@@ -6,7 +6,7 @@ WORKDIR /src
 COPY package.json pnpm-lock.yaml .npmrc ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 COPY --exclude=.git/ . .
-RUN touch node_modules && make frontend
+RUN make frontend
 
 # Build backend for each target platform
 FROM docker.io/library/golang:1.26-alpine3.23 AS build-env
