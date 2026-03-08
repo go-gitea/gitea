@@ -5,8 +5,6 @@
 package paginator
 
 import (
-	"math"
-
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -48,16 +46,15 @@ type Paginator struct {
 }
 
 // New initialize a new pagination calculation and returns a Paginator as result.
-func New[T ~int | ~int64](total T, pagingNum, current, numPages int) *Paginator {
+func New(total, pagingNum, current, numPages int) *Paginator {
 	pagingNum = max(pagingNum, 1)
-	t := int(min(int64(total), int64(math.MaxInt)))
-	totalPages := util.Iif(t == -1, -1, (t+pagingNum-1)/pagingNum)
-	if t >= 0 {
+	totalPages := util.Iif(total == -1, -1, (total+pagingNum-1)/pagingNum)
+	if total >= 0 {
 		current = min(current, totalPages)
 	}
 	current = max(current, 1)
 	return &Paginator{
-		total:      t,
+		total:      total,
 		totalPages: totalPages,
 		current:    current,
 		pagingNum:  pagingNum,
