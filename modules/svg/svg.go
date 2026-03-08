@@ -15,6 +15,11 @@ import (
 	"code.gitea.io/gitea/modules/public"
 )
 
+type svgIconItem struct {
+	html    string
+	mocking bool
+}
+
 type svgCacheKey struct {
 	icon  string
 	size  int
@@ -22,8 +27,11 @@ type svgCacheKey struct {
 }
 
 var (
-	svgIcons             map[string]string
-	svgRenderedHTMLCache sync.Map
+	svgIcons map[string]svgIconItem
+
+	svgRenderedMu    sync.RWMutex
+	svgRenderedCache map[svgCacheKey]template.HTML
+	svgRenderedLimit = 10000
 )
 
 const defaultSize = 16
@@ -36,7 +44,7 @@ func Init() error {
 		return err
 	}
 
-	svgIcons = make(map[string]string, len(files))
+	svgIcons = make(map[string]svgIconItem, len(files))
 	for _, file := range files {
 		if path.Ext(file) != ".svg" {
 			continue
@@ -45,18 +53,22 @@ func Init() error {
 		if err != nil {
 			log.Error("Failed to read SVG file %s: %v", file, err)
 		} else {
-			svgIcons[file[:len(file)-4]] = string(Normalize(bs, defaultSize))
+			svgIcons[file[:len(file)-4]] = svgIconItem{html: string(Normalize(bs, defaultSize))}
 		}
 	}
+	svgRenderedCache = make(map[svgCacheKey]template.HTML)
 	return nil
 }
 
 func MockIcon(icon string) func() {
 	if svgIcons == nil {
-		svgIcons = make(map[string]string)
+		svgIcons = make(map[string]svgIconItem)
 	}
 	orig, exist := svgIcons[icon]
-	svgIcons[icon] = fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d"></svg>`, icon, defaultSize, defaultSize)
+	svgIcons[icon] = svgIconItem{
+		html:    fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d"></svg>`, icon, defaultSize, defaultSize),
+		mocking: true,
+	}
 	return func() {
 		if exist {
 			svgIcons[icon] = orig
@@ -72,15 +84,21 @@ func RenderHTML(icon string, others ...any) template.HTML {
 		return ""
 	}
 	size, class := gitea_html.ParseSizeAndClass(defaultSize, "", others...)
-	if svgStr, ok := svgIcons[icon]; ok {
+	if svgItem, ok := svgIcons[icon]; ok {
+		svgStr := svgItem.html
 		// fast path for default size and no classes
 		if size == defaultSize && class == "" {
 			return template.HTML(svgStr)
 		}
+
 		cacheKey := svgCacheKey{icon, size, class}
-		if v, ok := svgRenderedHTMLCache.Load(cacheKey); ok {
-			return v.(template.HTML)
+		svgRenderedMu.RLock()
+		cachedHTML, cached := svgRenderedCache[cacheKey]
+		svgRenderedMu.RUnlock()
+		if cached && !svgItem.mocking {
+			return cachedHTML
 		}
+
 		// the code is somewhat hacky, but it just works, because the SVG contents are all normalized
 		if size != defaultSize {
 			svgStr = strings.Replace(svgStr, fmt.Sprintf(`width="%d"`, defaultSize), fmt.Sprintf(`width="%d"`, size), 1)
@@ -90,7 +108,17 @@ func RenderHTML(icon string, others ...any) template.HTML {
 			svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)
 		}
 		result := template.HTML(svgStr)
-		svgRenderedHTMLCache.Store(cacheKey, result)
+
+		if !svgItem.mocking {
+			// no need to double-check, the rendering is fast enough and the cache is just an optimization
+			svgRenderedMu.Lock()
+			if len(svgRenderedCache) > svgRenderedLimit {
+				svgRenderedCache = make(map[svgCacheKey]template.HTML)
+			}
+			svgRenderedCache[cacheKey] = result
+			svgRenderedMu.Unlock()
+		}
+
 		return result
 	}
 	// during test (or something wrong happens), there is no SVG loaded, so use a dummy span to tell that the icon is missing
