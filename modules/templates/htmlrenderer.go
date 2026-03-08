@@ -154,7 +154,7 @@ func HandleTemplateRenderingError(err error) string {
 
 const dashSeparator = "----------------------------------------------------------------------"
 
-func (p *templateErrorPrettier) makeDetailedError(errMsg, tmplName string, lineNumStr, posNumStr, target string) string {
+func (p *templateErrorPrettier) makeDetailedError(errMsg, tmplName, lineNumStr, posNumStr, target string) string {
 	code, layer, err := p.assets.ReadLayeredFile(tmplName + ".tmpl")
 	if err != nil {
 		return fmt.Sprintf("template error: %s, and unable to find template file %q", errMsg, tmplName)
