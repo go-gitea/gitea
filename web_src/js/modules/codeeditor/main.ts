@@ -209,7 +209,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
     togglePalette: palette.togglePalette,
     updateFilename: async (filename: string) => {
       togglePreviewDisplay(previewableExts.has(extname(filename)));
-      await updateEditorLanguage(editor, filename, lineWrapExts);
+      await updateEditorLanguage(cm, editor, filename, lineWrapExts);
     },
     languages: languageDescriptions,
     compartments: {wordWrap, language, tabSize, indentUnit: indentUnitComp, lint: lintComp},
@@ -282,8 +282,7 @@ async function getLinterExtension(cm: CodemirrorModules, filename: string, match
   return [];
 }
 
-async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, lineWrapExts: string[]): Promise<void> {
-  const cm = await importCodemirror();
+async function updateEditorLanguage(cm: CodemirrorModules, editor: CodemirrorEditor, filename: string, lineWrapExts: string[]): Promise<void> {
   const {compartments, view, languages: editorLanguages} = editor;
 
   const newLanguage = cm.language.LanguageDescription.matchFilename(editorLanguages, filename);

@@ -65,7 +65,8 @@ export function clickableUrls(cm: CodemirrorModules) {
       if (!(event.metaKey || event.ctrlKey)) return false;
       const pos = view.posAtCoords({x: event.clientX, y: event.clientY});
       if (pos === null) return false;
-      const url = findUrlAtPosition(view.state.doc.toString(), pos);
+      const line = view.state.doc.lineAt(pos);
+      const url = findUrlAtPosition(line.text, pos - line.from);
       if (!url) return false;
       window.open(url, '_blank', 'noopener');
       event.preventDefault();
