@@ -70,8 +70,7 @@ func MockIcon(icon string) func() {
 	orig, exist := svgIcons[icon]
 	svgIcons[icon] = fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d"></svg>`, icon, defaultSize, defaultSize)
 	return func() {
-		svgRenderedHTMLCache.Clear()
-		svgRenderedHTMLCacheSize.Store(0)
+		clearSVGRenderCache()
 		if exist {
 			svgIcons[icon] = orig
 		} else {

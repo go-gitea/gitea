@@ -13,7 +13,7 @@ func TestRenderHTMLCache(t *testing.T) {
 	svgIcons = map[string]string{
 		"test-icon": `<svg class="svg test-icon" width="16" height="16"><path/></svg>`,
 	}
-	svgRenderedHTMLCache.Clear()
+	clearSVGRenderCache()
 
 	// default size and no class: fast path, no cache entry
 	result := RenderHTML("test-icon")
@@ -48,7 +48,7 @@ func TestMockIconClearsCache(t *testing.T) {
 	svgIcons = map[string]string{
 		"mock-icon": `<svg class="svg mock-icon" width="16" height="16"><path/></svg>`,
 	}
-	svgRenderedHTMLCache.Clear()
+	clearSVGRenderCache()
 
 	// populate cache
 	RenderHTML("mock-icon", 24)
