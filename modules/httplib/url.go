@@ -46,14 +46,14 @@ func IsRelativeURL(s string) bool {
 
 func getRequestScheme(req *http.Request) string {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto
-	if s := req.Header.Get("X-Forwarded-Proto"); s != "" {
-		return s
+	if proto, ok := parseForwardedProtoValue(req.Header.Get("X-Forwarded-Proto")); ok {
+		return proto
 	}
-	if s := req.Header.Get("X-Forwarded-Protocol"); s != "" {
-		return s
+	if proto, ok := parseForwardedProtoValue(req.Header.Get("X-Forwarded-Protocol")); ok {
+		return proto
 	}
-	if s := req.Header.Get("X-Url-Scheme"); s != "" {
-		return s
+	if proto, ok := parseForwardedProtoValue(req.Header.Get("X-Url-Scheme")); ok {
+		return proto
 	}
 	if s := req.Header.Get("Front-End-Https"); s != "" {
 		return util.Iif(s == "on", "https", "http")
@@ -62,6 +62,13 @@ func getRequestScheme(req *http.Request) string {
 		return util.Iif(s == "on", "https", "http")
 	}
 	return ""
+}
+
+func parseForwardedProtoValue(val string) (string, bool) {
+	if val == "http" || val == "https" {
+		return val, true
+	}
+	return "", false
 }
 
 // GuessCurrentAppURL tries to guess the current full public URL (with sub-path) by http headers. It always has a '/' suffix, exactly the same as setting.AppURL
