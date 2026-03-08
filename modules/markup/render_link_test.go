@@ -19,7 +19,7 @@ func TestResolveLinkRelative(t *testing.T) {
 	assert.Equal(t, "/a/b/c", resolveLinkRelative(ctx, "/a", "b", "c", false))
 	assert.Equal(t, "/a/c", resolveLinkRelative(ctx, "/a", "b", "/c", false))
 	assert.Equal(t, "/a/c#id", resolveLinkRelative(ctx, "/a", "b", "/c#id", false))
-	assert.Equal(t, "/a/c?k=/", resolveLinkRelative(ctx, "/a", "b", "/c/?k=/", false))
+	assert.Equal(t, "/a/%2f?k=/", resolveLinkRelative(ctx, "/a", "b", "/%2f/?k=/", false))
 	assert.Equal(t, "/a/b/c?k=v#id", resolveLinkRelative(ctx, "/a", "b", "c/?k=v#id", false))
 	assert.Equal(t, "%invalid", resolveLinkRelative(ctx, "/a", "b", "%invalid", false))
 	assert.Equal(t, "http://localhost:3000/a", resolveLinkRelative(ctx, "/a", "", "", true))

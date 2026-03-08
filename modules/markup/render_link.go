@@ -36,7 +36,7 @@ func resolveLinkRelative(ctx context.Context, base, cur, link string, absolute b
 	} // else: link is relative to "{base}/{cur}"
 
 	if finalLink == "" {
-		finalLink = strings.TrimSuffix(base, "/") + path.Join("/"+cur, "/"+linkURL.Path)
+		finalLink = strings.TrimSuffix(base, "/") + path.Join("/"+cur, "/"+linkURL.EscapedPath())
 		finalLink = strings.TrimSuffix(finalLink, "/")
 		if linkURL.RawQuery != "" {
 			finalLink += "?" + linkURL.RawQuery
