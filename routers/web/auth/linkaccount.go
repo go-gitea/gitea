@@ -28,6 +28,9 @@ func prepareLinkAccountPageData(ctx *context.Context) {
 	// TODO Make insecure passwords optional for local accounts also, once email-based Second-Factor Auth is available
 	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
 
+	ctx.Data["Title"] = ctx.Tr("link_account")
+	ctx.Data["LinkAccountMode"] = true
+
 	// use this to set the right link into the signIn and signUp templates in the link_account template
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
@@ -41,9 +44,6 @@ func prepareLinkAccountPageData(ctx *context.Context) {
 
 // LinkAccount shows the page where the user can decide to login or create a new account
 func LinkAccount(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("link_account")
-	ctx.Data["LinkAccountMode"] = true
-
 	prepareLinkAccountPageData(ctx)
 
 	linkAccountData := oauth2GetLinkAccountData(ctx)
@@ -123,8 +123,7 @@ func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl 
 // LinkAccountPostSignIn handle the coupling of external account with another account using signIn
 func LinkAccountPostSignIn(ctx *context.Context) {
 	signInForm := web.GetForm(ctx).(*forms.SignInForm)
-	ctx.Data["Title"] = ctx.Tr("link_account")
-	ctx.Data["LinkAccountMode"] = true
+
 	ctx.Data["LinkAccountModeSignIn"] = true
 
 	prepareLinkAccountPageData(ctx)
@@ -199,8 +198,6 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 func LinkAccountPostRegister(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RegisterForm)
 
-	ctx.Data["Title"] = ctx.Tr("link_account")
-	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeRegister"] = true
 
 	prepareLinkAccountPageData(ctx)

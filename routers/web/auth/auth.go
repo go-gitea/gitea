@@ -481,17 +481,18 @@ func prepareSignUpPageData(ctx *context.Context) bool {
 
 	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
-		ctx.ServerError("prepareSignUpPageData", err)
+		ctx.ServerError("GetOAuth2Providers", err)
 		return false
 	}
-
 	ctx.Data["OAuth2Providers"] = oauth2Providers
+
 	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha,
 	})
 
 	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration
+
 	return true
 }
 
