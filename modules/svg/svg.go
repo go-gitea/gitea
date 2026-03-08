@@ -30,7 +30,7 @@ var (
 
 const (
 	defaultSize = 16
-	cacheLimit  = 10000
+	cacheLimit  = 10000 // should never be hit under regular use, prevents memory exhaustion attacks
 )
 
 func clearSVGRenderCache() {
