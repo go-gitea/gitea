@@ -71,7 +71,7 @@ func GetWatchedRepos(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 	}
 
-	ctx.SetLinkHeader(int(total), utils.GetListOptions(ctx).PageSize)
+	ctx.SetLinkHeader(total, utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &repos)
 }
@@ -100,7 +100,7 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	if err != nil {
 		ctx.APIErrorInternal(err)
 	}
-	ctx.SetLinkHeader(int(total), utils.GetListOptions(ctx).PageSize)
+	ctx.SetLinkHeader(total, utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &repos)
 }

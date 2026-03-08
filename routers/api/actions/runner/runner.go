@@ -270,7 +270,7 @@ func (s *Service) UpdateLog(
 	rows := req.Msg.Rows[ack-req.Msg.Index:]
 	ns, err := actions.WriteLogs(ctx, task.LogFilename, task.LogSize, rows)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "write logs: %v", err)
+		return nil, status.Errorf(codes.Internal, "unable to append logs to dbfs file: %v", err)
 	}
 	task.LogLength += int64(len(rows))
 	for _, n := range ns {

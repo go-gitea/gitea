@@ -42,7 +42,7 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 		apiOrgs[i] = convert.ToOrganization(ctx, orgs[i])
 	}
 
-	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.SetLinkHeader(maxResults, listOptions.PageSize)
 	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &apiOrgs)
 }
@@ -135,7 +135,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 
 	op := api.OrganizationPermissions{}
 
-	if !organization.HasOrgOrUserVisible(ctx, o, ctx.ContextUser) {
+	if !organization.HasOrgOrUserVisible(ctx, o, ctx.Doer) {
 		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
 		return
 	}
@@ -215,7 +215,7 @@ func GetAll(ctx *context.APIContext) {
 		orgs[i] = convert.ToOrganization(ctx, organization.OrgFromUser(publicOrgs[i]))
 	}
 
-	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.SetLinkHeader(maxResults, listOptions.PageSize)
 	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &orgs)
 }

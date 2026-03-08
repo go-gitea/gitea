@@ -389,7 +389,7 @@ func TestRender_ShortLinks(t *testing.T) {
 	imgurl := util.URLJoin(tree, "Link.jpg")
 	otherImgurl := util.URLJoin(tree, "Link+Other.jpg")
 	encodedImgurl := util.URLJoin(tree, "Link+%23.jpg")
-	notencodedImgurl := util.URLJoin(tree, "some", "path", "Link+#.jpg")
+	notencodedImgurl := util.URLJoin(tree, "some", "path", "Link%20#.jpg")
 	renderableFileURL := util.URLJoin(tree, "markdown_file.md")
 	unrenderableFileURL := util.URLJoin(tree, "file.zip")
 	favicon := "http://google.com/favicon.ico"
@@ -466,6 +466,8 @@ func TestRender_ShortLinks(t *testing.T) {
 		"[[Name|Link #.jpg|alt=\"AltName\"|title='Title']]",
 		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`" title="Title" alt="AltName"/></a></p>`,
 	)
+	// FIXME: it's unable to resolve: [[link?k=v]]
+	// FIXME: it is a wrong test case, it is not an image, but a link with anchor "#.jpg"
 	test(
 		"[[some/path/Link #.jpg]]",
 		`<p><a href="`+notencodedImgurl+`" rel="nofollow"><img src="`+notencodedImgurl+`" title="Link #.jpg" alt="some/path/Link #.jpg"/></a></p>`,

@@ -54,7 +54,7 @@ func LFSFiles(ctx *context.Context) {
 	}
 	ctx.Data["Total"] = total
 
-	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
+	pager := context.NewPagination(total, setting.UI.ExplorePagingNum, page, 5)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs")
 	ctx.Data["PageIsSettingsLFS"] = true
 	lfsMetaObjects, err := git_model.GetLFSMetaObjects(ctx, ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)
@@ -83,7 +83,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	ctx.Data["Total"] = total
 
-	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
+	pager := context.NewPagination(total, setting.UI.ExplorePagingNum, page, 5)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs_locks")
 	ctx.Data["PageIsSettingsLFS"] = true
 	lfsLocks, err := git_model.GetLFSLockByRepoID(ctx, ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)

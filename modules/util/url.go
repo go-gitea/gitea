@@ -20,6 +20,8 @@ func PathEscapeSegments(path string) string {
 }
 
 // URLJoin joins url components, like path.Join, but preserving contents
+// Deprecated: it has unclear behaviors, should not be used anymore. It is only used in some tests.
+// Need to be removed in the future.
 func URLJoin(base string, elems ...string) string {
 	if !strings.HasSuffix(base, "/") {
 		base += "/"

@@ -180,8 +180,9 @@ func InitWebInstalled(ctx context.Context) {
 // NormalRoutes represents non install routes
 func NormalRoutes() *web.Router {
 	r := web.NewRouter()
-	r.Use(common.ProtocolMiddlewares()...)
-	r.Use(common.MaintenanceModeHandler())
+	r.BeforeRouting(common.ProtocolMiddlewares()...)
+
+	r.AfterRouting(common.MaintenanceModeHandler())
 
 	r.Mount("/", web_routers.Routes())
 	r.Mount("/api/v1", apiv1.Routes())
