@@ -6,8 +6,8 @@ package repo
 import (
 	"net/http"
 
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -51,12 +51,10 @@ func CreateCommitComment(ctx *context.Context) {
 		return
 	}
 
-	// Negate line number for "previous" (old) side
 	if side == "previous" {
 		line = -line
 	}
 
-	// Resolve full commit SHA
 	commit, err := ctx.Repo.GitRepo.GetCommit(commitSHA)
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -98,18 +96,18 @@ func CreateCommitComment(ctx *context.Context) {
 		}
 	}
 
-	comment := &repo_model.CommitComment{
-		RepoID:    ctx.Repo.Repository.ID,
+	comment := &issues_model.Comment{
+		Type:     issues_model.CommentTypeCommitComment,
+		PosterID: ctx.Doer.ID,
+		Poster:   ctx.Doer,
 		CommitSHA: fullSHA,
-		TreePath:  treePath,
-		Line:      line,
-		PosterID:  ctx.Doer.ID,
-		Poster:    ctx.Doer,
-		Content:   content,
-		Patch:     patch,
+		TreePath: treePath,
+		Line:     line,
+		Content:  content,
+		Patch:    patch,
 	}
 
-	if err := repo_model.CreateCommitComment(ctx, comment); err != nil {
+	if err := issues_model.CreateCommitComment(ctx, ctx.Repo.Repository.ID, fullSHA, comment); err != nil {
 		ctx.ServerError("CreateCommitComment", err)
 		return
 	}
@@ -121,9 +119,8 @@ func CreateCommitComment(ctx *context.Context) {
 		log.Error("RenderString for commit comment %d: %v", comment.ID, err)
 	}
 
-	// Return the conversation HTML so JS can replace the form inline
 	ctx.Data["CommitID"] = fullSHA
-	ctx.Data["comments"] = []*repo_model.CommitComment{comment}
+	ctx.Data["comments"] = []*issues_model.Comment{comment}
 	ctx.HTML(http.StatusOK, tplCommitConversation)
 }
 
@@ -135,19 +132,18 @@ func DeleteCommitComment(ctx *context.Context) {
 		return
 	}
 
-	comment, err := repo_model.GetCommitCommentByID(ctx, commentID)
+	comment, err := issues_model.GetCommitCommentByID(ctx, commentID)
 	if err != nil {
 		ctx.NotFound(err)
 		return
 	}
 
-	// Only the poster or repo admin can delete
 	if comment.PosterID != ctx.Doer.ID && !ctx.Repo.IsAdmin() {
 		ctx.JSONError("permission denied")
 		return
 	}
 
-	if err := repo_model.DeleteCommitComment(ctx, commentID); err != nil {
+	if err := issues_model.DeleteCommitComment(ctx, commentID); err != nil {
 		ctx.ServerError("DeleteCommitComment", err)
 		return
 	}

@@ -1,6 +1,6 @@
 {{if .comments}}
 	{{$comment := index .comments 0}}
-	<div class="conversation-holder" data-path="{{$comment.TreePath}}" data-side="{{if eq $comment.GetCommentSide "previous"}}left{{else}}right{{end}}" data-idx="{{$comment.UnsignedLine}}">
+	<div class="conversation-holder" data-path="{{$comment.TreePath}}" data-side="{{if eq $comment.DiffSide "previous"}}left{{else}}right{{end}}" data-idx="{{$comment.UnsignedLine}}">
 		<div id="code-comments-{{$comment.ID}}" class="field comment-code-cloud">
 			<div class="comment-list">
 				<div class="ui comments">
