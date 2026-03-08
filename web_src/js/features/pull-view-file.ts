@@ -9,7 +9,7 @@ const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all 
 const expandFilesBtnSelector = '#expand-files-btn';
 const collapseFilesBtnSelector = '#collapse-files-btn';
 
-// Refreshes the summary of viewed files if present
+// Refreshes the summary of viewed files
 // The data used will be window.config.pageData.prReview.numberOf{Viewed}Files
 function refreshViewedFilesSummary() {
   const viewedFilesProgress = document.querySelector('#viewed-files-summary')!;
