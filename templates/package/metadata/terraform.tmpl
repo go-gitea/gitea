@@ -8,7 +8,7 @@
 			<div>
 				{{if .TerraformLock}}
 					<div class="tw-flex tw-items-center tw-gap-2">
-						{{svg "octicon-lock" 16 "tw-text-red"}} 
+						{{svg "octicon-lock" 16 "tw-text-red"}}
 						<span>{{ctx.Locale.Tr "packages.terraform.locked_by" .TerraformLock.Who}}</span>
 					</div>
 					<div class="tw-text-xs tw-ml-6 tw-break-anywhere">
@@ -24,7 +24,7 @@
 					{{end}}
 				{{else}}
 					<div class="tw-flex tw-items-center tw-gap-2">
-						{{svg "octicon-lock-unlocked" 16 "tw-text-green"}} 
+						{{svg "octicon-unlock" 16 "tw-text-green"}}
 						<span>{{ctx.Locale.Tr "packages.terraform.unlocked"}}</span>
 					</div>
 					{{if .CanWritePackages}}
