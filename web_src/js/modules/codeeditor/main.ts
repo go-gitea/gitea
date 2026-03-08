@@ -111,6 +111,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
 
   const container = document.createElement('div');
   container.className = 'code-editor-container';
+  container.setAttribute('data-language', matchedLang?.name.toLowerCase() || '');
   textarea.parentNode!.append(container);
 
   const wordWrap = new cm.state.Compartment();
@@ -282,6 +283,7 @@ async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, 
   const {compartments, view, languages: editorLanguages} = editor;
 
   const newLanguage = cm.language.LanguageDescription.matchFilename(editorLanguages, filename);
+  view.dom.closest('.code-editor-container')!.setAttribute('data-language', newLanguage?.name.toLowerCase() || '');
   view.dispatch(
     {
       effects: [

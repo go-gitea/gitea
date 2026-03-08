@@ -517,21 +517,21 @@
 .code-editor-container .tok-keyword,
 .code-editor-container .tok-atom,
 .code-editor-container .tok-bool { color: var(--color-syntax-keyword); }
-.code-editor-container .tok-variableName { color: var(--color-syntax-name); }
+.code-editor-container .tok-variableName { color: var(--color-syntax-text-alt); }
 .code-editor-container .tok-variableName2 { color: var(--color-syntax-keyword); }
-.code-editor-container .tok-propertyName { color: var(--color-syntax-name); }
+.code-editor-container .tok-propertyName { color: var(--color-syntax-text-alt); }
 .code-editor-container .tok-typeName,
-.code-editor-container .tok-className,
-.code-editor-container .tok-namespace { color: var(--color-syntax-type); }
+.code-editor-container .tok-className { color: var(--color-syntax-type); }
+.code-editor-container .tok-namespace { color: var(--color-syntax-namespace); }
 .code-editor-container .tok-macroName { color: var(--color-syntax-name); }
 .code-editor-container .tok-labelName { color: var(--color-syntax-name); }
 .code-editor-container .tok-number { color: var(--color-syntax-number); }
-.code-editor-container .tok-string,
-.code-editor-container .tok-string2 { color: var(--color-syntax-string); }
+.code-editor-container .tok-string { color: var(--color-syntax-string); }
+.code-editor-container .tok-string2 { color: var(--color-syntax-regexp); }
 .code-editor-container .tok-operator { color: var(--color-syntax-operator); }
-.code-editor-container .tok-punctuation { color: var(--color-syntax-operator); }
+.code-editor-container .tok-punctuation { color: var(--color-syntax-punctuation); }
 .code-editor-container .tok-comment { color: var(--color-syntax-comment); }
-.code-editor-container .tok-meta { color: var(--color-syntax-comment); }
+.code-editor-container .tok-meta { color: var(--color-syntax-preproc); }
 .code-editor-container .tok-invalid { color: var(--color-syntax-invalid); }
 .code-editor-container .tok-link { color: var(--color-syntax-link); }
 .code-editor-container .tok-heading { color: var(--color-syntax-type); }
@@ -539,3 +539,11 @@
 .code-editor-container .tok-strong { font-weight: var(--font-weight-bold); }
 .code-editor-container .tok-inserted { color: var(--color-syntax-string); }
 .code-editor-container .tok-deleted { color: var(--color-syntax-invalid); }
+
+/* language-specific overrides: in data formats, property names are structural keys */
+.code-editor-container[data-language="json"] .tok-propertyName,
+.code-editor-container[data-language="json5"] .tok-propertyName,
+.code-editor-container[data-language="yaml"] .tok-propertyName { color: var(--color-syntax-tag); }
+.code-editor-container[data-language="css"] .tok-propertyName { color: var(--color-syntax-keyword); }
+.code-editor-container[data-language="html"] .tok-propertyName,
+.code-editor-container[data-language="xml"] .tok-propertyName { color: var(--color-syntax-attribute); }
