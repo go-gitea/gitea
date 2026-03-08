@@ -9,7 +9,6 @@ import (
 	"path"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	gitea_html "code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
@@ -23,19 +22,14 @@ type svgCacheKey struct {
 }
 
 var (
-	svgIcons                 map[string]string
-	svgRenderedHTMLCache     sync.Map
-	svgRenderedHTMLCacheSize atomic.Int32
+	svgIcons             map[string]string
+	svgRenderedHTMLCache sync.Map
 )
 
-const (
-	defaultSize = 16
-	cacheLimit  = 10000 // should never be hit under regular use, prevents memory exhaustion attacks
-)
+const defaultSize = 16
 
 func clearSVGRenderCache() {
 	svgRenderedHTMLCache.Clear()
-	svgRenderedHTMLCacheSize.Store(0)
 }
 
 // Init discovers SVG icons and populates the `svgIcons` variable
@@ -103,11 +97,7 @@ func RenderHTML(icon string, others ...any) template.HTML {
 			svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)
 		}
 		result := template.HTML(svgStr)
-		if svgRenderedHTMLCacheSize.Load() >= cacheLimit {
-			clearSVGRenderCache()
-		}
 		svgRenderedHTMLCache.Store(cacheKey, result)
-		svgRenderedHTMLCacheSize.Add(1)
 		return result
 	}
 	// during test (or something wrong happens), there is no SVG loaded, so use a dummy span to tell that the icon is missing
