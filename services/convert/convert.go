@@ -203,8 +203,8 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 
 // ToTag convert a git.Tag to an api.Tag
 func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
-	tarballURL := util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz")
-	zipballURL := util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip")
+	tarballURL := repo.HTMLURL() + "/archive/" + url.PathEscape(t.Name+".tar.gz")
+	zipballURL := repo.HTMLURL() + "/archive/" + url.PathEscape(t.Name+".zip")
 
 	// Archive URLs are "" if the download feature is disabled
 	if setting.Repository.DisableDownloadSourceArchives {
@@ -713,7 +713,7 @@ func ToAnnotatedTag(ctx context.Context, repo *repo_model.Repository, t *git.Tag
 		SHA:          t.ID.String(),
 		Object:       ToAnnotatedTagObject(repo, c),
 		Message:      t.Message,
-		URL:          util.URLJoin(repo.APIURL(), "git/tags", t.ID.String()),
+		URL:          repo.APIURL() + "/git/tags/" + t.ID.String(),
 		Tagger:       ToCommitUser(t.Tagger),
 		Verification: ToVerification(ctx, c),
 	}
@@ -724,7 +724,7 @@ func ToAnnotatedTagObject(repo *repo_model.Repository, commit *git.Commit) *api.
 	return &api.AnnotatedTagObject{
 		SHA:  commit.ID.String(),
 		Type: string(git.ObjectCommit),
-		URL:  util.URLJoin(repo.APIURL(), "git/commits", commit.ID.String()),
+		URL:  repo.APIURL() + "/git/commits/" + commit.ID.String(),
 	}
 }
 

@@ -5,11 +5,12 @@ package markup
 
 import (
 	"context"
+	"net/url"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 func resolveLinkRelative(ctx context.Context, base, cur, link string, absolute bool) (finalLink string) {
@@ -18,13 +19,27 @@ func resolveLinkRelative(ctx context.Context, base, cur, link string, absolute b
 	}
 	if strings.HasPrefix(link, "/") {
 		if strings.HasPrefix(link, base) && strings.Count(base, "/") >= 4 {
-			// a trick to tolerate that some users were using absolute paths (the old gitea's behavior)
+			// a trick to tolerate that some users were using absolute paths (the old Gitea's behavior)
+			// if the link is likely "{base}/src/main" while "{base}" is something like "/owner/repo"
 			finalLink = link
 		} else {
-			finalLink = util.URLJoin(base, "./", link)
+			// need to resolve the link relative to "{base}"
+			cur = ""
 		}
-	} else {
-		finalLink = util.URLJoin(base, "./", cur, link)
+	} // else: link is relative to "{base}/{cur}"
+
+	if finalLink == "" {
+		linkURL, err := url.Parse(link)
+		if err != nil {
+			finalLink = strings.TrimSuffix(base, "/") + path.Join("/"+cur)
+		} else {
+			// HINT: GOLANG-HTTP-REDIRECT-BUG: Golang security vulnerability: "http.Redirect" calls "path.Clean" and changes the meaning of a path
+			linkPath := strings.ReplaceAll(linkURL.Path, "\\", "/")
+			finalLink = strings.TrimSuffix(base, "/") + path.Join("/"+cur, "/"+linkPath)
+			if linkURL.RawQuery != "" {
+				finalLink += "?" + linkURL.RawQuery
+			}
+		}
 	}
 	finalLink = strings.TrimSuffix(finalLink, "/")
 	if absolute {

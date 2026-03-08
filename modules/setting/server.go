@@ -15,7 +15,6 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // Scheme describes protocol types
@@ -175,7 +174,7 @@ func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
 		}
 
 		// StaticURLPrefix is just a path
-		return util.URLJoin(appURL, strings.TrimSuffix(staticURLPrefix, "/"))
+		return strings.TrimSuffix(appURL, "/") + "/" + strings.Trim(staticURLPrefix, "/")
 	}
 
 	return strings.TrimSuffix(staticURLPrefix, "/")
