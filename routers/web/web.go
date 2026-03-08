@@ -873,6 +873,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	// the legacy names "reqRepoXxx" should be renamed to the correct name "reqUnitXxx", these permissions are for units, not repos
 	reqUnitsWithMarkdown := context.RequireUnitReader(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki)
+	reqUnitsWithMentions := context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects)
 	reqUnitCodeReader := context.RequireUnitReader(unit.TypeCode)
 	reqUnitIssuesReader := context.RequireUnitReader(unit.TypeIssues)
 	reqUnitPullsReader := context.RequireUnitReader(unit.TypePullRequests)
@@ -1063,6 +1064,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 
+		// at the moment, only editing "owner-level projects" need to "mention", maybe in the future we can relax the permission check
+		m.Get("/mentions-in-owner", reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), org.GetMentionsInOwner)
+
 		m.Get("/repositories", org.Repositories)
 		m.Get("/heatmap", user.DashboardHeatmap)
 
@@ -1111,6 +1115,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{reponame}/-": migrate
+
+	m.Group("/{username}/{reponame}/-", func() {
+		m.Get("/mentions-in-repo", repo.GetMentionsInRepo)
+	}, optSignIn, context.RepoAssignment, reqUnitsWithMentions)
+	// end "/{username}/{reponame}/-": mentions
 
 	m.Group("/{username}/{reponame}/settings", func() {
 		m.Group("", func() {
