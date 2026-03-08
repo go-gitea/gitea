@@ -209,6 +209,7 @@ func prepareCommonAuthTemplateData(ctx *context.Context, opt CommonAuthOptions) 
 	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
 
 	if opt.EnableCaptcha {
+		ctx.Data["EnableCaptcha"] = true
 		ctx.Data["RecaptchaAPIScriptURL"] = strings.TrimSuffix(setting.Service.RecaptchaURL, "/") + "/api.js"
 		ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 		ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
@@ -216,7 +217,9 @@ func prepareCommonAuthTemplateData(ctx *context.Context, opt CommonAuthOptions) 
 		ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
 		ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 		ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
-		ctx.Data["Captcha"] = context.GetImageCaptcha()
+		if setting.Service.CaptchaType == setting.ImageCaptcha {
+			ctx.Data["Captcha"] = context.GetImageCaptcha()
+		}
 	}
 }
 
