@@ -30,6 +30,7 @@ import (
 	actions_service "code.gitea.io/gitea/services/actions"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -411,15 +412,15 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 		ServeDirect bool
 	}{
 		{Name: "Download"},
-		// FIXME ServeDirect Content-Type and Content-Disposition are partially broken in minio and not implemented azure
-		// {Name: "ServeDirect", ServeDirect: true},
+		{Name: "ServeDirect", ServeDirect: true},
 	}
 
 	for _, entry := range table {
 		t.Run(entry.Name, func(t *testing.T) {
 			switch setting.Actions.ArtifactStorage.Type {
-			case setting.AzureBlobStorageType:
-				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.AzureBlobConfig.ServeDirect, entry.ServeDirect)()
+			// FIXME ServeDirect Content-Type and Content-Disposition are partially broken in minio and not implemented in azure
+			// case setting.AzureBlobStorageType:
+			// 	defer test.MockVariableValue(&setting.Actions.ArtifactStorage.AzureBlobConfig.ServeDirect, entry.ServeDirect)()
 			case setting.MinioStorageType:
 				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.MinioConfig.ServeDirect, entry.ServeDirect)()
 			default:
@@ -451,14 +452,30 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 			protojson.Unmarshal(resp.Body.Bytes(), &finalizeResp)
 			assert.NotEmpty(t, finalizeResp.SignedUrl)
 
-			// FIXME use real http client if ServeDirect is true
-			req = NewRequest(t, "GET", finalizeResp.SignedUrl)
-			resp = MakeRequest(t, req, http.StatusOK)
-			// TODO add test data for other file types
-			assert.Equal(t, actions.ArtifactV4ContentEncoding, resp.Header().Get("Content-Type"))
-			// TODO add a CSP test
 			body := strings.Repeat("D", 1024)
-			assert.Equal(t, body, resp.Body.String())
+			// FIXME use real http client if ServeDirect is true
+			if entry.ServeDirect {
+				externalReq, err := http.NewRequestWithContext(t.Context(), http.MethodGet, finalizeResp.SignedUrl, nil)
+				require.NoError(t, err)
+				externalResp, err := http.DefaultClient.Do(externalReq)
+				require.NoError(t, err)
+				assert.Equal(t, http.StatusOK, externalResp.StatusCode)
+				// FIXME add test data for other file types
+				assert.Equal(t, actions.ArtifactV4ContentEncoding, externalResp.Header.Get("Content-Type"))
+				// FIXME Content-Type-Disposition Check
+				buf := make([]byte, 1024)
+				n, err := io.ReadAtLeast(externalResp.Body, buf, len(buf))
+				require.NoError(t, err)
+				assert.Equal(t, len(buf), n)
+				assert.Equal(t, body, string(buf))
+			} else {
+				req = NewRequest(t, "GET", finalizeResp.SignedUrl)
+				resp = MakeRequest(t, req, http.StatusOK)
+				// FIXME add test data for other file types
+				assert.Equal(t, actions.ArtifactV4ContentEncoding, resp.Header().Get("Content-Type"))
+				// FIXME Content-Type-Disposition Check
+				assert.Equal(t, body, resp.Body.String())
+			}
 		})
 	}
 }
