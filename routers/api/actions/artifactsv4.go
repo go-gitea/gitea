@@ -93,6 +93,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"path"
@@ -100,8 +101,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -220,7 +222,7 @@ func parseChunkFileItemV4(st storage.ObjectStorage, artifactID int64, fpath stri
 	return &item, nil
 }
 
-func (r *artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*actions.ActionTask, string, bool) {
+func (r *artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*actions_model.ActionTask, string, bool) {
 	rawTaskID := ctx.Req.URL.Query().Get("taskID")
 	rawArtifactID := ctx.Req.URL.Query().Get("artifactID")
 	sig := ctx.Req.URL.Query().Get("sig")
@@ -247,13 +249,13 @@ func (r *artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*
 		ctx.HTTPError(http.StatusUnauthorized, "Error link expired")
 		return nil, "", false
 	}
-	task, err := actions.GetTaskByID(ctx, taskID)
+	task, err := actions_model.GetTaskByID(ctx, taskID)
 	if err != nil {
 		log.Error("Error runner api getting task by ID: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task by ID")
 		return nil, "", false
 	}
-	if task.Status != actions.StatusRunning {
+	if task.Status != actions_model.StatusRunning {
 		log.Error("Error runner api getting task: task is not running")
 		ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task: task is not running")
 		return nil, "", false
@@ -266,8 +268,8 @@ func (r *artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*
 	return task, artifactName, true
 }
 
-func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID int64, name string) (*actions.ActionArtifact, error) {
-	var art actions.ActionArtifact
+func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID int64, name string) (*actions_model.ActionArtifact, error) {
+	var art actions_model.ActionArtifact
 	has, err := db.GetEngine(ctx).Where(builder.Eq{"run_id": runID, "artifact_name": name}, builder.Like{"content_encoding", "/"}).Get(&art)
 	if err != nil {
 		return nil, err
@@ -300,7 +302,7 @@ func (r *artifactV4Routes) sendProtobufBody(ctx *ArtifactContext, req protorefle
 		ctx.HTTPError(http.StatusInternalServerError, "Error encode response body")
 		return
 	}
-	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
+	ctx.Resp.Header().Set("Content-Type", mime.FormatMediaType("application/json", map[string]string{"charset": "utf-8"}))
 	ctx.Resp.WriteHeader(http.StatusOK)
 	_, _ = ctx.Resp.Write(resp)
 }
@@ -329,7 +331,7 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 		fileName = artifactName + ".zip"
 	}
 	// create or get artifact with name and path
-	artifact, err := actions.CreateArtifact(ctx, ctx.ActionTask, artifactName, fileName, retentionDays)
+	artifact, err := actions_model.CreateArtifact(ctx, ctx.ActionTask, artifactName, fileName, retentionDays)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error create or get artifact")
@@ -338,7 +340,7 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 	artifact.ContentEncoding = encoding
 	artifact.FileSize = 0
 	artifact.FileCompressedSize = 0
-	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+	if err := actions_model.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 		log.Error("Error UpdateArtifactByID: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
 		return
@@ -377,7 +379,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 			}
 			artifact.FileCompressedSize += uploadedLength
 			artifact.FileSize += uploadedLength
-			if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+			if err := actions_model.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 				log.Error("Error UpdateArtifactByID: %v", err)
 				ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
 				return
@@ -500,9 +502,9 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
+	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
 		RunID:                runID,
-		Status:               int(actions.ArtifactStatusUploadConfirmed),
+		Status:               int(actions_model.ArtifactStatusUploadConfirmed),
 		FinalizedArtifactsV4: true,
 	})
 	if err != nil {
@@ -561,7 +563,7 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
-	if artifact.Status != actions.ArtifactStatusUploadConfirmed {
+	if artifact.Status != actions_model.ArtifactStatusUploadConfirmed {
 		log.Error("Error artifact not found: %s", artifact.Status.ToString())
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
@@ -570,12 +572,9 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 	respData := GetSignedArtifactURLResponse{}
 
 	if setting.Actions.ArtifactStorage.ServeDirect() {
-		reqParams := url.Values{}
-		reqParams.Set("response-content-type", artifact.ContentEncoding)
-		reqParams.Set("response-content-disposition", fmt.Sprintf("inline; filename=%s; filename*=UTF-8''%s", url.PathEscape(artifact.ArtifactPath), artifact.ArtifactPath))
-		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath, http.MethodGet, reqParams)
-		if u != nil && err == nil {
-			respData.SignedUrl = u.String()
+		u, err := actions.GetArtifactV4ServeDirectURL(ctx.Base, artifact)
+		if u != "" && err == nil {
+			respData.SignedUrl = u
 		}
 	}
 	if respData.SignedUrl == "" {
@@ -597,24 +596,17 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
-	if artifact.Status != actions.ArtifactStatusUploadConfirmed {
+	if artifact.Status != actions_model.ArtifactStatusUploadConfirmed {
 		log.Error("Error artifact not found: %s", artifact.Status.ToString())
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
 
-	file, err := r.fs.Open(artifact.StoragePath)
+	err = actions.DownloadArtifactV4Fallback(ctx.Base, artifact)
 	if err != nil {
-		log.Error("Error artifact not found: %v", err)
-		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
+		log.Error("Error serve artifact: %v", err)
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 	}
-	defer func() { _ = file.Close() }()
-
-	ctx.Resp.Header().Set("Content-Type", artifact.ContentEncoding)
-	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s; filename*=UTF-8''%s", url.PathEscape(artifact.ArtifactPath), artifact.ArtifactPath))
-	ctx.Resp.Header().Set("Content-Security-Policy", "sandbox; default-src 'none';")
-
-	_, _ = io.Copy(ctx.Resp, file)
 }
 
 func (r *artifactV4Routes) deleteArtifact(ctx *ArtifactContext) {
@@ -636,7 +628,7 @@ func (r *artifactV4Routes) deleteArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	err = actions.SetArtifactNeedDelete(ctx, runID, req.Name)
+	err = actions_model.SetArtifactNeedDelete(ctx, runID, req.Name)
 	if err != nil {
 		log.Error("Error deleting artifacts: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, err.Error())
