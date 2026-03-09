@@ -127,7 +127,7 @@ func ListPackages(ctx *context.Context) {
 			ctx.Data["IsOrganizationOwner"] = false
 		}
 	}
-	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
+	pager := context.NewPagination(total, setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplPackagesList)
@@ -412,7 +412,7 @@ func ListPackageVersions(ctx *context.Context) {
 
 	ctx.Data["Total"] = total
 
-	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
+	pager := context.NewPagination(total, setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 

@@ -6,6 +6,7 @@ package context
 import (
 	"fmt"
 	"html/template"
+	"math"
 	"net/http"
 	"net/url"
 	"slices"
@@ -22,11 +23,13 @@ type Pagination struct {
 }
 
 // NewPagination creates a new instance of the Pagination struct.
+// "total" is usually from database result "count int64", so it also uses int64
 // "pagingNum" is "page size" or "limit", "current" is "page"
 // total=-1 means only showing prev/next
-func NewPagination(total, pagingNum, current, numPages int) *Pagination {
+func NewPagination(total int64, pagingNum, current, numPages int) *Pagination {
+	totalInt := int(min(total, int64(math.MaxInt)))
 	p := &Pagination{}
-	p.Paginater = paginator.New(total, pagingNum, current, numPages)
+	p.Paginater = paginator.New(totalInt, pagingNum, current, numPages)
 	return p
 }
 

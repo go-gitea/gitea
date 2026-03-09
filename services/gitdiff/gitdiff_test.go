@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	pull_model "code.gitea.io/gitea/models/pull"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -1142,4 +1143,97 @@ func TestHighlightCodeLines(t *testing.T) {
 			1: `<span class="n">b</span>`,
 		}, ret)
 	})
+}
+
+func TestSyncUserSpecificDiff_UpdatedFiles(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 7})
+	assert.NoError(t, pull.LoadBaseRepo(t.Context()))
+
+	stdin := `blob
+mark :1
+data 7
+change
+
+commit refs/heads/branch1
+mark :2
+committer test <test@example.com> 1772749114 +0000
+data 7
+change
+from 1978192d98bb1b65e11c2cf37da854fbf94bffd6
+M 100644 :1 test2.txt
+M 100644 :1 test3.txt
+
+commit refs/heads/branch1
+committer test <test@example.com> 1772749114 +0000
+data 7
+revert
+from :2
+D test2.txt
+D test10.txt`
+	require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(pull.BaseRepo.RepoPath()).WithStdinBytes([]byte(stdin)).Run(t.Context()))
+
+	gitRepo, err := git.OpenRepository(t.Context(), pull.BaseRepo.RepoPath())
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	firstReviewCommit := "1978192d98bb1b65e11c2cf37da854fbf94bffd6"
+	firstReviewUpdatedFiles := map[string]pull_model.ViewedState{
+		"test1.txt":  pull_model.Viewed,
+		"test2.txt":  pull_model.Viewed,
+		"test10.txt": pull_model.Viewed,
+	}
+	_, err = pull_model.UpdateReviewState(t.Context(), user.ID, pull.ID, firstReviewCommit, firstReviewUpdatedFiles)
+	assert.NoError(t, err)
+	firstReview, err := pull_model.GetNewestReviewState(t.Context(), user.ID, pull.ID)
+	assert.NoError(t, err)
+	assert.NotNil(t, firstReview)
+	assert.Equal(t, firstReviewUpdatedFiles, firstReview.UpdatedFiles)
+	assert.Equal(t, 3, firstReview.GetViewedFileCount())
+
+	secondReviewCommit := "f80737c7dc9de0a9c1e051e83cb6897f950c6bb8"
+	secondReviewUpdatedFiles := map[string]pull_model.ViewedState{
+		"test1.txt":  pull_model.Viewed,
+		"test2.txt":  pull_model.HasChanged,
+		"test3.txt":  pull_model.HasChanged,
+		"test10.txt": pull_model.Viewed,
+	}
+	secondReviewDiffOpts := &DiffOptions{
+		AfterCommitID:     secondReviewCommit,
+		BeforeCommitID:    pull.MergeBase,
+		MaxLines:          setting.Git.MaxGitDiffLines,
+		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:          setting.Git.MaxGitDiffFiles,
+	}
+	secondReviewDiff, err := GetDiffForAPI(t.Context(), gitRepo, secondReviewDiffOpts)
+	assert.NoError(t, err)
+	secondReview, err := SyncUserSpecificDiff(t.Context(), user.ID, pull, gitRepo, secondReviewDiff, secondReviewDiffOpts)
+	assert.NoError(t, err)
+	assert.NotNil(t, secondReview)
+	assert.Equal(t, secondReviewUpdatedFiles, secondReview.UpdatedFiles)
+	assert.Equal(t, 2, secondReview.GetViewedFileCount())
+
+	thirdReviewCommit := "73424f3a99e140f6399c73a1712654e122d2a74b"
+	thirdReviewUpdatedFiles := map[string]pull_model.ViewedState{
+		"test1.txt":  pull_model.Viewed,
+		"test2.txt":  pull_model.Unviewed,
+		"test3.txt":  pull_model.HasChanged,
+		"test10.txt": pull_model.Unviewed,
+	}
+	thirdReviewDiffOpts := &DiffOptions{
+		AfterCommitID:     thirdReviewCommit,
+		BeforeCommitID:    pull.MergeBase,
+		MaxLines:          setting.Git.MaxGitDiffLines,
+		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:          setting.Git.MaxGitDiffFiles,
+	}
+	thirdReviewDiff, err := GetDiffForAPI(t.Context(), gitRepo, thirdReviewDiffOpts)
+	assert.NoError(t, err)
+	thirdReview, err := SyncUserSpecificDiff(t.Context(), user.ID, pull, gitRepo, thirdReviewDiff, thirdReviewDiffOpts)
+	assert.NoError(t, err)
+	assert.NotNil(t, thirdReview)
+	assert.Equal(t, thirdReviewUpdatedFiles, thirdReview.UpdatedFiles)
+	assert.Equal(t, 1, thirdReview.GetViewedFileCount())
 }
