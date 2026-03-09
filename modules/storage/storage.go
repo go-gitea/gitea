@@ -102,8 +102,8 @@ type ObjectStorage interface {
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
 	URL(path, name, method string, reqParams *SignedURLParam) (*url.URL, error)
-	
-	// URL(path, name, method string, reqParams *SignedURLParam) (*url.URL, error)IterateObjects calls the iterator function for each object in the storage with the given path as prefix
+
+	// IterateObjects calls the iterator function for each object in the storage with the given path as prefix
 	// The "fullPath" argument in callback is the full path in this storage.
 	// * IterateObjects("", ...): iterate all objects in this storage
 	// * IterateObjects("sub-path", ...): iterate all objects with "sub-path" as prefix in this storage, the "fullPath" will be like "sub-path/xxx"
