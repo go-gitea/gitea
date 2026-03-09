@@ -40,9 +40,6 @@ func CreateCommitComment(ctx *context.Context) {
 
 	content := ctx.FormString("content")
 	treePath := ctx.FormString("tree_path")
-	if treePath == "" {
-		treePath = ctx.FormString("path")
-	}
 	side := ctx.FormString("side")
 	line := ctx.FormInt64("line")
 
@@ -132,7 +129,7 @@ func DeleteCommitComment(ctx *context.Context) {
 		return
 	}
 
-	comment, err := issues_model.GetCommitCommentByID(ctx, commentID)
+	comment, err := issues_model.GetCommitCommentByID(ctx, ctx.Repo.Repository.ID, commentID)
 	if err != nil {
 		ctx.NotFound(err)
 		return

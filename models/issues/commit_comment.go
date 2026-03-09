@@ -120,8 +120,19 @@ func DeleteCommitComment(ctx context.Context, commentID int64) error {
 	})
 }
 
-// GetCommitCommentByID returns a commit comment by loading the Comment entry.
-func GetCommitCommentByID(ctx context.Context, commentID int64) (*Comment, error) {
+// GetCommitCommentByID returns a commit comment by loading the Comment entry,
+// verifying it belongs to the given repository via the junction table.
+func GetCommitCommentByID(ctx context.Context, repoID, commentID int64) (*Comment, error) {
+	exists, err := db.GetEngine(ctx).Table("commit_comment").
+		Where("repo_id = ? AND comment_id = ?", repoID, commentID).
+		Exist()
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, db.ErrNotExist{Resource: "CommitComment", ID: commentID}
+	}
+
 	c := &Comment{}
 	has, err := db.GetEngine(ctx).ID(commentID).Get(c)
 	if err != nil {
