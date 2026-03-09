@@ -464,6 +464,7 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 				// FIXME Content-Type-Disposition Check
 				buf := make([]byte, 1024)
 				n, err := io.ReadAtLeast(externalResp.Body, buf, len(buf))
+				externalResp.Body.Close()
 				require.NoError(t, err)
 				assert.Equal(t, len(buf), n)
 				assert.Equal(t, body, string(buf))
