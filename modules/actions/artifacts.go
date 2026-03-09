@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models/actions"
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -23,7 +22,7 @@ func IsArtifactV4(art *actions_model.ActionArtifact) bool {
 	return strings.Contains(art.ContentEncoding, "/")
 }
 
-func GetArtifactContentTypeAndDisposition(artifact *actions.ActionArtifact) (contentType, contentDisposition string, _ error) {
+func GetArtifactContentTypeAndDisposition(artifact *actions_model.ActionArtifact) (contentType, contentDisposition string, _ error) {
 	contentType = mime.FormatMediaType(artifact.ContentEncoding, nil)
 	contentDisposition = mime.FormatMediaType("inline", map[string]string{
 		"filename": artifact.ArtifactPath,
