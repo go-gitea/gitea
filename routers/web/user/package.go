@@ -14,12 +14,12 @@ import (
 	org_model "code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
+	terraform_model "code.gitea.io/gitea/models/packages/terraform"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
@@ -27,6 +27,7 @@ import (
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
+
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -47,27 +48,6 @@ const (
 	tplPackageVersionList templates.TplName = "user/overview/package_versions"
 	tplPackagesSettings   templates.TplName = "package/settings"
 )
-
-type terraformLockInfo struct {
-	ID        string    `json:"ID"`
-	Operation string    `json:"Operation"`
-	Who       string    `json:"Who"`
-	Created   time.Time `json:"Created"`
-}
-
-func getTerraformLock(ctx *context.Context, packageID int64) (terraformLockInfo, error) {
-	var lock terraformLockInfo
-	locks, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, packageID, "terraform.lock")
-	if err != nil {
-		return lock, err
-	}
-	if len(locks) == 0 || locks[0].Value == "" {
-		return lock, nil
-	}
-
-	err = json.Unmarshal([]byte(locks[0].Value), &lock)
-	return lock, err
-}
 
 // ListPackages displays a list of all packages of the context user
 func ListPackages(ctx *context.Context) {
@@ -354,8 +334,10 @@ func ViewPackageVersion(ctx *context.Context) {
 		ctx.Data["IsLatestVersion"] = isLatest
 
 		if isLatest {
-			lockInfo, _ := getTerraformLock(ctx, pd.Package.ID)
-			ctx.Data["TerraformLock"] = lockInfo
+			lockInfo, _ := terraform_model.GetLock(ctx, pd.Package.ID)
+			if lockInfo.IsLocked() {
+				ctx.Data["TerraformLock"] = lockInfo
+			}
 		}
 	}
 
@@ -537,12 +519,12 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
 	if pd.Package.Type == packages_model.TypeTerraformState {
-		lock, err := getTerraformLock(ctx, pd.Package.ID)
+		lock, err := terraform_model.GetLock(ctx, pd.Package.ID)
 		if err != nil {
 			ctx.ServerError("getTerraformLock", err)
 			return
 		}
-		if lock.ID != "" {
+		if lock.IsLocked() {
 			ctx.Flash.Error(ctx.Tr("packages.terraform.delete.locked"))
 			ctx.Redirect(pd.VersionWebLink() + "/settings")
 			return
@@ -609,22 +591,27 @@ func ActionPackageTerraformLock(ctx *context.Context) {
 		return
 	}
 
+	existingLock, err := terraform_model.GetLock(ctx, pd.Package.ID)
+	if err != nil {
+		ctx.ServerError("GetLock", err)
+		return
+	}
+	if existingLock.IsLocked() {
+		ctx.Flash.Error(ctx.Tr("packages.terraform.lock.error.already_locked"))
+		ctx.Redirect(pd.VersionWebLink())
+		return
+	}
+
 	lockID := uuid.New().String()
-	lockInfo := struct {
-		ID        string    `json:"ID"`
-		Operation string    `json:"Operation"`
-		Who       string    `json:"Who"`
-		Created   time.Time `json:"Created"`
-	}{
+	lockInfo := &terraform_model.LockInfo{
 		ID:        lockID,
 		Operation: "Manual UI Lock",
 		Who:       ctx.Doer.Name,
 		Created:   time.Now(),
 	}
 
-	lockJSON, _ := json.Marshal(lockInfo)
-	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, pd.Package.ID, "terraform.lock", string(lockJSON)); err != nil {
-		ctx.ServerError("InsertOrUpdateProperty", err)
+	if err := terraform_model.SetLock(ctx, pd.Package.ID, lockInfo); err != nil {
+		ctx.ServerError("SetLock", err)
 		return
 	}
 
@@ -640,8 +627,8 @@ func ActionPackageTerraformUnlock(ctx *context.Context) {
 		return
 	}
 
-	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, pd.Package.ID, "terraform.lock", ""); err != nil {
-		ctx.ServerError("InsertOrUpdateProperty", err)
+	if err := terraform_model.RemoveLock(ctx, pd.Package.ID); err != nil {
+		ctx.ServerError("RemoveLock", err)
 		return
 	}
 

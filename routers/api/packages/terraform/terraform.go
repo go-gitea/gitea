@@ -11,10 +11,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 	"unicode"
 
 	packages_model "code.gitea.io/gitea/models/packages"
+	terraform_model "code.gitea.io/gitea/models/packages/terraform"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -29,7 +29,6 @@ var packageNameRegex = regexp.MustCompile(`\A[-_+.\w]+\z`)
 
 const (
 	stateFilename = "tfstate"
-	lockFile      = "terraform.lock"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -114,7 +113,7 @@ func UploadState(ctx *context.Context) {
 	}
 	if p != nil {
 		// Check lock
-		lock, err := getLock(ctx, p.ID)
+		lock, err := terraform_model.GetLock(ctx, p.ID)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -237,12 +236,12 @@ func DeleteState(ctx *context.Context) {
 		return
 	}
 
-	lock, err := getLock(ctx, p.ID)
+	lock, err := terraform_model.GetLock(ctx, p.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if lock.ID != "" {
+	if lock.IsLocked() {
 		apiError(ctx, http.StatusLocked, errors.New("terraform state is locked"))
 		return
 	}
@@ -271,22 +270,11 @@ func DeleteState(ctx *context.Context) {
 	ctx.Status(http.StatusOK)
 }
 
-// LockInfo is the metadata for a terraform lock.
-type LockInfo struct {
-	ID        string    `json:"ID"`
-	Operation string    `json:"Operation"`
-	Info      string    `json:"Info"`
-	Who       string    `json:"Who"`
-	Version   string    `json:"Version"`
-	Created   time.Time `json:"Created"`
-	Path      string    `json:"Path"`
-}
-
 // LockState locks the specific terraform state.
 // Internally, it adds a property to the package with the lock information
 // Cavieat being that it allocates a package one doesn't exist to attach the property
 func LockState(ctx *context.Context) {
-	var reqLockInfo *LockInfo
+	var reqLockInfo *terraform_model.LockInfo
 	if err := json.NewDecoder(ctx.Req.Body).Decode(&reqLockInfo); err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
@@ -322,13 +310,13 @@ func LockState(ctx *context.Context) {
 		}
 	}
 
-	currentLock, err := getLock(ctx, p.ID)
+	currentLock, err := terraform_model.GetLock(ctx, p.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	if currentLock.ID != "" {
+	if currentLock.IsLocked() {
 		ctx.JSON(http.StatusLocked, currentLock)
 		return
 	}
@@ -339,7 +327,7 @@ func LockState(ctx *context.Context) {
 		return
 	}
 
-	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, p.ID, lockFile, string(jsonBytes)); err != nil {
+	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, p.ID, terraform_model.LockFile, string(jsonBytes)); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -350,7 +338,7 @@ func LockState(ctx *context.Context) {
 // UnlockState unlock the specific terraform state.
 // Internally, it clears the package property
 func UnlockState(ctx *context.Context) {
-	var reqLockInfo LockInfo
+	var reqLockInfo terraform_model.LockInfo
 	if err := json.NewDecoder(ctx.Req.Body).Decode(&reqLockInfo); err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
@@ -376,7 +364,7 @@ func UnlockState(ctx *context.Context) {
 		return
 	}
 
-	existingLock, err := getLock(ctx, p.ID)
+	existingLock, err := terraform_model.GetLock(ctx, p.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -395,26 +383,12 @@ func UnlockState(ctx *context.Context) {
 	}
 
 	// We can clear the state if lock id matches
-	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, p.ID, lockFile, ""); err != nil {
+	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, p.ID, terraform_model.LockFile, ""); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	ctx.Status(http.StatusOK)
-}
-
-func getLock(ctx *context.Context, packageID int64) (LockInfo, error) {
-	var lock LockInfo
-	locks, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, packageID, lockFile)
-	if err != nil {
-		return lock, err
-	}
-	if len(locks) == 0 || locks[0].Value == "" {
-		return lock, nil
-	}
-
-	err = json.Unmarshal([]byte(locks[0].Value), &lock)
-	return lock, err
 }
 
 func getLatestVersion(ctx *context.Context, packageName string) (*packages_model.PackageVersion, error) {

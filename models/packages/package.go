@@ -127,7 +127,7 @@ func (pt Type) Name() string {
 	case TypeSwift:
 		return "Swift"
 	case TypeTerraformState:
-		return "Terraform"
+		return "Terraform State"
 	case TypeVagrant:
 		return "Vagrant"
 	}

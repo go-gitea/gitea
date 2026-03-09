@@ -3572,6 +3572,7 @@
   "packages.terraform.unlock": "Unlock",
   "packages.terraform.lock.success": "Terraform state was successfully locked.",
   "packages.terraform.unlock.success": "Terraform state was successfully unlocked.",
+  "packages.terraform.lock.error.already_locked": "Terraform state is already locked.",
   "packages.terraform.delete.locked": "Terraform state is locked and cannot be deleted.",
   "packages.terraform.delete.latest": "The latest version of a Terraform state cannot be deleted.",
   "packages.vagrant.install": "To add a Vagrant box, run the following command:",
