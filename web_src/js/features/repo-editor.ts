@@ -1,5 +1,6 @@
 import {html, htmlRaw} from '../utils/html.ts';
-import {createCodeEditor, trimTrailingWhitespaceFromView} from '../modules/codeeditor/main.ts';
+import {createCodeEditor} from '../modules/codeeditor/main.ts';
+import {trimTrailingWhitespaceFromView} from '../modules/codeeditor/utils.ts';
 import {hideElem, queryElems, showElem, createElementFromHTML, onInputDebounce} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';

@@ -301,5 +301,3 @@ async function updateEditorLanguage(cm: CodemirrorModules, editor: CodemirrorEdi
     cm.lint.setDiagnostics(view.state, []),
   );
 }
-
-export {trimTrailingWhitespaceFromView} from './utils.ts';
