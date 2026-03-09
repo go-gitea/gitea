@@ -97,14 +97,14 @@ func CreateCommitComment(ctx *context.Context) {
 	}
 
 	comment := &issues_model.Comment{
-		Type:     issues_model.CommentTypeCommitComment,
-		PosterID: ctx.Doer.ID,
-		Poster:   ctx.Doer,
+		Type:      issues_model.CommentTypeCommitComment,
+		PosterID:  ctx.Doer.ID,
+		Poster:    ctx.Doer,
 		CommitSHA: fullSHA,
-		TreePath: treePath,
-		Line:     line,
-		Content:  content,
-		Patch:    patch,
+		TreePath:  treePath,
+		Line:      line,
+		Content:   content,
+		Patch:     patch,
 	}
 
 	if err := issues_model.CreateCommitComment(ctx, ctx.Repo.Repository.ID, fullSHA, comment); err != nil {
