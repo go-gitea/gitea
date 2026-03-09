@@ -94,7 +94,7 @@ func verifyAuth(r *web.Router, authMethods []auth.Method) {
 	}
 	authGroup := auth.NewGroup(authMethods...)
 
-	r.Use(func(ctx *context.Context) {
+	r.AfterRouting(func(ctx *context.Context) {
 		var err error
 		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if err != nil {
@@ -111,7 +111,7 @@ func verifyAuth(r *web.Router, authMethods []auth.Method) {
 func CommonRoutes() *web.Router {
 	r := web.NewRouter()
 
-	r.Use(context.PackageContexter())
+	r.AfterRouting(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
 		&auth.OAuth2{},
@@ -533,7 +533,7 @@ func CommonRoutes() *web.Router {
 func ContainerRoutes() *web.Router {
 	r := web.NewRouter()
 
-	r.Use(context.PackageContexter())
+	r.AfterRouting(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
 		&auth.Basic{},

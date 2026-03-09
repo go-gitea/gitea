@@ -36,7 +36,7 @@ func ListBlocks(ctx *context.APIContext, blocker *user_model.User) {
 		users = append(users, convert.ToUser(ctx, b.Blockee, blocker))
 	}
 
-	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &users)
 }

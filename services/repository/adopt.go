@@ -240,16 +240,15 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 
 type unadoptedRepositories struct {
 	repositories []string
-	index        int
-	start        int
-	end          int
+	count        int64
+	start, end   int64
 }
 
 func (unadopted *unadoptedRepositories) add(repository string) {
-	if unadopted.index >= unadopted.start && unadopted.index < unadopted.end {
+	if unadopted.count >= unadopted.start && unadopted.count < unadopted.end {
 		unadopted.repositories = append(unadopted.repositories, repository)
 	}
-	unadopted.index++
+	unadopted.count++
 }
 
 func checkUnadoptedRepositories(ctx context.Context, userName string, repoNamesToCheck []string, unadopted *unadoptedRepositories) error {
@@ -291,7 +290,7 @@ func checkUnadoptedRepositories(ctx context.Context, userName string, repoNamesT
 }
 
 // ListUnadoptedRepositories lists all the unadopted repositories that match the provided query
-func ListUnadoptedRepositories(ctx context.Context, query string, opts *db.ListOptions) ([]string, int, error) {
+func ListUnadoptedRepositories(ctx context.Context, query string, opts *db.ListOptions) ([]string, int64, error) {
 	globUser, _ := glob.Compile("*")
 	globRepo, _ := glob.Compile("*")
 
@@ -311,12 +310,12 @@ func ListUnadoptedRepositories(ctx context.Context, query string, opts *db.ListO
 	}
 	var repoNamesToCheck []string
 
-	start := (opts.Page - 1) * opts.PageSize
+	start := int64((opts.Page - 1) * opts.PageSize)
 	unadopted := &unadoptedRepositories{
 		repositories: make([]string, 0, opts.PageSize),
 		start:        start,
-		end:          start + opts.PageSize,
-		index:        0,
+		end:          start + int64(opts.PageSize),
+		count:        0,
 	}
 
 	var userName string
@@ -372,5 +371,5 @@ func ListUnadoptedRepositories(ctx context.Context, query string, opts *db.ListO
 		return nil, 0, err
 	}
 
-	return unadopted.repositories, unadopted.index, nil
+	return unadopted.repositories, unadopted.count, nil
 }

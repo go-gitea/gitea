@@ -37,7 +37,6 @@ func NewFuncMap() template.FuncMap {
 		"QueryEscape":  queryEscape,
 		"QueryBuild":   QueryBuild,
 		"SanitizeHTML": SanitizeHTML,
-		"URLJoin":      util.URLJoin,
 		"DotEscape":    dotEscape,
 
 		"PathEscape":         url.PathEscape,
