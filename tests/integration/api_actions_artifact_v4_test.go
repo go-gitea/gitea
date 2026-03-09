@@ -453,7 +453,6 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 			assert.NotEmpty(t, finalizeResp.SignedUrl)
 
 			body := strings.Repeat("D", 1024)
-			// FIXME use real http client if ServeDirect is true
 			if entry.ServeDirect {
 				externalReq, err := http.NewRequestWithContext(t.Context(), http.MethodGet, finalizeResp.SignedUrl, nil)
 				require.NoError(t, err)

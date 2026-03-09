@@ -40,6 +40,7 @@ func GetArtifactV4ServeDirectURL(ctx *context.Base, art *actions_model.ActionArt
 	if err != nil {
 		return "", err
 	}
+	// FIXME not working for azure, partially working for minio
 	reqParams := url.Values{}
 	reqParams.Set("response-content-type", contentType)
 	reqParams.Set("response-content-disposition", contentDisposition)
