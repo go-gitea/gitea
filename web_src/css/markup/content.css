@@ -164,13 +164,27 @@ In markup content, we always use bottom margin for all elements */
   list-style-type: none;
 }
 
+.markup .task-list-item > ul {
+  margin-top: 4px;
+}
+
 .markup .task-list-item p + ul {
   margin-top: 16px;
 }
 
 .markup .task-list-item input[type="checkbox"] {
-  margin: 0 .5em .25em -1.5em;
+  margin: 0 .6em .25em -1.4em;
   vertical-align: middle;
+  padding: 0;
+}
+
+.markup input[type="checkbox"] {
+  margin-right: .25em;
+  margin-bottom: .25em;
+  cursor: default;
+  opacity: 1 !important; /* override fomantic on edit preview */
+  pointer-events: auto !important; /* override fomantic on edit preview */
+  vertical-align: middle !important; /* override fomantic on edit preview */
 }
 
 .markup .task-list-item input[type="checkbox"] + p {
