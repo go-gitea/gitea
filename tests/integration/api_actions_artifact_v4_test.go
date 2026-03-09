@@ -461,7 +461,7 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 				assert.Equal(t, http.StatusOK, externalResp.StatusCode)
 				// FIXME add test data for other file types
 				assert.Equal(t, actions.ArtifactV4ContentEncoding, externalResp.Header.Get("Content-Type"))
-				// FIXME Content-Type-Disposition Check
+				// FIXME Content-Disposition Check
 				buf := make([]byte, 1024)
 				n, err := io.ReadAtLeast(externalResp.Body, buf, len(buf))
 				externalResp.Body.Close()

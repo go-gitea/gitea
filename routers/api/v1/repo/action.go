@@ -1743,7 +1743,6 @@ func DownloadArtifact(ctx *context.APIContext) {
 		ctx.APIError(http.StatusNotFound, "Artifact has expired")
 		return
 	}
-	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
 
 	if actions.IsArtifactV4(art) {
 		ok, err := actions.DownloadArtifactV4ServeDirectOnly(ctx.Base, art)
