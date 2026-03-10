@@ -1,51 +1,40 @@
-// Vendored and simplified from @github/relative-time-element
+// Vendored and simplified from @github/relative-time-element@4.4.6
+// https://github.com/github/relative-time-element
+//
+// MIT License
+//
+// Copyright (c) 2014-2018 GitHub, Inc.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 type FormatStyle = 'long' | 'short' | 'narrow';
 
 const unitNames = ['year', 'month', 'week', 'day', 'hour', 'minute', 'second'] as const;
-const partsTable = unitNames.map((u) => [`${u}s`, u] as [string, string]);
-
-class DurationFormat {
-  #locale: string;
-  #style: FormatStyle;
-  #unitStyles: Record<string, string>;
-  #unitDisplays: Record<string, string>;
-
-  constructor(locale: string, options: {style?: string; [key: string]: any} = {}) {
-    let style = options.style || 'short';
-    if (style !== 'long' && style !== 'short' && style !== 'narrow') style = 'short';
-    this.#locale = locale;
-    this.#style = style as FormatStyle;
-    this.#unitStyles = {};
-    this.#unitDisplays = {};
-    for (const [unit] of partsTable) {
-      this.#unitStyles[unit] = options[unit] || style;
-      this.#unitDisplays[unit] = options[`${unit}Display`] === 'always' ? 'always' : 'auto';
-    }
-  }
-
-  format(duration: Duration): string {
-    const list: string[] = [];
-    for (const [unit, nfUnit] of partsTable) {
-      const value = (duration as any)[unit];
-      if (this.#unitDisplays[unit] === 'auto' && !value) continue;
-      const unitStyle = this.#unitStyles[unit];
-      const nfOpts: Intl.NumberFormatOptions = {style: 'unit' as const, unit: nfUnit, unitDisplay: unitStyle as Intl.NumberFormatOptions['unitDisplay']};
-      let formatted = new Intl.NumberFormat(this.#locale, nfOpts).format(value);
-      if (unit === 'months' && (unitStyle === 'narrow' || (this.#style === 'narrow' && formatted.endsWith('m')))) {
-        formatted = formatted.replace(/(\d+)m$/, '$1mo');
-      }
-      list.push(formatted);
-    }
-    return new Intl.ListFormat(this.#locale, {type: 'unit', style: this.#style})
-      .formatToParts(list).map((p) => p.value).join('');
-  }
-}
 
 const durationRe = /^[-+]?P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/;
 
-function isDuration(str: string): boolean {
-  return durationRe.test(str);
+function parseDurationMs(str: string): number {
+  const m = durationRe.exec(str);
+  if (!m) return -1;
+  const [, y, mo, w, d, h, min, s] = m.map(Number);
+  return ((y || 0) * 365.25 + (mo || 0) * 30.44 + (w || 0) * 7 + (d || 0)) * 86400000 +
+    ((h || 0) * 3600 + (min || 0) * 60 + (s || 0)) * 1000;
 }
 
 type Sign = -1 | 0 | 1;
@@ -84,47 +73,6 @@ class Duration {
       Math.abs(this.hours), Math.abs(this.minutes), Math.abs(this.seconds),
     );
   }
-
-  static from(str: string): Duration {
-    const s = str.trim();
-    const factor = s.startsWith('-') ? -1 : 1;
-    const parsed = durationRe.exec(s)?.slice(1).map((x) => (Number(x) || 0) * factor);
-    if (!parsed) return new Duration();
-    return new Duration(...parsed);
-  }
-
-  static compare(one: Duration | string, two: Duration | string): -1 | 0 | 1 {
-    const now = Date.now();
-    const d1 = typeof one === 'string' ? Duration.from(one) : one;
-    const d2 = typeof two === 'string' ? Duration.from(two) : two;
-    const oneApplied = Math.abs(applyDuration(now, d1).getTime() - now);
-    const twoApplied = Math.abs(applyDuration(now, d2).getTime() - now);
-    return oneApplied > twoApplied ? -1 : oneApplied < twoApplied ? 1 : 0;
-  }
-
-  toLocaleString(locale: string, opts: {style?: string; [key: string]: any}): string {
-    return new DurationFormat(locale, opts).format(this);
-  }
-}
-
-function applyDuration(date: Date | number, duration: Duration): Date {
-  const r = new Date(date);
-  if (duration.sign < 0) {
-    r.setUTCSeconds(r.getUTCSeconds() + duration.seconds);
-    r.setUTCMinutes(r.getUTCMinutes() + duration.minutes);
-    r.setUTCHours(r.getUTCHours() + duration.hours);
-    r.setUTCDate(r.getUTCDate() + duration.weeks * 7 + duration.days);
-    r.setUTCMonth(r.getUTCMonth() + duration.months);
-    r.setUTCFullYear(r.getUTCFullYear() + duration.years);
-  } else {
-    r.setUTCFullYear(r.getUTCFullYear() + duration.years);
-    r.setUTCMonth(r.getUTCMonth() + duration.months);
-    r.setUTCDate(r.getUTCDate() + duration.weeks * 7 + duration.days);
-    r.setUTCHours(r.getUTCHours() + duration.hours);
-    r.setUTCMinutes(r.getUTCMinutes() + duration.minutes);
-    r.setUTCSeconds(r.getUTCSeconds() + duration.seconds);
-  }
-  return r;
 }
 
 function elapsedTime(date: Date, now = Date.now()): Duration {
@@ -375,9 +323,9 @@ class RelativeTime extends HTMLElement {
     return this.getAttribute('prefix') ?? (this.format === 'datetime' ? '' : 'on');
   }
 
-  get threshold(): string {
-    const threshold = this.getAttribute('threshold');
-    return threshold && isDuration(threshold) ? threshold : 'P30D';
+  get #thresholdMs(): number {
+    const ms = parseDurationMs(this.getAttribute('threshold') ?? '');
+    return ms >= 0 ? ms : 30 * 86400000;
   }
 
   get tense(): Tense {
@@ -443,14 +391,14 @@ class RelativeTime extends HTMLElement {
     }).format(date);
   }
 
-  #resolveFormat(duration: Duration): ResolvedFormat {
+  #resolveFormat(elapsedMs: number): ResolvedFormat {
     const format = this.format;
     if (format === 'datetime') return 'datetime';
     if (format === 'duration') return 'duration';
     if ((format === 'auto' || format === 'relative') && typeof Intl !== 'undefined' && Intl.RelativeTimeFormat) {
       const tense = this.tense;
       if (tense === 'past' || tense === 'future') return 'relative';
-      if (Duration.compare(duration, this.threshold) === 1) return 'relative';
+      if (elapsedMs < this.#thresholdMs) return 'relative';
     }
     return 'datetime';
   }
@@ -462,10 +410,28 @@ class RelativeTime extends HTMLElement {
     if ((tense === 'past' && duration.sign !== -1) || (tense === 'future' && duration.sign !== 1)) {
       duration = emptyDuration;
     }
-    if (duration.blank) {
-      return emptyDuration.toLocaleString(locale, {style, secondsDisplay: 'always'});
+    const d = duration.blank ? emptyDuration : duration.abs();
+    if (typeof Intl !== 'undefined' && (Intl as any).DurationFormat) {
+      const opts: Record<string, string> = {style};
+      if (duration.blank) opts.secondsDisplay = 'always';
+      return new (Intl as any).DurationFormat(locale, opts).format({
+        years: d.years, months: d.months, weeks: d.weeks, days: d.days,
+        hours: d.hours, minutes: d.minutes, seconds: d.seconds,
+      });
     }
-    return duration.abs().toLocaleString(locale, {style});
+    // Fallback for browsers without Intl.DurationFormat
+    const parts: string[] = [];
+    for (const unit of unitNames) {
+      const value = d[`${unit}s` as keyof Duration] as number;
+      if (value || (duration.blank && unit === 'second')) {
+        try {
+          parts.push(new Intl.NumberFormat(locale, {style: 'unit', unit, unitDisplay: style} as Intl.NumberFormatOptions).format(value));
+        } catch { // PaleMoon lacks Intl.NumberFormat unit style support
+          parts.push(`${value} ${value === 1 ? unit : `${unit}s`}`);
+        }
+      }
+    }
+    return parts.join(style === 'narrow' ? ' ' : ', ');
   }
 
   #getRelativeFormat(duration: Duration): string {
@@ -508,8 +474,9 @@ class RelativeTime extends HTMLElement {
       this.setAttribute('data-tooltip-content', tooltip);
       this.setAttribute('aria-label', tooltip);
     }
+    const elapsedMs = Math.abs(date.getTime() - now);
     const duration = elapsedTime(date, now);
-    const format = this.#resolveFormat(duration);
+    const format = this.#resolveFormat(elapsedMs);
     let newText: string;
     if (format === 'duration') {
       newText = this.#getDurationFormat(duration);
