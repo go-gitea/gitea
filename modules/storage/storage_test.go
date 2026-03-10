@@ -72,28 +72,29 @@ func testBlobStorageURLContentTypeAndDisposition(t *testing.T, typStr Type, cfg 
 	assert.NoError(t, err)
 
 	data := "Q2xTckt6Y1hDOWh0" // arbitrary test content; specific value is irrelevant to this test
-	_, err = s.Save("test.txt", strings.NewReader(data), int64(len(data)))
+	testfilename := "test.txt" // arbitary file name; specific value is irrelevant to this test
+	_, err = s.Save(testfilename, strings.NewReader(data), int64(len(data)))
 	assert.NoError(t, err)
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, "test.txt", "test.txt", SignedURLParam{
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", SignedURLParam{
 		ContentType:        "text/plain; charset=utf-8",
 		ContentDisposition: "inline",
 	}, nil)
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, "test.txt", "test.pdf", SignedURLParam{
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.pdf", SignedURLParam{
 		ContentType:        "application/pdf",
 		ContentDisposition: "inline",
 	}, nil)
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, "test.txt", "test.wasm", SignedURLParam{
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", SignedURLParam{
 		ContentDisposition: `attachment; filename="test.wasm"`,
 	}, nil)
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, "test.txt", "test.wasm", SignedURLParam{
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", SignedURLParam{
 		ContentDisposition: `attachment; filename="test.wasm"`,
 	}, &SignedURLParam{})
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, "test.txt", "test.txt", SignedURLParam{
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", SignedURLParam{
 		ContentType:        "application/octet-stream",
 		ContentDisposition: `inline; filename="test.xml"`,
 	}, &SignedURLParam{
@@ -101,5 +102,5 @@ func testBlobStorageURLContentTypeAndDisposition(t *testing.T, typStr Type, cfg 
 		ContentDisposition: `inline; filename="test.xml"`,
 	})
 
-	assert.NoError(t, s.Delete("test.txt"))
+	assert.NoError(t, s.Delete(testfilename))
 }
