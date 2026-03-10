@@ -55,7 +55,7 @@ func TestIsWellKnownSafeInlineMimeType(t *testing.T) {
 	}
 }
 
-func TestIsWellKnownSafeInlineMimeType2(t *testing.T) {
+func TestDetectWellKnownSafeInlineMimeType(t *testing.T) {
 	table := []struct {
 		ext      string
 		mimeType string
