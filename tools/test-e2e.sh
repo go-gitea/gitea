@@ -35,7 +35,7 @@ INSTALL_LOCK = true
 ENABLE_CAPTCHA = false
 
 [ui.notification]
-EVENT_SOURCE_UPDATE_TIME = 2s
+EVENT_SOURCE_UPDATE_TIME = 1s
 
 [log]
 MODE = console
