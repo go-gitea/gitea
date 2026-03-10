@@ -124,7 +124,7 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 			Desc("issue.created_unix").
 			Desc("issue.id")
 	case "project-column-sorting":
-		sess.Asc("project_issue.sorting").Desc("issue.created_unix").Desc("issue.id")
+		sess.Asc("pi.sorting").Desc("issue.created_unix").Desc("issue.id")
 	default:
 		sess.Desc("issue.created_unix").Desc("issue.id")
 	}
@@ -202,9 +202,15 @@ func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) {
 	projectIDs := util.SliceRemoveAll(opts.ProjectIDs, 0)
 	if len(projectIDs) == 1 && projectIDs[0] == db.NoConditionID { // show those that are in no project
 		sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue")))
-	} else if len(projectIDs) > 0 { // specific project
-		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
-			In("project_issue.project_id", projectIDs)
+	} else if len(projectIDs) > 0 { // specific project(s)
+		// Use an IN subquery to filter issues belonging to the requested projects.
+		// This avoids duplicate rows when an issue belongs to multiple projects
+		// in the filter list (the subquery returns distinct issue_ids).
+		cond := builder.In("project_id", projectIDs)
+		if opts.ProjectColumnID > 0 {
+			cond = builder.And(cond, builder.Eq{"project_board_id": opts.ProjectColumnID})
+		}
+		sess.And(builder.In("issue.id", builder.Select("issue_id").From("project_issue").Where(cond)))
 	}
 	// empty projectIDs means all projects,
 	// do not need to apply any condition
