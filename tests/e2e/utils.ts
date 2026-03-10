@@ -6,8 +6,12 @@ export function apiBaseUrl() {
   return env.GITEA_TEST_E2E_URL?.replace(/\/$/g, '');
 }
 
+function apiAuthHeader(username: string, password: string) {
+  return {Authorization: `Basic ${globalThis.btoa(`${username}:${password}`)}`};
+}
+
 export function apiHeaders() {
-  return {Authorization: `Basic ${globalThis.btoa(`${env.GITEA_TEST_E2E_USER}:${env.GITEA_TEST_E2E_PASSWORD}`)}`};
+  return apiAuthHeader(env.GITEA_TEST_E2E_USER, env.GITEA_TEST_E2E_PASSWORD);
 }
 
 async function apiRetry(fn: () => Promise<{ok: () => boolean; status: () => number; text: () => Promise<string>}>, label: string) {
@@ -43,9 +47,32 @@ export async function apiDeleteOrg(requestContext: APIRequestContext, name: stri
   }), 'apiDeleteOrg');
 }
 
+const testUserPassword = 'password123!AA';
+
+export function apiUserHeaders(username: string) {
+  return apiAuthHeader(username, testUserPassword);
+}
+
+export async function apiCreateUser(requestContext: APIRequestContext, username: string) {
+  await apiRetry(() => requestContext.post(`${apiBaseUrl()}/api/v1/admin/users`, {
+    headers: apiHeaders(),
+    data: {username, password: testUserPassword, email: `${username}@e2e.gitea.com`, must_change_password: false},
+  }), 'apiCreateUser');
+}
+
+export async function apiDeleteUser(requestContext: APIRequestContext, username: string) {
+  await apiRetry(() => requestContext.delete(`${apiBaseUrl()}/api/v1/admin/users/${username}?purge=true`, {
+    headers: apiHeaders(),
+  }), 'apiDeleteUser');
+}
+
 export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {
   await trigger.click();
   await page.getByText(itemText).click();
+}
+
+export async function loginUser(page: Page, username: string) {
+  return login(page, username, testUserPassword);
 }
 
 export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, password = env.GITEA_TEST_E2E_PASSWORD) {
