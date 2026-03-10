@@ -197,7 +197,6 @@ const dateObserver = new (class {
   timer = -1;
 
   observe(element: RelativeTime): void {
-    if (this.elements.has(element)) return;
     this.elements.add(element);
     const date = element.date;
     if (date && !Number.isNaN(date.getTime())) {
@@ -466,6 +465,7 @@ class RelativeTime extends HTMLElement {
   update(): void {
     const date = this.date;
     if (typeof Intl === 'undefined' || !Intl.DateTimeFormat || !date) {
+      dateObserver.unobserve(this);
       return;
     }
     const now = Date.now();
