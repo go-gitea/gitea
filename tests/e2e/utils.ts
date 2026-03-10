@@ -67,7 +67,7 @@ function generatePassword() {
   return `${Array.from(randomBytes(12), (b) => chars[b % chars.length]).join('')}!aA1`;
 }
 
-// Random password shared by all test users — used for both API user creation and browser login.
+/** Random password shared by all test users — used for both API user creation and browser login. */
 const testUserPassword = generatePassword();
 
 export function apiUserHeaders(username: string) {
