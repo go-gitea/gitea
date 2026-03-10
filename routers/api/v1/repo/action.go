@@ -91,7 +91,7 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 			Created:     v.CreatedUnix.AsTime(),
 		}
 	}
-	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiSecrets)
 }
@@ -506,7 +506,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, variables)
 }
@@ -811,7 +811,7 @@ func ListActionTasks(ctx *context.APIContext) {
 		res.Entries[i] = convertedTask
 	}
 
-	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total) // Duplicates api response field but it's better to set it for consistency
 	ctx.JSON(http.StatusOK, &res)
 }

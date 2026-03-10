@@ -43,7 +43,7 @@ func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
 			return
 		}
 	}
-	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiHooks)
 }

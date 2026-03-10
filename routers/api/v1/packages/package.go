@@ -68,7 +68,7 @@ func ListPackages(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiPackages)
 }
@@ -249,7 +249,7 @@ func ListPackageVersions(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiPackages)
 }
