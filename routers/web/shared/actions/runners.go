@@ -159,7 +159,7 @@ func Runners(ctx *context.Context) {
 	ctx.Data["RunnerRepoID"] = opts.RepoID
 	ctx.Data["SortType"] = opts.Sort
 
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 
 	ctx.Data["Page"] = pager
 
@@ -220,7 +220,7 @@ func RunnersEdit(ctx *context.Context) {
 	}
 
 	ctx.Data["Tasks"] = tasks
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, rCtx.RunnerEditTemplate)
