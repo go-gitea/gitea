@@ -38,7 +38,7 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	actionsCfg := actionsUnit.ActionsConfig()
 
 	// Token permission settings
-	ctx.Data["TokenPermissionMode"] = actionsCfg.GetTokenPermissionMode()
+	ctx.Data["TokenPermissionMode"] = actionsCfg.TokenPermissionMode
 	ctx.Data["TokenPermissionModePermissive"] = repo_model.ActionsTokenPermissionModePermissive
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
 	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()

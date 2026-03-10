@@ -347,31 +347,10 @@ func (cfg *ActionsConfig) IsCollaborativeOwner(ownerID int64) bool {
 	return slices.Contains(cfg.CollaborativeOwnerIDs, ownerID)
 }
 
-// GetTokenPermissionMode returns the token permission mode (defaults to permissive for backwards compatibility)
-func (cfg *ActionsConfig) GetTokenPermissionMode() ActionsTokenPermissionMode {
-	switch cfg.TokenPermissionMode {
-	case ActionsTokenPermissionModeRestricted:
-		return cfg.TokenPermissionMode
-	default:
-		return ActionsTokenPermissionModePermissive
-	}
-}
-
-// GetCrossRepoMode returns the cross-repo access mode (defaults to none)
-func (cfg *ActionsConfig) GetCrossRepoMode() ActionsCrossRepoMode {
-	switch cfg.CrossRepoMode {
-	case ActionsCrossRepoModeAll, ActionsCrossRepoModeSelected:
-		return cfg.CrossRepoMode
-	default:
-		return ActionsCrossRepoModeNone
-	}
-}
-
 // GetDefaultTokenPermissions returns the default token permissions by its TokenPermissionMode.
 // It does not apply MaxTokenPermissions; callers must clamp if needed.
 func (cfg *ActionsConfig) GetDefaultTokenPermissions() ActionsTokenPermissions {
-	mode := cfg.GetTokenPermissionMode()
-	switch mode {
+	switch cfg.TokenPermissionMode {
 	case ActionsTokenPermissionModeRestricted:
 		return GetRestrictedPermissions()
 	case ActionsTokenPermissionModePermissive:
@@ -425,7 +404,23 @@ func (cfg *ActionsConfig) ClampPermissions(perms ActionsTokenPermissions) Action
 
 // FromDB fills up a ActionsConfig from serialized format.
 func (cfg *ActionsConfig) FromDB(bs []byte) error {
-	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+	if err := json.UnmarshalHandleDoubleEncode(bs, &cfg); err != nil {
+		return err
+	}
+
+	switch cfg.TokenPermissionMode {
+	case ActionsTokenPermissionModeRestricted, ActionsTokenPermissionModePermissive:
+	default:
+		cfg.TokenPermissionMode = ActionsTokenPermissionModePermissive
+	}
+
+	switch cfg.CrossRepoMode {
+	case ActionsCrossRepoModeAll, ActionsCrossRepoModeSelected:
+	default:
+		cfg.CrossRepoMode = ActionsCrossRepoModeNone
+	}
+
+	return nil
 }
 
 // ToDB exports a ActionsConfig to a serialized format.

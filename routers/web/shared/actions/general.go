@@ -74,13 +74,13 @@ func GeneralSettings(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["TokenPermissionMode"] = actionsCfg.GetTokenPermissionMode()
+	ctx.Data["TokenPermissionMode"] = actionsCfg.TokenPermissionMode
 	ctx.Data["TokenPermissionModePermissive"] = repo_model.ActionsTokenPermissionModePermissive
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
 	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
 	ctx.Data["EnableMaxTokenPermissions"] = actionsCfg.MaxTokenPermissions != nil
 
-	ctx.Data["CrossRepoMode"] = actionsCfg.GetCrossRepoMode()
+	ctx.Data["CrossRepoMode"] = actionsCfg.CrossRepoMode
 	ctx.Data["ActionsCrossRepoModeNone"] = repo_model.ActionsCrossRepoModeNone
 	ctx.Data["ActionsCrossRepoModeAll"] = repo_model.ActionsCrossRepoModeAll
 	ctx.Data["ActionsCrossRepoModeSelected"] = repo_model.ActionsCrossRepoModeSelected
