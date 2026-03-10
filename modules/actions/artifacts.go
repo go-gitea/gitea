@@ -23,6 +23,7 @@ func IsArtifactV4(art *actions_model.ActionArtifact) bool {
 }
 
 func GetArtifactContentTypeAndDisposition(artifact *actions_model.ActionArtifact) (contentType, contentDisposition string, _ error) {
+	// FIXME check if contentType is safe or application/html?
 	contentType = mime.FormatMediaType(artifact.ContentEncoding, nil)
 	contentDisposition = mime.FormatMediaType("inline", map[string]string{
 		"filename": artifact.ArtifactPath,
@@ -75,7 +76,10 @@ func DownloadArtifactV4Fallback(ctx *context.Base, art *actions_model.ActionArti
 
 	ctx.Resp.Header().Set("Content-Type", contentType)
 	ctx.Resp.Header().Set("Content-Disposition", contentDisposition)
-	ctx.Resp.Header().Set("Content-Security-Policy", "sandbox; style-src 'unsafe-inline'; default-src 'none';")
+	// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context, it seems fine to render it inline
+	if mediaType, _, err := mime.ParseMediaType(contentType); err != nil || mediaType != "application/pdf" {
+		ctx.Resp.Header().Set("Content-Security-Policy", "sandbox; style-src 'unsafe-inline'; default-src 'none';")
+	}
 	http.ServeContent(ctx.Resp, ctx.Req, art.ArtifactPath, art.CreatedUnix.AsLocalTime(), f)
 	return nil
 }
