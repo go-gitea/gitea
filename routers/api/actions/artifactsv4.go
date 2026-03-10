@@ -572,7 +572,7 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 	respData := GetSignedArtifactURLResponse{}
 
 	if setting.Actions.ArtifactStorage.ServeDirect() {
-		u, err := actions.GetArtifactV4ServeDirectURL(ctx.Base, artifact)
+		u, err := actions.GetArtifactV4ServeDirectURL(ctx.Base, artifact, http.MethodGet)
 		if u != "" && err == nil {
 			respData.SignedUrl = u
 		}

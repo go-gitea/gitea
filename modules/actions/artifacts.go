@@ -34,7 +34,7 @@ func GetArtifactContentTypeAndDisposition(artifact *actions_model.ActionArtifact
 	return contentType, contentDisposition, nil
 }
 
-func GetArtifactV4ServeDirectURL(ctx *context.Base, art *actions_model.ActionArtifact) (string, error) {
+func GetArtifactV4ServeDirectURL(ctx *context.Base, art *actions_model.ActionArtifact, method string) (string, error) {
 	contentType, contentDisposition, err := GetArtifactContentTypeAndDisposition(art)
 	if err != nil {
 		return "", err
@@ -43,7 +43,7 @@ func GetArtifactV4ServeDirectURL(ctx *context.Base, art *actions_model.ActionArt
 	reqParams := url.Values{}
 	reqParams.Set("response-content-type", contentType)
 	reqParams.Set("response-content-disposition", contentDisposition)
-	u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, ctx.Req.Method, reqParams)
+	u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, method, reqParams)
 	if u != nil && err == nil {
 		return u.String(), nil
 	}
@@ -52,7 +52,7 @@ func GetArtifactV4ServeDirectURL(ctx *context.Base, art *actions_model.ActionArt
 
 func DownloadArtifactV4ServeDirectOnly(ctx *context.Base, art *actions_model.ActionArtifact) (bool, error) {
 	if setting.Actions.ArtifactStorage.ServeDirect() {
-		u, err := GetArtifactV4ServeDirectURL(ctx, art)
+		u, err := GetArtifactV4ServeDirectURL(ctx, art, ctx.Req.Method)
 		if u != "" && err == nil {
 			ctx.Redirect(u, http.StatusFound)
 			return true, nil
