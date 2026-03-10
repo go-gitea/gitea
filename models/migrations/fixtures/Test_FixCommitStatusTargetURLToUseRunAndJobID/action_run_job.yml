@@ -1,0 +1,10 @@
+# type ActionRunJob struct {
+#   ID    int64 `xorm:"pk autoincr"`
+#   RunID int64 `xorm:"index"`
+# }
+-
+  id: 530
+  run_id: 106
+-
+  id: 531
+  run_id: 106
