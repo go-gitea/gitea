@@ -389,10 +389,14 @@ func TestMatchIssuesEvent(t *testing.T) {
 
 			// Determine expected action for single event case
 			var expectedAction string
-			switch tc.eventType {
-			case "labeled":
-				expectedAction = "labeled"
-			case "unlabeled":
+			switch tc.payload.Action {
+			case api.HookIssueLabelUpdated:
+				if tc.eventType == "labeled" {
+					expectedAction = "labeled"
+				} else if tc.eventType == "unlabeled" {
+					expectedAction = "unlabeled"
+				}
+			case api.HookIssueLabelCleared:
 				expectedAction = "unlabeled"
 			default:
 				expectedAction = string(tc.payload.Action)
