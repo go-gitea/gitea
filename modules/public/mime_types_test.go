@@ -39,6 +39,10 @@ func TestIsWellKnownSafeInlineMimeType(t *testing.T) {
 			safe:     true,
 		},
 		{
+			mimeType: "IMAGE/Webp",
+			safe:     true,
+		},
+		{
 			mimeType: "text/javascript",
 			safe:     false,
 		},
@@ -67,6 +71,11 @@ func TestDetectWellKnownSafeInlineMimeType(t *testing.T) {
 			safe:     true,
 		},
 		{
+			ext:      ".TxT",
+			mimeType: "text/plain; charset=utf-8",
+			safe:     true,
+		},
+		{
 			ext:      ".pdf",
 			mimeType: "application/pdf",
 			safe:     true,
@@ -88,6 +97,11 @@ func TestDetectWellKnownSafeInlineMimeType(t *testing.T) {
 		},
 		{
 			ext:      ".mjs",
+			mimeType: "text/javascript; charset=utf-8",
+			safe:     false,
+		},
+		{
+			ext:      ".MJS",
 			mimeType: "text/javascript; charset=utf-8",
 			safe:     false,
 		},
