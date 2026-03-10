@@ -76,7 +76,7 @@ func GetStarredRepos(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetLinkHeader(ctx.ContextUser.NumStars, utils.GetListOptions(ctx).PageSize)
+	ctx.SetLinkHeader(int64(ctx.ContextUser.NumStars), utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(int64(ctx.ContextUser.NumStars))
 	ctx.JSON(http.StatusOK, &repos)
 }
@@ -108,7 +108,7 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 	}
 
-	ctx.SetLinkHeader(ctx.Doer.NumStars, utils.GetListOptions(ctx).PageSize)
+	ctx.SetLinkHeader(int64(ctx.Doer.NumStars), utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(int64(ctx.Doer.NumStars))
 	ctx.JSON(http.StatusOK, &repos)
 }

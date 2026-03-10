@@ -92,9 +92,10 @@ func testViewRepoWithCache(t *testing.T) {
 			tds := s.Find(".repo-file-cell")
 			var f file
 			tds.Each(func(i int, s *goquery.Selection) {
-				if i == 0 {
+				switch i {
+				case 0:
 					f.fileName = strings.TrimSpace(s.Text())
-				} else if i == 1 {
+				case 1:
 					a := s.Find("a")
 					f.commitMsg = strings.TrimSpace(a.Text())
 					l, _ := a.Attr("href")

@@ -502,11 +502,12 @@ func runTestCase(t *testing.T, testCase *requiredScopeTestCase, user *user_model
 			}
 			unauthorizedLevel := auth_model.Write
 			if categoryIsRequired {
-				if minRequiredLevel == auth_model.Read {
+				switch minRequiredLevel {
+				case auth_model.Read:
 					unauthorizedLevel = auth_model.NoAccess
-				} else if minRequiredLevel == auth_model.Write {
+				case auth_model.Write:
 					unauthorizedLevel = auth_model.Read
-				} else {
+				default:
 					assert.FailNow(t, "Invalid test case", "Unknown access token scope level: %v", minRequiredLevel)
 				}
 			}

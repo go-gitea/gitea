@@ -346,15 +346,16 @@ func TestPackageConan(t *testing.T) {
 					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
 
-					if pf.Name == conanfileName {
+					switch pf.Name {
+					case conanfileName:
 						assert.True(t, pf.IsLead)
 
 						assert.Equal(t, int64(len(buildConanfileContent(name, version1))), pb.Size)
-					} else if pf.Name == conaninfoName {
+					case conaninfoName:
 						assert.False(t, pf.IsLead)
 
 						assert.Equal(t, int64(len(contentConaninfo)), pb.Size)
-					} else {
+					default:
 						assert.FailNow(t, "unknown file", "unknown file: %s", pf.Name)
 					}
 				}

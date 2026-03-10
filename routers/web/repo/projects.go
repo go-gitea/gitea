@@ -68,13 +68,6 @@ func Projects(ctx *context.Context) {
 	ctx.Data["OpenCount"] = repo.NumOpenProjects
 	ctx.Data["ClosedCount"] = repo.NumClosedProjects
 
-	var total int
-	if !isShowClosed {
-		total = repo.NumOpenProjects
-	} else {
-		total = repo.NumClosedProjects
-	}
-
 	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.IssuePagingNum,
@@ -113,12 +106,7 @@ func Projects(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
-	numPages := 0
-	if count > 0 {
-		numPages = (int(count) - 1/setting.UI.IssuePagingNum)
-	}
-
-	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, numPages)
+	pager := context.NewPagination(count, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
