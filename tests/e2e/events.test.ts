@@ -2,7 +2,7 @@ import {test, expect} from '@playwright/test';
 import {loginUser, apiBaseUrl, apiUserHeaders, apiCreateUser, apiDeleteUser} from './utils.ts';
 
 // These tests rely on EVENT_SOURCE_UPDATE_TIME=1s in the e2e server config.
-test.describe('Events', () => {
+test.describe('events', () => {
   test.describe.configure({timeout: 120000});
 
   test('notification count', async ({page, request}) => {
