@@ -68,7 +68,7 @@ type SignedURLParam struct {
 	ContentDisposition string
 }
 
-// Safe defaults are applied only when not explicitly overridden by the caller.func (s *SignedURLParam) withDefaults(name string) *SignedURLParam {
+// Safe defaults are applied only when not explicitly overridden by the caller.
 func (s *SignedURLParam) withDefaults(name string) *SignedURLParam {
 	// Here we might not know the real filename, and it's quite inefficient to detect the MIME type by pre-fetching the object head.
 	// So we just do a quick detection by extension name, at least it works for the "View Raw File" for an LFS file on the Web UI.
@@ -110,7 +110,7 @@ type ObjectStorage interface {
 	// URL generates a signed URL for the specified blob storage file.
 	// * method defines which HTTP method is permitted for certain storage providers (e.g., MinIO).
 	// * reqParams allows customizing the Content-Type and Content-Disposition headers;
-	//   the caller is responsible for providing safe Content-Disposition values.	URL(path, name, method string, reqParams *SignedURLParam) (*url.URL, error)
+	//   the caller is responsible for providing safe Content-Disposition values.
 	URL(path, name, method string, reqParams *SignedURLParam) (*url.URL, error)
 
 	// IterateObjects calls the iterator function for each object in the storage with the given path as prefix
