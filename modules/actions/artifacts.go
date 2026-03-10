@@ -22,10 +22,17 @@ func IsArtifactV4(art *actions_model.ActionArtifact) bool {
 	return strings.Contains(art.ContentEncoding, "/")
 }
 
-func GetArtifactContentTypeAndDisposition(artifact *actions_model.ActionArtifact) (contentType, contentDisposition string, _ error) {
+type ContentDispositionType string
+
+const (
+	ContentDispositionInline     ContentDispositionType = "inline"
+	ContentDispositionAttachment ContentDispositionType = "attachment"
+)
+
+func GetArtifactContentTypeAndDisposition(artifact *actions_model.ActionArtifact, cdt ContentDispositionType) (contentType, contentDisposition string, _ error) {
 	// FIXME check if contentType is safe or application/html?
 	contentType = mime.FormatMediaType(artifact.ContentEncoding, nil)
-	contentDisposition = mime.FormatMediaType("inline", map[string]string{
+	contentDisposition = mime.FormatMediaType(string(cdt), map[string]string{
 		"filename": artifact.ArtifactPath,
 	})
 	if contentType == "" || contentDisposition == "" {
@@ -35,8 +42,8 @@ func GetArtifactContentTypeAndDisposition(artifact *actions_model.ActionArtifact
 	return contentType, contentDisposition, nil
 }
 
-func GetArtifactV4ServeDirectURL(ctx *context.Base, art *actions_model.ActionArtifact, method string) (string, error) {
-	contentType, contentDisposition, err := GetArtifactContentTypeAndDisposition(art)
+func GetArtifactV4ServeDirectURL(ctx *context.Base, art *actions_model.ActionArtifact, method string, cdt ContentDispositionType) (string, error) {
+	contentType, contentDisposition, err := GetArtifactContentTypeAndDisposition(art, cdt)
 	if err != nil {
 		return "", err
 	}
@@ -51,9 +58,9 @@ func GetArtifactV4ServeDirectURL(ctx *context.Base, art *actions_model.ActionArt
 	return "", nil
 }
 
-func DownloadArtifactV4ServeDirectOnly(ctx *context.Base, art *actions_model.ActionArtifact) (bool, error) {
+func DownloadArtifactV4ServeDirectOnly(ctx *context.Base, art *actions_model.ActionArtifact, cdt ContentDispositionType) (bool, error) {
 	if setting.Actions.ArtifactStorage.ServeDirect() {
-		u, err := GetArtifactV4ServeDirectURL(ctx, art, ctx.Req.Method)
+		u, err := GetArtifactV4ServeDirectURL(ctx, art, ctx.Req.Method, cdt)
 		if u != "" && err == nil {
 			ctx.Redirect(u, http.StatusFound)
 			return true, nil
@@ -62,14 +69,14 @@ func DownloadArtifactV4ServeDirectOnly(ctx *context.Base, art *actions_model.Act
 	return false, nil
 }
 
-func DownloadArtifactV4Fallback(ctx *context.Base, art *actions_model.ActionArtifact) error {
+func DownloadArtifactV4Fallback(ctx *context.Base, art *actions_model.ActionArtifact, cdt ContentDispositionType) error {
 	f, err := storage.ActionsArtifacts.Open(art.StoragePath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	contentType, contentDisposition, err := GetArtifactContentTypeAndDisposition(art)
+	contentType, contentDisposition, err := GetArtifactContentTypeAndDisposition(art, cdt)
 	if err != nil {
 		return err
 	}
@@ -84,10 +91,10 @@ func DownloadArtifactV4Fallback(ctx *context.Base, art *actions_model.ActionArti
 	return nil
 }
 
-func DownloadArtifactV4(ctx *context.Base, art *actions_model.ActionArtifact) error {
-	ok, err := DownloadArtifactV4ServeDirectOnly(ctx, art)
+func DownloadArtifactV4(ctx *context.Base, art *actions_model.ActionArtifact, cdt ContentDispositionType) error {
+	ok, err := DownloadArtifactV4ServeDirectOnly(ctx, art, cdt)
 	if ok || err != nil {
 		return err
 	}
-	return DownloadArtifactV4Fallback(ctx, art)
+	return DownloadArtifactV4Fallback(ctx, art, cdt)
 }

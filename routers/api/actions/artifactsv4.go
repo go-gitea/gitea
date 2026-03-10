@@ -572,7 +572,7 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 	respData := GetSignedArtifactURLResponse{}
 
 	if setting.Actions.ArtifactStorage.ServeDirect() {
-		u, err := actions.GetArtifactV4ServeDirectURL(ctx.Base, artifact, http.MethodGet)
+		u, err := actions.GetArtifactV4ServeDirectURL(ctx.Base, artifact, http.MethodGet, actions.ContentDispositionAttachment)
 		if u != "" && err == nil {
 			respData.SignedUrl = u
 		}
@@ -602,7 +602,7 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	err = actions.DownloadArtifactV4Fallback(ctx.Base, artifact)
+	err = actions.DownloadArtifactV4Fallback(ctx.Base, artifact, actions.ContentDispositionAttachment)
 	if err != nil {
 		log.Error("Error serve artifact: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, err.Error())

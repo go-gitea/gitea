@@ -694,7 +694,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	}
 
 	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
-		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0])
+		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0], actions.ContentDispositionInline)
 		if err != nil {
 			ctx.ServerError("DownloadArtifactV4", err)
 			return
