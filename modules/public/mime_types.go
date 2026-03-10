@@ -39,6 +39,15 @@ var wellKnownSafeMimeTypes = []string{
 	"image/gif",
 	"image/webp",
 	"image/avif",
+	// FIXME: Verify whether HTML/SVG files are safe to serve without a Content-Security-Policy
+	// when delivered from blob storage with public access disabled. Modern browsers sandbox
+	// cross‑origin documents, which may make this acceptable.
+	//
+	// Consider documenting the behavior separately for same‑origin vs. cross‑origin access
+	// when public access is disabled.
+	//
+	// As of 2026‑03‑10, GitHub Actions serves HTML artifacts inline without a
+	// Content-Security-Policy from Azure Blob Storage instances that have public access disabled.
 	// ATTENTION! Don't support unsafe types like HTML/SVG due to security concerns: they can contain JS code, and maybe they need proper Content-Security-Policy
 	// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context, it seems fine to render it inline
 	"application/pdf",
