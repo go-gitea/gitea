@@ -147,6 +147,7 @@ GO_DIRS := build cmd models modules routers services tests tools
 WEB_DIRS := web_src/js web_src/css
 
 ESLINT_FILES := web_src/js tools *.ts tests/e2e
+ESLINT_CONCURRENCY ?= 2
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
 SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.json .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.json
@@ -292,12 +293,12 @@ lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backen
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js and ts files
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --concurrency 2 $(ESLINT_FILES)
+	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES)
 	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js and ts files and fix issues
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --concurrency 2 $(ESLINT_FILES) --fix
+	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES) --fix
 	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-css
@@ -368,11 +369,11 @@ lint-yaml: .venv ## lint yaml files
 
 .PHONY: lint-json
 lint-json: node_modules ## lint json files
-	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency 2
+	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY)
 
 .PHONY: lint-json-fix
 lint-json-fix: node_modules ## lint and fix json files
-	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency 2 --fix
+	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) --fix
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
