@@ -1,5 +1,5 @@
 import {test, expect} from '@playwright/test';
-import {loginUser, apiBaseUrl, apiUserHeaders, apiCreateUser, apiDeleteUser} from './utils.ts';
+import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiDeleteUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch} from './utils.ts';
 
 // These tests rely on EVENT_SOURCE_UPDATE_TIME=1s in the e2e server config.
 test.describe('events', () => {
@@ -13,21 +13,18 @@ test.describe('events', () => {
 
     await Promise.all([apiCreateUser(request, owner), apiCreateUser(request, commenter)]);
 
-    // Create repo and issue before login so the notification exists when event stream connects
-    await request.post(`${apiBaseUrl()}/api/v1/user/repos`, {
-      headers: apiUserHeaders(owner),
-      data: {name: repoName, auto_init: true},
-    });
-    await request.post(`${apiBaseUrl()}/api/v1/repos/${owner}/${repoName}/issues`, {
-      headers: apiUserHeaders(commenter),
-      data: {title: 'events notification test'},
-    });
+    // Create repo before login
+    await apiCreateRepo(request, {name: repoName, headers: apiUserHeaders(owner)});
 
-    // Login as the owner — the first server event poll picks up the notification
+    // Login as the owner first — event stream connects with no unread notifications
     await loginUser(page, owner);
+    const badge = page.locator('a.not-mobile .notification_count');
+    await expect(badge).toBeHidden();
+
+    // Create issue as another user — this generates a notification delivered via server push
+    await apiCreateIssue(request, owner, repoName, {title: 'events notification test', headers: apiUserHeaders(commenter)});
 
     // Wait for the notification badge to appear via server event
-    const badge = page.locator('a.not-mobile .notification_count');
     await expect(badge).toBeVisible({timeout: 60000});
 
     // Cleanup
@@ -42,17 +39,9 @@ test.describe('events', () => {
     await apiCreateUser(request, name);
 
     // Create repo, issue, and start stopwatch before login
-    await request.post(`${apiBaseUrl()}/api/v1/user/repos`, {
-      headers,
-      data: {name, auto_init: true},
-    });
-    await request.post(`${apiBaseUrl()}/api/v1/repos/${name}/${name}/issues`, {
-      headers,
-      data: {title: 'events stopwatch test'},
-    });
-    await request.post(`${apiBaseUrl()}/api/v1/repos/${name}/${name}/issues/1/stopwatch/start`, {
-      headers,
-    });
+    await apiCreateRepo(request, {name, headers});
+    await apiCreateIssue(request, name, name, {title: 'events stopwatch test', headers});
+    await apiStartStopwatch(request, name, name, 1, {headers});
 
     // Login — page renders with the active stopwatch element
     await loginUser(page, name);
@@ -71,7 +60,7 @@ test.describe('events', () => {
     await apiCreateUser(request, name);
 
     // Use a single context so both pages share the same session and SharedWorker
-    const context = await browser.newContext();
+    const context = await browser.newContext({baseURL: baseUrl()});
     const page1 = await context.newPage();
     const page2 = await context.newPage();
 

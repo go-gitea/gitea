@@ -2,7 +2,7 @@ import {env} from 'node:process';
 import {expect} from '@playwright/test';
 import type {APIRequestContext, Locator, Page} from '@playwright/test';
 
-export function apiBaseUrl() {
+export function baseUrl() {
   return env.GITEA_TEST_E2E_URL?.replace(/\/$/g, '');
 }
 
@@ -28,21 +28,34 @@ async function apiRetry(fn: () => Promise<{ok: () => boolean; status: () => numb
   }
 }
 
-export async function apiCreateRepo(requestContext: APIRequestContext, {name, autoInit = true}: {name: string; autoInit?: boolean}) {
-  await apiRetry(() => requestContext.post(`${apiBaseUrl()}/api/v1/user/repos`, {
-    headers: apiHeaders(),
+export async function apiCreateRepo(requestContext: APIRequestContext, {name, autoInit = true, headers}: {name: string; autoInit?: boolean; headers?: Record<string, string>}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/user/repos`, {
+    headers: headers || apiHeaders(),
     data: {name, auto_init: autoInit},
   }), 'apiCreateRepo');
 }
 
+export async function apiCreateIssue(requestContext: APIRequestContext, owner: string, repo: string, {title, headers}: {title: string; headers?: Record<string, string>}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues`, {
+    headers: headers || apiHeaders(),
+    data: {title},
+  }), 'apiCreateIssue');
+}
+
+export async function apiStartStopwatch(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}/stopwatch/start`, {
+    headers: headers || apiHeaders(),
+  }), 'apiStartStopwatch');
+}
+
 export async function apiDeleteRepo(requestContext: APIRequestContext, owner: string, name: string) {
-  await apiRetry(() => requestContext.delete(`${apiBaseUrl()}/api/v1/repos/${owner}/${name}`, {
+  await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/repos/${owner}/${name}`, {
     headers: apiHeaders(),
   }), 'apiDeleteRepo');
 }
 
 export async function apiDeleteOrg(requestContext: APIRequestContext, name: string) {
-  await apiRetry(() => requestContext.delete(`${apiBaseUrl()}/api/v1/orgs/${name}`, {
+  await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/orgs/${name}`, {
     headers: apiHeaders(),
   }), 'apiDeleteOrg');
 }
@@ -54,14 +67,14 @@ export function apiUserHeaders(username: string) {
 }
 
 export async function apiCreateUser(requestContext: APIRequestContext, username: string) {
-  await apiRetry(() => requestContext.post(`${apiBaseUrl()}/api/v1/admin/users`, {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/admin/users`, {
     headers: apiHeaders(),
-    data: {username, password: testUserPassword, email: `${username}@e2e.gitea.com`, must_change_password: false},
+    data: {username, password: testUserPassword, email: `${username}@${env.GITEA_TEST_E2E_DOMAIN}`, must_change_password: false},
   }), 'apiCreateUser');
 }
 
 export async function apiDeleteUser(requestContext: APIRequestContext, username: string) {
-  await apiRetry(() => requestContext.delete(`${apiBaseUrl()}/api/v1/admin/users/${username}?purge=true`, {
+  await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/admin/users/${username}?purge=true`, {
     headers: apiHeaders(),
   }), 'apiDeleteUser');
 }
