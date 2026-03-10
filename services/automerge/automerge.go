@@ -245,9 +245,9 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 		return
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
+	perm, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
 	if err != nil {
-		log.Error("GetUserRepoPermission %-v: %v", pr.HeadRepo, err)
+		log.Error("GetUserRepoPermission %-v: %v", pr.BaseRepo, err)
 		return
 	}
 

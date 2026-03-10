@@ -114,12 +114,7 @@ func Projects(ctx *context.Context) {
 		project.RenderedContent = renderUtils.MarkdownToHtml(project.Description)
 	}
 
-	numPages := 0
-	if total > 0 {
-		numPages = (int(total) - 1/setting.UI.IssuePagingNum)
-	}
-
-	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, numPages)
+	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 

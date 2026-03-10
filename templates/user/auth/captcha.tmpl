@@ -10,7 +10,7 @@
 	<div class="inline field tw-text-center required">
 		<div id="captcha" data-captcha-type="g-recaptcha" class="g-recaptcha-style" data-sitekey="{{.RecaptchaSitekey}}"></div>
 	</div>
-	<script defer src='{{URLJoin .RecaptchaURL "api.js"}}'></script>
+	<script defer src='{{.RecaptchaAPIScriptURL}}'></script>
 {{else if eq .CaptchaType "hcaptcha"}}
 	<div class="inline field tw-text-center required">
 		<div id="captcha" data-captcha-type="h-captcha" class="h-captcha-style" data-sitekey="{{.HcaptchaSitekey}}"></div>

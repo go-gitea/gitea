@@ -102,7 +102,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	var (
 		repos   []*repo_model.Repository
 		count   int64
-		total   int
+		total   int64
 		curRows int
 		orderBy db.SearchOrderBy
 	)
@@ -157,10 +157,10 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	switch tab {
 	case "followers":
 		ctx.Data["Cards"] = followers
-		total = int(numFollowers)
+		total = numFollowers
 	case "following":
 		ctx.Data["Cards"] = following
-		total = int(numFollowing)
+		total = numFollowing
 	case "activity":
 		if setting.Service.EnableUserHeatmap && activities_model.ActivityReadable(ctx.ContextUser, ctx.Doer) {
 			ctx.Data["EnableHeatmap"] = true
@@ -218,7 +218,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			return
 		}
 
-		total = int(count)
+		total = count
 	case "watching":
 		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
@@ -245,7 +245,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			return
 		}
 
-		total = int(count)
+		total = count
 	case "overview":
 		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 			log.Error("failed to GetBlobContent: %v", err)
@@ -273,7 +273,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			return
 		}
 		ctx.Data["Cards"] = orgs
-		total = int(count)
+		total = count
 	default: // default to "repositories"
 		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
@@ -300,7 +300,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			return
 		}
 
-		total = int(count)
+		total = count
 	}
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = total
