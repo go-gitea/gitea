@@ -1417,15 +1417,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
-	if ctx.Repo.CanWrite(unit.TypeProjects) {
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, pullIssue, ctx.Doer, projectIDs, 0); err != nil {
-			if !errors.Is(err, util.ErrPermissionDenied) {
-				ctx.ServerError("IssueAssignOrRemoveProject", err)
-				return
-			}
-		}
-	}
-
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
 	ctx.JSONRedirect(pullIssue.Link())
 }
