@@ -408,11 +408,17 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 	assert.NoError(t, err)
 
 	table := []struct {
-		Name        string
-		ServeDirect bool
+		Name         string
+		ArtifactName string
+		ServeDirect  bool
+		ContentType  string
 	}{
-		{Name: "Download"},
-		{Name: "ServeDirect", ServeDirect: true},
+		{Name: "Download-Zip", ArtifactName: "artifact-v4-download", ContentType: actions.ArtifactV4ContentEncoding},
+		{Name: "Download-Pdf", ArtifactName: "report.pdf", ContentType: "application/pdf"},
+		{Name: "Download-Html", ArtifactName: "report.html", ContentType: "application/html"},
+		{Name: "ServeDirect-Zip", ArtifactName: "artifact-v4-download", ContentType: actions.ArtifactV4ContentEncoding, ServeDirect: true},
+		{Name: "ServeDirect-Pdf", ArtifactName: "report.pdf", ContentType: "application/pdf", ServeDirect: true},
+		{Name: "ServeDirect-Html", ArtifactName: "report.html", ContentType: "application/html", ServeDirect: true},
 	}
 
 	for _, entry := range table {
@@ -431,25 +437,35 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 
 			// list artifacts by name
 			req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts", toProtoJSON(&actions.ListArtifactsRequest{
-				NameFilter:              wrapperspb.String("artifact-v4-download"),
+				NameFilter:              wrapperspb.String(entry.ArtifactName),
 				WorkflowRunBackendId:    "792",
 				WorkflowJobRunBackendId: "193",
 			})).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 			var listResp actions.ListArtifactsResponse
-			protojson.Unmarshal(resp.Body.Bytes(), &listResp)
+			require.NoError(t, protojson.Unmarshal(resp.Body.Bytes(), &listResp))
+			require.Len(t, listResp.Artifacts, 1)
+
+			// list artifacts by id
+			req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts", toProtoJSON(&actions.ListArtifactsRequest{
+				IdFilter:                wrapperspb.Int64(listResp.Artifacts[0].DatabaseId),
+				WorkflowRunBackendId:    "792",
+				WorkflowJobRunBackendId: "193",
+			})).AddTokenAuth(token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			require.NoError(t, protojson.Unmarshal(resp.Body.Bytes(), &listResp))
 			assert.Len(t, listResp.Artifacts, 1)
 
 			// acquire artifact download url
 			req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/GetSignedArtifactURL", toProtoJSON(&actions.GetSignedArtifactURLRequest{
-				Name:                    "artifact-v4-download",
+				Name:                    entry.ArtifactName,
 				WorkflowRunBackendId:    "792",
 				WorkflowJobRunBackendId: "193",
 			})).
 				AddTokenAuth(token)
 			resp = MakeRequest(t, req, http.StatusOK)
 			var finalizeResp actions.GetSignedArtifactURLResponse
-			protojson.Unmarshal(resp.Body.Bytes(), &finalizeResp)
+			require.NoError(t, protojson.Unmarshal(resp.Body.Bytes(), &finalizeResp))
 			assert.NotEmpty(t, finalizeResp.SignedUrl)
 
 			body := strings.Repeat("D", 1024)
@@ -459,8 +475,7 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 				externalResp, err := http.DefaultClient.Do(externalReq)
 				require.NoError(t, err)
 				assert.Equal(t, http.StatusOK, externalResp.StatusCode)
-				// FIXME add test data for other file types
-				assert.Equal(t, actions.ArtifactV4ContentEncoding, externalResp.Header.Get("Content-Type"))
+				assert.Equal(t, entry.ContentType, externalResp.Header.Get("Content-Type"))
 				// FIXME Content-Disposition Check
 				buf := make([]byte, 1024)
 				n, err := io.ReadAtLeast(externalResp.Body, buf, len(buf))
@@ -471,8 +486,7 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 			} else {
 				req = NewRequest(t, "GET", finalizeResp.SignedUrl)
 				resp = MakeRequest(t, req, http.StatusOK)
-				// FIXME add test data for other file types
-				assert.Equal(t, actions.ArtifactV4ContentEncoding, resp.Header().Get("Content-Type"))
+				assert.Equal(t, entry.ContentType, resp.Header().Get("Content-Type"))
 				// FIXME Content-Type-Disposition Check
 				assert.Equal(t, body, resp.Body.String())
 			}
