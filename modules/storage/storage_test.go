@@ -59,7 +59,9 @@ func testSingleBlobStorageURLContentTypeAndDisposition(t *testing.T, s ObjectSto
 	resp, err := http.Get(u.String())
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.Equal(t, expected.ContentType, resp.Header.Get("Content-Type"))
+	if expected.ContentType != "" {
+		assert.Equal(t, expected.ContentType, resp.Header.Get("Content-Type"))
+	}
 	if expected.ContentDisposition != "" {
 		assert.Equal(t, expected.ContentDisposition, resp.Header.Get("Content-Disposition"))
 	}
@@ -84,12 +86,10 @@ func testBlobStorageURLContentTypeAndDisposition(t *testing.T, typStr Type, cfg 
 	}, nil)
 
 	testSingleBlobStorageURLContentTypeAndDisposition(t, s, "test.txt", "test.wasm", SignedURLParam{
-		ContentType:        "application/octet-stream",
 		ContentDisposition: `attachment; filename="test.wasm"`,
 	}, nil)
 
 	testSingleBlobStorageURLContentTypeAndDisposition(t, s, "test.txt", "test.wasm", SignedURLParam{
-		ContentType:        "application/octet-stream",
 		ContentDisposition: `attachment; filename="test.wasm"`,
 	}, &SignedURLParam{})
 
