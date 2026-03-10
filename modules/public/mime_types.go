@@ -4,6 +4,7 @@
 package public
 
 import (
+	"mime"
 	"slices"
 	"strings"
 )
@@ -33,7 +34,6 @@ var wellKnownMimeTypesLower = map[string]string{
 
 var wellKnownSafeMimeTypes = []string{
 	"text/plain",
-	"text/plain; charset=utf-8",
 	"image/png",
 	"image/jpeg",
 	"image/gif",
@@ -56,8 +56,11 @@ func detectWellKnownMimeType(ext string) string {
 }
 
 func IsWellKnownSafeInlineMimeType(mimeType string) bool {
-	mimeType = strings.ToLower(mimeType)
-	return slices.Contains(wellKnownSafeMimeTypes, mimeType)
+	mediaType, _, err := mime.ParseMediaType(mimeType)
+	if err != nil {
+		return false
+	}
+	return slices.Contains(wellKnownSafeMimeTypes, mediaType)
 }
 
 func DetectWellKnownSafeInlineMimeType(ext string) (mimeType string, safe bool) {
