@@ -77,7 +77,7 @@ func ListHooks(ctx *context.APIContext) {
 		}
 		hooks[i] = h
 	}
-	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, hooks)
 }
