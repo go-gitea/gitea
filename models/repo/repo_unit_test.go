@@ -53,7 +53,7 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 		perms := cfg.ClampPermissions(defaultPerms)
 		assert.Equal(t, perm.AccessModeWrite, perms.Code)
 		assert.Equal(t, perm.AccessModeWrite, perms.Issues)
-		assert.Equal(t, perm.AccessModeRead, perms.Packages) // Packages read by default for security
+		assert.Equal(t, perm.AccessModeWrite, perms.Packages)
 	})
 
 	t.Run("Effective Permissions - Restricted Mode", func(t *testing.T) {

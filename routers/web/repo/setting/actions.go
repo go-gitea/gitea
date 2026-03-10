@@ -41,7 +41,6 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["TokenPermissionMode"] = actionsCfg.GetTokenPermissionMode()
 	ctx.Data["TokenPermissionModePermissive"] = repo_model.ActionsTokenPermissionModePermissive
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
-	ctx.Data["TokenPermissionModeCustom"] = repo_model.ActionsTokenPermissionModeCustom
 	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
 	ctx.Data["EnableMaxTokenPermissions"] = actionsCfg.MaxTokenPermissions != nil
 
@@ -157,8 +156,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	if shouldUpdate {
 		permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))
 		if permissionMode == repo_model.ActionsTokenPermissionModeRestricted ||
-			permissionMode == repo_model.ActionsTokenPermissionModePermissive ||
-			permissionMode == repo_model.ActionsTokenPermissionModeCustom {
+			permissionMode == repo_model.ActionsTokenPermissionModePermissive {
 			actionsCfg.TokenPermissionMode = permissionMode
 		} else {
 			ctx.Flash.Error("Invalid token permission mode")

@@ -272,12 +272,12 @@ func checkSameOwnerCrossRepoAccess(ctx context.Context, taskRepo, targetRepo *re
 		return false
 	}
 
-	switch ownerCfg.CrossRepoMode {
+	switch ownerCfg.GetCrossRepoMode() {
 	case repo_model.ActionsCrossRepoModeAll:
 		return true
 	case repo_model.ActionsCrossRepoModeSelected:
 		return slices.Contains(ownerCfg.AllowedCrossRepoIDs, targetRepo.ID)
-	default: // ActionsCrossRepoModeNone or invalid
+	default:
 		return false
 	}
 }

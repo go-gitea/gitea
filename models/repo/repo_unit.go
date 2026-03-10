@@ -182,8 +182,6 @@ const (
 	ActionsTokenPermissionModePermissive ActionsTokenPermissionMode = "permissive"
 	// ActionsTokenPermissionModeRestricted - read access by default
 	ActionsTokenPermissionModeRestricted ActionsTokenPermissionMode = "restricted"
-	// ActionsTokenPermissionModeCustom - custom permissions defined by MaxTokenPermissions
-	ActionsTokenPermissionModeCustom ActionsTokenPermissionMode = "custom" // reserved for future use
 )
 
 // ActionsCrossRepoMode defines the mode for cross-repository access
@@ -352,10 +350,20 @@ func (cfg *ActionsConfig) IsCollaborativeOwner(ownerID int64) bool {
 // GetTokenPermissionMode returns the token permission mode (defaults to permissive for backwards compatibility)
 func (cfg *ActionsConfig) GetTokenPermissionMode() ActionsTokenPermissionMode {
 	switch cfg.TokenPermissionMode {
-	case ActionsTokenPermissionModeRestricted, ActionsTokenPermissionModeCustom:
+	case ActionsTokenPermissionModeRestricted:
 		return cfg.TokenPermissionMode
 	default:
 		return ActionsTokenPermissionModePermissive
+	}
+}
+
+// GetCrossRepoMode returns the cross-repo access mode (defaults to none)
+func (cfg *ActionsConfig) GetCrossRepoMode() ActionsCrossRepoMode {
+	switch cfg.CrossRepoMode {
+	case ActionsCrossRepoModeAll, ActionsCrossRepoModeSelected:
+		return cfg.CrossRepoMode
+	default:
+		return ActionsCrossRepoModeNone
 	}
 }
 
@@ -371,7 +379,7 @@ func (cfg *ActionsConfig) GetDefaultTokenPermissions() ActionsTokenPermissions {
 			Code:         perm.AccessModeWrite,
 			Issues:       perm.AccessModeWrite,
 			PullRequests: perm.AccessModeWrite,
-			Packages:     perm.AccessModeRead, // Packages read by default for security
+			Packages:     perm.AccessModeWrite,
 			Actions:      perm.AccessModeWrite,
 			Wiki:         perm.AccessModeWrite,
 			Releases:     perm.AccessModeWrite,

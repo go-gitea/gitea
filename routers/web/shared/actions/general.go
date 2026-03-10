@@ -77,11 +77,10 @@ func GeneralSettings(ctx *context.Context) {
 	ctx.Data["TokenPermissionMode"] = actionsCfg.GetTokenPermissionMode()
 	ctx.Data["TokenPermissionModePermissive"] = repo_model.ActionsTokenPermissionModePermissive
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
-	ctx.Data["TokenPermissionModeCustom"] = repo_model.ActionsTokenPermissionModeCustom
 	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
 	ctx.Data["EnableMaxTokenPermissions"] = actionsCfg.MaxTokenPermissions != nil
 
-	ctx.Data["CrossRepoMode"] = actionsCfg.CrossRepoMode
+	ctx.Data["CrossRepoMode"] = actionsCfg.GetCrossRepoMode()
 	ctx.Data["ActionsCrossRepoModeNone"] = repo_model.ActionsCrossRepoModeNone
 	ctx.Data["ActionsCrossRepoModeAll"] = repo_model.ActionsCrossRepoModeAll
 	ctx.Data["ActionsCrossRepoModeSelected"] = repo_model.ActionsCrossRepoModeSelected
@@ -136,8 +135,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	// Update Token Permission Mode
 	permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))
 	if permissionMode == repo_model.ActionsTokenPermissionModeRestricted ||
-		permissionMode == repo_model.ActionsTokenPermissionModePermissive ||
-		permissionMode == repo_model.ActionsTokenPermissionModeCustom {
+		permissionMode == repo_model.ActionsTokenPermissionModePermissive {
 		actionsCfg.TokenPermissionMode = permissionMode
 	}
 
