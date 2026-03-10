@@ -338,12 +338,15 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		Keyword:    keyword,
-		RepoIDs:    []int64{ctx.Repo.Repository.ID},
-		ProjectIDs: []int64{ctx.FormInt64("project")},
-		IsPull:     isPull,
-		IsClosed:   isClosed,
-		SortBy:     issue_indexer.SortByCreatedDesc,
+		Keyword:  keyword,
+		RepoIDs:  []int64{ctx.Repo.Repository.ID},
+		IsPull:   isPull,
+		IsClosed: isClosed,
+		SortBy:   issue_indexer.SortByCreatedDesc,
+	}
+
+	if v := ctx.FormInt64("project"); v > 0 {
+		searchOpt.ProjectIDs = []int64{v}
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)
