@@ -252,9 +252,14 @@ func (a *AzureBlobStorage) getSasURL(b *blob.Client, template sas.BlobSignatureV
 		return "", err
 	}
 
-	t, err := time.Parse(blob.SnapshotTimeFormat, urlParts.Snapshot)
-	if err != nil {
+	var t time.Time
+	if urlParts.Snapshot == "" {
 		t = time.Time{}
+	} else {
+		t, err = time.Parse(blob.SnapshotTimeFormat, urlParts.Snapshot)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	template.ContainerName = urlParts.ContainerName

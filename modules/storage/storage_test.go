@@ -69,7 +69,7 @@ func testBlobStorageURLContentTypeAndDisposition(t *testing.T, typStr Type, cfg 
 	s, err := NewStorage(typStr, cfg)
 	assert.NoError(t, err)
 
-	data := "Q2xTckt6Y1hDOWh0"
+	data := "Q2xTckt6Y1hDOWh0" // arbitrary test content; specific value is irrelevant to this test
 	_, err = s.Save("test.txt", strings.NewReader(data), int64(len(data)))
 	assert.NoError(t, err)
 
