@@ -1,3 +1,4 @@
+import {randomBytes} from 'node:crypto';
 import {env} from 'node:process';
 import {expect} from '@playwright/test';
 import type {APIRequestContext, Locator, Page} from '@playwright/test';
@@ -60,7 +61,14 @@ export async function apiDeleteOrg(requestContext: APIRequestContext, name: stri
   }), 'apiDeleteOrg');
 }
 
-const testUserPassword = 'password123!AA';
+/** Generate a random password that satisfies the complexity requirements. */
+function generatePassword() {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  return `${Array.from(randomBytes(12), (b) => chars[b % chars.length]).join('')}!aA1`;
+}
+
+// Random password shared by all test users — used for both API user creation and browser login.
+const testUserPassword = generatePassword();
 
 export function apiUserHeaders(username: string) {
   return apiAuthHeader(username, testUserPassword);
