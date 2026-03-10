@@ -3,7 +3,7 @@ import {loginUser, apiBaseUrl, apiUserHeaders, apiCreateUser, apiDeleteUser} fro
 
 // These tests rely on EVENT_SOURCE_UPDATE_TIME=1s in the e2e server config.
 test.describe('events', () => {
-  test.describe.configure({timeout: 120000});
+  test.describe.configure({timeout: 90000});
 
   test('notification count', async ({page, request}) => {
     const id = `ev-notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
