@@ -271,8 +271,10 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 	allProjects := append(slices.Clone(pageMetaData.ProjectsData.OpenProjects), pageMetaData.ProjectsData.ClosedProjects...)
 	candidateProjects := toSet(allProjects, func(project *project_model.Project) int64 { return project.ID })
 	inputProjectIDs, _ := base.StringsToInt64s(strings.Split(form.ProjectIDs, ","))
+	var selectedProjectIDs []int64
 	pageMetaData.ProjectsData.SelectedProjectIDs = util.JoinSlice(inputProjectIDs, func(v int64) string {
 		if candidateProjects.Contains(v) {
+			selectedProjectIDs = append(selectedProjectIDs, v)
 			return strconv.FormatInt(v, 10)
 		}
 		return ""
@@ -321,7 +323,8 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 		}
 	}
 
-	ret.LabelIDs, ret.AssigneeIDs, ret.MilestoneID, ret.ProjectIDs = inputLabelIDs, inputAssigneeIDs, form.MilestoneID, inputProjectIDs
+	// Return only the validated project IDs (those in selectedProjectIDs).
+	ret.LabelIDs, ret.AssigneeIDs, ret.MilestoneID, ret.ProjectIDs = inputLabelIDs, inputAssigneeIDs, form.MilestoneID, selectedProjectIDs
 	ret.Reviewers, ret.TeamReviewers = reviewers, teamReviewers
 	return ret
 }
