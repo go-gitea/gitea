@@ -5,13 +5,13 @@ package common
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -63,8 +63,8 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 			}()
 
 			defer func() {
-				if err := recover(); err != nil {
-					RenderPanicErrorPage(respWriter, req, err) // it should never panic
+				if recovered := recover(); recovered != nil {
+					renderPanicErrorPage(respWriter, req, recovered) // it should never panic, and it handles the stack trace internally
 				}
 			}()
 
@@ -130,7 +130,7 @@ func MustInitSessioner() func(next http.Handler) http.Handler {
 		Domain:         setting.SessionConfig.Domain,
 	})
 	if err != nil {
-		log.Fatalf("common.Sessioner failed: %v", err)
+		log.Fatal("common.Sessioner failed: %v", err)
 	}
 	return middleware
 }

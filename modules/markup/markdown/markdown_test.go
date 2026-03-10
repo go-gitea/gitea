@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,7 +22,6 @@ const (
 	AppURL            = "http://localhost:3000/"
 	testRepoOwnerName = "user13"
 	testRepoName      = "repo11"
-	FullURL           = AppURL + testRepoOwnerName + "/" + testRepoName + "/"
 )
 
 // these values should match the const above
@@ -47,8 +45,9 @@ func TestRender_StandardLinks(t *testing.T) {
 func TestRender_Images(t *testing.T) {
 	setting.AppURL = AppURL
 
+	const baseLink = "http://localhost:3000/user13/repo11"
 	render := func(input, expected string) {
-		buffer, err := markdown.RenderString(markup.NewTestRenderContext(FullURL), input)
+		buffer, err := markdown.RenderString(markup.NewTestRenderContext(baseLink), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
@@ -56,7 +55,7 @@ func TestRender_Images(t *testing.T) {
 	url := "../../.images/src/02/train.jpg"
 	title := "Train"
 	href := "https://gitea.io"
-	result := util.URLJoin(FullURL, url)
+	result := baseLink + "/.images/src/02/train.jpg" // resolved link should not go out of the base link
 	// hint: With Markdown v2.5.2, there is a new syntax: [link](URL){:target="_blank"} , but we do not support it now
 
 	render(
@@ -88,6 +87,7 @@ func TestRender_Images(t *testing.T) {
 }
 
 func TestTotal_RenderString(t *testing.T) {
+	const FullURL = AppURL + testRepoOwnerName + "/" + testRepoName + "/"
 	setting.AppURL = AppURL
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 

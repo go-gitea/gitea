@@ -74,7 +74,7 @@ func testPullCommentRebase(t *testing.T, u *url.URL, session *TestSession) {
 	assert.True(t, lastComment.IsForcePush)
 }
 
-func testPullCommentRetarget(t *testing.T, u *url.URL, session *TestSession) {
+func testPullCommentRetarget(t *testing.T, _ *url.URL, session *TestSession) {
 	testPRTitle := "Test PR for retarget comment"
 	// keep a non-conflict branch
 	testCreateBranch(t, session, "user2", "repo1", "branch/test-branch/retarget", "test-branch/retarget-no-conflict", http.StatusSeeOther)

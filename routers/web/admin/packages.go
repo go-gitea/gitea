@@ -73,7 +73,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["TotalBlobSize"] = totalBlobSize - totalUnreferencedBlobSize
 	ctx.Data["TotalUnreferencedBlobSize"] = totalUnreferencedBlobSize
 
-	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
+	pager := context.NewPagination(total, setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 

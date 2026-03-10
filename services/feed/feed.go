@@ -18,10 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func GetFeedsForDashboard(ctx context.Context, opts activities_model.GetFeedsOptions) (activities_model.ActionList, int, error) {
+func GetFeedsForDashboard(ctx context.Context, opts activities_model.GetFeedsOptions) (activities_model.ActionList, int64, error) {
 	opts.DontCount = opts.RequestedTeam == nil && opts.Date == ""
 	results, cnt, err := activities_model.GetFeeds(ctx, opts)
-	return results, util.Iif(opts.DontCount, -1, int(cnt)), err
+	return results, util.Iif(opts.DontCount, -1, cnt), err
 }
 
 // GetFeeds returns actions according to the provided options

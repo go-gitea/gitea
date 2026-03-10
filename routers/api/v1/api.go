@@ -77,7 +77,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -756,13 +755,9 @@ func buildAuthGroup() *auth.Group {
 		&auth.Basic{}, // FIXME: this should be removed once we don't allow basic auth in API
 	)
 	if setting.Service.EnableReverseProxyAuthAPI {
-		group.Add(&auth.ReverseProxy{})
+		group.Add(&auth.ReverseProxy{}) // TODO: does it still make sense to support reverse proxy auth in API?
 	}
-
-	if setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext()) {
-		group.Add(&auth.SSPI{}) // it MUST be the last, see the comment of SSPI
-	}
-
+	// others: API doesn't support SSPI auth because the caller should use token
 	return group
 }
 
@@ -872,9 +867,9 @@ func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 func Routes() *web.Router {
 	m := web.NewRouter()
 
-	m.Use(securityHeaders())
+	m.BeforeRouting(securityHeaders())
 	if setting.CORSConfig.Enabled {
-		m.Use(cors.Handler(cors.Options{
+		m.BeforeRouting(cors.Handler(cors.Options{
 			AllowedOrigins:   setting.CORSConfig.AllowDomain,
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
@@ -882,14 +877,14 @@ func Routes() *web.Router {
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}
-	m.Use(context.APIContexter())
 
-	m.Use(checkDeprecatedAuthMethods)
+	m.AfterRouting(context.APIContexter())
+	m.AfterRouting(checkDeprecatedAuthMethods)
 
 	// Get user from session if logged in.
-	m.Use(apiAuth(buildAuthGroup()))
+	m.AfterRouting(apiAuth(buildAuthGroup()))
 
-	m.Use(verifyAuthWithOptions(&common.VerifyOptions{
+	m.AfterRouting(verifyAuthWithOptions(&common.VerifyOptions{
 		SignInRequired: setting.Service.RequireSignInViewStrict,
 	}))
 
