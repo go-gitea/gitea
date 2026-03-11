@@ -67,15 +67,16 @@ type ServeDirectOptions struct {
 }
 
 // Safe defaults are applied only when not explicitly overridden by the caller.
-func prepareServeDirectOptions(in *ServeDirectOptions, name string) (ret ServeDirectOptions) {
+func prepareServeDirectOptions(optsOptional *ServeDirectOptions, name string) (ret ServeDirectOptions) {
 	// Here we might not know the real filename, and it's quite inefficient to detect the MIME type by pre-fetching the object head.
 	// So we just do a quick detection by extension name, at least it works for the "View Raw File" for an LFS file on the Web UI.
 	// TODO: OBJECT-STORAGE-CONTENT-TYPE: need a complete solution and refactor for Azure in the future
 
-	if in != nil {
-		ret = *in
+	if optsOptional != nil {
+		ret = *optsOptional
 	}
 
+	// TODO: UNIFY-CONTENT-DISPOSITION-FROM-STORAGE
 	if ret.ContentType == "" {
 		ext := path.Ext(name)
 		ret.ContentType = public.DetectWellKnownMimeType(ext)
