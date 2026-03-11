@@ -4,6 +4,7 @@ import {queryElems, toggleElem, toggleElemClass} from '../utils/dom.ts';
 export function initActionsPermissionsForm(): void {
   registerGlobalInitFunc('initRepoActionsPermissionsForm', initRepoActionsPermissionsForm);
   registerGlobalInitFunc('initOwnerActionsPermissionsForm', initOwnerActionsPermissionsForm);
+  registerGlobalInitFunc('initOwnerActionsCrossRepoForm', initActionsCrossRepoSetting);
 }
 
 function initRepoActionsPermissionsForm(form: HTMLFormElement) {
@@ -12,7 +13,6 @@ function initRepoActionsPermissionsForm(form: HTMLFormElement) {
 }
 
 function initOwnerActionsPermissionsForm(form: HTMLFormElement) {
-  initActionsCrossRepoSetting(form);
   initActionsPermissionTable(form);
 }
 

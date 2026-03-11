@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	setting_module "code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"xorm.io/xorm/convert"
 
 	"xorm.io/builder"
 )
@@ -219,17 +220,37 @@ func GetUserSettingJSON[T any](ctx context.Context, userID int64, key string, de
 	if err != nil {
 		return ret, err
 	}
-	if str == "" {
-		return ret, nil
+
+	conv, ok := any(&ret).(convert.ConversionFrom)
+	if !ok {
+		conv, ok = any(ret).(convert.ConversionFrom)
 	}
-	err = json.Unmarshal(util.UnsafeStringToBytes(str), &ret)
+	if ok {
+		if err := conv.FromDB(util.UnsafeStringToBytes(str)); err != nil {
+			return ret, err
+		}
+	} else {
+		if str == "" {
+			return ret, nil
+		}
+		err = json.Unmarshal(util.UnsafeStringToBytes(str), &ret)
+	}
 	return ret, err
 }
 
-func SetUserSettingJSON[T any](ctx context.Context, userID int64, key string, def T) error {
-	str, err := json.Marshal(def)
+func SetUserSettingJSON[T any](ctx context.Context, userID int64, key string, val T) (err error) {
+	conv, ok := any(&val).(convert.ConversionTo)
+	if !ok {
+		conv, ok = any(val).(convert.ConversionTo)
+	}
+	var bs []byte
+	if ok {
+		bs, err = conv.ToDB()
+	} else {
+		bs, err = json.Marshal(val)
+	}
 	if err != nil {
 		return err
 	}
-	return SetUserSetting(ctx, userID, key, util.UnsafeBytesToString(str))
+	return SetUserSetting(ctx, userID, key, util.UnsafeBytesToString(bs))
 }

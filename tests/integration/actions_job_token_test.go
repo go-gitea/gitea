@@ -394,7 +394,8 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		require.NoError(t, err)
 
 		cfg := &repo_model.ActionsConfig{
-			CrossRepoMode: repo_model.ActionsCrossRepoModeAll,
+			CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+			AllowedCrossRepoIDs: []int64{repoAID, repoBID},
 		}
 		err = actions_model.SetUserActionsConfig(t.Context(), org.ID, cfg)
 		require.NoError(t, err)
@@ -523,7 +524,8 @@ func TestActionsUserCrossRepoAccess(t *testing.T) {
 
 		// Case C: Explicitly Enable AllowCrossRepoAccess All
 		cfg = &repo_model.ActionsConfig{
-			CrossRepoMode: repo_model.ActionsCrossRepoModeAll,
+			CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+			AllowedCrossRepoIDs: []int64{repoAID, repoBID},
 		}
 		err = actions_model.SetUserActionsConfig(t.Context(), user2.ID, cfg)
 		require.NoError(t, err)

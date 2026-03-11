@@ -63,28 +63,6 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		assert.True(t, perm.CanWrite(unit.TypeCode))
 	})
 
-	t.Run("CrossRepo_Allowed_All", func(t *testing.T) {
-		// Task 53 is in repo 2 (Private, Owner 2).
-		// We want to access repo 15 (Private, Owner 2) from repo 2.
-		task53 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 53})
-		require.Equal(t, repo2.ID, task53.RepoID)
-		require.Equal(t, owner2.ID, repo2.OwnerID)
-		require.Equal(t, owner2.ID, repo15.OwnerID)
-
-		// Set owner policy to All
-		cfg := &repo_model.ActionsConfig{
-			CrossRepoMode: repo_model.ActionsCrossRepoModeAll,
-		}
-		require.NoError(t, actions_model.SetUserActionsConfig(ctx, owner2.ID, cfg))
-
-		perm, err := GetActionsUserRepoPermission(ctx, repo15, actionsUser, task53.ID)
-		require.NoError(t, err)
-
-		// Should have read access to the private repo because of "All" policy.
-		assert.True(t, perm.CanRead(unit.TypeCode))
-		assert.False(t, perm.CanWrite(unit.TypeCode))
-	})
-
 	t.Run("CrossRepo_Denied_None", func(t *testing.T) {
 		task53 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 53})
 
@@ -108,7 +86,8 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 
 		// Policy is "All"
 		cfg := &repo_model.ActionsConfig{
-			CrossRepoMode: repo_model.ActionsCrossRepoModeAll,
+			CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+			AllowedCrossRepoIDs: []int64{repo15.ID},
 		}
 		require.NoError(t, actions_model.SetUserActionsConfig(ctx, owner2.ID, cfg))
 

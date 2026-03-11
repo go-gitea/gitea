@@ -1,13 +1,3 @@
-{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings actions")}}
-	<h4 class="ui top attached header">
-		{{ctx.Locale.Tr "actions.actions"}} - {{ctx.Locale.Tr "settings.general"}}
-	</h4>
-	<div class="ui attached segment">
-		<form class="ui form" action="{{.Link}}" method="post" data-global-init="initOwnerActionsPermissionsForm">
-			{{template "shared/actions/actions_general_form" .}}
-			<div class="field">
-				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
-			</div>
-		</form>
-	</div>
+{{template "user/settings/layout_head" (dict "ctxData" .)}}
+{{template "shared/actions/owner_general_settings" .}}
 {{template "user/settings/layout_footer" .}}

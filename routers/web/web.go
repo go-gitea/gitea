@@ -694,11 +694,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("", misc.LocationRedirect("./actions/general"))
 			m.Group("/general", func() {
 				m.Get("", shared_actions.GeneralSettings)
-				m.Post("", shared_actions.UpdateTokenPermissions)
-				m.Group("/allowed_repos", func() {
-					m.Post("/add", shared_actions.AllowedReposAdd)
-					m.Post("/remove", shared_actions.AllowedReposRemove)
-				})
+				m.Post("", shared_actions.UpdateGeneralSettings)
 			})
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
@@ -1007,11 +1003,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Get("", misc.LocationRedirect("./actions/general"))
 					m.Group("/general", func() {
 						m.Get("", shared_actions.GeneralSettings)
-						m.Post("", shared_actions.UpdateTokenPermissions)
-						m.Group("/allowed_repos", func() {
-							m.Post("/add", shared_actions.AllowedReposAdd)
-							m.Post("/remove", shared_actions.AllowedReposRemove)
-						})
+						m.Post("", shared_actions.UpdateGeneralSettings)
 					})
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()

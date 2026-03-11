@@ -226,7 +226,8 @@ func (cfg *ProjectsConfig) IsProjectsAllowed(m ProjectsMode) bool {
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
-		switch unit.Type(db.Cell2Int64(val)) {
+		r.Type = unit.Type(db.Cell2Int64(val))
+		switch r.Type {
 		case unit.TypeExternalWiki:
 			r.Config = new(ExternalWikiConfig)
 		case unit.TypeExternalTracker:
@@ -243,6 +244,11 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			fallthrough
 		default:
 			r.Config = new(UnitConfig)
+		}
+	case "config":
+		if *val == nil {
+			// XROM doesn't call FromDB if the value is nil, but we need to set default values for the config fields
+			_ = r.Config.FromDB(nil)
 		}
 	}
 }

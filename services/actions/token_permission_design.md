@@ -29,7 +29,6 @@ The maximum allowable permissions (`MaxTokenPermissions`) are set at the Reposit
 - Users and organizations can configure `ActionsCrossRepoMode` to grant the token **read-only** access to other private/internal repositories they own.
 - Allowed modes:
   - **None**: No cross-repository access to other private repositories (default for enhanced security).
-  - **All**: The token can access all repositories owned by the user/org (subject to the target repository's own permissions).
   - **Selected**: The token can access a specific list of repositories (`AllowedCrossRepoIDs`).
 - In any mode, individual jobs can disable or limit cross-repo access by explicitly restricting their permissions (e.g., `permissions: none`).
 - **Note on Forks**: Cross-repository access to private repositories is fundamentally denied for workflows triggered by fork pull requests (see [Special Cases](#2-fork-pull-requests)).

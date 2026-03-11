@@ -27,8 +27,6 @@ type ActionsCrossRepoMode string
 const (
 	// ActionsCrossRepoModeNone - no cross-repository access allowed
 	ActionsCrossRepoModeNone ActionsCrossRepoMode = "none"
-	// ActionsCrossRepoModeAll - access allowed to all repositories in the organization
-	ActionsCrossRepoModeAll ActionsCrossRepoMode = "all"
 	// ActionsCrossRepoModeSelected - access allowed only to selected repositories
 	ActionsCrossRepoModeSelected ActionsCrossRepoMode = "selected"
 )
@@ -243,11 +241,11 @@ func (cfg *ActionsConfig) FromDB(bs []byte) error {
 	switch cfg.TokenPermissionMode {
 	case ActionsTokenPermissionModeRestricted, ActionsTokenPermissionModePermissive:
 	default:
-		cfg.TokenPermissionMode = ActionsTokenPermissionModePermissive
+		cfg.TokenPermissionMode = ActionsTokenPermissionModeRestricted
 	}
 
 	switch cfg.CrossRepoMode {
-	case ActionsCrossRepoModeAll, ActionsCrossRepoModeSelected:
+	case ActionsCrossRepoModeSelected:
 	default:
 		cfg.CrossRepoMode = ActionsCrossRepoModeNone
 	}
