@@ -14,9 +14,9 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	setting_module "code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"xorm.io/xorm/convert"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/convert"
 )
 
 // Setting is a key value store of user settings
