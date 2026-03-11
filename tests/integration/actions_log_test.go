@@ -7,12 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -171,7 +169,7 @@ jobs:
 				createWorkflowFile(t, token, user2.Name, repo.Name, tc.treePath, opts)
 
 				// fetch and execute tasks
-				for jobIndex, outcome := range tc.outcome {
+				for _, outcome := range tc.outcome {
 					task := runner.fetchTask(t)
 					runner.execTask(t, task, outcome)
 
@@ -183,9 +181,10 @@ jobs:
 					_, err := storage.Actions.Stat(logFileName)
 					assert.NoError(t, err)
 
+					_, job, run := getTaskAndJobAndRunByTaskID(t, task.Id)
+
 					// download task logs and check content
-					runIndex := task.Context.GetFields()["run_number"].GetStringValue()
-					req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%s/jobs/%d/logs", user2.Name, repo.Name, runIndex, jobIndex)).
+					req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/logs", user2.Name, repo.Name, run.ID, job.ID)).
 						AddTokenAuth(token)
 					resp := MakeRequest(t, req, http.StatusOK)
 					logTextLines := strings.Split(strings.TrimSpace(resp.Body.String()), "\n")
@@ -198,15 +197,8 @@ jobs:
 						)
 					}
 
-					runID, _ := strconv.ParseInt(task.Context.GetFields()["run_id"].GetStringValue(), 10, 64)
-
-					jobs, err := actions_model.GetRunJobsByRunID(t.Context(), runID)
-					assert.NoError(t, err)
-					assert.Len(t, jobs, len(tc.outcome))
-					jobID := jobs[jobIndex].ID
-
 					// download task logs from API and check content
-					req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/jobs/%d/logs", user2.Name, repo.Name, jobID)).
+					req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/jobs/%d/logs", user2.Name, repo.Name, job.ID)).
 						AddTokenAuth(token)
 					resp = MakeRequest(t, req, http.StatusOK)
 					logTextLines = strings.Split(strings.TrimSpace(resp.Body.String()), "\n")
