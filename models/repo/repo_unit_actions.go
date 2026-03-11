@@ -147,6 +147,13 @@ type ActionsConfig struct {
 	OverrideOwnerConfig bool `json:"override_owner_config,omitempty"`
 }
 
+func (cfg *ActionsConfig) GetTokenPermissionMode() ActionsTokenPermissionMode {
+	if cfg.TokenPermissionMode == "" {
+		return ActionsTokenPermissionModePermissive
+	}
+	return cfg.TokenPermissionMode
+}
+
 func (cfg *ActionsConfig) EnableWorkflow(file string) {
 	cfg.DisabledWorkflows = util.SliceRemoveAll(cfg.DisabledWorkflows, file)
 }

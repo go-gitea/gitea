@@ -1,5 +1,5 @@
 <h4 class="ui top attached header">
-	{{ctx.Locale.Tr "actions.actions"}} - {{ctx.Locale.Tr "actions.general.cross_repo"}}
+	{{ctx.Locale.Tr "actions.general.cross_repo"}}
 </h4>
 <div class="ui attached segment">
 	<form class="ui form form-fetch-action " action="{{.Link}}" method="post" data-global-init="initOwnerActionsCrossRepoForm">
@@ -52,7 +52,7 @@
 				{{ctx.Locale.Tr "actions.general.cross_repo_add"}}
 			</h5>
 			<div class="ui form tw-flex tw-gap-2">
-				<div data-global-init="initSearchRepoBox" data-uid="{{.OwnerID}}" class="ui search tw-flex-1">
+				<div data-global-init="initSearchRepoBox" data-uid="{{.OwnerID}}" data-collaborate="false" class="ui search tw-flex-1">
 					<div class="ui input">
 						<input class="prompt" name="cross_repo_add_target_name" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off">
 					</div>
@@ -68,7 +68,7 @@
 </div>
 
 <h4 class="ui top attached header">
-	{{ctx.Locale.Tr "actions.actions"}} - {{ctx.Locale.Tr "actions.general.permissions"}}
+	{{ctx.Locale.Tr "actions.general.permissions"}}
 </h4>
 <div class="ui attached segment">
 	<form class="ui form form-fetch-action" action="{{.Link}}" method="post" data-global-init="initOwnerActionsPermissionsForm">
@@ -76,14 +76,21 @@
 		<div class="divider"></div>
 
 		<!-- Maximum Permissions Table -->
-		<div class="field">
-			<label>{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions"}}</label>
-			<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions.desc"}}</div>
-		</div>
-		<div class="field" id="max-permissions-section">
-			<div class="ui checkbox">
-				<input type="checkbox" name="enable_max_permissions" {{if .EnableMaxTokenPermissions}}checked{{end}}>
-				<label>{{ctx.Locale.Tr "actions.general.token_permissions.customize_max_permissions"}}</label>
+		<div id="max-permissions-section">
+			<h5 class="ui header">
+				{{ctx.Locale.Tr "actions.general.token_permissions.maximum"}}
+			</h5>
+			<div class="help">
+				{{ctx.Locale.Tr "actions.general.token_permissions.maximum.description"}}
+				<br>
+				{{ctx.Locale.Tr "actions.general.token_permissions.fork_pr_note"}}
+			</div>
+
+			<div class="field">
+				<div class="ui checkbox">
+					<input type="checkbox" name="enable_max_permissions" {{if .EnableMaxTokenPermissions}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "actions.general.token_permissions.customize_max_permissions"}}</label>
+				</div>
 			</div>
 		</div>
 

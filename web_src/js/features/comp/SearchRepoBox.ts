@@ -5,10 +5,15 @@ const {appSubUrl} = window.config;
 
 export function initCompSearchRepoBox(el: HTMLElement) {
   const uid = el.getAttribute('data-uid');
+  const collaborate = el.getAttribute('data-collaborate');
+  let url = `${appSubUrl}/repo/search?q={query}&uid=${uid}`;
+  if (collaborate !== null) {
+    url += `&collaborate=${collaborate}`;
+  }
   fomanticQuery(el).search({
     minCharacters: 2,
     apiSettings: {
-      url: `${appSubUrl}/repo/search?q={query}&uid=${uid}`,
+      url,
       onResponse(response: any) {
         const items = [];
         for (const item of response.data) {
