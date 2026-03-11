@@ -154,7 +154,7 @@ func ListPullRequests(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.SetLinkHeader(maxResults, listOptions.PageSize)
 	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &apiPrs)
 }
@@ -1449,7 +1449,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		apiCommits = append(apiCommits, apiCommit)
 	}
 
-	ctx.SetLinkHeader(totalNumberOfCommits, listOptions.PageSize)
+	ctx.SetLinkHeader(int64(totalNumberOfCommits), listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(totalNumberOfCommits))
 
 	ctx.RespHeader().Set("X-Page", strconv.Itoa(listOptions.Page))
@@ -1591,7 +1591,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.BaseRepo, endCommitID))
 	}
 
-	ctx.SetLinkHeader(totalNumberOfFiles, listOptions.PageSize)
+	ctx.SetLinkHeader(int64(totalNumberOfFiles), listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(totalNumberOfFiles))
 
 	ctx.RespHeader().Set("X-Page", strconv.Itoa(listOptions.Page))

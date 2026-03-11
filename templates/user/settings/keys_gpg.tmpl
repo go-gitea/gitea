@@ -48,7 +48,7 @@
 		{{range .GPGKeys}}
 			<div class="flex-item">
 				<div class="flex-item-leading">
-					<span class="text {{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
+					<span class="{{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}tw-text-green{{end}}">{{svg "octicon-key" 32}}</span>
 				</div>
 				<div class="flex-item-main">
 					{{if .Verified}}

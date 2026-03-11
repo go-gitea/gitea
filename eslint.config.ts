@@ -926,7 +926,7 @@ export default defineConfig([
     },
     extends: [
       vue.configs['flat/recommended'],
-      vueScopedCss.configs['flat/recommended'] as any,
+      vueScopedCss.configs.recommended as any,
     ],
     rules: {
       'vue/attributes-order': [0],
@@ -961,6 +961,7 @@ export default defineConfig([
       'vitest/no-interpolation-in-snapshots': [0],
       'vitest/no-large-snapshots': [0],
       'vitest/no-mocks-import': [0],
+      'vitest/no-importing-vitest-globals': [2],
       'vitest/no-restricted-matchers': [0],
       'vitest/no-restricted-vi-methods': [0],
       'vitest/no-standalone-expect': [0],

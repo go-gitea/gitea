@@ -14,7 +14,7 @@ const DefaultHashAlgorithmName = "pbkdf2"
 
 var DefaultHashAlgorithm *PasswordHashAlgorithm
 
-// aliasAlgorithNames provides a mapping between the value of PASSWORD_HASH_ALGO
+// aliasAlgorithmNames provides a mapping between the value of PASSWORD_HASH_ALGO
 // configured in the app.ini and the parameters used within the hashers internally.
 //
 // If it is necessary to change the default parameters for any hasher in future you

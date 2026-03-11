@@ -15,7 +15,6 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // Scheme describes protocol types
@@ -44,6 +43,7 @@ const (
 const (
 	PublicURLAuto   = "auto"
 	PublicURLLegacy = "legacy"
+	PublicURLNever  = "never"
 )
 
 // Server settings
@@ -91,7 +91,6 @@ var (
 	RedirectOtherPort          bool
 	RedirectorUseProxyProtocol bool
 	PortToRedirect             string
-	OfflineMode                bool
 	CertFile                   string
 	KeyFile                    string
 	StaticRootPath             string
@@ -163,7 +162,7 @@ func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
 }
 
 // MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
-func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
+func MakeAbsoluteAssetURL(appURL *url.URL, staticURLPrefix string) string {
 	parsedPrefix, err := url.Parse(strings.TrimSuffix(staticURLPrefix, "/"))
 	if err != nil {
 		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
@@ -171,11 +170,12 @@ func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
 
 	if err == nil && parsedPrefix.Hostname() == "" {
 		if staticURLPrefix == "" {
-			return strings.TrimSuffix(appURL, "/")
+			return strings.TrimSuffix(appURL.String(), "/")
 		}
 
 		// StaticURLPrefix is just a path
-		return util.URLJoin(appURL, strings.TrimSuffix(staticURLPrefix, "/"))
+		appHostURL := &url.URL{Scheme: appURL.Scheme, Host: appURL.Host}
+		return appHostURL.String() + "/" + strings.Trim(staticURLPrefix, "/")
 	}
 
 	return strings.TrimSuffix(staticURLPrefix, "/")
@@ -287,7 +287,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
 	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLLegacy)
-	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy {
+	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy && PublicURLDetection != PublicURLNever {
 		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLDetection)
 	}
 
@@ -316,7 +316,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		Domain = urlHostname
 	}
 
-	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefix)
+	AbsoluteAssetURL = MakeAbsoluteAssetURL(appURL, StaticURLPrefix)
 	AssetVersion = strings.ReplaceAll(AppVer, "+", "~") // make sure the version string is clear (no real escaping is needed)
 
 	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
@@ -346,7 +346,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
-	OfflineMode = sec.Key("OFFLINE_MODE").MustBool(true)
 	if len(StaticRootPath) == 0 {
 		StaticRootPath = AppWorkPath
 	}

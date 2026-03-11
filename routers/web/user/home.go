@@ -301,15 +301,15 @@ func Milestones(ctx *context.Context) {
 		return !showRepoIDs.Contains(v)
 	})
 
-	var pagerCount int
+	var pagerCount int64
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
 		ctx.Data["Total"] = totalMilestoneStats.ClosedCount
-		pagerCount = int(milestoneStats.ClosedCount)
+		pagerCount = milestoneStats.ClosedCount
 	} else {
 		ctx.Data["State"] = "open"
 		ctx.Data["Total"] = totalMilestoneStats.OpenCount
-		pagerCount = int(milestoneStats.OpenCount)
+		pagerCount = milestoneStats.OpenCount
 	}
 
 	ctx.Data["Milestones"] = milestones
@@ -578,11 +578,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 
 	// Will be posted to ctx.Data.
-	var shownIssues int
+	var shownIssues int64
 	if !isShowClosed {
-		shownIssues = int(issueStats.OpenCount)
+		shownIssues = issueStats.OpenCount
 	} else {
-		shownIssues = int(issueStats.ClosedCount)
+		shownIssues = issueStats.ClosedCount
 	}
 
 	ctx.Data["IsShowClosed"] = isShowClosed

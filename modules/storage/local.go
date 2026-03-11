@@ -5,6 +5,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -27,25 +28,32 @@ type LocalStorage struct {
 
 // NewLocalStorage returns a local files
 func NewLocalStorage(ctx context.Context, config *setting.Storage) (ObjectStorage, error) {
+	// prepare storage root path
 	if !filepath.IsAbs(config.Path) {
-		return nil, fmt.Errorf("LocalStorageConfig.Path should have been prepared by setting/storage.go and should be an absolute path, but not: %q", config.Path)
+		return nil, fmt.Errorf("LocalStorage config.Path should have been prepared by setting/storage.go and should be an absolute path, but not: %q", config.Path)
 	}
-	log.Info("Creating new Local Storage at %s", config.Path)
-	if err := os.MkdirAll(config.Path, os.ModePerm); err != nil {
-		return nil, err
-	}
+	storageRoot := util.FilePathJoinAbs(config.Path)
 
-	if config.TemporaryPath == "" {
-		config.TemporaryPath = filepath.Join(config.Path, "tmp")
+	// prepare storage temporary path
+	storageTmp := config.TemporaryPath
+	if storageTmp == "" {
+		storageTmp = filepath.Join(storageRoot, "tmp")
 	}
-	if !filepath.IsAbs(config.TemporaryPath) {
-		return nil, fmt.Errorf("LocalStorageConfig.TemporaryPath should be an absolute path, but not: %q", config.TemporaryPath)
+	if !filepath.IsAbs(storageTmp) {
+		return nil, fmt.Errorf("LocalStorage config.TemporaryPath should be an absolute path, but not: %q", config.TemporaryPath)
+	}
+	storageTmp = util.FilePathJoinAbs(storageTmp)
+
+	// create the storage root if not exist
+	log.Info("Creating new Local Storage at %s", storageRoot)
+	if err := os.MkdirAll(storageRoot, os.ModePerm); err != nil {
+		return nil, err
 	}
 
 	return &LocalStorage{
 		ctx:    ctx,
-		dir:    config.Path,
-		tmpdir: config.TemporaryPath,
+		dir:    storageRoot,
+		tmpdir: storageTmp,
 	}, nil
 }
 
@@ -108,9 +116,21 @@ func (l *LocalStorage) Stat(path string) (os.FileInfo, error) {
 	return os.Stat(l.buildLocalPath(path))
 }
 
-// Delete delete a file
+func (l *LocalStorage) deleteEmptyParentDirs(localFullPath string) {
+	for parent := filepath.Dir(localFullPath); len(parent) > len(l.dir); parent = filepath.Dir(parent) {
+		if err := os.Remove(parent); err != nil {
+			// since the target file has been deleted, parent dir error is not related to the file deletion itself.
+			break
+		}
+	}
+}
+
+// Delete deletes the file in storage and removes the empty parent directories (if possible)
 func (l *LocalStorage) Delete(path string) error {
-	return util.Remove(l.buildLocalPath(path))
+	localFullPath := l.buildLocalPath(path)
+	err := util.Remove(localFullPath)
+	l.deleteEmptyParentDirs(localFullPath)
+	return err
 }
 
 // URL gets the redirect URL to a file
@@ -118,34 +138,38 @@ func (l *LocalStorage) URL(path, name, _ string, reqParams url.Values) (*url.URL
 	return nil, ErrURLNotSupported
 }
 
+func (l *LocalStorage) normalizeWalkError(err error) error {
+	if errors.Is(err, os.ErrNotExist) {
+		// ignore it because the file may be deleted during the walk, and we don't care about it
+		return nil
+	}
+	return err
+}
+
 // IterateObjects iterates across the objects in the local storage
 func (l *LocalStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
 	dir := l.buildLocalPath(dirName)
-	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
+	return filepath.WalkDir(dir, func(path string, d os.DirEntry, errWalk error) error {
+		if err := l.ctx.Err(); err != nil {
 			return err
 		}
-		select {
-		case <-l.ctx.Done():
-			return l.ctx.Err()
-		default:
+		if errWalk != nil {
+			return l.normalizeWalkError(errWalk)
 		}
-		if path == l.dir {
+		if path == l.dir || d.IsDir() {
 			return nil
 		}
-		if d.IsDir() {
-			return nil
-		}
+
 		relPath, err := filepath.Rel(l.dir, path)
 		if err != nil {
-			return err
+			return l.normalizeWalkError(err)
 		}
 		obj, err := os.Open(path)
 		if err != nil {
-			return err
+			return l.normalizeWalkError(err)
 		}
 		defer obj.Close()
-		return fn(relPath, obj)
+		return fn(filepath.ToSlash(relPath), obj)
 	})
 }
 

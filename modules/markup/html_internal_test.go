@@ -23,12 +23,12 @@ const (
 
 // externalIssueLink an HTML link to an alphanumeric-style issue
 func externalIssueLink(baseURL, class, name string) string {
-	return link(util.URLJoin(baseURL, name), class, name)
+	return link(strings.TrimSuffix(baseURL, "/")+"/"+name, class, name)
 }
 
 // numericLink an HTML to a numeric-style issue
 func numericIssueLink(baseURL, class string, index int, marker string) string {
-	return link(util.URLJoin(baseURL, strconv.Itoa(index)), class, fmt.Sprintf("%s%d", marker, index))
+	return link(strings.TrimSuffix(baseURL, "/")+"/"+strconv.Itoa(index), class, fmt.Sprintf("%s%d", marker, index))
 }
 
 // link an HTML link
@@ -116,7 +116,7 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 
 		links := make([]any, len(indices))
 		for i, index := range indices {
-			links[i] = numericIssueLink(util.URLJoin("/test-owner/test-repo", path), "ref-issue", index, marker)
+			links[i] = numericIssueLink("/test-owner/test-repo/"+path, "ref-issue", index, marker)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNil, NewTestRenderContext(TestAppURL, localMetas))
@@ -210,7 +210,7 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 		metas["regexp"] = pattern
 		links := make([]any, len(ids))
 		for i, id := range ids {
-			links[i] = link(util.URLJoin("https://someurl.com/someUser/someRepo/", id), "ref-issue ref-external-issue", names[i])
+			links[i] = link("https://someurl.com/someUser/someRepo/"+id, "ref-issue ref-external-issue", names[i])
 		}
 
 		expected := fmt.Sprintf(expectedFmt, links...)
@@ -288,11 +288,11 @@ func TestRender_AutoLink(t *testing.T) {
 	}
 
 	// render valid issue URLs
-	test(util.URLJoin(TestRepoURL, "issues", "3333"),
-		numericIssueLink(util.URLJoin(TestRepoURL, "issues"), "ref-issue", 3333, "#"))
+	test(TestRepoURL+"issues/3333",
+		numericIssueLink(TestRepoURL+"issues", "ref-issue", 3333, "#"))
 
 	// render valid commit URLs
-	tmp := util.URLJoin(TestRepoURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
+	tmp := TestRepoURL + "commit/d8a994ef243349f321568f9e36d5c3f444b99cae"
 	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code>d8a994ef24</code></a>")
 	tmp += "#diff-2"
 	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code>d8a994ef24 (diff-2)</code></a>")
