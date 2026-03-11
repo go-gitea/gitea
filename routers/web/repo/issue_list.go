@@ -166,7 +166,7 @@ func SearchIssues(ctx *context.Context) {
 
 		projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormTrim("projects"), ","))
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, "StringsToInt64s", err.Error())
+			ctx.HTTPError(http.StatusBadRequest, "Invalid projects parameter", err.Error())
 			return
 		}
 		if len(projectIDs) > 0 {

@@ -574,6 +574,12 @@ func TestSearchIssues(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
+
+	// Test invalid projects parameter returns 400 Bad Request
+	query = url.Values{"projects": {"invalid,not-a-number"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	session.MakeRequest(t, req, http.StatusBadRequest)
 }
 
 func TestSearchIssuesWithLabels(t *testing.T) {
