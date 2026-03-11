@@ -111,7 +111,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		if len(opts.ProjectIDs) > 0 && canAssignProject {
-			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectIDs, 0); err != nil {
+			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectIDs); err != nil {
 				return err
 			}
 		}

@@ -41,7 +41,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 				return err
 			}
 		}
-		return issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs, 0)
+		return issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs)
 	}); err != nil {
 		return err
 	}

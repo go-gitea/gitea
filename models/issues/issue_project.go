@@ -103,7 +103,8 @@ func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *Is
 // It adds projects that are in newProjectIDs but not currently assigned, and removes
 // projects that are currently assigned but not in newProjectIDs. If newProjectIDs is
 // empty or nil, all projects are removed from the issue.
-func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectIDs []int64, newColumnID int64) error {
+// When adding an issue to a project, it is placed in the project's default column.
+func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectIDs []int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		oldProjectIDs, err := issue.projectIDs(ctx)
 		if err != nil {
@@ -155,14 +156,12 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 				return util.NewPermissionDeniedErrorf("issue %d can't be accessed by project %d", issue.ID, newProject.ID)
 			}
 
-			projectColumnID := newColumnID
-			if projectColumnID == 0 {
-				defaultColumn, err := newProject.MustDefaultColumn(ctx)
-				if err != nil {
-					return err
-				}
-				projectColumnID = defaultColumn.ID
+			// Always use the project's default column when adding an issue
+			defaultColumn, err := newProject.MustDefaultColumn(ctx)
+			if err != nil {
+				return err
 			}
+			projectColumnID := defaultColumn.ID
 
 			res := struct {
 				MaxSorting int64
