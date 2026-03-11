@@ -6,6 +6,8 @@ package templates
 import (
 	"fmt"
 	"reflect"
+	"strconv"
+	"strings"
 )
 
 type SliceUtils struct{}
@@ -32,4 +34,16 @@ func (su *SliceUtils) Contains(s, v any) bool {
 		}
 	}
 	return false
+}
+
+// JoinInt64 joins a slice of int64 values into a comma-separated string.
+func (su *SliceUtils) JoinInt64(values []int64) string {
+	if len(values) == 0 {
+		return ""
+	}
+	strs := make([]string, len(values))
+	for i, v := range values {
+		strs[i] = strconv.FormatInt(v, 10)
+	}
+	return strings.Join(strs, ",")
 }

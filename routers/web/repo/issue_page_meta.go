@@ -16,7 +16,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/util"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -35,7 +34,7 @@ type issueSidebarAssigneesData struct {
 }
 
 type issueSidebarProjectsData struct {
-	SelectedProjectIDs string
+	SelectedProjectIDs []int64
 
 	// the "selected" fields are only valid when there's a single project selected
 	SelectedProjectColumns []*project_model.Column
@@ -173,11 +172,10 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 	if d.Issue == nil || len(d.Issue.Projects) == 0 {
 		return
 	}
-	ids := make([]string, 0, len(d.Issue.Projects))
+	d.ProjectsData.SelectedProjectIDs = make([]int64, 0, len(d.Issue.Projects))
 	for _, p := range d.Issue.Projects {
-		ids = append(ids, strconv.FormatInt(p.ID, 10))
+		d.ProjectsData.SelectedProjectIDs = append(d.ProjectsData.SelectedProjectIDs, p.ID)
 	}
-	d.ProjectsData.SelectedProjectIDs = strings.Join(ids, ",")
 
 	// For column selection, we only support it when there's a single project
 	if len(d.Issue.Projects) == 1 {
@@ -203,9 +201,10 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 
 func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {
 	if d.Issue != nil && len(d.Issue.Projects) > 0 {
-		d.ProjectsData.SelectedProjectIDs = util.JoinSlice(d.Issue.Projects, func(v *project_model.Project) string {
-			return strconv.FormatInt(v.ID, 10)
-		})
+		d.ProjectsData.SelectedProjectIDs = make([]int64, 0, len(d.Issue.Projects))
+		for _, v := range d.Issue.Projects {
+			d.ProjectsData.SelectedProjectIDs = append(d.ProjectsData.SelectedProjectIDs, v.ID)
+		}
 	}
 	d.ProjectsData.OpenProjects, d.ProjectsData.ClosedProjects = retrieveProjectsInternal(ctx, ctx.Repo.Repository)
 }
