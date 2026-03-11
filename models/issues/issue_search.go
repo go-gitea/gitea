@@ -214,6 +214,8 @@ func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) {
 		cond := builder.In("project_id", projectIDs)
 		if opts.ProjectColumnID > 0 {
 			cond = builder.And(cond, builder.Eq{"project_board_id": opts.ProjectColumnID})
+		} else if opts.ProjectColumnID == db.NoConditionID {
+			cond = builder.And(cond, builder.Eq{"project_board_id": 0})
 		}
 		sess.And(builder.In("issue.id", builder.Select("issue_id").From("project_issue").Where(cond)))
 	}
@@ -222,6 +224,14 @@ func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) {
 }
 
 func applyProjectColumnCondition(sess *xorm.Session, opts *IssuesOptions) {
+	// If project filter was applied, it already handles ProjectColumnID inline,
+	// so we only apply standalone column filter when no project filter was specified.
+	projectIDs := util.SliceRemoveAll(opts.ProjectIDs, 0)
+	if len(projectIDs) > 0 {
+		// Project filter already handled column filtering
+		return
+	}
+
 	// opts.ProjectColumnID == 0 means all project columns,
 	// do not need to apply any condition
 	if opts.ProjectColumnID > 0 {

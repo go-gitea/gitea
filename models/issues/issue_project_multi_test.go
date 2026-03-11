@@ -456,3 +456,90 @@ func TestIssueAssignMultipleProjectsUsesCorrectDefaultColumn(t *testing.T) {
 	err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
 	require.NoError(t, err)
 }
+
+// TestIssueQueryByMultipleProjectsAndColumn verifies that filtering by both
+// multiple projects and a specific column ID works correctly without double-filtering.
+func TestIssueQueryByMultipleProjectsAndColumn(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	// Get test data
+	issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// Create two projects
+	project1 := &project_model.Project{
+		Title:        "Column Filter Test Project 1",
+		RepoID:       issue1.RepoID,
+		Type:         project_model.TypeRepository,
+		TemplateType: project_model.TemplateTypeBasicKanban,
+	}
+	require.NoError(t, project_model.NewProject(t.Context(), project1))
+	defer func() {
+		_ = project_model.DeleteProjectByID(t.Context(), project1.ID)
+	}()
+
+	project2 := &project_model.Project{
+		Title:        "Column Filter Test Project 2",
+		RepoID:       issue1.RepoID,
+		Type:         project_model.TypeRepository,
+		TemplateType: project_model.TemplateTypeBasicKanban,
+	}
+	require.NoError(t, project_model.NewProject(t.Context(), project2))
+	defer func() {
+		_ = project_model.DeleteProjectByID(t.Context(), project2.ID)
+	}()
+
+	// Get the default columns
+	columns1, err := project1.GetColumns(t.Context())
+	require.NoError(t, err)
+	require.NotEmpty(t, columns1)
+
+	columns2, err := project2.GetColumns(t.Context())
+	require.NoError(t, err)
+	require.NotEmpty(t, columns2)
+
+	// Assign issues to projects (they go to default columns)
+	err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project1.ID})
+	require.NoError(t, err)
+	err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue2, user2, []int64{project2.ID})
+	require.NoError(t, err)
+
+	// Query for issues in both projects with no column filter - should find both
+	issues, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
+		RepoIDs:    []int64{issue1.RepoID},
+		ProjectIDs: []int64{project1.ID, project2.ID},
+	})
+	require.NoError(t, err)
+	assert.Len(t, issues, 2, "Should find both issues when filtering by both projects without column filter")
+
+	// Query for issues in both projects with project1's default column - should only find issue1
+	issues, err = issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
+		RepoIDs:         []int64{issue1.RepoID},
+		ProjectIDs:      []int64{project1.ID, project2.ID},
+		ProjectColumnID: columns1[0].ID,
+	})
+	require.NoError(t, err)
+	assert.Len(t, issues, 1, "Should find only 1 issue when filtering by specific column")
+	if len(issues) > 0 {
+		assert.Equal(t, issue1.ID, issues[0].ID, "Should find issue1 in project1's default column")
+	}
+
+	// Query for issues in both projects with project2's default column - should only find issue2
+	issues, err = issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
+		RepoIDs:         []int64{issue1.RepoID},
+		ProjectIDs:      []int64{project1.ID, project2.ID},
+		ProjectColumnID: columns2[0].ID,
+	})
+	require.NoError(t, err)
+	assert.Len(t, issues, 1, "Should find only 1 issue when filtering by specific column")
+	if len(issues) > 0 {
+		assert.Equal(t, issue2.ID, issues[0].ID, "Should find issue2 in project2's default column")
+	}
+
+	// Clean up
+	err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
+	require.NoError(t, err)
+	err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue2, user2, []int64{})
+	require.NoError(t, err)
+}
