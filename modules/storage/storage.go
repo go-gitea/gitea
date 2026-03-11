@@ -101,11 +101,14 @@ type ObjectStorage interface {
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
 
-	// URL generates a "serve-direct" URL for the specified blob storage file,
+	// ServeDirectURL generates a "serve-direct" URL for the specified blob storage file,
 	// end user (browser) will use this URL to access the file directly from the object storage, bypassing Gitea server.
+	// Usually the link is time-limited (a few minutes) and contains a signature to ensure security.
+	// The generated URL must NOT use the same origin as Gitea server, otherwise it will cause security issues.
 	// * method defines which HTTP method is permitted for certain storage providers (e.g., MinIO).
 	// * opt allows customizing the Content-Type and Content-Disposition headers.
-	URL(path, name, method string, opt *ServeDirectOptions) (*url.URL, error)
+	// TODO: need to merge "ServeDirect()" check into this function, avoid duplicate code and potential inconsistency.
+	ServeDirectURL(path, name, method string, opt *ServeDirectOptions) (*url.URL, error)
 
 	// IterateObjects calls the iterator function for each object in the storage with the given path as prefix
 	// The "fullPath" argument in callback is the full path in this storage.

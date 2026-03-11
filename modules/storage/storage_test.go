@@ -54,7 +54,7 @@ func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
 }
 
 func testSingleBlobStorageURLContentTypeAndDisposition(t *testing.T, s ObjectStorage, path, name string, expected ServeDirectOptions, reqParams *ServeDirectOptions) {
-	u, err := s.URL(path, name, http.MethodGet, reqParams)
+	u, err := s.ServeDirectURL(path, name, http.MethodGet, reqParams)
 	require.NoError(t, err)
 	resp, err := http.Get(u.String())
 	require.NoError(t, err)

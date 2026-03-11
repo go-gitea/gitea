@@ -37,7 +37,7 @@ func (s *ContentStore) ShouldServeDirect() bool {
 }
 
 func (s *ContentStore) GetServeDirectURL(key BlobHash256Key, filename, method string, reqParams *storage.ServeDirectOptions) (*url.URL, error) {
-	return s.store.URL(KeyToRelativePath(key), filename, method, reqParams)
+	return s.store.ServeDirectURL(KeyToRelativePath(key), filename, method, reqParams)
 }
 
 // FIXME: Workaround to be removed in v1.20
