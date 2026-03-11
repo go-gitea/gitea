@@ -132,6 +132,9 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 					return err
 				}
 			}
+			// Reset cached state so subsequent LoadProjects calls fetch fresh data
+			issue.isProjectsLoaded = false
+			issue.Projects = nil
 		}
 
 		if len(projectsToAdd) == 0 {
@@ -193,7 +196,12 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 		}
 
 		if len(pi) > 0 {
-			return db.Insert(ctx, pi)
+			if err := db.Insert(ctx, pi); err != nil {
+				return err
+			}
+			// Reset cached state so subsequent LoadProjects calls fetch fresh data
+			issue.isProjectsLoaded = false
+			issue.Projects = nil
 		}
 
 		return nil

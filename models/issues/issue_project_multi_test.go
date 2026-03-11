@@ -362,3 +362,49 @@ func TestIssueBackwardCompatibilitySingleProject(t *testing.T) {
 	err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{}, 0)
 	require.NoError(t, err)
 }
+
+func TestIssueAssignOrRemoveProjectResetsLoadedState(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	// Get test data - use issue 6 which has no project association in fixtures
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// Create a project
+	project := &project_model.Project{
+		Title:        "Test Reset Loaded State Project",
+		RepoID:       issue.RepoID,
+		Type:         project_model.TypeRepository,
+		TemplateType: project_model.TemplateTypeBasicKanban,
+	}
+	require.NoError(t, project_model.NewProject(t.Context(), project))
+	defer func() {
+		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
+	}()
+
+	// Load projects initially (should be empty for issue 6)
+	err := issue.LoadProjects(t.Context())
+	require.NoError(t, err)
+	assert.Empty(t, issue.Projects, "Issue 6 should have no projects initially")
+
+	// Assign issue to project
+	err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue, user2, []int64{project.ID}, 0)
+	require.NoError(t, err)
+
+	// Load projects again - should get fresh data without needing to manually reset
+	// This tests that IssueAssignOrRemoveProject properly resets isProjectsLoaded
+	err = issue.LoadProjects(t.Context())
+	require.NoError(t, err)
+	assert.Len(t, issue.Projects, 1, "LoadProjects should fetch fresh data after IssueAssignOrRemoveProject adds a project")
+
+	// Find the new project in the list
+	assert.Equal(t, project.ID, issue.Projects[0].ID, "New project should be in the reloaded projects list")
+
+	// Remove project and verify LoadProjects still gets fresh data
+	err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue, user2, []int64{}, 0)
+	require.NoError(t, err)
+
+	err = issue.LoadProjects(t.Context())
+	require.NoError(t, err)
+	assert.Empty(t, issue.Projects, "LoadProjects should fetch fresh data after IssueAssignOrRemoveProject removes projects")
+}
