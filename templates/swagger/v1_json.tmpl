@@ -26498,7 +26498,9 @@
       "description": "MigrateOrgOptions options for migrating an organization's repositories\nthis is used to interact with api v1",
       "type": "object",
       "required": [
-        "clone_addr"
+        "clone_addr",
+        "target_org_name",
+        "source_org_name"
       ],
       "properties": {
         "auth_password": {
@@ -26565,12 +26567,10 @@
           "$ref": "#/definitions/GitServiceType"
         },
         "source_org_name": {
-          "description": "required: true - the source organization name to migrate from",
           "type": "string",
           "x-go-name": "SourceOrgName"
         },
         "target_org_name": {
-          "description": "required: true - the target organization name where repositories will be migrated",
           "type": "string",
           "x-go-name": "TargetOrgName"
         },

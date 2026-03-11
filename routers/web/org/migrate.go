@@ -35,8 +35,7 @@ func MigrateOrg(ctx *context.Context) {
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 
-	// Plain git should be first
-	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
+	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedOrgMigrationGitService...)
 	ctx.Data["service"] = structs.GitServiceType(ctx.FormInt("service_type"))
 
 	// Get organizations the user can migrate to
@@ -68,7 +67,7 @@ func MigrateOrgPost(ctx *context.Context) {
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
-	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
+	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedOrgMigrationGitService...)
 	ctx.Data["service"] = form.Service
 
 	// Get organizations the user can migrate to

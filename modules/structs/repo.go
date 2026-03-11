@@ -406,9 +406,9 @@ type MigrateRepoOptions struct {
 type MigrateOrgOptions struct {
 	// required: true
 	CloneAddr string `json:"clone_addr" binding:"Required"`
-	// required: true - the target organization name where repositories will be migrated
+	// required: true
 	TargetOrgName string `json:"target_org_name" binding:"Required"`
-	// required: true - the source organization name to migrate from
+	// required: true
 	SourceOrgName string `json:"source_org_name" binding:"Required"`
 
 	// enum: 0=git,1=plain,2=github,3=gitea,4=gitlab,5=gogs,6=onedev,7=gitbucket,8=codebase,9=codecommit
@@ -464,6 +464,18 @@ var SupportedFullGitService = []GitServiceType{
 	GitBucketService,
 	CodebaseService,
 	CodeCommitService,
+}
+
+// SupportedOrgMigrationGitService represents git services that support organization migration.
+// CodeCommit is excluded because GetOrgRepositories is not supported.
+var SupportedOrgMigrationGitService = []GitServiceType{
+	GithubService,
+	GitlabService,
+	GiteaService,
+	GogsService,
+	OneDevService,
+	GitBucketService,
+	CodebaseService,
 }
 
 // RepoTransfer represents a pending repo transfer

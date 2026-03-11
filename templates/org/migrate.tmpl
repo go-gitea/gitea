@@ -30,10 +30,18 @@
 					<span class="help">{{ctx.Locale.Tr "org.migrate.source_org_name_desc"}}</span>
 				</div>
 
-				<div class="inline field {{if .Err_Auth}}error{{end}}">
+				<div id="auth_token_field" class="inline field {{if .Err_Auth}}error{{end}}">
 					<label for="auth_token">{{ctx.Locale.Tr "access_token"}}</label>
 					<input id="auth_token" name="auth_token" type="password" autocomplete="new-password" value="{{.auth_token}}">
 					<span class="help">{{ctx.Locale.Tr "repo.migrate.github_token_desc"}}</span>
+				</div>
+				<div id="auth_username_field" class="inline field {{if .Err_Auth}}error{{end}}">
+					<label for="auth_username">{{ctx.Locale.Tr "username"}}</label>
+					<input id="auth_username" name="auth_username" value="{{.auth_username}}">
+				</div>
+				<div id="auth_password_field" class="inline field {{if .Err_Auth}}error{{end}}">
+					<label for="auth_password">{{ctx.Locale.Tr "password"}}</label>
+					<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
 				</div>
 
 				{{if not .DisableNewPullMirrors}}
