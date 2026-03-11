@@ -78,20 +78,20 @@ func testBlobStorageURLContentTypeAndDisposition(t *testing.T, typStr Type, cfg 
 
 	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", ServeDirectOptions{
 		ContentType:        "text/plain; charset=utf-8",
-		ContentDisposition: "inline",
+		ContentDisposition: `inline; filename="test.txt"`,
 	}, nil)
 
 	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.pdf", ServeDirectOptions{
 		ContentType:        "application/pdf",
-		ContentDisposition: "inline",
+		ContentDisposition: `inline; filename="test.pdf"`,
 	}, nil)
 
 	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", ServeDirectOptions{
-		ContentDisposition: `attachment; filename="test.wasm"`,
+		ContentDisposition: `inline; filename="test.wasm"`,
 	}, nil)
 
 	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", ServeDirectOptions{
-		ContentDisposition: `attachment; filename="test.wasm"`,
+		ContentDisposition: `inline; filename="test.wasm"`,
 	}, &ServeDirectOptions{})
 
 	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", ServeDirectOptions{
