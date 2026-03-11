@@ -19,7 +19,12 @@
       "label": "Build (with SQLite3)",
       "type": "shell",
       "command": "make",
-      "args": ["backend", "TAGS=\"sqlite sqlite_unlock_notify\""],
+      "args": ["backend"],
+      "options": {
+        "env": {
+          "TAGS": "sqlite sqlite_unlock_notify"
+        }
+      },
       "group": "build",
       "presentation": {
         "echo": true,
