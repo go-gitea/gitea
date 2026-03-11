@@ -23,6 +23,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix org permission API visibility checks for hidden members and private orgs (#36798) (#36841)
   * Fix forwarded proto handling for public URL detection (#36810) (#36836)
   * Add a git grep search timeout (#36809) (#36835)
+  * Fix oauth2 s256 (#36462) (#36477)
 * ENHANCEMENTS
   * Make `security-check` informational only (#36681) (#36852)
   * Upgrade to github.com/cloudflare/circl 1.6.3, svgo 4.0.1, markdownlint-cli 0.48.0 (#36840)
@@ -47,7 +48,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix issues filter dropdown showing empty label scope section (#36535) (#36544)
   * Fix various mermaid bugs (#36547) (#36552)
   * Fix data race when uploading container blobs concurrently (#36524) (#36526)
-  * Fix oauth2 s256 (#36462) (#36477)
   * Correct spacing between username and bot label (#36473) (#36484)
 
 ## [1.25.4](https://github.com/go-gitea/gitea/releases/tag/1.25.4) - 2026-01-15
