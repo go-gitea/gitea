@@ -422,7 +422,7 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		const filename = "image.png"
 
-		performUpload := func(t *testing.T, uploadURL string, buf []byte, expectedStatus int) *httptest.ResponseRecorder {
+		performUpload := func(t *testing.T, uploadURL string, _ []byte, _ int) *httptest.ResponseRecorder {
 			body := &bytes.Buffer{}
 			writer := multipart.NewWriter(body)
 			part, err := writer.CreateFormFile("attachment", filename)
