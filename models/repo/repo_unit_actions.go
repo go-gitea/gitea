@@ -187,7 +187,7 @@ func (cfg *ActionsConfig) IsCollaborativeOwner(ownerID int64) bool {
 // GetDefaultTokenPermissions returns the default token permissions by its TokenPermissionMode.
 // It does not apply MaxTokenPermissions; callers must clamp if needed.
 func (cfg *ActionsConfig) GetDefaultTokenPermissions() ActionsTokenPermissions {
-	switch cfg.TokenPermissionMode {
+	switch cfg.GetTokenPermissionMode() {
 	case ActionsTokenPermissionModeRestricted:
 		return GetRestrictedPermissions()
 	case ActionsTokenPermissionModePermissive:
