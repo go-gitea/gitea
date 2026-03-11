@@ -3784,7 +3784,5 @@
   "actions.general.cross_repo_desc": "Allow the selected repositories to be accessed (read-only) by all the repositories in this owner with GITEA_TOKEN when running Actions tasks.",
   "actions.general.cross_repo_selected": "Selected repositories",
   "actions.general.cross_repo_target_repos": "Target Repositories",
-  "actions.general.cross_repo_add": "Add Target Repository",
-  "all_repositories": "All Repositories",
-  "specific_repositories": "Specific Repositories"
+  "actions.general.cross_repo_add": "Add Target Repository"
 }
