@@ -622,7 +622,7 @@ func TestActionsArtifactV4ListAndGetPublicApi(t *testing.T) {
 	for _, artifact := range listResp.Entries {
 		assert.Contains(t, artifact.URL, fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), artifact.ID))
 		assert.Contains(t, artifact.ArchiveDownloadURL, fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip", repo.FullName(), artifact.ID))
-		req = NewRequestWithBody(t, "GET", listResp.Entries[0].URL, nil).
+		req = NewRequestWithBody(t, "GET", artifact.URL, nil).
 			AddTokenAuth(token)
 
 		resp = MakeRequest(t, req, http.StatusOK)
