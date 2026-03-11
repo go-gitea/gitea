@@ -279,10 +279,10 @@ func (m *MinioStorage) Delete(path string) error {
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (m *MinioStorage) URL(storePath, name, method string, serveDirectReqParams *SignedURLParam) (*url.URL, error) {
+func (m *MinioStorage) URL(storePath, name, method string, opt *ServeDirectOptions) (*url.URL, error) {
 	reqParams := url.Values{}
 
-	param := serveDirectReqParams.withDefaults(name)
+	param := prepareServeDirectOptions(opt, name)
 	// minio does not ignore empty params
 	if param.ContentType != "" {
 		reqParams.Set("response-content-type", param.ContentType)

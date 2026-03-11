@@ -278,12 +278,12 @@ func (a *AzureBlobStorage) getSasURL(b *blob.Client, template sas.BlobSignatureV
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (a *AzureBlobStorage) URL(storePath, name, _ string, reqParams *SignedURLParam) (*url.URL, error) {
+func (a *AzureBlobStorage) URL(storePath, name, _ string, reqParams *ServeDirectOptions) (*url.URL, error) {
 	blobClient := a.getBlobClient(storePath)
 
 	startTime := time.Now().UTC()
 
-	param := reqParams.withDefaults(name)
+	param := prepareServeDirectOptions(reqParams, name)
 
 	u, err := a.getSasURL(blobClient, sas.BlobSignatureValues{
 		Permissions: (&sas.BlobPermissions{

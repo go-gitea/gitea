@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrURLNotSupported represents url is not supported
@@ -59,40 +58,35 @@ type Object interface {
 	Stat() (os.FileInfo, error)
 }
 
-// SignedURLParam customizes HTTP headers for a generated signed URL.
-type SignedURLParam struct {
+// ServeDirectOptions customizes HTTP headers for a generated signed URL.
+type ServeDirectOptions struct {
 	// Overrides the automatically detected MIME type.
 	ContentType string
-
-	// Overrides safe defaults. Use with caution, incorrect values may introduce security risks.
+	// Overrides the default Content-Disposition header, which is `inline; filename="name"`.
 	ContentDisposition string
 }
 
 // Safe defaults are applied only when not explicitly overridden by the caller.
-func (s *SignedURLParam) withDefaults(name string) *SignedURLParam {
+func prepareServeDirectOptions(in *ServeDirectOptions, name string) (ret ServeDirectOptions) {
 	// Here we might not know the real filename, and it's quite inefficient to detect the MIME type by pre-fetching the object head.
 	// So we just do a quick detection by extension name, at least it works for the "View Raw File" for an LFS file on the Web UI.
-	// Detect content type by extension name, only support the well-known safe types for inline rendering.
 	// TODO: OBJECT-STORAGE-CONTENT-TYPE: need a complete solution and refactor for Azure in the future
 
-	ext := path.Ext(name)
-	param := *util.Iif(s == nil, &SignedURLParam{}, s)
+	if in != nil {
+		ret = *in
+	}
 
-	isSafe := false
-	if param.ContentType != "" {
-		isSafe = public.IsWellKnownSafeInlineMimeType(param.ContentType)
-	} else if mimeType, safe := public.DetectWellKnownSafeInlineMimeType(ext); safe {
-		param.ContentType = mimeType
-		isSafe = true
+	if ret.ContentType == "" {
+		ext := path.Ext(name)
+		ret.ContentType = public.DetectWellKnownMimeType(ext)
 	}
-	if param.ContentDisposition == "" {
-		if isSafe {
-			param.ContentDisposition = "inline"
-		} else {
-			param.ContentDisposition = fmt.Sprintf(`attachment; filename="%s"`, quoteEscaper.Replace(name))
-		}
+	if ret.ContentDisposition == "" {
+		// When using ServeDirect, the URL is from the object storage's web server,
+		// it is not the same origin as Gitea server, so it should be safe enough to use "inline" to render the content directly.
+		// If a browser doesn't support the content type to be displayed inline, browser will download with the filename.
+		ret.ContentDisposition = fmt.Sprintf(`inline; filename="%s"`, quoteEscaper.Replace(name))
 	}
-	return &param
+	return ret
 }
 
 // ObjectStorage represents an object storage to handle a bucket and files
@@ -107,11 +101,11 @@ type ObjectStorage interface {
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
 
-	// URL generates a signed URL for the specified blob storage file.
+	// URL generates a "serve-direct" URL for the specified blob storage file,
+	// end user (browser) will use this URL to access the file directly from the object storage, bypassing Gitea server.
 	// * method defines which HTTP method is permitted for certain storage providers (e.g., MinIO).
-	// * reqParams allows customizing the Content-Type and Content-Disposition headers;
-	//   the caller is responsible for providing safe Content-Disposition values.
-	URL(path, name, method string, reqParams *SignedURLParam) (*url.URL, error)
+	// * opt allows customizing the Content-Type and Content-Disposition headers.
+	URL(path, name, method string, opt *ServeDirectOptions) (*url.URL, error)
 
 	// IterateObjects calls the iterator function for each object in the storage with the given path as prefix
 	// The "fullPath" argument in callback is the full path in this storage.
@@ -180,7 +174,7 @@ var (
 
 	// Actions represents actions storage
 	Actions ObjectStorage = uninitializedStorage
-	// Actions Artifacts represents actions artifacts storage
+	// ActionsArtifacts Artifacts represents actions artifacts storage
 	ActionsArtifacts ObjectStorage = uninitializedStorage
 )
 

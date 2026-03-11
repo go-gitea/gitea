@@ -705,7 +705,7 @@ func DeleteManifest(ctx *context.Context) {
 }
 
 func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) {
-	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, ctx.Req.Method, &storage.SignedURLParam{
+	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, ctx.Req.Method, &storage.ServeDirectOptions{
 		ContentType: pfd.Properties.GetByName(container_module.PropertyMediaType),
 	})
 	if err != nil {

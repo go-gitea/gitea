@@ -53,7 +53,7 @@ func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
 	}
 }
 
-func testSingleBlobStorageURLContentTypeAndDisposition(t *testing.T, s ObjectStorage, path, name string, expected SignedURLParam, reqParams *SignedURLParam) {
+func testSingleBlobStorageURLContentTypeAndDisposition(t *testing.T, s ObjectStorage, path, name string, expected ServeDirectOptions, reqParams *ServeDirectOptions) {
 	u, err := s.URL(path, name, http.MethodGet, reqParams)
 	require.NoError(t, err)
 	resp, err := http.Get(u.String())
@@ -76,28 +76,28 @@ func testBlobStorageURLContentTypeAndDisposition(t *testing.T, typStr Type, cfg 
 	_, err = s.Save(testfilename, strings.NewReader(data), int64(len(data)))
 	assert.NoError(t, err)
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", SignedURLParam{
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", ServeDirectOptions{
 		ContentType:        "text/plain; charset=utf-8",
 		ContentDisposition: "inline",
 	}, nil)
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.pdf", SignedURLParam{
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.pdf", ServeDirectOptions{
 		ContentType:        "application/pdf",
 		ContentDisposition: "inline",
 	}, nil)
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", SignedURLParam{
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", ServeDirectOptions{
 		ContentDisposition: `attachment; filename="test.wasm"`,
 	}, nil)
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", SignedURLParam{
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", ServeDirectOptions{
 		ContentDisposition: `attachment; filename="test.wasm"`,
-	}, &SignedURLParam{})
+	}, &ServeDirectOptions{})
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", SignedURLParam{
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", ServeDirectOptions{
 		ContentType:        "application/octet-stream",
 		ContentDisposition: `inline; filename="test.xml"`,
-	}, &SignedURLParam{
+	}, &ServeDirectOptions{
 		ContentType:        "application/octet-stream",
 		ContentDisposition: `inline; filename="test.xml"`,
 	})
