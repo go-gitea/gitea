@@ -16,6 +16,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -690,7 +691,32 @@ func CreateIssue(ctx *context.APIContext) {
 		form.Labels = make([]int64, 0)
 	}
 
-	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, nil); err != nil {
+	// Validate project IDs if provided
+	projectIDs := make([]int64, 0)
+	if ctx.Repo.CanWrite(unit.TypeIssues) && len(form.Projects) > 0 {
+		for _, projectID := range form.Projects {
+			p, err := project_model.GetProjectByID(ctx, projectID)
+			if err != nil {
+				if project_model.IsErrProjectNotExist(err) {
+					ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project does not exist: [id: %d]", projectID))
+				} else {
+					ctx.APIErrorInternal(err)
+				}
+				return
+			}
+			if err := p.LoadRepo(ctx); err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			if !p.CanBeAccessedByOwnerRepo(ctx.Repo.Repository.OwnerID, ctx.Repo.Repository) {
+				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project cannot be accessed: [id: %d]", projectID))
+				return
+			}
+		}
+		projectIDs = form.Projects
+	}
+
+	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, projectIDs); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.APIError(http.StatusBadRequest, err)
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
@@ -909,6 +935,34 @@ func EditIssue(ctx *context.APIContext) {
 		state := api.StateType(*form.State)
 		closeOrReopenIssue(ctx, issue, state)
 		if ctx.Written() {
+			return
+		}
+	}
+
+	// Update projects if provided
+	if canWrite && form.Projects != nil {
+		// Validate project IDs
+		for _, projectID := range *form.Projects {
+			p, err := project_model.GetProjectByID(ctx, projectID)
+			if err != nil {
+				if project_model.IsErrProjectNotExist(err) {
+					ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project does not exist: [id: %d]", projectID))
+				} else {
+					ctx.APIErrorInternal(err)
+				}
+				return
+			}
+			if err := p.LoadRepo(ctx); err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			if !p.CanBeAccessedByOwnerRepo(ctx.Repo.Repository.OwnerID, ctx.Repo.Repository) {
+				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project cannot be accessed: [id: %d]", projectID))
+				return
+			}
+		}
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, *form.Projects); err != nil {
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
