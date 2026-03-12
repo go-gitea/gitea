@@ -134,6 +134,15 @@ func testAPIListReposByType(t *testing.T, urlBase, token string) {
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
+
+	t.Run("TypePrivateUnauthenticated", func(t *testing.T) {
+		req := NewRequest(t, "GET", urlBase+"?type=private&limit=50")
+		resp := MakeRequest(t, req, http.StatusOK)
+		var repos []api.Repository
+		DecodeJSON(t, resp, &repos)
+		assert.Empty(t, repos, "unauthenticated request should not return private repos")
+		assert.Equal(t, "0", resp.Header().Get("X-Total-Count"), "X-Total-Count should not leak private repo count")
+	})
 }
 
 func TestAPIListUserReposByType(t *testing.T) {

@@ -759,10 +759,13 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 		return nil, 0, util.NewInvalidArgumentErrorf("GetUserRepositories: Actor is needed but not given")
 	}
 	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
-	if opts.IsPrivate.Has() {
-		cond = cond.And(builder.Eq{"is_private": opts.IsPrivate.Value()})
-	} else if !opts.Private {
+	if !opts.Private {
+		// When private repositories are not allowed, always restrict to public repositories
+		// and do not let opts.IsPrivate override this gate.
 		cond = cond.And(builder.Eq{"is_private": false})
+	} else if opts.IsPrivate.Has() {
+		// When private repositories are allowed, use IsPrivate as an additional filter if set.
+		cond = cond.And(builder.Eq{"is_private": opts.IsPrivate.Value()})
 	}
 
 	if len(opts.LowerNames) > 0 {
