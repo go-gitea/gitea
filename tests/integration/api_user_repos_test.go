@@ -80,7 +80,7 @@ func TestAPIListMyRepos(t *testing.T) {
 	})
 }
 
-func testAPIListReposByType(t *testing.T, urlBase string, token string) {
+func testAPIListReposByType(t *testing.T, urlBase, token string) {
 	t.Helper()
 
 	// Fetch public repos
