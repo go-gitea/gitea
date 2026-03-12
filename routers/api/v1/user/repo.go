@@ -9,22 +9,45 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
+// parseRepoTypeFilter parses the "type" query parameter into an IsPrivate filter.
+// Returns (filter, true) on success, or (zero, false) after writing a 422 response on invalid input.
+func parseRepoTypeFilter(ctx *context.APIContext) (optional.Option[bool], bool) {
+	switch ctx.FormString("type") {
+	case "", "all":
+		return optional.None[bool](), true
+	case "public":
+		return optional.Some(false), true
+	case "private":
+		return optional.Some(true), true
+	default:
+		ctx.APIError(http.StatusUnprocessableEntity, "Invalid type, must be one of: all, public, private")
+		return optional.None[bool](), false
+	}
+}
+
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
-	opts := utils.GetListOptions(ctx)
+	isPrivate, ok := parseRepoTypeFilter(ctx)
+	if !ok {
+		return
+	}
 
-	repos, count, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
+	opts := repo_model.SearchRepoOptions{
 		Actor:       u,
 		Private:     private,
-		ListOptions: opts,
+		IsPrivate:   isPrivate,
+		ListOptions: utils.GetListOptions(ctx),
 		OrderBy:     "id ASC",
-	})
+	}
+
+	repos, count, err := repo_model.GetUserRepositories(ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -47,7 +70,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 		}
 	}
 
-	ctx.SetLinkHeader(count, opts.PageSize)
+	ctx.SetLinkHeader(count, opts.ListOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiRepos)
 }
@@ -65,6 +88,11 @@ func ListUserRepos(ctx *context.APIContext) {
 	//   description: username of the user whose owned repos are to be listed
 	//   type: string
 	//   required: true
+	// - name: type
+	//   in: query
+	//   description: filter by type, "all" (default), "public", or "private"
+	//   type: string
+	//   enum: [all, public, private]
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -78,6 +106,8 @@ func ListUserRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	private := ctx.IsSigned
 	listUserRepos(ctx, ctx.ContextUser, private)
@@ -91,6 +121,11 @@ func ListMyRepos(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: type
+	//   in: query
+	//   description: filter by type, "all" (default), "public", or "private"
+	//   type: string
+	//   enum: [all, public, private]
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -102,6 +137,8 @@ func ListMyRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	opts := repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
@@ -110,6 +147,12 @@ func ListMyRepos(ctx *context.APIContext) {
 		Private:            ctx.IsSigned,
 		IncludeDescription: true,
 	}
+
+	isPrivate, ok := parseRepoTypeFilter(ctx)
+	if !ok {
+		return
+	}
+	opts.IsPrivate = isPrivate
 
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
@@ -148,6 +191,11 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: type
+	//   in: query
+	//   description: filter by type, "all" (default), "public", or "private"
+	//   type: string
+	//   enum: [all, public, private]
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -161,6 +209,8 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned)
 }
