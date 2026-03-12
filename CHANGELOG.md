@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 * SECURITY
   * Toolchain Update to Go 1.25.6 (#36480) (#36487)
   * Adjust the toolchain version (#36537) (#36542)
+  * Update toolchain to 1.25.8 for v1.25 (#36888)
   * Prevent redirect bypasses via backslash-encoded paths (#36660) (#36716)
   * Fix get release draft permission check (#36659) (#36715)
   * Fix a bug user could change another user's primary email (#36586) (#36607)
