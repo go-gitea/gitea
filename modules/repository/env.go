@@ -58,8 +58,8 @@ func PushingEnvironment(doer *user_model.User, repo *repo_model.Repository) []st
 func DoerPushingEnvironment(doer *user_model.User, repo *repo_model.Repository, isWiki bool) []string {
 	env := []string{
 		EnvAppURL + "=" + setting.AppURL,
-		EnvRepoName + "=" + repo.OwnerName,
-		EnvRepoUsername + "=" + repo.Name + util.Iif(isWiki, ".wiki", ""),
+		EnvRepoName + "=" + repo.Name + util.Iif(isWiki, ".wiki", ""),
+		EnvRepoUsername + "=" + repo.OwnerName,
 		EnvRepoID + "=" + strconv.FormatInt(repo.ID, 10),
 		EnvRepoIsWiki + "=" + strconv.FormatBool(isWiki),
 		EnvPusherName + "=" + doer.Name,
