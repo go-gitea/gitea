@@ -44,9 +44,6 @@ importers:
       '@github/paste-markdown':
         specifier: 1.5.3
         version: 1.5.3
-      '@github/relative-time-element':
-        specifier: 5.0.0
-        version: 5.0.0
       '@github/text-expander-element':
         specifier: 2.9.4
         version: 2.9.4
@@ -744,9 +741,6 @@ packages:
 
   '@github/paste-markdown@1.5.3':
     resolution: {integrity: sha512-PzZ1b3PaqBzYqbT4fwKEhiORf38h2OcGp2+JdXNNM7inZ7egaSmfmhyNkQILpqWfS0AYtRS3CDq6z03eZ8yOMQ==}
-
-  '@github/relative-time-element@5.0.0':
-    resolution: {integrity: sha512-L/2r0DNR/rMbmHWcsdmhtOiy2gESoGOhItNFD4zJ3nZfHl79Dx3N18Vfx/pYr2lruMOdk1cJZb4wEumm+Dxm1w==}
 
   '@github/text-expander-element@2.9.4':
     resolution: {integrity: sha512-+zxSlek2r0NrbFmRfymVtYhES9YU033acc/mouXUkN2bs8DaYScPucvBhwg/5d0hsEb2rIykKnkA/2xxWSqCTw==}
@@ -4635,8 +4629,6 @@ snapshots:
   '@github/markdown-toolbar-element@2.2.3': {}
 
   '@github/paste-markdown@1.5.3': {}
-
-  '@github/relative-time-element@5.0.0': {}
 
   '@github/text-expander-element@2.9.4':
     dependencies:
