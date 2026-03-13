@@ -13,7 +13,8 @@ import licensePlugin from 'rollup-plugin-license';
 const isProduction = env.NODE_ENV !== 'development';
 
 // ENABLE_SOURCEMAP accepts 'true', 'false', or 'reduced'.
-// Vite does not support partial sourcemaps (https://github.com/vitejs/vite/issues/19365), so 'reduced' is treated as 'true'.
+// Vite does not support partial sourcemaps, so 'reduced' is treated as 'true'.
+// https://github.com/vitejs/vite/issues/19365
 let enableSourcemap: boolean;
 if ('ENABLE_SOURCEMAP' in env) {
   enableSourcemap = env.ENABLE_SOURCEMAP !== 'false';
