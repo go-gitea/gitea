@@ -319,8 +319,8 @@ export class ComboMarkdownEditor {
   async switchToEasyMDE() {
     if (this.easyMDE) return;
     const [{default: EasyMDE}] = await Promise.all([
-      import(/* webpackChunkName: "easymde" */'easymde'),
-      import(/* webpackChunkName: "easymde" */'../../../css/easymde.css'),
+      import('easymde'),
+      import('../../../css/easymde.css'),
     ]);
     const easyMDEOpt: EasyMDE.Options = {
       autoDownloadFontAwesome: false,

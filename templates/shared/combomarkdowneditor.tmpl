@@ -75,7 +75,7 @@
 				{{if .DisableAutosize}}data-disable-autosize="{{.DisableAutosize}}"{{end}}
 			>{{.TextareaContent}}</textarea>
 		</text-expander>
-		<script>
+		<script type="module">
 			if (window.localUserSettings.getBoolean('markdown-editor-monospace')) {
 				document.querySelector('.markdown-text-editor').classList.add('tw-font-mono');
 			}

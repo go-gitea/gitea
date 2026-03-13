@@ -240,7 +240,7 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 		extraStyleHref := setting.AppSubURL + "/assets/css/external-render-iframe.css"
 		extraScriptSrc := setting.AppSubURL + "/assets/js/external-render-iframe.js"
 		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
-		extraHeadHTML = htmlutil.HTMLFormat(`<script src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraStyleHref)
+		extraHeadHTML = htmlutil.HTMLFormat(`<script type="module" src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraStyleHref)
 	}
 
 	ctx.usedByRender = true

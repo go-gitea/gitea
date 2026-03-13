@@ -372,7 +372,7 @@ export default defineConfig([
       'import-x/no-unresolved': [2, {commonjs: true, ignore: ['\\?.+$']}],
       'import-x/no-unused-modules': [0], // incompatible with eslint 9
       'import-x/no-useless-path-segments': [2, {commonjs: true}],
-      'import-x/no-webpack-loader-syntax': [2],
+      'import-x/no-webpack-loader-syntax': [0],
       'import-x/order': [0],
       'import-x/prefer-default-export': [0],
       'import-x/unambiguous': [0],
@@ -1007,6 +1007,6 @@ export default defineConfig([
   },
   {
     files: ['web_src/**/*'],
-    languageOptions: {globals: {...globals.browser, ...globals.webpack}},
+    languageOptions: {globals: globals.browser},
   },
 ]);

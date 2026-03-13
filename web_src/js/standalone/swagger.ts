@@ -1,3 +1,4 @@
+import '../../css/standalone/swagger.css';
 import SwaggerUI from 'swagger-ui-dist/swagger-ui-es-bundle.js';
 import 'swagger-ui-dist/swagger-ui.css';
 import {load as loadYaml} from 'js-yaml';

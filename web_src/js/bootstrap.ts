@@ -4,16 +4,14 @@
 import type {Intent} from './types.ts';
 import {html} from './utils/html.ts';
 
-// This sets up the URL prefix used in webpack's chunk loading.
 // This file must be imported before any lazy-loading is being attempted.
-window.__webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/`;
 
 export function shouldIgnoreError(err: Error) {
   const ignorePatterns: Array<RegExp> = [
     // https://github.com/go-gitea/gitea/issues/30861
     // https://github.com/microsoft/monaco-editor/issues/4496
     // https://github.com/microsoft/monaco-editor/issues/4679
-    /\/assets\/js\/.*monaco/,
+    /\/assets\/js\/.*(monaco|editor\.(api|worker))/,
   ];
   for (const pattern of ignorePatterns) {
     if (pattern.test(err.stack ?? '')) return true;
@@ -44,7 +42,7 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error') {
 
 function processWindowErrorEvent({error, reason, message, type, filename, lineno, colno}: ErrorEvent & PromiseRejectionEvent) {
   const err = error ?? reason;
-  const assetBaseUrl = String(new URL(window.__webpack_public_path__, window.location.origin));
+  const assetBaseUrl = String(new URL(`${window.config?.assetUrlPrefix ?? '/assets'}/`, window.location.origin));
   const {runModeIsProd} = window.config ?? {};
 
   // `error` and `reason` are not guaranteed to be errors. If the value is falsy, it is likely a

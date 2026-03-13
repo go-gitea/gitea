@@ -8,13 +8,14 @@
 					{{svg "octicon-sidebar-collapse" 20 "icon tw-hidden"}}
 					{{svg "octicon-sidebar-expand" 20 "icon tw-hidden"}}
 				</button>
-				<script>
+				<script type="module">
 					// Default to true if unset
 					const diffTreeVisible = window.localUserSettings.getBoolean('diff_file_tree_visible', true);
 					const diffTreeBtn = document.querySelector('.diff-toggle-file-tree-button');
 					const diffTreeIcon = `.octicon-sidebar-${diffTreeVisible ? 'expand' : 'collapse'}`;
 					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('tw-hidden');
 					diffTreeBtn.setAttribute('data-tooltip-content', diffTreeBtn.getAttribute(diffTreeVisible ? 'data-hide-text' : 'data-show-text'));
+					if (diffTreeVisible) document.getElementById('diff-file-tree')?.classList.remove('tw-hidden');
 				</script>
 			{{end}}
 			{{if not .DiffNotAvailable}}
@@ -62,9 +63,6 @@
 		{{if $showFileTree}}
 			{{$.FileIconPoolHTML}}
 			<div id="diff-file-tree" class="tw-hidden not-mobile"></div>
-			<script>
-				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('tw-hidden');
-			</script>
 		{{end}}
 		{{if .DiffNotAvailable}}
 			<h4>{{ctx.Locale.Tr "repo.diff.data_not_available"}}</h4>
