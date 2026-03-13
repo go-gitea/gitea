@@ -12,15 +12,9 @@ import licensePlugin from 'rollup-plugin-license';
 
 const isProduction = env.NODE_ENV !== 'development';
 
-// ENABLE_SOURCEMAP accepts 'true', 'false', or 'reduced'.
-// Vite does not support partial sourcemaps, so 'reduced' is treated as 'true'.
-// https://github.com/vitejs/vite/issues/19365
-let enableSourcemap: boolean;
-if ('ENABLE_SOURCEMAP' in env) {
-  enableSourcemap = env.ENABLE_SOURCEMAP !== 'false';
-} else {
-  enableSourcemap = !isProduction;
-}
+// ENABLE_SOURCEMAP accepts 'true' or 'false', default is 'true' in dev and 'false' in production.
+// Vite does not support partial sourcemaps: https://github.com/vitejs/vite/issues/19365
+const enableSourcemap = env.ENABLE_SOURCEMAP ? env.ENABLE_SOURCEMAP !== 'false' : !isProduction;
 
 const outDir = fileURLToPath(new URL('public/assets', import.meta.url));
 const buildTarget = 'es2020';
