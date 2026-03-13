@@ -341,9 +341,6 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	maxPerm.unitsMode[unit.TypeReleases] = effectivePerms.Releases
 	maxPerm.unitsMode[unit.TypeProjects] = effectivePerms.Projects
 
-	// Set base access mode to None by default
-	maxPerm.AccessMode = perm_model.AccessModeNone
-
 	// Check permission like simple user but limit to read-only (PR #36095)
 	// Enhanced to also grant read-only access if isSameRepo is true and target repository is public
 	botPerm, err := GetUserRepoPermission(ctx, repo, user_model.NewActionsUser())
