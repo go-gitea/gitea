@@ -264,8 +264,12 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		}
 	}
 
-	environ := repo_module.DoerPushingEnvironment(ctx.Doer, repo, isWiki)
-	environ = append(environ, repo_module.EnvRepoID+fmt.Sprintf("=%d", repo.ID))
+	var environ []string
+	if !isPull {
+		// if not "pull", then must be "push", and doer must exist
+		environ = repo_module.DoerPushingEnvironment(ctx.Doer, repo, isWiki)
+		environ = append(environ, repo_module.EnvRepoID+fmt.Sprintf("=%d", repo.ID))
+	}
 
 	return &serviceHandler{serviceType, repo, isWiki, environ}
 }

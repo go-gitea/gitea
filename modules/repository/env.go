@@ -62,20 +62,14 @@ func DoerPushingEnvironment(doer *user_model.User, repo *repo_model.Repository, 
 		EnvRepoUsername + "=" + repo.OwnerName,
 		EnvRepoID + "=" + strconv.FormatInt(repo.ID, 10),
 		EnvRepoIsWiki + "=" + strconv.FormatBool(isWiki),
+		EnvPusherName + "=" + doer.Name,
+		EnvPusherID + "=" + strconv.FormatInt(doer.ID, 10),
 	}
-	// FIXME: doer can be nil for unauthenticated Git HTTP access to public repositories (routers/web/repo/githttp.go:httpBase)
-	// However, anonymous should only be able to "pull" but not "push". So the related code and function names should be refactored in the future.
-	if doer != nil {
-		env = append(env,
-			EnvPusherName+"="+doer.Name,
-			EnvPusherID+"="+strconv.FormatInt(doer.ID, 10),
-		)
-		if !doer.KeepEmailPrivate {
-			env = append(env, EnvPusherEmail+"="+doer.Email)
-		}
-		if taskID, isActionsUser := user_model.GetActionsUserTaskID(doer); isActionsUser {
-			env = append(env, EnvActionsTaskID+"="+strconv.FormatInt(taskID, 10))
-		}
+	if !doer.KeepEmailPrivate {
+		env = append(env, EnvPusherEmail+"="+doer.Email)
+	}
+	if taskID, isActionsUser := user_model.GetActionsUserTaskID(doer); isActionsUser {
+		env = append(env, EnvActionsTaskID+"="+strconv.FormatInt(taskID, 10))
 	}
 	return env
 }
