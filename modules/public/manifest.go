@@ -4,14 +4,12 @@
 package public
 
 import (
-	"os"
+	"io"
 	"path"
-	"path/filepath"
 	"sync"
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 type viteManifestEntry struct {
@@ -26,10 +24,6 @@ var (
 	manifestPaths   map[string]string
 	manifestModTime int64
 )
-
-func manifestDiskPath() string {
-	return filepath.Join(setting.StaticRootPath, "public", "assets", ".vite", "manifest.json")
-}
 
 func parseManifest(data []byte) map[string]string {
 	var manifest map[string]viteManifestEntry
@@ -58,15 +52,18 @@ func parseManifest(data []byte) map[string]string {
 }
 
 func getManifestPaths() map[string]string {
-	diskPath := manifestDiskPath()
-
 	manifestMu.RLock()
 	if manifestPaths != nil {
-		fi, statErr := os.Stat(diskPath)
-		if statErr != nil || fi.ModTime().UnixNano() == manifestModTime {
-			paths := manifestPaths
+		f, err := AssetFS().Open("assets/.vite/manifest.json")
+		if err != nil {
 			manifestMu.RUnlock()
-			return paths
+			return manifestPaths
+		}
+		fi, err := f.Stat()
+		f.Close()
+		if err != nil || fi.ModTime().UnixNano() == manifestModTime {
+			manifestMu.RUnlock()
+			return manifestPaths
 		}
 	}
 	manifestMu.RUnlock()
@@ -75,24 +72,26 @@ func getManifestPaths() map[string]string {
 	defer manifestMu.Unlock()
 
 	// Double-check after acquiring write lock
-	fi, statErr := os.Stat(diskPath)
-	if manifestPaths != nil {
-		if statErr != nil || fi.ModTime().UnixNano() == manifestModTime {
-			return manifestPaths
+	f, err := AssetFS().Open("assets/.vite/manifest.json")
+	if err != nil {
+		log.Error("Failed to open Vite manifest: %v", err)
+		if manifestPaths == nil {
+			manifestPaths = make(map[string]string)
 		}
+		return manifestPaths
 	}
-
-	// Read from disk if available, otherwise from AssetFS (bindata)
-	var data []byte
-	var err error
-	if statErr == nil {
-		data, err = os.ReadFile(diskPath)
-	} else {
-		data, err = AssetFS().ReadFile("assets", ".vite", "manifest.json")
+	fi, err := f.Stat()
+	if err == nil && manifestPaths != nil && fi.ModTime().UnixNano() == manifestModTime {
+		f.Close()
+		return manifestPaths
 	}
+	data, err := io.ReadAll(f)
+	f.Close()
 	if err != nil {
 		log.Error("Failed to read Vite manifest: %v", err)
-		manifestPaths = make(map[string]string)
+		if manifestPaths == nil {
+			manifestPaths = make(map[string]string)
+		}
 		return manifestPaths
 	}
 
