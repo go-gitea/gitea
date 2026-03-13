@@ -39,18 +39,21 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 		return
 	}
 
-	// If the caller is not allowed to see private repos but explicitly requested
-	// type=private, short-circuit to an empty result so that neither the response
-	// body nor the X-Total-Count header leaks the existence of private repos.
-	if !private && isPrivate.Has() && isPrivate.Value() {
-		ctx.SetTotalCountHeader(0)
-		ctx.JSON(http.StatusOK, &[]*api.Repository{})
-		return
+	if !private {
+		// Unauthenticated caller: can only see public repos.
+		// If type=private was requested explicitly, short-circuit so that
+		// neither the body nor X-Total-Count leaks private repo existence.
+		if isPrivate.Has() && isPrivate.Value() {
+			ctx.SetTotalCountHeader(0)
+			ctx.JSON(http.StatusOK, &[]*api.Repository{})
+			return
+		}
+		// For type=all or type=public, restrict to public only.
+		isPrivate = optional.Some(false)
 	}
 
 	opts := repo_model.SearchRepoOptions{
 		Actor:       u,
-		Private:     private,
 		IsPrivate:   isPrivate,
 		ListOptions: utils.GetListOptions(ctx),
 		OrderBy:     "id ASC",
