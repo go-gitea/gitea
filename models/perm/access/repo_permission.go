@@ -353,7 +353,6 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	if botPerm.AccessMode >= perm_model.AccessModeRead {
 		// Public repo allows read access, increase permissions to at least read
 		// Otherwise you cannot access your own repository if your permissions are set to none but the repository is public
-		maxPerm.AccessMode = max(maxPerm.AccessMode, perm_model.AccessModeRead)
 		for _, u := range repo.Units {
 			if botPerm.CanRead(u.Type) {
 				maxPerm.unitsMode[u.Type] = max(maxPerm.unitsMode[u.Type], perm_model.AccessModeRead)
