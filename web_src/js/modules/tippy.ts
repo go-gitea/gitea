@@ -1,6 +1,5 @@
 import tippy, {followCursor} from 'tippy.js';
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
-import {formatDatetime} from '../utils/time.ts';
 import type {Content, Instance, Placement, Props} from 'tippy.js';
 import {html} from '../utils/html.ts';
 
@@ -100,20 +99,10 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
 }
 
 function switchTitleToTooltip(target: Element): void {
-  let title = target.getAttribute('title');
+  const title = target.getAttribute('title');
   if (title) {
-    // apply custom formatting to relative-time's tooltips
-    if (target.tagName.toLowerCase() === 'relative-time') {
-      const datetime = target.getAttribute('datetime');
-      if (datetime) {
-        title = formatDatetime(new Date(datetime));
-      }
-    }
     target.setAttribute('data-tooltip-content', title);
     target.setAttribute('aria-label', title);
-    // keep the attribute, in case there are some other "[title]" selectors
-    // and to prevent infinite loop with <relative-time> which will re-add
-    // title if it is absent
     target.setAttribute('title', '');
   }
 }
@@ -155,7 +144,7 @@ export function initGlobalTooltips(): void {
   const observerConnect = (observer: MutationObserver) => observer.observe(document, {
     subtree: true,
     childList: true,
-    attributeFilter: ['data-tooltip-content', 'title'],
+    attributeFilter: ['data-tooltip-content'],
   });
   const observer = new MutationObserver((mutationList, observer) => {
     const pending = observer.takeRecords();

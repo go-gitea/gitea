@@ -1066,7 +1066,7 @@ jobs:
 		assert.Equal(t, "repo1", payloads[3].Repo.Name)
 		assert.Equal(t, "user2/repo1", payloads[3].Repo.FullName)
 		assert.Contains(t, payloads[3].WorkflowJob.URL, fmt.Sprintf("/actions/jobs/%d", payloads[3].WorkflowJob.ID))
-		assert.Contains(t, payloads[3].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", 0))
+		assert.Contains(t, payloads[3].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", payloads[3].WorkflowJob.ID))
 		assert.Len(t, payloads[3].WorkflowJob.Steps, 1)
 
 		assert.Equal(t, "queued", payloads[4].Action)
@@ -1102,7 +1102,7 @@ jobs:
 		assert.Equal(t, "repo1", payloads[6].Repo.Name)
 		assert.Equal(t, "user2/repo1", payloads[6].Repo.FullName)
 		assert.Contains(t, payloads[6].WorkflowJob.URL, fmt.Sprintf("/actions/jobs/%d", payloads[6].WorkflowJob.ID))
-		assert.Contains(t, payloads[6].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", 1))
+		assert.Contains(t, payloads[6].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", payloads[6].WorkflowJob.ID))
 		assert.Len(t, payloads[6].WorkflowJob.Steps, 2)
 	})
 }
@@ -1274,7 +1274,7 @@ jobs:
 
 	// Call cancel ui api
 	// Only a web UI API exists for cancelling workflow runs, so use the UI endpoint.
-	cancelURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/cancel", webhookData.payloads[0].WorkflowRun.RunNumber)
+	cancelURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/cancel", webhookData.payloads[0].WorkflowRun.ID)
 	req := NewRequest(t, "POST", cancelURL)
 	session.MakeRequest(t, req, http.StatusOK)
 
@@ -1406,7 +1406,7 @@ jobs:
 
 	// Call cancel ui api
 	// Only a web UI API exists for cancelling workflow runs, so use the UI endpoint.
-	cancelURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/cancel", webhookData.payloads[0].WorkflowRun.RunNumber)
+	cancelURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/cancel", webhookData.payloads[0].WorkflowRun.ID)
 	req := NewRequest(t, "POST", cancelURL)
 	session.MakeRequest(t, req, http.StatusOK)
 
@@ -1424,7 +1424,7 @@ jobs:
 
 	// Call rerun ui api
 	// Only a web UI API exists for rerunning workflow runs, so use the UI endpoint.
-	rerunURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/rerun", webhookData.payloads[0].WorkflowRun.RunNumber)
+	rerunURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/rerun", webhookData.payloads[0].WorkflowRun.ID)
 	req = NewRequest(t, "POST", rerunURL)
 	session.MakeRequest(t, req, http.StatusOK)
 
