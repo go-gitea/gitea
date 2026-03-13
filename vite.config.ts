@@ -12,6 +12,8 @@ import licensePlugin from 'rollup-plugin-license';
 
 const isProduction = env.NODE_ENV !== 'development';
 
+// ENABLE_SOURCEMAP accepts 'true', 'false', or 'reduced'.
+// Vite does not support partial sourcemaps, so 'reduced' is treated as 'true'.
 let enableSourcemap: boolean;
 if ('ENABLE_SOURCEMAP' in env) {
   enableSourcemap = env.ENABLE_SOURCEMAP !== 'false';
@@ -194,7 +196,7 @@ export default defineConfig({
         },
       },
     }),
-    isProduction && licensePlugin({
+    isProduction ? licensePlugin({
       thirdParty: {
         output: {
           file: fileURLToPath(new URL('public/assets/licenses.txt', import.meta.url)),
@@ -220,6 +222,11 @@ export default defineConfig({
           return /(Apache-2\.0|0BSD|BSD-2-Clause|BSD-3-Clause|MIT|ISC|CPAL-1\.0|Unlicense|EPL-1\.0|EPL-2\.0)/.test(dependency.license ?? '');
         },
       },
-    }),
+    }) : {
+      name: 'dev-licenses-stub',
+      closeBundle() {
+        writeFileSync(join(outDir, 'licenses.txt'), 'Licenses are disabled during development');
+      },
+    },
   ],
 });
