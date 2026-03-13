@@ -156,7 +156,6 @@ func ListMyRepos(ctx *context.APIContext) {
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.Doer.ID,
-		Private:            ctx.IsSigned,
 		IncludeDescription: true,
 	}
 

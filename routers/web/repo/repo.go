@@ -446,10 +446,13 @@ func SearchRepo(ctx *context.Context) {
 		TeamID:             ctx.FormInt64("team_id"),
 		TopicOnly:          ctx.FormBool("topic"),
 		Collaborate:        optional.None[bool](),
-		Private:            ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private")),
 		Template:           optional.None[bool](),
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
+	}
+
+	if !ctx.IsSigned || (ctx.FormString("private") != "" && !ctx.FormBool("private")) {
+		opts.IsPrivate = optional.Some(false)
 	}
 
 	if ctx.FormString("template") != "" {

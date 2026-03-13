@@ -154,6 +154,11 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
+	isPrivate := private
+	if !ctx.IsSigned && !isPrivate.Has() {
+		isPrivate = optional.Some(false)
+	}
+
 	switch tab {
 	case "followers":
 		ctx.Data["Cards"] = followers
@@ -201,7 +206,6 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
-			Private:            ctx.IsSigned,
 			StarredByID:        ctx.ContextUser.ID,
 			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
@@ -211,7 +215,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			Fork:               fork,
 			Mirror:             mirror,
 			Template:           template,
-			IsPrivate:          private,
+			IsPrivate:          isPrivate,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
@@ -228,7 +232,6 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
-			Private:            ctx.IsSigned,
 			WatchedByID:        ctx.ContextUser.ID,
 			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
@@ -238,7 +241,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			Fork:               fork,
 			Mirror:             mirror,
 			Template:           template,
-			IsPrivate:          private,
+			IsPrivate:          isPrivate,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
@@ -284,7 +287,6 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			Keyword:            keyword,
 			OwnerID:            ctx.ContextUser.ID,
 			OrderBy:            orderBy,
-			Private:            ctx.IsSigned,
 			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,
@@ -293,7 +295,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			Fork:               fork,
 			Mirror:             mirror,
 			Template:           template,
-			IsPrivate:          private,
+			IsPrivate:          isPrivate,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)

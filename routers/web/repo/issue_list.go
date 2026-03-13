@@ -55,7 +55,7 @@ func SearchIssues(ctx *context.Context) {
 	{
 		// find repos user can access (for issue search)
 		opts := repo_model.SearchRepoOptions{
-			Private:     false,
+			IsPrivate:   optional.Some(false),
 			AllPublic:   true,
 			TopicOnly:   false,
 			Collaborate: optional.None[bool](),
@@ -65,7 +65,7 @@ func SearchIssues(ctx *context.Context) {
 			Actor:   ctx.Doer,
 		}
 		if ctx.IsSigned {
-			opts.Private = true
+			opts.IsPrivate = optional.None[bool]()
 			opts.AllLimited = true
 		}
 		if ctx.FormString("owner") != "" {
