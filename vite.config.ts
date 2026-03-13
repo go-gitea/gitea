@@ -105,17 +105,35 @@ function webcomponentsPlugin(): Plugin {
   };
 }
 
-// In 'reduced' mode, only keep sourcemaps for index chunks
-function reducedSourcemapPlugin(): Plugin {
+// In 'reduced' mode, exclude node_modules from sourcemaps
+function reducedSourcemapPlugin(runCloseBundle = false): Plugin {
   return {
     name: 'reduced-sourcemap',
-    closeBundle() {
-      for (const file of globSync('**/*.map', {cwd: outDir})) {
-        if (!/[\\/]index(-domready)?\./.test(file)) {
-          unlinkSync(join(outDir, file));
-        }
+    enforce: 'post',
+    transform(code, id) {
+      if (id.includes('node_modules')) {
+        return {code, map: {mappings: ''}};
       }
+      return null;
     },
+    // Delete map files with no own code, strip node_modules sourcesContent from the rest.
+    // Rolldown ignores generateBundle mutations, so we must rewrite files in closeBundle.
+    ...(runCloseBundle && {closeBundle() {
+      for (const file of globSync('**/*.map', {cwd: outDir})) {
+        const mapPath = join(outDir, file);
+        const map = JSON.parse(readFileSync(mapPath, 'utf8'));
+        const hasOwnCode = map.sources?.some((s: string) => !s.includes('node_modules'));
+        if (!hasOwnCode) {
+          unlinkSync(mapPath);
+          continue;
+        }
+        if (!map.sourcesContent?.length) continue;
+        map.sourcesContent = map.sourcesContent.map((content: string, i: number) =>
+          map.sources[i]?.includes('node_modules') ? '' : content,
+        );
+        writeFileSync(mapPath, JSON.stringify(map));
+      }
+    }}),
   };
 }
 
@@ -175,6 +193,9 @@ export default defineConfig({
     },
   },
   worker: {
+    plugins: () => [
+      sourceMaps === 'reduced' && reducedSourcemapPlugin(),
+    ],
     rolldownOptions: {
       output: {
         entryFileNames: 'js/[name].[hash:8].js',
@@ -206,6 +227,7 @@ export default defineConfig({
     webcomponentsPlugin(),
     filterCssUrlPlugin(),
     stringPlugin(),
+    sourceMaps === 'reduced' && reducedSourcemapPlugin(true),
     vuePlugin({
       template: {
         compilerOptions: {
@@ -245,6 +267,5 @@ export default defineConfig({
         writeFileSync(join(outDir, 'licenses.txt'), 'Licenses are disabled during development');
       },
     },
-    sourceMaps === 'reduced' && reducedSourcemapPlugin(),
   ],
 });
