@@ -20,7 +20,8 @@ onDomReady(async () => {
   try {
     await import('./index-domready.ts');
   } catch (e) {
-    // When navigating away before the import completes, a TypeError is thrown
+    // When navigating away before the dynamic import completes, a TypeError is thrown.
+    // The error message varies across browsers, so we can't check for a specific string.
     if (e instanceof TypeError) {
       console.error('Error loading index-domready:', e);
     } else {

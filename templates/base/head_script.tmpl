@@ -16,7 +16,7 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 		notificationSettings: {{NotificationSettings}}, {{/*a map provided by NewFuncMap in helper.go*/}}
 		enableTimeTracking: {{EnableTimetracking}},
 		mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
-		sharedWorkerPath: '{{AssetPath "js/sharedworker.js"}}',
+		sharedWorkerPath: '{{GetAssetPath "js/sharedworker.js"}}',
 		{{/* this global i18n object should only contain general texts. for specialized texts, it should be provided inside the related modules by: (1) API response (2) HTML data-attribute (3) PageData */}}
 		i18n: {
 			copy_success: {{ctx.Locale.Tr "copy_success"}},
@@ -32,5 +32,5 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 	window.config.pageData = window.config.pageData || {};
 </script>
 {{/* web components must load as a blocking script to prevent flash of unstyled content */}}
-<script src="{{AssetUrlPrefix}}/{{AssetPath "js/webcomponents.js"}}"></script>
-<script type="module" src="{{AssetUrlPrefix}}/{{AssetPath "js/index.js"}}" onerror="alert('Failed to load asset files from ' + this.src + '. Please make sure the asset files can be accessed.')"></script>
+<script src="{{AssetUrlPrefix}}/{{GetAssetPath "js/webcomponents.js"}}"></script>
+<script type="module" src="{{AssetUrlPrefix}}/{{GetAssetPath "js/index.js"}}" onerror="alert('Failed to load asset files from ' + this.src + '. Please make sure the asset files can be accessed.')"></script>

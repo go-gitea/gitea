@@ -1,7 +1,7 @@
 import {build, defineConfig, type Plugin} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
-import {readFileSync, writeFileSync, globSync} from 'node:fs';
+import {readFileSync, writeFileSync, unlinkSync, globSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {join, parse} from 'node:path';
 import {env} from 'node:process';
@@ -45,6 +45,11 @@ function webcomponentsPlugin(): Plugin {
   return {
     name: 'webcomponents-iife',
     async closeBundle() {
+      // Clean up old hashed webcomponents files before rebuilding
+      for (const file of globSync('js/webcomponents.*.js*', {cwd: outDir})) {
+        unlinkSync(join(outDir, file));
+      }
+
       const result = await build({
         configFile: false,
         root: import.meta.dirname,
