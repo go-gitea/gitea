@@ -1,4 +1,6 @@
 import '../fomantic/build/fomantic.js';
+import '../fomantic/build/fomantic.css';
+import '../css/index.css';
 
 import {initHtmx} from './htmx.ts';
 import {initDashboardRepoList} from './features/dashboard.ts';

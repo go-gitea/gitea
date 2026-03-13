@@ -71,18 +71,11 @@ function commonViteOpts<T extends InlineConfig>(opts: T): T {
 }
 
 // Build index.js as a blocking IIFE bundle, matching the pre-Vite webpack behavior.
-// CSS is handled by the main build (index.ts remains an entry there for CSS extraction).
 function iifeIndexPlugin(): Plugin {
   return {
     name: 'iife-index',
     async closeBundle() {
-      // Save CSS references from the main build's manifest before replacing the entry
-      const manifestPath = join(outDir, '.vite', 'manifest.json');
-      let manifest: Record<string, any> = {};
-      try { manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) } catch {}
-      const mainIndexCss = manifest['web_src/js/index.ts']?.css || [];
-
-      // Clean up main build's index.js (replaced by IIFE) and old webcomponents files
+      // Clean up old hashed files before rebuilding
       for (const file of globSync('js/index.*.js*', {cwd: outDir})) unlinkSync(join(outDir, file));
       for (const file of globSync('js/webcomponents.*.js*', {cwd: outDir})) unlinkSync(join(outDir, file));
 
@@ -92,7 +85,6 @@ function iifeIndexPlugin(): Plugin {
             entry: fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
             formats: ['iife'],
             name: 'gitea',
-            cssFileName: 'index',
           },
           rolldownOptions: {
             output: {
@@ -104,20 +96,15 @@ function iifeIndexPlugin(): Plugin {
           'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
         },
         plugins: [
-          // CSS is extracted by the main build, strip it here to avoid duplication
-          {
-            name: 'strip-css',
-            transform(_code: string, id: string) {
-              if (id.endsWith('.css')) return {code: '', map: null};
-              return null;
-            },
-          },
           stringPlugin(),
           sourceMaps === 'reduced' && reducedSourcemapPlugin(),
         ],
       }));
 
-      // Update manifest: IIFE index.js + CSS from main build
+      // Append IIFE index entry to the main Vite manifest
+      const manifestPath = join(outDir, '.vite', 'manifest.json');
+      let manifest: Record<string, any> = {};
+      try { manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) } catch {}
       for (const buildOutput of (Array.isArray(result) ? result : [result])) {
         if (!('output' in buildOutput)) continue;
         const entry = buildOutput.output.find((o: {fileName: string}) => o.fileName.startsWith('js/index.'));
@@ -126,7 +113,6 @@ function iifeIndexPlugin(): Plugin {
             file: entry.fileName,
             name: 'index',
             isEntry: true,
-            ...(mainIndexCss.length && {css: mainIndexCss}),
           };
           delete manifest['web_src/js/webcomponents/index.ts'];
           writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
@@ -189,7 +175,6 @@ export default defineConfig(commonViteOpts({
     chunkSizeWarningLimit: Infinity,
     rolldownOptions: {
       input: {
-        index: fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
         'index-domready': fileURLToPath(new URL('web_src/js/index-domready.ts', import.meta.url)),
         swagger: fileURLToPath(new URL('web_src/js/standalone/swagger.ts', import.meta.url)),
         'external-render-iframe': fileURLToPath(new URL('web_src/js/standalone/external-render-iframe.ts', import.meta.url)),
@@ -246,20 +231,6 @@ export default defineConfig(commonViteOpts({
   },
   plugins: [
     iifeIndexPlugin(),
-    // jQuery is bundled in the IIFE index.js and set as window.jQuery.
-    // Redirect imports in the main build to use that single instance.
-    {
-      name: 'jquery-global',
-      enforce: 'pre' as const,
-      resolveId(id: string) {
-        if (id === 'jquery') return '\0jquery-global';
-        return null;
-      },
-      load(id: string) {
-        if (id === '\0jquery-global') return 'export default window.jQuery';
-        return null;
-      },
-    },
     filterCssUrlPlugin(),
     stringPlugin(),
     sourceMaps === 'reduced' && reducedSourcemapPlugin(true),

@@ -1007,6 +1007,6 @@ export default defineConfig([
   },
   {
     files: ['web_src/**/*'],
-    languageOptions: {globals: globals.browser},
+    languageOptions: {globals: {...globals.browser, ...globals.jquery}},
   },
 ]);
