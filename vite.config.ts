@@ -105,9 +105,7 @@ function filterCssUrlPlugin(): Plugin {
     enforce: 'pre',
     transform(code, id) {
       if (!id.endsWith('.css') || !id.includes('katex')) return null;
-      code = code.replace(/,\s*url\([^)]*\.woff\)\s*format\("[^"]*"\)/gi, '');
-      code = code.replace(/,\s*url\([^)]*\.ttf\)\s*format\("[^"]*"\)/gi, '');
-      return code;
+      return code.replace(/,\s*url\([^)]*\.(?:woff|ttf)\)\s*format\("[^"]*"\)/gi, '');
     },
   };
 }
@@ -155,6 +153,13 @@ export default defineConfig({
       },
     },
   },
+  worker: {
+    rolldownOptions: {
+      output: {
+        entryFileNames: 'js/[name].[hash:8].js',
+      },
+    },
+  },
   css: {
     transformer: 'postcss',
     postcss: {
@@ -175,13 +180,6 @@ export default defineConfig({
     __VUE_OPTIONS_API__: true,
     __VUE_PROD_DEVTOOLS__: false,
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
-  },
-  worker: {
-    rolldownOptions: {
-      output: {
-        entryFileNames: 'js/[name].[hash:8].js',
-      },
-    },
   },
   plugins: [
     webcomponentsPlugin(),
