@@ -1103,14 +1103,18 @@ func TestActionsTokenPermissionsExceedsTargetRepoLimit(t *testing.T) {
 		session := loginUser(t, user2.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-		req := NewRequestWithValues(t, "POST", "/user/settings/actions/general", map[string]string{
-			"cross_repo_mode": "all",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// create repos
 		repo1 := createActionsTestRepo(t, token, "actions-permission-repo1", false)
 		repo2 := createActionsTestRepo(t, token, "actions-permission-repo2", true)
+
+		// set owner-level actions config to "selected" and add repo2
+		req := NewRequestWithValues(t, "POST", "/user/settings/actions/general", map[string]string{
+			"cross_repo_mode":             "selected",
+			"cross_repo_add_target":      "true",
+			"cross_repo_add_target_name": repo2.Name,
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
 		// create the runner for repo1
 		runner1 := newMockRunner()
 		runner1.registerAsRepoRunner(t, user2.Name, repo1.Name, "mock-runner", []string{"ubuntu-latest"}, false)

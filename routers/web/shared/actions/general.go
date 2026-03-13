@@ -177,5 +177,5 @@ func UpdateGeneralSettings(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
-	ctx.JSONRedirect("")
+	ctx.Redirect(ctx.Link)
 }
