@@ -1041,15 +1041,9 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		return
 	}
 
-	workflowRun, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
 	ctx.JSON(http.StatusOK, &api.RunDetails{
 		WorkflowRunID: runID,
-		HTMLURL:       fmt.Sprintf("%s/actions/runs/%d", ctx.Repo.Repository.HTMLURL(ctx), workflowRun.Index),
+		HTMLURL:       fmt.Sprintf("%s/actions/runs/%d", ctx.Repo.Repository.HTMLURL(ctx), runID),
 		RunURL:        fmt.Sprintf("%s/actions/runs/%d", ctx.Repo.Repository.APIURL(), runID),
 	})
 }
