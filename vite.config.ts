@@ -103,6 +103,7 @@ export default defineConfig({
     sourcemap: enableSourcemap,
     target: buildTarget,
     minify: isProduction,
+    manifest: true,
     chunkSizeWarningLimit: Infinity,
     reportCompressedSize: false,
     rolldownOptions: {
@@ -114,22 +115,18 @@ export default defineConfig({
         index: fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
         swagger: fileURLToPath(new URL('web_src/js/standalone/swagger.ts', import.meta.url)),
         'external-render-iframe': fileURLToPath(new URL('web_src/js/standalone/external-render-iframe.ts', import.meta.url)),
-        'eventsource.sharedworker': fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.ts', import.meta.url)),
+        sharedworker: fileURLToPath(new URL('web_src/js/features/sharedworker.ts', import.meta.url)),
         ...(!isProduction && {
           devtest: fileURLToPath(new URL('web_src/js/standalone/devtest.ts', import.meta.url)),
         }),
         ...themes,
       },
       output: {
-        entryFileNames: 'js/[name].js',
+        entryFileNames: 'js/[name].[hash:8].js',
         chunkFileNames: 'js/[name].[hash:8].js',
         assetFileNames: (info: {name?: string}) => {
           const name = (info.name ?? '').split('?')[0];
           if (/\.css$/i.test(name)) {
-            // css entrypoints with no hash, cache-busted via ?v= in templates
-            if (/^(index|swagger|external-render-iframe|devtest|theme-.*)\.css$/i.test(name)) {
-              return `css/${name}`;
-            }
             return 'css/[name].[hash:8].css';
           }
           if (/\.(ttf|woff2?)$/i.test(name)) return 'fonts/[name].[hash:8].[ext]';

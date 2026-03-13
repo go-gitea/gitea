@@ -122,8 +122,8 @@ MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migration
 
 FRONTEND_SOURCES := $(shell find web_src/js web_src/css -type f)
 FRONTEND_CONFIGS := vite.config.ts tailwind.config.ts
-FRONTEND_DEST := public/assets/js/index.js public/assets/js/webcomponents.js public/assets/css/index.css
-FRONTEND_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts
+FRONTEND_DEST := public/assets/.vite/manifest.json
+FRONTEND_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts public/assets/.vite
 
 BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* modules/options/bindata.* modules/templates/bindata.*
 

@@ -22,8 +22,8 @@ interface Window {
   config: {
     appUrl: string,
     appSubUrl: string,
-    assetVersionEncoded: string,
     assetUrlPrefix: string,
+    sharedWorkerPath: string,
     runModeIsProd: boolean,
     customEmojis: Record<string, string>,
     pageData: Record<string, any>,

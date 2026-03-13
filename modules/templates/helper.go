@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/templates/eval"
@@ -95,6 +96,7 @@ func NewFuncMap() template.FuncMap {
 		"AssetVersion": func() string {
 			return setting.AssetVersion
 		},
+		"AssetPath": public.AssetPath,
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
 		},

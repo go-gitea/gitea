@@ -1,8 +1,8 @@
 window.config = {
   appUrl: 'http://localhost:3000/',
   appSubUrl: '',
-  assetVersionEncoded: '',
   assetUrlPrefix: '',
+  sharedWorkerPath: '',
   runModeIsProd: true,
   customEmojis: {},
   pageData: {},
