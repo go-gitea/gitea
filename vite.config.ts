@@ -81,8 +81,7 @@ function webcomponentsPlugin(): Plugin {
       });
 
       // Append webcomponents entry to the main Vite manifest
-      const results = Array.isArray(result) ? result : [result];
-      for (const buildOutput of results) {
+      for (const buildOutput of (Array.isArray(result) ? result : [result])) {
         if (!('output' in buildOutput)) continue;
         const entry = buildOutput.output.find((o: {fileName: string}) => o.fileName.startsWith('js/webcomponents.'));
         if (entry) {
