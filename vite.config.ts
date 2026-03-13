@@ -62,7 +62,7 @@ function webcomponentsPlugin(): Plugin {
           minify: isProduction,
           reportCompressedSize: false,
           lib: {
-            entry: fileURLToPath(new URL('web_src/js/webcomponents/webcomponents-blocking.ts', import.meta.url)),
+            entry: fileURLToPath(new URL('web_src/js/webcomponents/index.ts', import.meta.url)),
             formats: ['iife'],
             name: 'webcomponents',
           },
@@ -87,7 +87,7 @@ function webcomponentsPlugin(): Plugin {
         if (entry) {
           const manifestPath = join(outDir, '.vite', 'manifest.json');
           const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-          manifest['web_src/js/webcomponents/webcomponents-blocking.ts'] = {
+          manifest['web_src/js/webcomponents/index.ts'] = {
             file: entry.fileName,
             name: 'webcomponents',
             isEntry: true,
