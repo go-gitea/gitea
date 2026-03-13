@@ -63,6 +63,7 @@ func DoerPushingEnvironment(doer *user_model.User, repo *repo_model.Repository, 
 		EnvRepoID + "=" + strconv.FormatInt(repo.ID, 10),
 		EnvRepoIsWiki + "=" + strconv.FormatBool(isWiki),
 	}
+	// doer can be nil for unauthenticated Git HTTP access to public repositories
 	if doer != nil {
 		env = append(env,
 			EnvPusherName+"="+doer.Name,
