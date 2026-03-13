@@ -62,14 +62,18 @@ func DoerPushingEnvironment(doer *user_model.User, repo *repo_model.Repository, 
 		EnvRepoUsername + "=" + repo.OwnerName,
 		EnvRepoID + "=" + strconv.FormatInt(repo.ID, 10),
 		EnvRepoIsWiki + "=" + strconv.FormatBool(isWiki),
-		EnvPusherName + "=" + doer.Name,
-		EnvPusherID + "=" + strconv.FormatInt(doer.ID, 10),
 	}
-	if !doer.KeepEmailPrivate {
-		env = append(env, EnvPusherEmail+"="+doer.Email)
-	}
-	if taskID, isActionsUser := user_model.GetActionsUserTaskID(doer); isActionsUser {
-		env = append(env, EnvActionsTaskID+"="+strconv.FormatInt(taskID, 10))
+	if doer != nil {
+		env = append(env,
+			EnvPusherName+"="+doer.Name,
+			EnvPusherID+"="+strconv.FormatInt(doer.ID, 10),
+		)
+		if !doer.KeepEmailPrivate {
+			env = append(env, EnvPusherEmail+"="+doer.Email)
+		}
+		if taskID, isActionsUser := user_model.GetActionsUserTaskID(doer); isActionsUser {
+			env = append(env, EnvActionsTaskID+"="+strconv.FormatInt(taskID, 10))
+		}
 	}
 	return env
 }
