@@ -81,8 +81,10 @@ function webcomponentsPlugin(): Plugin {
       });
 
       // Append webcomponents entry to the main Vite manifest
-      if ('output' in result) {
-        const entry = result.output.find((o: {fileName: string}) => o.fileName.startsWith('js/webcomponents.'));
+      const results = Array.isArray(result) ? result : [result];
+      for (const buildOutput of results) {
+        if (!('output' in buildOutput)) continue;
+        const entry = buildOutput.output.find((o: {fileName: string}) => o.fileName.startsWith('js/webcomponents.'));
         if (entry) {
           const manifestPath = join(outDir, '.vite', 'manifest.json');
           const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
@@ -92,6 +94,7 @@ function webcomponentsPlugin(): Plugin {
             isEntry: true,
           };
           writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+          break;
         }
       }
     },
