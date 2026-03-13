@@ -9,6 +9,7 @@
 	</div>
 	{{template "custom/body_outer_post" .}}
 	{{template "base/footer_content" .}}
+	<script type="module" src="{{AssetUrlPrefix}}/{{GetAssetPath "js/index-domready.js"}}" onerror="alert('Failed to load asset files from ' + this.src + '. Please make sure the asset files can be accessed.')"></script>
 	{{template "custom/footer" .}}
 </body>
 </html>

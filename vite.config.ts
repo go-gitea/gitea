@@ -1,4 +1,4 @@
-import {build, defineConfig, type Plugin} from 'vite';
+import {build, defineConfig, type InlineConfig, type Plugin} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
 import {readFileSync, writeFileSync, unlinkSync, globSync} from 'node:fs';
@@ -16,16 +16,14 @@ const isProduction = env.NODE_ENV !== 'development';
 // true - all enabled, the default in development
 // reduced - minimal sourcemaps, the default in production
 // false - all disabled
-let sourceMaps;
+let sourceMaps: string | undefined;
 if ('ENABLE_SOURCEMAP' in env) {
   sourceMaps = ['true', 'false'].includes(env.ENABLE_SOURCEMAP || '') ? env.ENABLE_SOURCEMAP : 'reduced';
 } else {
   sourceMaps = isProduction ? 'reduced' : 'true';
 }
-const enableSourcemap = sourceMaps !== 'false';
 
 const outDir = fileURLToPath(new URL('public/assets', import.meta.url));
-const buildTarget = 'es2020';
 
 const themes: Record<string, string> = {};
 for (const path of globSync('web_src/css/themes/*.css', {cwd: import.meta.dirname})) {
@@ -44,59 +42,93 @@ const webComponents = new Set([
 
 const formatLicenseText = (licenseText: string) => wrapAnsi(licenseText || '', 80).trim();
 
-// Build web components as a separate IIFE bundle that loads as a blocking script
-// to prevent flash of unstyled content. This runs as part of the main build.
-function webcomponentsPlugin(): Plugin {
+function commonViteOpts<T extends InlineConfig>(opts: T): T {
+  const {build, ...rest} = opts;
+  const {rolldownOptions, ...buildRest} = build || {};
   return {
-    name: 'webcomponents-iife',
-    async closeBundle() {
-      // Clean up old hashed webcomponents files before rebuilding
-      for (const file of globSync('js/webcomponents.*.js*', {cwd: outDir})) {
-        unlinkSync(join(outDir, file));
-      }
+    configFile: false,
+    root: import.meta.dirname,
+    publicDir: false,
+    build: {
+      outDir,
+      emptyOutDir: false,
+      sourcemap: sourceMaps !== 'false',
+      target: 'es2020',
+      minify: isProduction,
+      cssMinify: 'esbuild',
+      reportCompressedSize: false,
+      rolldownOptions: {
+        checks: {
+          eval: false, // htmx needs eval
+          pluginTimings: false,
+        },
+        ...rolldownOptions,
+      },
+      ...buildRest,
+    },
+    ...rest,
+  } as InlineConfig & T;
+}
 
-      const result = await build({
-        configFile: false,
-        root: import.meta.dirname,
-        publicDir: false,
+// Build index.js as a blocking IIFE bundle, matching the pre-Vite webpack behavior.
+// CSS is handled by the main build (index.ts remains an entry there for CSS extraction).
+function iifeIndexPlugin(): Plugin {
+  return {
+    name: 'iife-index',
+    async closeBundle() {
+      // Save CSS references from the main build's manifest before replacing the entry
+      const manifestPath = join(outDir, '.vite', 'manifest.json');
+      let manifest: Record<string, any> = {};
+      try { manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) } catch {}
+      const mainIndexCss = manifest['web_src/js/index.ts']?.css || [];
+
+      // Clean up main build's index.js (replaced by IIFE) and old webcomponents files
+      for (const file of globSync('js/index.*.js*', {cwd: outDir})) unlinkSync(join(outDir, file));
+      for (const file of globSync('js/webcomponents.*.js*', {cwd: outDir})) unlinkSync(join(outDir, file));
+
+      const result = await build(commonViteOpts({
         build: {
-          outDir,
-          emptyOutDir: false,
-          sourcemap: enableSourcemap,
-          target: buildTarget,
-          minify: isProduction,
-          reportCompressedSize: false,
           lib: {
-            entry: fileURLToPath(new URL('web_src/js/webcomponents/index.ts', import.meta.url)),
+            entry: fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
             formats: ['iife'],
-            name: 'webcomponents',
+            name: 'gitea',
+            cssFileName: 'index',
           },
           rolldownOptions: {
             output: {
-              entryFileNames: 'js/webcomponents.[hash:8].js',
+              entryFileNames: 'js/index.[hash:8].js',
             },
           },
         },
         define: {
-          'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'), // for tippy.js
+          'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
         },
         plugins: [
+          // CSS is extracted by the main build, strip it here to avoid duplication
+          {
+            name: 'strip-css',
+            transform(_code: string, id: string) {
+              if (id.endsWith('.css')) return {code: '', map: null};
+              return null;
+            },
+          },
           stringPlugin(),
+          sourceMaps === 'reduced' && reducedSourcemapPlugin(),
         ],
-      });
+      }));
 
-      // Append webcomponents entry to the main Vite manifest
+      // Update manifest: IIFE index.js + CSS from main build
       for (const buildOutput of (Array.isArray(result) ? result : [result])) {
         if (!('output' in buildOutput)) continue;
-        const entry = buildOutput.output.find((o: {fileName: string}) => o.fileName.startsWith('js/webcomponents.'));
+        const entry = buildOutput.output.find((o: {fileName: string}) => o.fileName.startsWith('js/index.'));
         if (entry) {
-          const manifestPath = join(outDir, '.vite', 'manifest.json');
-          const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-          manifest['web_src/js/webcomponents/index.ts'] = {
+          manifest['web_src/js/index.ts'] = {
             file: entry.fileName,
-            name: 'webcomponents',
+            name: 'index',
             isEntry: true,
+            ...(mainIndexCss.length && {css: mainIndexCss}),
           };
+          delete manifest['web_src/js/webcomponents/index.ts'];
           writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
           break;
         }
@@ -149,27 +181,16 @@ function filterCssUrlPlugin(): Plugin {
   };
 }
 
-export default defineConfig({
-  root: import.meta.dirname,
+export default defineConfig(commonViteOpts({
   base: './',
-  publicDir: false,
   build: {
-    outDir,
-    emptyOutDir: false,
     modulePreload: false,
-    sourcemap: enableSourcemap,
-    target: buildTarget,
-    minify: isProduction,
     manifest: true,
     chunkSizeWarningLimit: Infinity,
-    reportCompressedSize: false,
     rolldownOptions: {
-      checks: {
-        eval: false, // htmx needs eval
-        pluginTimings: false,
-      },
       input: {
         index: fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
+        'index-domready': fileURLToPath(new URL('web_src/js/index-domready.ts', import.meta.url)),
         swagger: fileURLToPath(new URL('web_src/js/standalone/swagger.ts', import.meta.url)),
         'external-render-iframe': fileURLToPath(new URL('web_src/js/standalone/external-render-iframe.ts', import.meta.url)),
         sharedworker: fileURLToPath(new URL('web_src/js/features/sharedworker.ts', import.meta.url)),
@@ -224,7 +245,21 @@ export default defineConfig({
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
   },
   plugins: [
-    webcomponentsPlugin(),
+    iifeIndexPlugin(),
+    // jQuery is bundled in the IIFE index.js and set as window.jQuery.
+    // Redirect imports in the main build to use that single instance.
+    {
+      name: 'jquery-global',
+      enforce: 'pre' as const,
+      resolveId(id: string) {
+        if (id === 'jquery') return '\0jquery-global';
+        return null;
+      },
+      load(id: string) {
+        if (id === '\0jquery-global') return 'export default window.jQuery';
+        return null;
+      },
+    },
     filterCssUrlPlugin(),
     stringPlugin(),
     sourceMaps === 'reduced' && reducedSourcemapPlugin(true),
@@ -268,4 +303,4 @@ export default defineConfig({
       },
     },
   ],
-});
+}));
