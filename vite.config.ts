@@ -1,9 +1,9 @@
 import {build, defineConfig, type Plugin} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
-import {readFileSync, globSync} from 'node:fs';
+import {readFileSync, writeFileSync, globSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {parse} from 'node:path';
+import {join, parse} from 'node:path';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
@@ -45,7 +45,7 @@ function webcomponentsPlugin(): Plugin {
   return {
     name: 'webcomponents-iife',
     async closeBundle() {
-      await build({
+      const result = await build({
         configFile: false,
         root: import.meta.dirname,
         publicDir: false,
@@ -63,7 +63,7 @@ function webcomponentsPlugin(): Plugin {
           },
           rolldownOptions: {
             output: {
-              entryFileNames: 'js/webcomponents.js',
+              entryFileNames: 'js/webcomponents.[hash:8].js',
             },
           },
         },
@@ -74,6 +74,21 @@ function webcomponentsPlugin(): Plugin {
           stringPlugin(),
         ],
       });
+
+      // Append webcomponents entry to the main Vite manifest
+      if ('output' in result) {
+        const entry = result.output.find((o: {fileName: string}) => o.fileName.startsWith('js/webcomponents.'));
+        if (entry) {
+          const manifestPath = join(outDir, '.vite', 'manifest.json');
+          const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+          manifest['web_src/js/webcomponents/webcomponents-blocking.ts'] = {
+            file: entry.fileName,
+            name: 'webcomponents',
+            isEntry: true,
+          };
+          writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+        }
+      }
     },
   };
 }

@@ -107,10 +107,10 @@ func getManifestPaths() map[string]string {
 	return manifestPaths
 }
 
-// AssetPath resolves an unhashed asset path to its content-hashed path from the Vite manifest.
-// Example: AssetPath("js/index.js") returns "js/index.C6Z2MRVQ.js"
+// GetAssetPath resolves an unhashed asset path to its content-hashed path from the Vite manifest.
+// Example: GetAssetPath("js/index.js") returns "js/index.C6Z2MRVQ.js"
 // Falls back to returning the input path unchanged if the manifest is unavailable.
-func AssetPath(name string) string {
+func GetAssetPath(name string) string {
 	paths := getManifestPaths()
 	if p, ok := paths[name]; ok {
 		return p

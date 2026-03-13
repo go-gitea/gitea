@@ -32,5 +32,5 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 	window.config.pageData = window.config.pageData || {};
 </script>
 {{/* web components must load as a blocking script to prevent flash of unstyled content */}}
-<script src="{{AssetUrlPrefix}}/js/webcomponents.js?v={{AssetVersion}}"></script>
+<script src="{{AssetUrlPrefix}}/{{AssetPath "js/webcomponents.js"}}"></script>
 <script type="module" src="{{AssetUrlPrefix}}/{{AssetPath "js/index.js"}}" onerror="alert('Failed to load asset files from ' + this.src + '. Please make sure the asset files can be accessed.')"></script>

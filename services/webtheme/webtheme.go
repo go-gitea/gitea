@@ -108,10 +108,19 @@ func parseThemeMetaInfoToMap(cssContent string) map[string]string {
 	return m
 }
 
+// stripContentHash removes a Vite content hash suffix from a name.
+// e.g. "gitea-dark.CyAaQnn5" -> "gitea-dark"
+func stripContentHash(name string) string {
+	if i := strings.LastIndex(name, "."); i > 0 {
+		return name[:i]
+	}
+	return name
+}
+
 func defaultThemeMetaInfoByFileName(fileName string) *ThemeMetaInfo {
 	themeInfo := &ThemeMetaInfo{
 		FileName:     fileName,
-		InternalName: strings.TrimSuffix(strings.TrimPrefix(fileName, fileNamePrefix), fileNameSuffix),
+		InternalName: stripContentHash(strings.TrimSuffix(strings.TrimPrefix(fileName, fileNamePrefix), fileNameSuffix)),
 	}
 	themeInfo.DisplayName = themeInfo.InternalName
 	return themeInfo
