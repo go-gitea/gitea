@@ -16,14 +16,13 @@ const isProduction = env.NODE_ENV !== 'development';
 // true - all enabled, the default in development
 // reduced - minimal sourcemaps, the default in production
 // false - all disabled
-type SourcemapMode = 'true' | 'false' | 'reduced';
-let sourcemapMode: SourcemapMode;
-if (env.ENABLE_SOURCEMAP === 'true' || env.ENABLE_SOURCEMAP === 'false' || env.ENABLE_SOURCEMAP === 'reduced') {
-  sourcemapMode = env.ENABLE_SOURCEMAP;
+let sourceMaps;
+if ('ENABLE_SOURCEMAP' in env) {
+  sourceMaps = ['true', 'false'].includes(env.ENABLE_SOURCEMAP || '') ? env.ENABLE_SOURCEMAP : 'reduced';
 } else {
-  sourcemapMode = isProduction ? 'reduced' : 'true';
+  sourceMaps = isProduction ? 'reduced' : 'true';
 }
-const enableSourcemap = sourcemapMode !== 'false';
+const enableSourcemap = sourceMaps !== 'false';
 
 const outDir = fileURLToPath(new URL('public/assets', import.meta.url));
 const buildTarget = 'es2020';
@@ -246,6 +245,6 @@ export default defineConfig({
         writeFileSync(join(outDir, 'licenses.txt'), 'Licenses are disabled during development');
       },
     },
-    sourcemapMode === 'reduced' && reducedSourcemapPlugin(),
+    sourceMaps === 'reduced' && reducedSourcemapPlugin(),
   ],
 });
