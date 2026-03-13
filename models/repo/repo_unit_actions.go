@@ -147,13 +147,6 @@ type ActionsConfig struct {
 	OverrideOwnerConfig bool `json:"override_owner_config,omitempty"`
 }
 
-func (cfg *ActionsConfig) GetTokenPermissionMode() ActionsTokenPermissionMode {
-	if cfg.TokenPermissionMode == "" {
-		return ActionsTokenPermissionModePermissive
-	}
-	return cfg.TokenPermissionMode
-}
-
 func (cfg *ActionsConfig) EnableWorkflow(file string) {
 	cfg.DisabledWorkflows = util.SliceRemoveAll(cfg.DisabledWorkflows, file)
 }
@@ -187,7 +180,11 @@ func (cfg *ActionsConfig) IsCollaborativeOwner(ownerID int64) bool {
 // GetDefaultTokenPermissions returns the default token permissions by its TokenPermissionMode.
 // It does not apply MaxTokenPermissions; callers must clamp if needed.
 func (cfg *ActionsConfig) GetDefaultTokenPermissions() ActionsTokenPermissions {
-	switch cfg.GetTokenPermissionMode() {
+	mode := cfg.TokenPermissionMode
+	if mode == "" {
+		mode = ActionsTokenPermissionModePermissive
+	}
+	switch mode {
 	case ActionsTokenPermissionModeRestricted:
 		return GetRestrictedPermissions()
 	case ActionsTokenPermissionModePermissive:
@@ -248,7 +245,7 @@ func (cfg *ActionsConfig) FromDB(bs []byte) error {
 	switch cfg.TokenPermissionMode {
 	case ActionsTokenPermissionModeRestricted, ActionsTokenPermissionModePermissive:
 	default:
-		cfg.TokenPermissionMode = ActionsTokenPermissionModeRestricted
+		cfg.TokenPermissionMode = ActionsTokenPermissionModePermissive
 	}
 
 	switch cfg.CrossRepoMode {

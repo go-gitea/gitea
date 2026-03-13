@@ -35,14 +35,15 @@ func TestActionsConfig(t *testing.T) {
 func TestActionsConfigTokenPermissions(t *testing.T) {
 	t.Run("Default Permission Mode", func(t *testing.T) {
 		cfg := &ActionsConfig{}
-		assert.Equal(t, ActionsTokenPermissionModePermissive, cfg.GetTokenPermissionMode())
+		assert.Equal(t, ActionsTokenPermissionMode(""), cfg.TokenPermissionMode)
+		assert.Equal(t, perm.AccessModeWrite, cfg.GetDefaultTokenPermissions().Code)
 	})
 
 	t.Run("Explicit Permission Mode", func(t *testing.T) {
 		cfg := &ActionsConfig{
 			TokenPermissionMode: ActionsTokenPermissionModeRestricted,
 		}
-		assert.Equal(t, ActionsTokenPermissionModeRestricted, cfg.GetTokenPermissionMode())
+		assert.Equal(t, ActionsTokenPermissionModeRestricted, cfg.TokenPermissionMode)
 	})
 
 	t.Run("Effective Permissions - Permissive Mode", func(t *testing.T) {

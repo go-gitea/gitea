@@ -135,18 +135,6 @@ func GetRunJobByRepoAndID(ctx context.Context, repoID, jobID int64) (*ActionRunJ
 	return &job, nil
 }
 
-func GetRunJobByID(ctx context.Context, id int64) (*ActionRunJob, error) {
-	var job ActionRunJob
-	has, err := db.GetEngine(ctx).ID(id).Get(&job)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, fmt.Errorf("run job with id %d: %w", id, util.ErrNotExist)
-	}
-
-	return &job, nil
-}
-
 func GetRunJobByRunAndID(ctx context.Context, runID, jobID int64) (*ActionRunJob, error) {
 	var job ActionRunJob
 	has, err := db.GetEngine(ctx).Where("id=? AND run_id=?", jobID, runID).Get(&job)

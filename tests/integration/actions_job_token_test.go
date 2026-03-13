@@ -1078,7 +1078,7 @@ func TestActionsOverrideOwnerConfig(t *testing.T) {
 		// We simulate this by overriding the specific job permissions in the DB to match what the parser does for `permissions: {}`
 		// which results in all None.
 		task3 := createActionTask(t, repoID, false)
-		job, err := actions_model.GetRunJobByID(t.Context(), task3.JobID)
+		job, err := actions_model.GetRunJobByRepoAndID(t.Context(), task3.RepoID, task3.JobID)
 		require.NoError(t, err)
 
 		emptyPerms, _ := repo_model.MarshalTokenPermissions(repo_model.ActionsTokenPermissions{})
