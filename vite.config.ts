@@ -12,9 +12,18 @@ import licensePlugin from 'rollup-plugin-license';
 
 const isProduction = env.NODE_ENV !== 'development';
 
-// ENABLE_SOURCEMAP accepts 'true' or 'false', default is 'true' in dev and 'false' in production.
-// Vite does not support partial sourcemaps: https://github.com/vitejs/vite/issues/19365
-const enableSourcemap = env.ENABLE_SOURCEMAP ? env.ENABLE_SOURCEMAP !== 'false' : !isProduction;
+// ENABLE_SOURCEMAP accepts the following values:
+// true - all enabled, the default in development
+// reduced - minimal sourcemaps, the default in production
+// false - all disabled
+type SourcemapMode = 'true' | 'false' | 'reduced';
+let sourcemapMode: SourcemapMode;
+if (env.ENABLE_SOURCEMAP === 'true' || env.ENABLE_SOURCEMAP === 'false' || env.ENABLE_SOURCEMAP === 'reduced') {
+  sourcemapMode = env.ENABLE_SOURCEMAP;
+} else {
+  sourcemapMode = isProduction ? 'reduced' : 'true';
+}
+const enableSourcemap = sourcemapMode !== 'false';
 
 const outDir = fileURLToPath(new URL('public/assets', import.meta.url));
 const buildTarget = 'es2020';
@@ -91,6 +100,20 @@ function webcomponentsPlugin(): Plugin {
           };
           writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
           break;
+        }
+      }
+    },
+  };
+}
+
+// In 'reduced' mode, only keep sourcemaps for index chunks
+function reducedSourcemapPlugin(): Plugin {
+  return {
+    name: 'reduced-sourcemap',
+    closeBundle() {
+      for (const file of globSync('**/*.map', {cwd: outDir})) {
+        if (!/[\\/]index(-domready)?\./.test(file)) {
+          unlinkSync(join(outDir, file));
         }
       }
     },
@@ -223,5 +246,6 @@ export default defineConfig({
         writeFileSync(join(outDir, 'licenses.txt'), 'Licenses are disabled during development');
       },
     },
+    sourcemapMode === 'reduced' && reducedSourcemapPlugin(),
   ],
 });
