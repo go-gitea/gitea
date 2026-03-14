@@ -203,6 +203,9 @@ export default defineConfig(commonViteOpts({
       sourceMaps === 'reduced' && reducedSourcemapPlugin(),
     ],
     rolldownOptions: {
+      checks: {
+        pluginTimings: false,
+      },
       output: {
         entryFileNames: 'js/[name].[hash:8].js',
       },
