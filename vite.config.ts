@@ -1,4 +1,4 @@
-import {build, defineConfig, type InlineConfig, type Plugin} from 'vite';
+import {build, defineConfig, type InlineConfig, type Manifest, type Plugin} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
 import {readFileSync, writeFileSync, unlinkSync, globSync} from 'node:fs';
@@ -42,8 +42,7 @@ const webComponents = new Set([
 
 const formatLicenseText = (licenseText: string) => wrapAnsi(licenseText || '', 80).trim();
 
-function commonViteOpts<T extends InlineConfig>(opts: T): T {
-  const {build, ...rest} = opts;
+function commonViteOpts<T extends InlineConfig>({build, ...rest}: T): T {
   const {rolldownOptions, ...buildRest} = build || {};
   return {
     configFile: false,
@@ -103,11 +102,11 @@ function iifeIndexPlugin(): Plugin {
 
       // Append IIFE index entry to the main Vite manifest
       const manifestPath = join(outDir, '.vite', 'manifest.json');
-      let manifest: Record<string, any> = {};
+      let manifest: Manifest = {};
       try { manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) } catch {}
       for (const buildOutput of (Array.isArray(result) ? result : [result])) {
         if (!('output' in buildOutput)) continue;
-        const entry = buildOutput.output.find((o: {fileName: string}) => o.fileName.startsWith('js/index.'));
+        const entry = buildOutput.output.find((o) => o.fileName.startsWith('js/index.'));
         if (entry) {
           manifest['web_src/js/index.ts'] = {
             file: entry.fileName,
