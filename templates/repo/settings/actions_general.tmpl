@@ -1,3 +1,4 @@
+{{$isActionsEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeActions}}
 <div class="repo-setting-content">
 	<!-- Enable/Disable Actions Section (First) -->
 	<h4 class="ui top attached header">
@@ -5,7 +6,6 @@
 	</h4>
 	<div class="ui attached segment">
 		<form class="ui form" action="{{.Link}}/actions_unit" method="post">
-			{{$isActionsEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeActions}}
 			{{$isActionsGlobalDisabled := ctx.Consts.RepoUnitTypeActions.UnitGlobalDisabled}}
 			<div class="inline field">
 				<label>{{ctx.Locale.Tr "actions.actions"}}</label>
@@ -23,6 +23,7 @@
 		</form>
 	</div>
 
+{{if $isActionsEnabled}}
 	<!-- Token Permissions Section -->
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.general.permissions"}}
@@ -51,8 +52,9 @@
 			</div>
 		</form>
 	</div>
+{{end}}
 
-{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
+{{if $isActionsEnabled}}
 	{{if .Repository.IsPrivate}}
 	<!-- Collaborative Owners Section -->
 	<h4 class="ui top attached header">
