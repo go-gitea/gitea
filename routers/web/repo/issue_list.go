@@ -478,7 +478,7 @@ func renderMilestones(ctx *context.Context) {
 	ctx.Data["ClosedMilestones"] = closedMilestones
 }
 
-func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int64, isPullOption optional.Option[bool]) {
+func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectIDs []int64, isPullOption optional.Option[bool]) {
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
@@ -516,11 +516,6 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	var mileIDs []int64
 	if milestoneID > 0 || milestoneID == db.NoConditionID { // -1 to get those issues which have no any milestone assigned
 		mileIDs = []int64{milestoneID}
-	}
-
-	var projectIDs []int64
-	if projectID != 0 {
-		projectIDs = []int64{projectID}
 	}
 
 	preparedLabelFilter := issue.PrepareFilterIssueLabels(ctx, repo.ID, ctx.Repo.Owner)
@@ -725,7 +720,12 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
-	ctx.Data["ProjectID"] = projectID
+	// For template backward compatibility, set ProjectID to first project or 0
+	if len(projectIDs) > 0 {
+		ctx.Data["ProjectID"] = projectIDs[0]
+	} else {
+		ctx.Data["ProjectID"] = int64(0)
+	}
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["PosterUsername"] = posterUsername
 	ctx.Data["Keyword"] = keyword
@@ -766,7 +766,19 @@ func Issues(ctx *context.Context) {
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	}
 
-	prepareIssueFilterAndList(ctx, ctx.FormInt64("milestone"), ctx.FormInt64("project"), optional.Some(isPullList))
+	// Parse project IDs from either "project" (single) or "projects" (comma-separated) parameter
+	var projectIDs []int64
+	if projectsParam := ctx.FormString("projects"); projectsParam != "" {
+		for part := range strings.SplitSeq(projectsParam, ",") {
+			if id, err := strconv.ParseInt(part, 10, 64); err == nil && id != 0 {
+				projectIDs = append(projectIDs, id)
+			}
+		}
+	} else if projectID := ctx.FormInt64("project"); projectID != 0 {
+		projectIDs = []int64{projectID}
+	}
+
+	prepareIssueFilterAndList(ctx, ctx.FormInt64("milestone"), projectIDs, optional.Some(isPullList))
 	if ctx.Written() {
 		return
 	}
