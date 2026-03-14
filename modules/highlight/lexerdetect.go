@@ -217,6 +217,10 @@ func detectChromaLexerByFileName(fileName, fileLang string) (_ chroma.Lexer, byL
 	fileName, fileLang = normalizeFileNameLang(fileName, fileLang)
 	fileExt := path.Ext(fileName)
 
+	if fileLang == "JSON5" || (fileLang == "" && strings.EqualFold(fileExt, ".json5")) {
+		fileLang = "JSON"
+	}
+
 	// apply custom mapping for file extension, highest priority, for example:
 	// * ".my-js" -> ".js"
 	// * ".my-html" -> "HTML"

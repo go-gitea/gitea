@@ -19,11 +19,9 @@ import (
 )
 
 type treeSitterRenderer struct {
+	languageName      string
 	displayName       string
-	lang              *gotreesitter.Language
-	parser            *gotreesitter.Parser
-	query             *gotreesitter.Query
-	tokenSourceFactor func([]byte) gotreesitter.TokenSource
+	highlighter       *gotreesitter.Highlighter
 	captureClassCache map[string]string
 	mu                sync.Mutex
 	cache             treeSitterRenderCache
@@ -35,7 +33,24 @@ type normalizedHighlightRange struct {
 	class string
 }
 
+type treeSitterRenderAttempt struct {
+	rendered       template.HTML
+	lines          []template.HTML
+	displayName    string
+	ok             bool
+	fallbackReason highlightFallbackReason
+}
+
 var treeSitterRendererCache sync.Map // map[string]*treeSitterRenderer
+
+func isGenericPlainTextExtension(fileExt string) bool {
+	switch strings.ToLower(fileExt) {
+	case ".txt", ".text":
+		return true
+	default:
+		return false
+	}
+}
 
 // lookupTreeSitterEntryByLanguageName resolves a language name to a
 // tree-sitter grammar entry using gotreesitter's built-in linguist
@@ -99,6 +114,19 @@ func resolveTreeSitterEntry(fileName, fileLang string) *tsgrammars.LangEntry {
 		}
 	}
 
+	// Keep generic plaintext extensions on the plaintext/chroma fallback path
+	// unless the caller provided explicit language metadata. The bundled
+	// gotreesitter linguist maps ".txt" to Vim help files, which is too
+	// aggressive for Gitea's generic repository viewer.
+	if fileLang == "" && isGenericPlainTextExtension(path.Ext(fileName)) {
+		switch path.Base(fileName) {
+		case "CMakeLists.txt":
+			// CMakeLists.txt is a canonical exact filename, not generic plaintext.
+		default:
+			return nil
+		}
+	}
+
 	// Prefer explicit language metadata (enry/gitattributes) before filename
 	// fallback. This avoids wrong grammar selection on ambiguous extensions
 	// like ".h" where metadata can disambiguate C vs Objective-C vs C++.
@@ -153,26 +181,24 @@ func getTreeSitterRenderer(entry *tsgrammars.LangEntry) *treeSitterRenderer {
 		return nil
 	}
 
-	query, err := gotreesitter.NewQuery(entry.HighlightQuery, lang)
+	var opts []gotreesitter.HighlighterOption
+	if entry.TokenSourceFactory != nil {
+		opts = append(opts, gotreesitter.WithTokenSourceFactory(func(src []byte) gotreesitter.TokenSource {
+			return entry.TokenSourceFactory(src, lang)
+		}))
+	}
+
+	highlighter, err := gotreesitter.NewHighlighter(lang, entry.HighlightQuery, opts...)
 	if err != nil {
-		log.Warn("failed to compile gotreesitter highlight query for %s: %v", entry.Name, err)
+		log.Warn("failed to construct gotreesitter highlighter for %s: %v", entry.Name, err)
 		treeSitterRendererCache.Store(entry.Name, (*treeSitterRenderer)(nil))
 		return nil
 	}
 
-	var tokenSourceFactory func([]byte) gotreesitter.TokenSource
-	if entry.TokenSourceFactory != nil {
-		tokenSourceFactory = func(src []byte) gotreesitter.TokenSource {
-			return entry.TokenSourceFactory(src, lang)
-		}
-	}
-
 	renderer := &treeSitterRenderer{
+		languageName:      entry.Name,
 		displayName:       tsgrammars.DisplayName(entry),
-		lang:              lang,
-		parser:            gotreesitter.NewParser(lang),
-		query:             query,
-		tokenSourceFactor: tokenSourceFactory,
+		highlighter:       highlighter,
 		captureClassCache: make(map[string]string, 32),
 	}
 	val, _ := treeSitterRendererCache.LoadOrStore(entry.Name, renderer)
@@ -180,50 +206,87 @@ func getTreeSitterRenderer(entry *tsgrammars.LangEntry) *treeSitterRenderer {
 	return resolvedRenderer
 }
 
-func tryRenderCodeByTreeSitter(fileName, fileLang string, code []byte, allowAnalyze bool) (template.HTML, string, bool) {
+func tryRenderCodeByTreeSitter(fileName, fileLang string, code []byte) (template.HTML, bool) {
+	attempt := tryRenderCodeByTreeSitterDetailed(fileName, fileLang, code, false)
+	return attempt.rendered, attempt.ok
+}
+
+func tryRenderCodeByTreeSitterDetailed(fileName, fileLang string, code []byte, allowAnalyze bool) treeSitterRenderAttempt {
 	var entry *tsgrammars.LangEntry
 	if allowAnalyze {
 		entry = resolveTreeSitterEntryWithAnalyze(fileName, fileLang, code)
 	} else {
 		entry = resolveTreeSitterEntry(fileName, fileLang)
 	}
+	if entry == nil {
+		return treeSitterRenderAttempt{fallbackReason: highlightFallbackEntryUnavailable}
+	}
 
 	renderer := getTreeSitterRenderer(entry)
 	if renderer == nil {
-		return "", "", false
+		return treeSitterRenderAttempt{fallbackReason: highlightFallbackRendererUnavailable}
 	}
 
 	rendered, ok := renderer.render(code, true)
 	if !ok {
-		return "", "", false
+		return treeSitterRenderAttempt{fallbackReason: highlightFallbackRenderUnusable}
 	}
-	return rendered, renderer.displayName, true
+	return treeSitterRenderAttempt{
+		rendered:       rendered,
+		displayName:    renderer.displayName,
+		ok:             true,
+		fallbackReason: highlightFallbackCount,
+	}
 }
 
-func tryRenderCodeByTreeSitterWithLexer(lexerName string, code []byte) (template.HTML, string, bool) {
+func tryRenderCodeByTreeSitterWithLexerDetailed(lexerName string, code []byte) treeSitterRenderAttempt {
 	entry := lookupTreeSitterEntryByLanguageName(lexerName)
+	if entry == nil {
+		return treeSitterRenderAttempt{fallbackReason: highlightFallbackEntryUnavailable}
+	}
 	renderer := getTreeSitterRenderer(entry)
 	if renderer == nil {
-		return "", "", false
+		return treeSitterRenderAttempt{fallbackReason: highlightFallbackRendererUnavailable}
 	}
 	rendered, ok := renderer.render(code, true)
 	if !ok {
-		return "", "", false
+		return treeSitterRenderAttempt{fallbackReason: highlightFallbackRenderUnusable}
 	}
-	return rendered, renderer.displayName, true
+	return treeSitterRenderAttempt{
+		rendered:       rendered,
+		displayName:    renderer.displayName,
+		ok:             true,
+		fallbackReason: highlightFallbackCount,
+	}
 }
 
 func renderFullFileByTreeSitter(fileName, language string, code []byte) ([]template.HTML, string, error) {
+	attempt, err := renderFullFileByTreeSitterDetailed(fileName, language, code)
+	if err != nil {
+		return nil, "", err
+	}
+	return attempt.lines, attempt.displayName, nil
+}
+
+func renderFullFileByTreeSitterDetailed(fileName, language string, code []byte) (treeSitterRenderAttempt, error) {
 	entry := resolveTreeSitterEntryWithAnalyze(fileName, language, code)
+	if entry == nil {
+		return treeSitterRenderAttempt{fallbackReason: highlightFallbackEntryUnavailable}, errors.New("tree-sitter renderer unavailable")
+	}
 	renderer := getTreeSitterRenderer(entry)
 	if renderer == nil {
-		return nil, "", errors.New("tree-sitter renderer unavailable")
+		return treeSitterRenderAttempt{fallbackReason: highlightFallbackRendererUnavailable}, errors.New("tree-sitter renderer unavailable")
 	}
 	lines, ok := renderer.renderLines(code)
 	if !ok {
-		return nil, "", errors.New("tree-sitter renderer unavailable")
+		return treeSitterRenderAttempt{fallbackReason: highlightFallbackRenderUnusable}, errors.New("tree-sitter renderer unavailable")
 	}
-	return lines, renderer.displayName, nil
+	return treeSitterRenderAttempt{
+		lines:          lines,
+		displayName:    renderer.displayName,
+		ok:             true,
+		fallbackReason: highlightFallbackCount,
+	}, nil
 }
 
 func treeSitterCaptureToChromaClass(capture string) string {
@@ -233,6 +296,14 @@ func treeSitterCaptureToChromaClass(capture string) string {
 		return ""
 	case strings.HasPrefix(capture, "comment"):
 		return "c"
+	case strings.HasPrefix(capture, "diff.plus"):
+		return "gi"
+	case strings.HasPrefix(capture, "diff.minus"):
+		return "gd"
+	case strings.HasPrefix(capture, "escape"):
+		return "se"
+	case strings.HasPrefix(capture, "character"):
+		return "s"
 	case strings.HasPrefix(capture, "string.escape"):
 		return "se"
 	case strings.HasPrefix(capture, "string.regex"):
@@ -241,13 +312,21 @@ func treeSitterCaptureToChromaClass(capture string) string {
 		return "ss"
 	case strings.HasPrefix(capture, "string"):
 		return "s"
+	case strings.HasPrefix(capture, "text.literal"),
+		strings.HasPrefix(capture, "text.uri"),
+		strings.HasPrefix(capture, "markup.raw"),
+		strings.HasPrefix(capture, "markup.link"):
+		return "s"
 	case strings.HasPrefix(capture, "keyword"),
 		strings.HasPrefix(capture, "conditional"),
 		strings.HasPrefix(capture, "repeat"),
-		strings.HasPrefix(capture, "exception"):
+		strings.HasPrefix(capture, "exception"),
+		strings.HasPrefix(capture, "constant.builtin"),
+		strings.HasPrefix(capture, "constant.language"):
 		return "k"
 	case strings.HasPrefix(capture, "include"),
-		strings.HasPrefix(capture, "namespace"):
+		strings.HasPrefix(capture, "namespace"),
+		strings.HasPrefix(capture, "module"):
 		return "nn"
 	case strings.HasPrefix(capture, "operator"):
 		return "o"

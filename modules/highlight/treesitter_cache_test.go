@@ -4,10 +4,22 @@
 package highlight
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/odvcencio/gotreesitter"
 )
+
+var treeSitterCacheTestGoSnippet = []byte(`package main
+
+import "fmt"
+
+func main() {
+	for i := 0; i < 100; i++ {
+		fmt.Println(i)
+	}
+}
+`)
 
 func TestTreeSitterRendererRenderLinesCacheCopiesOutput(t *testing.T) {
 	entry := resolveTreeSitterEntry("bench.go", "Go")
@@ -19,7 +31,7 @@ func TestTreeSitterRendererRenderLinesCacheCopiesOutput(t *testing.T) {
 		t.Skip("tree-sitter renderer unavailable for Go")
 	}
 
-	code := benchmarkGoSnippet
+	code := treeSitterCacheTestGoSnippet
 	lines1, ok := renderer.renderLines(code)
 	if !ok || len(lines1) == 0 {
 		t.Fatal("expected initial renderLines success with non-empty output")
@@ -107,6 +119,32 @@ func TestTreeSitterRendererRenderTrimModeCachesSeparately(t *testing.T) {
 	}
 	if trimmed2 != trimmed {
 		t.Fatalf("trimmed cache mismatch: %q vs %q", trimmed2, trimmed)
+	}
+}
+
+func TestTreeSitterRendererCompatibilityFallbackAfterIncrementalEdit(t *testing.T) {
+	entry := resolveTreeSitterEntry("nginx.conf", "")
+	if entry == nil {
+		t.Skip("tree-sitter entry unavailable for nginx")
+	}
+	renderer := getTreeSitterRenderer(entry)
+	if renderer == nil {
+		t.Skip("tree-sitter renderer unavailable for nginx")
+	}
+
+	multiline := []byte("server {\n  listen 80;\n  location / {\n    return 200;\n  }\n}\n")
+	singleLine := []byte("server { listen 80; location / { return 200; } }\n")
+
+	if rendered, ok := renderer.render(multiline, true); !ok || rendered == "" {
+		t.Fatal("expected initial multiline render success for nginx")
+	}
+
+	rendered, ok := renderer.render(singleLine, true)
+	if !ok {
+		t.Fatal("expected single-line nginx render success after incremental edit")
+	}
+	if !strings.Contains(string(rendered), `<span class="k">server</span>`) {
+		t.Fatalf("expected compatibility-highlighted nginx output, got %q", rendered)
 	}
 }
 

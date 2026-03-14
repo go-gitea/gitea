@@ -63,7 +63,7 @@ func TestFile(t *testing.T) {
 		{
 			name:      "tags.py",
 			code:      "<>",
-			want:      lines("&lt;&gt;"),
+			want:      lines(`<span class="o">&lt;</span><span class="o">&gt;</span>`),
 			lexerName: "Python",
 		},
 		{
@@ -99,12 +99,12 @@ b=''
 c=2
 			`), "{space}", "    "),
 			want: lines(`
-<span class="k">def</span>:\n
-    <span class="nv">a</span>=1\n
+<span class="n">def</span><span class="p">:</span>\n
+    <span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n
 \n
-b=&#39;&#39;\n
+<span class="n">b</span><span class="o">=</span><span class="sa"></span><span class="s1">&#39;</span><span class="s1">&#39;</span>\n
     \n
-c=2`,
+<span class="n">c</span><span class="o">=</span><span class="mi">2</span>`,
 			),
 			lexerName: "Python",
 		},

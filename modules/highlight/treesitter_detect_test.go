@@ -40,6 +40,13 @@ func TestResolveTreeSitterEntryFallsBackToFilename(t *testing.T) {
 	}
 }
 
+func TestResolveTreeSitterEntryKeepsTxtAsPlainTextWithoutMetadata(t *testing.T) {
+	entry := resolveTreeSitterEntry("tags.txt", "")
+	if entry != nil {
+		t.Fatalf("resolveTreeSitterEntry(%q, \"\") = %q, want nil", "tags.txt", entry.Name)
+	}
+}
+
 func TestResolveTreeSitterEntryFallsBackToChromaAlias(t *testing.T) {
 	// "ksh" is a chroma alias for Bash. It is a realistic metadata value from
 	// external detectors, and should still resolve to a tree-sitter grammar.
