@@ -13,16 +13,7 @@ import type {InlineConfig, Manifest, Plugin, Rolldown} from 'vite';
 
 const isProduction = env.NODE_ENV !== 'development';
 
-// ENABLE_SOURCEMAP accepts the following values:
-// true - all enabled, the default in development
-// reduced - minimal sourcemaps, the default in production
-// false - all disabled
-let sourceMaps: string | undefined;
-if ('ENABLE_SOURCEMAP' in env) {
-  sourceMaps = ['true', 'false'].includes(env.ENABLE_SOURCEMAP || '') ? env.ENABLE_SOURCEMAP : 'reduced';
-} else {
-  sourceMaps = isProduction ? 'reduced' : 'true';
-}
+const enableSourcemap = env.ENABLE_SOURCEMAP === 'false' ? false : env.ENABLE_SOURCEMAP === 'true' ? true : !isProduction;
 
 const outDir = fileURLToPath(new URL('public/assets', import.meta.url));
 
@@ -61,7 +52,7 @@ function commonViteOpts<T extends InlineConfig>({build, ...other}: T): T {
     build: {
       outDir,
       emptyOutDir: false,
-      sourcemap: sourceMaps !== 'false',
+      sourcemap: enableSourcemap,
       target: 'es2020',
       minify: isProduction,
       cssMinify: 'esbuild',
@@ -103,7 +94,6 @@ function iifeIndexPlugin(): Plugin {
         },
         plugins: [
           stringPlugin(),
-          sourceMaps === 'reduced' && reducedSourcemapPlugin(),
         ],
       }));
 
@@ -126,38 +116,6 @@ function iifeIndexPlugin(): Plugin {
         }
       }
     },
-  };
-}
-
-// In 'reduced' mode, exclude node_modules from sourcemaps
-function reducedSourcemapPlugin(runCloseBundle = false): Plugin {
-  return {
-    name: 'reduced-sourcemap',
-    enforce: 'post',
-    transform(code, id) {
-      if (id.includes('node_modules')) {
-        return {code, map: {mappings: ''}};
-      }
-      return null;
-    },
-    // Delete map files with no own code, strip node_modules sourcesContent from the rest.
-    // Rolldown ignores generateBundle mutations, so we must rewrite files in closeBundle.
-    ...(runCloseBundle && {closeBundle() {
-      for (const file of globSync('**/*.map', {cwd: outDir})) {
-        const mapPath = join(outDir, file);
-        const map = JSON.parse(readFileSync(mapPath, 'utf8'));
-        const hasOwnCode = map.sources?.some((s: string) => !s.includes('node_modules'));
-        if (!hasOwnCode) {
-          unlinkSync(mapPath);
-          continue;
-        }
-        if (!map.sourcesContent?.length) continue;
-        map.sourcesContent = map.sourcesContent.map((content: string, i: number) =>
-          map.sources[i]?.includes('node_modules') ? '' : content,
-        );
-        writeFileSync(mapPath, JSON.stringify(map));
-      }
-    }}),
   };
 }
 
@@ -205,9 +163,6 @@ export default defineConfig(commonViteOpts({
     },
   },
   worker: {
-    plugins: () => [
-      sourceMaps === 'reduced' && reducedSourcemapPlugin(),
-    ],
     rolldownOptions: {
       ...commonRolldownOptions,
       output: {
@@ -240,7 +195,6 @@ export default defineConfig(commonViteOpts({
     iifeIndexPlugin(),
     filterCssUrlPlugin(),
     stringPlugin(),
-    sourceMaps === 'reduced' && reducedSourcemapPlugin(true),
     vuePlugin({
       template: {
         compilerOptions: {
