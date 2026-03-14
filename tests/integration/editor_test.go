@@ -151,7 +151,7 @@ func testEditorDiffPreview(t *testing.T) {
 		"content": "# repo1 (Edited)",
 	})
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	assert.Contains(t, resp.Body.String(), `<span class="added-code"> (Edited)</span>`)
+	assert.Contains(t, resp.Body.String(), `<span class="added-code">repo1 (Edited)</span>`)
 }
 
 func testEditorPatchFile(t *testing.T) {
