@@ -156,5 +156,5 @@ func UpdateGeneralSettings(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
-	ctx.Redirect(ctx.Link)
+	ctx.JSONRedirect("") // use JSONRedirect because frontend uses form-fetch-action
 }

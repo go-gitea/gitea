@@ -77,7 +77,9 @@
 			</div>
 		</div>
 
-		{{template "shared/actions/permissions_table" .}}
+		<div class="field">
+			{{template "shared/actions/permissions_table" .}}
+		</div>
 
 		<div class="field">
 			<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>

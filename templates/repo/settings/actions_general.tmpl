@@ -40,7 +40,7 @@
 
 			<div class="divider"></div>
 
-			<div class="js-repo-token-permissions-config">
+			<div class="field js-repo-token-permissions-config">
 				{{template "shared/actions/permission_mode_select" .}}
 				<div class="divider"></div>
 
@@ -65,8 +65,6 @@
 
 				{{template "shared/actions/permissions_table" .}}
 			</div>
-
-			<div class="divider"></div>
 
 			<div class="field">
 				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
