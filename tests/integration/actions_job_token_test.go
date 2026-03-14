@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"testing"
 	"time"
 
@@ -1105,7 +1106,7 @@ func TestActionsTokenPermissionsExceedsTargetRepoLimit(t *testing.T) {
 			"cross_repo_add_target":      "true",
 			"cross_repo_add_target_name": repo2.Name,
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 		// create the runner for repo1
 		runner1 := newMockRunner()
 		runner1.registerAsRepoRunner(t, user2.Name, repo1.Name, "mock-runner", []string{"ubuntu-latest"}, false)
@@ -1121,14 +1122,7 @@ func TestActionsTokenPermissionsExceedsTargetRepoLimit(t *testing.T) {
 			"token_permission_mode":  "restricted",
 			"override_owner_config":  "true",
 			"enable_max_permissions": "true",
-			"max_code":               "none",
-			"max_issues":             "read",
-			"max_pull_requests":      "none",
-			"max_packages":           "none",
-			"max_wiki":               "none",
-			"max_actions":            "none",
-			"max_releases":           "none",
-			"max_projects":           "none",
+			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeIssues)): "read",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
@@ -1163,14 +1157,8 @@ jobs:
 			"token_permission_mode":  "restricted",
 			"override_owner_config":  "true",
 			"enable_max_permissions": "true",
-			"max_code":               "read",
-			"max_issues":             "read",
-			"max_pull_requests":      "none",
-			"max_packages":           "none",
-			"max_wiki":               "none",
-			"max_actions":            "none",
-			"max_releases":           "none",
-			"max_projects":           "none",
+			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeCode)):   "read",
+			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeIssues)): "read",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
