@@ -9,7 +9,7 @@ import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
 import wrapAnsi from 'wrap-ansi';
 import licensePlugin from 'rollup-plugin-license';
-import type {InlineConfig, Manifest, Plugin} from 'vite';
+import type {InlineConfig, Manifest, Plugin, Rolldown} from 'vite';
 
 const isProduction = env.NODE_ENV !== 'development';
 
@@ -43,8 +43,15 @@ const webComponents = new Set([
 
 const formatLicenseText = (licenseText: string) => wrapAnsi(licenseText || '', 80).trim();
 
-function commonViteOpts<T extends InlineConfig>({build, ...rest}: T): T {
-  const {rolldownOptions, ...buildRest} = build || {};
+const commonRolldownOptions: Rolldown.RolldownOptions = {
+  checks: {
+    eval: false, // htmx needs eval
+    pluginTimings: false,
+  },
+};
+
+function commonViteOpts<T extends InlineConfig>({build, ...other}: T): T {
+  const {rolldownOptions, ...otherBuild} = build || {};
   return {
     configFile: false,
     root: import.meta.dirname,
@@ -58,15 +65,12 @@ function commonViteOpts<T extends InlineConfig>({build, ...rest}: T): T {
       cssMinify: 'esbuild',
       reportCompressedSize: false,
       rolldownOptions: {
-        checks: {
-          eval: false, // htmx needs eval
-          pluginTimings: false,
-        },
+        ...commonRolldownOptions,
         ...rolldownOptions,
       },
-      ...buildRest,
+      ...otherBuild,
     },
-    ...rest,
+    ...other,
   } as InlineConfig & T;
 }
 
@@ -203,9 +207,7 @@ export default defineConfig(commonViteOpts({
       sourceMaps === 'reduced' && reducedSourcemapPlugin(),
     ],
     rolldownOptions: {
-      checks: {
-        pluginTimings: false,
-      },
+      ...commonRolldownOptions,
       output: {
         entryFileNames: 'js/[name].[hash:8].js',
       },
