@@ -1,4 +1,4 @@
-import {build, defineConfig, type InlineConfig, type Manifest, type Plugin} from 'vite';
+import {build, defineConfig} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
 import {readFileSync, writeFileSync, unlinkSync, globSync} from 'node:fs';
@@ -9,6 +9,7 @@ import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
 import wrapAnsi from 'wrap-ansi';
 import licensePlugin from 'rollup-plugin-license';
+import type {InlineConfig, Manifest, Plugin} from 'vite';
 
 const isProduction = env.NODE_ENV !== 'development';
 
