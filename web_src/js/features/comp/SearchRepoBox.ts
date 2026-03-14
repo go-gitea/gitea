@@ -6,9 +6,13 @@ const {appSubUrl} = window.config;
 export function initCompSearchRepoBox(el: HTMLElement) {
   const uid = el.getAttribute('data-uid');
   const collaborate = el.getAttribute('data-collaborate');
-  let url = `${appSubUrl}/repo/search?q={query}&uid=${uid}&exclusive=true`;
+  const exclusive = el.getAttribute('data-exclusive');
+  let url = `${appSubUrl}/repo/search?q={query}&uid=${uid}`;
   if (collaborate !== null) {
     url += `&collaborate=${collaborate}`;
+  }
+  if (exclusive === 'true') {
+    url += `&exclusive=true`;
   }
   fomanticQuery(el).search({
     minCharacters: 2,
