@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/models/actions"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -38,15 +39,25 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	actionsCfg := actionsUnit.ActionsConfig()
 
 	// Token permission settings
-	ctx.Data["TokenPermissionMode"] = actionsCfg.TokenPermissionMode
 	ctx.Data["TokenPermissionModePermissive"] = repo_model.ActionsTokenPermissionModePermissive
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
-	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
-	ctx.Data["EnableMaxTokenPermissions"] = actionsCfg.MaxTokenPermissions != nil
 
 	// Follow owner config (only for repos in orgs)
-	ctx.Data["IsInOrg"] = ctx.Repo.Repository.Owner.IsOrganization()
 	ctx.Data["OverrideOwnerConfig"] = actionsCfg.OverrideOwnerConfig
+	if actionsCfg.OverrideOwnerConfig {
+		ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
+		ctx.Data["TokenPermissionMode"] = actionsCfg.TokenPermissionMode
+		ctx.Data["EnableMaxTokenPermissions"] = actionsCfg.MaxTokenPermissions != nil
+	} else {
+		ownerActionsConfig, err := actions.GetOwnerActionsConfig(ctx, ctx.Repo.Repository.OwnerID)
+		if err != nil {
+			ctx.ServerError("GetOwnerActionsConfig", err)
+			return
+		}
+		ctx.Data["MaxTokenPermissions"] = ownerActionsConfig.GetMaxTokenPermissions()
+		ctx.Data["TokenPermissionMode"] = ownerActionsConfig.TokenPermissionMode
+		ctx.Data["EnableMaxTokenPermissions"] = ownerActionsConfig.MaxTokenPermissions != nil
+	}
 
 	if ctx.Repo.Repository.IsPrivate {
 		collaborativeOwnerIDs := actionsCfg.CollaborativeOwnerIDs
