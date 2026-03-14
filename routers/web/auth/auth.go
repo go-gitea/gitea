@@ -218,7 +218,7 @@ func performAutoLogin(ctx *context.Context) bool {
 	return false
 }
 
-func performAutoLoginOAuth2(ctx *context.Context){
+func performAutoLoginOAuth2(ctx *context.Context) {
 	providers, ok := ctx.Data["OAuth2Providers"].([]oauth2.Provider)
 	if ok && len(providers) == 1 {
 		ctx.Redirect(setting.AppSubURL + "/user/oauth2/" + url.PathEscape(providers[0].DisplayName()) + "?redirect_to=" + ctx.FormString("redirect_to"))
