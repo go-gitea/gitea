@@ -2,25 +2,12 @@
 	{{ctx.Locale.Tr "actions.general.cross_repo"}}
 </h4>
 <div class="ui attached segment">
-	<form class="ui form form-fetch-action " action="{{.Link}}" method="post" data-global-init="initOwnerActionsCrossRepoForm">
+	<form class="ui form form-fetch-action " action="{{.Link}}" method="post">
 		<!-- Cross-Repository Access -->
-		<div>{{ctx.Locale.Tr "actions.general.cross_repo_desc"}}</div>
-		<div class="grouped fields">
-			<div class="field">
-				<div class="ui radio checkbox">
-					<input type="radio" name="cross_repo_mode" value="none" {{if eq .CrossRepoMode .ActionsCrossRepoModeNone}}checked{{end}}>
-					<label>{{ctx.Locale.Tr "disabled"}}</label>
-				</div>
-			</div>
-			<div class="field">
-				<div class="ui radio checkbox">
-					<input type="radio" name="cross_repo_mode" value="selected" {{if eq .CrossRepoMode .ActionsCrossRepoModeSelected}}checked{{end}}>
-					<label>{{ctx.Locale.Tr "actions.general.cross_repo_selected"}}</label>
-				</div>
-			</div>
-		</div>
+		<div class="help">{{ctx.Locale.Tr "actions.general.cross_repo_desc"}}</div>
+
 		<!-- Allowed Repositories List -->
-		<div class="field js-cross-repo-selected-only">
+		<div class="field tw-mt-4">
 			<h5 class="ui header">
 				{{ctx.Locale.Tr "actions.general.cross_repo_target_repos"}}
 			</h5>
@@ -59,10 +46,6 @@
 				</div>
 				<button class="ui primary button" type="submit" name="cross_repo_add_target" value="true">{{ctx.Locale.Tr "add"}}</button>
 			</div>
-		</div>
-
-		<div class="field">
-			<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
 		</div>
 	</form>
 </div>

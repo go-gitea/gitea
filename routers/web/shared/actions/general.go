@@ -77,12 +77,11 @@ func GeneralSettings(ctx *context.Context) {
 	ctx.Data["TokenPermissionMode"] = actionsCfg.TokenPermissionMode
 	ctx.Data["TokenPermissionModePermissive"] = repo_model.ActionsTokenPermissionModePermissive
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
-	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
+	ctx.Data["MaxTokenPermissions"] = actionsCfg.MaxTokenPermissions
+	if actionsCfg.MaxTokenPermissions == nil {
+		ctx.Data["MaxTokenPermissions"] = (&repo_model.ActionsConfig{}).GetMaxTokenPermissions()
+	}
 	ctx.Data["EnableMaxTokenPermissions"] = actionsCfg.MaxTokenPermissions != nil
-
-	ctx.Data["CrossRepoMode"] = actionsCfg.CrossRepoMode
-	ctx.Data["ActionsCrossRepoModeNone"] = repo_model.ActionsCrossRepoModeNone
-	ctx.Data["ActionsCrossRepoModeSelected"] = repo_model.ActionsCrossRepoModeSelected
 
 	// Load Allowed Repositories
 	allowedRepos, err := repo_model.GetOwnerRepositoriesByIDs(ctx, rCtx.OwnerID, actionsCfg.AllowedCrossRepoIDs)
@@ -140,17 +139,6 @@ func UpdateGeneralSettings(ctx *context.Context) {
 
 	if crossRepoRemoveTargetID := ctx.FormInt64("cross_repo_remove_target_id"); crossRepoRemoveTargetID != 0 {
 		actionsCfg.AllowedCrossRepoIDs = util.SliceRemoveAll(actionsCfg.AllowedCrossRepoIDs, crossRepoRemoveTargetID)
-	}
-
-	// Update Cross-Repo Access Mode
-	crossRepoMode := repo_model.ActionsCrossRepoMode(ctx.FormString("cross_repo_mode"))
-	if crossRepoMode != "" {
-		switch crossRepoMode {
-		case repo_model.ActionsCrossRepoModeSelected:
-		default:
-			crossRepoMode = repo_model.ActionsCrossRepoModeNone
-		}
-		actionsCfg.CrossRepoMode = crossRepoMode
 	}
 
 	// Update Token Permission Mode

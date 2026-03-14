@@ -1,10 +1,9 @@
 import {registerGlobalInitFunc} from '../modules/observer.ts';
-import {queryElems, toggleElem, toggleElemClass} from '../utils/dom.ts';
+import {toggleElem, toggleElemClass} from '../utils/dom.ts';
 
 export function initActionsPermissionsForm(): void {
   registerGlobalInitFunc('initRepoActionsPermissionsForm', initRepoActionsPermissionsForm);
   registerGlobalInitFunc('initOwnerActionsPermissionsForm', initOwnerActionsPermissionsForm);
-  registerGlobalInitFunc('initOwnerActionsCrossRepoForm', initActionsCrossRepoSetting);
 }
 
 function initRepoActionsPermissionsForm(form: HTMLFormElement) {
@@ -14,18 +13,6 @@ function initRepoActionsPermissionsForm(form: HTMLFormElement) {
 
 function initOwnerActionsPermissionsForm(form: HTMLFormElement) {
   initActionsPermissionTable(form);
-}
-
-function initActionsCrossRepoSetting(form: HTMLFormElement) {
-  // show or hide "selected repos only" section based on cross repo mode
-  const selectedOnlySection = form.querySelector('.js-cross-repo-selected-only')!;
-  function onCrossRepoModeChange(): void {
-    const modeChecked = form.querySelector<HTMLInputElement>('input[name=cross_repo_mode]:checked');
-    const isSelectedOnly = modeChecked?.value === 'selected';
-    toggleElem(selectedOnlySection, isSelectedOnly);
-  }
-  onCrossRepoModeChange();
-  queryElems(form, 'input[name=cross_repo_mode]', (el) => el.addEventListener('change', onCrossRepoModeChange));
 }
 
 function initActionsPermissionTable(form: HTMLFormElement) {

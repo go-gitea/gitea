@@ -21,16 +21,6 @@ const (
 	ActionsTokenPermissionModeRestricted ActionsTokenPermissionMode = "restricted"
 )
 
-// ActionsCrossRepoMode defines the mode for cross-repository access
-type ActionsCrossRepoMode string
-
-const (
-	// ActionsCrossRepoModeNone - no cross-repository access allowed
-	ActionsCrossRepoModeNone ActionsCrossRepoMode = "none"
-	// ActionsCrossRepoModeSelected - access allowed only to selected repositories
-	ActionsCrossRepoModeSelected ActionsCrossRepoMode = "selected"
-)
-
 // ActionsTokenPermissions defines the permissions for different repository units
 type ActionsTokenPermissions struct {
 	// Code (repository code) - read/write/none
@@ -139,10 +129,6 @@ type ActionsConfig struct {
 	// MaxTokenPermissions defines the absolute maximum permissions any token can have in this context.
 	// Workflow YAML "permissions" keywords can reduce permissions but never exceed this ceiling.
 	MaxTokenPermissions *ActionsTokenPermissions `json:"max_token_permissions,omitempty"`
-	// CrossRepoMode indicates which repos in the org can be accessed (none, all, or selected)
-	CrossRepoMode ActionsCrossRepoMode `json:"cross_repo_mode,omitempty"`
-	// AllowedCrossRepoIDs is a list of specific repo IDs that can be accessed cross-repo (only used if CrossRepoMode is ActionsCrossRepoModeSelected)
-	AllowedCrossRepoIDs []int64 `json:"allowed_cross_repo_ids,omitempty"`
 	// OverrideOwnerConfig indicates if this repository should override the owner-level configuration (User or Org)
 	OverrideOwnerConfig bool `json:"override_owner_config,omitempty"`
 }
@@ -246,12 +232,6 @@ func (cfg *ActionsConfig) FromDB(bs []byte) error {
 	case ActionsTokenPermissionModeRestricted, ActionsTokenPermissionModePermissive:
 	default:
 		cfg.TokenPermissionMode = ActionsTokenPermissionModePermissive
-	}
-
-	switch cfg.CrossRepoMode {
-	case ActionsCrossRepoModeSelected:
-	default:
-		cfg.CrossRepoMode = ActionsCrossRepoModeNone
 	}
 
 	return nil

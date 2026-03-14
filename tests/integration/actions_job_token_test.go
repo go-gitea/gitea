@@ -393,8 +393,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		org, err := org_model.GetOrgByName(t.Context(), orgName)
 		require.NoError(t, err)
 
-		cfg := &repo_model.ActionsConfig{
-			CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+		cfg := &actions_model.UserActionsConfig{
 			AllowedCrossRepoIDs: []int64{repoAID, repoBID},
 		}
 		err = actions_model.SetUserActionsConfig(t.Context(), org.ID, cfg)
@@ -430,8 +429,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		// 7. Test Cross-Repo Access - Specific Repositories
 		t.Run("Cross-Repo Access - Specific Repositories", func(t *testing.T) {
 			// Set mode to Selected with ONLY repo-B
-			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
-				CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), org.ID, &actions_model.UserActionsConfig{
 				AllowedCrossRepoIDs: []int64{repoBID},
 			}))
 
@@ -443,8 +441,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			})(t)
 
 			// Remove repo-B from allowed list
-			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
-				CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), org.ID, &actions_model.UserActionsConfig{
 				AllowedCrossRepoIDs: []int64{}, // Empty list
 			}))
 
@@ -514,17 +511,14 @@ func TestActionsUserCrossRepoAccess(t *testing.T) {
 		user2, err := user_model.GetUserByName(t.Context(), userName)
 		require.NoError(t, err)
 
-		cfg := &repo_model.ActionsConfig{
-			CrossRepoMode: repo_model.ActionsCrossRepoModeNone,
-		}
+		cfg := &actions_model.UserActionsConfig{}
 		err = actions_model.SetUserActionsConfig(t.Context(), user2.ID, cfg)
 		require.NoError(t, err)
 
 		t.Run("User Cross-Repo Access Denied (Explicit None)", doAPIGetRepository(testCtx, nil))
 
 		// Case C: Explicitly Enable AllowCrossRepoAccess All
-		cfg = &repo_model.ActionsConfig{
-			CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+		cfg = &actions_model.UserActionsConfig{
 			AllowedCrossRepoIDs: []int64{repoAID, repoBID},
 		}
 		err = actions_model.SetUserActionsConfig(t.Context(), user2.ID, cfg)
@@ -537,9 +531,7 @@ func TestActionsUserCrossRepoAccess(t *testing.T) {
 		}))
 
 		// Case C: Explicitly Disable AllowCrossRepoAccess
-		cfg = &repo_model.ActionsConfig{
-			CrossRepoMode: repo_model.ActionsCrossRepoModeNone,
-		}
+		cfg = &actions_model.UserActionsConfig{}
 		err = actions_model.SetUserActionsConfig(t.Context(), userObj.ID, cfg)
 		require.NoError(t, err)
 
@@ -550,8 +542,7 @@ func TestActionsUserCrossRepoAccess(t *testing.T) {
 		// 5. Test Cross-Repo Access - Specific Repositories
 		t.Run("User Cross-Repo Access - Specific Repositories", func(t *testing.T) {
 			// Set mode to Selected with ONLY repo-user-B
-			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), userObj.ID, &repo_model.ActionsConfig{
-				CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), userObj.ID, &actions_model.UserActionsConfig{
 				AllowedCrossRepoIDs: []int64{repoBID},
 			}))
 
@@ -563,8 +554,7 @@ func TestActionsUserCrossRepoAccess(t *testing.T) {
 			})(t)
 
 			// Remove repo-user-B from allowed list
-			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), userObj.ID, &repo_model.ActionsConfig{
-				CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), userObj.ID, &actions_model.UserActionsConfig{
 				AllowedCrossRepoIDs: []int64{}, // Empty list
 			}))
 
@@ -595,8 +585,7 @@ func TestActionsCrossRepoCleanupOnTransfer(t *testing.T) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 
 		// 2. Add repo to AllowedCrossRepoIDs for user2
-		require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), user2.ID, &repo_model.ActionsConfig{
-			CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+		require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), user2.ID, &actions_model.UserActionsConfig{
 			AllowedCrossRepoIDs: []int64{apiRepo.ID},
 		}))
 
@@ -994,7 +983,7 @@ func TestActionsOverrideOwnerConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		// 1. Set Org Config to RESTRICTED and Max=Read
-		orgCfg := &repo_model.ActionsConfig{
+		orgCfg := &actions_model.UserActionsConfig{
 			TokenPermissionMode: repo_model.ActionsTokenPermissionModeRestricted,
 			MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
 				Issues: perm.AccessModeRead,
@@ -1109,7 +1098,6 @@ func TestActionsTokenPermissionsExceedsTargetRepoLimit(t *testing.T) {
 
 		// set owner-level actions config to "selected" and add repo2
 		req := NewRequestWithValues(t, "POST", "/user/settings/actions/general", map[string]string{
-			"cross_repo_mode":            "selected",
 			"cross_repo_add_target":      "true",
 			"cross_repo_add_target_name": repo2.Name,
 		})

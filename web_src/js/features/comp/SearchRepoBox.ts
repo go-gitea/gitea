@@ -6,7 +6,7 @@ const {appSubUrl} = window.config;
 export function initCompSearchRepoBox(el: HTMLElement) {
   const uid = el.getAttribute('data-uid');
   const collaborate = el.getAttribute('data-collaborate');
-  let url = `${appSubUrl}/repo/search?q={query}&uid=${uid}`;
+  let url = `${appSubUrl}/api/v1/repos/search?q={query}&uid=${uid}&exclusive=true`;
   if (collaborate !== null) {
     url += `&collaborate=${collaborate}`;
   }

@@ -26,11 +26,9 @@ The maximum allowable permissions (`MaxTokenPermissions`) are set at the Reposit
 
 ### 4. Cross-Repository Access
 - By default, a token can access the repository where the workflow is running, as well as any **public repositories (read-only)** on the instance.
-- Users and organizations can configure `ActionsCrossRepoMode` to grant the token **read-only** access to other private/internal repositories they own.
-- Allowed modes:
-  - **None**: No cross-repository access to other private repositories (default for enhanced security).
-  - **Selected**: The token can access a specific list of repositories (`AllowedCrossRepoIDs`).
-- In any mode, individual jobs can disable or limit cross-repo access by explicitly restricting their permissions (e.g., `permissions: none`).
+- Users and organizations can configure an `AllowedCrossRepoIDs` list in their owner-level settings to grant the token **read-only** access to other private/internal repositories they own.
+- If the `AllowedCrossRepoIDs` list is empty, there is no cross-repository access to other private repositories (default for enhanced security).
+- In any configuration, individual jobs can disable or limit cross-repo access by explicitly restricting their permissions (e.g., `permissions: none`).
 - **Note on Forks**: Cross-repository access to private repositories is fundamentally denied for workflows triggered by fork pull requests (see [Special Cases](#2-fork-pull-requests)).
 
 ## Token Lifecycle & Permission Evaluation
@@ -48,9 +46,9 @@ When a job starts, Gitea evaluates the requested permissions for the `GITEA_TOKE
 - If the repository says `Issues: read` and the workflow requests `Issues: write`, the final token gets `Issues: read`.
 
 ### Step 3: Apply Organization/User Clamping (Hierarchical Override)
-- If the repository belongs to an organization (or user) with its own `MaxTokenPermissions`, these restrictions cascade down.
-- The repository's clamping limits cannot exceed the organization's limits UNLESS the repository explicitly enables `OverrideOrgConfig`.
-- If `OverrideOrgConfig` is false, and the org sets `MaxTokenPermissions` to `read` for all scopes, no repository inside that org can grant `write` access, regardless of their own settings or the workflow's request.
+- The organization (or user) has an owner-level configuration (`UserActionsConfig`) containing `MaxTokenPermissions`, and these restrictions cascade down.
+- The repository's clamping limits cannot exceed the owner's limits UNLESS the repository explicitly enables `OverrideOwnerConfig`.
+- If `OverrideOwnerConfig` is false, and the owner sets `MaxTokenPermissions` to `read` for all scopes, no repository under that owner can grant `write` access, regardless of their own settings or the workflow's request.
 
 ## Parsing Priority for "contents" Scope
 
@@ -75,10 +73,10 @@ permissions:
 ### 2. Fork Pull Requests
 - Workflows triggered by Pull Requests from forks inherently operate in `Restricted` mode for security reasons.
 - The base permissions for the current repository are automatically downgraded to `read` (or `none`), preventing untrusted code from modifying the repository.
-- **Cross-Repo Access in Forks**: For workflows triggered by fork pull requests, cross-repository access to other private repositories is strictly denied, regardless of the `ActionsCrossRepoMode` configuration. Fork PRs can only read the target repository and truly public repositories.
+- **Cross-Repo Access in Forks**: For workflows triggered by fork pull requests, cross-repository access to other private repositories is strictly denied, regardless of the `AllowedCrossRepoIDs` configuration. Fork PRs can only read the target repository and truly public repositories.
 
 ### 3. Public Repositories in Cross-Repo Access
-- As mentioned in Cross-Repository Access, truly public repositories can always be read by the token, regardless of the `ActionsCrossRepoMode` setting. The `CrossRepoMode` only governs access to private/internal repositories owned by the same user or organization.
+- As mentioned in Cross-Repository Access, truly public repositories can always be read by the token, regardless of the `AllowedCrossRepoIDs` setting. The allowed list only governs access to private/internal repositories owned by the same user or organization.
 
 ## Packages Registry
 

@@ -66,10 +66,8 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 	t.Run("CrossRepo_Denied_None", func(t *testing.T) {
 		task53 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 53})
 
-		// Set owner policy to None
-		cfg := &repo_model.ActionsConfig{
-			CrossRepoMode: repo_model.ActionsCrossRepoModeNone,
-		}
+		// Set owner policy to nil allowed repos (None)
+		cfg := &actions_model.UserActionsConfig{}
 		require.NoError(t, actions_model.SetUserActionsConfig(ctx, owner2.ID, cfg))
 
 		perm, err := GetActionsUserRepoPermission(ctx, repo15, actionsUser, task53.ID)
@@ -84,9 +82,8 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		task53.IsForkPullRequest = true
 		require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
 
-		// Policy is "All"
-		cfg := &repo_model.ActionsConfig{
-			CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+		// Policy contains repo15
+		cfg := &actions_model.UserActionsConfig{
 			AllowedCrossRepoIDs: []int64{repo15.ID},
 		}
 		require.NoError(t, actions_model.SetUserActionsConfig(ctx, owner2.ID, cfg))
@@ -104,7 +101,7 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
 
 		// Owner policy: Restricted mode (Read-only Code)
-		ownerCfg := &repo_model.ActionsConfig{
+		ownerCfg := &actions_model.UserActionsConfig{
 			TokenPermissionMode: repo_model.ActionsTokenPermissionModeRestricted,
 			MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
 				Code: perm_model.AccessModeRead,
@@ -130,7 +127,7 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		task53 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 53})
 
 		// Owner policy: Permissive (Write access)
-		ownerCfg := &repo_model.ActionsConfig{
+		ownerCfg := &actions_model.UserActionsConfig{
 			TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
 		}
 		require.NoError(t, actions_model.SetUserActionsConfig(ctx, owner2.ID, ownerCfg))
