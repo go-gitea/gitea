@@ -41,7 +41,9 @@ const webComponents = new Set([
   'text-expander',
 ]);
 
-const formatLicenseText = (licenseText: string) => wrapAnsi(licenseText || '', 80).trim();
+function formatLicenseText(licenseText: string) {
+  return wrapAnsi(licenseText || '', 80).trim();
+}
 
 const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
