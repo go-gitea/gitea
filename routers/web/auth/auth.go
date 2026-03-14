@@ -218,6 +218,14 @@ func performAutoLogin(ctx *context.Context) bool {
 	return false
 }
 
+func performAutoLoginOAuth2(ctx *context.Context){
+	providers, ok := ctx.Data["OAuth2Providers"].([]oauth2.Provider)
+	if ok && len(providers) == 1 {
+		ctx.Redirect(setting.AppSubURL + "/user/oauth2/" + url.PathEscape(providers[0].DisplayName()) + "?redirect_to=" + ctx.FormString("redirect_to"))
+		return
+	}
+}
+
 func prepareSignInPageData(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["OAuth2Providers"], _ = oauth2.GetOAuth2Providers(ctx, optional.Some(true))
@@ -242,6 +250,17 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 	prepareSignInPageData(ctx)
+
+	// If only 1 oAuth provider is present, and other login methods are diabled.
+	// Redirect to the oAuth provider.
+	if !ctx.FormBool("skipAutoLogin") &&
+		!setting.Service.EnablePasswordSignInForm &&
+		!setting.Service.EnableOpenIDSignIn &&
+		!setting.Service.EnablePasskeyAuth &&
+		!auth.IsSSPIEnabled(ctx) {
+		performAutoLoginOAuth2(ctx)
+	}
+
 	ctx.HTML(http.StatusOK, tplSignIn)
 }
 
