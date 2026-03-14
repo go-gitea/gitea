@@ -118,15 +118,6 @@
 	</div>
 
 	<div>
-		<h1>Absolute Dates</h1>
-		<div><relative-time datetime="2024-03-11" threshold="P0Y" prefix="" weekday="" year="numeric" month="short"></relative-time></div>
-		<div><relative-time datetime="2024-03-11" threshold="P0Y" prefix="" weekday="" year="numeric" month="long"></relative-time></div>
-		<div><relative-time datetime="2024-03-11" threshold="P0Y" prefix="" weekday="" year="" day="numeric" month="numeric"></relative-time></div>
-		<div><relative-time datetime="2024-03-11" threshold="P0Y" prefix="" weekday="long" year="" month="numeric"></relative-time></div>
-		<div><relative-time datetime="2024-03-11T19:00:00-05:00" threshold="P0Y" prefix="" weekday="long" year="" month="numeric"></relative-time></div>
-	</div>
-
-	<div>
 		<h1>LocaleNumber</h1>
 		<div>{{ctx.Locale.PrettyNumber 1}}</div>
 		<div>{{ctx.Locale.PrettyNumber 12}}</div>
@@ -135,17 +126,6 @@
 		<div>{{ctx.Locale.PrettyNumber 12345}}</div>
 		<div>{{ctx.Locale.PrettyNumber 123456}}</div>
 		<div>{{ctx.Locale.PrettyNumber 1234567}}</div>
-	</div>
-
-	<div>
-		<h1>TimeSince</h1>
-		<div>Now: {{DateUtils.TimeSince .TimeNow}}</div>
-		<div>5s past: {{DateUtils.TimeSince .TimePast5s}}</div>
-		<div>5s future: {{DateUtils.TimeSince .TimeFuture5s}}</div>
-		<div>2m past: {{DateUtils.TimeSince .TimePast2m}}</div>
-		<div>2m future: {{DateUtils.TimeSince .TimeFuture2m}}</div>
-		<div>1y past: {{DateUtils.TimeSince .TimePast1y}}</div>
-		<div>1y future: {{DateUtils.TimeSince .TimeFuture1y}}</div>
 	</div>
 
 	<div>
