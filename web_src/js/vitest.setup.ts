@@ -1,3 +1,5 @@
+import './globals.ts';
+
 window.config = {
   appUrl: 'http://localhost:3000/',
   appSubUrl: '',
