@@ -1,3 +1,4 @@
+{{$isActionsEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeActions}}
 <div class="repo-setting-content">
 	<!-- Enable/Disable Actions Section (First) -->
 	<h4 class="ui top attached header">
@@ -5,7 +6,6 @@
 	</h4>
 	<div class="ui attached segment">
 		<form class="ui form" action="{{.Link}}/actions_unit" method="post">
-			{{$isActionsEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeActions}}
 			{{$isActionsGlobalDisabled := ctx.Consts.RepoUnitTypeActions.UnitGlobalDisabled}}
 			<div class="inline field">
 				<label>{{ctx.Locale.Tr "actions.actions"}}</label>
@@ -23,6 +23,7 @@
 		</form>
 	</div>
 
+{{if $isActionsEnabled}}
 	<!-- Token Permissions Section -->
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.general.permissions"}}
@@ -43,26 +44,6 @@
 			<div class="field js-repo-token-permissions-config">
 				{{template "shared/actions/permission_mode_select" .}}
 				<div class="divider"></div>
-
-				<!-- Maximum Permissions Table -->
-				<div id="max-permissions-section">
-					<h5 class="ui header">
-						{{ctx.Locale.Tr "actions.general.token_permissions.maximum"}}
-					</h5>
-					<div class="help">
-						{{ctx.Locale.Tr "actions.general.token_permissions.maximum.description"}}
-						<br>
-						{{ctx.Locale.Tr "actions.general.token_permissions.fork_pr_note"}}
-					</div>
-
-					<div class="field">
-						<div class="ui checkbox">
-							<input type="checkbox" name="enable_max_permissions" {{if .EnableMaxTokenPermissions}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "actions.general.token_permissions.customize_max_permissions"}}</label>
-						</div>
-					</div>
-				</div>
-
 				{{template "shared/actions/permissions_table" .}}
 			</div>
 
@@ -71,8 +52,9 @@
 			</div>
 		</form>
 	</div>
+{{end}}
 
-{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
+{{if $isActionsEnabled}}
 	{{if .Repository.IsPrivate}}
 	<!-- Collaborative Owners Section -->
 	<h4 class="ui top attached header">
