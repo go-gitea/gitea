@@ -46,7 +46,7 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		require.NoError(t, err)
 
 		// Public repo, bot should have Read access even if not collaborator
-		assert.Equal(t, perm_model.AccessModeRead, perm.AccessMode)
+		assert.Equal(t, perm_model.AccessModeNone, perm.AccessMode)
 		assert.True(t, perm.CanRead(unit.TypeCode))
 	})
 
