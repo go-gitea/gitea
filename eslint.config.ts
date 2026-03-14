@@ -568,7 +568,7 @@ export default defineConfig([
       'no-restricted-exports': [0],
       'no-restricted-globals': [2, ...restrictedGlobals],
       'no-restricted-properties': [2, ...restrictedProperties],
-      'no-restricted-imports': [0],
+      'no-restricted-imports': [2, {paths: [{name: 'jquery', message: 'Use the global $ instead', allowTypeImports: true}]}],
       'no-restricted-syntax': [2, 'WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression'],
       'no-return-assign': [0],
       'no-script-url': [2],
