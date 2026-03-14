@@ -27,7 +27,7 @@ func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRe
 	}
 
 	repoActionsCfg := runRepo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-	ownerActionsCfg, err := GetUserActionsConfig(ctx, runRepo.OwnerID)
+	ownerActionsCfg, err := GetOwnerActionsConfig(ctx, runRepo.OwnerID)
 	if err != nil {
 		return ret, err
 	}
@@ -57,7 +57,7 @@ func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRe
 	isSameRepo := job.RepoID == targetRepo.ID
 	restrictCrossRepoAccess := job.Run.IsForkPullRequest || !isSameRepo
 	if restrictCrossRepoAccess {
-		effectivePerms = effectivePerms.ClampPermissions(repo_model.GetRestrictedPermissions())
+		effectivePerms = repo_model.ClampActionsTokenPermissions(effectivePerms, repo_model.MakeRestrictedPermissions())
 	}
 
 	return effectivePerms, nil

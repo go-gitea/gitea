@@ -67,8 +67,8 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		task53 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 53})
 
 		// Set owner policy to nil allowed repos (None)
-		cfg := &actions_model.UserActionsConfig{}
-		require.NoError(t, actions_model.SetUserActionsConfig(ctx, owner2.ID, cfg))
+		cfg := actions_model.OwnerActionsConfig{}
+		require.NoError(t, actions_model.SetOwnerActionsConfig(ctx, owner2.ID, cfg))
 
 		perm, err := GetActionsUserRepoPermission(ctx, repo15, actionsUser, task53.ID)
 		require.NoError(t, err)
@@ -83,10 +83,10 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
 
 		// Policy contains repo15
-		cfg := &actions_model.UserActionsConfig{
+		cfg := actions_model.OwnerActionsConfig{
 			AllowedCrossRepoIDs: []int64{repo15.ID},
 		}
-		require.NoError(t, actions_model.SetUserActionsConfig(ctx, owner2.ID, cfg))
+		require.NoError(t, actions_model.SetOwnerActionsConfig(ctx, owner2.ID, cfg))
 
 		perm, err := GetActionsUserRepoPermission(ctx, repo15, actionsUser, task53.ID)
 		require.NoError(t, err)
@@ -101,13 +101,15 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
 
 		// Owner policy: Restricted mode (Read-only Code)
-		ownerCfg := &actions_model.UserActionsConfig{
+		ownerCfg := actions_model.OwnerActionsConfig{
 			TokenPermissionMode: repo_model.ActionsTokenPermissionModeRestricted,
 			MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
-				Code: perm_model.AccessModeRead,
+				UnitAccessModes: map[unit.Type]perm_model.AccessMode{
+					unit.TypeCode: perm_model.AccessModeRead,
+				},
 			},
 		}
-		require.NoError(t, actions_model.SetUserActionsConfig(ctx, owner2.ID, ownerCfg))
+		require.NoError(t, actions_model.SetOwnerActionsConfig(ctx, owner2.ID, ownerCfg))
 
 		// Repo policy: OverrideOwnerConfig = false (should inherit owner's restricted mode)
 		repo2ActionsUnit := repo2.MustGetUnit(ctx, unit.TypeActions)
@@ -127,10 +129,10 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		task53 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 53})
 
 		// Owner policy: Permissive (Write access)
-		ownerCfg := &actions_model.UserActionsConfig{
+		ownerCfg := actions_model.OwnerActionsConfig{
 			TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
 		}
-		require.NoError(t, actions_model.SetUserActionsConfig(ctx, owner2.ID, ownerCfg))
+		require.NoError(t, actions_model.SetOwnerActionsConfig(ctx, owner2.ID, ownerCfg))
 
 		// Repo policy: OverrideOwnerConfig = true, MaxTokenPermissions = Read
 		repo2ActionsUnit := repo2.MustGetUnit(ctx, unit.TypeActions)
@@ -138,7 +140,9 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		repo2ActionsCfg.OverrideOwnerConfig = true
 		repo2ActionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionModeRestricted
 		repo2ActionsCfg.MaxTokenPermissions = &repo_model.ActionsTokenPermissions{
-			Code: perm_model.AccessModeRead,
+			UnitAccessModes: map[unit.Type]perm_model.AccessMode{
+				unit.TypeCode: perm_model.AccessModeRead,
+			},
 		}
 		require.NoError(t, repo_model.UpdateRepoUnitConfig(ctx, repo2ActionsUnit))
 

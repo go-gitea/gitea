@@ -6,7 +6,9 @@ package actions
 import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions/jobparser"
+	"code.gitea.io/gitea/modules/setting"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -51,7 +53,7 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 		}
 	}
 
-	if node == nil || (node.Kind == yaml.ScalarNode && node.Value == "") {
+	if node.Kind == yaml.ScalarNode && node.Value == "" {
 		return nil
 	}
 
@@ -59,36 +61,18 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 	if node.Kind == yaml.ScalarNode {
 		switch node.Value {
 		case "read-all":
-			return &repo_model.ActionsTokenPermissions{
-				Code:         perm.AccessModeRead,
-				Issues:       perm.AccessModeRead,
-				PullRequests: perm.AccessModeRead,
-				Packages:     perm.AccessModeRead,
-				Actions:      perm.AccessModeRead,
-				Wiki:         perm.AccessModeRead,
-				Releases:     perm.AccessModeRead,
-				Projects:     perm.AccessModeRead,
-			}
+			return new(repo_model.MakeActionsTokenPermissions(perm.AccessModeRead))
 		case "write-all":
-			return &repo_model.ActionsTokenPermissions{
-				Code:         perm.AccessModeWrite,
-				Issues:       perm.AccessModeWrite,
-				PullRequests: perm.AccessModeWrite,
-				Packages:     perm.AccessModeWrite,
-				Actions:      perm.AccessModeWrite,
-				Wiki:         perm.AccessModeWrite,
-				Releases:     perm.AccessModeWrite,
-				Projects:     perm.AccessModeWrite,
-			}
+			return new(repo_model.MakeActionsTokenPermissions(perm.AccessModeWrite))
 		default:
 			// Explicit but unrecognized scalar: return all-none permissions.
-			return &repo_model.ActionsTokenPermissions{}
+			return new(repo_model.MakeActionsTokenPermissions(perm.AccessModeNone))
 		}
 	}
 
 	// Handle mapping: individual permission scopes
 	if node.Kind == yaml.MappingNode {
-		result := repo_model.ActionsTokenPermissions{}
+		result := repo_model.MakeActionsTokenPermissions(perm.AccessModeNone)
 
 		// Collect all scopes into a map first to handle priority
 		scopes := make(map[string]perm.AccessMode)
@@ -108,8 +92,8 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 
 		// 1. Apply 'contents' first (lower priority)
 		if mode, ok := scopes["contents"]; ok {
-			result.Code = mode
-			result.Releases = mode
+			result.UnitAccessModes[unit.TypeCode] = mode
+			result.UnitAccessModes[unit.TypeReleases] = mode
 		}
 
 		// 2. Apply all other scopes (overwrites contents if specified)
@@ -118,21 +102,23 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 			case "contents":
 				// already handled
 			case "code":
-				result.Code = mode
+				result.UnitAccessModes[unit.TypeCode] = mode
 			case "issues":
-				result.Issues = mode
+				result.UnitAccessModes[unit.TypeIssues] = mode
 			case "pull-requests":
-				result.PullRequests = mode
+				result.UnitAccessModes[unit.TypePullRequests] = mode
 			case "packages":
-				result.Packages = mode
+				result.UnitAccessModes[unit.TypePackages] = mode
 			case "actions":
-				result.Actions = mode
+				result.UnitAccessModes[unit.TypeActions] = mode
 			case "wiki":
-				result.Wiki = mode
+				result.UnitAccessModes[unit.TypeWiki] = mode
 			case "releases":
-				result.Releases = mode
+				result.UnitAccessModes[unit.TypeReleases] = mode
 			case "projects":
-				result.Projects = mode
+				result.UnitAccessModes[unit.TypeProjects] = mode
+			default:
+				setting.PanicInDevOrTesting("Unrecognized permission scope: %s", scope)
 			}
 		}
 

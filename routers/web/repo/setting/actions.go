@@ -154,15 +154,13 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	shouldUpdate := actionsCfg.OverrideOwnerConfig
 
 	if shouldUpdate {
-		permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))
-		if permissionMode == repo_model.ActionsTokenPermissionModeRestricted ||
-			permissionMode == repo_model.ActionsTokenPermissionModePermissive {
-			actionsCfg.TokenPermissionMode = permissionMode
-		} else {
+		permissionMode, permissionModeValid := util.EnumValue(repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode")))
+		if !permissionModeValid {
 			ctx.Flash.Error("Invalid token permission mode")
 			ctx.Redirect(redirectURL)
 			return
 		}
+		actionsCfg.TokenPermissionMode = permissionMode
 	}
 
 	// Update Maximum Permissions (radio buttons: none/read/write)

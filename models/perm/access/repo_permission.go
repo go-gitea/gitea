@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -266,9 +267,9 @@ func checkSameOwnerCrossRepoAccess(ctx context.Context, taskRepo, targetRepo *re
 	if taskRepo.OwnerID != targetRepo.OwnerID {
 		return false
 	}
-	ownerCfg, err := actions_model.GetUserActionsConfig(ctx, targetRepo.OwnerID)
+	ownerCfg, err := actions_model.GetOwnerActionsConfig(ctx, targetRepo.OwnerID)
 	if err != nil {
-		log.Error("GetUserActionsConfig: %v", err)
+		log.Error("GetOwnerActionsConfig: %v", err)
 		return false
 	}
 
@@ -310,7 +311,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		if targetRepoActionsCfg.OverrideOwnerConfig {
 			effectivePerms = targetRepoActionsCfg.ClampPermissions(effectivePerms)
 		} else {
-			targetRepoOwnerActionsCfg, err := actions_model.GetUserActionsConfig(ctx, repo.OwnerID)
+			targetRepoOwnerActionsCfg, err := actions_model.GetOwnerActionsConfig(ctx, repo.OwnerID)
 			if err != nil {
 				return perm, err
 			}
@@ -326,15 +327,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 
 	// Set up per-unit access modes based on configured permissions
 	maxPerm.units = repo.Units
-	maxPerm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
-	maxPerm.unitsMode[unit.TypeCode] = effectivePerms.Code
-	maxPerm.unitsMode[unit.TypeIssues] = effectivePerms.Issues
-	maxPerm.unitsMode[unit.TypePullRequests] = effectivePerms.PullRequests
-	maxPerm.unitsMode[unit.TypePackages] = effectivePerms.Packages
-	maxPerm.unitsMode[unit.TypeActions] = effectivePerms.Actions
-	maxPerm.unitsMode[unit.TypeWiki] = effectivePerms.Wiki
-	maxPerm.unitsMode[unit.TypeReleases] = effectivePerms.Releases
-	maxPerm.unitsMode[unit.TypeProjects] = effectivePerms.Projects
+	maxPerm.unitsMode = maps.Clone(effectivePerms.UnitAccessModes)
 
 	// Check permission like simple user but limit to read-only (PR #36095)
 	// Enhanced to also grant read-only access if isSameRepo is true and target repository is public

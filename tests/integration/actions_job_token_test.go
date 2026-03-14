@@ -393,10 +393,10 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		org, err := org_model.GetOrgByName(t.Context(), orgName)
 		require.NoError(t, err)
 
-		cfg := &actions_model.UserActionsConfig{
+		cfg := actions_model.OwnerActionsConfig{
 			AllowedCrossRepoIDs: []int64{repoAID, repoBID},
 		}
-		err = actions_model.SetUserActionsConfig(t.Context(), org.ID, cfg)
+		err = actions_model.SetOwnerActionsConfig(t.Context(), org.ID, cfg)
 		require.NoError(t, err)
 
 		// Retry -> Should Succeed (200) Read-Only
@@ -429,7 +429,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		// 7. Test Cross-Repo Access - Specific Repositories
 		t.Run("Cross-Repo Access - Specific Repositories", func(t *testing.T) {
 			// Set mode to Selected with ONLY repo-B
-			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), org.ID, &actions_model.UserActionsConfig{
+			require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), org.ID, actions_model.OwnerActionsConfig{
 				AllowedCrossRepoIDs: []int64{repoBID},
 			}))
 
@@ -441,7 +441,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			})(t)
 
 			// Remove repo-B from allowed list
-			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), org.ID, &actions_model.UserActionsConfig{
+			require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), org.ID, actions_model.OwnerActionsConfig{
 				AllowedCrossRepoIDs: []int64{}, // Empty list
 			}))
 
@@ -511,17 +511,17 @@ func TestActionsUserCrossRepoAccess(t *testing.T) {
 		user2, err := user_model.GetUserByName(t.Context(), userName)
 		require.NoError(t, err)
 
-		cfg := &actions_model.UserActionsConfig{}
-		err = actions_model.SetUserActionsConfig(t.Context(), user2.ID, cfg)
+		cfg := actions_model.OwnerActionsConfig{}
+		err = actions_model.SetOwnerActionsConfig(t.Context(), user2.ID, cfg)
 		require.NoError(t, err)
 
 		t.Run("User Cross-Repo Access Denied (Explicit None)", doAPIGetRepository(testCtx, nil))
 
 		// Case C: Explicitly Enable AllowCrossRepoAccess All
-		cfg = &actions_model.UserActionsConfig{
+		cfg = actions_model.OwnerActionsConfig{
 			AllowedCrossRepoIDs: []int64{repoAID, repoBID},
 		}
-		err = actions_model.SetUserActionsConfig(t.Context(), user2.ID, cfg)
+		err = actions_model.SetOwnerActionsConfig(t.Context(), user2.ID, cfg)
 		require.NoError(t, err)
 
 		// Retry -> Should Succeed (200) Read-Only
@@ -531,8 +531,8 @@ func TestActionsUserCrossRepoAccess(t *testing.T) {
 		}))
 
 		// Case C: Explicitly Disable AllowCrossRepoAccess
-		cfg = &actions_model.UserActionsConfig{}
-		err = actions_model.SetUserActionsConfig(t.Context(), userObj.ID, cfg)
+		cfg = actions_model.OwnerActionsConfig{}
+		err = actions_model.SetOwnerActionsConfig(t.Context(), userObj.ID, cfg)
 		require.NoError(t, err)
 
 		// Retry -> Should Fail (404 Not Found)
@@ -542,7 +542,7 @@ func TestActionsUserCrossRepoAccess(t *testing.T) {
 		// 5. Test Cross-Repo Access - Specific Repositories
 		t.Run("User Cross-Repo Access - Specific Repositories", func(t *testing.T) {
 			// Set mode to Selected with ONLY repo-user-B
-			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), userObj.ID, &actions_model.UserActionsConfig{
+			require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), userObj.ID, actions_model.OwnerActionsConfig{
 				AllowedCrossRepoIDs: []int64{repoBID},
 			}))
 
@@ -554,7 +554,7 @@ func TestActionsUserCrossRepoAccess(t *testing.T) {
 			})(t)
 
 			// Remove repo-user-B from allowed list
-			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), userObj.ID, &actions_model.UserActionsConfig{
+			require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), userObj.ID, actions_model.OwnerActionsConfig{
 				AllowedCrossRepoIDs: []int64{}, // Empty list
 			}))
 
@@ -585,12 +585,12 @@ func TestActionsCrossRepoCleanupOnTransfer(t *testing.T) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 
 		// 2. Add repo to AllowedCrossRepoIDs for user2
-		require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), user2.ID, &actions_model.UserActionsConfig{
+		require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), user2.ID, actions_model.OwnerActionsConfig{
 			AllowedCrossRepoIDs: []int64{apiRepo.ID},
 		}))
 
 		// 3. Verify it is there
-		cfg, err := actions_model.GetUserActionsConfig(t.Context(), user2.ID)
+		cfg, err := actions_model.GetOwnerActionsConfig(t.Context(), user2.ID)
 		require.NoError(t, err)
 		assert.Contains(t, cfg.AllowedCrossRepoIDs, apiRepo.ID)
 
@@ -607,7 +607,7 @@ func TestActionsCrossRepoCleanupOnTransfer(t *testing.T) {
 		MakeRequest(t, req, http.StatusAccepted)
 
 		// 5. Verify it is removed from user2's config
-		cfg, err = actions_model.GetUserActionsConfig(t.Context(), user2.ID)
+		cfg, err = actions_model.GetOwnerActionsConfig(t.Context(), user2.ID)
 		require.NoError(t, err)
 		assert.NotContains(t, cfg.AllowedCrossRepoIDs, apiRepo.ID)
 	})
@@ -983,14 +983,16 @@ func TestActionsOverrideOwnerConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		// 1. Set Org Config to RESTRICTED and Max=Read
-		orgCfg := &actions_model.UserActionsConfig{
+		orgCfg := actions_model.OwnerActionsConfig{
 			TokenPermissionMode: repo_model.ActionsTokenPermissionModeRestricted,
 			MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
-				Issues: perm.AccessModeRead,
-				Code:   perm.AccessModeRead,
+				UnitAccessModes: map[unit_model.Type]perm.AccessMode{
+					unit_model.TypeIssues: perm.AccessModeRead,
+					unit_model.TypeCode:   perm.AccessModeRead,
+				},
 			},
 		}
-		require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), org.ID, orgCfg))
+		require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), org.ID, orgCfg))
 
 		// 2. Create Repository in Org
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/repos", orgName), &structs.CreateRepoOption{
@@ -1011,8 +1013,10 @@ func TestActionsOverrideOwnerConfig(t *testing.T) {
 					OverrideOwnerConfig: override,
 					TokenPermissionMode: mode,
 					MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
-						Issues: perm.AccessModeWrite, // Repo tries to be more permissive than org
-						Code:   perm.AccessModeWrite,
+						UnitAccessModes: map[unit_model.Type]perm.AccessMode{
+							unit_model.TypeIssues: perm.AccessModeWrite, // Repo tries to be more permissive than org
+							unit_model.TypeCode:   perm.AccessModeWrite,
+						},
 					},
 				},
 			})

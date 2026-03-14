@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,7 +37,7 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 	t.Run("Default Permission Mode", func(t *testing.T) {
 		cfg := &ActionsConfig{}
 		assert.Equal(t, ActionsTokenPermissionMode(""), cfg.TokenPermissionMode)
-		assert.Equal(t, perm.AccessModeWrite, cfg.GetDefaultTokenPermissions().Code)
+		assert.Equal(t, perm.AccessModeWrite, cfg.GetDefaultTokenPermissions().UnitAccessModes[unit.TypeCode])
 	})
 
 	t.Run("Explicit Permission Mode", func(t *testing.T) {
@@ -52,9 +53,9 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 		}
 		defaultPerms := cfg.GetDefaultTokenPermissions()
 		perms := cfg.ClampPermissions(defaultPerms)
-		assert.Equal(t, perm.AccessModeWrite, perms.Code)
-		assert.Equal(t, perm.AccessModeWrite, perms.Issues)
-		assert.Equal(t, perm.AccessModeWrite, perms.Packages)
+		assert.Equal(t, perm.AccessModeWrite, perms.UnitAccessModes[unit.TypeCode])
+		assert.Equal(t, perm.AccessModeWrite, perms.UnitAccessModes[unit.TypeIssues])
+		assert.Equal(t, perm.AccessModeWrite, perms.UnitAccessModes[unit.TypePackages])
 	})
 
 	t.Run("Effective Permissions - Restricted Mode", func(t *testing.T) {
@@ -63,36 +64,40 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 		}
 		defaultPerms := cfg.GetDefaultTokenPermissions()
 		perms := cfg.ClampPermissions(defaultPerms)
-		assert.Equal(t, perm.AccessModeRead, perms.Code)
-		assert.Equal(t, perm.AccessModeNone, perms.Issues)
-		assert.Equal(t, perm.AccessModeRead, perms.Packages)
+		assert.Equal(t, perm.AccessModeRead, perms.UnitAccessModes[unit.TypeCode])
+		assert.Equal(t, perm.AccessModeNone, perms.UnitAccessModes[unit.TypeIssues])
+		assert.Equal(t, perm.AccessModeRead, perms.UnitAccessModes[unit.TypePackages])
 	})
 
 	t.Run("Clamp Permissions", func(t *testing.T) {
 		cfg := &ActionsConfig{
 			MaxTokenPermissions: &ActionsTokenPermissions{
-				Code:         perm.AccessModeRead,
-				Issues:       perm.AccessModeWrite,
-				PullRequests: perm.AccessModeRead,
-				Packages:     perm.AccessModeRead,
-				Actions:      perm.AccessModeNone,
-				Wiki:         perm.AccessModeWrite,
+				UnitAccessModes: map[unit.Type]perm.AccessMode{
+					unit.TypeCode:         perm.AccessModeRead,
+					unit.TypeIssues:       perm.AccessModeWrite,
+					unit.TypePullRequests: perm.AccessModeRead,
+					unit.TypePackages:     perm.AccessModeRead,
+					unit.TypeActions:      perm.AccessModeNone,
+					unit.TypeWiki:         perm.AccessModeWrite,
+				},
 			},
 		}
 		input := ActionsTokenPermissions{
-			Code:         perm.AccessModeWrite, // Should be clamped to Read
-			Issues:       perm.AccessModeWrite, // Should stay Write
-			PullRequests: perm.AccessModeWrite, // Should be clamped to Read
-			Packages:     perm.AccessModeWrite, // Should be clamped to Read
-			Actions:      perm.AccessModeRead,  // Should be clamped to None
-			Wiki:         perm.AccessModeRead,  // Should stay Read
+			UnitAccessModes: map[unit.Type]perm.AccessMode{
+				unit.TypeCode:         perm.AccessModeWrite, // Should be clamped to Read
+				unit.TypeIssues:       perm.AccessModeWrite, // Should stay Write
+				unit.TypePullRequests: perm.AccessModeWrite, // Should be clamped to Read
+				unit.TypePackages:     perm.AccessModeWrite, // Should be clamped to Read
+				unit.TypeActions:      perm.AccessModeRead,  // Should be clamped to None
+				unit.TypeWiki:         perm.AccessModeRead,  // Should stay Read
+			},
 		}
 		clamped := cfg.ClampPermissions(input)
-		assert.Equal(t, perm.AccessModeRead, clamped.Code)
-		assert.Equal(t, perm.AccessModeWrite, clamped.Issues)
-		assert.Equal(t, perm.AccessModeRead, clamped.PullRequests)
-		assert.Equal(t, perm.AccessModeRead, clamped.Packages)
-		assert.Equal(t, perm.AccessModeNone, clamped.Actions)
-		assert.Equal(t, perm.AccessModeRead, clamped.Wiki)
+		assert.Equal(t, perm.AccessModeRead, clamped.UnitAccessModes[unit.TypeCode])
+		assert.Equal(t, perm.AccessModeWrite, clamped.UnitAccessModes[unit.TypeIssues])
+		assert.Equal(t, perm.AccessModeRead, clamped.UnitAccessModes[unit.TypePullRequests])
+		assert.Equal(t, perm.AccessModeRead, clamped.UnitAccessModes[unit.TypePackages])
+		assert.Equal(t, perm.AccessModeNone, clamped.UnitAccessModes[unit.TypeActions])
+		assert.Equal(t, perm.AccessModeRead, clamped.UnitAccessModes[unit.TypeWiki])
 	})
 }

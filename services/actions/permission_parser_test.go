@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,13 +23,13 @@ func TestParseRawPermissions_ReadAll(t *testing.T) {
 	result := parseRawPermissionsExplicit(&rawPerms)
 	require.NotNil(t, result)
 
-	assert.Equal(t, perm.AccessModeRead, result.Code)
-	assert.Equal(t, perm.AccessModeRead, result.Issues)
-	assert.Equal(t, perm.AccessModeRead, result.PullRequests)
-	assert.Equal(t, perm.AccessModeRead, result.Packages)
-	assert.Equal(t, perm.AccessModeRead, result.Actions)
-	assert.Equal(t, perm.AccessModeRead, result.Wiki)
-	assert.Equal(t, perm.AccessModeRead, result.Projects)
+	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeCode])
+	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeIssues])
+	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypePullRequests])
+	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypePackages])
+	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeActions])
+	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeWiki])
+	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeProjects])
 }
 
 func TestParseRawPermissions_WriteAll(t *testing.T) {
@@ -39,13 +40,13 @@ func TestParseRawPermissions_WriteAll(t *testing.T) {
 	result := parseRawPermissionsExplicit(&rawPerms)
 	require.NotNil(t, result)
 
-	assert.Equal(t, perm.AccessModeWrite, result.Code)
-	assert.Equal(t, perm.AccessModeWrite, result.Issues)
-	assert.Equal(t, perm.AccessModeWrite, result.PullRequests)
-	assert.Equal(t, perm.AccessModeWrite, result.Packages)
-	assert.Equal(t, perm.AccessModeWrite, result.Actions)
-	assert.Equal(t, perm.AccessModeWrite, result.Wiki)
-	assert.Equal(t, perm.AccessModeWrite, result.Projects)
+	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeCode])
+	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeIssues])
+	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypePullRequests])
+	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypePackages])
+	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeActions])
+	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeWiki])
+	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeProjects])
 }
 
 func TestParseRawPermissions_IndividualScopes(t *testing.T) {
@@ -65,13 +66,13 @@ projects: none
 	result := parseRawPermissionsExplicit(&rawPerms)
 	require.NotNil(t, result)
 
-	assert.Equal(t, perm.AccessModeWrite, result.Code)
-	assert.Equal(t, perm.AccessModeRead, result.Issues)
-	assert.Equal(t, perm.AccessModeNone, result.PullRequests)
-	assert.Equal(t, perm.AccessModeWrite, result.Packages)
-	assert.Equal(t, perm.AccessModeRead, result.Actions)
-	assert.Equal(t, perm.AccessModeWrite, result.Wiki)
-	assert.Equal(t, perm.AccessModeNone, result.Projects)
+	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeCode])
+	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeIssues])
+	assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypePullRequests])
+	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypePackages])
+	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeActions])
+	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeWiki])
+	assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypeProjects])
 }
 
 func TestParseRawPermissions_Priority(t *testing.T) {
@@ -88,8 +89,8 @@ releases: none
 		result := parseRawPermissionsExplicit(&rawPerms)
 		require.NotNil(t, result)
 
-		assert.Equal(t, perm.AccessModeWrite, result.Code)
-		assert.Equal(t, perm.AccessModeNone, result.Releases)
+		assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeCode])
+		assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypeReleases])
 	})
 
 	t.Run("contents-applied-first", func(t *testing.T) {
@@ -106,9 +107,9 @@ contents: read
 		require.NotNil(t, result)
 
 		// code: none should win over contents: read
-		assert.Equal(t, perm.AccessModeNone, result.Code)
+		assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypeCode])
 		// releases: write should win over contents: read
-		assert.Equal(t, perm.AccessModeWrite, result.Releases)
+		assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeReleases])
 	})
 }
 
@@ -151,13 +152,15 @@ func TestParseAccessMode(t *testing.T) {
 
 func TestMarshalUnmarshalTokenPermissions(t *testing.T) {
 	original := repo_model.ActionsTokenPermissions{
-		Code:         perm.AccessModeWrite,
-		Issues:       perm.AccessModeRead,
-		PullRequests: perm.AccessModeNone,
-		Packages:     perm.AccessModeWrite,
-		Actions:      perm.AccessModeRead,
-		Wiki:         perm.AccessModeWrite,
-		Projects:     perm.AccessModeRead,
+		UnitAccessModes: map[unit.Type]perm.AccessMode{
+			unit.TypeCode:         perm.AccessModeWrite,
+			unit.TypeIssues:       perm.AccessModeRead,
+			unit.TypePullRequests: perm.AccessModeNone,
+			unit.TypePackages:     perm.AccessModeWrite,
+			unit.TypeActions:      perm.AccessModeRead,
+			unit.TypeWiki:         perm.AccessModeWrite,
+			unit.TypeProjects:     perm.AccessModeRead,
+		},
 	}
 
 	// Marshal
@@ -175,6 +178,6 @@ func TestUnmarshalTokenPermissions_EmptyString(t *testing.T) {
 	result, err := repo_model.UnmarshalTokenPermissions("")
 	assert.NoError(t, err)
 	// Should return zero-value struct
-	assert.Equal(t, perm.AccessModeNone, result.Code)
-	assert.Equal(t, perm.AccessModeNone, result.Issues)
+	assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypeCode])
+	assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypeIssues])
 }

@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -21,83 +22,50 @@ const (
 	ActionsTokenPermissionModeRestricted ActionsTokenPermissionMode = "restricted"
 )
 
+func (ActionsTokenPermissionMode) EnumValues() []ActionsTokenPermissionMode {
+	return []ActionsTokenPermissionMode{ActionsTokenPermissionModePermissive /* default */, ActionsTokenPermissionModeRestricted}
+}
+
 // ActionsTokenPermissions defines the permissions for different repository units
 type ActionsTokenPermissions struct {
-	// Code (repository code) - read/write/none
-	Code perm.AccessMode `json:"code"`
-	// Issues - read/write/none
-	Issues perm.AccessMode `json:"issues"`
-	// PullRequests - read/write/none
-	PullRequests perm.AccessMode `json:"pull_requests"`
-	// Packages - read/write/none
-	Packages perm.AccessMode `json:"packages"`
-	// Actions - read/write/none
-	Actions perm.AccessMode `json:"actions"`
-	// Wiki - read/write/none
-	Wiki perm.AccessMode `json:"wiki"`
-	// Releases - read/write/none
-	Releases perm.AccessMode `json:"releases"`
-	// Projects - read/write/none
-	Projects perm.AccessMode `json:"projects"`
+	UnitAccessModes map[unit.Type]perm.AccessMode `json:"unit_access_modes,omitempty"`
 }
 
-// HasAccess checks if the permission meets the required access level for the given scope
-func (p ActionsTokenPermissions) HasAccess(scope string, required perm.AccessMode) bool {
-	var mode perm.AccessMode
-	switch scope {
-	case "actions":
-		mode = p.Actions
-	case "contents":
-		mode = min(p.Code, p.Releases)
-	case "code":
-		mode = p.Code
-	case "issues":
-		mode = p.Issues
-	case "packages":
-		mode = p.Packages
-	case "pull_requests":
-		mode = p.PullRequests
-	case "wiki":
-		mode = p.Wiki
-	case "releases":
-		mode = p.Releases
-	case "projects":
-		mode = p.Projects
+var ActionsTokenUnitTypes = []unit.Type{
+	unit.TypeCode,
+	unit.TypeIssues,
+	unit.TypePullRequests,
+	unit.TypePackages,
+	unit.TypeActions,
+	unit.TypeWiki,
+	unit.TypeReleases,
+	unit.TypeProjects,
+}
+
+func MakeActionsTokenPermissions(unitAccessMode perm.AccessMode) (ret ActionsTokenPermissions) {
+	ret.UnitAccessModes = make(map[unit.Type]perm.AccessMode)
+	for _, u := range ActionsTokenUnitTypes {
+		ret.UnitAccessModes[u] = unitAccessMode
 	}
-	return mode >= required
+	return ret
 }
 
-// HasRead checks if the permission has read access for the given scope (convenience wrapper for templates)
-func (p ActionsTokenPermissions) HasRead(scope string) bool {
-	return p.HasAccess(scope, perm.AccessModeRead)
-}
-
-// HasWrite checks if the permission has write access for the given scope (convenience wrapper for templates)
-func (p ActionsTokenPermissions) HasWrite(scope string) bool {
-	return p.HasAccess(scope, perm.AccessModeWrite)
-}
-
-// ClampPermissions ensures that the given permissions don't exceed the maximum
-func (p ActionsTokenPermissions) ClampPermissions(maxPerms ActionsTokenPermissions) ActionsTokenPermissions {
-	return ActionsTokenPermissions{
-		Code:         min(p.Code, maxPerms.Code),
-		Issues:       min(p.Issues, maxPerms.Issues),
-		PullRequests: min(p.PullRequests, maxPerms.PullRequests),
-		Packages:     min(p.Packages, maxPerms.Packages),
-		Actions:      min(p.Actions, maxPerms.Actions),
-		Wiki:         min(p.Wiki, maxPerms.Wiki),
-		Releases:     min(p.Releases, maxPerms.Releases),
-		Projects:     min(p.Projects, maxPerms.Projects),
+// ClampActionsTokenPermissions ensures that the given permissions don't exceed the maximum
+func ClampActionsTokenPermissions(p1, p2 ActionsTokenPermissions) (ret ActionsTokenPermissions) {
+	ret.UnitAccessModes = make(map[unit.Type]perm.AccessMode)
+	for _, ut := range ActionsTokenUnitTypes {
+		ret.UnitAccessModes[ut] = min(p1.UnitAccessModes[ut], p2.UnitAccessModes[ut])
 	}
+	return ret
 }
 
-// GetRestrictedPermissions returns the restricted permissions
-func GetRestrictedPermissions() ActionsTokenPermissions {
-	return ActionsTokenPermissions{
-		Code:     perm.AccessModeRead,
-		Packages: perm.AccessModeRead,
-		Releases: perm.AccessModeRead,
-	}
+// MakeRestrictedPermissions returns the restricted permissions
+func MakeRestrictedPermissions() ActionsTokenPermissions {
+	ret := MakeActionsTokenPermissions(perm.AccessModeNone)
+	ret.UnitAccessModes[unit.TypeCode] = perm.AccessModeRead
+	ret.UnitAccessModes[unit.TypePackages] = perm.AccessModeRead
+	ret.UnitAccessModes[unit.TypeReleases] = perm.AccessModeRead
+	return ret
 }
 
 // MarshalTokenPermissions serializes ActionsTokenPermissions to JSON
@@ -166,35 +134,13 @@ func (cfg *ActionsConfig) IsCollaborativeOwner(ownerID int64) bool {
 // GetDefaultTokenPermissions returns the default token permissions by its TokenPermissionMode.
 // It does not apply MaxTokenPermissions; callers must clamp if needed.
 func (cfg *ActionsConfig) GetDefaultTokenPermissions() ActionsTokenPermissions {
-	mode := cfg.TokenPermissionMode
-	if mode == "" {
-		mode = ActionsTokenPermissionModePermissive
-	}
-	switch mode {
+	switch cfg.TokenPermissionMode {
 	case ActionsTokenPermissionModeRestricted:
-		return GetRestrictedPermissions()
+		return MakeRestrictedPermissions()
 	case ActionsTokenPermissionModePermissive:
-		return ActionsTokenPermissions{
-			Code:         perm.AccessModeWrite,
-			Issues:       perm.AccessModeWrite,
-			PullRequests: perm.AccessModeWrite,
-			Packages:     perm.AccessModeWrite,
-			Actions:      perm.AccessModeWrite,
-			Wiki:         perm.AccessModeWrite,
-			Releases:     perm.AccessModeWrite,
-			Projects:     perm.AccessModeWrite,
-		}
+		return MakeActionsTokenPermissions(perm.AccessModeWrite)
 	default:
-		return ActionsTokenPermissions{
-			Code:         perm.AccessModeNone,
-			Issues:       perm.AccessModeNone,
-			PullRequests: perm.AccessModeNone,
-			Packages:     perm.AccessModeNone,
-			Actions:      perm.AccessModeNone,
-			Wiki:         perm.AccessModeNone,
-			Releases:     perm.AccessModeNone,
-			Projects:     perm.AccessModeNone,
-		}
+		return ActionsTokenPermissions{}
 	}
 }
 
@@ -204,36 +150,19 @@ func (cfg *ActionsConfig) GetMaxTokenPermissions() ActionsTokenPermissions {
 		return *cfg.MaxTokenPermissions
 	}
 	// Default max is write for everything
-	return ActionsTokenPermissions{
-		Code:         perm.AccessModeWrite,
-		Issues:       perm.AccessModeWrite,
-		PullRequests: perm.AccessModeWrite,
-		Packages:     perm.AccessModeWrite,
-		Actions:      perm.AccessModeWrite,
-		Wiki:         perm.AccessModeWrite,
-		Releases:     perm.AccessModeWrite,
-		Projects:     perm.AccessModeWrite,
-	}
+	return MakeActionsTokenPermissions(perm.AccessModeWrite)
 }
 
 // ClampPermissions ensures that the given permissions don't exceed the maximum
 func (cfg *ActionsConfig) ClampPermissions(perms ActionsTokenPermissions) ActionsTokenPermissions {
 	maxPerms := cfg.GetMaxTokenPermissions()
-	return perms.ClampPermissions(maxPerms)
+	return ClampActionsTokenPermissions(perms, maxPerms)
 }
 
 // FromDB fills up a ActionsConfig from serialized format.
 func (cfg *ActionsConfig) FromDB(bs []byte) error {
-	if err := json.UnmarshalHandleDoubleEncode(bs, &cfg); err != nil {
-		return err
-	}
-
-	switch cfg.TokenPermissionMode {
-	case ActionsTokenPermissionModeRestricted, ActionsTokenPermissionModePermissive:
-	default:
-		cfg.TokenPermissionMode = ActionsTokenPermissionModePermissive
-	}
-
+	_ = json.UnmarshalHandleDoubleEncode(bs, &cfg)
+	cfg.TokenPermissionMode, _ = util.EnumValue(cfg.TokenPermissionMode)
 	return nil
 }
 

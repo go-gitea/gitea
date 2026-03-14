@@ -6,10 +6,12 @@ package actions
 import (
 	"net/http"
 	"slices"
+	"strconv"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
@@ -22,8 +24,8 @@ const (
 
 // ParseMaxTokenPermissions parses the maximum token permissions from form values
 func ParseMaxTokenPermissions(ctx *context.Context) *repo_model.ActionsTokenPermissions {
-	parseMaxPerm := func(name string) perm.AccessMode {
-		value := ctx.FormString("max_" + name)
+	parseMaxPerm := func(unitType unit.Type) perm.AccessMode {
+		value := ctx.FormString("max_unit_access_mode_" + strconv.Itoa(int(unitType)))
 		switch value {
 		case "write":
 			return perm.AccessModeWrite
@@ -33,17 +35,11 @@ func ParseMaxTokenPermissions(ctx *context.Context) *repo_model.ActionsTokenPerm
 			return perm.AccessModeNone
 		}
 	}
-
-	return &repo_model.ActionsTokenPermissions{
-		Code:         parseMaxPerm("code"),
-		Issues:       parseMaxPerm("issues"),
-		Packages:     parseMaxPerm("packages"),
-		PullRequests: parseMaxPerm("pull_requests"),
-		Wiki:         parseMaxPerm("wiki"),
-		Actions:      parseMaxPerm("actions"),
-		Releases:     parseMaxPerm("releases"),
-		Projects:     parseMaxPerm("projects"),
+	ret := new(repo_model.MakeActionsTokenPermissions(perm.AccessModeNone))
+	for _, ut := range repo_model.ActionsTokenUnitTypes {
+		ret.UnitAccessModes[ut] = parseMaxPerm(ut)
 	}
+	return ret
 }
 
 // GeneralSettings renders the actions general settings page
@@ -68,9 +64,9 @@ func GeneralSettings(ctx *context.Context) {
 	}
 
 	// Load User/Org Actions Config
-	actionsCfg, err := actions_model.GetUserActionsConfig(ctx, rCtx.OwnerID)
+	actionsCfg, err := actions_model.GetOwnerActionsConfig(ctx, rCtx.OwnerID)
 	if err != nil {
-		ctx.ServerError("GetUserActionsConfig", err)
+		ctx.ServerError("GetOwnerActionsConfig", err)
 		return
 	}
 
@@ -113,9 +109,9 @@ func UpdateGeneralSettings(ctx *context.Context) {
 		return
 	}
 
-	actionsCfg, err := actions_model.GetUserActionsConfig(ctx, rCtx.OwnerID)
+	actionsCfg, err := actions_model.GetOwnerActionsConfig(ctx, rCtx.OwnerID)
 	if err != nil {
-		ctx.ServerError("GetUserActionsConfig", err)
+		ctx.ServerError("GetOwnerActionsConfig", err)
 		return
 	}
 
@@ -142,13 +138,8 @@ func UpdateGeneralSettings(ctx *context.Context) {
 	}
 
 	// Update Token Permission Mode
-	tokenPermissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))
-	if tokenPermissionMode != "" {
-		switch tokenPermissionMode {
-		case repo_model.ActionsTokenPermissionModeRestricted:
-		default:
-			tokenPermissionMode = repo_model.ActionsTokenPermissionModePermissive
-		}
+	tokenPermissionMode, tokenPermissionModeValid := util.EnumValue(repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode")))
+	if tokenPermissionModeValid {
 		actionsCfg.TokenPermissionMode = tokenPermissionMode
 		enableMaxPermissions := ctx.FormBool("enable_max_permissions")
 		// Update Maximum Permissions (radio buttons: none/read/write)
@@ -159,8 +150,8 @@ func UpdateGeneralSettings(ctx *context.Context) {
 		}
 	}
 
-	if err := actions_model.SetUserActionsConfig(ctx, rCtx.OwnerID, actionsCfg); err != nil {
-		ctx.ServerError("SetUserActionsConfig", err)
+	if err := actions_model.SetOwnerActionsConfig(ctx, rCtx.OwnerID, actionsCfg); err != nil {
+		ctx.ServerError("SetOwnerActionsConfig", err)
 		return
 	}
 
