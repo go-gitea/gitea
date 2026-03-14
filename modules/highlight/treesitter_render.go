@@ -15,31 +15,30 @@ import (
 
 const htmlEscapeChars = "&<>\"'"
 
-func (renderer *treeSitterRenderer) render(code []byte, trimTrailingNewline bool) (template.HTML, bool) {
+func (renderer *treeSitterRenderer) render(code []byte, trimTrailingNewline bool) (result template.HTML, ok bool) {
 	if renderer == nil || renderer.highlighter == nil {
 		return "", false
 	}
 
 	defer func() {
 		if err := recover(); err != nil {
+			result = ""
+			ok = false
 			log.Warn("panic while rendering with gotreesitter: %v\n%s", err, log.Stack(2))
 		}
 	}()
 
 	renderer.mu.Lock()
+	defer renderer.mu.Unlock()
+
 	if renderer.cache.matches(code) && renderer.cache.code != "" && renderer.cache.trim == trimTrailingNewline {
-		cached := renderer.cache.code
-		renderer.mu.Unlock()
-		return cached, true
+		return renderer.cache.code, true
 	}
 	if renderer.cache.matchesAlt(code) && renderer.cache.altCode != "" && renderer.cache.altTrim == trimTrailingNewline {
-		cached := renderer.cache.altCode
-		renderer.mu.Unlock()
-		return cached, true
+		return renderer.cache.altCode, true
 	}
-	ranges, ok := renderer.highlightRangesLocked(code)
-	renderer.mu.Unlock()
-	if !ok {
+	ranges, rangesOK := renderer.highlightRangesLocked(code)
+	if !rangesOK {
 		return "", false
 	}
 
@@ -91,39 +90,36 @@ func (renderer *treeSitterRenderer) render(code []byte, trimTrailingNewline bool
 	}
 	rendered := template.HTML(content)
 
-	renderer.mu.Lock()
 	renderer.cache.code = rendered
 	renderer.cache.trim = trimTrailingNewline
-	renderer.mu.Unlock()
 
 	return rendered, true
 }
 
-func (renderer *treeSitterRenderer) renderLines(code []byte) ([]template.HTML, bool) {
+func (renderer *treeSitterRenderer) renderLines(code []byte) (result []template.HTML, ok bool) {
 	if renderer == nil || renderer.highlighter == nil {
 		return nil, false
 	}
 
 	defer func() {
 		if err := recover(); err != nil {
+			result = nil
+			ok = false
 			log.Warn("panic while rendering lines with gotreesitter: %v\n%s", err, log.Stack(2))
 		}
 	}()
 
 	renderer.mu.Lock()
+	defer renderer.mu.Unlock()
+
 	if renderer.cache.matches(code) && renderer.cache.lines != nil {
-		out := append([]template.HTML(nil), renderer.cache.lines...)
-		renderer.mu.Unlock()
-		return out, true
+		return append([]template.HTML(nil), renderer.cache.lines...), true
 	}
 	if renderer.cache.matchesAlt(code) && renderer.cache.altLines != nil {
-		out := append([]template.HTML(nil), renderer.cache.altLines...)
-		renderer.mu.Unlock()
-		return out, true
+		return append([]template.HTML(nil), renderer.cache.altLines...), true
 	}
-	ranges, ok := renderer.highlightRangesLocked(code)
-	renderer.mu.Unlock()
-	if !ok {
+	ranges, rangesOK := renderer.highlightRangesLocked(code)
+	if !rangesOK {
 		return nil, false
 	}
 
@@ -170,6 +166,19 @@ func (renderer *treeSitterRenderer) renderLines(code []byte) ([]template.HTML, b
 		start := hr.start
 		end := hr.end
 
+		if start < last {
+			start = last
+		}
+		if start > len(code) {
+			break
+		}
+		if end > len(code) {
+			end = len(code)
+		}
+		if end <= start {
+			continue
+		}
+
 		if start > last {
 			appendSegment(code[last:start], "")
 		}
@@ -184,9 +193,7 @@ func (renderer *treeSitterRenderer) renderLines(code []byte) ([]template.HTML, b
 		flushLine()
 	}
 
-	renderer.mu.Lock()
 	renderer.cache.lines = append([]template.HTML(nil), lines...)
-	renderer.mu.Unlock()
 
 	return lines, true
 }
