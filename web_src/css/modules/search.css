@@ -18,6 +18,7 @@
   box-shadow: 0 2px 4px 0 var(--color-shadow), 0 2px 10px 0 var(--color-shadow);
   border: 1px solid var(--color-secondary);
   z-index: 998;
+  transform-origin: center top;
   overflow-wrap: anywhere;
 }
 
