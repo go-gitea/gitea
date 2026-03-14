@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 
 	"github.com/stretchr/testify/assert"
@@ -148,36 +147,4 @@ func TestParseAccessMode(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
-}
-
-func TestMarshalUnmarshalTokenPermissions(t *testing.T) {
-	original := repo_model.ActionsTokenPermissions{
-		UnitAccessModes: map[unit.Type]perm.AccessMode{
-			unit.TypeCode:         perm.AccessModeWrite,
-			unit.TypeIssues:       perm.AccessModeRead,
-			unit.TypePullRequests: perm.AccessModeNone,
-			unit.TypePackages:     perm.AccessModeWrite,
-			unit.TypeActions:      perm.AccessModeRead,
-			unit.TypeWiki:         perm.AccessModeWrite,
-			unit.TypeProjects:     perm.AccessModeRead,
-		},
-	}
-
-	// Marshal
-	jsonStr, err := repo_model.MarshalTokenPermissions(original)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, jsonStr)
-
-	// Unmarshal
-	result, err := repo_model.UnmarshalTokenPermissions(jsonStr)
-	assert.NoError(t, err)
-	assert.Equal(t, original, result)
-}
-
-func TestUnmarshalTokenPermissions_EmptyString(t *testing.T) {
-	result, err := repo_model.UnmarshalTokenPermissions("")
-	assert.NoError(t, err)
-	// Should return zero-value struct
-	assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypeCode])
-	assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypeIssues])
 }

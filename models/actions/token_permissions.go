@@ -33,12 +33,8 @@ func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRe
 	}
 
 	var jobDeclaredPerms repo_model.ActionsTokenPermissions
-	if job.TokenPermissions != "" {
-		perms, err := repo_model.UnmarshalTokenPermissions(job.TokenPermissions)
-		if err != nil {
-			return ret, err
-		}
-		jobDeclaredPerms = perms
+	if job.TokenPermissions != nil {
+		jobDeclaredPerms = *job.TokenPermissions
 	} else if repoActionsCfg.OverrideOwnerConfig {
 		jobDeclaredPerms = repoActionsCfg.GetDefaultTokenPermissions()
 	} else {

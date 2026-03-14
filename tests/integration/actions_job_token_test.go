@@ -768,8 +768,6 @@ jobs:
 					finalPerms = defaultPerms
 				}
 				finalPerms = cfg.ClampPermissions(finalPerms)
-				permsJSON, err := repo_model.MarshalTokenPermissions(finalPerms)
-				require.NoError(t, err)
 
 				job := &actions_model.ActionRunJob{
 					RunID:            run.ID,
@@ -779,7 +777,7 @@ jobs:
 					Name:             jobName,
 					JobID:            jobID,
 					Status:           actions_model.StatusRunning,
-					TokenPermissions: permsJSON,
+					TokenPermissions: &finalPerms,
 				}
 				require.NoError(t, db.Insert(t.Context(), job))
 
@@ -901,7 +899,6 @@ jobs:
 		actionsPerm, err := access_model.GetActionsUserRepoPermission(t.Context(), repo, user_model.NewActionsUser(), task.ID)
 		require.NoError(t, err)
 		require.NoError(t, task.LoadJob(t.Context()))
-		t.Logf("TokenPermissions: %s", task.Job.TokenPermissions)
 		t.Logf("Computed Units Mode: %+v", actionsPerm)
 		require.True(t, actionsPerm.CanWrite(unit_model.TypeCode), "Should have write access to Code. Got: %v", actionsPerm.AccessMode) // the token should have the "write" permission on "Code" unit
 		// test creating a file with the token
@@ -1075,8 +1072,7 @@ func TestActionsOverrideOwnerConfig(t *testing.T) {
 		job, err := actions_model.GetRunJobByRepoAndID(t.Context(), task3.RepoID, task3.JobID)
 		require.NoError(t, err)
 
-		emptyPerms, _ := repo_model.MarshalTokenPermissions(repo_model.ActionsTokenPermissions{})
-		job.TokenPermissions = emptyPerms
+		job.TokenPermissions = &repo_model.ActionsTokenPermissions{}
 		_, err = db.GetEngine(t.Context()).ID(job.ID).Cols("token_permissions").Update(job)
 		require.NoError(t, err)
 		require.NoError(t, task3.GenerateToken())

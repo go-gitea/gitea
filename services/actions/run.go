@@ -9,7 +9,6 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -115,15 +114,6 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 
 			shouldBlockJob := len(needs) > 0 || run.NeedApproval || run.Status == actions_model.StatusBlocked
 
-			// Parse workflow/job permissions (no clamping here)
-			var tokenPermissions string
-			if perms := ExtractJobPermissionsFromWorkflow(v, job); perms != nil {
-				tokenPermissions, err = repo_model.MarshalTokenPermissions(*perms)
-				if err != nil {
-					return err
-				}
-			}
-
 			job.Name = util.EllipsisDisplayString(job.Name, 255)
 			runJob := &actions_model.ActionRunJob{
 				RunID:             run.ID,
@@ -137,8 +127,12 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				Needs:             needs,
 				RunsOn:            job.RunsOn(),
 				Status:            util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
-				TokenPermissions:  tokenPermissions,
 			}
+			// Parse workflow/job permissions (no clamping here)
+			if perms := ExtractJobPermissionsFromWorkflow(v, job); perms != nil {
+				runJob.TokenPermissions = perms
+			}
+
 			// check job concurrency
 			if job.RawConcurrency != nil {
 				rawConcurrency, err := yaml.Marshal(job.RawConcurrency)
