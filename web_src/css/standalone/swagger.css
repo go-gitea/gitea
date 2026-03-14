@@ -26,6 +26,9 @@ body {
   .swagger-back-link {
     color: #51a8ff;
   }
+  .swagger-ui table.headers td {
+    color: #aeb4c4; /** fix low contrast */
+  }
 }
 
 .swagger-back-link:hover {
