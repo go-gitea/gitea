@@ -130,10 +130,14 @@ func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User,
 		}
 
 		// Notify @mentioned users
-		for _, username := range mentionedUsernames {
-			mentioned, err := user_model.GetUserByName(ctx, username)
-			if err == nil && mentioned.ID != doer.ID {
-				receiverIDs[mentioned.ID] = struct{}{}
+		if len(mentionedUsernames) > 0 {
+			mentionedIDs, err := user_model.GetUserIDsByNames(ctx, mentionedUsernames, true)
+			if err == nil {
+				for _, id := range mentionedIDs {
+					if id != doer.ID {
+						receiverIDs[id] = struct{}{}
+					}
+				}
 			}
 		}
 
