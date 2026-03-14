@@ -6,11 +6,13 @@ package repo
 import (
 	"net/http"
 
+	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
@@ -107,6 +109,12 @@ func CreateCommitComment(ctx *context.Context) {
 	if err := issues_model.CreateCommitComment(ctx, ctx.Repo.Repository.ID, fullSHA, comment); err != nil {
 		ctx.ServerError("CreateCommitComment", err)
 		return
+	}
+
+	// Send notifications to commit author and @mentioned users
+	mentions := references.FindAllMentionsMarkdown(content)
+	if err := activities_model.CreateCommitCommentNotification(ctx, ctx.Doer, ctx.Repo.Repository, comment, commit.Author.Email, mentions); err != nil {
+		log.Error("CreateCommitCommentNotification: %v", err)
 	}
 
 	// Render markdown content
