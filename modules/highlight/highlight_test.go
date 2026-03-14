@@ -188,6 +188,17 @@ c=2`),
 	}
 }
 
+func TestSizeLimitReturnsPlaintext(t *testing.T) {
+	big := strings.Repeat("x", sizeLimit+1)
+	escaped := template.HTML(template.HTMLEscapeString(big))
+
+	got := RenderCode("big.go", "Go", big)
+	assert.Equal(t, escaped, got, "RenderCode should return escaped plaintext for oversized input")
+
+	got = RenderCodeByLexer(nil, big)
+	assert.Equal(t, escaped, got, "RenderCodeByLexer should return escaped plaintext for oversized input")
+}
+
 func TestUnsafeSplitHighlightedLines(t *testing.T) {
 	ret := UnsafeSplitHighlightedLines("")
 	assert.Empty(t, ret)

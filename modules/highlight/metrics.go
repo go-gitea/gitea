@@ -49,6 +49,10 @@ const (
 	highlightFallbackRenderUnusable
 	highlightFallbackLexerUnavailable
 	highlightFallbackCount
+
+	// highlightFallbackNone indicates tree-sitter rendering succeeded with no fallback.
+	// It is never used as an array index; it exists to avoid repurposing highlightFallbackCount.
+	highlightFallbackNone highlightFallbackReason = highlightFallbackCount
 )
 
 var highlightFallbackReasonLabels = [...]string{
@@ -88,7 +92,8 @@ var (
 type highlightMetricsCollector struct{}
 
 func init() {
-	prometheus.MustRegister(highlightMetricsCollector{})
+	// Register may fail if already registered (e.g. in test binaries); ignore the error.
+	_ = prometheus.Register(highlightMetricsCollector{})
 }
 
 func (highlightMetricsCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -125,6 +130,9 @@ func recordHighlightRender(op highlightOperation, renderer highlightRenderer) {
 }
 
 func recordHighlightFallback(op highlightOperation, reason highlightFallbackReason) {
+	if reason >= highlightFallbackCount {
+		return
+	}
 	highlightMetrics.fallbacks[op][reason].Add(1)
 }
 

@@ -111,6 +111,10 @@ func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML,
 // RenderCode returns highlighted HTML for a snippet, preferring gotreesitter and
 // falling back to Chroma.
 func RenderCode(fileName, language, code string) template.HTML {
+	if len(code) > sizeLimit {
+		recordHighlightRender(highlightOpRenderCode, highlightRendererPlaintext)
+		return template.HTML(template.HTMLEscapeString(code))
+	}
 	attempt := tryRenderCodeByTreeSitterDetailed(fileName, language, util.UnsafeStringToBytes(code), false)
 	if attempt.ok {
 		recordHighlightRender(highlightOpRenderCode, highlightRendererTreeSitter)
@@ -124,6 +128,10 @@ func RenderCode(fileName, language, code string) template.HTML {
 
 // RenderCodeByLexer returns a HTML version of code string with chroma syntax highlighting classes
 func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
+	if len(code) > sizeLimit {
+		recordHighlightRender(highlightOpRenderCodeByLexer, highlightRendererPlaintext)
+		return template.HTML(template.HTMLEscapeString(code))
+	}
 	if lexer != nil {
 		attempt := tryRenderCodeByTreeSitterWithLexerDetailed(lexer.Config().Name, util.UnsafeStringToBytes(code))
 		if attempt.ok {

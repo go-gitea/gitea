@@ -16,6 +16,7 @@ import (
 	"github.com/alecthomas/chroma/v2"
 	"github.com/odvcencio/gotreesitter"
 	tsgrammars "github.com/odvcencio/gotreesitter/grammars"
+	"golang.org/x/sync/singleflight"
 )
 
 type treeSitterRenderer struct {
@@ -41,7 +42,10 @@ type treeSitterRenderAttempt struct {
 	fallbackReason highlightFallbackReason
 }
 
-var treeSitterRendererCache sync.Map // map[string]*treeSitterRenderer
+var (
+	treeSitterRendererCache sync.Map           // map[string]*treeSitterRenderer
+	treeSitterRendererGroup singleflight.Group // dedup concurrent NewHighlighter calls
+)
 
 func isGenericPlainTextExtension(fileExt string) bool {
 	switch strings.ToLower(fileExt) {
@@ -175,35 +179,46 @@ func getTreeSitterRenderer(entry *tsgrammars.LangEntry) *treeSitterRenderer {
 		return renderer
 	}
 
-	lang := entry.Language()
-	if lang == nil {
-		treeSitterRendererCache.Store(entry.Name, (*treeSitterRenderer)(nil))
-		return nil
-	}
+	// Use singleflight to avoid duplicate expensive NewHighlighter calls
+	// when multiple goroutines race for the same language.
+	val, _, _ := treeSitterRendererGroup.Do(entry.Name, func() (any, error) {
+		// Double-check after winning the race.
+		if val, ok := treeSitterRendererCache.Load(entry.Name); ok {
+			return val, nil
+		}
 
-	var opts []gotreesitter.HighlighterOption
-	if entry.TokenSourceFactory != nil {
-		opts = append(opts, gotreesitter.WithTokenSourceFactory(func(src []byte) gotreesitter.TokenSource {
-			return entry.TokenSourceFactory(src, lang)
-		}))
-	}
+		lang := entry.Language()
+		if lang == nil {
+			treeSitterRendererCache.Store(entry.Name, (*treeSitterRenderer)(nil))
+			return (*treeSitterRenderer)(nil), nil
+		}
 
-	highlighter, err := gotreesitter.NewHighlighter(lang, entry.HighlightQuery, opts...)
-	if err != nil {
-		log.Warn("failed to construct gotreesitter highlighter for %s: %v", entry.Name, err)
-		treeSitterRendererCache.Store(entry.Name, (*treeSitterRenderer)(nil))
-		return nil
-	}
+		var opts []gotreesitter.HighlighterOption
+		if entry.TokenSourceFactory != nil {
+			opts = append(opts, gotreesitter.WithTokenSourceFactory(func(src []byte) gotreesitter.TokenSource {
+				return entry.TokenSourceFactory(src, lang)
+			}))
+		}
 
-	renderer := &treeSitterRenderer{
-		languageName:      entry.Name,
-		displayName:       tsgrammars.DisplayName(entry),
-		highlighter:       highlighter,
-		captureClassCache: make(map[string]string, 32),
-	}
-	val, _ := treeSitterRendererCache.LoadOrStore(entry.Name, renderer)
-	resolvedRenderer, _ := val.(*treeSitterRenderer)
-	return resolvedRenderer
+		highlighter, err := gotreesitter.NewHighlighter(lang, entry.HighlightQuery, opts...)
+		if err != nil {
+			log.Warn("failed to construct gotreesitter highlighter for %s: %v", entry.Name, err)
+			treeSitterRendererCache.Store(entry.Name, (*treeSitterRenderer)(nil))
+			return (*treeSitterRenderer)(nil), nil
+		}
+
+		renderer := &treeSitterRenderer{
+			languageName:      entry.Name,
+			displayName:       tsgrammars.DisplayName(entry),
+			highlighter:       highlighter,
+			captureClassCache: make(map[string]string, 32),
+		}
+		treeSitterRendererCache.Store(entry.Name, renderer)
+		return renderer, nil
+	})
+
+	renderer, _ := val.(*treeSitterRenderer)
+	return renderer
 }
 
 func tryRenderCodeByTreeSitter(fileName, fileLang string, code []byte) (template.HTML, bool) {
@@ -235,7 +250,7 @@ func tryRenderCodeByTreeSitterDetailed(fileName, fileLang string, code []byte, a
 		rendered:       rendered,
 		displayName:    renderer.displayName,
 		ok:             true,
-		fallbackReason: highlightFallbackCount,
+		fallbackReason: highlightFallbackNone,
 	}
 }
 
@@ -256,7 +271,7 @@ func tryRenderCodeByTreeSitterWithLexerDetailed(lexerName string, code []byte) t
 		rendered:       rendered,
 		displayName:    renderer.displayName,
 		ok:             true,
-		fallbackReason: highlightFallbackCount,
+		fallbackReason: highlightFallbackNone,
 	}
 }
 
@@ -285,7 +300,7 @@ func renderFullFileByTreeSitterDetailed(fileName, language string, code []byte) 
 		lines:          lines,
 		displayName:    renderer.displayName,
 		ok:             true,
-		fallbackReason: highlightFallbackCount,
+		fallbackReason: highlightFallbackNone,
 	}, nil
 }
 
