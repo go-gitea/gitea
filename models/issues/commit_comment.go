@@ -54,10 +54,8 @@ func FindCommitCommentsByCommitSHA(ctx context.Context, repoID int64, commitSHA 
 		return nil, err
 	}
 
-	for _, c := range comments {
-		if err := c.LoadPoster(ctx); err != nil {
-			return nil, err
-		}
+	if err := CommentList(comments).LoadPosters(ctx); err != nil {
+		return nil, err
 	}
 
 	return comments, nil
