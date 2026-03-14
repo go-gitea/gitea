@@ -8,9 +8,4 @@ import './globals.ts';
 import './webcomponents/index.ts';
 import './modules/user-settings.ts'; // templates also need to use localUserSettings in inline scripts
 
-// TODO: There is a bug in htmx, it incorrectly checks "readyState === 'complete'" when the DOM tree is ready and won't trigger DOMContentLoaded
-// Then importing the htmx in our onDomReady will make htmx skip its initialization.
-// If the bug would be fixed (https://github.com/bigskysoftware/htmx/pull/3365), then we can only import htmx in "onDomReady"
-import 'htmx.org';
-
 initGlobalErrorHandler();

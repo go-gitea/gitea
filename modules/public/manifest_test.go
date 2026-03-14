@@ -63,15 +63,9 @@ func TestParseManifest(t *testing.T) {
 
 func TestGetAssetPathFallback(t *testing.T) {
 	// When manifest is not loaded, GetAssetPath should return the input as-is
-	manifestMu.Lock()
 	old := manifestPaths
 	manifestPaths = make(map[string]string)
-	manifestMu.Unlock()
-	defer func() {
-		manifestMu.Lock()
-		manifestPaths = old
-		manifestMu.Unlock()
-	}()
+	defer func() { manifestPaths = old }()
 
 	assert.Equal(t, "js/index.js", GetAssetPath("js/index.js"))
 	assert.Equal(t, "css/theme-gitea-dark.css", GetAssetPath("css/theme-gitea-dark.css"))
