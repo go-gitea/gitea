@@ -40,7 +40,6 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/alecthomas/chroma/v2"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
@@ -307,7 +306,6 @@ type DiffSection struct {
 	language              *diffVarMutable[string]
 	highlightedLeftLines  *diffVarMutable[map[int]template.HTML]
 	highlightedRightLines *diffVarMutable[map[int]template.HTML]
-	highlightLexer        *diffVarMutable[chroma.Lexer]
 
 	FileName string
 	Lines    []*DiffLine
@@ -459,7 +457,6 @@ type DiffFile struct {
 
 	// for render purpose only, will be filled by the extra loop in GitDiffForRender, the maps of lines are 0-based
 	language              diffVarMutable[string]
-	highlightRender       diffVarMutable[chroma.Lexer] // cache render (atm: lexer) for current file, only detect once for line-by-line mode
 	highlightedLeftLines  diffVarMutable[map[int]template.HTML]
 	highlightedRightLines diffVarMutable[map[int]template.HTML]
 }
@@ -940,7 +937,6 @@ func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
 func newDiffSectionForDiffFile(curFile *DiffFile) *DiffSection {
 	return &DiffSection{
 		language:              &curFile.language,
-		highlightLexer:        &curFile.highlightRender,
 		highlightedLeftLines:  &curFile.highlightedLeftLines,
 		highlightedRightLines: &curFile.highlightedRightLines,
 	}
