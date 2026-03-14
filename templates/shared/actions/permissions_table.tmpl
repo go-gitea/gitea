@@ -69,7 +69,7 @@
 			{{template "shared/actions/permissions_table_unit" (dict
 				"UnitType" ctx.Consts.RepoUnitTypeActions
 				"UnitDisplayName" (ctx.Locale.Tr "repo.actions")
-				"UnitDisplayDesc" (ctx.Locale.Tr "repo.actions.desc")
+				"UnitDisplayDesc" (ctx.Locale.Tr "actions.unit.desc")
 				"UnitAccessMode" (index $.MaxTokenPermissions.UnitAccessModes ctx.Consts.RepoUnitTypeActions)
 			)}}
 		</tbody>
