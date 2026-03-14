@@ -231,10 +231,7 @@ func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 // RecalculateUserAccess recalculates new access for a single user
 // Usable if we know access only affected one user
 func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid int64) (err error) {
-	minMode := perm.AccessModeRead
-	if !repo.IsPrivate {
-		minMode = perm.AccessModeWrite
-	}
+	minMode := perm.AccessModeNone
 
 	accessMode := perm.AccessModeNone
 	e := db.GetEngine(ctx)
