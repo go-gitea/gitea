@@ -149,6 +149,10 @@ export default defineConfig(commonViteOpts({
         ...themes,
       },
       output: {
+        // Merge tiny mermaid parser chunks that are always loaded together
+        manualChunks(id) {
+          if (id.includes('node_modules') && id.includes('@mermaid-js/parser')) return 'mermaid-parser';
+        },
         entryFileNames: 'js/[name].[hash:8].js',
         chunkFileNames: 'js/[name].[hash:8].js',
         assetFileNames: (info: {name?: string}) => {
