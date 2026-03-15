@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 	"sync"
+	"sync/atomic"
 
 	"code.gitea.io/gitea/modules/assetfs"
 	"code.gitea.io/gitea/modules/json"
@@ -21,11 +22,15 @@ type viteManifestEntry struct {
 	CSS     []string `json:"css"`
 }
 
+type manifestState struct {
+	paths   map[string]string
+	modTime int64
+}
+
 var (
-	manifestOnce    sync.Once
-	manifestFS      *assetfs.LayeredFS
-	manifestPaths   map[string]string
-	manifestModTime int64
+	manifestOnce sync.Once
+	manifestFS   *assetfs.LayeredFS
+	manifestData atomic.Pointer[manifestState]
 )
 
 const manifestPath = "assets/.vite/manifest.json"
@@ -65,28 +70,31 @@ func reloadManifest() {
 	f, err := manifestFS.Open(manifestPath)
 	if err != nil {
 		log.Error("Failed to open Vite manifest: %v", err)
-		manifestPaths = make(map[string]string)
+		manifestData.Store(&manifestState{paths: make(map[string]string)})
 		return
 	}
 	defer f.Close()
 
+	var modTime int64
 	fi, err := f.Stat()
 	if err == nil {
-		manifestModTime = fi.ModTime().UnixNano()
+		modTime = fi.ModTime().UnixNano()
 	}
 
 	data, err := io.ReadAll(f)
 	if err != nil {
 		log.Error("Failed to read Vite manifest: %v", err)
-		manifestPaths = make(map[string]string)
+		manifestData.Store(&manifestState{paths: make(map[string]string)})
 		return
 	}
 
-	manifestPaths = parseManifest(data)
+	manifestData.Store(&manifestState{paths: parseManifest(data), modTime: modTime})
 }
 
 func getManifestPaths() map[string]string {
 	manifestOnce.Do(initManifest)
+
+	state := manifestData.Load()
 
 	// In production the manifest is immutable (embedded in the binary).
 	// In dev mode, check if it changed on disk (for watch-frontend).
@@ -95,12 +103,13 @@ func getManifestPaths() map[string]string {
 		if err == nil {
 			fi, err := f.Stat()
 			f.Close()
-			if err == nil && fi.ModTime().UnixNano() != manifestModTime {
+			if err == nil && fi.ModTime().UnixNano() != state.modTime {
 				reloadManifest()
+				state = manifestData.Load()
 			}
 		}
 	}
-	return manifestPaths
+	return state.paths
 }
 
 // GetAssetPath resolves an unhashed asset path to its content-hashed path from the Vite manifest.
