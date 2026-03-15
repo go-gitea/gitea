@@ -1,4 +1,13 @@
-import './globals.ts';
+// Stub APIs not implemented by happy-dom but needed by dependencies
+// XPathEvaluator is used by htmx at module evaluation time
+if (!globalThis.XPathEvaluator) {
+  globalThis.XPathEvaluator = class {
+    createExpression() { return {evaluate: () => ({iterateNext: () => null})}; }
+  } as any;
+}
+
+// Dynamic import so polyfills above are applied before htmx evaluates
+await import('./globals.ts');
 
 window.config = {
   appUrl: 'http://localhost:3000/',
