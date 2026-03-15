@@ -2,7 +2,7 @@
 // XPathEvaluator is used by htmx at module evaluation time
 if (!globalThis.XPathEvaluator) {
   globalThis.XPathEvaluator = class {
-    createExpression() { return {evaluate: () => ({iterateNext: () => null})}; }
+    createExpression() { return {evaluate: () => ({iterateNext: () => null})} }
   } as any;
 }
 
@@ -22,3 +22,5 @@ window.config = {
   mermaidMaxSourceCharacters: 5000,
   i18n: {},
 };
+
+export {}; // mark as module for top-level await
