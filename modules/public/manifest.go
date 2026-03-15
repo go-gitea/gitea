@@ -8,38 +8,38 @@ import (
 	"path"
 	"sync"
 	"sync/atomic"
+	"time"
 
-	"code.gitea.io/gitea/modules/assetfs"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
-type viteManifestEntry struct {
+type manifestEntry struct {
 	File    string   `json:"file"`
 	Name    string   `json:"name"`
 	IsEntry bool     `json:"isEntry"`
 	CSS     []string `json:"css"`
 }
 
-type manifestState struct {
-	paths   map[string]string
-	modTime int64
+type manifestDataStruct struct {
+	paths     map[string]string
+	modTime   int64
+	checkTime time.Time
 }
 
 var (
-	manifestOnce sync.Once
-	manifestFS   *assetfs.LayeredFS
-	manifestData atomic.Pointer[manifestState]
+	manifestData atomic.Pointer[manifestDataStruct]
+	manifestFS   = sync.OnceValue(AssetFS)
 )
 
 const manifestPath = "assets/.vite/manifest.json"
 
 func parseManifest(data []byte) map[string]string {
-	var manifest map[string]viteManifestEntry
+	var manifest map[string]manifestEntry
 	if err := json.Unmarshal(data, &manifest); err != nil {
-		log.Error("Failed to parse Vite manifest: %v", err)
-		return make(map[string]string)
+		log.Error("Failed to parse frontend manifest: %v", err)
+		return nil
 	}
 
 	paths := make(map[string]string)
@@ -61,58 +61,62 @@ func parseManifest(data []byte) map[string]string {
 	return paths
 }
 
-func initManifest() {
-	manifestFS = AssetFS()
-	reloadManifest()
-}
+func reloadManifest() *manifestDataStruct {
+	now := time.Now()
+	data := manifestData.Load()
+	if data != nil && now.Sub(data.checkTime) < time.Second {
+		// a single request triggers multiple calls to GetAssetPath
+		// do not check the manifest file too frequently
+		return data
+	}
 
-func reloadManifest() {
-	f, err := manifestFS.Open(manifestPath)
+	f, err := manifestFS().Open(manifestPath)
 	if err != nil {
-		log.Error("Failed to open Vite manifest: %v", err)
-		manifestData.Store(&manifestState{paths: make(map[string]string)})
-		return
+		log.Error("Failed to open frontend manifest: %v", err)
+		return data
 	}
 	defer f.Close()
 
-	var modTime int64
 	fi, err := f.Stat()
-	if err == nil {
-		modTime = fi.ModTime().UnixNano()
-	}
-
-	data, err := io.ReadAll(f)
 	if err != nil {
-		log.Error("Failed to read Vite manifest: %v", err)
-		manifestData.Store(&manifestState{paths: make(map[string]string)})
-		return
+		log.Error("Failed to stat frontend manifest: %v", err)
+		return data
 	}
 
-	manifestData.Store(&manifestState{paths: parseManifest(data), modTime: modTime})
+	needReload := data == nil || fi.ModTime().UnixNano() != data.modTime
+	if !needReload {
+		return data
+	}
+
+	manifestContent, err := io.ReadAll(f)
+	if err != nil {
+		log.Error("Failed to read frontend manifest: %v", err)
+		return data
+	}
+	data = &manifestDataStruct{
+		paths:     parseManifest(manifestContent),
+		modTime:   fi.ModTime().UnixNano(),
+		checkTime: now,
+	}
+	manifestData.Store(data)
+	return data
 }
 
 func getManifestPaths() map[string]string {
-	manifestOnce.Do(initManifest)
-
-	state := manifestData.Load()
+	data := manifestData.Load()
 
 	// In production the manifest is immutable (embedded in the binary).
 	// In dev mode, check if it changed on disk (for watch-frontend).
-	if !setting.IsProd {
-		f, err := manifestFS.Open(manifestPath)
-		if err == nil {
-			fi, err := f.Stat()
-			f.Close()
-			if err == nil && fi.ModTime().UnixNano() != state.modTime {
-				reloadManifest()
-				state = manifestData.Load()
-			}
-		}
+	if data == nil || !setting.IsProd {
+		data = reloadManifest()
 	}
-	return state.paths
+	if data != nil {
+		return data.paths
+	}
+	return nil
 }
 
-// GetAssetPath resolves an unhashed asset path to its content-hashed path from the Vite manifest.
+// GetAssetPath resolves an unhashed asset path to its content-hashed path from the frontend manifest.
 // Example: GetAssetPath("js/index.js") returns "js/index.C6Z2MRVQ.js"
 // Falls back to returning the input path unchanged if the manifest is unavailable.
 func GetAssetPath(name string) string {

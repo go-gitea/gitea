@@ -64,7 +64,7 @@ func TestParseManifest(t *testing.T) {
 func TestGetAssetPathFallback(t *testing.T) {
 	// When manifest is not loaded, GetAssetPath should return the input as-is
 	old := manifestData.Load()
-	manifestData.Store(&manifestState{paths: make(map[string]string)})
+	manifestData.Store(&manifestDataStruct{paths: make(map[string]string)})
 	defer func() { manifestData.Store(old) }()
 
 	assert.Equal(t, "js/index.js", GetAssetPath("js/index.js"))
