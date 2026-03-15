@@ -51,7 +51,7 @@ function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
       emptyOutDir: false,
       sourcemap: enableSourcemap,
       target: 'es2020',
-      minify: isProduction,
+      minify: isProduction ? 'oxc' : false,
       cssMinify: isProduction ? 'esbuild' : false,
       reportCompressedSize: false,
       rolldownOptions: {
