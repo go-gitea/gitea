@@ -2,24 +2,21 @@ import {build, defineConfig} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
 import {readFileSync, writeFileSync, unlinkSync, globSync} from 'node:fs';
-import {fileURLToPath} from 'node:url';
 import {join, parse} from 'node:path';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
 import wrapAnsi from 'wrap-ansi';
 import licensePlugin from 'rollup-plugin-license';
-import type {InlineConfig, Manifest, Plugin, Rolldown} from 'vite';
+import type {InlineConfig, Plugin, Rolldown} from 'vite';
 
 const isProduction = env.NODE_ENV !== 'development';
-
-const enableSourcemap = env.ENABLE_SOURCEMAP === 'false' ? false : env.ENABLE_SOURCEMAP === 'true' ? true : !isProduction;
-
-const outDir = fileURLToPath(new URL('public/assets', import.meta.url));
+const enableSourcemap = env.ENABLE_SOURCEMAP ? env.ENABLE_SOURCEMAP === 'true' : !isProduction;
+const outDir = join(import.meta.dirname, 'public/assets');
 
 const themes: Record<string, string> = {};
 for (const path of globSync('web_src/css/themes/*.css', {cwd: import.meta.dirname})) {
-  themes[parse(path).name] = fileURLToPath(new URL(path, import.meta.url));
+  themes[parse(path).name] = join(import.meta.dirname, path);
 }
 
 const webComponents = new Set([
@@ -43,7 +40,7 @@ const commonRolldownOptions: Rolldown.RolldownOptions = {
   },
 };
 
-function commonViteOpts<T extends InlineConfig>({build, ...other}: T): T {
+function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
   const {rolldownOptions, ...otherBuild} = build || {};
   return {
     configFile: false,
@@ -55,7 +52,7 @@ function commonViteOpts<T extends InlineConfig>({build, ...other}: T): T {
       sourcemap: enableSourcemap,
       target: 'es2020',
       minify: isProduction,
-      cssMinify: 'esbuild',
+      cssMinify: isProduction ? 'esbuild' : false,
       reportCompressedSize: false,
       rolldownOptions: {
         ...commonRolldownOptions,
@@ -64,7 +61,7 @@ function commonViteOpts<T extends InlineConfig>({build, ...other}: T): T {
       ...otherBuild,
     },
     ...other,
-  } as InlineConfig & T;
+  };
 }
 
 // Build index.js as a blocking IIFE bundle, matching the pre-Vite webpack behavior.
@@ -74,23 +71,19 @@ function iifeIndexPlugin(): Plugin {
     async closeBundle() {
       // Clean up old hashed files before rebuilding
       for (const file of globSync('js/index.*.js*', {cwd: outDir})) unlinkSync(join(outDir, file));
-      for (const file of globSync('js/webcomponents.*.js*', {cwd: outDir})) unlinkSync(join(outDir, file));
 
       const result = await build(commonViteOpts({
         build: {
           lib: {
-            entry: fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
+            entry: join(import.meta.dirname, 'web_src/js/index.ts'),
             formats: ['iife'],
-            name: 'gitea',
+            name: 'iife',
           },
           rolldownOptions: {
             output: {
               entryFileNames: 'js/index.[hash:8].js',
             },
           },
-        },
-        define: {
-          'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
         },
         plugins: [
           stringPlugin(),
@@ -99,22 +92,13 @@ function iifeIndexPlugin(): Plugin {
 
       // Append IIFE index entry to the main Vite manifest
       const manifestPath = join(outDir, '.vite', 'manifest.json');
-      let manifest: Manifest = {};
-      try { manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) } catch {}
-      for (const buildOutput of (Array.isArray(result) ? result : [result])) {
-        if (!('output' in buildOutput)) continue;
-        const entry = buildOutput.output.find((o) => o.fileName.startsWith('js/index.'));
-        if (entry) {
-          manifest['web_src/js/index.ts'] = {
-            file: entry.fileName,
-            name: 'index',
-            isEntry: true,
-          };
-          delete manifest['web_src/js/webcomponents/index.ts'];
-          writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-          break;
-        }
-      }
+      const buildOutput = (Array.isArray(result) ? result[0] : result) as Rolldown.RolldownOutput;
+      const entry = buildOutput.output.find((o) => o.fileName.startsWith('js/index.'));
+      if (!entry) throw new Error('IIFE index build produced no output');
+      writeFileSync(manifestPath, JSON.stringify({
+        ...JSON.parse(readFileSync(manifestPath, 'utf8')),
+        'web_src/js/index.ts': {file: entry.fileName, name: 'index', isEntry: true},
+      }, null, 2));
     },
   };
 }
@@ -139,12 +123,12 @@ export default defineConfig(commonViteOpts({
     chunkSizeWarningLimit: Infinity,
     rolldownOptions: {
       input: {
-        'index-domready': fileURLToPath(new URL('web_src/js/index-domready.ts', import.meta.url)),
-        swagger: fileURLToPath(new URL('web_src/js/standalone/swagger.ts', import.meta.url)),
-        'external-render-iframe': fileURLToPath(new URL('web_src/js/standalone/external-render-iframe.ts', import.meta.url)),
-        sharedworker: fileURLToPath(new URL('web_src/js/features/sharedworker.ts', import.meta.url)),
+        'index-domready': join(import.meta.dirname, 'web_src/js/index-domready.ts'),
+        swagger: join(import.meta.dirname, 'web_src/js/standalone/swagger.ts'),
+        'external-render-iframe': join(import.meta.dirname, 'web_src/js/standalone/external-render-iframe.ts'),
+        sharedworker: join(import.meta.dirname, 'web_src/js/features/sharedworker.ts'),
         ...(!isProduction && {
-          devtest: fileURLToPath(new URL('web_src/js/standalone/devtest.ts', import.meta.url)),
+          devtest: join(import.meta.dirname, 'web_src/js/standalone/devtest.ts'),
         }),
         ...themes,
       },
@@ -159,12 +143,10 @@ export default defineConfig(commonViteOpts({
         },
         entryFileNames: 'js/[name].[hash:8].js',
         chunkFileNames: 'js/[name].[hash:8].js',
-        assetFileNames: (info: {name?: string}) => {
-          const name = (info.name ?? '').split('?')[0];
-          if (/\.css$/i.test(name)) {
-            return 'css/[name].[hash:8].css';
-          }
-          if (/\.(ttf|woff2?)$/i.test(name)) return 'fonts/[name].[hash:8].[ext]';
+        assetFileNames: ({names}) => {
+          const name = names[0];
+          if (name.endsWith('.css')) return 'css/[name].[hash:8].css';
+          if (/\.(ttf|woff2?)$/.test(name)) return 'fonts/[name].[hash:8].[ext]';
           return '[name].[hash:8].[ext]';
         },
       },
@@ -206,26 +188,25 @@ export default defineConfig(commonViteOpts({
     vuePlugin({
       template: {
         compilerOptions: {
-          isCustomElement: (tag: string) => webComponents.has(tag),
+          isCustomElement: (tag) => webComponents.has(tag),
         },
       },
     }),
     isProduction ? licensePlugin({
       thirdParty: {
         output: {
-          file: fileURLToPath(new URL('public/assets/licenses.txt', import.meta.url)),
-          template(dependencies) {
+          file: join(import.meta.dirname, 'public/assets/licenses.txt'),
+          template(deps) {
             const line = '-'.repeat(80);
-            const goJson = readFileSync('assets/go-licenses.json', 'utf8');
-            const goModules = JSON.parse(goJson).map(({name, licenseText}: Record<string, string>) => {
+            const goJson = readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8');
+            const goModules = JSON.parse(goJson).map(({name, licenseText}: {name: string, licenseText: string}) => {
               return {name, body: formatLicenseText(licenseText)};
             });
-            const jsModules = dependencies.map((dep) => {
+            const jsModules = deps.map((dep) => {
               return {name: dep.name, version: dep.version, body: formatLicenseText(dep.licenseText ?? '')};
             });
-
             const modules = [...goModules, ...jsModules].sort((a, b) => a.name.localeCompare(b.name));
-            return modules.map(({name, version, body}: Record<string, string>) => {
+            return modules.map(({name, version, body}: {name: string, version?: string, body: string}) => {
               const title = version ? `${name}@${version}` : name;
               return `${line}\n${title}\n${line}\n${body}`;
             }).join('\n');
