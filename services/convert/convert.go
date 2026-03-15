@@ -324,18 +324,6 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		return nil, err
 	}
 
-	jobIndex := 0
-	jobs, err := actions_model.GetRunJobsByRunID(ctx, job.RunID)
-	if err != nil {
-		return nil, err
-	}
-	for i, j := range jobs {
-		if j.ID == job.ID {
-			jobIndex = i
-			break
-		}
-	}
-
 	status, conclusion := ToActionsStatus(job.Status)
 	var runnerID int64
 	var runnerName string
@@ -379,7 +367,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		ID: job.ID,
 		// missing api endpoint for this location
 		URL:     fmt.Sprintf("%s/actions/jobs/%d", repo.APIURL(), job.ID),
-		HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), jobIndex),
+		HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), job.ID),
 		RunID:   job.RunID,
 		// Missing api endpoint for this location, artifacts are available under a nested url
 		RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), job.RunID),

@@ -148,6 +148,9 @@ func rerunWorkflowJob(ctx context.Context, job *actions_model.ActionRunJob, shou
 	if err := job.LoadRun(ctx); err != nil {
 		return err
 	}
+	if err := job.Run.LoadAttributes(ctx); err != nil {
+		return err
+	}
 
 	vars, err := actions_model.GetVariablesOfRun(ctx, job.Run)
 	if err != nil {

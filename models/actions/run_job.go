@@ -118,13 +118,25 @@ func (job *ActionRunJob) ParseJob() (*jobparser.Job, error) {
 	return workflowJob, nil
 }
 
-func GetRunJobByID(ctx context.Context, id int64) (*ActionRunJob, error) {
+func GetRunJobByRepoAndID(ctx context.Context, repoID, jobID int64) (*ActionRunJob, error) {
 	var job ActionRunJob
-	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&job)
+	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", jobID, repoID).Get(&job)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, fmt.Errorf("run job with id %d: %w", id, util.ErrNotExist)
+		return nil, fmt.Errorf("run job with id %d: %w", jobID, util.ErrNotExist)
+	}
+
+	return &job, nil
+}
+
+func GetRunJobByRunAndID(ctx context.Context, runID, jobID int64) (*ActionRunJob, error) {
+	var job ActionRunJob
+	has, err := db.GetEngine(ctx).Where("id=? AND run_id=?", jobID, runID).Get(&job)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, fmt.Errorf("run job with id %d: %w", jobID, util.ErrNotExist)
 	}
 
 	return &job, nil
@@ -168,7 +180,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 
 	if job.RunID == 0 {
 		var err error
-		if job, err = GetRunJobByID(ctx, job.ID); err != nil {
+		if job, err = GetRunJobByRepoAndID(ctx, job.RepoID, job.ID); err != nil {
 			return 0, err
 		}
 	}

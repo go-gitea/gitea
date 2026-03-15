@@ -209,12 +209,12 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 		assert.Equal(t, timeutil.TimeStamp(0), run.Started)
 		assert.Equal(t, timeutil.TimeStamp(0), run.Stopped)
 
-		job198, err := actions_model.GetRunJobByID(t.Context(), 198)
+		job198, err := actions_model.GetRunJobByRunAndID(t.Context(), 795, 198)
 		require.NoError(t, err)
 		assert.Equal(t, actions_model.StatusWaiting, job198.Status)
 		assert.Equal(t, int64(0), job198.TaskID)
 
-		job199, err := actions_model.GetRunJobByID(t.Context(), 199)
+		job199, err := actions_model.GetRunJobByRunAndID(t.Context(), 795, 199)
 		require.NoError(t, err)
 		assert.Equal(t, actions_model.StatusWaiting, job199.Status)
 		assert.Equal(t, int64(0), job199.TaskID)
@@ -269,12 +269,12 @@ func TestAPIActionsRerunWorkflowJob(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, actions_model.StatusWaiting, run.Status)
 
-		job198, err := actions_model.GetRunJobByID(t.Context(), 198)
+		job198, err := actions_model.GetRunJobByRunAndID(t.Context(), 795, 198)
 		require.NoError(t, err)
 		assert.Equal(t, actions_model.StatusSuccess, job198.Status)
 		assert.Equal(t, int64(53), job198.TaskID)
 
-		job199, err := actions_model.GetRunJobByID(t.Context(), 199)
+		job199, err := actions_model.GetRunJobByRunAndID(t.Context(), 795, 199)
 		require.NoError(t, err)
 		assert.Equal(t, actions_model.StatusWaiting, job199.Status)
 		assert.Equal(t, int64(0), job199.TaskID)
