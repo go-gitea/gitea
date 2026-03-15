@@ -85,6 +85,10 @@ function iifeIndexPlugin(): Plugin {
             },
           },
         },
+        define: {
+          // needed for tippy.js pulled into this chunk via overflow-menu.ts
+          'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
+        },
         plugins: [
           stringPlugin(),
         ],
@@ -139,7 +143,6 @@ export default defineConfig(commonViteOpts({
           includeDependenciesRecursively: false,
           groups: [
             {name: 'mermaid', test: /[\\/]mermaid[\\/]|@mermaid-js[\\/]/},
-            {name: 'citation-js', test: /@citation-js[\\/]/},
             {name: 'vue', test: /[\\/]@vue[\\/]/},
           ],
         },
