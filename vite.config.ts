@@ -153,7 +153,7 @@ export default defineConfig(commonViteOpts({
           groups: [
             {name: 'mermaid-parser', test: '@mermaid-js/parser', priority: 10},
             {name: 'mermaid-core', test: /[\\/]mermaid[\\/]dist[\\/]/, priority: 5},
-            {name: 'vue-runtime', test: /[\\/]@vue[\\/]runtime/, priority: 5},
+            {name: 'vue-runtime', test: /[\\/]@vue[\\/]runtime/},
           ],
         },
         entryFileNames: 'js/[name].[hash:8].js',
