@@ -150,6 +150,7 @@ export default defineConfig(commonViteOpts({
       },
       output: {
         codeSplitting: {
+          // avoid absorbing shared deps into groups, which can make lazy chunks static
           includeDependenciesRecursively: false,
           groups: [
             {name: 'mermaid', test: /[\\/]mermaid[\\/]|@mermaid-js[\\/]/, priority: 10},
