@@ -321,13 +321,8 @@ func LockState(ctx *context.Context) {
 		return
 	}
 
-	jsonBytes, err := json.Marshal(reqLockInfo)
+	err = terraform_model.SetLock(ctx, p.ID, reqLockInfo)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, p.ID, terraform_model.LockFile, string(jsonBytes)); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -381,9 +376,9 @@ func UnlockState(ctx *context.Context) {
 		apiError(ctx, http.StatusLocked, errors.New("lock ID mismatch"))
 		return
 	}
-
 	// We can clear the state if lock id matches
-	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, p.ID, terraform_model.LockFile, ""); err != nil {
+	err = terraform_model.RemoveLock(ctx, p.ID)
+	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
