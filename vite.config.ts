@@ -149,10 +149,11 @@ export default defineConfig(commonViteOpts({
         ...themes,
       },
       output: {
-        manualChunks(id) {
-          // Merge tiny mermaid parser chunks that are always loaded together
-          if (id.includes('node_modules') && id.includes('@mermaid-js/parser')) return 'mermaid-parser';
-          return undefined;
+        codeSplitting: {
+          groups: [
+            {name: 'mermaid-parser', test: '@mermaid-js/parser', priority: 10},
+            {name: 'vue-runtime', test: /[\\/]@vue[\\/]runtime/, priority: 5},
+          ],
         },
         entryFileNames: 'js/[name].[hash:8].js',
         chunkFileNames: 'js/[name].[hash:8].js',
