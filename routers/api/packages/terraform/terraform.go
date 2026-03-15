@@ -105,6 +105,13 @@ func UploadState(ctx *context.Context) {
 		apiError(ctx, http.StatusBadRequest, errors.New("invalid package name"))
 		return
 	}
+	lockKey := getLockKey(ctx)
+	release, err := globallock.Lock(ctx, lockKey)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer release()
 
 	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformState, packageName)
 	if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
@@ -279,10 +286,8 @@ func LockState(ctx *context.Context) {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-
 	packageName := ctx.PathParam("name")
-	lockKey := fmt.Sprintf("terraform_lock_%d_%s", ctx.Package.Owner.ID, packageName)
-
+	lockKey := getLockKey(ctx)
 	release, err := globallock.Lock(ctx, lockKey)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -338,10 +343,8 @@ func UnlockState(ctx *context.Context) {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-
 	packageName := ctx.PathParam("name")
-	lockKey := fmt.Sprintf("terraform_lock_%d_%s", ctx.Package.Owner.ID, packageName)
-
+	lockKey := getLockKey(ctx)
 	release, err := globallock.Lock(ctx, lockKey)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -401,4 +404,8 @@ func getLatestVersion(ctx *context.Context, packageName string) (*packages_model
 		return nil, packages_model.ErrPackageNotExist
 	}
 	return pvs[0], nil
+}
+
+func getLockKey(ctx *context.Context) string {
+	return fmt.Sprintf("terraform_lock_%d_%s", ctx.Package.Owner.ID, ctx.PathParam("name"))
 }
