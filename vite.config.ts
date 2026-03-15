@@ -134,10 +134,12 @@ export default defineConfig(commonViteOpts({
       },
       output: {
         codeSplitting: {
-          // avoid absorbing shared deps into groups, which can make lazy chunks static
+          // prevent mermaid group from absorbing shared deps (like preload-helper),
+          // which would make the lazy mermaid chunk a static dependency of the entry
           includeDependenciesRecursively: false,
           groups: [
-            {name: 'mermaid', test: /[\\/]mermaid[\\/]|@mermaid-js[\\/]/, priority: 10},
+            {name: 'mermaid', test: /[\\/]mermaid[\\/]|@mermaid-js[\\/]/},
+            {name: 'citation-js', test: /@citation-js[\\/]/},
             {name: 'vue', test: /[\\/]@vue[\\/]/},
           ],
         },
