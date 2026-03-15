@@ -37,7 +37,6 @@ func NewFuncMap() template.FuncMap {
 		"QueryEscape":  queryEscape,
 		"QueryBuild":   QueryBuild,
 		"SanitizeHTML": SanitizeHTML,
-		"URLJoin":      util.URLJoin,
 		"DotEscape":    dotEscape,
 
 		"PathEscape":         url.PathEscape,
@@ -96,9 +95,6 @@ func NewFuncMap() template.FuncMap {
 		"AssetVersion": func() string {
 			return setting.AssetVersion
 		},
-		"DefaultShowFullName": func() bool {
-			return setting.UI.DefaultShowFullName
-		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
 		},
@@ -144,7 +140,7 @@ func NewFuncMap() template.FuncMap {
 		"ReactionToEmoji": reactionToEmoji,
 
 		// -----------------------------------------------------------------
-		// misc
+		// misc (TODO: move them to MiscUtils to avoid bloating the main func map)
 		"ShortSha":                 base.ShortSha,
 		"ActionContent2Commits":    ActionContent2Commits,
 		"IsMultilineCommitMessage": isMultilineCommitMessage,

@@ -1,6 +1,6 @@
-import tinycolor from 'tinycolor2';
+import {colord} from 'colord';
 import {basename, extname, isObject, isDarkTheme} from '../utils.ts';
-import {onInputDebounce} from '../utils/dom.ts';
+import {onInputDebounce, toggleElem} from '../utils/dom.ts';
 import type MonacoNamespace from 'monaco-editor';
 
 type Monaco = typeof MonacoNamespace;
@@ -94,7 +94,7 @@ function updateTheme(monaco: Monaco): void {
   // https://github.com/microsoft/monaco-editor/issues/2427
   // also, monaco can only parse 6-digit hex colors, so we convert the colors to that format
   const styles = window.getComputedStyle(document.documentElement);
-  const getColor = (name: string) => tinycolor(styles.getPropertyValue(name).trim()).toString('hex6');
+  const getColor = (name: string) => colord(styles.getPropertyValue(name).trim()).alpha(1).toHex();
 
   monaco.editor.defineTheme('gitea', {
     base: isDarkTheme() ? 'vs-dark' : 'vs',
@@ -197,19 +197,19 @@ function getFileBasedOptions(filename: string, lineWrapExts: string[]): MonacoOp
 }
 
 function togglePreviewDisplay(previewable: boolean): void {
+  // FIXME: here and below, the selector is too broad, it should only query in the editor related scope
   const previewTab = document.querySelector<HTMLElement>('a[data-tab="preview"]');
+  // the "preview tab" exists for "file code editor", but doesn't exist for "git hook editor"
   if (!previewTab) return;
 
-  if (previewable) {
-    previewTab.style.display = '';
-  } else {
-    previewTab.style.display = 'none';
-    // If the "preview" tab was active, user changes the filename to a non-previewable one,
-    // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
-    if (previewTab.classList.contains('active')) {
-      const writeTab = document.querySelector<HTMLElement>('a[data-tab="write"]');
-      writeTab?.click();
-    }
+  toggleElem(previewTab, previewable);
+  if (previewable) return;
+
+  // If not previewable but the "preview" tab was active (user changes the filename to a non-previewable one),
+  // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
+  if (previewTab.classList.contains('active')) {
+    const writeTab = document.querySelector<HTMLElement>('a[data-tab="write"]');
+    writeTab?.click(); // TODO: it shouldn't need null-safe operator, writeTab must exist
   }
 }
 

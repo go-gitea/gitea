@@ -20,20 +20,20 @@ import (
 )
 
 func TestCheckUnadoptedRepositories_Add(t *testing.T) {
-	start := 10
-	end := 20
+	const start = 10
+	const end = 20
 	unadopted := &unadoptedRepositories{
 		start: start,
 		end:   end,
-		index: 0,
+		count: 0,
 	}
 
-	total := 30
+	const total = 30
 	for range total {
 		unadopted.add("something")
 	}
 
-	assert.Equal(t, total, unadopted.index)
+	assert.EqualValues(t, total, unadopted.count)
 	assert.Len(t, unadopted.repositories, end-start)
 }
 
@@ -64,7 +64,7 @@ func TestCheckUnadoptedRepositories(t *testing.T) {
 	err = checkUnadoptedRepositories(t.Context(), userName, []string{repoName}, unadopted)
 	assert.NoError(t, err)
 	assert.Empty(t, unadopted.repositories)
-	assert.Equal(t, 0, unadopted.index)
+	assert.Zero(t, unadopted.count)
 }
 
 func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
@@ -78,13 +78,13 @@ func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
 	opts := db.ListOptions{Page: 1, PageSize: 1}
 	repoNames, count, err := ListUnadoptedRepositories(t.Context(), "", &opts)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, count)
+	assert.EqualValues(t, 2, count)
 	assert.Equal(t, unadoptedList[0], repoNames[0])
 
 	opts = db.ListOptions{Page: 2, PageSize: 1}
 	repoNames, count, err = ListUnadoptedRepositories(t.Context(), "", &opts)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, count)
+	assert.EqualValues(t, 2, count)
 	assert.Equal(t, unadoptedList[1], repoNames[0])
 }
 

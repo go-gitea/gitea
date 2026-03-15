@@ -61,12 +61,14 @@ func (e *escapeStreamer) Text(data string) error {
 			until = len(data)
 			next = until
 		} else {
-			until, next = nextIdxs[0]+pos, nextIdxs[1]+pos
+			until = min(nextIdxs[0]+pos, len(data))
+			next = min(nextIdxs[1]+pos, len(data))
 		}
 
 		// from pos until we know that the runes are not \r\t\n or even ' '
-		runes := make([]rune, 0, next-until)
-		positions := make([]int, 0, next-until+1)
+		n := next - until
+		runes := make([]rune, 0, n)
+		positions := make([]int, 0, n+1)
 
 		for pos < until {
 			r, sz := utf8.DecodeRune(dataBytes[pos:])

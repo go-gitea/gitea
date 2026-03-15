@@ -23,8 +23,6 @@ type API interface {
 	CreateVariable(*context.APIContext)
 	// UpdateVariable update a variable
 	UpdateVariable(*context.APIContext)
-	// GetRegistrationToken get registration token
-	GetRegistrationToken(*context.APIContext)
 	// CreateRegistrationToken get registration token
 	CreateRegistrationToken(*context.APIContext)
 	// ListRunners list runners

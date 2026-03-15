@@ -69,8 +69,7 @@
 			</div>
 			<div class="field">
 				{{template "shared/combomarkdowneditor" (dict
-					"MarkdownPreviewInRepo" $.Repository
-					"MarkdownPreviewMode" "comment"
+					"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorComment $.Repository)
 					"TextareaName" "content"
 					"TextareaContent" .content
 					"TextareaPlaceholder" (ctx.Locale.Tr "repo.release.message")
@@ -83,7 +82,7 @@
 					<div class="flex-text-block tw-flex-1">
 						<input name="attachment-edit-{{.UUID}}" class="tw-max-w-[48em]" required value="{{.Name}}">
 						<input name="attachment-del-{{.UUID}}" type="hidden" value="false">
-						<span class="text grey tw-flex-shrink-0">{{.Size | FileSize}}</span>
+						<span class="tw-text-text-light tw-flex-shrink-0">{{.Size | FileSize}}</span>
 						<span data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber .DownloadCount)}}">
 							{{svg "octicon-info"}}
 						</span>

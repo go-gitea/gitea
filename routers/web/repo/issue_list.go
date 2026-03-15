@@ -575,9 +575,9 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	}
 
 	// prepare pager
-	total := int(issueStats.OpenCount + issueStats.ClosedCount)
+	total := issueStats.OpenCount + issueStats.ClosedCount
 	if isShowClosed.Has() {
-		total = util.Iif(isShowClosed.Value(), int(issueStats.ClosedCount), int(issueStats.OpenCount))
+		total = util.Iif(isShowClosed.Value(), issueStats.ClosedCount, issueStats.OpenCount)
 	}
 	page := max(ctx.FormInt("page"), 1)
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
@@ -662,10 +662,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	handleMentionableAssigneesAndTeams(ctx, shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers))
-	if ctx.Written() {
-		return
-	}
+	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
 

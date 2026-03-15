@@ -79,44 +79,44 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 
 	switch {
 	case migrations.IsRateLimitError(err):
-		ctx.RenderWithErr(ctx.Tr("form.visit_rate_limit"), tpl, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.visit_rate_limit"), tpl, form)
 	case migrations.IsTwoFactorAuthError(err):
-		ctx.RenderWithErr(ctx.Tr("form.2fa_auth_required"), tpl, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.2fa_auth_required"), tpl, form)
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
-		ctx.RenderWithErr(msg, tpl, form)
+		ctx.RenderWithErrDeprecated(msg, tpl, form)
 	case repo_model.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.repo_name_been_taken"), tpl, form)
 	case repo_model.IsErrRepoFilesAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		switch {
 		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
-			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
 		case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
-			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
 		case setting.Repository.AllowDeleteOfUnadoptedRepositories:
-			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
 		default:
-			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tpl, form)
 		}
 	case db.IsErrNameReserved(err):
 		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tpl, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tpl, form)
 	case db.IsErrNamePatternNotAllowed(err):
 		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tpl, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tpl, form)
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)
 		if strings.Contains(err.Error(), "Authentication failed") ||
 			strings.Contains(err.Error(), "Bad credentials") ||
 			strings.Contains(err.Error(), "could not read Username") {
 			ctx.Data["Err_Auth"] = true
-			ctx.RenderWithErr(ctx.Tr("form.auth_failed", err.Error()), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.auth_failed", err.Error()), tpl, form)
 		} else if strings.Contains(err.Error(), "fatal:") {
 			ctx.Data["Err_CloneAddr"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", err.Error()), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.failed", err.Error()), tpl, form)
 		} else {
 			ctx.ServerError(name, err)
 		}
@@ -128,24 +128,24 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl templates
 		addrErr := err.(*git.ErrInvalidCloneAddr)
 		switch {
 		case addrErr.IsProtocolInvalid:
-			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_address_protocol_invalid"), tpl, form)
 		case addrErr.IsURLError:
-			ctx.RenderWithErr(ctx.Tr("form.url_error", addrErr.Host), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.url_error", addrErr.Host), tpl, form)
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.permission_denied"), tpl, form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tpl, form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.permission_denied_blocked"), tpl, form)
 			}
 		case addrErr.IsInvalidPath:
-			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.invalid_local_path"), tpl, form)
 		default:
 			log.Error("Error whilst updating url: %v", err)
-			ctx.RenderWithErr(ctx.Tr("form.url_error", "unknown"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.url_error", "unknown"), tpl, form)
 		}
 	} else {
 		log.Error("Error whilst updating url: %v", err)
-		ctx.RenderWithErr(ctx.Tr("form.url_error", "unknown"), tpl, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.url_error", "unknown"), tpl, form)
 	}
 }
 
@@ -193,7 +193,7 @@ func MigratePost(ctx *context.Context) {
 		ep := lfs.DetermineEndpoint("", form.LFSEndpoint)
 		if ep == nil {
 			ctx.Data["Err_LFSEndpoint"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tpl, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tpl, &form)
 			return
 		}
 		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.Doer)

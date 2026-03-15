@@ -418,5 +418,20 @@ func TestAPIRepoEdit(t *testing.T) {
 		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo1.Name), &repoEditOption).
 			AddTokenAuth(token4)
 		MakeRequest(t, req, http.StatusForbidden)
+
+		// Test updating pull request settings without setting has_pull_requests
+		repo1 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		url = fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo1.Name)
+		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{
+			DefaultDeleteBranchAfterMerge: &bTrue,
+		}).AddTokenAuth(token2)
+		resp = MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &repo)
+		assert.True(t, repo.DefaultDeleteBranchAfterMerge)
+		// reset
+		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{
+			DefaultDeleteBranchAfterMerge: &bFalse,
+		}).AddTokenAuth(token2)
+		_ = MakeRequest(t, req, http.StatusOK)
 	})
 }

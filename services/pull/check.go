@@ -333,6 +333,28 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	return commit, nil
 }
 
+func getMergerForManuallyMergedPullRequest(ctx context.Context, pr *issues_model.PullRequest) (*user_model.User, error) {
+	var errs []error
+	if branch, err := git_model.GetBranch(ctx, pr.BaseRepoID, pr.BaseBranch); err != nil {
+		errs = append(errs, err)
+	} else {
+		err := branch.LoadPusher(ctx) // LoadPusher uses ghost for non-existing user
+		if branch.Pusher != nil && branch.Pusher.ID > 0 {
+			return branch.Pusher, nil
+		} else if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	// When the doer (pusher) is unknown set the BaseRepo owner as merger
+	err := pr.BaseRepo.LoadOwner(ctx)
+	if err == nil {
+		return pr.BaseRepo.Owner, nil
+	}
+	errs = append(errs, err)
+	return nil, fmt.Errorf("unable to find merger for manually merged pull request: %w", errors.Join(errs...))
+}
+
 // manuallyMerged checks if a pull request got manually merged
 // When a pull request got manually merged mark the pull request as merged
 func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
@@ -362,17 +384,10 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		return false
 	}
 
-	merger, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
-
-	// When the commit author is unknown set the BaseRepo owner as merger
-	if merger == nil {
-		if pr.BaseRepo.Owner == nil {
-			if err = pr.BaseRepo.LoadOwner(ctx); err != nil {
-				log.Error("%-v BaseRepo.LoadOwner: %v", pr, err)
-				return false
-			}
-		}
-		merger = pr.BaseRepo.Owner
+	merger, err := getMergerForManuallyMergedPullRequest(ctx, pr)
+	if err != nil {
+		log.Error("%-v getMergerForManuallyMergedPullRequest: %v", pr, err)
+		return false
 	}
 
 	if merged, err := SetMerged(ctx, pr, commit.ID.String(), timeutil.TimeStamp(commit.Author.When.Unix()), merger, issues_model.PullRequestStatusManuallyMerged); err != nil {

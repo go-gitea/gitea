@@ -41,13 +41,6 @@ func (b *Basic) Name() string {
 }
 
 func (b *Basic) parseAuthBasic(req *http.Request) (ret struct{ authToken, uname, passwd string }) {
-	// Basic authentication should only fire on API, Feed, Download, Archives or on Git or LFSPaths
-	// Not all feed (rss/atom) clients feature the ability to add cookies or headers, so we need to allow basic auth for feeds
-	detector := newAuthPathDetector(req)
-	if !detector.isAPIPath() && !detector.isFeedRequest(req) && !detector.isContainerPath() && !detector.isAttachmentDownload() && !detector.isArchivePath() && !detector.isGitRawOrAttachOrLFSPath() {
-		return ret
-	}
-
 	authHeader := req.Header.Get("Authorization")
 	if authHeader == "" {
 		return ret
