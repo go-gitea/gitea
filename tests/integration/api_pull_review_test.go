@@ -489,11 +489,14 @@ func TestAPIPullReviewCommentReply(t *testing.T) {
 	var foundReply bool
 	for _, review := range reviews {
 		if review.ID == originalReviewID {
-			require.NoError(t, review.LoadAttributes(ctx))
-			for _, c := range review.Comments {
-				if c.Content == "reply to original comment" {
-					foundReply = true
-					break
+			require.NoError(t, review.LoadCodeComments(ctx))
+			for _, commentsPerLine := range review.CodeComments {
+				for _, comments := range commentsPerLine {
+					for _, c := range comments {
+						if c.Content == "reply to original comment" {
+							foundReply = true
+						}
+					}
 				}
 			}
 		}
