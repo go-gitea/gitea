@@ -154,7 +154,7 @@ export default defineConfig(commonViteOpts({
           includeDependenciesRecursively: false,
           groups: [
             {name: 'mermaid', test: /[\\/]mermaid[\\/]|@mermaid-js[\\/]/, priority: 10},
-            {name: 'vue-runtime', test: /[\\/]@vue[\\/]runtime/},
+            {name: 'vue', test: /[\\/]@vue[\\/]/},
           ],
         },
         entryFileNames: 'js/[name].[hash:8].js',
