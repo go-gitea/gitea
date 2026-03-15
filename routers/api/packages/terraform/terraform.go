@@ -199,7 +199,7 @@ func UploadState(ctx *context.Context) {
 func DeleteStateBySerial(ctx *context.Context) {
 	serial := ctx.PathParam("serial")
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformState, ctx.PathParam("name"), serial)
-	if errors.Is(err, packages_model.ErrPackageFileNotExist) {
+	if errors.Is(err, packages_model.ErrPackageNotExist) {
 		apiError(ctx, http.StatusNotFound, err)
 		return
 	} else if err != nil {
