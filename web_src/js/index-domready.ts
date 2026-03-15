@@ -1,8 +1,9 @@
 import '../fomantic/build/fomantic.js';
 import '../fomantic/build/fomantic.css';
 import '../css/index.css';
+import type {HtmxResponseInfo} from 'htmx.org';
+import {showErrorToast} from './modules/toast.ts';
 
-import {initHtmx} from './htmx.ts';
 import {initDashboardRepoList} from './features/dashboard.ts';
 import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
 import {initRepoGraphGit} from './features/repo-graph.ts';
@@ -69,7 +70,6 @@ import {initGlobalShortcut} from './modules/shortcut.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
-  initHtmx,
   initSubmitEventPolyfill,
   initGiteaFomantic,
 
@@ -171,5 +171,17 @@ const initDur = performance.now() - initStartTime;
 if (initDur > 500) {
   console.error(`slow init functions took ${initDur.toFixed(3)}ms`);
 }
+
+// https://htmx.org/events/#htmx:sendError
+type HtmxEvent = Event & {detail: HtmxResponseInfo};
+document.body.addEventListener('htmx:sendError', (event) => {
+  // TODO: add translations
+  showErrorToast(`Network error when calling ${(event as HtmxEvent).detail.requestConfig.path}`);
+});
+// https://htmx.org/events/#htmx:responseError
+document.body.addEventListener('htmx:responseError', (event) => {
+  // TODO: add translations
+  showErrorToast(`Error ${(event as HtmxEvent).detail.xhr.status} when calling ${(event as HtmxEvent).detail.requestConfig.path}`);
+});
 
 document.dispatchEvent(new CustomEvent('gitea:index-ready'));
