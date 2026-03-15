@@ -152,6 +152,7 @@ export default defineConfig(commonViteOpts({
         codeSplitting: {
           groups: [
             {name: 'mermaid-parser', test: '@mermaid-js/parser', priority: 10},
+            {name: 'mermaid-core', test: /[\\/]mermaid[\\/]dist[\\/]/, minSize: 0, priority: 5},
             {name: 'vue-runtime', test: /[\\/]@vue[\\/]runtime/, priority: 5},
           ],
         },
