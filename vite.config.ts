@@ -26,9 +26,9 @@ const webComponents = new Set([
   // our own, in web_src/js/webcomponents
   'overflow-menu',
   'origin-url',
+  'relative-time',
   // from dependencies
   'markdown-toolbar',
-  'relative-time',
   'text-expander',
 ]);
 
