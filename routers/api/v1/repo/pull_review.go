@@ -420,6 +420,8 @@ func CreatePullReview(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
+	//   "204":
+	//     description: no content (reply-only request with no review body)
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
@@ -436,8 +438,20 @@ func CreatePullReview(ctx *context.APIContext) {
 		return
 	}
 
-	// determine review type
-	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body, len(opts.Comments) > 0)
+	// separate reply comments from pending comments
+	var pendingComments []api.CreatePullReviewComment
+	var replyComments []api.CreatePullReviewComment
+	for _, c := range opts.Comments {
+		if c.InReplyTo > 0 {
+			replyComments = append(replyComments, c)
+		} else {
+			pendingComments = append(pendingComments, c)
+		}
+	}
+
+	// determine review type (reply comments count as "having comments" for validation)
+	hasComments := len(pendingComments) > 0 || len(replyComments) > 0
+	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body, hasComments)
 	if isWrong {
 		return
 	}
@@ -465,8 +479,40 @@ func CreatePullReview(ctx *context.APIContext) {
 		opts.CommitID = headCommitID
 	}
 
-	// create review comments
-	for _, c := range opts.Comments {
+	// create reply comments (posted immediately, not part of the pending review)
+	for _, c := range replyComments {
+		line := c.NewLineNum
+		if c.OldLineNum > 0 {
+			line = c.OldLineNum * -1
+		}
+
+		if _, err := pull_service.CreateCodeComment(ctx,
+			ctx.Doer,
+			ctx.Repo.GitRepo,
+			pr.Issue,
+			line,
+			c.Body,
+			c.Path,
+			false,       // not a pending review
+			c.InReplyTo, // review ID to reply to
+			opts.CommitID,
+			nil,
+		); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
+	// if there are no pending comments and no review body, skip creating a review
+	// unless the user wants to approve or request changes (which are meaningful without comments)
+	if len(pendingComments) == 0 && len(opts.Body) == 0 &&
+		reviewType != issues_model.ReviewTypeApprove && reviewType != issues_model.ReviewTypeReject {
+		ctx.Status(http.StatusNoContent)
+		return
+	}
+
+	// create pending review comments
+	for _, c := range pendingComments {
 		line := c.NewLineNum
 		if c.OldLineNum > 0 {
 			line = c.OldLineNum * -1

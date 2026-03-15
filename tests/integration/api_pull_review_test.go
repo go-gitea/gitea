@@ -437,6 +437,96 @@ func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
 	MakeRequest(t, req, http.StatusForbidden)
 }
 
+func TestAPIPullReviewCommentReply(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	ctx := t.Context()
+	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	require.NoError(t, pullIssue.LoadAttributes(ctx))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID})
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	require.NoError(t, pullIssue.LoadPullRequest(ctx))
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	latestCommitID, err := gitRepo.GetRefCommitID(pullIssue.PullRequest.GetGitHeadRefName())
+	require.NoError(t, err)
+
+	// Create a code comment to reply to (this creates a review)
+	comment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, pullIssue, 1, "original comment", "README.md", false, 0, latestCommitID, nil)
+	require.NoError(t, err)
+	require.NotNil(t, comment)
+	originalReviewID := comment.ReviewID
+
+	session := loginUser(t, doer.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// Test: reply to an existing review comment using in_reply_to
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
+		Event: "COMMENT",
+		Comments: []api.CreatePullReviewComment{
+			{
+				Path:       "README.md",
+				Body:       "reply to original comment",
+				NewLineNum: 1,
+				InReplyTo:  originalReviewID,
+			},
+		},
+	}).AddTokenAuth(token)
+	// Reply-only reviews return 204 No Content (no new review is created)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	// Verify the reply comment was created under the original review
+	reviews, err := issues_model.FindReviews(ctx, issues_model.FindReviewOptions{
+		IssueID:    pullIssue.ID,
+		ReviewerID: doer.ID,
+	})
+	require.NoError(t, err)
+
+	// Find the original review and check it has the reply
+	var foundReply bool
+	for _, review := range reviews {
+		if review.ID == originalReviewID {
+			require.NoError(t, review.LoadAttributes(ctx))
+			for _, c := range review.Comments {
+				if c.Content == "reply to original comment" {
+					foundReply = true
+					break
+				}
+			}
+		}
+	}
+	assert.True(t, foundReply, "reply comment should be threaded under the original review")
+
+	// Test: mix of reply and non-reply comments creates a review
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
+		Body:  "mixed review",
+		Event: "COMMENT",
+		Comments: []api.CreatePullReviewComment{
+			{
+				Path:       "README.md",
+				Body:       "another reply",
+				NewLineNum: 1,
+				InReplyTo:  originalReviewID,
+			},
+			{
+				Path:       "README.md",
+				Body:       "new standalone comment",
+				NewLineNum: 1,
+			},
+		},
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var review api.PullReview
+	DecodeJSON(t, resp, &review)
+	assert.EqualValues(t, "COMMENT", review.State)
+	assert.Equal(t, "mixed review", review.Body)
+	// Only the non-reply comment should be in the new review
+	assert.Equal(t, 1, review.CodeCommentsCount)
+}
+
 func TestAPIPullReviewStayDismissed(t *testing.T) {
 	// This test against issue https://github.com/go-gitea/gitea/issues/28542
 	// where old reviews surface after a review request got dismissed.

@@ -89,6 +89,9 @@ type CreatePullReviewComment struct {
 	OldLineNum int64 `json:"old_position"`
 	// if comment to new file line or 0
 	NewLineNum int64 `json:"new_position"`
+	// if comment is a reply to an existing review thread, the review ID (pull_request_review_id) to reply to;
+	// the new comment will be threaded under that review
+	InReplyTo int64 `json:"in_reply_to"`
 }
 
 // SubmitPullReviewOptions are options to submit a pending pull request review

@@ -14550,6 +14550,9 @@
           "200": {
             "$ref": "#/responses/PullReview"
           },
+          "204": {
+            "description": "no content (reply-only request with no review body)"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           },
@@ -23572,6 +23575,12 @@
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "in_reply_to": {
+          "description": "if comment is a reply to an existing review thread, the review ID (pull_request_review_id) to reply to;\nthe new comment will be threaded under that review",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "InReplyTo"
         },
         "new_position": {
           "description": "if comment to new file line or 0",
