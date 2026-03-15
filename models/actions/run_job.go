@@ -54,7 +54,7 @@ type ActionRunJob struct {
 	// TokenPermissions stores the explicit permissions from workflow/job YAML (no org/repo clamps applied).
 	// Org/repo clamps are enforced when the token is used at runtime.
 	// It is JSON-encoded repo_model.ActionsTokenPermissions and may be empty if not specified.
-	TokenPermissions *repo_model.ActionsTokenPermissions `xorm:"JSON"`
+	TokenPermissions *repo_model.ActionsTokenPermissions `xorm:"JSON TEXT"`
 
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp

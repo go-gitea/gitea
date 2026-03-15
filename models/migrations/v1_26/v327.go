@@ -9,7 +9,7 @@ import (
 
 func AddTokenPermissionsToActionRunJob(x *xorm.Engine) error {
 	type ActionRunJob struct {
-		TokenPermissions string `xorm:"JSON"`
+		TokenPermissions string `xorm:"JSON TEXT"`
 	}
 	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(ActionRunJob))
 	return err
