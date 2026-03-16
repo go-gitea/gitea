@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
@@ -133,5 +134,23 @@ func TestWebAuthOAuth2(t *testing.T) {
 		assert.Equal(t, expectedValues, u.Query())
 		u.RawQuery = ""
 		assert.Equal(t, "https://example.com/oidc-logout", u.String())
+	})
+
+	t.Run("SignInAutoRedirectSingleProvider", func(t *testing.T) {
+		unittest.PrepareTestEnv(t)
+		addOAuth2Source(t, "dummy-auth-source", oauth2.Source{})
+		defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, false)()
+		defer test.MockVariableValue(&setting.Service.EnableOpenIDSignIn, false)()
+		defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, false)()
+
+		ctx, resp := contexttest.MockContext(t, "/user/login?redirect_to=/other")
+		SignIn(ctx)
+		assert.Equal(t, http.StatusSeeOther, resp.Code)
+		expectedURL := "/user/oauth2/dummy-auth-source?redirect_to=" + url.QueryEscape("/other")
+		assert.Equal(t, expectedURL, test.RedirectURL(resp))
+
+		ctx, resp = contexttest.MockContext(t, "/user/login?redirect_to=/other&skipAutoLogin=true")
+		SignIn(ctx)
+		assert.Equal(t, http.StatusOK, resp.Code)
 	})
 }
