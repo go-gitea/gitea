@@ -349,8 +349,8 @@ function hasOutgoingEdge(job: JobNode): boolean {
   return edges.value.some((edge) => edge.from === job.name);
 }
 
-function getDisplayName(name: string): string {
-  const maxChars = 26;
+function getDisplayName(name: string, hasDuration: boolean): string {
+  const maxChars = hasDuration ? 18 : 22;
   if (name.length <= maxChars) {
     return name;
   }
@@ -523,6 +523,8 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
           @mouseenter="handleNodeMouseEnter(job)"
           @mouseleave="handleNodeMouseLeave"
         >
+          <title>{{ job.name }}</title>
+
           <rect
             :x="job.x"
             :y="job.y"
@@ -573,7 +575,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             dominant-baseline="middle"
             class="job-name"
           >
-            {{ getDisplayName(job.name) }}
+            {{ getDisplayName(job.name, Boolean(job.duration || job.status === 'success' || job.status === 'failure')) }}
           </text>
 
           <text
