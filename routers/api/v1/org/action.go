@@ -67,7 +67,7 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.SetLinkHeader(int(count), opts.PageSize)
+	ctx.SetLinkHeader(count, opts.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiSecrets)
 }
@@ -240,7 +240,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 			Description: v.Description,
 		}
 	}
-	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, variables)
 }

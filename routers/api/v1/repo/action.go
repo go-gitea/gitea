@@ -91,7 +91,7 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 			Created:     v.CreatedUnix.AsTime(),
 		}
 	}
-	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiSecrets)
 }
@@ -506,7 +506,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, variables)
 }
@@ -811,7 +811,7 @@ func ListActionTasks(ctx *context.APIContext) {
 		res.Entries[i] = convertedTask
 	}
 
-	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total) // Duplicates api response field but it's better to set it for consistency
 	ctx.JSON(http.StatusOK, &res)
 }
@@ -1041,15 +1041,9 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		return
 	}
 
-	workflowRun, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
 	ctx.JSON(http.StatusOK, &api.RunDetails{
 		WorkflowRunID: runID,
-		HTMLURL:       fmt.Sprintf("%s/actions/runs/%d", ctx.Repo.Repository.HTMLURL(ctx), workflowRun.Index),
+		HTMLURL:       fmt.Sprintf("%s/actions/runs/%d", ctx.Repo.Repository.HTMLURL(ctx), runID),
 		RunURL:        fmt.Sprintf("%s/actions/runs/%d", ctx.Repo.Repository.APIURL(), runID),
 	})
 }

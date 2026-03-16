@@ -114,7 +114,7 @@ func (task *ActionTask) GetRepoLink() string {
 
 func (task *ActionTask) LoadJob(ctx context.Context) error {
 	if task.Job == nil {
-		job, err := GetRunJobByID(ctx, task.JobID)
+		job, err := GetRunJobByRepoAndID(ctx, task.RepoID, task.JobID)
 		if err != nil {
 			return err
 		}
@@ -388,6 +388,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			}
 			if _, err := UpdateRunJob(ctx, &ActionRunJob{
 				ID:      task.JobID,
+				RepoID:  task.RepoID,
 				Status:  task.Status,
 				Stopped: task.Stopped,
 			}, nil); err != nil {
@@ -449,6 +450,7 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	task.Stopped = now
 	if _, err := UpdateRunJob(ctx, &ActionRunJob{
 		ID:      task.JobID,
+		RepoID:  task.RepoID,
 		Status:  task.Status,
 		Stopped: task.Stopped,
 	}, nil); err != nil {

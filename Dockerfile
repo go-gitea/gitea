@@ -3,13 +3,13 @@
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26-alpine3.23 AS frontend-build
 RUN apk --no-cache add build-base git nodejs pnpm
 WORKDIR /src
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 COPY --exclude=.git/ . .
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store make frontend
+RUN make frontend
 
 # Build backend for each target platform
 FROM docker.io/library/golang:1.26-alpine3.23 AS build-env
-
-ARG GOPROXY=direct
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
@@ -22,14 +22,15 @@ RUN apk --no-cache add \
     git
 
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
+COPY go.mod go.sum ./
+RUN go mod download
 # Use COPY instead of bind mount as read-only one breaks makefile state tracking and read-write one needs binary to be moved as it's discarded.
 # ".git" directory is mounted separately later only for version data extraction.
 COPY --exclude=.git/ . .
 COPY --from=frontend-build /src/public/assets public/assets
 
 # Build gitea, .git mount is required for version data
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target="/root/.cache/go-build" \
+RUN --mount=type=cache,target="/root/.cache/go-build" \
     --mount=type=bind,source=".git/",target=".git/" \
     make backend
 

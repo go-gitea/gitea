@@ -345,7 +345,7 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOp
 	if page <= 0 {
 		page = 1
 	}
-	pager := context.NewPagination(total, setting.ItemsPerPage, page, 5)
+	pager := context.NewPagination(int64(total), setting.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
 	items, err := getter(db.ListOptions{
@@ -403,7 +403,7 @@ func Forks(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPagination(int(total), pageSize, page, 5)
+	pager := context.NewPagination(total, pageSize, page, 5)
 	ctx.Data["ShowRepoOwnerAvatar"] = true
 	ctx.Data["ShowRepoOwnerOnList"] = true
 	ctx.Data["Page"] = pager

@@ -44,7 +44,7 @@ func MarkLongPolling(resp http.ResponseWriter, req *http.Request) {
 }
 
 // UpdatePanicError updates a context's error info, a panic may be recovered by other middlewares, but we still need to know that.
-func UpdatePanicError(ctx context.Context, err any) {
+func UpdatePanicError(ctx context.Context, err error) {
 	record, ok := ctx.Value(contextKey).(*requestRecord)
 	if !ok {
 		return

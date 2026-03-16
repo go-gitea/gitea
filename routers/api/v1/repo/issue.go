@@ -299,7 +299,7 @@ func SearchIssues(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetLinkHeader(int(total), limit)
+	ctx.SetLinkHeader(total, limit)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }
@@ -527,7 +527,7 @@ func ListIssues(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }

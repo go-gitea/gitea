@@ -110,8 +110,8 @@ export default defineComponent({
     WorkflowGraph,
   },
   props: {
-    runIndex: {type: Number, required: true},
-    jobIndex: {type: Number, required: true},
+    runId: {type: Number, required: true},
+    jobId: {type: Number, required: true},
     actionsURL: {type: String, required: true},
     locale: {
       type: Object as PropType<Record<string, any>>,
@@ -366,7 +366,7 @@ export default defineComponent({
         // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
         return {step: idx, cursor: it.cursor, expanded: it.expanded};
       });
-      const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`, {
+      const resp = await POST(`${this.actionsURL}/runs/${this.runId}/jobs/${this.jobId}`, {
         signal: abortController.signal,
         data: {logCursors},
       });
@@ -538,13 +538,13 @@ export default defineComponent({
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="jobIndex === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
+            <a class="job-brief-item" :href="run.link+'/jobs/'+job.id" :class="jobId === job.id ? 'selected' : ''" v-for="job in run.jobs" :key="job.id">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
               </div>
               <span class="job-brief-item-right">
-                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action interact-fg" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun"/>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
             </a>
@@ -581,7 +581,7 @@ export default defineComponent({
         <WorkflowGraph
           v-if="showWorkflowGraph && run.jobs.length > 1"
           :jobs="run.jobs"
-          :current-job-index="jobIndex"
+          :current-job-id="jobId"
           :run-link="run.link"
           :workflow-id="run.workflowID"
           class="workflow-graph-container"
@@ -626,7 +626,7 @@ export default defineComponent({
                 </a>
 
                 <div class="divider"/>
-                <a :class="['item', !currentJob.steps.length ? 'disabled' : '']" :href="run.link+'/jobs/'+jobIndex+'/logs'" download>
+                <a :class="['item', !currentJob.steps.length ? 'disabled' : '']" :href="run.link+'/jobs/'+jobId+'/logs'" download>
                   <i class="icon"><SvgIcon name="octicon-download"/></i>
                   {{ locale.downloadLogs }}
                 </a>
