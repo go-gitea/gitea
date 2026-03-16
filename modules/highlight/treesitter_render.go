@@ -264,6 +264,12 @@ func (renderer *treeSitterRenderer) highlightIncrementalLocked(code []byte) ([]n
 	return renderer.normalizeResolvedRanges(code, ranges), tree, true
 }
 
+// highlightCompatibilityLocked handles grammars that can't parse code
+// snippets in their raw form. Some tree-sitter grammars expect well-formed
+// full files, but Gitea often renders one-liner snippets from diffs or code
+// previews. The strategy: reshape the input so the grammar can parse it,
+// highlight the reshaped version, then project the highlight ranges back
+// to the original byte positions.
 func (renderer *treeSitterRenderer) highlightCompatibilityLocked(code []byte) ([]normalizedHighlightRange, bool) {
 	if renderer == nil || renderer.highlighter == nil || len(code) == 0 {
 		return nil, false
@@ -271,6 +277,8 @@ func (renderer *treeSitterRenderer) highlightCompatibilityLocked(code []byte) ([
 
 	switch renderer.languageName {
 	case "haskell":
+		// Haskell's grammar requires a module declaration to parse top-level
+		// expressions. Prepend one, highlight, then offset ranges back.
 		const prefix = "module Main where\n"
 		if bytes.Contains(code, []byte("module ")) {
 			return nil, false
@@ -316,6 +324,11 @@ func (renderer *treeSitterRenderer) highlightCompatibilityLocked(code []byte) ([
 	}
 }
 
+// highlightNginxCompatibilityLocked handles single-line nginx configs that
+// the grammar can't parse (e.g. "server { listen 80; location / { return 200; } }").
+// Pipeline: tokenize on structural chars ({};) and whitespace, reformat with
+// proper indentation and line breaks, parse the reformatted source, then
+// project highlight ranges back to original byte positions via a position map.
 func (renderer *treeSitterRenderer) highlightNginxCompatibilityLocked(code []byte) ([]normalizedHighlightRange, bool) {
 	normalized, normToOrig, ok := normalizeNginxCompatibilitySource(code)
 	if !ok {
@@ -346,6 +359,12 @@ type compatibilityToken struct {
 	end   int
 }
 
+// normalizeNginxCompatibilitySource reformats a single-line nginx config into
+// multi-line form that the tree-sitter grammar can parse. Returns the
+// reformatted source and a normToOrig position map where normToOrig[i] is
+// the original byte index for normalized byte i, or -1 for inserted bytes
+// (whitespace, newlines). This map is used by projectNormalizedRanges to
+// translate highlight ranges back to the original source positions.
 func normalizeNginxCompatibilitySource(code []byte) ([]byte, []int, bool) {
 	tokens := tokenizeCompatibilitySource(code, "{};")
 	if len(tokens) == 0 {
@@ -462,6 +481,10 @@ func tokenizeCompatibilitySource(code []byte, structural string) []compatibility
 	return tokens
 }
 
+// projectNormalizedRanges maps highlight ranges from the reformatted source
+// back to the original byte positions using the normToOrig position map.
+// Ranges landing on inserted bytes (normToOrig[i] == -1) are split into
+// segments covering only the mapped bytes.
 func projectNormalizedRanges(ranges []normalizedHighlightRange, normToOrig []int) []normalizedHighlightRange {
 	out := make([]normalizedHighlightRange, 0, len(ranges))
 	for _, hr := range ranges {

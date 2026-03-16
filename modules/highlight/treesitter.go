@@ -149,7 +149,8 @@ func resolveTreeSitterEntry(fileName, fileLang string) *tsgrammars.LangEntry {
 	}
 	if entry == nil {
 		// Final fallback: use chroma/enry heuristics, then map lexer names back
-		// to a tree-sitter grammar when possible.
+		// to a tree-sitter grammar when possible. Code is nil because
+		// allowAnalyze is false — only filename/language-based detection.
 		entry = resolveTreeSitterEntryByChroma(fileName, fileLang, nil, false)
 	}
 	return entry
