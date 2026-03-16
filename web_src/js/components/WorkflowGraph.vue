@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
+import ActionRunStatus from './ActionRunStatus.vue';
 import {localUserSettings} from "../modules/user-settings.ts";
 import {debounce} from "throttle-debounce";
 import type {ActionsJob, ActionsRunStatus} from '../modules/gitea-actions.ts';
@@ -255,8 +256,8 @@ const graphMetrics = computed(() => {
   };
 })
 
-const nodeHeight = 64;
-const verticalSpacing = 104;
+const nodeHeight = 48;
+const verticalSpacing = 88;
 const margin = 40;
 
 function zoomIn() {
@@ -348,17 +349,6 @@ function hasOutgoingEdge(job: JobNode): boolean {
   return edges.value.some((edge) => edge.from === job.name);
 }
 
-function getStatusDotColor(status: ActionsRunStatus): string {
-  if (status === 'success') {
-    return 'var(--color-green)';
-  } else if (status === 'failure') {
-    return 'var(--color-red)';
-  } else if (status === 'running') {
-    return 'var(--color-yellow)';
-  }
-  return 'var(--color-text-light-2)';
-}
-
 function getDisplayName(name: string): string {
   const maxChars = 26;
   if (name.length <= maxChars) {
@@ -366,20 +356,6 @@ function getDisplayName(name: string): string {
   }
 
   return name.substring(0, maxChars - 3) + '...';
-}
-
-function formatStatus(status: ActionsRunStatus): string {
-  const statusMap: Record<ActionsRunStatus, string> = {
-    skipped: 'Skipped',
-    unknown: 'Unknown',
-    success: 'Success',
-    failure: 'Failed',
-    running: 'Running',
-    waiting: 'Waiting',
-    cancelled: 'Cancelled',
-    blocked: 'Blocked'
-  };
-  return statusMap[status] || status;
 }
 
 function getEdgeStyle(edge: BezierEdge) {
@@ -575,30 +551,26 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             class="node-port"
           />
 
-          <circle
-            :cx="job.x + 20"
-            :cy="job.y + 20"
-            r="7"
-            :fill="getStatusDotColor(job.status)"
-            class="job-status-dot"
-          />
-
-          <circle
-            v-if="job.status === 'waiting' || job.status === 'cancelled' || job.status === 'unknown'"
-            :cx="job.x + 20"
-            :cy="job.y + 20"
-            r="4"
-            :fill="'var(--color-box-body)'"
-            class="job-status-dot-inner"
-          />
+          <foreignObject
+            :x="job.x + 10"
+            :y="job.y + 14"
+            width="20"
+            height="20"
+            class="job-status-fo"
+          >
+            <div xmlns="http://www.w3.org/1999/xhtml" class="job-status-icon-wrap">
+              <ActionRunStatus :status="job.status"/>
+            </div>
+          </foreignObject>
 
           <text
             :x="job.x + 40"
-            :y="job.y + 25"
+            :y="job.y + nodeHeight / 2 + 1"
             :fill="'var(--color-text)'"
             font-size="11"
             font-weight="600"
             text-anchor="start"
+            dominant-baseline="middle"
             class="job-name"
           >
             {{ getDisplayName(job.name) }}
@@ -607,24 +579,14 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
           <text
             v-if="job.duration || (job.status === 'success' || job.status === 'failure')"
             :x="job.x + nodeWidth - 14"
-            :y="job.y + 25"
+            :y="job.y + nodeHeight / 2 + 1"
             :fill="'var(--color-text-light-2)'"
             font-size="8.5"
             text-anchor="end"
+            dominant-baseline="middle"
             class="job-duration"
           >
             {{ job.duration }}
-          </text>
-
-          <text
-            :x="job.x + 20"
-            :y="job.y + nodeHeight - 16"
-            :fill="'var(--color-text-light-1)'"
-            font-size="9.5"
-            text-anchor="start"
-            class="job-status"
-          >
-            {{ formatStatus(job.status) }}
           </text>
 
         </g>
@@ -735,20 +697,22 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   pointer-events: none;
 }
 
-.job-status,
 .job-duration {
   user-select: none;
   pointer-events: none;
 }
 
-.job-status-dot {
+.job-status-fo,
+.job-status-icon-wrap {
   pointer-events: none;
-  stroke: var(--color-box-body);
-  stroke-width: 1.5;
 }
 
-.job-status-dot-inner {
-  pointer-events: none;
+.job-status-icon-wrap {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .job-rect {

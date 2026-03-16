@@ -147,6 +147,15 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Duration: "2m",
 		Needs:    []string{"job-100"},
 	})
+	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
+		ID:       runID*10 + 4,
+		JobID:    "job-104",
+		Name:     "job 104",
+		Status:   actions_model.StatusSuccess.String(),
+		CanRerun: false,
+		Duration: "2m",
+		Needs:    []string{"job-103"},
+	})
 
 	var mockLogOptions []generateMockStepsLogOptions
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
