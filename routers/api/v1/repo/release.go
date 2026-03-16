@@ -150,7 +150,7 @@ func ListReleases(ctx *context.APIContext) {
 	//   required: true
 	// - name: draft
 	//   in: query
-	//   description: filter (exclude / include) drafts, if you dont have repo write access none will show
+	//   description: filter (exclude / include) drafts, if you don't have repo write access none will show
 	//   type: boolean
 	// - name: pre-release
 	//   in: query

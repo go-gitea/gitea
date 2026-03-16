@@ -238,7 +238,8 @@ progress::-moz-progress-bar {
   background: var(--color-hover);
 }
 
-::selection {
+::selection,
+relative-time::part(root)::selection {
   background: var(--color-primary-light-1);
   color: var(--color-white);
 }
