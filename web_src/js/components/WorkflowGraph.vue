@@ -29,6 +29,10 @@ interface BezierEdge extends Edge {
   path: string;
   fromNode: JobNode;
   toNode: JobNode;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
 }
 
 interface StoredState {
@@ -95,7 +99,7 @@ const nodeWidth = computed(() => {
   return Math.min(Math.max(140, maxNameLength * 8), 180);
 });
 
-const horizontalSpacing = computed(() => nodeWidth.value + 20);
+const horizontalSpacing = computed(() => nodeWidth.value + 84);
 const graphWidth = computed(() => {
   if (jobsWithLayout.value.length === 0) return 800;
   const maxX = Math.max(...jobsWithLayout.value.map(j => j.x + nodeWidth.value));
@@ -135,8 +139,8 @@ const jobsWithLayout = computed<JobNode[]>(() => {
         return;
       }
 
-      const levelWidth = (levelJobs.length - 1) * currentHorizontalSpacing;
-      const startX = margin + (maxJobsPerLevel * currentHorizontalSpacing - levelWidth) / 2;
+      const levelHeight = (levelJobs.length - 1) * verticalSpacing;
+      const startY = margin + (maxJobsPerLevel * verticalSpacing - levelHeight) / 2;
 
       levelJobs.forEach((job, jobIndex) => {
         result.push({
@@ -148,8 +152,8 @@ const jobsWithLayout = computed<JobNode[]>(() => {
 
           index: props.jobs.findIndex(j => j.id === job.id),
 
-          x: startX + jobIndex * currentHorizontalSpacing,
-          y: margin + levelIndex * verticalSpacing,
+          x: margin + levelIndex * currentHorizontalSpacing,
+          y: startY + jobIndex * verticalSpacing,
           level: levelIndex,
         });
       });
@@ -166,7 +170,7 @@ const jobsWithLayout = computed<JobNode[]>(() => {
 
       index: index,
 
-      x: margin + index * (nodeWidth.value + 40),
+      x: margin + index * horizontalSpacing.value,
       y: margin,
       level: 0,
     }));
@@ -211,26 +215,24 @@ const bezierEdges = computed<BezierEdge[]>(() => {
       return;
     }
 
-    const startX = fromNode.x + nodeWidth.value / 2;
-    const startY = fromNode.y + nodeHeight;
-    const endX = toNode.x + nodeWidth.value / 2;
-    const endY = toNode.y;
+    const startX = fromNode.x + nodeWidth.value;
+    const startY = fromNode.y + nodeHeight / 2;
+    const endX = toNode.x;
+    const endY = toNode.y + nodeHeight / 2;
 
-    const levelDiff = toNode.level - fromNode.level;
-    const curveStrength = 30 + Math.abs(levelDiff) * 15;
-
-    const controlX1 = startX;
-    const controlY1 = startY + curveStrength;
-    const controlX2 = endX;
-    const controlY2 = endY - curveStrength;
-
-    const path = `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
+    const elbowOffset = Math.max(18, Math.min((endX - startX) / 2, 28));
+    const midX = startX + elbowOffset;
+    const path = `M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
 
     bezierEdgesList.push({
       ...edge,
       path,
       fromNode,
       toNode,
+      startX,
+      startY,
+      endX,
+      endY,
     });
   });
 
@@ -253,8 +255,8 @@ const graphMetrics = computed(() => {
   };
 })
 
-const nodeHeight = 50;
-const verticalSpacing = 120;
+const nodeHeight = 64;
+const verticalSpacing = 104;
 const margin = 40;
 
 function zoomIn() {
@@ -338,17 +340,12 @@ function isEdgeHighlighted(edge: BezierEdge): boolean {
   return edge.from === hoveredJob.name || edge.to === hoveredJob.name;
 }
 
-function getNodeColor(status: ActionsRunStatus): string {
-  if (status === 'success') {
-    return 'var(--color-green-dark-2)';
-  } else if (status === 'failure') {
-    return 'var(--color-red-dark-2)';
-  } else if (status === 'running') {
-    return 'var(--color-yellow-dark-2)';
-  } else if (status === 'blocked') {
-    return 'var(--color-purple)';
-  }
-  return 'var(--color-text-light-3)';
+function hasIncomingEdge(job: JobNode): boolean {
+  return edges.value.some((edge) => edge.to === job.name);
+}
+
+function hasOutgoingEdge(job: JobNode): boolean {
+  return edges.value.some((edge) => edge.from === job.name);
 }
 
 function getStatusDotColor(status: ActionsRunStatus): string {
@@ -360,45 +357,6 @@ function getStatusDotColor(status: ActionsRunStatus): string {
     return 'var(--color-yellow)';
   }
   return 'var(--color-text-light-2)';
-}
-
-function getEdgeColor(edge: BezierEdge): string {
-  if (!edge.fromNode || !edge.toNode) {
-    return 'var(--color-secondary)';
-  }
-
-  const fromStatus = edge.fromNode.status;
-  const toStatus = edge.toNode.status;
-
-  if (fromStatus === 'failure' || toStatus === 'failure') {
-    return 'var(--color-red)';
-  }
-
-  if (fromStatus === 'running') {
-    return 'var(--color-yellow)';
-  }
-
-  if (toStatus === 'running' && fromStatus === 'success') {
-    return 'var(--color-primary)';
-  }
-
-  if (fromStatus === 'success' && toStatus === 'success') {
-    return 'var(--color-green)';
-  }
-
-  if (fromStatus === 'success' && (toStatus === 'waiting' || toStatus === 'blocked')) {
-    return 'var(--color-primary-light)';
-  }
-
-  if (fromStatus === 'waiting' || fromStatus === 'blocked') {
-    return 'var(--color-text-light-2)';
-  }
-
-  if (fromStatus === 'cancelled' || toStatus === 'cancelled') {
-    return 'var(--color-text-light-2)';
-  }
-
-  return 'var(--color-secondary)';
 }
 
 function getDisplayName(name: string): string {
@@ -433,88 +391,19 @@ function getEdgeStyle(edge: BezierEdge) {
     };
   }
 
-  const fromStatus = edge.fromNode.status;
-  const toStatus = edge.toNode.status;
   const isHighlighted = isEdgeHighlighted(edge);
 
   return {
-    'stroke': getEdgeColor(edge),
-    'stroke-width': isHighlighted ? '3' : getStrokeWidth(fromStatus, toStatus),
-    'stroke-dasharray': getDashArray(fromStatus, toStatus),
-    'opacity': isHighlighted ? 1 : getEdgeOpacity(fromStatus, toStatus),
+    'stroke': (!edge.fromNode || !edge.toNode) ? 'var(--color-secondary-alpha-50)' :  'var(--color-secondary-alpha-50)',
+    'stroke-width': isHighlighted ? '3' : '1.75',
+    'stroke-dasharray': 'none',
+    'opacity': isHighlighted ? 1 : 0.6,
     'transition': 'all 0.2s ease',
   };
 }
 
-function getStrokeWidth(fromStatus: ActionsRunStatus, toStatus: ActionsRunStatus): string {
-  if (fromStatus === 'running' || toStatus === 'running') {
-    return '3';
-  }
-
-  if (fromStatus === 'failure' || toStatus === 'failure') {
-    return '2.5';
-  }
-
-  return '2';
-}
-
-function getDashArray(fromStatus: ActionsRunStatus, toStatus: ActionsRunStatus): string {
-  if (fromStatus === 'waiting' || toStatus === 'waiting') {
-    return '5,3';
-  }
-
-  if (fromStatus === 'blocked') {
-    return '8,4';
-  }
-
-  if (fromStatus === 'cancelled' || toStatus === 'cancelled') {
-    return '3,6';
-  }
-
-  return 'none';
-}
-
-function getEdgeOpacity(fromStatus: ActionsRunStatus, toStatus: ActionsRunStatus): number {
-  if (fromStatus === 'success' && toStatus === 'success') {
-    return 0.6;
-  }
-
-  if (fromStatus === 'failure' || toStatus === 'failure') {
-    return 1;
-  }
-
-  if (fromStatus === 'running' || toStatus === 'running') {
-    return 1;
-  }
-
-  return 0.8;
-}
-
 function getEdgeClass(edge: BezierEdge): string {
-  if (!edge.fromNode || !edge.toNode) return '';
-
-  const fromStatus = edge.fromNode.status;
-  const toStatus = edge.toNode.status;
-
-  const classes: string[] = ['node-edge'];
-
-  if (fromStatus === 'running' || toStatus === 'running') {
-    classes.push('running-edge');
-  }
-
-  if (fromStatus === 'success' && toStatus === 'success') {
-    classes.push('success-edge');
-  }
-
-  if (fromStatus === 'failure' || toStatus === 'failure') {
-    classes.push('failure-edge');
-  }
-
-  if (fromStatus === 'waiting' || toStatus === 'waiting') {
-    classes.push('waiting-edge');
-  }
-
-  return classes.join(' ');
+  return edge.fromNode && edge.toNode ? 'node-edge' : '';
 }
 
 function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
@@ -663,29 +552,52 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             :y="job.y"
             :width="nodeWidth"
             :height="nodeHeight"
-            rx="8"
-            :fill="getNodeColor(job.status)"
-            :stroke="job.id === currentJobId ? 'var(--color-primary)' : 'var(--color-card-border)'"
-            :stroke-width="job.id === currentJobId ? '3' : '2'"
+            rx="10"
+            fill="var(--color-box-body)"
+            :stroke="job.id === currentJobId ? 'var(--color-primary)' : 'var(--color-secondary-alpha-20)'"
+            :stroke-width="job.id === currentJobId ? '1.75' : '1'"
             class="job-rect"
           />
 
-          <rect
-            v-if="job.status === 'running'"
-            :x="job.x"
-            :y="job.y"
-            :width="nodeWidth"
-            :height="nodeHeight"
-            rx="8"
-            fill="url(#running-gradient)"
-            opacity="0.3"
-            class="running-background"
+          <circle
+            v-if="hasIncomingEdge(job)"
+            :cx="job.x"
+            :cy="job.y + nodeHeight / 2"
+            r="6"
+            class="node-port"
           />
+
+          <circle
+            v-if="hasOutgoingEdge(job)"
+            :cx="job.x + nodeWidth"
+            :cy="job.y + nodeHeight / 2"
+            r="6"
+            class="node-port"
+          />
+
+          <circle
+            :cx="job.x + 20"
+            :cy="job.y + 20"
+            r="7"
+            :fill="getStatusDotColor(job.status)"
+            class="job-status-dot"
+          />
+
+          <circle
+            v-if="job.status === 'waiting' || job.status === 'cancelled' || job.status === 'unknown'"
+            :cx="job.x + 20"
+            :cy="job.y + 20"
+            r="4"
+            :fill="'var(--color-box-body)'"
+            class="job-status-dot-inner"
+          />
+
           <text
-            :x="job.x + 8"
-            :y="job.y + 18"
-            fill="white"
-            font-size="12"
+            :x="job.x + 40"
+            :y="job.y + 25"
+            :fill="'var(--color-text)'"
+            font-size="11"
+            font-weight="600"
             text-anchor="start"
             class="job-name"
           >
@@ -694,10 +606,10 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
           <text
             v-if="job.duration || (job.status === 'success' || job.status === 'failure')"
-            :x="job.x + nodeWidth - 10"
-            :y="job.y + nodeHeight - 25"
-            fill="rgba(255,255,255,0.7)"
-            font-size="9"
+            :x="job.x + nodeWidth - 14"
+            :y="job.y + 25"
+            :fill="'var(--color-text-light-2)'"
+            font-size="8.5"
             text-anchor="end"
             class="job-duration"
           >
@@ -705,56 +617,17 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
           </text>
 
           <text
-            :x="job.x + nodeWidth - 10"
-            :y="job.y + nodeHeight - 8"
-            fill="rgba(255,255,255,0.9)"
-            font-size="10"
-            text-anchor="end"
+            :x="job.x + 20"
+            :y="job.y + nodeHeight - 16"
+            :fill="'var(--color-text-light-1)'"
+            font-size="9.5"
+            text-anchor="start"
             class="job-status"
           >
             {{ formatStatus(job.status) }}
           </text>
 
-          <rect
-            v-if="job.status === 'running'"
-            :x="job.x + 2"
-            :y="job.y + nodeHeight - 6"
-            :width="(nodeWidth - 4) * 0.5"
-            height="4"
-            rx="2"
-            :fill="getStatusDotColor('running')"
-            class="progress-bar"
-          >
-            <animate
-              attributeName="width"
-              values="0; 100"
-              dur="2s"
-              repeatCount="indefinite"
-              calcMode="spline"
-              keySplines="0.4, 0, 0.2, 1"
-            />
-          </rect>
-
-          <text
-            v-if="job.needs?.length"
-            :x="job.x + nodeWidth / 2"
-            :y="job.y - 8"
-            fill="var(--color-text-light-2)"
-            font-size="10"
-            text-anchor="middle"
-            class="job-deps-label"
-          >
-            ← {{ job.needs.length }} deps
-          </text>
         </g>
-
-        <defs>
-          <linearGradient id="running-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" :stop-color="getStatusDotColor('running')" stop-opacity="0.2"/>
-            <stop offset="50%" :stop-color="getStatusDotColor('running')" stop-opacity="0.4"/>
-            <stop offset="100%" :stop-color="getStatusDotColor('running')" stop-opacity="0.2"/>
-          </linearGradient>
-        </defs>
       </svg>
     </div>
   </div>
@@ -804,12 +677,13 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
 .graph-container {
   overflow: auto;
-  padding: 12px;
-  border-radius: 8px;
+  padding: 12px 16px 20px;
+  border-radius: 10px;
   cursor: grab;
   min-height: 300px;
   max-height: 600px;
   position: relative;
+  background: var(--color-body);
 }
 
 .graph-container.dragging {
@@ -823,12 +697,14 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
 .graph-svg path {
   transition: all 0.2s ease;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .highlighted-edge {
-  stroke-width: 3 !important;
-  opacity: 1 !important;
-  stroke: var(--color-primary) !important;
+  stroke-width: 2.25 !important;
+  opacity: 0.9 !important;
+  stroke: color-mix(in srgb, var(--color-primary) 35%, var(--color-secondary)) !important;
 }
 
 .job-node-group {
@@ -838,10 +714,8 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .job-node-group:hover .job-rect {
-  filter: brightness(1.1);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 10;
+  filter: brightness(1.01);
+  transform: translateX(1px);
 }
 
 .job-node-group.current-job {
@@ -849,11 +723,11 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .job-node-group.current-job .job-rect {
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 30%, transparent));
+  filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--color-primary) 12%, transparent));
 }
 
 .job-name {
-  max-width: calc(var(--node-width, 150px) - 50px);
+  max-width: calc(var(--node-width, 150px) - 92px);
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
@@ -862,95 +736,34 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .job-status,
-.job-duration,
-.job-deps-label {
+.job-duration {
   user-select: none;
   pointer-events: none;
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: -200px 0;
-  }
-  100% {
-    background-position: calc(200px + 100%) 0;
-  }
+.job-status-dot {
+  pointer-events: none;
+  stroke: var(--color-box-body);
+  stroke-width: 1.5;
 }
 
-.running-background {
-  animation: shimmer 2s infinite linear;
-  background-size: 200px 100%;
+.job-status-dot-inner {
+  pointer-events: none;
 }
 
-@keyframes flowRunning {
-  0% {
-    stroke-dashoffset: 20;
-    stroke-opacity: 0.7;
-  }
-  50% {
-    stroke-opacity: 1;
-  }
-  100% {
-    stroke-dashoffset: 0;
-    stroke-opacity: 0.7;
-  }
+.job-rect {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08));
 }
 
-@keyframes pulseFailure {
-  0%, 100% {
-    stroke-width: 2.5;
-    opacity: 0.7;
-  }
-  50% {
-    stroke-width: 3;
-    opacity: 1;
-    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-red) 50%, transparent));
-  }
+.node-port {
+  fill: var(--color-box-body);
+  stroke: var(--color-secondary-alpha-90);
+  stroke-width: 1.5;
+  pointer-events: none;
 }
 
-@keyframes shimmerEdge {
-  0% {
-    stroke-dashoffset: 20;
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-.node-edge.running-edge {
-  stroke-dasharray: 10, 5;
-  animation: flowRunning 1s linear infinite;
-}
-
-.node-edge.failure-edge {
-  animation: pulseFailure 0.8s ease-in-out infinite;
-}
-
-.node-edge.waiting-edge {
-  stroke-dasharray: 5, 3;
-  animation: shimmerEdge 2s linear infinite;
-}
-
-.node-edge.success-edge {
-  transition: stroke-width 0.3s ease, opacity 0.3s ease;
-}
-
-.node-edge.success-edge:hover {
-  stroke-width: 3;
-  opacity: 1;
-}
-
-.progress-bar {
-  animation: progressPulse 2s ease-in-out infinite;
-}
-
-@keyframes progressPulse {
-  0%, 100% {
-    opacity: 0.8;
-  }
-  50% {
-    opacity: 1;
-  }
+.node-edge {
+  transition: stroke-width 0.2s ease, opacity 0.2s ease;
 }
 
 @media (max-width: 768px) {
