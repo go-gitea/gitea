@@ -324,6 +324,8 @@ func treeSitterCaptureToChromaClass(capture string) string {
 		return "se"
 	case strings.HasPrefix(capture, "string.regex"):
 		return "sr"
+	case strings.HasPrefix(capture, "string.special.key"):
+		return "nt"
 	case strings.HasPrefix(capture, "string.special"):
 		return "ss"
 	case strings.HasPrefix(capture, "string"):
@@ -366,7 +368,7 @@ func treeSitterCaptureToChromaClass(capture string) string {
 		strings.HasPrefix(capture, "field"):
 		return "na"
 	case strings.HasPrefix(capture, "property"):
-		return "py"
+		return "nt"
 	case strings.HasPrefix(capture, "variable.builtin"):
 		return "nb"
 	case strings.HasPrefix(capture, "variable"),
