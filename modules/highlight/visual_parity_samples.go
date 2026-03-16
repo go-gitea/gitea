@@ -9,9 +9,7 @@ type visualParitySample struct {
 	code     string
 }
 
-var visualParityKnownTreeSitterFallbacks = map[string]highlightFallbackReason{
-	"swift": highlightFallbackRenderUnusable,
-}
+var visualParityKnownTreeSitterFallbacks = map[string]highlightFallbackReason{}
 
 var visualParityTop50 = []visualParitySample{
 	{name: "go", fileName: "sample.go", code: "package main\n\nfunc main() { println(1) }\n"},
