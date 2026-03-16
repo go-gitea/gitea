@@ -105,9 +105,10 @@ type ViewRequest struct {
 }
 
 type ArtifactsViewItem struct {
-	Name   string `json:"name"`
-	Size   int64  `json:"size"`
-	Status string `json:"status"`
+	Name      string    `json:"name"`
+	Size      int64     `json:"size"`
+	Status    string    `json:"status"`
+	ExpiresAt time.Time `json:"expiresAt"`
 }
 
 type ViewResponse struct {
@@ -199,9 +200,10 @@ func getActionsViewArtifacts(ctx context.Context, repoID, runID int64) (artifact
 	}
 	for _, art := range artifacts {
 		artifactsViewItems = append(artifactsViewItems, &ArtifactsViewItem{
-			Name:   art.ArtifactName,
-			Size:   art.FileSize,
-			Status: util.Iif(art.Status == actions_model.ArtifactStatusExpired, "expired", "completed"),
+			Name:      art.ArtifactName,
+			Size:      art.FileSize,
+			Status:    util.Iif(art.Status == actions_model.ArtifactStatusExpired, "expired", "completed"),
+			ExpiresAt: art.ExpiredUnix.AsLocalTime(),
 		})
 	}
 	return artifactsViewItems, nil

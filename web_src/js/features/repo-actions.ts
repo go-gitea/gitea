@@ -26,6 +26,8 @@ export function initRepositoryActionView() {
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       areYouSure: el.getAttribute('data-locale-are-you-sure'),
       artifactExpired: el.getAttribute('data-locale-artifact-expired'),
+      artifactExpires: el.getAttribute('data-locale-artifact-expires'),
+      artifactStatus: el.getAttribute('data-locale-artifact-status'),
       confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),

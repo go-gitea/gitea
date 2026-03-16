@@ -53,6 +53,7 @@
 
 .tippy-box[data-theme="tooltip"] .tippy-content {
   padding: 0.5rem 1rem;
+  white-space: pre-line;
 }
 
 .tippy-box[data-theme="tooltip"] .tippy-svg-arrow-inner,

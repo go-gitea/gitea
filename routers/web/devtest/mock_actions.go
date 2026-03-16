@@ -92,24 +92,28 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		},
 	}
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:   "artifact-a",
-		Size:   100 * 1024,
-		Status: "expired",
+		Name:      "artifact-a",
+		Size:      100 * 1024,
+		Status:    "expired",
+		ExpiresAt: time.Now().Add(-24 * time.Hour),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:   "artifact-b",
-		Size:   1024 * 1024,
-		Status: "completed",
+		Name:      "artifact-b",
+		Size:      1024 * 1024,
+		Status:    "completed",
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:   "artifact-very-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
-		Size:   100 * 1024,
-		Status: "expired",
+		Name:      "artifact-very-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+		Size:      100 * 1024,
+		Status:    "expired",
+		ExpiresAt: time.Now().Add(-24 * time.Hour),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:   "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
-		Size:   1024 * 1024,
-		Status: "completed",
+		Name:      "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+		Size:      1024 * 1024,
+		Status:    "completed",
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	})
 
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{

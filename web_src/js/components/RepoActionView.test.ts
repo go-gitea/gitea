@@ -1,4 +1,4 @@
-import {createLogLineMessage, parseLogLineCommand} from './RepoActionView.vue';
+import {createArtifactTooltip, createLogLineMessage, formatArtifactTimestamp, parseLogLineCommand} from './RepoActionView.vue';
 
 test('LogLineMessage', () => {
   const cases = {
@@ -23,4 +23,35 @@ test('LogLineMessage', () => {
     const el = createLogLineMessage(line, cmd);
     expect(el.outerHTML).toBe(html);
   }
+});
+
+test('createArtifactTooltip', () => {
+  document.documentElement.lang = 'en-US';
+  const locale = {
+    artifactExpires: 'Expires',
+    artifactStatus: 'Status',
+    artifactExpired: 'Expired',
+    status: {
+      unknown: 'Unknown',
+    },
+  };
+
+  expect(createArtifactTooltip({
+    name: 'artifact.zip',
+    size: 1536,
+    status: 'completed',
+    expiresAt: '2026-03-20T12:00:00Z',
+  }, locale)).toContain('Expires:');
+
+  expect(createArtifactTooltip({
+    name: 'artifact.zip',
+    size: 0,
+    status: 'expired',
+  }, locale)).toBe('Expires: Unknown\nStatus: Expired');
+});
+
+test('formatArtifactTimestamp', () => {
+  document.documentElement.lang = 'en-US';
+  expect(formatArtifactTimestamp('0001-01-01T00:00:00Z', 'Unknown')).toBe('Unknown');
+  expect(formatArtifactTimestamp(undefined, 'Unknown')).toBe('Unknown');
 });

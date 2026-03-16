@@ -25,6 +25,22 @@ export type LogLine = {
   message: string;
 };
 
+export type Artifact = {
+  name: string;
+  size: number;
+  status: string;
+  expiresAt?: string;
+};
+
+type ArtifactTooltipLocale = {
+  artifactExpires: string;
+  artifactStatus: string;
+  artifactExpired: string;
+  status: {
+    unknown: string;
+  };
+};
+
 
 type LogLineCommandName = 'group' | 'endgroup' | 'command' | 'error' | 'hidden';
 type LogLineCommand = {
@@ -88,6 +104,35 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   return logMsg;
 }
 
+export function formatArtifactSize(size: number): string {
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB'];
+  let value = size;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex++;
+  }
+  const formattedValue = unitIndex === 0 ? String(Math.round(value)) : value.toFixed(value >= 10 ? 0 : 1);
+  return `${formattedValue} ${units[unitIndex]}`;
+}
+
+export function formatArtifactTimestamp(datetime?: string, fallback?: string): string {
+  if (!datetime) return fallback || '';
+  const date = new Date(datetime);
+  if (Number.isNaN(date.getTime()) || date.getUTCFullYear() <= 1) return fallback || '';
+  return formatDatetime(date);
+}
+
+export function createArtifactTooltip(artifact: Artifact, locale: ArtifactTooltipLocale): string {
+  const details = [
+    `${locale.artifactExpires}: ${formatArtifactTimestamp(artifact.expiresAt, locale.status.unknown)}`,
+  ];
+  if (artifact.status === 'expired') {
+    details.push(`${locale.artifactStatus}: ${locale.artifactExpired}`);
+  }
+  return details.join('\n');
+}
+
 function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();
   // only check whether bottom is in viewport, because the log element can be a log group which is usually tall
@@ -127,7 +172,7 @@ export default defineComponent({
       loadingAbortController: null as AbortController | null,
       intervalID: null as IntervalId | null,
       currentJobStepsStates: [] as Array<JobStepState>,
-      artifacts: [] as Array<Record<string, any>>,
+      artifacts: [] as Array<Artifact>,
       menuVisible: false,
       isFullScreen: false,
       showWorkflowGraph: showWorkflowGraph,
@@ -456,6 +501,10 @@ export default defineComponent({
       if (this.menuVisible) this.menuVisible = false;
     },
 
+    artifactTooltip(artifact: Artifact) {
+      return createArtifactTooltip(artifact, this.locale as ArtifactTooltipLocale);
+    },
+
     elStepsContainer(): HTMLElement {
       return this.$refs.stepsContainer as HTMLElement;
     },
@@ -556,7 +605,7 @@ export default defineComponent({
           </div>
           <ul class="job-artifacts-list">
             <template v-for="artifact in artifacts" :key="artifact.name">
-              <li class="job-artifacts-item">
+              <li class="job-artifacts-item" :data-tooltip-content="artifactTooltip(artifact)">
                 <template v-if="artifact.status !== 'expired'">
                   <a class="flex-text-inline" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
                     <SvgIcon name="octicon-file" class="tw-text-text"/>
