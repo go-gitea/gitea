@@ -49,11 +49,11 @@ async function showRefIssuePopup(link: HTMLElement) {
 }
 
 export function initRefIssueContextPopup() {
-  addDelegatedEventListener(document, 'mouseover', 'a[href]:not([data-ref-issue-popup])', (link: HTMLElement) => {
+  const selector = 'a[href]:not([data-ref-issue-popup]):not(.ref-external-issue)';
+  addDelegatedEventListener(document, 'mouseover', selector, (link: HTMLElement) => {
     const href = link.getAttribute('href')!;
     if (!parseIssueHref(href).ownerName) return; // not an issue/PR link
     if (link.closest('.ref-issue-popup')) return; // avoid nesting
-    if (link.classList.contains('ref-external-issue')) return; // external tracker
     if (getAttachedTippyInstance(link)) return; // already has tooltip
     link.setAttribute('data-ref-issue-popup', ''); // prevent parallel fetches
 
