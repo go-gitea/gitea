@@ -63,6 +63,7 @@ import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton}
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
+import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
 
 const initStartTime = performance.now();
@@ -99,6 +100,7 @@ const initPerformanceTracer = callInitFunctions([
   initImageDiff,
   initMarkupAnchors,
   initMarkupContent,
+  initRefIssueContextPopup,
   initSshKeyFormParser,
   initStopwatch,
   initTableSort,
