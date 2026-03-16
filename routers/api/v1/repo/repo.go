@@ -181,7 +181,7 @@ func Search(ctx *context.APIContext) {
 		opts.Archived = optional.Some(ctx.FormBool("archived"))
 	}
 
-	if ctx.FormString("is_private") != "" {
+	if ctx.FormString("is_private") != "" && ctx.IsSigned && !ctx.PublicOnly {
 		opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
 	}
 
