@@ -30,10 +30,6 @@ interface BezierEdge extends Edge {
   path: string;
   fromNode: JobNode;
   toNode: JobNode;
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
 }
 
 interface StoredState {
@@ -230,10 +226,6 @@ const bezierEdges = computed<BezierEdge[]>(() => {
       path,
       fromNode,
       toNode,
-      startX,
-      startY,
-      endX,
-      endY,
     });
   });
 
@@ -370,7 +362,7 @@ function getEdgeStyle(edge: BezierEdge) {
   const isHighlighted = isEdgeHighlighted(edge);
 
   return {
-    'stroke': (!edge.fromNode || !edge.toNode) ? 'var(--color-secondary-alpha-50)' :  'var(--color-secondary-alpha-50)',
+    'stroke': 'var(--color-secondary-alpha-50)',
     'stroke-width': isHighlighted ? '3' : '1.75',
     'stroke-dasharray': 'none',
     'opacity': isHighlighted ? 1 : 0.6,
