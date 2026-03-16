@@ -23,7 +23,7 @@ var benchLangs = []benchLang{
 		makeCode: func(n int) string {
 			var sb strings.Builder
 			sb.WriteString("package main\n\nimport \"fmt\"\n\n")
-			for i := 0; i < n; i++ {
+			for i := range n {
 				fmt.Fprintf(&sb, "func f%d() int { v := %d; fmt.Println(v); return v }\n", i, i)
 			}
 			return sb.String()
@@ -34,7 +34,7 @@ var benchLangs = []benchLang{
 		makeCode: func(n int) string {
 			var sb strings.Builder
 			sb.WriteString("import os\nimport sys\n\n")
-			for i := 0; i < n; i++ {
+			for i := range n {
 				fmt.Fprintf(&sb, "def func_%d(x: int, y: str = \"hello\") -> int:\n    \"\"\"Docstring for func_%d.\"\"\"\n    result = x + %d\n    if result > 100:\n        return result * 2\n    return result\n\n", i, i, i)
 			}
 			return sb.String()
@@ -45,7 +45,7 @@ var benchLangs = []benchLang{
 		makeCode: func(n int) string {
 			var sb strings.Builder
 			sb.WriteString("'use strict';\n\nconst utils = require('./utils');\n\n")
-			for i := 0; i < n; i++ {
+			for i := range n {
 				fmt.Fprintf(&sb, "function func_%d(x, y = 'default') {\n  const result = x + %d;\n  if (result > 100) { return result * 2; }\n  return result;\n}\n\n", i, i)
 			}
 			return sb.String()
@@ -56,7 +56,7 @@ var benchLangs = []benchLang{
 		makeCode: func(n int) string {
 			var sb strings.Builder
 			sb.WriteString("import { Component } from '@angular/core';\n\ninterface Result { value: number; label: string; }\n\n")
-			for i := 0; i < n; i++ {
+			for i := range n {
 				fmt.Fprintf(&sb, "export function func_%d(x: number, y: string = 'hi'): Result {\n  const value = x + %d;\n  return { value, label: y };\n}\n\n", i, i)
 			}
 			return sb.String()
@@ -67,7 +67,7 @@ var benchLangs = []benchLang{
 		makeCode: func(n int) string {
 			var sb strings.Builder
 			sb.WriteString("#include <stdio.h>\n#include <stdlib.h>\n\n")
-			for i := 0; i < n; i++ {
+			for i := range n {
 				fmt.Fprintf(&sb, "int func_%d(int x, int y) {\n    int result = x + %d;\n    if (result > 100) { return result * 2; }\n    printf(\"%%d\\n\", result);\n    return result;\n}\n\n", i, i)
 			}
 			return sb.String()
@@ -78,7 +78,7 @@ var benchLangs = []benchLang{
 		makeCode: func(n int) string {
 			var sb strings.Builder
 			sb.WriteString("use std::collections::HashMap;\n\n")
-			for i := 0; i < n; i++ {
+			for i := range n {
 				fmt.Fprintf(&sb, "pub fn func_%d(x: i32, y: &str) -> i32 {\n    let result = x + %d;\n    if result > 100 { return result * 2; }\n    println!(\"{}: {}\", y, result);\n    result\n}\n\n", i, i)
 			}
 			return sb.String()
@@ -89,7 +89,7 @@ var benchLangs = []benchLang{
 		makeCode: func(n int) string {
 			var sb strings.Builder
 			sb.WriteString("package com.example;\n\nimport java.util.List;\nimport java.util.ArrayList;\n\npublic class Bench {\n\n")
-			for i := 0; i < n; i++ {
+			for i := range n {
 				fmt.Fprintf(&sb, "    public static int func_%d(int x, String y) {\n        int result = x + %d;\n        if (result > 100) { return result * 2; }\n        System.out.println(y + \": \" + result);\n        return result;\n    }\n\n", i, i)
 			}
 			sb.WriteString("}\n")
@@ -101,7 +101,7 @@ var benchLangs = []benchLang{
 		makeCode: func(n int) string {
 			var sb strings.Builder
 			sb.WriteString("require 'json'\nrequire 'net/http'\n\n")
-			for i := 0; i < n; i++ {
+			for i := range n {
 				fmt.Fprintf(&sb, "def func_%d(x, y = 'default')\n  result = x + %d\n  return result * 2 if result > 100\n  puts \"#{y}: #{result}\"\n  result\nend\n\n", i, i)
 			}
 			return sb.String()
@@ -111,7 +111,7 @@ var benchLangs = []benchLang{
 		name: "CSS", fileName: "bench.css", lang: "CSS", commentFmt: "/* %d */\n",
 		makeCode: func(n int) string {
 			var sb strings.Builder
-			for i := 0; i < n; i++ {
+			for i := range n {
 				fmt.Fprintf(&sb, ".component-%d {\n  color: #%02x%02x%02x;\n  margin: %dpx %dpx;\n  display: flex;\n  align-items: center;\n  font-size: %drem;\n}\n\n", i, i%256, (i*7)%256, (i*13)%256, i%20, (i*3)%20, i%4+1)
 			}
 			return sb.String()
