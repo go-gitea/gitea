@@ -144,6 +144,7 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 		AllowRebaseUpdate:          true,
 		DefaultAllowMaintainerEdit: true,
 	}
+	cfg.DefaultDeleteBranchAfterMerge = setting.Repository.PullRequest.DefaultDeleteBranchAfterMerge
 	cfg.DefaultMergeStyle = MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
 	cfg.DefaultMergeStyle = util.IfZero(cfg.DefaultMergeStyle, MergeStyleMerge)
 	return cfg
