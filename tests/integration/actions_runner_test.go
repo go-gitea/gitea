@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -113,18 +114,25 @@ func (r *mockRunner) tryFetchTask(t *testing.T, timeout ...time.Duration) *runne
 	ddl := time.Now().Add(fetchTimeout)
 	var task *runnerv1.Task
 	for time.Now().Before(ddl) {
-		resp, err := r.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
-			TasksVersion: 0,
-		}))
-		assert.NoError(t, err)
-		if resp.Msg.Task != nil {
-			task = resp.Msg.Task
+		task, _ = r.fetchTaskOnce(t, 0)
+		if task != nil {
 			break
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
 
 	return task
+}
+
+// fetchTaskOnce performs a single FetchTask request with the given TasksVersion
+// and returns the task (if any) and the TasksVersion from the response.
+// Used to verify the production path where the runner sends the current version.
+func (r *mockRunner) fetchTaskOnce(t *testing.T, tasksVersion int64) (*runnerv1.Task, int64) {
+	resp, err := r.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+		TasksVersion: tasksVersion,
+	}))
+	require.NoError(t, err)
+	return resp.Msg.Task, resp.Msg.TasksVersion
 }
 
 type mockTaskOutcome struct {
