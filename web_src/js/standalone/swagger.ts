@@ -3,6 +3,11 @@ import 'swagger-ui-dist/swagger-ui.css';
 import {load as loadYaml} from 'js-yaml';
 import {GET} from '../modules/fetch.ts';
 
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+const apply = () => document.documentElement.classList.toggle('dark-mode', prefersDark.matches);
+apply();
+prefersDark.addEventListener('change', apply);
+
 window.addEventListener('load', async () => {
   const elSwaggerUi = document.querySelector('#swagger-ui')!;
   const url = elSwaggerUi.getAttribute('data-source')!;
