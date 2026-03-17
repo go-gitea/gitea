@@ -7,7 +7,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -145,6 +147,50 @@ func TestParseAccessMode(t *testing.T) {
 		t.Run(tt.input, func(t *testing.T) {
 			result := parseAccessMode(tt.input)
 			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestExtractJobPermissionsFromWorkflow(t *testing.T) {
+	workflowYAML := `
+name: Test Permissions
+on: workflow_dispatch
+permissions: read-all
+
+jobs:
+  job-read-only:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Full read-only"
+
+  job-none-perms:
+    permissions: none
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Full read-only"
+
+  job-override:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - run: echo "Override to write"
+`
+
+	expectedPerms := map[string]*repo_model.ActionsTokenPermissions{}
+	expectedPerms["job-read-only"] = new(repo_model.MakeActionsTokenPermissions(perm.AccessModeRead))
+	expectedPerms["job-none-perms"] = new(repo_model.MakeActionsTokenPermissions(perm.AccessModeNone))
+	expectedPerms["job-override"] = new(repo_model.MakeActionsTokenPermissions(perm.AccessModeNone))
+	expectedPerms["job-override"].UnitAccessModes[unit.TypeCode] = perm.AccessModeWrite
+	expectedPerms["job-override"].UnitAccessModes[unit.TypeReleases] = perm.AccessModeWrite
+
+	singleWorkflows, err := jobparser.Parse([]byte(workflowYAML))
+	require.NoError(t, err)
+	for _, flow := range singleWorkflows {
+		jobID, jobDef := flow.Job()
+		require.NotNil(t, jobDef)
+		t.Run(jobID, func(t *testing.T) {
+			assert.Equal(t, expectedPerms[jobID], ExtractJobPermissionsFromWorkflow(flow, jobDef))
 		})
 	}
 }

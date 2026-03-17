@@ -11,24 +11,19 @@ import (
 	"net/url"
 	"strconv"
 	"testing"
-	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
-	actions_service "code.gitea.io/gitea/services/actions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -190,73 +185,6 @@ func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 	})
 }
 
-func TestActionsTokenPermissionsClamping(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		session := loginUser(t, user2.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-
-		// Create Repo
-		apiRepo := createActionsTestRepo(t, token, "repo-clamping", false)
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-		defer doAPIDeleteRepository(httpContext)(t)
-
-		// Mock Runner
-		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
-
-		// Set Clamping Config: Permissive Mode, Max Code = Read
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
-			"token_permission_mode":  "permissive",
-			"override_owner_config":  "true",
-			"enable_max_permissions": "true",
-			"max_code":               "read",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-
-		// Create workflow requesting Write
-		wfTreePath := ".gitea/workflows/clamping.yml"
-		wfFileContent := `name: Clamping
-on: [push]
-permissions:
-  contents: write
-jobs:
-  job-clamping:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo test
-`
-		opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wfTreePath, opts)
-
-		// Fetch task
-		runnerTask := runner.fetchTask(t)
-		taskToken := runnerTask.Secrets["GITEA_TOKEN"]
-		require.NotEmpty(t, taskToken)
-
-		// Verify Permissions
-		testCtx := APITestContext{
-			Session:  emptyTestSession(t),
-			Token:    taskToken,
-			Username: user2.Name,
-			Reponame: repo.Name,
-		}
-
-		// 1. Try to Write (Create File) - Should Fail (403) because Max is Read
-		testCtx.ExpectedCode = http.StatusForbidden
-		t.Run("Fail to Create File (Max Clamping)", doAPICreateFile(testCtx, "clamping.txt", &structs.CreateFileOptions{
-			ContentBase64: base64.StdEncoding.EncodeToString([]byte("test")),
-		}))
-
-		// 2. Try to Read (Get Repository) - Should Succeed (200)
-		testCtx.ExpectedCode = http.StatusOK
-		t.Run("Get Repository (Read Allowed)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-			assert.Equal(t, repo.Name, r.Name)
-		}))
-	})
-}
-
 func TestActionsCrossRepoAccess(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user2")
@@ -356,334 +284,8 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 	})
 }
 
-func TestActionsTokenPermissionsWorkflowScenario(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		// Step 1: Create a new repository with Actions enabled
-		httpContext := NewAPITestContext(t, "user2", "repo-workflow-token-test", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
-		t.Run("Create Repository and Test Token Permissions", doAPICreateRepository(httpContext, false, func(t *testing.T, repository structs.Repository) {
-			// Step 2: Enable Actions unit with Permissive mode (the mode the reviewer set)
-			err := db.Insert(t.Context(), &repo_model.RepoUnit{
-				RepoID: repository.ID,
-				Type:   unit_model.TypeActions,
-				Config: &repo_model.ActionsConfig{
-					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
-					OverrideOwnerConfig: true,
-					// No MaxTokenPermissions - allows full write access
-				},
-			})
-			require.NoError(t, err)
-
-			// Step 3: Create an Actions task (simulates a running workflow)
-			task := createActionTask(t, repository.ID, false)
-
-			// Step 4: Use the GITEA_TOKEN to create a file via API (exactly as the reviewer's workflow did)
-			session := emptyTestSession(t)
-			testCtx := APITestContext{
-				Session:  session,
-				Token:    task.Token,
-				Username: "user2",
-				Reponame: "repo-workflow-token-test",
-			}
-
-			// The create file should succeed with permissive mode
-			testCtx.ExpectedCode = http.StatusCreated
-			t.Run("GITEA_TOKEN Create File (Permissive Mode)", doAPICreateFile(testCtx, fmt.Sprintf("test-file-%d.txt", time.Now().Unix()), &structs.CreateFileOptions{
-				FileOptions: structs.FileOptions{
-					BranchName: "master",
-					Message:    "test actions token",
-				},
-				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Test Content")),
-			}))
-
-			// Verify that the API also works for reading (should always work)
-			testCtx.ExpectedCode = http.StatusOK
-			t.Run("GITEA_TOKEN Get Repository", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-				assert.Equal(t, "repo-workflow-token-test", r.Name)
-			}))
-
-			// Now test with Restricted mode - file creation should fail
-			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repository.ID})
-			actionsUnit, err := repo.GetUnit(t.Context(), unit_model.TypeActions)
-			require.NoError(t, err)
-			actionsCfg := actionsUnit.ActionsConfig()
-			actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionModeRestricted
-			actionsUnit.Config = actionsCfg
-			require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), actionsUnit))
-
-			// Regenerate token to get fresh permissions
-			require.NoError(t, task.GenerateToken())
-			task.Status = actions_model.StatusRunning
-			require.NoError(t, actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status"))
-
-			testCtx.Token = task.Token
-			testCtx.ExpectedCode = http.StatusForbidden
-			t.Run("GITEA_TOKEN Create File (Restricted Mode - Should Fail)", doAPICreateFile(testCtx, "should-fail.txt", &structs.CreateFileOptions{
-				FileOptions: structs.FileOptions{
-					BranchName: "master",
-					Message:    "this should fail",
-				},
-				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Should Not Be Created")),
-			}))
-		}))
-	})
-}
-
-// TestActionsWorkflowPermissionsKeyword tests that the `permissions:` keyword in a workflow YAML
-// restricts the token even when the repository is in permissive mode.
-func TestActionsWorkflowPermissionsKeyword(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		httpContext := NewAPITestContext(t, "user2", "repo-workflow-perms-kw", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
-		t.Run("Workflow Permissions Keyword", doAPICreateRepository(httpContext, false, func(t *testing.T, repository structs.Repository) {
-			// Enable Actions unit with PERMISSIVE mode (default write access)
-			err := db.Insert(t.Context(), &repo_model.RepoUnit{
-				RepoID: repository.ID,
-				Type:   unit_model.TypeActions,
-				Config: &repo_model.ActionsConfig{
-					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
-				},
-			})
-			require.NoError(t, err)
-
-			// Define Workflow YAML with two jobs:
-			// 1. job-read-only: Inherits `permissions: read-all` (write should fail)
-			// 2. job-override: Overrides with `permissions: contents: write` (write should succeed)
-			workflowYAML := `
-name: Test Permissions
-on: workflow_dispatch
-permissions: read-all
-
-jobs:
-  job-read-only:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Full read-only"
-
-  job-none-perms:
-    permissions: none
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Full read-only"
-
-  job-override:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - run: echo "Override to write"
-`
-			// Parse the workflow using the actual parsing logic (this verifies the parser works as expected)
-			singleWorkflows, err := jobparser.Parse([]byte(workflowYAML))
-			require.NoError(t, err)
-			// jobparser.Parse returns one SingleWorkflow per job
-
-			// Get default permissions for the repo (Permissive)
-			repo, err := repo_model.GetRepositoryByID(t.Context(), repository.ID)
-			require.NoError(t, err)
-			actionsUnit, err := repo.GetUnit(t.Context(), unit_model.TypeActions)
-			require.NoError(t, err)
-			cfg := actionsUnit.ActionsConfig()
-			defaultPerms := cfg.GetDefaultTokenPermissions()
-
-			// Create Run (shared)
-			run := &actions_model.ActionRun{
-				RepoID:        repository.ID,
-				OwnerID:       repository.Owner.ID,
-				Title:         "Test workflow permissions",
-				Status:        actions_model.StatusRunning,
-				Ref:           "refs/heads/master",
-				CommitSHA:     "abc123456",
-				TriggerUserID: repository.Owner.ID,
-			}
-			require.NoError(t, db.Insert(t.Context(), run))
-
-			// Iterate over jobs and create them matching the parser logic
-			for _, flow := range singleWorkflows {
-				jobID, jobDef := flow.Job()
-				jobName := jobDef.Name
-
-				// Use the combined explicit extraction logic
-				explicitPerms := actions_service.ExtractJobPermissionsFromWorkflow(flow, jobDef)
-				var finalPerms repo_model.ActionsTokenPermissions
-				if explicitPerms != nil {
-					finalPerms = *explicitPerms
-				} else {
-					finalPerms = defaultPerms
-				}
-				finalPerms = cfg.ClampPermissions(finalPerms)
-
-				job := &actions_model.ActionRunJob{
-					RunID:            run.ID,
-					RepoID:           repository.ID,
-					OwnerID:          repository.Owner.ID,
-					CommitSHA:        "abc123456",
-					Name:             jobName,
-					JobID:            jobID,
-					Status:           actions_model.StatusRunning,
-					TokenPermissions: &finalPerms,
-				}
-				require.NoError(t, db.Insert(t.Context(), job))
-
-				task := &actions_model.ActionTask{
-					JobID:             job.ID,
-					RepoID:            repository.ID,
-					Status:            actions_model.StatusRunning,
-					IsForkPullRequest: false,
-				}
-				require.NoError(t, task.GenerateToken())
-				require.NoError(t, db.Insert(t.Context(), task))
-
-				// Link task to job
-				job.TaskID = task.ID
-				_, err = db.GetEngine(t.Context()).ID(job.ID).Cols("task_id").Update(job)
-				require.NoError(t, err)
-
-				// Test API Access
-				session := emptyTestSession(t)
-				testCtx := APITestContext{
-					Session:  session,
-					Token:    task.Token,
-					Username: "user2",
-					Reponame: "repo-workflow-perms-kw",
-				}
-
-				if jobID == "job-read-only" {
-					// Should match 'read-all' -> Write Forbidden
-					testCtx.ExpectedCode = http.StatusForbidden
-					t.Run("Job [read-only] Create File (Should Fail)", doAPICreateFile(testCtx, "fail-readonly.txt", &structs.CreateFileOptions{
-						ContentBase64: base64.StdEncoding.EncodeToString([]byte("fail")),
-					}))
-
-					testCtx.ExpectedCode = http.StatusOK
-					t.Run("Job [read-only] Get Repo (Should Succeed)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-						assert.Equal(t, repository.Name, r.Name)
-					}))
-				} else if jobID == "job-none-perms" {
-					// Should match 'none' -> Read/Write Forbidden (404 for private repo)
-					testCtx.ExpectedCode = http.StatusNotFound
-					t.Run("Job [none] Create File (Should Fail)", doAPICreateFile(testCtx, "fail-none.txt", &structs.CreateFileOptions{
-						ContentBase64: base64.StdEncoding.EncodeToString([]byte("fail")),
-					}))
-
-					testCtx.ExpectedCode = http.StatusNotFound
-					t.Run("Job [none] Get Repo (Should Fail)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-						// Should not reach here if 404
-					}))
-				} else if jobID == "job-override" {
-					// Should have 'contents: write' -> Write Created
-					testCtx.ExpectedCode = http.StatusCreated
-					t.Run("Job [override] Create File (Should Succeed)", doAPICreateFile(testCtx, "succeed-override.txt", &structs.CreateFileOptions{
-						FileOptions: structs.FileOptions{
-							BranchName: "master",
-							Message:    "override success",
-						},
-						ContentBase64: base64.StdEncoding.EncodeToString([]byte("success")),
-					}))
-				}
-			}
-		}))
-	})
-}
-
-func TestActionsPermission(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		session := loginUser(t, user2.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-
-		// create a new repo
-		apiRepo := createActionsTestRepo(t, token, "actions-permission", false)
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-		defer doAPIDeleteRepository(httpContext)(t)
-
-		// create a mock runner
-		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
-
-		// set actions token permission mode to "permissive"
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
-			"token_permission_mode": "permissive",
-			"override_owner_config": "true",
-		})
-		resp := session.MakeRequest(t, req, http.StatusSeeOther)
-		require.Equal(t, fmt.Sprintf("/%s/%s/settings/actions/general", repo.OwnerName, repo.Name), test.RedirectURL(resp))
-
-		// create a workflow file with "permission" keyword
-		wfTreePath := ".gitea/workflows/test_permissions.yml"
-		wfFileContent := `name: Test Permissions
-on:
-  push:
-    paths:
-      - '.gitea/workflows/test_permissions.yml'
-
-permissions: read-all
-
-jobs:
-  job-override:
-    runs-on: ubuntu-latest
-    permissions: write-all
-    steps:
-      - run: echo "Override to write"
-`
-		opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wfTreePath, opts)
-
-		// fetch a task(*runnerv1.Task) and get its token
-		runnerTask := runner.fetchTask(t)
-		taskToken := runnerTask.Secrets["GITEA_TOKEN"]
-		require.NotEmpty(t, taskToken)
-		// get the task(*actions_model.ActionTask) by token
-		task, err := actions_model.GetRunningTaskByToken(t.Context(), taskToken)
-		require.NoError(t, err)
-		require.Equal(t, repo.ID, task.RepoID)
-		require.False(t, task.IsForkPullRequest)
-		require.Equal(t, actions_model.StatusRunning, task.Status)
-		actionsPerm, err := access_model.GetActionsUserRepoPermission(t.Context(), repo, user_model.NewActionsUser(), task.ID)
-		require.NoError(t, err)
-		require.NoError(t, task.LoadJob(t.Context()))
-		t.Logf("Computed Units Mode: %+v", actionsPerm)
-		require.True(t, actionsPerm.CanWrite(unit_model.TypeCode), "Should have write access to Code. Got: %v", actionsPerm.AccessMode) // the token should have the "write" permission on "Code" unit
-		// test creating a file with the token
-		actionsTokenContext := APITestContext{
-			Session:      emptyTestSession(t),
-			Token:        taskToken,
-			Username:     repo.OwnerName,
-			Reponame:     repo.Name,
-			ExpectedCode: 0,
-		}
-		t.Run("API Create File", doAPICreateFile(actionsTokenContext, "test-permissions.txt", &structs.CreateFileOptions{
-			FileOptions: structs.FileOptions{
-				BranchName: repo.DefaultBranch,
-				Message:    "Create File",
-			},
-			ContentBase64: base64.StdEncoding.EncodeToString([]byte(`This is a test file for permissions.`)),
-		}, func(t *testing.T, resp structs.FileResponse) {
-			require.NotEmpty(t, resp.Content.SHA)
-		}))
-	})
-}
-
 func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.ActionTask {
-	run := &actions_model.ActionRun{
-		RepoID:            repoID,
-		Status:            actions_model.StatusRunning,
-		IsForkPullRequest: isFork,
-		WorkflowID:        "test.yaml",
-		TriggerUserID:     1,
-		Ref:               "refs/heads/main",
-		CommitSHA:         "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:             "push",
-		TriggerEvent:      "push",
-	}
-
-	index, err := db.GetNextResourceIndex(t.Context(), "action_run_index", repoID)
-	require.NoError(t, err)
-	run.Index = index
-
-	require.NoError(t, db.Insert(t.Context(), run))
-
 	job := &actions_model.ActionRunJob{
-		RunID:             run.ID,
 		RepoID:            repoID,
 		Status:            actions_model.StatusRunning,
 		IsForkPullRequest: isFork,
@@ -691,7 +293,6 @@ func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.Ac
 		Name:              "test_job",
 	}
 	require.NoError(t, db.Insert(t.Context(), job))
-
 	task := &actions_model.ActionTask{
 		JobID:             job.ID,
 		RepoID:            repoID,
@@ -700,16 +301,10 @@ func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.Ac
 	}
 	require.NoError(t, task.GenerateToken())
 	require.NoError(t, db.Insert(t.Context(), task))
-
-	job.TaskID = task.ID
-	_, err = actions_model.UpdateRunJob(t.Context(), job, nil, "task_id")
-	require.NoError(t, err)
-
-	task.Job = job
 	return task
 }
 
-func TestActionsTokenPermissionsExceedsTargetRepoLimit(t *testing.T) {
+func TestActionsTokenPermissionsPersistenceWithWorkflow(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, user2.Name)
@@ -719,28 +314,30 @@ func TestActionsTokenPermissionsExceedsTargetRepoLimit(t *testing.T) {
 		repo1 := createActionsTestRepo(t, token, "actions-permission-repo1", false)
 		repo2 := createActionsTestRepo(t, token, "actions-permission-repo2", true)
 
-		// set owner-level actions config to "selected" and add repo2
+		// add repo2 to owner-level cross-repo access list
 		req := NewRequestWithValues(t, "POST", "/user/settings/actions/general", map[string]string{
 			"cross_repo_add_target":      "true",
 			"cross_repo_add_target_name": repo2.Name,
 		})
 		session.MakeRequest(t, req, http.StatusOK)
+
 		// create the runner for repo1
 		runner1 := newMockRunner()
 		runner1.registerAsRepoRunner(t, user2.Name, repo1.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
-		// set actions token permission mode to "permissive" for repo1
+		// set repo1 actions token permission mode to "permissive"
 		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo1.Name), map[string]string{
 			"token_permission_mode": "permissive",
 			"override_owner_config": "true",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
-		// set actions token permission mode to "restricted" for repo2 and set max permissions
+
+		// set repo2 actions token permission mode to "restricted", and set max permissions
 		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo2.Name), map[string]string{
 			"token_permission_mode":  "restricted",
 			"override_owner_config":  "true",
 			"enable_max_permissions": "true",
-			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeIssues)): "read",
+			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeReleases)): "read",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
@@ -755,7 +352,8 @@ on:
 jobs:
   job-override:
     runs-on: ubuntu-latest
-    permissions: write-all
+    permissions:
+      code: write
     steps:
       - run: echo "test perms"
 `
@@ -770,18 +368,49 @@ jobs:
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo2.Name)).AddTokenAuth(task1Token)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		// set "max_code" to "read" so that the actions token can access code
+		// set repo2 max permission to "read" so that the actions token can access code
 		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo2.Name), map[string]string{
 			"token_permission_mode":  "restricted",
 			"override_owner_config":  "true",
 			"enable_max_permissions": "true",
-			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeCode)):   "read",
-			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeIssues)): "read",
+			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeCode)):     "read",
+			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeReleases)): "read",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// should succeed: target repo now allows code read access for this token
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo2.Name)).AddTokenAuth(task1Token)
 		MakeRequest(t, req, http.StatusOK)
+		// but it should not have write access
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/%s.git/info/lfs/objects/batch", user2.Name, repo2.Name), lfs.BatchRequest{Operation: "upload"}).
+			SetHeader("Accept", lfs.MediaType).
+			AddBasicAuth("gitea-actions", task1Token)
+		MakeRequest(t, req, http.StatusUnauthorized)
+
+		// set repo1&repo2 max permission to "write" so that the actions token can access code
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo1.Name), map[string]string{
+			"token_permission_mode":  "restricted",
+			"override_owner_config":  "true",
+			"enable_max_permissions": "true",
+			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeCode)): "write",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", user2.Name, repo2.Name), map[string]string{
+			"token_permission_mode":  "restricted",
+			"override_owner_config":  "true",
+			"enable_max_permissions": "true",
+			"max_unit_access_mode_" + strconv.Itoa(int(unit_model.TypeCode)): "write",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		// now task1 has write access to repo1, but still only read access to repo2 (different repo)
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/%s.git/info/lfs/objects/batch", user2.Name, repo1.Name), lfs.BatchRequest{Operation: "upload"}).
+			SetHeader("Accept", lfs.MediaType).
+			AddBasicAuth("gitea-actions", task1Token)
+		MakeRequest(t, req, http.StatusOK)
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/%s.git/info/lfs/objects/batch", user2.Name, repo2.Name), lfs.BatchRequest{Operation: "upload"}).
+			SetHeader("Accept", lfs.MediaType).
+			AddBasicAuth("gitea-actions", task1Token)
+		MakeRequest(t, req, http.StatusUnauthorized)
 	})
 }

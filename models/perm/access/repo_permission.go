@@ -300,8 +300,8 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		taskRepo = repo
 	}
 
-	// Compute effective permissions for this job against the target repo
-	effectivePerms, err := actions_model.ComputeJobTokenPermissions(ctx, task.Job, repo)
+	// Compute effective permissions for this task against the target repo
+	effectivePerms, err := actions_model.ComputeTaskTokenPermissions(ctx, task, repo)
 	if err != nil {
 		return perm, err
 	}
@@ -351,7 +351,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 
 	if checkSameOwnerCrossRepoAccess(ctx, taskRepo, repo, task.IsForkPullRequest) {
 		// Access allowed by owner policy (grants access to private repos).
-		// Note: maxPerm has already been restricted to Read-Only in ComputeJobTokenPermissions
+		// Note: maxPerm has already been restricted to Read-Only in ComputeTaskTokenPermissions
 		// because isSameRepo is false.
 		return maxPerm, nil
 	}

@@ -10,17 +10,17 @@ import (
 	"code.gitea.io/gitea/models/unit"
 )
 
-// ComputeJobTokenPermissions computes the effective permissions for a job token against the target repository.
+// ComputeTaskTokenPermissions computes the effective permissions for a job token against the target repository.
 // It uses the job's stored permissions (if any), then applies org/repo clamps and fork/cross-repo restrictions.
 // Note: target repository access policy checks are enforced in GetActionsUserRepoPermission; this function only computes the job token's effective permission ceiling.
-func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRepo *repo_model.Repository) (ret repo_model.ActionsTokenPermissions, err error) {
-	if err := job.LoadRepo(ctx); err != nil {
+func ComputeTaskTokenPermissions(ctx context.Context, task *ActionTask, targetRepo *repo_model.Repository) (ret repo_model.ActionsTokenPermissions, err error) {
+	if err := task.LoadJob(ctx); err != nil {
 		return ret, err
 	}
-	if err := job.LoadRun(ctx); err != nil {
+	if err := task.Job.LoadRepo(ctx); err != nil {
 		return ret, err
 	}
-	runRepo := job.Repo
+	runRepo := task.Job.Repo
 
 	if err := runRepo.LoadOwner(ctx); err != nil {
 		return ret, err
@@ -33,8 +33,8 @@ func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRe
 	}
 
 	var jobDeclaredPerms repo_model.ActionsTokenPermissions
-	if job.TokenPermissions != nil {
-		jobDeclaredPerms = *job.TokenPermissions
+	if task.Job.TokenPermissions != nil {
+		jobDeclaredPerms = *task.Job.TokenPermissions
 	} else if repoActionsCfg.OverrideOwnerConfig {
 		jobDeclaredPerms = repoActionsCfg.GetDefaultTokenPermissions()
 	} else {
@@ -50,8 +50,8 @@ func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRe
 
 	// Cross-repository access and fork pull requests are strictly read-only for security.
 	// This ensures a "task repo" cannot gain write access to other repositories via CrossRepoAccess settings.
-	isSameRepo := job.RepoID == targetRepo.ID
-	restrictCrossRepoAccess := job.Run.IsForkPullRequest || !isSameRepo
+	isSameRepo := task.Job.RepoID == targetRepo.ID
+	restrictCrossRepoAccess := task.IsForkPullRequest || !isSameRepo
 	if restrictCrossRepoAccess {
 		effectivePerms = repo_model.ClampActionsTokenPermissions(effectivePerms, repo_model.MakeRestrictedPermissions())
 	}
