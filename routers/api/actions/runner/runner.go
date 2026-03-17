@@ -156,10 +156,16 @@ func (s *Service) FetchTask(
 	}
 
 	if tasksVersion != latestVersion {
+		// Re-load runner from DB so task assignment uses current IsDisabled state
+		// (avoids race where disable commits while this request still has stale runner).
+		freshRunner, err := actions_model.GetRunnerByUUID(ctx, runner.UUID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "get runner: %v", err)
+		}
 		// if the task version in request is not equal to the version in db,
 		// it means there may still be some tasks that haven't been assigned.
 		// try to pick a task for the runner that send the request.
-		if t, ok, err := actions_service.PickTask(ctx, runner); err != nil {
+		if t, ok, err := actions_service.PickTask(ctx, freshRunner); err != nil {
 			log.Error("pick task failed: %v", err)
 			return nil, status.Errorf(codes.Internal, "pick task: %v", err)
 		} else if ok {
