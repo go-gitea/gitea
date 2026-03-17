@@ -185,35 +185,6 @@ func getTestCases() []struct {
 	return testCases
 }
 
-func TestSearchRepositoryUnauthenticatedCannotAccessPrivate(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	// Actor=nil simulates an unauthenticated request.
-	// Even with IsPrivate=Some(true), no private repos should be returned.
-	repos, count, err := repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{Page: 1, PageSize: 50},
-		IsPrivate:   optional.Some(true),
-		AllPublic:   true,
-	})
-	assert.NoError(t, err)
-	assert.Zero(t, count)
-	assert.Empty(t, repos)
-
-	// Requesting a specific owner's repos without auth should also return nothing private.
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repos, count, err = repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{Page: 1, PageSize: 50},
-		OwnerID:     user2.ID,
-		IsPrivate:   optional.Some(true),
-	})
-	assert.NoError(t, err)
-	assert.Zero(t, count)
-	assert.Empty(t, repos)
-	for _, repo := range repos {
-		assert.False(t, repo.IsPrivate, "unauthenticated search should never return private repo %s", repo.Name)
-	}
-}
-
 func TestSearchRepository(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	t.Run("SearchRepositoryPublic", testSearchRepositoryPublic)

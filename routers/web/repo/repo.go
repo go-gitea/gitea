@@ -485,7 +485,7 @@ func SearchRepo(ctx *context.Context) {
 		opts.Archived = optional.Some(ctx.FormBool("archived"))
 	}
 
-	if ctx.FormString("is_private") != "" {
+	if ctx.FormString("is_private") != "" && ctx.IsSigned {
 		opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
 	}
 

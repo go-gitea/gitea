@@ -348,7 +348,7 @@ func NotificationWatching(ctx *context.Context) {
 	ctx.Data["IsPrivate"] = private
 
 	isPrivate := private
-	if !ctx.IsSigned && !isPrivate.Has() {
+	if !ctx.IsSigned {
 		isPrivate = optional.Some(false)
 	}
 

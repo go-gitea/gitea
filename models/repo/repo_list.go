@@ -370,11 +370,7 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 				builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
 			)))
 	} else {
-		// May include private repos - apply access control.
-		// When Actor is nil (unauthenticated), restrict to public repos regardless of IsPrivate.
-		if opts.Actor == nil {
-			cond = cond.And(builder.Eq{"is_private": false})
-		} else if !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
+		if opts.Actor != nil && !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
 			cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
 		}
 		if opts.IsPrivate.Has() {
