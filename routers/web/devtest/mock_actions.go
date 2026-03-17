@@ -60,7 +60,12 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 
 func MockActionsView(ctx *context.Context) {
 	ctx.Data["RunID"] = ctx.PathParam("run")
-	ctx.Data["JobID"] = ctx.PathParam("job")
+	jobID := ctx.PathParam("job")
+	if jobID == "" {
+		ctx.Data["JobID"] = -1
+	} else {
+		ctx.Data["JobID"] = jobID
+	}
 	ctx.HTML(http.StatusOK, "devtest/repo-action-view")
 }
 
@@ -78,6 +83,9 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.CanDeleteArtifact = true
 	resp.State.Run.WorkflowID = "workflow-id"
 	resp.State.Run.WorkflowLink = "./workflow-link"
+	resp.State.Run.Duration = "1h 23m 45s"
+	resp.State.Run.TriggeredAt = time.Now().Unix()
+	resp.State.Run.TriggerEvent = "push"
 	resp.State.Run.Commit = actions.ViewCommit{
 		ShortSha: "ccccdddd",
 		Link:     "./commit-link",
@@ -138,6 +146,13 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Duration: "3h",
 		Needs:    []string{"job-100", "job-101"},
 	})
+
+	isSummary := ctx.PathParam("job") == ""
+	if isSummary {
+		// for summary mode, don't include job-specific data
+		ctx.JSON(http.StatusOK, resp)
+		return
+	}
 
 	var mockLogOptions []generateMockStepsLogOptions
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
