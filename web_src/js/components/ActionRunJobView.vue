@@ -414,83 +414,83 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div>
-    <div class="job-info-header">
-      <div class="job-info-header-left gt-ellipsis">
-        <h3 class="job-info-header-title gt-ellipsis">
-          {{ currentJob.title }}
-        </h3>
-        <p class="job-info-header-detail">
-          {{ currentJob.detail }}
-        </p>
-      </div>
-      <div class="job-info-header-right">
-        <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-          <button class="ui button tw-px-3">
-            <SvgIcon name="octicon-gear" :size="18"/>
-          </button>
-          <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
-            <a class="item" @click="toggleTimeDisplay('seconds')">
-              <i class="icon"><SvgIcon :name="timeVisible['log-time-seconds'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
-              {{ locale.showLogSeconds }}
-            </a>
-            <a class="item" @click="toggleTimeDisplay('stamp')">
-              <i class="icon"><SvgIcon :name="timeVisible['log-time-stamp'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
-              {{ locale.showTimeStamps }}
-            </a>
-            <a class="item" @click="toggleFullScreen()">
-              <i class="icon"><SvgIcon :name="isFullScreen ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
-              {{ locale.showFullScreen }}
-            </a>
-            <div class="divider"/>
-            <a class="item" @click="optionAlwaysAutoScroll = !optionAlwaysAutoScroll">
-              <i class="icon"><SvgIcon :name="optionAlwaysAutoScroll ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
-              {{ locale.logsAlwaysAutoScroll }}
-            </a>
-            <a class="item" @click="optionAlwaysExpandRunning = !optionAlwaysExpandRunning">
-              <i class="icon"><SvgIcon :name="optionAlwaysExpandRunning ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
-              {{ locale.logsAlwaysExpandRunning }}
-            </a>
-            <div class="divider"/>
-            <a :class="['item', !currentJob.steps.length ? 'disabled' : '']" :href="run.link + '/jobs/' + jobId + '/logs'" download>
-              <i class="icon"><SvgIcon name="octicon-download"/></i>
-              {{ locale.downloadLogs }}
-            </a>
-          </div>
-        </div>
-      </div>
+  <!-- <div> -->
+  <div class="job-info-header">
+    <div class="job-info-header-left gt-ellipsis">
+      <h3 class="job-info-header-title gt-ellipsis">
+        {{ currentJob.title }}
+      </h3>
+      <p class="job-info-header-detail">
+        {{ currentJob.detail }}
+      </p>
     </div>
-    <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
-    <div class="job-step-container" ref="stepsContainer" v-show="currentJob.steps.length">
-      <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
-        <div
-          class="job-step-summary"
-          @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)"
-          :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']"
-        >
-          <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
-            currentJobStepsStates[i].cursor === null means the log is loaded for the first time
-          -->
-          <SvgIcon
-            v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null"
-            name="gitea-running"
-            class="tw-mr-2 rotate-clockwise"
-          />
-          <SvgIcon
-            v-else
-            :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down' : 'octicon-chevron-right'"
-            :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"
-          />
-          <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
-          <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
-          <span class="step-summary-duration">{{ jobStep.duration }}</span>
+    <div class="job-info-header-right">
+      <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+        <button class="ui button tw-px-3">
+          <SvgIcon name="octicon-gear" :size="18"/>
+        </button>
+        <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
+          <a class="item" @click="toggleTimeDisplay('seconds')">
+            <i class="icon"><SvgIcon :name="timeVisible['log-time-seconds'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
+            {{ locale.showLogSeconds }}
+          </a>
+          <a class="item" @click="toggleTimeDisplay('stamp')">
+            <i class="icon"><SvgIcon :name="timeVisible['log-time-stamp'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
+            {{ locale.showTimeStamps }}
+          </a>
+          <a class="item" @click="toggleFullScreen()">
+            <i class="icon"><SvgIcon :name="isFullScreen ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
+            {{ locale.showFullScreen }}
+          </a>
+          <div class="divider"/>
+          <a class="item" @click="optionAlwaysAutoScroll = !optionAlwaysAutoScroll">
+            <i class="icon"><SvgIcon :name="optionAlwaysAutoScroll ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
+            {{ locale.logsAlwaysAutoScroll }}
+          </a>
+          <a class="item" @click="optionAlwaysExpandRunning = !optionAlwaysExpandRunning">
+            <i class="icon"><SvgIcon :name="optionAlwaysExpandRunning ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
+            {{ locale.logsAlwaysExpandRunning }}
+          </a>
+          <div class="divider"/>
+          <a :class="['item', !currentJob.steps.length ? 'disabled' : '']" :href="run.link + '/jobs/' + jobId + '/logs'" download>
+            <i class="icon"><SvgIcon name="octicon-download"/></i>
+            {{ locale.downloadLogs }}
+          </a>
         </div>
-        <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM,
-        use native DOM elements for "log line" to improve performance, Vue is not suitable for managing so many reactive elements. -->
-        <div class="job-step-logs" ref="logs" v-show="currentJobStepsStates[i].expanded"/>
       </div>
     </div>
   </div>
+  <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
+  <div class="job-step-container" ref="stepsContainer" v-show="currentJob.steps.length">
+    <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
+      <div
+        class="job-step-summary"
+        @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)"
+        :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']"
+      >
+        <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
+            currentJobStepsStates[i].cursor === null means the log is loaded for the first time
+          -->
+        <SvgIcon
+          v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null"
+          name="gitea-running"
+          class="tw-mr-2 rotate-clockwise"
+        />
+        <SvgIcon
+          v-else
+          :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down' : 'octicon-chevron-right'"
+          :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"
+        />
+        <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
+        <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
+        <span class="step-summary-duration">{{ jobStep.duration }}</span>
+      </div>
+      <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM,
+        use native DOM elements for "log line" to improve performance, Vue is not suitable for managing so many reactive elements. -->
+      <div class="job-step-logs" ref="logs" v-show="currentJobStepsStates[i].expanded"/>
+    </div>
+  </div>
+  <!-- </div> -->
 </template>
 <style scoped>
 /* begin fomantic dropdown menu overrides */
