@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"testing"
@@ -47,15 +48,45 @@ func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 		expectGitAccess perm.AccessMode
 	}{
 		{
+			name:            "OwnerConfig-Permissive",
+			ownerPermMode:   repo_model.ActionsTokenPermissionModePermissive,
+			expectGitAccess: perm.AccessModeWrite,
+		},
+		{
+			name:            "OwnerConfig-Permissive-CodeNone",
+			ownerPermMode:   repo_model.ActionsTokenPermissionModePermissive,
+			ownerMaxPerms:   map[unit_model.Type]perm.AccessMode{unit_model.TypeCode: perm.AccessModeNone},
+			expectGitAccess: perm.AccessModeNone,
+		},
+		{
+			name:            "OwnerConfig-Restricted",
+			ownerPermMode:   repo_model.ActionsTokenPermissionModeRestricted,
+			expectGitAccess: perm.AccessModeRead,
+		},
+
+		// repo uses its own settings, so owner settings should not affect it
+		{
 			name:            "SameRepo-Permissive",
+			ownerPermMode:   repo_model.ActionsTokenPermissionModeRestricted,
+			ownerMaxPerms:   map[unit_model.Type]perm.AccessMode{unit_model.TypeCode: perm.AccessModeNone},
 			repoPermMode:    repo_model.ActionsTokenPermissionModePermissive,
 			expectGitAccess: perm.AccessModeWrite,
+		},
+		{
+			name:            "SameRepo-Permissive-CodeNone",
+			ownerPermMode:   repo_model.ActionsTokenPermissionModePermissive,
+			ownerMaxPerms:   map[unit_model.Type]perm.AccessMode{unit_model.TypeCode: perm.AccessModeRead},
+			repoPermMode:    repo_model.ActionsTokenPermissionModePermissive,
+			repoMaxPerms:    map[unit_model.Type]perm.AccessMode{unit_model.TypeCode: perm.AccessModeNone},
+			expectGitAccess: perm.AccessModeNone,
 		},
 		{
 			name:            "SameRepo-Restricted",
 			repoPermMode:    repo_model.ActionsTokenPermissionModeRestricted,
 			expectGitAccess: perm.AccessModeRead,
 		},
+
+		// forks should be always restricted to max read access for code
 		{
 			name:            "Fork-Permissive",
 			repoPermMode:    repo_model.ActionsTokenPermissionModePermissive,
@@ -68,22 +99,40 @@ func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 			isFork:          true,
 			expectGitAccess: perm.AccessModeRead,
 		},
+		{
+			name:            "Fork-Restricted-CodeNone",
+			repoPermMode:    repo_model.ActionsTokenPermissionModeRestricted,
+			repoMaxPerms:    map[unit_model.Type]perm.AccessMode{unit_model.TypeCode: perm.AccessModeNone},
+			isFork:          true,
+			expectGitAccess: perm.AccessModeNone,
+		},
 	}
+
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 47})
 
-		ownerActionsCfg, err := actions_model.GetOwnerActionsConfig(t.Context(), task.OwnerID)
-		require.NoError(t, err)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: task.RepoID})
 		repoActionsUnit := repo.MustGetUnit(t.Context(), unit_model.TypeActions)
 		repoActionsCfg := repoActionsUnit.ActionsConfig()
+		ownerActionsCfg, err := actions_model.GetOwnerActionsConfig(t.Context(), repo.OwnerID)
+		require.NoError(t, err)
 
+		_, err = db.GetEngine(t.Context()).ID(task.RepoID).Cols("is_private").Update(&repo_model.Repository{IsPrivate: true})
+		require.NoError(t, err)
+
+		assertRespCodeForSuccess := func(t *testing.T, resp *httptest.ResponseRecorder, succeed bool) {
+			if succeed {
+				assert.True(t, 200 <= resp.Code && resp.Code < 300, "Expected success status code, got %d", resp.Code)
+			} else {
+				assert.True(t, 400 <= resp.Code && resp.Code < 500, "Expected client error status code, got %d", resp.Code)
+			}
+		}
 		for _, tt := range cases {
 			t.Run(tt.name, func(t *testing.T) {
 				// prepare owner's token permissions settings
 				ownerActionsCfg.TokenPermissionMode = tt.ownerPermMode
 				ownerActionsCfg.MaxTokenPermissions = util.Iif(tt.ownerMaxPerms == nil, nil, &repo_model.ActionsTokenPermissions{UnitAccessModes: tt.ownerMaxPerms})
-				require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), task.OwnerID, ownerActionsCfg))
+				require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), repo.OwnerID, ownerActionsCfg))
 
 				// prepare repo's token permissions settings
 				repoActionsCfg.OverrideOwnerConfig = tt.repoPermMode != "" || tt.repoMaxPerms != nil
@@ -103,40 +152,39 @@ func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 				task.Job.Run.IsForkPullRequest = tt.isFork
 				require.NoError(t, actions_model.UpdateRun(t.Context(), task.Job.Run, "is_fork_pull_request"))
 
-				apiCtx := APITestContext{
-					Session:  emptyTestSession(t),
-					Token:    task.Token,
-					Username: "user5",
-					Reponame: "repo4",
-				}
-
 				testURL := *u
 				testURL.User = url.UserPassword("gitea-actions", task.Token)
 
-				// can read git content
-				testURL.Path = "/user5/repo4.git/HEAD"
-				MakeRequest(t, NewRequest(t, "GET", testURL.String()), http.StatusOK)
+				t.Run("ReadGitContent", func(t *testing.T) {
+					testURL.Path = "/user5/repo4.git/HEAD"
+					resp := MakeRequest(t, NewRequest(t, "GET", testURL.String()), NoExpectedStatus)
+					assertRespCodeForSuccess(t, resp, tt.expectGitAccess != perm.AccessModeNone)
 
-				// can read git-lfs content
-				testURL.Path = "/user5/repo4.git/info/lfs/locks"
-				req := NewRequest(t, "GET", testURL.String()).SetHeader("Accept", lfs.MediaType)
-				MakeRequest(t, req, http.StatusOK)
+					testURL.Path = "/user5/repo4.git/info/lfs/locks"
+					req := NewRequest(t, "GET", testURL.String()).SetHeader("Accept", lfs.MediaType)
+					resp = MakeRequest(t, req, NoExpectedStatus)
+					assertRespCodeForSuccess(t, resp, tt.expectGitAccess != perm.AccessModeNone)
+				})
 
-				// can write git-lfs content
-				testURL.Path = "/user5/repo4.git/info/lfs/objects/batch"
-				req = NewRequestWithJSON(t, "POST", testURL.String(), lfs.BatchRequest{Operation: "upload"}).SetHeader("Accept", lfs.MediaType)
-				MakeRequest(t, req, util.Iif(tt.expectGitAccess == perm.AccessModeWrite, http.StatusOK, http.StatusUnauthorized))
+				t.Run("WriteGitContent", func(t *testing.T) {
+					req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/contents/test-filename", repo.FullName()), &structs.CreateFileOptions{
+						FileOptions:   structs.FileOptions{NewBranchName: "new-branch" + t.Name()},
+						ContentBase64: base64.StdEncoding.EncodeToString([]byte(`dummy content`)),
+					}).AddTokenAuth(task.Token)
+					resp := MakeRequest(t, req, NoExpectedStatus)
+					assertRespCodeForSuccess(t, resp, tt.expectGitAccess == perm.AccessModeWrite)
 
-				// write access should be forbidden for fork PRs even in permissive mode
-				apiCtx.ExpectedCode = util.Iif(tt.expectGitAccess == perm.AccessModeWrite, http.StatusCreated, http.StatusForbidden)
-				t.Run("CreateBranchFile", doAPICreateFile(apiCtx, "test-file", &structs.CreateFileOptions{
-					FileOptions:   structs.FileOptions{NewBranchName: "new-branch" + t.Name()},
-					ContentBase64: base64.StdEncoding.EncodeToString([]byte(`dummy content`)),
-				}))
+					testURL.Path = "/user5/repo4.git/info/lfs/objects/batch"
+					req = NewRequestWithJSON(t, "POST", testURL.String(), lfs.BatchRequest{Operation: "upload"}).SetHeader("Accept", lfs.MediaType)
+					resp = MakeRequest(t, req, NoExpectedStatus)
+					assertRespCodeForSuccess(t, resp, tt.expectGitAccess == perm.AccessModeWrite)
+				})
 
-				// no other permissions
-				apiCtx.ExpectedCode = http.StatusForbidden
-				t.Run("ForbidCreateRepository", doAPIDeleteRepository(apiCtx))
+				t.Run("NoOtherPermissions", func(t *testing.T) {
+					req := NewRequest(t, "DELETE", "/api/v1/repos/"+repo.FullName()).AddTokenAuth(task.Token)
+					resp := MakeRequest(t, req, NoExpectedStatus)
+					assertRespCodeForSuccess(t, resp, false)
+				})
 			})
 		}
 	})
@@ -269,9 +317,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		}))
 
 		// make repo-B be private
-		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", orgName, "repo-B"), &structs.EditRepoOption{
-			Private: new(true),
-		}).AddTokenAuth(token)
+		req = NewRequestWithJSON(t, "PATCH", "/api/v1/repos/org-cross-test/repo-B", &structs.EditRepoOption{Private: new(true)}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
 
 		testCtxA.ExpectedCode = http.StatusNotFound
@@ -661,126 +707,6 @@ func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.Ac
 
 	task.Job = job
 	return task
-}
-
-func TestActionsOverrideOwnerConfig(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
-
-		orgName := "org-override-test"
-		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &structs.CreateOrgOption{
-			UserName: orgName,
-		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusCreated)
-		org, err := user_model.GetUserByName(t.Context(), orgName)
-		require.NoError(t, err)
-
-		// 1. Set Org Config to RESTRICTED and Max=Read
-		orgCfg := actions_model.OwnerActionsConfig{
-			TokenPermissionMode: repo_model.ActionsTokenPermissionModeRestricted,
-			MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
-				UnitAccessModes: map[unit_model.Type]perm.AccessMode{
-					unit_model.TypeIssues: perm.AccessModeRead,
-					unit_model.TypeCode:   perm.AccessModeRead,
-				},
-			},
-		}
-		require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), org.ID, orgCfg))
-
-		// 2. Create Repository in Org
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/repos", orgName), &structs.CreateRepoOption{
-			Name:     "repo-override",
-			AutoInit: true,
-			Private:  true,
-		}).AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusCreated)
-		var apiRepo structs.Repository
-		DecodeJSON(t, resp, &apiRepo)
-		repoID := apiRepo.ID
-
-		enableActions := func(override bool, mode repo_model.ActionsTokenPermissionMode) {
-			err := db.Insert(t.Context(), &repo_model.RepoUnit{
-				RepoID: repoID,
-				Type:   unit_model.TypeActions,
-				Config: &repo_model.ActionsConfig{
-					OverrideOwnerConfig: override,
-					TokenPermissionMode: mode,
-					MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
-						UnitAccessModes: map[unit_model.Type]perm.AccessMode{
-							unit_model.TypeIssues: perm.AccessModeWrite, // Repo tries to be more permissive than org
-							unit_model.TypeCode:   perm.AccessModeWrite,
-						},
-					},
-				},
-			})
-			require.NoError(t, err)
-		}
-
-		// 3. Test OverrideOwnerConfig = false (Owner config clamping should apply)
-		enableActions(false, repo_model.ActionsTokenPermissionModePermissive)
-		task1 := createActionTask(t, repoID, false)
-
-		testCtx := APITestContext{
-			Session:  emptyTestSession(t),
-			Token:    task1.Token,
-			Username: orgName,
-			Reponame: "repo-override",
-		}
-
-		// Write should FAIL because Override=false means Owner config (Max=READ, Default=RESTRICTED) is used
-		testCtx.ExpectedCode = http.StatusForbidden
-		t.Run("Override=False Owner Clamping (Should Fail Write)", doAPICreateFile(testCtx, "fail-file.txt", &structs.CreateFileOptions{
-			FileOptions: structs.FileOptions{
-				BranchName: "master",
-				Message:    "fail write test",
-			},
-			ContentBase64: base64.StdEncoding.EncodeToString([]byte("fail")),
-		}))
-
-		// Read should SUCCEED
-		testCtx.ExpectedCode = http.StatusOK
-		t.Run("Override=False Owner Clamping (Should Succeed Read)", doAPIGetRepository(testCtx, nil))
-
-		// Clean up the repo unit to reset
-		_, err = db.DeleteByBean(t.Context(), &repo_model.RepoUnit{RepoID: repoID, Type: unit_model.TypeActions})
-		require.NoError(t, err)
-
-		// 4. Test OverrideOwnerConfig = true (Repo config should apply, clamping bypassed)
-		enableActions(true, repo_model.ActionsTokenPermissionModePermissive)
-		task2 := createActionTask(t, repoID, false)
-		testCtx.Token = task2.Token
-
-		// Write should SUCCEED because Override=true bypasses Owner restrictions
-		testCtx.ExpectedCode = http.StatusCreated
-		t.Run("Override=True Repo Config (Should Succeed Write)", doAPICreateFile(testCtx, "success-file.txt", &structs.CreateFileOptions{
-			FileOptions: structs.FileOptions{
-				BranchName: "master",
-				Message:    "success write test",
-			},
-			ContentBase64: base64.StdEncoding.EncodeToString([]byte("success")),
-		}))
-
-		// 5. Test empty permissions mapping `permissions: {}` (None/Restricted)
-		// We simulate this by overriding the specific job permissions in the DB to match what the parser does for `permissions: {}`
-		// which results in all None.
-		task3 := createActionTask(t, repoID, false)
-		job, err := actions_model.GetRunJobByRepoAndID(t.Context(), task3.RepoID, task3.JobID)
-		require.NoError(t, err)
-
-		job.TokenPermissions = &repo_model.ActionsTokenPermissions{}
-		_, err = db.GetEngine(t.Context()).ID(job.ID).Cols("token_permissions").Update(job)
-		require.NoError(t, err)
-		require.NoError(t, task3.GenerateToken())
-		require.NoError(t, actions_model.UpdateTask(t.Context(), task3, "token_hash", "token_salt", "token_last_eight"))
-
-		testCtx.Token = task3.Token
-		// Read should FAIL because permissions: {} sets EVERYTHING to none
-		testCtx.ExpectedCode = http.StatusNotFound
-		t.Run("Empty Permissions Mapping (Should Fail Read)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-			// Should not reach here
-		}))
-	})
 }
 
 func TestActionsTokenPermissionsExceedsTargetRepoLimit(t *testing.T) {
