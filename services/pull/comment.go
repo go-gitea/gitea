@@ -67,8 +67,9 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 		// if it's a force push, we need to get the whole pull request commits
 		data.CommitIDs, err = git_service.GetCompareCommitIDsWithMergeBase(ctx, pr.BaseRepo, pr.BaseBranch, newCommitID)
 		if err != nil {
-			// For force-push events, a missing/unreachable old commit should not prevent
-			// deleting stale push comments or creating the force-push timeline entry.
+			// For force-push events, failures resolving the base ref/head commit or computing
+			// the merge-base should not prevent deleting stale push comments or creating the
+			// force-push timeline entry.
 			log.Error("GetCompareCommitIDsWithMergeBase: %v", err)
 		}
 	} else {
