@@ -51,6 +51,7 @@ func getRunID(ctx *context_module.Context) int64 {
 func View(ctx *context_module.Context) {
 	ctx.Data["PageIsActions"] = true
 	runID := getRunID(ctx)
+
 	_, _, current := getRunJobsAndCurrentJob(ctx, runID)
 	if ctx.Written() {
 		return
@@ -217,6 +218,7 @@ func getActionsViewArtifacts(ctx context.Context, repoID, runID int64) (artifact
 func ViewPost(ctx *context_module.Context) {
 	req := web.GetForm(ctx).(*ViewRequest)
 	runID := getRunID(ctx)
+	// if no job is selected we show the summary view
 	isSummary := ctx.PathParam("job") == ""
 
 	run, jobs, current := getRunJobsAndCurrentJob(ctx, runID)

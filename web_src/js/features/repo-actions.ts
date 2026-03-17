@@ -30,9 +30,7 @@ export function initRepositoryActionView() {
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       areYouSure: el.getAttribute('data-locale-are-you-sure'),
       artifactExpired: el.getAttribute('data-locale-artifact-expired'),
-      confirmDeleteArtifact: el.getAttribute(
-        'data-locale-confirm-delete-artifact',
-      ),
+      confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       showFullScreen: el.getAttribute('data-locale-show-full-screen'),
@@ -47,12 +45,8 @@ export function initRepositoryActionView() {
         skipped: el.getAttribute('data-locale-status-skipped'),
         blocked: el.getAttribute('data-locale-status-blocked'),
       },
-      logsAlwaysAutoScroll: el.getAttribute(
-        'data-locale-logs-always-auto-scroll',
-      ),
-      logsAlwaysExpandRunning: el.getAttribute(
-        'data-locale-logs-always-expand-running',
-      ),
+      logsAlwaysAutoScroll: el.getAttribute('data-locale-logs-always-auto-scroll'),
+      logsAlwaysExpandRunning: el.getAttribute('data-locale-logs-always-expand-running'),
     },
   });
   view.mount(el);
