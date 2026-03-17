@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	git_service "code.gitea.io/gitea/services/git"
 )
 
 // getCommitIDsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
@@ -62,19 +63,24 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 	}
 
 	var data issues_model.PushActionContent
-	data.CommitIDs, err = getCommitIDsFromRepo(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
-	if err != nil {
-		// For force-push events, a missing/unreachable old commit should not prevent
-		// deleting stale push comments or creating the force-push timeline entry.
-		if !isForcePush {
+	if isForcePush {
+		// if it's a force push, we need to get the whole pull request commits
+		data.CommitIDs, err = git_service.GetCompareCommitIDsWithMergeBase(ctx, pr.BaseRepo, pr.BaseBranch, newCommitID)
+		if err != nil {
+			// For force-push events, a missing/unreachable old commit should not prevent
+			// deleting stale push comments or creating the force-push timeline entry.
+			log.Error("GetCompareCommitIDsWithMergeBase: %v", err)
+		}
+	} else {
+		data.CommitIDs, err = getCommitIDsFromRepo(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
+		if err != nil {
 			return nil, err
 		}
-		log.Error("getCommitIDsFromRepo: %v", err)
-	}
-	// It maybe an empty pull request. Only non-empty pull request need to create push comment
-	// for force push, we always need to delete the old push comment so don't return here.
-	if len(data.CommitIDs) == 0 && !isForcePush {
-		return nil, nil //nolint:nilnil // return nil because no comment needs to be created
+		// It maybe an empty pull request. Only non-empty pull request need to create push comment
+		// for force push, we always need to delete the old push comment so don't return here.
+		if len(data.CommitIDs) == 0 {
+			return nil, nil //nolint:nilnil // return nil because no comment needs to be created
+		}
 	}
 
 	return db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {

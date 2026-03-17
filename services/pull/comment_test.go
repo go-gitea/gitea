@@ -93,6 +93,31 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		assert.Equal(t, 1, forcePushCount)
 	})
 
+	t.Run("force-push-ignores-missing-old-commit", func(t *testing.T) {
+		assert.NoError(t, unittest.PrepareTestDatabase())
+
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+		assert.NoError(t, pr.LoadIssue(t.Context()))
+		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
+
+		pusher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), pr.BaseRepo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+
+		headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
+		assert.NoError(t, err)
+
+		comment, err := CreatePushPullComment(t.Context(), pusher, pr, "0000000000000000000000000000000000000000", headCommit.ID.String(), true)
+		assert.NoError(t, err)
+		assert.NotNil(t, comment)
+		var createdData issues_model.PushActionContent
+		assert.NoError(t, json.Unmarshal([]byte(comment.Content), &createdData))
+		assert.True(t, createdData.IsForcePush)
+		assert.NotEmpty(t, createdData.CommitIDs)
+	})
+
 	t.Run("head-vs-base-branch", func(t *testing.T) {
 		assert.NoError(t, unittest.PrepareTestDatabase())
 

@@ -42,6 +42,38 @@ func (ci *CompareInfo) DirectComparison() bool {
 	return ci.CompareSeparator == ".."
 }
 
+// GetCompareCommitIDsWithMergeBase get commit IDs from repo in between oldCommitID and newCommitID
+// Commit on baseBranch will skip
+func GetCompareCommitIDsWithMergeBase(ctx context.Context, repo *repo_model.Repository, oldCommitID, newCommitID string) (commitIDs []string, err error) {
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	defer closer.Close()
+
+	newCommit, err := gitRepo.GetCommit(newCommitID)
+	if err != nil {
+		return nil, err
+	}
+
+	mergeBase, err := gitrepo.MergeBase(ctx, repo, oldCommitID, newCommitID)
+	if err != nil {
+		return nil, fmt.Errorf("MergeBase: %w", err)
+	}
+
+	commits, err := gitRepo.ShowPrettyFormatLogToList(ctx, mergeBase+".."+newCommit.ID.String())
+	if err != nil {
+		return nil, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
+	}
+
+	commitIDs = make([]string, 0, len(commits))
+	for i := len(commits) - 1; i >= 0; i-- {
+		commitIDs = append(commitIDs, commits[i].ID.String())
+	}
+
+	return commitIDs, err
+}
+
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
 func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Repository, headGitRepo *git.Repository, baseRef, headRef git.RefName, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
 	compareInfo := &CompareInfo{
