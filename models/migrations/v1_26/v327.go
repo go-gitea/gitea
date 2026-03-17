@@ -3,14 +3,15 @@
 
 package v1_26
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
-func AddTokenPermissionsToActionRunJob(x *xorm.Engine) error {
-	type ActionRunJob struct {
-		TokenPermissions string `xorm:"JSON TEXT"`
+func AddDisabledToActionRunner(x *xorm.Engine) error {
+	type ActionRunner struct {
+		IsDisabled bool `xorm:"is_disabled NOT NULL DEFAULT false"`
 	}
-	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(ActionRunJob))
+
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(ActionRunner))
 	return err
 }
