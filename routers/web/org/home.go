@@ -88,7 +88,9 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["IsPrivate"] = private
 
 	isPrivate := private
-	if !ctx.IsSigned && !isPrivate.Has() {
+	if !ctx.IsSigned {
+		// Unauthenticated: always restrict to public repos,
+		// ignoring any ?private=true parameter to prevent private repo exposure.
 		isPrivate = optional.Some(false)
 	}
 

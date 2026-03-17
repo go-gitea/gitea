@@ -96,8 +96,9 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["IsPrivate"] = private
 
 	isPrivate := private
-	if !opts.Private && !isPrivate.Has() {
-		// Anonymous user with no explicit filter: restrict to public repos
+	if !opts.Private {
+		// Unauthenticated or public-only mode: always restrict to public repos,
+		// ignoring any ?private=true parameter to prevent private repo exposure.
 		isPrivate = optional.Some(false)
 	}
 
