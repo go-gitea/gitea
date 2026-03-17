@@ -333,13 +333,17 @@ function isEdgeHighlighted(edge: BezierEdge): boolean {
   return edge.from === hoveredJob.name || edge.to === hoveredJob.name;
 }
 
-function hasIncomingEdge(job: JobNode): boolean {
-  return edges.value.some((edge) => edge.to === job.name);
-}
+const nodesWithIncomingEdge = computed(() => {
+  const set = new Set<string>();
+  for (const edge of edges.value) set.add(edge.to);
+  return set;
+});
 
-function hasOutgoingEdge(job: JobNode): boolean {
-  return edges.value.some((edge) => edge.from === job.name);
-}
+const nodesWithOutgoingEdge = computed(() => {
+  const set = new Set<string>();
+  for (const edge of edges.value) set.add(edge.from);
+  return set;
+});
 
 function getDisplayName(name: string, hasDuration: boolean): string {
   const maxChars = hasDuration ? 18 : 22;
@@ -359,13 +363,11 @@ function getEdgeStyle(edge: BezierEdge) {
     };
   }
 
-  const isHighlighted = isEdgeHighlighted(edge);
-
   return {
     'stroke': 'var(--color-secondary-alpha-50)',
-    'stroke-width': isHighlighted ? '3' : '1.75',
+    'stroke-width': '1.75',
     'stroke-dasharray': 'none',
-    'opacity': isHighlighted ? 1 : 0.6,
+    'opacity': '0.6',
     'transition': 'all 0.2s ease',
   };
 }
@@ -530,7 +532,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
           />
 
           <circle
-            v-if="hasIncomingEdge(job)"
+            v-if="nodesWithIncomingEdge.has(job.name)"
             :cx="job.x"
             :cy="job.y + nodeHeight / 2"
             r="6"
@@ -538,7 +540,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
           />
 
           <circle
-            v-if="hasOutgoingEdge(job)"
+            v-if="nodesWithOutgoingEdge.has(job.name)"
             :cx="job.x + nodeWidth"
             :cy="job.y + nodeHeight / 2"
             r="6"
