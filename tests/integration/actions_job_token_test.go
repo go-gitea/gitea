@@ -35,103 +35,108 @@ import (
 
 func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 	cases := []struct {
-		name     string
-		permMode repo_model.ActionsTokenPermissionMode
-		isFork   bool
+		name   string
+		isFork bool
 
-		expectGitRead  bool
-		expectGitWrite bool
+		ownerPermMode repo_model.ActionsTokenPermissionMode
+		ownerMaxPerms map[unit_model.Type]perm.AccessMode
+
+		repoPermMode repo_model.ActionsTokenPermissionMode
+		repoMaxPerms map[unit_model.Type]perm.AccessMode
+
+		expectGitAccess perm.AccessMode
 	}{
 		{
-			name:           "SameRepo-Permissive",
-			permMode:       repo_model.ActionsTokenPermissionModePermissive,
-			isFork:         false,
-			expectGitRead:  true,
-			expectGitWrite: true,
+			name:            "SameRepo-Permissive",
+			repoPermMode:    repo_model.ActionsTokenPermissionModePermissive,
+			expectGitAccess: perm.AccessModeWrite,
 		},
 		{
-			name:           "SameRepo-Restricted",
-			permMode:       repo_model.ActionsTokenPermissionModeRestricted,
-			isFork:         false,
-			expectGitRead:  true,
-			expectGitWrite: false,
+			name:            "SameRepo-Restricted",
+			repoPermMode:    repo_model.ActionsTokenPermissionModeRestricted,
+			expectGitAccess: perm.AccessModeRead,
 		},
 		{
-			name:           "Fork-Permissive",
-			permMode:       repo_model.ActionsTokenPermissionModePermissive,
-			isFork:         true,
-			expectGitRead:  true,
-			expectGitWrite: false,
+			name:            "Fork-Permissive",
+			repoPermMode:    repo_model.ActionsTokenPermissionModePermissive,
+			isFork:          true,
+			expectGitAccess: perm.AccessModeRead,
 		},
 		{
-			name:           "Fork-Restricted",
-			permMode:       repo_model.ActionsTokenPermissionModeRestricted,
-			isFork:         true,
-			expectGitRead:  true,
-			expectGitWrite: false,
+			name:            "Fork-Restricted",
+			repoPermMode:    repo_model.ActionsTokenPermissionModeRestricted,
+			isFork:          true,
+			expectGitAccess: perm.AccessModeRead,
 		},
 	}
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 47})
 
+		ownerActionsCfg, err := actions_model.GetOwnerActionsConfig(t.Context(), task.OwnerID)
+		require.NoError(t, err)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: task.RepoID})
-		actionsUnit := repo.MustGetUnit(t.Context(), unit_model.TypeActions)
-		actionsCfg := actionsUnit.ActionsConfig()
-		actionsCfg.OverrideOwnerConfig = true
-		actionsCfg.MaxTokenPermissions = nil
-		actionsUnit.Config = actionsCfg
+		repoActionsUnit := repo.MustGetUnit(t.Context(), unit_model.TypeActions)
+		repoActionsCfg := repoActionsUnit.ActionsConfig()
 
 		for _, tt := range cases {
 			t.Run(tt.name, func(t *testing.T) {
-				actionsCfg.TokenPermissionMode = tt.permMode
-				require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), actionsUnit))
+				// prepare owner's token permissions settings
+				ownerActionsCfg.TokenPermissionMode = tt.ownerPermMode
+				ownerActionsCfg.MaxTokenPermissions = util.Iif(tt.ownerMaxPerms == nil, nil, &repo_model.ActionsTokenPermissions{UnitAccessModes: tt.ownerMaxPerms})
+				require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), task.OwnerID, ownerActionsCfg))
 
+				// prepare repo's token permissions settings
+				repoActionsCfg.OverrideOwnerConfig = tt.repoPermMode != "" || tt.repoMaxPerms != nil
+				repoActionsCfg.TokenPermissionMode = tt.repoPermMode
+				repoActionsCfg.MaxTokenPermissions = util.Iif(tt.repoMaxPerms == nil, nil, &repo_model.ActionsTokenPermissions{UnitAccessModes: tt.repoMaxPerms})
+				require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), repoActionsUnit))
+
+				// prepare task and its token
 				require.NoError(t, task.GenerateToken())
 				task.Status = actions_model.StatusRunning
 				task.IsForkPullRequest = tt.isFork
 				err := actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status", "is_fork_pull_request")
 				require.NoError(t, err)
 
-				// Also update the run for fork clamping check
 				require.NoError(t, task.LoadJob(t.Context()))
 				require.NoError(t, task.Job.LoadRun(t.Context()))
 				task.Job.Run.IsForkPullRequest = tt.isFork
 				require.NoError(t, actions_model.UpdateRun(t.Context(), task.Job.Run, "is_fork_pull_request"))
 
-				session := emptyTestSession(t)
-				context := APITestContext{
-					Session:  session,
+				apiCtx := APITestContext{
+					Session:  emptyTestSession(t),
 					Token:    task.Token,
 					Username: "user5",
 					Reponame: "repo4",
 				}
 
-				u.User = url.UserPassword("gitea-actions", task.Token)
+				testURL := *u
+				testURL.User = url.UserPassword("gitea-actions", task.Token)
 
 				// can read git content
-				u.Path = context.GitPath() + "/HEAD"
-				session.MakeRequest(t, NewRequest(t, "GET", u.String()), http.StatusOK)
+				testURL.Path = "/user5/repo4.git/HEAD"
+				MakeRequest(t, NewRequest(t, "GET", testURL.String()), http.StatusOK)
 
 				// can read git-lfs content
-				u.Path = context.GitPath() + "/info/lfs/locks"
-				req := NewRequest(t, "GET", u.String()).SetHeader("Accept", lfs.MediaType)
-				session.MakeRequest(t, req, http.StatusOK)
+				testURL.Path = "/user5/repo4.git/info/lfs/locks"
+				req := NewRequest(t, "GET", testURL.String()).SetHeader("Accept", lfs.MediaType)
+				MakeRequest(t, req, http.StatusOK)
 
 				// can write git-lfs content
-				u.Path = context.GitPath() + "/info/lfs/objects/batch"
-				req = NewRequestWithJSON(t, "POST", u.String(), lfs.BatchRequest{Operation: "upload"}).SetHeader("Accept", lfs.MediaType)
-				session.MakeRequest(t, req, util.Iif(tt.expectGitWrite, http.StatusOK, http.StatusUnauthorized))
+				testURL.Path = "/user5/repo4.git/info/lfs/objects/batch"
+				req = NewRequestWithJSON(t, "POST", testURL.String(), lfs.BatchRequest{Operation: "upload"}).SetHeader("Accept", lfs.MediaType)
+				MakeRequest(t, req, util.Iif(tt.expectGitAccess == perm.AccessModeWrite, http.StatusOK, http.StatusUnauthorized))
 
 				// write access should be forbidden for fork PRs even in permissive mode
-				context.ExpectedCode = util.Iif(tt.expectGitWrite, http.StatusCreated, http.StatusForbidden)
-				t.Run("CreateBranchFile", doAPICreateFile(context, "test-file", &structs.CreateFileOptions{
+				apiCtx.ExpectedCode = util.Iif(tt.expectGitAccess == perm.AccessModeWrite, http.StatusCreated, http.StatusForbidden)
+				t.Run("CreateBranchFile", doAPICreateFile(apiCtx, "test-file", &structs.CreateFileOptions{
 					FileOptions:   structs.FileOptions{NewBranchName: "new-branch" + t.Name()},
 					ContentBase64: base64.StdEncoding.EncodeToString([]byte(`dummy content`)),
 				}))
 
 				// no other permissions
-				context.ExpectedCode = http.StatusForbidden
-				t.Run("ForbidCreateRepository", doAPIDeleteRepository(context))
+				apiCtx.ExpectedCode = http.StatusForbidden
+				t.Run("ForbidCreateRepository", doAPIDeleteRepository(apiCtx))
 			})
 		}
 	})
@@ -216,12 +221,14 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
-		// 2. Create Two Repositories in Org
+		owner, err := org_model.GetOrgByName(t.Context(), orgName)
+		require.NoError(t, err)
+
+		// 2. Create Two Repositories in owner
 		createRepoInOrg := func(name string) int64 {
 			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/repos", orgName), &structs.CreateRepoOption{
 				Name:     name,
 				AutoInit: true,
-				Private:  true, // Must be private for potential restrictions
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusCreated)
 			var repo structs.Repository
@@ -247,243 +254,59 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		enableActions(repoAID)
 		enableActions(repoBID)
 
-		// 4. Create Task in Repo A
-		task := createActionTask(t, repoAID, false)
-
-		// 5. Verify Access to Repo B (Target)
-		testCtx := APITestContext{
+		// 4. Create Task in Repo A, and use A's token to access B
+		taskA := createActionTask(t, repoAID, false)
+		testCtxA := APITestContext{
 			Session:  emptyTestSession(t),
-			Token:    task.Token,
+			Token:    taskA.Token,
 			Username: orgName,
 			Reponame: "repo-B",
 		}
 
-		// Case A: Default (AllowCrossRepoAccess = false by default now) -> Should Fail (404)
-		// API returns 404 if denied (hidden)
-		testCtx.ExpectedCode = http.StatusNotFound
-		t.Run("Cross-Repo Access Denied (Default None)", doAPIGetRepository(testCtx, nil))
-
-		// Case B: Explicitly Enable AllowCrossRepoAccess All
-		org, err := org_model.GetOrgByName(t.Context(), orgName)
-		require.NoError(t, err)
-
-		cfg := actions_model.OwnerActionsConfig{
-			AllowedCrossRepoIDs: []int64{repoAID, repoBID},
-		}
-		err = actions_model.SetOwnerActionsConfig(t.Context(), org.ID, cfg)
-		require.NoError(t, err)
-
-		// Retry -> Should Succeed (200) Read-Only
-		testCtx.ExpectedCode = http.StatusOK
-		t.Run("Cross-Repo Access Allowed (All Enabled)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+		testCtxA.ExpectedCode = http.StatusOK
+		t.Run("PublicCrossRepoAccess", doAPIGetRepository(testCtxA, func(t *testing.T, r structs.Repository) {
 			assert.Equal(t, "repo-B", r.Name)
 		}))
 
-		// Case C: Public Repository Access -> Should Succeed even if cross-repo is disabled
-		bFalse := false
-		repoCID := createRepoInOrg("repo-C")
-		// Make it public via API
-		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", orgName, "repo-C"), &structs.EditRepoOption{
-			Private: &bFalse,
+		// make repo-B be private
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", orgName, "repo-B"), &structs.EditRepoOption{
+			Private: new(true),
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
-		enableActions(repoCID)
 
-		testCtxC := APITestContext{
-			Session:      emptyTestSession(t),
-			Token:        task.Token,
-			Username:     orgName,
-			Reponame:     "repo-C",
-			ExpectedCode: http.StatusOK,
-		}
-		t.Run("Cross-Repo Access Allowed for Public Repo (Disabled Policy)", doAPIGetRepository(testCtxC, func(t *testing.T, r structs.Repository) {
-			assert.Equal(t, "repo-C", r.Name)
+		testCtxA.ExpectedCode = http.StatusNotFound
+		t.Run("NoPrivateCrossRepoAccess", doAPIGetRepository(testCtxA, nil))
+
+		ownerActionsCfg := actions_model.OwnerActionsConfig{AllowedCrossRepoIDs: []int64{repoBID}}
+		require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), owner.ID, ownerActionsCfg))
+
+		testCtxA.ExpectedCode = http.StatusOK
+		t.Run("AccessToSelectedPrivateRepo", doAPIGetRepository(testCtxA, func(t *testing.T, r structs.Repository) {
+			assert.Equal(t, "repo-B", r.Name)
 		}))
 
-		// 7. Test Cross-Repo Access - Specific Repositories
-		t.Run("Cross-Repo Access - Specific Repositories", func(t *testing.T) {
-			// Set mode to Selected with ONLY repo-B
-			require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), org.ID, actions_model.OwnerActionsConfig{
-				AllowedCrossRepoIDs: []int64{repoBID},
-			}))
-
-			// Access to repo-B should succeed
-			testCtx.Reponame = "repo-B"
-			testCtx.ExpectedCode = http.StatusOK
-			doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-				assert.Equal(t, "repo-B", r.Name)
-			})(t)
-
-			// Remove repo-B from allowed list
-			require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), org.ID, actions_model.OwnerActionsConfig{
-				AllowedCrossRepoIDs: []int64{}, // Empty list
-			}))
-
-			// Access to repo-B should fail (404)
-			testCtx.ExpectedCode = http.StatusNotFound
-			doAPIGetRepository(testCtx, nil)(t)
-		})
-	})
-}
-
-func TestActionsUserCrossRepoAccess(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
-
-		userName := "user2"
-
-		// 1. Create Two Repositories for User
-		createRepoForUser := func(name string) int64 {
-			req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &structs.CreateRepoOption{
-				Name:     name,
-				AutoInit: true,
-				Private:  true, // Must be private for potential restrictions
-			}).AddTokenAuth(token)
-			resp := MakeRequest(t, req, http.StatusCreated)
-			var repo structs.Repository
-			DecodeJSON(t, resp, &repo)
-			return repo.ID
-		}
-
-		repoAID := createRepoForUser("repo-user-A")
-		repoBID := createRepoForUser("repo-user-B")
-
-		// 2. Enable Actions
-		enableActions := func(repoID int64) {
-			err := db.Insert(t.Context(), &repo_model.RepoUnit{
-				RepoID: repoID,
-				Type:   unit_model.TypeActions,
-				Config: &repo_model.ActionsConfig{
-					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
-				},
-			})
+		t.Run("RepoTransfer", func(t *testing.T) {
+			ownerActionsCfg, err := actions_model.GetOwnerActionsConfig(t.Context(), owner.ID)
 			require.NoError(t, err)
-		}
+			assert.Contains(t, ownerActionsCfg.AllowedCrossRepoIDs, repoBID)
 
-		enableActions(repoAID)
-		enableActions(repoBID)
+			// Transfer Repository to user4
+			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/repo-B/transfer", orgName), &structs.TransferRepoOption{
+				NewOwner: "user4",
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusCreated)
 
-		// 3. Create Task in Repo A
-		task := createActionTask(t, repoAID, false)
+			// Accept transfer as user4
+			session4 := loginUser(t, "user4")
+			token4 := getTokenForLoggedInUser(t, session4, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
+			req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/repo-B/transfer/accept", orgName)).AddTokenAuth(token4)
+			MakeRequest(t, req, http.StatusAccepted)
 
-		// 4. Verify Access to Repo B (Target)
-		testCtx := APITestContext{
-			Session:  emptyTestSession(t),
-			Token:    task.Token,
-			Username: userName,
-			Reponame: "repo-user-B",
-		}
-
-		// Case A: Default (AllowCrossRepoAccess = false by default now) -> Should Fail (404 Not Found)
-		testCtx.ExpectedCode = http.StatusNotFound
-		t.Run("User Cross-Repo Access Denied (Default)", doAPIGetRepository(testCtx, nil))
-
-		userObj := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: userName})
-
-		// Case B: Explicitly Set AllowedCrossRepoAccess to None -> Should Fail (404 Not Found)
-		user2, err := user_model.GetUserByName(t.Context(), userName)
-		require.NoError(t, err)
-
-		cfg := actions_model.OwnerActionsConfig{}
-		err = actions_model.SetOwnerActionsConfig(t.Context(), user2.ID, cfg)
-		require.NoError(t, err)
-
-		t.Run("User Cross-Repo Access Denied (Explicit None)", doAPIGetRepository(testCtx, nil))
-
-		// Case C: Explicitly Enable AllowCrossRepoAccess All
-		cfg = actions_model.OwnerActionsConfig{
-			AllowedCrossRepoIDs: []int64{repoAID, repoBID},
-		}
-		err = actions_model.SetOwnerActionsConfig(t.Context(), user2.ID, cfg)
-		require.NoError(t, err)
-
-		// Retry -> Should Succeed (200) Read-Only
-		testCtx.ExpectedCode = http.StatusOK
-		t.Run("User Cross-Repo Access Allowed (All Enabled)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-			assert.Equal(t, "repo-user-B", r.Name)
-		}))
-
-		// Case C: Explicitly Disable AllowCrossRepoAccess
-		cfg = actions_model.OwnerActionsConfig{}
-		err = actions_model.SetOwnerActionsConfig(t.Context(), userObj.ID, cfg)
-		require.NoError(t, err)
-
-		// Retry -> Should Fail (404 Not Found)
-		testCtx.ExpectedCode = http.StatusNotFound
-		t.Run("User Cross-Repo Access Denied (Disabled)", doAPIGetRepository(testCtx, nil))
-
-		// 5. Test Cross-Repo Access - Specific Repositories
-		t.Run("User Cross-Repo Access - Specific Repositories", func(t *testing.T) {
-			// Set mode to Selected with ONLY repo-user-B
-			require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), userObj.ID, actions_model.OwnerActionsConfig{
-				AllowedCrossRepoIDs: []int64{repoBID},
-			}))
-
-			// Access to repo-user-B should succeed
-			testCtx.Reponame = "repo-user-B"
-			testCtx.ExpectedCode = http.StatusOK
-			doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-				assert.Equal(t, "repo-user-B", r.Name)
-			})(t)
-
-			// Remove repo-user-B from allowed list
-			require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), userObj.ID, actions_model.OwnerActionsConfig{
-				AllowedCrossRepoIDs: []int64{}, // Empty list
-			}))
-
-			// Access to repo-user-B should fail (404)
-			testCtx.ExpectedCode = http.StatusNotFound
-			doAPIGetRepository(testCtx, nil)(t)
+			// Verify it is removed from the org's config
+			ownerActionsCfg, err = actions_model.GetOwnerActionsConfig(t.Context(), owner.ID)
+			require.NoError(t, err)
+			assert.NotContains(t, ownerActionsCfg.AllowedCrossRepoIDs, repoBID)
 		})
-	})
-}
-
-func TestActionsCrossRepoCleanupOnTransfer(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
-
-		repoName := "repo-to-transfer-for-actions"
-
-		// 1. Create Repository
-		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &structs.CreateRepoOption{
-			Name:     repoName,
-			AutoInit: true,
-			Private:  true,
-		}).AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusCreated)
-		var apiRepo structs.Repository
-		DecodeJSON(t, resp, &apiRepo)
-
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
-
-		// 2. Add repo to AllowedCrossRepoIDs for user2
-		require.NoError(t, actions_model.SetOwnerActionsConfig(t.Context(), user2.ID, actions_model.OwnerActionsConfig{
-			AllowedCrossRepoIDs: []int64{apiRepo.ID},
-		}))
-
-		// 3. Verify it is there
-		cfg, err := actions_model.GetOwnerActionsConfig(t.Context(), user2.ID)
-		require.NoError(t, err)
-		assert.Contains(t, cfg.AllowedCrossRepoIDs, apiRepo.ID)
-
-		// 4. Transfer Repository to user4
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/user2/%s/transfer", repoName), &structs.TransferRepoOption{
-			NewOwner: "user4",
-		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusCreated)
-
-		// Accept transfer as user4
-		session4 := loginUser(t, "user4")
-		token4 := getTokenForLoggedInUser(t, session4, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
-		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/user2/%s/transfer/accept", repoName)).AddTokenAuth(token4)
-		MakeRequest(t, req, http.StatusAccepted)
-
-		// 5. Verify it is removed from user2's config
-		cfg, err = actions_model.GetOwnerActionsConfig(t.Context(), user2.ID)
-		require.NoError(t, err)
-		assert.NotContains(t, cfg.AllowedCrossRepoIDs, apiRepo.ID)
 	})
 }
 
