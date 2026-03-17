@@ -32,6 +32,12 @@ func ListRunners(ctx *context.APIContext) {
 	// summary: Get all runners
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: disabled
+	//   in: query
+	//   description: filter by disabled status (true or false)
+	//   type: boolean
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/definitions/ActionRunnersResponse"
@@ -86,4 +92,35 @@ func DeleteRunner(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, 0, 0, ctx.PathParamInt64("runner_id"))
+}
+
+// UpdateRunner update a global runner
+func UpdateRunner(ctx *context.APIContext) {
+	// swagger:operation PATCH /admin/actions/runners/{runner_id} admin updateAdminRunner
+	// ---
+	// summary: Update a global runner
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditActionRunnerOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	shared.UpdateRunner(ctx, 0, 0, ctx.PathParamInt64("runner_id"))
 }

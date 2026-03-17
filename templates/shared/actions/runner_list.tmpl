@@ -66,7 +66,10 @@
 			<tbody>
 				{{range .Runners}}
 					<tr>
-						<td><span class="ui label {{if .IsOnline}}green{{end}}">{{.StatusLocaleName ctx.Locale}}</span></td>
+						<td>
+							<span class="ui label {{if .IsOnline}}green{{end}}">{{.StatusLocaleName ctx.Locale}}</span>
+							{{if .IsDisabled}}<span class="ui grey label">{{ctx.Locale.Tr "actions.runners.disabled"}}</span>{{end}}
+						</td>
 						<td>{{.ID}}</td>
 						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
 						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
