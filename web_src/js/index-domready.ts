@@ -1,5 +1,4 @@
 import '../fomantic/build/fomantic.js';
-import '../fomantic/build/fomantic.css';
 import '../css/index.css';
 import type {HtmxResponseInfo} from 'htmx.org';
 import {showErrorToast} from './modules/toast.ts';
