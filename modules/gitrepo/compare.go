@@ -18,6 +18,25 @@ type DivergeObject struct {
 	Behind int
 }
 
+// GetCommitIDsBetween returns the commit IDs between startRef and endRef (excluding startRef), ordered from oldest to newest.
+// When symmetric is true, the comparison uses "..." instead of "..".
+func GetCommitIDsBetween(ctx context.Context, repo Repository, startRef, endRef string, symmetric bool) ([]string, error) {
+	separator := ".."
+	if symmetric {
+		separator = "..."
+	}
+
+	cmd := gitcmd.NewCommand("rev-list", "--reverse").
+		AddDynamicArguments(startRef + separator + endRef)
+	stdout, _, err := RunCmdString(ctx, repo, cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	commitIDs := strings.Fields(strings.TrimSpace(stdout))
+	return commitIDs, nil
+}
+
 // GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
 func GetDivergingCommits(ctx context.Context, repo Repository, baseBranch, targetBranch string) (*DivergeObject, error) {
 	cmd := gitcmd.NewCommand("rev-list", "--count", "--left-right").
