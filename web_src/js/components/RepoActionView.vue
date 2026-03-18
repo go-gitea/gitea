@@ -147,6 +147,7 @@ export default defineComponent({
         canCancel: false,
         canApprove: false,
         canRerun: false,
+        canRerunFailed: false,
         canDeleteArtifact: false,
         done: false,
         workflowID: '',
@@ -512,9 +513,14 @@ export default defineComponent({
           <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
             {{ locale.cancel }}
           </button>
-          <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
-            {{ locale.rerun_all }}
-          </button>
+          <template v-else-if="run.canRerun">
+            <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun-failed`" v-if="run.canRerunFailed">
+              {{ locale.rerun_failed }}
+            </button>
+            <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`">
+              {{ locale.rerun_all }}
+            </button>
+          </template>
         </div>
       </div>
       <div class="action-commit-summary">

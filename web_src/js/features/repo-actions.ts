@@ -19,6 +19,7 @@ export function initRepositoryActionView() {
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
       rerun_all: el.getAttribute('data-locale-rerun-all'),
+      rerun_failed: el.getAttribute('data-locale-rerun-failed'),
       scheduled: el.getAttribute('data-locale-runs-scheduled'),
       commit: el.getAttribute('data-locale-runs-commit'),
       pushedBy: el.getAttribute('data-locale-runs-pushed-by'),
