@@ -102,6 +102,9 @@ func testAPIListReposByType(t *testing.T, urlBase, token string) {
 		for _, repo := range publicRepos {
 			assert.False(t, repo.Private, "repo %s should be public", repo.Name)
 		}
+		assert.Equal(t, fmt.Sprintf("%d", len(publicRepos)),
+			respPublic.Header().Get("X-Total-Count"),
+			"X-Total-Count should match returned public repo count")
 	})
 
 	t.Run("TypePrivate", func(t *testing.T) {
@@ -109,6 +112,9 @@ func testAPIListReposByType(t *testing.T, urlBase, token string) {
 		for _, repo := range privateRepos {
 			assert.True(t, repo.Private, "repo %s should be private", repo.Name)
 		}
+		assert.Equal(t, fmt.Sprintf("%d", len(privateRepos)),
+			respPrivate.Header().Get("X-Total-Count"),
+			"X-Total-Count should match returned private repo count")
 	})
 
 	t.Run("NoFilter", func(t *testing.T) {
@@ -143,6 +149,23 @@ func testAPIListReposByType(t *testing.T, urlBase, token string) {
 		assert.Empty(t, repos, "unauthenticated request should not return private repos")
 		assert.Equal(t, "0", resp.Header().Get("X-Total-Count"), "X-Total-Count should not leak private repo count")
 	})
+
+	t.Run("TypePrivateNonOwner", func(t *testing.T) {
+		// An authenticated user who is not the owner/member must not see private repos
+		// in the body, and X-Total-Count must not leak the private repo count either.
+		// user8 is not a member of org3 and not a collaborator on user2's private repos.
+		nonOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
+		nonOwnerSession := loginUser(t, nonOwner.Name)
+		nonOwnerToken := getTokenForLoggedInUser(t, nonOwnerSession, auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
+		req := NewRequest(t, "GET", urlBase+"?type=private&limit=50").
+			AddTokenAuth(nonOwnerToken)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var repos []api.Repository
+		DecodeJSON(t, resp, &repos)
+		assert.Empty(t, repos, "non-owner must not see private repos in body")
+		assert.Equal(t, "0", resp.Header().Get("X-Total-Count"),
+			"X-Total-Count must not leak private repo count to non-owner")
+	})
 }
 
 func TestAPIListUserReposByType(t *testing.T) {
@@ -153,6 +176,34 @@ func TestAPIListUserReposByType(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopeReadUser)
 
 	testAPIListReposByType(t, fmt.Sprintf("/api/v1/users/%s/repos", user.Name), token)
+
+	t.Run("KnownPublicRepo", func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/repos?type=public&limit=50", user.Name)).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var repos []api.Repository
+		DecodeJSON(t, resp, &repos)
+		names := make([]string, 0, len(repos))
+		for _, r := range repos {
+			names = append(names, r.Name)
+		}
+		assert.Contains(t, names, "repo1", "public repo repo1 must appear in type=public listing")
+		assert.NotContains(t, names, "repo2", "private repo repo2 must not appear in type=public listing")
+	})
+
+	t.Run("KnownPrivateRepo", func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/repos?type=private&limit=50", user.Name)).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var repos []api.Repository
+		DecodeJSON(t, resp, &repos)
+		names := make([]string, 0, len(repos))
+		for _, r := range repos {
+			names = append(names, r.Name)
+		}
+		assert.Contains(t, names, "repo2", "private repo repo2 must appear in type=private listing")
+		assert.NotContains(t, names, "repo1", "public repo repo1 must not appear in type=private listing")
+	})
 }
 
 func TestAPIListOrgReposByType(t *testing.T) {
@@ -165,4 +216,32 @@ func TestAPIListOrgReposByType(t *testing.T) {
 
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	testAPIListReposByType(t, fmt.Sprintf("/api/v1/orgs/%s/repos", org.Name), token)
+
+	t.Run("KnownPublicRepo", func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/%s/repos?type=public&limit=50", org.Name)).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var repos []api.Repository
+		DecodeJSON(t, resp, &repos)
+		names := make([]string, 0, len(repos))
+		for _, r := range repos {
+			names = append(names, r.Name)
+		}
+		assert.Contains(t, names, "repo21", "public repo repo21 must appear in type=public listing")
+		assert.NotContains(t, names, "repo3", "private repo repo3 must not appear in type=public listing")
+	})
+
+	t.Run("KnownPrivateRepo", func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/%s/repos?type=private&limit=50", org.Name)).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var repos []api.Repository
+		DecodeJSON(t, resp, &repos)
+		names := make([]string, 0, len(repos))
+		for _, r := range repos {
+			names = append(names, r.Name)
+		}
+		assert.Contains(t, names, "repo3", "private repo repo3 must appear in type=private listing")
+		assert.NotContains(t, names, "repo21", "public repo repo21 must not appear in type=private listing")
+	})
 }

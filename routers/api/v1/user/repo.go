@@ -82,6 +82,14 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 		}
 	}
 
+	// When the requester is not the owner (and not an admin), the raw DB count
+	// may include repos they cannot access, which would leak private repo counts
+	// via the X-Total-Count header even when the body is correctly filtered.
+	// Use the access-filtered count in that case.
+	if ctx.Doer == nil || (!ctx.Doer.IsAdmin && ctx.Doer.ID != u.ID) {
+		count = int64(len(apiRepos))
+	}
+
 	ctx.SetLinkHeader(count, opts.ListOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiRepos)
