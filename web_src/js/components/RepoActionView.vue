@@ -98,9 +98,6 @@ export default defineComponent({
     this.intervalID = setInterval(() => this.loadRun(), 1000);
   },
 
-  beforeUnmount() {
-  },
-
   unmounted() {
     // clear the interval timer when the component is unmounted
     // even our page is rendered once, not spa style
@@ -256,25 +253,23 @@ export default defineComponent({
       </div>
 
       <div class="action-view-right">
-        <template v-if="isSummaryMode">
-          <ActionRunSummaryView
-            :run="run"
-            :artifacts="artifacts"
-            :locale="locale"
-            :run-triggered-at-iso="runTriggeredAtISO"
-            :run-trigger-event-label="runTriggerEventLabel"
-          />
-        </template>
-        <template v-else>
-          <ActionRunJobView
-            ref="jobView"
-            :run-id="runId"
-            :job-id="jobId"
-            :actions-u-r-l="actionsURL"
-            :locale="locale"
-            :run="run"
-          />
-        </template>
+        <ActionRunSummaryView
+          v-if="isSummaryMode"
+          :run="run"
+          :artifacts="artifacts"
+          :locale="locale"
+          :run-triggered-at-iso="runTriggeredAtISO"
+          :run-trigger-event-label="runTriggerEventLabel"
+        />
+        <ActionRunJobView
+          v-else
+          ref="jobView"
+          :run-id="runId"
+          :job-id="jobId"
+          :actions-u-r-l="actionsURL"
+          :locale="locale"
+          :run="run"
+        />
       </div>
     </div>
   </div>

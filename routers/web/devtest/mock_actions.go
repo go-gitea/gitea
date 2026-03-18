@@ -60,11 +60,12 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 
 func MockActionsView(ctx *context.Context) {
 	ctx.Data["RunID"] = ctx.PathParam("run")
-	jobID := ctx.PathParam("job")
-	if jobID == "" {
-		ctx.Data["JobID"] = -1
+	jobParam := ctx.PathParam("job")
+	if jobParam == "" {
+		ctx.Data["JobID"] = int64(-1)
 	} else {
-		ctx.Data["JobID"] = jobID
+		v, _ := strconv.ParseInt(jobParam, 10, 64)
+		ctx.Data["JobID"] = v
 	}
 	ctx.HTML(http.StatusOK, "devtest/repo-action-view")
 }
