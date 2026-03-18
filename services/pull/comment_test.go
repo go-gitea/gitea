@@ -69,12 +69,6 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		assert.NoError(t, json.Unmarshal([]byte(comment.Content), &createdData))
 		assert.True(t, createdData.IsForcePush)
 
-		// When both commits are on the base branch, CommitsBetweenNotBase should
-		// typically return no commits, so only the force-push comment is expected.
-		commits, err := gitRepo.CommitsBetweenNotBase(headCommit, oldCommit, pr.BaseBranch)
-		assert.NoError(t, err)
-		assert.Empty(t, commits)
-
 		comments, err = issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
 			IssueID: pr.IssueID,
 			Type:    issues_model.CommentTypePullRequestPush,
@@ -155,8 +149,6 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
-		// In this subtest, use the head branch for the new commit and the base branch
-		// for the old commit so that CommitsBetweenNotBase returns non-empty results.
 		headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
 		assert.NoError(t, err)
 
@@ -170,12 +162,6 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		var createdData issues_model.PushActionContent
 		assert.NoError(t, json.Unmarshal([]byte(comment.Content), &createdData))
 		assert.True(t, createdData.IsForcePush)
-
-		commits, err := gitRepo.CommitsBetweenNotBase(headCommit, oldCommit, pr.BaseBranch)
-		assert.NoError(t, err)
-		// For this scenario we expect at least one commit between head and base
-		// that is not on the base branch, so data.CommitIDs should be non-empty.
-		assert.NotEmpty(t, commits)
 
 		comments, err = issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
 			IssueID: pr.IssueID,

@@ -8,45 +8,11 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 )
-
-// getCommitIDsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
-// Commit on baseBranch will skip
-func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, err error) {
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
-	if err != nil {
-		return nil, err
-	}
-	defer closer.Close()
-
-	oldCommit, err := gitRepo.GetCommit(oldCommitID)
-	if err != nil {
-		return nil, err
-	}
-
-	newCommit, err := gitRepo.GetCommit(newCommitID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Find commits between new and old commit excluding base branch commits
-	commits, err := gitRepo.CommitsBetweenNotBase(newCommit, oldCommit, baseBranch)
-	if err != nil {
-		return nil, err
-	}
-
-	commitIDs = make([]string, 0, len(commits))
-	for i := len(commits) - 1; i >= 0; i-- {
-		commitIDs = append(commitIDs, commits[i].ID.String())
-	}
-
-	return commitIDs, err
-}
 
 // CreatePushPullComment create push code to pull base comment
 func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *issues_model.PullRequest, oldCommitID, newCommitID string, isForcePush bool) (comment *issues_model.Comment, err error) {
@@ -72,7 +38,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 			log.Error("GetCompareCommitIDsWithMergeBase: %v", err)
 		}
 	} else {
-		data.CommitIDs, err = getCommitIDsFromRepo(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
+		data.CommitIDs, err = gitrepo.GetCommitIDsBetween(ctx, pr.BaseRepo, oldCommitID, newCommitID, false)
 		if err != nil {
 			return nil, err
 		}
