@@ -129,6 +129,7 @@ export default defineComponent({
       currentJobStepsStates: [] as Array<JobStepState>,
       artifacts: [] as Array<Record<string, any>>,
       menuVisible: false,
+      showRerunMenu: false,
       isFullScreen: false,
       showWorkflowGraph: showWorkflowGraph,
       timeVisible: {
@@ -455,6 +456,7 @@ export default defineComponent({
 
     closeDropdown() {
       if (this.menuVisible) this.menuVisible = false;
+      if (this.showRerunMenu) this.showRerunMenu = false;
     },
 
     elStepsContainer(): HTMLElement {
@@ -514,10 +516,20 @@ export default defineComponent({
             {{ locale.cancel }}
           </button>
           <template v-else-if="run.canRerun">
-            <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun-failed`" v-if="run.canRerunFailed">
-              {{ locale.rerun_failed }}
-            </button>
-            <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`">
+            <div v-if="run.canRerunFailed" class="ui small compact buttons">
+              <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun-failed`">
+                {{ locale.rerun_failed }}
+              </button>
+              <div class="ui basic small compact dropdown icon button rerun-dropdown" @click.stop="showRerunMenu = !showRerunMenu">
+                <SvgIcon name="octicon-triangle-down" :size="14"/>
+                <div class="menu" v-show="showRerunMenu">
+                  <div class="item link-action" :data-url="`${run.link}/rerun`">
+                    {{ locale.rerun_all }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button v-else class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`">
               {{ locale.rerun_all }}
             </button>
           </template>
@@ -665,6 +677,12 @@ export default defineComponent({
   </div>
 </template>
 <style scoped>
+.rerun-dropdown > .menu {
+  min-width: 100%;
+  left: 0;
+  right: auto;
+}
+
 .action-view-body {
   padding-top: 12px;
   padding-bottom: 12px;
