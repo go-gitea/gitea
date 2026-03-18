@@ -916,6 +916,7 @@ func Routes() *web.Router {
 				m.Post("/registration-token", reqToken(), reqOwnerCheck, act.CreateRegistrationToken)
 				m.Get("/{runner_id}", reqToken(), reqOwnerCheck, act.GetRunner)
 				m.Delete("/{runner_id}", reqToken(), reqOwnerCheck, act.DeleteRunner)
+				m.Patch("/{runner_id}", reqToken(), reqOwnerCheck, bind(api.EditActionRunnerOption{}), act.UpdateRunner)
 			})
 			m.Get("/runs", reqToken(), reqReaderCheck, act.ListWorkflowRuns)
 			m.Get("/jobs", reqToken(), reqReaderCheck, act.ListWorkflowJobs)
@@ -1043,6 +1044,7 @@ func Routes() *web.Router {
 					m.Post("/registration-token", reqToken(), user.CreateRegistrationToken)
 					m.Get("/{runner_id}", reqToken(), user.GetRunner)
 					m.Delete("/{runner_id}", reqToken(), user.DeleteRunner)
+					m.Patch("/{runner_id}", reqToken(), bind(api.EditActionRunnerOption{}), user.UpdateRunner)
 				})
 
 				m.Get("/runs", reqToken(), user.ListWorkflowRuns)
@@ -1728,6 +1730,7 @@ func Routes() *web.Router {
 					m.Post("/registration-token", admin.CreateRegistrationToken)
 					m.Get("/{runner_id}", admin.GetRunner)
 					m.Delete("/{runner_id}", admin.DeleteRunner)
+					m.Patch("/{runner_id}", bind(api.EditActionRunnerOption{}), admin.UpdateRunner)
 				})
 				m.Get("/runs", admin.ListWorkflowRuns)
 				m.Get("/jobs", admin.ListWorkflowJobs)

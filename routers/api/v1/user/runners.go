@@ -32,6 +32,12 @@ func ListRunners(ctx *context.APIContext) {
 	// summary: Get user-level runners
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: disabled
+	//   in: query
+	//   description: filter by disabled status (true or false)
+	//   type: boolean
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/definitions/ActionRunnersResponse"
@@ -42,11 +48,11 @@ func ListRunners(ctx *context.APIContext) {
 	shared.ListRunners(ctx, ctx.Doer.ID, 0)
 }
 
-// GetRunner get an user-level runner
+// GetRunner get a user-level runner
 func GetRunner(ctx *context.APIContext) {
 	// swagger:operation GET /user/actions/runners/{runner_id} user getUserRunner
 	// ---
-	// summary: Get an user-level runner
+	// summary: Get a user-level runner
 	// produces:
 	// - application/json
 	// parameters:
@@ -65,11 +71,11 @@ func GetRunner(ctx *context.APIContext) {
 	shared.GetRunner(ctx, ctx.Doer.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 
-// DeleteRunner delete an user-level runner
+// DeleteRunner delete a user-level runner
 func DeleteRunner(ctx *context.APIContext) {
 	// swagger:operation DELETE /user/actions/runners/{runner_id} user deleteUserRunner
 	// ---
-	// summary: Delete an user-level runner
+	// summary: Delete a user-level runner
 	// produces:
 	// - application/json
 	// parameters:
@@ -86,4 +92,35 @@ func DeleteRunner(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, ctx.Doer.ID, 0, ctx.PathParamInt64("runner_id"))
+}
+
+// UpdateRunner update a user-level runner
+func UpdateRunner(ctx *context.APIContext) {
+	// swagger:operation PATCH /user/actions/runners/{runner_id} user updateUserRunner
+	// ---
+	// summary: Update a user-level runner
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditActionRunnerOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	shared.UpdateRunner(ctx, ctx.Doer.ID, 0, ctx.PathParamInt64("runner_id"))
 }
