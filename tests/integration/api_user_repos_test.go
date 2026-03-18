@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -102,7 +103,7 @@ func testAPIListReposByType(t *testing.T, urlBase, token string) {
 		for _, repo := range publicRepos {
 			assert.False(t, repo.Private, "repo %s should be public", repo.Name)
 		}
-		assert.Equal(t, fmt.Sprintf("%d", len(publicRepos)),
+		assert.Equal(t, strconv.Itoa(len(publicRepos)),
 			respPublic.Header().Get("X-Total-Count"),
 			"X-Total-Count should match returned public repo count")
 	})
@@ -112,7 +113,7 @@ func testAPIListReposByType(t *testing.T, urlBase, token string) {
 		for _, repo := range privateRepos {
 			assert.True(t, repo.Private, "repo %s should be private", repo.Name)
 		}
-		assert.Equal(t, fmt.Sprintf("%d", len(privateRepos)),
+		assert.Equal(t, strconv.Itoa(len(privateRepos)),
 			respPrivate.Header().Get("X-Total-Count"),
 			"X-Total-Count should match returned private repo count")
 	})
