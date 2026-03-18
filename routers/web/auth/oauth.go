@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -23,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
@@ -391,6 +393,23 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			return
 		}
 
+		// Create tracked user session record for OAuth2 login
+		ip := ctx.RemoteAddr()
+		if host, _, err := net.SplitHostPort(ip); err == nil {
+			ip = host
+		}
+		if err := auth.CreateUserSession(ctx, &auth.UserSession{
+			ID:             ctx.Session.ID(),
+			UserID:         u.ID,
+			LoginIP:        ip,
+			LastIP:         ip,
+			UserAgent:      ctx.Req.UserAgent(),
+			LoginMethod:    "oauth2:" + authSource.Name,
+			LastAccessUnix: timeutil.TimeStampNow(),
+		}); err != nil {
+			log.Error("Failed to create user session record: %v", err)
+		}
+
 		if err := resetLocale(ctx, u); err != nil {
 			ctx.ServerError("resetLocale", err)
 			return
@@ -411,6 +430,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		// User needs to use 2FA, save data and redirect to 2FA page.
 		"twofaUid":      u.ID,
 		"twofaRemember": false,
+		"_loginMethod":  "oauth2:" + authSource.Name,
 	}); err != nil {
 		ctx.ServerError("updateSession", err)
 		return

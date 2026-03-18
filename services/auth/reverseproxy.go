@@ -119,7 +119,7 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 
 	if r.CreateSession {
 		if sess != nil && (sess.Get("uid") == nil || sess.Get("uid").(int64) != user.ID) {
-			handleSignIn(w, req, sess, user)
+			handleSignIn(w, req, sess, user, "reverse_proxy")
 		}
 	}
 	store.GetData()["IsReverseProxy"] = true

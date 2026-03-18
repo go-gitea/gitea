@@ -121,7 +121,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	}
 
 	if s.CreateSession {
-		handleSignIn(w, req, sess, user)
+		handleSignIn(w, req, sess, user, "sspi")
 	}
 
 	log.Trace("SSPI Authorization: Logged in user %-v", user)

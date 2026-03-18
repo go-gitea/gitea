@@ -6,6 +6,7 @@ package session
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"code.gitea.io/gitea/modules/json"
 
@@ -17,9 +18,19 @@ import (
 )
 
 // VirtualSessionProvider represents a shadowed session provider implementation.
+// It wraps a real session provider and adds "tombstone" tracking for destroyed
+// sessions so that concurrent requests (e.g. EventSource) cannot accidentally
+// recreate a session file by calling Release() after the file was deleted.
 type VirtualSessionProvider struct {
 	lock     sync.RWMutex
 	provider session.Provider
+
+	// destroyedSIDs tracks recently destroyed session IDs.
+	// When a session is destroyed, concurrent requests that already hold
+	// a FileStore reference may call Release() and recreate the file.
+	// By tracking destroyed IDs, Read() returns an inert VirtualStore
+	// that prevents re-authentication and avoids recreating the file.
+	destroyedSIDs sync.Map // sid -> time.Time
 }
 
 // Init initializes the cookie session provider with the given config.
@@ -52,11 +63,22 @@ func (o *VirtualSessionProvider) Init(gcLifetime int64, config string) error {
 	default:
 		return fmt.Errorf("VirtualSessionProvider: Unknown Provider: %s", opts.Provider)
 	}
+	SetGlobalProvider(o)
 	return o.provider.Init(gcLifetime, opts.ProviderConfig)
 }
 
 // Read returns raw session store by session ID.
 func (o *VirtualSessionProvider) Read(sid string) (session.RawStore, error) {
+	// Check tombstone first: if this session was recently destroyed, return
+	// an inert store regardless of whether the file was recreated by a
+	// concurrent request's Release(). Also re-delete the file to clean up.
+	if _, destroyed := o.destroyedSIDs.Load(sid); destroyed {
+		o.lock.Lock()
+		_ = o.provider.Destroy(sid)
+		o.lock.Unlock()
+		return NewInertVirtualStore(sid), nil
+	}
+
 	o.lock.RLock()
 	defer o.lock.RUnlock()
 	if exist, err := o.provider.Exist(sid); err == nil && exist {
@@ -77,6 +99,7 @@ func (o *VirtualSessionProvider) Exist(sid string) (bool, error) {
 func (o *VirtualSessionProvider) Destroy(sid string) error {
 	o.lock.Lock()
 	defer o.lock.Unlock()
+	o.destroyedSIDs.Store(sid, time.Now())
 	return o.provider.Destroy(sid)
 }
 
@@ -96,7 +119,33 @@ func (o *VirtualSessionProvider) Count() (int, error) {
 
 // GC calls GC to clean expired sessions.
 func (o *VirtualSessionProvider) GC() {
+	o.lock.Lock()
+	defer o.lock.Unlock()
+
 	o.provider.GC()
+
+	// Clean up tombstone entries and re-destroy any files that may have
+	// been recreated by concurrent requests releasing after destruction.
+	cutoff := time.Now().Add(-10 * time.Minute)
+	var stale []string
+	var active []string
+	o.destroyedSIDs.Range(func(key, value any) bool {
+		sid := key.(string)
+		if value.(time.Time).Before(cutoff) {
+			stale = append(stale, sid)
+		} else {
+			active = append(active, sid)
+		}
+		return true
+	})
+	for _, sid := range stale {
+		o.destroyedSIDs.Delete(sid)
+	}
+	if len(active) > 0 {
+		for _, sid := range active {
+			_ = o.provider.Destroy(sid)
+		}
+	}
 }
 
 func init() {
@@ -105,11 +154,12 @@ func init() {
 
 // VirtualStore represents a virtual session store implementation.
 type VirtualStore struct {
-	p        *VirtualSessionProvider
-	sid      string
-	lock     sync.RWMutex
-	data     map[any]any
-	released bool
+	p           *VirtualSessionProvider
+	sid         string
+	lock        sync.RWMutex
+	data        map[any]any
+	released    bool
+	invalidated bool // true for destroyed sessions — all writes are no-ops
 }
 
 // NewVirtualStore creates and returns a virtual session store.
@@ -121,8 +171,22 @@ func NewVirtualStore(p *VirtualSessionProvider, sid string, kv map[any]any) *Vir
 	}
 }
 
+// NewInertVirtualStore creates a VirtualStore for a destroyed (tombstoned) session.
+// It silently ignores all Set and Release calls so that concurrent requests
+// cannot inadvertently recreate the session file or store authentication data.
+func NewInertVirtualStore(sid string) *VirtualStore {
+	return &VirtualStore{
+		sid:         sid,
+		data:        make(map[any]any),
+		invalidated: true,
+	}
+}
+
 // Set sets value to given key in session.
 func (s *VirtualStore) Set(key, val any) error {
+	if s.invalidated {
+		return nil
+	}
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -154,6 +218,9 @@ func (s *VirtualStore) ID() string {
 
 // Release releases resource and save data to provider.
 func (s *VirtualStore) Release() error {
+	if s.invalidated {
+		return nil
+	}
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	// Now need to lock the provider

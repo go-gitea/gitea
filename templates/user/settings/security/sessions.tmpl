@@ -1,0 +1,67 @@
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings security")}}
+<div class="user-setting-content">
+
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "settings.sessions"}}
+</h4>
+<div class="ui attached segment">
+	<p>{{ctx.Locale.Tr "settings.sessions_desc"}}</p>
+	{{if .Sessions}}
+	<div class="flex-list">
+		{{range .Sessions}}
+			<div class="flex-item {{if eq .ID $.CurrentSessionID}}tw-bg-green-50{{end}}">
+				<div class="flex-item-leading">
+					{{svg "octicon-device-desktop" 32}}
+				</div>
+				<div class="flex-item-main">
+					<div class="flex-item-title">
+						{{StringUtils.EllipsisString .UserAgent 60}}
+						{{if eq .ID $.CurrentSessionID}}
+							<span class="ui green label">{{ctx.Locale.Tr "settings.sessions.current"}}</span>
+						{{end}}
+						{{if .LogoutUnix}}
+							<span class="ui grey label">{{ctx.Locale.Tr "settings.sessions.ended"}}</span>
+						{{end}}
+					</div>
+					<div class="flex-item-body">
+						<span class="flex-text-inline">{{svg "octicon-globe"}} {{ctx.Locale.Tr "settings.sessions.login_ip"}}: {{.LoginIP}}</span>
+						{{if .LastIP}}
+							<span class="flex-text-inline">| {{ctx.Locale.Tr "settings.sessions.last_ip"}}: {{.LastIP}}</span>
+						{{end}}
+						{{if and .PrevIP (ne .PrevIP .LastIP) (ne .PrevIP .LoginIP)}}
+							<span class="flex-text-inline">| {{ctx.Locale.Tr "settings.sessions.prev_ip"}}: {{.PrevIP}}</span>
+						{{end}}
+					</div>
+					<div class="flex-item-body">
+						<span class="flex-text-inline">{{svg "octicon-key"}} {{.LoginMethod}}</span>
+						<span class="flex-text-inline">| {{svg "octicon-calendar"}} {{DateUtils.AbsoluteShort .CreatedUnix}}</span>
+						<span class="flex-text-inline">| {{ctx.Locale.Tr "settings.sessions.last_active"}}: {{DateUtils.TimeSince .LastAccessUnix}}</span>
+					</div>
+				</div>
+				{{if and (not .LogoutUnix) (ne .ID $.CurrentSessionID)}}
+				<div class="flex-item-trailing">
+					<form action="{{AppSubUrl}}/user/settings/security/sessions/revoke" method="post">
+						{{$.CsrfTokenHtml}}
+						<input type="hidden" name="session_id" value="{{.ID}}">
+						<button class="ui red tiny button">{{ctx.Locale.Tr "settings.sessions.revoke"}}</button>
+					</form>
+				</div>
+				{{end}}
+			</div>
+		{{end}}
+	</div>
+	{{if gt .OtherActiveCount 0}}
+	<div class="tw-mt-4">
+		<form action="{{AppSubUrl}}/user/settings/security/sessions/revoke_all" method="post">
+			{{.CsrfTokenHtml}}
+			<button class="ui red button">{{ctx.Locale.Tr "settings.sessions.revoke_all"}}</button>
+		</form>
+	</div>
+	{{end}}
+	{{else}}
+	<p>{{ctx.Locale.Tr "settings.sessions.none"}}</p>
+	{{end}}
+</div>
+
+</div>
+{{template "user/settings/layout_footer" .}}

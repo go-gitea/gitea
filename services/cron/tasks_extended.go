@@ -8,6 +8,7 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -171,6 +172,22 @@ func registerDeleteOldSystemNotices() {
 	})
 }
 
+func registerCleanupUserSessions() {
+	RegisterTaskFatal("cleanup_user_sessions", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    false,
+			RunAtStart: false,
+			Schedule:   "@every 24h",
+		},
+		OlderThan: time.Hour * 24 * 30, // 30 day retention
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		olderThanConfig := config.(*OlderThanConfig)
+		retentionSeconds := int64(olderThanConfig.OlderThan.Seconds())
+		maxLifetime := setting.SessionConfig.Maxlifetime
+		return auth_model.CleanupExpiredUserSessions(ctx, retentionSeconds, maxLifetime)
+	})
+}
+
 type GCLFSConfig struct {
 	BaseConfig
 	OlderThan                time.Duration
@@ -239,4 +256,5 @@ func initExtendedTasks() {
 	registerDeleteOldSystemNotices()
 	registerGCLFS()
 	registerRebuildIssueIndexer()
+	registerCleanupUserSessions()
 }
