@@ -364,6 +364,82 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	MakeRequest(t, req, http.StatusNoContent)
 }
 
+func TestAPIPullReviewReRequestDismissesPreviousApproval(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	assert.NoError(t, pullIssue.LoadAttributes(t.Context()))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID})
+
+	requester := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	requesterSession := loginUser(t, requester.LoginName)
+	requesterToken := getTokenForLoggedInUser(t, requesterSession, auth_model.AccessTokenScopeWriteRepository)
+
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
+	reviewerSession := loginUser(t, reviewer.LoginName)
+	reviewerToken := getTokenForLoggedInUser(t, reviewerSession, auth_model.AccessTokenScopeWriteRepository)
+
+	// request the reviewer the first time
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
+		Reviewers: []string{reviewer.LoginName},
+	}).AddTokenAuth(requesterToken)
+	MakeRequest(t, req, http.StatusCreated)
+
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
+		Event: "APPROVED",
+		Body:  "lgtm",
+	}).AddTokenAuth(reviewerToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var approvedReview api.PullReview
+	DecodeJSON(t, resp, &approvedReview)
+	assert.EqualValues(t, "APPROVED", approvedReview.State)
+	assert.False(t, approvedReview.Dismissed)
+
+	// re-request the same reviewer, the approval should be dismissed
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
+		Reviewers: []string{reviewer.LoginName},
+	}).AddTokenAuth(requesterToken)
+	MakeRequest(t, req, http.StatusCreated)
+
+	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index).
+		AddTokenAuth(requesterToken)
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	var reviews []*api.PullReview
+	DecodeJSON(t, resp, &reviews)
+
+	var requestReview *api.PullReview
+	var refreshedApproval *api.PullReview
+	for _, review := range reviews {
+		if review.Reviewer == nil || review.Reviewer.ID != reviewer.ID {
+			continue
+		}
+		if review.ID == approvedReview.ID {
+			refreshedApproval = review
+		}
+		if review.State == "REQUEST_REVIEW" {
+			requestReview = review
+		}
+	}
+
+	require.NotNil(t, refreshedApproval)
+	assert.EqualValues(t, "APPROVED", refreshedApproval.State)
+	assert.True(t, refreshedApproval.Dismissed)
+
+	require.NotNil(t, requestReview)
+	assert.False(t, requestReview.Dismissed)
+	assert.Equal(t, reviewer.ID, requestReview.Reviewer.ID)
+
+	nonDismissedStates := make([]string, 0, len(reviews))
+	for _, review := range reviews {
+		if review.Reviewer != nil && review.Reviewer.ID == reviewer.ID && !review.Dismissed {
+			nonDismissedStates = append(nonDismissedStates, string(review.State))
+		}
+	}
+	assert.Equal(t, []string{"REQUEST_REVIEW"}, nonDismissedStates)
+}
+
 func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
