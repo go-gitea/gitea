@@ -51,13 +51,33 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 
 	return db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
 		if isForcePush {
-			// Push commits comment should not have history, cross references, reactions and other
-			// plain comment related records, so that we just need to delete the comment itself.
-			if _, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
+			// We should delete all old non-force-push commit comments
+			var oldCommitComments []*issues_model.Comment
+			if err := db.GetEngine(ctx).
+				Table("comment").
+				Where("issue_id = ?", pr.IssueID).
 				And("type = ?", issues_model.CommentTypePullRequestPush).
 				NoAutoCondition().
-				Delete(new(issues_model.Comment)); err != nil {
+				Find(&oldCommitComments); err != nil {
 				return nil, err
+			}
+			var needDeleteCommentIDs []int64
+			for _, oldCommitComment := range oldCommitComments {
+				a, err := oldCommitComment.GetPushActionContent(ctx)
+				if err != nil {
+					log.Error("GetPushActionContent failed: %v", err)
+					continue
+				}
+				if !a.IsForcePush {
+					needDeleteCommentIDs = append(needDeleteCommentIDs, oldCommitComment.ID)
+				}
+			}
+			if len(needDeleteCommentIDs) > 0 {
+				if _, err := db.GetEngine(ctx).
+					In("id", needDeleteCommentIDs).
+					Delete(&issues_model.Comment{}); err != nil {
+					return nil, err
+				}
 			}
 		}
 

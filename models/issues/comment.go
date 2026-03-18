@@ -7,6 +7,7 @@ package issues
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"slices"
@@ -341,6 +342,17 @@ func init() {
 type PushActionContent struct {
 	IsForcePush bool     `json:"is_force_push"`
 	CommitIDs   []string `json:"commit_ids"`
+}
+
+func (c *Comment) GetPushActionContent(ctx context.Context) (*PushActionContent, error) {
+	if c.Type != CommentTypePullRequestPush {
+		return nil, nil
+	}
+	var data PushActionContent
+	if err := json.Unmarshal([]byte(c.Content), &data); err != nil {
+		return nil, err
+	}
+	return &data, nil
 }
 
 // LoadIssue loads the issue reference for the comment
