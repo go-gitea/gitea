@@ -12,7 +12,7 @@ export function initAdminUserListSearchForm(): void {
   if (searchForm.StatusFilterMap) {
     for (const [k, v] of Object.entries(searchForm.StatusFilterMap)) {
       if (!v) continue;
-      for (const input of form.querySelectorAll<HTMLInputElement>(`input[name="status_filter[${k}]"][value="${v}"]`)) {
+      for (const input of form.querySelectorAll<HTMLInputElement>(`input[name="status_filter[${k}]"][value="${v as string}"]`)) {
         input.checked = true;
       }
     }
