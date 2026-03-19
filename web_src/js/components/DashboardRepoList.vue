@@ -84,19 +84,14 @@ export default defineComponent({
       } as Record<string, {searchMode: string}>,
       textArchivedFilterTitles: {} as Record<string, string>,
       textPrivateFilterTitles: {} as Record<string, string>,
-
       organizations: [] as Array<{name: string, full_name: string, num_repos: number, org_visibility: string}>,
       isOrganization: true,
       canCreateOrganization: false,
       organizationsTotalCount: 0,
       organizationId: 0,
-
-      // from Go ctx.PageData
       searchLimit: 0,
       uid: 0,
-      // from template (conditionally set)
       teamId: 0,
-      // from template (text strings)
       isMirrorsEnabled: false,
       isStarsEnabled: false,
       canCreateMigrations: false,
@@ -129,7 +124,6 @@ export default defineComponent({
       textNewOrg: '',
       textOrgVisibilityLimited: '',
       textOrgVisibilityPrivate: '',
-
       subUrl: appSubUrl,
       ...pageData.dashboardRepoList,
       activeIndex: -1, // don't select anything at load, first cursor down will select
