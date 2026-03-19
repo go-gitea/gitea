@@ -101,7 +101,7 @@ func ListProjects(ctx *context.APIContext) {
 
 	apiProjects := convert.ToProjectList(ctx, projects)
 
-	ctx.SetLinkHeader(int(count), limit)
+	ctx.SetLinkHeader(count, limit)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiProjects)
 }
@@ -398,7 +398,7 @@ func ListProjectColumns(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToProjectColumnList(ctx, columns))
 }
