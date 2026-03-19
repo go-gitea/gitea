@@ -31,7 +31,6 @@ const restrictedProperties = [
   {object: 'globalThis', property: 'localStorage', message: 'Use `modules/user-settings.ts` instead.'},
   {object: 'window', property: 'fetch', message: 'Use `modules/fetch.ts` instead.'},
   {object: 'globalThis', property: 'fetch', message: 'Use `modules/fetch.ts` instead.'},
-  {object: 'document', property: 'all'},
 ];
 
 export default defineConfig([
