@@ -294,10 +294,9 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.TriggeredAt = run.Created.AsTime().Unix()
 	resp.State.Run.TriggerEvent = run.TriggerEvent
 
-	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead of 'null' in json
-	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead of 'null' in json
-
 	if !isSummary {
+		resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead of 'null' in json
+		resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead of 'null' in json
 		resp.State.CurrentJob.Title = current.Name
 		resp.State.CurrentJob.Detail = current.Status.LocaleString(ctx.Locale)
 		if run.NeedApproval {
