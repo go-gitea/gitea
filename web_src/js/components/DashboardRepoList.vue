@@ -17,9 +17,9 @@ type DashboardRepo = {
   template: boolean,
   private: boolean,
   internal: boolean,
-  latest_commit_status_state: CommitStatus,
-  latest_commit_status_state_link: string,
-  locale_latest_commit_status_state: string,
+  latest_commit_status_state?: CommitStatus,
+  latest_commit_status_state_link?: string,
+  locale_latest_commit_status_state?: string,
 };
 
 type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning' | 'skipped';
