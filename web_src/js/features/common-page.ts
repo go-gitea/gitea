@@ -3,7 +3,6 @@ import {showGlobalErrorMessage} from '../bootstrap.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
-import {isDarkTheme} from '../utils.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
 
@@ -46,27 +45,10 @@ function initFooterThemeSelector() {
   });
 }
 
-function initMarkdownDarkLightImages() {
-  // Mirror Gitea's current "darkness" into a dataset so markup/CSS can
-  // switch `#gh-dark-mode-only` / `#gh-light-mode-only` images correctly
-  // for both explicit themes and "auto" themes.
-  const root = document.documentElement;
-  const sync = () => {
-    root.setAttribute('data-gitea-theme', isDarkTheme() ? 'dark' : 'light');
-  };
-  sync();
-
-  // Track system theme changes in case Gitea is set to "auto".
-  const mql = window.matchMedia('(prefers-color-scheme: dark)');
-  const onChange = () => sync();
-  mql.addEventListener('change', onChange);
-}
-
 export function initCommmPageComponents() {
   initHeadNavbarContentToggle();
   initFooterLanguageMenu();
   initFooterThemeSelector();
-  initMarkdownDarkLightImages();
 }
 
 export function initGlobalDropdown() {
