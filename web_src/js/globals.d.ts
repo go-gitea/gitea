@@ -40,7 +40,12 @@ interface Window {
       FolderIcon?: string,
       FolderOpenIcon?: string,
     },
-    notificationSettings: Record<string, any>,
+    notificationSettings: {
+      MinTimeout: number,
+      TimeoutStep: number,
+      MaxTimeout: number,
+      EventSourceUpdateTime: number,
+    },
     enableTimeTracking: boolean,
     mermaidMaxSourceCharacters: number,
     i18n: Record<string, string>,
