@@ -31,6 +31,18 @@ interface Window {
         SortType: string,
         StatusFilterMap: Record<string, string>,
       },
+      citationFileContent?: string,
+      prReview?: {
+        numberOfFiles: number,
+        numberOfViewedFiles: number,
+      },
+      DiffFileTree?: import('./modules/diff-file.ts').DiffFileTreeData,
+      FolderIcon?: string,
+      FolderOpenIcon?: string,
+      repoLink?: string,
+      repoActivityTopAuthors?: any[],
+      pullRequestMergeForm?: Record<string, any>,
+      dashboardRepoList?: Record<string, any>,
     },
     notificationSettings: {
       MinTimeout: number,
