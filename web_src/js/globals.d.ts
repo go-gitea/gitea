@@ -26,7 +26,20 @@ interface Window {
     assetUrlPrefix: string,
     runModeIsProd: boolean,
     customEmojis: Record<string, string>,
-    pageData: Record<string, any>,
+    pageData: {
+      adminUserListSearchForm?: {
+        SortType: string,
+        StatusFilterMap: Record<string, string>,
+      },
+      citationFileContent?: string,
+      prReview?: {
+        numberOfFiles: number,
+        numberOfViewedFiles: number,
+      },
+      DiffFileTree?: import('./modules/diff-file.ts').DiffFileTreeData,
+      FolderIcon?: string,
+      FolderOpenIcon?: string,
+    },
     notificationSettings: Record<string, any>,
     enableTimeTracking: boolean,
     mermaidMaxSourceCharacters: number,

@@ -17,7 +17,7 @@ export type DiffTreeEntry = {
   ParentEntry?: DiffTreeEntry,
 };
 
-type DiffFileTreeData = {
+export type DiffFileTreeData = {
   TreeRoot: DiffTreeEntry,
 };
 
