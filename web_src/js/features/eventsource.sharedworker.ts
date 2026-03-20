@@ -14,6 +14,7 @@ class Source {
     this.listen('logout');
     this.listen('notification-count');
     this.listen('stopwatches');
+    this.listen('repo-activity');
     this.listen('error');
   }
 

@@ -52,6 +52,7 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
+	"code.gitea.io/gitea/services/eventsourcenotifier"
 	"code.gitea.io/gitea/services/uinotification"
 	"code.gitea.io/gitea/services/webhook"
 )
@@ -128,6 +129,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(cache.Init)
 	mustInit(feed_service.Init)
 	mustInit(uinotification.Init)
+	mustInit(eventsourcenotifier.Init)
 	mustInitCtx(ctx, archiver.Init)
 
 	external.RegisterRenderers()
