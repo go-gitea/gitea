@@ -129,8 +129,6 @@ jobs:
         image: mcr.microsoft.com/azure-storage/azurite:latest
         ports:
           - 10000:10000
-          - 10001:10001
-          - 10002:10002
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -227,8 +225,6 @@ jobs:
         image: mcr.microsoft.com/azure-storage/azurite:latest
         ports:
           - 10000:10000
-          - 10001:10001
-          - 10002:10002
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
