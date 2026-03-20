@@ -26,7 +26,7 @@ func GetFailedRerunJobs(allJobs []*actions_model.ActionRunJob) []*actions_model.
 	var jobsToRerun []*actions_model.ActionRunJob
 
 	for _, job := range allJobs {
-		if job.Status == actions_model.StatusFailure {
+		if job.Status == actions_model.StatusFailure || job.Status == actions_model.StatusCancelled {
 			for _, j := range GetAllRerunJobs(job, allJobs) {
 				if !rerunJobIDSet.Contains(j.ID) {
 					rerunJobIDSet.Add(j.ID)

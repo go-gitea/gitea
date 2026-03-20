@@ -1293,7 +1293,7 @@ func RerunFailedWorkflowRun(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "201":
-	//     "$ref": "#/responses/WorkflowRun"
+	//     description: Created
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "403":
@@ -1313,12 +1313,7 @@ func RerunFailedWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	ctx.JSON(http.StatusCreated, convertedRun)
+	ctx.Status(http.StatusCreated)
 }
 
 // RerunWorkflowJob Reruns a specific workflow job in a run.

@@ -241,7 +241,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.CanDeleteArtifact = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	if resp.State.Run.CanRerun {
 		for _, job := range jobs {
-			if job.Status == actions_model.StatusFailure {
+			if job.Status == actions_model.StatusFailure || job.Status == actions_model.StatusCancelled {
 				resp.State.Run.CanRerunFailed = true
 				break
 			}
