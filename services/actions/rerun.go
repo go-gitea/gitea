@@ -162,14 +162,14 @@ func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run 
 
 // RerunFailedWorkflowRunJobs reruns all failed jobs of a workflow run and their downstream dependencies.
 func RerunFailedWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) error {
-	isRunBlocked, err := prepareRunRerun(ctx, repo, run, jobs)
-	if err != nil {
-		return err
-	}
-
 	jobsToRerun := GetFailedRerunJobs(jobs)
 	if len(jobsToRerun) == 0 {
 		return nil
+	}
+
+	isRunBlocked, err := prepareRunRerun(ctx, repo, run, jobs)
+	if err != nil {
+		return err
 	}
 
 	rerunJobByJobID := make(container.Set[string])
