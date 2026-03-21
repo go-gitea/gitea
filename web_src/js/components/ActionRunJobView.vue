@@ -1,71 +1,15 @@
-<script lang="ts">
-import {defineComponent, type PropType} from 'vue';
+<script setup lang="ts">
+import {nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
-import {renderAnsi} from '../render/ansi.ts';
 import {POST} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
-import type {ActionsRunStatus} from '../modules/gitea-actions.ts';
-
-export type LogLine = {
-  index: number;
-  timestamp: number;
-  message: string;
-};
-
-type LogLineCommandName = 'group' | 'endgroup' | 'command' | 'error' | 'hidden';
-type LogLineCommand = {
-  name: LogLineCommandName,
-  prefix: string,
-}
-
-// How GitHub Actions logs work:
-// * Workflow command outputs log commands like "::group::the-title", "::add-matcher::...."
-// * Workflow runner parses and processes the commands to "##[group]", apply "matchers", hide secrets, etc.
-// * The reported logs are the processed logs.
-// HOWEVER: Gitea runner does not completely process those commands. Many works are done by the frontend at the moment.
-const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
-  '::group::': 'group',
-  '##[group]': 'group',
-  '::endgroup::': 'endgroup',
-  '##[endgroup]': 'endgroup',
-
-  '##[error]': 'error',
-  '[command]': 'command',
-
-  // https://github.com/actions/toolkit/blob/master/docs/commands.md
-  // https://github.com/actions/runner/blob/main/docs/adrs/0276-problem-matchers.md#registration
-  '::add-matcher::': 'hidden',
-  '##[add-matcher]': 'hidden',
-  '::remove-matcher': 'hidden', // it has arguments
-};
-
-export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
-  // TODO: in the future it can be refactored to be a general parser that can parse arguments, drop the "prefix match"
-  for (const prefix in LogLinePrefixCommandMap) {
-    if (line.message.startsWith(prefix)) {
-      return {name: LogLinePrefixCommandMap[prefix], prefix};
-    }
-  }
-  return null;
-}
-
-export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) {
-  const logMsgAttrs = {class: 'log-msg'};
-  if (cmd?.name) logMsgAttrs.class += ` log-cmd-${cmd?.name}`; // make it easier to add styles to some commands like "error"
-
-  // TODO: for some commands (::group::), the "prefix removal" works well, for some commands with "arguments" (::remove-matcher ...::),
-  // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
-  const msgContent = cmd ? line.message.substring(cmd.prefix.length) : line.message;
-
-  const logMsg = createElementFromAttrs('span', logMsgAttrs);
-  logMsg.innerHTML = renderAnsi(msgContent);
-  return logMsg;
-}
+import type {ActionsRun, ActionsRunStatus} from '../modules/gitea-actions.ts';
+import {createLogLineMessage, type LogLine, type LogLineCommand, parseLogLineCommand} from './ActionRunView.ts';
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();
@@ -99,321 +43,351 @@ type LocaleStorageOptions = {
   actionsLogShowTimestamps: boolean;
 };
 
-export default defineComponent({
+type CurrentJob = {
+  title: string;
+  detail: string;
+  steps: Array<Step>;
+};
+
+type JobData = {
+  state: {
+    currentJob: CurrentJob;
+  },
+  logs: {
+    stepsLog?: Array<{
+      step: number;
+      cursor: string | null;
+      started: number;
+      lines: LogLine[];
+    }>;
+  },
+};
+
+defineOptions({
   name: 'ActionRunJobView',
-  components: {
-    SvgIcon,
-    ActionRunStatus,
-  },
-  props: {
-    runId: {type: Number, required: true},
-    jobId: {type: Number, required: true},
-    actionsUrl: {type: String, required: true},
-    locale: {
-      type: Object as PropType<Record<string, any>>,
-      required: true,
-    },
-    run: {
-      type: Object as PropType<Record<string, any>>,
-      required: true,
-    },
-  },
-  data() {
-    const defaultViewOptions: LocaleStorageOptions = {
-      autoScroll: true,
-      expandRunning: false,
-      actionsLogShowSeconds: false,
-      actionsLogShowTimestamps: false,
-    };
-    const {autoScroll, expandRunning, actionsLogShowSeconds, actionsLogShowTimestamps} =
-      localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
-
-    return {
-      // internal state
-      loadingAbortController: null as AbortController | null,
-      intervalID: null as IntervalId | null,
-      currentJobStepsStates: [] as Array<JobStepState>,
-      menuVisible: false,
-      isFullScreen: false,
-      timeVisible: {
-        'log-time-stamp': actionsLogShowTimestamps,
-        'log-time-seconds': actionsLogShowSeconds,
-      } as Record<string, boolean>,
-      optionAlwaysAutoScroll: autoScroll,
-      optionAlwaysExpandRunning: expandRunning,
-      currentJob: {
-        title: '',
-        detail: '',
-        steps: [
-          // {
-          //   summary: '',
-          //   duration: '',
-          //   status: '',
-          // }
-        ] as Array<Step>,
-      },
-    };
-  },
-  watch: {
-    optionAlwaysAutoScroll() {
-      this.saveLocaleStorageOptions();
-    },
-    optionAlwaysExpandRunning() {
-      this.saveLocaleStorageOptions();
-    },
-  },
-  async mounted() {
-    // load job data and then auto-reload periodically
-    // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
-    await this.loadJob();
-
-    // auto-scroll to the bottom of the log group when it is opened
-    // "toggle" event doesn't bubble, so we need to use 'click' event delegation to handle it
-    addDelegatedEventListener(this.elStepsContainer(), 'click', 'summary.job-log-group-summary', (el, _) => {
-      if (!this.optionAlwaysAutoScroll) return;
-      const elJobLogGroup = el.closest('details.job-log-group') as HTMLDetailsElement;
-      setTimeout(() => {
-        if (elJobLogGroup.open && !isLogElementInViewport(elJobLogGroup)) {
-          elJobLogGroup.scrollIntoView({behavior: 'smooth', block: 'end'});
-        }
-      }, 0);
-    });
-
-    this.intervalID = setInterval(() => this.loadJob(), 1000);
-    document.body.addEventListener('click', this.closeDropdown);
-    this.hashChangeListener();
-    window.addEventListener('hashchange', this.hashChangeListener);
-  },
-  beforeUnmount() {
-    document.body.removeEventListener('click', this.closeDropdown);
-    window.removeEventListener('hashchange', this.hashChangeListener);
-  },
-  unmounted() {
-    // clear the interval timer when the component is unmounted
-    // even our page is rendered once, not spa style
-    if (this.intervalID) {
-      clearInterval(this.intervalID);
-      this.intervalID = null;
-    }
-  },
-  methods: {
-    saveLocaleStorageOptions() {
-      const opts: LocaleStorageOptions = {
-        autoScroll: this.optionAlwaysAutoScroll,
-        expandRunning: this.optionAlwaysExpandRunning,
-        actionsLogShowSeconds: this.timeVisible['log-time-seconds'],
-        actionsLogShowTimestamps: this.timeVisible['log-time-stamp'],
-      };
-      localUserSettings.setJsonObject('actions-view-options', opts);
-    },
-    // get the job step logs container ('.job-step-logs')
-    getJobStepLogsContainer(stepIndex: number): StepContainerElement {
-      return (this.$refs.logs as any)[stepIndex];
-    },
-    // get the active logs container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
-    getActiveLogsContainer(stepIndex: number): StepContainerElement {
-      const el = this.getJobStepLogsContainer(stepIndex);
-      return el._stepLogsActiveContainer ?? el;
-    },
-    // begin a log group
-    beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
-      const el = (this.$refs.logs as any)[stepIndex] as StepContainerElement;
-      // Using "summary + details" is the best way to create a log group because it has built-in support for "toggle" and "accessibility".
-      // And it makes users can use "Ctrl+F" to search the logs without opening all log groups.
-      const elJobLogGroupSummary = createElementFromAttrs('summary', {class: 'job-log-group-summary'},
-        this.createLogLine(stepIndex, startTime, line, cmd),
-      );
-      const elJobLogList = createElementFromAttrs('div', {class: 'job-log-list'});
-      const elJobLogGroup = createElementFromAttrs('details', {class: 'job-log-group'},
-        elJobLogGroupSummary,
-        elJobLogList,
-      );
-      el.append(elJobLogGroup);
-      el._stepLogsActiveContainer = elJobLogList;
-    },
-    // end a log group
-    endLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
-      const el = (this.$refs.logs as any)[stepIndex];
-      el._stepLogsActiveContainer = null;
-      el.append(this.createLogLine(stepIndex, startTime, line, cmd));
-    },
-    // show/hide the step logs for a step
-    toggleStepLogs(idx: number) {
-      this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
-      if (this.currentJobStepsStates[idx].expanded) {
-        this.loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
-      } else if (this.currentJob.steps[idx].status === 'running') {
-        this.currentJobStepsStates[idx].manuallyCollapsed = true;
-      }
-    },
-    createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand | null) {
-      const lineNum = createElementFromAttrs('a', {class: 'line-num muted', href: `#jobstep-${stepIndex}-${line.index}`},
-        String(line.index),
-      );
-      const logTimeStamp = createElementFromAttrs('span', {class: 'log-time-stamp'},
-        formatDatetime(new Date(line.timestamp * 1000)), // for "Show timestamps"
-      );
-      const logMsg = createLogLineMessage(line, cmd);
-      const seconds = Math.floor(line.timestamp - startTime);
-      const logTimeSeconds = createElementFromAttrs('span', {class: 'log-time-seconds'},
-        `${seconds}s`, // for "Show seconds"
-      );
-
-      toggleElem(logTimeStamp, this.timeVisible['log-time-stamp']);
-      toggleElem(logTimeSeconds, this.timeVisible['log-time-seconds']);
-
-      return createElementFromAttrs('div', {id: `jobstep-${stepIndex}-${line.index}`, class: 'job-log-line'},
-        lineNum, logTimeStamp, logMsg, logTimeSeconds,
-      );
-    },
-    shouldAutoScroll(stepIndex: number): boolean {
-      if (!this.optionAlwaysAutoScroll) return false;
-      const el = this.getJobStepLogsContainer(stepIndex);
-      // if the logs container is empty, then auto-scroll if the step is expanded
-      if (!el.lastChild) return this.currentJobStepsStates[stepIndex].expanded;
-      // use extraViewPortHeight to tolerate some extra "virtual view port" height (for example: the last line is partially visible)
-      return isLogElementInViewport(el.lastChild as Element, {extraViewPortHeight: 5});
-    },
-    appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
-      for (const line of logLines) {
-        const cmd = parseLogLineCommand(line);
-        switch (cmd?.name) {
-          case 'hidden':
-            continue;
-          case 'group':
-            this.beginLogGroup(stepIndex, startTime, line, cmd);
-            continue;
-          case 'endgroup':
-            this.endLogGroup(stepIndex, startTime, line, cmd);
-            continue;
-        }
-        // the active logs container may change during the loop, for example: entering and leaving a group
-        const el = this.getActiveLogsContainer(stepIndex);
-        el.append(this.createLogLine(stepIndex, startTime, line, cmd));
-      }
-    },
-    async fetchJobData(abortController: AbortController) {
-      const logCursors = this.currentJobStepsStates.map((it, idx) => {
-        // cursor is used to indicate the last position of the logs
-        // it's only used by backend, frontend just reads it and passes it back, it can be any type.
-        // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
-        return {step: idx, cursor: it.cursor, expanded: it.expanded};
-      });
-      const url = `${this.actionsUrl}/runs/${this.runId}/jobs/${this.jobId}`;
-      const resp = await POST(url, {
-        signal: abortController.signal,
-        data: {logCursors},
-      });
-      return await resp.json();
-    },
-    async loadJobForce() {
-      this.loadingAbortController?.abort();
-      this.loadingAbortController = null;
-      await this.loadJob();
-    },
-    async loadJob() {
-      if (this.loadingAbortController) return;
-      const abortController = new AbortController();
-      this.loadingAbortController = abortController;
-      try {
-        const job = await this.fetchJobData(abortController);
-        if (this.loadingAbortController !== abortController) return;
-
-        this.currentJob = job.state.currentJob;
-
-        // sync the currentJobStepsStates to store the job step states
-        for (let i = 0; i < this.currentJob.steps.length; i++) {
-          const autoExpand = this.optionAlwaysExpandRunning && this.currentJob.steps[i].status === 'running';
-          if (!this.currentJobStepsStates[i]) {
-            // initial states for job steps
-            this.currentJobStepsStates[i] = {cursor: null, expanded: autoExpand,  manuallyCollapsed: false};
-          } else {
-            // if the step is not manually collapsed by user, then auto-expand it if option is enabled
-            if (autoExpand && !this.currentJobStepsStates[i].manuallyCollapsed) {
-              this.currentJobStepsStates[i].expanded = true;
-            }
-          }
-        }
-
-        // find the step indexes that need to auto-scroll
-        const autoScrollStepIndexes = new Map<number, boolean>();
-        for (const logs of job.logs.stepsLog ?? []) {
-          if (autoScrollStepIndexes.has(logs.step)) continue;
-          autoScrollStepIndexes.set(logs.step, this.shouldAutoScroll(logs.step));
-        }
-
-        // append logs to the UI
-        for (const logs of job.logs.stepsLog ?? []) {
-          // save the cursor, it will be passed to backend next time
-          this.currentJobStepsStates[logs.step].cursor = logs.cursor;
-          this.appendLogs(logs.step, logs.started, logs.lines);
-        }
-
-        // auto-scroll to the last log line of the last step
-        let autoScrollJobStepElement: StepContainerElement | undefined;
-        for (let stepIndex = 0; stepIndex < this.currentJob.steps.length; stepIndex++) {
-          if (!autoScrollStepIndexes.get(stepIndex)) continue;
-          autoScrollJobStepElement = this.getJobStepLogsContainer(stepIndex);
-        }
-        const lastLogElem = autoScrollJobStepElement?.lastElementChild;
-        if (lastLogElem && !isLogElementInViewport(lastLogElem)) {
-          lastLogElem.scrollIntoView({behavior: 'smooth', block: 'end'});
-        }
-
-        // clear the interval timer if the job is done
-        if (this.run.done && this.intervalID) {
-          clearInterval(this.intervalID);
-          this.intervalID = null;
-        }
-      } catch (e) {
-        // avoid network error while unloading page, and ignore "abort" error
-        if (e instanceof TypeError || abortController.signal.aborted) return;
-        throw e;
-      } finally {
-        if (this.loadingAbortController === abortController) this.loadingAbortController = null;
-      }
-    },
-    isDone(status: ActionsRunStatus) {
-      return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
-    },
-    isExpandable(status: ActionsRunStatus) {
-      return ['success', 'running', 'failure', 'cancelled'].includes(status);
-    },
-    closeDropdown() {
-      if (this.menuVisible) this.menuVisible = false;
-    },
-    elStepsContainer(): HTMLElement {
-      return this.$refs.stepsContainer as HTMLElement;
-    },
-    toggleTimeDisplay(type: 'seconds' | 'stamp') {
-      this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
-      for (const el of this.elStepsContainer().querySelectorAll(`.log-time-${type}`)) {
-        toggleElem(el, this.timeVisible[`log-time-${type}`]);
-      }
-      this.saveLocaleStorageOptions();
-    },
-    toggleFullScreen() {
-      this.isFullScreen = !this.isFullScreen;
-      toggleFullScreen('.action-view-right', this.isFullScreen, '.action-view-body');
-    },
-    async hashChangeListener() {
-      const selectedLogStep = window.location.hash;
-      if (!selectedLogStep) return;
-      const [_, step, _line] = selectedLogStep.split('-');
-      const stepNum = Number(step);
-      if (!this.currentJobStepsStates[stepNum]) return;
-      if (!this.currentJobStepsStates[stepNum].expanded && this.currentJobStepsStates[stepNum].cursor === null) {
-        this.currentJobStepsStates[stepNum].expanded = true;
-        // need to await for load job if the step log is loaded for the first time
-        // so logline can be selected by querySelector
-        await this.loadJob();
-      }
-      const logLine = this.elStepsContainer().querySelector(selectedLogStep);
-      if (!logLine) return;
-      logLine.querySelector<HTMLAnchorElement>('.line-num')!.click();
-    },
-  },
 });
+
+const props = defineProps<{
+  runId: number;
+  jobId: number;
+  actionsUrl: string;
+  locale: Record<string, any>;
+  run: ActionsRun;
+}>();
+
+const defaultViewOptions: LocaleStorageOptions = {
+  autoScroll: true,
+  expandRunning: false,
+  actionsLogShowSeconds: false,
+  actionsLogShowTimestamps: false,
+};
+const {autoScroll, expandRunning, actionsLogShowSeconds, actionsLogShowTimestamps} =
+  localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
+
+// internal state
+const loadingAbortController = ref<AbortController | null>(null);
+const intervalID = ref<IntervalId | null>(null);
+const currentJobStepsStates = ref<Array<JobStepState>>([]);
+const menuVisible = ref(false);
+const isFullScreen = ref(false);
+const timeVisible = ref<Record<string, boolean>>({
+  'log-time-stamp': actionsLogShowTimestamps,
+  'log-time-seconds': actionsLogShowSeconds,
+});
+const optionAlwaysAutoScroll = ref(autoScroll);
+const optionAlwaysExpandRunning = ref(expandRunning);
+const currentJob = ref<CurrentJob>({
+  title: '',
+  detail: '',
+  steps: [
+    // {
+    //   summary: '',
+    //   duration: '',
+    //   status: '',
+    // }
+  ] as Array<Step>,
+});
+const stepsContainer = ref<HTMLElement | null>(null);
+const jobStepLogs = ref<Array<StepContainerElement | undefined>>([]);
+
+watch(optionAlwaysAutoScroll, () => {
+  saveLocaleStorageOptions();
+});
+
+watch(optionAlwaysExpandRunning, () => {
+  saveLocaleStorageOptions();
+});
+
+onMounted(async () => {
+  // load job data and then auto-reload periodically
+  // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
+  await loadJob();
+
+  // auto-scroll to the bottom of the log group when it is opened
+  // "toggle" event doesn't bubble, so we need to use 'click' event delegation to handle it
+  addDelegatedEventListener(elStepsContainer(), 'click', 'summary.job-log-group-summary', (el, _) => {
+    if (!optionAlwaysAutoScroll.value) return;
+    const elJobLogGroup = el.closest('details.job-log-group') as HTMLDetailsElement;
+    setTimeout(() => {
+      if (elJobLogGroup.open && !isLogElementInViewport(elJobLogGroup)) {
+        elJobLogGroup.scrollIntoView({behavior: 'smooth', block: 'end'});
+      }
+    }, 0);
+  });
+
+  intervalID.value = setInterval(() => void loadJob(), 1000);
+  document.body.addEventListener('click', closeDropdown);
+  void hashChangeListener();
+  window.addEventListener('hashchange', hashChangeListener);
+});
+
+onBeforeUnmount(() => {
+  document.body.removeEventListener('click', closeDropdown);
+  window.removeEventListener('hashchange', hashChangeListener);
+  // clear the interval timer when the component is unmounted
+  // even our page is rendered once, not spa style
+  if (intervalID.value) {
+    clearInterval(intervalID.value);
+    intervalID.value = null;
+  }
+});
+
+function saveLocaleStorageOptions() {
+  const opts: LocaleStorageOptions = {
+    autoScroll: optionAlwaysAutoScroll.value,
+    expandRunning: optionAlwaysExpandRunning.value,
+    actionsLogShowSeconds: timeVisible.value['log-time-seconds'],
+    actionsLogShowTimestamps: timeVisible.value['log-time-stamp'],
+  };
+  localUserSettings.setJsonObject('actions-view-options', opts);
+}
+
+// get the job step logs container ('.job-step-logs')
+function getJobStepLogsContainer(stepIndex: number): StepContainerElement {
+  return jobStepLogs.value[stepIndex] as StepContainerElement;
+}
+
+// get the active logs container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
+function getActiveLogsContainer(stepIndex: number): StepContainerElement {
+  const el = getJobStepLogsContainer(stepIndex);
+  return el._stepLogsActiveContainer ?? el;
+}
+
+// begin a log group
+function beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
+  const el = getJobStepLogsContainer(stepIndex);
+  // Using "summary + details" is the best way to create a log group because it has built-in support for "toggle" and "accessibility".
+  // And it makes users can use "Ctrl+F" to search the logs without opening all log groups.
+  const elJobLogGroupSummary = createElementFromAttrs('summary', {class: 'job-log-group-summary'},
+    createLogLine(stepIndex, startTime, line, cmd),
+  );
+  const elJobLogList = createElementFromAttrs('div', {class: 'job-log-list'});
+  const elJobLogGroup = createElementFromAttrs('details', {class: 'job-log-group'},
+    elJobLogGroupSummary,
+    elJobLogList,
+  );
+  el.append(elJobLogGroup);
+  el._stepLogsActiveContainer = elJobLogList;
+}
+
+// end a log group
+function endLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
+  const el = getJobStepLogsContainer(stepIndex);
+  el._stepLogsActiveContainer = undefined;
+  el.append(createLogLine(stepIndex, startTime, line, cmd));
+}
+
+// show/hide the step logs for a step
+function toggleStepLogs(idx: number) {
+  currentJobStepsStates.value[idx].expanded = !currentJobStepsStates.value[idx].expanded;
+  if (currentJobStepsStates.value[idx].expanded) {
+    void loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
+  } else if (currentJob.value.steps[idx].status === 'running') {
+    currentJobStepsStates.value[idx].manuallyCollapsed = true;
+  }
+}
+
+function createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand | null) {
+  const lineNum = createElementFromAttrs('a', {class: 'line-num muted', href: `#jobstep-${stepIndex}-${line.index}`},
+    String(line.index),
+  );
+  const logTimeStamp = createElementFromAttrs('span', {class: 'log-time-stamp'},
+    formatDatetime(new Date(line.timestamp * 1000)), // for "Show timestamps"
+  );
+  const logMsg = createLogLineMessage(line, cmd);
+  const seconds = Math.floor(line.timestamp - startTime);
+  const logTimeSeconds = createElementFromAttrs('span', {class: 'log-time-seconds'},
+    `${seconds}s`, // for "Show seconds"
+  );
+
+  toggleElem(logTimeStamp, timeVisible.value['log-time-stamp']);
+  toggleElem(logTimeSeconds, timeVisible.value['log-time-seconds']);
+
+  return createElementFromAttrs('div', {id: `jobstep-${stepIndex}-${line.index}`, class: 'job-log-line'},
+    lineNum, logTimeStamp, logMsg, logTimeSeconds,
+  );
+}
+
+function shouldAutoScroll(stepIndex: number): boolean {
+  if (!optionAlwaysAutoScroll.value) return false;
+  const el = getJobStepLogsContainer(stepIndex);
+  // if the logs container is empty, then auto-scroll if the step is expanded
+  if (!el.lastChild) return currentJobStepsStates.value[stepIndex].expanded;
+  // use extraViewPortHeight to tolerate some extra "virtual view port" height (for example: the last line is partially visible)
+  return isLogElementInViewport(el.lastChild as Element, {extraViewPortHeight: 5});
+}
+
+function appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
+  for (const line of logLines) {
+    const cmd = parseLogLineCommand(line);
+    switch (cmd?.name) {
+      case 'hidden':
+        continue;
+      case 'group':
+        beginLogGroup(stepIndex, startTime, line, cmd);
+        continue;
+      case 'endgroup':
+        endLogGroup(stepIndex, startTime, line, cmd);
+        continue;
+    }
+    // the active logs container may change during the loop, for example: entering and leaving a group
+    const el = getActiveLogsContainer(stepIndex);
+    el.append(createLogLine(stepIndex, startTime, line, cmd));
+  }
+}
+
+async function fetchJobData(abortController: AbortController): Promise<JobData> {
+  const logCursors = currentJobStepsStates.value.map((it, idx) => {
+    // cursor is used to indicate the last position of the logs
+    // it's only used by backend, frontend just reads it and passes it back, it can be any type.
+    // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
+    return {step: idx, cursor: it.cursor, expanded: it.expanded};
+  });
+  const url = `${props.actionsUrl}/runs/${props.runId}/jobs/${props.jobId}`;
+  const resp = await POST(url, {
+    signal: abortController.signal,
+    data: {logCursors},
+  });
+  return await resp.json();
+}
+
+async function loadJobForce() {
+  loadingAbortController.value?.abort();
+  loadingAbortController.value = null;
+  await loadJob();
+}
+
+async function loadJob() {
+  if (loadingAbortController.value) return;
+  const abortController = new AbortController();
+  loadingAbortController.value = abortController;
+  try {
+    const job = await fetchJobData(abortController);
+    if (loadingAbortController.value !== abortController) return;
+
+    currentJob.value = job.state.currentJob;
+
+    // sync the currentJobStepsStates to store the job step states
+    for (let i = 0; i < currentJob.value.steps.length; i++) {
+      const autoExpand = optionAlwaysExpandRunning.value && currentJob.value.steps[i].status === 'running';
+      if (!currentJobStepsStates.value[i]) {
+        // initial states for job steps
+        currentJobStepsStates.value[i] = {cursor: null, expanded: autoExpand, manuallyCollapsed: false};
+      } else {
+        // if the step is not manually collapsed by user, then auto-expand it if option is enabled
+        if (autoExpand && !currentJobStepsStates.value[i].manuallyCollapsed) {
+          currentJobStepsStates.value[i].expanded = true;
+        }
+      }
+    }
+
+    await nextTick();
+
+    // find the step indexes that need to auto-scroll
+    const autoScrollStepIndexes = new Map<number, boolean>();
+    for (const stepLogs of job.logs.stepsLog ?? []) {
+      if (autoScrollStepIndexes.has(stepLogs.step)) continue;
+      autoScrollStepIndexes.set(stepLogs.step, shouldAutoScroll(stepLogs.step));
+    }
+
+    // append logs to the UI
+    for (const stepLogs of job.logs.stepsLog ?? []) {
+      // save the cursor, it will be passed to backend next time
+      currentJobStepsStates.value[stepLogs.step].cursor = stepLogs.cursor;
+      appendLogs(stepLogs.step, stepLogs.started, stepLogs.lines);
+    }
+
+    // auto-scroll to the last log line of the last step
+    let autoScrollJobStepElement: StepContainerElement | undefined;
+    for (let stepIndex = 0; stepIndex < currentJob.value.steps.length; stepIndex++) {
+      if (!autoScrollStepIndexes.get(stepIndex)) continue;
+      autoScrollJobStepElement = getJobStepLogsContainer(stepIndex);
+    }
+    const lastLogElem = autoScrollJobStepElement?.lastElementChild;
+    if (lastLogElem && !isLogElementInViewport(lastLogElem)) {
+      lastLogElem.scrollIntoView({behavior: 'smooth', block: 'end'});
+    }
+
+    // clear the interval timer if the job is done
+    if (props.run.done && intervalID.value) {
+      clearInterval(intervalID.value);
+      intervalID.value = null;
+    }
+  } catch (e) {
+    // avoid network error while unloading page, and ignore "abort" error
+    if (e instanceof TypeError || abortController.signal.aborted) return;
+    throw e;
+  } finally {
+    if (loadingAbortController.value === abortController) loadingAbortController.value = null;
+  }
+}
+
+function isDone(status: ActionsRunStatus) {
+  return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
+}
+
+function isExpandable(status: ActionsRunStatus) {
+  return ['success', 'running', 'failure', 'cancelled'].includes(status);
+}
+
+function closeDropdown() {
+  if (menuVisible.value) menuVisible.value = false;
+}
+
+function elStepsContainer(): HTMLElement {
+  return stepsContainer.value as HTMLElement;
+}
+
+function toggleTimeDisplay(type: 'seconds' | 'stamp') {
+  timeVisible.value[`log-time-${type}`] = !timeVisible.value[`log-time-${type}`];
+  for (const el of elStepsContainer().querySelectorAll(`.log-time-${type}`)) {
+    toggleElem(el, timeVisible.value[`log-time-${type}`]);
+  }
+  saveLocaleStorageOptions();
+}
+
+function toggleFullScreenMode() {
+  isFullScreen.value = !isFullScreen.value;
+  toggleFullScreen('.action-view-right', isFullScreen.value, '.action-view-body');
+}
+
+async function hashChangeListener() {
+  const selectedLogStep = window.location.hash;
+  if (!selectedLogStep) return;
+  const [_, step, _line] = selectedLogStep.split('-');
+  const stepNum = Number(step);
+  if (!currentJobStepsStates.value[stepNum]) return;
+  if (!currentJobStepsStates.value[stepNum].expanded && currentJobStepsStates.value[stepNum].cursor === null) {
+    currentJobStepsStates.value[stepNum].expanded = true;
+    // need to await for load job if the step log is loaded for the first time
+    // so logline can be selected by querySelector
+    await loadJob();
+  }
+  await nextTick();
+  const logLine = elStepsContainer().querySelector(selectedLogStep);
+  if (!logLine) return;
+  logLine.querySelector<HTMLAnchorElement>('.line-num')!.click();
+}
 </script>
 <template>
   <div class="job-info-header">
@@ -439,7 +413,7 @@ export default defineComponent({
             <i class="icon"><SvgIcon :name="timeVisible['log-time-stamp'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
             {{ locale.showTimeStamps }}
           </a>
-          <a class="item" @click="toggleFullScreen()">
+          <a class="item" @click="toggleFullScreenMode()">
             <i class="icon"><SvgIcon :name="isFullScreen ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
             {{ locale.showFullScreen }}
           </a>
@@ -463,23 +437,23 @@ export default defineComponent({
   </div>
   <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
   <div class="job-step-container" ref="stepsContainer" v-show="currentJob.steps.length">
-    <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
+    <div class="job-step-section" v-for="(jobStep, stepIdx) in currentJob.steps" :key="stepIdx">
       <div
         class="job-step-summary"
-        @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)"
-        :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']"
+        @click.stop="isExpandable(jobStep.status) && toggleStepLogs(stepIdx)"
+        :class="[currentJobStepsStates[stepIdx].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']"
       >
         <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
             currentJobStepsStates[i].cursor === null means the log is loaded for the first time
           -->
         <SvgIcon
-          v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null"
+          v-if="isDone(run.status) && currentJobStepsStates[stepIdx].expanded && currentJobStepsStates[stepIdx].cursor === null"
           name="gitea-running"
           class="tw-mr-2 rotate-clockwise"
         />
         <SvgIcon
           v-else
-          :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down' : 'octicon-chevron-right'"
+          :name="currentJobStepsStates[stepIdx].expanded ? 'octicon-chevron-down' : 'octicon-chevron-right'"
           :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"
         />
         <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
@@ -488,7 +462,7 @@ export default defineComponent({
       </div>
       <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM,
         use native DOM elements for "log line" to improve performance, Vue is not suitable for managing so many reactive elements. -->
-      <div class="job-step-logs" ref="logs" v-show="currentJobStepsStates[i].expanded"/>
+      <div class="job-step-logs" :ref="(el) => jobStepLogs[stepIdx] = el as StepContainerElement" v-show="currentJobStepsStates[stepIdx].expanded"/>
     </div>
   </div>
   <!-- </div> -->
