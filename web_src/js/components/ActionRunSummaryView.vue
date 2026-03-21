@@ -37,8 +37,7 @@ export default defineComponent({
   <div>
     <div class="action-run-summary-block">
       <p class="action-run-summary-trigger">
-        {{ locale.triggeredVia }}
-        <span class="tw-capitalize">{{ runTriggerEventLabel }}</span>
+        {{ locale.triggeredVia }}: {{ runTriggerEventLabel }}
         &nbsp;•&nbsp;<relative-time :datetime="runTriggeredAtIso" prefix=" "/>
       </p>
       <p class="tw-mb-0">

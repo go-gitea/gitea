@@ -218,6 +218,8 @@ export default defineComponent({
     // begin a log group
     beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
       const el = (this.$refs.logs as any)[stepIndex] as StepContainerElement;
+      // Using "summary + details" is the best way to create a log group because it has built-in support for "toggle" and "accessibility".
+      // And it makes users can use "Ctrl+F" to search the logs without opening all log groups.
       const elJobLogGroupSummary = createElementFromAttrs('summary', {class: 'job-log-group-summary'},
         this.createLogLine(stepIndex, startTime, line, cmd),
       );

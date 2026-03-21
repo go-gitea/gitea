@@ -78,7 +78,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.WorkflowID = "workflow-id"
 	resp.State.Run.WorkflowLink = "./workflow-link"
 	resp.State.Run.Duration = "1h 23m 45s"
-	resp.State.Run.TriggeredAt = time.Now().Unix()
+	resp.State.Run.TriggeredAt = time.Now().Add(-time.Hour).Unix()
 	resp.State.Run.TriggerEvent = "push"
 	resp.State.Run.Commit = actions.ViewCommit{
 		ShortSha: "ccccdddd",
@@ -140,9 +140,12 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Duration: "3h",
 		Needs:    []string{"job-100", "job-101"},
 	})
+
+	fillViewRunResponseCurrentJob(ctx, resp)
+	ctx.JSON(http.StatusOK, resp)
 }
 
-func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewResponse, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
+func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewResponse) {
 	jobID := ctx.PathParamInt64("job")
 	if jobID == 0 {
 		return
@@ -172,7 +175,6 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 	mockLogOptions = append(mockLogOptions, generateMockStepsLogOptions{mockCountFirst: 30, mockCountGeneral: 3, groupRepeat: 3})
 
 	if len(req.LogCursors) == 0 {
-		ctx.JSON(http.StatusOK, resp)
 		return
 	}
 
@@ -198,5 +200,4 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 	} else {
 		time.Sleep(time.Duration(100) * time.Millisecond) // actually, frontend reload every 1 second, any smaller delay is fine
 	}
-	ctx.JSON(http.StatusOK, resp)
 }

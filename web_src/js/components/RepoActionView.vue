@@ -79,7 +79,7 @@ export default defineComponent({
 
   computed: {
     isSummaryMode(): boolean {
-      return this.jobId === -1;
+      return this.jobId === 0;
     },
     runTriggeredAtISO(): string {
       const t = this.run.triggeredAt;

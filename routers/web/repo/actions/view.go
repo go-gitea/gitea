@@ -206,7 +206,7 @@ func getActionsViewArtifacts(ctx context.Context, repoID, runID int64) (artifact
 	return artifactsViewItems, nil
 }
 
-func getSelectJobByPathParam(ctx *context_module.Context, jobs []*actions_model.ActionRunJob) *actions_model.ActionRunJob {
+func getCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_model.ActionRunJob) *actions_model.ActionRunJob {
 	selectedJobID := ctx.PathParamInt64("job")
 	for _, job := range jobs {
 		if job.ID == selectedJobID {
@@ -299,19 +299,12 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 }
 
 func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
-	current := getSelectJobByPathParam(ctx, jobs)
+	req := web.GetForm(ctx).(*ViewRequest)
+	current := getCurrentJobByPathParam(ctx, jobs)
 	if current == nil {
 		return
 	}
 
-	req := web.GetForm(ctx).(*ViewRequest)
-	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead of 'null' in json
-	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead of 'null' in json
-	resp.State.CurrentJob.Title = current.Name
-	resp.State.CurrentJob.Detail = current.Status.LocaleString(ctx.Locale)
-	if run.NeedApproval {
-		resp.State.CurrentJob.Detail = ctx.Locale.TrString("actions.need_approval_desc")
-	}
 	var task *actions_model.ActionTask
 	if current.TaskID > 0 {
 		var err error
@@ -326,6 +319,14 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewRespon
 			return
 		}
 	}
+
+	resp.State.CurrentJob.Title = current.Name
+	resp.State.CurrentJob.Detail = current.Status.LocaleString(ctx.Locale)
+	if run.NeedApproval {
+		resp.State.CurrentJob.Detail = ctx.Locale.TrString("actions.need_approval_desc")
+	}
+	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
+	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
 	if task != nil {
 		steps, logs, err := convertToViewModel(ctx, ctx.Locale, req.LogCursors, task)
 		if err != nil {
@@ -443,7 +444,7 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	targetJob := getSelectJobByPathParam(ctx, jobs) // nil means rerun all jobs
+	targetJob := getCurrentJobByPathParam(ctx, jobs) // nil means rerun all jobs
 	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs, targetJob); err != nil {
 		ctx.ServerError("RerunWorkflowRunJobs", err)
 		return
@@ -612,7 +613,7 @@ func Delete(ctx *context_module.Context) {
 }
 
 // getRunJobs loads the run and its jobs for runID
-// Any error will be written to the ctx, empty/non-existing job will also result in 404 error, then the return values are all nil.
+// Any error will be written to the ctx, empty jobs will also result in 404 error, then the return values are all nil.
 func getRunJobs(ctx *context_module.Context, runID int64) (*actions_model.ActionRun, []*actions_model.ActionRunJob) {
 	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
 	if err != nil {

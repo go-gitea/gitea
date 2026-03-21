@@ -8,7 +8,7 @@
 	{{template "repo/actions/view_component" (dict
 		"RunID" (or .RunID 10)
 		"JobID" (or .JobID 0)
-		"ActionsURL" (print AppSubUrl "/devtest/actions-mock")
+		"ActionsURL" (print AppSubUrl "/devtest/repo-action-view")
 	)}}
 </div>
 {{template "base/footer" .}}
