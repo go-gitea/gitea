@@ -257,6 +257,23 @@ func (p *Project) GetColumns(ctx context.Context) (ColumnList, error) {
 	return columns, nil
 }
 
+// CountColumns returns the total number of columns for a project
+func (p *Project) CountColumns(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where("project_id=?", p.ID).Count(&Column{})
+}
+
+// GetColumnsPaginated fetches a page of columns for a project
+func (p *Project) GetColumnsPaginated(ctx context.Context, opts db.ListOptions) (ColumnList, error) {
+	columns := make([]*Column, 0, opts.PageSize)
+	if err := db.SetSessionPagination(db.GetEngine(ctx), &opts).
+		Where("project_id=?", p.ID).
+		OrderBy("sorting, id").
+		Find(&columns); err != nil {
+		return nil, err
+	}
+	return columns, nil
+}
+
 // getDefaultColumn return default column and ensure only one exists
 func (p *Project) getDefaultColumn(ctx context.Context) (*Column, error) {
 	var column Column

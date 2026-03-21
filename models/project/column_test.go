@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -122,4 +123,40 @@ func Test_NewColumn(t *testing.T) {
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "maximum number of columns reached")
+}
+
+func TestCountColumns(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	project, err := GetProjectByID(t.Context(), 1)
+	assert.NoError(t, err)
+
+	count, err := project.CountColumns(t.Context())
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, count)
+}
+
+func TestGetColumnsPaginated(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	project, err := GetProjectByID(t.Context(), 1)
+	assert.NoError(t, err)
+
+	// Page 1, limit 2 — returns first 2 columns
+	page1, err := project.GetColumnsPaginated(t.Context(), db.ListOptions{Page: 1, PageSize: 2})
+	assert.NoError(t, err)
+	assert.Len(t, page1, 2)
+
+	// Page 2, limit 2 — returns remaining column
+	page2, err := project.GetColumnsPaginated(t.Context(), db.ListOptions{Page: 2, PageSize: 2})
+	assert.NoError(t, err)
+	assert.Len(t, page2, 1)
+
+	// Page 1 and page 2 together cover all columns with no overlap
+	allIDs := make(map[int64]bool)
+	for _, c := range append(page1, page2...) {
+		assert.False(t, allIDs[c.ID], "duplicate column ID %d across pages", c.ID)
+		allIDs[c.ID] = true
+	}
+	assert.Len(t, allIDs, 3)
 }
