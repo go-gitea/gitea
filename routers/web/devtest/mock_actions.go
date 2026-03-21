@@ -59,21 +59,14 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 }
 
 func MockActionsView(ctx *context.Context) {
-	ctx.Data["RunID"] = ctx.PathParam("run")
-	jobParam := ctx.PathParam("job")
-	if jobParam == "" {
-		ctx.Data["JobID"] = int64(-1)
-	} else {
-		v, _ := strconv.ParseInt(jobParam, 10, 64)
-		ctx.Data["JobID"] = v
-	}
+	ctx.Data["RunID"] = ctx.PathParamInt64("run")
+	ctx.Data["JobID"] = ctx.PathParamInt64("job")
 	ctx.HTML(http.StatusOK, "devtest/repo-action-view")
 }
 
 func MockActionsRunsJobs(ctx *context.Context) {
 	runID := ctx.PathParamInt64("run")
 
-	req := web.GetForm(ctx).(*actions.ViewRequest)
 	resp := &actions.ViewResponse{}
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
 	resp.State.Run.Link = setting.AppSubURL + "/devtest/repo-action-view/runs/" + strconv.FormatInt(runID, 10)
@@ -147,14 +140,15 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Duration: "3h",
 		Needs:    []string{"job-100", "job-101"},
 	})
+}
 
-	isSummary := ctx.PathParam("job") == ""
-	if isSummary {
-		// for summary mode, don't include job-specific data
-		ctx.JSON(http.StatusOK, resp)
+func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewResponse, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
+	jobID := ctx.PathParamInt64("job")
+	if jobID == 0 {
 		return
 	}
 
+	req := web.GetForm(ctx).(*actions.ViewRequest)
 	var mockLogOptions []generateMockStepsLogOptions
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
 		Summary:  "step 0 (mock slow)",
