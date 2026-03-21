@@ -46,10 +46,10 @@ func getCurrentRunByPathParam(ctx *context_module.Context) (run *actions_model.A
 	} else {
 		run, err = actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("run"))
 	}
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
+	if errors.Is(err, util.ErrNotExist) {
 		ctx.NotFound(nil)
 	} else if err != nil {
-		ctx.ServerError("GetLatestRun", err)
+		ctx.ServerError("GetRun:"+ctx.PathParam("run"), err)
 	}
 	return run
 }
