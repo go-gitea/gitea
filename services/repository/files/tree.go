@@ -61,33 +61,18 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		return nil, err
 	}
 	apiURL := repo.APIURL()
-	apiURLLen := len(apiURL)
-	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
-	hashLen := objectFormat.FullLength()
-
-	const gitBlobsPath = "/git/blobs/"
-	blobURL := make([]byte, apiURLLen+hashLen+len(gitBlobsPath))
-	copy(blobURL, apiURL)
-	copy(blobURL[apiURLLen:], []byte(gitBlobsPath))
-
-	const gitTreePath = "/git/trees/"
-	treeURL := make([]byte, apiURLLen+hashLen+len(gitTreePath))
-	copy(treeURL, apiURL)
-	copy(treeURL[apiURLLen:], []byte(gitTreePath))
-
-	// copyPos is at the start of the hash
-	copyPos := len(treeURL) - hashLen
+	blobURLBase := apiURL + "/git/blobs/"
+	treeURLBase := apiURL + "/git/trees/"
 
 	if perPage <= 0 || perPage > setting.API.DefaultGitTreesPerPage {
 		perPage = setting.API.DefaultGitTreesPerPage
 	}
-	if page <= 0 {
-		page = 1
-	}
+	page = max(page, 1)
+
 	tree.Page = page
 	tree.TotalCount = len(entries)
-	rangeStart := perPage * (page - 1)
-	if rangeStart >= len(entries) {
+	rangeStart := perPage * (page - 1) // int might overflow
+	if rangeStart < 0 || rangeStart >= len(entries) {
 		return tree, nil
 	}
 	rangeEnd := min(rangeStart+perPage, len(entries))
@@ -103,16 +88,14 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		tree.Entries[i].SHA = entries[e].ID.String()
 
 		if entries[e].IsDir() {
-			copy(treeURL[copyPos:], entries[e].ID.String())
-			tree.Entries[i].URL = string(treeURL)
+			tree.Entries[i].URL = treeURLBase + entries[e].ID.String()
 		} else if entries[e].IsSubModule() {
-			// In Github Rest API Version=2022-11-28, if a tree entry is a submodule,
+			// In GitHub Rest API Version=2022-11-28, if a tree entry is a submodule,
 			// its url will be returned as an empty string.
 			// So the URL will be set to "" here.
 			tree.Entries[i].URL = ""
 		} else {
-			copy(blobURL[copyPos:], entries[e].ID.String())
-			tree.Entries[i].URL = string(blobURL)
+			tree.Entries[i].URL = blobURLBase + entries[e].ID.String()
 		}
 	}
 	return tree, nil
