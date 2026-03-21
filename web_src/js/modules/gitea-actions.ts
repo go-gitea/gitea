@@ -6,7 +6,7 @@ export type ActionsRun = {
   link: string,
   title: string,
   titleHTML: string,
-  status: ActionsRunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
+  status: ActionsRunStatus,
   canCancel: boolean,
   canApprove: boolean,
   canRerun: boolean,
