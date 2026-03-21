@@ -5,11 +5,13 @@ package routing
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 )
 
@@ -99,7 +101,7 @@ func (manager *requestRecordsManager) handler(next http.Handler) http.Handler {
 			localPanicErr := recover()
 			if localPanicErr != nil {
 				record.lock.Lock()
-				record.panicError = localPanicErr
+				record.panicError = fmt.Errorf("%v\n%s", localPanicErr, log.Stack(2))
 				record.lock.Unlock()
 			}
 

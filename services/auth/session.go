@@ -29,19 +29,19 @@ func (s *Session) Name() string {
 // Returns nil if there is no user uid stored in the session.
 func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	if sess == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	// Get user ID
 	uid := sess.Get("uid")
 	if uid == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 	log.Trace("Session Authorization: Found user[%d]", uid)
 
 	id, ok := uid.(int64)
 	if !ok {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	// Get user object
@@ -52,7 +52,7 @@ func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataSto
 			// Return the err as-is to keep current signed-in session, in case the err is something like context.Canceled. Otherwise non-existing user (nil, nil) will make the caller clear the signed-in session.
 			return nil, err
 		}
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	log.Trace("Session Authorization: Logged in user %-v", user)

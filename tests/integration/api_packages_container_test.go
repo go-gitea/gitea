@@ -88,7 +88,10 @@ func TestPackageContainer(t *testing.T) {
 			Token string `json:"token"`
 		}
 
-		defaultAuthenticateValues := []string{`Bearer realm="` + setting.AppURL + `v2/token",service="container_registry",scope="*"`}
+		defaultAuthenticateValues := []string{
+			`Bearer realm="` + setting.AppURL + `v2/token",service="container_registry",scope="*"`,
+			`Basic realm="Gitea Container Registry"`,
+		}
 
 		t.Run("Anonymous", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
@@ -826,7 +829,6 @@ func TestPackageContainer(t *testing.T) {
 		newOwnerName := "newUsername"
 
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf":    GetUserCSRFToken(t, session),
 			"name":     newOwnerName,
 			"email":    "user2@example.com",
 			"language": "en-US",
@@ -836,7 +838,6 @@ func TestPackageContainer(t *testing.T) {
 		t.Run(fmt.Sprintf("Catalog[%s]", newOwnerName), checkCatalog(newOwnerName))
 
 		req = NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf":    GetUserCSRFToken(t, session),
 			"name":     user.Name,
 			"email":    "user2@example.com",
 			"language": "en-US",

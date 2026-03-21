@@ -63,6 +63,24 @@ func TestDeleteUser(t *testing.T) {
 	assert.Error(t, DeleteUser(t.Context(), org, false))
 }
 
+func TestDeleteUserUnlinkedAttachments(t *testing.T) {
+	t.Run("DeleteExisting", func(t *testing.T) {
+		assert.NoError(t, unittest.PrepareTestDatabase())
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 10})
+
+		assert.NoError(t, deleteUserUnlinkedAttachments(t.Context(), user))
+		unittest.AssertNotExistsBean(t, &repo_model.Attachment{ID: 10})
+	})
+
+	t.Run("NoUnlinkedAttachments", func(t *testing.T) {
+		assert.NoError(t, unittest.PrepareTestDatabase())
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		assert.NoError(t, deleteUserUnlinkedAttachments(t.Context(), user))
+	})
+}
+
 func TestPurgeUser(t *testing.T) {
 	test := func(userID int64) {
 		assert.NoError(t, unittest.PrepareTestDatabase())

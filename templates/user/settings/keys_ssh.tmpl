@@ -9,7 +9,6 @@
 <div class="ui attached segment">
 	<div class="{{if not .HasSSHError}}tw-hidden{{end}} tw-mb-4" id="add-ssh-key-panel">
 		<form class="ui form" action="{{.Link}}" method="post">
-			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<label for="ssh-key-title">{{ctx.Locale.Tr "settings.key_name"}}</label>
 				<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required maxlength="50">
@@ -42,7 +41,7 @@
 		{{range $index, $key := .Keys}}
 			<div class="flex-item">
 				<div class="flex-item-leading">
-					<span class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
+					<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
 				</div>
 				<div class="flex-item-main">
 						{{if .Verified}}
@@ -53,7 +52,7 @@
 								{{.Fingerprint}}
 						</div>
 						<div class="flex-item-body">
-								<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>
 				</div>
 				<div class="flex-item-trailing">
@@ -69,7 +68,6 @@
 				<div class="ui segment">
 					<h4>{{ctx.Locale.Tr "settings.ssh_token_required"}}</h4>
 					<form class="ui form{{if $.HasSSHVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
-						{{$.CsrfTokenHtml}}
 						<input type="hidden" name="title" value="none">
 						<input type="hidden" name="content" value="{{.Content}}">
 						<input type="hidden" name="fingerprint" value="{{.Fingerprint}}">

@@ -228,8 +228,8 @@ func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, do
 		return nil, err
 	}
 	if isAssigned {
-		// nothing to to
-		return nil, nil
+		// nothing to do
+		return nil, nil //nolint:nilnil // return nil because the user is already assigned
 	}
 
 	valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo, issue.IsPull)

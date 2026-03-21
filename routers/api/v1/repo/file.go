@@ -138,7 +138,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
 	if blob.Size() > lfs.MetaFileMaxSize {
 		// First handle caching for the blob
-		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
+		if httpcache.HandleGenericETagPrivateCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
 		}
 
@@ -174,7 +174,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	// if it's not a pointer, just serve the data directly
 	if !pointer.IsValid() {
 		// First handle caching for the blob
-		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
+		if httpcache.HandleGenericETagPrivateCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
 		}
 
@@ -189,7 +189,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	// If there isn't one, just serve the data directly
 	if errors.Is(err, git_model.ErrLFSObjectNotExist) {
 		// Handle caching for the blob SHA (not the LFS object OID)
-		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
+		if httpcache.HandleGenericETagPrivateCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
 		}
 
@@ -201,7 +201,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 
 	// Handle caching for the LFS object OID
-	if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
+	if httpcache.HandleGenericETagPrivateCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`, meta.UpdatedUnix.AsTimePtr()) {
 		return
 	}
 
@@ -273,13 +273,19 @@ func GetArchive(ctx *context.APIContext) {
 	//   description: the git reference for download with attached archive format (e.g. master.zip)
 	//   type: string
 	//   required: true
+	// - name: path
+	//   in: query
+	//   type: array
+	//   items:
+	//     type: string
+	//   description: subpath of the repository to download
+	//   collectionFormat: multi
 	// responses:
 	//   200:
 	//     description: success
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
-	serveRepoArchive(ctx, ctx.PathParam("*"))
+	serveRepoArchive(ctx, ctx.PathParam("*"), ctx.FormStrings("path"))
 }
 
 // GetEditorconfig get editor config of a repository

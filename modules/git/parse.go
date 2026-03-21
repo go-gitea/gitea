@@ -46,8 +46,8 @@ func parseLsTreeLine(line []byte) (*LsTreeEntry, error) {
 		entry.Size = optional.Some(size)
 	}
 
-	entry.EntryMode, err = ParseEntryMode(string(entryMode))
-	if err != nil || entry.EntryMode == EntryModeNoEntry {
+	entry.EntryMode = ParseEntryMode(string(entryMode))
+	if entry.EntryMode == EntryModeNoEntry {
 		return nil, fmt.Errorf("invalid ls-tree output (invalid mode): %q, err: %w", line, err)
 	}
 

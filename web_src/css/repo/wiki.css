@@ -46,7 +46,7 @@
 }
 
 .repository.wiki .wiki-content-toc ul ul {
-  border-left:  1px var(--color-secondary);
+  border-left: 1px var(--color-secondary);
   border-left-style: dashed;
 }
 

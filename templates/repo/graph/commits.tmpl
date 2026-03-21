@@ -40,17 +40,14 @@
 						{{end}}
 					</span>
 
-					<span class="author flex-text-inline">
-						{{$userName := $commit.Commit.Author.Name}}
+					<span class="flex-text-inline tw-text-12">
 						{{if $commit.User}}
-							{{if and $commit.User.FullName DefaultShowFullName}}
-								{{$userName = $commit.User.FullName}}
-							{{end}}
 							{{ctx.AvatarUtils.Avatar $commit.User 18}}
-							<a href="{{$commit.User.HomeLink}}">{{$userName}}</a>
+							{{$commit.User.GetShortDisplayNameLinkHTML}}
 						{{else}}
-							{{ctx.AvatarUtils.AvatarByEmail $commit.Commit.Author.Email $userName 18}}
-							{{$userName}}
+							{{$gitUserName := $commit.Commit.Author.Name}}
+							{{ctx.AvatarUtils.AvatarByEmail $commit.Commit.Author.Email $gitUserName 18}}
+							{{$gitUserName}}
 						{{end}}
 					</span>
 

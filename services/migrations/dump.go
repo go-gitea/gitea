@@ -288,12 +288,13 @@ func (g *RepositoryDumper) CreateLabels(_ context.Context, labels ...*base.Label
 func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.Release) error {
 	if g.opts.ReleaseAssets {
 		for _, release := range releases {
-			attachDir := filepath.Join("release_assets", release.TagName)
+			attachDir := filepath.Join("release_assets", uuid.New().String())
 			if err := os.MkdirAll(filepath.Join(g.baseDir, attachDir), os.ModePerm); err != nil {
 				return err
 			}
 			for _, asset := range release.Assets {
-				attachLocalPath := filepath.Join(attachDir, asset.Name)
+				// we cannot use asset.Name because it might contains special characters.
+				attachLocalPath := filepath.Join(attachDir, uuid.New().String())
 
 				// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
 				// ... we must assume that they are safe and simply download the attachment
@@ -306,14 +307,15 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 						if err != nil {
 							return err
 						}
+						defer rc.Close()
 					} else {
 						resp, err := http.Get(*asset.DownloadURL)
 						if err != nil {
 							return err
 						}
+						defer resp.Body.Close()
 						rc = resp.Body
 					}
-					defer rc.Close()
 
 					fw, err := os.Create(attachPath)
 					if err != nil {
@@ -354,6 +356,11 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 
 // SyncTags syncs releases with tags in the database
 func (g *RepositoryDumper) SyncTags(ctx context.Context) error {
+	return nil
+}
+
+// SyncBranches syncs branches in the database
+func (g *RepositoryDumper) SyncBranches(ctx context.Context) error {
 	return nil
 }
 

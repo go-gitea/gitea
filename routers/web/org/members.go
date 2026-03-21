@@ -56,7 +56,7 @@ func Members(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPagination(int(total), setting.UI.MembersPagingNum, page, 5)
+	pager := context.NewPagination(total, setting.UI.MembersPagingNum, page, 5)
 	opts.ListOptions.Page = page
 	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
 	members, membersIsPublic, err := organization.FindOrgMembers(ctx, opts)

@@ -140,6 +140,8 @@ type CreatePullRequestOption struct {
 	Reviewers []string `json:"reviewers"`
 	// The list of team reviewer names
 	TeamReviewers []string `json:"team_reviewers"`
+	// Whether maintainers can edit the pull request
+	AllowMaintainerEdit *bool `json:"allow_maintainer_edit"`
 }
 
 // EditPullRequestOption options when modify pull request

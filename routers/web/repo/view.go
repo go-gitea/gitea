@@ -151,12 +151,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 	return true
 }
 
-func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
-	renderer, err := markup.FindRendererByContext(renderCtx)
-	if err != nil {
-		return nil, "", err
-	}
-
+func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, renderer markup.Renderer, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
 	markupRd, markupWr := io.Pipe()
 	defer markupWr.Close()
 
@@ -350,7 +345,7 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOp
 	if page <= 0 {
 		page = 1
 	}
-	pager := context.NewPagination(total, setting.ItemsPerPage, page, 5)
+	pager := context.NewPagination(int64(total), setting.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
 	items, err := getter(db.ListOptions{
@@ -408,7 +403,7 @@ func Forks(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPagination(int(total), pageSize, page, 5)
+	pager := context.NewPagination(total, pageSize, page, 5)
 	ctx.Data["ShowRepoOwnerAvatar"] = true
 	ctx.Data["ShowRepoOwnerOnList"] = true
 	ctx.Data["Page"] = pager

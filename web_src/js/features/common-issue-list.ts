@@ -1,4 +1,4 @@
-import {isElemVisible, onInputDebounce, submitEventSubmitter, toggleElem} from '../utils/dom.ts';
+import {onInputDebounce, toggleElem} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 
 const {appSubUrl} = window.config;
@@ -17,37 +17,25 @@ export function parseIssueListQuickGotoLink(repoLink: string, searchText: string
     } else if (reIssueSharpIndex.test(searchText)) {
       targetUrl = `${repoLink}/issues/${searchText.substring(1)}`;
     }
-  } else {
-    // try to parse it for a global search (eg: "owner/repo#123")
-    const [_, owner, repo, index] = reIssueOwnerRepoIndex.exec(searchText) || [];
-    if (owner) {
-      targetUrl = `${appSubUrl}/${owner}/${repo}/issues/${index}`;
-    }
+  }
+  // try to parse it for a global search (eg: "owner/repo#123")
+  const [_, owner, repo, index] = reIssueOwnerRepoIndex.exec(searchText) || [];
+  if (owner) {
+    targetUrl = `${appSubUrl}/${owner}/${repo}/issues/${index}`;
   }
   return targetUrl;
 }
 
 export function initCommonIssueListQuickGoto() {
-  const goto = document.querySelector<HTMLElement>('#issue-list-quick-goto');
-  if (!goto) return;
+  const elGotoButton = document.querySelector<HTMLElement>('#issue-list-quick-goto');
+  if (!elGotoButton) return;
 
-  const form = goto.closest('form')!;
+  const form = elGotoButton.closest('form')!;
   const input = form.querySelector<HTMLInputElement>('input[name=q]')!;
-  const repoLink = goto.getAttribute('data-repo-link')!;
+  const repoLink = elGotoButton.getAttribute('data-repo-link') || '';
 
-  form.addEventListener('submit', (e) => {
-    // if there is no goto button, or the form is submitted by non-quick-goto elements, submit the form directly
-    let doQuickGoto = isElemVisible(goto);
-    const submitter = submitEventSubmitter(e);
-    if (submitter !== form && submitter !== input && submitter !== goto) doQuickGoto = false;
-    if (!doQuickGoto) return;
-
-    // if there is a goto button, use its link
-    e.preventDefault();
-    const link = goto.getAttribute('data-issue-goto-link');
-    if (link) {
-      window.location.href = link;
-    }
+  elGotoButton.addEventListener('click', () => {
+    window.location.href = elGotoButton.getAttribute('data-issue-goto-link')!;
   });
 
   const onInput = async () => {
@@ -61,8 +49,8 @@ export function initCommonIssueListQuickGoto() {
     // if the input value has changed, then ignore the result
     if (input.value !== searchText) return;
 
-    toggleElem(goto, Boolean(targetUrl));
-    goto.setAttribute('data-issue-goto-link', targetUrl);
+    toggleElem(elGotoButton, Boolean(targetUrl));
+    elGotoButton.setAttribute('data-issue-goto-link', targetUrl);
   };
 
   input.addEventListener('input', onInputDebounce(onInput));

@@ -53,7 +53,7 @@ func PackagesRuleEdit(ctx *context.Context) {
 }
 
 func PackagesRuleAddPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsPackages"] = true
 	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 

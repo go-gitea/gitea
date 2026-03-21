@@ -151,7 +151,7 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 			numNeedUpdate++
 			if autofix {
 				if !isPublic && isExist {
-					if err = gitrepo.RemoveRepoFile(ctx, repo, daemonExportFile); err != nil {
+					if err = gitrepo.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
 						log.Error("Failed to remove %s:%s: %v", repo.FullName(), daemonExportFile, err)
 					}
 				} else if isPublic && !isExist {

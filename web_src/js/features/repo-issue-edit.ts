@@ -84,7 +84,7 @@ async function tryOnEditContent(e: Event) {
   showElem(editContentZone);
   hideElem(renderContent);
 
-  comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
+  comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'))!;
   if (!comboMarkdownEditor) {
     editContentZone.innerHTML = document.querySelector('#issue-comment-editor-template')!.innerHTML;
     const form = editContentZone.querySelector('form')!;
@@ -97,11 +97,9 @@ async function tryOnEditContent(e: Event) {
     cancelButton.addEventListener('click', cancelAndReset);
     form.addEventListener('submit', saveAndRefresh);
   }
-
-  // FIXME: ideally here should reload content and attachment list from backend for existing editor, to avoid losing data
-  if (!comboMarkdownEditor.value()) {
-    comboMarkdownEditor.value(rawContent.textContent);
-  }
+  // when the content has changed on server side, there is no sync, and this page doesn't have the latest content,
+  // the editor still shows the old content, server will reject end user's submit by "data-content-version" check
+  comboMarkdownEditor.value(rawContent.textContent);
   comboMarkdownEditor.switchTabToEditor();
   comboMarkdownEditor.focus();
   triggerUploadStateChanged(comboMarkdownEditor.container);
@@ -139,7 +137,7 @@ async function tryOnQuoteReply(e: Event) {
     editor = await handleReply(replyBtn);
   } else {
     // for normal issue/comment page
-    editor = getComboMarkdownEditor(document.querySelector('#comment-form .combo-markdown-editor'));
+    editor = getComboMarkdownEditor(document.querySelector('#comment-form .combo-markdown-editor'))!;
   }
 
   if (editor.value()) {

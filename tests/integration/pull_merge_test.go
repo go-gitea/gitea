@@ -51,38 +51,27 @@ type MergeOptions struct {
 	DeleteBranch bool
 }
 
-func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeOptions MergeOptions) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
-	resp := session.MakeRequest(t, req, http.StatusOK)
-
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	link := path.Join(user, repo, "pulls", pullnum, "merge")
-
+func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum string, mergeOptions MergeOptions) *httptest.ResponseRecorder {
 	options := map[string]string{
-		"_csrf":          htmlDoc.GetCSRF(),
-		"do":             string(mergeOptions.Style),
-		"head_commit_id": mergeOptions.HeadCommitID,
+		"do":                        string(mergeOptions.Style),
+		"head_commit_id":            mergeOptions.HeadCommitID,
+		"delete_branch_after_merge": util.Iif(mergeOptions.DeleteBranch, "on", ""),
 	}
+	var resp *httptest.ResponseRecorder
+	require.Eventually(t, func() bool {
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/pulls/%s/merge", user, repo, pullNum), options)
+		resp = session.MakeRequest(t, req, NoExpectedStatus)
+		return resp.Code == http.StatusOK
+	}, 5*time.Second, 50*time.Millisecond, "Timed out waiting for pull merge to succeed")
 
-	if mergeOptions.DeleteBranch {
-		options["delete_branch_after_merge"] = "on"
-	}
+	redirect := test.RedirectURL(resp)
+	assert.Equal(t, fmt.Sprintf("/%s/%s/pulls/%s", user, repo, pullNum), redirect)
 
-	req = NewRequestWithValues(t, "POST", link, options)
-	resp = session.MakeRequest(t, req, http.StatusOK)
-
-	respJSON := struct {
-		Redirect string
-	}{}
-	DecodeJSON(t, resp, &respJSON)
-
-	assert.Equal(t, fmt.Sprintf("/%s/%s/pulls/%s", user, repo, pullnum), respJSON.Redirect)
-
-	pullnumInt, err := strconv.ParseInt(pullnum, 10, 64)
+	pullNumInt, err := strconv.ParseInt(pullNum, 10, 64)
 	assert.NoError(t, err)
 	repository, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), user, repo)
 	assert.NoError(t, err)
-	pull, err := issues_model.GetPullRequestByIndex(t.Context(), repository.ID, pullnumInt)
+	pull, err := issues_model.GetPullRequestByIndex(t.Context(), repository.ID, pullNumInt)
 	assert.NoError(t, err)
 	assert.True(t, pull.HasMerged)
 
@@ -97,9 +86,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find(".timeline-item .delete-branch-after-merge").Attr("data-url")
 	assert.True(t, exists, "The template has changed, can not find delete button url")
-	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-	})
+	req = NewRequest(t, "POST", link)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	return resp
@@ -111,7 +98,7 @@ func TestPullMerge(t *testing.T) {
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
@@ -148,7 +135,7 @@ func TestPullRebase(t *testing.T) {
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
@@ -185,7 +172,7 @@ func TestPullRebaseMerge(t *testing.T) {
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
@@ -222,7 +209,7 @@ func TestPullSquash(t *testing.T) {
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited!)\n")
@@ -248,7 +235,7 @@ func TestPullSquashWithHeadCommitID(t *testing.T) {
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited!)\n")
@@ -288,7 +275,7 @@ func TestPullSquashWithHeadCommitID(t *testing.T) {
 
 func TestPullCleanUpAfterMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited - TestPullCleanUpAfterMerge)\n")
 
@@ -339,7 +326,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 
 func TestCantMergeWorkInProgress(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
@@ -358,7 +345,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 
 func TestCantMergeConflict(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base", "README.md", "Hello, World (Edited Twice)\n")
@@ -400,7 +387,7 @@ func TestCantMergeConflict(t *testing.T) {
 
 func TestCantMergeUnrelated(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base", "README.md", "Hello, World (Edited Twice)\n")
 
@@ -418,19 +405,16 @@ func TestCantMergeUnrelated(t *testing.T) {
 		err := gitcmd.NewCommand("read-tree", "--empty").WithDir(path).Run(t.Context())
 		assert.NoError(t, err)
 
-		stdin := strings.NewReader("Unrelated File")
-		var stdout strings.Builder
-		err = gitcmd.NewCommand("hash-object", "-w", "--stdin").
+		stdout, _, err := gitcmd.NewCommand("hash-object", "-w", "--stdin").
 			WithDir(path).
-			WithStdin(stdin).
-			WithStdout(&stdout).
-			Run(t.Context())
+			WithStdinBytes([]byte("Unrelated File")).
+			RunStdString(t.Context())
 
 		assert.NoError(t, err)
-		sha := strings.TrimSpace(stdout.String())
+		sha := strings.TrimSpace(stdout)
 
 		_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
-			AddDynamicArguments("100644", sha, "somewher-over-the-rainbow").
+			AddDynamicArguments("100644", sha, "somewhere-over-the-rainbow").
 			WithDir(path).
 			RunStdString(t.Context())
 		assert.NoError(t, err)
@@ -454,15 +438,13 @@ func TestCantMergeUnrelated(t *testing.T) {
 		_, _ = messageBytes.WriteString("Unrelated")
 		_, _ = messageBytes.WriteString("\n")
 
-		stdout.Reset()
-		err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSha).
+		stdout, _, err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSha).
 			WithEnv(env).
 			WithDir(path).
-			WithStdin(messageBytes).
-			WithStdout(&stdout).
-			Run(t.Context())
+			WithStdinBytes(messageBytes.Bytes()).
+			RunStdString(t.Context())
 		assert.NoError(t, err)
-		commitSha := strings.TrimSpace(stdout.String())
+		commitSha := strings.TrimSpace(stdout)
 
 		_, _, err = gitcmd.NewCommand("branch", "unrelated").
 			AddDynamicArguments(commitSha).
@@ -497,7 +479,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 func TestFastForwardOnlyMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "update", "README.md", "Hello, World 2\n")
 
@@ -532,7 +514,7 @@ func TestFastForwardOnlyMerge(t *testing.T) {
 
 func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "diverging", "README.md", "Hello, World diverged\n")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World 2\n")
@@ -649,7 +631,7 @@ func TestConflictChecking(t *testing.T) {
 
 func TestPullRetargetChildOnBranchDelete(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testEditFileToNewBranch(t, session, "user2", "repo1", "master", "base-pr", "README.md", "Hello, World\n(Edited - TestPullRetargetOnCleanup - base PR)\n")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "base-pr", "child-pr", "README.md", "Hello, World\n(Edited - TestPullRetargetOnCleanup - base PR)\n(Edited - TestPullRetargetOnCleanup - child PR)")
@@ -686,7 +668,7 @@ func TestPullRetargetChildOnBranchDelete(t *testing.T) {
 
 func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base-pr", "README.md", "Hello, World\n(Edited - TestPullDontRetargetChildOnWrongRepo - base PR)\n")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "base-pr", "child-pr", "README.md", "Hello, World\n(Edited - TestPullDontRetargetChildOnWrongRepo - base PR)\n(Edited - TestPullDontRetargetChildOnWrongRepo - child PR)")
@@ -751,7 +733,7 @@ func TestPullRequestMergedWithNoPermissionDeleteBranch(t *testing.T) {
 func TestPullMergeIndexerNotifier(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// create a pull request
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		createPullResp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "Indexer notifier test pull")
@@ -811,27 +793,13 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 	})
 }
 
-func testResetRepo(t *testing.T, repo *repo_model.Repository, branch, commitID string) {
-	assert.NoError(t, gitrepo.UpdateRef(t.Context(), repo, git.BranchPrefix+branch, commitID))
-
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
-	assert.NoError(t, err)
-	defer gitRepo.Close()
-	id, err := gitRepo.GetBranchCommitID(branch)
-	assert.NoError(t, err)
-	assert.Equal(t, commitID, id)
-}
-
 func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// create a pull request
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		forkedName := "repo1-1"
 		testRepoFork(t, session, "user2", "repo1", "user1", forkedName, "")
-		defer func() {
-			testDeleteRepository(t, session, "user1", forkedName)
-		}()
 		testEditFile(t, session, "user1", forkedName, "master", "README.md", "Hello, World (Edited)\n")
 		testPullCreate(t, session, "user1", forkedName, false, "master", "master", "Indexer notifier test pull")
 
@@ -844,11 +812,8 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 			HeadBranch: "master",
 		})
 
-		// add protected branch for commit status
-		csrf := GetUserCSRFToken(t, session)
 		// Change the "master" branch to "protected"
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"_csrf":                 csrf,
 			"rule_name":             "master",
 			"enable_push":           "true",
 			"enable_status_check":   "true",
@@ -888,16 +853,10 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		assert.NoError(t, err)
 		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		assert.NoError(t, err)
-		masterCommitID, err := baseGitRepo.GetBranchCommitID("master")
-		assert.NoError(t, err)
-
 		branches, _, err := baseGitRepo.GetBranchNames(0, 100)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, []string{"sub-home-md-img-check", "home-md-img-check", "pr-to-update", "branch2", "DefaultBranch", "develop", "feature/1", "master"}, branches)
 		baseGitRepo.Close()
-		defer func() {
-			testResetRepo(t, baseRepo, "master", masterCommitID)
-		}()
 
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
 			State:     commitstatus.CommitStatusSuccess,
@@ -918,18 +877,17 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// create a pull request
-		session := loginUser(t, "user1")
-		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-		forkedName := "repo1-2"
-		testRepoFork(t, session, "user2", "repo1", "user1", forkedName, "")
-		defer func() {
-			testDeleteRepository(t, session, "user1", forkedName)
-		}()
-		testEditFile(t, session, "user1", forkedName, "master", "README.md", "Hello, World (Edited)\n")
-		testPullCreate(t, session, "user1", forkedName, false, "master", "master", "Indexer notifier test pull")
+		baseUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		baseSession := loginUser(t, "user2")
+		forkUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		forkSession := loginUser(t, "user5")
+		forkedName := "repo1-fork"
+		testRepoFork(t, forkSession, "user2", "repo1", forkUser.Name, forkedName, "")
+		testEditFile(t, forkSession, forkUser.Name, forkedName, "master", "README.md", "Hello, World (Edited)\n")
+		testPullCreate(t, forkSession, forkUser.Name, forkedName, false, "master", "master", "Indexer notifier test pull")
 
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
-		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: forkedName})
+		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: forkUser.Name, Name: forkedName})
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 			BaseRepoID: baseRepo.ID,
 			BaseBranch: "master",
@@ -937,26 +895,23 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 			HeadBranch: "master",
 		})
 
-		// add protected branch for commit status
-		csrf := GetUserCSRFToken(t, session)
 		// Change master branch to protected
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"_csrf":                 csrf,
 			"rule_name":             "master",
 			"enable_push":           "true",
 			"enable_status_check":   "true",
 			"status_check_contexts": "gitea/actions",
 			"required_approvals":    "1",
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		baseSession.MakeRequest(t, req, http.StatusSeeOther)
 
 		// first time insert automerge record, return true
-		scheduled, err := automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false)
+		scheduled, err := automerge.ScheduleAutoMerge(t.Context(), baseUser, pr, repo_model.MergeStyleMerge, "auto merge test", false)
 		assert.NoError(t, err)
 		assert.True(t, scheduled)
 
 		// second time insert automerge record, return false because it does exist
-		scheduled, err = automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false)
+		scheduled, err = automerge.ScheduleAutoMerge(t.Context(), baseUser, pr, repo_model.MergeStyleMerge, "auto merge test", false)
 		assert.Error(t, err)
 		assert.False(t, scheduled)
 
@@ -970,14 +925,9 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		assert.NoError(t, err)
 		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		assert.NoError(t, err)
-		masterCommitID, err := baseGitRepo.GetBranchCommitID("master")
-		assert.NoError(t, err)
 		baseGitRepo.Close()
-		defer func() {
-			testResetRepo(t, baseRepo, "master", masterCommitID)
-		}()
 
-		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
+		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, baseUser, sha, &git_model.CommitStatus{
 			State:     commitstatus.CommitStatusSuccess,
 			TargetURL: "https://gitea.com",
 			Context:   "gitea/actions",
@@ -992,19 +942,13 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		assert.Empty(t, pr.MergedCommitID)
 
 		// approve the PR from non-author
-		approveSession := loginUser(t, "user2")
-		req = NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%d", pr.Index))
-		resp := approveSession.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		testSubmitReview(t, approveSession, htmlDoc.GetCSRF(), "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
+		testSubmitReview(t, baseSession, "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
 
-		time.Sleep(2 * time.Second)
-
-		// reload pr again
-		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
-		assert.True(t, pr.HasMerged)
+		assert.Eventually(t, func() bool {
+			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+			return pr.HasMerged
+		}, 2*time.Second, 100*time.Millisecond)
 		assert.NotEmpty(t, pr.MergedCommitID)
-
 		unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 	})
 }
@@ -1024,10 +968,10 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		err := os.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content"), 0o666)
 		assert.NoError(t, err)
 
-		err = git.AddChanges(t.Context(), dstPath, true)
+		err = gitAddChangesDeprecated(t.Context(), dstPath, true)
 		assert.NoError(t, err)
 
-		err = git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
+		err = gitCommitChangesDeprecated(t.Context(), dstPath, gitCommitChangesOptions{
 			Committer: &git.Signature{
 				Email: "user2@example.com",
 				Name:  "user2",
@@ -1042,20 +986,16 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		})
 		assert.NoError(t, err)
 
-		stderrBuf := &bytes.Buffer{}
-
-		err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
+		_, stderr, err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
 			AddDynamicArguments(`topic=test/head2`).
 			AddArguments("-o").
 			AddDynamicArguments(`title="create a test pull request with agit"`).
 			AddArguments("-o").
 			AddDynamicArguments(`description="This PR is a test pull request which created with agit"`).
 			WithDir(dstPath).
-			WithStderr(stderrBuf).
-			Run(t.Context())
+			RunStdString(t.Context())
 		assert.NoError(t, err)
-
-		assert.Contains(t, stderrBuf.String(), setting.AppURL+"user2/repo1/pulls/6")
+		assert.Contains(t, stderr, setting.AppURL+"user2/repo1/pulls/6")
 
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
@@ -1066,12 +1006,9 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 			HeadBranch: "user2/test/head2",
 		})
 
-		session := loginUser(t, "user1")
-		// add protected branch for commit status
-		csrf := GetUserCSRFToken(t, session)
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		// Change master branch to protected
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"_csrf":                 csrf,
 			"rule_name":             "master",
 			"enable_push":           "true",
 			"enable_status_check":   "true",
@@ -1101,13 +1038,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		assert.NoError(t, err)
 		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		assert.NoError(t, err)
-		masterCommitID, err := baseGitRepo.GetBranchCommitID("master")
-		assert.NoError(t, err)
 		baseGitRepo.Close()
-		defer func() {
-			testResetRepo(t, baseRepo, "master", masterCommitID)
-		}()
-
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
 			State:     commitstatus.CommitStatusSuccess,
 			TargetURL: "https://gitea.com",
@@ -1121,11 +1052,8 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		assert.Empty(t, pr.MergedCommitID)
 
 		// approve the PR from non-author
-		approveSession := loginUser(t, "user1")
-		req = NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%d", pr.Index))
-		resp := approveSession.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		testSubmitReview(t, approveSession, htmlDoc.GetCSRF(), "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
+		approveSession := loginUser(t, "user1") // FIXME: don't use admin user for testing
+		testSubmitReview(t, approveSession, "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
 
 		// reload pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
@@ -1139,11 +1067,9 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		// create a pull request
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		forkedName := "repo1-1"
 		testRepoFork(t, session, "user2", "repo1", "user1", forkedName, "")
-		defer testDeleteRepository(t, session, "user1", forkedName)
-
 		testEditFile(t, session, "user1", forkedName, "master", "README.md", "Hello, World (Edited)\n")
 		testPullCreate(t, session, "user1", forkedName, false, "master", "master", "Indexer notifier test pull")
 
@@ -1156,11 +1082,8 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 			HeadBranch: "master",
 		})
 
-		// add protected branch for commit status
-		csrf := GetUserCSRFToken(t, session)
 		// Change master branch to protected
 		pbCreateReq := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"_csrf":                      csrf,
 			"rule_name":                  "master",
 			"enable_push":                "true",
 			"enable_status_check":        "true",
@@ -1172,7 +1095,6 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 		mergeReq := NewRequestWithValues(t, "POST", "/api/v1/repos/user2/repo1/pulls/6/merge", map[string]string{
-			"_csrf":                     csrf,
 			"head_commit_id":            "",
 			"merge_when_checks_succeed": "false",
 			"force_merge":               "true",
@@ -1185,7 +1107,7 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 
 func TestPullSquashMergeEmpty(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		session := loginUser(t, "user1")
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testEditFileToNewBranch(t, session, "user2", "repo1", "master", "pr-squash-empty", "README.md", "Hello, World (Edited)\n")
 		resp := testPullCreate(t, session, "user2", "repo1", false, "master", "pr-squash-empty", "This is a pull title")
 

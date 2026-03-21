@@ -33,11 +33,12 @@ func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_m
 	newLabels := make([]*issues_model.Label, 0, len(templateLabels))
 	for _, templateLabel := range templateLabels {
 		newLabels = append(newLabels, &issues_model.Label{
-			RepoID:      generateRepo.ID,
-			Name:        templateLabel.Name,
-			Exclusive:   templateLabel.Exclusive,
-			Description: templateLabel.Description,
-			Color:       templateLabel.Color,
+			RepoID:         generateRepo.ID,
+			Name:           templateLabel.Name,
+			Exclusive:      templateLabel.Exclusive,
+			ExclusiveOrder: templateLabel.ExclusiveOrder,
+			Description:    templateLabel.Description,
+			Color:          templateLabel.Color,
 		})
 	}
 	return db.Insert(ctx, newLabels)
@@ -100,8 +101,8 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	// last - clean up the repository if something goes wrong
 	defer func() {
 		if err != nil {
-			// we can not use the ctx because it maybe canceled or timeout
-			cleanupRepository(generateRepo.ID)
+			// we can not use `ctx` because it may be canceled or timed out
+			cleanupRepository(generateRepo)
 		}
 	}()
 

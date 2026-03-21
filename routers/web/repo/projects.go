@@ -66,13 +66,6 @@ func Projects(ctx *context.Context) {
 	ctx.Data["OpenCount"] = repo.NumOpenProjects
 	ctx.Data["ClosedCount"] = repo.NumClosedProjects
 
-	var total int
-	if !isShowClosed {
-		total = repo.NumOpenProjects
-	} else {
-		total = repo.NumClosedProjects
-	}
-
 	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.IssuePagingNum,
@@ -111,12 +104,7 @@ func Projects(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
-	numPages := 0
-	if count > 0 {
-		numPages = (int(count) - 1/setting.UI.IssuePagingNum)
-	}
-
-	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, numPages)
+	pager := context.NewPagination(count, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
@@ -311,13 +299,25 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	preparedLabelFilter := issue.PrepareFilterIssueLabels(ctx, ctx.Repo.Repository.ID, ctx.Repo.Owner)
+	if ctx.Written() {
+		return
+	}
 
 	assigneeID := ctx.FormString("assignee")
+	milestoneID := ctx.FormInt64("milestone")
+
+	var milestoneIDs []int64
+	if milestoneID > 0 {
+		milestoneIDs = []int64{milestoneID}
+	} else if milestoneID == db.NoConditionID {
+		milestoneIDs = []int64{db.NoConditionID}
+	}
 
 	issuesMap, err := project_service.LoadIssuesFromProject(ctx, project, &issues_model.IssuesOptions{
-		RepoIDs:    []int64{ctx.Repo.Repository.ID},
-		LabelIDs:   preparedLabelFilter.SelectedLabelIDs,
-		AssigneeID: assigneeID,
+		RepoIDs:      []int64{ctx.Repo.Repository.ID},
+		LabelIDs:     preparedLabelFilter.SelectedLabelIDs,
+		AssigneeID:   assigneeID,
+		MilestoneIDs: milestoneIDs,
 	})
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfColumns", err)
@@ -407,6 +407,12 @@ func ViewProject(ctx *context.Context) {
 	}
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 	ctx.Data["AssigneeID"] = assigneeID
+
+	renderMilestones(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.Data["MilestoneID"] = milestoneID
 
 	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
 	project.RenderedContent, err = markdown.RenderString(rctx, project.Description)

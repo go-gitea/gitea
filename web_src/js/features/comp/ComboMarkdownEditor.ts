@@ -24,6 +24,7 @@ import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
 import {createTippy} from '../../modules/tippy.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
 import type EasyMDE from 'easymde';
+import {localUserSettings} from '../../modules/user-settings.ts';
 
 /**
  * validate if the given textarea is non-empty.
@@ -80,6 +81,8 @@ export class ComboMarkdownEditor {
   textarea: ComboMarkdownEditorTextarea;
   textareaMarkdownToolbar: HTMLElement;
   textareaAutosize: any;
+
+  buttonMonospace: HTMLButtonElement;
 
   dropzone: HTMLElement | null;
   attachedDropzoneInst: any;
@@ -140,19 +143,13 @@ export class ComboMarkdownEditor {
       if (el.nodeName === 'BUTTON' && !el.getAttribute('type')) el.setAttribute('type', 'button');
     }
 
-    const monospaceButton = this.container.querySelector('.markdown-switch-monospace')!;
-    const monospaceEnabled = localStorage?.getItem('markdown-editor-monospace') === 'true';
-    const monospaceText = monospaceButton.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text')!;
-    monospaceButton.setAttribute('data-tooltip-content', monospaceText);
-    monospaceButton.setAttribute('aria-checked', String(monospaceEnabled));
-    monospaceButton.addEventListener('click', (e) => {
+    this.buttonMonospace = this.container.querySelector('.markdown-switch-monospace')!;
+    this.applyMonospace();
+    this.buttonMonospace.addEventListener('click', (e) => {
       e.preventDefault();
-      const enabled = localStorage?.getItem('markdown-editor-monospace') !== 'true';
-      localStorage.setItem('markdown-editor-monospace', String(enabled));
-      this.textarea.classList.toggle('tw-font-mono', enabled);
-      const text = monospaceButton.getAttribute(enabled ? 'data-disable-text' : 'data-enable-text')!;
-      monospaceButton.setAttribute('data-tooltip-content', text);
-      monospaceButton.setAttribute('aria-checked', String(enabled));
+      const enabled = !localUserSettings.getBoolean('markdown-editor-monospace');
+      localUserSettings.setBoolean('markdown-editor-monospace', enabled);
+      applyMonospaceToAllEditors();
     });
 
     if (this.supportEasyMDE) {
@@ -269,8 +266,8 @@ export class ComboMarkdownEditor {
     addTableButton.addEventListener('click', () => addTablePanelTippy.show());
 
     addTablePanel.querySelector('.ui.button.primary')!.addEventListener('click', () => {
-      let rows = parseInt(addTablePanel.querySelector<HTMLInputElement>('[name=rows]')!.value);
-      let cols = parseInt(addTablePanel.querySelector<HTMLInputElement>('[name=cols]')!.value);
+      let rows = parseInt(addTablePanel.querySelector<HTMLInputElement>('.add-table-rows')!.value);
+      let cols = parseInt(addTablePanel.querySelector<HTMLInputElement>('.add-table-cols')!.value);
       rows = Math.max(1, Math.min(100, rows));
       cols = Math.max(1, Math.min(100, cols));
       replaceTextareaSelection(this.textarea, `\n${this.generateMarkdownTable(rows, cols)}\n\n`);
@@ -321,8 +318,10 @@ export class ComboMarkdownEditor {
 
   async switchToEasyMDE() {
     if (this.easyMDE) return;
-    // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
-    const {default: EasyMDE} = await import(/* webpackChunkName: "easymde" */'easymde');
+    const [{default: EasyMDE}] = await Promise.all([
+      import(/* webpackChunkName: "easymde" */'easymde'),
+      import(/* webpackChunkName: "easymde" */'../../../css/easymde.css'),
+    ]);
     const easyMDEOpt: EasyMDE.Options = {
       autoDownloadFontAwesome: false,
       element: this.textarea,
@@ -369,7 +368,7 @@ export class ComboMarkdownEditor {
     hideElem(this.textareaMarkdownToolbar);
   }
 
-  value(v: any = undefined) {
+  value(v?: any) {
     if (v === undefined) {
       if (this.easyMDE) {
         return this.easyMDE.value();
@@ -403,14 +402,31 @@ export class ComboMarkdownEditor {
   }
 
   get userPreferredEditor(): string {
-    return window.localStorage.getItem(`markdown-editor-${this.previewMode ?? 'default'}`) || '';
+    return localUserSettings.getString(`markdown-editor-${this.previewMode ?? 'default'}`);
   }
+
   set userPreferredEditor(s: string) {
-    window.localStorage.setItem(`markdown-editor-${this.previewMode ?? 'default'}`, s);
+    localUserSettings.setString(`markdown-editor-${this.previewMode ?? 'default'}`, s);
+  }
+
+  applyMonospace() {
+    const enabled = localUserSettings.getBoolean('markdown-editor-monospace');
+    const text = this.buttonMonospace.getAttribute(enabled ? 'data-disable-text' : 'data-enable-text')!;
+    this.textarea.classList.toggle('tw-font-mono', enabled);
+    this.buttonMonospace.setAttribute('data-tooltip-content', text);
+    this.buttonMonospace.setAttribute('aria-checked', String(enabled));
   }
 }
 
-export function getComboMarkdownEditor(el: any) {
+function applyMonospaceToAllEditors() {
+  const editors = document.querySelectorAll<ComboMarkdownEditorContainer>('.combo-markdown-editor');
+  for (const editorContainer of editors) {
+    const editor = getComboMarkdownEditor(editorContainer);
+    if (editor) editor.applyMonospace();
+  }
+}
+
+export function getComboMarkdownEditor(el: any): ComboMarkdownEditor | null {
   if (!el) return null;
   if (el.length) el = el[0];
   return el._giteaComboMarkdownEditor;

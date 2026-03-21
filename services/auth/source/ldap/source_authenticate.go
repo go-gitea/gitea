@@ -73,7 +73,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	}
 
 	if user != nil {
-		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, user, source.AuthSource, sr.SSHPublicKey) {
+		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, user, source.AuthSource, sr.SSHPublicKey, source.SSHKeysAreVerified) {
 			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
@@ -99,7 +99,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			return user, err
 		}
 
-		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(ctx, user, source.AuthSource, sr.SSHPublicKey) {
+		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(ctx, user, source.AuthSource, sr.SSHPublicKey, source.SSHKeysAreVerified) {
 			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}

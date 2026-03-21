@@ -18,10 +18,6 @@ func TestMain(m *testing.M) {
 	unittest.MainTest(m)
 }
 
-func timePtr(t time.Time) *time.Time {
-	return &t
-}
-
 func assertTimeEqual(t *testing.T, expected, actual time.Time) {
 	assert.Equal(t, expected.UTC(), actual.UTC())
 }
@@ -171,7 +167,6 @@ func assertReactionsEqual(t *testing.T, expected, actual []*base.Reaction) {
 func assertReleaseAssetEqual(t *testing.T, expected, actual *base.ReleaseAsset) {
 	assert.Equal(t, expected.ID, actual.ID)
 	assert.Equal(t, expected.Name, actual.Name)
-	assert.Equal(t, expected.ContentType, actual.ContentType)
 	assert.Equal(t, expected.Size, actual.Size)
 	assert.Equal(t, expected.DownloadCount, actual.DownloadCount)
 	assertTimeEqual(t, expected.Created, actual.Created)
@@ -223,7 +218,7 @@ func assertRepositoryEqual(t *testing.T, expected, actual *base.Repository) {
 
 func assertReviewEqual(t *testing.T, expected, actual *base.Review) {
 	assert.Equal(t, expected.ID, actual.ID, "ID")
-	assert.Equal(t, expected.IssueIndex, actual.IssueIndex, "IsssueIndex")
+	assert.Equal(t, expected.IssueIndex, actual.IssueIndex, "IssueIndex")
 	assert.Equal(t, expected.ReviewerID, actual.ReviewerID, "ReviewerID")
 	assert.Equal(t, expected.ReviewerName, actual.ReviewerName, "ReviewerName")
 	assert.Equal(t, expected.Official, actual.Official, "Official")

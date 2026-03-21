@@ -56,7 +56,7 @@ func Profile(ctx *context.Context) {
 
 // ProfilePost response for change user's profile
 func ProfilePost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
@@ -222,7 +222,7 @@ func Organization(ctx *context.Context) {
 	}
 
 	ctx.Data["Orgs"] = orgs
-	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplSettingsOrganization)
@@ -244,13 +244,13 @@ func Repos(ctx *context.Context) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
-	start := (opts.Page - 1) * opts.PageSize
-	end := start + opts.PageSize
+	start := int64((opts.Page - 1) * opts.PageSize)
+	end := start + int64(opts.PageSize)
 
 	adoptOrDelete := ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories)
 
 	ctxUser := ctx.Doer
-	count := 0
+	var count int64
 
 	if adoptOrDelete {
 		repoNames := make([]string, 0, setting.UI.Admin.UserPagingNum)
@@ -310,12 +310,12 @@ func Repos(ctx *context.Context) {
 		ctx.Data["Dirs"] = repoNames
 		ctx.Data["ReposMap"] = repos
 	} else {
-		repos, count64, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
+		repos, reposCount, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
 		if err != nil {
 			ctx.ServerError("GetUserRepositories", err)
 			return
 		}
-		count = int(count64)
+		count = reposCount
 
 		for i := range repos {
 			if repos[i].IsFork {
@@ -360,7 +360,7 @@ func Appearance(ctx *context.Context) {
 // UpdateUIThemePost is used to update users' specific theme
 func UpdateUIThemePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateThemeForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if ctx.HasError() {
@@ -390,7 +390,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 // UpdateUserLang update a user's language
 func UpdateUserLang(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateLanguageForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if form.Language != "" {

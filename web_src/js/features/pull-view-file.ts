@@ -9,13 +9,13 @@ const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all 
 const expandFilesBtnSelector = '#expand-files-btn';
 const collapseFilesBtnSelector = '#collapse-files-btn';
 
-// Refreshes the summary of viewed files if present
+// Refreshes the summary of viewed files
 // The data used will be window.config.pageData.prReview.numberOf{Viewed}Files
 function refreshViewedFilesSummary() {
-  const viewedFilesProgress = document.querySelector('#viewed-files-summary');
-  viewedFilesProgress?.setAttribute('value', prReview.numberOfViewedFiles);
-  const summaryLabel = document.querySelector('#viewed-files-summary-label')!;
-  if (summaryLabel) summaryLabel.innerHTML = summaryLabel.getAttribute('data-text-changed-template')!
+  const viewedFilesProgress = document.querySelector('#viewed-files-summary')!;
+  viewedFilesProgress.setAttribute('value', prReview.numberOfViewedFiles);
+  const summaryLabel = document.querySelector<HTMLElement>('#viewed-files-summary-label')!;
+  summaryLabel.textContent = summaryLabel.getAttribute('data-text-changed-template')!
     .replace('%[1]d', prReview.numberOfViewedFiles)
     .replace('%[2]d', prReview.numberOfFiles);
 }
@@ -28,7 +28,7 @@ export function initViewedCheckboxListenerFor() {
     // To prevent double addition of listeners
     form.setAttribute('data-has-viewed-checkbox-listener', String(true));
 
-    // The checkbox consists of a div containing the real checkbox with its label and the CSRF token,
+    // The checkbox consists of a div containing the real checkbox with its label,
     // hence the actual checkbox first has to be found
     const checkbox = form.querySelector<HTMLInputElement>('input[type=checkbox]')!;
     checkbox.addEventListener('input', function() {

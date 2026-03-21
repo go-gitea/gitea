@@ -73,7 +73,7 @@ func EditApplicationPost(ctx *context.Context) {
 
 // ApplicationsRegenerateSecret handles the post request for regenerating the secret
 func ApplicationsRegenerateSecret(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsAdminApplications"] = true
 
 	oa := newOAuth2CommonHandlers()

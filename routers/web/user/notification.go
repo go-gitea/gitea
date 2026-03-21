@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -60,11 +61,11 @@ func prepareUserNotificationsData(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPagination(int(total), perPage, page, 5)
+	pager := context.NewPagination(total, perPage, page, 5)
 	if pager.Paginater.Current() < page {
 		// use the last page if the requested page is more than total pages
 		page = pager.Paginater.Current()
-		pager = context.NewPagination(int(total), perPage, page, 5)
+		pager = context.NewPagination(total, perPage, page, 5)
 	}
 
 	statuses := []activities_model.NotificationStatus{queryStatus, activities_model.NotificationStatusPinned}
@@ -128,7 +129,9 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	ctx.Data["Notifications"] = notifications
 	ctx.Data["Link"] = setting.AppSubURL + "/notifications"
 	ctx.Data["SequenceNumber"] = ctx.FormString("sequence-number")
+
 	pager.AddParamFromRequest(ctx.Req)
+	pager.RemoveParam(container.SetOf("div-only", "sequence-number"))
 	ctx.Data["Page"] = pager
 }
 
@@ -283,7 +286,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("notification.subscriptions")
 
 	// redirect to last page if request page is more than total pages
-	pager := context.NewPagination(int(count), setting.UI.IssuePagingNum, page, 5)
+	pager := context.NewPagination(count, setting.UI.IssuePagingNum, page, 5)
 	if pager.Paginater.Current() < page {
 		ctx.Redirect(fmt.Sprintf("/notifications/subscriptions?page=%d", pager.Paginater.Current()))
 		return
@@ -367,12 +370,11 @@ func NotificationWatching(ctx *context.Context) {
 		ctx.ServerError("SearchRepository", err)
 		return
 	}
-	total := int(count)
-	ctx.Data["Total"] = total
+	ctx.Data["Total"] = count
 	ctx.Data["Repos"] = repos
 
 	// redirect to last page if request page is more than total pages
-	pager := context.NewPagination(total, setting.UI.User.RepoPagingNum, page, 5)
+	pager := context.NewPagination(count, setting.UI.User.RepoPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 

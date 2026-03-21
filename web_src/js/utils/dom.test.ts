@@ -44,11 +44,11 @@ test('queryElemChildren', () => {
 });
 
 test('toggleElem', () => {
-  const el = createElementFromHTML('<p><div>a</div><div class="tw-hidden">b</div></p>');
+  const el = createElementFromHTML('<div><div>a</div><div class="tw-hidden">b</div></div>');
   toggleElem(el.children);
-  expect(el.outerHTML).toEqual('<p><div class="tw-hidden">a</div><div class="">b</div></p>');
+  expect(el.outerHTML).toEqual('<div><div class="tw-hidden">a</div><div class="">b</div></div>');
   toggleElem(el.children, false);
-  expect(el.outerHTML).toEqual('<p><div class="tw-hidden">a</div><div class="tw-hidden">b</div></p>');
+  expect(el.outerHTML).toEqual('<div><div class="tw-hidden">a</div><div class="tw-hidden">b</div></div>');
   toggleElem(el.children, true);
-  expect(el.outerHTML).toEqual('<p><div class="">a</div><div class="">b</div></p>');
+  expect(el.outerHTML).toEqual('<div><div class="">a</div><div class="">b</div></div>');
 });

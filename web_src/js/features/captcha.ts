@@ -41,7 +41,6 @@ export async function initCaptcha() {
       // * the INPUT_NAME is a "const", it should not be changed.
       // * the "mCaptcha.default" is actually the "Widget".
 
-      // @ts-expect-error TS2540: Cannot assign to 'INPUT_NAME' because it is a read-only property.
       mCaptcha.INPUT_NAME = 'm-captcha-response';
       const instanceURL = captchaEl.getAttribute('data-instance-url')!;
 

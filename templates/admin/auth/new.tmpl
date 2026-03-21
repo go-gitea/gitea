@@ -6,7 +6,6 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
-				{{.CsrfTokenHtml}}
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_Type}}error{{end}}">
 					<label>{{ctx.Locale.Tr "admin.auths.auth_type"}}</label>

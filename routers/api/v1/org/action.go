@@ -67,6 +67,7 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 		}
 	}
 
+	ctx.SetLinkHeader(count, opts.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiSecrets)
 }
@@ -170,27 +171,6 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 }
 
 // https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-organization
-// GetRegistrationToken returns the token to register org runners
-func (Action) GetRegistrationToken(ctx *context.APIContext) {
-	// swagger:operation GET /orgs/{org}/actions/runners/registration-token organization orgGetRunnerRegistrationToken
-	// ---
-	// summary: Get an organization's actions runner registration token
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: org
-	//   in: path
-	//   description: name of the organization
-	//   type: string
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/RegistrationToken"
-
-	shared.GetRegistrationToken(ctx, ctx.Org.Organization.ID, 0)
-}
-
-// https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-organization
 // CreateRegistrationToken returns the token to register org runners
 func (Action) CreateRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation POST /orgs/{org}/actions/runners/registration-token organization orgCreateRunnerRegistrationToken
@@ -240,9 +220,10 @@ func (Action) ListVariables(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	listOptions := utils.GetListOptions(ctx)
 	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{
 		OwnerID:     ctx.Org.Organization.ID,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -259,7 +240,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 			Description: v.Description,
 		}
 	}
-
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, variables)
 }
@@ -504,6 +485,11 @@ func (Action) ListRunners(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: disabled
+	//   in: query
+	//   description: filter by disabled status (true or false)
+	//   type: boolean
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/definitions/ActionRunnersResponse"
@@ -568,6 +554,42 @@ func (Action) DeleteRunner(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
+}
+
+// UpdateRunner update an org-level runner
+func (Action) UpdateRunner(ctx *context.APIContext) {
+	// swagger:operation PATCH /orgs/{org}/actions/runners/{runner_id} organization updateOrgRunner
+	// ---
+	// summary: Update an org-level runner
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditActionRunnerOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	shared.UpdateRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 
 func (Action) ListWorkflowJobs(ctx *context.APIContext) {

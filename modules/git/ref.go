@@ -220,3 +220,14 @@ func (ref RefName) RefWebLinkPath() string {
 	}
 	return string(refType) + "/" + util.PathEscapeSegments(ref.ShortName())
 }
+
+func ParseRefSuffix(ref string) (string, string) {
+	// Partially support https://git-scm.com/docs/gitrevisions
+	if idx := strings.Index(ref, "@{"); idx != -1 {
+		return ref[:idx], ref[idx:]
+	}
+	if idx := strings.Index(ref, "^"); idx != -1 {
+		return ref[:idx], ref[idx:]
+	}
+	return ref, ""
+}

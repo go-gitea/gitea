@@ -21,10 +21,9 @@ import (
 
 // RegisterRenderers registers all supported third part renderers according settings
 func RegisterRenderers() {
+	markup.RegisterRenderer(&openAPIRenderer{})
 	for _, renderer := range setting.ExternalMarkupRenderers {
-		if renderer.Enabled && renderer.Command != "" && len(renderer.FileExtensions) > 0 {
-			markup.RegisterRenderer(&Renderer{renderer})
-		}
+		markup.RegisterRenderer(&Renderer{renderer})
 	}
 }
 
@@ -38,22 +37,18 @@ var (
 	_ markup.ExternalRenderer    = (*Renderer)(nil)
 )
 
-// Name returns the external tool name
 func (p *Renderer) Name() string {
 	return p.MarkupName
 }
 
-// NeedPostProcess implements markup.Renderer
 func (p *Renderer) NeedPostProcess() bool {
 	return p.MarkupRenderer.NeedPostProcess
 }
 
-// Extensions returns the supported extensions of the tool
-func (p *Renderer) Extensions() []string {
-	return p.FileExtensions
+func (p *Renderer) FileNamePatterns() []string {
+	return p.FilePatterns
 }
 
-// SanitizerRules implements markup.Renderer
 func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return p.MarkupSanitizerRules
 }

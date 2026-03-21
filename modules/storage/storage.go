@@ -68,7 +68,12 @@ type ObjectStorage interface {
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
 	URL(path, name, method string, reqParams url.Values) (*url.URL, error)
-	IterateObjects(path string, iterator func(path string, obj Object) error) error
+
+	// IterateObjects calls the iterator function for each object in the storage with the given path as prefix
+	// The "fullPath" argument in callback is the full path in this storage.
+	// * IterateObjects("", ...): iterate all objects in this storage
+	// * IterateObjects("sub-path", ...): iterate all objects with "sub-path" as prefix in this storage, the "fullPath" will be like "sub-path/xxx"
+	IterateObjects(basePath string, iterator func(fullPath string, obj Object) error) error
 }
 
 // Copy copies a file from source ObjectStorage to dest ObjectStorage

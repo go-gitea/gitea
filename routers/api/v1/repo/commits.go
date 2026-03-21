@@ -290,7 +290,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
+	ctx.SetLinkHeader(commitsCountTotal, listOptions.PageSize)
 	ctx.SetTotalCountHeader(commitsCountTotal)
 
 	// kept for backwards compatibility

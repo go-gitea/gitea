@@ -4,7 +4,7 @@ import {showErrorToast} from '../modules/toast.ts';
 import {queryElemChildren} from '../utils/dom.ts';
 
 export function initRepoSettingsBranchesDrag() {
-  const protectedBranchesList = document.querySelector('#protected-branches-list');
+  const protectedBranchesList = document.querySelector<HTMLElement>('#protected-branches-list');
   if (!protectedBranchesList) return;
 
   createSortable(protectedBranchesList, {

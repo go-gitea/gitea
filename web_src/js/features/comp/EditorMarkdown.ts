@@ -186,6 +186,7 @@ export function markdownHandleIndention(tvs: TextareaValueSelection): MarkdownHa
 }
 
 function handleNewline(textarea: HTMLTextAreaElement, e: KeyboardEvent) {
+  if (e.isComposing) return;
   const ret = markdownHandleIndention({value: textarea.value, selStart: textarea.selectionStart, selEnd: textarea.selectionEnd});
   if (!ret.handled || !ret.valueSelection) return; // FIXME: the "handled" seems redundant, only valueSelection is enough (null for unhandled)
   e.preventDefault();
@@ -222,6 +223,7 @@ function isTextExpanderShown(textarea: HTMLElement): boolean {
 
 export function initTextareaMarkdown(textarea: HTMLTextAreaElement) {
   textarea.addEventListener('keydown', (e) => {
+    if (e.isComposing) return;
     if (isTextExpanderShown(textarea)) return;
     if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       // use Tab/Shift-Tab to indent/unindent the selected lines

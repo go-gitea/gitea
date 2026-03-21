@@ -131,8 +131,8 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
-		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
-			log.Error("create respotiry notice failed: ", err2)
+		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository (%s/%s) from %s failed: %v", ownerName, opts.RepoName, opts.OriginalURL, err)); err2 != nil {
+			log.Error("create repository notice failed: ", err2)
 		}
 		return nil, err
 	}
@@ -476,6 +476,15 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 
 			if isEnd {
 				break
+			}
+		}
+		if len(mapInsertedPRIndexes) > 0 {
+			// The pull requests migrating process may created head branches in the base repository
+			// because head repository maybe a fork one which will not be migrated. So that we need
+			// to sync branches again.
+			log.Trace("syncing branches after migrating pull requests")
+			if err = uploader.SyncBranches(ctx); err != nil {
+				return err
 			}
 		}
 	}

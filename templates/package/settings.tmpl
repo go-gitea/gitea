@@ -17,7 +17,6 @@
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "packages.settings.link.description"}}</p>
 			<form class="ui form form-fetch-action ignore-dirty flex-text-block" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="link">
 				<div data-global-init="initSearchRepoBox" class="ui search" data-uid="{{.PackageDescriptor.Owner.ID}}">
 					<div class="ui input">
@@ -49,7 +48,6 @@
 								{{ctx.Locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
 							</div>
 							<form class="ui form" action="{{.Link}}" method="post">
-								{{.CsrfTokenHtml}}
 								<input type="hidden" name="action" value="delete">
 								{{template "base/modal_actions_confirm" .}}
 							</form>

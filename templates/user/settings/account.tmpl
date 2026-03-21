@@ -7,7 +7,6 @@
 			{{if and (not ($.UserDisabledFeatures.Contains "manage_credentials")) (or (.SignedUser.IsLocal) (.SignedUser.IsOAuth2))}}
 			<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/settings/account" method="post">
 				{{template "base/disable_form_autofill"}}
-				{{.CsrfTokenHtml}}
 				{{if .SignedUser.IsPasswordSet}}
 				<div class="required field {{if .Err_OldPassword}}error{{end}}">
 					<label for="old_password">{{ctx.Locale.Tr "settings.old_password"}}</label>
@@ -62,7 +61,6 @@
 								</button>
 								{{if .CanBePrimary}}
 									<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
-										{{$.CsrfTokenHtml}}
 										<input name="_method" type="hidden" value="PRIMARY">
 										<input name="id" type="hidden" value="{{.ID}}">
 										<button class="ui primary tiny button">{{ctx.Locale.Tr "settings.primary_email"}}</button>
@@ -71,7 +69,6 @@
 							{{end}}
 							{{if not .IsActivated}}
 								<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
-									{{$.CsrfTokenHtml}}
 									<input name="_method" type="hidden" value="SENDACTIVATION">
 									<input name="id" type="hidden" value="{{.ID}}">
 									{{if $.ActivationsPending}}
@@ -92,7 +89,6 @@
 		{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
 		<div class="ui bottom attached segment">
 			<form class="ui form" action="{{AppSubUrl}}/user/settings/account/email" method="post">
-				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{ctx.Locale.Tr "settings.add_new_email"}}</label>
 					<input id="email" name="email" type="email" required {{if not .CanAddEmails}}disabled{{end}}>
@@ -121,7 +117,6 @@
 			</div>
 			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
 				{{template "base/disable_form_autofill"}}
-				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="password-confirmation">{{ctx.Locale.Tr "password"}}</label>
 					<input id="password-confirmation" name="password" type="password" autocomplete="off" required>

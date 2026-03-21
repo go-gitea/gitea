@@ -32,7 +32,7 @@ var (
 
 func CheckAuthToken(ctx context.Context, value string) (*auth_model.AuthToken, error) {
 	if len(value) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	parts := strings.SplitN(value, ":", 2)
