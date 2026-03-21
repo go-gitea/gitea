@@ -8,12 +8,15 @@ import (
 
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+
+	"xorm.io/builder"
 )
 
 // parseRepoTypeFilter parses the "type" query parameter into an IsPrivate filter.
@@ -40,9 +43,10 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	}
 
 	if !private {
-		// Unauthenticated caller: can only see public repos.
-		// If type=private was requested explicitly, short-circuit so that
-		// neither the body nor X-Total-Count leaks private repo existence.
+		// Caller is not authorized to see private repos (unauthenticated or
+		// public-only token scope). If type=private was requested explicitly,
+		// short-circuit so that neither the body nor X-Total-Count leaks
+		// private repo existence.
 		if isPrivate.Has() && isPrivate.Value() {
 			ctx.SetTotalCountHeader(0)
 			ctx.JSON(http.StatusOK, &[]*api.Repository{})
@@ -53,19 +57,24 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	}
 
 	opts := repo_model.SearchRepoOptions{
-		Actor:       u,
-		IsPrivate:   isPrivate,
 		ListOptions: utils.GetListOptions(ctx),
 		OrderBy:     "id ASC",
 	}
 
-	repos, count, err := repo_model.GetUserRepositories(ctx, opts)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
+	// Build query condition: only repos owned by u, with optional visibility filter.
+	var cond builder.Cond = builder.Eq{"owner_id": u.ID}
+	if isPrivate.Has() {
+		cond = cond.And(builder.Eq{"is_private": isPrivate.Value()})
 	}
 
-	if err := repos.LoadAttributes(ctx); err != nil {
+	// For non-owner/non-admin requesters, add access-control filtering directly
+	// in the query so that both count and pagination reflect only accessible repos.
+	if ctx.Doer == nil || (!ctx.Doer.IsAdmin && ctx.Doer.ID != u.ID) {
+		cond = cond.And(repo_model.AccessibleRepositoryCondition(ctx.Doer, unit.TypeInvalid))
+	}
+
+	repos, count, err := repo_model.SearchRepositoryByCondition(ctx, opts, cond, true)
+	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -77,17 +86,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		if ctx.IsSigned && ctx.Doer.IsAdmin || permission.HasAnyUnitAccess() {
-			apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], permission))
-		}
-	}
-
-	// When the requester is not the owner (and not an admin), the raw DB count
-	// may include repos they cannot access, which would leak private repo counts
-	// via the X-Total-Count header even when the body is correctly filtered.
-	// Use the access-filtered count in that case.
-	if ctx.Doer == nil || (!ctx.Doer.IsAdmin && ctx.Doer.ID != u.ID) {
-		count = int64(len(apiRepos))
+		apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], permission))
 	}
 
 	ctx.SetLinkHeader(count, opts.ListOptions.PageSize)
@@ -129,7 +128,7 @@ func ListUserRepos(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	private := ctx.IsSigned
+	private := ctx.IsSigned && !ctx.PublicOnly
 	listUserRepos(ctx, ctx.ContextUser, private)
 }
 
@@ -171,6 +170,18 @@ func ListMyRepos(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
+
+	// Respect public-only token scopes: a public-only token must not
+	// be able to list or filter by private repositories.
+	if ctx.PublicOnly {
+		if isPrivate.Has() && isPrivate.Value() {
+			ctx.SetTotalCountHeader(0)
+			ctx.JSON(http.StatusOK, &[]*api.Repository{})
+			return
+		}
+		isPrivate = optional.Some(false)
+	}
+
 	opts.IsPrivate = isPrivate
 
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
@@ -231,5 +242,5 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned)
+	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned && !ctx.PublicOnly)
 }
