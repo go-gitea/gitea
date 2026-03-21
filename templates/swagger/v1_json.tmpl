@@ -5580,9 +5580,6 @@
     },
     "/repos/{owner}/{repo}/actions/runs/{run}/rerun-failed-jobs": {
       "post": {
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "repository"
         ],
@@ -5613,7 +5610,7 @@
         ],
         "responses": {
           "201": {
-            "description": "Created"
+            "$ref": "#/responses/empty"
           },
           "400": {
             "$ref": "#/responses/error"

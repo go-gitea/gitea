@@ -1273,8 +1273,6 @@ func RerunFailedWorkflowRun(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/actions/runs/{run}/rerun-failed-jobs repository rerunFailedWorkflowRun
 	// ---
 	// summary: Reruns all failed jobs in a workflow run
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -1293,7 +1291,7 @@ func RerunFailedWorkflowRun(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "201":
-	//     description: Created
+	//     "$ref": "#/responses/empty"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "403":
