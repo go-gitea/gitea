@@ -85,9 +85,7 @@ const saveState = () => {
 };
 
 loadSavedState();
-watch([translateX, translateY, scale], () => {
-  debounce(500, saveState);
-})
+watch([translateX, translateY, scale], debounce(500, saveState))
 
 const nodeWidth = computed(() => {
   const maxNameLength = Math.max(...props.jobs.map(j => j.name.length));

@@ -1,5 +1,9 @@
 import {createElementFromAttrs} from '../utils/dom.ts';
 import {renderAnsi} from '../render/ansi.ts';
+import {reactive} from 'vue';
+import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsRunStatus} from '../modules/gitea-actions.ts';
+import type {IntervalId} from '../types.ts';
+import {POST} from '../modules/fetch.ts';
 
 // How GitHub Actions logs work:
 // * Workflow command outputs log commands like "::group::the-title", "::add-matcher::...."
@@ -56,3 +60,96 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   logMsg.innerHTML = renderAnsi(msgContent);
   return logMsg;
 }
+
+export function createEmptyActionsRun(): ActionsRun {
+  return {
+    id: 0,
+    link: '',
+    title: '',
+    titleHTML: '',
+    status: '' as ActionsRunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
+    canCancel: false,
+    canApprove: false,
+    canRerun: false,
+    canRerunFailed: false,
+    canDeleteArtifact: false,
+    done: false,
+    workflowID: '',
+    workflowLink: '',
+    isSchedule: false,
+    duration: '',
+    triggeredAt: 0,
+    triggerEvent: '',
+    jobs: [] as Array<ActionsJob>,
+    commit: {
+      localeCommit: '',
+      localePushedBy: '',
+      shortSHA: '',
+      link: '',
+      pusher: {
+        displayName: '',
+        link: '',
+      },
+      branch: {
+        name: '',
+        link: '',
+        isDeleted: false,
+      },
+    },
+  };
+}
+
+export function createActionRunViewStore(actionsUrl: string, runId: number) {
+  let loadingAbortController: AbortController | null = null;
+  let intervalID: IntervalId | null = null;
+  const viewData = reactive({
+    currentRun: createEmptyActionsRun(),
+    runArtifacts: [] as Array<ActionsArtifact>,
+  });
+  const loadCurrentRun = async () => {
+    if (loadingAbortController) return;
+    const abortController = new AbortController();
+    loadingAbortController = abortController;
+    try {
+      const url = `${actionsUrl}/runs/${runId}`;
+      const resp = await POST(url, {signal: abortController.signal, data: {}});
+      const runResp = await resp.json();
+      if (loadingAbortController !== abortController) return;
+
+      viewData.runArtifacts = runResp.artifacts || [];
+      viewData.currentRun = runResp.state.run;
+      // clear the interval timer if the job is done
+      if (viewData.currentRun.done && intervalID) {
+        clearInterval(intervalID);
+        intervalID = null;
+      }
+    } catch (e) {
+      // avoid network error while unloading page, and ignore "abort" error
+      if (e instanceof TypeError || abortController.signal.aborted) return;
+      throw e;
+    } finally {
+      if (loadingAbortController === abortController) loadingAbortController = null;
+    }
+  };
+
+  return reactive({
+    viewData,
+
+    async startPollingCurrentRun() {
+      await loadCurrentRun();
+      intervalID = setInterval(() => loadCurrentRun(), 1000);
+    },
+    async forceReloadCurrentRun() {
+      loadingAbortController?.abort();
+      loadingAbortController = null;
+      await loadCurrentRun();
+    },
+    stopPollingCurrentRun() {
+      if (!intervalID) return;
+      clearInterval(intervalID);
+      intervalID = null;
+    },
+  });
+}
+
+export type ActionRunViewStore = ReturnType<typeof createActionRunViewStore>;

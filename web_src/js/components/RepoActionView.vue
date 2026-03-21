@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
-import {computed, onMounted, onUnmounted, ref, toRefs} from 'vue';
+import {toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
-import type {IntervalId} from '../types.ts';
-import type {ActionsRunStatus, ActionsJob, ActionsRun, ActionsArtifact} from '../modules/gitea-actions.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
+import {createActionRunViewStore} from "./ActionRunView.ts";
 
 defineOptions({
   name: 'RepoActionView',
@@ -19,61 +18,9 @@ const props = defineProps<{
   locale: Record<string, any>;
 }>();
 
-const {runId, jobId, actionsUrl, locale} = toRefs(props);
-
-type RunResponse = {
-  artifacts?: ActionsArtifact[];
-  state: {
-    run: ActionsRun;
-  };
-};
-
-function createEmptyRun(): ActionsRun {
-  return {
-    link: '',
-    title: '',
-    titleHTML: '',
-    status: '' as ActionsRunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
-    canCancel: false,
-    canApprove: false,
-    canRerun: false,
-    canRerunFailed: false,
-    canDeleteArtifact: false,
-    done: false,
-    workflowID: '',
-    workflowLink: '',
-    isSchedule: false,
-    duration: '',
-    triggeredAt: 0,
-    triggerEvent: '',
-    jobs: [] as Array<ActionsJob>,
-    commit: {
-      localeCommit: '',
-      localePushedBy: '',
-      shortSHA: '',
-      link: '',
-      pusher: {
-        displayName: '',
-        link: '',
-      },
-      branch: {
-        name: '',
-        link: '',
-        isDeleted: false,
-      },
-    },
-  };
-}
-
-const loadingAbortController = ref<AbortController | null>(null);
-const intervalID = ref<IntervalId | null>(null);
-const artifacts = ref<ActionsArtifact[]>([]);
-const run = ref<ActionsRun>(createEmptyRun());
-
-const runTriggeredAtISO = computed(() => {
-  const t = run.value.triggeredAt;
-  return t ? new Date(t * 1000).toISOString() : '';
-});
+const locale = props.locale;
+const store = createActionRunViewStore(props.actionsUrl, props.runId);
+const {currentRun: run , runArtifacts: artifacts} = toRefs(store.viewData);
 
 function cancelRun() {
   POST(`${run.value.link}/cancel`);
@@ -84,65 +31,10 @@ function approveRun() {
 }
 
 async function deleteArtifact(name: string) {
-  if (!locale.value || !window.confirm(locale.value.confirmDeleteArtifact.replace('%s', name))) return;
-  // TODO: should escape the "name"?
-  await DELETE(`${run.value.link}/artifacts/${name}`);
-  await loadRunForce();
+  if (!window.confirm(locale.confirmDeleteArtifact.replace('%s', name))) return;
+  await DELETE(`${run.value.link}/artifacts/${encodeURIComponent(name)}`);
+  await store.forceReloadCurrentRun();
 }
-
-async function fetchRunData(abortController: AbortController): Promise<RunResponse> {
-  const url = `${actionsUrl.value}/runs/${runId.value}`;
-  const resp = await POST(url, {
-    signal: abortController.signal,
-    data: {logCursors: []},
-  });
-  return await resp.json();
-}
-
-async function loadRunForce() {
-  loadingAbortController.value?.abort();
-  loadingAbortController.value = null;
-  await loadRun();
-}
-
-async function loadRun() {
-  if (loadingAbortController.value) return;
-  const abortController = new AbortController();
-  loadingAbortController.value = abortController;
-  try {
-    const job = await fetchRunData(abortController);
-    if (loadingAbortController.value !== abortController) return;
-
-    artifacts.value = job.artifacts || [];
-    run.value = job.state.run;
-    // clear the interval timer if the job is done
-    if (run.value.done && intervalID.value) {
-      clearInterval(intervalID.value);
-      intervalID.value = null;
-    }
-  } catch (e) {
-    // avoid network error while unloading page, and ignore "abort" error
-    if (e instanceof TypeError || abortController.signal.aborted) return;
-    throw e;
-  } finally {
-    if (loadingAbortController.value === abortController) loadingAbortController.value = null;
-  }
-}
-
-onMounted(async () => {
-  // load run data and then auto-reload periodically
-  await loadRun();
-  intervalID.value = setInterval(() => void loadRun(), 1000);
-});
-
-onUnmounted(() => {
-  // clear the interval timer when the component is unmounted
-  // even our page is rendered once, not spa style
-  if (intervalID.value) {
-    clearInterval(intervalID.value);
-    intervalID.value = null;
-  }
-});
 </script>
 <template>
   <!-- make the view container full width to make users easier to read logs -->
@@ -202,7 +94,7 @@ onUnmounted(() => {
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" :href="run.link" :class="!jobId ? 'selected' : ''">
+            <a class="job-brief-item" :href="run.link" :class="!props.jobId ? 'selected' : ''">
               <div class="job-brief-item-left">
                 <SvgIcon name="octicon-list-unordered" class="tw-mr-2"/>
                 <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ locale.summary }}</span>
@@ -210,7 +102,7 @@ onUnmounted(() => {
             </a>
             <div class="ui divider tw-mt-2 tw-mb-1"/>
             <div class="tw-text-sm tw-text-grey tw-mt-1 tw-mb-1">{{ locale.allJobs }}</div>
-            <a class="job-brief-item" :href="run.link+'/jobs/'+job.id" :class="jobId === job.id ? 'selected' : ''" v-for="job in run.jobs" :key="job.id">
+            <a class="job-brief-item" :href="run.link+'/jobs/'+job.id" :class="props.jobId === job.id ? 'selected' : ''" v-for="job in run.jobs" :key="job.id">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
@@ -251,20 +143,16 @@ onUnmounted(() => {
 
       <div class="action-view-right">
         <ActionRunSummaryView
-          v-if="!jobId"
-          :run="run"
-          :artifacts="artifacts"
+          v-if="!props.jobId"
+          :store="store"
           :locale="locale"
-          :run-triggered-at-iso="runTriggeredAtISO"
-          :run-trigger-event-label="run.triggerEvent"
         />
         <ActionRunJobView
           v-else
-          :run-id="runId"
-          :job-id="jobId"
-          :actions-url="actionsUrl"
+          :store="store"
           :locale="locale"
-          :run="run"
+          :job-id="props.jobId"
+          :actions-url="props.actionsUrl"
         />
       </div>
     </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch} from 'vue';
+import {nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
@@ -8,8 +8,14 @@ import {POST} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
-import type {ActionsRun, ActionsRunStatus} from '../modules/gitea-actions.ts';
-import {createLogLineMessage, type LogLine, type LogLineCommand, parseLogLineCommand} from './ActionRunView.ts';
+import type {ActionsArtifact, ActionsRun, ActionsRunStatus} from '../modules/gitea-actions.ts';
+import {
+  type ActionRunViewStore,
+  createLogLineMessage,
+  type LogLine,
+  type LogLineCommand,
+  parseLogLineCommand
+} from './ActionRunView.ts';
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();
@@ -50,7 +56,9 @@ type CurrentJob = {
 };
 
 type JobData = {
+  artifacts: Array<ActionsArtifact>;
   state: {
+    run: ActionsRun;
     currentJob: CurrentJob;
   },
   logs: {
@@ -68,12 +76,13 @@ defineOptions({
 });
 
 const props = defineProps<{
-  runId: number;
+  store: ActionRunViewStore,
   jobId: number;
   actionsUrl: string;
   locale: Record<string, any>;
-  run: ActionsRun;
 }>();
+const store = props.store;
+const {currentRun: run} = toRefs(store.viewData);
 
 const defaultViewOptions: LocaleStorageOptions = {
   autoScroll: true,
@@ -81,8 +90,9 @@ const defaultViewOptions: LocaleStorageOptions = {
   actionsLogShowSeconds: false,
   actionsLogShowTimestamps: false,
 };
-const {autoScroll, expandRunning, actionsLogShowSeconds, actionsLogShowTimestamps} =
-  localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
+
+const savedViewOptions = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
+const {autoScroll, expandRunning, actionsLogShowSeconds, actionsLogShowTimestamps} = savedViewOptions;
 
 // internal state
 const loadingAbortController = ref<AbortController | null>(null);
@@ -99,13 +109,7 @@ const optionAlwaysExpandRunning = ref(expandRunning);
 const currentJob = ref<CurrentJob>({
   title: '',
   detail: '',
-  steps: [
-    // {
-    //   summary: '',
-    //   duration: '',
-    //   status: '',
-    // }
-  ] as Array<Step>,
+  steps: [] as Array<Step>,
 });
 const stepsContainer = ref<HTMLElement | null>(null);
 const jobStepLogs = ref<Array<StepContainerElement | undefined>>([]);
@@ -263,7 +267,7 @@ async function fetchJobData(abortController: AbortController): Promise<JobData> 
     // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
     return {step: idx, cursor: it.cursor, expanded: it.expanded};
   });
-  const url = `${props.actionsUrl}/runs/${props.runId}/jobs/${props.jobId}`;
+  const url = `${props.actionsUrl}/runs/${run.value.id}/jobs/${props.jobId}`;
   const resp = await POST(url, {
     signal: abortController.signal,
     data: {logCursors},
@@ -282,10 +286,16 @@ async function loadJob() {
   const abortController = new AbortController();
   loadingAbortController.value = abortController;
   try {
-    const job = await fetchJobData(abortController);
+    const runJobResp = await fetchJobData(abortController);
     if (loadingAbortController.value !== abortController) return;
 
-    currentJob.value = job.state.currentJob;
+    // FIXME: this logic is quite hacky and dirty, it should be refactored in a better way in the future
+    // Use consistent "store" operations to load/update the view data
+    store.viewData.runArtifacts = runJobResp.artifacts || [];
+    store.viewData.currentRun = runJobResp.state.run;
+
+    currentJob.value = runJobResp.state.currentJob;
+    const jobLogs = runJobResp.logs.stepsLog ?? [];
 
     // sync the currentJobStepsStates to store the job step states
     for (let i = 0; i < currentJob.value.steps.length; i++) {
@@ -305,13 +315,13 @@ async function loadJob() {
 
     // find the step indexes that need to auto-scroll
     const autoScrollStepIndexes = new Map<number, boolean>();
-    for (const stepLogs of job.logs.stepsLog ?? []) {
+    for (const stepLogs of jobLogs) {
       if (autoScrollStepIndexes.has(stepLogs.step)) continue;
       autoScrollStepIndexes.set(stepLogs.step, shouldAutoScroll(stepLogs.step));
     }
 
     // append logs to the UI
-    for (const stepLogs of job.logs.stepsLog ?? []) {
+    for (const stepLogs of jobLogs) {
       // save the cursor, it will be passed to backend next time
       currentJobStepsStates.value[stepLogs.step].cursor = stepLogs.cursor;
       appendLogs(stepLogs.step, stepLogs.started, stepLogs.lines);
@@ -329,7 +339,7 @@ async function loadJob() {
     }
 
     // clear the interval timer if the job is done
-    if (props.run.done && intervalID.value) {
+    if (run.value.done && intervalID.value) {
       clearInterval(intervalID.value);
       intervalID.value = null;
     }
