@@ -128,6 +128,7 @@ func NewFuncMap() template.FuncMap {
 				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
 				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
 				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
+				"RepoActivityEvents":    setting.UI.Notification.RepoActivityEvents,
 			}
 		},
 		"MermaidMaxSourceCharacters": func() int {

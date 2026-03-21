@@ -56,6 +56,7 @@ var UI = struct {
 		TimeoutStep           time.Duration
 		MaxTimeout            time.Duration
 		EventSourceUpdateTime time.Duration
+		RepoActivityEvents    bool `ini:"ENABLE_REPO_ACTIVITY_EVENTS"`
 	} `ini:"ui.notification"`
 
 	SVG struct {
@@ -111,11 +112,13 @@ var UI = struct {
 		TimeoutStep           time.Duration
 		MaxTimeout            time.Duration
 		EventSourceUpdateTime time.Duration
+		RepoActivityEvents    bool `ini:"ENABLE_REPO_ACTIVITY_EVENTS"`
 	}{
 		MinTimeout:            10 * time.Second,
 		TimeoutStep:           10 * time.Second,
 		MaxTimeout:            60 * time.Second,
 		EventSourceUpdateTime: 10 * time.Second,
+		RepoActivityEvents:    true,
 	},
 	SVG: struct {
 		Enabled bool `ini:"ENABLE_RENDER"`

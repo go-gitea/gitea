@@ -2,12 +2,25 @@ import {parseIssuePageInfo} from '../utils.ts';
 
 const {appSubUrl, notificationSettings, assetVersionEncoded} = window.config;
 
+const eventMessages: Record<string, string> = {
+  'comment': 'A new comment was posted.',
+  'issue-opened': 'A new issue was opened.',
+  'issue-closed': 'This issue was closed.',
+  'issue-reopened': 'This issue was reopened.',
+  'merged': 'This pull request was merged.',
+  'review': 'A new review was submitted.',
+  'review-comment': 'New code review comments were added.',
+  'release': 'A new release was published.',
+  'push': 'New commits were pushed to this repository.',
+};
+
 // initRepoActivityBanner connects to the SSE SharedWorker and shows a
 // non-intrusive banner when new activity arrives on the current issue/PR page.
 export function initRepoActivityBanner() {
   const pageInfo = parseIssuePageInfo();
   if (!pageInfo.repoId) return; // not on an issue/PR page
 
+  if (!notificationSettings.RepoActivityEvents) return;
   if (notificationSettings.EventSourceUpdateTime <= 0) return;
   if (!window.EventSource || !window.SharedWorker) return;
 
@@ -25,14 +38,14 @@ export function initRepoActivityBanner() {
     if (event.data?.type !== 'repo-activity') return;
 
     try {
-      const payload = JSON.parse(event.data.data) as {repoID: number; issueIndex: number};
+      const payload = JSON.parse(event.data.data) as {repoID: number; issueIndex: number; eventType: string};
       if (payload.repoID !== pageInfo.repoId) return;
 
       // If we are on a specific issue page, only show banner for that issue.
-      // issueIndex 0 means a repo-wide event (new push, new issue) — always show.
+      // issueIndex 0 means a repo-wide event (push, release) — always show.
       if (pageInfo.issueNumber && payload.issueIndex && payload.issueIndex !== pageInfo.issueNumber) return;
 
-      showBanner();
+      showBanner(payload.eventType);
     } catch {
       // ignore malformed events
     }
@@ -46,8 +59,18 @@ export function initRepoActivityBanner() {
   });
 }
 
-function showBanner() {
-  if (document.getElementById('gitea-repo-activity-banner')) return;
+function showBanner(eventType: string) {
+  const existing = document.getElementById('gitea-repo-activity-banner');
+  if (existing) {
+    // Update message if a more specific event arrives
+    const textEl = existing.querySelector<HTMLSpanElement>('.activity-banner-text');
+    if (textEl && eventMessages[eventType]) {
+      textEl.textContent = eventMessages[eventType];
+    }
+    return;
+  }
+
+  const message = eventMessages[eventType] ?? 'This page has new activity.';
 
   const banner = document.createElement('div');
   banner.id = 'gitea-repo-activity-banner';
@@ -69,7 +92,8 @@ function showBanner() {
   });
 
   const text = document.createElement('span');
-  text.textContent = 'This page has new activity.';
+  text.className = 'activity-banner-text';
+  text.textContent = message;
 
   const refreshBtn = document.createElement('button');
   refreshBtn.textContent = 'Refresh';
