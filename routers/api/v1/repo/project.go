@@ -10,7 +10,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -70,24 +69,13 @@ func ListProjects(ctx *context.APIContext) {
 		isClosed = optional.Some(false)
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 0 {
-		page = 1
-	}
-
-	limit := ctx.FormInt("limit")
-	if limit <= 0 {
-		limit = setting.UI.IssuePagingNum
-	}
+	listOptions := utils.GetListOptions(ctx)
 
 	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: limit,
-		},
-		RepoID:   ctx.Repo.Repository.ID,
-		IsClosed: isClosed,
-		Type:     project_model.TypeRepository,
+		ListOptions: listOptions,
+		RepoID:      ctx.Repo.Repository.ID,
+		IsClosed:    isClosed,
+		Type:        project_model.TypeRepository,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -101,7 +89,7 @@ func ListProjects(ctx *context.APIContext) {
 
 	apiProjects := convert.ToProjectList(ctx, projects)
 
-	ctx.SetLinkHeader(count, limit)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiProjects)
 }
@@ -270,16 +258,99 @@ func EditProject(ctx *context.APIContext) {
 	if form.CardType != nil {
 		project.CardType = project_model.CardType(*form.CardType)
 	}
-	if form.IsClosed != nil {
-		if err := project_model.ChangeProjectStatus(ctx, project, *form.IsClosed); err != nil {
+	if err := project_model.UpdateProject(ctx, project); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if err := project_service.LoadIssueNumbersForProjects(ctx, []*project_model.Project{project}, ctx.Doer); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToProject(ctx, project))
+}
+
+// CloseProject closes a project
+func CloseProject(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/projects/{id}/close repository repoCloseProject
+	// ---
+	// summary: Close a project
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the project
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Project"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	changeProjectStatus(ctx, true)
+}
+
+// ReopenProject reopens a project
+func ReopenProject(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/projects/{id}/reopen repository repoReopenProject
+	// ---
+	// summary: Reopen a project
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the project
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Project"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	changeProjectStatus(ctx, false)
+}
+
+func changeProjectStatus(ctx *context.APIContext, isClosed bool) {
+	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	if err != nil {
+		if project_model.IsErrProjectNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
 			ctx.APIErrorInternal(err)
-			return
 		}
-	} else {
-		if err := project_model.UpdateProject(ctx, project); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
+		return
+	}
+
+	if err := project_model.ChangeProjectStatus(ctx, project, isClosed); err != nil {
+		ctx.APIErrorInternal(err)
+		return
 	}
 
 	if err := project_service.LoadIssueNumbersForProjects(ctx, []*project_model.Project{project}, ctx.Doer); err != nil {
@@ -536,7 +607,12 @@ func EditProjectColumn(ctx *context.APIContext) {
 		column.Color = *form.Color
 	}
 	if form.Sorting != nil {
-		column.Sorting = int8(*form.Sorting)
+		sorting := int8(*form.Sorting)
+		if int(sorting) != *form.Sorting {
+			ctx.APIError(http.StatusUnprocessableEntity, "sorting out of range")
+			return
+		}
+		column.Sorting = sorting
 	}
 
 	if err := project_model.UpdateColumn(ctx, column); err != nil {
@@ -633,14 +709,7 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     type: object
-	//     required:
-	//       - issue_id
-	//     properties:
-	//       issue_id:
-	//         type: integer
-	//         format: int64
-	//         description: ID of the issue to add
+	//     "$ref": "#/definitions/AddIssueToProjectColumnOption"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"

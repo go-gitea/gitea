@@ -188,32 +188,50 @@ func TestAPIUpdateProject(t *testing.T) {
 	assert.Equal(t, newTitle, updatedProject.Title)
 	assert.Equal(t, newDesc, updatedProject.Description)
 
-	// Test closing project
-	isClosed := true
-	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d", owner.Name, repo.Name, project.ID), &api.EditProjectOption{
-		IsClosed: &isClosed,
-	}).AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &updatedProject)
-	assert.True(t, updatedProject.IsClosed)
-	assert.NotNil(t, updatedProject.ClosedDate)
-
-	// Test reopening project
-	isClosed = false
-	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d", owner.Name, repo.Name, project.ID), &api.EditProjectOption{
-		IsClosed: &isClosed,
-	}).AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &updatedProject)
-	assert.False(t, updatedProject.IsClosed)
-
 	// Test updating non-existent project
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/99999", owner.Name, repo.Name), &api.EditProjectOption{
 		Title: &newTitle,
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestAPIChangeProjectStatus(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	project := &project_model.Project{
+		Title:        "Project to Close",
+		Description:  "Project to close and reopen",
+		RepoID:       repo.ID,
+		Type:         project_model.TypeRepository,
+		CreatorID:    owner.ID,
+		TemplateType: project_model.TemplateTypeNone,
+	}
+	err := project_model.NewProject(t.Context(), project)
+	assert.NoError(t, err)
+	defer func() {
+		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
+	}()
+
+	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteIssue)
+
+	req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/projects/%d/close", owner.Name, repo.Name, project.ID).
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var updatedProject api.Project
+	DecodeJSON(t, resp, &updatedProject)
+	assert.True(t, updatedProject.IsClosed)
+	assert.NotNil(t, updatedProject.ClosedDate)
+
+	req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/projects/%d/reopen", owner.Name, repo.Name, project.ID).
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &updatedProject)
+	assert.False(t, updatedProject.IsClosed)
 }
 
 func TestAPIDeleteProject(t *testing.T) {

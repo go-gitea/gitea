@@ -71,8 +71,6 @@ type EditProjectOption struct {
 	Description *string `json:"description,omitempty"`
 	// Card type: 0=text_only, 1=images_and_text
 	CardType *int `json:"card_type,omitempty"`
-	// Whether the project is closed
-	IsClosed *bool `json:"is_closed,omitempty"`
 }
 
 // ProjectColumn represents a project column (board)
@@ -120,14 +118,6 @@ type EditProjectColumnOption struct {
 	Color *string `json:"color,omitempty"`
 	// Sorting order
 	Sorting *int `json:"sorting,omitempty"`
-}
-
-// MoveProjectColumnOption represents options for moving a project column
-// swagger:model
-type MoveProjectColumnOption struct {
-	// Position to move the column to (0-based index)
-	// required: true
-	Position int `json:"position" binding:"Required"`
 }
 
 // AddIssueToProjectColumnOption represents options for adding an issue to a project column
