@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"html"
 	"html/template"
@@ -179,11 +180,11 @@ func AuthorizeOAuth(ctx *context.Context) {
 	errs := binding.Errors{}
 	errs = form.Validate(ctx.Req, errs)
 	if len(errs) > 0 {
-		errstring := ""
+		var errstring strings.Builder
 		for _, e := range errs {
-			errstring += e.Error() + "\n"
+			errstring.WriteString(e.Error() + "\n")
 		}
-		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring))
+		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring.String()))
 		return
 	}
 
@@ -230,8 +231,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 
 	// pkce support
 	switch form.CodeChallengeMethod {
-	case "S256":
-	case "plain":
+	case "S256", "plain":
 		if err := ctx.Session.Set("CodeChallengeMethod", form.CodeChallengeMethod); err != nil {
 			handleAuthorizeError(ctx, AuthorizeError{
 				ErrorCode:        ErrorCodeServerError,
@@ -614,6 +614,14 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		})
 		return
 	}
+	if authorizationCode.IsExpired() {
+		_ = authorizationCode.Invalidate(ctx)
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "authorization code expired",
+		})
+		return
+	}
 	// check if code verifier authorizes the client, PKCE support
 	if !authorizationCode.ValidateCodeChallenge(form.CodeVerifier) {
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
@@ -632,10 +640,17 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 	}
 	// remove token from database to deny duplicate usage
 	if err := authorizationCode.Invalidate(ctx); err != nil {
+		errDescription := "cannot process your request"
+		errCode := oauth2_provider.AccessTokenErrorCodeInvalidRequest
+		if errors.Is(err, auth.ErrOAuth2AuthorizationCodeInvalidated) {
+			errDescription = "authorization code already used"
+			errCode = oauth2_provider.AccessTokenErrorCodeInvalidGrant
+		}
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
-			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidRequest,
-			ErrorDescription: "cannot proceed your request",
+			ErrorCode:        errCode,
+			ErrorDescription: errDescription,
 		})
+		return
 	}
 	resp, tokenErr := oauth2_provider.NewAccessTokenResponse(ctx, authorizationCode.Grant, serverKey, clientKey)
 	if tokenErr != nil {

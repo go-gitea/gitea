@@ -148,7 +148,7 @@ func EnumeratePackages(ctx *context.Context) {
 			Timestamp:     fileMetadata.Timestamp,
 			Build:         fileMetadata.Build,
 			BuildNumber:   fileMetadata.BuildNumber,
-			Dependencies:  fileMetadata.Dependencies,
+			Dependencies:  util.SliceNilAsEmpty(fileMetadata.Dependencies),
 			License:       versionMetadata.License,
 			LicenseFamily: versionMetadata.LicenseFamily,
 			HashMD5:       pfd.Blob.HashMD5,

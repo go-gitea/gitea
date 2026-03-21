@@ -176,4 +176,12 @@ func TestParseControlFile(t *testing.T) {
 		assert.Equal(t, []string{"a", "b"}, p.Metadata.Dependencies)
 		assert.Equal(t, full, p.Control)
 	})
+
+	t.Run("ValidVersions", func(t *testing.T) {
+		for _, version := range []string{"1.0", "0:1.2", "9:1.0", "10:1.0", "900:1a.2b-x-y_z~1+2"} {
+			p, err := ParseControlFile(buildContent("testpkg", version, "amd64"))
+			assert.NoError(t, err, "ParseControlFile with version %q", version)
+			assert.NotNil(t, p)
+		}
+	})
 }

@@ -28,8 +28,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
+	repo_router "code.gitea.io/gitea/routers/web/repo"
 	actions_service "code.gitea.io/gitea/services/actions"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
@@ -62,7 +62,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
 
-	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
+	signing, _ := gitrepo.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
@@ -89,6 +89,11 @@ func SettingsCtxData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PushMirrors"] = pushMirrors
+
+	repo_router.PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
 }
 
 // Settings show a repository's settings page
@@ -105,7 +110,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 
-	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
+	signing, _ := gitrepo.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
@@ -176,23 +181,23 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 			ctx.Data["Err_RepoName"] = true
 			switch {
 			case repo_model.IsErrRepoAlreadyExist(err):
-				ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplSettingsOptions, &form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("form.repo_name_been_taken"), tplSettingsOptions, &form)
 			case db.IsErrNameReserved(err):
-				ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
 			case repo_model.IsErrRepoFilesAlreadyExist(err):
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
-					ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tplSettingsOptions, form)
+					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tplSettingsOptions, form)
 				case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
-					ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tplSettingsOptions, form)
+					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt"), tplSettingsOptions, form)
 				case setting.Repository.AllowDeleteOfUnadoptedRepositories:
-					ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tplSettingsOptions, form)
+					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.delete"), tplSettingsOptions, form)
 				default:
-					ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
+					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
 				}
 			case db.IsErrNamePatternNotAllowed(err):
-				ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
 			default:
 				ctx.ServerError("ChangeRepositoryName", err)
 			}
@@ -207,11 +212,6 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	repo.Description = form.Description
 	repo.Website = form.Website
 	repo.IsTemplate = form.Template
-
-	// Visibility of forked repository is forced sync with base repository.
-	if repo.IsFork {
-		form.Private = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
-	}
 
 	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 		ctx.ServerError("UpdateRepository", err)
@@ -247,7 +247,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 	interval, err := time.ParseDuration(form.Interval)
 	if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
 		ctx.Data["Err_Interval"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 		return
 	}
 
@@ -298,7 +298,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		ep := lfs.DetermineEndpoint("", form.LFSEndpoint)
 		if ep == nil {
 			ctx.Data["Err_LFSEndpoint"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tplSettingsOptions, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tplSettingsOptions, &form)
 			return
 		}
 		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.Doer)
@@ -369,7 +369,7 @@ func handleSettingsPostPushMirrorUpdate(ctx *context.Context) {
 
 	interval, err := time.ParseDuration(form.PushMirrorInterval)
 	if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
-		ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &forms.RepoSettingForm{})
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &forms.RepoSettingForm{})
 		return
 	}
 
@@ -445,7 +445,7 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 	interval, err := time.ParseDuration(form.PushMirrorInterval)
 	if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
 		ctx.Data["Err_PushMirrorInterval"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 		return
 	}
 
@@ -614,12 +614,6 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
 	}
 
-	if form.EnableActions && !unit_model.TypeActions.UnitGlobalDisabled() {
-		units = append(units, newRepoUnit(repo, unit_model.TypeActions, nil))
-	} else if !unit_model.TypeActions.UnitGlobalDisabled() {
-		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeActions)
-	}
-
 	if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		units = append(units, newRepoUnit(repo, unit_model.TypePullRequests, &repo_model.PullRequestsConfig{
 			IgnoreWhitespaceConflicts:     form.PullsIgnoreWhitespace,
@@ -634,6 +628,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
+			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
 		}))
 	} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
@@ -738,7 +733,7 @@ func handleSettingsPostConvert(ctx *context.Context) {
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 		return
 	}
 
@@ -772,7 +767,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 		return
 	}
 
@@ -808,14 +803,14 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 		return
 	}
 
 	newOwner, err := user_model.GetUserByName(ctx, ctx.FormString("new_owner_name"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 			return
 		}
 		ctx.ServerError("IsUserExist", err)
@@ -825,7 +820,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 	if newOwner.Type == user_model.UserTypeOrganization {
 		if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
 			// The user shouldn't know about this organization
-			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 			return
 		}
 	}
@@ -839,14 +834,14 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 	oldFullname := repo.FullName()
 	if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, repo, nil); err != nil {
 		if repo_model.IsErrRepoAlreadyExist(err) {
-			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 		} else if repo_model.IsErrRepoTransferInProgress(err) {
-			ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
 		} else if repo_service.IsRepositoryLimitReached(err) {
 			limit := err.(repo_service.LimitReachedError).Limit
-			ctx.RenderWithErr(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit), tplSettingsOptions, nil)
+			ctx.RenderWithErrDeprecated(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit), tplSettingsOptions, nil)
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.RenderWithErr(ctx.Tr("repo.settings.transfer.blocked_user"), tplSettingsOptions, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.transfer.blocked_user"), tplSettingsOptions, nil)
 		} else {
 			ctx.ServerError("TransferOwnership", err)
 		}
@@ -900,7 +895,7 @@ func handleSettingsPostDelete(ctx *context.Context) {
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 		return
 	}
 
@@ -927,7 +922,7 @@ func handleSettingsPostDeleteWiki(ctx *context.Context) {
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 		return
 	}
 
@@ -1016,7 +1011,7 @@ func handleSettingsPostVisibility(ctx *context.Context) {
 
 	// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
 	if setting.Repository.ForcePrivate && repo.IsPrivate && !ctx.Doer.IsAdmin {
-		ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
 		return
 	}
 
@@ -1044,21 +1039,21 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 		addrErr := err.(*git.ErrInvalidCloneAddr)
 		switch {
 		case addrErr.IsProtocolInvalid:
-			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, form)
 		case addrErr.IsURLError:
-			ctx.RenderWithErr(ctx.Tr("form.url_error", addrErr.Host), tplSettingsOptions, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.url_error", addrErr.Host), tplSettingsOptions, form)
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplSettingsOptions, form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.permission_denied"), tplSettingsOptions, form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tplSettingsOptions, form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.permission_denied_blocked"), tplSettingsOptions, form)
 			}
 		case addrErr.IsInvalidPath:
-			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplSettingsOptions, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.invalid_local_path"), tplSettingsOptions, form)
 		default:
 			ctx.ServerError("Unknown error", err)
 		}
 		return
 	}
-	ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, form)
+	ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, form)
 }

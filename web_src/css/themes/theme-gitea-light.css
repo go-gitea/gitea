@@ -3,6 +3,7 @@
 
 gitea-theme-meta-info {
   --theme-display-name: "Light";
+  --theme-color-scheme: "light";
 }
 
 :root {
@@ -65,14 +66,14 @@ gitea-theme-meta-info {
   --color-secondary-hover: var(--color-secondary-dark-5);
   --color-secondary-active: var(--color-secondary-dark-6);
   /* console colors - used for actions console and console files */
-  --color-console-fg: #f7f8f9;
-  --color-console-fg-subtle: #bdc4cc;
-  --color-console-bg: #171b1e;
-  --color-console-border: #2e353b;
-  --color-console-hover-bg: #272d33;
-  --color-console-active-bg: #2e353b;
-  --color-console-menu-bg: #262b31;
-  --color-console-menu-border: #414b55;
+  --color-console-fg: #0d1117;
+  --color-console-fg-subtle: #40474d;
+  --color-console-bg: #ffffff;
+  --color-console-border: #d0d7de;
+  --color-console-hover-bg: #f1f3f5;
+  --color-console-active-bg: #d0d7de;
+  --color-console-menu-bg: #f8f9fb;
+  --color-console-menu-border: #d0d7de;
   /* named colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
@@ -147,12 +148,14 @@ gitea-theme-meta-info {
   --color-grey-light: #7c838a;
   --color-gold: #a1882b;
   --color-white: #ffffff;
+  --color-diff-added-fg: #21ba45;
   --color-diff-added-linenum-bg: #d1f8d9;
   --color-diff-added-row-bg: #e6ffed;
   --color-diff-added-row-border: #e6ffed;
   --color-diff-added-word-bg: #acf2bd;
   --color-diff-moved-row-bg: #f1f8d1;
   --color-diff-moved-row-border: #d0e27f;
+  --color-diff-removed-fg: #db2828;
   --color-diff-removed-linenum-bg: #ffcecb;
   --color-diff-removed-row-bg: #ffeef0;
   --color-diff-removed-row-border: #f1c0c0;
@@ -243,6 +246,9 @@ gitea-theme-meta-info {
   --color-highlight-fg: #eed200;
   --color-highlight-bg: #fffbdd;
   --color-overlay-backdrop: #080808c0;
+  --color-danger: var(--color-red);
+  --color-transparency-grid-light: #fafafa;
+  --color-transparency-grid-dark: #e2e2e2;
   accent-color: var(--color-accent);
   color-scheme: light;
 }

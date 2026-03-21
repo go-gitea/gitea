@@ -28,7 +28,8 @@ func (repo *Repository) ListOccurrences(ctx context.Context, refType, commitSHA 
 	default:
 		return nil, util.NewInvalidArgumentErrorf(`can only use "branch" or "tag" for refType, but got %q`, refType)
 	}
-	stdout, _, err := cmd.AddArguments("--no-color", "--sort=-creatordate", "--contains").AddDynamicArguments(commitSHA).RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	stdout, _, err := cmd.AddArguments("--no-color", "--sort=-creatordate", "--contains").
+		AddDynamicArguments(commitSHA).WithDir(repo.Path).RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}

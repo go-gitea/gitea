@@ -150,7 +150,7 @@ func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.A
 
 // PackageContexter initializes a package context for a request.
 func PackageContexter() func(next http.Handler) http.Handler {
-	renderer := templates.HTMLRenderer()
+	renderer := templates.PageRenderer()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base := NewBaseContext(resp, req)

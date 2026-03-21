@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"os"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
@@ -21,22 +20,15 @@ type TemplateSubmoduleCommit struct {
 // GetTemplateSubmoduleCommits returns a list of submodules paths and their commits from a repository
 // This function is only for generating new repos based on existing template, the template couldn't be too large.
 func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submoduleCommits []TemplateSubmoduleCommit, _ error) {
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
-	opts := &gitcmd.RunOpts{
-		Dir:    repoPath,
-		Stdout: stdoutWriter,
-		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
-			defer stdoutReader.Close()
-
+	cmd := gitcmd.NewCommand("ls-tree", "-r", "--", "HEAD")
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+	err := cmd.WithDir(repoPath).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 			for scanner.Scan() {
 				entry, err := parseLsTreeLine(scanner.Bytes())
 				if err != nil {
-					cancel()
 					return err
 				}
 				if entry.EntryMode == EntryModeCommit {
@@ -44,9 +36,8 @@ func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submodul
 				}
 			}
 			return scanner.Err()
-		},
-	}
-	err = gitcmd.NewCommand("ls-tree", "-r", "--", "HEAD").Run(ctx, opts)
+		}).
+		Run(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("GetTemplateSubmoduleCommits: error running git ls-tree: %v", err)
 	}
@@ -58,7 +49,7 @@ func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submodul
 func AddTemplateSubmoduleIndexes(ctx context.Context, repoPath string, submodules []TemplateSubmoduleCommit) error {
 	for _, submodule := range submodules {
 		cmd := gitcmd.NewCommand("update-index", "--add", "--cacheinfo", "160000").AddDynamicArguments(submodule.Commit, submodule.Path)
-		if stdout, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath}); err != nil {
+		if stdout, _, err := cmd.WithDir(repoPath).RunStdString(ctx); err != nil {
 			log.Error("Unable to add %s as submodule to repo %s: stdout %s\nError: %v", submodule.Path, repoPath, stdout, err)
 			return err
 		}

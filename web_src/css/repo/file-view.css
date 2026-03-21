@@ -81,6 +81,7 @@
 .view-raw img[src$=".svg" i] {
   max-height: 600px !important;
   max-width: 600px !important;
+  background: var(--background-view-image);
 }
 
 .file-view-render-container {

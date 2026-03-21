@@ -73,10 +73,9 @@ func SettingsProtectedBranch(c *context.Context) {
 
 	c.Data["PageIsSettingsBranches"] = true
 	c.Data["Title"] = c.Locale.TrString("repo.settings.protected_branch") + " - " + rule.RuleName
-
-	users, err := access_model.GetRepoReaders(c, c.Repo.Repository)
+	users, err := access_model.GetUsersWithUnitAccess(c, c.Repo.Repository, perm.AccessModeRead, unit.TypePullRequests)
 	if err != nil {
-		c.ServerError("Repo.Repository.GetReaders", err)
+		c.ServerError("GetUsersWithUnitAccess", err)
 		return
 	}
 	c.Data["Users"] = users
@@ -337,7 +336,7 @@ func RenameBranchPost(ctx *context.Context) {
 		return
 	}
 
-	msg, err := repository.RenameBranch(ctx, ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, form.From, form.To)
+	msg, err := repository.RenameBranch(ctx, ctx.Repo.Repository, ctx.Doer, form.From, form.To)
 	if err != nil {
 		switch {
 		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):

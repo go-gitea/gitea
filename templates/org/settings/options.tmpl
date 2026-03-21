@@ -6,7 +6,6 @@
 	</h4>
 	<div class="ui attached segment">
 		<form class="ui form" action="{{.Link}}" method="post">
-			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_FullName}}error{{end}}">
 				<label for="full_name">{{ctx.Locale.Tr "org.org_full_name_holder"}}</label>
 				<input id="full_name" name="full_name" value="{{.Org.FullName}}" maxlength="100">
@@ -57,7 +56,6 @@
 		<div class="divider"></div>
 
 		<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
-			{{.CsrfTokenHtml}}
 			<div class="inline field">
 				{{template "shared/avatar_upload_crop" dict "LabelText" (ctx.Locale.Tr "settings.choose_new_avatar")}}
 			</div>

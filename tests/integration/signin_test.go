@@ -184,7 +184,7 @@ func TestRequireSignInView(t *testing.T) {
 		defer test.MockVariableValue(&testWebRoutes, routers.NormalRoutes())()
 		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
 		resp := MakeRequest(t, req, http.StatusSeeOther)
-		assert.Equal(t, "/user/login", resp.Header().Get("Location"))
+		assert.Equal(t, "/user/login?redirect_to=%2Fuser2%2Frepo1%2Fsrc%2Fbranch%2Fmaster", resp.Header().Get("Location"))
 	})
 	t.Run("BlockAnonymousAccessExpensive", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, false)()
@@ -196,6 +196,6 @@ func TestRequireSignInView(t *testing.T) {
 
 		req = NewRequest(t, "GET", "/user2/repo1/src/branch/master")
 		resp := MakeRequest(t, req, http.StatusSeeOther)
-		assert.Equal(t, "/user/login", resp.Header().Get("Location"))
+		assert.Equal(t, "/user/login?redirect_to=%2Fuser2%2Frepo1%2Fsrc%2Fbranch%2Fmaster", resp.Header().Get("Location"))
 	})
 }

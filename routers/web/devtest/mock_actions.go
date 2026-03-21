@@ -6,36 +6,42 @@ package devtest
 import (
 	mathRand "math/rand/v2"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	"code.gitea.io/gitea/services/context"
 )
 
-func generateMockStepsLog(logCur actions.LogCursor) (stepsLog []*actions.ViewStepLog) {
-	mockedLogs := []string{
-		"::group::test group for: step={step}, cursor={cursor}",
-		"in group msg for: step={step}, cursor={cursor}",
-		"in group msg for: step={step}, cursor={cursor}",
-		"in group msg for: step={step}, cursor={cursor}",
-		"::endgroup::",
+type generateMockStepsLogOptions struct {
+	mockCountFirst   int
+	mockCountGeneral int
+	groupRepeat      int
+}
+
+func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOptions) (stepsLog []*actions.ViewStepLog) {
+	var mockedLogs []string
+	mockedLogs = append(mockedLogs, "::group::test group for: step={step}, cursor={cursor}")
+	mockedLogs = append(mockedLogs, slices.Repeat([]string{"in group msg for: step={step}, cursor={cursor}"}, opts.groupRepeat)...)
+	mockedLogs = append(mockedLogs, "::endgroup::")
+	mockedLogs = append(mockedLogs,
 		"message for: step={step}, cursor={cursor}",
 		"message for: step={step}, cursor={cursor}",
 		"##[group]test group for: step={step}, cursor={cursor}",
 		"in group msg for: step={step}, cursor={cursor}",
 		"##[endgroup]",
-	}
-	cur := logCur.Cursor // usually the cursor is the "file offset", but here we abuse it as "line number" to make the mock easier, intentionally
-	mockCount := util.Iif(logCur.Step == 0, 3, 1)
-	if logCur.Step == 1 && logCur.Cursor == 0 {
-		mockCount = 30 // for the first batch, return as many as possible to test the auto-expand and auto-scroll
-	}
-	for i := 0; i < mockCount; i++ {
+	)
+	// usually the cursor is the "file offset", but here we abuse it as "line number" to make the mock easier, intentionally
+	cur := logCur.Cursor
+	// for the first batch, return as many as possible to test the auto-expand and auto-scroll
+	mockCount := util.Iif(logCur.Cursor == 0, opts.mockCountFirst, opts.mockCountGeneral)
+	for range mockCount {
 		logStr := mockedLogs[int(cur)%len(mockedLogs)]
 		cur++
 		logStr = strings.ReplaceAll(logStr, "{step}", strconv.Itoa(logCur.Step))
@@ -64,6 +70,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	req := web.GetForm(ctx).(*actions.ViewRequest)
 	resp := &actions.ViewResponse{}
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
+	resp.State.Run.Link = setting.AppSubURL + "/devtest/repo-action-view/runs/" + strconv.FormatInt(runID, 10)
 	resp.State.Run.Status = actions_model.StatusRunning.String()
 	resp.State.Run.CanCancel = runID == 10
 	resp.State.Run.CanApprove = runID == 20
@@ -107,6 +114,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID * 10,
+		JobID:    "job-100",
 		Name:     "job 100",
 		Status:   actions_model.StatusRunning.String(),
 		CanRerun: true,
@@ -114,34 +122,45 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	})
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID*10 + 1,
+		JobID:    "job-101",
 		Name:     "job 101",
 		Status:   actions_model.StatusWaiting.String(),
 		CanRerun: false,
 		Duration: "2h",
+		Needs:    []string{"job-100"},
 	})
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID*10 + 2,
+		JobID:    "job-102",
 		Name:     "job 102",
 		Status:   actions_model.StatusFailure.String(),
 		CanRerun: false,
 		Duration: "3h",
+		Needs:    []string{"job-100", "job-101"},
 	})
 
+	var mockLogOptions []generateMockStepsLogOptions
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
 		Summary:  "step 0 (mock slow)",
 		Duration: time.Hour.String(),
 		Status:   actions_model.StatusRunning.String(),
 	})
+	mockLogOptions = append(mockLogOptions, generateMockStepsLogOptions{mockCountFirst: 30, mockCountGeneral: 1, groupRepeat: 3})
+
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
 		Summary:  "step 1 (mock fast)",
 		Duration: time.Hour.String(),
 		Status:   actions_model.StatusRunning.String(),
 	})
+	mockLogOptions = append(mockLogOptions, generateMockStepsLogOptions{mockCountFirst: 30, mockCountGeneral: 3, groupRepeat: 20})
+
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
 		Summary:  "step 2 (mock error)",
 		Duration: time.Hour.String(),
 		Status:   actions_model.StatusRunning.String(),
 	})
+	mockLogOptions = append(mockLogOptions, generateMockStepsLogOptions{mockCountFirst: 30, mockCountGeneral: 3, groupRepeat: 3})
+
 	if len(req.LogCursors) == 0 {
 		ctx.JSON(http.StatusOK, resp)
 		return
@@ -156,7 +175,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		}
 		doSlowResponse = doSlowResponse || logCur.Step == 0
 		doErrorResponse = doErrorResponse || logCur.Step == 2
-		resp.Logs.StepsLog = append(resp.Logs.StepsLog, generateMockStepsLog(logCur)...)
+		resp.Logs.StepsLog = append(resp.Logs.StepsLog, generateMockStepsLog(logCur, mockLogOptions[logCur.Step])...)
 	}
 	if doErrorResponse {
 		if mathRand.Float64() > 0.5 {

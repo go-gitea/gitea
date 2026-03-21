@@ -33,7 +33,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 		// Of text and link contents
 		sl := strings.SplitSeq(content, "|")
 		for v := range sl {
-			if equalPos := strings.IndexByte(v, '='); equalPos == -1 {
+			if found := strings.Contains(v, "="); !found {
 				// There is no equal in this argument; this is a mandatory arg
 				if props["name"] == "" {
 					if IsFullURLString(v) {
@@ -55,8 +55,8 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			} else {
 				// There is an equal; optional argument.
 
-				sep := strings.IndexByte(v, '=')
-				key, val := v[:sep], html.UnescapeString(v[sep+1:])
+				before, after, _ := strings.Cut(v, "=")
+				key, val := before, html.UnescapeString(after)
 
 				// When parsing HTML, x/net/html will change all quotes which are
 				// not used for syntax into UTF-8 quotes. So checking val[0] won't
@@ -113,16 +113,17 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 		}
 		childNode.Parent = linkNode
 		absoluteLink := IsFullURLString(link)
-		if !absoluteLink {
+		// FIXME: it should be fully refactored in the future, it uses various hacky approaches to guess how to encode a path for wiki
+		// When a link contains "/", then we assume that the user has provided a well-encoded link.
+		if !absoluteLink && !strings.Contains(link, "/") {
+			// So only guess for links without "/".
 			if image {
 				link = strings.ReplaceAll(link, " ", "+")
 			} else {
 				// the hacky wiki name encoding: space to "-"
 				link = strings.ReplaceAll(link, " ", "-") // FIXME: it should support dashes in the link, eg: "the-dash-support.-"
 			}
-			if !strings.Contains(link, "/") {
-				link = url.PathEscape(link) // FIXME: it doesn't seem right and it might cause double-escaping
-			}
+			link = url.PathEscape(link)
 		}
 		if image {
 			title := props["title"]
@@ -208,7 +209,6 @@ func createDescriptionLink(href, content string) *html.Node {
 		Attr: []html.Attribute{
 			{Key: "href", Val: href},
 			{Key: "target", Val: "_blank"},
-			{Key: "rel", Val: "noopener noreferrer"},
 		},
 	}
 	textNode.Parent = linkNode

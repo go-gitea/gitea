@@ -7,7 +7,7 @@ At the moment, no JS initialization would re-trigger (fortunately there is no JS
 <div class="no-loading-indicator tw-hidden"></div>
 <div class="user-cards"
 		hx-trigger="refreshUserCards from:body" hx-indicator=".no-loading-indicator"
-		hx-get="{{$.CurrentURL}}" hx-swap="outerHTML" hx-select=".user-cards"
+		hx-get="" hx-swap="outerHTML" hx-select=".user-cards"
 >
 	{{if .CardsTitle}}
 	<h2 class="ui dividing header">
@@ -24,7 +24,7 @@ At the moment, no JS initialization would re-trigger (fortunately there is no JS
 
 				<div class="meta">
 					{{if .Website}}
-						{{svg "octicon-link"}} <a href="{{.Website}}" target="_blank" rel="noopener noreferrer">{{.Website}}</a>
+						{{svg "octicon-link"}} <a href="{{.Website}}" target="_blank">{{.Website}}</a>
 					{{else if .Location}}
 						{{svg "octicon-location"}} {{.Location}}
 					{{else}}

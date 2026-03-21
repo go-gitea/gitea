@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/shared/types"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -61,6 +62,8 @@ type ActionRunner struct {
 	AgentLabels []string `xorm:"TEXT"`
 	// Store if this is a runner that only ever get one single job assigned
 	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
+	// Store if this runner is disabled and should not pick up new jobs
+	IsDisabled bool `xorm:"is_disabled NOT NULL DEFAULT false"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
@@ -173,6 +176,13 @@ func (r *ActionRunner) GenerateToken() (err error) {
 	return err
 }
 
+// CanMatchLabels checks whether the runner's labels can match a job's "runs-on"
+// See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idruns-on
+func (r *ActionRunner) CanMatchLabels(jobRunsOn []string) bool {
+	runnerLabelSet := container.SetOf(r.AgentLabels...)
+	return runnerLabelSet.Contains(jobRunsOn...) // match all labels
+}
+
 func init() {
 	db.RegisterModel(&ActionRunner{})
 }
@@ -191,6 +201,7 @@ type FindRunnerOptions struct {
 	Sort          string
 	Filter        string
 	IsOnline      optional.Option[bool]
+	IsDisabled    optional.Option[bool]
 	WithAvailable bool // not only runners belong to, but also runners can be used
 }
 
@@ -230,6 +241,10 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 		} else {
 			cond = cond.And(builder.Lte{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
 		}
+	}
+
+	if opts.IsDisabled.Has() {
+		cond = cond.And(builder.Eq{"is_disabled": opts.IsDisabled.Value()})
 	}
 	return cond
 }
@@ -287,6 +302,20 @@ func UpdateRunner(ctx context.Context, r *ActionRunner, cols ...string) error {
 		_, err = e.ID(r.ID).Cols(cols...).Update(r)
 	}
 	return err
+}
+
+func SetRunnerDisabled(ctx context.Context, runner *ActionRunner, isDisabled bool) error {
+	if runner.IsDisabled == isDisabled {
+		return nil
+	}
+
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		runner.IsDisabled = isDisabled
+		if err := UpdateRunner(ctx, runner, "is_disabled"); err != nil {
+			return err
+		}
+		return IncreaseTaskVersion(ctx, runner.OwnerID, runner.RepoID)
+	})
 }
 
 // DeleteRunner deletes a runner by given ID.

@@ -13,13 +13,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 	"unicode"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/repo"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/json"
@@ -32,7 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/lfs"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli/v3"
 )
@@ -133,27 +131,6 @@ func getAccessMode(verb, lfsVerb string) perm.AccessMode {
 	return perm.AccessModeNone
 }
 
-func getLFSAuthToken(ctx context.Context, lfsVerb string, results *private.ServCommandResults) (string, error) {
-	now := time.Now()
-	claims := lfs.Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
-			NotBefore: jwt.NewNumericDate(now),
-		},
-		RepoID: results.RepoID,
-		Op:     lfsVerb,
-		UserID: results.UserID,
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
-	if err != nil {
-		return "", fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
-	}
-	return "Bearer " + tokenString, nil
-}
-
 func runServ(ctx context.Context, c *cli.Command) error {
 	// FIXME: This needs to internationalised
 	setup(ctx, c.Bool("debug"))
@@ -230,7 +207,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	username := repoPathFields[0]
 	reponame := strings.TrimSuffix(repoPathFields[1], ".git") // “the-repo-name" or "the-repo-name.wiki"
 
-	if !repo.IsValidSSHAccessRepoName(reponame) {
+	if !repo_model.IsValidSSHAccessRepoName(reponame) {
 		return fail(ctx, "Invalid repo name", "Invalid repo name: %s", reponame)
 	}
 
@@ -276,14 +253,16 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		return fail(ctx, extra.UserMsg, "ServCommand failed: %s", extra.Error)
 	}
 
-	// LowerCase and trim the repoPath as that's how they are stored.
-	// This should be done after splitting the repoPath into username and reponame
-	// so that username and reponame are not affected.
-	repoPath = strings.ToLower(results.OwnerName + "/" + results.RepoName + ".git")
+	// because the original repoPath maybe redirected, we need to use the returned actual repository information
+	if results.IsWiki {
+		repoPath = repo_model.RelativeWikiPath(results.OwnerName, results.RepoName)
+	} else {
+		repoPath = repo_model.RelativePath(results.OwnerName, results.RepoName)
+	}
 
 	// LFS SSH protocol
 	if verb == git.CmdVerbLfsTransfer {
-		token, err := getLFSAuthToken(ctx, lfsVerb, results)
+		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, RepoID: results.RepoID})
 		if err != nil {
 			return err
 		}
@@ -294,7 +273,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	if verb == git.CmdVerbLfsAuthenticate {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
-		token, err := getLFSAuthToken(ctx, lfsVerb, results)
+		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, RepoID: results.RepoID})
 		if err != nil {
 			return err
 		}

@@ -39,3 +39,17 @@ func TestPktLine(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("0007a\nb"), w.Bytes())
 }
+
+func TestParseGitHookCommitRefLine(t *testing.T) {
+	oldCommitID, newCommitID, refName, ok := parseGitHookCommitRefLine("a b c")
+	assert.True(t, ok)
+	assert.Equal(t, "a", oldCommitID)
+	assert.Equal(t, "b", newCommitID)
+	assert.Equal(t, "c", string(refName))
+
+	_, _, _, ok = parseGitHookCommitRefLine("a\tb\tc")
+	assert.False(t, ok)
+
+	_, _, _, ok = parseGitHookCommitRefLine("a b")
+	assert.False(t, ok)
+}

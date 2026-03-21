@@ -130,7 +130,7 @@ func TestLoadRequestedReviewers(t *testing.T) {
 	user1, err := user_model.GetUserByID(t.Context(), 1)
 	assert.NoError(t, err)
 
-	comment, err := issues_model.AddReviewRequest(t.Context(), issue, user1, &user_model.User{})
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue, user1, &user_model.User{}, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 

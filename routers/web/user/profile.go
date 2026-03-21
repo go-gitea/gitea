@@ -102,7 +102,8 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	var (
 		repos   []*repo_model.Repository
 		count   int64
-		total   int
+		total   int64
+		curRows int
 		orderBy db.SearchOrderBy
 	)
 
@@ -156,26 +157,20 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	switch tab {
 	case "followers":
 		ctx.Data["Cards"] = followers
-		total = int(numFollowers)
+		total = numFollowers
 	case "following":
 		ctx.Data["Cards"] = following
-		total = int(numFollowing)
+		total = numFollowing
 	case "activity":
-		// prepare heatmap data
-		if setting.Service.EnableUserHeatmap {
-			data, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
-			if err != nil {
-				ctx.ServerError("GetUserHeatmapDataByUser", err)
-				return
-			}
-			ctx.Data["HeatmapData"] = data
-			ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
+		if setting.Service.EnableUserHeatmap && activities_model.ActivityReadable(ctx.ContextUser, ctx.Doer) {
+			ctx.Data["EnableHeatmap"] = true
+			ctx.Data["HeatmapURL"] = ctx.ContextUser.HomeLink() + "/-/heatmap"
 		}
 
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
 		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-		items, count, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
+		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
 			IncludePrivate:  showPrivate,
@@ -193,8 +188,8 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		}
 		ctx.Data["Feeds"] = items
 		ctx.Data["Date"] = date
-
-		total = int(count)
+		curRows = len(items)
+		total = feedCount
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		ctx.Data["ShowRepoOwnerOnList"] = true
@@ -223,7 +218,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			return
 		}
 
-		total = int(count)
+		total = count
 	case "watching":
 		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
@@ -250,7 +245,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			return
 		}
 
-		total = int(count)
+		total = count
 	case "overview":
 		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 			log.Error("failed to GetBlobContent: %v", err)
@@ -278,7 +273,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			return
 		}
 		ctx.Data["Cards"] = orgs
-		total = int(count)
+		total = count
 	default: // default to "repositories"
 		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
@@ -305,7 +300,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			return
 		}
 
-		total = int(count)
+		total = count
 	}
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = total
@@ -316,6 +311,9 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	}
 
 	pager := context.NewPagination(total, pagingNum, page, 5)
+	if tab == "activity" {
+		pager.WithCurRows(curRows)
+	}
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 }

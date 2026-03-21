@@ -1,8 +1,15 @@
-# Build stage
-FROM docker.io/library/golang:1.25-alpine3.22 AS build-env
+# syntax=docker/dockerfile:1
+# Build frontend on the native platform to avoid QEMU-related issues with esbuild/webpack
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26-alpine3.23 AS frontend-build
+RUN apk --no-cache add build-base git nodejs pnpm
+WORKDIR /src
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
+COPY --exclude=.git/ . .
+RUN make frontend
 
-ARG GOPROXY
-ENV GOPROXY=${GOPROXY:-direct}
+# Build backend for each target platform
+FROM docker.io/library/golang:1.26-alpine3.23 AS build-env
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
@@ -12,37 +19,32 @@ ARG CGO_EXTRA_CFLAGS
 # Build deps
 RUN apk --no-cache add \
     build-base \
-    git \
-    nodejs \
-    npm \
-    && npm install -g pnpm@10 \
-    && rm -rf /var/cache/apk/*
+    git
 
-# Setup repo
-COPY . ${GOPATH}/src/code.gitea.io/gitea
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
+COPY go.mod go.sum ./
+RUN go mod download
+# Use COPY instead of bind mount as read-only one breaks makefile state tracking and read-write one needs binary to be moved as it's discarded.
+# ".git" directory is mounted separately later only for version data extraction.
+COPY --exclude=.git/ . .
+COPY --from=frontend-build /src/public/assets public/assets
 
-# Checkout version if set
-RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
- && make clean-all build
+# Build gitea, .git mount is required for version data
+RUN --mount=type=cache,target="/root/.cache/go-build" \
+    --mount=type=bind,source=".git/",target=".git/" \
+    make backend
 
-# Begin env-to-ini build
-RUN go build contrib/environment-to-ini/environment-to-ini.go
-
-# Copy local files
 COPY docker/root /tmp/local
 
-# Set permissions
+# Set permissions for builds that made under windows which strips the executable bit from file
 RUN chmod 755 /tmp/local/usr/bin/entrypoint \
-              /tmp/local/usr/local/bin/gitea \
+              /tmp/local/usr/local/bin/* \
               /tmp/local/etc/s6/gitea/* \
               /tmp/local/etc/s6/openssh/* \
               /tmp/local/etc/s6/.s6-svscan/* \
-              /go/src/code.gitea.io/gitea/gitea \
-              /go/src/code.gitea.io/gitea/environment-to-ini
+              /go/src/code.gitea.io/gitea/gitea
 
-FROM docker.io/library/alpine:3.22
-LABEL maintainer="maintainers@gitea.io"
+FROM docker.io/library/alpine:3.23 AS gitea
 
 EXPOSE 22 3000
 
@@ -57,8 +59,7 @@ RUN apk --no-cache add \
     s6 \
     sqlite \
     su-exec \
-    gnupg \
-    && rm -rf /var/cache/apk/*
+    gnupg
 
 RUN addgroup \
     -S -g 1000 \
@@ -72,14 +73,14 @@ RUN addgroup \
     git && \
   echo "git:*" | chpasswd -e
 
+COPY --from=build-env /tmp/local /
+COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
+
 ENV USER=git
 ENV GITEA_CUSTOM=/data/gitea
 
 VOLUME ["/data"]
 
+# HINT: HEALTH-CHECK-ENDPOINT: don't use HEALTHCHECK, search this hint keyword for more information
 ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/usr/bin/s6-svscan", "/etc/s6"]
-
-COPY --from=build-env /tmp/local /
-COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
-COPY --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini

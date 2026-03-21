@@ -139,7 +139,7 @@ func getWhitelistEntities[T *user_model.User | *organization.Team](entities []T,
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
 func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo *repo_model.Repository) *api.BranchProtection {
-	readers, err := access_model.GetRepoReaders(ctx, repo)
+	readers, err := access_model.GetUsersWithUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypePullRequests)
 	if err != nil {
 		log.Error("GetRepoReaders: %v", err)
 	}
@@ -203,8 +203,8 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 
 // ToTag convert a git.Tag to an api.Tag
 func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
-	tarballURL := util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz")
-	zipballURL := util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip")
+	tarballURL := repo.HTMLURL() + "/archive/" + url.PathEscape(t.Name+".tar.gz")
+	zipballURL := repo.HTMLURL() + "/archive/" + url.PathEscape(t.Name+".zip")
 
 	// Archive URLs are "" if the download feature is disabled
 	if setting.Repository.DisableDownloadSourceArchives {
@@ -324,18 +324,6 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		return nil, err
 	}
 
-	jobIndex := 0
-	jobs, err := actions_model.GetRunJobsByRunID(ctx, job.RunID)
-	if err != nil {
-		return nil, err
-	}
-	for i, j := range jobs {
-		if j.ID == job.ID {
-			jobIndex = i
-			break
-		}
-	}
-
 	status, conclusion := ToActionsStatus(job.Status)
 	var runnerID int64
 	var runnerName string
@@ -349,20 +337,29 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 			}
 		}
 
-		runnerID = task.RunnerID
-		if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
-			runnerName = runner.Name
-		}
-		for i, step := range task.Steps {
-			stepStatus, stepConclusion := ToActionsStatus(job.Status)
-			steps = append(steps, &api.ActionWorkflowStep{
-				Name:        step.Name,
-				Number:      int64(i),
-				Status:      stepStatus,
-				Conclusion:  stepConclusion,
-				StartedAt:   step.Started.AsTime().UTC(),
-				CompletedAt: step.Stopped.AsTime().UTC(),
-			})
+		if task != nil {
+			if task.Steps == nil {
+				task.Steps, err = actions_model.GetTaskStepsByTaskID(ctx, task.ID)
+				if err != nil {
+					return nil, err
+				}
+				task.Steps = util.SliceNilAsEmpty(task.Steps)
+			}
+			runnerID = task.RunnerID
+			if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
+				runnerName = runner.Name
+			}
+			for i, step := range task.Steps {
+				stepStatus, stepConclusion := ToActionsStatus(job.Status)
+				steps = append(steps, &api.ActionWorkflowStep{
+					Name:        step.Name,
+					Number:      int64(i),
+					Status:      stepStatus,
+					Conclusion:  stepConclusion,
+					StartedAt:   step.Started.AsTime().UTC(),
+					CompletedAt: step.Stopped.AsTime().UTC(),
+				})
+			}
 		}
 	}
 
@@ -370,7 +367,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		ID: job.ID,
 		// missing api endpoint for this location
 		URL:     fmt.Sprintf("%s/actions/jobs/%d", repo.APIURL(), job.ID),
-		HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), jobIndex),
+		HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), job.ID),
 		RunID:   job.RunID,
 		// Missing api endpoint for this location, artifacts are available under a nested url
 		RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), job.RunID),
@@ -383,7 +380,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		Conclusion:  conclusion,
 		RunnerID:    runnerID,
 		RunnerName:  runnerName,
-		Steps:       steps,
+		Steps:       util.SliceNilAsEmpty(steps),
 		CreatedAt:   job.Created.AsTime().UTC(),
 		StartedAt:   job.Started.AsTime().UTC(),
 		CompletedAt: job.Stopped.AsTime().UTC(),
@@ -524,6 +521,7 @@ func ToActionRunner(ctx context.Context, runner *actions_model.ActionRunner) *ap
 		Name:      runner.Name,
 		Status:    apiStatus,
 		Busy:      status == runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE,
+		Disabled:  runner.IsDisabled,
 		Ephemeral: runner.Ephemeral,
 		Labels:    labels,
 	}
@@ -542,8 +540,9 @@ func ToVerification(ctx context.Context, c *git.Commit) *api.PayloadCommitVerifi
 	}
 	if verif.SigningUser != nil {
 		commitVerification.Signer = &api.PayloadUser{
-			Name:  verif.SigningUser.Name,
-			Email: verif.SigningUser.Email,
+			UserName: verif.SigningUser.Name,
+			Name:     verif.SigningUser.DisplayName(),
+			Email:    verif.SigningEmail, // Use the email from the signature, not from the user profile
 		}
 	}
 	return commitVerification
@@ -703,7 +702,7 @@ func ToAnnotatedTag(ctx context.Context, repo *repo_model.Repository, t *git.Tag
 		SHA:          t.ID.String(),
 		Object:       ToAnnotatedTagObject(repo, c),
 		Message:      t.Message,
-		URL:          util.URLJoin(repo.APIURL(), "git/tags", t.ID.String()),
+		URL:          repo.APIURL() + "/git/tags/" + t.ID.String(),
 		Tagger:       ToCommitUser(t.Tagger),
 		Verification: ToVerification(ctx, c),
 	}
@@ -714,13 +713,13 @@ func ToAnnotatedTagObject(repo *repo_model.Repository, commit *git.Commit) *api.
 	return &api.AnnotatedTagObject{
 		SHA:  commit.ID.String(),
 		Type: string(git.ObjectCommit),
-		URL:  util.URLJoin(repo.APIURL(), "git/commits", commit.ID.String()),
+		URL:  repo.APIURL() + "/git/commits/" + commit.ID.String(),
 	}
 }
 
 // ToTagProtection convert a git.ProtectedTag to an api.TagProtection
 func ToTagProtection(ctx context.Context, pt *git_model.ProtectedTag, repo *repo_model.Repository) *api.TagProtection {
-	readers, err := access_model.GetRepoReaders(ctx, repo)
+	readers, err := access_model.GetUsersWithUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypePullRequests)
 	if err != nil {
 		log.Error("GetRepoReaders: %v", err)
 	}
@@ -771,7 +770,7 @@ func ToOAuth2Application(app *auth.OAuth2Application) *api.OAuth2Application {
 
 // ToLFSLock convert a LFSLock to api.LFSLock
 func ToLFSLock(ctx context.Context, l *git_model.LFSLock) *api.LFSLock {
-	u, err := user_model.GetUserByID(ctx, l.OwnerID)
+	u, err := user_model.GetPossibleUserByID(ctx, l.OwnerID)
 	if err != nil {
 		return nil
 	}

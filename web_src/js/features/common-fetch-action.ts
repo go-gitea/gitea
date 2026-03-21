@@ -67,10 +67,15 @@ async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: R
 
 async function onFormFetchActionSubmit(formEl: HTMLFormElement, e: SubmitEvent) {
   e.preventDefault();
-  await submitFormFetchAction(formEl, submitEventSubmitter(e));
+  await submitFormFetchAction(formEl, {formSubmitter: submitEventSubmitter(e)});
 }
 
-export async function submitFormFetchAction(formEl: HTMLFormElement, formSubmitter?: HTMLElement) {
+type SubmitFormFetchActionOpts = {
+  formSubmitter?: HTMLElement;
+  formData?: FormData;
+};
+
+export async function submitFormFetchAction(formEl: HTMLFormElement, opts: SubmitFormFetchActionOpts = {}) {
   if (formEl.classList.contains('is-loading')) return;
 
   formEl.classList.add('is-loading');
@@ -80,8 +85,8 @@ export async function submitFormFetchAction(formEl: HTMLFormElement, formSubmitt
 
   const formMethod = formEl.getAttribute('method') || 'get';
   const formActionUrl = formEl.getAttribute('action') || window.location.href;
-  const formData = new FormData(formEl);
-  const [submitterName, submitterValue] = [formSubmitter?.getAttribute('name'), formSubmitter?.getAttribute('value')];
+  const formData = opts.formData ?? new FormData(formEl);
+  const [submitterName, submitterValue] = [opts.formSubmitter?.getAttribute('name'), opts.formSubmitter?.getAttribute('value')];
   if (submitterName) {
     formData.append(submitterName, submitterValue || '');
   }
@@ -114,7 +119,7 @@ async function onLinkActionClick(el: HTMLElement, e: Event) {
   // If the "link-action" has "data-modal-confirm" attribute, a "confirm modal dialog" will be shown before taking action.
   // Attribute "data-modal-confirm" can be a modal element by "#the-modal-id", or a string content for the modal dialog.
   e.preventDefault();
-  const url = el.getAttribute('data-url');
+  const url = el.getAttribute('data-url')!;
   const doRequest = async () => {
     if ('disabled' in el) el.disabled = true; // el could be A or BUTTON, but "A" doesn't have the "disabled" attribute
     await fetchActionDoRequest(el, url, {method: el.getAttribute('data-link-action-method') || 'POST'});

@@ -50,11 +50,15 @@ DEFAULT CONFIGURATION:
 
 func prepareSubcommandWithGlobalFlags(originCmd *cli.Command) {
 	originBefore := originCmd.Before
-	originCmd.Before = func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
-		prepareWorkPathAndCustomConf(cmd)
+	originCmd.Before = func(ctxOrig context.Context, cmd *cli.Command) (ctx context.Context, err error) {
+		ctx = ctxOrig
 		if originBefore != nil {
-			return originBefore(ctx, cmd)
+			ctx, err = originBefore(ctx, cmd)
+			if err != nil {
+				return ctx, err
+			}
 		}
+		prepareWorkPathAndCustomConf(cmd)
 		return ctx, nil
 	}
 }
@@ -128,6 +132,7 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 
 	// these sub-commands do not need the config file, and they do not depend on any path or environment variable.
 	subCmdStandalone := []*cli.Command{
+		cmdConfig(),
 		cmdCert(),
 		CmdGenerate,
 		CmdDocs,
@@ -144,7 +149,7 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 	app.Commands = append(app.Commands, subCmdWithConfig...)
 	app.Commands = append(app.Commands, subCmdStandalone...)
 
-	setting.InitGiteaEnvVars()
+	setting.UnsetUnnecessaryEnvVars()
 	return app
 }
 

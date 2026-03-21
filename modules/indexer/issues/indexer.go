@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // IndexerMetadata is used to send data to the queue, so it contains only the ids.
@@ -100,7 +101,7 @@ func InitIssueIndexer(syncReindex bool) {
 			issueIndexer = elasticsearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
 			existed, err = issueIndexer.Init(ctx)
 			if err != nil {
-				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
+				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", util.SanitizeCredentialURLs(setting.Indexer.IssueConnStr), err)
 			}
 		case "db":
 			issueIndexer = db.GetIndexer()
@@ -108,7 +109,7 @@ func InitIssueIndexer(syncReindex bool) {
 			issueIndexer = meilisearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
 			existed, err = issueIndexer.Init(ctx)
 			if err != nil {
-				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
+				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", util.SanitizeCredentialURLs(setting.Indexer.IssueConnStr), err)
 			}
 		default:
 			log.Fatal("Unknown issue indexer type: %s", setting.Indexer.IssueType)

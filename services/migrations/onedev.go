@@ -77,19 +77,19 @@ type OneDevDownloader struct {
 }
 
 // NewOneDevDownloader creates a new downloader
-func NewOneDevDownloader(_ context.Context, baseURL *url.URL, username, password, repoPath string) *OneDevDownloader {
+func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, password, repoPath string) *OneDevDownloader {
+	httpTransport := NewMigrationHTTPTransport()
 	downloader := &OneDevDownloader{
 		baseURL:  baseURL,
 		repoPath: repoPath,
 		client: &http.Client{
-			Transport: &http.Transport{
-				Proxy: func(req *http.Request) (*url.URL, error) {
-					if len(username) > 0 && len(password) > 0 {
+			Transport: roundTripperFunc(
+				func(req *http.Request) (*http.Response, error) {
+					if username != "" && password != "" {
 						req.SetBasicAuth(username, password)
 					}
-					return nil, nil
-				},
-			},
+					return httpTransport.RoundTrip(req.WithContext(ctx))
+				}),
 		},
 		userMap:      make(map[int64]*onedevUser),
 		milestoneMap: make(map[int64]string),

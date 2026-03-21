@@ -33,7 +33,7 @@ export function initNotificationCount() {
 
   if (notificationSettings.EventSourceUpdateTime > 0 && window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js?v=${assetVersionEncoded}`, 'notification-worker');
+    const worker = new SharedWorker(`${window.__webpack_public_path__}js/eventsource.sharedworker.js?v=${assetVersionEncoded}`, 'notification-worker');
     worker.addEventListener('error', (event) => {
       console.error('worker error', event);
     });
@@ -90,7 +90,7 @@ export function initNotificationCount() {
 }
 
 function getCurrentCount() {
-  return Number(document.querySelector('.notification_count').textContent ?? '0');
+  return Number(document.querySelector('.notification_count')!.textContent ?? '0');
 }
 
 async function updateNotificationCountWithCallback(callback: (timeout: number, newCount: number) => void, timeout: number, lastCount: number) {
@@ -131,9 +131,9 @@ async function updateNotificationTable() {
 
       const data = await response.text();
       const el = createElementFromHTML(data);
-      if (parseInt(el.getAttribute('data-sequence-number')) === notificationSequenceNumber) {
+      if (parseInt(el.getAttribute('data-sequence-number')!) === notificationSequenceNumber) {
         notificationDiv.outerHTML = data;
-        notificationDiv = document.querySelector('#notification_div');
+        notificationDiv = document.querySelector('#notification_div')!;
         window.htmx.process(notificationDiv); // when using htmx, we must always remember to process the new content changed by us
       }
     } catch (error) {

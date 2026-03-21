@@ -4,7 +4,6 @@
 package elasticsearch
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
@@ -138,7 +138,7 @@ const (
 	}`
 )
 
-func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
+func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -148,7 +148,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()})
+		stdout, _, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha))
 		if err != nil {
 			return nil, err
 		}
@@ -161,16 +161,12 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
 	}
 
-	if _, err := batchWriter.Write([]byte(update.BlobSha + "\n")); err != nil {
-		return nil, err
-	}
-
-	_, _, size, err = git.ReadBatchLine(batchReader)
+	info, batchReader, err := catFileBatch.QueryContent(update.BlobSha)
 	if err != nil {
 		return nil, err
 	}
 
-	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
+	fileContents, err := io.ReadAll(io.LimitReader(batchReader, info.Size))
 	if err != nil {
 		return nil, err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {
@@ -190,7 +186,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 			Doc(map[string]any{
 				"repo_id":    repo.ID,
 				"filename":   update.Filename,
-				"content":    string(charset.ToUTF8DropErrors(fileContents, charset.ConvertOpts{})),
+				"content":    string(charset.ToUTF8DropErrors(fileContents)),
 				"commit_id":  sha,
 				"language":   analyze.GetCodeLanguage(update.Filename, fileContents),
 				"updated_at": timeutil.TimeStampNow(),
@@ -209,14 +205,14 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elasti
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
-		batch, err := git.NewBatch(ctx, repo.RepoPath())
+		batch, err := gitrepo.NewBatch(ctx, repo)
 		if err != nil {
 			return err
 		}
 		defer batch.Close()
 
 		for _, update := range changes.Updates {
-			updateReqs, err := b.addUpdate(ctx, batch.Writer, batch.Reader, sha, update, repo)
+			updateReqs, err := b.addUpdate(ctx, batch, sha, update, repo)
 			if err != nil {
 				return err
 			}
@@ -224,7 +220,6 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 				reqs = append(reqs, updateReqs...)
 			}
 		}
-		batch.Close()
 	}
 
 	for _, filename := range changes.RemovedFilenames {
@@ -398,7 +393,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 				elastic.NewHighlight().
 					Field("content").
 					Field("filename").
-					NumOfFragments(0). // return all highting content on fragments
+					NumOfFragments(0). // return all highlighting content on fragments
 					HighlighterType("fvh"),
 			).
 			Sort("_score", false).
@@ -431,7 +426,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 			elastic.NewHighlight().
 				Field("content").
 				Field("filename").
-				NumOfFragments(0). // return all highting content on fragments
+				NumOfFragments(0). // return all highlighting content on fragments
 				HighlighterType("fvh"),
 		).
 		Sort("_score", false).

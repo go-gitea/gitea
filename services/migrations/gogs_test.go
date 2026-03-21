@@ -27,6 +27,7 @@ func TestGogsDownloadRepo(t *testing.T) {
 		t.Skipf("visit test repo failed, ignored")
 		return
 	}
+	defer resp.Body.Close()
 	ctx := t.Context()
 	downloader := NewGogsDownloader(ctx, "https://try.gogs.io", "", "", gogsPersonalAccessToken, "lunnytest", "TESTREPO")
 	repo, err := downloader.GetRepoInfo(ctx)

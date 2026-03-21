@@ -41,16 +41,16 @@
   margin-left: 4px;
 }
 
-.ui.dropdown.select-reaction .menu {
-  min-width: 170px; /* item-outer-width * 4 */
+.ui.dropdown.select-reaction .menu.visible {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 4px;
 }
 
 .ui.dropdown.select-reaction .menu > .item {
-  float: left;
-  margin: 4px;
-  font-size: 20px;
   width: 34px;
   height: 34px;
+  font-size: 16px;
   border-radius: var(--border-radius);
   display: flex;
   align-items: center;

@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
+	"code.gitea.io/gitea/modules/test"
 	arch_service "code.gitea.io/gitea/services/packages/arch"
 	"code.gitea.io/gitea/tests"
 
@@ -77,34 +78,6 @@ license = MIT`)
 		cw.Close()
 
 		return buf.Bytes()
-	}
-	readIndexContent := func(r io.Reader) (map[string]string, error) {
-		gzr, err := gzip.NewReader(r)
-		if err != nil {
-			return nil, err
-		}
-
-		content := make(map[string]string)
-
-		tr := tar.NewReader(gzr)
-		for {
-			hd, err := tr.Next()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				return nil, err
-			}
-
-			buf, err := io.ReadAll(tr)
-			if err != nil {
-				return nil, err
-			}
-
-			content[hd.Name] = string(buf)
-		}
-
-		return content, nil
 	}
 
 	compressions := []string{"gz", "xz", "zst"}
@@ -204,7 +177,7 @@ license = MIT`)
 					req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/aarch64/%s", rootURL, repository, arch_service.IndexArchiveFilename))
 					resp := MakeRequest(t, req, http.StatusOK)
 
-					content, err := readIndexContent(resp.Body)
+					content, err := test.ReadAllTarGzContent(resp.Body)
 					assert.NoError(t, err)
 
 					desc, has := content[fmt.Sprintf("%s-%s/desc", packageName, packageVersion)]
@@ -256,7 +229,7 @@ license = MIT`)
 					req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/aarch64/%s", rootURL, repository, arch_service.IndexArchiveFilename))
 					resp := MakeRequest(t, req, http.StatusOK)
 
-					content, err := readIndexContent(resp.Body)
+					content, err := test.ReadAllTarGzContent(resp.Body)
 					assert.NoError(t, err)
 
 					desc, has := content[fmt.Sprintf("%s-%s/desc", packageName, packageVersion)]
@@ -311,7 +284,7 @@ license = MIT`)
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/aarch64/%s", rootURL, arch_service.IndexArchiveFilename))
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		content, err := readIndexContent(resp.Body)
+		content, err := test.ReadAllTarGzContent(resp.Body)
 		assert.NoError(t, err)
 		assert.Len(t, content, 2)
 
@@ -326,7 +299,7 @@ license = MIT`)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/aarch64/%s", rootURL, arch_service.IndexArchiveFilename))
 		resp = MakeRequest(t, req, http.StatusOK)
-		content, err = readIndexContent(resp.Body)
+		content, err = test.ReadAllTarGzContent(resp.Body)
 		assert.NoError(t, err)
 		assert.Len(t, content, 2)
 		_, has = content["gitea-test-1.0.0/desc"]

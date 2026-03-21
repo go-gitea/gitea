@@ -74,6 +74,9 @@ cpu.out
 /VERSION
 /.air
 /.go-licenses
+/Dockerfile
+/Dockerfile.rootless
+/.venv
 
 # Files and folders that were previously generated
 /public/assets/img/webpack

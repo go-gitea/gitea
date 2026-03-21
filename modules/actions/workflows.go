@@ -5,20 +5,21 @@ package actions
 
 import (
 	"bytes"
-	"io"
 	"slices"
 	"strings"
 
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
-	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 	"github.com/nektos/act/pkg/workflowpattern"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 type DetectedWorkflow struct {
@@ -41,21 +42,29 @@ func IsWorkflow(path string) bool {
 		return false
 	}
 
-	return strings.HasPrefix(path, ".gitea/workflows") || strings.HasPrefix(path, ".github/workflows")
+	for _, workflowDir := range setting.Actions.WorkflowDirs {
+		if strings.HasPrefix(path, workflowDir+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 func ListWorkflows(commit *git.Commit) (string, git.Entries, error) {
-	rpath := ".gitea/workflows"
-	tree, err := commit.SubTree(rpath)
-	if _, ok := err.(git.ErrNotExist); ok {
-		rpath = ".github/workflows"
-		tree, err = commit.SubTree(rpath)
+	var tree *git.Tree
+	var err error
+	var workflowDir string
+	for _, workflowDir = range setting.Actions.WorkflowDirs {
+		tree, err = commit.SubTree(workflowDir)
+		if err == nil {
+			break
+		}
+		if !git.IsErrNotExist(err) {
+			return "", nil, err
+		}
 	}
-	if _, ok := err.(git.ErrNotExist); ok {
+	if tree == nil {
 		return "", nil, nil
-	}
-	if err != nil {
-		return "", nil, err
 	}
 
 	entries, err := tree.ListEntriesRecursiveFast()
@@ -69,7 +78,7 @@ func ListWorkflows(commit *git.Commit) (string, git.Entries, error) {
 			ret = append(ret, entry)
 		}
 	}
-	return rpath, ret, nil
+	return workflowDir, ret, nil
 }
 
 func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {
@@ -77,7 +86,7 @@ func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	content, err := io.ReadAll(f)
+	content, err := util.ReadWithLimit(f, 1024*1024)
 	_ = f.Close()
 	if err != nil {
 		return nil, err

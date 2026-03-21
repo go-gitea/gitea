@@ -27,7 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
@@ -36,14 +36,13 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/model"
-	"xorm.io/builder"
 )
 
-func getRunIndex(ctx *context_module.Context) int64 {
-	// if run param is "latest", get the latest run index
+func getRunID(ctx *context_module.Context) int64 {
+	// if run param is "latest", get the latest run id
 	if ctx.PathParam("run") == "latest" {
 		if run, _ := actions_model.GetLatestRun(ctx, ctx.Repo.Repository.ID); run != nil {
-			return run.Index
+			return run.ID
 		}
 	}
 	return ctx.PathParamInt64("run")
@@ -51,24 +50,25 @@ func getRunIndex(ctx *context_module.Context) int64 {
 
 func View(ctx *context_module.Context) {
 	ctx.Data["PageIsActions"] = true
-	runIndex := getRunIndex(ctx)
-	jobIndex := ctx.PathParamInt64("job")
-	ctx.Data["RunIndex"] = runIndex
-	ctx.Data["JobIndex"] = jobIndex
-	ctx.Data["ActionsURL"] = ctx.Repo.RepoLink + "/actions"
+	runID := getRunID(ctx)
 
-	if getRunJobs(ctx, runIndex, jobIndex); ctx.Written() {
+	_, _, current := getRunJobsAndCurrentJob(ctx, runID)
+	if ctx.Written() {
 		return
 	}
+
+	ctx.Data["RunID"] = runID
+	ctx.Data["JobID"] = current.ID
+	ctx.Data["ActionsURL"] = ctx.Repo.RepoLink + "/actions"
 
 	ctx.HTML(http.StatusOK, tplViewActions)
 }
 
 func ViewWorkflowFile(ctx *context_module.Context) {
-	runIndex := getRunIndex(ctx)
-	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	runID := getRunID(ctx)
+	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetRunByIndex", func(err error) bool {
+		ctx.NotFoundOrServerError("GetRunByRepoAndID", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
 		return
@@ -142,11 +142,13 @@ type ViewResponse struct {
 }
 
 type ViewJob struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	Status   string `json:"status"`
-	CanRerun bool   `json:"canRerun"`
-	Duration string `json:"duration"`
+	ID       int64    `json:"id"`
+	JobID    string   `json:"jobId,omitempty"`
+	Name     string   `json:"name"`
+	Status   string   `json:"status"`
+	CanRerun bool     `json:"canRerun"`
+	Duration string   `json:"duration"`
+	Needs    []string `json:"needs,omitempty"`
 }
 
 type ViewCommit struct {
@@ -186,8 +188,8 @@ type ViewStepLogLine struct {
 	Timestamp float64 `json:"timestamp"`
 }
 
-func getActionsViewArtifacts(ctx context.Context, repoID, runIndex int64) (artifactsViewItems []*ArtifactsViewItem, err error) {
-	run, err := actions_model.GetRunByIndex(ctx, repoID, runIndex)
+func getActionsViewArtifacts(ctx context.Context, repoID, runID int64) (artifactsViewItems []*ArtifactsViewItem, err error) {
+	run, err := actions_model.GetRunByRepoAndID(ctx, repoID, runID)
 	if err != nil {
 		return nil, err
 	}
@@ -207,14 +209,12 @@ func getActionsViewArtifacts(ctx context.Context, repoID, runIndex int64) (artif
 
 func ViewPost(ctx *context_module.Context) {
 	req := web.GetForm(ctx).(*ViewRequest)
-	runIndex := getRunIndex(ctx)
-	jobIndex := ctx.PathParamInt64("job")
+	runID := getRunID(ctx)
 
-	current, jobs := getRunJobs(ctx, runIndex, jobIndex)
+	run, jobs, current := getRunJobsAndCurrentJob(ctx, runID)
 	if ctx.Written() {
 		return
 	}
-	run := current.Run
 	if err := run.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("run.LoadAttributes", err)
 		return
@@ -222,7 +222,7 @@ func ViewPost(ctx *context_module.Context) {
 
 	var err error
 	resp := &ViewResponse{}
-	resp.Artifacts, err = getActionsViewArtifacts(ctx, ctx.Repo.Repository.ID, runIndex)
+	resp.Artifacts, err = getActionsViewArtifacts(ctx, ctx.Repo.Repository.ID, runID)
 	if err != nil {
 		if !errors.Is(err, util.ErrNotExist) {
 			ctx.ServerError("getActionsViewArtifacts", err)
@@ -247,10 +247,12 @@ func ViewPost(ctx *context_module.Context) {
 	for _, v := range jobs {
 		resp.State.Run.Jobs = append(resp.State.Run.Jobs, &ViewJob{
 			ID:       v.ID,
+			JobID:    v.JobID,
 			Name:     v.Name,
 			Status:   v.Status.String(),
 			CanRerun: resp.State.Run.CanRerun,
 			Duration: v.Duration().String(),
+			Needs:    v.Needs,
 		})
 	}
 
@@ -302,7 +304,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
 	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
 	if task != nil {
-		steps, logs, err := convertToViewModel(ctx, req.LogCursors, task)
+		steps, logs, err := convertToViewModel(ctx, ctx.Locale, req.LogCursors, task)
 		if err != nil {
 			ctx.ServerError("convertToViewModel", err)
 			return
@@ -314,7 +316,7 @@ func ViewPost(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func convertToViewModel(ctx *context_module.Context, cursors []LogCursor, task *actions_model.ActionTask) ([]*ViewJobStep, []*ViewStepLog, error) {
+func convertToViewModel(ctx context.Context, locale translation.Locale, cursors []LogCursor, task *actions_model.ActionTask) ([]*ViewJobStep, []*ViewStepLog, error) {
 	var viewJobs []*ViewJobStep
 	var logs []*ViewStepLog
 
@@ -344,7 +346,7 @@ func convertToViewModel(ctx *context_module.Context, cursors []LogCursor, task *
 					Lines: []*ViewStepLogLine{
 						{
 							Index:   1,
-							Message: ctx.Locale.TrString("actions.runs.expire_log_message"),
+							Message: locale.TrString("actions.runs.expire_log_message"),
 							// Timestamp doesn't mean anything when the log is expired.
 							// Set it to the task's updated time since it's probably the time when the log has expired.
 							Timestamp: float64(task.Updated.AsTime().UnixNano()) / float64(time.Second),
@@ -397,18 +399,18 @@ func convertToViewModel(ctx *context_module.Context, cursors []LogCursor, task *
 }
 
 // Rerun will rerun jobs in the given run
-// If jobIndexStr is a blank string, it means rerun all jobs
+// If jobIDStr is a blank string, it means rerun all jobs
 func Rerun(ctx *context_module.Context) {
-	runIndex := getRunIndex(ctx)
-	jobIndexStr := ctx.PathParam("job")
-	var jobIndex int64
-	if jobIndexStr != "" {
-		jobIndex, _ = strconv.ParseInt(jobIndexStr, 10, 64)
+	runID := getRunID(ctx)
+
+	run, jobs, currentJob := getRunJobsAndCurrentJob(ctx, runID)
+	if ctx.Written() {
+		return
 	}
 
-	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
-	if err != nil {
-		ctx.ServerError("GetRunByIndex", err)
+	// rerun is not allowed if the run is not done
+	if !run.Status.IsDone() {
+		ctx.JSONError(ctx.Locale.Tr("actions.runs.not_done"))
 		return
 	}
 
@@ -420,217 +422,162 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	// reset run's start and stop time when it is done
-	if run.Status.IsDone() {
-		run.PreviousDuration = run.Duration()
-		run.Started = 0
-		run.Stopped = 0
-		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration"); err != nil {
-			ctx.ServerError("UpdateRun", err)
-			return
-		}
-
-		if err := run.LoadAttributes(ctx); err != nil {
-			ctx.ServerError("run.LoadAttributes", err)
-			return
-		}
-		notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+	var targetJob *actions_model.ActionRunJob // nil means rerun all jobs
+	if ctx.PathParam("job") != "" {
+		targetJob = currentJob
 	}
 
-	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
-	if ctx.Written() {
+	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs, targetJob); err != nil {
+		ctx.ServerError("RerunWorkflowRunJobs", err)
 		return
-	}
-
-	if jobIndexStr == "" { // rerun all jobs
-		for _, j := range jobs {
-			// if the job has needs, it should be set to "blocked" status to wait for other jobs
-			shouldBlock := len(j.Needs) > 0
-			if err := rerunJob(ctx, j, shouldBlock); err != nil {
-				ctx.ServerError("RerunJob", err)
-				return
-			}
-		}
-		ctx.JSONOK()
-		return
-	}
-
-	rerunJobs := actions_service.GetAllRerunJobs(job, jobs)
-
-	for _, j := range rerunJobs {
-		// jobs other than the specified one should be set to "blocked" status
-		shouldBlock := j.JobID != job.JobID
-		if err := rerunJob(ctx, j, shouldBlock); err != nil {
-			ctx.ServerError("RerunJob", err)
-			return
-		}
 	}
 
 	ctx.JSONOK()
 }
 
-func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shouldBlock bool) error {
-	status := job.Status
-	if !status.IsDone() || !job.Run.Status.IsDone() {
-		return nil
-	}
-
-	job.TaskID = 0
-	job.Status = actions_model.StatusWaiting
-	if shouldBlock {
-		job.Status = actions_model.StatusBlocked
-	}
-	job.Started = 0
-	job.Stopped = 0
-
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
-		return err
-	}); err != nil {
-		return err
-	}
-
-	actions_service.CreateCommitStatus(ctx, job)
-	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
-
-	return nil
-}
-
 func Logs(ctx *context_module.Context) {
-	runIndex := getRunIndex(ctx)
-	jobIndex := ctx.PathParamInt64("job")
+	runID := getRunID(ctx)
+	jobID := ctx.PathParamInt64("job")
 
-	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetRunByIndex", func(err error) bool {
+		ctx.NotFoundOrServerError("GetRunByRepoAndID", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
 		return
 	}
 
-	if err = common.DownloadActionsRunJobLogsWithIndex(ctx.Base, ctx.Repo.Repository, run.ID, jobIndex); err != nil {
-		ctx.NotFoundOrServerError("DownloadActionsRunJobLogsWithIndex", func(err error) bool {
+	if err = common.DownloadActionsRunJobLogsWithID(ctx.Base, ctx.Repo.Repository, run.ID, jobID); err != nil {
+		ctx.NotFoundOrServerError("DownloadActionsRunJobLogsWithID", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
 	}
 }
 
 func Cancel(ctx *context_module.Context) {
-	runIndex := getRunIndex(ctx)
+	runID := getRunID(ctx)
 
-	_, jobs := getRunJobs(ctx, runIndex, -1)
+	run, jobs, _ := getRunJobsAndCurrentJob(ctx, runID)
 	if ctx.Written() {
 		return
 	}
 
-	var updatedjobs []*actions_model.ActionRunJob
+	var updatedJobs []*actions_model.ActionRunJob
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		for _, job := range jobs {
-			status := job.Status
-			if status.IsDone() {
-				continue
-			}
-			if job.TaskID == 0 {
-				job.Status = actions_model.StatusCancelled
-				job.Stopped = timeutil.TimeStampNow()
-				n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
-				if err != nil {
-					return err
-				}
-				if n == 0 {
-					return errors.New("job has changed, try again")
-				}
-				if n > 0 {
-					updatedjobs = append(updatedjobs, job)
-				}
-				continue
-			}
-			if err := actions_model.StopTask(ctx, job.TaskID, actions_model.StatusCancelled); err != nil {
-				return err
-			}
+		cancelledJobs, err := actions_model.CancelJobs(ctx, jobs)
+		if err != nil {
+			return fmt.Errorf("cancel jobs: %w", err)
 		}
+		updatedJobs = append(updatedJobs, cancelledJobs...)
 		return nil
 	}); err != nil {
 		ctx.ServerError("StopTask", err)
 		return
 	}
 
-	actions_service.CreateCommitStatus(ctx, jobs...)
+	actions_service.CreateCommitStatusForRunJobs(ctx, run, jobs...)
+	actions_service.EmitJobsIfReadyByJobs(updatedJobs)
 
-	for _, job := range updatedjobs {
+	for _, job := range updatedJobs {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
-	if len(updatedjobs) > 0 {
-		job := updatedjobs[0]
+	if len(updatedJobs) > 0 {
+		job := updatedJobs[0]
 		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
 	}
 	ctx.JSONOK()
 }
 
 func Approve(ctx *context_module.Context) {
-	runIndex := getRunIndex(ctx)
+	runID := getRunID(ctx)
 
-	current, jobs := getRunJobs(ctx, runIndex, -1)
+	approveRuns(ctx, []int64{runID})
 	if ctx.Written() {
 		return
-	}
-	run := current.Run
-	doer := ctx.Doer
-
-	var updatedjobs []*actions_model.ActionRunJob
-
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		run.NeedApproval = false
-		run.ApprovedBy = doer.ID
-		if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
-			return err
-		}
-		for _, job := range jobs {
-			if len(job.Needs) == 0 && job.Status.IsBlocked() {
-				job.Status = actions_model.StatusWaiting
-				n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
-				if err != nil {
-					return err
-				}
-				if n > 0 {
-					updatedjobs = append(updatedjobs, job)
-				}
-			}
-		}
-		return nil
-	}); err != nil {
-		ctx.ServerError("UpdateRunJob", err)
-		return
-	}
-
-	actions_service.CreateCommitStatus(ctx, jobs...)
-
-	if len(updatedjobs) > 0 {
-		job := updatedjobs[0]
-		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
-	}
-
-	for _, job := range updatedjobs {
-		_ = job.LoadAttributes(ctx)
-		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
 
 	ctx.JSONOK()
 }
 
+func approveRuns(ctx *context_module.Context, runIDs []int64) {
+	doer := ctx.Doer
+	repo := ctx.Repo.Repository
+
+	updatedJobs := make([]*actions_model.ActionRunJob, 0)
+	runMap := make(map[int64]*actions_model.ActionRun, len(runIDs))
+	runJobs := make(map[int64][]*actions_model.ActionRunJob, len(runIDs))
+
+	err := db.WithTx(ctx, func(ctx context.Context) (err error) {
+		for _, runID := range runIDs {
+			run, err := actions_model.GetRunByRepoAndID(ctx, repo.ID, runID)
+			if err != nil {
+				return err
+			}
+			runMap[run.ID] = run
+			run.Repo = repo
+			run.NeedApproval = false
+			run.ApprovedBy = doer.ID
+			if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
+				return err
+			}
+			jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+			if err != nil {
+				return err
+			}
+			runJobs[run.ID] = jobs
+			for _, job := range jobs {
+				job.Status, err = actions_service.PrepareToStartJobWithConcurrency(ctx, job)
+				if err != nil {
+					return err
+				}
+				if job.Status == actions_model.StatusWaiting {
+					n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
+					if err != nil {
+						return err
+					}
+					if n > 0 {
+						updatedJobs = append(updatedJobs, job)
+					}
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		ctx.NotFoundOrServerError("approveRuns", func(err error) bool {
+			return errors.Is(err, util.ErrNotExist)
+		}, err)
+		return
+	}
+
+	for runID, run := range runMap {
+		actions_service.CreateCommitStatusForRunJobs(ctx, run, runJobs[runID]...)
+	}
+
+	if len(updatedJobs) > 0 {
+		job := updatedJobs[0]
+		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
+	}
+
+	for _, job := range updatedJobs {
+		_ = job.LoadAttributes(ctx)
+		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+	}
+}
+
 func Delete(ctx *context_module.Context) {
-	runIndex := getRunIndex(ctx)
+	runID := getRunID(ctx)
 	repoID := ctx.Repo.Repository.ID
 
-	run, err := actions_model.GetRunByIndex(ctx, repoID, runIndex)
+	run, err := actions_model.GetRunByRepoAndID(ctx, repoID, runID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.JSONErrorNotFound()
 			return
 		}
-		ctx.ServerError("GetRunByIndex", err)
+		ctx.ServerError("GetRunByRepoAndID", err)
 		return
 	}
 
@@ -647,47 +594,54 @@ func Delete(ctx *context_module.Context) {
 	ctx.JSONOK()
 }
 
-// getRunJobs gets the jobs of runIndex, and returns jobs[jobIndex], jobs.
-// Any error will be written to the ctx.
-// It never returns a nil job of an empty jobs, if the jobIndex is out of range, it will be treated as 0.
-func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob) {
-	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+// getRunJobsAndCurrentJob loads the run and its jobs for runID, and returns the selected job based on the optional "job" path param (or the first job by default).
+// Any error will be written to the ctx, and nils are returned in that case.
+func getRunJobsAndCurrentJob(ctx *context_module.Context, runID int64) (*actions_model.ActionRun, []*actions_model.ActionRunJob, *actions_model.ActionRunJob) {
+	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.NotFound(nil)
-			return nil, nil
-		}
-		ctx.ServerError("GetRunByIndex", err)
-		return nil, nil
+		ctx.NotFoundOrServerError("GetRunByRepoAndID", func(err error) bool {
+			return errors.Is(err, util.ErrNotExist)
+		}, err)
+		return nil, nil, nil
 	}
 	run.Repo = ctx.Repo.Repository
 	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
 	if err != nil {
 		ctx.ServerError("GetRunJobsByRunID", err)
-		return nil, nil
+		return nil, nil, nil
 	}
 	if len(jobs) == 0 {
 		ctx.NotFound(nil)
-		return nil, nil
+		return nil, nil, nil
 	}
 
-	for _, v := range jobs {
-		v.Run = run
+	for _, job := range jobs {
+		job.Run = run
 	}
 
-	if jobIndex >= 0 && jobIndex < int64(len(jobs)) {
-		return jobs[jobIndex], jobs
+	current := jobs[0]
+	if ctx.PathParam("job") != "" {
+		jobID := ctx.PathParamInt64("job")
+		current, err = actions_model.GetRunJobByRunAndID(ctx, run.ID, jobID)
+		if err != nil {
+			ctx.NotFoundOrServerError("GetRunJobByRunAndID", func(err error) bool {
+				return errors.Is(err, util.ErrNotExist)
+			}, err)
+			return nil, nil, nil
+		}
+		current.Run = run
 	}
-	return jobs[0], jobs
+
+	return run, jobs, current
 }
 
 func ArtifactsDeleteView(ctx *context_module.Context) {
-	runIndex := getRunIndex(ctx)
+	runID := getRunID(ctx)
 	artifactName := ctx.PathParam("artifact_name")
 
-	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetRunByIndex", func(err error) bool {
+		ctx.NotFoundOrServerError("GetRunByRepoAndID", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
 		return
@@ -700,16 +654,16 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 }
 
 func ArtifactsDownloadView(ctx *context_module.Context) {
-	runIndex := getRunIndex(ctx)
+	runID := getRunID(ctx)
 	artifactName := ctx.PathParam("artifact_name")
 
-	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.HTTPError(http.StatusNotFound, err.Error())
 			return
 		}
-		ctx.ServerError("GetRunByIndex", err)
+		ctx.ServerError("GetRunByRepoAndID", err)
 		return
 	}
 
@@ -780,6 +734,42 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	}
 }
 
+func ApproveAllChecks(ctx *context_module.Context) {
+	repo := ctx.Repo.Repository
+	commitID := ctx.FormString("commit_id")
+
+	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll)
+	if err != nil {
+		ctx.ServerError("GetLatestCommitStatus", err)
+		return
+	}
+	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
+	if err != nil {
+		ctx.ServerError("GetRunsFromCommitStatuses", err)
+		return
+	}
+
+	runIDs := make([]int64, 0, len(runs))
+	for _, run := range runs {
+		if run.NeedApproval {
+			runIDs = append(runIDs, run.ID)
+		}
+	}
+
+	if len(runIDs) == 0 {
+		ctx.JSONOK()
+		return
+	}
+
+	approveRuns(ctx, runIDs)
+	if ctx.Written() {
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("actions.approve_all_success"))
+	ctx.JSONOK()
+}
+
 func DisableWorkflowFile(ctx *context_module.Context) {
 	disableOrEnableWorkflowFile(ctx, false)
 }
@@ -835,7 +825,7 @@ func Run(ctx *context_module.Context) {
 		ctx.ServerError("ref", nil)
 		return
 	}
-	err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
+	_, err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
 		for name, config := range workflowDispatch.Inputs {
 			value := ctx.Req.PostFormValue(name)
 			if config.Type == "boolean" {
@@ -849,8 +839,8 @@ func Run(ctx *context_module.Context) {
 		return nil
 	})
 	if err != nil {
-		if errLocale := util.ErrorAsLocale(err); errLocale != nil {
-			ctx.Flash.Error(ctx.Tr(errLocale.TrKey, errLocale.TrArgs...))
+		if errTr := util.ErrorAsTranslatable(err); errTr != nil {
+			ctx.Flash.Error(errTr.Translate(ctx.Locale))
 			ctx.Redirect(redirectURL)
 		} else {
 			ctx.ServerError("DispatchActionWorkflow", err)

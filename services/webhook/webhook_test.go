@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -89,4 +90,31 @@ func TestWebhookUserMail(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	assert.Equal(t, user.GetPlaceholderEmail(), convert.ToUser(t.Context(), user, nil).Email)
 	assert.Equal(t, user.Email, convert.ToUser(t.Context(), user, user).Email)
+}
+
+func TestCheckBranchFilter(t *testing.T) {
+	cases := []struct {
+		filter string
+		ref    git.RefName
+		match  bool
+	}{
+		{"", "any-ref", true},
+		{"*", "any-ref", true},
+		{"**", "any-ref", true},
+
+		{"main", git.RefNameFromBranch("main"), true},
+		{"main", git.RefNameFromTag("main"), false},
+
+		{"feature/*", git.RefNameFromBranch("feature"), false},
+		{"feature/*", git.RefNameFromBranch("feature/foo"), true},
+		{"feature/*", git.RefNameFromTag("feature/foo"), false},
+
+		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromBranch("feature/foo"), true},
+		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromBranch("main"), false},
+		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromTag("release/bar"), true},
+		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromTag("dev"), false},
+	}
+	for _, v := range cases {
+		assert.Equal(t, v.match, checkBranchFilter(v.filter, v.ref), "filter: %q ref: %q", v.filter, v.ref)
+	}
 }

@@ -248,7 +248,7 @@ func FindAllIssueReferencesMarkdown(content string) []IssueReference {
 
 func findAllIssueReferencesMarkdown(content string) []*rawReference {
 	bcontent, links := mdstripper.StripMarkdownBytes([]byte(content))
-	return findAllIssueReferencesBytes(bcontent, links)
+	return findAllIssueReferencesBytes(bcontent, links, []byte(content))
 }
 
 func convertFullHTMLReferencesToShortRefs(re *regexp.Regexp, contentBytes *[]byte) {
@@ -326,7 +326,7 @@ func FindAllIssueReferences(content string) []IssueReference {
 	} else {
 		log.Debug("No GiteaIssuePullPattern pattern")
 	}
-	return rawToIssueReferenceList(findAllIssueReferencesBytes(contentBytes, []string{}))
+	return rawToIssueReferenceList(findAllIssueReferencesBytes(contentBytes, []string{}, nil))
 }
 
 // FindRenderizableReferenceNumeric returns the first unvalidated reference found in a string.
@@ -406,7 +406,8 @@ func FindRenderizableReferenceAlphanumeric(content string) *RenderizableReferenc
 }
 
 // FindAllIssueReferencesBytes returns a list of unvalidated references found in a byte slice.
-func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference {
+// originalContent is optional and used to detect closing/reopening keywords for URL references.
+func findAllIssueReferencesBytes(content []byte, links []string, originalContent []byte) []*rawReference {
 	ret := make([]*rawReference, 0, 10)
 	pos := 0
 
@@ -470,10 +471,27 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 			default:
 				continue
 			}
-			// Note: closing/reopening keywords not supported with URLs
-			bytes := []byte(parts[1] + "/" + parts[2] + sep + parts[4])
-			if ref := getCrossReference(bytes, 0, len(bytes), true, false); ref != nil {
+			refBytes := []byte(parts[1] + "/" + parts[2] + sep + parts[4])
+			if ref := getCrossReference(refBytes, 0, len(refBytes), true, false); ref != nil {
 				ref.refLocation = nil
+				// Detect closing/reopening keywords by finding the URL position in original content
+				if originalContent != nil {
+					if idx := bytes.Index(originalContent, []byte(link)); idx > 0 {
+						// For markdown links [text](url), find the opening bracket before the URL
+						// to properly detect keywords like "closes [text](url)"
+						searchStart := idx
+						if idx >= 2 && originalContent[idx-1] == '(' {
+							// Find the matching '[' for this markdown link
+							bracketIdx := bytes.LastIndex(originalContent[:idx-1], []byte{'['})
+							if bracketIdx >= 0 {
+								searchStart = bracketIdx
+							}
+						}
+						action, location := findActionKeywords(originalContent, searchStart)
+						ref.action = action
+						ref.actionLocation = location
+					}
+				}
 				ret = append(ret, ref)
 			}
 		}

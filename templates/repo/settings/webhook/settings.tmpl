@@ -44,7 +44,16 @@
 <div class="field">
 	<label>{{ctx.Locale.Tr "repo.settings.branch_filter"}}</label>
 	<input name="branch_filter" type="text" value="{{or .Webhook.BranchFilter "*"}}">
-	<span class="help">{{ctx.Locale.Tr "repo.settings.branch_filter_desc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}</span>
+	<span class="help">
+		{{ctx.Locale.Tr "repo.settings.branch_filter_desc_1"}}
+		{{ctx.Locale.Tr "repo.settings.branch_filter_desc_2"}}
+		{{ctx.Locale.Tr "repo.settings.branch_filter_desc_doc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}
+		<ul>
+			<li><code>main</code></li>
+			<li><code>{main,feature/*}</code></li>
+			<li><code>{refs/heads/feature/*,refs/tags/release/*}</code></li>
+		</ul>
+	</span>
 </div>
 
 <div class="field">

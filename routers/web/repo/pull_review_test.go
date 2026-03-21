@@ -30,7 +30,7 @@ func TestRenderConversation(t *testing.T) {
 
 	run := func(name string, cb func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder)) {
 		t.Run(name, func(t *testing.T) {
-			ctx, resp := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.HTMLRenderer()})
+			ctx, resp := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
 			contexttest.LoadUser(t, ctx, pr.Issue.PosterID)
 			contexttest.LoadRepo(t, ctx, pr.BaseRepoID)
 			contexttest.LoadGitRepo(t, ctx)

@@ -8,8 +8,6 @@ import (
 	"encoding/binary"
 	"encoding/json" //nolint:depguard // this package wraps it
 	"io"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 // Encoder represents an encoder for json
@@ -31,71 +29,7 @@ type Interface interface {
 	Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error
 }
 
-var (
-	// DefaultJSONHandler default json handler
-	DefaultJSONHandler Interface = JSONiter{jsoniter.ConfigCompatibleWithStandardLibrary}
-
-	_ Interface = StdJSON{}
-	_ Interface = JSONiter{}
-)
-
-// StdJSON implements Interface via encoding/json
-type StdJSON struct{}
-
-// Marshal implements Interface
-func (StdJSON) Marshal(v any) ([]byte, error) {
-	return json.Marshal(v)
-}
-
-// Unmarshal implements Interface
-func (StdJSON) Unmarshal(data []byte, v any) error {
-	return json.Unmarshal(data, v)
-}
-
-// NewEncoder implements Interface
-func (StdJSON) NewEncoder(writer io.Writer) Encoder {
-	return json.NewEncoder(writer)
-}
-
-// NewDecoder implements Interface
-func (StdJSON) NewDecoder(reader io.Reader) Decoder {
-	return json.NewDecoder(reader)
-}
-
-// Indent implements Interface
-func (StdJSON) Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
-	return json.Indent(dst, src, prefix, indent)
-}
-
-// JSONiter implements Interface via jsoniter
-type JSONiter struct {
-	jsoniter.API
-}
-
-// Marshal implements Interface
-func (j JSONiter) Marshal(v any) ([]byte, error) {
-	return j.API.Marshal(v)
-}
-
-// Unmarshal implements Interface
-func (j JSONiter) Unmarshal(data []byte, v any) error {
-	return j.API.Unmarshal(data, v)
-}
-
-// NewEncoder implements Interface
-func (j JSONiter) NewEncoder(writer io.Writer) Encoder {
-	return j.API.NewEncoder(writer)
-}
-
-// NewDecoder implements Interface
-func (j JSONiter) NewDecoder(reader io.Reader) Decoder {
-	return j.API.NewDecoder(reader)
-}
-
-// Indent implements Interface, since jsoniter don't support Indent, just use encoding/json's
-func (j JSONiter) Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
-	return json.Indent(dst, src, prefix, indent)
-}
+var DefaultJSONHandler = getDefaultJSONHandler()
 
 // Marshal converts object as bytes
 func Marshal(v any) ([]byte, error) {

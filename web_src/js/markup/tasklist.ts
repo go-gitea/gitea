@@ -13,7 +13,7 @@ const preventListener = (e: Event) => e.preventDefault();
 export function initMarkupTasklist(elMarkup: HTMLElement): void {
   if (!elMarkup.matches('[data-can-edit=true]')) return;
 
-  const container = elMarkup.parentNode;
+  const container = elMarkup.parentNode!;
   const checkboxes = elMarkup.querySelectorAll<HTMLInputElement>(`.task-list-item input[type=checkbox]`);
 
   for (const checkbox of checkboxes) {
@@ -24,9 +24,9 @@ export function initMarkupTasklist(elMarkup: HTMLElement): void {
     checkbox.setAttribute('data-editable', 'true');
     checkbox.addEventListener('input', async () => {
       const checkboxCharacter = checkbox.checked ? 'x' : ' ';
-      const position = parseInt(checkbox.getAttribute('data-source-position')) + 1;
+      const position = parseInt(checkbox.getAttribute('data-source-position')!) + 1;
 
-      const rawContent = container.querySelector('.raw-content');
+      const rawContent = container.querySelector('.raw-content')!;
       const oldContent = rawContent.textContent;
 
       const encoder = new TextEncoder();
@@ -53,10 +53,10 @@ export function initMarkupTasklist(elMarkup: HTMLElement): void {
       }
 
       try {
-        const editContentZone = container.querySelector<HTMLDivElement>('.edit-content-zone');
-        const updateUrl = editContentZone.getAttribute('data-update-url');
-        const context = editContentZone.getAttribute('data-context');
-        const contentVersion = editContentZone.getAttribute('data-content-version');
+        const editContentZone = container.querySelector<HTMLDivElement>('.edit-content-zone')!;
+        const updateUrl = editContentZone.getAttribute('data-update-url')!;
+        const context = editContentZone.getAttribute('data-context')!;
+        const contentVersion = editContentZone.getAttribute('data-content-version')!;
 
         const requestBody = new FormData();
         requestBody.append('ignore_attachments', 'true');

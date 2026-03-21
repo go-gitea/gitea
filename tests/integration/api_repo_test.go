@@ -41,17 +41,6 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 	}
 }
 
-func TestAPIUserReposWithWrongToken(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	wrongToken := "Bearer " + "wrong_token"
-	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name).
-		AddTokenAuth(wrongToken)
-	resp := MakeRequest(t, req, http.StatusUnauthorized)
-
-	assert.Contains(t, resp.Body.String(), "user does not exist")
-}
-
 func TestAPISearchRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	const keyword = "test"

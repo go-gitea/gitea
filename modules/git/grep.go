@@ -5,14 +5,13 @@ package git
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/util"
@@ -41,16 +40,11 @@ type GrepOptions struct {
 	PathspecList      []string
 }
 
-func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepOptions) ([]*GrepResult, error) {
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return nil, fmt.Errorf("unable to create os pipe to grep: %w", err)
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
+// grepSearchTimeout is the timeout for git grep search, it should be long enough to get results
+// but not too long to cause performance issues
+const grepSearchTimeout = 30 * time.Second
 
+func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepOptions) ([]*GrepResult, error) {
 	/*
 	 The output is like this ( "^@" means \x00):
 
@@ -83,15 +77,12 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	cmd.AddDynamicArguments(util.IfZero(opts.RefName, "HEAD"))
 	cmd.AddDashesAndList(opts.PathspecList...)
 	opts.MaxResultLimit = util.IfZero(opts.MaxResultLimit, 50)
-	stderr := bytes.Buffer{}
-	err = cmd.Run(ctx, &gitcmd.RunOpts{
-		Dir:    repo.Path,
-		Stdout: stdoutWriter,
-		Stderr: &stderr,
-		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
-			defer stdoutReader.Close()
 
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+	err := cmd.WithDir(repo.Path).
+		WithTimeout(grepSearchTimeout).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			isInBlock := false
 			rd := bufio.NewReaderSize(stdoutReader, util.IfZero(opts.MaxLineLength, 16*1024))
 			var res *GrepResult
@@ -117,8 +108,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 				}
 				if line == "" {
 					if len(results) >= opts.MaxResultLimit {
-						cancel()
-						break
+						return ctx.CancelPipeline(nil)
 					}
 					isInBlock = false
 					continue
@@ -133,18 +123,18 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 				}
 			}
 			return nil
-		},
-	})
+		}).
+		RunWithStderr(ctx)
 	// git grep exits by cancel (killed), usually it is caused by the limit of results
-	if gitcmd.IsErrorExitCode(err, -1) && stderr.Len() == 0 {
+	if gitcmd.IsErrorExitCode(err, -1) && err.Stderr() == "" {
 		return results, nil
 	}
 	// git grep exits with 1 if no results are found
-	if gitcmd.IsErrorExitCode(err, 1) && stderr.Len() == 0 {
+	if gitcmd.IsErrorExitCode(err, 1) && err.Stderr() == "" {
 		return nil, nil
 	}
 	if err != nil && !errors.Is(err, context.Canceled) {
-		return nil, fmt.Errorf("unable to run git grep: %w, stderr: %s", err, stderr.String())
+		return nil, fmt.Errorf("unable to run git grep: %w", err)
 	}
 	return results, nil
 }

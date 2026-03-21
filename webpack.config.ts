@@ -4,7 +4,7 @@ import LicenseCheckerWebpackPlugin from '@techknowlogick/license-checker-webpack
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import {VueLoaderPlugin} from 'vue-loader';
-import EsBuildLoader from 'esbuild-loader';
+import {EsbuildPlugin} from 'esbuild-loader';
 import {parse} from 'node:path';
 import webpack, {type Configuration, type EntryObject} from 'webpack';
 import {fileURLToPath} from 'node:url';
@@ -13,7 +13,6 @@ import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
 
-const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin, EnvironmentPlugin} = webpack;
 const formatLicenseText = (licenseText: string) => wrapAnsi(licenseText || '', 80).trim();
 
@@ -30,7 +29,7 @@ const isProduction = env.NODE_ENV !== 'development';
 // false - all disabled
 let sourceMaps;
 if ('ENABLE_SOURCEMAP' in env) {
-  sourceMaps = ['true', 'false'].includes(env.ENABLE_SOURCEMAP) ? env.ENABLE_SOURCEMAP : 'reduced';
+  sourceMaps = ['true', 'false'].includes(env.ENABLE_SOURCEMAP || '') ? env.ENABLE_SOURCEMAP : 'reduced';
 } else {
   sourceMaps = isProduction ? 'reduced' : 'true';
 }
@@ -40,7 +39,6 @@ const webComponents = new Set([
   // our own, in web_src/js/webcomponents
   'overflow-menu',
   'origin-url',
-  'absolute-date',
   // from dependencies
   'markdown-toolbar',
   'relative-time',
@@ -68,12 +66,15 @@ export default {
   entry: {
     index: [
       fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
-      fileURLToPath(new URL('web_src/fomantic/build/fomantic.css', import.meta.url)),
       fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
     ],
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.ts', import.meta.url)),
       fileURLToPath(new URL('web_src/css/standalone/swagger.css', import.meta.url)),
+    ],
+    'external-render-iframe': [
+      fileURLToPath(new URL('web_src/js/standalone/external-render-iframe.ts', import.meta.url)),
+      fileURLToPath(new URL('web_src/css/standalone/external-render-iframe.css', import.meta.url)),
     ],
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.ts', import.meta.url)),
@@ -89,11 +90,8 @@ export default {
   devtool: false,
   output: {
     path: fileURLToPath(new URL('public/assets', import.meta.url)),
-    filename: () => 'js/[name].js',
-    chunkFilename: ({chunk}) => {
-      const language = (/monaco.*languages?_.+?_(.+?)_/.exec(String(chunk.id)) || [])[1];
-      return `js/${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
-    },
+    filename: 'js/[name].js',
+    chunkFilename: 'js/[name].[contenthash:8].js',
   },
   optimization: {
     minimize: isProduction,
@@ -105,10 +103,6 @@ export default {
         legalComments: 'none',
       }),
     ],
-    splitChunks: {
-      chunks: 'async',
-      name: (_, chunks) => chunks.map((item) => item.name).join('-'),
-    },
     moduleIds: 'named',
     chunkIds: 'named',
   },
@@ -263,10 +257,6 @@ export default {
     chunksSort: 'name',
     colors: true,
     entrypoints: false,
-    excludeAssets: [
-      /^js\/monaco-language-.+\.js$/,
-      !isProduction && /^licenses.txt$/,
-    ].filter(Boolean),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,
     groupAssetsByInfo: false,

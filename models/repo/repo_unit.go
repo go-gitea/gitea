@@ -131,12 +131,28 @@ type PullRequestsConfig struct {
 	DefaultDeleteBranchAfterMerge bool
 	DefaultMergeStyle             MergeStyle
 	DefaultAllowMaintainerEdit    bool
+	DefaultTargetBranch           string
+}
+
+func DefaultPullRequestsConfig() *PullRequestsConfig {
+	cfg := &PullRequestsConfig{
+		AllowMerge:                 true,
+		AllowRebase:                true,
+		AllowRebaseMerge:           true,
+		AllowSquash:                true,
+		AllowFastForwardOnly:       true,
+		AllowRebaseUpdate:          true,
+		DefaultAllowMaintainerEdit: true,
+	}
+	cfg.DefaultMergeStyle = MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
+	cfg.DefaultMergeStyle = util.IfZero(cfg.DefaultMergeStyle, MergeStyleMerge)
+	return cfg
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.
 func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
-	// AllowRebaseUpdate = true as default for existing PullRequestConfig in DB
-	cfg.AllowRebaseUpdate = true
+	// set default values for existing PullRequestConfig in DB
+	*cfg = *DefaultPullRequestsConfig()
 	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
@@ -155,21 +171,15 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 		mergeStyle == MergeStyleManuallyMerged && cfg.AllowManualMerge
 }
 
-// GetDefaultMergeStyle returns the default merge style for this pull request
-func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
-	if len(cfg.DefaultMergeStyle) != 0 {
-		return cfg.DefaultMergeStyle
-	}
-
-	if setting.Repository.PullRequest.DefaultMergeStyle != "" {
-		return MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
-	}
-
-	return MergeStyleMerge
+func DefaultPullRequestsUnit(repoID int64) RepoUnit {
+	return RepoUnit{RepoID: repoID, Type: unit.TypePullRequests, Config: DefaultPullRequestsConfig()}
 }
 
 type ActionsConfig struct {
 	DisabledWorkflows []string
+	// CollaborativeOwnerIDs is a list of owner IDs used to share actions from private repos.
+	// Only workflows from the private repos whose owners are in CollaborativeOwnerIDs can access the current repo's actions.
+	CollaborativeOwnerIDs []int64
 }
 
 func (cfg *ActionsConfig) EnableWorkflow(file string) {
@@ -190,6 +200,20 @@ func (cfg *ActionsConfig) DisableWorkflow(file string) {
 	}
 
 	cfg.DisabledWorkflows = append(cfg.DisabledWorkflows, file)
+}
+
+func (cfg *ActionsConfig) AddCollaborativeOwner(ownerID int64) {
+	if !slices.Contains(cfg.CollaborativeOwnerIDs, ownerID) {
+		cfg.CollaborativeOwnerIDs = append(cfg.CollaborativeOwnerIDs, ownerID)
+	}
+}
+
+func (cfg *ActionsConfig) RemoveCollaborativeOwner(ownerID int64) {
+	cfg.CollaborativeOwnerIDs = util.SliceRemoveAll(cfg.CollaborativeOwnerIDs, ownerID)
+}
+
+func (cfg *ActionsConfig) IsCollaborativeOwner(ownerID int64) bool {
+	return slices.Contains(cfg.CollaborativeOwnerIDs, ownerID)
 }
 
 // FromDB fills up a ActionsConfig from serialized format.
@@ -223,6 +247,8 @@ type ProjectsConfig struct {
 
 // FromDB fills up a ProjectsConfig from serialized format.
 func (cfg *ProjectsConfig) FromDB(bs []byte) error {
+	// TODO: remove GetProjectsMode, only use ProjectsMode
+	cfg.ProjectsMode = ProjectsModeAll
 	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 

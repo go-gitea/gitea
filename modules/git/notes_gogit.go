@@ -7,6 +7,7 @@ package git
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"code.gitea.io/gitea/modules/log"
@@ -30,7 +31,11 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 
 	remainingCommitID := commitID
 	path := ""
-	currentTree := notes.Tree.gogitTree
+	currentTree, err := notes.Tree.gogitTreeObject()
+	if err != nil {
+		return fmt.Errorf("unable to get tree object for notes commit %q: %w", notes.ID.String(), err)
+	}
+
 	log.Trace("Found tree with ID %q while searching for git note corresponding to the commit %q", currentTree.Entries[0].Name, commitID)
 	var file *object.File
 	for len(remainingCommitID) > 2 {

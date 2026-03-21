@@ -7,14 +7,12 @@
 			<label>{{ctx.Locale.Tr "packages.owner.settings.cargo.initialize.description"}}</label>
 		</div>
 		<form class="field" action="{{.Link}}/cargo/initialize" method="post">
-			{{.CsrfTokenHtml}}
 			<button class="ui primary button">{{ctx.Locale.Tr "packages.owner.settings.cargo.initialize"}}</button>
 		</form>
 		<div class="field">
 			<label>{{ctx.Locale.Tr "packages.owner.settings.cargo.rebuild.description"}}</label>
 		</div>
 		<form class="field" action="{{.Link}}/cargo/rebuild" method="post">
-			{{.CsrfTokenHtml}}
 			<button class="ui primary button">{{ctx.Locale.Tr "packages.owner.settings.cargo.rebuild"}}</button>
 		</form>
 		<div class="field">

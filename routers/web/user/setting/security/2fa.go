@@ -32,7 +32,7 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
 	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
@@ -68,7 +68,7 @@ func DisableTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
 	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
@@ -162,7 +162,7 @@ func EnrollTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["ShowTwoFactorRequiredMessage"] = false
 
@@ -194,7 +194,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.TwoFactorAuthForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["ShowTwoFactorRequiredMessage"] = false
 

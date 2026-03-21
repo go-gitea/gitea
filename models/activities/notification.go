@@ -386,7 +386,7 @@ func SetNotificationStatus(ctx context.Context, notificationID int64, user *user
 
 	notification.Status = status
 
-	_, err = db.GetEngine(ctx).ID(notificationID).Update(notification)
+	_, err = db.GetEngine(ctx).ID(notificationID).Cols("status").Update(notification)
 	return notification, err
 }
 

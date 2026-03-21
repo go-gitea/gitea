@@ -58,17 +58,12 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		cmd.AddArguments("--no-gpg-sign")
 	}
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	err := cmd.Run(repo.Ctx, &gitcmd.RunOpts{
-		Env:    env,
-		Dir:    repo.Path,
-		Stdin:  messageBytes,
-		Stdout: stdout,
-		Stderr: stderr,
-	})
+	stdout, _, err := cmd.WithEnv(env).
+		WithDir(repo.Path).
+		WithStdinBytes(messageBytes.Bytes()).
+		RunStdString(repo.Ctx)
 	if err != nil {
-		return nil, gitcmd.ConcatenateError(err, stderr.String())
+		return nil, err
 	}
-	return NewIDFromString(strings.TrimSpace(stdout.String()))
+	return NewIDFromString(strings.TrimSpace(stdout))
 }

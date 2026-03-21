@@ -11,7 +11,7 @@
 			</span>
 		</h2>
 		{{if $.Permission.IsAdmin}}<div>{{ctx.Locale.Tr "repo.default_branch"}}: {{.Repository.DefaultWikiBranch}}</div>{{end}}
-		<table class="ui table wiki-pages-list">
+		<table class="ui table selectable wiki-pages-list">
 			<tbody>
 				{{range .Pages}}
 					<tr>

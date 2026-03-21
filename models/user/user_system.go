@@ -4,6 +4,7 @@
 package user
 
 import (
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/structs"
@@ -23,10 +24,6 @@ func NewGhostUser() *User {
 	}
 }
 
-func IsGhostUserName(name string) bool {
-	return strings.EqualFold(name, GhostUserName)
-}
-
 // IsGhost check if user is fake user for a deleted account
 func (u *User) IsGhost() bool {
 	if u == nil {
@@ -41,25 +38,41 @@ const (
 	ActionsUserEmail       = "teabot@gitea.io"
 )
 
-func IsGiteaActionsUserName(name string) bool {
-	return strings.EqualFold(name, ActionsUserName)
-}
-
 // NewActionsUser creates and returns a fake user for running the actions.
 func NewActionsUser() *User {
 	return &User{
-		ID:                      ActionsUserID,
-		Name:                    ActionsUserName,
-		LowerName:               ActionsUserName,
-		IsActive:                true,
-		FullName:                "Gitea Actions",
-		Email:                   ActionsUserEmail,
-		KeepEmailPrivate:        true,
-		LoginName:               ActionsUserName,
-		Type:                    UserTypeBot,
-		AllowCreateOrganization: true,
-		Visibility:              structs.VisibleTypePublic,
+		ID:               ActionsUserID,
+		Name:             ActionsUserName,
+		LowerName:        ActionsUserName,
+		IsActive:         true,
+		FullName:         "Gitea Actions",
+		Email:            ActionsUserEmail,
+		KeepEmailPrivate: true,
+		LoginName:        ActionsUserName,
+		Type:             UserTypeBot,
+		Visibility:       structs.VisibleTypePublic,
 	}
+}
+
+func NewActionsUserWithTaskID(id int64) *User {
+	u := NewActionsUser()
+	// LoginName is for only internal usage in this case, so it can be moved to other fields in the future
+	u.LoginSource = -1
+	u.LoginName = "@" + ActionsUserName + "/" + strconv.FormatInt(id, 10)
+	return u
+}
+
+func GetActionsUserTaskID(u *User) (int64, bool) {
+	if u == nil || u.ID != ActionsUserID {
+		return 0, false
+	}
+	prefix, payload, _ := strings.Cut(u.LoginName, "/")
+	if prefix != "@"+ActionsUserName {
+		return 0, false
+	} else if taskID, err := strconv.ParseInt(payload, 10, 64); err == nil {
+		return taskID, true
+	}
+	return 0, false
 }
 
 func (u *User) IsGiteaActions() bool {
@@ -67,10 +80,10 @@ func (u *User) IsGiteaActions() bool {
 }
 
 func GetSystemUserByName(name string) *User {
-	if IsGhostUserName(name) {
+	if strings.EqualFold(name, GhostUserName) {
 		return NewGhostUser()
 	}
-	if IsGiteaActionsUserName(name) {
+	if strings.EqualFold(name, ActionsUserName) {
 		return NewActionsUser()
 	}
 	return nil

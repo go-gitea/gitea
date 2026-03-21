@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -125,7 +127,20 @@ func GetFileContents(ctx context.Context, repo *repo_model.Repository, gitRepo *
 	return getFileContentsByEntryInternal(ctx, repo, gitRepo, refCommit, entry, opts)
 }
 
-func getFileContentsByEntryInternal(_ context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, entry *git.TreeEntry, opts GetContentsOrListOptions) (*api.ContentsResponse, error) {
+func addLastCommitCache(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, cacheKey, fullName, sha string) error {
+	if gitRepo.LastCommitCache == nil {
+		commitsCount, err := cache.GetInt64(cacheKey, func() (int64, error) {
+			return gitrepo.CommitsCountOfCommit(ctx, repo, sha)
+		})
+		if err != nil {
+			return err
+		}
+		gitRepo.LastCommitCache = git.NewLastCommitCache(commitsCount, fullName, gitRepo, cache.GetCache())
+	}
+	return nil
+}
+
+func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, entry *git.TreeEntry, opts GetContentsOrListOptions) (*api.ContentsResponse, error) {
 	refType := refCommit.RefName.RefType()
 	commit := refCommit.Commit
 	selfURL, err := url.Parse(repo.APIURL() + "/contents/" + util.PathEscapeSegments(opts.TreePath) + "?ref=" + url.QueryEscape(refCommit.InputRef))
@@ -147,7 +162,7 @@ func getFileContentsByEntryInternal(_ context.Context, repo *repo_model.Reposito
 	}
 
 	if opts.IncludeCommitMetadata || opts.IncludeCommitMessage {
-		err = gitRepo.AddLastCommitCache(repo.GetCommitsCountCacheKey(refCommit.InputRef, refType != git.RefTypeCommit), repo.FullName(), refCommit.CommitID)
+		err = addLastCommitCache(ctx, repo, gitRepo, repo.GetCommitsCountCacheKey(refCommit.InputRef, refType != git.RefTypeCommit), repo.FullName(), refCommit.CommitID)
 		if err != nil {
 			return nil, err
 		}
@@ -158,18 +173,18 @@ func getFileContentsByEntryInternal(_ context.Context, repo *repo_model.Reposito
 		}
 
 		if opts.IncludeCommitMetadata {
-			contentsResponse.LastCommitSHA = util.ToPointer(lastCommit.ID.String())
+			contentsResponse.LastCommitSHA = new(lastCommit.ID.String())
 			// GitHub doesn't have these fields in the response, but we could follow other similar APIs to name them
 			// https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#list-commits
 			if lastCommit.Committer != nil {
-				contentsResponse.LastCommitterDate = util.ToPointer(lastCommit.Committer.When)
+				contentsResponse.LastCommitterDate = new(lastCommit.Committer.When)
 			}
 			if lastCommit.Author != nil {
-				contentsResponse.LastAuthorDate = util.ToPointer(lastCommit.Author.When)
+				contentsResponse.LastAuthorDate = new(lastCommit.Author.When)
 			}
 		}
 		if opts.IncludeCommitMessage {
-			contentsResponse.LastCommitMessage = util.ToPointer(lastCommit.Message())
+			contentsResponse.LastCommitMessage = new(lastCommit.Message())
 		}
 	}
 
@@ -266,7 +281,7 @@ func GetBlobBySHA(repo *repo_model.Repository, gitRepo *git.Repository, sha stri
 		return nil, err
 	}
 
-	ret.Encoding, ret.Content = util.ToPointer("base64"), &content
+	ret.Encoding, ret.Content = new("base64"), &content
 	if originContent != nil {
 		ret.LfsOid, ret.LfsSize = parsePossibleLfsPointerBuffer(strings.NewReader(originContent.String()))
 	}

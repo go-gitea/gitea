@@ -20,8 +20,6 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
-const tplCommentPrefix = `# gitea public key`
-
 func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) error {
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
@@ -47,7 +45,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(line, tplCommentPrefix) {
+		if strings.HasPrefix(line, asymkey_model.AuthorizedStringCommentPrefix) {
 			continue
 		}
 		linesInAuthorizedKeys.Add(line)
@@ -67,7 +65,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 	scanner = bufio.NewScanner(regenerated)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(line, tplCommentPrefix) {
+		if strings.HasPrefix(line, asymkey_model.AuthorizedStringCommentPrefix) {
 			continue
 		}
 		if linesInAuthorizedKeys.Contains(line) {

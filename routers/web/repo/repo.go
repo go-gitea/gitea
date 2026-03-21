@@ -70,7 +70,7 @@ func CommitInfoCache(ctx *context.Context) {
 		ctx.ServerError("GetBranchCommit", err)
 		return
 	}
-	ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
+	ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount(ctx)
 	if err != nil {
 		ctx.ServerError("GetCommitsCount", err)
 		return
@@ -186,28 +186,28 @@ func handleCreateError(ctx *context.Context, owner *user_model.User, err error, 
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
-		ctx.RenderWithErr(msg, tpl, form)
+		ctx.RenderWithErrDeprecated(msg, tpl, form)
 	case repo_model.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.repo_name_been_taken"), tpl, form)
 	case repo_model.IsErrRepoFilesAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		switch {
 		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
-			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
 		case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
-			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
 		case setting.Repository.AllowDeleteOfUnadoptedRepositories:
-			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
 		default:
-			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tpl, form)
 		}
 	case db.IsErrNameReserved(err):
 		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tpl, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tpl, form)
 	case db.IsErrNamePatternNotAllowed(err):
 		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tpl, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tpl, form)
 	default:
 		ctx.ServerError(name, err)
 	}
@@ -254,7 +254,7 @@ func CreatePost(ctx *context.Context) {
 		}
 
 		if !opts.IsValid() {
-			ctx.RenderWithErr(ctx.Tr("repo.template.one_item"), tplCreate, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.template.one_item"), tplCreate, form)
 			return
 		}
 
@@ -264,7 +264,7 @@ func CreatePost(ctx *context.Context) {
 		}
 
 		if !templateRepo.IsTemplate {
-			ctx.RenderWithErr(ctx.Tr("repo.template.invalid"), tplCreate, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.template.invalid"), tplCreate, form)
 			return
 		}
 
@@ -364,31 +364,39 @@ func RedirectDownload(ctx *context.Context) {
 
 // Download an archive of a repository
 func Download(ctx *context.Context) {
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"), ctx.FormStrings("path"))
 	if err != nil {
-		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
+		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, archiver_service.RepoRefNotFoundError{}) {
+		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.HTTPError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.ServerError("archiver_service.NewRequest", err)
 		}
 		return
 	}
-	archiver_service.ServeRepoArchive(ctx.Base, ctx.Repo.Repository, ctx.Repo.GitRepo, aReq)
+	err = archiver_service.ServeRepoArchive(ctx.Base, aReq)
+	if err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.HTTPError(http.StatusBadRequest, err.Error())
+		} else {
+			ctx.ServerError("archiver_service.ServeRepoArchive", err)
+		}
+	}
 }
 
 // InitiateDownload will enqueue an archival request, as needed.  It may submit
 // a request that's already in-progress, but the archiver service will just
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
-	if setting.Repository.StreamArchives {
+	paths := ctx.FormStrings("path")
+	if setting.Repository.StreamArchives || len(paths) > 0 {
 		ctx.JSON(http.StatusOK, map[string]any{
 			"complete": true,
 		})
 		return
 	}
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"), paths)
 	if err != nil {
 		ctx.HTTPError(http.StatusBadRequest, "invalid archive request")
 		return
@@ -398,7 +406,7 @@ func InitiateDownload(ctx *context.Context) {
 		return
 	}
 
-	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.Repo.ID, aReq.Type, aReq.CommitID)
 	if err != nil {
 		ctx.ServerError("archiver_service.StartArchive", err)
 		return
@@ -518,9 +526,9 @@ func SearchRepo(ctx *context.Context) {
 
 	ctx.SetTotalCountHeader(count)
 
-	latestCommitStatuses, err := commitstatus_service.FindReposLastestCommitStatuses(ctx, repos)
+	latestCommitStatuses, err := commitstatus_service.FindReposLatestCommitStatuses(ctx, repos)
 	if err != nil {
-		log.Error("FindReposLastestCommitStatuses: %v", err)
+		log.Error("FindReposLatestCommitStatuses: %v", err)
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return
 	}

@@ -163,6 +163,14 @@ func (n *nilWriter) WriteString(s string) (int, error) {
 	return len(s), nil
 }
 
+func parseGitHookCommitRefLine(line string) (oldCommitID, newCommitID string, refFullName git.RefName, ok bool) {
+	fields := strings.Split(line, " ")
+	if len(fields) != 3 {
+		return "", "", "", false
+	}
+	return fields[0], fields[1], git.RefName(fields[2]), true
+}
+
 func runHookPreReceive(ctx context.Context, c *cli.Command) error {
 	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
 		return nil
@@ -186,7 +194,7 @@ Gitea or set your environment appropriately.`, "")
 	userID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
 	deployKeyID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvDeployKeyID), 10, 64)
-	actionPerm, _ := strconv.ParseInt(os.Getenv(repo_module.EnvActionPerm), 10, 64)
+	actionPerm, _ := strconv.Atoi(os.Getenv(repo_module.EnvActionPerm))
 
 	hookOptions := private.HookOptions{
 		UserID:                          userID,
@@ -196,7 +204,8 @@ Gitea or set your environment appropriately.`, "")
 		GitPushOptions:                  pushOptions(),
 		PullRequestID:                   prID,
 		DeployKeyID:                     deployKeyID,
-		ActionPerm:                      int(actionPerm),
+		ActionPerm:                      actionPerm,
+		IsWiki:                          isWiki,
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -228,14 +237,11 @@ Gitea or set your environment appropriately.`, "")
 			continue
 		}
 
-		fields := bytes.Fields(scanner.Bytes())
-		if len(fields) != 3 {
+		oldCommitID, newCommitID, refFullName, ok := parseGitHookCommitRefLine(scanner.Text())
+		if !ok {
 			continue
 		}
 
-		oldCommitID := string(fields[0])
-		newCommitID := string(fields[1])
-		refFullName := git.RefName(fields[2])
 		total++
 		lastline++
 
@@ -313,7 +319,7 @@ func runHookPostReceive(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 
 	// First of all run update-server-info no matter what
-	if _, _, err := gitcmd.NewCommand("update-server-info").RunStdString(ctx, nil); err != nil {
+	if err := gitcmd.NewCommand("update-server-info").RunWithStderr(ctx); err != nil {
 		return fmt.Errorf("failed to call 'git update-server-info': %w", err)
 	}
 
@@ -361,6 +367,7 @@ Gitea or set your environment appropriately.`, "")
 		GitPushOptions:                  pushOptions(),
 		PullRequestID:                   prID,
 		PushTrigger:                     repo_module.PushTrigger(os.Getenv(repo_module.EnvPushTrigger)),
+		IsWiki:                          isWiki,
 	}
 	oldCommitIDs := make([]string, hookBatchSize)
 	newCommitIDs := make([]string, hookBatchSize)
@@ -378,16 +385,13 @@ Gitea or set your environment appropriately.`, "")
 			continue
 		}
 
-		fields := bytes.Fields(scanner.Bytes())
-		if len(fields) != 3 {
+		var ok bool
+		oldCommitIDs[count], newCommitIDs[count], refFullNames[count], ok = parseGitHookCommitRefLine(scanner.Text())
+		if !ok {
 			continue
 		}
 
 		fmt.Fprintf(out, ".")
-		oldCommitIDs[count] = string(fields[0])
-		newCommitIDs[count] = string(fields[1])
-		refFullNames[count] = git.RefName(fields[2])
-
 		commitID, _ := git.NewIDFromString(newCommitIDs[count])
 		if refFullNames[count] == git.BranchPrefix+"master" && !commitID.IsZero() && count == total {
 			masterPushed = true
@@ -511,6 +515,7 @@ Gitea or set your environment appropriately.`, "")
 
 	reader := bufio.NewReader(os.Stdin)
 	repoUser := os.Getenv(repo_module.EnvRepoUsername)
+	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
 	repoName := os.Getenv(repo_module.EnvRepoName)
 	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	pusherName := os.Getenv(repo_module.EnvPusherName)
@@ -588,14 +593,15 @@ Gitea or set your environment appropriately.`, "")
 		UserName:       pusherName,
 		UserID:         pusherID,
 		GitPushOptions: make(map[string]string),
+		IsWiki:         isWiki,
 	}
 	hookOptions.OldCommitIDs = make([]string, 0, hookBatchSize)
 	hookOptions.NewCommitIDs = make([]string, 0, hookBatchSize)
 	hookOptions.RefFullNames = make([]git.RefName, 0, hookBatchSize)
 
 	for {
-		// note: pktLineTypeUnknow means pktLineTypeFlush and pktLineTypeData all allowed
-		rs, err = readPktLine(ctx, reader, pktLineTypeUnknow)
+		// note: pktLineTypeUnknown means pktLineTypeFlush and pktLineTypeData all allowed
+		rs, err = readPktLine(ctx, reader, pktLineTypeUnknown)
 		if err != nil {
 			return err
 		}
@@ -614,7 +620,7 @@ Gitea or set your environment appropriately.`, "")
 
 	if hasPushOptions {
 		for {
-			rs, err = readPktLine(ctx, reader, pktLineTypeUnknow)
+			rs, err = readPktLine(ctx, reader, pktLineTypeUnknown)
 			if err != nil {
 				return err
 			}
@@ -711,8 +717,8 @@ Gitea or set your environment appropriately.`, "")
 type pktLineType int64
 
 const (
-	// UnKnow type
-	pktLineTypeUnknow pktLineType = 0
+	// Unknown type
+	pktLineTypeUnknown pktLineType = 0
 	// flush-pkt "0000"
 	pktLineTypeFlush pktLineType = iota
 	// data line

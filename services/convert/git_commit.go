@@ -11,9 +11,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	ctx "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
 )
@@ -33,7 +33,7 @@ func ToCommitUser(sig *git.Signature) *api.CommitUser {
 func ToCommitMeta(repo *repo_model.Repository, tag *git.Tag) *api.CommitMeta {
 	return &api.CommitMeta{
 		SHA:     tag.Object.String(),
-		URL:     util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
+		URL:     repo.APIURL() + "/git/commits/" + tag.ID.String(),
 		Created: tag.Tagger.When,
 	}
 }
@@ -57,7 +57,7 @@ func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Co
 	return &api.PayloadCommit{
 		ID:      c.ID.String(),
 		Message: c.Message(),
-		URL:     util.URLJoin(repo.HTMLURL(), "commit", c.ID.String()),
+		URL:     repo.HTMLURL() + "/commit/" + c.ID.String(),
 		Author: &api.PayloadUser{
 			Name:     c.Author.Name,
 			Email:    c.Author.Email,
@@ -190,7 +190,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	// Retrieve files affected by the commit
 	if opts.Files {
-		fileStatus, err := git.GetCommitFileStatus(gitRepo.Ctx, repo.RepoPath(), commit.ID.String())
+		fileStatus, err := gitrepo.GetCommitFileStatus(ctx, repo, commit.ID.String())
 		if err != nil {
 			return nil, err
 		}
@@ -210,7 +210,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	// Get diff stats for commit
 	if opts.Stat {
-		diffShortStat, err := gitdiff.GetDiffShortStat(gitRepo, "", commit.ID.String())
+		diffShortStat, err := gitdiff.GetDiffShortStat(ctx, repo, gitRepo, "", commit.ID.String())
 		if err != nil {
 			return nil, err
 		}

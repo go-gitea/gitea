@@ -122,6 +122,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
@@ -129,6 +130,12 @@ func TestGetReviewersByIssueID(t *testing.T) {
 
 	expectedReviews := []*issues_model.Review{}
 	expectedReviews = append(expectedReviews,
+		&issues_model.Review{
+			ID:          5,
+			Reviewer:    user1,
+			Type:        issues_model.ReviewTypeComment,
+			UpdatedUnix: 946684810,
+		},
 		&issues_model.Review{
 			ID:          7,
 			Reviewer:    org3,
@@ -167,8 +174,9 @@ func TestGetReviewersByIssueID(t *testing.T) {
 	for _, review := range allReviews {
 		assert.NoError(t, review.LoadReviewer(t.Context()))
 	}
-	if assert.Len(t, allReviews, 5) {
+	if assert.Len(t, allReviews, 6) {
 		for i, review := range allReviews {
+			assert.Equal(t, expectedReviews[i].ID, review.ID)
 			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
 			assert.Equal(t, expectedReviews[i].Type, review.Type)
 			assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
@@ -313,14 +321,28 @@ func TestAddReviewRequest(t *testing.T) {
 	pull.HasMerged = false
 	assert.NoError(t, pull.UpdateCols(t.Context(), "has_merged"))
 	issue.IsClosed = true
-	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewer, &user_model.User{})
+	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewer, &user_model.User{}, false)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
 
 	pull.HasMerged = true
 	assert.NoError(t, pull.UpdateCols(t.Context(), "has_merged"))
 	issue.IsClosed = false
-	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewer, &user_model.User{})
+	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewer, &user_model.User{}, false)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
+
+	// Test CODEOWNERS review request stores metadata correctly
+	pull2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.NoError(t, pull2.LoadIssue(t.Context()))
+	issue2 := pull2.Issue
+	assert.NoError(t, issue2.LoadRepo(t.Context()))
+	reviewer2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 7})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue2, reviewer2, doer, true)
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+	assert.NotNil(t, comment.CommentMetaData)
+	assert.Equal(t, issues_model.SpecialDoerNameCodeOwners, comment.CommentMetaData.SpecialDoerName)
 }

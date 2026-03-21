@@ -4,7 +4,7 @@
 			{{ctx.Locale.Tr "admin.monitor.queue" .Queue.GetName}}
 		</h4>
 		<div class="ui attached table segment">
-			<table class="ui very basic striped table">
+			<table class="ui very basic table">
 				<thead>
 					<tr>
 						<th>{{ctx.Locale.Tr "admin.monitor.queue.name"}}</th>
@@ -31,7 +31,6 @@
 							{{else}}
 								{{$sum}}
 								<form action="{{$.Link}}/remove-all-items" method="post" class="tw-inline-block tw-ml-4">
-									{{$.CsrfTokenHtml}}
 									<button class="ui tiny basic red button">{{ctx.Locale.Tr "admin.monitor.queue.settings.remove_all_items"}}</button>
 								</form>
 							{{end}}
@@ -47,7 +46,6 @@
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "admin.monitor.queue.settings.desc"}}</p>
 			<form method="post" action="{{.Link}}/set">
-				{{$.CsrfTokenHtml}}
 				<div class="ui form">
 					<div class="inline field">
 						<label for="max-number">{{ctx.Locale.Tr "admin.monitor.queue.settings.maxnumberworkers"}}</label>

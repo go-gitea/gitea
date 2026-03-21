@@ -151,6 +151,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 		if err != nil {
 			return err
 		}
+		// codeql[disable-next-line=go/clear-text-logging]
 		fmt.Printf("generated random password is '%s'\n", password)
 	} else if userType == user_model.UserTypeIndividual {
 		return errors.New("must set either password or random-password flag")

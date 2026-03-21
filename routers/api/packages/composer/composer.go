@@ -5,12 +5,10 @@ package composer
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -23,8 +21,6 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	packages_service "code.gitea.io/gitea/services/packages"
-
-	"github.com/hashicorp/go-version"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -193,7 +189,7 @@ func UploadPackage(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	cp, err := composer_module.ParsePackage(buf, buf.Size())
+	cp, err := composer_module.ParsePackage(buf, ctx.FormTrim("version"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
@@ -209,12 +205,9 @@ func UploadPackage(ctx *context.Context) {
 	}
 
 	if cp.Version == "" {
-		v, err := version.NewVersion(ctx.FormTrim("version"))
-		if err != nil {
-			apiError(ctx, http.StatusBadRequest, composer_module.ErrInvalidVersion)
-			return
-		}
-		cp.Version = v.String()
+		// the version should be either set in the "composer.json", or as a query parameter "?version=xxx"
+		apiError(ctx, http.StatusBadRequest, composer_module.ErrInvalidVersion)
+		return
 	}
 
 	_, _, err = packages_service.CreatePackageAndAddFile(
@@ -235,7 +228,7 @@ func UploadPackage(ctx *context.Context) {
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: strings.ToLower(fmt.Sprintf("%s.%s.zip", strings.ReplaceAll(cp.Name, "/", "-"), cp.Version)),
+				Filename: cp.Filename,
 			},
 			Creator: ctx.Doer,
 			Data:    buf,

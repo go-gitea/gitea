@@ -229,10 +229,6 @@ func RelativePath(ownerName, repoName string) string {
 	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
 }
 
-func RelativeWikiPath(ownerName, repoName string) string {
-	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".wiki.git"
-}
-
 // RelativePath should be an unix style path like username/reponame.git
 func (repo *Repository) RelativePath() string {
 	return RelativePath(repo.OwnerName, repo.Name)
@@ -243,12 +239,6 @@ type StorageRepo string
 // RelativePath should be an unix style path like username/reponame.git
 func (sr StorageRepo) RelativePath() string {
 	return string(sr)
-}
-
-// WikiStorageRepo returns the storage repo for the wiki
-// The wiki repository should have the same object format as the code repository
-func (repo *Repository) WikiStorageRepo() StorageRepo {
-	return StorageRepo(RelativeWikiPath(repo.OwnerName, repo.Name))
 }
 
 // SanitizedOriginalURL returns a sanitized OriginalURL
@@ -291,7 +281,7 @@ func (repo *Repository) SizeDetailsString() string {
 	var str strings.Builder
 	sizeDetails := repo.SizeDetails()
 	for _, detail := range sizeDetails {
-		str.WriteString(fmt.Sprintf("%s: %s, ", detail.Name, base.FileSize(detail.Size)))
+		fmt.Fprintf(&str, "%s: %s, ", detail.Name, base.FileSize(detail.Size))
 	}
 	return strings.TrimSuffix(str.String(), ", ")
 }
@@ -432,52 +422,37 @@ func (repo *Repository) UnitEnabled(ctx context.Context, tp unit.Type) bool {
 	return false
 }
 
-// MustGetUnit always returns a RepoUnit object
+// MustGetUnit always returns a RepoUnit object even if the unit doesn't exist (not enabled)
 func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit {
 	ru, err := repo.GetUnit(ctx, tp)
 	if err == nil {
 		return ru
 	}
-
+	if !errors.Is(err, util.ErrNotExist) {
+		setting.PanicInDevOrTesting("Failed to get unit %v for repository %d: %v", tp, repo.ID, err)
+	}
+	ru = &RepoUnit{RepoID: repo.ID, Type: tp}
 	switch tp {
 	case unit.TypeExternalWiki:
-		return &RepoUnit{
-			Type:   tp,
-			Config: new(ExternalWikiConfig),
-		}
+		ru.Config = new(ExternalWikiConfig)
 	case unit.TypeExternalTracker:
-		return &RepoUnit{
-			Type:   tp,
-			Config: new(ExternalTrackerConfig),
-		}
+		ru.Config = new(ExternalTrackerConfig)
 	case unit.TypePullRequests:
-		return &RepoUnit{
-			Type:   tp,
-			Config: new(PullRequestsConfig),
-		}
+		ru.Config = new(PullRequestsConfig)
 	case unit.TypeIssues:
-		return &RepoUnit{
-			Type:   tp,
-			Config: new(IssuesConfig),
-		}
+		ru.Config = new(IssuesConfig)
 	case unit.TypeActions:
-		return &RepoUnit{
-			Type:   tp,
-			Config: new(ActionsConfig),
-		}
+		ru.Config = new(ActionsConfig)
 	case unit.TypeProjects:
-		cfg := new(ProjectsConfig)
-		cfg.ProjectsMode = ProjectsModeNone
-		return &RepoUnit{
-			Type:   tp,
-			Config: cfg,
+		ru.Config = new(ProjectsConfig)
+	default: // other units don't have config
+	}
+	if ru.Config != nil {
+		if err = ru.Config.FromDB(nil); err != nil {
+			setting.PanicInDevOrTesting("Failed to load default config for unit %v of repository %d: %v", tp, repo.ID, err)
 		}
 	}
-
-	return &RepoUnit{
-		Type:   tp,
-		Config: new(UnitConfig),
-	}
+	return ru
 }
 
 // GetUnit returns a RepoUnit object
@@ -605,7 +580,7 @@ func (repo *Repository) IsGenerated() bool {
 
 // RepoPath returns repository path by given user and repository name.
 func RepoPath(userName, repoName string) string { //revive:disable-line:exported
-	return filepath.Join(user_model.UserPath(userName), strings.ToLower(repoName)+".git")
+	return filepath.Join(setting.RepoRootPath, filepath.Clean(strings.ToLower(userName)), filepath.Clean(strings.ToLower(repoName)+".git"))
 }
 
 // RepoPath returns the repository path
@@ -623,16 +598,13 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 	return fmt.Sprintf("%s/%s/compare/%s...%s", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), util.PathEscapeSegments(oldCommitID), util.PathEscapeSegments(newCommitID))
 }
 
-func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, branchName string) string {
-	if baseRepo == nil {
-		baseRepo = repo
-	}
+func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, baseBranch, branchName string) string {
 	var cmpBranchEscaped string
 	if repo.ID != baseRepo.ID {
 		cmpBranchEscaped = fmt.Sprintf("%s/%s:", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name))
 	}
 	cmpBranchEscaped = fmt.Sprintf("%s%s", cmpBranchEscaped, util.PathEscapeSegments(branchName))
-	return fmt.Sprintf("%s/compare/%s...%s", baseRepo.Link(), util.PathEscapeSegments(baseRepo.DefaultBranch), cmpBranchEscaped)
+	return fmt.Sprintf("%s/compare/%s...%s", baseRepo.Link(), util.PathEscapeSegments(baseBranch), cmpBranchEscaped)
 }
 
 // IsOwnedBy returns true when user owns this repository
@@ -879,16 +851,6 @@ func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repos
 	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
 }
 
-// IsRepositoryModelOrDirExist returns true if the repository with given name under user has already existed.
-func IsRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
-	has, err := IsRepositoryModelExist(ctx, u, repoName)
-	if err != nil {
-		return false, err
-	}
-	isDir, err := util.IsDir(RepoPath(u.Name, repoName))
-	return has || isDir, err
-}
-
 func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
 	return db.GetEngine(ctx).Get(&Repository{
 		OwnerID:   u.ID,
@@ -901,7 +863,7 @@ func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName st
 // non-generated repositories, and TemplateRepo will be left untouched)
 func GetTemplateRepo(ctx context.Context, repo *Repository) (*Repository, error) {
 	if !repo.IsGenerated() {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil for non-generated repositories
 	}
 
 	return GetRepositoryByID(ctx, repo.TemplateID)

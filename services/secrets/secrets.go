@@ -56,10 +56,6 @@ func DeleteSecretByID(ctx context.Context, ownerID, repoID, secretID int64) erro
 }
 
 func DeleteSecretByName(ctx context.Context, ownerID, repoID int64, name string) error {
-	if err := ValidateName(name); err != nil {
-		return err
-	}
-
 	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
 		OwnerID: ownerID,
 		RepoID:  repoID,
