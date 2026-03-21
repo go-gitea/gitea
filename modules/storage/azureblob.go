@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -277,7 +278,7 @@ func (a *AzureBlobStorage) getSasURL(b *blob.Client, template sas.BlobSignatureV
 	return endpoint, nil
 }
 
-func (a *AzureBlobStorage) ServeDirectURL(storePath, name, _ string, reqParams *ServeDirectOptions) (*url.URL, error) {
+func (a *AzureBlobStorage) ServeDirectURL(storePath, name, method string, reqParams *ServeDirectOptions) (*url.URL, error) {
 	blobClient := a.getBlobClient(storePath)
 
 	startTime := time.Now().UTC()
@@ -286,7 +287,8 @@ func (a *AzureBlobStorage) ServeDirectURL(storePath, name, _ string, reqParams *
 
 	u, err := a.getSasURL(blobClient, sas.BlobSignatureValues{
 		Permissions: (&sas.BlobPermissions{
-			Read: true,
+			Read:  method == http.MethodGet || method == http.MethodHead,
+			Write: method == http.MethodPut,
 		}).String(),
 		StartTime:          startTime,
 		ExpiryTime:         startTime.Add(5 * time.Minute),
