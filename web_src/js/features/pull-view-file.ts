@@ -3,6 +3,7 @@ import {setFileFolding} from './file-fold.ts';
 import {POST} from '../modules/fetch.ts';
 
 const {pageData} = window.config;
+// it is undefined on most pages, fortunately, when it is accessed by the related functions, it exists
 const prReview = pageData.prReview!;
 const viewedStyleClass = 'viewed-file-checked-form';
 const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all "Viewed" checkbox forms can be found
