@@ -1,157 +1,147 @@
-<script lang="ts">
+<script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
-import {defineComponent, type PropType} from 'vue';
+import {computed, onMounted, onUnmounted, ref, toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import type {ActionsRunStatus, ActionsJob, ActionsRun, ActionsArtifact} from '../modules/gitea-actions.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
 
-export default defineComponent({
+defineOptions({
   name: 'RepoActionView',
-  components: {
-    SvgIcon,
-    ActionRunStatus,
-    ActionRunSummaryView,
-    ActionRunJobView,
-  },
-  props: {
-    runId: {type: Number, required: true},
-    jobId: {type: Number, required: true},
-    actionsUrl: {type: String, required: true},
-    locale: {
-      type: Object as PropType<Record<string, any>>,
-      default: null,
-    },
-  },
+});
 
-  data() {
-    return {
-      // internal state
-      loadingAbortController: null as AbortController | null,
-      intervalID: null as IntervalId | null,
-      artifacts: [] as Array<ActionsArtifact>,
-      // provided by backend
-      run: {
+const props = defineProps<{
+  runId: number;
+  jobId: number;
+  actionsUrl: string;
+  locale: Record<string, any>;
+}>();
+
+const {runId, jobId, actionsUrl, locale} = toRefs(props);
+
+type RunResponse = {
+  artifacts?: ActionsArtifact[];
+  state: {
+    run: ActionsRun;
+  };
+};
+
+function createEmptyRun(): ActionsRun {
+  return {
+    link: '',
+    title: '',
+    titleHTML: '',
+    status: '' as ActionsRunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
+    canCancel: false,
+    canApprove: false,
+    canRerun: false,
+    canRerunFailed: false,
+    canDeleteArtifact: false,
+    done: false,
+    workflowID: '',
+    workflowLink: '',
+    isSchedule: false,
+    duration: '',
+    triggeredAt: 0,
+    triggerEvent: '',
+    jobs: [] as Array<ActionsJob>,
+    commit: {
+      localeCommit: '',
+      localePushedBy: '',
+      shortSHA: '',
+      link: '',
+      pusher: {
+        displayName: '',
         link: '',
-        title: '',
-        titleHTML: '',
-        status: '' as ActionsRunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
-        canCancel: false,
-        canApprove: false,
-        canRerun: false,
-        canRerunFailed: false,
-        canDeleteArtifact: false,
-        done: false,
-        workflowID: '',
-        workflowLink: '',
-        isSchedule: false,
-        duration: '',
-        triggeredAt: 0,
-        triggerEvent: '',
-        jobs: [
-          // {
-          //   id: 0,
-          //   name: '',
-          //   status: '',
-          //   canRerun: false,
-          //   duration: '',
-          // },
-        ] as Array<ActionsJob>,
-        commit: {
-          localeCommit: '',
-          localePushedBy: '',
-          shortSHA: '',
-          link: '',
-          pusher: {
-            displayName: '',
-            link: '',
-          },
-          branch: {
-            name: '',
-            link: '',
-            isDeleted: false,
-          },
-        },
-      } as ActionsRun,
-    };
-  },
-
-  computed: {
-    runTriggeredAtISO(): string {
-      const t = this.run.triggeredAt;
-      return t ? new Date(t * 1000).toISOString() : '';
+      },
+      branch: {
+        name: '',
+        link: '',
+        isDeleted: false,
+      },
     },
-  },
+  };
+}
 
-  async mounted() {
-    // load run data and then auto-reload periodically
-    await this.loadRun();
-    this.intervalID = setInterval(() => this.loadRun(), 1000);
-  },
+const loadingAbortController = ref<AbortController | null>(null);
+const intervalID = ref<IntervalId | null>(null);
+const artifacts = ref<ActionsArtifact[]>([]);
+const run = ref<ActionsRun>(createEmptyRun());
 
-  unmounted() {
-    // clear the interval timer when the component is unmounted
-    // even our page is rendered once, not spa style
-    if (this.intervalID) {
-      clearInterval(this.intervalID);
-      this.intervalID = null;
+const runTriggeredAtISO = computed(() => {
+  const t = run.value.triggeredAt;
+  return t ? new Date(t * 1000).toISOString() : '';
+});
+
+function cancelRun() {
+  POST(`${run.value.link}/cancel`);
+}
+
+function approveRun() {
+  POST(`${run.value.link}/approve`);
+}
+
+async function deleteArtifact(name: string) {
+  if (!locale.value || !window.confirm(locale.value.confirmDeleteArtifact.replace('%s', name))) return;
+  // TODO: should escape the "name"?
+  await DELETE(`${run.value.link}/artifacts/${name}`);
+  await loadRunForce();
+}
+
+async function fetchRunData(abortController: AbortController): Promise<RunResponse> {
+  const url = `${actionsUrl.value}/runs/${runId.value}`;
+  const resp = await POST(url, {
+    signal: abortController.signal,
+    data: {logCursors: []},
+  });
+  return await resp.json();
+}
+
+async function loadRunForce() {
+  loadingAbortController.value?.abort();
+  loadingAbortController.value = null;
+  await loadRun();
+}
+
+async function loadRun() {
+  if (loadingAbortController.value) return;
+  const abortController = new AbortController();
+  loadingAbortController.value = abortController;
+  try {
+    const job = await fetchRunData(abortController);
+    if (loadingAbortController.value !== abortController) return;
+
+    artifacts.value = job.artifacts || [];
+    run.value = job.state.run;
+    // clear the interval timer if the job is done
+    if (run.value.done && intervalID.value) {
+      clearInterval(intervalID.value);
+      intervalID.value = null;
     }
-  },
+  } catch (e) {
+    // avoid network error while unloading page, and ignore "abort" error
+    if (e instanceof TypeError || abortController.signal.aborted) return;
+    throw e;
+  } finally {
+    if (loadingAbortController.value === abortController) loadingAbortController.value = null;
+  }
+}
 
-  methods: {
-    // cancel a run
-    cancelRun() {
-      POST(`${this.run.link}/cancel`);
-    },
-    // approve a run
-    approveRun() {
-      POST(`${this.run.link}/approve`);
-    },
-    async deleteArtifact(name: string) {
-      if (!window.confirm(this.locale.confirmDeleteArtifact.replace('%s', name))) return;
-      // TODO: should escape the "name"?
-      await DELETE(`${this.run.link}/artifacts/${name}`);
-      await this.loadRunForce();
-    },
-    async fetchRunData(abortController: AbortController) {
-      const url = `${this.actionsUrl}/runs/${this.runId}`;
-      const resp = await POST(url, {
-        signal: abortController.signal,
-        data: {logCursors: []},
-      });
-      return await resp.json();
-    },
-    async loadRunForce() {
-      this.loadingAbortController?.abort();
-      this.loadingAbortController = null;
-      await this.loadRun();
-    },
-    async loadRun() {
-      if (this.loadingAbortController) return;
-      const abortController = new AbortController();
-      this.loadingAbortController = abortController;
-      try {
-        const job = await this.fetchRunData(abortController);
-        if (this.loadingAbortController !== abortController) return;
+onMounted(async () => {
+  // load run data and then auto-reload periodically
+  await loadRun();
+  intervalID.value = setInterval(() => void loadRun(), 1000);
+});
 
-        this.artifacts = job.artifacts || [];
-        this.run = job.state.run;
-        // clear the interval timer if the job is done
-        if (this.run.done && this.intervalID) {
-          clearInterval(this.intervalID);
-          this.intervalID = null;
-        }
-      } catch (e) {
-        // avoid network error while unloading page, and ignore "abort" error
-        if (e instanceof TypeError || abortController.signal.aborted) return;
-        throw e;
-      } finally {
-        if (this.loadingAbortController === abortController) this.loadingAbortController = null;
-      }
-    },
-  },
+onUnmounted(() => {
+  // clear the interval timer when the component is unmounted
+  // even our page is rendered once, not spa style
+  if (intervalID.value) {
+    clearInterval(intervalID.value);
+    intervalID.value = null;
+  }
 });
 </script>
 <template>
