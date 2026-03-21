@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 
@@ -18,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/container"
+	google_module "code.gitea.io/gitea/modules/google"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -473,6 +475,32 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 			if !groups.Contains(oauth2Source.RequiredClaimValue) {
 				return nil, goth.User{}, user_model.ErrUserProhibitLogin{Name: gothUser.UserID}
 			}
+		}
+	}
+
+	// For Google Workspace: if the cloud-identity groups scope is present,
+	// fetch group memberships via the Cloud Identity API and inject them into
+	// RawData so that the standard GroupClaimName mechanism can pick them up.
+	if oauth2Source.Provider == "gplus" && slices.Contains(oauth2Source.Scopes, google_module.IAMScope) {
+		// Build an HTTP client that carries the access token via
+		// golang.org/x/oauth2 transport, which is what Google APIs expect.
+		oauthToken := &go_oauth2.Token{AccessToken: gothUser.AccessToken}
+		tokenSource := go_oauth2.StaticTokenSource(oauthToken)
+		authenticatedClient := go_oauth2.NewClient(ctx, tokenSource)
+		googleGroups, err := google_module.FetchGroups(ctx, authenticatedClient, gothUser.Email)
+		if err != nil {
+			log.Warn("OAuth2 Google: failed to fetch Workspace groups for %s: %v", gothUser.Email, err)
+			// Non-fatal: continue login without groups rather than blocking the user.
+		} else {
+			if gothUser.RawData == nil {
+				gothUser.RawData = make(map[string]any)
+			}
+			claimName := oauth2Source.GroupClaimName
+			if claimName == "" {
+				claimName = "groups"
+			}
+			gothUser.RawData[claimName] = googleGroups
+			log.Debug("OAuth2 Google: injected %d Workspace groups to claim '%s' for %s", len(googleGroups), claimName, gothUser.Email)
 		}
 	}
 
