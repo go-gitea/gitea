@@ -47,8 +47,8 @@ type CreateProjectOption struct {
 type EditProjectOption struct {
 	Title       *string `json:"title,omitempty"`
 	Description *string `json:"description,omitempty"`
-	CardType    *int    `json:"card_type,omitempty"`
-	IsClosed    *bool   `json:"is_closed,omitempty"`
+	// Card type: 0=text_only, 1=images_and_text
+	CardType *int `json:"card_type,omitempty"`
 }
 
 // ProjectColumn represents a project column (board)
@@ -84,9 +84,11 @@ type EditProjectColumnOption struct {
 	Sorting *int    `json:"sorting,omitempty"`
 }
 
-// AddIssueToProjectColumnOption represents options for adding issues to a project
+
+// AddIssueToProjectColumnOption represents options for adding an issue to a project column
 // swagger:model
 type AddIssueToProjectColumnOption struct {
 	// required: true
 	IssueIDs []int64 `json:"issue_ids" binding:"Required"`
 }
+
