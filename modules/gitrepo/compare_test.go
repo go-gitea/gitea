@@ -59,3 +59,40 @@ func TestGetCommitIDsBetween(t *testing.T) {
 		"ce064814f4a0d337b333e646ece456cd39fab612",
 	}, commitIDs)
 }
+
+func TestGetCommitIDsBetweenWithNotRef(t *testing.T) {
+	repo := &mockRepository{path: "repo1_bare"}
+
+	// Use the same range as TestGetCommitIDsBetween, but exclude one of the commits
+	// in the expected list via notRef. This verifies that notRef actually filters
+	// commits out of the result.
+	notRef := "37991dec2c8e592043f47155ce4808d4580f9123"
+
+	commitIDs, err := GetCommitIDsBetween(t.Context(), repo,
+		"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
+		"ce064814f4a0d337b333e646ece456cd39fab612",
+		notRef,
+	)
+
+	assert.NoError(t, err)
+	// Ensure that the commit specified by notRef is not present in the result.
+	assert.NotContains(t, commitIDs, notRef)
+}
+
+func TestGetCommitIDsBetweenBranchesFallbackLike(t *testing.T) {
+	repo := &mockRepository{path: "repo1_bare"}
+
+	// Call GetCommitIDsBetween using branch names instead of raw commit IDs.
+	// This exercises an alternative call pattern which is intended to cover
+	// the fallback handling in the underlying implementation when computing
+	// the commit range.
+	commitIDs, err := GetCommitIDsBetween(t.Context(), repo,
+		"master",
+		"branch2",
+		"",
+	)
+
+	assert.NoError(t, err)
+	// We don't assert exact contents here, only that we get some commits back.
+	assert.NotEmpty(t, commitIDs)
+}
