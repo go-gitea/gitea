@@ -4,7 +4,6 @@
 package storage
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -27,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	awshttp "github.com/aws/smithy-go/transport/http"
@@ -55,7 +55,6 @@ func (o *s3Object) Read(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 
-	// If we don't have a body or need to re-fetch (after seek), get one
 	if o.body == nil {
 		rangeHeader := fmt.Sprintf("bytes=%d-", o.offset)
 		resp, err := o.s3Client.GetObject(o.ctx, &s3.GetObjectInput{
@@ -94,7 +93,6 @@ func (o *s3Object) Seek(offset int64, whence int) (int64, error) {
 		return 0, errors.New("Seek: invalid offset")
 	}
 
-	// If seeking to a different position, close current body so Read will re-fetch
 	if newOffset != o.offset && o.body != nil {
 		o.body.Close()
 		o.body = nil
@@ -132,7 +130,6 @@ func convertS3Err(err error) error {
 		return nil
 	}
 
-	// Check for specific S3 error types
 	var notFound *types.NotFound
 	if errors.As(err, &notFound) {
 		return os.ErrNotExist
@@ -142,7 +139,6 @@ func convertS3Err(err error) error {
 		return os.ErrNotExist
 	}
 
-	// Check HTTP response errors
 	var respErr *awshttp.ResponseError
 	if errors.As(err, &respErr) {
 		switch respErr.HTTPStatusCode() {
@@ -172,7 +168,6 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 
 	log.Info("Creating Minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
-	// Build the endpoint URL
 	var endpointURL string
 	if config.UseSSL {
 		endpointURL = "https://" + config.Endpoint
@@ -180,7 +175,6 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		endpointURL = "http://" + config.Endpoint
 	}
 
-	// Build custom HTTP client with TLS settings and timeout
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
@@ -188,23 +182,18 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		},
 	}
 
-	// Build credentials provider chain
 	credProvider := buildS3CredentialsProvider(config)
 
-	// Build AWS config directly without LoadDefaultConfig to avoid
-	// background network calls (e.g., EC2 metadata discovery)
 	awsCfg := aws.Config{
 		Region:      config.Location,
 		Credentials: credProvider,
 		HTTPClient:  httpClient,
 	}
 
-	// Determine path style based on bucket lookup type
 	usePathStyle := false
 	switch config.BucketLookUpType {
 	case "auto", "":
-		// For Minio compatibility, default to path style
-		usePathStyle = true
+		usePathStyle = true // Minio compatibility
 	case "dns":
 		usePathStyle = false
 	case "path":
@@ -213,7 +202,6 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		return nil, fmt.Errorf("invalid minio bucket lookup type: %s", config.BucketLookUpType)
 	}
 
-	// Create S3 client
 	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(endpointURL)
 		o.UsePathStyle = usePathStyle
@@ -240,11 +228,9 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		var notFound *types.NotFound
 		var noSuchBucket *types.NoSuchBucket
 		if errors.As(err, &notFound) || errors.As(err, &noSuchBucket) {
-			// Bucket doesn't exist, create it
 			createInput := &s3.CreateBucketInput{
 				Bucket: aws.String(config.Bucket),
 			}
-			// Only set LocationConstraint if not us-east-1 (AWS S3 requirement)
 			if config.Location != "" && config.Location != "us-east-1" {
 				createInput.CreateBucketConfiguration = &types.CreateBucketConfiguration{
 					LocationConstraint: types.BucketLocationConstraint(config.Location),
@@ -285,8 +271,6 @@ func (m *MinioStorage) buildMinioDirPrefix(p string) string {
 	return p
 }
 
-// envCredentialsProvider checks a pair of environment variables for credentials.
-// This is a generic provider that can be configured for different env var names.
 type envCredentialsProvider struct {
 	accessKeyEnv string
 	secretKeyEnv string
@@ -306,8 +290,7 @@ func (p envCredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials, 
 	}, nil
 }
 
-// minioFileCredentialsProvider reads credentials from MINIO_SHARED_CREDENTIALS_FILE.
-// This uses Minio's JSON config format (not AWS INI format), so we need a custom parser.
+// minioFileCredentialsProvider reads from MINIO_SHARED_CREDENTIALS_FILE (JSON format)
 type minioFileCredentialsProvider struct{}
 
 type minioConfigFile struct {
@@ -339,7 +322,6 @@ func (p minioFileCredentialsProvider) Retrieve(ctx context.Context) (aws.Credent
 		return aws.Credentials{}, fmt.Errorf("failed to parse minio credentials file: %w", err)
 	}
 
-	// Try to find s3 alias first, then use the first available alias
 	var alias minioAliasConf
 	if s3Alias, ok := config.Aliases["s3"]; ok {
 		alias = s3Alias
@@ -361,22 +343,18 @@ func (p minioFileCredentialsProvider) Retrieve(ctx context.Context) (aws.Credent
 	}, nil
 }
 
-// awsFileCredentialsProvider reads credentials from AWS_SHARED_CREDENTIALS_FILE or the default
-// ~/.aws/credentials file using the AWS SDK's built-in INI parser.
+// awsFileCredentialsProvider reads from AWS_SHARED_CREDENTIALS_FILE (INI format)
 type awsFileCredentialsProvider struct{}
 
 func (p awsFileCredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
-	// Check if AWS_SHARED_CREDENTIALS_FILE is set (matching original Minio SDK behavior)
 	if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") == "" {
 		return aws.Credentials{}, errors.New("AWS_SHARED_CREDENTIALS_FILE not set")
 	}
 
-	// Use SDK's built-in shared credentials loading with a timeout
 	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	cfg, err := awsconfig.LoadDefaultConfig(timeoutCtx,
-		// Disable EC2 IMDS so we only load from the credentials file
 		awsconfig.WithEC2IMDSClientEnableState(imds.ClientDisabled),
 	)
 	if err != nil {
@@ -396,21 +374,17 @@ func (p awsFileCredentialsProvider) Retrieve(ctx context.Context) (aws.Credentia
 	return creds, nil
 }
 
-// iamCredentialsProvider wraps EC2 role credentials from the AWS SDK.
-// A thin wrapper is needed to support custom IAM endpoints (MINIO_IAM_ENDPOINT).
+// iamCredentialsProvider reads from EC2 IMDS, supports custom endpoint via MINIO_IAM_ENDPOINT
 type iamCredentialsProvider struct {
 	endpoint string
 }
 
 func (p iamCredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
-	// Use a short timeout for IMDS - it should respond quickly if available,
-	// and we don't want to hang if not running on EC2/ECS
 	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	var provider *ec2rolecreds.Provider
 	if p.endpoint != "" {
-		// Create IMDS client with custom endpoint
 		imdsClient := imds.New(imds.Options{
 			Endpoint: p.endpoint,
 		})
@@ -423,8 +397,6 @@ func (p iamCredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials, 
 	return provider.Retrieve(timeoutCtx)
 }
 
-// credentialChainProvider tries multiple providers in order until one succeeds.
-// AWS SDK v2 doesn't expose a public chain provider, so we implement our own.
 type credentialChainProvider struct {
 	providers []aws.CredentialsProvider
 }
@@ -445,50 +417,26 @@ func (c credentialChainProvider) Retrieve(ctx context.Context) (aws.Credentials,
 }
 
 func buildS3CredentialsProvider(config setting.MinioStorageConfig) aws.CredentialsProvider {
-	// If static credentials are provided, use those
 	if config.AccessKeyID != "" {
 		return credentials.NewStaticCredentialsProvider(config.AccessKeyID, config.SecretAccessKey, "")
 	}
 
-	// Otherwise, build a chain of credential providers.
-	// The chain tries each provider in order until one succeeds.
-	chain := credentialChainProvider{
+	return credentialChainProvider{
 		providers: []aws.CredentialsProvider{
-			// Check MINIO_ACCESS_KEY/MINIO_SECRET_KEY (Minio-specific env vars)
-			envCredentialsProvider{
-				accessKeyEnv: "MINIO_ACCESS_KEY",
-				secretKeyEnv: "MINIO_SECRET_KEY",
-				source:       "MinioEnvCredentials",
-			},
-			// Check AWS_ACCESS_KEY/AWS_SECRET_KEY (Minio SDK style, without _ID suffix)
-			envCredentialsProvider{
-				accessKeyEnv: "AWS_ACCESS_KEY",
-				secretKeyEnv: "AWS_SECRET_KEY",
-				source:       "AWSEnvCredentials",
-			},
-			// Check AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY (standard AWS style)
-			envCredentialsProvider{
-				accessKeyEnv: "AWS_ACCESS_KEY_ID",
-				secretKeyEnv: "AWS_SECRET_ACCESS_KEY",
-				source:       "AWSEnvCredentials",
-			},
-			// Read credentials from MINIO_SHARED_CREDENTIALS_FILE (JSON format)
+			envCredentialsProvider{accessKeyEnv: "MINIO_ACCESS_KEY", secretKeyEnv: "MINIO_SECRET_KEY", source: "MinioEnvCredentials"},
+			envCredentialsProvider{accessKeyEnv: "AWS_ACCESS_KEY", secretKeyEnv: "AWS_SECRET_KEY", source: "AWSEnvCredentials"},
+			envCredentialsProvider{accessKeyEnv: "AWS_ACCESS_KEY_ID", secretKeyEnv: "AWS_SECRET_ACCESS_KEY", source: "AWSEnvCredentials"},
 			minioFileCredentialsProvider{},
-			// Read credentials from AWS_SHARED_CREDENTIALS_FILE (INI format)
 			awsFileCredentialsProvider{},
-			// Read IAM role from EC2 metadata endpoint if available
 			iamCredentialsProvider{endpoint: config.IamEndpoint},
 		},
 	}
-
-	return chain
 }
 
 // Open opens a file
 func (m *MinioStorage) Open(path string) (Object, error) {
 	key := m.buildMinioPath(path)
 
-	// First get object metadata to know the size
 	headResp, err := m.client.HeadObject(m.ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(m.bucket),
 		Key:    aws.String(key),
@@ -514,43 +462,50 @@ func (m *MinioStorage) Open(path string) (Object, error) {
 		size:     size,
 		lastMod:  lastMod,
 		offset:   0,
-		body:     nil, // Will be fetched on first Read
+		body:     nil,
 	}, nil
+}
+
+type countingReader struct {
+	r     io.Reader
+	count int64
+}
+
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	c.count += int64(n)
+	return n, err
 }
 
 // Save saves a file to minio
 func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error) {
 	key := m.buildMinioPath(path)
+	uploader := manager.NewUploader(m.client)
 
-	// AWS SDK v2 requires either a seekable reader or we must buffer the content
-	// to properly send Content-Length header
-	var body io.ReadSeeker
-	switch v := r.(type) {
-	case io.ReadSeeker:
-		body = v
-	default:
-		// Buffer the content - required for proper Content-Length handling
-		data, err := io.ReadAll(r)
-		if err != nil {
-			return 0, fmt.Errorf("failed to read content: %w", err)
-		}
-		if size < 0 {
-			size = int64(len(data))
-		}
-		body = bytes.NewReader(data)
+	var body io.Reader = r
+	var counter *countingReader
+	if size < 0 {
+		counter = &countingReader{r: r}
+		body = counter
 	}
 
 	input := &s3.PutObjectInput{
-		Bucket:        aws.String(m.bucket),
-		Key:           aws.String(key),
-		Body:          body,
-		ContentLength: aws.Int64(size),
-		ContentType:   aws.String("application/octet-stream"),
+		Bucket:      aws.String(m.bucket),
+		Key:         aws.String(key),
+		Body:        body,
+		ContentType: aws.String("application/octet-stream"),
+	}
+	if size >= 0 {
+		input.ContentLength = aws.Int64(size)
 	}
 
-	_, err := m.client.PutObject(m.ctx, input)
+	_, err := uploader.Upload(m.ctx, input)
 	if err != nil {
 		return 0, convertS3Err(err)
+	}
+
+	if counter != nil {
+		return counter.count, nil
 	}
 	return size, nil
 }
