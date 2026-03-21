@@ -60,7 +60,7 @@ export function initRepoActivityBanner() {
 }
 
 function showBanner(eventType: string) {
-  const existing = document.getElementById('gitea-repo-activity-banner');
+  const existing = document.querySelector('#gitea-repo-activity-banner');
   if (existing) {
     // Update message if a more specific event arrives
     const textEl = existing.querySelector<HTMLSpanElement>('.activity-banner-text');
@@ -122,5 +122,5 @@ function showBanner(eventType: string) {
   closeBtn.addEventListener('click', () => banner.remove());
 
   banner.append(text, refreshBtn, closeBtn);
-  document.body.appendChild(banner);
+  document.body.append(banner);
 }
