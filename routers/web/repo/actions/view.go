@@ -38,6 +38,19 @@ import (
 	"github.com/nektos/act/pkg/model"
 )
 
+func findCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_model.ActionRunJob) (job *actions_model.ActionRunJob, hasPathParam bool) {
+	selectedJobID := ctx.PathParamInt64("job")
+	if selectedJobID <= 0 {
+		return nil, false
+	}
+	for _, job = range jobs {
+		if job.ID == selectedJobID {
+			return job, true
+		}
+	}
+	return nil, true
+}
+
 func getCurrentRunByPathParam(ctx *context_module.Context) (run *actions_model.ActionRun) {
 	var err error
 	// if run param is "latest", get the latest run id
@@ -206,19 +219,6 @@ func getActionsViewArtifacts(ctx context.Context, repoID, runID int64) (artifact
 		})
 	}
 	return artifactsViewItems, nil
-}
-
-func findCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_model.ActionRunJob) (job *actions_model.ActionRunJob, hasPathParam bool) {
-	selectedJobID := ctx.PathParamInt64("job")
-	if selectedJobID <= 0 {
-		return nil, false
-	}
-	for _, job = range jobs {
-		if job.ID == selectedJobID {
-			return job, true
-		}
-	}
-	return nil, true
 }
 
 func ViewPost(ctx *context_module.Context) {
@@ -462,13 +462,18 @@ func Rerun(ctx *context_module.Context) {
 	if ctx.Written() {
 		return
 	}
-
 	if !checkRunRerunAllowed(ctx, run) {
 		return
 	}
 
+	currentJob, hasPathParam := findCurrentJobByPathParam(ctx, jobs)
+	if hasPathParam && currentJob == nil {
+		ctx.NotFound(nil)
+		return
+	}
+
 	var jobsToRerun []*actions_model.ActionRunJob
-	if ctx.PathParam("job") != "" {
+	if currentJob != nil {
 		jobsToRerun = actions_service.GetAllRerunJobs(currentJob, jobs)
 	} else {
 		jobsToRerun = jobs
@@ -484,13 +489,10 @@ func Rerun(ctx *context_module.Context) {
 
 // RerunFailed reruns all failed jobs in the given run
 func RerunFailed(ctx *context_module.Context) {
-	runID := getRunID(ctx)
-
-	run, jobs, _ := getRunJobsAndCurrentJob(ctx, runID)
+	run, jobs := getCurrentRunJobsByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
-
 	if !checkRunRerunAllowed(ctx, run) {
 		return
 	}
