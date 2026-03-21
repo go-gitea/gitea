@@ -19,7 +19,7 @@ export default defineComponent({
   props: {
     runId: {type: Number, required: true},
     jobId: {type: Number, required: true},
-    actionsURL: {type: String, required: true},
+    actionsUrl: {type: String, required: true},
     locale: {
       type: Object as PropType<Record<string, any>>,
       default: null,
@@ -78,17 +78,9 @@ export default defineComponent({
   },
 
   computed: {
-    isSummaryMode(): boolean {
-      return this.jobId === 0;
-    },
     runTriggeredAtISO(): string {
       const t = this.run.triggeredAt;
       return t ? new Date(t * 1000).toISOString() : '';
-    },
-    runTriggerEventLabel(): string {
-      const e = this.run.triggerEvent;
-      if (!e) return '';
-      return e.replace(/_/g, ' ');
     },
   },
 
@@ -123,7 +115,7 @@ export default defineComponent({
       await this.loadRunForce();
     },
     async fetchRunData(abortController: AbortController) {
-      const url = `${this.actionsURL}/runs/${this.runId}`;
+      const url = `${this.actionsUrl}/runs/${this.runId}`;
       const resp = await POST(url, {
         signal: abortController.signal,
         data: {logCursors: []},
@@ -158,7 +150,6 @@ export default defineComponent({
         if (this.loadingAbortController === abortController) this.loadingAbortController = null;
       }
     },
-
   },
 });
 </script>
@@ -205,7 +196,7 @@ export default defineComponent({
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" :href="run.link" :class="isSummaryMode ? 'selected' : ''">
+            <a class="job-brief-item" :href="run.link" :class="!jobId ? 'selected' : ''">
               <div class="job-brief-item-left">
                 <SvgIcon name="octicon-list-unordered" class="tw-mr-2"/>
                 <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ locale.summary }}</span>
@@ -254,19 +245,18 @@ export default defineComponent({
 
       <div class="action-view-right">
         <ActionRunSummaryView
-          v-if="isSummaryMode"
+          v-if="!jobId"
           :run="run"
           :artifacts="artifacts"
           :locale="locale"
           :run-triggered-at-iso="runTriggeredAtISO"
-          :run-trigger-event-label="runTriggerEventLabel"
+          :run-trigger-event-label="run.triggerEvent"
         />
         <ActionRunJobView
           v-else
-          ref="jobView"
           :run-id="runId"
           :job-id="jobId"
-          :actions-u-r-l="actionsURL"
+          :actions-url="actionsUrl"
           :locale="locale"
           :run="run"
         />

@@ -13,7 +13,7 @@ export function initRepositoryActionView() {
   const view = createApp(RepoActionView, {
     runId: parseInt(el.getAttribute('data-run-id')!),
     jobId: parseInt(el.getAttribute('data-job-id')!),
-    actionsURL: el.getAttribute('data-actions-url'),
+    actionsUrl: el.getAttribute('data-actions-url'),
     locale: {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),

@@ -108,7 +108,7 @@ export default defineComponent({
   props: {
     runId: {type: Number, required: true},
     jobId: {type: Number, required: true},
-    actionsURL: {type: String, required: true},
+    actionsUrl: {type: String, required: true},
     locale: {
       type: Object as PropType<Record<string, any>>,
       required: true,
@@ -299,7 +299,7 @@ export default defineComponent({
         // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
         return {step: idx, cursor: it.cursor, expanded: it.expanded};
       });
-      const url = `${this.actionsURL}/runs/${this.runId}/jobs/${this.jobId}`;
+      const url = `${this.actionsUrl}/runs/${this.runId}/jobs/${this.jobId}`;
       const resp = await POST(url, {
         signal: abortController.signal,
         data: {logCursors},
@@ -416,7 +416,6 @@ export default defineComponent({
 });
 </script>
 <template>
-  <!-- <div> -->
   <div class="job-info-header">
     <div class="job-info-header-left gt-ellipsis">
       <h3 class="job-info-header-title gt-ellipsis">
