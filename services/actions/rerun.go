@@ -129,59 +129,30 @@ func prepareRunRerun(ctx context.Context, repo *repo_model.Repository, run *acti
 	return run.Status == actions_model.StatusBlocked, nil
 }
 
-// RerunWorkflowRunJobs reruns all done jobs of a workflow run,
-// or reruns a selected job and all of its downstream jobs when targetJob is specified.
-func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob, targetJob *actions_model.ActionRunJob) error {
-	isRunBlocked, err := prepareRunRerun(ctx, repo, run, jobs)
-	if err != nil {
-		return err
-	}
-
-	if targetJob == nil {
-		for _, job := range jobs {
-			// If the job has needs, it should be blocked to wait for its dependencies.
-			shouldBlockJob := len(job.Needs) > 0 || isRunBlocked
-			if err := rerunWorkflowJob(ctx, job, shouldBlockJob); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	rerunJobs := GetAllRerunJobs(targetJob, jobs)
-	for _, job := range rerunJobs {
-		// Jobs other than the selected one should wait for dependencies.
-		shouldBlockJob := job.JobID != targetJob.JobID || isRunBlocked
-		if err := rerunWorkflowJob(ctx, job, shouldBlockJob); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// RerunFailedWorkflowRunJobs reruns all failed jobs of a workflow run and their downstream dependencies.
-func RerunFailedWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) error {
-	jobsToRerun := GetFailedRerunJobs(jobs)
+// RerunWorkflowRunJobs reruns the given jobs of a workflow run.
+// jobsToRerun must include all jobs to be rerun (the target job and its transitively dependent jobs).
+// A job is blocked (waiting for dependencies) if the run itself is blocked or if any of its
+// needs are also being rerun.
+func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, jobsToRerun []*actions_model.ActionRunJob) error {
 	if len(jobsToRerun) == 0 {
 		return nil
 	}
 
-	isRunBlocked, err := prepareRunRerun(ctx, repo, run, jobs)
+	isRunBlocked, err := prepareRunRerun(ctx, repo, run, jobsToRerun)
 	if err != nil {
 		return err
 	}
 
-	rerunJobByJobID := make(container.Set[string])
+	rerunJobIDs := make(container.Set[string])
 	for _, j := range jobsToRerun {
-		rerunJobByJobID.Add(j.JobID)
+		rerunJobIDs.Add(j.JobID)
 	}
 
 	for _, job := range jobsToRerun {
 		shouldBlockJob := isRunBlocked
 		if !shouldBlockJob {
 			for _, need := range job.Needs {
-				if rerunJobByJobID.Contains(need) {
+				if rerunJobIDs.Contains(need) {
 					shouldBlockJob = true
 					break
 				}

@@ -126,16 +126,19 @@ func TestRerunValidation(t *testing.T) {
 	runningRun := &actions_model.ActionRun{Status: actions_model.StatusRunning}
 
 	t.Run("RerunWorkflowRunJobs rejects a non-done run", func(t *testing.T) {
-		err := RerunWorkflowRunJobs(context.Background(), nil, runningRun, nil, nil)
+		jobs := []*actions_model.ActionRunJob{
+			{ID: 1, JobID: "job1"},
+		}
+		err := RerunWorkflowRunJobs(context.Background(), nil, runningRun, jobs)
 		require.Error(t, err)
 		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 
-	t.Run("RerunFailedWorkflowRunJobs rejects a non-done run when failed jobs exist", func(t *testing.T) {
+	t.Run("RerunWorkflowRunJobs rejects a non-done run when failed jobs exist", func(t *testing.T) {
 		jobs := []*actions_model.ActionRunJob{
 			{ID: 1, JobID: "job1", Status: actions_model.StatusFailure},
 		}
-		err := RerunFailedWorkflowRunJobs(context.Background(), nil, runningRun, jobs)
+		err := RerunWorkflowRunJobs(context.Background(), nil, runningRun, GetFailedRerunJobs(jobs))
 		require.Error(t, err)
 		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
