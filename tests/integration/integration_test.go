@@ -6,6 +6,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"hash"
 	"hash/fnv"
@@ -326,9 +327,10 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *Re
 		urlStr = "/" + urlStr
 	}
 	req, err := http.NewRequest(method, urlStr, body)
-	assert.NoError(t, err)
-	req.RequestURI = urlStr
-
+	require.NoError(t, err)
+	if req.URL.User != nil {
+		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(req.URL.User.String())))
+	}
 	return &RequestWrapper{req}
 }
 
