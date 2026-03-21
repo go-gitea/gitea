@@ -81,6 +81,7 @@
   "retry": "Retry",
   "rerun": "Re-run",
   "rerun_all": "Re-run all jobs",
+  "rerun_failed": "Re-run failed jobs",
   "save": "Save",
   "add": "Add",
   "add_all": "Add All",
