@@ -452,7 +452,11 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	targetJob, _ := findCurrentJobByPathParam(ctx, jobs) // nil means rerun all jobs
+	targetJob, hasPathParam := findCurrentJobByPathParam(ctx, jobs) // no "job" path parameter means rerun all jobs
+	if targetJob == nil && hasPathParam {
+		ctx.NotFound(nil)
+		return
+	}
 	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs, targetJob); err != nil {
 		ctx.ServerError("RerunWorkflowRunJobs", err)
 		return
