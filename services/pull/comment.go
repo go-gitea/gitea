@@ -35,12 +35,13 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 			// For force-push events, failures resolving the base ref/head commit or computing the merge-base should not prevent deleting stale push comments or creating the force-push timeline entry.
 			log.Error("MergeBase %q and %q failed: %v", pr.BaseBranch, newCommitID, err)
 		} else {
-			data.CommitIDs, err = gitrepo.GetCommitIDsBetween(ctx, pr.BaseRepo, mergeBase, newCommitID, "")
+			notRef := ""
+			data.CommitIDs, err = gitrepo.GetCommitIDsBetween(ctx, pr.BaseRepo, mergeBase, newCommitID, notRef)
 			if err != nil {
 				// For force-push events, failures resolving the base ref/head commit or computing
 				// the merge-base should not prevent deleting stale push comments or creating the
 				// force-push timeline entry.
-				log.Error("GetCommitIDsBetween %q..%q failed: %v", pr.BaseBranch, newCommitID, err)
+				log.Error("GetCommitIDsBetween %q..%q (not %q) failed: %v", mergeBase, newCommitID, notRef, err)
 			}
 		}
 	} else {
