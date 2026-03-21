@@ -1,11 +1,11 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package eventsourcenotifier broadcasts repo activity events to connected
+// Package eventsource broadcasts repo activity events to connected
 // users via the existing Server-Sent Events infrastructure so that issue and
 // pull-request pages can show a non-intrusive "New activity" banner without
 // requiring a manual page refresh.
-package eventsourcenotifier
+package eventsource
 
 import (
 	"context"
@@ -15,11 +15,10 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/eventsource"
+	eventsource_module "code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -54,11 +53,7 @@ type eventsourceNotifier struct {
 var _ notify_service.Notifier = &eventsourceNotifier{}
 
 // Init registers the eventsource notifier with the notify system.
-// It is a no-op when [ui.notification] ENABLE_REPO_ACTIVITY_EVENTS = false.
 func Init() error {
-	if !setting.UI.Notification.RepoActivityEvents {
-		return nil
-	}
 	notify_service.RegisterNotifier(&eventsourceNotifier{})
 	return nil
 }
@@ -119,8 +114,8 @@ func broadcastDebounced(repoID int64, gen uint64) {
 		return
 	}
 
-	mgr := eventsource.GetManager()
-	event := &eventsource.Event{Name: "repo-activity", Data: string(data)}
+	mgr := eventsource_module.GetManager()
+	event := &eventsource_module.Event{Name: "repo-activity", Data: string(data)}
 	for _, uid := range watcherIDs {
 		mgr.SendMessage(uid, event)
 	}
@@ -160,7 +155,7 @@ func (n *eventsourceNotifier) MergePullRequest(ctx context.Context, doer *user_m
 		log.Error("eventsourceNotifier: MergePullRequest LoadIssue: %v", err)
 		return
 	}
-	scheduleRepoActivity(ctx, pr.BaseRepoID, pr.Issue.Index, "merged")
+	scheduleRepoActivity(ctx, pr.BaseRepoID, pr.Issue.Index, "pr-merged")
 }
 
 // PullRequestReview fires when a review (approve / request-changes / comment) is submitted.

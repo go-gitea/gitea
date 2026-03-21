@@ -7,7 +7,7 @@ const eventMessages: Record<string, string> = {
   'issue-opened': 'A new issue was opened.',
   'issue-closed': 'This issue was closed.',
   'issue-reopened': 'This issue was reopened.',
-  'merged': 'This pull request was merged.',
+  'pr-merged': 'This pull request was merged.',
   'review': 'A new review was submitted.',
   'review-comment': 'New code review comments were added.',
   'release': 'A new release was published.',
@@ -20,7 +20,6 @@ export function initRepoActivityBanner() {
   const pageInfo = parseIssuePageInfo();
   if (!pageInfo.repoId) return; // not on an issue/PR page
 
-  if (!notificationSettings.RepoActivityEvents) return;
   if (notificationSettings.EventSourceUpdateTime <= 0) return;
   if (!window.EventSource || !window.SharedWorker) return;
 
@@ -60,10 +59,10 @@ export function initRepoActivityBanner() {
 }
 
 function showBanner(eventType: string) {
-  const existing = document.querySelector('#gitea-repo-activity-banner');
+  const existing = document.querySelector('.repo-activity-banner');
   if (existing) {
     // Update message if a more specific event arrives
-    const textEl = existing.querySelector<HTMLSpanElement>('.activity-banner-text');
+    const textEl = existing.querySelector<HTMLSpanElement>('.repo-activity-banner-text');
     if (textEl && eventMessages[eventType]) {
       textEl.textContent = eventMessages[eventType];
     }
@@ -73,52 +72,20 @@ function showBanner(eventType: string) {
   const message = eventMessages[eventType] ?? 'This page has new activity.';
 
   const banner = document.createElement('div');
-  banner.id = 'gitea-repo-activity-banner';
-  Object.assign(banner.style, {
-    position: 'fixed',
-    top: '64px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: 'var(--color-primary)',
-    color: 'var(--color-primary-contrast)',
-    padding: '8px 16px',
-    borderRadius: '6px',
-    zIndex: '9999',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-    fontSize: '14px',
-  });
+  banner.classList.add('repo-activity-banner');
 
   const text = document.createElement('span');
-  text.className = 'activity-banner-text';
+  text.classList.add('repo-activity-banner-text');
   text.textContent = message;
 
   const refreshBtn = document.createElement('button');
+  refreshBtn.classList.add('repo-activity-banner-refresh');
   refreshBtn.textContent = 'Refresh';
-  Object.assign(refreshBtn.style, {
-    background: 'rgba(255,255,255,0.2)',
-    border: 'none',
-    color: 'inherit',
-    padding: '3px 10px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-  });
   refreshBtn.addEventListener('click', () => location.reload());
 
   const closeBtn = document.createElement('button');
+  closeBtn.classList.add('repo-activity-banner-close');
   closeBtn.textContent = '×';
-  Object.assign(closeBtn.style, {
-    background: 'none',
-    border: 'none',
-    color: 'inherit',
-    cursor: 'pointer',
-    fontSize: '18px',
-    lineHeight: '1',
-    padding: '0',
-  });
   closeBtn.addEventListener('click', () => banner.remove());
 
   banner.append(text, refreshBtn, closeBtn);

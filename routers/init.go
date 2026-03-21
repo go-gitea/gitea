@@ -39,7 +39,7 @@ import (
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/cron"
-	"code.gitea.io/gitea/services/eventsourcenotifier"
+	eventsource_service "code.gitea.io/gitea/services/eventsource"
 	feed_service "code.gitea.io/gitea/services/feed"
 	indexer_service "code.gitea.io/gitea/services/indexer"
 	"code.gitea.io/gitea/services/mailer"
@@ -129,7 +129,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(cache.Init)
 	mustInit(feed_service.Init)
 	mustInit(uinotification.Init)
-	mustInit(eventsourcenotifier.Init)
+	mustInit(eventsource_service.Init)
 	mustInitCtx(ctx, archiver.Init)
 
 	external.RegisterRenderers()
