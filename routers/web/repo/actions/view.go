@@ -211,7 +211,7 @@ func getActionsViewArtifacts(ctx context.Context, repoID, runID int64) (artifact
 	return artifactsViewItems, nil
 }
 
-func getCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_model.ActionRunJob) *actions_model.ActionRunJob {
+func findCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_model.ActionRunJob) *actions_model.ActionRunJob {
 	selectedJobID := ctx.PathParamInt64("job")
 	for _, job := range jobs {
 		if job.ID == selectedJobID {
@@ -304,7 +304,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 
 func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
 	req := web.GetForm(ctx).(*ViewRequest)
-	current := getCurrentJobByPathParam(ctx, jobs)
+	current := findCurrentJobByPathParam(ctx, jobs)
 	if current == nil {
 		return
 	}
@@ -446,7 +446,7 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	targetJob := getCurrentJobByPathParam(ctx, jobs) // nil means rerun all jobs
+	targetJob := findCurrentJobByPathParam(ctx, jobs) // nil means rerun all jobs
 	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs, targetJob); err != nil {
 		ctx.ServerError("RerunWorkflowRunJobs", err)
 		return
