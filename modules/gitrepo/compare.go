@@ -43,17 +43,17 @@ func GetDivergingCommits(ctx context.Context, repo Repository, baseBranch, targe
 	return &DivergeObject{Ahead: ahead, Behind: behind}, nil
 }
 
-// GetCommitIDsBetween returns the commit IDs between startRef and endRef (excluding startRef), ordered from oldest to newest.
-// When symmetric is true, the comparison uses "..." instead of "..".
-func GetCommitIDsBetween(ctx context.Context, repo Repository, startRef, endRef string, symmetric bool) ([]string, error) {
-	separator := ".."
-	if symmetric {
-		separator = "..."
+// GetCommitIDsBetween returns the commit IDs between startRef and endRef, if notRef is not empty,
+// it will exclude commits reachable from notRef.
+func GetCommitIDsBetween(ctx context.Context, repo Repository, startRef, endRef, notRef string) ([]string, error) {
+	baseCmd := gitcmd.NewCommand("rev-list", "--reverse")
+	if notRef != "" {
+		baseCmd.AddOptionValues("--not", notRef)
 	}
-
-	cmd := gitcmd.NewCommand("rev-list", "--reverse").
-		AddDynamicArguments(startRef + separator + endRef)
-	stdout, _, err := RunCmdString(ctx, repo, cmd)
+	stdout, _, err := RunCmdString(ctx, repo, baseCmd.AddDynamicArguments(startRef+".."+endRef))
+	if err != nil && strings.Contains(err.Error(), "no merge base") {
+		stdout, _, err = RunCmdString(ctx, repo, baseCmd.AddDynamicArguments(startRef, endRef))
+	}
 	if err != nil {
 		return nil, err
 	}

@@ -30,15 +30,21 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 	var data issues_model.PushActionContent
 	if isForcePush {
 		// if it's a force push, we need to get the whole pull request commits
-		data.CommitIDs, err = gitrepo.GetCommitIDsBetween(ctx, pr.BaseRepo, pr.BaseBranch, newCommitID, true)
+		mergeBase, err := gitrepo.MergeBase(ctx, pr.BaseRepo, pr.BaseBranch, newCommitID)
 		if err != nil {
-			// For force-push events, failures resolving the base ref/head commit or computing
-			// the merge-base should not prevent deleting stale push comments or creating the
-			// force-push timeline entry.
-			log.Error("GetCommitIDsBetween %q..%q failed: %v", pr.BaseBranch, newCommitID, err)
+			// For force-push events, failures resolving the base ref/head commit or computing the merge-base should not prevent deleting stale push comments or creating the force-push timeline entry.
+			log.Error("MergeBase %q and %q failed: %v", pr.BaseBranch, newCommitID, err)
+		} else {
+			data.CommitIDs, err = gitrepo.GetCommitIDsBetween(ctx, pr.BaseRepo, mergeBase, newCommitID, "")
+			if err != nil {
+				// For force-push events, failures resolving the base ref/head commit or computing
+				// the merge-base should not prevent deleting stale push comments or creating the
+				// force-push timeline entry.
+				log.Error("GetCommitIDsBetween %q..%q failed: %v", pr.BaseBranch, newCommitID, err)
+			}
 		}
 	} else {
-		data.CommitIDs, err = gitrepo.GetCommitIDsBetween(ctx, pr.BaseRepo, oldCommitID, newCommitID, false)
+		data.CommitIDs, err = gitrepo.GetCommitIDsBetween(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
 		if err != nil {
 			return nil, err
 		}
