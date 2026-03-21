@@ -1,37 +1,19 @@
-<script lang="ts">
-import {defineComponent, type PropType} from 'vue';
+<script setup lang="ts">
 import ActionRunStatus from './ActionRunStatus.vue';
 import WorkflowGraph from './WorkflowGraph.vue';
+import type {ActionsArtifact, ActionsRun, ActionsRunStatus} from '../modules/gitea-actions.ts';
 
-export default defineComponent({
+defineOptions({
   name: 'ActionRunSummaryView',
-  components: {
-    ActionRunStatus,
-    WorkflowGraph,
-  },
-  props: {
-    run: {
-      type: Object as PropType<Record<string, any>>,
-      required: true,
-    },
-    artifacts: {
-      type: Array as PropType<Array<Record<string, any>>>,
-      required: true,
-    },
-    locale: {
-      type: Object as PropType<Record<string, any>>,
-      required: true,
-    },
-    runTriggeredAtIso: {
-      type: String,
-      required: true,
-    },
-    runTriggerEventLabel: {
-      type: String,
-      required: true,
-    },
-  },
 });
+
+defineProps<{
+  run: ActionsRun;
+  artifacts: ActionsArtifact[];
+  locale: Record<string, any>;
+  runTriggeredAtIso: string;
+  runTriggerEventLabel: string;
+}>();
 </script>
 <template>
   <div>

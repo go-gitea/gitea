@@ -4,7 +4,7 @@ import ActionRunStatus from './ActionRunStatus.vue';
 import {defineComponent, type PropType} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
-import type {ActionsRunStatus, ActionsJob} from '../modules/gitea-actions.ts';
+import type {ActionsRunStatus, ActionsJob, ActionsRun, ActionsArtifact} from '../modules/gitea-actions.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
 
@@ -31,7 +31,7 @@ export default defineComponent({
       // internal state
       loadingAbortController: null as AbortController | null,
       intervalID: null as IntervalId | null,
-      artifacts: [] as Array<Record<string, any>>,
+      artifacts: [] as Array<ActionsArtifact>,
       // provided by backend
       run: {
         link: '',
@@ -74,7 +74,7 @@ export default defineComponent({
             isDeleted: false,
           },
         },
-      },
+      } as ActionsRun,
     };
   },
 
