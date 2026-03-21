@@ -211,14 +211,17 @@ func getActionsViewArtifacts(ctx context.Context, repoID, runID int64) (artifact
 	return artifactsViewItems, nil
 }
 
-func findCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_model.ActionRunJob) *actions_model.ActionRunJob {
+func findCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_model.ActionRunJob) (job *actions_model.ActionRunJob, hasPathParam bool) {
 	selectedJobID := ctx.PathParamInt64("job")
-	for _, job := range jobs {
+	if selectedJobID <= 0 {
+		return nil, false
+	}
+	for _, job = range jobs {
 		if job.ID == selectedJobID {
-			return job
+			return job, true
 		}
 	}
-	return nil
+	return nil, true
 }
 
 func ViewPost(ctx *context_module.Context) {
@@ -233,7 +236,13 @@ func ViewPost(ctx *context_module.Context) {
 
 	resp := &ViewResponse{}
 	fillViewRunResponseSummary(ctx, resp, run, jobs)
+	if ctx.Written() {
+		return
+	}
 	fillViewRunResponseCurrentJob(ctx, resp, run, jobs)
+	if ctx.Written() {
+		return
+	}
 	ctx.JSON(http.StatusOK, resp)
 }
 
@@ -241,10 +250,8 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	var err error
 	resp.Artifacts, err = getActionsViewArtifacts(ctx, ctx.Repo.Repository.ID, run.ID)
 	if err != nil {
-		if !errors.Is(err, util.ErrNotExist) {
-			ctx.ServerError("getActionsViewArtifacts", err)
-			return
-		}
+		ctx.ServerError("getActionsViewArtifacts", err)
+		return
 	}
 
 	// the title for the "run" is from the commit message
@@ -304,8 +311,11 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 
 func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
 	req := web.GetForm(ctx).(*ViewRequest)
-	current := findCurrentJobByPathParam(ctx, jobs)
+	current, hasPathParam := findCurrentJobByPathParam(ctx, jobs)
 	if current == nil {
+		if hasPathParam {
+			ctx.NotFound(nil)
+		}
 		return
 	}
 
@@ -446,7 +456,7 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	targetJob := findCurrentJobByPathParam(ctx, jobs) // nil means rerun all jobs
+	targetJob, _ := findCurrentJobByPathParam(ctx, jobs) // nil means rerun all jobs
 	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs, targetJob); err != nil {
 		ctx.ServerError("RerunWorkflowRunJobs", err)
 		return
