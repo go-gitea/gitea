@@ -345,7 +345,7 @@ type PushActionContent struct {
 	CommitIDs   []string `json:"commit_ids"`
 }
 
-func (c *Comment) GetPushActionContent(ctx context.Context) (*PushActionContent, error) {
+func (c *Comment) GetPushActionContent() (*PushActionContent, error) {
 	if c.Type != CommentTypePullRequestPush {
 		return nil, errors.New("not a pull request push comment")
 	}

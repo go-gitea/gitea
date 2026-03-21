@@ -70,7 +70,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 			}
 			var needDeleteCommentIDs []int64
 			for _, oldCommitComment := range oldCommitComments {
-				a, err := oldCommitComment.GetPushActionContent(ctx)
+				a, err := oldCommitComment.GetPushActionContent()
 				if err != nil {
 					log.Error("GetPushActionContent failed: %v", err)
 					continue
