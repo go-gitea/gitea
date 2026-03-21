@@ -7,7 +7,7 @@ package issues
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"slices"
@@ -22,6 +22,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/htmlutil"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/references"
@@ -346,7 +347,7 @@ type PushActionContent struct {
 
 func (c *Comment) GetPushActionContent(ctx context.Context) (*PushActionContent, error) {
 	if c.Type != CommentTypePullRequestPush {
-		return nil, nil
+		return nil, errors.New("not a pull request push comment")
 	}
 	var data PushActionContent
 	if err := json.Unmarshal([]byte(c.Content), &data); err != nil {
