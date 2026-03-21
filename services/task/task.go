@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	admin_model "code.gitea.io/gitea/models/admin"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
@@ -50,7 +49,7 @@ func Init() error {
 
 func handler(items ...*admin_model.Task) []*admin_model.Task {
 	for _, task := range items {
-		if err := Run(db.DefaultContext, task); err != nil {
+		if err := Run(graceful.GetManager().ShutdownContext(), task); err != nil {
 			log.Error("Run task failed: %v", err)
 		}
 	}

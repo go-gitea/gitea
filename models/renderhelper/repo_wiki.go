@@ -71,7 +71,7 @@ func NewRenderContextRepoWiki(ctx context.Context, repo *repo_model.Repository, 
 			"markupAllowShortIssuePattern": "true",
 		})
 	}
-	rctx = rctx.WithHelper(helper)
+	rctx = rctx.WithHelper(helper).WithEnableHeadingIDGeneration(true)
 	helper.ctx = rctx
 	return rctx
 }

@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	attachment_service "code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
@@ -161,6 +162,8 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "413":
+	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	//   "423":
@@ -189,7 +192,8 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		filename = query
 	}
 
-	attachment, err := attachment_service.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
+	uploaderFile := attachment_service.NewLimitedUploaderKnownSize(file, header.Size)
+	attachment, err := attachment_service.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, setting.Attachment.AllowedTypes, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
@@ -199,6 +203,8 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
+		} else if errors.Is(err, util.ErrContentTooLarge) {
+			ctx.APIError(http.StatusRequestEntityTooLarge, err)
 		} else {
 			ctx.APIErrorInternal(err)
 		}

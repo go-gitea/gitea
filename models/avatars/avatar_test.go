@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	avatars_model "code.gitea.io/gitea/models/avatars"
-	"code.gitea.io/gitea/models/db"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
@@ -18,14 +17,14 @@ import (
 const gravatarSource = "https://secure.gravatar.com/avatar/"
 
 func disableGravatar(t *testing.T) {
-	err := system_model.SetSettings(db.DefaultContext, map[string]string{setting.Config().Picture.EnableFederatedAvatar.DynKey(): "false"})
+	err := system_model.SetSettings(t.Context(), map[string]string{setting.Config().Picture.EnableFederatedAvatar.DynKey(): "false"})
 	assert.NoError(t, err)
-	err = system_model.SetSettings(db.DefaultContext, map[string]string{setting.Config().Picture.DisableGravatar.DynKey(): "true"})
+	err = system_model.SetSettings(t.Context(), map[string]string{setting.Config().Picture.DisableGravatar.DynKey(): "true"})
 	assert.NoError(t, err)
 }
 
 func enableGravatar(t *testing.T) {
-	err := system_model.SetSettings(db.DefaultContext, map[string]string{setting.Config().Picture.DisableGravatar.DynKey(): "false"})
+	err := system_model.SetSettings(t.Context(), map[string]string{setting.Config().Picture.DisableGravatar.DynKey(): "false"})
 	assert.NoError(t, err)
 	setting.GravatarSource = gravatarSource
 }
@@ -47,12 +46,12 @@ func TestSizedAvatarLink(t *testing.T) {
 	disableGravatar(t)
 	config.GetDynGetter().InvalidateCache()
 	assert.Equal(t, "/testsuburl/assets/img/avatar_default.png",
-		avatars_model.GenerateEmailAvatarFastLink(db.DefaultContext, "gitea@example.com", 100))
+		avatars_model.GenerateEmailAvatarFastLink(t.Context(), "gitea@example.com", 100))
 
 	enableGravatar(t)
 	config.GetDynGetter().InvalidateCache()
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon&s=100",
-		avatars_model.GenerateEmailAvatarFastLink(db.DefaultContext, "gitea@example.com", 100),
+		avatars_model.GenerateEmailAvatarFastLink(t.Context(), "gitea@example.com", 100),
 	)
 }

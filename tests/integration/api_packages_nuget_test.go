@@ -19,7 +19,6 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -295,18 +294,18 @@ func TestPackageNuGet(t *testing.T) {
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1, "Should have one version")
 
-			pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+			pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 			assert.NoError(t, err)
 			assert.NotNil(t, pd.SemVer)
 			assert.IsType(t, &nuget_module.Metadata{}, pd.Metadata)
 			assert.Equal(t, packageName, pd.Package.Name)
 			assert.Equal(t, packageVersion, pd.Version.Version)
 
-			pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+			pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 			assert.NoError(t, err)
 			assert.Len(t, pfs, 2, "Should have 2 files: nuget and nuspec")
 			for _, pf := range pfs {
@@ -314,7 +313,7 @@ func TestPackageNuGet(t *testing.T) {
 				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
 					assert.True(t, pf.IsLead)
 
-					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(len(content)), pb.Size)
 				case packageName + ".nuspec":
@@ -329,7 +328,7 @@ func TestPackageNuGet(t *testing.T) {
 			MakeRequest(t, req, http.StatusConflict)
 
 			// delete the package
-			assert.NoError(t, packageService.DeletePackageVersionAndReferences(db.DefaultContext, pvs[0]))
+			assert.NoError(t, packageService.DeletePackageVersionAndReferences(t.Context(), pvs[0]))
 
 			// create failure with token without write access
 			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content)).
@@ -341,18 +340,18 @@ func TestPackageNuGet(t *testing.T) {
 				AddTokenAuth(writeToken)
 			MakeRequest(t, req, http.StatusCreated)
 
-			pvs, err = packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
+			pvs, err = packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1, "Should have one version")
 
-			pd, err = packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+			pd, err = packages.GetPackageDescriptor(t.Context(), pvs[0])
 			assert.NoError(t, err)
 			assert.NotNil(t, pd.SemVer)
 			assert.IsType(t, &nuget_module.Metadata{}, pd.Metadata)
 			assert.Equal(t, packageName, pd.Package.Name)
 			assert.Equal(t, packageVersion, pd.Version.Version)
 
-			pfs, err = packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+			pfs, err = packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 			assert.NoError(t, err)
 			assert.Len(t, pfs, 2, "Should have 2 files: nuget and nuspec")
 			for _, pf := range pfs {
@@ -360,7 +359,7 @@ func TestPackageNuGet(t *testing.T) {
 				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
 					assert.True(t, pf.IsLead)
 
-					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(len(content)), pb.Size)
 				case packageName + ".nuspec":
@@ -416,18 +415,18 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 
-			pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+			pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 			assert.NoError(t, err)
 			assert.NotNil(t, pd.SemVer)
 			assert.IsType(t, &nuget_module.Metadata{}, pd.Metadata)
 			assert.Equal(t, packageName, pd.Package.Name)
 			assert.Equal(t, packageVersion, pd.Version.Version)
 
-			pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+			pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 			assert.NoError(t, err)
 			assert.Len(t, pfs, 4, "Should have 4 files: nupkg, snupkg, nuspec and pdb")
 			for _, pf := range pfs {
@@ -435,29 +434,29 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
 					assert.True(t, pf.IsLead)
 
-					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(633), pb.Size)
 				case fmt.Sprintf("%s.%s.snupkg", packageName, packageVersion):
 					assert.False(t, pf.IsLead)
 
-					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(616), pb.Size)
 				case packageName + ".nuspec":
 					assert.False(t, pf.IsLead)
 
-					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(1043), pb.Size)
 				case symbolFilename:
 					assert.False(t, pf.IsLead)
 
-					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(160), pb.Size)
 
-					pps, err := packages.GetProperties(db.DefaultContext, packages.PropertyTypeFile, pf.ID)
+					pps, err := packages.GetProperties(t.Context(), packages.PropertyTypeFile, pf.ID)
 					assert.NoError(t, err)
 					assert.Len(t, pps, 1)
 					assert.Equal(t, nuget_module.PropertySymbolID, pps[0].Name)
@@ -477,7 +476,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		defer tests.PrintCurrentTest(t)()
 
 		checkDownloadCount := func(count int64) {
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 			assert.Equal(t, count, pvs[0].DownloadCount)
@@ -907,7 +906,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
 		assert.NoError(t, err)
 		assert.Empty(t, pvs)
 	})

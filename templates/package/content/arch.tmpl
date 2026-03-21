@@ -4,9 +4,11 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-gear"}} {{ctx.Locale.Tr "packages.arch.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>[{{.PackageDescriptor.Owner.LowerName}}.{{.PackageRegistryHost}}]
+				<div class="markup"><pre class="code-block"><code>{{range $i, $repo := .Repositories}}{{if $i}}
+{{end}}[{{$repo}}]
 SigLevel = Optional TrustAll
-Server = <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/arch/$repo/$arch"></origin-url></code></pre></div>
+Server = <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/arch/$repo/$arch"></origin-url>
+{{end}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-sync"}} {{ctx.Locale.Tr "packages.arch.install"}}</label>

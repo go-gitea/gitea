@@ -12,7 +12,7 @@ function issueSidebarReloadConfirmDraftComment() {
     // Most users won't feel too sad if they lose a comment with 10 chars, they can re-type these in seconds.
     // But if they have typed more (like 50) chars and the comment is lost, they will be very unhappy.
     if (textarea && textarea.value.trim().length > 10) {
-      textarea.parentElement.scrollIntoView();
+      textarea.parentElement!.scrollIntoView();
       if (!window.confirm('Page will be reloaded, but there are draft comments. Continuing to reload will discard the comments. Continue?')) {
         return;
       }
@@ -34,22 +34,22 @@ export class IssueSidebarComboList {
 
   constructor(container: HTMLElement) {
     this.container = container;
-    this.updateUrl = container.getAttribute('data-update-url');
-    this.updateAlgo = container.getAttribute('data-update-algo');
-    this.selectionMode = container.getAttribute('data-selection-mode');
+    this.updateUrl = container.getAttribute('data-update-url')!;
+    this.updateAlgo = container.getAttribute('data-update-algo')!;
+    this.selectionMode = container.getAttribute('data-selection-mode')!;
     if (!['single', 'multiple'].includes(this.selectionMode)) throw new Error(`Invalid data-update-on: ${this.selectionMode}`);
     if (!['diff', 'all'].includes(this.updateAlgo)) throw new Error(`Invalid data-update-algo: ${this.updateAlgo}`);
-    this.elDropdown = container.querySelector<HTMLElement>(':scope > .ui.dropdown');
-    this.elList = container.querySelector<HTMLElement>(':scope > .ui.list');
-    this.elComboValue = container.querySelector<HTMLInputElement>(':scope > .combo-value');
+    this.elDropdown = container.querySelector<HTMLElement>(':scope > .ui.dropdown')!;
+    this.elList = container.querySelector<HTMLElement>(':scope > .ui.list')!;
+    this.elComboValue = container.querySelector<HTMLInputElement>(':scope > .combo-value')!;
   }
 
   collectCheckedValues() {
-    return Array.from(this.elDropdown.querySelectorAll('.menu > .item.checked'), (el) => el.getAttribute('data-value'));
+    return Array.from(this.elDropdown.querySelectorAll('.menu > .item.checked'), (el) => el.getAttribute('data-value')!);
   }
 
   updateUiList(changedValues: Array<string>) {
-    const elEmptyTip = this.elList.querySelector('.item.empty-list');
+    const elEmptyTip = this.elList.querySelector('.item.empty-list')!;
     queryElemChildren(this.elList, '.item:not(.empty-list)', (el) => el.remove());
     for (const value of changedValues) {
       const el = this.elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${CSS.escape(value)}"]`);

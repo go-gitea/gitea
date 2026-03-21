@@ -20,5 +20,5 @@ func Migrate(ctx context.Context, x *xorm.Engine) error {
 	}
 	defer release()
 
-	return migrations.Migrate(x)
+	return migrations.Migrate(ctx, x)
 }

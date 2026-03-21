@@ -13,12 +13,12 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
-	"github.com/gobwas/glob"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -382,10 +382,12 @@ func TestAPIEditUser_NotAllowedEmailDomain(t *testing.T) {
 		SourceID:  0,
 		Email:     &newEmail,
 	}).AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	assert.Equal(t, "the domain of user email user2@example1.com conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", resp.Header().Get("X-Gitea-Warning"))
+	resp := MakeRequest(t, req, http.StatusBadRequest)
+	errMap := make(map[string]string)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), &errMap))
+	assert.Equal(t, "the domain of user email user2@example1.com conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", errMap["message"])
 
-	originalEmail := "user2@example.com"
+	originalEmail := "user2@example.org"
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
 		LoginName: "user2",
 		SourceID:  0,

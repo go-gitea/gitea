@@ -7,7 +7,7 @@ export async function initAdminSelfCheck() {
   const elCheckByFrontend = document.querySelector('#self-check-by-frontend');
   if (!elCheckByFrontend) return;
 
-  const elContent = document.querySelector<HTMLDivElement>('.page-content.admin .admin-setting-content');
+  const elContent = document.querySelector<HTMLDivElement>('.page-content.admin .admin-setting-content')!;
 
   // send frontend self-check request
   const resp = await POST(`${appSubUrl}/-/admin/self_check`, {
@@ -27,5 +27,5 @@ export async function initAdminSelfCheck() {
 
   // only show the "no problem" if there is no visible "self-check-problem"
   const hasProblem = Boolean(elContent.querySelectorAll('.self-check-problem:not(.tw-hidden)').length);
-  toggleElem(elContent.querySelector('.self-check-no-problem'), !hasProblem);
+  toggleElem(elContent.querySelector('.self-check-no-problem')!, !hasProblem);
 }

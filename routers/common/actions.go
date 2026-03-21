@@ -14,18 +14,15 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-func DownloadActionsRunJobLogsWithIndex(ctx *context.Base, ctxRepo *repo_model.Repository, runID, jobIndex int64) error {
-	runJobs, err := actions_model.GetRunJobsByRunID(ctx, runID)
+func DownloadActionsRunJobLogsWithID(ctx *context.Base, ctxRepo *repo_model.Repository, runID, jobID int64) error {
+	job, err := actions_model.GetRunJobByRunAndID(ctx, runID, jobID)
 	if err != nil {
-		return fmt.Errorf("GetRunJobsByRunID: %w", err)
+		return err
 	}
-	if err = runJobs.LoadRepos(ctx); err != nil {
-		return fmt.Errorf("LoadRepos: %w", err)
+	if err := job.LoadRepo(ctx); err != nil {
+		return fmt.Errorf("LoadRepo: %w", err)
 	}
-	if jobIndex < 0 || jobIndex >= int64(len(runJobs)) {
-		return util.NewNotExistErrorf("job index is out of range: %d", jobIndex)
-	}
-	return DownloadActionsRunJobLogs(ctx, ctxRepo, runJobs[jobIndex])
+	return DownloadActionsRunJobLogs(ctx, ctxRepo, job)
 }
 
 func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository, curJob *actions_model.ActionRunJob) error {

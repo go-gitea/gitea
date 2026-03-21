@@ -1,7 +1,6 @@
 <h4 class="ui top attached header">{{if .IsEditRule}}{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.edit"}}{{else}}{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.add"}}{{end}}</h4>
 <div class="ui attached segment">
 	<form class="ui form" action="{{.Link}}" method="post">
-		{{.CsrfTokenHtml}}
 		<input name="id" type="hidden" value="{{.CleanupRule.ID}}">
 		<div class="field">
 			<div class="ui checkbox">

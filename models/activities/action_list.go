@@ -30,7 +30,7 @@ func (actions ActionList) getUserIDs() []int64 {
 
 func (actions ActionList) LoadActUsers(ctx context.Context) (map[int64]*user_model.User, error) {
 	if len(actions) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // returns nil when there are no actions
 	}
 
 	userIDs := actions.getUserIDs()

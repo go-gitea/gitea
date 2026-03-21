@@ -4,9 +4,6 @@
 package templates
 
 import (
-	"slices"
-	"strings"
-
 	"code.gitea.io/gitea/modules/assetfs"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -17,24 +14,4 @@ func AssetFS() *assetfs.LayeredFS {
 
 func CustomAssets() *assetfs.Layer {
 	return assetfs.Local("custom", setting.CustomPath, "templates")
-}
-
-func ListWebTemplateAssetNames(assets *assetfs.LayeredFS) ([]string, error) {
-	files, err := assets.ListAllFiles(".", true)
-	if err != nil {
-		return nil, err
-	}
-	return slices.DeleteFunc(files, func(file string) bool {
-		return strings.HasPrefix(file, "mail/") || !strings.HasSuffix(file, ".tmpl")
-	}), nil
-}
-
-func ListMailTemplateAssetNames(assets *assetfs.LayeredFS) ([]string, error) {
-	files, err := assets.ListAllFiles(".", true)
-	if err != nil {
-		return nil, err
-	}
-	return slices.DeleteFunc(files, func(file string) bool {
-		return !strings.HasPrefix(file, "mail/") || !strings.HasSuffix(file, ".tmpl")
-	}), nil
 }

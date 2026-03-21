@@ -31,7 +31,7 @@ func AvatarByUsernameSize(ctx *context.Context) {
 			return
 		}
 	}
-	cacheableRedirect(ctx, user.AvatarLinkWithSize(ctx, int(ctx.PathParamInt64("size"))))
+	cacheableRedirect(ctx, user.AvatarLinkWithSize(ctx, ctx.PathParamInt("size")))
 }
 
 // AvatarByEmailHash redirects the browser to the email avatar link

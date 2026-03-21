@@ -8,20 +8,22 @@ export function initRepositoryActionView() {
   // TODO: the parent element's full height doesn't work well now,
   // but we can not pollute the global style at the moment, only fix the height problem for pages with this component
   const parentFullHeight = document.querySelector<HTMLElement>('body > div.full.height');
-  if (parentFullHeight) parentFullHeight.style.paddingBottom = '0';
+  if (parentFullHeight) parentFullHeight.classList.add('tw-pb-0');
 
   const view = createApp(RepoActionView, {
-    runIndex: el.getAttribute('data-run-index'),
-    jobIndex: el.getAttribute('data-job-index'),
+    runId: parseInt(el.getAttribute('data-run-id')!),
+    jobId: parseInt(el.getAttribute('data-job-id')!),
     actionsURL: el.getAttribute('data-actions-url'),
     locale: {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
       rerun_all: el.getAttribute('data-locale-rerun-all'),
+      rerun_failed: el.getAttribute('data-locale-rerun-failed'),
       scheduled: el.getAttribute('data-locale-runs-scheduled'),
       commit: el.getAttribute('data-locale-runs-commit'),
       pushedBy: el.getAttribute('data-locale-runs-pushed-by'),
+      workflowGraph: el.getAttribute('data-locale-runs-workflow-graph'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       areYouSure: el.getAttribute('data-locale-are-you-sure'),
       artifactExpired: el.getAttribute('data-locale-artifact-expired'),

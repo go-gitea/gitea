@@ -13,13 +13,13 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -203,7 +203,7 @@ func TestAPIEditIssue(t *testing.T) {
 	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
-	assert.NoError(t, issueBefore.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, issueBefore.LoadAttributes(t.Context()))
 	assert.Equal(t, int64(1019307200), int64(issueBefore.DeadlineUnix))
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 
@@ -240,7 +240,7 @@ func TestAPIEditIssue(t *testing.T) {
 
 	// check deleted user
 	assert.Equal(t, int64(500), issueAfter.PosterID)
-	assert.NoError(t, issueAfter.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, issueAfter.LoadAttributes(t.Context()))
 	assert.Equal(t, int64(-1), issueAfter.PosterID)
 	assert.Equal(t, int64(-1), issueBefore.PosterID)
 	assert.Equal(t, int64(-1), apiIssue.Poster.ID)
@@ -265,9 +265,8 @@ func TestAPIEditIssue(t *testing.T) {
 
 func TestAPISearchIssues(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	// as this API was used in the frontend, it uses UI page size
-	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
+	defer test.MockVariableValue(&setting.API.DefaultPagingNum, 20)()
+	expectedIssueCount := 20 // 20 is from the fixtures
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)
@@ -362,6 +361,34 @@ func TestAPISearchIssues(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
+
+	query = url.Values{"created": {"1"}} // issues created by the auth user
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 5)
+
+	query = url.Values{"created": {"1"}, "type": {"pulls"}} // prs created by the auth user
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 3)
+
+	query = url.Values{"created_by": {"user2"}} // issues created by the user2
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 9)
+
+	query = url.Values{"created_by": {"user2"}, "type": {"pulls"}} // prs created by user2
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 3)
 }
 
 func TestAPISearchIssuesWithLabels(t *testing.T) {

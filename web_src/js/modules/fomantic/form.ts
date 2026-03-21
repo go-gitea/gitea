@@ -5,7 +5,7 @@ export function initAriaFormFieldPatch() {
   for (const el of document.querySelectorAll('.ui.form .field')) {
     if (el.hasAttribute('data-field-patched')) continue;
     const label = el.querySelector(':scope > label');
-    const input = el.querySelector(':scope > input');
+    const input = el.querySelector(':scope > input, :scope > select');
     if (!label || !input) continue;
     linkLabelAndInput(label, input);
     el.setAttribute('data-field-patched', 'true');

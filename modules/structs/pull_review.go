@@ -42,7 +42,9 @@ type PullReview struct {
 	// swagger:strfmt date-time
 	Updated time.Time `json:"updated_at"`
 
-	HTMLURL     string `json:"html_url"`
+	// HTMLURL is the web URL for viewing the review
+	HTMLURL string `json:"html_url"`
+	// HTMLPullURL is the web URL for the pull request
 	HTMLPullURL string `json:"pull_request_url"`
 }
 
@@ -70,7 +72,7 @@ type PullReviewComment struct {
 	HTMLPullURL string `json:"pull_request_url"`
 }
 
-// CreatePullReviewOptions are options to create a pull review
+// CreatePullReviewOptions are options to create a pull request review
 type CreatePullReviewOptions struct {
 	Event    ReviewStateType           `json:"event"`
 	Body     string                    `json:"body"`
@@ -89,19 +91,19 @@ type CreatePullReviewComment struct {
 	NewLineNum int64 `json:"new_position"`
 }
 
-// SubmitPullReviewOptions are options to submit a pending pull review
+// SubmitPullReviewOptions are options to submit a pending pull request review
 type SubmitPullReviewOptions struct {
 	Event ReviewStateType `json:"event"`
 	Body  string          `json:"body"`
 }
 
-// DismissPullReviewOptions are options to dismiss a pull review
+// DismissPullReviewOptions are options to dismiss a pull request review
 type DismissPullReviewOptions struct {
 	Message string `json:"message"`
 	Priors  bool   `json:"priors"`
 }
 
-// PullReviewRequestOptions are options to add or remove pull review requests
+// PullReviewRequestOptions are options to add or remove pull request review requests
 type PullReviewRequestOptions struct {
 	Reviewers     []string `json:"reviewers"`
 	TeamReviewers []string `json:"team_reviewers"`

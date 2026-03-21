@@ -7,4 +7,4 @@ export type FileRenderPlugin = {
 
   // render file content
   render: (container: HTMLElement, fileUrl: string, options?: any) => Promise<void>;
-}
+};

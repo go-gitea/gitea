@@ -46,10 +46,6 @@
   height: 20px;
 }
 
-#git-graph-container li .author {
-  color: var(--color-text-light);
-}
-
 #git-graph-container li .time {
   color: var(--color-text-light-3);
   font-size: 80%;

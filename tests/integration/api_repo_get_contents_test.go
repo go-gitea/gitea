@@ -15,11 +15,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -35,17 +33,17 @@ func getExpectedContentsResponseForContents(ref, refType, lastCommitSHA string) 
 		Name:              treePath,
 		Path:              treePath,
 		SHA:               "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-		LastCommitSHA:     util.ToPointer(lastCommitSHA),
-		LastCommitterDate: util.ToPointer(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
-		LastAuthorDate:    util.ToPointer(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
+		LastCommitSHA:     new(lastCommitSHA),
+		LastCommitterDate: new(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
+		LastAuthorDate:    new(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
 		Type:              "file",
 		Size:              30,
-		Encoding:          util.ToPointer("base64"),
-		Content:           util.ToPointer("IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x"),
+		Encoding:          new("base64"),
+		Content:           new("IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x"),
 		URL:               &selfURL,
 		HTMLURL:           &htmlURL,
 		GitURL:            &gitURL,
-		DownloadURL:       util.ToPointer(setting.AppURL + "user2/repo1/raw/" + refType + "/" + ref + "/" + treePath),
+		DownloadURL:       new(setting.AppURL + "user2/repo1/raw/" + refType + "/" + ref + "/" + treePath),
 		Links: &api.FileLinksResponse{
 			Self:    &selfURL,
 			GitURL:  &gitURL,
@@ -62,7 +60,7 @@ func TestAPIGetContents(t *testing.T) {
 	})
 }
 
-func testAPIGetContents(t *testing.T, u *url.URL) {
+func testAPIGetContents(t *testing.T, _ *url.URL) {
 	/*** SETUP ***/
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3, is an org
@@ -80,13 +78,13 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Get the commit ID of the default branch
-	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"
-	err = repo_service.CreateNewBranch(git.DefaultContext, user2, repo1, gitRepo, repo1.DefaultBranch, newBranch)
+	err = repo_service.CreateNewBranch(t.Context(), user2, repo1, repo1.DefaultBranch, newBranch)
 	require.NoError(t, err)
 
 	commitID, err := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
@@ -257,8 +255,8 @@ func testAPIGetContentsExt(t *testing.T) {
 		assert.Equal(t, "jpeg.jpg", respFile.Name)
 		assert.Nil(t, respFile.Encoding)
 		assert.Nil(t, respFile.Content)
-		assert.Equal(t, util.ToPointer(int64(107)), respFile.LfsSize)
-		assert.Equal(t, util.ToPointer("0b8d8b5f15046343fd32f451df93acc2bdd9e6373be478b968e4cad6b6647351"), respFile.LfsOid)
+		assert.Equal(t, new(int64(107)), respFile.LfsSize)
+		assert.Equal(t, new("0b8d8b5f15046343fd32f451df93acc2bdd9e6373be478b968e4cad6b6647351"), respFile.LfsOid)
 	})
 	t.Run("FileContents", func(t *testing.T) {
 		// by default, no file content or commit info is returned
@@ -297,7 +295,7 @@ func testAPIGetContentsExt(t *testing.T) {
 		assert.NotNil(t, respFile.Content)
 		assert.Nil(t, contentsResponse.FileContents.LastCommitSHA)
 		assert.Nil(t, contentsResponse.FileContents.LastCommitMessage)
-		assert.Equal(t, util.ToPointer(int64(107)), respFile.LfsSize)
-		assert.Equal(t, util.ToPointer("0b8d8b5f15046343fd32f451df93acc2bdd9e6373be478b968e4cad6b6647351"), respFile.LfsOid)
+		assert.Equal(t, new(int64(107)), respFile.LfsSize)
+		assert.Equal(t, new("0b8d8b5f15046343fd32f451df93acc2bdd9e6373be478b968e4cad6b6647351"), respFile.LfsOid)
 	})
 }

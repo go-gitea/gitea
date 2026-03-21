@@ -10,7 +10,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
@@ -61,7 +61,7 @@ func registerGarbageCollectRepositories() {
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		rhcConfig := config.(*RepoHealthCheckConfig)
 		// the git args are set by config, they can be safe to be trusted
-		return repo_service.GitGcRepos(ctx, rhcConfig.Timeout, git.ToTrustedCmdArgs(rhcConfig.Args))
+		return repo_service.GitGcRepos(ctx, rhcConfig.Timeout, gitcmd.ToTrustedCmdArgs(rhcConfig.Args))
 	})
 }
 

@@ -14,11 +14,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -36,9 +34,9 @@ func getExpectedContentsListResponseForContents(ref, refType, lastCommitSHA stri
 			Name:              path.Base(treePath),
 			Path:              treePath,
 			SHA:               sha,
-			LastCommitSHA:     util.ToPointer(lastCommitSHA),
-			LastCommitterDate: util.ToPointer(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
-			LastAuthorDate:    util.ToPointer(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
+			LastCommitSHA:     new(lastCommitSHA),
+			LastCommitterDate: new(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
+			LastAuthorDate:    new(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
 			Type:              "file",
 			Size:              30,
 			URL:               &selfURL,
@@ -75,13 +73,13 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Get the commit ID of the default branch
-	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"
-	err = repo_service.CreateNewBranch(git.DefaultContext, user2, repo1, gitRepo, repo1.DefaultBranch, newBranch)
+	err = repo_service.CreateNewBranch(t.Context(), user2, repo1, repo1.DefaultBranch, newBranch)
 	assert.NoError(t, err)
 
 	commitID, _ := gitRepo.GetBranchCommitID(repo1.DefaultBranch)

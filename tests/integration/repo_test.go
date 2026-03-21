@@ -14,11 +14,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
@@ -94,9 +94,10 @@ func testViewRepoWithCache(t *testing.T) {
 			tds := s.Find(".repo-file-cell")
 			var f file
 			tds.Each(func(i int, s *goquery.Selection) {
-				if i == 0 {
+				switch i {
+				case 0:
 					f.fileName = strings.TrimSpace(s.Text())
-				} else if i == 1 {
+				case 1:
 					a := s.Find("a")
 					f.commitMsg = strings.TrimSpace(a.Text())
 					l, _ := a.Attr("href")
@@ -159,7 +160,6 @@ func testViewRepoPrivate(t *testing.T) {
 
 		// set unit code to "anonymous read"
 		req = NewRequestWithValues(t, "POST", "/org3/repo3/settings/public_access", map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
 			"repo-unit-access-" + strconv.Itoa(int(unit.TypeCode)): "anonymous-read",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
@@ -170,9 +170,7 @@ func testViewRepoPrivate(t *testing.T) {
 		assert.Contains(t, resp.Body.String(), `<span class="ui basic orange label">Public Access</span>`)
 
 		// remove "anonymous read"
-		req = NewRequestWithValues(t, "POST", "/org3/repo3/settings/public_access", map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
-		})
+		req = NewRequest(t, "POST", "/org3/repo3/settings/public_access")
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// try to "anonymous read" (not found)
@@ -259,10 +257,12 @@ func testViewFileInRepo(t *testing.T) {
 	description := htmlDoc.doc.Find(".repo-description")
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
+	fileSize := htmlDoc.Find("div.file-info-entry > .file-info-size").Text()
 
 	assert.Equal(t, 0, description.Length())
 	assert.Equal(t, 0, repoTopics.Length())
 	assert.Equal(t, 0, repoSummary.Length())
+	assert.Equal(t, "30 B", fileSize)
 }
 
 // TestBlameFileInRepo repo description, topics and summary should not be displayed when running blame on a file
@@ -527,27 +527,47 @@ func TestGenerateRepository(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo44 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 44})
 
-	generatedRepo, err := repo_service.GenerateRepository(git.DefaultContext, user2, user2, repo44, repo_service.GenerateRepoOptions{
-		Name:       "generated-from-template-44",
-		GitContent: true,
+	tmplRepoLabels := []*issues_model.Label{
+		{RepoID: 44, Name: "priority/high", Exclusive: true, ExclusiveOrder: 2, Color: "#ee0000", Description: "desc-high"},
+		{RepoID: 44, Name: "priority/low", Exclusive: true, ExclusiveOrder: 1, Color: "#0000ee", Description: "desc-low"},
+	}
+
+	require.NoError(t, issues_model.NewLabels(t.Context(), tmplRepoLabels...))
+
+	generatedRepo, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
+		Name:        "generated-from-template-44",
+		GitContent:  true,
+		IssueLabels: true,
 	})
-	assert.NoError(t, err)
-	assert.NotNil(t, generatedRepo)
+	require.NoError(t, err)
+	require.NotNil(t, generatedRepo)
 
 	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, generatedRepo.Name))
-	assert.NoError(t, err)
-	assert.True(t, exist)
+	require.NoError(t, err)
+	require.True(t, exist)
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: generatedRepo.Name})
 
-	err = repo_service.DeleteRepositoryDirectly(db.DefaultContext, generatedRepo.ID)
+	generatedLabels, err := issues_model.GetLabelsByRepoID(t.Context(), generatedRepo.ID, "", db.ListOptions{})
+	require.NoError(t, err)
+	require.Len(t, generatedLabels, len(tmplRepoLabels))
+	for i, tmplLabel := range tmplRepoLabels {
+		genLabel := generatedLabels[i]
+		assert.Equal(t, tmplLabel.Name, genLabel.Name)
+		assert.Equal(t, tmplLabel.Exclusive, genLabel.Exclusive)
+		assert.Equal(t, tmplLabel.ExclusiveOrder, genLabel.ExclusiveOrder)
+		assert.Equal(t, tmplLabel.Color, genLabel.Color)
+		assert.Equal(t, tmplLabel.Description, genLabel.Description)
+	}
+
+	err = repo_service.DeleteRepositoryDirectly(t.Context(), generatedRepo.ID)
 	assert.NoError(t, err)
 
 	// a failed creating because some mock data
 	// create the repository directory so that the creation will fail after database record created.
 	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "generated-from-template-44"), os.ModePerm))
 
-	generatedRepo2, err := repo_service.GenerateRepository(db.DefaultContext, user2, user2, repo44, repo_service.GenerateRepoOptions{
+	generatedRepo2, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
 		Name:       "generated-from-template-44",
 		GitContent: true,
 	})

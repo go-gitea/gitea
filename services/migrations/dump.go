@@ -18,6 +18,7 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/repository"
@@ -287,12 +288,13 @@ func (g *RepositoryDumper) CreateLabels(_ context.Context, labels ...*base.Label
 func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.Release) error {
 	if g.opts.ReleaseAssets {
 		for _, release := range releases {
-			attachDir := filepath.Join("release_assets", release.TagName)
+			attachDir := filepath.Join("release_assets", uuid.New().String())
 			if err := os.MkdirAll(filepath.Join(g.baseDir, attachDir), os.ModePerm); err != nil {
 				return err
 			}
 			for _, asset := range release.Assets {
-				attachLocalPath := filepath.Join(attachDir, asset.Name)
+				// we cannot use asset.Name because it might contains special characters.
+				attachLocalPath := filepath.Join(attachDir, uuid.New().String())
 
 				// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
 				// ... we must assume that they are safe and simply download the attachment
@@ -305,14 +307,15 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 						if err != nil {
 							return err
 						}
+						defer rc.Close()
 					} else {
 						resp, err := http.Get(*asset.DownloadURL)
 						if err != nil {
 							return err
 						}
+						defer resp.Body.Close()
 						rc = resp.Body
 					}
-					defer rc.Close()
 
 					fw, err := os.Create(attachPath)
 					if err != nil {
@@ -353,6 +356,11 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 
 // SyncTags syncs releases with tags in the database
 func (g *RepositoryDumper) SyncTags(ctx context.Context) error {
+	return nil
+}
+
+// SyncBranches syncs branches in the database
+func (g *RepositoryDumper) SyncBranches(ctx context.Context) error {
 	return nil
 }
 
@@ -488,7 +496,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 	if pr.Head.CloneURL == "" || pr.Head.Ref == "" {
 		// Set head information if pr.Head.SHA is available
 		if pr.Head.SHA != "" {
-			_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.gitPath()})
+			_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithDir(g.gitPath()).RunStdString(ctx)
 			if err != nil {
 				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}
@@ -518,7 +526,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 	if !ok {
 		// Set head information if pr.Head.SHA is available
 		if pr.Head.SHA != "" {
-			_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.gitPath()})
+			_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithDir(g.gitPath()).RunStdString(ctx)
 			if err != nil {
 				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}
@@ -553,7 +561,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 			fetchArg = git.BranchPrefix + fetchArg
 		}
 
-		_, _, err = git.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(ctx, &git.RunOpts{Dir: g.gitPath()})
+		_, _, err = gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).WithDir(g.gitPath()).RunStdString(ctx)
 		if err != nil {
 			log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 			// We need to continue here so that the Head.Ref is reset and we attempt to set the gitref for the PR
@@ -577,7 +585,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 		pr.Head.SHA = headSha
 	}
 	if pr.Head.SHA != "" {
-		_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.gitPath()})
+		_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithDir(g.gitPath()).RunStdString(ctx)
 		if err != nil {
 			log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 		}

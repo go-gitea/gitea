@@ -15,41 +15,34 @@ import (
 
 // Tree represents a flat directory listing.
 type Tree struct {
-	ID         ObjectID
-	ResolvedID ObjectID
-	repo       *Repository
+	TreeCommon
 
-	gogitTree *object.Tree
-
-	// parent tree
-	ptree *Tree
+	resolvedGogitTreeObject *object.Tree
 }
 
-func (t *Tree) loadTreeObject() error {
-	gogitTree, err := t.repo.gogitRepo.TreeObject(plumbing.Hash(t.ID.RawValue()))
-	if err != nil {
-		return err
-	}
-
-	t.gogitTree = gogitTree
-	return nil
-}
-
-// ListEntries returns all entries of current tree.
-func (t *Tree) ListEntries() (Entries, error) {
-	if t.gogitTree == nil {
-		err := t.loadTreeObject()
+func (t *Tree) gogitTreeObject() (_ *object.Tree, err error) {
+	if t.resolvedGogitTreeObject == nil {
+		t.resolvedGogitTreeObject, err = t.repo.gogitRepo.TreeObject(plumbing.Hash(t.ID.RawValue()))
 		if err != nil {
 			return nil, err
 		}
 	}
+	return t.resolvedGogitTreeObject, nil
+}
 
-	entries := make([]*TreeEntry, len(t.gogitTree.Entries))
-	for i, entry := range t.gogitTree.Entries {
+// ListEntries returns all entries of current tree.
+func (t *Tree) ListEntries() (Entries, error) {
+	gogitTree, err := t.gogitTreeObject()
+	if err != nil {
+		return nil, err
+	}
+	entries := make([]*TreeEntry, len(gogitTree.Entries))
+	for i, gogitTreeEntry := range gogitTree.Entries {
 		entries[i] = &TreeEntry{
-			ID:             ParseGogitHash(entry.Hash),
-			gogitTreeEntry: &t.gogitTree.Entries[i],
-			ptree:          t,
+			ID:        ParseGogitHash(gogitTreeEntry.Hash),
+			ptree:     t,
+			name:      gogitTreeEntry.Name,
+			entryMode: gogitFileModeToEntryMode(gogitTreeEntry.Mode),
 		}
 	}
 
@@ -57,37 +50,28 @@ func (t *Tree) ListEntries() (Entries, error) {
 }
 
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees
-func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
-	if t.gogitTree == nil {
-		err := t.loadTreeObject()
-		if err != nil {
-			return nil, err
-		}
+func (t *Tree) ListEntriesRecursiveWithSize() (entries Entries, _ error) {
+	gogitTree, err := t.gogitTreeObject()
+	if err != nil {
+		return nil, err
 	}
 
-	var entries []*TreeEntry
-	seen := map[plumbing.Hash]bool{}
-	walker := object.NewTreeWalker(t.gogitTree, true, seen)
+	walker := object.NewTreeWalker(gogitTree, true, nil)
 	for {
-		_, entry, err := walker.Next()
+		fullName, gogitTreeEntry, err := walker.Next()
 		if err == io.EOF {
 			break
-		}
-		if err != nil {
+		} else if err != nil {
 			return nil, err
 		}
-		if seen[entry.Hash] {
-			continue
-		}
-
 		convertedEntry := &TreeEntry{
-			ID:             ParseGogitHash(entry.Hash),
-			gogitTreeEntry: &entry,
-			ptree:          t,
+			ID:        ParseGogitHash(gogitTreeEntry.Hash),
+			name:      fullName, // FIXME: the "name" field is abused, here it is a full path
+			ptree:     t,        // FIXME: this ptree is not right, fortunately it isn't really used
+			entryMode: gogitFileModeToEntryMode(gogitTreeEntry.Mode),
 		}
 		entries = append(entries, convertedEntry)
 	}
-
 	return entries, nil
 }
 

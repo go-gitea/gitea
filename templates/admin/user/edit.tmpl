@@ -6,10 +6,9 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="./edit" method="post">
 				{{template "base/disable_form_autofill"}}
-				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
-					<input id="user_name" name="user_name" value="{{.User.Name}}" {{if not .User.IsLocal}}disabled{{end}} maxlength="40">
+					<input id="user_name" name="user_name" value="{{.User.Name}}" maxlength="40">
 				</div>
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
@@ -173,7 +172,6 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="./avatar" method="post" enctype="multipart/form-data">
-				{{.CsrfTokenHtml}}
 				{{if not .DisableGravatar}}
 				<div class="inline field">
 					<div class="ui radio checkbox">
@@ -214,7 +212,6 @@
 	<form class="ui form" method="post" action="./delete">
 		<div class="content">
 			<p>{{ctx.Locale.Tr "settings.delete_account_desc"}}</p>
-			{{$.CsrfTokenHtml}}
 			<div class="field">
 				<div class="ui checkbox">
 					<label for="purge">{{ctx.Locale.Tr "admin.users.purge"}}</label>

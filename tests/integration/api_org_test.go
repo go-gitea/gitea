@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -64,7 +63,7 @@ func TestAPIOrgCreateRename(t *testing.T) {
 
 	t.Run("CheckPermission", func(t *testing.T) {
 		// Check owner team permission
-		ownerTeam, _ := org_model.GetOwnerTeam(db.DefaultContext, apiOrg.ID)
+		ownerTeam, _ := org_model.GetOwnerTeam(t.Context(), apiOrg.ID)
 		for _, ut := range unit_model.AllRepoUnitTypes {
 			up := perm.AccessModeOwner
 			if ut == unit_model.TypeExternalTracker || ut == unit_model.TypeExternalWiki {

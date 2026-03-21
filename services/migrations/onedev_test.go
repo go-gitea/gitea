@@ -19,13 +19,11 @@ func TestOneDevDownloadRepo(t *testing.T) {
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Skipf("Can't access test repo, skipping %s", t.Name())
 	}
+	defer resp.Body.Close()
 
 	u, _ := url.Parse("https://code.onedev.io")
 	ctx := t.Context()
 	downloader := NewOneDevDownloader(ctx, u, "", "", "go-gitea-test_repo")
-	if err != nil {
-		t.Fatalf("NewOneDevDownloader is nil: %v", err)
-	}
 	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)
 	assertRepositoryEqual(t, &base.Repository{

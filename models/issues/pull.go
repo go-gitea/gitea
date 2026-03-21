@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -24,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/dlclark/regexp2"
 	"xorm.io/builder"
 )
 
@@ -417,10 +417,6 @@ func (pr *PullRequest) GetGitHeadRefName() string {
 	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
 }
 
-func (pr *PullRequest) GetGitHeadBranchRefName() string {
-	return fmt.Sprintf("%s%s", git.BranchPrefix, pr.HeadBranch)
-}
-
 // GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
 func (pr *PullRequest) GetReviewCommentsCount(ctx context.Context) int {
 	opts := FindCommentsOptions{
@@ -471,13 +467,13 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *Iss
 
 		issue.Index = idx
 		issue.Title = util.EllipsisDisplayString(issue.Title, 255)
+		issue.IsPull = true
 
 		if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 			Repo:        repo,
 			Issue:       issue,
 			LabelIDs:    labelIDs,
 			Attachments: uuids,
-			IsPull:      true,
 		}); err != nil {
 			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 				return err
@@ -646,9 +642,8 @@ func (pr *PullRequest) UpdateCols(ctx context.Context, cols ...string) error {
 }
 
 // UpdateColsIfNotMerged updates specific fields of a pull request if it has not been merged
-func (pr *PullRequest) UpdateColsIfNotMerged(ctx context.Context, cols ...string) error {
-	_, err := db.GetEngine(ctx).Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
-	return err
+func (pr *PullRequest) UpdateColsIfNotMerged(ctx context.Context, cols ...string) (int64, error) {
+	return db.GetEngine(ctx).Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
 }
 
 // IsWorkInProgress determine if the Pull Request is a Work In Progress by its title
@@ -663,17 +658,24 @@ func (pr *PullRequest) IsWorkInProgress(ctx context.Context) bool {
 
 // HasWorkInProgressPrefix determines if the given PR title has a Work In Progress prefix
 func HasWorkInProgressPrefix(title string) bool {
-	for _, prefix := range setting.Repository.PullRequest.WorkInProgressPrefixes {
-		if strings.HasPrefix(strings.ToUpper(title), strings.ToUpper(prefix)) {
-			return true
-		}
-	}
-	return false
+	_, ok := CutWorkInProgressPrefix(title)
+	return ok
 }
 
-// IsFilesConflicted determines if the  Pull Request has changes conflicting with the target branch.
+func CutWorkInProgressPrefix(title string) (origTitle string, ok bool) {
+	for _, prefix := range setting.Repository.PullRequest.WorkInProgressPrefixes {
+		prefixLen := len(prefix)
+		if prefixLen <= len(title) && util.AsciiEqualFold(title[:prefixLen], prefix) {
+			return title[len(prefix):], true
+		}
+	}
+	return title, false
+}
+
+// IsFilesConflicted determines if the Pull Request has changes conflicting with the target branch.
+// Sometimes a conflict may not list any files
 func (pr *PullRequest) IsFilesConflicted() bool {
-	return len(pr.ConflictedFiles) > 0
+	return pr.Status == PullRequestStatusConflict
 }
 
 // GetWorkInProgressPrefix returns the prefix used to mark the pull request as a work in progress.
@@ -859,7 +861,7 @@ func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRul
 }
 
 type CodeOwnerRule struct {
-	Rule     *regexp.Regexp
+	Rule     *regexp2.Regexp // it supports negative lookahead, does better for end users
 	Negative bool
 	Users    []*user_model.User
 	Teams    []*org_model.Team
@@ -875,7 +877,8 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 
 	warnings := make([]string, 0)
 
-	rule.Rule, err = regexp.Compile(fmt.Sprintf("^%s$", strings.TrimPrefix(tokens[0], "!")))
+	expr := fmt.Sprintf("^%s$", strings.TrimPrefix(tokens[0], "!"))
+	rule.Rule, err = regexp2.Compile(expr, regexp2.None)
 	if err != nil {
 		warnings = append(warnings, fmt.Sprintf("incorrect codeowner regexp: %s", err))
 		return nil, warnings

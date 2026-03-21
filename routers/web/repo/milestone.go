@@ -88,7 +88,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["IsShowClosed"] = isShowClosed
 
-	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, 5)
+	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
@@ -118,7 +118,7 @@ func NewMilestonePost(ctx *context.Context) {
 	deadlineUnix, err := common.ParseDeadlineDateToEndOfDay(form.Deadline)
 	if err != nil {
 		ctx.Data["Err_Deadline"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.milestones.invalid_due_date_format"), tplMilestoneNew, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.milestones.invalid_due_date_format"), tplMilestoneNew, &form)
 		return
 	}
 
@@ -174,7 +174,7 @@ func EditMilestonePost(ctx *context.Context) {
 	deadlineUnix, err := common.ParseDeadlineDateToEndOfDay(form.Deadline)
 	if err != nil {
 		ctx.Data["Err_Deadline"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.milestones.invalid_due_date_format"), tplMilestoneNew, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.milestones.invalid_due_date_format"), tplMilestoneNew, &form)
 		return
 	}
 

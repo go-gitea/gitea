@@ -6,6 +6,7 @@ package incoming
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -85,7 +86,9 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 	attachmentIDs := make([]string, 0, len(content.Attachments))
 	if setting.Attachment.Enabled {
 		for _, attachment := range content.Attachments {
-			a, err := attachment_service.UploadAttachment(ctx, bytes.NewReader(attachment.Content), setting.Attachment.AllowedTypes, int64(len(attachment.Content)), &repo_model.Attachment{
+			attachmentBuf := bytes.NewReader(attachment.Content)
+			uploaderFile := attachment_service.NewLimitedUploaderKnownSize(attachmentBuf, attachmentBuf.Size())
+			a, err := attachment_service.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, setting.Attachment.AllowedTypes, &repo_model.Attachment{
 				Name:       attachment.Name,
 				UploaderID: doer.ID,
 				RepoID:     issue.Repo.ID,
@@ -95,6 +98,11 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 					log.Info("Skipping disallowed attachment type: %s", attachment.Name)
 					continue
 				}
+				if errors.Is(err, util.ErrContentTooLarge) {
+					log.Info("Skipping attachment exceeding size limit: %s", attachment.Name)
+					continue
+				}
+
 				return err
 			}
 			attachmentIDs = append(attachmentIDs, a.UUID)

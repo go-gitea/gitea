@@ -146,8 +146,19 @@ func updateIssueNumbers(ctx context.Context, issue *Issue, doer *user_model.User
 	}
 
 	// update repository's issue closed number
-	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
-		return nil, err
+	switch cmtType {
+	case CommentTypeClose, CommentTypeMergePull:
+		// only increase closed count
+		if err := IncrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
+			return nil, err
+		}
+	case CommentTypeReopen:
+		// only decrease closed count
+		if err := DecrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false, true); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("invalid comment type: %d", cmtType)
 	}
 
 	return CreateComment(ctx, &CreateCommentOptions{
@@ -318,7 +329,6 @@ type NewIssueOptions struct {
 	Issue       *Issue
 	LabelIDs    []int64
 	Attachments []string // In UUID format.
-	IsPull      bool
 }
 
 // NewIssueWithIndex creates issue with given index
@@ -369,7 +379,8 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 		}
 	}
 
-	if err := repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.IsPull, false); err != nil {
+	// Update repository issue total count
+	if err := IncrRepoIssueNumbers(ctx, opts.Repo.ID, opts.Issue.IsPull, true); err != nil {
 		return err
 	}
 
@@ -415,37 +426,64 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 // NewIssue creates new issue with labels for repository.
 // The title will be cut off at 255 characters if it's longer than 255 characters.
 func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
-	if err != nil {
-		return fmt.Errorf("generate issue index failed: %w", err)
-	}
-
-	issue.Index = idx
-	issue.Title = util.EllipsisDisplayString(issue.Title, 255)
-
-	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
-		Repo:        repo,
-		Issue:       issue,
-		LabelIDs:    labelIDs,
-		Attachments: uuids,
-	}); err != nil {
-		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
-			return err
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
+		if err != nil {
+			return fmt.Errorf("generate issue index failed: %w", err)
 		}
-		return fmt.Errorf("newIssue: %w", err)
+
+		issue.Index = idx
+		issue.Title = util.EllipsisDisplayString(issue.Title, 255)
+
+		if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
+			Repo:        repo,
+			Issue:       issue,
+			LabelIDs:    labelIDs,
+			Attachments: uuids,
+		}); err != nil {
+			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
+				return err
+			}
+			return fmt.Errorf("newIssue: %w", err)
+		}
+		return nil
+	})
+}
+
+// IncrRepoIssueNumbers increments repository issue numbers.
+func IncrRepoIssueNumbers(ctx context.Context, repoID int64, isPull, totalOrClosed bool) error {
+	dbSession := db.GetEngine(ctx)
+	var colName string
+	if totalOrClosed {
+		colName = util.Iif(isPull, "num_pulls", "num_issues")
+	} else {
+		colName = util.Iif(isPull, "num_closed_pulls", "num_closed_issues")
+	}
+	_, err := dbSession.Incr(colName).ID(repoID).
+		NoAutoCondition().NoAutoTime().
+		Update(new(repo_model.Repository))
+	return err
+}
+
+// DecrRepoIssueNumbers decrements repository issue numbers.
+func DecrRepoIssueNumbers(ctx context.Context, repoID int64, isPull, includeTotal, includeClosed bool) error {
+	if !includeTotal && !includeClosed {
+		return fmt.Errorf("no numbers to decrease for repo id %d", repoID)
 	}
 
-	if err = committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %w", err)
+	dbSession := db.GetEngine(ctx)
+	if includeTotal {
+		colName := util.Iif(isPull, "num_pulls", "num_issues")
+		dbSession = dbSession.Decr(colName)
 	}
-
-	return nil
+	if includeClosed {
+		closedColName := util.Iif(isPull, "num_closed_pulls", "num_closed_issues")
+		dbSession = dbSession.Decr(closedColName)
+	}
+	_, err := dbSession.ID(repoID).
+		NoAutoCondition().NoAutoTime().
+		Update(new(repo_model.Repository))
+	return err
 }
 
 // UpdateIssueMentions updates issue-user relations for mentioned users.

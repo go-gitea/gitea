@@ -18,7 +18,7 @@ const (
 
 func cloneRepo(tb testing.TB, url string) (string, error) {
 	repoDir := tb.TempDir()
-	if err := Clone(DefaultContext, url, repoDir, CloneRepoOptions{
+	if err := Clone(tb.Context(), url, repoDir, CloneRepoOptions{
 		Mirror:  false,
 		Bare:    false,
 		Quiet:   true,
@@ -30,28 +30,57 @@ func cloneRepo(tb testing.TB, url string) (string, error) {
 }
 
 func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
+	type expectedEntryInfo struct {
+		CommitID string
+		Size     int64
+	}
+
 	// these test case are specific to the repo1 test repo
 	testCases := []struct {
 		CommitID           string
 		Path               string
-		ExpectedIDs        map[string]string
+		ExpectedIDs        map[string]expectedEntryInfo
 		ExpectedTreeCommit string
 	}{
-		{"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2", "", map[string]string{
-			"file1.txt": "95bb4d39648ee7e325106df01a621c530863a653",
-			"file2.txt": "8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
+		{"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2", "", map[string]expectedEntryInfo{
+			"file1.txt": {
+				CommitID: "95bb4d39648ee7e325106df01a621c530863a653",
+				Size:     6,
+			},
+			"file2.txt": {
+				CommitID: "8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
+				Size:     6,
+			},
 		}, "8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2"},
-		{"2839944139e0de9737a044f78b0e4b40d989a9e3", "", map[string]string{
-			"file1.txt":   "2839944139e0de9737a044f78b0e4b40d989a9e3",
-			"branch1.txt": "9c9aef8dd84e02bc7ec12641deb4c930a7c30185",
+		{"2839944139e0de9737a044f78b0e4b40d989a9e3", "", map[string]expectedEntryInfo{
+			"file1.txt": {
+				CommitID: "2839944139e0de9737a044f78b0e4b40d989a9e3",
+				Size:     15,
+			},
+			"branch1.txt": {
+				CommitID: "9c9aef8dd84e02bc7ec12641deb4c930a7c30185",
+				Size:     8,
+			},
 		}, "2839944139e0de9737a044f78b0e4b40d989a9e3"},
-		{"5c80b0245c1c6f8343fa418ec374b13b5d4ee658", "branch2", map[string]string{
-			"branch2.txt": "5c80b0245c1c6f8343fa418ec374b13b5d4ee658",
+		{"5c80b0245c1c6f8343fa418ec374b13b5d4ee658", "branch2", map[string]expectedEntryInfo{
+			"branch2.txt": {
+				CommitID: "5c80b0245c1c6f8343fa418ec374b13b5d4ee658",
+				Size:     8,
+			},
 		}, "5c80b0245c1c6f8343fa418ec374b13b5d4ee658"},
-		{"feaf4ba6bc635fec442f46ddd4512416ec43c2c2", "", map[string]string{
-			"file1.txt": "95bb4d39648ee7e325106df01a621c530863a653",
-			"file2.txt": "8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
-			"foo":       "37991dec2c8e592043f47155ce4808d4580f9123",
+		{"feaf4ba6bc635fec442f46ddd4512416ec43c2c2", "", map[string]expectedEntryInfo{
+			"file1.txt": {
+				CommitID: "95bb4d39648ee7e325106df01a621c530863a653",
+				Size:     6,
+			},
+			"file2.txt": {
+				CommitID: "8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
+				Size:     6,
+			},
+			"foo": {
+				CommitID: "37991dec2c8e592043f47155ce4808d4580f9123",
+				Size:     0,
+			},
 		}, "feaf4ba6bc635fec442f46ddd4512416ec43c2c2"},
 	}
 	for _, testCase := range testCases {
@@ -93,18 +122,19 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		for _, commitInfo := range commitsInfo {
 			entry := commitInfo.Entry
 			commit := commitInfo.Commit
-			expectedID, ok := testCase.ExpectedIDs[entry.Name()]
+			expectedInfo, ok := testCase.ExpectedIDs[entry.Name()]
 			if !assert.True(t, ok) {
 				continue
 			}
-			assert.Equal(t, expectedID, commit.ID.String())
+			assert.Equal(t, expectedInfo.CommitID, commit.ID.String())
+			assert.Equal(t, expectedInfo.Size, entry.Size(), entry.Name())
 		}
 	}
 }
 
 func TestEntries_GetCommitsInfo(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -114,7 +144,7 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	if err != nil {
 		assert.NoError(t, err)
 	}
-	clonedRepo1, err := openRepositoryWithDefaultContext(clonedPath)
+	clonedRepo1, err := OpenRepository(t.Context(), clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 	}
@@ -163,7 +193,7 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		if repo, err = openRepositoryWithDefaultContext(repoPath); err != nil {
+		if repo, err = OpenRepository(b.Context(), repoPath); err != nil {
 			b.Fatal(err)
 		}
 		defer repo.Close()
@@ -173,7 +203,6 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 		} else if entries, err = commit.Tree.ListEntries(); err != nil {
 			b.Fatal(err)
 		}
-		entries.Sort()
 		b.ResetTimer()
 		b.Run(benchmark.name, func(b *testing.B) {
 			for b.Loop() {

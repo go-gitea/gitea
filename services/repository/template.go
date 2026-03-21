@@ -13,7 +13,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -34,11 +33,12 @@ func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_m
 	newLabels := make([]*issues_model.Label, 0, len(templateLabels))
 	for _, templateLabel := range templateLabels {
 		newLabels = append(newLabels, &issues_model.Label{
-			RepoID:      generateRepo.ID,
-			Name:        templateLabel.Name,
-			Exclusive:   templateLabel.Exclusive,
-			Description: templateLabel.Description,
-			Color:       templateLabel.Color,
+			RepoID:         generateRepo.ID,
+			Name:           templateLabel.Name,
+			Exclusive:      templateLabel.Exclusive,
+			ExclusiveOrder: templateLabel.ExclusiveOrder,
+			Description:    templateLabel.Description,
+			Color:          templateLabel.Color,
 		})
 	}
 	return db.Insert(ctx, newLabels)
@@ -101,8 +101,8 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	// last - clean up the repository if something goes wrong
 	defer func() {
 		if err != nil {
-			// we can not use the ctx because it maybe canceled or timeout
-			cleanupRepository(generateRepo.ID)
+			// we can not use `ctx` because it may be canceled or timed out
+			cleanupRepository(generateRepo)
 		}
 	}()
 
@@ -122,7 +122,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	// 3 -Init git bare new repository.
-	if err = git.InitRepository(ctx, generateRepo.RepoPath(), true, generateRepo.ObjectFormatName); err != nil {
+	if err = gitrepo.InitRepository(ctx, generateRepo, generateRepo.ObjectFormatName); err != nil {
 		return nil, fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = gitrepo.CreateDelegateHooks(ctx, generateRepo); err != nil {
 		return nil, fmt.Errorf("createDelegateHooks: %w", err)

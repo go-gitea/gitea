@@ -6,19 +6,18 @@ package context
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"html/template"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -48,7 +47,6 @@ type Context struct {
 	PageData map[string]any // data used by JavaScript modules in one page, it's `window.config.pageData`
 
 	Cache   cache.StringCache
-	Csrf    CSRFProtector
 	Flash   *middleware.Flash
 	Session session.Store
 
@@ -102,12 +100,13 @@ func GetValidateContext(req *http.Request) (ctx *ValidateContext) {
 	return ctx
 }
 
-func NewTemplateContextForWeb(ctx *Context) TemplateContext {
-	tmplCtx := NewTemplateContext(ctx)
-	tmplCtx["Locale"] = ctx.Base.Locale
+func NewTemplateContextForWeb(ctx reqctx.RequestContext, req *http.Request, locale translation.Locale) TemplateContext {
+	tmplCtx := NewTemplateContext(ctx, req)
+	tmplCtx["Locale"] = locale
 	tmplCtx["AvatarUtils"] = templates.NewAvatarUtils(ctx)
 	tmplCtx["RenderUtils"] = templates.NewRenderUtils(ctx)
-	tmplCtx["RootData"] = ctx.Data
+	tmplCtx["MiscUtils"] = templates.NewMiscUtils(ctx)
+	tmplCtx["RootData"] = ctx.GetData()
 	tmplCtx["Consts"] = map[string]any{
 		"RepoUnitTypeCode":            unit.TypeCode,
 		"RepoUnitTypeIssues":          unit.TypeIssues,
@@ -131,43 +130,46 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 
 		Cache: cache.GetCache(),
 		Link:  setting.AppSubURL + strings.TrimSuffix(base.Req.URL.EscapedPath(), "/"),
-		Repo:  &Repository{PullRequest: &PullRequest{}},
+		Repo:  &Repository{},
 		Org:   &Organization{},
 	}
-	ctx.TemplateContext = NewTemplateContextForWeb(ctx)
+	ctx.TemplateContext = NewTemplateContextForWeb(ctx, ctx.Base.Req, ctx.Base.Locale)
 	ctx.Flash = &middleware.Flash{DataStore: ctx, Values: url.Values{}}
 	ctx.SetContextValue(WebContextKey, ctx)
 	return ctx
 }
 
-// Contexter initializes a classic context for a request.
-func Contexter() func(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
-	csrfOpts := CsrfOptions{
-		Secret:         hex.EncodeToString(setting.GetGeneralTokenSigningSecret()),
-		Cookie:         setting.CSRFCookieName,
-		Secure:         setting.SessionConfig.Secure,
-		CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
-		CookieDomain:   setting.SessionConfig.Domain,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		SameSite:       setting.SessionConfig.SameSite,
-	}
-	if !setting.IsProd {
-		CsrfTokenRegenerationInterval = 5 * time.Second // in dev, re-generate the tokens more aggressively for debug purpose
-	}
+func ContexterInstallPage(data map[string]any) func(next http.Handler) http.Handler {
+	rnd := templates.PageRenderer()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base := NewBaseContext(resp, req)
 			ctx := NewWebContext(base, rnd, session.GetContextSession(req))
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
-			ctx.Data["CurrentURL"] = setting.AppSubURL + req.URL.RequestURI()
+			ctx.Data.MergeFrom(reqctx.ContextData{
+				"Title":         ctx.Locale.Tr("install.install"),
+				"PageIsInstall": true,
+				"AllLangs":      translation.AllLangs(),
+			})
+			ctx.Data.MergeFrom(data)
+			next.ServeHTTP(resp, ctx.Req)
+		})
+	}
+}
+
+// Contexter initializes a classic context for a request.
+func Contexter() func(next http.Handler) http.Handler {
+	rnd := templates.PageRenderer()
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			base := NewBaseContext(resp, req)
+			ctx := NewWebContext(base, rnd, session.GetContextSession(req))
+			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data["Link"] = ctx.Link
 
 			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
 			ctx.PageData = map[string]any{}
 			ctx.Data["PageData"] = ctx.PageData
-
-			ctx.Csrf = NewCSRFProtector(csrfOpts)
 
 			// get the last flash message from cookie
 			lastFlashCookie, lastFlashMsg := middleware.GetSiteCookieFlashMessage(ctx, ctx.Req, CookieNameFlash)
@@ -184,16 +186,21 @@ func Contexter() func(next http.Handler) http.Handler {
 				}
 			})
 
-			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
+			// FIXME: GLOBAL-PARSE-FORM: this ParseMultipartForm was used for parsing the csrf token from multipart/form-data
+			// We have dropped the csrf token, so ideally this global ParseMultipartForm should be removed.
+			// When removing this, we need to avoid regressions in the handler functions because Golang's http framework is quite fragile
+			// and developers sometimes need to manually parse the form before accessing some values.
 			if ctx.Req.Method == http.MethodPost && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
-				if err := ctx.Req.ParseMultipartForm(setting.Attachment.MaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
-					ctx.ServerError("ParseMultipartForm", err)
+				if !ctx.ParseMultipartForm() {
 					return
 				}
 			}
 
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
-			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
+
+			if setting.Security.XFrameOptions != "unset" {
+				ctx.Resp.Header().Set(`X-Frame-Options`, setting.Security.XFrameOptions)
+			}
 
 			ctx.Data["SystemConfig"] = setting.Config()
 

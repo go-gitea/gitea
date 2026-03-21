@@ -11,13 +11,17 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
 
-const mailRepoTransferNotify templates.TplName = "notify/repo_transfer"
+const (
+	mailNotifyCollaborator templates.TplName = "repo/collaborator"
+	mailRepoTransferNotify templates.TplName = "repo/transfer"
+)
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
 func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
@@ -90,4 +94,34 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 	}
 
 	return nil
+}
+
+// SendCollaboratorMail sends mail notification to new collaborator.
+func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository) {
+	if setting.MailService == nil || !u.IsActive {
+		return
+	}
+	locale := translation.NewLocale(u.Language)
+	repoName := repo.FullName()
+
+	subject := locale.TrString("mail.repo.collaborator.added.subject", doer.DisplayName(), repoName)
+	data := map[string]any{
+		"locale":   locale,
+		"Subject":  subject,
+		"RepoName": repoName,
+		"Link":     repo.HTMLURL(),
+		"Language": locale.Language(),
+	}
+
+	var content bytes.Buffer
+
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
+		log.Error("Template: %v", err)
+		return
+	}
+
+	msg := sender_service.NewMessage(u.EmailTo(), subject, content.String())
+	msg.Info = fmt.Sprintf("UID: %d, add collaborator", u.ID)
+
+	SendAsync(msg)
 }

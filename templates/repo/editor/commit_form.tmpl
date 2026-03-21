@@ -1,13 +1,15 @@
 <div class="commit-form-wrapper">
 	{{ctx.AvatarUtils.Avatar .SignedUser 40 "commit-avatar"}}
 	<div class="commit-form avatar-content-left-arrow">
-		<h3>{{- if .CommitFormOptions.WillSign}}
-			<span title="{{ctx.Locale.Tr "repo.signing.will_sign" .CommitFormOptions.SigningKey}}">{{svg "octicon-lock" 24}}</span>
+		<h3>
+		{{- if .CommitFormOptions.WillSign}}
+			<span data-tooltip-content="{{ctx.Locale.Tr "repo.signing.will_sign" .CommitFormOptions.SigningKeyFormDisplay}}">{{svg "octicon-lock" 24}}</span>
 			{{ctx.Locale.Tr "repo.editor.commit_signed_changes"}}
 		{{- else}}
 			<span title="{{ctx.Locale.Tr (printf "repo.signing.wont_sign.%s" .CommitFormOptions.WontSignReason)}}">{{svg "octicon-unlock" 24}}</span>
 			{{ctx.Locale.Tr "repo.editor.commit_changes"}}
-		{{- end}}</h3>
+		{{- end}}
+		</h3>
 		<div class="field">
 			<input name="commit_summary" maxlength="100" placeholder="{{if .PageIsDelete}}{{ctx.Locale.Tr "repo.editor.delete" .TreePath}}{{else if .PageIsUpload}}{{ctx.Locale.Tr "repo.editor.upload_files_to_dir" .TreePath}}{{else if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.add_tmpl"}}{{else if .PageIsPatch}}{{ctx.Locale.Tr "repo.editor.patch"}}{{else}}{{ctx.Locale.Tr "repo.editor.update" .TreePath}}{{end}}" value="{{.commit_summary}}" autofocus>
 		</div>

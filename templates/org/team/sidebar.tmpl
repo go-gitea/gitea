@@ -10,7 +10,6 @@
 				</form>
 			{{else if .IsOrganizationOwner}}
 				<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/action/join">
-					{{$.CsrfTokenHtml}}
 					<input type="hidden" name="page" value="team">
 					<button type="submit" class="ui primary tiny button" name="uid" value="{{$.SignedUser.ID}}">{{ctx.Locale.Tr "org.teams.join"}}</button>
 				</form>
@@ -22,7 +21,7 @@
 			{{if .Team.Description}}
 				{{.Team.Description}}
 			{{else}}
-				<span class="text grey tw-italic">{{ctx.Locale.Tr "org.teams.no_desc"}}</span>
+				<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "org.teams.no_desc"}}</span>
 			{{end}}
 		</div>
 		{{if eq .Team.LowerName "owners"}}

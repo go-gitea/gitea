@@ -53,7 +53,7 @@ func (f Format) Flag() string {
 	var formatFlag strings.Builder
 	for i, field := range f.fieldNames {
 		// field key and field value
-		formatFlag.WriteString(fmt.Sprintf("%s %%(%s)", field, field))
+		fmt.Fprintf(&formatFlag, "%s %%(%s)", field, field)
 
 		if i < len(f.fieldNames)-1 {
 			// note: escape delimiters to allow control characters as
@@ -72,12 +72,12 @@ func (f Format) Parser(r io.Reader) *Parser {
 	return NewParser(r, f)
 }
 
-// hexEscaped produces hex-escpaed characters from a string. For example, "\n\0"
+// hexEscaped produces hex-escaped characters from a string. For example, "\n\0"
 // would turn into "%0a%00".
 func (f Format) hexEscaped(delim []byte) string {
-	escaped := ""
+	var escaped strings.Builder
 	for i := range delim {
-		escaped += "%" + hex.EncodeToString([]byte{delim[i]})
+		escaped.WriteString("%" + hex.EncodeToString([]byte{delim[i]}))
 	}
-	return escaped
+	return escaped.String()
 }

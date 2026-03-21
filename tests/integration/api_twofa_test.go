@@ -9,7 +9,6 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/tests"
@@ -39,7 +38,7 @@ func TestAPITwoFactor(t *testing.T) {
 	}
 	assert.NoError(t, tfa.SetSecret(otpKey.Secret()))
 
-	assert.NoError(t, auth_model.NewTwoFactor(db.DefaultContext, tfa))
+	assert.NoError(t, auth_model.NewTwoFactor(t.Context(), tfa))
 
 	req = NewRequest(t, "GET", "/api/v1/user").
 		AddBasicAuth(user.Name)

@@ -10,13 +10,8 @@ import (
 )
 
 func getSigningKey(ctx *context.APIContext, expectedFormat string) {
-	// if the handler is in the repo's route group, get the repo's signing key
-	// otherwise, get the global signing key
-	path := ""
-	if ctx.Repo != nil && ctx.Repo.Repository != nil {
-		path = ctx.Repo.Repository.RepoPath()
-	}
-	content, format, err := asymkey_service.PublicSigningKey(ctx, path)
+	// get the global signing key
+	content, format, err := asymkey_service.PublicSigningKey(ctx)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

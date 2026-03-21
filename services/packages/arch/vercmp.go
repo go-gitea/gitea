@@ -4,15 +4,12 @@
 package arch
 
 import (
+	"strconv"
 	"strings"
 	"unicode"
 )
 
 // https://gitlab.archlinux.org/pacman/pacman/-/blob/d55b47e5512808b67bc944feb20c2bcc6c1a4c45/lib/libalpm/version.c
-
-import (
-	"strconv"
-)
 
 func parseEVR(evr string) (epoch, version, release string) {
 	if before, after, f := strings.Cut(evr, ":"); f {

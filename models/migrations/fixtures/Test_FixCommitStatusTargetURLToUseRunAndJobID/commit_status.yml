@@ -1,0 +1,29 @@
+# type CommitStatus struct {
+#   ID        int64 `xorm:"pk autoincr"`
+#   RepoID    int64 `xorm:"index"`
+#   TargetURL string
+# }
+-
+  id: 10
+  repo_id: 1
+  target_url: /testuser/repo1/actions/runs/7/jobs/0
+-
+  id: 11
+  repo_id: 1
+  target_url: /testuser/repo1/actions/runs/7/jobs/1
+-
+  id: 12
+  repo_id: 1
+  target_url: /otheruser/badrepo/actions/runs/7/jobs/0
+-
+  id: 13
+  repo_id: 1
+  target_url: /testuser/repo1/actions/runs/10/jobs/0
+-
+  id: 14
+  repo_id: 1
+  target_url: /testuser/repo1/actions/runs/7/jobs/3
+-
+  id: 15
+  repo_id: 1
+  target_url: https://ci.example.com/build/123

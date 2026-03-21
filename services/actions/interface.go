@@ -23,8 +23,6 @@ type API interface {
 	CreateVariable(*context.APIContext)
 	// UpdateVariable update a variable
 	UpdateVariable(*context.APIContext)
-	// GetRegistrationToken get registration token
-	GetRegistrationToken(*context.APIContext)
 	// CreateRegistrationToken get registration token
 	CreateRegistrationToken(*context.APIContext)
 	// ListRunners list runners
@@ -33,6 +31,8 @@ type API interface {
 	GetRunner(*context.APIContext)
 	// DeleteRunner delete runner
 	DeleteRunner(*context.APIContext)
+	// UpdateRunner update runner
+	UpdateRunner(*context.APIContext)
 	// ListWorkflowJobs list jobs
 	ListWorkflowJobs(*context.APIContext)
 	// ListWorkflowRuns list runs

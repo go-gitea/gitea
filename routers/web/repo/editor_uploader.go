@@ -41,6 +41,8 @@ func UploadFileToServer(ctx *context.Context) {
 		return
 	}
 
+	// FIXME: need to check the file size according to setting.Repository.Upload.FileMaxSize
+
 	uploaded, err := repo_model.NewUpload(ctx, name, buf, file)
 	if err != nil {
 		ctx.ServerError("NewUpload", err)

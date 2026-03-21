@@ -445,22 +445,13 @@ func GetIssueComment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
 			ctx.APIErrorInternal(err)
 		}
-		return
-	}
-
-	if err = comment.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(http.StatusNotFound)
 		return
 	}
 
@@ -579,23 +570,13 @@ func EditIssueCommentDeprecated(ctx *context.APIContext) {
 }
 
 func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
 			ctx.APIErrorInternal(err)
 		}
-		return
-	}
-
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(http.StatusNotFound)
 		return
 	}
 
@@ -698,7 +679,7 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 }
 
 func deleteIssueComment(ctx *context.APIContext) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.APIErrorNotFound(err)
@@ -708,21 +689,11 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(http.StatusNotFound)
-		return
-	}
-
 	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Status(http.StatusForbidden)
 		return
-	} else if comment.Type != issues_model.CommentTypeComment {
-		ctx.Status(http.StatusNoContent)
+	} else if !comment.Type.HasContentSupport() {
+		ctx.Status(http.StatusBadRequest)
 		return
 	}
 

@@ -43,13 +43,15 @@ func GetOrInsertBlob(ctx context.Context, pb *PackageBlob) (*PackageBlob, bool, 
 
 	existing := &PackageBlob{}
 
-	has, err := e.Where(builder.Eq{
+	hashCond := builder.Eq{
 		"size":        pb.Size,
 		"hash_md5":    pb.HashMD5,
 		"hash_sha1":   pb.HashSHA1,
 		"hash_sha256": pb.HashSHA256,
 		"hash_sha512": pb.HashSHA512,
-	}).Get(existing)
+	}
+
+	has, err := e.Where(hashCond).Get(existing)
 	if err != nil {
 		return nil, false, err
 	}
@@ -57,6 +59,11 @@ func GetOrInsertBlob(ctx context.Context, pb *PackageBlob) (*PackageBlob, bool, 
 		return existing, true, nil
 	}
 	if _, err = e.Insert(pb); err != nil {
+		// Handle race condition: another request may have inserted the same blob
+		// between our SELECT and INSERT. Retry the SELECT to get the existing blob.
+		if has, _ = e.Where(hashCond).Get(existing); has {
+			return existing, true, nil
+		}
 		return nil, false, err
 	}
 	return pb, false, nil

@@ -112,8 +112,12 @@ func NewJwtRegisteredClaimsFromUser(clientID string, grantUserID int64, exp *jwt
 	// to retrieve the configuration information. This MUST also be identical to the "iss" Claim value in ID Tokens issued from this Issuer.
 	// * https://accounts.google.com/.well-known/openid-configuration
 	// * https://github.com/login/oauth/.well-known/openid-configuration
+	issuer := setting.OAuth2.JWTClaimIssuer
+	if issuer == "" {
+		issuer = strings.TrimSuffix(setting.AppURL, "/")
+	}
 	return jwt.RegisteredClaims{
-		Issuer:    strings.TrimSuffix(setting.AppURL, "/"),
+		Issuer:    issuer,
 		Audience:  []string{clientID},
 		Subject:   strconv.FormatInt(grantUserID, 10),
 		ExpiresAt: exp,
@@ -196,7 +200,7 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 		if grant.ScopeContains("profile") {
 			idToken.Name = user.DisplayName()
 			idToken.PreferredUsername = user.Name
-			idToken.Profile = user.HTMLURL()
+			idToken.Profile = user.HTMLURL(ctx)
 			idToken.Picture = user.AvatarLink(ctx)
 			idToken.Website = user.Website
 			idToken.Locale = user.Language

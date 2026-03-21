@@ -121,6 +121,12 @@ func globalBool(c *cli.Command, name string) bool {
 // Any log appears in git stdout pipe will break the git protocol, eg: client can't push and hangs forever.
 func PrepareConsoleLoggerLevel(defaultLevel log.Level) func(context.Context, *cli.Command) (context.Context, error) {
 	return func(ctx context.Context, c *cli.Command) (context.Context, error) {
+		if setting.InstallLock {
+			// During config loading, there might also be logs (for example: deprecation warnings).
+			// It must make sure that console logger is set up before config is loaded.
+			log.Error("Config is loaded before console logger is setup, it will cause bugs. Please fix it.")
+			return nil, errors.New("console logger must be setup before config is loaded")
+		}
 		level := defaultLevel
 		if globalBool(c, "quiet") {
 			level = log.FATAL

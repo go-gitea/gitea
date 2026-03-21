@@ -1,7 +1,11 @@
 <div class="repo-home-sidebar-top">
-	<form class="ignore-dirty tw-flex tw-flex-1" action="{{.RepoLink}}/search" method="get">
-		<div class="ui small action input tw-flex-1">
-			<input name="q" size="10" placeholder="{{ctx.Locale.Tr "search.code_kind"}}"> {{template "shared/search/button"}}
+	<form class="ignore-dirty tw-flex" action="{{.RepoLink}}/search" method="get">
+		<div class="ui small action input tw-flex tw-flex-1">
+			<div class="ui input tw-flex tw-flex-1 global-shortcut-wrapper">
+				<input name="q" size="10" placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
+				<kbd data-global-init="onGlobalShortcut" data-shortcut-keys="s">S</kbd>
+			</div>
+			{{template "shared/search/button"}}
 		</div>
 	</form>
 
@@ -9,7 +13,7 @@
 		<div class="flex-item">
 			<div class="flex-item-main">
 				<div class="flex-item-title">{{ctx.Locale.Tr "repo.repo_desc"}}</div>
-				<div class="flex-item-body tw-text-16">
+				<div class="flex-item-body tw-text-15">
 					<div class="tw-flex tw-flex-col tw-gap-2 tw-mt-2">
 						<div class="repo-description tw-break-anywhere tw-gap-2">
 							{{- $description := .Repository.DescriptionHTML ctx -}}

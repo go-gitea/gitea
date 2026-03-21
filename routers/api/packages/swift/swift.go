@@ -227,6 +227,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 			},
 			Author: swift_module.Person{
 				Type:       "Person",
+				Name:       metadata.Author.String(),
 				GivenName:  metadata.Author.GivenName,
 				MiddleName: metadata.Author.MiddleName,
 				FamilyName: metadata.Author.FamilyName,
@@ -299,7 +300,7 @@ func formFileOptionalReadCloser(ctx *context.Context, formKey string) (io.ReadCl
 
 	content := ctx.Req.FormValue(formKey)
 	if content == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the content does not exist
 	}
 	return io.NopCloser(strings.NewReader(content)), nil
 }

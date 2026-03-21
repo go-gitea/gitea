@@ -105,15 +105,13 @@ func testLocker(t *testing.T, locker Locker) {
 		require.NoError(t, err)
 
 		wg := &sync.WaitGroup{}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			started := time.Now()
 			release, err := locker.Lock(t.Context(), "test") // should be blocked for seconds
 			defer release()
 			assert.Greater(t, time.Since(started), time.Second)
 			assert.NoError(t, err)
-		}()
+		})
 
 		time.Sleep(2 * time.Second)
 		release()

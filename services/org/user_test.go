@@ -6,7 +6,6 @@ package org
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -24,7 +23,7 @@ func TestUser_RemoveMember(t *testing.T) {
 	// remove a user that is a member
 	unittest.AssertExistsAndLoadBean(t, &organization.OrgUser{UID: user4.ID, OrgID: org.ID})
 	prevNumMembers := org.NumMembers
-	assert.NoError(t, RemoveOrgUser(db.DefaultContext, org, user4))
+	assert.NoError(t, RemoveOrgUser(t.Context(), org, user4))
 	unittest.AssertNotExistsBean(t, &organization.OrgUser{UID: user4.ID, OrgID: org.ID})
 
 	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: org.ID})
@@ -33,7 +32,7 @@ func TestUser_RemoveMember(t *testing.T) {
 	// remove a user that is not a member
 	unittest.AssertNotExistsBean(t, &organization.OrgUser{UID: user5.ID, OrgID: org.ID})
 	prevNumMembers = org.NumMembers
-	assert.NoError(t, RemoveOrgUser(db.DefaultContext, org, user5))
+	assert.NoError(t, RemoveOrgUser(t.Context(), org, user5))
 	unittest.AssertNotExistsBean(t, &organization.OrgUser{UID: user5.ID, OrgID: org.ID})
 
 	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: org.ID})
@@ -50,7 +49,7 @@ func TestRemoveOrgUser(t *testing.T) {
 		if unittest.GetBean(t, &organization.OrgUser{OrgID: org.ID, UID: user.ID}) != nil {
 			expectedNumMembers--
 		}
-		assert.NoError(t, RemoveOrgUser(db.DefaultContext, org, user))
+		assert.NoError(t, RemoveOrgUser(t.Context(), org, user))
 		unittest.AssertNotExistsBean(t, &organization.OrgUser{OrgID: org.ID, UID: user.ID})
 		org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: org.ID})
 		assert.Equal(t, expectedNumMembers, org.NumMembers)
@@ -66,7 +65,7 @@ func TestRemoveOrgUser(t *testing.T) {
 	org3 = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	testSuccess(org3, user4)
 
-	err := RemoveOrgUser(db.DefaultContext, org7, user5)
+	err := RemoveOrgUser(t.Context(), org7, user5)
 	assert.Error(t, err)
 	assert.True(t, organization.IsErrLastOrgOwner(err))
 	unittest.AssertExistsAndLoadBean(t, &organization.OrgUser{OrgID: org7.ID, UID: user5.ID})

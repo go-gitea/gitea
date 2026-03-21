@@ -17,7 +17,7 @@ import (
 func TestContentHistory(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	dbCtx := db.DefaultContext
+	dbCtx := t.Context()
 	timeStampNow := timeutil.TimeStampNow()
 
 	_ = issues_model.SaveIssueContentHistory(dbCtx, 1, 10, 0, timeStampNow, "i-a", true)
@@ -82,18 +82,18 @@ func TestContentHistory(t *testing.T) {
 func TestHasIssueContentHistoryForCommentOnly(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	_ = db.TruncateBeans(db.DefaultContext, &issues_model.ContentHistory{})
+	_ = db.TruncateBeans(t.Context(), &issues_model.ContentHistory{})
 
-	hasHistory1, _ := issues_model.HasIssueContentHistory(db.DefaultContext, 10, 0)
+	hasHistory1, _ := issues_model.HasIssueContentHistory(t.Context(), 10, 0)
 	assert.False(t, hasHistory1)
-	hasHistory2, _ := issues_model.HasIssueContentHistory(db.DefaultContext, 10, 100)
+	hasHistory2, _ := issues_model.HasIssueContentHistory(t.Context(), 10, 100)
 	assert.False(t, hasHistory2)
 
-	_ = issues_model.SaveIssueContentHistory(db.DefaultContext, 1, 10, 100, timeutil.TimeStampNow(), "c-a", true)
-	_ = issues_model.SaveIssueContentHistory(db.DefaultContext, 1, 10, 100, timeutil.TimeStampNow().Add(5), "c-b", false)
+	_ = issues_model.SaveIssueContentHistory(t.Context(), 1, 10, 100, timeutil.TimeStampNow(), "c-a", true)
+	_ = issues_model.SaveIssueContentHistory(t.Context(), 1, 10, 100, timeutil.TimeStampNow().Add(5), "c-b", false)
 
-	hasHistory1, _ = issues_model.HasIssueContentHistory(db.DefaultContext, 10, 0)
+	hasHistory1, _ = issues_model.HasIssueContentHistory(t.Context(), 10, 0)
 	assert.False(t, hasHistory1)
-	hasHistory2, _ = issues_model.HasIssueContentHistory(db.DefaultContext, 10, 100)
+	hasHistory2, _ = issues_model.HasIssueContentHistory(t.Context(), 10, 100)
 	assert.True(t, hasHistory2)
 }

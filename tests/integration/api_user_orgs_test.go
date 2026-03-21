@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -38,7 +37,7 @@ func TestUserOrgs(t *testing.T) {
 			UserName:    org17.Name,
 			FullName:    org17.FullName,
 			Email:       org17.Email,
-			AvatarURL:   org17.AvatarLink(db.DefaultContext),
+			AvatarURL:   org17.AvatarLink(t.Context()),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -50,7 +49,7 @@ func TestUserOrgs(t *testing.T) {
 			UserName:    org3.Name,
 			FullName:    org3.FullName,
 			Email:       org3.Email,
-			AvatarURL:   org3.AvatarLink(db.DefaultContext),
+			AvatarURL:   org3.AvatarLink(t.Context()),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -62,7 +61,7 @@ func TestUserOrgs(t *testing.T) {
 			UserName:    org35.Name,
 			FullName:    org35.FullName,
 			Email:       org35.Email,
-			AvatarURL:   org35.AvatarLink(db.DefaultContext),
+			AvatarURL:   org35.AvatarLink(t.Context()),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -124,7 +123,7 @@ func TestMyOrgs(t *testing.T) {
 			UserName:    org17.Name,
 			FullName:    org17.FullName,
 			Email:       org17.Email,
-			AvatarURL:   org17.AvatarLink(db.DefaultContext),
+			AvatarURL:   org17.AvatarLink(t.Context()),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -136,7 +135,7 @@ func TestMyOrgs(t *testing.T) {
 			UserName:    org3.Name,
 			FullName:    org3.FullName,
 			Email:       org3.Email,
-			AvatarURL:   org3.AvatarLink(db.DefaultContext),
+			AvatarURL:   org3.AvatarLink(t.Context()),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -148,7 +147,7 @@ func TestMyOrgs(t *testing.T) {
 			UserName:    org35.Name,
 			FullName:    org35.FullName,
 			Email:       org35.Email,
-			AvatarURL:   org35.AvatarLink(db.DefaultContext),
+			AvatarURL:   org35.AvatarLink(t.Context()),
 			Description: "",
 			Website:     "",
 			Location:    "",

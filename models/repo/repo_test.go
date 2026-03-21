@@ -6,7 +6,6 @@ package repo
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -28,7 +27,7 @@ var (
 func TestGetRepositoryCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	ctx := db.DefaultContext
+	ctx := t.Context()
 	count, err1 := CountRepositories(ctx, countRepospts)
 	privateCount, err2 := CountRepositories(ctx, countReposptsPrivate)
 	publicCount, err3 := CountRepositories(ctx, countReposptsPublic)
@@ -42,7 +41,7 @@ func TestGetRepositoryCount(t *testing.T) {
 func TestGetPublicRepositoryCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	count, err := CountRepositories(db.DefaultContext, countReposptsPublic)
+	count, err := CountRepositories(t.Context(), countReposptsPublic)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), count)
 }
@@ -50,7 +49,7 @@ func TestGetPublicRepositoryCount(t *testing.T) {
 func TestGetPrivateRepositoryCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	count, err := CountRepositories(db.DefaultContext, countReposptsPrivate)
+	count, err := CountRepositories(t.Context(), countReposptsPrivate)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 }
@@ -68,11 +67,11 @@ func TestWatchRepo(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	assert.NoError(t, WatchRepo(db.DefaultContext, user, repo, true))
+	assert.NoError(t, WatchRepo(t.Context(), user, repo, true))
 	unittest.AssertExistsAndLoadBean(t, &Watch{RepoID: repo.ID, UserID: user.ID})
 	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
 
-	assert.NoError(t, WatchRepo(db.DefaultContext, user, repo, false))
+	assert.NoError(t, WatchRepo(t.Context(), user, repo, false))
 	unittest.AssertNotExistsBean(t, &Watch{RepoID: repo.ID, UserID: user.ID})
 	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
 }
@@ -86,7 +85,7 @@ func TestMetas(t *testing.T) {
 
 	repo.Units = nil
 
-	metas := repo.ComposeCommentMetas(db.DefaultContext)
+	metas := repo.ComposeCommentMetas(t.Context())
 	assert.Equal(t, "testRepo", metas["repo"])
 	assert.Equal(t, "testOwner", metas["user"])
 
@@ -100,7 +99,7 @@ func TestMetas(t *testing.T) {
 	testSuccess := func(expectedStyle string) {
 		repo.Units = []*RepoUnit{&externalTracker}
 		repo.commonRenderingMetas = nil
-		metas := repo.ComposeCommentMetas(db.DefaultContext)
+		metas := repo.ComposeCommentMetas(t.Context())
 		assert.Equal(t, expectedStyle, metas["style"])
 		assert.Equal(t, "testRepo", metas["repo"])
 		assert.Equal(t, "testOwner", metas["user"])
@@ -118,10 +117,10 @@ func TestMetas(t *testing.T) {
 	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleRegexp
 	testSuccess(markup.IssueNameStyleRegexp)
 
-	repo, err := GetRepositoryByID(db.DefaultContext, 3)
+	repo, err := GetRepositoryByID(t.Context(), 3)
 	assert.NoError(t, err)
 
-	metas = repo.ComposeCommentMetas(db.DefaultContext)
+	metas = repo.ComposeCommentMetas(t.Context())
 	assert.Contains(t, metas, "org")
 	assert.Contains(t, metas, "teams")
 	assert.Equal(t, "org3", metas["org"])
@@ -132,13 +131,13 @@ func TestGetRepositoryByURL(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("InvalidPath", func(t *testing.T) {
-		repo, err := GetRepositoryByURL(db.DefaultContext, "something")
+		repo, err := GetRepositoryByURL(t.Context(), "something")
 		assert.Nil(t, repo)
 		assert.Error(t, err)
 	})
 
 	testRepo2 := func(t *testing.T, url string) {
-		repo, err := GetRepositoryByURL(db.DefaultContext, url)
+		repo, err := GetRepositoryByURL(t.Context(), url)
 		require.NoError(t, err)
 		assert.EqualValues(t, 2, repo.ID)
 		assert.EqualValues(t, 2, repo.OwnerID)
@@ -162,7 +161,7 @@ func TestGetRepositoryByURL(t *testing.T) {
 		testRepo2(t, "sshuser@try.gitea.io:user2/repo2.git")
 
 		testRelax := func(t *testing.T, url string) {
-			repo, err := GetRepositoryByURLRelax(db.DefaultContext, url)
+			repo, err := GetRepositoryByURLRelax(t.Context(), url)
 			require.NoError(t, err)
 			assert.Equal(t, int64(2), repo.ID)
 			assert.Equal(t, int64(2), repo.OwnerID)

@@ -6,7 +6,6 @@ package repository_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -21,7 +20,7 @@ func TestTeam_HasRepository(t *testing.T) {
 
 	test := func(teamID, repoID int64, expected bool) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.Equal(t, expected, repo_service.HasRepository(db.DefaultContext, team, repoID))
+		assert.Equal(t, expected, repo_service.HasRepository(t.Context(), team, repoID))
 	}
 	test(1, 1, false)
 	test(1, 3, true)
@@ -37,7 +36,7 @@ func TestTeam_RemoveRepository(t *testing.T) {
 
 	testSuccess := func(teamID, repoID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, repo_service.RemoveRepositoryFromTeam(db.DefaultContext, team, repoID))
+		assert.NoError(t, repo_service.RemoveRepositoryFromTeam(t.Context(), team, repoID))
 		unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: teamID, RepoID: repoID})
 		unittest.CheckConsistencyFor(t, &organization.Team{ID: teamID}, &repo_model.Repository{ID: repoID})
 	}
@@ -51,5 +50,5 @@ func TestDeleteOwnerRepositoriesDirectly(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	assert.NoError(t, repo_service.DeleteOwnerRepositoriesDirectly(db.DefaultContext, user))
+	assert.NoError(t, repo_service.DeleteOwnerRepositoriesDirectly(t.Context(), user))
 }

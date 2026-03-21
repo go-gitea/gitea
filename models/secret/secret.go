@@ -178,8 +178,8 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[
 	for _, secret := range append(ownerSecrets, repoSecrets...) {
 		v, err := secret_module.DecryptSecret(setting.SecretKey, secret.Data)
 		if err != nil {
-			log.Error("decrypt secret %v %q: %v", secret.ID, secret.Name, err)
-			return nil, err
+			log.Error("Unable to decrypt Actions secret %v %q, maybe SECRET_KEY is wrong: %v", secret.ID, secret.Name, err)
+			continue
 		}
 		secrets[secret.Name] = v
 	}

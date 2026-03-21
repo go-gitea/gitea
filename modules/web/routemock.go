@@ -46,11 +46,15 @@ func RouterMockPoint(pointName string) func(next http.Handler) http.Handler {
 //
 // Then the mock function will be executed as a middleware at the mock point.
 // It only takes effect in testing mode (setting.IsInTesting == true).
-func RouteMock(pointName string, h any) {
+func RouteMock(pointName string, h any) func() {
 	if _, ok := routeMockPoints[pointName]; !ok {
 		panic("route mock point not found: " + pointName)
 	}
+	old := routeMockPoints[pointName]
 	routeMockPoints[pointName] = toHandlerProvider(h)
+	return func() {
+		routeMockPoints[pointName] = old
+	}
 }
 
 // RouteMockReset resets all mock points (no mock anymore)

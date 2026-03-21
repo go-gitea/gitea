@@ -1,5 +1,5 @@
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
-import type {Promisable} from 'type-fest';
+import type {Promisable} from '../types.ts';
 import type {InitPerformanceTracer} from './init.ts';
 
 let globalSelectorObserverInited = false;
@@ -42,7 +42,8 @@ export function registerGlobalInitFunc<T extends HTMLElement>(name: string, hand
 }
 
 function callGlobalInitFunc(el: HTMLElement) {
-  const initFunc = el.getAttribute('data-global-init');
+  // TODO: GLOBAL-INIT-MULTIPLE-FUNCTIONS: maybe in the future we need to extend it to support multiple functions, for example: `data-global-init="func1 func2 func3"`
+  const initFunc = el.getAttribute('data-global-init')!;
   const func = globalInitFuncs[initFunc];
   if (!func) throw new Error(`Global init function "${initFunc}" not found`);
 
@@ -66,7 +67,7 @@ function attachGlobalEvents() {
   });
 }
 
-export function initGlobalSelectorObserver(perfTracer?: InitPerformanceTracer): void {
+export function initGlobalSelectorObserver(perfTracer: InitPerformanceTracer | null): void {
   if (globalSelectorObserverInited) throw new Error('initGlobalSelectorObserver() already called');
   globalSelectorObserverInited = true;
 

@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -47,7 +46,6 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 	_, exists = htmlDoc.doc.Find(fmt.Sprintf(".owner.dropdown .item[data-value=\"%d\"]", forkOwner.ID)).Attr("data-value")
 	assert.True(t, exists, "Fork owner '%s' is not present in select box", forkOwnerName)
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf":              htmlDoc.GetCSRF(),
 		"uid":                strconv.FormatInt(forkOwner.ID, 10),
 		"repo_name":          forkRepoName,
 		"fork_single_branch": forkBranch,
@@ -92,9 +90,9 @@ func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 	// fork to a limited org
 	limitedOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
 	assert.Equal(t, structs.VisibleTypeLimited, limitedOrg.Visibility)
-	ownerTeam1, err := org_model.OrgFromUser(limitedOrg).GetOwnerTeam(db.DefaultContext)
+	ownerTeam1, err := org_model.OrgFromUser(limitedOrg).GetOwnerTeam(t.Context())
 	assert.NoError(t, err)
-	assert.NoError(t, org_service.AddTeamMember(db.DefaultContext, ownerTeam1, user1))
+	assert.NoError(t, org_service.AddTeamMember(t.Context(), ownerTeam1, user1))
 	testRepoFork(t, user1Sess, "user2", "repo1", limitedOrg.Name, "repo1", "")
 
 	// fork to a private org
@@ -102,9 +100,9 @@ func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user4"})
 	privateOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
 	assert.Equal(t, structs.VisibleTypePrivate, privateOrg.Visibility)
-	ownerTeam2, err := org_model.OrgFromUser(privateOrg).GetOwnerTeam(db.DefaultContext)
+	ownerTeam2, err := org_model.OrgFromUser(privateOrg).GetOwnerTeam(t.Context())
 	assert.NoError(t, err)
-	assert.NoError(t, org_service.AddTeamMember(db.DefaultContext, ownerTeam2, user4))
+	assert.NoError(t, org_service.AddTeamMember(t.Context(), ownerTeam2, user4))
 	testRepoFork(t, user4Sess, "user2", "repo1", privateOrg.Name, "repo1", "")
 
 	t.Run("Anonymous", func(t *testing.T) {
@@ -124,7 +122,7 @@ func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 		// since user1 is an admin, he can get both of the forked repositories
 		assert.Equal(t, 2, htmlDoc.Find(forkItemSelector).Length())
 
-		assert.NoError(t, org_service.AddTeamMember(db.DefaultContext, ownerTeam2, user1))
+		assert.NoError(t, org_service.AddTeamMember(t.Context(), ownerTeam2, user1))
 		resp = user1Sess.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 		assert.Equal(t, 2, htmlDoc.Find(forkItemSelector).Length())

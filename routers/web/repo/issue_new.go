@@ -216,7 +216,7 @@ func DeleteIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
+	if err := issue_service.DeleteIssue(ctx, ctx.Doer, issue); err != nil {
 		ctx.ServerError("DeleteIssueByID", err)
 		return
 	}

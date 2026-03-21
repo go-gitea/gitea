@@ -159,8 +159,8 @@ func (org *Organization) AvatarLink(ctx context.Context) string {
 }
 
 // HTMLURL returns the organization's full link.
-func (org *Organization) HTMLURL() string {
-	return org.AsUser().HTMLURL()
+func (org *Organization) HTMLURL(ctx context.Context) string {
+	return org.AsUser().HTMLURL(ctx)
 }
 
 // OrganisationLink returns the organization sub page link.
@@ -178,7 +178,7 @@ func (org *Organization) HomeLink() string {
 	return org.AsUser().HomeLink()
 }
 
-// FindOrgMembersOpts represensts find org members conditions
+// FindOrgMembersOpts represents find org members conditions
 type FindOrgMembersOpts struct {
 	db.ListOptions
 	Doer         *user_model.User
@@ -426,6 +426,10 @@ func HasOrgOrUserVisible(ctx context.Context, orgOrUser, user *user_model.User) 
 	}
 
 	if user.IsAdmin || orgOrUser.ID == user.ID {
+		return true
+	}
+
+	if !setting.Service.RequireSignInViewStrict && orgOrUser.Visibility == structs.VisibleTypePublic {
 		return true
 	}
 

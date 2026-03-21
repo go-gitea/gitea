@@ -34,7 +34,7 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 		Submitted:         r.CreatedUnix.AsTime(),
 		Updated:           r.UpdatedUnix.AsTime(),
 		HTMLURL:           r.HTMLURL(ctx),
-		HTMLPullURL:       r.Issue.HTMLURL(),
+		HTMLPullURL:       r.Issue.HTMLURL(ctx),
 	}
 
 	if r.ReviewerTeam != nil {
@@ -92,32 +92,38 @@ func ToPullReviewCommentList(ctx context.Context, review *issues_model.Review, d
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
 			for _, comment := range comments {
-				apiComment := &api.PullReviewComment{
-					ID:           comment.ID,
-					Body:         comment.Content,
-					Poster:       ToUser(ctx, comment.Poster, doer),
-					Resolver:     ToUser(ctx, comment.ResolveDoer, doer),
-					ReviewID:     review.ID,
-					Created:      comment.CreatedUnix.AsTime(),
-					Updated:      comment.UpdatedUnix.AsTime(),
-					Path:         comment.TreePath,
-					CommitID:     comment.CommitSHA,
-					OrigCommitID: comment.OldRef,
-					DiffHunk:     patch2diff(comment.Patch),
-					HTMLURL:      comment.HTMLURL(ctx),
-					HTMLPullURL:  review.Issue.HTMLURL(),
-				}
-
-				if comment.Line < 0 {
-					apiComment.OldLineNum = comment.UnsignedLine()
-				} else {
-					apiComment.LineNum = comment.UnsignedLine()
-				}
-				apiComments = append(apiComments, apiComment)
+				apiComments = append(apiComments, ToPullReviewComment(ctx, comment, doer))
 			}
 		}
 	}
 	return apiComments, nil
+}
+
+// ToPullReviewComment convert a single code review comment to api format
+func ToPullReviewComment(ctx context.Context, comment *issues_model.Comment, doer *user_model.User) *api.PullReviewComment {
+	apiComment := &api.PullReviewComment{
+		ID:           comment.ID,
+		Body:         comment.Content,
+		Poster:       ToUser(ctx, comment.Poster, doer),
+		Resolver:     ToUser(ctx, comment.ResolveDoer, doer),
+		ReviewID:     comment.ReviewID,
+		Created:      comment.CreatedUnix.AsTime(),
+		Updated:      comment.UpdatedUnix.AsTime(),
+		Path:         comment.TreePath,
+		CommitID:     comment.CommitSHA,
+		OrigCommitID: comment.OldRef,
+		DiffHunk:     patch2diff(comment.Patch),
+		HTMLURL:      comment.HTMLURL(ctx),
+		HTMLPullURL:  comment.Issue.HTMLURL(ctx),
+	}
+
+	if comment.Line < 0 {
+		apiComment.OldLineNum = comment.UnsignedLine()
+	} else {
+		apiComment.LineNum = comment.UnsignedLine()
+	}
+
+	return apiComment
 }
 
 func patch2diff(patch string) string {

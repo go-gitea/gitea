@@ -8,10 +8,11 @@
 			{{$localBranch = print .PullRequest.HeadRepo.OwnerName "-" .PullRequest.HeadBranch}}
 		{{end}}
 		<div class="ui secondary segment tw-font-mono">
+			{{$gitRemoteName := ctx.RootData.SystemConfig.Repository.GitGuideRemoteName.Value ctx}}
 			{{if eq .PullRequest.Flow 0}}
-			<div>git fetch -u {{if ne .PullRequest.HeadRepo.ID .PullRequest.BaseRepo.ID}}<origin-url data-url="{{.PullRequest.HeadRepo.Link}}"></origin-url>{{else}}origin{{end}} {{.PullRequest.HeadBranch}}:{{$localBranch}}</div>
+			<div>git fetch -u {{if ne .PullRequest.HeadRepo.ID .PullRequest.BaseRepo.ID}}<origin-url data-url="{{.PullRequest.HeadRepo.Link}}"></origin-url>{{else}}{{$gitRemoteName}}{{end}} {{.PullRequest.HeadBranch}}:{{$localBranch}}</div>
 			{{else}}
-			<div>git fetch -u origin {{.PullRequest.GetGitHeadRefName}}:{{$localBranch}}</div>
+			<div>git fetch -u {{$gitRemoteName}} {{.PullRequest.GetGitHeadRefName}}:{{$localBranch}}</div>
 			{{end}}
 			<div>git checkout {{$localBranch}}</div>
 		</div>
@@ -50,7 +51,7 @@
 				<div>git checkout {{.PullRequest.BaseBranch}}</div>
 				<div>git merge {{$localBranch}}</div>
 			</div>
-			<div>git push origin {{.PullRequest.BaseBranch}}</div>
+			<div>git push {{$gitRemoteName}} {{.PullRequest.BaseBranch}}</div>
 		</div>
 		{{end}}
 	</div>

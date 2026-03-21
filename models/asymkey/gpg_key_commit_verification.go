@@ -25,7 +25,7 @@ type CommitVerification struct {
 	SigningUser    *user_model.User // if Verified, then SigningUser is non-nil
 	CommittingUser *user_model.User // if Verified, then CommittingUser is non-nil
 	SigningEmail   string
-	SigningKey     *GPGKey
+	SigningKey     *GPGKey // FIXME: need to refactor it to a new name like "SigningGPGKey", it is also used in some templates
 	SigningSSHKey  *PublicKey
 	TrustStatus    string
 }
@@ -70,7 +70,7 @@ func hashAndVerify(sig *packet.Signature, payload string, k *GPGKey) (*GPGKey, e
 	// We will ignore errors in verification as they don't need to be propagated up
 	err = verifySign(sig, hash, k)
 	if err != nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // verification failed, not an error
 	}
 	return k, nil
 }
@@ -86,7 +86,7 @@ func hashAndVerifyWithSubKeys(sig *packet.Signature, payload string, k *GPGKey) 
 			return verified, err
 		}
 	}
-	return nil, nil
+	return nil, nil //nolint:nilnil // verification failed, not an error
 }
 
 func HashAndVerifyWithSubKeysCommitVerification(sig *packet.Signature, payload string, k *GPGKey, committer, signer *user_model.User, email string) *CommitVerification {

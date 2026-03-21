@@ -103,7 +103,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 
 	users, maxResults, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
-		Type:        user_model.UserTypeOrganization,
+		Types:       []user_model.UserType{user_model.UserTypeOrganization},
 		OrderBy:     db.SearchOrderByAlphabetically,
 		ListOptions: listOptions,
 		Visible:     []api.VisibleType{api.VisibleTypePublic, api.VisibleTypeLimited, api.VisibleTypePrivate},
@@ -117,7 +117,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 		orgs[i] = convert.ToOrganization(ctx, organization.OrgFromUser(users[i]))
 	}
 
-	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.SetLinkHeader(maxResults, listOptions.PageSize)
 	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &orgs)
 }

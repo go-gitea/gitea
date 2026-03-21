@@ -103,7 +103,9 @@ func ParseImageConfig(mediaType string, r io.Reader) (*Metadata, error) {
 
 func parseOCIImageConfig(r io.Reader) (*Metadata, error) {
 	var image oci.Image
-	if err := json.NewDecoder(r).Decode(&image); err != nil {
+	// FIXME: JSON-KEY-CASE: here seems a abuse of the case-insensitive decoding feature, spec is case-sensitive
+	// https://github.com/opencontainers/image-spec/blob/main/schema/config-schema.json
+	if err := json.NewDecoderCaseInsensitive(r).Decode(&image); err != nil {
 		return nil, err
 	}
 

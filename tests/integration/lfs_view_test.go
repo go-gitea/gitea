@@ -72,6 +72,8 @@ func TestLFSRender(t *testing.T) {
 
 		fileInfo := doc.Find("div.file-info-entry").First().Text()
 		assert.Contains(t, fileInfo, "LFS")
+		fileSize := doc.Find("div.file-info-entry > .file-info-size").Text()
+		assert.Equal(t, "2.0 KiB", fileSize)
 
 		// find new file view container
 		fileViewContainer := doc.Find("[data-global-init=initRepoFileView]")
@@ -103,7 +105,7 @@ func TestLFSRender(t *testing.T) {
 		assert.Contains(t, content, "Testing documents in LFS")
 
 		// then make it disappear
-		assert.NoError(t, db.TruncateBeans(db.DefaultContext, &git.LFSMetaObject{}))
+		assert.NoError(t, db.TruncateBeans(t.Context(), &git.LFSMetaObject{}))
 		req = NewRequest(t, "GET", "/user2/lfs/src/branch/master/CONTRIBUTING.md")
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		content = NewHTMLParser(t, resp.Body).Find("div.file-view").Text()

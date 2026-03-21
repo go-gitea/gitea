@@ -7,11 +7,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
+	"io"
 	"path/filepath"
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -19,11 +20,11 @@ import (
 type BatchChecker struct {
 	attributesNum int
 	repo          *git.Repository
-	stdinWriter   *os.File
+	stdinWriter   io.WriteCloser
 	stdOut        *nulSeparatedAttributeWriter
 	ctx           context.Context
 	cancel        context.CancelFunc
-	cmd           *git.Command
+	cmd           *gitcmd.Command
 }
 
 // NewBatchChecker creates a check attribute reader for the current repository and provided commit ID
@@ -59,10 +60,7 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) 
 		},
 	}
 
-	stdinReader, stdinWriter, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
+	stdinWriter, stdinWriterClose := cmd.MakeStdinPipe()
 	checker.stdinWriter = stdinWriter
 
 	lw := new(nulSeparatedAttributeWriter)
@@ -70,24 +68,19 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) 
 	lw.closed = make(chan struct{})
 	checker.stdOut = lw
 
-	go func() {
-		defer func() {
-			_ = stdinReader.Close()
-			_ = lw.Close()
-		}()
-		stdErr := new(bytes.Buffer)
-		err := cmd.Run(ctx, &git.RunOpts{
-			Env:    envs,
-			Dir:    repo.Path,
-			Stdin:  stdinReader,
-			Stdout: lw,
-			Stderr: stdErr,
-		})
+	cmd.WithEnv(envs).
+		WithDir(repo.Path).
+		WithStdoutCopy(lw)
 
-		if err != nil && !git.IsErrCanceledOrKilled(err) {
+	go func() {
+		defer stdinWriterClose()
+		defer checker.cancel()
+		defer lw.Close()
+
+		err := cmd.RunWithStderr(ctx)
+		if err != nil && !gitcmd.IsErrorCanceledOrKilled(err) {
 			log.Error("Attribute checker for commit %s exits with error: %v", treeish, err)
 		}
-		checker.cancel()
 	}()
 
 	return checker, nil

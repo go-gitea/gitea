@@ -120,17 +120,19 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 	})
 }
 
-func apiUnauthorizedError(ctx *context.Context) {
+func APIUnauthorizedError(ctx *context.Context) {
 	// container registry requires that the "/v2" must be in the root, so the sub-path in AppURL should be removed
 	realmURL := httplib.GuessCurrentHostURL(ctx) + "/v2/token"
 	ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+realmURL+`",service="container_registry",scope="*"`)
+	// support apple container like: container registry login <gitea-host> -u
+	ctx.Resp.Header().Add("WWW-Authenticate", `Basic realm="Gitea Container Registry"`)
 	apiErrorDefined(ctx, errUnauthorized)
 }
 
 // ReqContainerAccess is a middleware which checks the current user valid (real user or ghost if anonymous access is enabled)
 func ReqContainerAccess(ctx *context.Context) {
 	if ctx.Doer == nil || (setting.Service.RequireSignInViewStrict && ctx.Doer.IsGhost()) {
-		apiUnauthorizedError(ctx)
+		APIUnauthorizedError(ctx)
 	}
 }
 
@@ -156,7 +158,7 @@ func Authenticate(ctx *context.Context) {
 	packageScope := auth_service.GetAccessScope(ctx.Data)
 	if u == nil {
 		if setting.Service.RequireSignInViewStrict {
-			apiUnauthorizedError(ctx)
+			APIUnauthorizedError(ctx)
 			return
 		}
 
@@ -170,7 +172,7 @@ func Authenticate(ctx *context.Context) {
 			if err != nil {
 				log.Error("Error checking access scope: %v", err)
 			}
-			apiUnauthorizedError(ctx)
+			APIUnauthorizedError(ctx)
 			return
 		}
 	}
@@ -290,8 +292,8 @@ func PostBlobsUploads(ctx *context.Context) {
 				Creator: ctx.Doer,
 			},
 		); err != nil {
-			switch err {
-			case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			switch {
+			case errors.Is(err, packages_service.ErrQuotaTotalCount), errors.Is(err, packages_service.ErrQuotaTypeSize), errors.Is(err, packages_service.ErrQuotaTotalSize):
 				apiError(ctx, http.StatusForbidden, err)
 			default:
 				apiError(ctx, http.StatusInternalServerError, err)
@@ -439,8 +441,8 @@ func PutBlobsUpload(ctx *context.Context) {
 			Creator: ctx.Doer,
 		},
 	); err != nil {
-		switch err {
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+		switch {
+		case errors.Is(err, packages_service.ErrQuotaTotalCount), errors.Is(err, packages_service.ErrQuotaTypeSize), errors.Is(err, packages_service.ErrQuotaTotalSize):
 			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -592,13 +594,10 @@ func PutManifest(ctx *context.Context) {
 			apiErrorDefined(ctx, namedError)
 		} else if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
+		} else if errors.Is(err, packages_service.ErrQuotaTotalCount) || errors.Is(err, packages_service.ErrQuotaTypeSize) || errors.Is(err, packages_service.ErrQuotaTotalSize) {
+			apiError(ctx, http.StatusForbidden, err)
 		} else {
-			switch err {
-			case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-				apiError(ctx, http.StatusForbidden, err)
-			default:
-				apiError(ctx, http.StatusInternalServerError, err)
-			}
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
 	}

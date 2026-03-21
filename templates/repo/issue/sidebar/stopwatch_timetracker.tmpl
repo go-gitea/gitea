@@ -39,7 +39,6 @@
 				<div class="header">{{ctx.Locale.Tr "repo.issues.time_estimate_set"}}</div>
 				<form method="post" class="ui form form-fetch-action" action="{{.Issue.Link}}/time_estimate">
 					<div class="content">
-						{{$.CsrfTokenHtml}}
 						<input name="time_estimate" placeholder="1h 2m" value="{{TimeEstimateString .Issue.TimeEstimate}}">
 						<div class="actions">
 							<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
@@ -54,7 +53,6 @@
 				<div class="header">{{ctx.Locale.Tr "repo.issues.add_time_manually"}}</div>
 				<form method="post" class="ui form form-fetch-action" action="{{.Issue.Link}}/times/add">
 					<div class="content flex-text-block">
-						{{$.CsrfTokenHtml}}
 						<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">:
 						<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes">
 					</div>

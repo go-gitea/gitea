@@ -20,20 +20,20 @@ import (
 )
 
 func TestCheckUnadoptedRepositories_Add(t *testing.T) {
-	start := 10
-	end := 20
+	const start = 10
+	const end = 20
 	unadopted := &unadoptedRepositories{
 		start: start,
 		end:   end,
-		index: 0,
+		count: 0,
 	}
 
-	total := 30
+	const total = 30
 	for range total {
 		unadopted.add("something")
 	}
 
-	assert.Equal(t, total, unadopted.index)
+	assert.EqualValues(t, total, unadopted.count)
 	assert.Len(t, unadopted.repositories, end-start)
 }
 
@@ -43,7 +43,7 @@ func TestCheckUnadoptedRepositories(t *testing.T) {
 	// Non existent user
 	//
 	unadopted := &unadoptedRepositories{start: 0, end: 100}
-	err := checkUnadoptedRepositories(db.DefaultContext, "notauser", []string{"repo"}, unadopted)
+	err := checkUnadoptedRepositories(t.Context(), "notauser", []string{"repo"}, unadopted)
 	assert.NoError(t, err)
 	assert.Empty(t, unadopted.repositories)
 	//
@@ -54,17 +54,17 @@ func TestCheckUnadoptedRepositories(t *testing.T) {
 	repoName := "repo2"
 	unadoptedRepoName := "unadopted"
 	unadopted = &unadoptedRepositories{start: 0, end: 100}
-	err = checkUnadoptedRepositories(db.DefaultContext, userName, []string{repoName, unadoptedRepoName}, unadopted)
+	err = checkUnadoptedRepositories(t.Context(), userName, []string{repoName, unadoptedRepoName}, unadopted)
 	assert.NoError(t, err)
 	assert.Equal(t, []string{path.Join(userName, unadoptedRepoName)}, unadopted.repositories)
 	//
 	// Existing (adopted) repository is not returned
 	//
 	unadopted = &unadoptedRepositories{start: 0, end: 100}
-	err = checkUnadoptedRepositories(db.DefaultContext, userName, []string{repoName}, unadopted)
+	err = checkUnadoptedRepositories(t.Context(), userName, []string{repoName}, unadopted)
 	assert.NoError(t, err)
 	assert.Empty(t, unadopted.repositories)
-	assert.Equal(t, 0, unadopted.index)
+	assert.Zero(t, unadopted.count)
 }
 
 func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
@@ -76,15 +76,15 @@ func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
 	}
 
 	opts := db.ListOptions{Page: 1, PageSize: 1}
-	repoNames, count, err := ListUnadoptedRepositories(db.DefaultContext, "", &opts)
+	repoNames, count, err := ListUnadoptedRepositories(t.Context(), "", &opts)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, count)
+	assert.EqualValues(t, 2, count)
 	assert.Equal(t, unadoptedList[0], repoNames[0])
 
 	opts = db.ListOptions{Page: 2, PageSize: 1}
-	repoNames, count, err = ListUnadoptedRepositories(db.DefaultContext, "", &opts)
+	repoNames, count, err = ListUnadoptedRepositories(t.Context(), "", &opts)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, count)
+	assert.EqualValues(t, 2, count)
 	assert.Equal(t, unadoptedList[1], repoNames[0])
 }
 
@@ -97,7 +97,7 @@ func TestAdoptRepository(t *testing.T) {
 	destDir := filepath.Join(setting.RepoRootPath, user2.Name, "test-adopt.git")
 	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.RepoRootPath, user2.Name, "repo1.git"), destDir))
 
-	adoptedRepo, err := AdoptRepository(db.DefaultContext, user2, user2, CreateRepoOptions{Name: "test-adopt"})
+	adoptedRepo, err := AdoptRepository(t.Context(), user2, user2, CreateRepoOptions{Name: "test-adopt"})
 	assert.NoError(t, err)
 	repoTestAdopt := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "test-adopt"})
 	assert.Equal(t, "sha1", repoTestAdopt.ObjectFormatName)
@@ -113,7 +113,7 @@ func TestAdoptRepository(t *testing.T) {
 	_ = os.RemoveAll(filepath.Join(destDir, "hooks", "update.d"))
 	assert.NoError(t, os.WriteFile(filepath.Join(destDir, "hooks", "update.d"), []byte("tests"), os.ModePerm))
 
-	adoptedRepo, err = AdoptRepository(db.DefaultContext, user2, user2, CreateRepoOptions{Name: "test-adopt"})
+	adoptedRepo, err = AdoptRepository(t.Context(), user2, user2, CreateRepoOptions{Name: "test-adopt"})
 	assert.Error(t, err)
 	assert.Nil(t, adoptedRepo)
 
