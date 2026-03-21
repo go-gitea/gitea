@@ -402,6 +402,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(325, "Fix missed repo_id when migrate attachments", v1_26.FixMissedRepoIDWhenMigrateAttachments),
 		newMigration(326, "Migrate commit status target URL to use run ID and job ID", v1_26.FixCommitStatusTargetURLToUseRunAndJobID),
 		newMigration(327, "Add disabled state to action runners", v1_26.AddDisabledToActionRunner),
+		newMigration(328, "Add TokenPermissions column to ActionRunJob", v1_26.AddTokenPermissionsToActionRunJob),
 	}
 	return preparedMigrations
 }

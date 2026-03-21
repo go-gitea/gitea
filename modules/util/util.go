@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -238,6 +239,20 @@ func OptionalArg[T any](optArg []T, defaultValue ...T) (ret T) {
 		return defaultValue[0]
 	}
 	return ret
+}
+
+type EnumConst[T comparable] interface {
+	EnumValues() []T
+}
+
+// EnumValue returns the value if it's in the enum const's values,
+// otherwise returns the first item of enums as default value.
+func EnumValue[T comparable](val EnumConst[T]) (ret T, valid bool) {
+	enums := val.EnumValues()
+	if slices.Contains(enums, val.(T)) {
+		return val.(T), true
+	}
+	return enums[0], false
 }
 
 func ReserveLineBreakForTextarea(input string) string {

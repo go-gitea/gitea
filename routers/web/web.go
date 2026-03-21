@@ -33,7 +33,6 @@ import (
 	"code.gitea.io/gitea/routers/web/healthcheck"
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
-	org_setting "code.gitea.io/gitea/routers/web/org/setting"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
@@ -693,7 +692,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, packagesEnabled)
 
 		m.Group("/actions", func() {
-			m.Get("", user_setting.RedirectToDefaultSetting)
+			m.Get("", misc.LocationRedirect("./actions/general"))
+			m.Group("/general", func() {
+				m.Get("", shared_actions.GeneralSettings)
+				m.Post("", shared_actions.UpdateGeneralSettings)
+			})
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
@@ -846,7 +849,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, oauth2Enabled)
 
 		m.Group("/actions", func() {
-			m.Get("", admin.RedirectToDefaultSetting)
+			m.Get("", misc.LocationRedirect("./actions/runners"))
 			addSettingsRunnersRoutes()
 			addSettingsVariablesRoutes()
 		})
@@ -998,7 +1001,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				})
 
 				m.Group("/actions", func() {
-					m.Get("", org_setting.RedirectToDefaultSetting)
+					m.Get("", misc.LocationRedirect("./actions/general"))
+					m.Group("/general", func() {
+						m.Get("", shared_actions.GeneralSettings)
+						m.Post("", shared_actions.UpdateGeneralSettings)
+					})
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()
@@ -1202,9 +1209,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/actions/general", func() {
 			m.Get("", repo_setting.ActionsGeneralSettings)
 			m.Post("/actions_unit", repo_setting.ActionsUnitPost)
-		})
+		}) // doesn't require actions enabled
 		m.Group("/actions", func() {
-			m.Get("", shared_actions.RedirectToDefaultSetting)
+			m.Get("", misc.LocationRedirect("./actions/general"))
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
@@ -1213,6 +1220,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/add", repo_setting.AddCollaborativeOwner)
 					m.Post("/delete", repo_setting.DeleteCollaborativeOwner)
 				})
+				m.Post("/token_permissions", repo_setting.UpdateTokenPermissions)
 			})
 		}, actions.MustEnableActions)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
