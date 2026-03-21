@@ -57,7 +57,9 @@ func getCurrentRunByPathParam(ctx *context_module.Context) (run *actions_model.A
 func View(ctx *context_module.Context) {
 	ctx.Data["PageIsActions"] = true
 	run := getCurrentRunByPathParam(ctx)
-
+	if ctx.Written() {
+		return
+	}
 	ctx.Data["RunID"] = run.ID
 	ctx.Data["JobID"] = ctx.PathParamInt64("job") // it can be 0 when no job (e.g.: run summary view)
 	ctx.Data["ActionsURL"] = ctx.Repo.RepoLink + "/actions"
