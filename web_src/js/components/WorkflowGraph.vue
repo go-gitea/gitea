@@ -40,7 +40,6 @@ interface StoredState {
 
 const props = defineProps<{
   jobs: ActionsJob[];
-  currentJobId: number;
   runLink: string;
   workflowId: string;
 }>()
@@ -588,8 +587,6 @@ function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
 }
 
 function onNodeClick(job: JobNode, event: MouseEvent) {
-  if (job.id === props.currentJobId) return;
-
   const link = `${props.runLink}/jobs/${job.id}`;
   if (event.ctrlKey || event.metaKey) {
     window.open(link, '_blank');
@@ -652,7 +649,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
         <g
           v-for="job in jobsWithLayout"
           :key="job.id"
-          :class="{'current-job': job.id === currentJobId}"
           class="job-node-group"
           @click="onNodeClick(job, $event)"
           @mouseenter="handleNodeMouseEnter(job)"
@@ -665,8 +661,8 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             :height="nodeHeight"
             rx="8"
             :fill="getNodeColor(job.status)"
-            :stroke="job.id === currentJobId ? 'var(--color-primary)' : 'var(--color-card-border)'"
-            :stroke-width="job.id === currentJobId ? '3' : '2'"
+            stroke="var(--color-card-border)"
+            stroke-width="2"
             class="job-rect"
           />
 
@@ -835,14 +831,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 10;
-}
-
-.job-node-group.current-job {
-  cursor: default;
-}
-
-.job-node-group.current-job .job-rect {
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 30%, transparent));
 }
 
 .job-name {

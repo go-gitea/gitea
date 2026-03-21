@@ -51,7 +51,6 @@ export default defineComponent({
     <WorkflowGraph
       v-if="run.jobs.length > 0"
       :jobs="run.jobs"
-      :current-job-id="-1"
       :run-link="run.link"
       :workflow-id="run.workflowID"
       class="workflow-graph-container"
