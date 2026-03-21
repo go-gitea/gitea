@@ -10,13 +10,25 @@ body {
 }
 
 .swagger-back-link {
-  color: #1f69c0;
+  color: #4990e2;
   text-decoration: none;
   position: absolute;
   top: 1rem;
   right: 1.5rem;
   display: flex;
   align-items: center;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #1c2022;
+  }
+  .swagger-back-link {
+    color: #51a8ff;
+  }
+  .swagger-ui table.headers td {
+    color: #aeb4c4; /** fix low contrast */
+  }
 }
 
 .swagger-back-link:hover {
@@ -31,16 +43,4 @@ body {
 
 .swagger-spec-content {
   display: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  body {
-    background: #14171a;
-  }
-  .swagger-ui, .swagger-back-link {
-    filter: invert(88%) hue-rotate(180deg);
-  }
-  .swagger-ui .microlight {
-    filter: invert(100%) hue-rotate(180deg);
-  }
 }

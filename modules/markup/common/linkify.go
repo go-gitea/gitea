@@ -96,6 +96,7 @@ func (s *linkifyParser) Parse(parent ast.Node, block text.Reader, pc parser.Cont
 				m[1] -= closing
 			}
 		} else if lastChar == ';' {
+			// exclude HTML entity reference, e.g.: exclude "&nbsp;" from "http://example.com?foo=1&nbsp;"
 			i := m[1] - 2
 			for ; i >= m[0]; i-- {
 				if util.IsAlphaNumeric(line[i]) {
@@ -105,7 +106,7 @@ func (s *linkifyParser) Parse(parent ast.Node, block text.Reader, pc parser.Cont
 			}
 			if i != m[1]-2 {
 				if line[i] == '&' {
-					m[1] -= m[1] - i
+					m[1] = i
 				}
 			}
 		}

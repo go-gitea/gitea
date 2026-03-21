@@ -59,8 +59,8 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 }
 
 func MockActionsView(ctx *context.Context) {
-	ctx.Data["RunIndex"] = ctx.PathParam("run")
-	ctx.Data["JobIndex"] = ctx.PathParam("job")
+	ctx.Data["RunID"] = ctx.PathParam("run")
+	ctx.Data["JobID"] = ctx.PathParam("job")
 	ctx.HTML(http.StatusOK, "devtest/repo-action-view")
 }
 
@@ -75,6 +75,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.CanCancel = runID == 10
 	resp.State.Run.CanApprove = runID == 20
 	resp.State.Run.CanRerun = runID == 30
+	resp.State.Run.CanRerunFailed = runID == 30
 	resp.State.Run.CanDeleteArtifact = true
 	resp.State.Run.WorkflowID = "workflow-id"
 	resp.State.Run.WorkflowLink = "./workflow-link"

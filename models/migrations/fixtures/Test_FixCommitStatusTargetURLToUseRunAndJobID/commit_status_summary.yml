@@ -1,0 +1,19 @@
+# type CommitStatusSummary struct {
+#   ID        int64  `xorm:"pk autoincr"`
+#   RepoID    int64  `xorm:"index"`
+#   SHA       string `xorm:"VARCHAR(64) NOT NULL"`
+#   State     string `xorm:"VARCHAR(7) NOT NULL"`
+#   TargetURL string
+# }
+-
+  id: 20
+  repo_id: 1
+  sha: "012345"
+  state: success
+  target_url: /testuser/repo1/actions/runs/7/jobs/0
+-
+  id: 21
+  repo_id: 1
+  sha: "678901"
+  state: success
+  target_url: https://ci.example.com/build/123
