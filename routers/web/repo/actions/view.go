@@ -193,11 +193,7 @@ type ViewStepLogLine struct {
 }
 
 func getActionsViewArtifacts(ctx context.Context, repoID, runID int64) (artifactsViewItems []*ArtifactsViewItem, err error) {
-	run, err := actions_model.GetRunByRepoAndID(ctx, repoID, runID)
-	if err != nil {
-		return nil, err
-	}
-	artifacts, err := actions_model.ListUploadedArtifactsMeta(ctx, run.ID)
+	artifacts, err := actions_model.ListUploadedArtifactsMeta(ctx, repoID, runID)
 	if err != nil {
 		return nil, err
 	}
