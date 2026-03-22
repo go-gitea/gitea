@@ -562,7 +562,8 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 	respData := GetSignedArtifactURLResponse{}
 
 	if setting.Actions.ArtifactStorage.ServeDirect() {
-		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath, ctx.Req.Method, nil)
+		// DO NOT USE the http POST method coming from the getSignedArtifactURL endpoint
+		u, err := storage.ActionsArtifacts.ServeDirectURL(artifact.StoragePath, artifact.ArtifactPath, http.MethodGet, nil)
 		if u != nil && err == nil {
 			respData.SignedUrl = u.String()
 		}
