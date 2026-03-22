@@ -39,7 +39,6 @@ onBeforeUnmount(() => {
         <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="16"/>
         <span class="tw-ml-2">{{ locale.status[run.status] }}</span>
         <span class="tw-ml-3">{{ locale.totalDuration }} {{ run.duration || '–' }}</span>
-        <span class="tw-ml-3">{{ locale.artifactsTitle }}: {{ props.store.viewData.runArtifacts.length || 0 }}</span>
       </p>
     </div>
     <WorkflowGraph

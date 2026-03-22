@@ -93,15 +93,15 @@ async function deleteArtifact(name: string) {
     <div class="action-view-body">
       <div class="action-view-left">
         <div class="job-group-section">
+          <a class="job-brief-item" :href="run.link" :class="!props.jobId ? 'selected' : ''">
+            <div class="job-brief-item-left">
+              <SvgIcon name="octicon-list-unordered" class="tw-mr-2"/>
+              <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ locale.summary }}</span>
+            </div>
+          </a>
+          <div class="ui divider"/>
           <div class="job-brief-list">
-            <a class="job-brief-item" :href="run.link" :class="!props.jobId ? 'selected' : ''">
-              <div class="job-brief-item-left">
-                <SvgIcon name="octicon-list-unordered" class="tw-mr-2"/>
-                <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ locale.summary }}</span>
-              </div>
-            </a>
-            <div class="ui divider tw-mt-2 tw-mb-1"/>
-            <div class="tw-text-sm tw-text-grey tw-mt-1 tw-mb-1">{{ locale.allJobs }}</div>
+            <div class="left-list-header">{{ locale.allJobs }}</div>
             <a class="job-brief-item" :href="run.link+'/jobs/'+job.id" :class="props.jobId === job.id ? 'selected' : ''" v-for="job in run.jobs" :key="job.id">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
@@ -115,9 +115,8 @@ async function deleteArtifact(name: string) {
           </div>
         </div>
         <div class="job-artifacts" v-if="artifacts.length > 0">
-          <div class="job-artifacts-title">
-            {{ locale.artifactsTitle }}
-          </div>
+          <div class="ui divider"/>
+          <div class="left-list-header">{{ locale.artifactsTitle }} ({{ artifacts.length }})</div>
           <ul class="job-artifacts-list">
             <template v-for="artifact in artifacts" :key="artifact.name">
               <li class="job-artifacts-item">
@@ -235,11 +234,9 @@ async function deleteArtifact(name: string) {
   }
 }
 
-.job-artifacts-title {
-  font-size: 18px;
-  margin-top: 16px;
-  padding: 16px 10px 0 20px;
-  border-top: 1px solid var(--color-secondary);
+.left-list-header {
+  font-size: 12px;
+  color: var(--color-grey);
 }
 
 .job-artifacts-item {
@@ -251,7 +248,7 @@ async function deleteArtifact(name: string) {
 }
 
 .job-artifacts-list {
-  padding-left: 12px;
+  padding-left: 4px;
   list-style: none;
 }
 
@@ -262,7 +259,7 @@ async function deleteArtifact(name: string) {
 }
 
 .job-brief-item {
-  padding: 10px;
+  padding: 6px 10px;
   border-radius: var(--border-radius);
   text-decoration: none;
   display: flex;
