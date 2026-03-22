@@ -46,13 +46,17 @@ func GetDivergingCommits(ctx context.Context, repo Repository, baseBranch, targe
 // GetCommitIDsBetween returns the commit IDs between startRef and endRef, if notRef is not empty,
 // it will exclude commits reachable from notRef.
 func GetCommitIDsBetween(ctx context.Context, repo Repository, startRef, endRef, notRef string) ([]string, error) {
-	baseCmd := gitcmd.NewCommand("rev-list", "--reverse")
-	if notRef != "" {
-		baseCmd.AddOptionValues("--not", notRef)
+	genBaseCmd := func() *gitcmd.Command {
+		baseCmd := gitcmd.NewCommand("rev-list", "--reverse")
+		if notRef != "" {
+			baseCmd.AddOptionValues("--not", notRef)
+		}
+		return baseCmd
 	}
-	stdout, _, err := RunCmdString(ctx, repo, baseCmd.AddDynamicArguments(startRef+".."+endRef))
+
+	stdout, _, err := RunCmdString(ctx, repo, genBaseCmd().AddDynamicArguments(startRef+".."+endRef))
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
-		stdout, _, err = RunCmdString(ctx, repo, baseCmd.AddDynamicArguments(startRef, endRef))
+		stdout, _, err = RunCmdString(ctx, repo, genBaseCmd().AddDynamicArguments(startRef, endRef))
 	}
 	if err != nil {
 		return nil, err
