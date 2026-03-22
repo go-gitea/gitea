@@ -2,7 +2,6 @@
 export type ActionsRunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
 
 export type ActionsRun = {
-  id: number;
   link: string,
   title: string,
   titleHTML: string,

@@ -63,7 +63,6 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
 
 export function createEmptyActionsRun(): ActionsRun {
   return {
-    id: 0,
     link: '',
     title: '',
     titleHTML: '',

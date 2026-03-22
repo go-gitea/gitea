@@ -151,6 +151,7 @@ async function deleteArtifact(name: string) {
           v-else
           :store="store"
           :locale="locale"
+          :run-id="props.runId"
           :job-id="props.jobId"
           :actions-url="props.actionsUrl"
         />
