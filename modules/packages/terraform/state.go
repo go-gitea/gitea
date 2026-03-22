@@ -4,11 +4,11 @@
 package terraform
 
 import (
+	gojson "encoding/json" //nolint:depguard // go package provides RawMessage which is useful here
 	"io"
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
-	gojson "encoding/json" //nolint:depguard
 )
 
 var (
