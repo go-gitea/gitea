@@ -524,6 +524,13 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 			}
 			actualLength = fi.Size()
 		}
+
+		if req.Size != actualLength {
+			log.Error("Error merge chunks: length mismatch")
+			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks: length mismatch")
+			return
+		}
+
 		// Update artifact metadata and status now that the upload is confirmed.
 		artifact.FileSize = actualLength
 		artifact.FileCompressedSize = actualLength

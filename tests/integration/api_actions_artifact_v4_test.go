@@ -426,8 +426,8 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 			if entry.serveDirect {
 				req.Request.RequestURI = ""
 				nresp, err := http.DefaultClient.Do(req.Request)
-				nresp.Body.Close()
 				require.NoError(t, err)
+				nresp.Body.Close()
 				require.Equal(t, http.StatusCreated, nresp.StatusCode)
 			} else {
 				MakeRequest(t, req, http.StatusCreated)
@@ -438,8 +438,8 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 			if entry.serveDirect {
 				req.Request.RequestURI = ""
 				nresp, err := http.DefaultClient.Do(req.Request)
-				nresp.Body.Close()
 				require.NoError(t, err)
+				nresp.Body.Close()
 				require.Equal(t, http.StatusCreated, nresp.StatusCode)
 			} else {
 				MakeRequest(t, req, http.StatusCreated)
@@ -458,8 +458,8 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 			if entry.serveDirect {
 				req.Request.RequestURI = ""
 				nresp, err := http.DefaultClient.Do(req.Request)
-				nresp.Body.Close()
 				require.NoError(t, err)
+				nresp.Body.Close()
 				require.Equal(t, http.StatusCreated, nresp.StatusCode)
 			} else {
 				MakeRequest(t, req, http.StatusCreated)

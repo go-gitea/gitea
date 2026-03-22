@@ -80,7 +80,7 @@ func EncodeContentDisposition(t ContentDispositionType, filename string) string 
 	}
 	utf8Result := mime.FormatMediaType(string(t), map[string]string{"filename": filename})
 
-	// The mime package might has unexpected results in other go versions
+	// The mime package might have unexpected results in other go versions
 	// Make tests instance fail, otherwise use the default behavior of the go mime package
 	if !strings.HasPrefix(result, fmt.Sprintf("%s; filename=", string(t))) || !strings.HasPrefix(utf8Result, fmt.Sprintf("%s; filename*=", string(t))) {
 		setting.PanicInDevOrTesting("Unexpected mime package result %s", result)
