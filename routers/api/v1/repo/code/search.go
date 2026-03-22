@@ -132,9 +132,9 @@ func GlobalSearch(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetTotalCountHeader(int64(total))
+	ctx.SetTotalCountHeader(total)
 	searchResults := structs.CodeSearchResults{
-		TotalCount: int64(total),
+		TotalCount: total,
 	}
 
 	for _, lang := range languages {
