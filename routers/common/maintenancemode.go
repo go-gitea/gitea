@@ -15,6 +15,9 @@ func isMaintenanceModeAllowedRequest(req *http.Request) bool {
 		// URLs like "/-/admin", "/-/fetch-redirect" and "/-/markup" are still accessible in maintenance mode
 		return true
 	}
+	if strings.HasPrefix(req.URL.Path, "/.well-known/") {
+		return true
+	}
 	if strings.HasPrefix(req.URL.Path, "/api/internal/") {
 		// internal APIs should be allowed
 		return true
@@ -24,6 +27,15 @@ func isMaintenanceModeAllowedRequest(req *http.Request) bool {
 		return true
 	}
 	if strings.HasPrefix(req.URL.Path, "/assets/") {
+		return true
+	}
+	if strings.HasPrefix(req.URL.Path, "/avatars/") {
+		return true
+	}
+	if strings.HasPrefix(req.URL.Path, "/captcha/") {
+		return true
+	}
+	if req.URL.Path == "/api/healthz" {
 		return true
 	}
 	return false

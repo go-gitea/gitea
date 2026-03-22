@@ -86,7 +86,6 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
-			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
 		} `ini:"repository.pull-request"`
@@ -210,7 +209,6 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
-			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
 		}{
