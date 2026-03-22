@@ -363,12 +363,21 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 
 	if opts.IsPrivate.Has() && !opts.IsPrivate.Value() {
 		// Requesting only public repositories.
-		// Also exclude repos in private or limited organisations.
-		cond = cond.And(
-			builder.Eq{"is_private": false},
-			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(
-				builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
-			)))
+		if opts.Actor == nil {
+			// Anonymous context: also exclude repos in private or limited organisations.
+			cond = cond.And(
+				builder.Eq{"is_private": false},
+				builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(
+					builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
+				)))
+		} else {
+			// Authenticated context: apply accessibility constraints but do not exclude
+			// public repositories in limited/private organizations the actor can access.
+			if !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
+				cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
+			}
+			cond = cond.And(builder.Eq{"is_private": false})
+		}
 	} else {
 		if opts.Actor != nil && !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
 			cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
