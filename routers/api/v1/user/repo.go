@@ -67,9 +67,15 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 		cond = cond.And(builder.Eq{"is_private": isPrivate.Value()})
 	}
 
-	// For non-owner/non-admin requesters, add access-control filtering directly
-	// in the query so that both count and pagination reflect only accessible repos.
-	if ctx.Doer == nil || (!ctx.Doer.IsAdmin && ctx.Doer.ID != u.ID) {
+	// When private repos may be included, add access-control filtering for
+	// non-owner/non-admin requesters so that both count and pagination
+	// reflect only repos they can actually access.
+	// When !private, the query is already restricted to is_private=false;
+	// public repos are accessible to everyone, so no extra condition is needed
+	// (and adding AccessibleRepositoryCondition here would incorrectly
+	// exclude public repos in limited/private organisations that the
+	// route-level middleware has already verified are visible).
+	if private && ctx.Doer != nil && !ctx.Doer.IsAdmin && ctx.Doer.ID != u.ID {
 		cond = cond.And(repo_model.AccessibleRepositoryCondition(ctx.Doer, unit.TypeInvalid))
 	}
 
