@@ -236,6 +236,58 @@ func TestAPISearchRepo(t *testing.T) {
 	}
 }
 
+// TestAPISearchRepoLimitedOrgVisibility verifies that the public repo inside
+// a limited-visibility org is visible to authenticated users but hidden from
+// anonymous users when searching with private=false.
+func TestAPISearchRepoLimitedOrgVisibility(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	const repoName = "public_repo_on_limited_org"
+
+	// Verify fixture: limited_org (ID=22) is visibility=limited, repo 38 is public.
+	limitedOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
+	assert.Equal(t, "limited_org", limitedOrg.Name)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 38})
+	assert.False(t, repo.IsPrivate, "fixture repo should be public")
+	assert.Equal(t, limitedOrg.ID, repo.OwnerID)
+
+	repoFullName := limitedOrg.Name + "/" + repoName
+
+	t.Run("AnonymousCannotSee", func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/search?q=%s&private=false&limit=50", repoName))
+		resp := MakeRequest(t, req, http.StatusOK)
+		var body api.SearchResults
+		DecodeJSON(t, resp, &body)
+		for _, r := range body.Data {
+			assert.NotEqual(t, repoFullName, r.FullName,
+				"anonymous user must not see public repo in limited-visibility org")
+		}
+	})
+
+	t.Run("AuthenticatedCanSee", func(t *testing.T) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
+		session := loginUser(t, user.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/search?q=%s&private=false&limit=50", repoName)).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var body api.SearchResults
+		DecodeJSON(t, resp, &body)
+
+		found := false
+		for _, r := range body.Data {
+			if r.FullName == repoFullName {
+				found = true
+				assert.False(t, r.Private)
+				break
+			}
+		}
+		assert.True(t, found,
+			"authenticated user should see public repo in limited-visibility org")
+	})
+}
+
 var repoCache = make(map[int64]*repo_model.Repository)
 
 func getRepo(t *testing.T, repoID int64) *repo_model.Repository {
