@@ -96,8 +96,9 @@ const savedViewOptions = localUserSettings.getJsonObject('actions-view-options',
 const {autoScroll, expandRunning, actionsLogShowSeconds, actionsLogShowTimestamps} = savedViewOptions;
 
 // internal state
-const loadingAbortController = ref<AbortController | null>(null);
-const intervalID = ref<IntervalId | null>(null);
+let loadingAbortController: AbortController | null = null;
+let intervalID: IntervalId | null = null;
+
 const currentJobStepsStates = ref<Array<JobStepState>>([]);
 const menuVisible = ref(false);
 const isFullScreen = ref(false);
@@ -140,7 +141,7 @@ onMounted(async () => {
     }, 0);
   });
 
-  intervalID.value = setInterval(() => void loadJob(), 1000);
+  intervalID = setInterval(() => void loadJob(), 1000);
   document.body.addEventListener('click', closeDropdown);
   void hashChangeListener();
   window.addEventListener('hashchange', hashChangeListener);
@@ -151,9 +152,9 @@ onBeforeUnmount(() => {
   window.removeEventListener('hashchange', hashChangeListener);
   // clear the interval timer when the component is unmounted
   // even our page is rendered once, not spa style
-  if (intervalID.value) {
-    clearInterval(intervalID.value);
-    intervalID.value = null;
+  if (intervalID) {
+    clearInterval(intervalID);
+    intervalID = null;
   }
 });
 
@@ -277,18 +278,18 @@ async function fetchJobData(abortController: AbortController): Promise<JobData> 
 }
 
 async function loadJobForce() {
-  loadingAbortController.value?.abort();
-  loadingAbortController.value = null;
+  loadingAbortController?.abort();
+  loadingAbortController = null;
   await loadJob();
 }
 
 async function loadJob() {
-  if (loadingAbortController.value) return;
+  if (loadingAbortController) return;
   const abortController = new AbortController();
-  loadingAbortController.value = abortController;
+  loadingAbortController = abortController;
   try {
     const runJobResp = await fetchJobData(abortController);
-    if (loadingAbortController.value !== abortController) return;
+    if (loadingAbortController !== abortController) return;
 
     // FIXME: this logic is quite hacky and dirty, it should be refactored in a better way in the future
     // Use consistent "store" operations to load/update the view data
@@ -340,16 +341,16 @@ async function loadJob() {
     }
 
     // clear the interval timer if the job is done
-    if (run.value.done && intervalID.value) {
-      clearInterval(intervalID.value);
-      intervalID.value = null;
+    if (run.value.done && intervalID) {
+      clearInterval(intervalID);
+      intervalID = null;
     }
   } catch (e) {
     // avoid network error while unloading page, and ignore "abort" error
     if (e instanceof TypeError || abortController.signal.aborted) return;
     throw e;
   } finally {
-    if (loadingAbortController.value === abortController) loadingAbortController.value = null;
+    if (loadingAbortController === abortController) loadingAbortController = null;
   }
 }
 
