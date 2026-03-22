@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -61,7 +62,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, canSeePrivate bo
 
 	opts := repo_model.SearchRepoOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		OrderBy:     "id ASC",
+		OrderBy:     db.SearchOrderByID,
 	}
 
 	// Build query condition: only repos owned by u, with optional visibility filter.

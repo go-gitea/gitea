@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // getTotalCount parses the X-Total-Count header from a response,
@@ -24,9 +25,9 @@ import (
 func getTotalCount(t *testing.T, resp *httptest.ResponseRecorder) int {
 	t.Helper()
 	header := resp.Header().Get("X-Total-Count")
-	assert.NotEmpty(t, header, "X-Total-Count header should be present")
+	require.NotEmpty(t, header, "X-Total-Count header should be present")
 	count, err := strconv.Atoi(header)
-	assert.NoError(t, err, "X-Total-Count header should be a valid integer")
+	require.NoError(t, err, "X-Total-Count header should be a valid integer")
 	return count
 }
 
