@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"testing"
 
@@ -17,6 +18,17 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+// getTotalCount parses the X-Total-Count header from a response,
+// failing the test if the header is missing or malformed.
+func getTotalCount(t *testing.T, resp *httptest.ResponseRecorder) int {
+	t.Helper()
+	header := resp.Header().Get("X-Total-Count")
+	assert.NotEmpty(t, header, "X-Total-Count header should be present")
+	count, err := strconv.Atoi(header)
+	assert.NoError(t, err, "X-Total-Count header should be a valid integer")
+	return count
+}
 
 func TestAPIListMyRepos(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
@@ -54,14 +66,14 @@ func TestAPIListMyRepos(t *testing.T) {
 	})
 
 	// Parse X-Total-Count from public/private responses for cross-type comparisons.
-	totalPublic, _ := strconv.Atoi(respPublic.Header().Get("X-Total-Count"))
-	totalPrivate, _ := strconv.Atoi(respPrivate.Header().Get("X-Total-Count"))
+	totalPublic := getTotalCount(t, respPublic)
+	totalPrivate := getTotalCount(t, respPrivate)
 
 	t.Run("NoFilter", func(t *testing.T) {
 		req := NewRequest(t, "GET", "/api/v1/user/repos?limit=50").
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		totalAll, _ := strconv.Atoi(resp.Header().Get("X-Total-Count"))
+		totalAll := getTotalCount(t, resp)
 		assert.Equal(t, totalPublic+totalPrivate, totalAll,
 			"total count should equal public + private")
 	})
@@ -70,7 +82,7 @@ func TestAPIListMyRepos(t *testing.T) {
 		req := NewRequest(t, "GET", "/api/v1/user/repos?type=all&limit=50").
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		totalAll, _ := strconv.Atoi(resp.Header().Get("X-Total-Count"))
+		totalAll := getTotalCount(t, resp)
 		assert.Equal(t, totalPublic+totalPrivate, totalAll,
 			"type=all total count should equal public + private")
 	})
@@ -102,8 +114,8 @@ func testAPIListReposByType(t *testing.T, urlBase, token string) {
 	// Parse X-Total-Count from public/private responses for cross-type comparisons.
 	// Using header totals instead of len(repos) ensures the assertions remain
 	// correct even if results span multiple pages.
-	totalPublic, _ := strconv.Atoi(respPublic.Header().Get("X-Total-Count"))
-	totalPrivate, _ := strconv.Atoi(respPrivate.Header().Get("X-Total-Count"))
+	totalPublic := getTotalCount(t, respPublic)
+	totalPrivate := getTotalCount(t, respPrivate)
 
 	t.Run("TypePublic", func(t *testing.T) {
 		assert.NotEmpty(t, publicRepos)
@@ -129,7 +141,7 @@ func testAPIListReposByType(t *testing.T, urlBase, token string) {
 		req := NewRequest(t, "GET", urlBase+"?limit=50").
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		totalAll, _ := strconv.Atoi(resp.Header().Get("X-Total-Count"))
+		totalAll := getTotalCount(t, resp)
 		assert.Equal(t, totalPublic+totalPrivate, totalAll,
 			"total count should equal public + private")
 	})
@@ -138,7 +150,7 @@ func testAPIListReposByType(t *testing.T, urlBase, token string) {
 		req := NewRequest(t, "GET", urlBase+"?type=all&limit=50").
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		totalAll, _ := strconv.Atoi(resp.Header().Get("X-Total-Count"))
+		totalAll := getTotalCount(t, resp)
 		assert.Equal(t, totalPublic+totalPrivate, totalAll,
 			"type=all total count should equal public + private")
 	})

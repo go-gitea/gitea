@@ -57,7 +57,7 @@ func getTestCases() []struct {
 		},
 		{
 			name:  "PublicAndPrivateRepositoriesByNameWithPagesizeLimitFourthPage",
-			opts:  repo_model.SearchRepoOptions{Keyword: "big_test_", ListOptions: db.ListOptions{Page: 3, PageSize: 5}, Collaborate: optional.Some(false)},
+			opts:  repo_model.SearchRepoOptions{Keyword: "big_test_", ListOptions: db.ListOptions{Page: 4, PageSize: 5}, Collaborate: optional.Some(false)},
 			count: 14,
 		},
 		{
