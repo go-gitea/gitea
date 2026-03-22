@@ -53,25 +53,26 @@ func TestAPIListMyRepos(t *testing.T) {
 		}
 	})
 
+	// Parse X-Total-Count from public/private responses for cross-type comparisons.
+	totalPublic, _ := strconv.Atoi(respPublic.Header().Get("X-Total-Count"))
+	totalPrivate, _ := strconv.Atoi(respPrivate.Header().Get("X-Total-Count"))
+
 	t.Run("NoFilter", func(t *testing.T) {
 		req := NewRequest(t, "GET", "/api/v1/user/repos?limit=50").
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-
-		var repos []api.Repository
-		DecodeJSON(t, resp, &repos)
-		// Result should equal sum of public and private
-		assert.Len(t, repos, len(publicRepos)+len(privateRepos))
+		totalAll, _ := strconv.Atoi(resp.Header().Get("X-Total-Count"))
+		assert.Equal(t, totalPublic+totalPrivate, totalAll,
+			"total count should equal public + private")
 	})
 
 	t.Run("TypeAll", func(t *testing.T) {
 		req := NewRequest(t, "GET", "/api/v1/user/repos?type=all&limit=50").
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-
-		var repos []api.Repository
-		DecodeJSON(t, resp, &repos)
-		assert.Len(t, repos, len(publicRepos)+len(privateRepos))
+		totalAll, _ := strconv.Atoi(resp.Header().Get("X-Total-Count"))
+		assert.Equal(t, totalPublic+totalPrivate, totalAll,
+			"type=all total count should equal public + private")
 	})
 
 	t.Run("TypeInvalid", func(t *testing.T) {

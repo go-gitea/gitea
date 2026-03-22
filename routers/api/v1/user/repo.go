@@ -4,6 +4,7 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
 
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -30,19 +31,20 @@ func parseRepoTypeFilter(ctx *context.APIContext) (optional.Option[bool], bool) 
 	case "private":
 		return optional.Some(true), true
 	default:
-		ctx.APIError(http.StatusUnprocessableEntity, "Invalid type, must be one of: all, public, private")
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid type=%q, must be one of: all, public, private", ctx.FormString("type")))
 		return optional.None[bool](), false
 	}
 }
 
 // listUserRepos - List the repositories owned by the given user.
-func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
+// canSeePrivate indicates whether the caller is authorized to view private repos.
+func listUserRepos(ctx *context.APIContext, u *user_model.User, canSeePrivate bool) {
 	isPrivate, ok := parseRepoTypeFilter(ctx)
 	if !ok {
 		return
 	}
 
-	if !private {
+	if !canSeePrivate {
 		// Caller is not authorized to see private repos (unauthenticated or
 		// public-only token scope). If type=private was requested explicitly,
 		// short-circuit so that neither the body nor X-Total-Count leaks
