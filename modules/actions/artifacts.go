@@ -7,7 +7,6 @@ import (
 	"errors"
 	"mime"
 	"net/http"
-	"net/url"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -47,11 +46,10 @@ func GetArtifactV4ServeDirectURL(ctx *context.Base, art *actions_model.ActionArt
 	if err != nil {
 		return "", err
 	}
-	// FIXME not working for azure, partially working for minio
-	reqParams := url.Values{}
-	reqParams.Set("response-content-type", contentType)
-	reqParams.Set("response-content-disposition", contentDisposition)
-	u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, method, reqParams)
+	u, err := storage.ActionsArtifacts.ServeDirectURL(art.StoragePath, art.ArtifactPath, method, &storage.ServeDirectOptions{
+		ContentType:        contentType,
+		ContentDisposition: contentDisposition,
+	})
 	if u != nil && err == nil {
 		return u.String(), nil
 	}
