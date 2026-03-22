@@ -751,11 +751,8 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
   padding: 8px 14px;
-  border-radius: var(--border-radius);
   background: var(--color-box-header);
-  border: 1px solid var(--color-secondary-alpha-30);
   gap: 20px;
   flex-wrap: wrap;
 }
@@ -792,7 +789,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 .graph-container {
   overflow: auto;
   padding: 12px;
-  border-radius: 8px;
   cursor: grab;
   min-height: 300px;
   max-height: 600px;

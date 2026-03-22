@@ -54,7 +54,6 @@ onBeforeUnmount(() => {
 <style scoped>
 .action-run-summary-block {
   padding: 12px;
-  margin-bottom: 12px;
   border-bottom: 1px solid var(--color-secondary);
 }
 
