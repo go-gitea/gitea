@@ -557,6 +557,20 @@ func (f *CodeCommentForm) Validate(req *http.Request, errs binding.Errors) bindi
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// CommitCodeCommentForm for creating inline comments on commit diffs
+type CommitCodeCommentForm struct {
+	Content  string `binding:"Required"`
+	Side     string `binding:"Required;In(previous,proposed)"`
+	Line     int64
+	TreePath string `form:"path" binding:"Required"`
+}
+
+// Validate validates the fields
+func (f *CommitCodeCommentForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // SubmitReviewForm for submitting a finished code review
 type SubmitReviewForm struct {
 	Content  string

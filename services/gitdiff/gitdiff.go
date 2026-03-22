@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +23,8 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
+	"code.gitea.io/gitea/models/renderhelper"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/base"
@@ -34,6 +37,7 @@ import (
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -72,13 +76,14 @@ const (
 
 // DiffLine represents a line difference in a DiffSection.
 type DiffLine struct {
-	LeftIdx     int // line number, 1-based
-	RightIdx    int // line number, 1-based
-	Match       int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
-	Type        DiffLineType
-	Content     string
-	Comments    issues_model.CommentList // related PR code comments
-	SectionInfo *DiffLineSectionInfo
+	LeftIdx        int // line number, 1-based
+	RightIdx       int // line number, 1-based
+	Match          int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
+	Type           DiffLineType
+	Content        string
+	Comments       issues_model.CommentList        // related PR code comments
+	CommitComments []*repo_model.CommitCodeComment // related commit inline comments
+	SectionInfo    *DiffLineSectionInfo
 }
 
 // DiffLineSectionInfo represents diff line section meta data
@@ -155,7 +160,7 @@ func (d *DiffLine) GetHTMLDiffLineType() string {
 
 // CanComment returns whether a line can get commented
 func (d *DiffLine) CanComment() bool {
-	return len(d.Comments) == 0 && d.Type != DiffLineSection
+	return len(d.Comments) == 0 && len(d.CommitComments) == 0 && d.Type != DiffLineSection
 }
 
 // GetCommentSide returns the comment side of the first comment, if not set returns empty string
@@ -164,6 +169,14 @@ func (d *DiffLine) GetCommentSide() string {
 		return ""
 	}
 	return d.Comments[0].DiffSide()
+}
+
+// GetCommitCommentSide returns the comment side of the first commit comment
+func (d *DiffLine) GetCommitCommentSide() string {
+	if len(d.CommitComments) == 0 {
+		return ""
+	}
+	return d.CommitComments[0].DiffSide()
 }
 
 // GetLineTypeMarker returns the line type marker
@@ -618,6 +631,49 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 					})
 					// Mark expand buttons that have comments in hidden lines
 					FillHiddenCommentIDsForDiffLine(line, lineCommits)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// LoadCommitCodeComments loads inline comments for a commit diff into each line
+func (diff *Diff) LoadCommitCodeComments(ctx context.Context, repo *repo_model.Repository, commitSHA string) error {
+	allComments, err := repo_model.FetchCommitCodeComments(ctx, repo, commitSHA)
+	if err != nil {
+		return err
+	}
+	// Render markdown content for all comments
+	for _, lineComments := range allComments {
+		for _, comments := range lineComments {
+			for _, c := range comments {
+				rctx := renderhelper.NewRenderContextRepoComment(ctx, repo, renderhelper.RepoCommentOptions{
+					FootnoteContextID: strconv.FormatInt(c.ID, 10),
+				})
+				if c.RenderedContent, err = markdown.RenderString(rctx, c.Content); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	for _, file := range diff.Files {
+		if lineCommits, ok := allComments[file.Name]; ok {
+			for _, section := range file.Sections {
+				for _, line := range section.Lines {
+					if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
+						for _, c := range comments {
+							line.CommitComments = append(line.CommitComments, c)
+						}
+					}
+					if comments, ok := lineCommits[int64(line.RightIdx)]; ok {
+						for _, c := range comments {
+							line.CommitComments = append(line.CommitComments, c)
+						}
+					}
+					sort.SliceStable(line.CommitComments, func(i, j int) bool {
+						return line.CommitComments[i].CreatedUnix < line.CommitComments[j].CreatedUnix
+					})
 				}
 			}
 		}

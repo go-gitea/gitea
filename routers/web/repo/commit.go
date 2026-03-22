@@ -285,7 +285,8 @@ func Diff(ctx *context.Context) {
 	gitRepo := ctx.Repo.GitRepo
 	var gitRepoStore gitrepo.Repository = ctx.Repo.Repository
 
-	if ctx.Data["PageIsWiki"] != nil {
+	isWiki := ctx.Data["PageIsWiki"] != nil
+	if isWiki {
 		var err error
 		gitRepoStore = ctx.Repo.Repository.WikiStorageRepo()
 		gitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, gitRepoStore)
@@ -294,6 +295,9 @@ func Diff(ctx *context.Context) {
 			return
 		}
 		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
+	} else {
+		// Enable inline comments only for non-wiki commit diffs
+		ctx.Data["PageIsCommitDiff"] = true
 	}
 
 	commit, err := gitRepo.GetCommit(commitID)
@@ -346,9 +350,17 @@ func Diff(ctx *context.Context) {
 	}
 
 	ctx.Data["CommitID"] = commitID
+	ctx.Data["CommitSHA"] = commitID
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
+
+	// Load inline commit comments (not for wiki pages)
+	if !isWiki {
+		if err := diff.LoadCommitCodeComments(ctx, ctx.Repo.Repository, commitID); err != nil {
+			log.Error("LoadCommitCodeComments: %v", err)
+		}
+	}
 
 	var parentCommit *git.Commit
 	var parentCommitID string
@@ -418,6 +430,8 @@ func Diff(ctx *context.Context) {
 	} else if !git.IsErrNotExist(err) {
 		log.Error("GetNote: %v", err)
 	}
+
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 
 	pr, _ := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, commitID)
 	if pr != nil {

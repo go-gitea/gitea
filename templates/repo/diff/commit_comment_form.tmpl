@@ -1,0 +1,30 @@
+{{if and ctx.RootData.SignedUserID (not ctx.RootData.Repository.IsArchived)}}
+	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{ctx.RootData.RepoLink}}/commit/{{ctx.RootData.CommitSHA}}/comment" method="post">
+		<input type="hidden" name="side" value="{{if $.Side}}{{$.Side}}{{end}}">
+		<input type="hidden" name="line" value="{{if $.Line}}{{$.Line}}{{end}}">
+		<input type="hidden" name="path" value="{{if $.File}}{{$.File}}{{end}}">
+		<div class="field">
+		{{template "shared/combomarkdowneditor" (dict
+			"CustomInit" true
+			"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorComment ctx.RootData.Repository)
+			"TextareaName" "content"
+			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
+			"DropzoneParentContainer" "form"
+			"DisableAutosize" "true"
+		)}}
+		</div>
+		<div class="field footer">
+			<div class="flex-text-block tw-justify-end">
+				{{if $.reply}}
+					<button class="ui submit primary tiny button btn-reply" type="submit">{{ctx.Locale.Tr "repo.diff.comment.reply"}}</button>
+					<input type="hidden" name="reply" value="{{$.reply}}">
+				{{else}}
+					<button name="single_review" value="true" type="submit" class="ui submit primary tiny button btn-add-single">{{ctx.Locale.Tr "repo.diff.comment.add_single_comment"}}</button>
+				{{end}}
+				{{if or (not $.HasComments) $.hidden}}
+					<button type="button" class="ui submit tiny basic button btn-cancel cancel-code-comment">{{ctx.Locale.Tr "cancel"}}</button>
+				{{end}}
+			</div>
+		</div>
+	</form>
+{{end}}
