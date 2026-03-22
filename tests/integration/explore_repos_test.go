@@ -87,6 +87,7 @@ func TestAPISearchReposIsPrivateUnauthenticated(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	type searchResponse struct {
+		OK   bool             `json:"ok"`
 		Data []api.Repository `json:"data"`
 	}
 
@@ -95,6 +96,7 @@ func TestAPISearchReposIsPrivateUnauthenticated(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 		var result searchResponse
 		DecodeJSON(t, resp, &result)
+		assert.True(t, result.OK, "search response should indicate success")
 		for _, repo := range result.Data {
 			assert.False(t, repo.Private, "repo %s must not be private in unauthenticated response", repo.Name)
 		}
@@ -105,9 +107,13 @@ func TestAPISearchReposIsPrivateUnauthenticated(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 		var result searchResponse
 		DecodeJSON(t, resp, &result)
+		assert.True(t, result.OK, "search response should indicate success")
+		repoNames := make([]string, 0, len(result.Data))
 		for _, repo := range result.Data {
 			assert.False(t, repo.Private, "repo %s must not be private in unauthenticated response", repo.Name)
-			assert.NotEqual(t, "repo2", repo.Name, "private repo2 must not appear in unauthenticated ?is_private=true response")
+			repoNames = append(repoNames, repo.Name)
 		}
+		assert.NotContains(t, repoNames, "repo2",
+			"private repo2 must not appear in unauthenticated ?is_private=true response")
 	})
 }

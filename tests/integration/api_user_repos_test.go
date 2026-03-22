@@ -98,14 +98,20 @@ func testAPIListReposByType(t *testing.T, urlBase, token string) {
 	var privateRepos []api.Repository
 	DecodeJSON(t, respPrivate, &privateRepos)
 
+	// Parse X-Total-Count from public/private responses for cross-type comparisons.
+	// Using header totals instead of len(repos) ensures the assertions remain
+	// correct even if results span multiple pages.
+	totalPublic, _ := strconv.Atoi(respPublic.Header().Get("X-Total-Count"))
+	totalPrivate, _ := strconv.Atoi(respPrivate.Header().Get("X-Total-Count"))
+
 	t.Run("TypePublic", func(t *testing.T) {
 		assert.NotEmpty(t, publicRepos)
 		for _, repo := range publicRepos {
 			assert.False(t, repo.Private, "repo %s should be public", repo.Name)
 		}
-		assert.Equal(t, strconv.Itoa(len(publicRepos)),
-			respPublic.Header().Get("X-Total-Count"),
-			"X-Total-Count should match returned public repo count")
+		assert.Positive(t, totalPublic, "X-Total-Count for public repos should be > 0")
+		assert.GreaterOrEqual(t, totalPublic, len(publicRepos),
+			"X-Total-Count should be >= page length")
 	})
 
 	t.Run("TypePrivate", func(t *testing.T) {
@@ -113,27 +119,27 @@ func testAPIListReposByType(t *testing.T, urlBase, token string) {
 		for _, repo := range privateRepos {
 			assert.True(t, repo.Private, "repo %s should be private", repo.Name)
 		}
-		assert.Equal(t, strconv.Itoa(len(privateRepos)),
-			respPrivate.Header().Get("X-Total-Count"),
-			"X-Total-Count should match returned private repo count")
+		assert.Positive(t, totalPrivate, "X-Total-Count for private repos should be > 0")
+		assert.GreaterOrEqual(t, totalPrivate, len(privateRepos),
+			"X-Total-Count should be >= page length")
 	})
 
 	t.Run("NoFilter", func(t *testing.T) {
 		req := NewRequest(t, "GET", urlBase+"?limit=50").
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var repos []api.Repository
-		DecodeJSON(t, resp, &repos)
-		assert.Len(t, repos, len(publicRepos)+len(privateRepos))
+		totalAll, _ := strconv.Atoi(resp.Header().Get("X-Total-Count"))
+		assert.Equal(t, totalPublic+totalPrivate, totalAll,
+			"total count should equal public + private")
 	})
 
 	t.Run("TypeAll", func(t *testing.T) {
 		req := NewRequest(t, "GET", urlBase+"?type=all&limit=50").
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var repos []api.Repository
-		DecodeJSON(t, resp, &repos)
-		assert.Len(t, repos, len(publicRepos)+len(privateRepos))
+		totalAll, _ := strconv.Atoi(resp.Header().Get("X-Total-Count"))
+		assert.Equal(t, totalPublic+totalPrivate, totalAll,
+			"type=all total count should equal public + private")
 	})
 
 	t.Run("TypeInvalid", func(t *testing.T) {
