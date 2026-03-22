@@ -10,6 +10,7 @@
 [![](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT "License: MIT")
 [![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod&color=green)](https://gitpod.io/#https://github.com/go-gitea/gitea)
 [![](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com "Crowdin")
+[![gitcgr](https://gitcgr.com/badge/go-gitea/gitea.svg)](https://gitcgr.com/go-gitea/gitea)
 
 [繁體中文](./README.zh-tw.md) | [简体中文](./README.zh-cn.md)
 
