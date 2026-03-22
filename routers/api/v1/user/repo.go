@@ -50,6 +50,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, canSeePrivate bo
 		// short-circuit so that neither the body nor X-Total-Count leaks
 		// private repo existence.
 		if isPrivate.Has() && isPrivate.Value() {
+			ctx.SetLinkHeader(0, utils.GetListOptions(ctx).PageSize)
 			ctx.SetTotalCountHeader(0)
 			ctx.JSON(http.StatusOK, &[]*api.Repository{})
 			return
@@ -180,6 +181,7 @@ func ListMyRepos(ctx *context.APIContext) {
 	// be able to list or filter by private repositories.
 	if ctx.PublicOnly {
 		if isPrivate.Has() && isPrivate.Value() {
+			ctx.SetLinkHeader(0, opts.ListOptions.PageSize)
 			ctx.SetTotalCountHeader(0)
 			ctx.JSON(http.StatusOK, &[]*api.Repository{})
 			return
