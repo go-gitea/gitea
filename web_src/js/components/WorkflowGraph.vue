@@ -520,8 +520,8 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             :height="nodeHeight"
             rx="10"
             fill="var(--color-box-body)"
-            stroke="var(--color-secondary-alpha-20)"
-            stroke-width="1"
+            stroke="var(--color-secondary-alpha-50)"
+            stroke-width="1.25"
             class="job-rect"
           />
 
@@ -700,7 +700,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .job-rect {
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08));
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.15));
 }
 
 .node-port {
