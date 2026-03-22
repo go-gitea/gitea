@@ -254,10 +254,14 @@ func TestAPISearchRepoLimitedOrgVisibility(t *testing.T) {
 	repoFullName := limitedOrg.Name + "/" + repoName
 
 	t.Run("AnonymousCannotSee", func(t *testing.T) {
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/search?q=%s&private=false&limit=50", repoName))
+		// Anonymous search with private=false should return 36 public repos
+		// and must NOT include the public repo in the limited-visibility org.
+		req := NewRequest(t, "GET", "/api/v1/repos/search?limit=50&private=false")
 		resp := MakeRequest(t, req, http.StatusOK)
 		var body api.SearchResults
 		DecodeJSON(t, resp, &body)
+		assert.Len(t, body.Data, 36,
+			"anonymous user should see exactly 36 public repos (excluding limited-org repos)")
 		for _, r := range body.Data {
 			assert.NotEqual(t, repoFullName, r.FullName,
 				"anonymous user must not see public repo in limited-visibility org")
@@ -265,15 +269,19 @@ func TestAPISearchRepoLimitedOrgVisibility(t *testing.T) {
 	})
 
 	t.Run("AuthenticatedCanSee", func(t *testing.T) {
+		// Authenticated search with private=false should return 37 public repos
+		// including the public repo in the limited-visibility org.
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 		session := loginUser(t, user.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/search?q=%s&private=false&limit=50", repoName)).
+		req := NewRequest(t, "GET", "/api/v1/repos/search?limit=50&private=false").
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 		var body api.SearchResults
 		DecodeJSON(t, resp, &body)
+		assert.Len(t, body.Data, 37,
+			"authenticated user should see exactly 37 public repos (including limited-org repos)")
 
 		found := false
 		for _, r := range body.Data {
