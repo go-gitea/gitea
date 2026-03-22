@@ -248,6 +248,7 @@ func TestAPISearchRepoLimitedOrgVisibility(t *testing.T) {
 	limitedOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
 	assert.Equal(t, "limited_org", limitedOrg.Name)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 38})
+	assert.Equal(t, repoName, repo.Name, "fixture repo name mismatch")
 	assert.False(t, repo.IsPrivate, "fixture repo should be public")
 	assert.Equal(t, limitedOrg.ID, repo.OwnerID)
 
