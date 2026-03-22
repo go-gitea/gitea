@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -51,11 +52,12 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 	assert.NoError(t, err)
 
 	table := []struct {
-		name     string
-		version  int32
-		blockID  bool
-		noLength bool
-		append   int
+		name        string
+		version     int32
+		contentType string
+		blockID     bool
+		noLength    bool
+		append      int
 	}{
 		{
 			name:    "artifact",
@@ -101,6 +103,11 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 			append:  4,
 			blockID: true,
 		},
+		{
+			name:        "artifact9.json",
+			version:     7,
+			contentType: "application/json",
+		},
 	}
 
 	for _, entry := range table {
@@ -123,9 +130,8 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 			blocks := make([]string, 0, util.Iif(entry.blockID, entry.append+1, 0))
 
 			// get upload url
-			idx := strings.Index(uploadResp.SignedUploadUrl, "/twirp/")
 			for i := range entry.append + 1 {
-				url := uploadResp.SignedUploadUrl[idx:]
+				url := uploadResp.SignedUploadUrl
 				// See https://learn.microsoft.com/en-us/rest/api/storageservices/append-block
 				// See https://learn.microsoft.com/en-us/rest/api/storageservices/put-block
 				if entry.blockID {
@@ -149,7 +155,7 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 
 			if entry.blockID && entry.append > 0 {
 				// https://learn.microsoft.com/en-us/rest/api/storageservices/put-block-list
-				blockListURL := uploadResp.SignedUploadUrl[idx:] + "&comp=blocklist"
+				blockListURL := uploadResp.SignedUploadUrl + "&comp=blocklist"
 				// upload artifact blockList
 				blockList := &actions.BlockList{
 					Latest: blocks,
@@ -177,6 +183,13 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 			var finalizeResp actions.FinalizeArtifactResponse
 			protojson.Unmarshal(resp.Body.Bytes(), &finalizeResp)
 			assert.True(t, finalizeResp.Ok)
+
+			artifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{ID: finalizeResp.ArtifactId})
+			if entry.contentType != "" {
+				assert.Equal(t, entry.contentType, artifact.ContentEncoding)
+			} else {
+				assert.Equal(t, actions.ArtifactV4ContentEncoding, artifact.ContentEncoding)
+			}
 		})
 	}
 }
@@ -201,8 +214,7 @@ func TestActionsArtifactV4UploadSingleFileWrongChecksum(t *testing.T) {
 	assert.Contains(t, uploadResp.SignedUploadUrl, "/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact")
 
 	// get upload url
-	idx := strings.Index(uploadResp.SignedUploadUrl, "/twirp/")
-	url := uploadResp.SignedUploadUrl[idx:] + "&comp=block"
+	url := uploadResp.SignedUploadUrl + "&comp=block"
 
 	// upload artifact chunk
 	body := strings.Repeat("B", 1024)
@@ -246,8 +258,7 @@ func TestActionsArtifactV4UploadSingleFileWithRetentionDays(t *testing.T) {
 	assert.Contains(t, uploadResp.SignedUploadUrl, "/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact")
 
 	// get upload url
-	idx := strings.Index(uploadResp.SignedUploadUrl, "/twirp/")
-	url := uploadResp.SignedUploadUrl[idx:] + "&comp=block"
+	url := uploadResp.SignedUploadUrl + "&comp=block"
 
 	// upload artifact chunk
 	body := strings.Repeat("A", 1024)
@@ -293,9 +304,8 @@ func TestActionsArtifactV4UploadSingleFileWithPotentialHarmfulBlockID(t *testing
 	assert.Contains(t, uploadResp.SignedUploadUrl, "/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact")
 
 	// get upload urls
-	idx := strings.Index(uploadResp.SignedUploadUrl, "/twirp/")
-	url := uploadResp.SignedUploadUrl[idx:] + "&comp=block&blockid=%2f..%2fmyfile"
-	blockListURL := uploadResp.SignedUploadUrl[idx:] + "&comp=blocklist"
+	url := uploadResp.SignedUploadUrl + "&comp=block&blockid=%2f..%2fmyfile"
+	blockListURL := uploadResp.SignedUploadUrl + "&comp=blocklist"
 
 	// upload artifact chunk
 	body := strings.Repeat("A", 1024)
@@ -342,63 +352,120 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 	token, err := actions_service.CreateAuthorizationToken(48, 792, 193)
 	assert.NoError(t, err)
 
-	// acquire artifact upload url
-	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact", toProtoJSON(&actions.CreateArtifactRequest{
-		Version:                 4,
-		Name:                    "artifactWithChunksOutOfOrder",
-		WorkflowRunBackendId:    "792",
-		WorkflowJobRunBackendId: "193",
-	})).AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var uploadResp actions.CreateArtifactResponse
-	protojson.Unmarshal(resp.Body.Bytes(), &uploadResp)
-	assert.True(t, uploadResp.Ok)
-	assert.Contains(t, uploadResp.SignedUploadUrl, "/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact")
-
-	// get upload urls
-	idx := strings.Index(uploadResp.SignedUploadUrl, "/twirp/")
-	block1URL := uploadResp.SignedUploadUrl[idx:] + "&comp=block&blockid=block1"
-	block2URL := uploadResp.SignedUploadUrl[idx:] + "&comp=block&blockid=block2"
-	blockListURL := uploadResp.SignedUploadUrl[idx:] + "&comp=blocklist"
-
-	// upload artifact chunks
-	bodyb := strings.Repeat("B", 1024)
-	req = NewRequestWithBody(t, "PUT", block2URL, strings.NewReader(bodyb))
-	MakeRequest(t, req, http.StatusCreated)
-
-	bodya := strings.Repeat("A", 1024)
-	req = NewRequestWithBody(t, "PUT", block1URL, strings.NewReader(bodya))
-	MakeRequest(t, req, http.StatusCreated)
-
-	// upload artifact blockList
-	blockList := &actions.BlockList{
-		Latest: []string{
-			"block1",
-			"block2",
-		},
+	table := []struct {
+		name         string
+		artifactName string
+		serveDirect  bool
+		contentType  string
+	}{
+		{name: "Upload-Zip", artifactName: "artifact-v4-upload", contentType: ""},
+		{name: "Upload-Pdf", artifactName: "report-upload.pdf", contentType: "application/pdf"},
+		{name: "Upload-Html", artifactName: "report-upload.html", contentType: "application/html"},
+		{name: "ServeDirect-Zip", artifactName: "artifact-v4-upload-serve-direct", contentType: "", serveDirect: true},
+		{name: "ServeDirect-Pdf", artifactName: "report-upload-serve-direct.pdf", contentType: "application/pdf", serveDirect: true},
+		{name: "ServeDirect-Html", artifactName: "report-upload-serve-direct.html", contentType: "application/html", serveDirect: true},
 	}
-	rawBlockList, err := xml.Marshal(blockList)
-	assert.NoError(t, err)
-	req = NewRequestWithBody(t, "PUT", blockListURL, bytes.NewReader(rawBlockList))
-	MakeRequest(t, req, http.StatusCreated)
 
-	t.Logf("Create artifact confirm")
+	for _, entry := range table {
+		t.Run(entry.name, func(t *testing.T) {
+			// Only AzureBlobStorageType supports ServeDirect Uploads
+			switch setting.Actions.ArtifactStorage.Type {
+			case setting.AzureBlobStorageType:
+				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.AzureBlobConfig.ServeDirect, entry.serveDirect)()
+			default:
+				if entry.serveDirect {
+					t.Skip()
+				}
+			}
+			// acquire artifact upload url
+			req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact", toProtoJSON(&actions.CreateArtifactRequest{
+				Version:                 util.Iif[int32](entry.contentType != "", 7, 4),
+				Name:                    entry.artifactName,
+				WorkflowRunBackendId:    "792",
+				WorkflowJobRunBackendId: "193",
+				MimeType:                util.Iif(entry.contentType != "", wrapperspb.String(entry.contentType), nil),
+			})).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			var uploadResp actions.CreateArtifactResponse
+			protojson.Unmarshal(resp.Body.Bytes(), &uploadResp)
+			assert.True(t, uploadResp.Ok)
+			if !entry.serveDirect {
+				assert.Contains(t, uploadResp.SignedUploadUrl, "/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact")
+			}
 
-	sha := sha256.Sum256([]byte(bodya + bodyb))
+			// get upload urls
+			block1URL := uploadResp.SignedUploadUrl + "&comp=block&blockid=" + base64.RawURLEncoding.EncodeToString([]byte("block1"))
+			block2URL := uploadResp.SignedUploadUrl + "&comp=block&blockid=" + base64.RawURLEncoding.EncodeToString([]byte("block2"))
+			blockListURL := uploadResp.SignedUploadUrl + "&comp=blocklist"
 
-	// confirm artifact upload
-	req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/FinalizeArtifact", toProtoJSON(&actions.FinalizeArtifactRequest{
-		Name:                    "artifactWithChunksOutOfOrder",
-		Size:                    2048,
-		Hash:                    wrapperspb.String("sha256:" + hex.EncodeToString(sha[:])),
-		WorkflowRunBackendId:    "792",
-		WorkflowJobRunBackendId: "193",
-	})).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	var finalizeResp actions.FinalizeArtifactResponse
-	protojson.Unmarshal(resp.Body.Bytes(), &finalizeResp)
-	assert.True(t, finalizeResp.Ok)
+			// upload artifact chunks
+			bodyb := strings.Repeat("B", 1024)
+			req = NewRequestWithBody(t, "PUT", block2URL, strings.NewReader(bodyb))
+			if entry.serveDirect {
+				req.Request.RequestURI = ""
+				nresp, err := http.DefaultClient.Do(req.Request)
+				require.NoError(t, err)
+				require.Equal(t, http.StatusCreated, nresp.StatusCode)
+			} else {
+				MakeRequest(t, req, http.StatusCreated)
+			}
+
+			bodya := strings.Repeat("A", 1024)
+			req = NewRequestWithBody(t, "PUT", block1URL, strings.NewReader(bodya))
+			if entry.serveDirect {
+				req.Request.RequestURI = ""
+				nresp, err := http.DefaultClient.Do(req.Request)
+				require.NoError(t, err)
+				require.Equal(t, http.StatusCreated, nresp.StatusCode)
+			} else {
+				MakeRequest(t, req, http.StatusCreated)
+			}
+
+			// upload artifact blockList
+			blockList := &actions.BlockList{
+				Latest: []string{
+					base64.RawURLEncoding.EncodeToString([]byte("block1")),
+					base64.RawURLEncoding.EncodeToString([]byte("block2")),
+				},
+			}
+			rawBlockList, err := xml.Marshal(blockList)
+			assert.NoError(t, err)
+			req = NewRequestWithBody(t, "PUT", blockListURL, bytes.NewReader(rawBlockList))
+			if entry.serveDirect {
+				req.Request.RequestURI = ""
+				nresp, err := http.DefaultClient.Do(req.Request)
+				require.NoError(t, err)
+				require.Equal(t, http.StatusCreated, nresp.StatusCode)
+			} else {
+				MakeRequest(t, req, http.StatusCreated)
+			}
+
+			t.Logf("Create artifact confirm")
+
+			sha := sha256.Sum256([]byte(bodya + bodyb))
+
+			// confirm artifact upload
+			req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/FinalizeArtifact", toProtoJSON(&actions.FinalizeArtifactRequest{
+				Name:                    entry.artifactName,
+				Size:                    2048,
+				Hash:                    wrapperspb.String("sha256:" + hex.EncodeToString(sha[:])),
+				WorkflowRunBackendId:    "792",
+				WorkflowJobRunBackendId: "193",
+			})).
+				AddTokenAuth(token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			var finalizeResp actions.FinalizeArtifactResponse
+			protojson.Unmarshal(resp.Body.Bytes(), &finalizeResp)
+			assert.True(t, finalizeResp.Ok)
+
+			artifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{ID: finalizeResp.ArtifactId})
+			if entry.contentType != "" {
+				assert.Equal(t, entry.contentType, artifact.ContentEncoding)
+			} else {
+				assert.Equal(t, actions.ArtifactV4ContentEncoding, artifact.ContentEncoding)
+			}
+		})
+	}
 }
 
 func TestActionsArtifactV4DownloadSingle(t *testing.T) {
@@ -424,9 +491,8 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 	for _, entry := range table {
 		t.Run(entry.Name, func(t *testing.T) {
 			switch setting.Actions.ArtifactStorage.Type {
-			// FIXME ServeDirect Content-Type and Content-Disposition are partially broken in minio and not implemented in azure
-			// case setting.AzureBlobStorageType:
-			// 	defer test.MockVariableValue(&setting.Actions.ArtifactStorage.AzureBlobConfig.ServeDirect, entry.ServeDirect)()
+			case setting.AzureBlobStorageType:
+				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.AzureBlobConfig.ServeDirect, entry.ServeDirect)()
 			case setting.MinioStorageType:
 				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.MinioConfig.ServeDirect, entry.ServeDirect)()
 			default:
