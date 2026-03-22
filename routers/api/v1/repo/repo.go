@@ -181,8 +181,15 @@ func Search(ctx *context.APIContext) {
 		opts.Archived = optional.Some(ctx.FormBool("archived"))
 	}
 
+	// Only apply is_private when the caller is authenticated, not using a
+	// public-only token, and has not already forced public-only via private=false.
 	if ctx.FormString("is_private") != "" && ctx.IsSigned && !ctx.PublicOnly {
-		opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
+		if ctx.FormString("private") != "" && !ctx.FormBool("private") {
+			// private=false already restricts to public; is_private=true would
+			// conflict, so ignore is_private to keep semantics unambiguous.
+		} else {
+			opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
+		}
 	}
 
 	sortMode := ctx.FormString("sort")
