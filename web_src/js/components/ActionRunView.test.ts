@@ -1,4 +1,4 @@
-import {createLogLineMessage, parseLogLineCommand} from './RepoActionView.vue';
+import {createLogLineMessage, parseLogLineCommand} from './ActionRunView.ts';
 
 test('LogLineMessage', () => {
   const cases = {

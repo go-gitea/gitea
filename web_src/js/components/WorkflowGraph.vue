@@ -41,7 +41,7 @@ interface StoredState {
 
 const props = defineProps<{
   jobs: ActionsJob[];
-  currentJobId: number;
+  currentJobId?: number;
   runLink: string;
   workflowId: string;
 }>()
@@ -87,9 +87,7 @@ const saveState = () => {
 };
 
 loadSavedState();
-watch([translateX, translateY, scale], () => {
-  debounce(500, saveState);
-})
+watch([translateX, translateY, scale], debounce(500, saveState))
 
 const nodeWidth = computed(() => {
   const maxNameLength = Math.max(...props.jobs.map(j => j.name.length));
@@ -447,8 +445,6 @@ function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
 }
 
 function onNodeClick(job: JobNode, event: MouseEvent) {
-  if (job.id === props.currentJobId) return;
-
   const link = `${props.runLink}/jobs/${job.id}`;
   if (event.ctrlKey || event.metaKey) {
     window.open(link, '_blank');
@@ -600,10 +596,9 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--color-secondary-alpha-20);
-  gap: 15px;
+  padding: 8px 14px;
+  background: var(--color-box-header);
+  gap: 20px;
   flex-wrap: wrap;
 }
 
@@ -617,7 +612,10 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .graph-stats {
-  color: var(--color-text-light-2);
+  display: flex;
+  align-items: baseline;
+  column-gap: 8px;
+  color: var(--color-text-light-1);
   font-size: 13px;
   white-space: nowrap;
 }

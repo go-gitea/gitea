@@ -34,7 +34,7 @@
   --transition-hover-fade: opacity 0.2s ease; /* fade transition for elements that show on hover */
 
   /* z-index */
-  --z-index-modal: 1001; /* modal dialog, hard-coded from Fomantic modal.css */
+  --z-index-modal: 1001; /* modal dialog */
   --z-index-toast: 1002; /* should be larger than modal */
 
   --font-size-label: 12px; /* font size of individual labels */
@@ -261,6 +261,12 @@ relative-time::part(root)::selection {
   user-select: none;
 }
 
+.container-disabled {
+  opacity: var(--opacity-disabled);
+  pointer-events: none;
+  user-select: none;
+}
+
 a {
   color: var(--color-primary);
   cursor: pointer;
@@ -335,37 +341,6 @@ a.label,
   mask-image: var(--select-arrows);
   -webkit-mask-image: var(--select-arrows);
   background: currentcolor;
-}
-
-.ui.search > .results {
-  background: var(--color-body);
-  border-color: var(--color-secondary);
-  overflow-wrap: anywhere; /* allow text to wrap as fomantic limits this to 18em width */
-}
-
-.ui.search > .results .result {
-  background: var(--color-body);
-  border-color: var(--color-secondary);
-  display: flex;
-  align-items: center;
-}
-
-.ui.search > .results .result .title {
-  color: var(--color-text-dark);
-}
-
-.ui.search > .results .result .description {
-  color: var(--color-text-light-2);
-}
-
-.ui.search > .results .result .image {
-  width: auto;
-  height: auto;
-}
-
-.ui.search > .results .result:hover,
-.ui.category.search > .results .category .result:hover {
-  background: var(--color-hover);
 }
 
 .empty-placeholder {
