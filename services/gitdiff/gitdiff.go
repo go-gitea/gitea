@@ -662,14 +662,10 @@ func (diff *Diff) LoadCommitCodeComments(ctx context.Context, repo *repo_model.R
 			for _, section := range file.Sections {
 				for _, line := range section.Lines {
 					if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
-						for _, c := range comments {
-							line.CommitComments = append(line.CommitComments, c)
-						}
+						line.CommitComments = append(line.CommitComments, comments...)
 					}
 					if comments, ok := lineCommits[int64(line.RightIdx)]; ok {
-						for _, c := range comments {
-							line.CommitComments = append(line.CommitComments, c)
-						}
+						line.CommitComments = append(line.CommitComments, comments...)
 					}
 					sort.SliceStable(line.CommitComments, func(i, j int) bool {
 						return line.CommitComments[i].CreatedUnix < line.CommitComments[j].CreatedUnix
