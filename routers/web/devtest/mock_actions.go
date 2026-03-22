@@ -157,7 +157,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Status:   actions_model.StatusSuccess.String(),
 		CanRerun: false,
 		Duration: "2m",
-		Needs:    []string{"job-103"},
+		Needs:    []string{"job-103", "job-101", "job-100"},
 	})
 
 	fillViewRunResponseCurrentJob(ctx, resp)
