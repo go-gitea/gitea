@@ -10,10 +10,7 @@ interface JobNode {
   id: number;
   name: string;
   status: ActionsRunStatus;
-  needs: string[];
   duration: string;
-
-  index: number;
 
   x: number;
   y: number;
@@ -21,12 +18,12 @@ interface JobNode {
 }
 
 interface Edge {
-  from: string;
-  to: string;
+  fromId: number;
+  toId: number;
   key: string;
 }
 
-interface BezierEdge extends Edge {
+interface RoutedEdge extends Edge {
   path: string;
   fromNode: JobNode;
   toNode: JobNode;
@@ -133,18 +130,14 @@ const jobsWithLayout = computed<JobNode[]>(() => {
         return;
       }
 
-      const levelHeight = (levelJobs.length - 1) * verticalSpacing;
-      const startY = margin + (maxJobsPerLevel * verticalSpacing - levelHeight) / 2;
+      const startY = margin;
 
       levelJobs.forEach((job, jobIndex) => {
         result.push({
           id: job.id,
           name: job.name,
           status: job.status,
-          needs: job.needs || [],
           duration: job.duration,
-
-          index: props.jobs.findIndex(j => j.id === job.id),
 
           x: margin + levelIndex * currentHorizontalSpacing,
           y: startY + jobIndex * verticalSpacing,
@@ -159,10 +152,7 @@ const jobsWithLayout = computed<JobNode[]>(() => {
       id: job.id,
       name: job.name,
       status: job.status,
-      needs: job.needs || [],
       duration: job.duration,
-
-      index: index,
 
       x: margin + index * horizontalSpacing.value,
       y: margin,
@@ -171,10 +161,64 @@ const jobsWithLayout = computed<JobNode[]>(() => {
   }
 });
 
+function buildDirectNeedsMap(jobs: ActionsJob[]): Map<string, string[]> {
+  const directNeedsByJobId = new Map<string, string[]>();
+  const dependentsByJobId = new Map<string, Set<string>>();
+
+  for (const job of jobs) {
+    const needs = job.needs || [];
+    directNeedsByJobId.set(job.jobId, needs);
+
+    for (const need of needs) {
+      if (!dependentsByJobId.has(need)) {
+        dependentsByJobId.set(need, new Set());
+      }
+      dependentsByJobId.get(need)!.add(job.jobId);
+    }
+  }
+
+  const reachabilityCache = new Map<string, boolean>();
+
+  function canReach(fromJobId: string, toJobId: string): boolean {
+    const cacheKey = `${fromJobId}->${toJobId}`;
+    if (reachabilityCache.has(cacheKey)) {
+      return reachabilityCache.get(cacheKey)!;
+    }
+
+    const visited = new Set<string>();
+    const stack = [...(dependentsByJobId.get(fromJobId) || [])];
+
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      if (current === toJobId) {
+        reachabilityCache.set(cacheKey, true);
+        return true;
+      }
+      if (visited.has(current)) continue;
+      visited.add(current);
+      stack.push(...(dependentsByJobId.get(current) || []));
+    }
+
+    reachabilityCache.set(cacheKey, false);
+    return false;
+  }
+
+  const reducedNeedsByJobId = new Map<string, string[]>();
+  for (const [jobId, needs] of directNeedsByJobId.entries()) {
+    reducedNeedsByJobId.set(jobId, needs.filter((need) => {
+      return !needs.some((otherNeed) => otherNeed !== need && canReach(need, otherNeed));
+    }));
+  }
+
+  return reducedNeedsByJobId;
+}
+
+const directNeedsByJobId = computed(() => buildDirectNeedsMap(props.jobs));
+
 const edges = computed<Edge[]>(() => {
   const edgesList: Edge[] = [];
-
   const jobsByJobId = new Map<string, ActionsJob[]>();
+
   for (const job of props.jobs) {
     if (!jobsByJobId.has(job.jobId)) {
       jobsByJobId.set(job.jobId, []);
@@ -183,13 +227,13 @@ const edges = computed<Edge[]>(() => {
   }
 
   for (const job of props.jobs) {
-    for (const need of job.needs || []) {
-      const targetJobs = jobsByJobId.get(need) || [];
-      for (const targetJob of targetJobs) {
+    for (const need of directNeedsByJobId.value.get(job.jobId) || []) {
+      const upstreamJobs = jobsByJobId.get(need) || [];
+      for (const upstreamJob of upstreamJobs) {
         edgesList.push({
-          from: targetJob.name,
-          to: job.name,
-          key: `${targetJob.id}-${job.id}`,
+          fromId: upstreamJob.id,
+          toId: job.id,
+          key: `${upstreamJob.id}-${job.id}`,
         });
       }
     }
@@ -198,35 +242,89 @@ const edges = computed<Edge[]>(() => {
   return edgesList;
 });
 
-const bezierEdges = computed<BezierEdge[]>(() => {
-  const bezierEdgesList: BezierEdge[] = [];
+function buildRoundedConnectorPath(startX: number, startY: number, endX: number, endY: number, turnX: number): string {
+  const deltaY = endY - startY;
+  if (Math.abs(deltaY) < 1) {
+    return `M ${startX} ${startY} H ${endX}`;
+  }
 
-  edges.value.forEach(edge => {
-    const fromNode = jobsWithLayout.value.find(j => j.name === edge.from);
-    const toNode = jobsWithLayout.value.find(j => j.name === edge.to);
+  const direction = deltaY > 0 ? 1 : -1;
+  const elbowSize = Math.max(8, Math.min(24, Math.abs(deltaY) / 2, Math.abs(endX - startX) / 2));
+  const controlOffset = elbowSize / 2;
+  const clampedTurnX = Math.min(Math.max(turnX, startX + elbowSize), endX - elbowSize);
 
-    if (!fromNode || !toNode) {
-      return;
+  return [
+    `M ${startX} ${startY}`,
+    `H ${clampedTurnX - elbowSize}`,
+    `C ${clampedTurnX - controlOffset} ${startY} ${clampedTurnX} ${startY + direction * controlOffset} ${clampedTurnX} ${startY + direction * elbowSize}`,
+    `V ${endY - direction * elbowSize}`,
+    `C ${clampedTurnX} ${endY - direction * controlOffset} ${clampedTurnX + controlOffset} ${endY} ${clampedTurnX + elbowSize} ${endY}`,
+    `H ${endX}`,
+  ].join(' ');
+}
+
+const routedEdges = computed<RoutedEdge[]>(() => {
+  const nodesById = new Map(jobsWithLayout.value.map((job) => [job.id, job]));
+  const outgoingEdges = new Map<number, Edge[]>();
+  const incomingEdges = new Map<number, Edge[]>();
+
+  for (const edge of edges.value) {
+    if (!outgoingEdges.has(edge.fromId)) {
+      outgoingEdges.set(edge.fromId, []);
     }
+    outgoingEdges.get(edge.fromId)!.push(edge);
+
+    if (!incomingEdges.has(edge.toId)) {
+      incomingEdges.set(edge.toId, []);
+    }
+    incomingEdges.get(edge.toId)!.push(edge);
+  }
+
+  for (const sourceEdges of outgoingEdges.values()) {
+    sourceEdges.sort((a, b) => {
+      const targetA = nodesById.get(a.toId);
+      const targetB = nodesById.get(b.toId);
+      if (!targetA || !targetB) return 0;
+      return targetA.y - targetB.y || a.toId - b.toId;
+    });
+  }
+
+  const edgePaths: RoutedEdge[] = [];
+
+  for (const edge of edges.value) {
+    const fromNode = nodesById.get(edge.fromId);
+    const toNode = nodesById.get(edge.toId);
+    if (!fromNode || !toNode) continue;
 
     const startX = fromNode.x + nodeWidth.value;
     const startY = fromNode.y + nodeHeight / 2;
     const endX = toNode.x;
     const endY = toNode.y + nodeHeight / 2;
+    const sourceEdges = outgoingEdges.get(edge.fromId) || [];
+    const targetEdges = incomingEdges.get(edge.toId) || [];
+    const horizontalGap = endX - startX;
+    const turnOffset = Math.min(28, Math.max(16, horizontalGap * 0.14));
+    const sourceTurnX = startX + turnOffset;
+    const targetTurnX = endX - turnOffset;
 
-    const elbowOffset = Math.max(18, Math.min((endX - startX) / 2, 28));
-    const midX = startX + elbowOffset;
-    const path = `M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
+    let turnX = startX + horizontalGap / 2;
+    if (sourceEdges.length > 1) {
+      turnX = sourceTurnX;
+    } else if (targetEdges.length > 1) {
+      turnX = targetTurnX;
+    }
 
-    bezierEdgesList.push({
+    const path = buildRoundedConnectorPath(startX, startY, endX, endY, turnX);
+
+    edgePaths.push({
       ...edge,
       path,
       fromNode,
       toNode,
     });
-  });
+  }
 
-  return bezierEdgesList;
+  return edgePaths;
 });
 
 const graphMetrics = computed(() => {
@@ -317,28 +415,22 @@ function handleNodeMouseLeave() {
   hoveredJobId.value = null;
 }
 
-function isEdgeHighlighted(edge: BezierEdge): boolean {
+function isEdgeHighlighted(edge: RoutedEdge): boolean {
   if (!hoveredJobId.value) {
     return false;
   }
-
-  const hoveredJob = jobsWithLayout.value.find(j => j.id === hoveredJobId.value);
-  if (!hoveredJob) {
-    return false;
-  }
-
-  return edge.from === hoveredJob.name || edge.to === hoveredJob.name;
+  return edge.fromId === hoveredJobId.value || edge.toId === hoveredJobId.value;
 }
 
 const nodesWithIncomingEdge = computed(() => {
-  const set = new Set<string>();
-  for (const edge of edges.value) set.add(edge.to);
+  const set = new Set<number>();
+  for (const edge of routedEdges.value) set.add(edge.toId);
   return set;
 });
 
 const nodesWithOutgoingEdge = computed(() => {
-  const set = new Set<string>();
-  for (const edge of edges.value) set.add(edge.from);
+  const set = new Set<number>();
+  for (const edge of routedEdges.value) set.add(edge.fromId);
   return set;
 });
 
@@ -349,28 +441,6 @@ function getDisplayName(name: string, hasDuration: boolean): string {
   }
 
   return name.substring(0, maxChars - 3) + '...';
-}
-
-function getEdgeStyle(edge: BezierEdge) {
-  if (!edge.fromNode || !edge.toNode) {
-    return {
-      'stroke': 'var(--color-secondary)',
-      'stroke-width': '2',
-      'opacity': '0.7',
-    };
-  }
-
-  return {
-    'stroke': 'var(--color-secondary-alpha-50)',
-    'stroke-width': '1.75',
-    'stroke-dasharray': 'none',
-    'opacity': '0.6',
-    'transition': 'all 0.2s ease',
-  };
-}
-
-function getEdgeClass(edge: BezierEdge): string {
-  return edge.fromNode && edge.toNode ? 'node-edge' : '';
 }
 
 function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
@@ -492,15 +562,14 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
         }"
       >
         <path
-          v-for="edge in bezierEdges"
+          v-for="edge in routedEdges"
           :key="edge.key"
           :d="edge.path"
           fill="none"
-          v-bind="getEdgeStyle(edge)"
-          :class="[
-            getEdgeClass(edge),
-            { 'highlighted-edge': isEdgeHighlighted(edge) }
-          ]"
+          stroke="var(--color-secondary-alpha-50)"
+          stroke-width="1.75"
+          opacity="0.6"
+          :class="['node-edge', { 'highlighted-edge': isEdgeHighlighted(edge) }]"
         />
 
         <g
@@ -519,14 +588,14 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             :width="nodeWidth"
             :height="nodeHeight"
             rx="10"
-            fill="var(--color-box-body)"
+            fill="var(--workflow-card-fill)"
             stroke="var(--color-secondary-alpha-50)"
             stroke-width="1.25"
             class="job-rect"
           />
 
           <circle
-            v-if="nodesWithIncomingEdge.has(job.name)"
+            v-if="nodesWithIncomingEdge.has(job.id)"
             :cx="job.x"
             :cy="job.y + nodeHeight / 2"
             r="6"
@@ -534,7 +603,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
           />
 
           <circle
-            v-if="nodesWithOutgoingEdge.has(job.name)"
+            v-if="nodesWithOutgoingEdge.has(job.id)"
             :cx="job.x + nodeWidth"
             :cy="job.y + nodeHeight / 2"
             r="6"
@@ -588,6 +657,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 <style scoped>
 .workflow-graph {
   position: relative;
+  --workflow-card-fill: color-mix(in srgb, var(--color-box-body) 84%, black);
 }
 
 .graph-header {
@@ -623,14 +693,8 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   font-weight: var(--font-weight-medium);
 }
 
-.graph-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .graph-container {
-  overflow: auto;
+  overflow: hidden;
   padding: 12px 16px 20px;
   border-radius: 10px;
   cursor: grab;
