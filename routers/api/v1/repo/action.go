@@ -1831,7 +1831,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 	}
 
 	if actions.IsArtifactV4(art) {
-		ok, err := actions.DownloadArtifactV4ServeDirectOnly(ctx.Base, art, actions.ContentDispositionAttachment)
+		ok, err := actions.DownloadArtifactV4ServeDirectOnly(ctx.Base, art)
 		if ok {
 			return
 		}
@@ -1887,7 +1887,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 		return
 	}
 	if actions.IsArtifactV4(art) {
-		err := actions.DownloadArtifactV4(ctx.Base, art, "attachment")
+		err := actions.DownloadArtifactV4(ctx.Base, art)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

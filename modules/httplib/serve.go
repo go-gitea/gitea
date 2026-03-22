@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -19,6 +18,7 @@ import (
 	charsetModule "code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -30,7 +30,7 @@ type ServeHeaderOptions struct {
 	ContentType        string // defaults to "application/octet-stream"
 	ContentTypeCharset string
 	ContentLength      *int64
-	Disposition        string // defaults to "attachment"
+	Disposition        public.ContentDispositionType // defaults to "attachment"
 	Filename           string
 	CacheIsPublic      bool
 	CacheDuration      time.Duration // defaults to 5 minutes
@@ -64,11 +64,10 @@ func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 	if opts.Filename != "" {
 		disposition := opts.Disposition
 		if disposition == "" {
-			disposition = "attachment"
+			disposition = public.ContentDispositionAttachment
 		}
 
-		backslashEscapedName := strings.ReplaceAll(strings.ReplaceAll(opts.Filename, `\`, `\\`), `"`, `\"`) // \ -> \\, " -> \"
-		header.Set("Content-Disposition", fmt.Sprintf(`%s; filename="%s"; filename*=UTF-8''%s`, disposition, backslashEscapedName, url.PathEscape(opts.Filename)))
+		header.Set("Content-Disposition", public.EncodeContentDisposition(disposition, opts.Filename))
 		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 
@@ -124,9 +123,9 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, mineBuf []byt
 	}
 
 	// TODO: UNIFY-CONTENT-DISPOSITION-FROM-STORAGE
-	opts.Disposition = "inline"
+	opts.Disposition = public.ContentDispositionInline
 	if sniffedType.IsSvgImage() && !setting.UI.SVG.Enabled {
-		opts.Disposition = "attachment"
+		opts.Disposition = public.ContentDispositionAttachment
 	}
 
 	ServeSetHeaders(w, opts)

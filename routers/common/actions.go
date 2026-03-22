@@ -10,6 +10,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
@@ -62,7 +63,7 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 		ContentLength:      &task.LogSize,
 		ContentType:        "text/plain",
 		ContentTypeCharset: "utf-8",
-		Disposition:        "attachment",
+		Disposition:        public.ContentDispositionAttachment,
 	})
 	return nil
 }

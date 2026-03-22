@@ -78,28 +78,28 @@ func testBlobStorageURLContentTypeAndDisposition(t *testing.T, typStr Type, cfg 
 
 	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", ServeDirectOptions{
 		ContentType:        "text/plain; charset=utf-8",
-		ContentDisposition: `inline; filename="test.txt"`,
+		ContentDisposition: `inline; filename=test.txt`,
 	}, nil)
 
 	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.pdf", ServeDirectOptions{
 		ContentType:        "application/pdf",
-		ContentDisposition: `inline; filename="test.pdf"`,
+		ContentDisposition: `inline; filename=test.pdf`,
 	}, nil)
 
 	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", ServeDirectOptions{
-		ContentDisposition: `inline; filename="test.wasm"`,
+		ContentDisposition: `inline; filename=test.wasm`,
 	}, nil)
 
 	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", ServeDirectOptions{
-		ContentDisposition: `inline; filename="test.wasm"`,
+		ContentDisposition: `inline; filename=test.wasm`,
 	}, &ServeDirectOptions{})
 
 	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", ServeDirectOptions{
 		ContentType:        "application/octet-stream",
-		ContentDisposition: `inline; filename="test.xml"`,
+		ContentDisposition: `inline; filename=test.xml`,
 	}, &ServeDirectOptions{
 		ContentType:        "application/octet-stream",
-		ContentDisposition: `inline; filename="test.xml"`,
+		ContentDisposition: `inline; filename=test.xml`,
 	})
 
 	assert.NoError(t, s.Delete(testfilename))

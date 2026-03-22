@@ -11,6 +11,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"strings"
 	"testing"
@@ -496,17 +497,19 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 	assert.NoError(t, err)
 
 	table := []struct {
-		Name         string
-		ArtifactName string
-		ServeDirect  bool
-		ContentType  string
+		Name               string
+		ArtifactName       string
+		FileName           string
+		ServeDirect        bool
+		ContentType        string
+		ContentDisposition string
 	}{
-		{Name: "Download-Zip", ArtifactName: "artifact-v4-download", ContentType: actions.ArtifactV4ContentEncoding},
-		{Name: "Download-Pdf", ArtifactName: "report.pdf", ContentType: "application/pdf"},
-		{Name: "Download-Html", ArtifactName: "report.html", ContentType: "application/html"},
-		{Name: "ServeDirect-Zip", ArtifactName: "artifact-v4-download", ContentType: actions.ArtifactV4ContentEncoding, ServeDirect: true},
-		{Name: "ServeDirect-Pdf", ArtifactName: "report.pdf", ContentType: "application/pdf", ServeDirect: true},
-		{Name: "ServeDirect-Html", ArtifactName: "report.html", ContentType: "application/html", ServeDirect: true},
+		{Name: "Download-Zip", ArtifactName: "artifact-v4-download", FileName: "artifact-v4-download.zip", ContentType: actions.ArtifactV4ContentEncoding},
+		{Name: "Download-Pdf", ArtifactName: "report.pdf", FileName: "report.pdf", ContentType: "application/pdf"},
+		{Name: "Download-Html", ArtifactName: "report.html", FileName: "report.html", ContentType: "application/html"},
+		{Name: "ServeDirect-Zip", ArtifactName: "artifact-v4-download", FileName: "artifact-v4-download.zip", ContentType: actions.ArtifactV4ContentEncoding, ServeDirect: true},
+		{Name: "ServeDirect-Pdf", ArtifactName: "report.pdf", FileName: "report.pdf", ContentType: "application/pdf", ServeDirect: true},
+		{Name: "ServeDirect-Html", ArtifactName: "report.html", FileName: "report.html", ContentType: "application/html", ServeDirect: true},
 	}
 
 	for _, entry := range table {
@@ -556,6 +559,7 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 			assert.NotEmpty(t, finalizeResp.SignedUrl)
 
 			body := strings.Repeat("D", 1024)
+			var contentDisposition string
 			if entry.ServeDirect {
 				externalReq, err := http.NewRequestWithContext(t.Context(), http.MethodGet, finalizeResp.SignedUrl, nil)
 				require.NoError(t, err)
@@ -563,7 +567,7 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, http.StatusOK, externalResp.StatusCode)
 				assert.Equal(t, entry.ContentType, externalResp.Header.Get("Content-Type"))
-				// FIXME Content-Disposition Check
+				contentDisposition = externalResp.Header.Get("Content-Disposition")
 				buf := make([]byte, 1024)
 				n, err := io.ReadAtLeast(externalResp.Body, buf, len(buf))
 				externalResp.Body.Close()
@@ -574,9 +578,13 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 				req = NewRequest(t, "GET", finalizeResp.SignedUrl)
 				resp = MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, entry.ContentType, resp.Header().Get("Content-Type"))
-				// FIXME Content-Type-Disposition Check
+				contentDisposition = resp.Header().Get("Content-Disposition")
 				assert.Equal(t, body, resp.Body.String())
 			}
+			disposition, param, err := mime.ParseMediaType(contentDisposition)
+			require.NoError(t, err)
+			assert.Equal(t, "inline", disposition)
+			assert.Equal(t, entry.FileName, param["filename"])
 		})
 	}
 }

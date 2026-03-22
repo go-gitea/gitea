@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
@@ -717,7 +718,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	}
 
 	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
-		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0], actions.ContentDispositionInline)
+		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
 			ctx.ServerError("DownloadArtifactV4", err)
 			return
@@ -725,7 +726,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		return
 	}
 
-	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(artifactName), artifactName))
+	ctx.Resp.Header().Set("Content-Disposition", public.EncodeContentDisposition(public.ContentDispositionAttachment, artifactName+".zip"))
 
 	// Artifacts using the v1-v3 backend are stored as multiple individual files per artifact on the backend
 	// Those need to be zipped for download
