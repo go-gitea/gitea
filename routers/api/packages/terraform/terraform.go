@@ -189,6 +189,14 @@ func UploadState(ctx *context.Context) {
 
 // DeleteStateBySerial deletes the specific serial of a terraform package as long as it's not the latest one.
 func DeleteStateBySerial(ctx *context.Context) {
+	lockKey := getLockKey(ctx)
+	release, err := globallock.Lock(ctx, lockKey)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer release()
+
 	serial := ctx.PathParam("serial")
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformState, ctx.PathParam("name"), serial)
 	if errors.Is(err, packages_model.ErrPackageNotExist) {
@@ -225,6 +233,14 @@ func DeleteStateBySerial(ctx *context.Context) {
 func DeleteState(ctx *context.Context) {
 	packageName := ctx.PathParam("name")
 
+	lockKey := getLockKey(ctx)
+	release, err := globallock.Lock(ctx, lockKey)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer release()
+
 	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformState, packageName)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) {
@@ -249,6 +265,12 @@ func DeleteState(ctx *context.Context) {
 		PackageID:  p.ID,
 		IsInternal: optional.None[bool](),
 	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypePackage, p.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
