@@ -14,12 +14,11 @@ import (
 	"unicode"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	terraform_model "code.gitea.io/gitea/models/packages/terraform"
 	"code.gitea.io/gitea/modules/globallock"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
+	terraform_module "code.gitea.io/gitea/modules/packages/terraform"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -89,14 +88,6 @@ func isValidPackageName(packageName string) bool {
 	return packageNameRegex.MatchString(packageName) && packageName != ".."
 }
 
-type TFState struct {
-	Version          int    `json:"version"`
-	TerraformVersion string `json:"terraform_version"`
-	Serial           uint64 `json:"serial"`
-	Lineage          string `json:"lineage"`
-	// modules are omitted
-}
-
 // UploadState uploads the specific terraform package.
 func UploadState(ctx *context.Context) {
 	packageName := ctx.PathParam("name")
@@ -120,12 +111,14 @@ func UploadState(ctx *context.Context) {
 	}
 	if p != nil {
 		// Check lock
-		lock, err := terraform_model.GetLock(ctx, p.ID)
+		lock, err := terraform_module.GetLock(ctx, p.ID)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		if lock.ID != ctx.FormString("ID") {
+
+		// If the state is locked, enforce the lock
+		if lock.IsLocked() && lock.ID != ctx.FormString("ID") {
 			ctx.JSON(http.StatusLocked, lock)
 			return
 		}
@@ -148,10 +141,9 @@ func UploadState(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	var state *TFState
-	err = json.NewDecoder(buf).Decode(&state)
+	state, err := terraform_module.ParseState(buf)
 	if err != nil {
-		log.Error("Error decoding json: %v", err)
+		log.Error("Error decoding state: %v", err)
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
@@ -243,7 +235,7 @@ func DeleteState(ctx *context.Context) {
 		return
 	}
 
-	lock, err := terraform_model.GetLock(ctx, p.ID)
+	lock, err := terraform_module.GetLock(ctx, p.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -279,14 +271,21 @@ func DeleteState(ctx *context.Context) {
 
 // LockState locks the specific terraform state.
 // Internally, it adds a property to the package with the lock information
-// Cavieat being that it allocates a package one doesn't exist to attach the property
+// Caveat being that it allocates a package if one doesn't exist to attach the property
 func LockState(ctx *context.Context) {
-	var reqLockInfo *terraform_model.LockInfo
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&reqLockInfo); err != nil {
+	packageName := ctx.PathParam("name")
+	if !isValidPackageName(packageName) {
+		apiError(ctx, http.StatusBadRequest, errors.New("invalid package name"))
+		return
+	}
+
+	var reqLockInfo *terraform_module.LockInfo
+	reqLockInfo, err := terraform_module.ParseLockInfo(ctx.Req.Body)
+	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	packageName := ctx.PathParam("name")
+
 	lockKey := getLockKey(ctx)
 	release, err := globallock.Lock(ctx, lockKey)
 	if err != nil {
@@ -315,7 +314,7 @@ func LockState(ctx *context.Context) {
 		}
 	}
 
-	currentLock, err := terraform_model.GetLock(ctx, p.ID)
+	currentLock, err := terraform_module.GetLock(ctx, p.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -326,7 +325,7 @@ func LockState(ctx *context.Context) {
 		return
 	}
 
-	err = terraform_model.SetLock(ctx, p.ID, reqLockInfo)
+	err = terraform_module.SetLock(ctx, p.ID, reqLockInfo)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -338,12 +337,18 @@ func LockState(ctx *context.Context) {
 // UnlockState unlock the specific terraform state.
 // Internally, it clears the package property
 func UnlockState(ctx *context.Context) {
-	var reqLockInfo terraform_model.LockInfo
-	if err := json.NewDecoder(ctx.Req.Body).Decode(&reqLockInfo); err != nil {
+	packageName := ctx.PathParam("name")
+	if !isValidPackageName(packageName) {
+		apiError(ctx, http.StatusBadRequest, errors.New("invalid package name"))
+		return
+	}
+
+	reqLockInfo, err := terraform_module.ParseLockInfo(ctx.Req.Body)
+	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	packageName := ctx.PathParam("name")
+
 	lockKey := getLockKey(ctx)
 	release, err := globallock.Lock(ctx, lockKey)
 	if err != nil {
@@ -362,14 +367,14 @@ func UnlockState(ctx *context.Context) {
 		return
 	}
 
-	existingLock, err := terraform_model.GetLock(ctx, p.ID)
+	existingLock, err := terraform_module.GetLock(ctx, p.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	// we can bypass messing with the lock since it's empty
-	if existingLock.ID == "" {
+	if !existingLock.IsLocked() {
 		ctx.Status(http.StatusOK)
 		return
 	}
@@ -380,7 +385,7 @@ func UnlockState(ctx *context.Context) {
 		return
 	}
 	// We can clear the state if lock id matches
-	err = terraform_model.RemoveLock(ctx, p.ID)
+	err = terraform_module.RemoveLock(ctx, p.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -407,5 +412,5 @@ func getLatestVersion(ctx *context.Context, packageName string) (*packages_model
 }
 
 func getLockKey(ctx *context.Context) string {
-	return fmt.Sprintf("terraform_lock_%d_%s", ctx.Package.Owner.ID, ctx.PathParam("name"))
+	return fmt.Sprintf("terraform_lock_%d_%s", ctx.Package.Owner.ID, strings.ToLower(ctx.PathParam("name")))
 }

@@ -14,7 +14,6 @@ import (
 	org_model "code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
-	terraform_model "code.gitea.io/gitea/models/packages/terraform"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -27,6 +26,7 @@ import (
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
+	terraform_module "code.gitea.io/gitea/modules/packages/terraform"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -333,7 +333,11 @@ func ViewPackageVersion(ctx *context.Context) {
 		ctx.Data["IsLatestVersion"] = isLatest
 
 		if isLatest {
-			lockInfo, _ := terraform_model.GetLock(ctx, pd.Package.ID)
+			lockInfo, err := terraform_module.GetLock(ctx, pd.Package.ID)
+			if err != nil {
+				ctx.ServerError("GetLock", err)
+				return
+			}
 			if lockInfo.IsLocked() {
 				ctx.Data["TerraformLock"] = lockInfo
 			}
@@ -518,7 +522,7 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
 	if pd.Package.Type == packages_model.TypeTerraformState {
-		lock, err := terraform_model.GetLock(ctx, pd.Package.ID)
+		lock, err := terraform_module.GetLock(ctx, pd.Package.ID)
 		if err != nil {
 			ctx.ServerError("getTerraformLock", err)
 			return
@@ -590,7 +594,7 @@ func ActionPackageTerraformLock(ctx *context.Context) {
 		return
 	}
 
-	existingLock, err := terraform_model.GetLock(ctx, pd.Package.ID)
+	existingLock, err := terraform_module.GetLock(ctx, pd.Package.ID)
 	if err != nil {
 		ctx.ServerError("GetLock", err)
 		return
@@ -602,14 +606,14 @@ func ActionPackageTerraformLock(ctx *context.Context) {
 	}
 
 	lockID := uuid.New().String()
-	lockInfo := &terraform_model.LockInfo{
+	lockInfo := &terraform_module.LockInfo{
 		ID:        lockID,
 		Operation: "Manual UI Lock",
 		Who:       ctx.Doer.Name,
 		Created:   time.Now(),
 	}
 
-	if err := terraform_model.SetLock(ctx, pd.Package.ID, lockInfo); err != nil {
+	if err := terraform_module.SetLock(ctx, pd.Package.ID, lockInfo); err != nil {
 		ctx.ServerError("SetLock", err)
 		return
 	}
@@ -626,7 +630,7 @@ func ActionPackageTerraformUnlock(ctx *context.Context) {
 		return
 	}
 
-	if err := terraform_model.RemoveLock(ctx, pd.Package.ID); err != nil {
+	if err := terraform_module.RemoveLock(ctx, pd.Package.ID); err != nil {
 		ctx.ServerError("RemoveLock", err)
 		return
 	}

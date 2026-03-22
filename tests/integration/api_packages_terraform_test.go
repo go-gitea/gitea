@@ -132,35 +132,35 @@ func TestPackageTerraform(t *testing.T) {
 	t.Run("StateHistory", func(t *testing.T) {
 		// Upload 3 versions
 		for i := range 3 {
-			state := genState(i)
+			state := genState(i + 1) // 1-based
 			req := NewRequestWithBody(t, "POST", url, strings.NewReader(state)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 		}
 
-		// Verify latest is 2
+		// Verify latest is 3
 		req := NewRequest(t, "GET", url).AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, genState(3), resp.Body.String())
+
+		// Verify version 2 is accessible
+		req = NewRequest(t, "GET", url+"/versions/2").AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, genState(2), resp.Body.String())
 
-		// Verify version 1 is accessible
-		req = NewRequest(t, "GET", url+"/versions/1").AddBasicAuth(user.Name)
-		resp = MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, genState(1), resp.Body.String())
-
-		// Delete version 1
-		req = NewRequest(t, "DELETE", url+"/versions/1").AddBasicAuth(user.Name)
+		// Delete version 2
+		req = NewRequest(t, "DELETE", url+"/versions/2").AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		// Verify version 1 is gone from DB
-		_, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeTerraformState, packageName, "1")
+		// Verify version 2 is gone from DB
+		_, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeTerraformState, packageName, "2")
 		assert.ErrorIs(t, err, packages.ErrPackageNotExist)
 
-		// Verify version 1 is gone from API
-		req = NewRequest(t, "GET", url+"/versions/1").AddBasicAuth(user.Name)
+		// Verify version 2 is gone from API
+		req = NewRequest(t, "GET", url+"/versions/2").AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		// Deleting latest version (2) should be forbidden
-		req = NewRequest(t, "DELETE", url+"/versions/2").AddBasicAuth(user.Name)
+		// Deleting latest version (3) should be forbidden
+		req = NewRequest(t, "DELETE", url+"/versions/3").AddBasicAuth(user.Name)
 		resp = MakeRequest(t, req, http.StatusForbidden)
 		assert.Contains(t, resp.Body.String(), "cannot delete the latest version")
 
@@ -261,6 +261,13 @@ func TestPackageTerraform(t *testing.T) {
 			MakeRequest(t, req, http.StatusOK)
 			req = NewRequest(t, "DELETE", url).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusOK)
+		})
+		t.Run("PutEmpty", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			// safeguard against null payload
+			req := NewRequestWithBody(t, "POST", url, strings.NewReader("null")).AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusBadRequest)
 		})
 	})
 }

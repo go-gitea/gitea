@@ -5,13 +5,17 @@ package terraform
 
 import (
 	"context"
+	"io"
 	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const LockFile = "terraform.lock"
+
+var ErrMissingLockID = util.NewInvalidArgumentErrorf("terraform lock is missing an ID")
 
 // LockInfo is the metadata for a terraform lock.
 type LockInfo struct {
@@ -26,6 +30,19 @@ type LockInfo struct {
 
 func (l *LockInfo) IsLocked() bool {
 	return l.ID != ""
+}
+
+func ParseLockInfo(r io.Reader) (*LockInfo, error) {
+	var lock LockInfo
+	err := json.NewDecoder(r).Decode(&lock)
+	if err != nil {
+		return nil, err
+	}
+	// ID is required. Rest is less important.
+	if lock.ID == "" {
+		return nil, ErrMissingLockID
+	}
+	return &lock, nil
 }
 
 // GetLock returns the terraform lock for the given package.
