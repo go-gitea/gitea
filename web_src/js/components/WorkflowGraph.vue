@@ -41,7 +41,6 @@ interface StoredState {
 
 const props = defineProps<{
   jobs: ActionsJob[];
-  currentJobId?: number;
   runLink: string;
   workflowId: string;
 }>()
@@ -507,7 +506,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
         <g
           v-for="job in jobsWithLayout"
           :key="job.id"
-          :class="{'current-job': job.id === currentJobId}"
           class="job-node-group"
           @click="onNodeClick(job, $event)"
           @mouseenter="handleNodeMouseEnter(job)"
@@ -522,8 +520,8 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             :height="nodeHeight"
             rx="10"
             fill="var(--color-box-body)"
-            :stroke="job.id === currentJobId ? 'var(--color-primary)' : 'var(--color-secondary-alpha-20)'"
-            :stroke-width="job.id === currentJobId ? '1.75' : '1'"
+            stroke="var(--color-secondary-alpha-20)"
+            stroke-width="1"
             class="job-rect"
           />
 
@@ -672,14 +670,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 .job-node-group:hover .job-rect {
   filter: brightness(1.01);
   transform: translateX(1px);
-}
-
-.job-node-group.current-job {
-  cursor: default;
-}
-
-.job-node-group.current-job .job-rect {
-  filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--color-primary) 12%, transparent));
 }
 
 .job-name {
