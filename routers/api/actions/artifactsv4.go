@@ -533,7 +533,6 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 			ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
 			return
 		}
-
 	} else {
 		var chunks []*chunkFileItem
 		blockList, blockListErr := r.readBlockList(runID, artifact.ID)
