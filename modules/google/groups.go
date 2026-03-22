@@ -8,13 +8,36 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/modules/json"
 )
 
-const IAMScope = "https://www.googleapis.com/auth/cloud-identity.groups.readonly"
+const (
+	IAMScope                 = "https://www.googleapis.com/auth/cloud-identity.groups.readonly"
+	defaultIAMGroupsEndpoint = "https://content-cloudidentity.googleapis.com/v1/groups/-/memberships:searchDirectGroups"
+)
 
-var IAMGroupsEndpoint = "https://content-cloudidentity.googleapis.com/v1/groups/-/memberships:searchDirectGroups"
+// maxGroupPages is the maximum number of pages fetched from the Google
+// Cloud Identity API. The API returns up to 200 groups per page by default,
+// so this caps group membership at 4,000 groups per user — far beyond any
+// realistic Google Workspace organization.
+const maxGroupPages = 20
+
+// Client calls Google Workspace APIs.
+type Client struct {
+	httpClient     *http.Client
+	groupsEndpoint string
+}
+
+// NewClient creates a Client using the given authenticated HTTP client.
+// The client should be built from an OAuth2 token carrying IAMScope.
+func NewClient(httpClient *http.Client) *Client {
+	return &Client{
+		httpClient:     httpClient,
+		groupsEndpoint: defaultIAMGroupsEndpoint,
+	}
+}
 
 // groupMembership represents a single membership entry returned by the
 // Cloud Identity Groups API searchDirectGroups endpoint.
@@ -34,22 +57,24 @@ type groupsResponse struct {
 // groups the given user (identified by email) is a direct member of.
 // The caller must supply an HTTP client already authenticated with an access
 // token that carries the IAMScope scope.
-func FetchGroups(ctx context.Context, client *http.Client, email string) ([]string, error) {
+func (c *Client) FetchGroups(ctx context.Context, email string) ([]string, error) {
 	groups := make([]string, 0, 16)
 	pageToken := ""
 
-	for {
-		url := fmt.Sprintf("%s?query=member_key_id=='%s'", IAMGroupsEndpoint, email)
+	for range maxGroupPages {
+		params := url.Values{}
+		params.Set("query", fmt.Sprintf("member_key_id=='%s'", email))
 		if pageToken != "" {
-			url = fmt.Sprintf("%s&pageToken=%s", url, pageToken)
+			params.Set("pageToken", pageToken)
 		}
+		apiURL := c.groupsEndpoint + "?" + params.Encode()
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 		if err != nil {
 			return nil, fmt.Errorf("google groups: build request: %w", err)
 		}
 
-		resp, err := client.Do(req)
+		resp, err := c.httpClient.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("google groups: HTTP request: %w", err)
 		}

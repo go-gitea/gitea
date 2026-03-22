@@ -1,4 +1,4 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package google
@@ -15,10 +15,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func mockGroupsServer(t *testing.T, pages [][]string) *httptest.Server {
+func newTestClient(t *testing.T, server *httptest.Server) *Client {
+	t.Helper()
+	c := NewClient(server.Client())
+	c.groupsEndpoint = server.URL
+	return c
+}
+
+func mockGroupsServer(t *testing.T, expectedEmail string, pages [][]string) *httptest.Server {
 	t.Helper()
 	pageIndex := 0
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Validate the query contains the correct member_key_id
+		expectedQuery := fmt.Sprintf("member_key_id=='%s'", expectedEmail)
+		assert.Equal(t, expectedQuery, r.URL.Query().Get("query"))
+
 		var memberships []string
 		for _, g := range pages[pageIndex] {
 			memberships = append(memberships, fmt.Sprintf(`{"groupKey":{"id":%q}}`, g))
@@ -41,45 +52,48 @@ func mockGroupsServer(t *testing.T, pages [][]string) *httptest.Server {
 }
 
 func TestFetchGoogleGroups_SinglePage(t *testing.T) {
-	server := mockGroupsServer(t, [][]string{
+	server := mockGroupsServer(t, "user@example.com", [][]string{
 		{"group-a@example.com", "group-b@example.com"},
 	})
 	defer server.Close()
 
-	origEndpoint := IAMGroupsEndpoint
-	IAMGroupsEndpoint = server.URL
-	defer func() { IAMGroupsEndpoint = origEndpoint }()
+	client := newTestClient(t, server)
+	groups, err := client.FetchGroups(context.Background(), "user@example.com")
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"group-a@example.com", "group-b@example.com"}, groups)
+}
 
-	groups, err := FetchGroups(context.Background(), &http.Client{}, "user@example.com")
+func TestFetchGroups_SinglePage(t *testing.T) {
+	server := mockGroupsServer(t, "user@example.com", [][]string{
+		{"group-a@example.com", "group-b@example.com"},
+	})
+	defer server.Close()
+
+	client := newTestClient(t, server)
+	groups, err := client.FetchGroups(context.Background(), "user@example.com")
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"group-a@example.com", "group-b@example.com"}, groups)
 }
 
 func TestFetchGoogleGroups_MultiPage(t *testing.T) {
-	server := mockGroupsServer(t, [][]string{
+	server := mockGroupsServer(t, "user@example.com", [][]string{
 		{"group-a@example.com"},
 		{"group-b@example.com", "group-c@example.com"},
 	})
 	defer server.Close()
 
-	origEndpoint := IAMGroupsEndpoint
-	IAMGroupsEndpoint = server.URL
-	defer func() { IAMGroupsEndpoint = origEndpoint }()
-
-	groups, err := FetchGroups(context.Background(), &http.Client{}, "user@example.com")
+	client := newTestClient(t, server)
+	groups, err := client.FetchGroups(context.Background(), "user@example.com")
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"group-a@example.com", "group-b@example.com", "group-c@example.com"}, groups)
 }
 
 func TestFetchGoogleGroups_Empty(t *testing.T) {
-	server := mockGroupsServer(t, [][]string{{}})
+	server := mockGroupsServer(t, "user@example.com", [][]string{{}})
 	defer server.Close()
 
-	origEndpoint := IAMGroupsEndpoint
-	IAMGroupsEndpoint = server.URL
-	defer func() { IAMGroupsEndpoint = origEndpoint }()
-
-	groups, err := FetchGroups(context.Background(), &http.Client{}, "user@example.com")
+	client := newTestClient(t, server)
+	groups, err := client.FetchGroups(context.Background(), "user@example.com")
 	require.NoError(t, err)
 	assert.Empty(t, groups)
 }
@@ -91,11 +105,8 @@ func TestFetchGoogleGroups_APIError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	origEndpoint := IAMGroupsEndpoint
-	IAMGroupsEndpoint = server.URL
-	defer func() { IAMGroupsEndpoint = origEndpoint }()
-
-	groups, err := FetchGroups(context.Background(), &http.Client{}, "user@example.com")
+	client := newTestClient(t, server)
+	groups, err := client.FetchGroups(context.Background(), "user@example.com")
 	require.Error(t, err)
 	assert.Nil(t, groups)
 	assert.Contains(t, err.Error(), "403")
@@ -108,11 +119,8 @@ func TestFetchGoogleGroups_InvalidJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	origEndpoint := IAMGroupsEndpoint
-	IAMGroupsEndpoint = server.URL
-	defer func() { IAMGroupsEndpoint = origEndpoint }()
-
-	groups, err := FetchGroups(context.Background(), &http.Client{}, "user@example.com")
+	client := newTestClient(t, server)
+	groups, err := client.FetchGroups(context.Background(), "user@example.com")
 	require.Error(t, err)
 	assert.Nil(t, groups)
 }

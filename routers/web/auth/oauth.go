@@ -484,10 +484,16 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 	if oauth2Source.Provider == "gplus" && slices.Contains(oauth2Source.Scopes, google_module.IAMScope) {
 		// Build an HTTP client that carries the access token via
 		// golang.org/x/oauth2 transport, which is what Google APIs expect.
+		// Note: we use only the access token here without a refresh token. This is
+		// intentional — gothUser.AccessToken is issued moments before this call
+		// during the OAuth2 login flow, so it is guaranteed to be fresh. If the
+		// groups API call fails due to expiry in an edge case, the login continues
+		// without groups (non-fatal warning is logged below).
 		oauthToken := &go_oauth2.Token{AccessToken: gothUser.AccessToken}
-		tokenSource := go_oauth2.StaticTokenSource(oauthToken)
-		authenticatedClient := go_oauth2.NewClient(ctx, tokenSource)
-		googleGroups, err := google_module.FetchGroups(ctx, authenticatedClient, gothUser.Email)
+		authenticatedClient := go_oauth2.NewClient(ctx, go_oauth2.StaticTokenSource(oauthToken))
+
+		googleClient := google_module.NewClient(authenticatedClient)
+		googleGroups, err := googleClient.FetchGroups(ctx, gothUser.Email)
 		if err != nil {
 			log.Warn("OAuth2 Google: failed to fetch Workspace groups for %s: %v", gothUser.Email, err)
 			// Non-fatal: continue login without groups rather than blocking the user.
