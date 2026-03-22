@@ -13,7 +13,7 @@ export function initRepositoryActionView() {
   const view = createApp(RepoActionView, {
     runId: parseInt(el.getAttribute('data-run-id')!),
     jobId: parseInt(el.getAttribute('data-job-id')!),
-    actionsURL: el.getAttribute('data-actions-url'),
+    actionsUrl: el.getAttribute('data-actions-url'),
     locale: {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),
@@ -24,6 +24,10 @@ export function initRepositoryActionView() {
       commit: el.getAttribute('data-locale-runs-commit'),
       pushedBy: el.getAttribute('data-locale-runs-pushed-by'),
       workflowGraph: el.getAttribute('data-locale-runs-workflow-graph'),
+      summary: el.getAttribute('data-locale-summary'),
+      allJobs: el.getAttribute('data-locale-all-jobs'),
+      triggeredVia: el.getAttribute('data-locale-triggered-via'),
+      totalDuration: el.getAttribute('data-locale-total-duration'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       areYouSure: el.getAttribute('data-locale-are-you-sure'),
       artifactExpired: el.getAttribute('data-locale-artifact-expired'),
