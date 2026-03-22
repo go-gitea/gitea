@@ -209,6 +209,9 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 			if entry.path != "" {
 				assert.Equal(t, entry.path, artifact.ArtifactPath)
 			}
+			assert.Equal(t, actions_model.ArtifactStatusUploadConfirmed, artifact.Status)
+			assert.Equal(t, int64(entry.append+1)*1024, artifact.FileSize)
+			assert.Equal(t, int64(entry.append+1)*1024, artifact.FileCompressedSize)
 		})
 	}
 }
@@ -486,6 +489,9 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 			} else {
 				assert.Equal(t, actions.ArtifactV4ContentEncoding, artifact.ContentEncoding)
 			}
+			assert.Equal(t, actions_model.ArtifactStatusUploadConfirmed, artifact.Status)
+			assert.Equal(t, int64(2048), artifact.FileSize)
+			assert.Equal(t, int64(2048), artifact.FileCompressedSize)
 		})
 	}
 }

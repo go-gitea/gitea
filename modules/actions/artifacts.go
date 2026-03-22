@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -41,10 +42,11 @@ func GetArtifactV4ServeDirectURL(ctx *context.Base, art *actions_model.ActionArt
 		ContentType:        contentType,
 		ContentDisposition: contentDisposition,
 	})
-	if u != nil && err == nil {
-		return u.String(), nil
+	if err != nil {
+		log.Error("GetArtifactV4ServeDirectURL failed with error: %v", err)
+		return "", nil
 	}
-	return "", nil
+	return u.String(), nil
 }
 
 func DownloadArtifactV4ServeDirectOnly(ctx *context.Base, art *actions_model.ActionArtifact) (bool, error) {
@@ -70,10 +72,20 @@ func DownloadArtifactV4Fallback(ctx *context.Base, art *actions_model.ActionArti
 		return err
 	}
 
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return err
+	}
+
 	ctx.Resp.Header().Set("Content-Type", contentType)
 	ctx.Resp.Header().Set("Content-Disposition", contentDisposition)
-	// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context, it seems fine to render it inline
-	if mediaType, _, err := mime.ParseMediaType(contentType); err != nil || mediaType != "application/pdf" {
+
+	switch mediaType {
+	case "application/pdf":
+		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context, it seems fine to render it inline
+		ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
+	default:
+		// Disable script execution of html files, since we serve the file from the same domain as gitea
 		ctx.Resp.Header().Set("Content-Security-Policy", "sandbox; style-src 'unsafe-inline'; default-src 'none';")
 	}
 	http.ServeContent(ctx.Resp, ctx.Req, art.ArtifactPath, art.CreatedUnix.AsLocalTime(), f)

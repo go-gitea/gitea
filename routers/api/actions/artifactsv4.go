@@ -326,6 +326,10 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 		retentionDays = int64(time.Until(req.ExpiresAt.AsTime()).Hours() / 24)
 	}
 	encoding := req.GetMimeType().GetValue()
+	// Validate media type
+	if encoding != "" {
+		encoding, _, _ = mime.ParseMediaType(encoding)
+	}
 	fileName := artifactName
 	if !strings.Contains(encoding, "/") || strings.EqualFold(encoding, ArtifactV4ContentEncoding) && !strings.HasSuffix(fileName, ".zip") {
 		encoding = ArtifactV4ContentEncoding
@@ -345,13 +349,18 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 	var respData CreateArtifactResponse
 
 	if setting.Actions.ArtifactStorage.ServeDirect() && setting.Actions.ArtifactStorage.Type == setting.AzureBlobStorageType {
-		storagePath := fmt.Sprintf("%d/%d/%d.%s", artifact.RunID%255, artifact.ID%255, time.Now().UnixNano(), ".blob")
+		storagePath := fmt.Sprintf("%d/%d/%d.blob", artifact.RunID%255, artifact.ID%255, time.Now().UnixNano())
 		if artifact.StoragePath != "" {
 			_ = storage.ActionsArtifacts.Delete(artifact.StoragePath)
 		}
 		artifact.StoragePath = storagePath
 		artifact.Status = actions_model.ArtifactStatusUploadPending
-		u, _ := storage.ActionsArtifacts.ServeDirectURL(artifact.StoragePath, artifact.ArtifactPath, http.MethodPut, nil)
+		u, err := storage.ActionsArtifacts.ServeDirectURL(artifact.StoragePath, artifact.ArtifactPath, http.MethodPut, nil)
+		if err != nil {
+			log.Error("Error ServeDirectURL: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "Error ServeDirectURL")
+			return
+		}
 		respData = CreateArtifactResponse{
 			Ok:              true,
 			SignedUploadUrl: u.String(),
@@ -482,23 +491,49 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 	}
 
 	if setting.Actions.ArtifactStorage.ServeDirect() && setting.Actions.ArtifactStorage.Type == setting.AzureBlobStorageType {
-		hashSha256 := sha256.New()
-		obj, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
-		if err != nil {
-			log.Error("Error read block: %v", err)
-			ctx.HTTPError(http.StatusInternalServerError, "Error read block")
+		checksumValue, found := strings.CutPrefix(checksum, "sha256:")
+		var actualLength int64
+		if found {
+			hashSha256 := sha256.New()
+			obj, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
+			if err != nil {
+				log.Error("Error read block: %v", err)
+				ctx.HTTPError(http.StatusInternalServerError, "Error read block")
+				return
+			}
+			defer obj.Close()
+			actualLength, err = io.Copy(hashSha256, obj)
+			if err != nil {
+				log.Error("Error read block: %v", err)
+				ctx.HTTPError(http.StatusInternalServerError, "Error read block")
+				return
+			}
+			rawChecksum := hashSha256.Sum(nil)
+			actualChecksum := hex.EncodeToString(rawChecksum)
+			if checksumValue != actualChecksum {
+				log.Error("Error merge chunks: checksum mismatch")
+				ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks: checksum mismatch")
+				return
+			}
+		} else {
+			fi, err := storage.ActionsArtifacts.Stat(artifact.StoragePath)
+			if err != nil {
+				log.Error("Error stat block: %v", err)
+				ctx.HTTPError(http.StatusInternalServerError, "Error stat block")
+				return
+			}
+			actualLength = fi.Size()
+		}
+		// Update artifact metadata and status now that the upload is confirmed.
+		artifact.FileSize = actualLength
+		artifact.FileCompressedSize = actualLength
+		artifact.Status = actions_model.ArtifactStatusUploadConfirmed
+		if err := actions_model.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+			log.Error("Error UpdateArtifactByID: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
 			return
 		}
-		defer obj.Close()
-		n, _ := io.Copy(hashSha256, obj)
-		rawChecksum := hashSha256.Sum(nil)
-		actualChecksum := hex.EncodeToString(rawChecksum)
-		if checksum != "sha256:"+actualChecksum {
-			log.Error("Error merge chunks: checksum mismatch")
-			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks: checksum mismatch")
-			return
-		}
-		_ = n
+
 	} else {
 		var chunks []*chunkFileItem
 		blockList, blockListErr := r.readBlockList(runID, artifact.ID)
