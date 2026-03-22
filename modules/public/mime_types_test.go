@@ -1,3 +1,6 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package public
 
 import (
@@ -17,6 +20,7 @@ func TestContentDisposition(t *testing.T) {
 		{disposition: ContentDispositionInline, filename: "test.txt", header: "inline; filename=test.txt"},
 		{disposition: ContentDispositionInline, filename: "test❌.txt", header: "inline; filename=test_.txt; filename*=utf-8''test%E2%9D%8C.txt"},
 		{disposition: ContentDispositionInline, filename: "test ❌.txt", header: "inline; filename=\"test _.txt\"; filename*=utf-8''test%20%E2%9D%8C.txt"},
+		{disposition: ContentDispositionInline, filename: "\"test.txt", header: "inline; filename=\"\\\"test.txt\""},
 	}
 
 	for _, entry := range table {
