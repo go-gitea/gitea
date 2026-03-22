@@ -5,12 +5,15 @@ package terraform
 
 import (
 	"context"
+	"errors"
 	"io"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
+	"xorm.io/builder"
 )
 
 const LockFile = "terraform.lock"
@@ -68,10 +71,31 @@ func SetLock(ctx context.Context, packageID int64, lock *LockInfo) error {
 		return err
 	}
 
-	return packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, packageID, LockFile, string(jsonBytes))
+	return updateLock(ctx, packageID, string(jsonBytes), builder.Eq{"value": ""})
 }
 
 // RemoveLock removes the terraform lock for the given package.
 func RemoveLock(ctx context.Context, packageID int64) error {
-	return packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, packageID, LockFile, "")
+	return updateLock(ctx, packageID, "", builder.Neq{"value": ""})
+}
+
+func updateLock(ctx context.Context, refID int64, value string, cond builder.Cond) error {
+	pp := packages_model.PackageProperty{RefType: packages_model.PropertyTypePackage, RefID: refID, Name: LockFile}
+	ok, err := db.GetEngine(ctx).Get(&pp)
+	if err != nil {
+		return err
+	}
+	if ok {
+		n, err := db.GetEngine(ctx).Where("ref_type=? AND ref_id=? AND name=?", packages_model.PropertyTypePackage, refID, LockFile).And(cond).Cols("value").Update(&packages_model.PackageProperty{Value: value})
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return errors.New("failed to update lock state")
+		}
+
+		return nil
+	}
+	_, err = packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, refID, LockFile, value)
+	return err
 }
