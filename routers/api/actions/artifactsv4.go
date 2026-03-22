@@ -327,7 +327,7 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 	}
 	encoding := req.GetMimeType().GetValue()
 	fileName := artifactName
-	if !strings.Contains(encoding, "/") {
+	if !strings.Contains(encoding, "/") || strings.EqualFold(encoding, ArtifactV4ContentEncoding) && !strings.HasSuffix(fileName, ".zip") {
 		encoding = ArtifactV4ContentEncoding
 		fileName = artifactName + ".zip"
 	}
@@ -500,7 +500,6 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 		}
 		_ = n
 	} else {
-
 		var chunks []*chunkFileItem
 		blockList, blockListErr := r.readBlockList(runID, artifact.ID)
 		chunks, err = listOrderedChunksForArtifact(r.fs, runID, artifact.ID, blockList)

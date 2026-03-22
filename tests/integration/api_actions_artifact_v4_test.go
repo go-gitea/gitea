@@ -58,10 +58,12 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 		blockID     bool
 		noLength    bool
 		append      int
+		path        string
 	}{
 		{
 			name:    "artifact",
 			version: 4,
+			path:    "artifact.zip",
 		},
 		{
 			name:    "artifact2",
@@ -108,6 +110,18 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 			version:     7,
 			contentType: "application/json",
 		},
+		{
+			name:        "artifact10",
+			version:     7,
+			contentType: "application/zip",
+			path:        "artifact10.zip",
+		},
+		{
+			name:        "artifact11.zip",
+			version:     7,
+			contentType: "application/zip",
+			path:        "artifact11.zip",
+		},
 	}
 
 	for _, entry := range table {
@@ -118,6 +132,7 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 				Name:                    entry.name,
 				WorkflowRunBackendId:    "792",
 				WorkflowJobRunBackendId: "193",
+				MimeType:                util.Iif(entry.contentType != "", wrapperspb.String(entry.contentType), nil),
 			})).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 			var uploadResp actions.CreateArtifactResponse
@@ -189,6 +204,9 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 				assert.Equal(t, entry.contentType, artifact.ContentEncoding)
 			} else {
 				assert.Equal(t, actions.ArtifactV4ContentEncoding, artifact.ContentEncoding)
+			}
+			if entry.path != "" {
+				assert.Equal(t, entry.path, artifact.ArtifactPath)
 			}
 		})
 	}
@@ -404,6 +422,7 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 			if entry.serveDirect {
 				req.Request.RequestURI = ""
 				nresp, err := http.DefaultClient.Do(req.Request)
+				nresp.Body.Close()
 				require.NoError(t, err)
 				require.Equal(t, http.StatusCreated, nresp.StatusCode)
 			} else {
@@ -415,6 +434,7 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 			if entry.serveDirect {
 				req.Request.RequestURI = ""
 				nresp, err := http.DefaultClient.Do(req.Request)
+				nresp.Body.Close()
 				require.NoError(t, err)
 				require.Equal(t, http.StatusCreated, nresp.StatusCode)
 			} else {
@@ -434,6 +454,7 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 			if entry.serveDirect {
 				req.Request.RequestURI = ""
 				nresp, err := http.DefaultClient.Do(req.Request)
+				nresp.Body.Close()
 				require.NoError(t, err)
 				require.Equal(t, http.StatusCreated, nresp.StatusCode)
 			} else {
