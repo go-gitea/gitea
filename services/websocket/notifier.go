@@ -18,6 +18,12 @@ import (
 	"code.gitea.io/gitea/services/pubsub"
 )
 
+// nowTS returns the current time as a TimeStamp using the real wall clock,
+// avoiding data races with timeutil.MockUnset during tests.
+func nowTS() timeutil.TimeStamp {
+	return timeutil.TimeStamp(time.Now().Unix())
+}
+
 type notificationCountEvent struct {
 	Type  string `json:"type"`
 	Count int64  `json:"count"`
@@ -42,7 +48,7 @@ func run(ctx context.Context) {
 		return
 	}
 
-	then := timeutil.TimeStampNow().Add(-2)
+	then := nowTS().Add(-2)
 	timer := time.NewTicker(setting.UI.Notification.EventSourceUpdateTime)
 	defer timer.Stop()
 
@@ -51,7 +57,7 @@ func run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-timer.C:
-			now := timeutil.TimeStampNow().Add(-2)
+			now := nowTS().Add(-2)
 
 			uidCounts, err := activities_model.GetUIDsAndNotificationCounts(ctx, then, now)
 			if err != nil {
