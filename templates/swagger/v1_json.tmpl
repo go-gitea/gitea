@@ -5578,6 +5578,55 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runs/{run}/rerun-failed-jobs": {
+      "post": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reruns all failed jobs in a workflow run",
+        "operationId": "rerunFailedWorkflowRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/secrets": {
       "get": {
         "produces": [

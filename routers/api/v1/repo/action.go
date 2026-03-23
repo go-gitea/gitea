@@ -1255,7 +1255,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs, nil); err != nil {
+	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs); err != nil {
 		handleWorkflowRerunError(ctx, err)
 		return
 	}
@@ -1266,6 +1266,52 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, convertedRun)
+}
+
+// RerunFailedWorkflowRun Reruns all failed jobs in a workflow run.
+func RerunFailedWorkflowRun(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runs/{run}/rerun-failed-jobs repository rerunFailedWorkflowRun
+	// ---
+	// summary: Reruns all failed jobs in a workflow run
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: id of the run
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, actions_service.GetFailedRerunJobs(jobs)); err != nil {
+		handleWorkflowRerunError(ctx, err)
+		return
+	}
+
+	ctx.Status(http.StatusCreated)
 }
 
 // RerunWorkflowJob Reruns a specific workflow job in a run.
@@ -1321,7 +1367,7 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 	}
 
 	targetJob := jobs[jobIdx]
-	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs, targetJob); err != nil {
+	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, actions_service.GetAllRerunJobs(targetJob, jobs)); err != nil {
 		handleWorkflowRerunError(ctx, err)
 		return
 	}

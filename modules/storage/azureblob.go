@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -246,16 +247,53 @@ func (a *AzureBlobStorage) Delete(path string) error {
 	return convertAzureBlobErr(err)
 }
 
-// URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (a *AzureBlobStorage) URL(path, name, _ string, reqParams url.Values) (*url.URL, error) {
-	blobClient := a.getBlobClient(path)
+func (a *AzureBlobStorage) getSasURL(b *blob.Client, template sas.BlobSignatureValues) (string, error) {
+	urlParts, err := blob.ParseURL(b.URL())
+	if err != nil {
+		return "", err
+	}
 
-	// TODO: OBJECT-STORAGE-CONTENT-TYPE: "browser inline rendering images/PDF" needs proper Content-Type header from storage
-	startTime := time.Now()
-	u, err := blobClient.GetSASURL(sas.BlobPermissions{
-		Read: true,
-	}, time.Now().Add(5*time.Minute), &blob.GetSASURLOptions{
-		StartTime: &startTime,
+	var t time.Time
+	if urlParts.Snapshot == "" {
+		t = time.Time{}
+	} else {
+		t, err = time.Parse(blob.SnapshotTimeFormat, urlParts.Snapshot)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	template.ContainerName = urlParts.ContainerName
+	template.BlobName = urlParts.BlobName
+	template.SnapshotTime = t
+	template.Version = sas.Version
+
+	qps, err := template.SignWithSharedKey(a.credential)
+	if err != nil {
+		return "", err
+	}
+
+	endpoint := b.URL() + "?" + qps.Encode()
+
+	return endpoint, nil
+}
+
+func (a *AzureBlobStorage) ServeDirectURL(storePath, name, method string, reqParams *ServeDirectOptions) (*url.URL, error) {
+	blobClient := a.getBlobClient(storePath)
+
+	startTime := time.Now().UTC()
+
+	param := prepareServeDirectOptions(reqParams, name)
+
+	u, err := a.getSasURL(blobClient, sas.BlobSignatureValues{
+		Permissions: (&sas.BlobPermissions{
+			Read:  method == http.MethodGet || method == http.MethodHead,
+			Write: method == http.MethodPut,
+		}).String(),
+		StartTime:          startTime,
+		ExpiryTime:         startTime.Add(5 * time.Minute),
+		ContentDisposition: param.ContentDisposition,
+		ContentType:        param.ContentType,
 	})
 	if err != nil {
 		return nil, convertAzureBlobErr(err)
