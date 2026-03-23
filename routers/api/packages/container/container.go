@@ -26,6 +26,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -120,17 +121,19 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 	})
 }
 
-func apiUnauthorizedError(ctx *context.Context) {
+func APIUnauthorizedError(ctx *context.Context) {
 	// container registry requires that the "/v2" must be in the root, so the sub-path in AppURL should be removed
 	realmURL := httplib.GuessCurrentHostURL(ctx) + "/v2/token"
 	ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+realmURL+`",service="container_registry",scope="*"`)
+	// support apple container like: container registry login <gitea-host> -u
+	ctx.Resp.Header().Add("WWW-Authenticate", `Basic realm="Gitea Container Registry"`)
 	apiErrorDefined(ctx, errUnauthorized)
 }
 
 // ReqContainerAccess is a middleware which checks the current user valid (real user or ghost if anonymous access is enabled)
 func ReqContainerAccess(ctx *context.Context) {
 	if ctx.Doer == nil || (setting.Service.RequireSignInViewStrict && ctx.Doer.IsGhost()) {
-		apiUnauthorizedError(ctx)
+		APIUnauthorizedError(ctx)
 	}
 }
 
@@ -156,7 +159,7 @@ func Authenticate(ctx *context.Context) {
 	packageScope := auth_service.GetAccessScope(ctx.Data)
 	if u == nil {
 		if setting.Service.RequireSignInViewStrict {
-			apiUnauthorizedError(ctx)
+			APIUnauthorizedError(ctx)
 			return
 		}
 
@@ -170,7 +173,7 @@ func Authenticate(ctx *context.Context) {
 			if err != nil {
 				log.Error("Error checking access scope: %v", err)
 			}
-			apiUnauthorizedError(ctx)
+			APIUnauthorizedError(ctx)
 			return
 		}
 	}
@@ -704,9 +707,9 @@ func DeleteManifest(ctx *context.Context) {
 }
 
 func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) {
-	serveDirectReqParams := make(url.Values)
-	serveDirectReqParams.Set("response-content-type", pfd.Properties.GetByName(container_module.PropertyMediaType))
-	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, ctx.Req.Method, serveDirectReqParams)
+	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, ctx.Req.Method, &storage.ServeDirectOptions{
+		ContentType: pfd.Properties.GetByName(container_module.PropertyMediaType),
+	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
