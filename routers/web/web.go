@@ -33,7 +33,6 @@ import (
 	"code.gitea.io/gitea/routers/web/healthcheck"
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
-	org_setting "code.gitea.io/gitea/routers/web/org/setting"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
@@ -693,7 +692,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, packagesEnabled)
 
 		m.Group("/actions", func() {
-			m.Get("", user_setting.RedirectToDefaultSetting)
+			m.Get("", misc.LocationRedirect("./actions/general"))
+			m.Group("/general", func() {
+				m.Get("", shared_actions.GeneralSettings)
+				m.Post("", shared_actions.UpdateGeneralSettings)
+			})
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
@@ -785,6 +788,16 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
 		})
 
+		m.Group("/badges", func() {
+			m.Get("", admin.Badges)
+			m.Combo("/new").Get(admin.NewBadge).Post(web.Bind(forms.AdminCreateBadgeForm{}), admin.NewBadgePost)
+			m.Get("/slug/{badge_slug}", admin.ViewBadge)
+			m.Combo("/slug/{badge_slug}/edit").Get(admin.EditBadge).Post(web.Bind(forms.AdminEditBadgeForm{}), admin.EditBadgePost)
+			m.Post("/slug/{badge_slug}/delete", admin.DeleteBadge)
+			m.Combo("/slug/{badge_slug}/users").Get(admin.BadgeUsers).Post(admin.BadgeUsersPost)
+			m.Post("/slug/{badge_slug}/users/delete", admin.DeleteBadgeUser)
+		})
+
 		m.Group("/emails", func() {
 			m.Get("", admin.Emails)
 			m.Post("/activate", admin.ActivateEmail)
@@ -846,7 +859,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, oauth2Enabled)
 
 		m.Group("/actions", func() {
-			m.Get("", admin.RedirectToDefaultSetting)
+			m.Get("", misc.LocationRedirect("./actions/runners"))
 			addSettingsRunnersRoutes()
 			addSettingsVariablesRoutes()
 		})
@@ -998,7 +1011,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				})
 
 				m.Group("/actions", func() {
-					m.Get("", org_setting.RedirectToDefaultSetting)
+					m.Get("", misc.LocationRedirect("./actions/general"))
+					m.Group("/general", func() {
+						m.Get("", shared_actions.GeneralSettings)
+						m.Post("", shared_actions.UpdateGeneralSettings)
+					})
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()
@@ -1202,9 +1219,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/actions/general", func() {
 			m.Get("", repo_setting.ActionsGeneralSettings)
 			m.Post("/actions_unit", repo_setting.ActionsUnitPost)
-		})
+		}) // doesn't require actions enabled
 		m.Group("/actions", func() {
-			m.Get("", shared_actions.RedirectToDefaultSetting)
+			m.Get("", misc.LocationRedirect("./actions/general"))
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
@@ -1213,6 +1230,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/add", repo_setting.AddCollaborativeOwner)
 					m.Post("/delete", repo_setting.DeleteCollaborativeOwner)
 				})
+				m.Post("/token_permissions", repo_setting.UpdateTokenPermissions)
 			})
 		}, actions.MustEnableActions)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
@@ -1529,6 +1547,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 			m.Delete("/artifacts/{artifact_name}", reqRepoActionsWriter, actions.ArtifactsDeleteView)
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
+			m.Post("/rerun-failed", reqRepoActionsWriter, actions.RerunFailed)
 		})
 		m.Group("/workflows/{workflow_name}", func() {
 			m.Get("/badge.svg", webAuth.AllowBasic, webAuth.AllowOAuth2, actions.GetWorkflowBadge)
@@ -1728,8 +1747,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Any("/mail-preview", devtest.MailPreview)
 			m.Any("/mail-preview/*", devtest.MailPreviewRender)
 			m.Any("/{sub}", devtest.TmplCommon)
+			m.Get("/repo-action-view/runs/{run}", devtest.MockActionsView)
 			m.Get("/repo-action-view/runs/{run}/jobs/{job}", devtest.MockActionsView)
-			m.Post("/actions-mock/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
+			m.Post("/repo-action-view/runs/{run}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
+			m.Post("/repo-action-view/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
 		})
 	}
 
