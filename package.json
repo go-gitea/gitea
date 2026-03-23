@@ -67,7 +67,7 @@
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "4.7.1",
-    "@eslint/json": "0.14.0",
+    "@eslint/json": "1.1.0",
     "@playwright/test": "1.58.2",
     "@stylistic/eslint-plugin": "5.10.0",
     "@stylistic/stylelint-plugin": "5.0.1",
@@ -82,17 +82,18 @@
     "@types/swagger-ui-dist": "3.30.6",
     "@types/throttle-debounce": "5.0.2",
     "@types/toastify-js": "1.12.4",
-    "@typescript-eslint/parser": "8.56.1",
+    "@typescript-eslint/parser": "8.57.1",
     "@vitejs/plugin-vue": "6.0.4",
-    "@vitest/eslint-plugin": "1.6.9",
-    "eslint": "9.39.2",
+    "@vitest/eslint-plugin": "1.6.12",
+    "eslint": "10.0.3",
     "eslint-import-resolver-typescript": "4.4.4",
-    "eslint-plugin-array-func": "5.1.0",
+    "eslint-plugin-array-func": "5.1.1",
     "eslint-plugin-github": "6.0.0",
-    "eslint-plugin-import-x": "4.16.1",
-    "eslint-plugin-playwright": "2.9.0",
-    "eslint-plugin-regexp": "3.0.0",
-    "eslint-plugin-sonarjs": "4.0.1",
+    "eslint-plugin-de-morgan": "2.1.1",
+    "eslint-plugin-import-x": "4.16.2",
+    "eslint-plugin-playwright": "2.10.1",
+    "eslint-plugin-regexp": "3.1.0",
+    "eslint-plugin-sonarjs": "4.0.2",
     "eslint-plugin-unicorn": "63.0.0",
     "eslint-plugin-vue": "10.8.0",
     "eslint-plugin-vue-scoped-css": "3.0.0",
@@ -112,13 +113,18 @@
     "stylelint-value-no-unknown-custom-properties": "6.1.1",
     "svgo": "4.0.1",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.56.1",
+    "typescript-eslint": "8.57.1",
     "updates": "17.8.3",
     "vite-string-plugin": "2.0.1",
     "vitest": "4.0.18",
     "vue-tsc": "3.2.5"
   },
   "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "eslint-plugin-github>eslint": ">=9"
+      }
+    },
     "overrides": {
       "array-includes": "npm:@nolyfill/array-includes@^1",
       "array.prototype.findlastindex": "npm:@nolyfill/array.prototype.findlastindex@^1",
