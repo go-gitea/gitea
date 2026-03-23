@@ -4,12 +4,14 @@
 package storage
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
@@ -49,4 +51,56 @@ func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
 		assert.NoError(t, err)
 		assert.Len(t, expected, count)
 	}
+}
+
+func testSingleBlobStorageURLContentTypeAndDisposition(t *testing.T, s ObjectStorage, path, name string, expected ServeDirectOptions, reqParams *ServeDirectOptions) {
+	u, err := s.ServeDirectURL(path, name, http.MethodGet, reqParams)
+	require.NoError(t, err)
+	resp, err := http.Get(u.String())
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	if expected.ContentType != "" {
+		assert.Equal(t, expected.ContentType, resp.Header.Get("Content-Type"))
+	}
+	if expected.ContentDisposition != "" {
+		assert.Equal(t, expected.ContentDisposition, resp.Header.Get("Content-Disposition"))
+	}
+}
+
+func testBlobStorageURLContentTypeAndDisposition(t *testing.T, typStr Type, cfg *setting.Storage) {
+	s, err := NewStorage(typStr, cfg)
+	assert.NoError(t, err)
+
+	data := "Q2xTckt6Y1hDOWh0" // arbitrary test content; specific value is irrelevant to this test
+	testfilename := "test.txt" // arbitrary file name; specific value is irrelevant to this test
+	_, err = s.Save(testfilename, strings.NewReader(data), int64(len(data)))
+	assert.NoError(t, err)
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", ServeDirectOptions{
+		ContentType:        "text/plain; charset=utf-8",
+		ContentDisposition: `inline; filename="test.txt"`,
+	}, nil)
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.pdf", ServeDirectOptions{
+		ContentType:        "application/pdf",
+		ContentDisposition: `inline; filename="test.pdf"`,
+	}, nil)
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", ServeDirectOptions{
+		ContentDisposition: `inline; filename="test.wasm"`,
+	}, nil)
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", ServeDirectOptions{
+		ContentDisposition: `inline; filename="test.wasm"`,
+	}, &ServeDirectOptions{})
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", ServeDirectOptions{
+		ContentType:        "application/octet-stream",
+		ContentDisposition: `inline; filename="test.xml"`,
+	}, &ServeDirectOptions{
+		ContentType:        "application/octet-stream",
+		ContentDisposition: `inline; filename="test.xml"`,
+	})
+
+	assert.NoError(t, s.Delete(testfilename))
 }

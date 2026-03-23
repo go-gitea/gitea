@@ -42,7 +42,6 @@ type requestContext struct {
 	User          string
 	Repo          string
 	Authorization string
-	Method        string
 	RepoGitURL    string
 }
 
@@ -427,7 +426,6 @@ func getRequestContext(ctx *context.Context) *requestContext {
 		User:          ownerName,
 		Repo:          repoName,
 		Authorization: ctx.Req.Header.Get("Authorization"),
-		Method:        ctx.Req.Method,
 		RepoGitURL:    httplib.GuessCurrentAppURL(ctx) + url.PathEscape(ownerName) + "/" + url.PathEscape(repoName+".git"),
 	}
 }
@@ -490,7 +488,8 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			var link *lfs_module.Link
 			if setting.LFS.Storage.ServeDirect() {
 				// If we have a signed url (S3, object storage), redirect to this directly.
-				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid, rc.Method, nil)
+				// DO NOT USE the http POST method coming from the lfs batch endpoint
+				u, err := storage.LFS.ServeDirectURL(pointer.RelativePath(), pointer.Oid, http.MethodGet, nil)
 				if u != nil && err == nil {
 					link = lfs_module.NewLink(u.String()) // Presigned url does not need the Authorization header
 				}

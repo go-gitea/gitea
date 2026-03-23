@@ -322,6 +322,10 @@ class RelativeTime extends HTMLElement {
     return this.getAttribute('prefix') ?? (this.format === 'datetime' ? '' : 'on');
   }
 
+  set prefix(v: string) {
+    this.setAttribute('prefix', v);
+  }
+
   get #thresholdMs(): number {
     const ms = parseDurationMs(this.getAttribute('threshold') ?? '');
     return ms >= 0 ? ms : 30 * 86400000;
@@ -353,6 +357,10 @@ class RelativeTime extends HTMLElement {
 
   get datetime(): string {
     return this.getAttribute('datetime') || '';
+  }
+
+  set datetime(v: string) {
+    this.setAttribute('datetime', v);
   }
 
   get date(): Date | null {

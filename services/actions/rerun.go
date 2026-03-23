@@ -20,7 +20,27 @@ import (
 	"xorm.io/builder"
 )
 
-// GetAllRerunJobs get all jobs that need to be rerun when job should be rerun
+// GetFailedRerunJobs returns all failed jobs and their downstream dependent jobs that need to be rerun
+func GetFailedRerunJobs(allJobs []*actions_model.ActionRunJob) []*actions_model.ActionRunJob {
+	rerunJobIDSet := make(container.Set[int64])
+	var jobsToRerun []*actions_model.ActionRunJob
+
+	for _, job := range allJobs {
+		if job.Status == actions_model.StatusFailure || job.Status == actions_model.StatusCancelled {
+			for _, j := range GetAllRerunJobs(job, allJobs) {
+				if !rerunJobIDSet.Contains(j.ID) {
+					rerunJobIDSet.Add(j.ID)
+					jobsToRerun = append(jobsToRerun, j)
+				}
+			}
+		}
+	}
+
+	return jobsToRerun
+}
+
+// GetAllRerunJobs returns the target job and all jobs that transitively depend on it.
+// Downstream jobs are included regardless of their current status.
 func GetAllRerunJobs(job *actions_model.ActionRunJob, allJobs []*actions_model.ActionRunJob) []*actions_model.ActionRunJob {
 	rerunJobs := []*actions_model.ActionRunJob{job}
 	rerunJobsIDSet := make(container.Set[string])
@@ -49,12 +69,12 @@ func GetAllRerunJobs(job *actions_model.ActionRunJob, allJobs []*actions_model.A
 	return rerunJobs
 }
 
-// RerunWorkflowRunJobs reruns all done jobs of a workflow run,
-// or reruns a selected job and all of its downstream jobs when targetJob is specified.
-func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob, targetJob *actions_model.ActionRunJob) error {
-	// Rerun is not allowed if the run is not done.
+// prepareRunRerun validates the run, resets its state, handles concurrency, persists the
+// updated run, and fires a status-update notification.
+// It returns isRunBlocked (true when the run itself is held by a concurrency group).
+func prepareRunRerun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) (isRunBlocked bool, err error) {
 	if !run.Status.IsDone() {
-		return util.NewInvalidArgumentErrorf("this workflow run is not done")
+		return false, util.NewInvalidArgumentErrorf("this workflow run is not done")
 	}
 
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
@@ -62,7 +82,7 @@ func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run 
 	// Rerun is not allowed when workflow is disabled.
 	cfg := cfgUnit.ActionsConfig()
 	if cfg.IsWorkflowDisabled(run.WorkflowID) {
-		return util.NewInvalidArgumentErrorf("workflow %s is disabled", run.WorkflowID)
+		return false, util.NewInvalidArgumentErrorf("workflow %s is disabled", run.WorkflowID)
 	}
 
 	// Reset run's timestamps and status.
@@ -73,31 +93,31 @@ func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run 
 
 	vars, err := actions_model.GetVariablesOfRun(ctx, run)
 	if err != nil {
-		return fmt.Errorf("get run %d variables: %w", run.ID, err)
+		return false, fmt.Errorf("get run %d variables: %w", run.ID, err)
 	}
 
 	if run.RawConcurrency != "" {
 		var rawConcurrency model.RawConcurrency
 		if err := yaml.Unmarshal([]byte(run.RawConcurrency), &rawConcurrency); err != nil {
-			return fmt.Errorf("unmarshal raw concurrency: %w", err)
+			return false, fmt.Errorf("unmarshal raw concurrency: %w", err)
 		}
 
 		if err := EvaluateRunConcurrencyFillModel(ctx, run, &rawConcurrency, vars, nil); err != nil {
-			return err
+			return false, err
 		}
 
 		run.Status, err = PrepareToStartRunWithConcurrency(ctx, run)
 		if err != nil {
-			return err
+			return false, err
 		}
 	}
 
 	if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration", "status", "concurrency_group", "concurrency_cancel"); err != nil {
-		return err
+		return false, err
 	}
 
 	if err := run.LoadAttributes(ctx); err != nil {
-		return err
+		return false, err
 	}
 
 	for _, job := range jobs {
@@ -106,23 +126,38 @@ func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run 
 
 	notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 
-	isRunBlocked := run.Status == actions_model.StatusBlocked
+	return run.Status == actions_model.StatusBlocked, nil
+}
 
-	if targetJob == nil {
-		for _, job := range jobs {
-			// If the job has needs, it should be blocked to wait for its dependencies.
-			shouldBlockJob := len(job.Needs) > 0 || isRunBlocked
-			if err := rerunWorkflowJob(ctx, job, shouldBlockJob); err != nil {
-				return err
-			}
-		}
+// RerunWorkflowRunJobs reruns the given jobs of a workflow run.
+// jobsToRerun must include all jobs to be rerun (the target job and its transitively dependent jobs).
+// A job is blocked (waiting for dependencies) if the run itself is blocked or if any of its
+// needs are also being rerun.
+func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, jobsToRerun []*actions_model.ActionRunJob) error {
+	if len(jobsToRerun) == 0 {
 		return nil
 	}
 
-	rerunJobs := GetAllRerunJobs(targetJob, jobs)
-	for _, job := range rerunJobs {
-		// Jobs other than the selected one should wait for dependencies.
-		shouldBlockJob := job.JobID != targetJob.JobID || isRunBlocked
+	isRunBlocked, err := prepareRunRerun(ctx, repo, run, jobsToRerun)
+	if err != nil {
+		return err
+	}
+
+	rerunJobIDs := make(container.Set[string])
+	for _, j := range jobsToRerun {
+		rerunJobIDs.Add(j.JobID)
+	}
+
+	for _, job := range jobsToRerun {
+		shouldBlockJob := isRunBlocked
+		if !shouldBlockJob {
+			for _, need := range job.Needs {
+				if rerunJobIDs.Contains(need) {
+					shouldBlockJob = true
+					break
+				}
+			}
+		}
 		if err := rerunWorkflowJob(ctx, job, shouldBlockJob); err != nil {
 			return err
 		}
