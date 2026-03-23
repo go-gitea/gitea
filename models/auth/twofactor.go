@@ -134,6 +134,15 @@ func (t *TwoFactor) SetSecret(secretString string) error {
 }
 
 // ValidateTOTP validates the provided passcode.
+//
+// It returns three values: ok indicates whether the passcode is valid, upgraded
+// indicates whether a legacy-stored secret was successfully validated and then
+// re-encrypted using the current secret storage scheme, and err reports any
+// error encountered during validation.
+//
+// When upgraded is true, this method may mutate t.SecretSalt, t.SecretAlgo, and
+// t.Secret to store the secret using the current algorithm. Callers must persist
+// the updated TwoFactor model to ensure the upgraded secret is saved.
 func (t *TwoFactor) ValidateTOTP(passcode string) (bool, bool, error) {
 	decodedStoredSecret, err := base64.StdEncoding.DecodeString(t.Secret)
 	if err != nil {
