@@ -10,38 +10,35 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func isMaintenanceModeAllowedRequest(req *http.Request) bool {
-	if strings.HasPrefix(req.URL.Path, "/-/") {
-		// URLs like "/-/admin", "/-/fetch-redirect" and "/-/markup" are still accessible in maintenance mode
-		return true
-	}
-	if strings.HasPrefix(req.URL.Path, "/.well-known/") {
-		return true
-	}
-	if strings.HasPrefix(req.URL.Path, "/api/internal/") {
-		// internal APIs should be allowed
-		return true
-	}
-	if strings.HasPrefix(req.URL.Path, "/user/") {
-		// URLs like "/user/signin" and "/user/signup" are still accessible in maintenance mode
-		return true
-	}
-	if strings.HasPrefix(req.URL.Path, "/assets/") {
-		return true
-	}
-	if strings.HasPrefix(req.URL.Path, "/avatars/") {
-		return true
-	}
-	if strings.HasPrefix(req.URL.Path, "/captcha/") {
-		return true
-	}
-	if req.URL.Path == "/api/healthz" {
-		return true
-	}
-	return false
-}
-
 func MaintenanceModeHandler() func(h http.Handler) http.Handler {
+	allowedPrefixes := []string{
+		"/.well-known/",
+		"/assets/",
+		"/avatars/",
+
+		// admin: "/-/admin"
+		// general-purpose URLs: "/-/fetch-redirect", "/-/markup", etc.
+		"/-/",
+
+		// internal APIs
+		"/api/internal/",
+
+		// user login: "/user/signin", "/user/signup"
+		"/user/",
+		"/captcha/",
+	}
+	isMaintenanceModeAllowedRequest := func(req *http.Request) bool {
+		for _, prefix := range allowedPrefixes {
+			if strings.HasPrefix(req.URL.Path, prefix) {
+				return true
+			}
+		}
+		if req.URL.Path == "/api/healthz" {
+			return true
+		}
+		return false
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			maintenanceMode := setting.Config().Instance.MaintenanceMode.Value(req.Context())
