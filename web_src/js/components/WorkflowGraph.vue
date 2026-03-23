@@ -568,7 +568,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
           fill="none"
           stroke="var(--color-secondary-alpha-50)"
           stroke-width="1.75"
-          opacity="0.6"
           :class="['node-edge', { 'highlighted-edge': isEdgeHighlighted(edge) }]"
         />
 
@@ -720,7 +719,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
 .highlighted-edge {
   stroke-width: 2.25 !important;
-  opacity: 0.9 !important;
   stroke: color-mix(in srgb, var(--color-primary) 35%, var(--color-secondary)) !important;
 }
 
@@ -731,7 +729,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .job-node-group:hover .job-rect {
-  filter: brightness(1.01);
+  fill: var(--color-workflow-box-bg-hover);
   transform: translateX(1px);
 }
 
@@ -764,6 +762,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
 .job-rect {
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.15));
+  transition: fill 0.2s ease, transform 0.2s ease;
 }
 
 .node-port {
