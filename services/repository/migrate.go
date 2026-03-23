@@ -74,8 +74,6 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repo *repo_model.Repository, opts migration.MigrateOptions,
 	httpTransport *http.Transport,
 ) (*repo_model.Repository, error) {
-	repoPath := repo.RepoPath()
-
 	if u.IsOrganization() {
 		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)
 		if err != nil {
@@ -92,7 +90,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("failed to remove existing repo dir %q, err: %w", repo.FullName(), err)
 	}
 
-	if err := git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
+	if err := gitrepo.CloneExternalRepo(ctx, opts.CloneAddr, repo, git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
@@ -104,7 +102,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("clone error: %w", err)
 	}
 
-	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
+	if err := gitrepo.WriteCommitGraph(ctx, repo); err != nil {
 		return repo, err
 	}
 
@@ -147,7 +145,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 		}
 
-		if _, err := repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, u.ID); err != nil {
+		if _, _, err := repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, u.ID); err != nil {
 			return repo, fmt.Errorf("SyncRepoBranchesWithRepo: %v", err)
 		}
 
@@ -155,7 +153,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		// otherwise, the releases sync will be done out of this function
 		if !opts.Releases {
 			repo.IsMirror = opts.Mirror
-			if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+			if _, err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)
 			}
 		}
@@ -227,7 +225,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 			// this is necessary for sync local tags from remote
 			configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
-			if stdout, err := gitrepo.RunCmdString(ctx, repo,
+			if stdout, _, err := gitrepo.RunCmdString(ctx, repo,
 				gitcmd.NewCommand("config").
 					AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`)); err != nil {
 				log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)

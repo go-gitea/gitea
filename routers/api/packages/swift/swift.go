@@ -300,7 +300,7 @@ func formFileOptionalReadCloser(ctx *context.Context, formKey string) (io.ReadCl
 
 	content := ctx.Req.FormValue(formKey)
 	if content == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the content does not exist
 	}
 	return io.NopCloser(strings.NewReader(content)), nil
 }

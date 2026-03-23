@@ -178,7 +178,7 @@ func (org *Organization) HomeLink() string {
 	return org.AsUser().HomeLink()
 }
 
-// FindOrgMembersOpts represensts find org members conditions
+// FindOrgMembersOpts represents find org members conditions
 type FindOrgMembersOpts struct {
 	db.ListOptions
 	Doer         *user_model.User

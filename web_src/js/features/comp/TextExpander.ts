@@ -3,7 +3,7 @@ import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
 import {parseIssueHref, parseRepoOwnerPathInfo} from '../../utils.ts';
 import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
-import {getIssueColor, getIssueIcon} from '../issue.ts';
+import {getIssueColorClass, getIssueIcon} from '../issue.ts';
 import {debounce} from 'perfect-debounce';
 import type TextExpanderElement from '@github/text-expander-element';
 import type {TextExpanderChangeEvent, TextExpanderResult} from '@github/text-expander-element';
@@ -25,7 +25,7 @@ async function fetchIssueSuggestions(key: string, text: string): Promise<TextExp
   for (const issue of matches) {
     const li = createElementFromAttrs(
       'li', {role: 'option', class: 'tw-flex tw-gap-2', 'data-value': `${key}${issue.number}`},
-      createElementFromHTML(svg(getIssueIcon(issue), 16, ['text', getIssueColor(issue)])),
+      createElementFromHTML(svg(getIssueIcon(issue), 16, [getIssueColorClass(issue)])),
       createElementFromAttrs('span', null, `#${issue.number}`),
       createElementFromAttrs('span', null, issue.title),
     );
@@ -37,7 +37,8 @@ async function fetchIssueSuggestions(key: string, text: string): Promise<TextExp
 export function initTextExpander(expander: TextExpanderElement) {
   if (!expander) return;
 
-  const textarea = expander.querySelector<HTMLTextAreaElement>('textarea');
+  const textarea = expander.querySelector<HTMLTextAreaElement>('textarea')!;
+  const mentionsUrl = expander.closest('[data-mentions-url]')?.getAttribute('data-mentions-url');
 
   // help to fix the text-expander "multiword+promise" bug: do not show the popup when there is no "#" before current line
   const shouldShowIssueSuggestions = () => {
@@ -64,6 +65,7 @@ export function initTextExpander(expander: TextExpanderElement) {
   }, 300); // to match onInputDebounce delay
 
   expander.addEventListener('text-expander-change', (e: TextExpanderChangeEvent) => {
+    if (!e.detail) return;
     const {key, text, provide} = e.detail;
     if (key === ':') {
       const matches = matchEmoji(text);
@@ -82,36 +84,39 @@ export function initTextExpander(expander: TextExpanderElement) {
 
       provide({matched: true, fragment: ul});
     } else if (key === '@') {
-      const matches = matchMention(text);
-      if (!matches.length) return provide({matched: false});
+      provide((async (): Promise<TextExpanderResult> => {
+        if (!mentionsUrl) return {matched: false};
+        const matches = await matchMention(mentionsUrl, text);
+        if (!matches.length) return {matched: false};
 
-      const ul = document.createElement('ul');
-      ul.classList.add('suggestions');
-      for (const {value, name, fullname, avatar} of matches) {
-        const li = document.createElement('li');
-        li.setAttribute('role', 'option');
-        li.setAttribute('data-value', `${key}${value}`);
+        const ul = document.createElement('ul');
+        ul.classList.add('suggestions');
+        for (const {value, name, fullname, avatar} of matches) {
+          const li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          li.setAttribute('data-value', `${key}${value}`);
 
-        const img = document.createElement('img');
-        img.src = avatar;
-        li.append(img);
+          const img = document.createElement('img');
+          img.src = avatar;
+          li.append(img);
 
-        const nameSpan = document.createElement('span');
-        nameSpan.classList.add('name');
-        nameSpan.textContent = name;
-        li.append(nameSpan);
+          const nameSpan = document.createElement('span');
+          nameSpan.classList.add('name');
+          nameSpan.textContent = name;
+          li.append(nameSpan);
 
-        if (fullname && fullname.toLowerCase() !== name) {
-          const fullnameSpan = document.createElement('span');
-          fullnameSpan.classList.add('fullname');
-          fullnameSpan.textContent = fullname;
-          li.append(fullnameSpan);
+          if (fullname && fullname.toLowerCase() !== name) {
+            const fullnameSpan = document.createElement('span');
+            fullnameSpan.classList.add('fullname');
+            fullnameSpan.textContent = fullname;
+            li.append(fullnameSpan);
+          }
+
+          ul.append(li);
         }
 
-        ul.append(li);
-      }
-
-      provide({matched: true, fragment: ul});
+        return {matched: true, fragment: ul};
+      })());
     } else if (key === '#') {
       provide(debouncedIssueSuggestions(key, text));
     }

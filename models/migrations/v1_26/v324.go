@@ -4,19 +4,21 @@
 package v1_26
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"fmt"
 
 	"xorm.io/xorm"
 )
 
-func CreateTableIssueDevLink(x *xorm.Engine) error {
-	type IssueDevLink struct {
-		ID           int64 `xorm:"pk autoincr"`
-		IssueID      int64 `xorm:"INDEX"`
-		LinkType     int
-		LinkedRepoID int64              `xorm:"INDEX"` // it can link to self repo or other repo
-		LinkID       int64              // branch id in branch table or pull request id
-		CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+func FixClosedMilestoneCompleteness(x *xorm.Engine) error {
+	// Update all milestones to recalculate completeness with the new logic:
+	// - Closed milestones with 0 issues should show 100%
+	// - All other milestones should calculate based on closed/total ratio
+	_, err := x.Exec("UPDATE `milestone` SET completeness=(CASE WHEN is_closed = ? AND num_issues = 0 THEN 100 ELSE 100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) END)",
+		true,
+	)
+	if err != nil {
+		return fmt.Errorf("error updating milestone completeness: %w", err)
 	}
-	return x.Sync(new(IssueDevLink))
+
+	return nil
 }

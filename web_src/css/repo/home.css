@@ -54,7 +54,9 @@
   gap: var(--page-spacing);
 }
 
-.repo-view-container .repo-view-file-tree-container {
+.repo-view-file-tree-container {
+  display: flex;
+  flex-direction: column;
   flex: 0 0 15%;
   min-width: 0;
   max-height: 100vh;
@@ -63,6 +65,12 @@
   bottom: 0;
   height: 100%;
   overflow-y: hidden;
+}
+
+@media (max-width: 767.98px) {
+  .repo-view-file-tree-container {
+    display: none;
+  }
 }
 
 .repo-view-content {

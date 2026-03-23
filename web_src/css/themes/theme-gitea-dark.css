@@ -148,12 +148,14 @@ gitea-theme-meta-info {
   --color-grey-light: #818f9e;
   --color-gold: #b1983b;
   --color-white: #ffffff;
+  --color-diff-added-fg: #87ab63;
   --color-diff-added-linenum-bg: #274227;
   --color-diff-added-row-bg: #203224;
   --color-diff-added-row-border: #314a37;
   --color-diff-added-word-bg: #3c653c;
   --color-diff-moved-row-bg: #818044;
   --color-diff-moved-row-border: #bcca6f;
+  --color-diff-removed-fg: #cc4848;
   --color-diff-removed-linenum-bg: #482121;
   --color-diff-removed-row-bg: #301e1e;
   --color-diff-removed-row-border: #634343;
@@ -203,8 +205,7 @@ gitea-theme-meta-info {
   --color-input-text: var(--color-text-dark);
   --color-input-background: #171a1e;
   --color-input-toggle-background: #2e353c;
-  --color-input-border: var(--color-secondary);
-  --color-input-border-hover: var(--color-secondary-dark-1);
+  --color-input-border: var(--color-secondary-dark-1);
   --color-light: #00001728;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #e8f3ff28;
@@ -244,6 +245,9 @@ gitea-theme-meta-info {
   --color-highlight-fg: #87651e;
   --color-highlight-bg: #352c1c;
   --color-overlay-backdrop: #080808c0;
+  --color-danger: var(--color-red);
+  --color-transparency-grid-light: #2a2a2a;
+  --color-transparency-grid-dark: #1a1a1a;
   accent-color: var(--color-accent);
   color-scheme: dark;
 }

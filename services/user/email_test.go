@@ -9,60 +9,9 @@ import (
 	organization_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestAdminAddOrSetPrimaryEmailAddress(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 27})
-
-	emails, err := user_model.GetEmailAddresses(t.Context(), user.ID)
-	assert.NoError(t, err)
-	assert.Len(t, emails, 1)
-
-	primary, err := user_model.GetPrimaryEmailAddressOfUser(t.Context(), user.ID)
-	assert.NoError(t, err)
-	assert.NotEqual(t, "new-primary@example.com", primary.Email)
-	assert.Equal(t, user.Email, primary.Email)
-
-	assert.NoError(t, AdminAddOrSetPrimaryEmailAddress(t.Context(), user, "new-primary@example.com"))
-
-	primary, err = user_model.GetPrimaryEmailAddressOfUser(t.Context(), user.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, "new-primary@example.com", primary.Email)
-	assert.Equal(t, user.Email, primary.Email)
-
-	emails, err = user_model.GetEmailAddresses(t.Context(), user.ID)
-	assert.NoError(t, err)
-	assert.Len(t, emails, 2)
-
-	setting.Service.EmailDomainAllowList = []glob.Glob{glob.MustCompile("example.org")}
-	defer func() {
-		setting.Service.EmailDomainAllowList = []glob.Glob{}
-	}()
-
-	assert.NoError(t, AdminAddOrSetPrimaryEmailAddress(t.Context(), user, "new-primary2@example2.com"))
-
-	primary, err = user_model.GetPrimaryEmailAddressOfUser(t.Context(), user.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, "new-primary2@example2.com", primary.Email)
-	assert.Equal(t, user.Email, primary.Email)
-
-	assert.NoError(t, AdminAddOrSetPrimaryEmailAddress(t.Context(), user, "user27@example.com"))
-
-	primary, err = user_model.GetPrimaryEmailAddressOfUser(t.Context(), user.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, "user27@example.com", primary.Email)
-	assert.Equal(t, user.Email, primary.Email)
-
-	emails, err = user_model.GetEmailAddresses(t.Context(), user.ID)
-	assert.NoError(t, err)
-	assert.Len(t, emails, 3)
-}
 
 func TestReplacePrimaryEmailAddress(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

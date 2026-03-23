@@ -70,6 +70,6 @@ func NewRenderContextRepoFile(ctx context.Context, repo *repo_model.Repository, 
 			"repo": helper.opts.DeprecatedRepoName,
 		})
 	}
-	rctx = rctx.WithHelper(helper)
+	rctx = rctx.WithHelper(helper).WithEnableHeadingIDGeneration(true)
 	return rctx
 }

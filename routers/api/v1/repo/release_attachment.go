@@ -34,6 +34,10 @@ func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) bool {
 		ctx.APIErrorNotFound()
 		return false
 	}
+	if release.IsDraft && !canAccessReleaseDraft(ctx) {
+		ctx.APIErrorNotFound()
+		return false
+	}
 	return true
 }
 
@@ -141,6 +145,10 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
+	if release.IsDraft && !canAccessReleaseDraft(ctx) {
+		ctx.APIErrorNotFound()
+		return
+	}
 	if err := release.LoadAttributes(ctx); err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -234,7 +242,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment_service.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, setting.Repository.Release.AllowedTypes, &repo_model.Attachment{
+	attach, err := attachment_service.UploadAttachmentReleaseSizeLimit(ctx, uploaderFile, setting.Repository.Release.AllowedTypes, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
@@ -398,7 +406,6 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
-	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
 
 	if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
 		ctx.APIErrorInternal(err)

@@ -16,9 +16,9 @@ function initRepoCreateBranchButton() {
       modalForm.action = `${modalForm.getAttribute('data-base-action')}${el.getAttribute('data-branch-from-urlcomponent')}`;
 
       const fromSpanName = el.getAttribute('data-modal-from-span') || '#modal-create-branch-from-span';
-      document.querySelector(fromSpanName).textContent = el.getAttribute('data-branch-from');
+      document.querySelector(fromSpanName)!.textContent = el.getAttribute('data-branch-from');
 
-      fomanticQuery(el.getAttribute('data-modal')).modal('show');
+      fomanticQuery(el.getAttribute('data-modal')!).modal('show');
     });
   }
 }
@@ -26,17 +26,17 @@ function initRepoCreateBranchButton() {
 function initRepoRenameBranchButton() {
   for (const el of document.querySelectorAll('.show-rename-branch-modal')) {
     el.addEventListener('click', () => {
-      const target = el.getAttribute('data-modal');
-      const modal = document.querySelector(target);
-      const oldBranchName = el.getAttribute('data-old-branch-name');
-      modal.querySelector<HTMLInputElement>('input[name=from]').value = oldBranchName;
+      const target = el.getAttribute('data-modal')!;
+      const modal = document.querySelector(target)!;
+      const oldBranchName = el.getAttribute('data-old-branch-name')!;
+      modal.querySelector<HTMLInputElement>('input[name=from]')!.value = oldBranchName;
 
       // display the warning that the branch which is chosen is the default branch
-      const warn = modal.querySelector('.default-branch-warning');
+      const warn = modal.querySelector('.default-branch-warning')!;
       toggleElem(warn, el.getAttribute('data-is-default-branch') === 'true');
 
-      const text = modal.querySelector('[data-rename-branch-to]');
-      text.textContent = text.getAttribute('data-rename-branch-to').replace('%s', oldBranchName);
+      const text = modal.querySelector('[data-rename-branch-to]')!;
+      text.textContent = text.getAttribute('data-rename-branch-to')!.replace('%s', oldBranchName);
     });
   }
 }

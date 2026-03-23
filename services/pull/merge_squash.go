@@ -32,9 +32,9 @@ func getAuthorSignatureSquash(ctx *mergeContext) (*git.Signature, error) {
 	}
 	defer gitRepo.Close()
 
-	commits, err := gitRepo.CommitsBetweenIDs(trackingBranch, "HEAD")
+	commits, err := gitRepo.CommitsBetweenIDs(tmpRepoTrackingBranch, "HEAD")
 	if err != nil {
-		log.Error("%-v Unable to get commits between: %s %s: %v", ctx.pr, "HEAD", trackingBranch, err)
+		log.Error("%-v Unable to get commits between: %s %s: %v", ctx.pr, "HEAD", tmpRepoTrackingBranch, err)
 		return nil, err
 	}
 
@@ -58,7 +58,7 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		return fmt.Errorf("getAuthorSignatureSquash: %w", err)
 	}
 
-	cmdMerge := gitcmd.NewCommand("merge", "--squash").AddDynamicArguments(trackingBranch)
+	cmdMerge := gitcmd.NewCommand("merge", "--squash").AddDynamicArguments(tmpRepoTrackingBranch)
 	if err := runMergeCommand(ctx, repo_model.MergeStyleSquash, cmdMerge); err != nil {
 		log.Error("%-v Unable to merge --squash tracking into base: %v", ctx.pr, err)
 		return err
@@ -71,7 +71,8 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 	}
 	cmdCommit := gitcmd.NewCommand("commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email).
-		AddOptionFormat("--message=%s", message)
+		AddOptionFormat("--message=%s", message).
+		AddArguments("--allow-empty")
 	if ctx.signKey == nil {
 		cmdCommit.AddArguments("--no-gpg-sign")
 	} else {
@@ -80,11 +81,10 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		}
 		cmdCommit.AddOptionFormat("-S%s", ctx.signKey.KeyID)
 	}
-	if err := ctx.PrepareGitCmd(cmdCommit).Run(ctx); err != nil {
-		log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
-		return fmt.Errorf("git commit [%s:%s -> %s:%s]: %w\n%s\n%s", ctx.pr.HeadRepo.FullName(), ctx.pr.HeadBranch, ctx.pr.BaseRepo.FullName(), ctx.pr.BaseBranch, err, ctx.outbuf.String(), ctx.errbuf.String())
+	if err := ctx.PrepareGitCmd(cmdCommit).RunWithStderr(ctx); err != nil {
+		log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
+		return fmt.Errorf("git commit [%s:%s -> %s:%s]: %w\n%s\n%s", ctx.pr.HeadRepo.FullName(), ctx.pr.HeadBranch, ctx.pr.BaseRepo.FullName(), ctx.pr.BaseBranch, err, ctx.outbuf.String(), err.Stderr())
 	}
 	ctx.outbuf.Reset()
-	ctx.errbuf.Reset()
 	return nil
 }

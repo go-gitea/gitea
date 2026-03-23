@@ -20,7 +20,7 @@ var manager *Manager
 // Manager is the nosql connection manager
 type Manager struct {
 	ctx      context.Context
-	finished context.CancelFunc
+	finished process.FinishedFunc
 	mutex    sync.Mutex
 
 	RedisConnections   map[string]*redisClientHolder

@@ -19,7 +19,6 @@ import (
 	charsetModule "code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -109,29 +108,24 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, mineBuf []byt
 	}
 
 	if isPlain {
-		charset, err := charsetModule.DetectEncoding(mineBuf)
-		if err != nil {
-			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", opts.Filename, err)
-			charset = "utf-8"
-		}
+		charset, _ := charsetModule.DetectEncoding(mineBuf)
 		opts.ContentTypeCharset = strings.ToLower(charset)
 	}
 
-	isSVG := sniffedType.IsSvgImage()
-
 	// serve types that can present a security risk with CSP
-	if isSVG {
-		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-	} else if sniffedType.IsPDF() {
-		// no sandbox attribute for pdf as it breaks rendering in at least safari. this
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+
+	if sniffedType.IsPDF() {
+		// no sandbox attribute for PDF as it breaks rendering in at least safari. this
 		// should generally be safe as scripts inside PDF can not escape the PDF document
 		// see https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
 		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
 		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
 	}
 
+	// TODO: UNIFY-CONTENT-DISPOSITION-FROM-STORAGE
 	opts.Disposition = "inline"
-	if isSVG && !setting.UI.SVG.Enabled {
+	if sniffedType.IsSvgImage() && !setting.UI.SVG.Enabled {
 		opts.Disposition = "attachment"
 	}
 

@@ -17,7 +17,7 @@ export function initCompSearchUserBox() {
       url: `${appSubUrl}/user/search_candidates?q={query}&orgs=${includeOrgs}`,
       onResponse(response: any) {
         const resultItems = [];
-        const searchQuery = searchUserBox.querySelector('input').value;
+        const searchQuery = searchUserBox.querySelector('input')!.value;
         const searchQueryUppercase = searchQuery.toUpperCase();
         for (const item of response.data) {
           const resultItem = {

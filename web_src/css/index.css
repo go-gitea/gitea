@@ -18,7 +18,11 @@
 @import "./modules/checkbox.css";
 @import "./modules/dimmer.css";
 @import "./modules/modal.css";
+@import "./modules/search.css";
 @import "./modules/tab.css";
+@import "./modules/form.css";
+@import "./modules/dropdown.css";
+@import "./modules/shortcut.css";
 
 @import "./modules/tippy.css";
 @import "./modules/breadcrumb.css";
@@ -42,19 +46,18 @@
 @import "./features/expander.css";
 @import "./features/cropper.css";
 @import "./features/console.css";
+@import "./features/captcha.css";
 
 @import "./markup/content.css";
-@import "./markup/codecopy.css";
+@import "./markup/codeblock.css";
 @import "./markup/codepreview.css";
 @import "./markup/asciicast.css";
 
 @import "./chroma/base.css";
-@import "./codemirror/base.css";
 @import "./font_i18n.css";
 @import "./base.css";
 @import "./home.css";
 @import "./install.css";
-@import "./form.css";
 
 @import "./repo.css";
 @import "./repo/release-tag.css";
@@ -72,7 +75,6 @@
 @import "./repo/commit-sign.css";
 @import "./repo/packages.css";
 
-@import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";
 
 @import "./org.css";

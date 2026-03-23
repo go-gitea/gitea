@@ -11,7 +11,6 @@
 				{{if $canAddRemove}}
 					<div class="ui top attached segment tw-flex tw-flex-wrap tw-gap-2">
 						<form class="ui form ignore-dirty tw-flex-1 tw-flex" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
-							{{.CsrfTokenHtml}}
 							<div data-global-init="initSearchRepoBox" data-uid="{{.Org.ID}}" class="ui search">
 								<div class="ui input">
 									<input class="prompt" name="repo_name" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off" required>
@@ -33,14 +32,13 @@
 									{{template "repo/icon" .}}
 								</div>
 								<div class="flex-item-main">
-									<a class="flex-item-title text primary" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
+									<a class="flex-item-title tw-text-primary" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
 										{{$.Org.Name}}/{{.Name}}
 									</a>
 								</div>
 								<div class="flex-item-trailing">
 									{{if $canAddRemove}}
 										<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/remove">
-											{{$.CsrfTokenHtml}}
 											<button type="submit" class="ui red small button" name="repoid" value="{{.ID}}">{{ctx.Locale.Tr "remove"}}</button>
 										</form>
 									{{end}}
@@ -48,7 +46,7 @@
 							</div>
 						{{else}}
 							<div class="flex-item">
-								<span class="text grey tw-italic">{{ctx.Locale.Tr "org.teams.repos.none"}}</span>
+								<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "org.teams.repos.none"}}</span>
 							</div>
 						{{end}}
 					</div>

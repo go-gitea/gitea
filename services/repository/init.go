@@ -11,7 +11,9 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -41,7 +43,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	cmd := gitcmd.NewCommand("commit", "--message=Initial commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email)
 
-	sign, key, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
+	sign, key, signer, _ := asymkey_service.SignInitialCommit(ctx, u)
 	if sign {
 		if key.Format != "" {
 			cmd.AddConfig("gpg.format", key.Format)
@@ -71,12 +73,12 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		defaultBranch = setting.Repository.DefaultBranch
 	}
 
-	if stdout, _, err := gitcmd.NewCommand("push", "origin").
-		AddDynamicArguments("HEAD:" + defaultBranch).
-		WithDir(tmpPath).
-		WithEnv(repo_module.InternalPushingEnvironment(u, repo)).
-		RunStdString(ctx); err != nil {
-		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
+	if err := gitrepo.PushFromLocal(ctx, tmpPath, repo, git.PushOptions{
+		LocalRefName: "HEAD",
+		Branch:       defaultBranch,
+		Env:          repo_module.InternalPushingEnvironment(u, repo),
+	}); err != nil {
+		log.Error("Failed to push back to HEAD Error: %v", err)
 		return fmt.Errorf("git push: %w", err)
 	}
 

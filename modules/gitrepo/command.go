@@ -13,11 +13,14 @@ func RunCmd(ctx context.Context, repo Repository, cmd *gitcmd.Command) error {
 	return cmd.WithDir(repoPath(repo)).WithParentCallerInfo().Run(ctx)
 }
 
-func RunCmdString(ctx context.Context, repo Repository, cmd *gitcmd.Command) (string, error) {
-	res, _, err := cmd.WithDir(repoPath(repo)).WithParentCallerInfo().RunStdString(ctx)
-	return res, err
+func RunCmdString(ctx context.Context, repo Repository, cmd *gitcmd.Command) (string, string, gitcmd.RunStdError) {
+	return cmd.WithDir(repoPath(repo)).WithParentCallerInfo().RunStdString(ctx)
 }
 
-func RunCmdBytes(ctx context.Context, repo Repository, cmd *gitcmd.Command) ([]byte, []byte, error) {
+func RunCmdBytes(ctx context.Context, repo Repository, cmd *gitcmd.Command) ([]byte, []byte, gitcmd.RunStdError) {
 	return cmd.WithDir(repoPath(repo)).WithParentCallerInfo().RunStdBytes(ctx)
+}
+
+func RunCmdWithStderr(ctx context.Context, repo Repository, cmd *gitcmd.Command) gitcmd.RunStdError {
+	return cmd.WithDir(repoPath(repo)).WithParentCallerInfo().RunWithStderr(ctx)
 }

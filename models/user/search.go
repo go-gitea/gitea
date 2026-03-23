@@ -18,6 +18,23 @@ import (
 	"xorm.io/xorm"
 )
 
+// AdminUserOrderByMap represents all possible admin user search orders
+// This should only be used for admin API endpoints as we should not expose "updated" ordering which could expose recent user activity including logins.
+var AdminUserOrderByMap = map[string]map[string]db.SearchOrderBy{
+	"asc": {
+		"name":    db.SearchOrderByAlphabetically,
+		"created": db.SearchOrderByOldest,
+		"updated": db.SearchOrderByLeastUpdated,
+		"id":      db.SearchOrderByID,
+	},
+	"desc": {
+		"name":    db.SearchOrderByAlphabeticallyReverse,
+		"created": db.SearchOrderByNewest,
+		"updated": db.SearchOrderByRecentUpdated,
+		"id":      db.SearchOrderByIDReverse,
+	},
+}
+
 // SearchUserOptions contains the options for searching
 type SearchUserOptions struct {
 	db.ListOptions

@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -25,10 +26,12 @@ var (
 		EndlessTaskTimeout    time.Duration     `ini:"ENDLESS_TASK_TIMEOUT"`
 		AbandonedJobTimeout   time.Duration     `ini:"ABANDONED_JOB_TIMEOUT"`
 		SkipWorkflowStrings   []string          `ini:"SKIP_WORKFLOW_STRINGS"`
+		WorkflowDirs          []string          `ini:"WORKFLOW_DIRS"`
 	}{
 		Enabled:             true,
 		DefaultActionsURL:   defaultActionsURLGitHub,
 		SkipWorkflowStrings: []string{"[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"},
+		WorkflowDirs:        []string{".gitea/workflows", ".github/workflows"},
 	}
 )
 
@@ -118,6 +121,21 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	if !Actions.LogCompression.IsValid() {
 		return fmt.Errorf("invalid [actions] LOG_COMPRESSION: %q", Actions.LogCompression)
 	}
+
+	workflowDirs := make([]string, 0, len(Actions.WorkflowDirs))
+	for _, dir := range Actions.WorkflowDirs {
+		dir = strings.TrimSpace(dir)
+		if dir == "" {
+			continue
+		}
+		dir = strings.ReplaceAll(dir, `\`, `/`)
+		dir = strings.TrimRight(dir, "/")
+		workflowDirs = append(workflowDirs, dir)
+	}
+	if len(workflowDirs) == 0 {
+		return errors.New("[actions] WORKFLOW_DIRS must contain at least one entry")
+	}
+	Actions.WorkflowDirs = workflowDirs
 
 	return nil
 }

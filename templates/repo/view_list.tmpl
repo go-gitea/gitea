@@ -21,7 +21,7 @@
 					{{$submoduleLink := $submoduleFile.SubmoduleWebLinkTree ctx}}
 					{{if $submoduleLink}}
 						<a class="entry-name" href="{{$submoduleLink.RepoWebLink}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
-						@ <a class="text primary" href="{{$submoduleLink.CommitWebLink}}">{{ShortSha $submoduleFile.RefID}}</a>
+						@ <a class="tw-text-primary" href="{{$submoduleLink.CommitWebLink}}">{{ShortSha $submoduleFile.RefID}}</a>
 					{{else}}
 						<span class="entry-name" title="{{$entry.Name}}">{{$entry.Name}}</span>
 						@ {{ShortSha $submoduleFile.RefID}}
@@ -36,7 +36,7 @@
 								{{$subJumpablePathName}}
 							{{else}}
 								{{$subJumpablePathPrefixes := slice $subJumpablePathFields 0 $subJumpablePathFieldLast}}
-								<span class="text light-2">{{StringUtils.Join $subJumpablePathPrefixes "/"}}</span>/{{index $subJumpablePathFields $subJumpablePathFieldLast}}
+								<span class="tw-text-text-light-2">{{StringUtils.Join $subJumpablePathPrefixes "/"}}</span>/{{index $subJumpablePathFields $subJumpablePathFieldLast}}
 							{{end}}
 						</a>
 					{{else}}
@@ -47,7 +47,7 @@
 					{{end}}
 				{{end}}
 			</div>
-			<div class="repo-file-cell message loading-icon-2px">
+			<div class="repo-file-cell message commit-summary loading-icon-2px">
 				{{if $commit}}
 					{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
 					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.Message $commitLink $.Repository}}

@@ -16,7 +16,7 @@ func TestDescriptionSanitizer(t *testing.T) {
 		`<span class="emoji" aria-label="thumbs up">THUMBS UP</span>`, `<span class="emoji" aria-label="thumbs up">THUMBS UP</span>`,
 		`<span style="color: red">Hello World</span>`, `<span>Hello World</span>`,
 		`<br>`, ``,
-		`<a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a>`, `<a href="https://example.com" target="_blank" rel="noopener noreferrer nofollow">https://example.com</a>`,
+		`<a href="https://example.com" target="_blank">https://example.com</a>`, `<a href="https://example.com" target="_blank" rel="nofollow noopener">https://example.com</a>`,
 		`<a href="data:1234">data</a>`, `data`,
 		`<mark>Important!</mark>`, `Important!`,
 		`<details>Click me! <summary>Nothing to see here.</summary></details>`, `Click me! Nothing to see here.`,

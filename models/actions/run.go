@@ -70,14 +70,14 @@ func (run *ActionRun) HTMLURL() string {
 	if run.Repo == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.HTMLURL(), run.Index)
+	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.HTMLURL(), run.ID)
 }
 
 func (run *ActionRun) Link() string {
 	if run.Repo == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.Index)
+	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.ID)
 }
 
 func (run *ActionRun) WorkflowLink() string {
@@ -168,7 +168,7 @@ func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 }
 
 func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, error) {
-	if run.Event.IsPullRequest() {
+	if run.Event.IsPullRequest() || run.Event.IsPullRequestReview() {
 		var payload api.PullRequestPayload
 		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 			return nil, err
@@ -193,9 +193,11 @@ func (run *ActionRun) IsSchedule() bool {
 	return run.ScheduleID > 0
 }
 
+// UpdateRepoRunsNumbers updates the number of runs and closed runs of a repository.
 func UpdateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
 	_, err := db.GetEngine(ctx).ID(repo.ID).
 		NoAutoTime().
+		Cols("num_action_runs", "num_closed_action_runs").
 		SetExpr("num_action_runs",
 			builder.Select("count(*)").From("action_run").
 				Where(builder.Eq{"repo_id": repo.ID}),
@@ -297,7 +299,7 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 		if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
 			return cancelledJobs, err
 		}
-		updatedJob, err := GetRunJobByID(ctx, job.ID)
+		updatedJob, err := GetRunJobByRunAndID(ctx, job.RunID, job.ID)
 		if err != nil {
 			return cancelledJobs, fmt.Errorf("get job: %w", err)
 		}

@@ -27,6 +27,12 @@ func TestViewUser(t *testing.T) {
 
 	req := NewRequest(t, "GET", "/user2")
 	MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequest(t, "GET", "/user2.keys")
+	resp := MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, `# Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified.
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDWVj0fQ5N8wNc0LVNA41wDLYJ89ZIbejrPfg/avyj3u/ZohAKsQclxG4Ju0VirduBFF9EOiuxoiFBRr3xRpqzpsZtnMPkWVWb+akZwBFAx8p+jKdy4QXR/SZqbVobrGwip2UjSrri1CtBxpJikojRIZfCnDaMOyd9Jp6KkujvniFzUWdLmCPxUE9zhTaPu0JsEP7MW0m6yx7ZUhHyfss+NtqmFTaDO+QlMR7L2QkDliN2Jl3Xa3PhuWnKJfWhdAq1Cw4oraKUOmIgXLkuiuxVQ6mD3AiFupkmfqdHq6h+uHHmyQqv3gU+/sD8GbGAhf6ftqhTsXjnv1Aj4R8NoDf9BS6KRkzkeun5UisSzgtfQzjOMEiJtmrep2ZQrMGahrXa+q4VKr0aKJfm+KlLfwm/JztfsBcqQWNcTURiCFqz+fgZw0Ey/de0eyMzldYTdXXNRYCKjs9bvBK+6SSXRM7AhftfQ0ZuoW5+gtinPrnmoOaSCEJbAiEiTO/BzOHgowiM=
+`, resp.Body.String())
 }
 
 func TestRenameUsername(t *testing.T) {
@@ -34,7 +40,6 @@ func TestRenameUsername(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf":    GetUserCSRFToken(t, session),
 		"name":     "newUsername",
 		"email":    "user2@example.com",
 		"language": "en-US",
@@ -43,6 +48,75 @@ func TestRenameUsername(t *testing.T) {
 
 	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "newUsername"})
 	unittest.AssertNotExistsBean(t, &user_model.User{Name: "user2"})
+}
+
+func TestViewLimitedAndPrivateUserAndRename(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user 22 is a limited visibility org
+	org22 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
+	req := NewRequest(t, "GET", "/"+org22.Name)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	session := loginUser(t, "user1")
+	oldName := org22.Name
+	newName := "org22_renamed"
+	req = NewRequestWithValues(t, "POST", "/org/"+oldName+"/settings/rename", map[string]string{
+		"org_name":     oldName,
+		"new_org_name": newName,
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: newName})
+	unittest.AssertNotExistsBean(t, &user_model.User{Name: oldName})
+
+	req = NewRequest(t, "GET", "/"+oldName)
+	MakeRequest(t, req, http.StatusNotFound) // anonymous user cannot visit limited visibility org via old name
+	req = NewRequest(t, "GET", "/"+oldName)
+	session.MakeRequest(t, req, http.StatusTemporaryRedirect) // login user can visit limited visibility org via old name
+
+	// org 23 is a private visibility org
+	org23 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
+	req = NewRequest(t, "GET", "/"+org23.Name)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	oldName = org23.Name
+	newName = "org23_renamed"
+	req = NewRequestWithValues(t, "POST", "/org/"+oldName+"/settings/rename", map[string]string{
+		"org_name":     oldName,
+		"new_org_name": newName,
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: newName})
+	unittest.AssertNotExistsBean(t, &user_model.User{Name: oldName})
+
+	req = NewRequest(t, "GET", "/"+oldName)
+	MakeRequest(t, req, http.StatusNotFound) // anonymous user cannot visit limited visibility org via old name
+	req = NewRequest(t, "GET", "/"+oldName)
+	session.MakeRequest(t, req, http.StatusTemporaryRedirect) // login user can visit limited visibility org via old name
+
+	// user 31 is a private visibility user
+	user31 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31})
+	req = NewRequest(t, "GET", "/"+user31.Name)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	oldName = user31.Name
+	newName = "user31_renamed"
+	session2 := loginUser(t, oldName)
+	req = NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+		"name":       newName,
+		"visibility": "2", // private
+	})
+	session2.MakeRequest(t, req, http.StatusSeeOther)
+
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: newName})
+	unittest.AssertNotExistsBean(t, &user_model.User{Name: oldName})
+
+	req = NewRequest(t, "GET", "/"+oldName)
+	MakeRequest(t, req, http.StatusNotFound) // anonymous user cannot visit private visibility user via old name
+	req = NewRequest(t, "GET", "/"+oldName)
+	session.MakeRequest(t, req, http.StatusTemporaryRedirect) // login user2 can visit private visibility user via old name
 }
 
 func TestRenameInvalidUsername(t *testing.T) {
@@ -78,7 +152,6 @@ func TestRenameInvalidUsername(t *testing.T) {
 		t.Logf("Testing username %s", invalidUsername)
 
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
 			"name":  invalidUsername,
 			"email": "user2@example.com",
 		})
@@ -106,7 +179,6 @@ func TestRenameReservedUsername(t *testing.T) {
 	locale := translation.NewLocale("en-US")
 	for _, reservedUsername := range reservedUsernames {
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf":    GetUserCSRFToken(t, session),
 			"name":     reservedUsername,
 			"email":    "user2@example.com",
 			"language": "en-US",
@@ -128,8 +200,17 @@ func TestRenameReservedUsername(t *testing.T) {
 
 func TestExportUserGPGKeys(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	testExportUserGPGKeys := func(t *testing.T, user, expected string) {
+		session := loginUser(t, user)
+		t.Logf("Testing username %s export gpg keys", user)
+		req := NewRequest(t, "GET", "/"+user+".gpg")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, expected, resp.Body.String())
+	}
+
 	// Export empty key list
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Comment: Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified.
 Note: This user hasn't uploaded any GPG keys.
 
 
@@ -171,6 +252,7 @@ GrE0MHOxUbc9tbtyk0F1SuzREUBH
 -----END PGP PUBLIC KEY BLOCK-----`)
 	// Export new key
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Comment: Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified.
 
 xsBNBFyy/VUBCADJ7zbM20Z1RWmFoVgp5WkQfI2rU1Vj9cQHes9i42wVLLtcbPeo
 QzubgzvMPITDy7nfWxgSf83E23DoHQ1ACFbQh/6eFSRrjsusp3YQ/08NSfPPbcu8
@@ -200,15 +282,6 @@ C0TLXKur6NVYQMn01iyL+FZzRpEWNuYF3f9QeeLJ/+l2DafESNhNTy17+RPmacK6
 GrE0MHOxUbc9tbtyk0F1SuzREUBH
 =WFf5
 -----END PGP PUBLIC KEY BLOCK-----`)
-}
-
-func testExportUserGPGKeys(t *testing.T, user, expected string) {
-	session := loginUser(t, user)
-	t.Logf("Testing username %s export gpg keys", user)
-	req := NewRequest(t, "GET", "/"+user+".gpg")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	// t.Log(resp.Body.String())
-	assert.Equal(t, expected, resp.Body.String())
 }
 
 func TestGetUserRss(t *testing.T) {
@@ -262,7 +335,6 @@ func TestUserLocationMapLink(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf":    GetUserCSRFToken(t, session),
 		"name":     "user2",
 		"email":    "user@example.com",
 		"language": "en-US",

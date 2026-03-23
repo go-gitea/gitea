@@ -310,7 +310,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 
 	// Remove repository files.
 	if err := gitrepo.DeleteRepository(ctx, repo); err != nil {
-		desc := fmt.Sprintf("Delete repository files [%s]: %v", repo.FullName(), err)
+		desc := fmt.Sprintf("Delete repository files (%s): %v", repo.FullName(), err)
 		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
@@ -318,7 +318,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 
 	// Remove wiki files if it exists.
 	if err := gitrepo.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
-		desc := fmt.Sprintf("Delete wiki repository files [%s]: %v", repo.FullName(), err)
+		desc := fmt.Sprintf("Delete wiki repository files (%s): %v", repo.FullName(), err)
 		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
 		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)

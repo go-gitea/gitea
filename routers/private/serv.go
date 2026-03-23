@@ -108,21 +108,19 @@ func ServCommand(ctx *context.PrivateContext) {
 		results.RepoName = repoName[:len(repoName)-5]
 	}
 
-	// Check if there is a user redirect for the requested owner
-	redirectedUserID, err := user_model.LookupUserRedirect(ctx, results.OwnerName)
-	if err == nil {
-		owner, err := user_model.GetUserByID(ctx, redirectedUserID)
-		if err == nil {
-			log.Info("User %s has been redirected to %s", results.OwnerName, owner.Name)
-			results.OwnerName = owner.Name
-		} else {
-			log.Warn("User %s has a redirect to user with ID %d, but no user with this ID could be found. Trying without redirect...", results.OwnerName, redirectedUserID)
-		}
-	}
-
 	owner, err := user_model.GetUserByName(ctx, results.OwnerName)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		if !user_model.IsErrUserNotExist(err) {
+			log.Error("Unable to get repository owner: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
+			ctx.JSON(http.StatusForbidden, private.Response{
+				UserMsg: fmt.Sprintf("Unable to get repository owner: %s/%s %v", results.OwnerName, results.RepoName, err),
+			})
+			return
+		}
+
+		// Check if there is a user redirect for the requested owner
+		redirectedUserID, err := user_model.LookupUserRedirect(ctx, results.OwnerName)
+		if err != nil {
 			// User is fetching/cloning a non-existent repository
 			log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
 			ctx.JSON(http.StatusNotFound, private.Response{
@@ -130,11 +128,20 @@ func ServCommand(ctx *context.PrivateContext) {
 			})
 			return
 		}
-		log.Error("Unable to get repository owner: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
-		ctx.JSON(http.StatusForbidden, private.Response{
-			UserMsg: fmt.Sprintf("Unable to get repository owner: %s/%s %v", results.OwnerName, results.RepoName, err),
-		})
-		return
+
+		redirectUser, err := user_model.GetUserByID(ctx, redirectedUserID)
+		if err != nil {
+			// User is fetching/cloning a non-existent repository
+			log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
+			ctx.JSON(http.StatusNotFound, private.Response{
+				UserMsg: fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
+			})
+			return
+		}
+
+		log.Info("User %s has been redirected to %s", results.OwnerName, redirectUser.Name)
+		results.OwnerName = redirectUser.Name
+		owner = redirectUser
 	}
 	if !owner.IsOrganization() && !owner.IsActive {
 		ctx.JSON(http.StatusForbidden, private.Response{
@@ -143,24 +150,33 @@ func ServCommand(ctx *context.PrivateContext) {
 		return
 	}
 
-	redirectedRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, results.RepoName)
-	if err == nil {
-		redirectedRepo, err := repo_model.GetRepositoryByID(ctx, redirectedRepoID)
-		if err == nil {
-			log.Info("Repository %s/%s has been redirected to %s/%s", results.OwnerName, results.RepoName, redirectedRepo.OwnerName, redirectedRepo.Name)
-			results.RepoName = redirectedRepo.Name
-			results.OwnerName = redirectedRepo.OwnerName
-			owner.ID = redirectedRepo.OwnerID
-		} else {
-			log.Warn("Repo %s/%s has a redirect to repo with ID %d, but no repo with this ID could be found. Trying without redirect...", results.OwnerName, results.RepoName, redirectedRepoID)
-		}
-	}
-
 	// Now get the Repository and set the results section
 	repoExist := true
 	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, results.RepoName)
 	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
+		if !repo_model.IsErrRepoNotExist(err) {
+			log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: fmt.Sprintf("Unable to get repository: %s/%s %v", results.OwnerName, results.RepoName, err),
+			})
+			return
+		}
+
+		redirectedRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, results.RepoName)
+		if err == nil {
+			redirectedRepo, err := repo_model.GetRepositoryByID(ctx, redirectedRepoID)
+			if err == nil {
+				log.Info("Repository %s/%s has been redirected to %s/%s", results.OwnerName, results.RepoName, redirectedRepo.OwnerName, redirectedRepo.Name)
+				results.RepoName = redirectedRepo.Name
+				results.OwnerName = redirectedRepo.OwnerName
+				repo = redirectedRepo
+				owner.ID = redirectedRepo.OwnerID
+			} else {
+				log.Warn("Repo %s/%s has a redirect to repo with ID %d, but no repo with this ID could be found. Trying without redirect...", results.OwnerName, results.RepoName, redirectedRepoID)
+			}
+		}
+
+		if repo == nil {
 			repoExist = false
 			if mode == perm.AccessModeRead {
 				// User is fetching/cloning a non-existent repository
@@ -170,13 +186,6 @@ func ServCommand(ctx *context.PrivateContext) {
 				})
 				return
 			}
-			// else fallthrough (push-to-create may kick in below)
-		} else {
-			log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Unable to get repository: %s/%s %v", results.OwnerName, results.RepoName, err),
-			})
-			return
 		}
 	}
 

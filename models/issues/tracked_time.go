@@ -311,13 +311,13 @@ func deleteTime(ctx context.Context, t *TrackedTime) error {
 }
 
 // GetTrackedTimeByID returns raw TrackedTime without loading attributes by id
-func GetTrackedTimeByID(ctx context.Context, id int64) (*TrackedTime, error) {
+func GetTrackedTimeByID(ctx context.Context, issueID, trackedTimeID int64) (*TrackedTime, error) {
 	time := new(TrackedTime)
-	has, err := db.GetEngine(ctx).ID(id).Get(time)
+	has, err := db.GetEngine(ctx).ID(trackedTimeID).Where("issue_id = ?", issueID).Get(time)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, db.ErrNotExist{Resource: "tracked_time", ID: id}
+		return nil, db.ErrNotExist{Resource: "tracked_time", ID: trackedTimeID}
 	}
 	return time, nil
 }

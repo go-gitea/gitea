@@ -29,7 +29,7 @@
 			</div>
 		</div>
 		<div class="ui attached table segment">
-			<table class="ui very basic striped table unstackable">
+			<table class="ui very basic table unstackable">
 				<thead>
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
@@ -48,13 +48,16 @@
 					</tr>
 				</thead>
 				<tbody>
-					{{range .Users}}
+					{{range $org := .Users}}
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="{{.HomeLink}}">{{if and DefaultShowFullName .FullName}}{{.FullName}} ({{.Name}}){{else}}{{.Name}}{{end}}</a>
+								<span class="username-display">
+									<a href="{{$org.HomeLink}}">{{$org.Name}}</a>
+									{{if $org.FullName}}<span class="username-fullname">({{$org.FullName}})</span>{{end}}
+								</span>
 								{{if .Visibility.IsPrivate}}
-									<span class="text gold">{{svg "octicon-lock"}}</span>
+									<span class="tw-text-gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 								{{if eq .Type 3}}{{/* Reserved organization */}}
 									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.reserved"}}</span>

@@ -12,6 +12,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // Stopwatch represents a stopwatch for time tracking.
@@ -231,4 +233,15 @@ func CancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) (
 		return nil
 	})
 	return ok, err
+}
+
+// RemoveStopwatchesByRepoID removes all stopwatches for a user in a specific repository
+// this function should be called before removing all the issues of the repository
+func RemoveStopwatchesByRepoID(ctx context.Context, userID, repoID int64) error {
+	_, err := db.GetEngine(ctx).
+		Where("`stopwatch`.user_id = ?", userID).
+		And(builder.In("`stopwatch`.issue_id",
+			builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repoID}))).
+		Delete(new(Stopwatch))
+	return err
 }

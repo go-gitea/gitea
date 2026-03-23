@@ -4,23 +4,44 @@
   position: relative;
 }
 
-/* before the Vue component is mounted, show a loading indicator with dummy size */
-/* the ratio is guesswork, see https://github.com/razorness/vue3-calendar-heatmap/issues/26 */
-#user-heatmap.is-loading {
-  aspect-ratio: 5.415; /* the size is about 790 x 145 */
+.activity-heatmap-container {
+  container-type: inline-size;
 }
-.user.profile #user-heatmap.is-loading {
-  aspect-ratio: 5.645; /* the size is about 953 x 169 */
+
+@container (width > 0) {
+  #user-heatmap {
+    /* Set element to fixed height so that it does not resize after load. The calculation is complex
+       because the element does not scale with a fixed aspect ratio. */
+    height: calc((100cqw / 5) - (100cqw / 25) + 20px);
+  }
+}
+
+/* Fallback height adjustment above for browsers that don't support container queries */
+@supports not (container-type: inline-size) {
+  /* Before the Vue component is mounted, show a loading indicator with dummy size */
+  /* The ratio is guesswork for legacy browsers, new browsers use the "@container" approach above  */
+  #user-heatmap.is-loading {
+    aspect-ratio: 5.4823972051; /* the size is about 816 x 148.84 */
+  }
+  .user.profile #user-heatmap.is-loading {
+    aspect-ratio: 5.6290608387; /* the size is about 953 x 169.3 */
+  }
 }
 
 #user-heatmap text {
   fill: currentcolor !important;
 }
 
+/* root legend */
+#user-heatmap .vch__container > .vch__legend {
+  display: flex;
+  font-size: 11px;
+  justify-content: space-between;
+}
+
 /* for the "Less" and "More" legend */
 #user-heatmap .vch__legend .vch__legend {
   display: flex;
-  font-size: 11px;
   align-items: center;
   justify-content: right;
 }
@@ -33,26 +54,4 @@
 
 #user-heatmap .vch__day__square:hover {
   outline: 1.5px solid var(--color-text);
-}
-
-/* move the "? contributions in the last ? months" text from top to bottom */
-#user-heatmap .total-contributions {
-  font-size: 11px;
-  position: absolute;
-  bottom: 0;
-  left: 25px;
-}
-
-@media (max-width: 1200px) {
-  #user-heatmap .total-contributions {
-    left: 21px;
-  }
-}
-
-@media (max-width: 1000px) {
-  #user-heatmap .total-contributions {
-    font-size: 10px;
-    left: 17px;
-    bottom: -4px;
-  }
 }

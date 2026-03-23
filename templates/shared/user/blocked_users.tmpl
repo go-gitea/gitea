@@ -14,7 +14,6 @@
 </div>
 <div class="ui segment">
 	<form class="ui form ignore-dirty" action="{{$.Link}}" method="post">
-		{{.CsrfTokenHtml}}
 		<input type="hidden" name="action" value="block" />
 		<div id="search-user-box" class="field ui fluid search input">
 			<input class="prompt tw-mr-2" name="blockee" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" required>
@@ -50,7 +49,6 @@
 				<div class="flex-item-trailing">
 					<button class="ui compact mini button show-modal" data-modal="#block-user-note-modal" data-modal-modal-blockee="{{.Blockee.Name}}" data-modal-modal-note="{{.Note}}">{{ctx.Locale.Tr "user.block.note.edit"}}</button>
 					<form action="{{$.Link}}" method="post">
-						{{$.CsrfTokenHtml}}
 						<input type="hidden" name="action" value="unblock" />
 						<input type="hidden" name="blockee" value="{{.Blockee.Name}}" />
 						<button class="ui compact mini button">{{ctx.Locale.Tr "user.block.unblock"}}</button>
@@ -66,7 +64,6 @@
 	<div class="header">{{ctx.Locale.Tr "user.block.note.edit"}}</div>
 	<div class="content">
 		<form class="ui form" action="{{$.Link}}" method="post">
-			{{.CsrfTokenHtml}}
 			<input type="hidden" name="action" value="note" />
 			<input type="hidden" name="blockee" class="modal-blockee" />
 			<div class="field">

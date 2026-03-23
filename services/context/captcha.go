@@ -5,6 +5,7 @@ package context
 
 import (
 	"fmt"
+	"image/color"
 	"sync"
 
 	"code.gitea.io/gitea/modules/cache"
@@ -29,26 +30,19 @@ func GetImageCaptcha() *captcha.Captcha {
 	imageCaptchaOnce.Do(func() {
 		cpt = captcha.NewCaptcha(captcha.Options{
 			SubURL: setting.AppSubURL,
+			// Use a color palette with high contrast colors suitable for both light and dark modes
+			// These colors provide good visibility and readability in both themes
+			ColorPalette: color.Palette{
+				color.RGBA{R: 234, G: 67, B: 53, A: 255},  // Bright red
+				color.RGBA{R: 66, G: 133, B: 244, A: 255}, // Medium blue
+				color.RGBA{R: 52, G: 168, B: 83, A: 255},  // Green
+				color.RGBA{R: 251, G: 188, B: 5, A: 255},  // Yellow/gold
+				color.RGBA{R: 171, G: 71, B: 188, A: 255}, // Purple
+			},
 		})
 		cpt.Store = cache.GetCache().ChiCache()
 	})
 	return cpt
-}
-
-// SetCaptchaData sets common captcha data
-func SetCaptchaData(ctx *Context) {
-	if !setting.Service.EnableCaptcha {
-		return
-	}
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
-	ctx.Data["Captcha"] = GetImageCaptcha()
-	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
-	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 }
 
 const (
@@ -88,6 +82,6 @@ func VerifyCaptcha(ctx *Context, tpl templates.TplName, form any) {
 
 	if !valid {
 		ctx.Data["Err_Captcha"] = true
-		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tpl, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.captcha_incorrect"), tpl, form)
 	}
 }

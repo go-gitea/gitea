@@ -233,16 +233,11 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 				DeleteBranch: false,
 			})
 
-			// Grab the CSRF token.
-			req := NewRequest(t, "GET", path.Join(elem[1], elem[2], "pulls", elem[4]))
-			resp = user2Session.MakeRequest(t, req, http.StatusOK)
-			htmlDoc := NewHTMLParser(t, resp.Body)
-
 			// Submit an approve review on the PR.
-			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "", "approve", http.StatusUnprocessableEntity)
+			testSubmitReview(t, user2Session, "user2", "repo1", elem[4], "", "approve", http.StatusUnprocessableEntity)
 
 			// Submit a reject review on the PR.
-			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "", "reject", http.StatusUnprocessableEntity)
+			testSubmitReview(t, user2Session, "user2", "repo1", elem[4], "", "reject", http.StatusUnprocessableEntity)
 		})
 
 		t.Run("Submit approve/reject review on closed PR", func(t *testing.T) {
@@ -253,23 +248,17 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 			assert.Equal(t, "pulls", elem[3])
 			testIssueClose(t, user1Session, elem[1], elem[2], elem[4])
 
-			// Grab the CSRF token.
-			req := NewRequest(t, "GET", path.Join(elem[1], elem[2], "pulls", elem[4]))
-			resp = user2Session.MakeRequest(t, req, http.StatusOK)
-			htmlDoc := NewHTMLParser(t, resp.Body)
-
 			// Submit an approve review on the PR.
-			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "", "approve", http.StatusUnprocessableEntity)
+			testSubmitReview(t, user2Session, "user2", "repo1", elem[4], "", "approve", http.StatusUnprocessableEntity)
 
 			// Submit a reject review on the PR.
-			testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), "user2", "repo1", elem[4], "", "reject", http.StatusUnprocessableEntity)
+			testSubmitReview(t, user2Session, "user2", "repo1", elem[4], "", "reject", http.StatusUnprocessableEntity)
 		})
 	})
 }
 
-func testSubmitReview(t *testing.T, session *TestSession, csrf, owner, repo, pullNumber, commitID, reviewType string, expectedSubmitStatus int) *httptest.ResponseRecorder {
+func testSubmitReview(t *testing.T, session *TestSession, owner, repo, pullNumber, commitID, reviewType string, expectedSubmitStatus int) *httptest.ResponseRecorder {
 	options := map[string]string{
-		"_csrf":     csrf,
 		"commit_id": commitID,
 		"content":   "test",
 		"type":      reviewType,
@@ -281,17 +270,12 @@ func testSubmitReview(t *testing.T, session *TestSession, csrf, owner, repo, pul
 }
 
 func testIssueClose(t *testing.T, session *TestSession, owner, repo, issueNumber string) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", path.Join(owner, repo, "pulls", issueNumber))
-	resp := session.MakeRequest(t, req, http.StatusOK)
-
-	htmlDoc := NewHTMLParser(t, resp.Body)
 	closeURL := path.Join(owner, repo, "issues", issueNumber, "comments")
 
 	options := map[string]string{
-		"_csrf":  htmlDoc.GetCSRF(),
 		"status": "close",
 	}
 
-	req = NewRequestWithValues(t, "POST", closeURL, options)
+	req := NewRequestWithValues(t, "POST", closeURL, options)
 	return session.MakeRequest(t, req, http.StatusOK)
 }

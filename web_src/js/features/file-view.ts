@@ -18,11 +18,11 @@ function findFileRenderPlugin(filename: string, mimeType: string): FileRenderPlu
 }
 
 function showRenderRawFileButton(elFileView: HTMLElement, renderContainer: HTMLElement | null): void {
-  const toggleButtons = elFileView.querySelector('.file-view-toggle-buttons');
+  const toggleButtons = elFileView.querySelector('.file-view-toggle-buttons')!;
   showElem(toggleButtons);
   const displayingRendered = Boolean(renderContainer);
   toggleElemClass(toggleButtons.querySelectorAll('.file-view-toggle-source'), 'active', !displayingRendered); // it may not exist
-  toggleElemClass(toggleButtons.querySelector('.file-view-toggle-rendered'), 'active', displayingRendered);
+  toggleElemClass(toggleButtons.querySelector('.file-view-toggle-rendered')!, 'active', displayingRendered);
   // TODO: if there is only one button, hide it?
 }
 
@@ -62,7 +62,7 @@ async function renderRawFileToContainer(container: HTMLElement, rawFileLink: str
 export function initRepoFileView(): void {
   registerGlobalInitFunc('initRepoFileView', async (elFileView: HTMLElement) => {
     initPluginsOnce();
-    const rawFileLink = elFileView.getAttribute('data-raw-file-link');
+    const rawFileLink = elFileView.getAttribute('data-raw-file-link')!;
     const mimeType = elFileView.getAttribute('data-mime-type') || ''; // not used yet
     // TODO: we should also provide the prefetched file head bytes to let the plugin decide whether to render or not
     const plugin = findFileRenderPlugin(basename(rawFileLink), mimeType);

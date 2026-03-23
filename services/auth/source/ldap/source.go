@@ -44,6 +44,7 @@ type Source struct {
 	AttributesInBind      bool   // fetch attributes in bind context (not user)
 	AttributeSSHPublicKey string // LDAP SSH Public Key attribute
 	AttributeAvatar       string
+	SSHKeysAreVerified    bool   // true if SSH keys in LDAP are verified
 	SearchPageSize        uint32 // Search with paging page size
 	Filter                string // Query filter to validate entry
 	AdminFilter           string // Query filter to check if user is admin

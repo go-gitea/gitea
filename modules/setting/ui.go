@@ -25,10 +25,10 @@ var UI = struct {
 	ReactionMaxUserNum      int
 	MaxDisplayFileSize      int64
 	ShowUserEmail           bool
-	DefaultShowFullName     bool
 	DefaultTheme            string
 	Themes                  []string
 	FileIconTheme           string
+	FolderIconTheme         string
 	Reactions               []string
 	ReactionsLookup         container.Set[string] `ini:"-"`
 	CustomEmojis            []string
@@ -41,6 +41,15 @@ var UI = struct {
 	PreferredTimestampTense string
 
 	AmbiguousUnicodeDetection bool
+
+	// TODO: DefaultShowFullName is introduced by https://github.com/go-gitea/gitea/pull/6710
+	// But there are still many edge cases:
+	// * Many places still use "username", not respecting this setting
+	// * Many places use "Full Name" if it is not empty, cause inconsistent UI for users who have set their full name but some others don't
+	// * Even if DefaultShowFullName=false, many places still need to show the full name
+	// For most cases, either "username" or "username (Full Name)" should be used and are good enough.
+	// Only in very few cases (e.g.: unimportant lists, narrow layout), "username" or "Full Name" can be used.
+	DefaultShowFullName bool
 
 	Notification struct {
 		MinTimeout            time.Duration
@@ -88,6 +97,7 @@ var UI = struct {
 	MaxDisplayFileSize:      8388608,
 	DefaultTheme:            `gitea-auto`,
 	FileIconTheme:           `material`,
+	FolderIconTheme:         `basic`,
 	Reactions:               []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 	CustomEmojis:            []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
 	CustomEmojisMap:         map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},

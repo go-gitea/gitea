@@ -4,12 +4,14 @@
 package security
 
 import (
+	"errors"
 	"net/http"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -23,7 +25,7 @@ func OpenIDPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.AddOpenIDForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
 	if ctx.HasError() {
@@ -43,7 +45,7 @@ func OpenIDPost(ctx *context.Context) {
 	if err != nil {
 		loadSecurityData(ctx)
 
-		ctx.RenderWithErr(err.Error(), tplSettingsSecurity, &form)
+		ctx.RenderWithErrDeprecated(err.Error(), tplSettingsSecurity, &form)
 		return
 	}
 	form.Openid = id
@@ -61,7 +63,7 @@ func OpenIDPost(ctx *context.Context) {
 		if obj.URI == id {
 			loadSecurityData(ctx)
 
-			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &form)
 			return
 		}
 	}
@@ -71,7 +73,7 @@ func OpenIDPost(ctx *context.Context) {
 	if err != nil {
 		loadSecurityData(ctx)
 
-		ctx.RenderWithErr(err.Error(), tplSettingsSecurity, &form)
+		ctx.RenderWithErrDeprecated(err.Error(), tplSettingsSecurity, &form)
 		return
 	}
 	ctx.Redirect(url)
@@ -85,7 +87,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 	id, err := openid.Verify(fullURL)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSettingsSecurity, &forms.AddOpenIDForm{
+		ctx.RenderWithErrDeprecated(err.Error(), tplSettingsSecurity, &forms.AddOpenIDForm{
 			Openid: id,
 		})
 		return
@@ -96,7 +98,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 	oid := &user_model.UserOpenID{UID: ctx.Doer.ID, URI: id}
 	if err = user_model.AddUserOpenID(ctx, oid); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
-			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &forms.AddOpenIDForm{Openid: id})
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &forms.AddOpenIDForm{Openid: id})
 			return
 		}
 		ctx.ServerError("AddUserOpenID", err)
@@ -116,7 +118,11 @@ func DeleteOpenID(ctx *context.Context) {
 	}
 
 	if err := user_model.DeleteUserOpenID(ctx, &user_model.UserOpenID{ID: ctx.FormInt64("id"), UID: ctx.Doer.ID}); err != nil {
-		ctx.ServerError("DeleteUserOpenID", err)
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.HTTPError(http.StatusNotFound)
+		} else {
+			ctx.ServerError("DeleteUserOpenID", err)
+		}
 		return
 	}
 	log.Trace("OpenID address deleted: %s", ctx.Doer.Name)
@@ -132,8 +138,12 @@ func ToggleOpenIDVisibility(ctx *context.Context) {
 		return
 	}
 
-	if err := user_model.ToggleUserOpenIDVisibility(ctx, ctx.FormInt64("id")); err != nil {
-		ctx.ServerError("ToggleUserOpenIDVisibility", err)
+	if err := user_model.ToggleUserOpenIDVisibility(ctx, ctx.FormInt64("id"), ctx.Doer); err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.HTTPError(http.StatusNotFound)
+		} else {
+			ctx.ServerError("ToggleUserOpenIDVisibility", err)
+		}
 		return
 	}
 

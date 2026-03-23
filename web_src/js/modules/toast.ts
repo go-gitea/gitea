@@ -52,7 +52,7 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
   if (preventDuplicates) {
     const toastEl = parent.querySelector(`:scope > .toastify.on[data-toast-unique-key="${CSS.escape(duplicateKey)}"]`);
     if (toastEl) {
-      const toastDupNumEl = toastEl.querySelector('.toast-duplicate-number');
+      const toastDupNumEl = toastEl.querySelector('.toast-duplicate-number')!;
       showElem(toastDupNumEl);
       toastDupNumEl.textContent = String(Number(toastDupNumEl.textContent) + 1);
       animateOnce(toastDupNumEl, 'pulse-1p5-200');
@@ -77,9 +77,10 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
   });
 
   toast.showToast();
-  toast.toastElement.querySelector('.toast-close').addEventListener('click', () => toast.hideToast());
-  toast.toastElement.setAttribute('data-toast-unique-key', duplicateKey);
-  (toast.toastElement as ToastifyElement)._giteaToastifyInstance = toast;
+  const el = toast.toastElement as ToastifyElement;
+  el.querySelector('.toast-close')!.addEventListener('click', () => toast.hideToast());
+  el.setAttribute('data-toast-unique-key', duplicateKey);
+  el._giteaToastifyInstance = toast;
   return toast;
 }
 

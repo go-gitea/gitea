@@ -14,6 +14,7 @@ type Uploader interface {
 	CreateMilestones(ctx context.Context, milestones ...*Milestone) error
 	CreateReleases(ctx context.Context, releases ...*Release) error
 	SyncTags(ctx context.Context) error
+	SyncBranches(ctx context.Context) error
 	CreateLabels(ctx context.Context, labels ...*Label) error
 	CreateIssues(ctx context.Context, issues ...*Issue) error
 	CreateComments(ctx context.Context, comments ...*Comment) error

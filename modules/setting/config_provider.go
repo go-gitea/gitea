@@ -337,32 +337,15 @@ func LogStartupProblem(skip int, level log.Level, format string, args ...any) {
 
 func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` presents, please use `[%s].%s` instead because this fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
+		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead because this fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
 	}
 }
 
 // deprecatedSettingDB add a hint that the configuration has been moved to database but still kept in app.ini
 func deprecatedSettingDB(rootCfg ConfigProvider, oldSection, oldKey string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` presents but it won't take effect because it has been moved to admin panel -> config setting", oldSection, oldKey)
+		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` present but it won't take effect because it has been moved to admin panel -> config setting", oldSection, oldKey)
 	}
-}
-
-// NewConfigProviderForLocale loads locale configuration from source and others. "string" if for a local file path, "[]byte" is for INI content
-func NewConfigProviderForLocale(source any, others ...any) (ConfigProvider, error) {
-	iniFile, err := ini.LoadSources(ini.LoadOptions{
-		IgnoreInlineComment:         true,
-		UnescapeValueCommentSymbols: true,
-		IgnoreContinuation:          true,
-	}, source, others...)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load locale ini: %w", err)
-	}
-	iniFile.BlockMode = false
-	return &iniConfigProvider{
-		ini:             iniFile,
-		loadedFromEmpty: true,
-	}, nil
 }
 
 func init() {

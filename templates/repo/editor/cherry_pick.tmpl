@@ -4,7 +4,6 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<form class="ui edit form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}">
-			{{.CsrfTokenHtml}}
 			{{template "repo/editor/common_top" .}}
 			<input type="hidden" name="revert" value="{{if eq .CherryPickType "revert"}}true{{else}}false{{end}}">
 			<div class="repo-editor-header">

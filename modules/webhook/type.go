@@ -98,6 +98,20 @@ func (h HookEventType) IsPullRequest() bool {
 	return h.Event() == "pull_request"
 }
 
+// IsPullRequestReview returns true for pull request review events
+// (approved, rejected, comment). These events use the same PullRequestPayload
+// as regular pull_request events.
+func (h HookEventType) IsPullRequestReview() bool {
+	switch h {
+	case HookEventPullRequestReviewApproved,
+		HookEventPullRequestReviewRejected,
+		HookEventPullRequestReviewComment:
+		return true
+	default:
+		return false
+	}
+}
+
 // HookType is the type of a webhook
 type HookType = string
 

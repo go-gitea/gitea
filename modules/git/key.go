@@ -32,23 +32,23 @@ func (s *SigningKey) String() string {
 }
 
 // GetSigningKey returns the KeyID and git Signature for the repo
-func GetSigningKey(ctx context.Context, repoPath string) (*SigningKey, *Signature) {
+func GetSigningKey(ctx context.Context) (*SigningKey, *Signature) {
 	if setting.Repository.Signing.SigningKey == "none" {
 		return nil, nil
 	}
 
 	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
 		// Can ignore the error here as it means that commit.gpgsign is not set
-		value, _, _ := gitcmd.NewCommand("config", "--get", "commit.gpgsign").WithDir(repoPath).RunStdString(ctx)
+		value, _, _ := gitcmd.NewCommand("config", "--global", "--get", "commit.gpgsign").RunStdString(ctx)
 		sign, valid := ParseBool(strings.TrimSpace(value))
 		if !sign || !valid {
 			return nil, nil
 		}
 
-		format, _, _ := gitcmd.NewCommand("config", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").WithDir(repoPath).RunStdString(ctx)
-		signingKey, _, _ := gitcmd.NewCommand("config", "--get", "user.signingkey").WithDir(repoPath).RunStdString(ctx)
-		signingName, _, _ := gitcmd.NewCommand("config", "--get", "user.name").WithDir(repoPath).RunStdString(ctx)
-		signingEmail, _, _ := gitcmd.NewCommand("config", "--get", "user.email").WithDir(repoPath).RunStdString(ctx)
+		format, _, _ := gitcmd.NewCommand("config", "--global", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(ctx)
+		signingKey, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.signingkey").RunStdString(ctx)
+		signingName, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.name").RunStdString(ctx)
+		signingEmail, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.email").RunStdString(ctx)
 
 		if strings.TrimSpace(signingKey) == "" {
 			return nil, nil

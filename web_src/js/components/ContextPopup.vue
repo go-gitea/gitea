@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
-import {getIssueColor, getIssueIcon} from '../features/issue.ts';
+import {getIssueColorClass, getIssueIcon} from '../features/issue.ts';
 import {computed, onMounted, shallowRef} from 'vue';
 import type {Issue} from '../types.ts';
 
@@ -11,15 +11,17 @@ const props = defineProps<{
 }>();
 
 const loading = shallowRef(false);
-const issue = shallowRef<Issue>(null);
+const issue = shallowRef<Issue | null>(null);
 const renderedLabels = shallowRef('');
 const errorMessage = shallowRef('');
 
 const createdAt = computed(() => {
+  if (!issue?.value) return '';
   return new Date(issue.value.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
 });
 
 const body = computed(() => {
+  if (!issue?.value) return '';
   const body = issue.value.body.replace(/\n+/g, ' ');
   return body.length > 85 ? `${body.substring(0, 85)}…` : body;
 });
@@ -51,7 +53,7 @@ onMounted(async () => {
         on {{ createdAt }}
       </div>
       <div class="flex-text-block">
-        <svg-icon :name="getIssueIcon(issue)" :class="['text', getIssueColor(issue)]"/>
+        <svg-icon :name="getIssueIcon(issue)" :class="getIssueColorClass(issue)"/>
         <span class="issue-title tw-font-semibold tw-break-anywhere">
           {{ issue.title }}
           <span class="index">#{{ issue.number }}</span>

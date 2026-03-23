@@ -3,26 +3,42 @@ import {nextTick, defineComponent} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import type {SvgName} from '../svg.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
+
+type DashboardRepo = {
+  id: number,
+  link: string,
+  full_name: string,
+  archived: boolean,
+  fork: boolean,
+  mirror: boolean,
+  template: boolean,
+  private: boolean,
+  internal: boolean,
+  latest_commit_status_state?: CommitStatus,
+  latest_commit_status_state_link?: string,
+  locale_latest_commit_status_state?: string,
+};
 
 type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning' | 'skipped';
 
 type CommitStatusMap = {
   [status in CommitStatus]: {
-    name: string,
+    name: SvgName,
     color: string,
   };
 };
 
 // make sure this matches templates/repo/commit_status.tmpl
 const commitStatus: CommitStatusMap = {
-  pending: {name: 'octicon-dot-fill', color: 'yellow'},
-  success: {name: 'octicon-check', color: 'green'},
-  error: {name: 'gitea-exclamation', color: 'red'},
-  failure: {name: 'octicon-x', color: 'red'},
-  warning: {name: 'gitea-exclamation', color: 'yellow'},
-  skipped: {name: 'octicon-skip', color: 'grey'},
+  pending: {name: 'octicon-dot-fill', color: 'tw-text-yellow'},
+  success: {name: 'octicon-check', color: 'tw-text-green'},
+  error: {name: 'gitea-exclamation', color: 'tw-text-red'},
+  failure: {name: 'octicon-x', color: 'tw-text-red'},
+  warning: {name: 'gitea-exclamation', color: 'tw-text-yellow'},
+  skipped: {name: 'octicon-skip', color: 'tw-text-text-light'},
 };
 
 export default defineComponent({
@@ -38,8 +54,8 @@ export default defineComponent({
 
     return {
       tab,
-      repos: [],
-      reposTotalCount: null,
+      repos: [] as DashboardRepo[],
+      reposTotalCount: null as number | null,
       reposFilter,
       archivedFilter,
       privateFilter,
@@ -48,7 +64,7 @@ export default defineComponent({
       searchQuery,
       isLoading: false,
       staticPrefix: assetUrlPrefix,
-      counts: {},
+      counts: {} as Record<string, number>,
       repoTypes: {
         all: {
           searchMode: '',
@@ -65,16 +81,49 @@ export default defineComponent({
         collaborative: {
           searchMode: 'collaborative',
         },
-      },
-      textArchivedFilterTitles: {},
-      textPrivateFilterTitles: {},
-
-      organizations: [],
+      } as Record<string, {searchMode: string}>,
+      textArchivedFilterTitles: {} as Record<string, string>,
+      textPrivateFilterTitles: {} as Record<string, string>,
+      organizations: [] as Array<{name: string, full_name: string, num_repos: number, org_visibility: string}>,
       isOrganization: true,
       canCreateOrganization: false,
       organizationsTotalCount: 0,
       organizationId: 0,
-
+      searchLimit: 0,
+      uid: 0,
+      teamId: 0,
+      isMirrorsEnabled: false,
+      isStarsEnabled: false,
+      canCreateMigrations: false,
+      textNoOrg: '',
+      textNoRepo: '',
+      textRepository: '',
+      textOrganization: '',
+      textMyRepos: '',
+      textNewRepo: '',
+      textSearchRepos: '',
+      textFilter: '',
+      textShowArchived: '',
+      textShowPrivate: '',
+      textShowBothArchivedUnarchived: '',
+      textShowOnlyUnarchived: '',
+      textShowOnlyArchived: '',
+      textShowBothPrivatePublic: '',
+      textShowOnlyPublic: '',
+      textShowOnlyPrivate: '',
+      textAll: '',
+      textSources: '',
+      textForks: '',
+      textMirrors: '',
+      textCollaborative: '',
+      textFirstPage: '',
+      textPreviousPage: '',
+      textNextPage: '',
+      textLastPage: '',
+      textMyOrgs: '',
+      textNewOrg: '',
+      textOrgVisibilityLimited: '',
+      textOrgVisibilityPrivate: '',
       subUrl: appSubUrl,
       ...pageData.dashboardRepoList,
       activeIndex: -1, // don't select anything at load, first cursor down will select
@@ -110,9 +159,9 @@ export default defineComponent({
   },
 
   mounted() {
-    const el = document.querySelector('#dashboard-repo-list');
+    const el = document.querySelector('#dashboard-repo-list')!;
     this.changeReposFilter(this.reposFilter);
-    fomanticQuery(el.querySelector('.ui.dropdown')).dropdown();
+    fomanticQuery(el.querySelector('.ui.dropdown')!).dropdown();
 
     this.textArchivedFilterTitles = {
       'archived': this.textShowOnlyArchived,
@@ -250,7 +299,7 @@ export default defineComponent({
           nextTick(() => {
             // MDN: If there's no focused element, this is the Document.body or Document.documentElement.
             if ((document.activeElement === document.body || document.activeElement === document.documentElement)) {
-              this.$refs.search.focus({preventScroll: true});
+              (this.$refs.search as HTMLInputElement).focus({preventScroll: true});
             }
           });
         }
@@ -283,7 +332,7 @@ export default defineComponent({
       }
     },
 
-    repoIcon(repo: any) {
+    repoIcon(repo: DashboardRepo) {
       if (repo.fork) {
         return 'octicon-repo-forked';
       } else if (repo.mirror) {
@@ -307,6 +356,7 @@ export default defineComponent({
     },
 
     async reposFilterKeyControl(e: KeyboardEvent) {
+      if (e.isComposing) return;
       switch (e.key) {
         case 'Enter':
           document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
@@ -429,14 +479,14 @@ export default defineComponent({
           <li class="tw-flex tw-items-center tw-py-2" v-for="(repo, index) in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="16" class="repo-list-icon"/>
-              <div class="text truncate">{{ repo.full_name }}</div>
+              <div class="tw-inline-block tw-truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
             </a>
-            <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link || null" :data-tooltip-content="repo.locale_latest_commit_status_state">
+            <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link || undefined" :data-tooltip-content="repo.locale_latest_commit_status_state">
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class="'tw-ml-2 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
+              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class="'tw-ml-2 commit-status icon ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>
           </li>
         </ul>
@@ -493,14 +543,14 @@ export default defineComponent({
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class="repo-list-icon"/>
-              <div class="text truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
+              <div class="tw-inline-block tw-truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
                 </span>
               </div>
             </a>
-            <div class="text light grey tw-flex tw-items-center tw-ml-2">
+            <div class="tw-text-grey-light tw-flex tw-items-center tw-ml-2">
               {{ org.num_repos }}
               <svg-icon name="octicon-repo" :size="16" class="tw-ml-1 tw-mt-0.5"/>
             </div>

@@ -1,24 +1,31 @@
 import {showTemporaryTooltip} from '../modules/tippy.ts';
 import {toAbsoluteUrl} from '../utils.ts';
 import {clippie} from 'clippie';
-import type {DOMEvent} from '../utils/dom.ts';
 
 const {copy_success, copy_error} = window.config.i18n;
 
 // Enable clipboard copy from HTML attributes. These properties are supported:
 // - data-clipboard-text: Direct text to copy
-// - data-clipboard-target: Holds a selector for a <input> or <textarea> whose content is copied
+// - data-clipboard-target: Holds a selector for an element. "value" of <input> or <textarea>, or "textContent" of <div> will be copied
 // - data-clipboard-text-type: When set to 'url' will convert relative to absolute urls
 export function initGlobalCopyToClipboardListener() {
-  document.addEventListener('click', async (e: DOMEvent<MouseEvent>) => {
-    const target = e.target.closest('[data-clipboard-text], [data-clipboard-target]');
+  document.addEventListener('click', async (e) => {
+    const target = (e.target as HTMLElement).closest('[data-clipboard-text], [data-clipboard-target]');
     if (!target) return;
 
     e.preventDefault();
 
     let text = target.getAttribute('data-clipboard-text');
-    if (!text) {
-      text = document.querySelector<HTMLInputElement>(target.getAttribute('data-clipboard-target'))?.value;
+    if (text === null) {
+      const textSelector = target.getAttribute('data-clipboard-target')!;
+      const textTarget = document.querySelector(textSelector)!;
+      if (textTarget.nodeName === 'INPUT' || textTarget.nodeName === 'TEXTAREA') {
+        text = (textTarget as HTMLInputElement | HTMLTextAreaElement).value;
+      } else if (textTarget.nodeName === 'DIV') {
+        text = textTarget.textContent;
+      } else {
+        throw new Error(`Unsupported element for clipboard target: ${textSelector}`);
+      }
     }
 
     if (text && target.getAttribute('data-clipboard-text-type') === 'url') {

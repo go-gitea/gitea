@@ -9,6 +9,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 )
 
-func GetSigningKey(ctx context.Context, repo Repository) (*git.SigningKey, *git.Signature) {
-	return git.GetSigningKey(ctx, repoPath(repo))
+func GetSigningKey(ctx context.Context) (*git.SigningKey, *git.Signature) {
+	return git.GetSigningKey(ctx)
 }

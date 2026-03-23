@@ -405,9 +405,9 @@ func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byt
 	if entering {
 		n := node.(*FootnoteLink)
 		is := strconv.Itoa(n.Index)
-		_, _ = w.WriteString(`<sup id="fnref:`)
+		_, _ = w.WriteString(`<sup id="fnref:user-content-`)
 		_, _ = w.Write(n.Name)
-		_, _ = w.WriteString(`"><a href="#fn:`)
+		_, _ = w.WriteString(`"><a href="#fn:user-content-`)
 		_, _ = w.Write(n.Name)
 		_, _ = w.WriteString(`" class="footnote-ref" role="doc-noteref">`) // FIXME: here and below, need to keep the classes
 		_, _ = w.WriteString(is)
@@ -419,7 +419,7 @@ func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byt
 func (r *FootnoteHTMLRenderer) renderFootnoteBackLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		n := node.(*FootnoteBackLink)
-		_, _ = w.WriteString(` <a href="#fnref:`)
+		_, _ = w.WriteString(` <a href="#fnref:user-content-`)
 		_, _ = w.Write(n.Name)
 		_, _ = w.WriteString(`" class="footnote-backref" role="doc-backlink">`)
 		_, _ = w.WriteString("&#x21a9;&#xfe0e;")
@@ -431,7 +431,7 @@ func (r *FootnoteHTMLRenderer) renderFootnoteBackLink(w util.BufWriter, source [
 func (r *FootnoteHTMLRenderer) renderFootnote(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*Footnote)
 	if entering {
-		_, _ = w.WriteString(`<li id="fn:`)
+		_, _ = w.WriteString(`<li id="fn:user-content-`)
 		_, _ = w.Write(n.Name)
 		_, _ = w.WriteString(`" role="doc-endnote"`)
 		if node.Attributes() != nil {

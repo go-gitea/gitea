@@ -8,11 +8,13 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -112,7 +114,7 @@ func (task *ActionTask) GetRepoLink() string {
 
 func (task *ActionTask) LoadJob(ctx context.Context) error {
 	if task.Job == nil {
-		job, err := GetRunJobByID(ctx, task.JobID)
+		job, err := GetRunJobByRepoAndID(ctx, task.RepoID, task.JobID)
 		if err != nil {
 			return err
 		}
@@ -214,6 +216,20 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 	return nil, errNotExist
 }
 
+func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
+	if step.Name != "" {
+		name = step.Name // the step has an explicit name
+	} else {
+		// for unnamed step, its "String()" method tries to get a display name by its "name", "uses",
+		// "run" or "id" (last fallback), we add the "Run " prefix for unnamed steps for better display
+		// for multi-line "run" scripts, only use the first line to match GitHub's behavior
+		// https://github.com/actions/runner/blob/66800900843747f37591b077091dd2c8cf2c1796/src/Runner.Worker/Handlers/ScriptHandler.cs#L45-L58
+		runStr, _, _ := strings.Cut(strings.TrimSpace(step.Run), "\n")
+		name = "Run " + util.IfZero(strings.TrimSpace(runStr), step.String())
+	}
+	return util.EllipsisDisplayString(name, limit) // database column has a length limit
+}
+
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
@@ -293,9 +309,8 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if len(workflowJob.Steps) > 0 {
 		steps := make([]*ActionTaskStep, len(workflowJob.Steps))
 		for i, v := range workflowJob.Steps {
-			name := util.EllipsisDisplayString(v.String(), 255)
 			steps[i] = &ActionTaskStep{
-				Name:   name,
+				Name:   makeTaskStepDisplayName(v, 255),
 				TaskID: task.ID,
 				Index:  int64(i),
 				RepoID: task.RepoID,
@@ -373,6 +388,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			}
 			if _, err := UpdateRunJob(ctx, &ActionRunJob{
 				ID:      task.JobID,
+				RepoID:  task.RepoID,
 				Status:  task.Status,
 				Stopped: task.Stopped,
 			}, nil); err != nil {
@@ -434,6 +450,7 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	task.Stopped = now
 	if _, err := UpdateRunJob(ctx, &ActionRunJob{
 		ID:      task.JobID,
+		RepoID:  task.RepoID,
 		Status:  task.Status,
 		Stopped: task.Stopped,
 	}, nil); err != nil {
