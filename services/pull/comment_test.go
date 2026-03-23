@@ -10,6 +10,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 
@@ -19,10 +20,10 @@ import (
 
 func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	assert.NoError(t, pr.LoadIssue(t.Context()))
-	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 	pusher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	require.NoError(t, pr.LoadIssue(t.Context()))
+	require.NoError(t, pr.LoadBaseRepo(t.Context()))
 
 	gitRepo, err := gitrepo.OpenRepository(t.Context(), pr.BaseRepo)
 	require.NoError(t, err)
@@ -45,9 +46,8 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 			IssueID: pr.IssueID,
 			Type:    issues_model.CommentTypePullRequestPush,
 		})
-		assert.NoError(t, err)
-		totalCount := len(comments)
-		forcePushCount := 0
+		require.NoError(t, err)
+		totalCount, forcePushCount := len(comments), 0
 		for _, comment := range comments {
 			pushData, err := comment.GetPushActionContent()
 			require.NoError(t, err)
@@ -55,12 +55,12 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 				forcePushCount++
 			}
 		}
-		assert.Equal(t, expectedTotalCount, totalCount)
-		assert.Equal(t, expectedForcePushCount, forcePushCount)
+		assert.Equal(t, expectedTotalCount, totalCount, "total comment count should match")
+		assert.Equal(t, expectedForcePushCount, forcePushCount, "force push comment count should match")
 	}
 
 	t.Run("base-branch-only", func(t *testing.T) {
-		db.TruncateBeans(t.Context(), &issues_model.Comment{})
+		require.NoError(t, db.TruncateBeans(t.Context(), &issues_model.Comment{}))
 		insertCommitComment(t, issues_model.PushActionContent{})
 		insertCommitComment(t, issues_model.PushActionContent{})
 		assertCommitCommentCount(t, 2, 0)
@@ -68,39 +68,56 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		baseCommit, err := gitRepo.GetBranchCommit(pr.BaseBranch)
 		assert.NoError(t, err)
 
+		// force push, the old push comments should be deleted, and one new force-push comment should be created.
+		// the pushed branch is the same as base branch, so no commit between old and new commit, no regular push comment
 		comment, err := CreatePushPullComment(t.Context(), pusher, pr, baseCommit.ID.String(), baseCommit.ID.String(), true)
 		require.NoError(t, err)
 		require.NotNil(t, comment)
 		assertCommitCommentCount(t, 1, 1)
+
+		createdData, err := comment.GetPushActionContent()
+		require.NoError(t, err)
+		assert.True(t, createdData.IsForcePush)
+		assert.Equal(t, []string{baseCommit.ID.String(), baseCommit.ID.String()}, createdData.CommitIDs)
 	})
 
 	t.Run("force-push-ignores-missing-old-commit", func(t *testing.T) {
+		require.NoError(t, db.TruncateBeans(t.Context(), &issues_model.Comment{}))
 		headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
 		require.NoError(t, err)
 
-		comment, err := CreatePushPullComment(t.Context(), pusher, pr, "0000000000000000000000000000000000000000", headCommit.ID.String(), true)
+		commitIDZero := git.Sha1ObjectFormat.EmptyObjectID().String()
+		comment, err := CreatePushPullComment(t.Context(), pusher, pr, commitIDZero, headCommit.ID.String(), true)
 		require.NoError(t, err)
 		require.NotNil(t, comment)
 		createdData, err := comment.GetPushActionContent()
+		require.NoError(t, err)
 		assert.True(t, createdData.IsForcePush)
-		assert.NotEmpty(t, createdData.CommitIDs)
+		assert.Equal(t, []string{commitIDZero, headCommit.ID.String()}, createdData.CommitIDs)
+		assertCommitCommentCount(t, 2, 1)
+
+		// force push again, the old force push comment should not be deleted, new we have 2 force push comments.
+		_, err = CreatePushPullComment(t.Context(), pusher, pr, commitIDZero, headCommit.ID.String(), true)
+		require.NoError(t, err)
+		assertCommitCommentCount(t, 3, 2)
 	})
 
 	t.Run("head-vs-base-branch", func(t *testing.T) {
-		db.TruncateBeans(t.Context(), &issues_model.Comment{})
+		require.NoError(t, db.TruncateBeans(t.Context(), &issues_model.Comment{}))
 		insertCommitComment(t, issues_model.PushActionContent{})
 		insertCommitComment(t, issues_model.PushActionContent{})
-		assertCommitCommentCount(t, 2, 0)
+		insertCommitComment(t, issues_model.PushActionContent{})
+		insertCommitComment(t, issues_model.PushActionContent{})
+		assertCommitCommentCount(t, 4, 0)
 
-		headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
-		require.NoError(t, err)
 		baseCommit, err := gitRepo.GetBranchCommit(pr.BaseBranch)
 		require.NoError(t, err)
-		oldCommit := baseCommit
-
-		_, err = CreatePushPullComment(t.Context(), pusher, pr, oldCommit.ID.String(), headCommit.ID.String(), true)
+		headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
 		require.NoError(t, err)
-		// Two comments should exist now: one regular push comment and one force-push comment.
+
+		_, err = CreatePushPullComment(t.Context(), pusher, pr, baseCommit.ID.String(), headCommit.ID.String(), true)
+		require.NoError(t, err)
+		// 2 comments should exist now: one regular push comment and one force-push comment.
 		assertCommitCommentCount(t, 2, 1)
 	})
 }
