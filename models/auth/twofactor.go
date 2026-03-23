@@ -97,7 +97,7 @@ func (t *TwoFactor) VerifyScratchToken(token string) bool {
 const (
 	totpSecretKeyIterations = 10000
 	totpSecretKeyLength     = 32
-	totpSecretSaltSize       = 16
+	totpSecretSaltSize      = 16
 )
 
 func (t *TwoFactor) getEncryptionKey() ([]byte, bool) {
