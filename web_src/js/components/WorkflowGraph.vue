@@ -588,8 +588,8 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             :width="nodeWidth"
             :height="nodeHeight"
             rx="10"
-            fill="var(--workflow-card-fill)"
-            stroke="var(--color-secondary-alpha-50)"
+            fill="var(--color-workflow-box-bg)"
+            stroke="var(--color-workflow-box-border)"
             stroke-width="1.25"
             class="job-rect"
           />
@@ -657,7 +657,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 <style scoped>
 .workflow-graph {
   position: relative;
-  --workflow-card-fill: color-mix(in srgb, var(--color-box-body) 84%, black);
 }
 
 .graph-header {

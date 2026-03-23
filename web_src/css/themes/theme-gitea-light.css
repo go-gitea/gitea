@@ -194,6 +194,8 @@ gitea-theme-meta-info {
   --color-box-header: #f1f3f5;
   --color-box-body: #ffffff;
   --color-box-body-highlight: #ecf5fd;
+  --color-workflow-box-bg: #f8f9fb;
+  --color-workflow-box-border: #d0d7de;
   --color-text-dark: #01050a;
   --color-text: #181c21;
   --color-text-light: #30363b;
