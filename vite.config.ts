@@ -64,7 +64,7 @@ function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
   };
 }
 
-// Build index.js as a blocking IIFE bundle, matching the pre-Vite webpack behavior.
+// Build index.js as a blocking IIFE bundle to avoid pop-in effects.
 function iifeIndexPlugin(): Plugin {
   return {
     name: 'iife-index',
