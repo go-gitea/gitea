@@ -283,7 +283,7 @@ func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (in
 		AddDynamicArguments(startCommitID + "..." + endCommitID).
 		WithDir(repo.Path).
 		RunStdString(repo.Ctx)
-	if err != nil && strings.Contains(err.Error(), "no merge base") {
+	if err != nil && strings.Contains(err.Stderr(), "no merge base") {
 		// git >= 2.28 now returns an error if startCommitID and endCommitID have become unrelated.
 		// previously it would return the results of git diff --name-only startCommitID endCommitID so let's try that...
 		stdout, _, err = gitcmd.NewCommand("diff", "--name-only").
@@ -301,7 +301,7 @@ func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (in
 // If before is detached (removed by reset + push) it is not included.
 func (repo *Repository) CommitsBetween(last, before *Commit) ([]*Commit, error) {
 	var stdout []byte
-	var err error
+	var err gitcmd.RunStdError
 	if before == nil {
 		stdout, _, err = gitcmd.NewCommand("rev-list").
 			AddDynamicArguments(last.ID.String()).
@@ -312,7 +312,7 @@ func (repo *Repository) CommitsBetween(last, before *Commit) ([]*Commit, error) 
 			AddDynamicArguments(before.ID.String() + ".." + last.ID.String()).
 			WithDir(repo.Path).
 			RunStdBytes(repo.Ctx)
-		if err != nil && strings.Contains(err.Error(), "no merge base") {
+		if err != nil && strings.Contains(err.Stderr(), "no merge base") {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 			// previously it would return the results of git rev-list before last so let's try that...
 			stdout, _, err = gitcmd.NewCommand("rev-list").
@@ -330,7 +330,7 @@ func (repo *Repository) CommitsBetween(last, before *Commit) ([]*Commit, error) 
 // CommitsBetweenLimit returns a list that contains at most limit commits skipping the first skip commits between [before, last)
 func (repo *Repository) CommitsBetweenLimit(last, before *Commit, limit, skip int) ([]*Commit, error) {
 	var stdout []byte
-	var err error
+	var err gitcmd.RunStdError
 	if before == nil {
 		stdout, _, err = gitcmd.NewCommand("rev-list").
 			AddOptionValues("--max-count", strconv.Itoa(limit)).
@@ -345,7 +345,7 @@ func (repo *Repository) CommitsBetweenLimit(last, before *Commit, limit, skip in
 			AddDynamicArguments(before.ID.String() + ".." + last.ID.String()).
 			WithDir(repo.Path).
 			RunStdBytes(repo.Ctx)
-		if err != nil && strings.Contains(err.Error(), "no merge base") {
+		if err != nil && strings.Contains(err.Stderr(), "no merge base") {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 			// previously it would return the results of git rev-list --max-count n before last so let's try that...
 			stdout, _, err = gitcmd.NewCommand("rev-list").
@@ -366,7 +366,7 @@ func (repo *Repository) CommitsBetweenLimit(last, before *Commit, limit, skip in
 // If before is detached (removed by reset + push) it is not included.
 func (repo *Repository) CommitsBetweenNotBase(last, before *Commit, baseBranch string) ([]*Commit, error) {
 	var stdout []byte
-	var err error
+	var err gitcmd.RunStdError
 	if before == nil {
 		stdout, _, err = gitcmd.NewCommand("rev-list").
 			AddDynamicArguments(last.ID.String()).
@@ -379,7 +379,7 @@ func (repo *Repository) CommitsBetweenNotBase(last, before *Commit, baseBranch s
 			AddOptionValues("--not", baseBranch).
 			WithDir(repo.Path).
 			RunStdBytes(repo.Ctx)
-		if err != nil && strings.Contains(err.Error(), "no merge base") {
+		if err != nil && strings.Contains(err.Stderr(), "no merge base") {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 			// previously it would return the results of git rev-list before last so let's try that...
 			stdout, _, err = gitcmd.NewCommand("rev-list").

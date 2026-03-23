@@ -21,7 +21,7 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 		WithDir(repo.Path).
 		RunStdString(repo.Ctx)
 	if err != nil {
-		if strings.Contains(err.Error(), "not a valid ref") {
+		if strings.Contains(err.Stderr(), "not a valid ref") {
 			return "", ErrNotExist{name, ""}
 		}
 		return "", err
