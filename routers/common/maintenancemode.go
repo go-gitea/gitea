@@ -27,14 +27,19 @@ func MaintenanceModeHandler() func(h http.Handler) http.Handler {
 		"/user/",
 		"/captcha/",
 	}
+	allowedPaths := []string{
+		"/api/healthz",
+	}
 	isMaintenanceModeAllowedRequest := func(req *http.Request) bool {
 		for _, prefix := range allowedPrefixes {
 			if strings.HasPrefix(req.URL.Path, prefix) {
 				return true
 			}
 		}
-		if req.URL.Path == "/api/healthz" {
-			return true
+		for _, urlPath := range allowedPaths {
+			if req.URL.Path == urlPath {
+				return true
+			}
 		}
 		return false
 	}
