@@ -99,6 +99,26 @@
   need_approval: 0
   approved_by: 0
 -
+  id: 804
+  title: "workflow run list accessible"
+  repo_id: 3
+  owner_id: 3
+  workflow_id: "test.yaml"
+  index: 193
+  trigger_user_id: 1
+  ref: "refs/heads/main"
+  commit_sha: "c2d72f548424103f01ee1dc02889c1e2bff816b0"
+  event: "push"
+  trigger_event: "push"
+  is_fork_pull_request: 0
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+  created: 1683636108
+  updated: 1683636626
+  need_approval: 0
+  approved_by: 0
+-
   id: 803
   title: "workflow run list for user"
   repo_id: 2
