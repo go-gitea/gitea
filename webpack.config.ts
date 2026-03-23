@@ -79,6 +79,9 @@ export default {
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.ts', import.meta.url)),
     ],
+    'websocket.sharedworker': [
+      fileURLToPath(new URL('web_src/js/features/websocket.sharedworker.ts', import.meta.url)),
+    ],
     ...(!isProduction && {
       devtest: [
         fileURLToPath(new URL('web_src/js/standalone/devtest.ts', import.meta.url)),

@@ -4,6 +4,8 @@
 package context
 
 import (
+	"bufio"
+	"net"
 	"net/http"
 
 	web_types "code.gitea.io/gitea/modules/web/types"
@@ -65,6 +67,15 @@ func (r *Response) WriteHeader(statusCode int) {
 		r.status = statusCode
 		r.ResponseWriter.WriteHeader(statusCode)
 	}
+}
+
+// Hijack implements http.Hijacker by forwarding to the underlying ResponseWriter.
+// This is required for WebSocket upgrades.
+func (r *Response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if h, ok := r.ResponseWriter.(http.Hijacker); ok {
+		return h.Hijack()
+	}
+	return nil, nil, http.ErrNotSupported
 }
 
 // Flush flushes cached data
