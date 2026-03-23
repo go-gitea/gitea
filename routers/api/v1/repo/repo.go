@@ -22,6 +22,7 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -1014,6 +1015,12 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			if err := actions_service.CleanRepoScheduleTasks(ctx, repo); err != nil {
 				log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 			}
+			if setting.Indexer.RepoIndexerEnabled {
+				if err := repo_model.UpdateIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeCode, ""); err != nil {
+					log.Error("Reset code indexer status for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+				}
+				code_indexer.UpdateRepoIndexer(repo)
+			}
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
 			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
@@ -1025,6 +1032,12 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 				if err := actions_service.DetectAndHandleSchedules(ctx, repo); err != nil {
 					log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 				}
+			}
+			if setting.Indexer.RepoIndexerEnabled {
+				if err := repo_model.UpdateIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeCode, ""); err != nil {
+					log.Error("Reset code indexer status for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+				}
+				code_indexer.UpdateRepoIndexer(repo)
 			}
 			log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		}

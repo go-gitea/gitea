@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/routers/common"
@@ -19,7 +20,26 @@ import (
 const (
 	// tplExploreCode explore code page template
 	tplExploreCode templates.TplName = "explore/code"
+
+	archivedModeExclude = "exclude"
+	archivedModeInclude = "include"
+	archivedModeOnly    = "only"
 )
+
+func parseArchivedMode(value string) (string, optional.Option[bool]) {
+	switch value {
+	case archivedModeInclude:
+		return archivedModeInclude, optional.None[bool]()
+	case "":
+		return archivedModeInclude, optional.None[bool]()
+	case archivedModeOnly:
+		return archivedModeOnly, optional.Some(true)
+	case archivedModeExclude:
+		return archivedModeExclude, optional.Some(false)
+	default:
+		return archivedModeInclude, optional.None[bool]()
+	}
+}
 
 // Code render explore code page
 func Code(ctx *context.Context) {
@@ -35,6 +55,10 @@ func Code(ctx *context.Context) {
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreCode"] = true
 	ctx.Data["PageIsViewCode"] = true
+
+	archivedMode, archivedFilter := parseArchivedMode(ctx.FormTrim("archived"))
+	ctx.Data["ArchivedMode"] = archivedMode
+	ctx.Data["IsArchived"] = archivedFilter
 
 	prepareSearch := common.PrepareCodeSearch(ctx)
 	if prepareSearch.Keyword == "" {
@@ -77,6 +101,7 @@ func Code(ctx *context.Context) {
 			Keyword:    prepareSearch.Keyword,
 			SearchMode: prepareSearch.SearchMode,
 			Language:   prepareSearch.Language,
+			Archived:   archivedFilter,
 			Paginator: &db.ListOptions{
 				Page:     page,
 				PageSize: setting.UI.RepoSearchPagingNum,

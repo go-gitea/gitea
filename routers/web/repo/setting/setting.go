@@ -962,6 +962,12 @@ func handleSettingsPostArchive(ctx *context.Context) {
 
 	// update issue indexer
 	issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
+	if setting.Indexer.RepoIndexerEnabled {
+		if err := repo_model.UpdateIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeCode, ""); err != nil {
+			log.Error("Reset code indexer status for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+		}
+		code.UpdateRepoIndexer(repo)
+	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
@@ -991,6 +997,12 @@ func handleSettingsPostUnarchive(ctx *context.Context) {
 
 	// update issue indexer
 	issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
+	if setting.Indexer.RepoIndexerEnabled {
+		if err := repo_model.UpdateIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeCode, ""); err != nil {
+			log.Error("Reset code indexer status for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+		}
+		code.UpdateRepoIndexer(repo)
+	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
 

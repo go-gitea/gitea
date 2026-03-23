@@ -10,11 +10,13 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	indexer_module "code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/code/bleve"
 	"code.gitea.io/gitea/modules/indexer/code/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
@@ -280,6 +282,110 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 
 		assert.NoError(t, tearDownRepositoryIndexes(t.Context(), indexer))
 	})
+
+	t.Run(name+"_archived_filter", func(t *testing.T) {
+		assert.NoError(t, setupRepositoryIndexes(t.Context(), indexer))
+		t.Cleanup(func() {
+			assert.NoError(t, tearDownRepositoryIndexes(context.Background(), indexer))
+		})
+
+		repo1, err := repo_model.GetRepositoryByID(t.Context(), 1)
+		require.NoError(t, err)
+		repo62, err := repo_model.GetRepositoryByID(t.Context(), 62)
+		require.NoError(t, err)
+
+		originalRepo1Archived := repo1.IsArchived
+		originalRepo62Archived := repo62.IsArchived
+		t.Cleanup(func() {
+			ctx := context.Background()
+			require.NoError(t, repo_model.SetArchiveRepoState(ctx, repo1, originalRepo1Archived))
+			require.NoError(t, repo_model.SetArchiveRepoState(ctx, repo62, originalRepo62Archived))
+			require.NoError(t, repo_model.UpdateIndexerStatus(ctx, repo1, repo_model.RepoIndexerTypeCode, ""))
+			require.NoError(t, repo_model.UpdateIndexerStatus(ctx, repo62, repo_model.RepoIndexerTypeCode, ""))
+			require.NoError(t, index(ctx, indexer, repo1.ID))
+			require.NoError(t, index(ctx, indexer, repo62.ID))
+		})
+
+		require.NoError(t, repo_model.SetArchiveRepoState(t.Context(), repo1, false))
+		require.NoError(t, repo_model.SetArchiveRepoState(t.Context(), repo62, true))
+		require.NoError(t, repo_model.UpdateIndexerStatus(t.Context(), repo1, repo_model.RepoIndexerTypeCode, ""))
+		require.NoError(t, repo_model.UpdateIndexerStatus(t.Context(), repo62, repo_model.RepoIndexerTypeCode, ""))
+		require.NoError(t, index(t.Context(), indexer, repo1.ID))
+		require.NoError(t, index(t.Context(), indexer, repo62.ID))
+
+		testCases := []struct {
+			name      string
+			keyword   string
+			archived  optional.Option[bool]
+			total     int64
+			filenames []string
+		}{
+			{
+				name:      "exclude_archived_repo_results",
+				keyword:   "cucumber",
+				archived:  optional.Some(false),
+				total:     0,
+				filenames: []string{},
+			},
+			{
+				name:      "include_archived_repo_results",
+				keyword:   "cucumber",
+				archived:  optional.None[bool](),
+				total:     2,
+				filenames: []string{"cucumber.md", "avocado.md"},
+			},
+			{
+				name:      "only_archived_repo_results",
+				keyword:   "cucumber",
+				archived:  optional.Some(true),
+				total:     2,
+				filenames: []string{"cucumber.md", "avocado.md"},
+			},
+			{
+				name:      "exclude_keeps_non_archived_repo_results",
+				keyword:   "Description",
+				archived:  optional.Some(false),
+				total:     1,
+				filenames: []string{"README.md"},
+			},
+			{
+				name:      "include_keeps_non_archived_repo_results",
+				keyword:   "Description",
+				archived:  optional.None[bool](),
+				total:     1,
+				filenames: []string{"README.md"},
+			},
+			{
+				name:      "only_excludes_non_archived_repo_results",
+				keyword:   "Description",
+				archived:  optional.Some(true),
+				total:     0,
+				filenames: []string{},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				total, res, _, err := indexer.Search(t.Context(), &internal.SearchOptions{
+					Keyword:    tc.keyword,
+					SearchMode: indexer_module.SearchModeWords,
+					Archived:   tc.archived,
+					Paginator: &db.ListOptions{
+						Page:     1,
+						PageSize: 10,
+					},
+				})
+				require.NoError(t, err)
+				assert.Equal(t, tc.total, total)
+
+				filenames := make([]string, 0, len(res))
+				for _, hit := range res {
+					filenames = append(filenames, hit.Filename)
+				}
+				assert.Equal(t, tc.filenames, filenames)
+			})
+		}
+	})
 }
 
 func TestBleveIndexAndSearch(t *testing.T) {
@@ -330,6 +436,13 @@ func setupRepositoryIndexes(ctx context.Context, indexer internal.Indexer) error
 func tearDownRepositoryIndexes(ctx context.Context, indexer internal.Indexer) error {
 	for _, repoID := range repositoriesToSearch() {
 		if err := indexer.Delete(ctx, repoID); err != nil {
+			return err
+		}
+		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+		if err != nil {
+			return err
+		}
+		if err := repo_model.UpdateIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeCode, ""); err != nil {
 			return err
 		}
 	}

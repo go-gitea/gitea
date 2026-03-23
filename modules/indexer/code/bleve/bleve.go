@@ -54,6 +54,7 @@ func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 // RepoIndexerData data stored in the repo indexer
 type RepoIndexerData struct {
 	RepoID    int64
+	Archived  bool
 	CommitID  string
 	Content   string
 	Filename  string
@@ -71,7 +72,7 @@ const (
 	filenameIndexerAnalyzer  = "filenameIndexerAnalyzer"
 	filenameIndexerTokenizer = "filenameIndexerTokenizer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 9
+	repoIndexerLatestVersion = 10
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -80,6 +81,10 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	numericFieldMapping := bleve.NewNumericFieldMapping()
 	numericFieldMapping.IncludeInAll = false
 	docMapping.AddFieldMappingsAt("RepoID", numericFieldMapping)
+
+	boolFieldMapping := bleve.NewBooleanFieldMapping()
+	boolFieldMapping.IncludeInAll = false
+	docMapping.AddFieldMappingsAt("Archived", boolFieldMapping)
 
 	textFieldMapping := bleve.NewTextFieldMapping()
 	textFieldMapping.IncludeInAll = false
@@ -195,6 +200,7 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 	id := internal.FilenameIndexerID(repo.ID, update.Filename)
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,
+		Archived:  repo.IsArchived,
 		CommitID:  commitSha,
 		Filename:  update.Filename,
 		Content:   string(charset.ToUTF8DropErrors(fileContents)),
@@ -296,6 +302,13 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		)
 	} else {
 		indexerQuery = keywordQuery
+	}
+
+	if opts.Archived.Has() {
+		indexerQuery = bleve.NewConjunctionQuery(
+			indexerQuery,
+			inner_bleve.BoolFieldQuery(opts.Archived.Value(), "Archived"),
+		)
 	}
 
 	// Save for reuse without language filter

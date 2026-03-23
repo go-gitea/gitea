@@ -97,7 +97,7 @@ func UpdateIndexerStatus(ctx context.Context, repo *Repository, indexerType Repo
 		return fmt.Errorf("UpdateIndexerStatus: Unable to getIndexerStatus for repo: %s Error: %w", repo.FullName(), err)
 	}
 
-	if len(status.CommitSha) == 0 {
+	if status.ID == 0 {
 		status.CommitSha = sha
 		if err := db.Insert(ctx, status); err != nil {
 			return fmt.Errorf("UpdateIndexerStatus: Unable to insert repoIndexerStatus for repo: %s Sha: %s Error: %w", repo.FullName(), sha, err)
