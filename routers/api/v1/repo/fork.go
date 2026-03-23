@@ -147,7 +147,7 @@ func CreateFork(ctx *context.APIContext) {
 				ctx.APIErrorInternal(err)
 				return
 			} else if !canCreate {
-				ctx.APIError(http.StatusForbidden, "Given user is not allowed to create repository in organization.")
+				ctx.APIError(http.StatusForbidden, "User is not allowed to create repositories in this organization.")
 				return
 			}
 		}
