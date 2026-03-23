@@ -576,34 +576,9 @@ func (m *MinioStorage) Delete(path string) error {
 	return convertS3Err(err)
 }
 
-// URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (m *MinioStorage) URL(storePath, name, method string, _ url.Values) (*url.URL, error) {
-	// Here we might not know the real filename, and it's quite inefficient to detect the mime type by pre-fetching the object head.
-	// So we just do a quick detection by extension name, at least if works for the "View Raw File" for an LFS file on the Web UI.
-	// Detect content type by extension name, only support the well-known safe types for inline rendering.
-	// TODO: OBJECT-STORAGE-CONTENT-TYPE: need a complete solution and refactor for Azure in the future
-	ext := path.Ext(name)
-	inlineExtMimeTypes := map[string]string{
-		".png":  "image/png",
-		".jpg":  "image/jpeg",
-		".jpeg": "image/jpeg",
-		".gif":  "image/gif",
-		".webp": "image/webp",
-		".avif": "image/avif",
-		// ATTENTION! Don't support unsafe types like HTML/SVG due to security concerns: they can contain JS code, and maybe they need proper Content-Security-Policy
-		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context, it seems fine to render it inline
-		".pdf": "application/pdf",
-
-		// TODO: refactor with "modules/public/mime_types.go", for example: "DetectWellKnownSafeInlineMimeType"
-	}
-
-	var contentType, contentDisposition string
-	if mimeType, ok := inlineExtMimeTypes[ext]; ok {
-		contentType = mimeType
-		contentDisposition = "inline"
-	} else {
-		contentDisposition = fmt.Sprintf(`attachment; filename="%s"`, quoteEscaper.Replace(name))
-	}
+// ServeDirectURL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
+func (m *MinioStorage) ServeDirectURL(storePath, name, method string, opt *ServeDirectOptions) (*url.URL, error) {
+	param := prepareServeDirectOptions(opt, name)
 
 	expires := 5 * time.Minute
 	key := m.buildMinioPath(storePath)
@@ -613,8 +588,8 @@ func (m *MinioStorage) URL(storePath, name, method string, _ url.Values) (*url.U
 		presignReq, err := presignClient.PresignHeadObject(m.ctx, &s3.HeadObjectInput{
 			Bucket:                     aws.String(m.bucket),
 			Key:                        aws.String(key),
-			ResponseContentDisposition: aws.String(contentDisposition),
-			ResponseContentType:        aws.String(contentType),
+			ResponseContentDisposition: aws.String(param.ContentDisposition),
+			ResponseContentType:        aws.String(param.ContentType),
 		}, s3.WithPresignExpires(expires))
 		if err != nil {
 			return nil, convertS3Err(err)
@@ -625,8 +600,8 @@ func (m *MinioStorage) URL(storePath, name, method string, _ url.Values) (*url.U
 	presignReq, err := presignClient.PresignGetObject(m.ctx, &s3.GetObjectInput{
 		Bucket:                     aws.String(m.bucket),
 		Key:                        aws.String(key),
-		ResponseContentDisposition: aws.String(contentDisposition),
-		ResponseContentType:        aws.String(contentType),
+		ResponseContentDisposition: aws.String(param.ContentDisposition),
+		ResponseContentType:        aws.String(param.ContentType),
 	}, s3.WithPresignExpires(expires))
 	if err != nil {
 		return nil, convertS3Err(err)
