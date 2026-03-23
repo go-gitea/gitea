@@ -54,6 +54,7 @@ import (
 	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/uinotification"
 	"code.gitea.io/gitea/services/webhook"
+	websocket_service "code.gitea.io/gitea/services/websocket"
 )
 
 func mustInit(fn func() error) {
@@ -160,6 +161,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(task.Init)
 	mustInit(repo_migrations.Init)
 	eventsource.GetManager().Init()
+	mustInit(websocket_service.Init)
 	mustInitCtx(ctx, mailer_incoming.Init)
 
 	mustInitCtx(ctx, syncAppConfForGit)
