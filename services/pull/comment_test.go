@@ -6,6 +6,7 @@ package pull
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -13,172 +14,93 @@ import (
 	"code.gitea.io/gitea/modules/json"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
-	t.Run("base-branch-only", func(t *testing.T) {
-		assert.NoError(t, unittest.PrepareTestDatabase())
+	require.NoError(t, unittest.PrepareTestDatabase())
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.NoError(t, pr.LoadIssue(t.Context()))
+	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
+	pusher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-		assert.NoError(t, pr.LoadIssue(t.Context()))
-		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), pr.BaseRepo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
 
-		pusher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-
+	insertCommitComment := func(t *testing.T, content issues_model.PushActionContent) {
+		contentJSON, _ := json.Marshal(content)
 		_, err := issues_model.CreateComment(t.Context(), &issues_model.CreateCommentOptions{
 			Type:    issues_model.CommentTypePullRequestPush,
 			Doer:    pusher,
 			Repo:    pr.BaseRepo,
 			Issue:   pr.Issue,
-			Content: "{}",
+			Content: string(contentJSON),
 		})
-		assert.NoError(t, err)
-		_, err = issues_model.CreateComment(t.Context(), &issues_model.CreateCommentOptions{
-			Type:    issues_model.CommentTypePullRequestPush,
-			Doer:    pusher,
-			Repo:    pr.BaseRepo,
-			Issue:   pr.Issue,
-			Content: "{}",
-		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
+	}
 
+	assertCommitCommentCount := func(t *testing.T, expectedTotalCount, expectedForcePushCount int) {
 		comments, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
 			IssueID: pr.IssueID,
 			Type:    issues_model.CommentTypePullRequestPush,
 		})
 		assert.NoError(t, err)
-		assert.Len(t, comments, 2)
-
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), pr.BaseRepo)
-		assert.NoError(t, err)
-		defer gitRepo.Close()
-
-		headCommit, err := gitRepo.GetBranchCommit(pr.BaseBranch)
-		assert.NoError(t, err)
-		oldCommit := headCommit
-		if headCommit.ParentCount() > 0 {
-			parentCommit, err := headCommit.Parent(0)
-			assert.NoError(t, err)
-			oldCommit = parentCommit
-		}
-
-		comment, err := CreatePushPullComment(t.Context(), pusher, pr, oldCommit.ID.String(), headCommit.ID.String(), true)
-		assert.NoError(t, err)
-		assert.NotNil(t, comment)
-		var createdData issues_model.PushActionContent
-		assert.NoError(t, json.Unmarshal([]byte(comment.Content), &createdData))
-		assert.True(t, createdData.IsForcePush)
-
-		comments, err = issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
-			IssueID: pr.IssueID,
-			Type:    issues_model.CommentTypePullRequestPush,
-		})
-		assert.NoError(t, err)
-		assert.Len(t, comments, 1)
-
+		totalCount := len(comments)
 		forcePushCount := 0
 		for _, comment := range comments {
-			var pushData issues_model.PushActionContent
-			assert.NoError(t, json.Unmarshal([]byte(comment.Content), &pushData))
+			pushData, err := comment.GetPushActionContent()
+			require.NoError(t, err)
 			if pushData.IsForcePush {
 				forcePushCount++
 			}
 		}
-		assert.Equal(t, 1, forcePushCount)
+		assert.Equal(t, expectedTotalCount, totalCount)
+		assert.Equal(t, expectedForcePushCount, forcePushCount)
+	}
+
+	t.Run("base-branch-only", func(t *testing.T) {
+		db.TruncateBeans(t.Context(), &issues_model.Comment{})
+		insertCommitComment(t, issues_model.PushActionContent{})
+		insertCommitComment(t, issues_model.PushActionContent{})
+		assertCommitCommentCount(t, 2, 0)
+
+		baseCommit, err := gitRepo.GetBranchCommit(pr.BaseBranch)
+		assert.NoError(t, err)
+
+		comment, err := CreatePushPullComment(t.Context(), pusher, pr, baseCommit.ID.String(), baseCommit.ID.String(), true)
+		require.NoError(t, err)
+		require.NotNil(t, comment)
+		assertCommitCommentCount(t, 1, 1)
 	})
 
 	t.Run("force-push-ignores-missing-old-commit", func(t *testing.T) {
-		assert.NoError(t, unittest.PrepareTestDatabase())
-
-		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-		assert.NoError(t, pr.LoadIssue(t.Context()))
-		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
-
-		pusher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), pr.BaseRepo)
-		assert.NoError(t, err)
-		defer gitRepo.Close()
-
 		headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		comment, err := CreatePushPullComment(t.Context(), pusher, pr, "0000000000000000000000000000000000000000", headCommit.ID.String(), true)
-		assert.NoError(t, err)
-		assert.NotNil(t, comment)
-		var createdData issues_model.PushActionContent
-		assert.NoError(t, json.Unmarshal([]byte(comment.Content), &createdData))
+		require.NoError(t, err)
+		require.NotNil(t, comment)
+		createdData, err := comment.GetPushActionContent()
 		assert.True(t, createdData.IsForcePush)
 		assert.NotEmpty(t, createdData.CommitIDs)
 	})
 
 	t.Run("head-vs-base-branch", func(t *testing.T) {
-		assert.NoError(t, unittest.PrepareTestDatabase())
-
-		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-		assert.NoError(t, pr.LoadIssue(t.Context()))
-		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
-
-		pusher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-
-		_, err := issues_model.CreateComment(t.Context(), &issues_model.CreateCommentOptions{
-			Type:    issues_model.CommentTypePullRequestPush,
-			Doer:    pusher,
-			Repo:    pr.BaseRepo,
-			Issue:   pr.Issue,
-			Content: "{}",
-		})
-		assert.NoError(t, err)
-		_, err = issues_model.CreateComment(t.Context(), &issues_model.CreateCommentOptions{
-			Type:    issues_model.CommentTypePullRequestPush,
-			Doer:    pusher,
-			Repo:    pr.BaseRepo,
-			Issue:   pr.Issue,
-			Content: "{}",
-		})
-		assert.NoError(t, err)
-
-		comments, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
-			IssueID: pr.IssueID,
-			Type:    issues_model.CommentTypePullRequestPush,
-		})
-		assert.NoError(t, err)
-		assert.Len(t, comments, 2)
-
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), pr.BaseRepo)
-		assert.NoError(t, err)
-		defer gitRepo.Close()
+		db.TruncateBeans(t.Context(), &issues_model.Comment{})
+		insertCommitComment(t, issues_model.PushActionContent{})
+		insertCommitComment(t, issues_model.PushActionContent{})
+		assertCommitCommentCount(t, 2, 0)
 
 		headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
-		assert.NoError(t, err)
-
+		require.NoError(t, err)
 		baseCommit, err := gitRepo.GetBranchCommit(pr.BaseBranch)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		oldCommit := baseCommit
 
-		comment, err := CreatePushPullComment(t.Context(), pusher, pr, oldCommit.ID.String(), headCommit.ID.String(), true)
-		assert.NoError(t, err)
-		assert.NotNil(t, comment)
-		var createdData issues_model.PushActionContent
-		assert.NoError(t, json.Unmarshal([]byte(comment.Content), &createdData))
-		assert.True(t, createdData.IsForcePush)
-
-		comments, err = issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
-			IssueID: pr.IssueID,
-			Type:    issues_model.CommentTypePullRequestPush,
-		})
-		assert.NoError(t, err)
+		_, err = CreatePushPullComment(t.Context(), pusher, pr, oldCommit.ID.String(), headCommit.ID.String(), true)
+		require.NoError(t, err)
 		// Two comments should exist now: one regular push comment and one force-push comment.
-		assert.Len(t, comments, 2)
-
-		forcePushCount := 0
-		for _, comment := range comments {
-			var pushData issues_model.PushActionContent
-			assert.NoError(t, json.Unmarshal([]byte(comment.Content), &pushData))
-			if pushData.IsForcePush {
-				forcePushCount++
-			}
-		}
-		assert.Equal(t, 1, forcePushCount)
+		assertCommitCommentCount(t, 2, 1)
 	})
 }
