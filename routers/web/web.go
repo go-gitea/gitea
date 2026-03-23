@@ -721,7 +721,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("", user_setting.BlockedUsers)
 			m.Post("", web.Bind(forms.BlockUserForm{}), user_setting.BlockedUsersPost)
 		})
-	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "EnablePackages", setting.Packages.Enabled, "EnableNotifyMail", setting.Service.EnableNotifyMail))
+	}, reqSignIn, user_setting.SettingsCtxData)
 
 	m.Group("/user", func() {
 		m.Get("/activate", auth.Activate)
