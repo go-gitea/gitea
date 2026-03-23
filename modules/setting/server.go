@@ -345,7 +345,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		StaticRootPath = AppWorkPath
 	}
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
-	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
+	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(720 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data"))
 	if !filepath.IsAbs(AppDataPath) {
 		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
