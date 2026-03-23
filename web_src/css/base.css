@@ -261,6 +261,12 @@ relative-time::part(root)::selection {
   user-select: none;
 }
 
+.container-disabled {
+  opacity: var(--opacity-disabled);
+  pointer-events: none;
+  user-select: none;
+}
+
 a {
   color: var(--color-primary);
   cursor: pointer;
