@@ -25,6 +25,23 @@ func TestCreateForkNoLogin(t *testing.T) {
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
+func TestCreateForkOrgNoCreatePermission(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user4Sess := loginUser(t, "user4")
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+
+	canCreate, err := org_model.OrgFromUser(org).CanCreateOrgRepo(t.Context(), 4)
+	assert.NoError(t, err)
+	assert.False(t, canCreate)
+
+	user4Token := getTokenForLoggedInUser(t, user4Sess, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{
+		Organization: &org.Name,
+	}).AddTokenAuth(user4Token)
+	MakeRequest(t, req, http.StatusForbidden)
+}
+
 func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

@@ -141,6 +141,15 @@ func CreateFork(ctx *context.APIContext) {
 				ctx.APIError(http.StatusForbidden, fmt.Sprintf("User is no Member of Organisation '%s'", org.Name))
 				return
 			}
+
+			canCreate, err := org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			} else if !canCreate {
+				ctx.APIError(http.StatusForbidden, "Given user is not allowed to create repository in organization.")
+				return
+			}
 		}
 		forker = org.AsUser()
 	}
