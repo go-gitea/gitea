@@ -64,7 +64,7 @@ function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
   };
 }
 
-// Build index.js as a blocking IIFE bundle to avoid pop-in effects.
+// Build index.js as a blocking IIFE bundle to avoid pop-in effects
 function iifeIndexPlugin(): Plugin {
   return {
     name: 'iife-index',
@@ -86,7 +86,7 @@ function iifeIndexPlugin(): Plugin {
           },
         },
         define: {
-          // needed for tippy.js pulled into this chunk via overflow-menu.ts
+          // needed for tippy.js
           'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
         },
         plugins: [
@@ -137,15 +137,6 @@ export default defineConfig(commonViteOpts({
         ...themes,
       },
       output: {
-        codeSplitting: {
-          // prevent mermaid group from absorbing shared deps (like preload-helper),
-          // which would make the lazy mermaid chunk a static dependency of the entry
-          includeDependenciesRecursively: false,
-          groups: [
-            {name: 'mermaid', test: /[\\/]mermaid[\\/]|@mermaid-js[\\/]/},
-            {name: 'vue', test: /[\\/]@vue[\\/]/},
-          ],
-        },
         entryFileNames: 'js/[name].[hash:8].js',
         chunkFileNames: 'js/[name].[hash:8].js',
         assetFileNames: ({names}) => {
