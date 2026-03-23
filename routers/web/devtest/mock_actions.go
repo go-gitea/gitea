@@ -59,15 +59,14 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 }
 
 func MockActionsView(ctx *context.Context) {
-	ctx.Data["RunID"] = ctx.PathParam("run")
-	ctx.Data["JobID"] = ctx.PathParam("job")
+	ctx.Data["RunID"] = ctx.PathParamInt64("run")
+	ctx.Data["JobID"] = ctx.PathParamInt64("job")
 	ctx.HTML(http.StatusOK, "devtest/repo-action-view")
 }
 
 func MockActionsRunsJobs(ctx *context.Context) {
 	runID := ctx.PathParamInt64("run")
 
-	req := web.GetForm(ctx).(*actions.ViewRequest)
 	resp := &actions.ViewResponse{}
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
 	resp.State.Run.Link = setting.AppSubURL + "/devtest/repo-action-view/runs/" + strconv.FormatInt(runID, 10)
@@ -75,9 +74,13 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.CanCancel = runID == 10
 	resp.State.Run.CanApprove = runID == 20
 	resp.State.Run.CanRerun = runID == 30
+	resp.State.Run.CanRerunFailed = runID == 30
 	resp.State.Run.CanDeleteArtifact = true
 	resp.State.Run.WorkflowID = "workflow-id"
 	resp.State.Run.WorkflowLink = "./workflow-link"
+	resp.State.Run.Duration = "1h 23m 45s"
+	resp.State.Run.TriggeredAt = time.Now().Add(-time.Hour).Unix()
+	resp.State.Run.TriggerEvent = "push"
 	resp.State.Run.Commit = actions.ViewCommit{
 		ShortSha: "ccccdddd",
 		Link:     "./commit-link",
@@ -139,6 +142,17 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Needs:    []string{"job-100", "job-101"},
 	})
 
+	fillViewRunResponseCurrentJob(ctx, resp)
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewResponse) {
+	jobID := ctx.PathParamInt64("job")
+	if jobID == 0 {
+		return
+	}
+
+	req := web.GetForm(ctx).(*actions.ViewRequest)
 	var mockLogOptions []generateMockStepsLogOptions
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
 		Summary:  "step 0 (mock slow)",
@@ -162,7 +176,6 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	mockLogOptions = append(mockLogOptions, generateMockStepsLogOptions{mockCountFirst: 30, mockCountGeneral: 3, groupRepeat: 3})
 
 	if len(req.LogCursors) == 0 {
-		ctx.JSON(http.StatusOK, resp)
 		return
 	}
 
@@ -188,5 +201,4 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	} else {
 		time.Sleep(time.Duration(100) * time.Millisecond) // actually, frontend reload every 1 second, any smaller delay is fine
 	}
-	ctx.JSON(http.StatusOK, resp)
 }
