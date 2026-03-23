@@ -482,7 +482,7 @@ func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error)
 	key := m.buildMinioPath(path)
 	uploader := manager.NewUploader(m.client)
 
-	var body io.Reader = r
+	body := r
 	var counter *countingReader
 	if size < 0 {
 		counter = &countingReader{r: r}
