@@ -521,7 +521,7 @@ func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) 
 // swagger:model MergePullRequestOption
 type MergePullRequestForm struct {
 	// required: true
-	// enum: merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged
+	// enum: ["merge","rebase","rebase-merge","squash","fast-forward-only","manually-merged"]
 	Do                     string `binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
 	MergeTitleField        string
 	MergeMessageField      string
