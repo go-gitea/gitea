@@ -3,14 +3,30 @@ import {nextTick, defineComponent} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import type {SvgName} from '../svg.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
+
+type DashboardRepo = {
+  id: number,
+  link: string,
+  full_name: string,
+  archived: boolean,
+  fork: boolean,
+  mirror: boolean,
+  template: boolean,
+  private: boolean,
+  internal: boolean,
+  latest_commit_status_state?: CommitStatus,
+  latest_commit_status_state_link?: string,
+  locale_latest_commit_status_state?: string,
+};
 
 type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning' | 'skipped';
 
 type CommitStatusMap = {
   [status in CommitStatus]: {
-    name: string,
+    name: SvgName,
     color: string,
   };
 };
@@ -38,8 +54,8 @@ export default defineComponent({
 
     return {
       tab,
-      repos: [],
-      reposTotalCount: null,
+      repos: [] as DashboardRepo[],
+      reposTotalCount: null as number | null,
       reposFilter,
       archivedFilter,
       privateFilter,
@@ -48,7 +64,7 @@ export default defineComponent({
       searchQuery,
       isLoading: false,
       staticPrefix: assetUrlPrefix,
-      counts: {},
+      counts: {} as Record<string, number>,
       repoTypes: {
         all: {
           searchMode: '',
@@ -65,16 +81,49 @@ export default defineComponent({
         collaborative: {
           searchMode: 'collaborative',
         },
-      },
-      textArchivedFilterTitles: {},
-      textPrivateFilterTitles: {},
-
-      organizations: [],
+      } as Record<string, {searchMode: string}>,
+      textArchivedFilterTitles: {} as Record<string, string>,
+      textPrivateFilterTitles: {} as Record<string, string>,
+      organizations: [] as Array<{name: string, full_name: string, num_repos: number, org_visibility: string}>,
       isOrganization: true,
       canCreateOrganization: false,
       organizationsTotalCount: 0,
       organizationId: 0,
-
+      searchLimit: 0,
+      uid: 0,
+      teamId: 0,
+      isMirrorsEnabled: false,
+      isStarsEnabled: false,
+      canCreateMigrations: false,
+      textNoOrg: '',
+      textNoRepo: '',
+      textRepository: '',
+      textOrganization: '',
+      textMyRepos: '',
+      textNewRepo: '',
+      textSearchRepos: '',
+      textFilter: '',
+      textShowArchived: '',
+      textShowPrivate: '',
+      textShowBothArchivedUnarchived: '',
+      textShowOnlyUnarchived: '',
+      textShowOnlyArchived: '',
+      textShowBothPrivatePublic: '',
+      textShowOnlyPublic: '',
+      textShowOnlyPrivate: '',
+      textAll: '',
+      textSources: '',
+      textForks: '',
+      textMirrors: '',
+      textCollaborative: '',
+      textFirstPage: '',
+      textPreviousPage: '',
+      textNextPage: '',
+      textLastPage: '',
+      textMyOrgs: '',
+      textNewOrg: '',
+      textOrgVisibilityLimited: '',
+      textOrgVisibilityPrivate: '',
       subUrl: appSubUrl,
       ...pageData.dashboardRepoList,
       activeIndex: -1, // don't select anything at load, first cursor down will select
@@ -250,7 +299,7 @@ export default defineComponent({
           nextTick(() => {
             // MDN: If there's no focused element, this is the Document.body or Document.documentElement.
             if ((document.activeElement === document.body || document.activeElement === document.documentElement)) {
-              this.$refs.search.focus({preventScroll: true});
+              (this.$refs.search as HTMLInputElement).focus({preventScroll: true});
             }
           });
         }
@@ -283,7 +332,7 @@ export default defineComponent({
       }
     },
 
-    repoIcon(repo: any) {
+    repoIcon(repo: DashboardRepo) {
       if (repo.fork) {
         return 'octicon-repo-forked';
       } else if (repo.mirror) {
@@ -435,7 +484,7 @@ export default defineComponent({
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
             </a>
-            <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link || null" :data-tooltip-content="repo.locale_latest_commit_status_state">
+            <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link || undefined" :data-tooltip-content="repo.locale_latest_commit_status_state">
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
               <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class="'tw-ml-2 commit-status icon ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>
