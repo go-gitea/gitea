@@ -186,3 +186,24 @@ func TestIsValidUsername(t *testing.T) {
 		})
 	}
 }
+
+func TestIsValidBadgeSlug(t *testing.T) {
+	tests := []struct {
+		arg  string
+		want bool
+	}{
+		{arg: "badge-1", want: true},
+		{arg: "badge.slug", want: true},
+		{arg: "new", want: true},
+		{arg: "Badge_1", want: true},
+		{arg: "a..b", want: false},
+		{arg: "a/b", want: false},
+		{arg: "Awesome!", want: false},
+		{arg: "Emoji 💯", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.arg, func(t *testing.T) {
+			assert.Equalf(t, tt.want, IsValidBadgeSlug(tt.arg), "IsValidBadgeSlug(%v)", tt.arg)
+		})
+	}
+}
