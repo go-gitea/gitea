@@ -135,22 +135,25 @@ func TestWebAuthOAuth2(t *testing.T) {
 		u.RawQuery = ""
 		assert.Equal(t, "https://example.com/oidc-logout", u.String())
 	})
+}
 
-	t.Run("SignInAutoRedirectSingleProvider", func(t *testing.T) {
-		unittest.PrepareTestEnv(t)
-		addOAuth2Source(t, "dummy-auth-source", oauth2.Source{})
-		defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, false)()
-		defer test.MockVariableValue(&setting.Service.EnableOpenIDSignIn, false)()
-		defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, false)()
+func TestSignInAutoRedirectSingleProvider(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, false)()
+	defer test.MockVariableValue(&setting.Service.EnableOpenIDSignIn, false)()
+	defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, false)()
 
-		ctx, resp := contexttest.MockContext(t, "/user/login?redirect_to=/other")
-		SignIn(ctx)
-		assert.Equal(t, http.StatusSeeOther, resp.Code)
-		expectedURL := "/user/oauth2/dummy-auth-source?redirect_to=" + url.QueryEscape("/other")
-		assert.Equal(t, expectedURL, test.RedirectURL(resp))
+	_ = oauth2.Init(t.Context())
+	addOAuth2Source(t, "dummy-auth-source-signin-auto", oauth2.Source{})
 
-		ctx, resp = contexttest.MockContext(t, "/user/login?redirect_to=/other&skipAutoLogin=true")
-		SignIn(ctx)
-		assert.Equal(t, http.StatusOK, resp.Code)
-	})
+	ctx, resp := contexttest.MockContext(t, "/user/login?redirect_to=/other")
+	SignIn(ctx)
+	assert.Equal(t, http.StatusSeeOther, resp.Code)
+	expectedURL := "/user/oauth2/dummy-auth-source-signin-auto?redirect_to=" +
+		url.QueryEscape("/other")
+	assert.Equal(t, expectedURL, test.RedirectURL(resp))
+
+	ctx, resp = contexttest.MockContext(t, "/user/login?redirect_to=/other&skipAutoLogin=true")
+	SignIn(ctx)
+	assert.Equal(t, http.StatusOK, resp.Code)
 }

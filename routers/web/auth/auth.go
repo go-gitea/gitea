@@ -256,12 +256,14 @@ func SignIn(ctx *context.Context) {
 	}
 	prepareSignInPageData(ctx)
 
+	enableSSPI, _ := ctx.Data["EnableSSPI"].(bool)
+
 	// If only 1 OAuth provider is present and other login methods are disabled, redirect to the OAuth provider.
 	if !ctx.FormBool("skipAutoLogin") &&
 		!setting.Service.EnablePasswordSignInForm &&
 		!setting.Service.EnableOpenIDSignIn &&
 		!setting.Service.EnablePasskeyAuth &&
-		!auth.IsSSPIEnabled(ctx) {
+		!enableSSPI {
 		if performAutoLoginOAuth2(ctx) {
 			return
 		}
