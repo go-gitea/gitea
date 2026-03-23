@@ -55,6 +55,7 @@ func GetCommitIDsBetween(ctx context.Context, repo Repository, startRef, endRef,
 	}
 
 	stdout, _, err := RunCmdString(ctx, repo, genBaseCmd().AddDynamicArguments(startRef+".."+endRef))
+	// example git error message: fatal: origin/main...HEAD: no merge base
 	if err != nil && strings.Contains(err.Stderr(), "no merge base") {
 		stdout, _, err = RunCmdString(ctx, repo, genBaseCmd().AddDynamicArguments(startRef, endRef))
 	}
