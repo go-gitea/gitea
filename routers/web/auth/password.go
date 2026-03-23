@@ -177,7 +177,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			regenerateScratchToken = true
 		} else {
 			passcode := ctx.FormString("passcode")
-			ok, err := twofa.ValidateTOTP(passcode)
+			ok, _, err := twofa.ValidateTOTP(passcode)
 			if err != nil {
 				ctx.HTTPError(http.StatusInternalServerError, "ValidateTOTP", err.Error())
 				return

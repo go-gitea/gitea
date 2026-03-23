@@ -52,6 +52,8 @@ type TwoFactor struct {
 	ID               int64 `xorm:"pk autoincr"`
 	UID              int64 `xorm:"UNIQUE"`
 	Secret           string
+	SecretSalt       string
+	SecretAlgo       string
 	ScratchSalt      string
 	ScratchHash      string
 	LastUsedPasscode string             `xorm:"VARCHAR(10)"`
@@ -92,14 +94,38 @@ func (t *TwoFactor) VerifyScratchToken(token string) bool {
 	return subtle.ConstantTimeCompare([]byte(t.ScratchHash), []byte(tempHash)) == 1
 }
 
-func (t *TwoFactor) getEncryptionKey() []byte {
-	k := md5.Sum([]byte(setting.SecretKey))
-	return k[:]
+const (
+	totpSecretKeyIterations = 10000
+	totpSecretKeyLength     = 32
+	totpSecretSaltSize       = 16
+)
+
+func (t *TwoFactor) getEncryptionKey() ([]byte, bool) {
+	if t.SecretAlgo == "" || t.SecretAlgo == "md5" || t.SecretSalt == "" {
+		k := md5.Sum([]byte(setting.SecretKey))
+		return k[:], true
+	}
+	key := pbkdf2.Key([]byte(setting.SecretKey), []byte(t.SecretSalt), totpSecretKeyIterations, totpSecretKeyLength, sha256.New)
+	return key, false
+}
+
+func (t *TwoFactor) rotateSecretSalt() error {
+	saltBytes, err := util.CryptoRandomBytes(totpSecretSaltSize)
+	if err != nil {
+		return err
+	}
+	t.SecretSalt = hex.EncodeToString(saltBytes)
+	t.SecretAlgo = "pbkdf2"
+	return nil
 }
 
 // SetSecret sets the 2FA secret.
 func (t *TwoFactor) SetSecret(secretString string) error {
-	secretBytes, err := secret.AesEncrypt(t.getEncryptionKey(), []byte(secretString))
+	if err := t.rotateSecretSalt(); err != nil {
+		return err
+	}
+	key, _ := t.getEncryptionKey()
+	secretBytes, err := secret.AesEncrypt(key, []byte(secretString))
 	if err != nil {
 		return err
 	}
@@ -108,17 +134,31 @@ func (t *TwoFactor) SetSecret(secretString string) error {
 }
 
 // ValidateTOTP validates the provided passcode.
-func (t *TwoFactor) ValidateTOTP(passcode string) (bool, error) {
+func (t *TwoFactor) ValidateTOTP(passcode string) (bool, bool, error) {
 	decodedStoredSecret, err := base64.StdEncoding.DecodeString(t.Secret)
 	if err != nil {
-		return false, fmt.Errorf("ValidateTOTP invalid base64: %w", err)
+		return false, false, fmt.Errorf("ValidateTOTP invalid base64: %w", err)
 	}
-	secretBytes, err := secret.AesDecrypt(t.getEncryptionKey(), decodedStoredSecret)
+	key, legacyKey := t.getEncryptionKey()
+	secretBytes, err := secret.AesDecrypt(key, decodedStoredSecret)
 	if err != nil {
-		return false, fmt.Errorf("ValidateTOTP unable to decrypt (maybe SECRET_KEY is wrong): %w", err)
+		return false, false, fmt.Errorf("ValidateTOTP unable to decrypt (maybe SECRET_KEY is wrong): %w", err)
 	}
 	secretStr := string(secretBytes)
-	return totp.Validate(passcode, secretStr), nil
+	ok := totp.Validate(passcode, secretStr)
+	if ok && legacyKey {
+		if err := t.rotateSecretSalt(); err != nil {
+			return ok, false, err
+		}
+		key, _ = t.getEncryptionKey()
+		secretBytes, err = secret.AesEncrypt(key, []byte(secretStr))
+		if err != nil {
+			return ok, false, err
+		}
+		t.Secret = base64.StdEncoding.EncodeToString(secretBytes)
+		return ok, true, nil
+	}
+	return ok, false, nil
 }
 
 // NewTwoFactor creates a new two-factor authentication token.

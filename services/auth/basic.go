@@ -175,10 +175,17 @@ func validateTOTP(req *http.Request, u *user_model.User) error {
 		}
 		return err
 	}
-	if ok, err := twofa.ValidateTOTP(req.Header.Get("X-Gitea-OTP")); err != nil {
+	ok, upgraded, err := twofa.ValidateTOTP(req.Header.Get("X-Gitea-OTP"))
+	if err != nil {
 		return err
-	} else if !ok {
+	}
+	if !ok {
 		return util.NewInvalidArgumentErrorf("invalid provided OTP")
+	}
+	if upgraded {
+		if err := auth_model.UpdateTwoFactor(req.Context(), twofa); err != nil {
+			return err
+		}
 	}
 	return nil
 }
