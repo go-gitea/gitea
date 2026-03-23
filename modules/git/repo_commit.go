@@ -29,7 +29,7 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 // GetCommit returns commit object of by ID string.
 func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
 	if commit, ok := repo.commitCache[commitID]; ok {
-		log.Debug("repo commitCache hit: [%s:%s:%s]", repo.Path, commitID)
+		log.Debug("repo commitCache hit: [%s:%s]", repo.Path, commitID)
 		return commit, nil
 	}
 
