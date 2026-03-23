@@ -57,6 +57,8 @@ func GetCommitIDsBetweenReversed(ctx context.Context, repo Repository, startRef,
 	stdout, _, err := RunCmdString(ctx, repo, genBaseCmd().AddDynamicArguments(startRef+".."+endRef))
 	// example git error message: fatal: origin/main...HEAD: no merge base
 	if err != nil && strings.Contains(err.Stderr(), "no merge base") {
+		// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
+		// previously it would return the results of git rev-list before last so let's try that...
 		stdout, _, err = RunCmdString(ctx, repo, genBaseCmd().AddDynamicArguments(startRef, endRef))
 	}
 	if err != nil {
