@@ -36,16 +36,16 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 			log.Error("MergeBase %q and %q failed: %v", pr.BaseBranch, newCommitID, err)
 		} else {
 			notRef := ""
-			data.CommitIDs, err = gitrepo.GetCommitIDsBetween(ctx, pr.BaseRepo, mergeBase, newCommitID, notRef)
+			data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReversed(ctx, pr.BaseRepo, mergeBase, newCommitID, notRef)
 			if err != nil {
 				// For force-push events, failures resolving the base ref/head commit or computing
 				// the merge-base should not prevent deleting stale push comments or creating the
 				// force-push timeline entry.
-				log.Error("GetCommitIDsBetween %q..%q (not %q) failed: %v", mergeBase, newCommitID, notRef, err)
+				log.Error("GetCommitIDsBetweenReversed %q..%q (not %q) failed: %v", mergeBase, newCommitID, notRef, err)
 			}
 		}
 	} else {
-		data.CommitIDs, err = gitrepo.GetCommitIDsBetween(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
+		data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReversed(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
 		if err != nil {
 			return nil, err
 		}

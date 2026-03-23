@@ -43,9 +43,9 @@ func GetDivergingCommits(ctx context.Context, repo Repository, baseBranch, targe
 	return &DivergeObject{Ahead: ahead, Behind: behind}, nil
 }
 
-// GetCommitIDsBetween returns the commit IDs between startRef and endRef, if notRef is not empty,
-// it will exclude commits reachable from notRef.
-func GetCommitIDsBetween(ctx context.Context, repo Repository, startRef, endRef, notRef string) ([]string, error) {
+// GetCommitIDsBetweenReversed returns the commit IDs between two commits in reversed order (oldest first)
+// if notRef is not empty, it will be used as --not argument to exclude commits reachable from notRef
+func GetCommitIDsBetweenReversed(ctx context.Context, repo Repository, startRef, endRef, notRef string) ([]string, error) {
 	genBaseCmd := func() *gitcmd.Command {
 		baseCmd := gitcmd.NewCommand("rev-list", "--reverse")
 		if notRef != "" {
