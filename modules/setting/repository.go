@@ -88,6 +88,7 @@ var (
 			AddCoCommitterTrailers                   bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
+			DefaultDeleteBranchAfterMerge            bool
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -211,6 +212,7 @@ var (
 			AddCoCommitterTrailers                   bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
+			DefaultDeleteBranchAfterMerge            bool
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
