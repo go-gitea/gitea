@@ -1,14 +1,14 @@
 {{template "base/head" .}}
 <div class="page-content">
-	<div class="tw-flex tw-justify-center tw-items-center tw-gap-5">
-		<a href="/devtest/repo-action-view/runs/10/jobs/0">Run:CanCancel</a>
-		<a href="/devtest/repo-action-view/runs/20/jobs/1">Run:CanApprove</a>
-		<a href="/devtest/repo-action-view/runs/30/jobs/2">Run:CanRerun</a>
+	<div class="flex-text-block tw-justify-center tw-gap-5">
+		<a href="/devtest/repo-action-view/runs/10">Run:CanCancel</a>
+		<a href="/devtest/repo-action-view/runs/20">Run:CanApprove</a>
+		<a href="/devtest/repo-action-view/runs/30">Run:CanRerun</a>
 	</div>
 	{{template "repo/actions/view_component" (dict
 		"RunID" (or .RunID 10)
 		"JobID" (or .JobID 0)
-		"ActionsURL" (print AppSubUrl "/devtest/actions-mock")
+		"ActionsURL" (print AppSubUrl "/devtest/repo-action-view")
 	)}}
 </div>
 {{template "base/footer" .}}

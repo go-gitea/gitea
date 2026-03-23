@@ -11,7 +11,7 @@ async function initInputCitationValue(citationCopyApa: HTMLButtonElement, citati
     import('@citation-js/plugin-bibtex'),
     import('@citation-js/plugin-csl'),
   ]);
-  const {citationFileContent} = pageData;
+  const citationFileContent = pageData.citationFileContent!;
   const config = plugins.config.get('@bibtex');
   config.constants.fieldTypes.doi = ['field', 'literal'];
   config.constants.fieldTypes.version = ['field', 'literal'];
