@@ -28,23 +28,24 @@ const (
 	hookBatchSize = 500
 )
 
-var (
-	// CmdHook represents the available hooks sub-command.
-	CmdHook = &cli.Command{
+func newHookCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "hook",
 		Usage:       "(internal) Should only be called by Git",
 		Hidden:      true, // internal commands shouldn't be visible
 		Description: "Delegate commands to corresponding Git hooks",
 		Before:      PrepareConsoleLoggerLevel(log.FATAL),
 		Commands: []*cli.Command{
-			subcmdHookPreReceive,
-			subcmdHookUpdate,
-			subcmdHookPostReceive,
-			subcmdHookProcReceive,
+			newHookPreReceiveCommand(),
+			newHookUpdateCommand(),
+			newHookPostReceiveCommand(),
+			newHookProcReceiveCommand(),
 		},
 	}
+}
 
-	subcmdHookPreReceive = &cli.Command{
+func newHookPreReceiveCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "pre-receive",
 		Usage:       "Delegate pre-receive Git hook",
 		Description: "This command should only be called by Git",
@@ -55,7 +56,10 @@ var (
 			},
 		},
 	}
-	subcmdHookUpdate = &cli.Command{
+}
+
+func newHookUpdateCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "update",
 		Usage:       "Delegate update Git hook",
 		Description: "This command should only be called by Git",
@@ -66,7 +70,10 @@ var (
 			},
 		},
 	}
-	subcmdHookPostReceive = &cli.Command{
+}
+
+func newHookPostReceiveCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "post-receive",
 		Usage:       "Delegate post-receive Git hook",
 		Description: "This command should only be called by Git",
@@ -77,8 +84,11 @@ var (
 			},
 		},
 	}
-	// Note: new hook since git 2.29
-	subcmdHookProcReceive = &cli.Command{
+}
+
+// Note: new hook since git 2.29
+func newHookProcReceiveCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "proc-receive",
 		Usage:       "Delegate proc-receive Git hook",
 		Description: "This command should only be called by Git",
@@ -89,7 +99,7 @@ var (
 			},
 		},
 	}
-)
+}
 
 type delayWriter struct {
 	internal io.Writer
