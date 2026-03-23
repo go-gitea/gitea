@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -27,21 +28,16 @@ func MaintenanceModeHandler() func(h http.Handler) http.Handler {
 		"/user/",
 		"/captcha/",
 	}
-	allowedPaths := []string{
+	allowedPaths := container.SetOf(
 		"/api/healthz",
-	}
+	)
 	isMaintenanceModeAllowedRequest := func(req *http.Request) bool {
 		for _, prefix := range allowedPrefixes {
 			if strings.HasPrefix(req.URL.Path, prefix) {
 				return true
 			}
 		}
-		for _, urlPath := range allowedPaths {
-			if req.URL.Path == urlPath {
-				return true
-			}
-		}
-		return false
+		return allowedPaths.Contains(req.URL.Path)
 	}
 
 	return func(next http.Handler) http.Handler {
