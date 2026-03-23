@@ -4,7 +4,6 @@
 package websocket
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
@@ -12,7 +11,6 @@ import (
 	"code.gitea.io/gitea/services/pubsub"
 
 	gitea_ws "github.com/coder/websocket"
-	"github.com/coder/websocket/wsjson"
 )
 
 // Serve handles WebSocket upgrade and event delivery for the signed-in user.
@@ -29,7 +27,7 @@ func Serve(ctx *context.Context) {
 		log.Error("websocket: accept failed: %v", err)
 		return
 	}
-	defer conn.CloseNow() //nolint:errcheck
+	defer conn.CloseNow() //nolint:errcheck // CloseNow is best-effort; error is intentionally ignored
 
 	topic := fmt.Sprintf("user-%d", ctx.Doer.ID)
 	ch, cancel := pubsub.DefaultBroker.Subscribe(topic)
@@ -44,7 +42,7 @@ func Serve(ctx *context.Context) {
 			if !ok {
 				return
 			}
-			if err := wsjson.Write(wsCtx, conn, json.RawMessage(msg)); err != nil {
+			if err := conn.Write(wsCtx, gitea_ws.MessageText, msg); err != nil {
 				log.Trace("websocket: write failed: %v", err)
 				return
 			}
