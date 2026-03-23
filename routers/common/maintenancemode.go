@@ -23,7 +23,7 @@ func MaintenanceModeHandler() func(h http.Handler) http.Handler {
 		// internal APIs
 		"/api/internal/",
 
-		// user login: "/user/login", "/user/logout", "/catpcha/..."
+		// user login (for admin to login): "/user/login", "/user/logout", "/catpcha/..."
 		"/user/",
 		"/captcha/",
 	}
