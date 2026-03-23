@@ -574,17 +574,17 @@ func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchNam
 }
 
 func DeleteIssueDevLinkByBranchName(ctx context.Context, repoID int64, branchName string) error {
-	awBranch, err := git_model.GetBranch(ctx, repoID, branchName)
+	branch, err := git_model.GetBranch(ctx, repoID, branchName)
 	if err != nil && !git_model.IsErrBranchNotExist(err) {
-		return fmt.Errorf("GetBranch: %vc", err)
+		return fmt.Errorf("GetBranch: %v", err)
 	}
-	if awBranch == nil {
+	if branch == nil {
 		return nil
 	}
 
 	_, err = db.GetEngine(ctx).
 		Where("linked_repo_id = ? AND link_type = ? AND link_id = ?",
-			repoID, issues_model.IssueDevLinkTypeBranch, awBranch.ID).
+			repoID, issues_model.IssueDevLinkTypeBranch, branch.ID).
 		Delete(new(issues_model.IssueDevLink))
 	return err
 }
