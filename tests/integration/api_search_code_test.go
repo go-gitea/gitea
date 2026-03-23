@@ -9,7 +9,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/gitrepo"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
@@ -19,6 +19,10 @@ import (
 
 func TestAPISearchCodeNotLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
+	assert.NoError(t, err)
+	code_indexer.UpdateRepoIndexer(repo)
 
 	// test with no keyword
 	req := NewRequest(t, "GET", "/api/v1/search/code")
@@ -38,16 +42,11 @@ func TestAPISearchCodeNotLogin(t *testing.T) {
 	assert.Equal(t, "\n", apiCodeSearchResults.Items[0].Lines[0].RawContent)
 	assert.Equal(t, "Description for repo1", apiCodeSearchResults.Items[0].Lines[1].RawContent)
 
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
-	assert.NoError(t, err)
-	defer gitRepo1.Close()
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.NotEmpty(t, apiCodeSearchResults.Items[0].Sha)
 
-	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
-	assert.NoError(t, err)
-
-	assert.Equal(t, setting.AppURL+"api/v1/repos/user2/repo1/contents/README.md?ref="+commitID, apiCodeSearchResults.Items[0].URL)
-	assert.Equal(t, setting.AppURL+"user2/repo1/blob/"+commitID+"/README.md", apiCodeSearchResults.Items[0].HTMLURL)
+	assert.Equal(t, setting.AppURL+"api/v1/repos/user2/repo1/contents/README.md?ref="+apiCodeSearchResults.Items[0].Sha, apiCodeSearchResults.Items[0].URL)
+	assert.Equal(t, setting.AppURL+"user2/repo1/blob/"+apiCodeSearchResults.Items[0].Sha+"/README.md", apiCodeSearchResults.Items[0].HTMLURL)
 
 	assert.Equal(t, int64(1), apiCodeSearchResults.Items[0].Repository.ID)
 
