@@ -27,6 +27,8 @@ const (
 	ErrUsername = "UsernameError"
 	// ErrInvalidGroupTeamMap is returned when a group team mapping is invalid
 	ErrInvalidGroupTeamMap = "InvalidGroupTeamMap"
+	// ErrInvalidBadgeSlug is returned when a badge slug is invalid
+	ErrInvalidBadgeSlug = "InvalidBadgeSlug"
 )
 
 // AddBindingRules adds additional binding rules
@@ -40,6 +42,7 @@ func AddBindingRules() {
 	addGlobOrRegexPatternRule()
 	addUsernamePatternRule()
 	addValidGroupTeamMapRule()
+	addSlugPatternRule()
 }
 
 func addGitRefNameBindingRule() {
@@ -118,6 +121,22 @@ func addValidSiteURLBindingRule() {
 				return false, errs
 			}
 
+			return true, errs
+		},
+	})
+}
+
+func addSlugPatternRule() {
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return rule == "BadgeSlug"
+		},
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
+			str := fmt.Sprintf("%v", val)
+			if !IsValidBadgeSlug(str) {
+				errs.Add([]string{name}, ErrInvalidBadgeSlug, "invalid badge slug")
+				return false, errs
+			}
 			return true, errs
 		},
 	})

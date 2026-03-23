@@ -112,21 +112,20 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, mineBuf []byt
 		opts.ContentTypeCharset = strings.ToLower(charset)
 	}
 
-	isSVG := sniffedType.IsSvgImage()
-
 	// serve types that can present a security risk with CSP
-	if isSVG {
-		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-	} else if sniffedType.IsPDF() {
-		// no sandbox attribute for pdf as it breaks rendering in at least safari. this
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+
+	if sniffedType.IsPDF() {
+		// no sandbox attribute for PDF as it breaks rendering in at least safari. this
 		// should generally be safe as scripts inside PDF can not escape the PDF document
 		// see https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
 		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
 		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
 	}
 
+	// TODO: UNIFY-CONTENT-DISPOSITION-FROM-STORAGE
 	opts.Disposition = "inline"
-	if isSVG && !setting.UI.SVG.Enabled {
+	if sniffedType.IsSvgImage() && !setting.UI.SVG.Enabled {
 		opts.Disposition = "attachment"
 	}
 
