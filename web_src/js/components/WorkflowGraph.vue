@@ -729,7 +729,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .job-node-group:hover .job-rect {
-  fill: var(--color-workflow-box-bg-hover);
+  fill: var(--color-workflow-box-hover-bg);
   transform: translateX(1px);
 }
 
