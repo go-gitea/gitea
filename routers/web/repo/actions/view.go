@@ -128,7 +128,7 @@ type ViewResponse struct {
 
 	State struct {
 		Run struct {
-			RepoID            int64         `json:"repo_id"`
+			RepoID            int64         `json:"repoId"`
 			Link              string        `json:"link"`
 			Title             string        `json:"title"`
 			TitleHTML         template.HTML `json:"titleHTML"`
