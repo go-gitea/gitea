@@ -70,9 +70,16 @@ func SettingsPost(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	if err := user_service.ReplacePrimaryEmailAddress(ctx, org.AsUser(), form.Email); err != nil {
-		ctx.Data["Err_Email"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplSettingsOptions, &form)
+	if form.Email != "" {
+		if err := user_model.ValidateEmail(form.Email); err != nil {
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplSettingsOptions, &form)
+			return
+		}
+	}
+	org.Email = form.Email
+	if err := user_model.UpdateUserCols(ctx, org.AsUser(), "email"); err != nil {
+		ctx.ServerError("UpdateUserCols", err)
 		return
 	}
 

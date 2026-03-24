@@ -257,18 +257,21 @@ func TestOrgSettingsClearEmail(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	req := NewRequestWithValues(t, "POST", "/org/org3/settings", map[string]string{
-		"name":  "org3",
-		"email": "contact@org3.example.com",
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	// Load existing org so other fields are preserved when the form is posted.
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	baseForm := map[string]string{
+		"name":      org.Name,
+		"full_name": org.FullName,
+		"email":     "contact@org3.example.com",
+	}
+
+	req := NewRequestWithValues(t, "POST", "/org/org3/settings", baseForm)
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	assert.Equal(t, "contact@org3.example.com", org.Email)
 
-	req = NewRequestWithValues(t, "POST", "/org/org3/settings", map[string]string{
-		"name":  "org3",
-		"email": "",
-	})
+	baseForm["email"] = ""
+	req = NewRequestWithValues(t, "POST", "/org/org3/settings", baseForm)
 	session.MakeRequest(t, req, http.StatusSeeOther)
 	org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	assert.Empty(t, org.Email)
