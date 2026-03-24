@@ -19,8 +19,10 @@ func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailSt
 		return nil
 	}
 
-	if err := user_model.ValidateEmail(emailStr); err != nil {
-		return err
+	if emailStr != "" {
+		if err := user_model.ValidateEmail(emailStr); err != nil {
+			return err
+		}
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {

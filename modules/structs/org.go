@@ -72,8 +72,8 @@ type CreateOrgOption struct {
 type EditOrgOption struct {
 	// The full display name of the organization
 	FullName string `json:"full_name" binding:"MaxSize(100)"`
-	// The email address of the organization
-	Email string `json:"email" binding:"MaxSize(255)"`
+	// The email address of the organization; set to "" to clear
+	Email *string `json:"email" binding:"MaxSize(255)"`
 	// The description of the organization
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// The website URL of the organization

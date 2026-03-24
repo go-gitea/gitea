@@ -158,6 +158,29 @@ func TestAPIOrgGeneral(t *testing.T) {
 		assert.Equal(t, org.Visibility, apiOrg.Visibility)
 	})
 
+	t.Run("OrgEditClearEmail", func(t *testing.T) {
+		// first set an email
+		setEmail := "contact@org3.example.com"
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &api.EditOrgOption{
+			Email:      &setEmail,
+			Visibility: "public",
+		}).AddTokenAuth(user1Token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiOrg api.Organization
+		DecodeJSON(t, resp, &apiOrg)
+		assert.Equal(t, setEmail, apiOrg.Email)
+
+		// clear the email: nil = "don't touch", "" = "clear"
+		clearEmail := ""
+		req = NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &api.EditOrgOption{
+			Email:      &clearEmail,
+			Visibility: "public",
+		}).AddTokenAuth(user1Token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &apiOrg)
+		assert.Empty(t, apiOrg.Email)
+	})
+
 	t.Run("OrgEditBadVisibility", func(t *testing.T) {
 		org := api.EditOrgOption{
 			FullName:    "Org3 organization new full name",

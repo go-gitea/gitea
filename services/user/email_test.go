@@ -50,6 +50,10 @@ func TestReplacePrimaryEmailAddress(t *testing.T) {
 		assert.NoError(t, ReplacePrimaryEmailAddress(t.Context(), org.AsUser(), "primary-org@example.com"))
 
 		assert.Equal(t, "primary-org@example.com", org.Email)
+
+		assert.NoError(t, ReplacePrimaryEmailAddress(t.Context(), org.AsUser(), ""))
+
+		assert.Empty(t, org.Email)
 	})
 }
 

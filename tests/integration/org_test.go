@@ -251,3 +251,25 @@ func TestTeamSearch(t *testing.T) {
 		assert.Len(t, teams, 1) // team permission is "write", so can write "code"
 	})
 }
+
+func TestOrgSettingsClearEmail(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	req := NewRequestWithValues(t, "POST", "/org/org3/settings", map[string]string{
+		"name":  "org3",
+		"email": "contact@org3.example.com",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	assert.Equal(t, "contact@org3.example.com", org.Email)
+
+	req = NewRequestWithValues(t, "POST", "/org/org3/settings", map[string]string{
+		"name":  "org3",
+		"email": "",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	assert.Empty(t, org.Email)
+}
