@@ -10,7 +10,7 @@ export function initAriaCheckboxPatch() {
     linkLabelAndInput(label, input);
     // prevent accidental text selection on double-click while allowing normal text selection
     label.addEventListener('mousedown', (e: MouseEvent) => {
-      if (e.detail >= 2) e.preventDefault();
+      if (e.detail === 2) e.preventDefault();
     });
     el.setAttribute('data-checkbox-patched', 'true');
   }
