@@ -512,6 +512,72 @@ func (issues IssueList) LoadPinOrder(ctx context.Context) error {
 	return nil
 }
 
+// LoadDependencyRefs batch-loads blocked_by and blocking dependency refs for all issues in the list
+func (issues IssueList) LoadDependencyRefs(ctx context.Context) error {
+	if len(issues) == 0 {
+		return nil
+	}
+
+	issueIDs := issues.getIssueIDs()
+
+	type depRefRow struct {
+		IssueID   int64  `xorm:"issue_id"`
+		OwnerName string `xorm:"owner_name"`
+		RepoName  string `xorm:"repo_name"`
+		Index     int64  `xorm:"'index'"`
+	}
+
+	blockedByMap := make(map[int64][]DependencyRef)
+	blockingMap := make(map[int64][]DependencyRef)
+
+	left := len(issueIDs)
+	for left > 0 {
+		limit := min(left, db.DefaultMaxInSize)
+		batch := issueIDs[len(issueIDs)-left : len(issueIDs)-left+limit]
+
+		var blockedByRows []depRefRow
+		if err := db.GetEngine(ctx).
+			Table("issue_dependency").
+			Select("issue_dependency.issue_id, repository.owner_name, repository.name AS repo_name, issue.`index`").
+			Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
+			Join("INNER", "repository", "repository.id = issue.repo_id").
+			In("issue_dependency.issue_id", batch).
+			Find(&blockedByRows); err != nil {
+			return fmt.Errorf("LoadDependencyRefs: load blocked_by: %w", err)
+		}
+		for _, r := range blockedByRows {
+			blockedByMap[r.IssueID] = append(blockedByMap[r.IssueID], DependencyRef{
+				OwnerName: r.OwnerName, RepoName: r.RepoName, Index: r.Index,
+			})
+		}
+
+		var blockingRows []depRefRow
+		if err := db.GetEngine(ctx).
+			Table("issue_dependency").
+			Select("issue_dependency.dependency_id AS issue_id, repository.owner_name, repository.name AS repo_name, issue.`index`").
+			Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
+			Join("INNER", "repository", "repository.id = issue.repo_id").
+			In("issue_dependency.dependency_id", batch).
+			Find(&blockingRows); err != nil {
+			return fmt.Errorf("LoadDependencyRefs: load blocking: %w", err)
+		}
+		for _, r := range blockingRows {
+			blockingMap[r.IssueID] = append(blockingMap[r.IssueID], DependencyRef{
+				OwnerName: r.OwnerName, RepoName: r.RepoName, Index: r.Index,
+			})
+		}
+
+		left -= limit
+	}
+
+	for _, issue := range issues {
+		issue.BlockedByRefs = blockedByMap[issue.ID]
+		issue.BlockingRefs = blockingMap[issue.ID]
+		issue.isDependencyRefsLoaded = true
+	}
+	return nil
+}
+
 // loadAttributes loads all attributes, expect for attachments and comments
 func (issues IssueList) LoadAttributes(ctx context.Context) error {
 	if _, err := issues.LoadRepositories(ctx); err != nil {

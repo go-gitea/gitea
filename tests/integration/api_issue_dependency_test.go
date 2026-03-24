@@ -150,3 +150,119 @@ func TestAPIDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 		DependencyID: dependencyIssue.ID,
 	})
 }
+
+func TestAPIIssueDependencyIncludes(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 1})
+	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 2})
+	issue3 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 3})
+
+	enableRepoDependencies(t, repo.ID)
+
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.NoError(t, issues_model.CreateIssueDependency(t.Context(), user1, issue1, issue2))
+	assert.NoError(t, issues_model.CreateIssueDependency(t.Context(), user1, issue1, issue3))
+
+	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeReadIssue)
+
+	t.Run("GetIssueWithIncludes", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		url := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d?includes=dependencies", owner.Name, repo.Name, issue1.Index)
+		req := NewRequest(t, "GET", url).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+
+		ref2 := &api.IssueMeta{Owner: owner.Name, Name: repo.Name, Index: issue2.Index}
+		ref3 := &api.IssueMeta{Owner: owner.Name, Name: repo.Name, Index: issue3.Index}
+		assert.ElementsMatch(t, []*api.IssueMeta{ref2, ref3}, apiIssue.BlockedBy)
+		assert.Empty(t, apiIssue.Blocking)
+	})
+
+	t.Run("GetIssueBlockingDirection", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		url := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d?includes=dependencies", owner.Name, repo.Name, issue2.Index)
+		req := NewRequest(t, "GET", url).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+
+		ref1 := &api.IssueMeta{Owner: owner.Name, Name: repo.Name, Index: issue1.Index}
+		assert.Empty(t, apiIssue.BlockedBy)
+		assert.ElementsMatch(t, []*api.IssueMeta{ref1}, apiIssue.Blocking)
+	})
+
+	t.Run("GetIssueWithoutIncludes", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		url := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", owner.Name, repo.Name, issue1.Index)
+		req := NewRequest(t, "GET", url).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var raw map[string]any
+		DecodeJSON(t, resp, &raw)
+
+		_, hasBlockedBy := raw["blocked_by"]
+		_, hasBlocking := raw["blocking"]
+		assert.False(t, hasBlockedBy, "blocked_by should be absent without includes=dependencies")
+		assert.False(t, hasBlocking, "blocking should be absent without includes=dependencies")
+	})
+
+	t.Run("ListIssuesWithIncludes", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		url := fmt.Sprintf("/api/v1/repos/%s/%s/issues?includes=dependencies&state=open", owner.Name, repo.Name)
+		req := NewRequest(t, "GET", url).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var issues []*api.Issue
+		DecodeJSON(t, resp, &issues)
+
+		found := false
+		for _, iss := range issues {
+			if iss.Index == issue1.Index {
+				ref2 := &api.IssueMeta{Owner: owner.Name, Name: repo.Name, Index: issue2.Index}
+				ref3 := &api.IssueMeta{Owner: owner.Name, Name: repo.Name, Index: issue3.Index}
+				assert.ElementsMatch(t, []*api.IssueMeta{ref2, ref3}, iss.BlockedBy)
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "issue1 should be in list results")
+	})
+
+	t.Run("InvalidIncludes", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		url := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d?includes=invalid", owner.Name, repo.Name, issue1.Index)
+		req := NewRequest(t, "GET", url).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusBadRequest)
+	})
+
+	t.Run("EmptyDepsReturnEmptyArrays", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		issue4 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 4})
+		url := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d?includes=dependencies", owner.Name, repo.Name, issue4.Index)
+		req := NewRequest(t, "GET", url).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var raw map[string]any
+		DecodeJSON(t, resp, &raw)
+
+		blockedBy, ok := raw["blocked_by"]
+		assert.True(t, ok, "blocked_by should be present as empty array")
+		assert.NotNil(t, blockedBy)
+
+		blocking, ok := raw["blocking"]
+		assert.True(t, ok, "blocking should be present as empty array")
+		assert.NotNil(t, blocking)
+	})
+}

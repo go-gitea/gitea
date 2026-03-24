@@ -21,19 +21,46 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, doer, issue, WebAssetDownloadURL)
+// ToIssueOptions controls optional data included in issue API responses
+type ToIssueOptions struct {
+	IncludeDependencies bool
+}
+
+func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
+	return toIssue(ctx, doer, issue, WebAssetDownloadURL, mergeOpts(opts))
 }
 
 // ToAPIIssue converts an Issue to API format
 // it assumes some fields assigned with values:
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
-func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, doer, issue, APIAssetDownloadURL)
+func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
+	return toIssue(ctx, doer, issue, APIAssetDownloadURL, mergeOpts(opts))
 }
 
-func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
+func toIssueMetas(refs []issues_model.DependencyRef) []*api.IssueMeta {
+	if len(refs) == 0 {
+		return []*api.IssueMeta{}
+	}
+	result := make([]*api.IssueMeta, len(refs))
+	for i, r := range refs {
+		result[i] = &api.IssueMeta{
+			Owner: r.OwnerName,
+			Name:  r.RepoName,
+			Index: r.Index,
+		}
+	}
+	return result
+}
+
+func mergeOpts(opts []ToIssueOptions) ToIssueOptions {
+	if len(opts) > 0 {
+		return opts[0]
+	}
+	return ToIssueOptions{}
+}
+
+func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string, opts ToIssueOptions) *api.Issue {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return &api.Issue{}
 	}
@@ -123,25 +150,56 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		apiIssue.Deadline = issue.DeadlineUnix.AsTimePtr()
 	}
 
+	if opts.IncludeDependencies {
+		if !issue.IsDependencyRefsLoaded() {
+			blockedBy, err := issues_model.GetBlockedByDependencyRefs(ctx, issue.ID)
+			if err != nil {
+				log.Error("GetBlockedByDependencyRefs: %v", err)
+				return apiIssue
+			}
+			blocking, err := issues_model.GetBlockingDependencyRefs(ctx, issue.ID)
+			if err != nil {
+				log.Error("GetBlockingDependencyRefs: %v", err)
+				return apiIssue
+			}
+			issue.BlockedByRefs = blockedBy
+			issue.BlockingRefs = blocking
+		}
+		apiIssue.BlockedBy = toIssueMetas(issue.BlockedByRefs)
+		apiIssue.Blocking = toIssueMetas(issue.BlockingRefs)
+	}
+
 	return apiIssue
 }
 
 // ToIssueList converts an IssueList to API format
-func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
+func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
+	o := mergeOpts(opts)
 	result := make([]*api.Issue, len(il))
 	_ = il.LoadPinOrder(ctx)
+	if o.IncludeDependencies {
+		if err := il.LoadDependencyRefs(ctx); err != nil {
+			log.Error("LoadDependencyRefs: %v", err)
+		}
+	}
 	for i := range il {
-		result[i] = ToIssue(ctx, doer, il[i])
+		result[i] = ToIssue(ctx, doer, il[i], o)
 	}
 	return result
 }
 
 // ToAPIIssueList converts an IssueList to API format
-func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
+func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
+	o := mergeOpts(opts)
 	result := make([]*api.Issue, len(il))
 	_ = il.LoadPinOrder(ctx)
+	if o.IncludeDependencies {
+		if err := il.LoadDependencyRefs(ctx); err != nil {
+			log.Error("LoadDependencyRefs: %v", err)
+		}
+	}
 	for i := range il {
-		result[i] = ToAPIIssue(ctx, doer, il[i])
+		result[i] = ToAPIIssue(ctx, doer, il[i], o)
 	}
 	return result
 }

@@ -120,8 +120,24 @@ type Issue struct {
 	// For view issue page.
 	ShowRole RoleDescriptor `xorm:"-"`
 
+	BlockedByRefs          []DependencyRef `xorm:"-"`
+	BlockingRefs           []DependencyRef `xorm:"-"`
+	isDependencyRefsLoaded bool            `xorm:"-"`
+
 	// Time estimate
 	TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
+}
+
+// DependencyRef identifies a dependency issue by its repo-scoped coordinates
+type DependencyRef struct {
+	OwnerName string
+	RepoName  string
+	Index     int64
+}
+
+// IsDependencyRefsLoaded returns whether dependency refs have been loaded
+func (issue *Issue) IsDependencyRefsLoaded() bool {
+	return issue.isDependencyRefsLoaded
 }
 
 var (

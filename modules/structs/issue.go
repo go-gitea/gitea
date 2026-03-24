@@ -82,6 +82,9 @@ type Issue struct {
 	Repo        *RepositoryMeta  `json:"repository"`
 
 	PinOrder int `json:"pin_order"`
+
+	BlockedBy []*IssueMeta `json:"blocked_by,omitempty"`
+	Blocking  []*IssueMeta `json:"blocking,omitempty"`
 }
 
 // CreateIssueOption options to create one issue
