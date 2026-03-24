@@ -589,7 +589,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	}, reqSignOut)
 
 	m.Any("/user/events", routing.MarkLongPolling, events.Events)
-	m.Get("/-/ws", gitea_websocket.Serve)
+	m.Group("", func() {
+		m.Get("/-/ws", gitea_websocket.Serve)
+	}, reqSignIn)
 
 	m.Group("/login/oauth", func() {
 		m.Group("", func() {

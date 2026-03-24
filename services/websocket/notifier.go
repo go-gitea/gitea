@@ -5,7 +5,6 @@ package websocket
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -27,10 +26,6 @@ func nowTS() timeutil.TimeStamp {
 type notificationCountEvent struct {
 	Type  string `json:"type"`
 	Count int64  `json:"count"`
-}
-
-func userTopic(userID int64) string {
-	return fmt.Sprintf("user-%d", userID)
 }
 
 // Init starts the background goroutine that polls notification counts
@@ -57,6 +52,11 @@ func run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-timer.C:
+			if !pubsub.DefaultBroker.HasSubscribers() {
+				then = nowTS().Add(-2)
+				continue
+			}
+
 			now := nowTS().Add(-2)
 
 			uidCounts, err := activities_model.GetUIDsAndNotificationCounts(ctx, then, now)
@@ -73,7 +73,7 @@ func run(ctx context.Context) {
 				if err != nil {
 					continue
 				}
-				pubsub.DefaultBroker.Publish(userTopic(uidCount.UserID), msg)
+				pubsub.DefaultBroker.Publish(pubsub.UserTopic(uidCount.UserID), msg)
 			}
 
 			then = now

@@ -4,6 +4,7 @@
 package pubsub
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -48,14 +49,33 @@ func (b *Broker) Subscribe(topic string) (<-chan []byte, func()) {
 	return ch, cancel
 }
 
+// UserTopic returns the pub/sub topic name for a given user ID.
+// Centralised here so the notifier and the WebSocket handler always agree on the format.
+func UserTopic(userID int64) string {
+	return fmt.Sprintf("user-%d", userID)
+}
+
+// HasSubscribers reports whether the broker has at least one active subscriber across all topics.
+func (b *Broker) HasSubscribers() bool {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	for _, subs := range b.subs {
+		if len(subs) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // Publish sends msg to all subscribers of topic.
 // Non-blocking: slow subscribers are skipped.
+// The RLock is held for the entire fan-out to prevent a race where cancel()
+// closes a channel between the slice read and the send.
 func (b *Broker) Publish(topic string, msg []byte) {
 	b.mu.RLock()
-	subs := b.subs[topic]
-	b.mu.RUnlock()
+	defer b.mu.RUnlock()
 
-	for _, ch := range subs {
+	for _, ch := range b.subs[topic] {
 		select {
 		case ch <- msg:
 		default:
