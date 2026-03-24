@@ -142,6 +142,7 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 		AllowRebaseUpdate:          true,
 		DefaultAllowMaintainerEdit: true,
 	}
+	cfg.DefaultDeleteBranchAfterMerge = setting.Repository.PullRequest.DefaultDeleteBranchAfterMerge
 	cfg.DefaultMergeStyle = MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
 	cfg.DefaultMergeStyle = util.IfZero(cfg.DefaultMergeStyle, MergeStyleMerge)
 	return cfg
@@ -226,7 +227,11 @@ func (cfg *ProjectsConfig) IsProjectsAllowed(m ProjectsMode) bool {
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
-		r.Type = unit.Type(db.Cell2Int64(val))
+		var err error
+		r.Type, _, err = db.CellToInt(val, unit.TypeInvalid)
+		if err != nil {
+			setting.PanicInDevOrTesting("Unable to convert repo unit (id=%d) type: %v", r.ID, err)
+		}
 		switch r.Type {
 		case unit.TypeExternalWiki:
 			r.Config = new(ExternalWikiConfig)

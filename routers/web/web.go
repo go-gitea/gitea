@@ -721,7 +721,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("", user_setting.BlockedUsers)
 			m.Post("", web.Bind(forms.BlockUserForm{}), user_setting.BlockedUsersPost)
 		})
-	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "EnablePackages", setting.Packages.Enabled, "EnableNotifyMail", setting.Service.EnableNotifyMail))
+	}, reqSignIn, user_setting.SettingsCtxData)
 
 	m.Group("/user", func() {
 		m.Get("/activate", auth.Activate)
@@ -786,6 +786,16 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{userid}/delete", admin.DeleteUser)
 			m.Post("/{userid}/avatar", web.Bind(forms.AvatarForm{}), admin.AvatarPost)
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
+		})
+
+		m.Group("/badges", func() {
+			m.Get("", admin.Badges)
+			m.Combo("/new").Get(admin.NewBadge).Post(web.Bind(forms.AdminCreateBadgeForm{}), admin.NewBadgePost)
+			m.Get("/slug/{badge_slug}", admin.ViewBadge)
+			m.Combo("/slug/{badge_slug}/edit").Get(admin.EditBadge).Post(web.Bind(forms.AdminEditBadgeForm{}), admin.EditBadgePost)
+			m.Post("/slug/{badge_slug}/delete", admin.DeleteBadge)
+			m.Combo("/slug/{badge_slug}/users").Get(admin.BadgeUsers).Post(admin.BadgeUsersPost)
+			m.Post("/slug/{badge_slug}/users/delete", admin.DeleteBadgeUser)
 		})
 
 		m.Group("/emails", func() {

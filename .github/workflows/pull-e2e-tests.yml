@@ -25,7 +25,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
           node-version: 24
