@@ -120,7 +120,7 @@ function filterCssUrlPlugin(): Plugin {
 }
 
 export default defineConfig(commonViteOpts({
-  base: './',
+  base: './', // make all asset URLs relative, so it works in subdirectory deployments
   build: {
     modulePreload: false,
     manifest: true,
@@ -162,14 +162,6 @@ export default defineConfig(commonViteOpts({
       plugins: [
         tailwindcss(tailwindConfig),
       ],
-    },
-  },
-  experimental: {
-    renderBuiltUrl(filename, {hostType}) {
-      if (hostType === 'css') {
-        return `../${filename}`; // CSS files are in css/, assets are siblings, so go up one level
-      }
-      return {relative: true};
     },
   },
   define: {
