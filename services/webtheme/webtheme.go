@@ -110,6 +110,8 @@ func parseThemeMetaInfoToMap(cssContent string) map[string]string {
 
 // stripContentHash removes a Vite content hash suffix from a name.
 // e.g. "gitea-dark.CyAaQnn5" -> "gitea-dark"
+// It might be wrong when user's theme name is like "my-theme-1.2.css", fortunately it is not a serious problem at the moment
+// If we'd like to "fix" it, we can add a "hash prefix" to the Vite assets like "index.h~123456.css", then in most cases we do best guess to strip the hash correctly.
 func stripContentHash(name string) string {
 	if i := strings.LastIndex(name, "."); i > 0 {
 		return name[:i]
