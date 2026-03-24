@@ -10,15 +10,17 @@
 			"SelectedSearchMode" .SelectedSearchMode
 			)}}
 		</div>
+		{{if .PageIsExploreCode}}
 		<div class="item ui small dropdown jump">
 			<span class="text">{{ctx.Locale.Tr "filter_title"}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu flex-items-menu">
 				<label class="item"><input type="radio" name="archived" {{if eq .ArchivedMode "include"}}checked{{end}} value="include"> {{ctx.Locale.Tr "search.code_archived_filter.all"}}</label>
 				<label class="item"><input type="radio" name="archived" {{if eq .ArchivedMode "exclude"}}checked{{end}} value="exclude"> {{ctx.Locale.Tr "search.code_archived_filter.not_archived"}}</label>
-				<label class="item"><input type="radio" name="archived" {{if .IsArchived.Value}}checked{{end}} value="only"> {{ctx.Locale.Tr "filter.is_archived"}}</label>
+				<label class="item"><input type="radio" name="archived" {{if eq .ArchivedMode "only"}}checked{{end}} value="only"> {{ctx.Locale.Tr "filter.is_archived"}}</label>
 			</div>
 		</div>
+		{{end}}
 	</form>
 </div>
 <div class="divider"></div>
