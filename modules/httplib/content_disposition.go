@@ -4,7 +4,6 @@
 package httplib
 
 import (
-	"fmt"
 	"mime"
 	"strings"
 
@@ -48,7 +47,7 @@ func EncodeContentDisposition(t ContentDispositionType, filename string) string 
 
 	// The mime package might have unexpected results in other go versions
 	// Make tests instance fail, otherwise use the default behavior of the go mime package
-	if !strings.HasPrefix(result, fmt.Sprintf("%s; filename=", string(t))) || !strings.HasPrefix(utf8Result, fmt.Sprintf("%s; filename*=", string(t))) {
+	if !strings.HasPrefix(result, string(t)+"; filename=") || !strings.HasPrefix(utf8Result, string(t)+"; filename*=") {
 		setting.PanicInDevOrTesting("Unexpected mime package result %s", result)
 		return utf8Result
 	}
