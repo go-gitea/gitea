@@ -349,7 +349,7 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 	var respData CreateArtifactResponse
 
 	if setting.Actions.ArtifactStorage.ServeDirect() && setting.Actions.ArtifactStorage.Type == setting.AzureBlobStorageType {
-		storagePath := fmt.Sprintf("%d/%d/%d.blob", artifact.RunID%255, artifact.ID%255, time.Now().UnixNano())
+		storagePath := generateArtifactStoragePath(artifact)
 		if artifact.StoragePath != "" {
 			_ = storage.ActionsArtifacts.Delete(artifact.StoragePath)
 		}
