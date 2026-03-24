@@ -121,7 +121,7 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 			// https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
 			case "artifact-metadata", "attestations", "checks", "deployments",
 				"id-token", "models", "discussions", "pages", "security-events", "statuses":
-
+				// not supported
 			default:
 				setting.PanicInDevOrTesting("Unrecognized permission scope: %s", scope)
 			}
