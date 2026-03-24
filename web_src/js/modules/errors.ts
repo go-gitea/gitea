@@ -59,7 +59,7 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
     if (shouldIgnoreError(err)) return;
   }
 
-  let msg = err?.message ?? message;
+  let msg = err?.message ?? message ?? String(err);
   if (lineno) msg += ` (${filename} @ ${lineno}:${colno})`;
   const dot = msg.endsWith('.') ? '' : '.';
   const renderedType = type === 'unhandledrejection' ? 'promise rejection' : type;
