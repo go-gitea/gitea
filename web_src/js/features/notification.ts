@@ -32,7 +32,7 @@ export function initNotificationCount() {
   if (notificationSettings.EventSourceUpdateTime > 0 && window.SharedWorker) {
     // Connect via WebSocket SharedWorker (one connection shared across all tabs)
     const wsUrl = `${window.location.origin}${appSubUrl}/-/ws`.replace(/^http/, 'ws');
-    const worker = new SharedWorker(`${window.__webpack_public_path__}js/websocket.sharedworker.js?v=${assetVersionEncoded}`, 'notification-worker');
+    const worker = new SharedWorker(`${window.__webpack_public_path__}js/websocket.sharedworker.js?v=${assetVersionEncoded}`, 'notification-worker-ws');
     worker.addEventListener('error', (event) => {
       console.error('worker error', event);
     });

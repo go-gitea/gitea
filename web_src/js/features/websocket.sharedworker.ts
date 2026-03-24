@@ -1,7 +1,5 @@
 // One WebSocket connection per URL, shared across all tabs via SharedWorker.
 // Messages from the server are JSON objects broadcast to all connected ports.
-export {}; // make this a module to avoid global scope conflicts with other sharedworker files
-
 const RECONNECT_DELAY_INITIAL = 50;
 const RECONNECT_DELAY_MAX = 10000;
 
