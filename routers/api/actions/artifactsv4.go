@@ -485,84 +485,15 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	checksum := ""
-	if req.Hash != nil {
-		checksum = req.Hash.Value
+	if setting.Actions.ArtifactStorage.ServeDirect() && setting.Actions.ArtifactStorage.Type == setting.AzureBlobStorageType {
+		r.finalizeAzureServeDirect(ctx, &req, artifact)
+	} else {
+		r.finalizeDefaultArtifact(ctx, &req, artifact, runID)
 	}
 
-	if setting.Actions.ArtifactStorage.ServeDirect() && setting.Actions.ArtifactStorage.Type == setting.AzureBlobStorageType {
-		checksumValue, found := strings.CutPrefix(checksum, "sha256:")
-		var actualLength int64
-		if found {
-			hashSha256 := sha256.New()
-			obj, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
-			if err != nil {
-				log.Error("Error read block: %v", err)
-				ctx.HTTPError(http.StatusInternalServerError, "Error read block")
-				return
-			}
-			defer obj.Close()
-			actualLength, err = io.Copy(hashSha256, obj)
-			if err != nil {
-				log.Error("Error read block: %v", err)
-				ctx.HTTPError(http.StatusInternalServerError, "Error read block")
-				return
-			}
-			rawChecksum := hashSha256.Sum(nil)
-			actualChecksum := hex.EncodeToString(rawChecksum)
-			if checksumValue != actualChecksum {
-				log.Error("Error merge chunks: checksum mismatch")
-				ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks: checksum mismatch")
-				return
-			}
-		} else {
-			fi, err := storage.ActionsArtifacts.Stat(artifact.StoragePath)
-			if err != nil {
-				log.Error("Error stat block: %v", err)
-				ctx.HTTPError(http.StatusInternalServerError, "Error stat block")
-				return
-			}
-			actualLength = fi.Size()
-		}
-
-		if req.Size != actualLength {
-			log.Error("Error merge chunks: length mismatch")
-			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks: length mismatch")
-			return
-		}
-
-		// Update artifact metadata and status now that the upload is confirmed.
-		artifact.FileSize = actualLength
-		artifact.FileCompressedSize = actualLength
-		artifact.Status = actions_model.ArtifactStatusUploadConfirmed
-		if err := actions_model.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
-			log.Error("Error UpdateArtifactByID: %v", err)
-			ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
-			return
-		}
-	} else {
-		var chunks []*chunkFileItem
-		blockList, blockListErr := r.readBlockList(runID, artifact.ID)
-		chunks, err = listOrderedChunksForArtifact(r.fs, runID, artifact.ID, blockList)
-		if err != nil {
-			log.Error("Error list chunks: %v", errors.Join(blockListErr, err))
-			ctx.HTTPError(http.StatusInternalServerError, "Error list chunks")
-			return
-		}
-		artifact.FileSize = chunks[len(chunks)-1].End + 1
-		artifact.FileCompressedSize = chunks[len(chunks)-1].End + 1
-
-		if req.Size != artifact.FileSize {
-			log.Error("Error merge chunks size mismatch")
-			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks size mismatch")
-			return
-		}
-
-		if err := mergeChunksForArtifact(ctx, chunks, r.fs, artifact, checksum); err != nil {
-			log.Error("Error merge chunks: %v", err)
-			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
-			return
-		}
+	// Return on finalize error
+	if ctx.Written() {
+		return
 	}
 
 	respData := FinalizeArtifactResponse{
@@ -570,6 +501,82 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 		ArtifactId: artifact.ID,
 	}
 	r.sendProtobufBody(ctx, &respData)
+}
+
+func (r *artifactV4Routes) finalizeDefaultArtifact(ctx *ArtifactContext, req *FinalizeArtifactRequest, artifact *actions_model.ActionArtifact, runID int64) {
+	blockList, blockListErr := r.readBlockList(runID, artifact.ID)
+	chunks, err := listOrderedChunksForArtifact(r.fs, runID, artifact.ID, blockList)
+	if err != nil {
+		log.Error("Error list chunks: %v", errors.Join(blockListErr, err))
+		ctx.HTTPError(http.StatusInternalServerError, "Error list chunks")
+		return
+	}
+	artifact.FileSize = chunks[len(chunks)-1].End + 1
+	artifact.FileCompressedSize = chunks[len(chunks)-1].End + 1
+
+	if req.Size != artifact.FileSize {
+		log.Error("Error merge chunks size mismatch")
+		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks size mismatch")
+		return
+	}
+
+	if err := mergeChunksForArtifact(ctx, chunks, r.fs, artifact, req.GetHash().GetValue()); err != nil {
+		log.Error("Error merge chunks: %v", err)
+		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
+		return
+	}
+}
+
+func (r *artifactV4Routes) finalizeAzureServeDirect(ctx *ArtifactContext, req *FinalizeArtifactRequest, artifact *actions_model.ActionArtifact) {
+	checksumValue, found := strings.CutPrefix(req.GetHash().GetValue(), "sha256:")
+	var actualLength int64
+	if found {
+		hashSha256 := sha256.New()
+		obj, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
+		if err != nil {
+			log.Error("Error read block: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "Error read block")
+			return
+		}
+		defer obj.Close()
+		actualLength, err = io.Copy(hashSha256, obj)
+		if err != nil {
+			log.Error("Error read block: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "Error read block")
+			return
+		}
+		rawChecksum := hashSha256.Sum(nil)
+		actualChecksum := hex.EncodeToString(rawChecksum)
+		if checksumValue != actualChecksum {
+			log.Error("Error merge chunks: checksum mismatch")
+			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks: checksum mismatch")
+			return
+		}
+	} else {
+		fi, err := storage.ActionsArtifacts.Stat(artifact.StoragePath)
+		if err != nil {
+			log.Error("Error stat block: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "Error stat block")
+			return
+		}
+		actualLength = fi.Size()
+	}
+
+	if req.Size != actualLength {
+		log.Error("Error merge chunks: length mismatch")
+		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks: length mismatch")
+		return
+	}
+
+	// Update artifact metadata and status now that the upload is confirmed.
+	artifact.FileSize = actualLength
+	artifact.FileCompressedSize = actualLength
+	artifact.Status = actions_model.ArtifactStatusUploadConfirmed
+	if err := actions_model.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+		log.Error("Error UpdateArtifactByID: %v", err)
+		ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
+		return
+	}
 }
 
 func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
