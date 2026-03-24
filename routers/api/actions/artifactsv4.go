@@ -303,7 +303,7 @@ func (r *artifactV4Routes) sendProtobufBody(ctx *ArtifactContext, req protorefle
 		ctx.HTTPError(http.StatusInternalServerError, "Error encode response body")
 		return
 	}
-	ctx.Resp.Header().Set("Content-Type", mime.FormatMediaType("application/json", map[string]string{"charset": "utf-8"}))
+	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	ctx.Resp.WriteHeader(http.StatusOK)
 	_, _ = ctx.Resp.Write(resp)
 }
