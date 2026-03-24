@@ -52,7 +52,7 @@ func parseManifest(data []byte) map[string]string {
 		ext := path.Ext(entry.File)
 		key := dir + "/" + entry.Name + ext
 		paths[key] = entry.File
-		// Map associated CSS files, e.g. "css/index-domready.css" -> "css/index-domready.B3zrQPqD.css"
+		// Map associated CSS files, e.g. "css/index.css" -> "css/index.B3zrQPqD.css"
 		for _, css := range entry.CSS {
 			cssKey := path.Dir(css) + "/" + entry.Name + path.Ext(css)
 			paths[cssKey] = css

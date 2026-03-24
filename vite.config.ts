@@ -64,24 +64,24 @@ function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
   };
 }
 
-// Build index.js as a blocking IIFE bundle to avoid pop-in effects
-function iifeIndexPlugin(): Plugin {
+// Build iife.js as a blocking IIFE bundle to avoid pop-in effects
+function iifePlugin(): Plugin {
   return {
-    name: 'iife-index',
+    name: 'iife',
     async closeBundle() {
       // Clean up old hashed files before rebuilding
-      for (const file of globSync('js/index.*.js*', {cwd: outDir})) unlinkSync(join(outDir, file));
+      for (const file of globSync('js/iife.*.js*', {cwd: outDir})) unlinkSync(join(outDir, file));
 
       const result = await build(commonViteOpts({
         build: {
           lib: {
-            entry: join(import.meta.dirname, 'web_src/js/index.ts'),
+            entry: join(import.meta.dirname, 'web_src/js/iife.ts'),
             formats: ['iife'],
             name: 'iife',
           },
           rolldownOptions: {
             output: {
-              entryFileNames: 'js/index.[hash:8].js',
+              entryFileNames: 'js/iife.[hash:8].js',
             },
           },
         },
@@ -94,14 +94,14 @@ function iifeIndexPlugin(): Plugin {
         ],
       }));
 
-      // Append IIFE index entry to the main Vite manifest
+      // Append IIFE entry to the main Vite manifest
       const manifestPath = join(outDir, '.vite', 'manifest.json');
       const buildOutput = (Array.isArray(result) ? result[0] : result) as Rolldown.RolldownOutput;
-      const entry = buildOutput.output.find((o) => o.fileName.startsWith('js/index.'));
-      if (!entry) throw new Error('IIFE index build produced no output');
+      const entry = buildOutput.output.find((o) => o.fileName.startsWith('js/iife.'));
+      if (!entry) throw new Error('IIFE build produced no output');
       writeFileSync(manifestPath, JSON.stringify({
         ...JSON.parse(readFileSync(manifestPath, 'utf8')),
-        'web_src/js/index.ts': {file: entry.fileName, name: 'index', isEntry: true},
+        'web_src/js/iife.ts': {file: entry.fileName, name: 'iife', isEntry: true},
       }, null, 2));
     },
   };
@@ -127,7 +127,7 @@ export default defineConfig(commonViteOpts({
     chunkSizeWarningLimit: Infinity,
     rolldownOptions: {
       input: {
-        'index-domready': join(import.meta.dirname, 'web_src/js/index-domready.ts'),
+        index: join(import.meta.dirname, 'web_src/js/index.ts'),
         swagger: join(import.meta.dirname, 'web_src/js/standalone/swagger.ts'),
         'external-render-iframe': join(import.meta.dirname, 'web_src/js/standalone/external-render-iframe.ts'),
         sharedworker: join(import.meta.dirname, 'web_src/js/features/sharedworker.ts'),
@@ -178,7 +178,7 @@ export default defineConfig(commonViteOpts({
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
   },
   plugins: [
-    iifeIndexPlugin(),
+    iifePlugin(),
     filterCssUrlPlugin(),
     stringPlugin(),
     vuePlugin({

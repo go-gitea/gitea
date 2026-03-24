@@ -1,0 +1,11 @@
+// bootstrap module must be the first one to be imported, it handles global errors
+import {initGlobalErrorHandler} from './bootstrap.ts';
+
+// many users expect to use jQuery in their custom scripts (https://docs.gitea.com/administration/customizing-gitea#example-plantuml)
+// so load globals (including jQuery) as early as possible
+import './globals.ts';
+
+import './webcomponents/index.ts';
+import './modules/user-settings.ts'; // templates also need to use localUserSettings in inline scripts
+
+initGlobalErrorHandler();
