@@ -22,6 +22,9 @@ insert_final_newline = false
 indent_style = space
 insert_final_newline = false
 
+[templates/swagger/v1_openapi3_json.tmpl]
+indent_style = space
+
 [templates/user/auth/oidc_wellknown.tmpl]
 indent_style = space
 
