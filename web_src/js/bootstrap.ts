@@ -72,9 +72,10 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
 
 function initGlobalErrorHandler() {
   if (window._globalHandlerErrors?._inited) {
-    // when using vite rolldown in this project, this module will be loaded twice:
-    // * first time in the "iife.ts"
-    // * then as ES module by "import {showGlobalErrorMessage} ..."
+    // A module should not be imported twice, otherwise there will be bugs when a module has its internal states.
+    // A real example is "generateElemId" in "utils/dom.ts", if it is imported twice in different module scopes,
+    // It will generate duplicate IDs (ps: don't try to use "random" to fix, it is just a real example to show the importance of "do not import a module twice")
+    showGlobalErrorMessage(`The global error handler has been initialized, do not initialize it again`);
     return;
   }
   if (!window.config) {
