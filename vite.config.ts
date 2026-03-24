@@ -43,6 +43,7 @@ const commonRolldownOptions: Rolldown.RolldownOptions = {
 function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
   const {rolldownOptions, ...otherBuild} = build || {};
   return {
+    base: './', // make all asset URLs relative, so it works in subdirectory deployments
     configFile: false,
     root: import.meta.dirname,
     publicDir: false,
@@ -120,7 +121,6 @@ function filterCssUrlPlugin(): Plugin {
 }
 
 export default defineConfig(commonViteOpts({
-  base: './', // make all asset URLs relative, so it works in subdirectory deployments
   build: {
     modulePreload: false,
     manifest: true,
