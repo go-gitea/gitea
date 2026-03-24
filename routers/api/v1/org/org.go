@@ -379,18 +379,13 @@ func Edit(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditOrgOption)
 
-	if form.Email != nil {
-		if *form.Email != "" {
-			if err := user_model.ValidateEmail(*form.Email); err != nil {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
-				return
-			}
-		}
-		ctx.Org.Organization.Email = *form.Email
-		if err := user_model.UpdateUserCols(ctx, ctx.Org.Organization.AsUser(), "email"); err != nil {
-			ctx.APIErrorInternal(err)
+	if err := org.UpdateOrgEmailAddress(ctx, ctx.Org.Organization, form.Email); err != nil {
+		if user_model.IsErrEmailCharIsNotSupported(err) || user_model.IsErrEmailInvalid(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return
 		}
+		ctx.APIErrorInternal(err)
+		return
 	}
 
 	opts := &user_service.UpdateOptions{

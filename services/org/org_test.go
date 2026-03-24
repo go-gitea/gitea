@@ -35,3 +35,27 @@ func TestDeleteOrganization(t *testing.T) {
 	assert.Error(t, DeleteOrganization(t.Context(), user, false))
 	unittest.CheckConsistencyFor(t, &user_model.User{}, &organization.Team{})
 }
+
+func TestUpdateOrgEmailAddress(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	originalEmail := org.Email
+
+	assert.NoError(t, UpdateOrgEmailAddress(t.Context(), org, nil))
+	unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3, Email: originalEmail})
+
+	newEmail := "contact@org3.example.com"
+	assert.NoError(t, UpdateOrgEmailAddress(t.Context(), org, &newEmail))
+	unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3, Email: newEmail})
+
+	invalidEmail := "invalid email"
+	err := UpdateOrgEmailAddress(t.Context(), org, &invalidEmail)
+	assert.Error(t, err)
+	assert.True(t, user_model.IsErrEmailInvalid(err) || user_model.IsErrEmailCharIsNotSupported(err))
+	unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3, Email: newEmail})
+
+	emptyEmail := ""
+	assert.NoError(t, UpdateOrgEmailAddress(t.Context(), org, &emptyEmail))
+	unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3, Email: ""})
+}
