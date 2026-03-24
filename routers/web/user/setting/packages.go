@@ -25,7 +25,6 @@ const (
 func Packages(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	shared.SetPackagesContext(ctx, ctx.Doer)
 
@@ -35,7 +34,6 @@ func Packages(ctx *context.Context) {
 func PackagesRuleAdd(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	shared.SetRuleAddContext(ctx)
 
@@ -45,7 +43,6 @@ func PackagesRuleAdd(ctx *context.Context) {
 func PackagesRuleEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	shared.SetRuleEditContext(ctx, ctx.Doer)
 
@@ -55,7 +52,6 @@ func PackagesRuleEdit(ctx *context.Context) {
 func PackagesRuleAddPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsPackages"] = true
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	shared.PerformRuleAddPost(
 		ctx,
@@ -68,7 +64,6 @@ func PackagesRuleAddPost(ctx *context.Context) {
 func PackagesRuleEditPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	shared.PerformRuleEditPost(
 		ctx,
@@ -81,7 +76,6 @@ func PackagesRuleEditPost(ctx *context.Context) {
 func PackagesRulePreview(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsSettingsPackages"] = true
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	shared.SetRulePreviewContext(ctx, ctx.Doer)
 
