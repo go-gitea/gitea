@@ -128,6 +128,7 @@ type ViewResponse struct {
 
 	State struct {
 		Run struct {
+			RepoID            int64         `json:"repo_id"`
 			Link              string        `json:"link"`
 			Title             string        `json:"title"`
 			TitleHTML         template.HTML `json:"titleHTML"`
@@ -251,6 +252,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		return
 	}
 
+	resp.State.Run.RepoID = ctx.Repo.Repository.ID
 	// the title for the "run" is from the commit message
 	resp.State.Run.Title = run.Title
 	resp.State.Run.TitleHTML = templates.NewRenderUtils(ctx).RenderCommitMessage(run.Title, ctx.Repo.Repository)

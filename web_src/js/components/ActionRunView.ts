@@ -63,6 +63,7 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
 
 export function createEmptyActionsRun(): ActionsRun {
   return {
+    repoId: 0,
     link: '',
     title: '',
     titleHTML: '',

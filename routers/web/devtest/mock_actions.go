@@ -68,6 +68,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	runID := ctx.PathParamInt64("run")
 
 	resp := &actions.ViewResponse{}
+	resp.State.Run.RepoID = 12345
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
 	resp.State.Run.Link = setting.AppSubURL + "/devtest/repo-action-view/runs/" + strconv.FormatInt(runID, 10)
 	resp.State.Run.Status = actions_model.StatusRunning.String()

@@ -43,6 +43,7 @@ onBeforeUnmount(() => {
     </div>
     <WorkflowGraph
       v-if="run.jobs.length > 0"
+      :store="store"
       :jobs="run.jobs"
       :run-link="run.link"
       :workflow-id="run.workflowID"

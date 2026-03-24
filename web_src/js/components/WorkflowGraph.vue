@@ -5,6 +5,7 @@ import ActionRunStatus from './ActionRunStatus.vue';
 import {localUserSettings} from "../modules/user-settings.ts";
 import {debounce} from "throttle-debounce";
 import type {ActionsJob, ActionsRunStatus} from '../modules/gitea-actions.ts';
+import type {ActionRunViewStore} from './ActionRunView.ts';
 
 interface JobNode {
   id: number;
@@ -37,6 +38,7 @@ interface StoredState {
 }
 
 const props = defineProps<{
+  store: ActionRunViewStore;
   jobs: ActionsJob[];
   runLink: string;
   workflowId: string;
@@ -54,9 +56,13 @@ const lastMousePos = ref({ x: 0, y: 0 });
 const graphContainer = ref<HTMLElement | null>(null);
 const hoveredJobId = ref<number | null>(null);
 
+const stateKey = () => {
+  return `${props.store.viewData.currentRun.repoId}-${props.workflowId}`;
+}
+
 const loadSavedState = () => {
   const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKeyStates, {});
-  const saved = allStates[props.workflowId];
+  const saved = allStates[stateKey()];
   if (!saved) return;
   scale.value = saved.scale ?? scale.value;
   translateX.value = saved.translateX ?? translateX.value;
@@ -64,10 +70,8 @@ const loadSavedState = () => {
 }
 
 const saveState = () => {
-  // TODO: different repos might have the same workflowId, but at the moment, we don't have repo id
-  // If overwritten occurs, acceptable, not too bad
   const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKeyStates, {});
-  allStates[props.workflowId] = {
+  allStates[stateKey()] = {
     scale: scale.value,
     translateX: translateX.value,
     translateY: translateY.value,
