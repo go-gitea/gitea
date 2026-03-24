@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
@@ -85,7 +86,7 @@ func prepareServeDirectOptions(optsOptional *ServeDirectOptions, name string) (r
 		// When using ServeDirect, the URL is from the object storage's web server,
 		// it is not the same origin as Gitea server, so it should be safe enough to use "inline" to render the content directly.
 		// If a browser doesn't support the content type to be displayed inline, browser will download with the filename.
-		ret.ContentDisposition = public.EncodeContentDisposition(public.ContentDispositionInline, name)
+		ret.ContentDisposition = httplib.EncodeContentDisposition(httplib.ContentDispositionInline, name)
 	}
 	return ret
 }

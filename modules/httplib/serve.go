@@ -18,7 +18,6 @@ import (
 	charsetModule "code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -30,7 +29,7 @@ type ServeHeaderOptions struct {
 	ContentType        string // defaults to "application/octet-stream"
 	ContentTypeCharset string
 	ContentLength      *int64
-	Disposition        public.ContentDispositionType // defaults to "attachment"
+	Disposition        ContentDispositionType // defaults to "attachment"
 	Filename           string
 	CacheIsPublic      bool
 	CacheDuration      time.Duration // defaults to 5 minutes
@@ -64,10 +63,10 @@ func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 	if opts.Filename != "" {
 		disposition := opts.Disposition
 		if disposition == "" {
-			disposition = public.ContentDispositionAttachment
+			disposition = ContentDispositionAttachment
 		}
 
-		header.Set("Content-Disposition", public.EncodeContentDisposition(disposition, opts.Filename))
+		header.Set("Content-Disposition", EncodeContentDisposition(disposition, opts.Filename))
 		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 
@@ -123,9 +122,9 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, mineBuf []byt
 	}
 
 	// TODO: UNIFY-CONTENT-DISPOSITION-FROM-STORAGE
-	opts.Disposition = public.ContentDispositionInline
+	opts.Disposition = ContentDispositionInline
 	if sniffedType.IsSvgImage() && !setting.UI.SVG.Enabled {
-		opts.Disposition = public.ContentDispositionAttachment
+		opts.Disposition = ContentDispositionAttachment
 	}
 
 	ServeSetHeaders(w, opts)

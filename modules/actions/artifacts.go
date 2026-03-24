@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/services/context"
@@ -25,7 +25,7 @@ func IsArtifactV4(art *actions_model.ActionArtifact) bool {
 
 func GetArtifactContentTypeAndDisposition(artifact *actions_model.ActionArtifact) (contentType, contentDisposition string, _ error) {
 	contentType = mime.FormatMediaType(artifact.ContentEncoding, nil)
-	contentDisposition = public.EncodeContentDisposition(public.ContentDispositionInline, artifact.ArtifactPath)
+	contentDisposition = httplib.EncodeContentDisposition(httplib.ContentDispositionInline, artifact.ArtifactPath)
 	if contentType == "" || contentDisposition == "" {
 		setting.PanicInDevOrTesting("cannot generate mime headers")
 		return "", "", errors.New("cannot generate mime headers")

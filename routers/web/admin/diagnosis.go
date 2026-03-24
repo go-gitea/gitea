@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/tailmsg"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
@@ -21,7 +20,7 @@ func MonitorDiagnosis(ctx *context.Context) {
 
 	httplib.ServeSetHeaders(ctx.Resp, &httplib.ServeHeaderOptions{
 		ContentType: "application/zip",
-		Disposition: public.ContentDispositionAttachment,
+		Disposition: httplib.ContentDispositionAttachment,
 		Filename:    fmt.Sprintf("gitea-diagnosis-%s.zip", time.Now().Format("20060102-150405")),
 	})
 
