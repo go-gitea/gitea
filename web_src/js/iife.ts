@@ -1,3 +1,5 @@
+// This file is the entry point for the code which should block the page rendering, it is compiled by our "iife" vite plugin
+
 // bootstrap module must be the first one to be imported, it handles global errors
 import './bootstrap.ts';
 

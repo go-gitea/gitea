@@ -72,7 +72,9 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
 
 function initGlobalErrorHandler() {
   if (window._globalHandlerErrors?._inited) {
-    showGlobalErrorMessage(`The global error handler has been initialized, do not initialize it again`);
+    // when using vite rolldown in this project, this module will be loaded twice:
+    // * first time in the "iife.ts"
+    // * then as ES module by "import {showGlobalErrorMessage} ..."
     return;
   }
   if (!window.config) {
