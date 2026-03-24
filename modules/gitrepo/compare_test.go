@@ -48,7 +48,6 @@ func TestGetCommitIDsBetweenReversed(t *testing.T) {
 	commitIDs, err := GetCommitIDsBetweenReversed(t.Context(), repo,
 		"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
 		"ce064814f4a0d337b333e646ece456cd39fab612",
-		"",
 	)
 
 	assert.NoError(t, err)
@@ -60,23 +59,10 @@ func TestGetCommitIDsBetweenReversed(t *testing.T) {
 		"ce064814f4a0d337b333e646ece456cd39fab612",
 	}, commitIDs)
 
-	// tests with notref
-	notRef := "37991dec2c8e592043f47155ce4808d4580f9123"
-	commitIDs, err = GetCommitIDsBetweenReversed(t.Context(), repo,
-		"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
-		"ce064814f4a0d337b333e646ece456cd39fab612",
-		notRef,
-	)
-
-	assert.NoError(t, err)
-	// Ensure that the commit specified by notRef is not present in the result.
-	assert.NotContains(t, commitIDs, notRef)
-
 	// Call GetCommitIDsBetween using branch names instead of raw commit IDs.
 	commitIDs, err = GetCommitIDsBetweenReversed(t.Context(), repo,
 		"test",
 		"master",
-		"",
 	)
 
 	assert.NoError(t, err)

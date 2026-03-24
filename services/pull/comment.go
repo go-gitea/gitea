@@ -5,10 +5,12 @@ package pull
 
 import (
 	"context"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -28,6 +30,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 	}
 
 	var data issues_model.PushActionContent
+	commitIDMaps := make(container.Set[string])
 	if isForcePush {
 		// if it's a force push, we need to get the whole pull request commits
 		mergeBase, err := gitrepo.MergeBase(ctx, pr.BaseRepo, pr.BaseBranch, newCommitID)
@@ -35,17 +38,19 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 			// For force-push events, failures resolving the base ref/head commit or computing the merge-base should not prevent deleting stale push comments or creating the force-push timeline entry.
 			log.Error("MergeBase %q and %q failed: %v", pr.BaseBranch, newCommitID, err)
 		} else {
-			notRef := ""
-			data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReversed(ctx, pr.BaseRepo, mergeBase, newCommitID, notRef)
+			data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReversed(ctx, pr.BaseRepo, mergeBase, newCommitID)
 			if err != nil {
 				// For force-push events, failures resolving the base ref/head commit or computing
 				// the merge-base should not prevent deleting stale push comments or creating the
 				// force-push timeline entry.
-				log.Error("GetCommitIDsBetweenReversed %q..%q (not %q) failed: %v", mergeBase, newCommitID, notRef, err)
+				log.Error("GetCommitIDsBetween %q..%q failed: %v", mergeBase, newCommitID, err)
+			}
+			for _, commitID := range data.CommitIDs {
+				commitIDMaps.Add(commitID)
 			}
 		}
 	} else {
-		data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReversed(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
+		data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReversed(ctx, pr.BaseRepo, oldCommitID, newCommitID)
 		if err != nil {
 			return nil, err
 		}
@@ -76,7 +81,31 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 					continue
 				}
 				if !a.IsForcePush {
-					needDeleteCommentIDs = append(needDeleteCommentIDs, oldCommitComment.ID)
+					a.CommitIDs = slices.DeleteFunc(a.CommitIDs, func(commitID string) bool {
+						return !commitIDMaps.Contains(commitID)
+					})
+					if len(a.CommitIDs) == 0 {
+						needDeleteCommentIDs = append(needDeleteCommentIDs, oldCommitComment.ID)
+					} else {
+						for _, commitID := range a.CommitIDs {
+							data.CommitIDs = slices.DeleteFunc(data.CommitIDs, func(id string) bool {
+								return id == commitID
+							})
+						}
+						dataJSON, err := json.Marshal(a)
+						if err != nil {
+							log.Error("Marshal PushActionContent failed: %v", err)
+							continue
+						}
+						if _, err := db.GetEngine(ctx).
+							ID(oldCommitComment.ID).
+							Cols("content").
+							NoAutoTime().
+							Update(&issues_model.Comment{Content: string(dataJSON)}); err != nil {
+							log.Error("Update Comment content failed: %v", err)
+							continue
+						}
+					}
 				}
 			}
 			if len(needDeleteCommentIDs) > 0 {
