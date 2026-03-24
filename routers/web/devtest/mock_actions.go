@@ -150,16 +150,17 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Duration: "2m",
 		Needs:    []string{"job-100"},
 	})
-	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
-		ID:       runID*10 + 4,
-		JobID:    "job-104",
-		Name:     "job 104",
-		Status:   actions_model.StatusSuccess.String(),
-		CanRerun: false,
-		Duration: "2m",
-		Needs:    []string{"job-103", "job-101", "job-100"},
-	})
-
+	for i := range 10 {
+		resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
+			ID:       runID*1000 + int64(i),
+			JobID:    "job-dup-test-" + strconv.Itoa(i),
+			Name:     "job dup test " + strconv.Itoa(i),
+			Status:   actions_model.StatusSuccess.String(),
+			CanRerun: false,
+			Duration: "2m",
+			Needs:    []string{"job-103", "job-101", "job-100"},
+		})
+	}
 	fillViewRunResponseCurrentJob(ctx, resp)
 	ctx.JSON(http.StatusOK, resp)
 }
