@@ -581,9 +581,9 @@ overflow-menu .overflow-menu-popup::after {
 overflow-menu .overflow-menu-popup > .item {
   display: flex;
   align-items: center;
-  padding: 9px 18px;
-  color: inherit;
-  background: inherit;
+  padding: 9px 18px !important;
+  color: var(--color-text) !important;
+  background: transparent !important;
   text-decoration: none;
   gap: 10px;
   width: 100%;
@@ -591,11 +591,11 @@ overflow-menu .overflow-menu-popup > .item {
 
 overflow-menu .overflow-menu-popup > .item:hover,
 overflow-menu .overflow-menu-popup > .item:focus {
-  background: var(--color-hover);
+  background: var(--color-hover) !important;
 }
 
 overflow-menu .overflow-menu-popup > .item.active {
-  background: var(--color-active);
+  background: var(--color-active) !important;
 }
 
 overflow-menu .overflow-menu-items {

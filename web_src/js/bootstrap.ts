@@ -1,8 +1,7 @@
 // DO NOT IMPORT window.config HERE!
 // to make sure the error handler always works, we should never import `window.config`, because
 // some user's custom template breaks it.
-import type {Intent} from './types.ts';
-import {html} from './utils/html.ts';
+import {showGlobalErrorMessage} from './modules/message.ts';
 
 // This file must be imported before any lazy-loading is being attempted.
 
@@ -17,27 +16,6 @@ export function shouldIgnoreError(err: Error) {
     if (pattern.test(err.stack ?? '')) return true;
   }
   return false;
-}
-
-export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error') {
-  const msgContainer = document.querySelector('.page-content') ?? document.body;
-  if (!msgContainer) {
-    alert(`${msgType}: ${msg}`);
-    return;
-  }
-  const msgCompact = msg.replace(/\W/g, '').trim(); // compact the message to a data attribute to avoid too many duplicated messages
-  let msgDiv = msgContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
-  if (!msgDiv) {
-    const el = document.createElement('div');
-    el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><div class="ui ${msgType} message tw-text-center tw-whitespace-pre-line"></div></div>`;
-    msgDiv = el.childNodes[0] as HTMLDivElement;
-  }
-  // merge duplicated messages into "the message (count)" format
-  const msgCount = Number(msgDiv.getAttribute(`data-global-error-msg-count`)) + 1;
-  msgDiv.setAttribute(`data-global-error-msg-compact`, msgCompact);
-  msgDiv.setAttribute(`data-global-error-msg-count`, msgCount.toString());
-  msgDiv.querySelector('.ui.message')!.textContent = msg + (msgCount > 1 ? ` (${msgCount})` : '');
-  msgContainer.prepend(msgDiv);
 }
 
 function processWindowErrorEvent({error, reason, message, type, filename, lineno, colno}: ErrorEvent & PromiseRejectionEvent) {
@@ -75,7 +53,6 @@ function initGlobalErrorHandler() {
     // A module should not be imported twice, otherwise there will be bugs when a module has its internal states.
     // A real example is "generateElemId" in "utils/dom.ts", if it is imported twice in different module scopes,
     // It will generate duplicate IDs (ps: don't try to use "random" to fix, it is just a real example to show the importance of "do not import a module twice")
-    showGlobalErrorMessage(`The global error handler has been initialized, do not initialize it again`);
     return;
   }
   if (!window.config) {
