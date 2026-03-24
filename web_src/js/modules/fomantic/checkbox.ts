@@ -8,10 +8,6 @@ export function initAriaCheckboxPatch() {
     const input = el.querySelector('input');
     if (!label || !input) continue;
     linkLabelAndInput(label, input);
-    // prevent accidental text selection on double-click
-    label.addEventListener('mousedown', (e: MouseEvent) => {
-      if (e.detail === 2) e.preventDefault();
-    });
     el.setAttribute('data-checkbox-patched', 'true');
   }
 }
