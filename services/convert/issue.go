@@ -95,6 +95,13 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		apiIssue.Milestone = ToAPIMilestone(issue.Milestone)
 	}
 
+	if err := issue.LoadProject(ctx); err != nil {
+		return &api.Issue{}
+	}
+	if issue.Project != nil {
+		apiIssue.Project = ToAPIProject(issue, issue.Project)
+	}
+
 	if err := issue.LoadAssignees(ctx); err != nil {
 		return &api.Issue{}
 	}

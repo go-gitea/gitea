@@ -14,18 +14,35 @@ import (
 
 // LoadProject load the project the issue was assigned to
 func (issue *Issue) LoadProject(ctx context.Context) (err error) {
-	if issue.Project == nil {
-		var p project_model.Project
-		has, err := db.GetEngine(ctx).Table("project").
-			Join("INNER", "project_issue", "project.id=project_issue.project_id").
-			Where("project_issue.issue_id = ?", issue.ID).Get(&p)
-		if err != nil {
-			return err
-		} else if has {
-			issue.Project = &p
-		}
+	if issue.isProjectLoaded {
+		return nil
 	}
-	return err
+
+	type projectWithColumn struct {
+		project_model.Project `xorm:"extends"`
+		ProjectColumnID       int64  `xorm:"'project_board_id'"`
+		ColumnTitle           string `xorm:"'column_title'"`
+	}
+
+	var result projectWithColumn
+	has, err := db.GetEngine(ctx).
+		Table("project").
+		Select("project.*, project_issue.project_board_id, project_board.title AS column_title").
+		Join("INNER", "project_issue", "project.id = project_issue.project_id").
+		Join("LEFT", "project_board", "project_board.id = project_issue.project_board_id").
+		Where("project_issue.issue_id = ?", issue.ID).
+		Get(&result)
+	if err != nil {
+		return err
+	}
+	if has {
+		p := result.Project
+		issue.Project = &p
+		issue.ProjectBoardID = result.ProjectColumnID
+		issue.ProjectBoardTitle = result.ColumnTitle
+	}
+	issue.isProjectLoaded = true
+	return nil
 }
 
 func (issue *Issue) projectID(ctx context.Context) int64 {

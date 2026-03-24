@@ -500,3 +500,51 @@ func testAPIIssueContentVersion(t *testing.T) {
 		MakeRequest(t, req, http.StatusCreated)
 	})
 }
+
+func TestAPIIssueProjectMeta(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	token := getTokenForLoggedInUser(t, loginUser(t, owner.Name), auth_model.AccessTokenScopeReadIssue)
+
+	t.Run("IssueWithProject", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/1", owner.Name, repo.Name)).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+
+		assert.NotNil(t, apiIssue.Project)
+		assert.Equal(t, int64(1), apiIssue.Project.ID)
+		assert.Equal(t, "First project", apiIssue.Project.Title)
+		assert.Equal(t, int64(1), apiIssue.Project.ColumnID)
+		assert.Equal(t, "To Do", apiIssue.Project.Column)
+	})
+
+	t.Run("IssueWithProjectNoColumn", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/2", owner.Name, repo.Name)).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+
+		assert.NotNil(t, apiIssue.Project)
+		assert.Equal(t, int64(1), apiIssue.Project.ID)
+		assert.Equal(t, int64(0), apiIssue.Project.ColumnID)
+		assert.Empty(t, apiIssue.Project.Column)
+	})
+
+	t.Run("IssueWithoutProject", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/4", owner.Name, repo.Name)).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+
+		assert.Nil(t, apiIssue.Project)
+	})
+}

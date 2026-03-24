@@ -26381,6 +26381,9 @@
           "format": "int64",
           "x-go-name": "PinOrder"
         },
+        "project": {
+          "$ref": "#/definitions/ProjectMeta"
+        },
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
         },
@@ -27723,6 +27726,53 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ProjectMeta": {
+      "description": "ProjectMeta represents a project board summary embedded in issue/PR responses",
+      "type": "object",
+      "properties": {
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
+        },
+        "column": {
+          "type": "string",
+          "x-go-name": "Column"
+        },
+        "column_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ColumnID"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "state": {
+          "$ref": "#/definitions/StateType"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "PublicKey": {
       "description": "PublicKey publickey is a user key to push code to repository",
       "type": "object",
@@ -27937,6 +27987,9 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "PinOrder"
+        },
+        "project": {
+          "$ref": "#/definitions/ProjectMeta"
         },
         "requested_reviewers": {
           "description": "The users requested to review the pull request",

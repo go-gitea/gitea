@@ -185,13 +185,22 @@ func (issues IssueList) LoadMilestones(ctx context.Context) error {
 
 func (issues IssueList) LoadProjects(ctx context.Context) error {
 	issueIDs := issues.getIssueIDs()
-	projectMaps := make(map[int64]*project_model.Project, len(issues))
 	left := len(issueIDs)
 
 	type projectWithIssueID struct {
-		*project_model.Project `xorm:"extends"`
-		IssueID                int64
+		project_model.Project `xorm:"extends"`
+		IssueID               int64
+		ProjectColumnID       int64  `xorm:"'project_board_id'"`
+		ColumnTitle           string `xorm:"'column_title'"`
 	}
+
+	type issueProjectInfo struct {
+		project     *project_model.Project
+		columnID    int64
+		columnTitle string
+	}
+
+	infoMap := make(map[int64]*issueProjectInfo, len(issues))
 
 	for left > 0 {
 		limit := min(left, db.DefaultMaxInSize)
@@ -199,22 +208,33 @@ func (issues IssueList) LoadProjects(ctx context.Context) error {
 		projects := make([]*projectWithIssueID, 0, limit)
 		err := db.GetEngine(ctx).
 			Table("project").
-			Select("project.*, project_issue.issue_id").
+			Select("project.*, project_issue.issue_id, project_issue.project_board_id, project_board.title AS column_title").
 			Join("INNER", "project_issue", "project.id = project_issue.project_id").
+			Join("LEFT", "project_board", "project_board.id = project_issue.project_board_id").
 			In("project_issue.issue_id", issueIDs[:limit]).
 			Find(&projects)
 		if err != nil {
 			return err
 		}
-		for _, project := range projects {
-			projectMaps[project.IssueID] = project.Project
+		for _, row := range projects {
+			p := row.Project
+			infoMap[row.IssueID] = &issueProjectInfo{
+				project:     &p,
+				columnID:    row.ProjectColumnID,
+				columnTitle: row.ColumnTitle,
+			}
 		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
 
 	for _, issue := range issues {
-		issue.Project = projectMaps[issue.ID]
+		if info, ok := infoMap[issue.ID]; ok {
+			issue.Project = info.project
+			issue.ProjectBoardID = info.columnID
+			issue.ProjectBoardTitle = info.columnTitle
+		}
+		issue.isProjectLoaded = true
 	}
 	return nil
 }
