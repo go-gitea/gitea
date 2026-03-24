@@ -7,7 +7,7 @@ export function initRepositorySearch() {
 
     const params = new URLSearchParams();
     for (const [key, value] of new FormData(repositorySearchForm).entries()) {
-      params.set(key, value.toString());
+      params.set(key, value as string);
     }
     if ((e.target as HTMLInputElement).name === 'clear-filter') {
       params.delete('archived');
