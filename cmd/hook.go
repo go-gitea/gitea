@@ -276,6 +276,9 @@ Gitea or set your environment appropriately.`, "")
 			lastline = 0
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		return fail(ctx, "Hook failed: stdin read error", "scanner error: %v", err)
+	}
 
 	if count > 0 {
 		hookOptions.OldCommitIDs = oldCommitIDs[:count]
@@ -414,6 +417,11 @@ Gitea or set your environment appropriately.`, "")
 			results = append(results, resp.Results...)
 			count = 0
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		_ = dWriter.Close()
+		hookPrintResults(results)
+		return fail(ctx, "Hook failed: stdin read error", "scanner error: %v", err)
 	}
 
 	if count == 0 {
