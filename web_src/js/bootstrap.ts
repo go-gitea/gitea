@@ -70,7 +70,7 @@ function processWindowErrorEvent({error, reason, message, type, filename, lineno
   showGlobalErrorMessage(`JavaScript ${renderedType}: ${msg}${dot} Open browser console to see more details.`);
 }
 
-export function initGlobalErrorHandler() {
+function initGlobalErrorHandler() {
   if (window._globalHandlerErrors?._inited) {
     showGlobalErrorMessage(`The global error handler has been initialized, do not initialize it again`);
     return;
@@ -88,3 +88,5 @@ export function initGlobalErrorHandler() {
   // events directly
   window._globalHandlerErrors = {_inited: true, push: (e: ErrorEvent & PromiseRejectionEvent) => processWindowErrorEvent(e)} as any;
 }
+
+initGlobalErrorHandler();
