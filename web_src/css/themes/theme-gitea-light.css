@@ -205,8 +205,7 @@ gitea-theme-meta-info {
   --color-input-text: var(--color-text-dark);
   --color-input-background: #fff;
   --color-input-toggle-background: #d0d7de;
-  --color-input-border: var(--color-secondary);
-  --color-input-border-hover: var(--color-secondary-dark-1);
+  --color-input-border: var(--color-secondary-dark-1);
   --color-light: #00001706;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000171d;
