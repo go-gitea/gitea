@@ -52,11 +52,12 @@ class WsSource {
 
   scheduleReconnect() {
     if (this.clients.length === 0 || this.reconnectTimer !== null) return;
-    this.reconnectDelay = Math.min(this.reconnectDelay * 2, RECONNECT_DELAY_MAX);
+    const delay = this.reconnectDelay;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.connect();
-    }, this.reconnectDelay);
+    }, delay);
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, RECONNECT_DELAY_MAX);
   }
 
   register(port: MessagePort) {
@@ -87,8 +88,8 @@ class WsSource {
   }
 }
 
-const sourcesByUrl = new Map<string, WsSource | null>();
-const sourcesByPort = new Map<MessagePort, WsSource | null>();
+const sourcesByUrl = new Map<string, WsSource>();
+const sourcesByPort = new Map<MessagePort, WsSource>();
 
 (self as unknown as SharedWorkerGlobalScope).addEventListener('connect', (e: MessageEvent) => {
   for (const port of e.ports) {
@@ -106,7 +107,7 @@ const sourcesByPort = new Map<MessagePort, WsSource | null>();
           const count = source.deregister(port);
           if (count === 0) {
             source.close();
-            sourcesByUrl.set(source.url, null);
+            sourcesByUrl.delete(source.url);
           }
         }
         source = new WsSource(url);
@@ -119,8 +120,8 @@ const sourcesByPort = new Map<MessagePort, WsSource | null>();
         const count = source.deregister(port);
         if (count === 0) {
           source.close();
-          sourcesByUrl.set(source.url, null);
-          sourcesByPort.set(port, null);
+          sourcesByUrl.delete(source.url);
+          sourcesByPort.delete(port);
         }
       } else if (event.data.type === 'status') {
         const source = sourcesByPort.get(port);

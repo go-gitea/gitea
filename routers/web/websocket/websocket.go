@@ -4,8 +4,6 @@
 package websocket
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/pubsub"
@@ -14,12 +12,8 @@ import (
 )
 
 // Serve handles WebSocket upgrade and event delivery for the signed-in user.
+// Authentication is enforced by the reqSignIn middleware in the router.
 func Serve(ctx *context.Context) {
-	if !ctx.IsSigned {
-		ctx.Status(401)
-		return
-	}
-
 	conn, err := gitea_ws.Accept(ctx.Resp, ctx.Req, &gitea_ws.AcceptOptions{
 		InsecureSkipVerify: false,
 	})
@@ -29,8 +23,7 @@ func Serve(ctx *context.Context) {
 	}
 	defer conn.CloseNow() //nolint:errcheck // CloseNow is best-effort; error is intentionally ignored
 
-	topic := fmt.Sprintf("user-%d", ctx.Doer.ID)
-	ch, cancel := pubsub.DefaultBroker.Subscribe(topic)
+	ch, cancel := pubsub.DefaultBroker.Subscribe(pubsub.UserTopic(ctx.Doer.ID))
 	defer cancel()
 
 	wsCtx := ctx.Req.Context()
