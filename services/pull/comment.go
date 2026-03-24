@@ -63,7 +63,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 
 	return db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
 		if isForcePush {
-			// We should delete all old non-force-push commit comments
+			// All old non-force-push commit comments will be deleted if they are not in the new commit list.
 			var oldCommitComments []*issues_model.Comment
 			if err := db.GetEngine(ctx).
 				Table("comment").
