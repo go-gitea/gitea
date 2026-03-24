@@ -34,7 +34,7 @@ class WsSource {
         const msg = JSON.parse(event.data);
         this.broadcast(msg);
       } catch {
-        // ignore malformed JSON
+        console.warn('websocket.sharedworker: received non-JSON message', event.data);
       }
     });
 
