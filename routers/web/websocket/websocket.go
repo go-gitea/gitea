@@ -1,9 +1,11 @@
-// Copyright 2024 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package websocket
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/pubsub"
@@ -12,8 +14,11 @@ import (
 )
 
 // Serve handles WebSocket upgrade and event delivery for the signed-in user.
-// Authentication is enforced by the reqSignIn middleware in the router.
 func Serve(ctx *context.Context) {
+	if !ctx.IsSigned {
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
 	conn, err := gitea_ws.Accept(ctx.Resp, ctx.Req, &gitea_ws.AcceptOptions{
 		InsecureSkipVerify: false,
 	})
