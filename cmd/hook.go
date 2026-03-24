@@ -194,7 +194,7 @@ Gitea or set your environment appropriately.`, "")
 	userID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
 	deployKeyID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvDeployKeyID), 10, 64)
-	actionPerm, _ := strconv.Atoi(os.Getenv(repo_module.EnvActionPerm))
+	actionsTaskID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvActionsTaskID), 10, 64)
 
 	hookOptions := private.HookOptions{
 		UserID:                          userID,
@@ -204,7 +204,7 @@ Gitea or set your environment appropriately.`, "")
 		GitPushOptions:                  pushOptions(),
 		PullRequestID:                   prID,
 		DeployKeyID:                     deployKeyID,
-		ActionPerm:                      actionPerm,
+		ActionsTaskID:                   actionsTaskID,
 		IsWiki:                          isWiki,
 	}
 
@@ -275,6 +275,9 @@ Gitea or set your environment appropriately.`, "")
 			fmt.Fprintf(out, "\n")
 			lastline = 0
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		return fail(ctx, "Hook failed: stdin read error", "scanner error: %v", err)
 	}
 
 	if count > 0 {
@@ -414,6 +417,11 @@ Gitea or set your environment appropriately.`, "")
 			results = append(results, resp.Results...)
 			count = 0
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		_ = dWriter.Close()
+		hookPrintResults(results)
+		return fail(ctx, "Hook failed: stdin read error", "scanner error: %v", err)
 	}
 
 	if count == 0 {

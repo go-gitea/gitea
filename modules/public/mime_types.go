@@ -3,9 +3,11 @@
 
 package public
 
-import "strings"
+import (
+	"strings"
+)
 
-// wellKnownMimeTypesLower comes from Golang's builtin mime package: `builtinTypesLower`, see the comment of detectWellKnownMimeType
+// wellKnownMimeTypesLower comes from Golang's builtin mime package: `builtinTypesLower`, see the comment of DetectWellKnownMimeType
 var wellKnownMimeTypesLower = map[string]string{
 	".avif": "image/avif",
 	".css":  "text/css; charset=utf-8",
@@ -28,13 +30,13 @@ var wellKnownMimeTypesLower = map[string]string{
 	".txt": "text/plain; charset=utf-8",
 }
 
-// detectWellKnownMimeType will return the mime-type for a well-known file ext name
+// DetectWellKnownMimeType will return the mime-type for a well-known file ext name
 // The purpose of this function is to bypass the unstable behavior of Golang's mime.TypeByExtension
 // mime.TypeByExtension would use OS's mime-type config to overwrite the well-known types (see its document).
 // If the user's OS has incorrect mime-type config, it would make Gitea can not respond a correct Content-Type to browsers.
 // For example, if Gitea returns `text/plain` for a `.js` file, the browser couldn't run the JS due to security reasons.
-// detectWellKnownMimeType makes the Content-Type for well-known files stable.
-func detectWellKnownMimeType(ext string) string {
+// DetectWellKnownMimeType makes the Content-Type for well-known files stable.
+func DetectWellKnownMimeType(ext string) string {
 	ext = strings.ToLower(ext)
 	return wellKnownMimeTypesLower[ext]
 }

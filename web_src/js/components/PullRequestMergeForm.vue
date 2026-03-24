@@ -5,7 +5,7 @@ import {toggleElem} from '../utils/dom.ts';
 
 const {pageData} = window.config;
 
-const mergeForm = pageData.pullRequestMergeForm;
+const mergeForm = pageData.pullRequestMergeForm!;
 
 const mergeTitleFieldValue = shallowRef('');
 const mergeMessageFieldValue = shallowRef('');
