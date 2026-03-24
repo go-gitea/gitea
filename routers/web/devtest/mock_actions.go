@@ -135,7 +135,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID*10 + 2,
 		JobID:    "job-102",
-		Name:     "ULTRA LOONG job name 102 that exceeds the limit",
+		Name:     "ULTRA LOOOOOOOOOOOONG job name 102 that exceeds the limit",
 		Status:   actions_model.StatusFailure.String(),
 		CanRerun: false,
 		Duration: "3h",

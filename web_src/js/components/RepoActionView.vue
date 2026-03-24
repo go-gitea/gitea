@@ -236,7 +236,7 @@ async function deleteArtifact(name: string) {
 
 .left-list-header {
   font-size: 12px;
-  color: var(--color-grey);
+  color: var(--color-grey-light);
 }
 
 .job-artifacts-item {
@@ -299,7 +299,6 @@ async function deleteArtifact(name: string) {
 
 .job-brief-item .job-brief-item-left .job-brief-name {
   display: block;
-  width: 70%;
 }
 
 .job-brief-item .job-brief-item-right {
