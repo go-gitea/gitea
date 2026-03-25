@@ -5,12 +5,12 @@ export function pathEscapeSegments(s: string): string {
 }
 
 // Match HTML tags (to skip) or URLs (to linkify) in ANSI-rendered HTML output
-const urlLinkifyPattern = /(<[^>]*>)|(https?:\/\/[a-z0-9]+(?:-[a-z0-9]+)*\.[^\s<>"'`|(){}[\]]{2,})/gi;
+const urlLinkifyPattern = /(<[^>]*>)|(https?:\/\/[^\s<>"'`|(){}[\]]+)/gi;
 const trailingPunctPattern = /[.,;:!?]+$/;
 
 // Convert URLs to clickable links in HTML, preserving existing HTML tags
 export function linkifyURLs(content: string): string {
-  if (!content.includes('http')) return content;
+  if (!/https?:\/\//i.test(content)) return content;
   return content.replace(urlLinkifyPattern, (_match, tag, url) => {
     if (tag) return tag;
     const trailingPunct = url.match(trailingPunctPattern);

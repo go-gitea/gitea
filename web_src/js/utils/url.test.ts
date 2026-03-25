@@ -18,6 +18,7 @@ test('linkifyURLs', () => {
   expect(linkifyURLs('https://a.com and https://b.org')).toEqual(`${link('https://a.com')} and ${link('https://b.org')}`);
   expect(linkifyURLs('no urls here')).toEqual('no urls here');
   expect(linkifyURLs('http://example.com/path')).toEqual(link('http://example.com/path'));
+  expect(linkifyURLs('http://localhost:3000/repo')).toEqual(link('http://localhost:3000/repo'));
   expect(linkifyURLs('https://')).toEqual('https://');
 });
 
