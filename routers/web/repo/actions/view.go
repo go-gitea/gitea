@@ -729,10 +729,9 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		return
 	}
 
-	ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDisposition(httplib.ContentDispositionAttachment, artifactName+".zip"))
-
 	// Artifacts using the v1-v3 backend are stored as multiple individual files per artifact on the backend
 	// Those need to be zipped for download
+	ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDisposition(httplib.ContentDispositionAttachment, artifactName+".zip"))
 	zipWriter := zip.NewWriter(ctx.Resp)
 	defer zipWriter.Close()
 
