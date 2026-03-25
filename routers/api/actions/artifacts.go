@@ -492,7 +492,7 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 	defer fd.Close()
 
 	// if artifact is compressed, set content-encoding header to gzip
-	if artifact.ContentEncoding == "gzip" {
+	if artifact.ContentEncoding == actions.ContentEncodingV4Gzip {
 		ctx.Resp.Header().Set("Content-Encoding", "gzip")
 	}
 	log.Debug("[artifact] downloadArtifact, name: %s, path: %s, storage: %s, size: %d", artifact.ArtifactName, artifact.ArtifactPath, artifact.StoragePath, artifact.FileSize)

@@ -289,7 +289,7 @@ func generateArtifactStoragePath(artifact *actions.ActionArtifact) string {
 	// if chunk is gzip, use gz as extension
 	// download-artifact action will use content-encoding header to decide if it should decompress the file
 	extension := "chunk"
-	if artifact.ContentEncoding == "gzip" {
+	if artifact.ContentEncoding == actions.ContentEncodingV4Gzip {
 		extension = "chunk.gz"
 	}
 

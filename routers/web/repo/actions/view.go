@@ -740,7 +740,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		}
 
 		var r io.ReadCloser
-		if art.ContentEncoding == "gzip" {
+		if art.ContentEncoding == actions_model.ContentEncodingV4Gzip {
 			r, err = gzip.NewReader(f)
 			if err != nil {
 				ctx.ServerError("gzip.NewReader", err)

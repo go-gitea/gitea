@@ -53,6 +53,8 @@ func init() {
 	db.RegisterModel(new(ActionArtifact))
 }
 
+const ContentEncodingV4Gzip = "gzip"
+
 // ActionArtifact is a file that is stored in the artifact storage.
 type ActionArtifact struct {
 	ID                 int64 `xorm:"pk autoincr"`
@@ -61,16 +63,22 @@ type ActionArtifact struct {
 	RepoID             int64 `xorm:"index"`
 	OwnerID            int64
 	CommitSHA          string
-	StoragePath        string             // The path to the artifact in the storage
-	FileSize           int64              // The size of the artifact in bytes
-	FileCompressedSize int64              // The size of the artifact in bytes after gzip compression
-	ContentEncoding    string             // The content encoding of the artifact
-	ArtifactPath       string             `xorm:"index unique(runid_name_path)"` // The path to the artifact when runner uploads it
-	ArtifactName       string             `xorm:"index unique(runid_name_path)"` // The name of the artifact when runner uploads it
-	Status             ArtifactStatus     `xorm:"index"`                         // The status of the artifact, uploading, expired or need-delete
-	CreatedUnix        timeutil.TimeStamp `xorm:"created"`
-	UpdatedUnix        timeutil.TimeStamp `xorm:"updated index"`
-	ExpiredUnix        timeutil.TimeStamp `xorm:"index"` // The time when the artifact will be expired
+	StoragePath        string // The path to the artifact in the storage
+	FileSize           int64  // The size of the artifact in bytes
+	FileCompressedSize int64  // The size of the artifact in bytes after gzip compression
+
+	// The content encoding or content type (abused?) of the artifact
+	// * empty or null: legacy (v3) uncompressed content
+	// * magic string "gzip": v4 gzip content, the content itself is a gzip file, so serve it directly
+	// * mime type like "application/zip" for "Content-Type"
+	ContentEncoding string
+
+	ArtifactPath string             `xorm:"index unique(runid_name_path)"` // The path to the artifact when runner uploads it
+	ArtifactName string             `xorm:"index unique(runid_name_path)"` // The name of the artifact when runner uploads it
+	Status       ArtifactStatus     `xorm:"index"`                         // The status of the artifact, uploading, expired or need-delete
+	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"updated index"`
+	ExpiredUnix  timeutil.TimeStamp `xorm:"index"` // The time when the artifact will be expired
 }
 
 func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPath string, expiredDays int64) (*ActionArtifact, error) {
