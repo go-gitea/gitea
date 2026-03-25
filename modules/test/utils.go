@@ -45,6 +45,14 @@ func ParseJSONError(buf []byte) (ret struct {
 	return ret
 }
 
+func ParseJSONRedirect(buf []byte) (ret struct {
+	Redirect string `json:"redirect"`
+},
+) {
+	_ = json.Unmarshal(buf, &ret)
+	return ret
+}
+
 func IsNormalPageCompleted(s string) bool {
 	return strings.Contains(s, `<footer class="page-footer"`) && strings.Contains(s, `</html>`)
 }
