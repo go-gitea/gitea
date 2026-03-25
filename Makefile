@@ -537,7 +537,7 @@ playwright: deps-frontend
 	@$(NODE_VARS) pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium $(if $(CI),firefox) $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e
-test-e2e: playwright $(EXECUTABLE_E2E) $(WEBPACK_DEST)
+test-e2e: playwright $(EXECUTABLE_E2E)
 	@EXECUTABLE=$(EXECUTABLE_E2E) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: bench-sqlite
@@ -672,7 +672,7 @@ ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)
 endif
 	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
 
-$(EXECUTABLE_E2E): $(GO_SOURCES)
+$(EXECUTABLE_E2E): $(GO_SOURCES) $(WEBPACK_DEST)
 	CGO_ENABLED=1 $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TEST_TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
 
 .PHONY: release
