@@ -78,7 +78,7 @@ type ActionArtifact struct {
 	// * mime type like for "Content-Type":
 	//   * "application/zip" (ContentTypeZip), seems to be an abuse, fortunately there is no conflict, and it won't cause problems?
 	//   * "application/pdf", "text/html", etc.: real content type of the artifact
-	ContentEncodingOrType string `xorm:"'content_encoding'"`
+	ContentEncodingOrType string `xorm:"content_encoding"`
 
 	ArtifactPath string             `xorm:"index unique(runid_name_path)"` // The path to the artifact when runner uploads it
 	ArtifactName string             `xorm:"index unique(runid_name_path)"` // The name of the artifact when runner uploads it
