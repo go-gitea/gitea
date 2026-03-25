@@ -641,6 +641,11 @@ async function hashChangeListener() {
   overflow-wrap: anywhere;
 }
 
+.job-step-logs .log-msg a {
+  color: var(--color-console-link) !important;
+  text-decoration: underline;
+}
+
 .job-step-logs .job-log-line .log-cmd-command {
   color: var(--color-ansi-blue);
 }

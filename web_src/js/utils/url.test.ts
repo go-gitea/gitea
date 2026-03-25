@@ -1,8 +1,24 @@
-import {pathEscapeSegments, toOriginUrl} from './url.ts';
+import {linkifyURLs, pathEscapeSegments, toOriginUrl} from './url.ts';
 
 test('pathEscapeSegments', () => {
   expect(pathEscapeSegments('a/b/c')).toEqual('a/b/c');
   expect(pathEscapeSegments('a/b/ c')).toEqual('a/b/%20c');
+});
+
+test('linkifyURLs', () => {
+  const link = (url: string) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+  expect(linkifyURLs('https://example.com')).toEqual(link('https://example.com'));
+  expect(linkifyURLs('https://dl.google.com/go/go1.23.6.linux-amd64.tar.gz')).toEqual(link('https://dl.google.com/go/go1.23.6.linux-amd64.tar.gz'));
+  expect(linkifyURLs('https://example.com/path?query=1&amp;b=2#frag')).toEqual(link('https://example.com/path?query=1&amp;b=2#frag'));
+  expect(linkifyURLs('visit https://example.com/repo for info')).toEqual(`visit ${link('https://example.com/repo')} for info`);
+  expect(linkifyURLs('See https://example.com.')).toEqual(`See ${link('https://example.com')}.`);
+  expect(linkifyURLs('https://example.com, and more')).toEqual(`${link('https://example.com')}, and more`);
+  expect(linkifyURLs('<span class="ansi-green-fg">https://proxy.golang.org/cached-only</span>')).toEqual(`<span class="ansi-green-fg">${link('https://proxy.golang.org/cached-only')}</span>`);
+  expect(linkifyURLs('<span style="color:rgb(0,255,0)">https://registry.npmjs.org/@types/node</span>')).toEqual(`<span style="color:rgb(0,255,0)">${link('https://registry.npmjs.org/@types/node')}</span>`);
+  expect(linkifyURLs('https://a.com and https://b.org')).toEqual(`${link('https://a.com')} and ${link('https://b.org')}`);
+  expect(linkifyURLs('no urls here')).toEqual('no urls here');
+  expect(linkifyURLs('http://example.com/path')).toEqual(link('http://example.com/path'));
+  expect(linkifyURLs('https://')).toEqual('https://');
 });
 
 test('toOriginUrl', () => {

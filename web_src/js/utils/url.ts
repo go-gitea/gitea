@@ -1,5 +1,24 @@
+import {html, htmlRaw} from './html.ts';
+
 export function pathEscapeSegments(s: string): string {
   return s.split('/').map(encodeURIComponent).join('/');
+}
+
+// Match HTML tags (to skip) or URLs (to linkify) in ANSI-rendered HTML output
+const urlLinkifyPattern = /(<[^>]*>)|(https?:\/\/[a-z0-9]+(?:-[a-z0-9]+)*\.[^\s<>"'`|(){}[\]]{2,})/gi;
+const trailingPunctPattern = /[.,;:!?]+$/;
+
+// Convert URLs to clickable links in HTML, preserving existing HTML tags
+export function linkifyURLs(content: string): string {
+  if (!content.includes('http')) return content;
+  return content.replace(urlLinkifyPattern, (_match, tag, url) => {
+    if (tag) return tag;
+    const trailingPunct = url.match(trailingPunctPattern);
+    const cleanUrl = trailingPunct ? url.slice(0, -trailingPunct[0].length) : url;
+    const trailing = trailingPunct ? trailingPunct[0] : '';
+    const rawUrl = htmlRaw(cleanUrl);
+    return html`<a href="${rawUrl}" target="_blank" rel="noopener noreferrer">${rawUrl}</a>` + trailing;
+  });
 }
 
 /** Convert an absolute or relative URL to an absolute URL with the current origin. It only
