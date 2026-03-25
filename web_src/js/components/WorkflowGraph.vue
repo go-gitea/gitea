@@ -471,13 +471,13 @@ onMounted(() => {
     fitGraphToViewport();
   }
 
-  resizeObserver = new ResizeObserver(() => {
-    updateContainerViewport();
-    if (!hasCustomizedView.value) {
-      fitGraphToViewport();
-    }
-  });
   if (graphContainer.value) {
+    resizeObserver = new ResizeObserver(() => {
+      updateContainerViewport();
+      if (!hasCustomizedView.value) {
+        fitGraphToViewport();
+      }
+    });
     resizeObserver.observe(graphContainer.value);
   }
 
@@ -707,7 +707,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             height="20"
             class="job-status-fo"
           >
-            <div xmlns="http://www.w3.org/1999/xhtml" class="job-status-icon-wrap">
+            <div class="job-status-icon-wrap">
               <ActionRunStatus :status="job.status"/>
             </div>
           </foreignObject>
@@ -718,7 +718,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             :width="nodeWidth - 40"
             :height="nodeHeight"
           >
-            <div xmlns="http://www.w3.org/1999/xhtml" class="job-text-wrap">
+            <div class="job-text-wrap">
               <span class="job-name">{{ job.name }}</span>
               <span
                 v-if="job.duration || job.status === 'success' || job.status === 'failure'"
@@ -788,7 +788,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
 .graph-svg {
   display: block;
-  max-width: none;
   will-change: transform;
 }
 
@@ -829,7 +828,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   user-select: none;
   pointer-events: none;
@@ -864,7 +863,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
 .node-port {
   fill: var(--color-box-body);
-  stroke: var(--color-secondary-alpha-90);
+  stroke: var(--color-workflow-box-border);
   stroke-width: 1.5;
   pointer-events: none;
 }
