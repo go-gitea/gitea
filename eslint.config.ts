@@ -1,5 +1,6 @@
 import arrayFunc from 'eslint-plugin-array-func';
 import comments from '@eslint-community/eslint-plugin-eslint-comments';
+import deMorgan from 'eslint-plugin-de-morgan';
 import github from 'eslint-plugin-github';
 import globals from 'globals';
 import importPlugin from 'eslint-plugin-import-x';
@@ -63,6 +64,7 @@ export default defineConfig([
       '@stylistic': stylistic,
       '@typescript-eslint': typescriptPlugin.plugin,
       'array-func': arrayFunc,
+      'de-morgan': deMorgan,
       'import-x': importPlugin as unknown as ESLint.Plugin, // https://github.com/un-ts/eslint-plugin-import-x/issues/203
       regexp,
       sonarjs,
@@ -179,7 +181,7 @@ export default defineConfig([
       '@typescript-eslint/naming-convention': [0],
       '@typescript-eslint/no-array-constructor': [2],
       '@typescript-eslint/no-array-delete': [2],
-      '@typescript-eslint/no-base-to-string': [0],
+      '@typescript-eslint/no-base-to-string': [2],
       '@typescript-eslint/no-confusing-non-null-assertion': [2],
       '@typescript-eslint/no-confusing-void-expression': [0],
       '@typescript-eslint/no-deprecated': [2],
@@ -211,7 +213,7 @@ export default defineConfig([
       '@typescript-eslint/no-non-null-asserted-nullish-coalescing': [0],
       '@typescript-eslint/no-non-null-asserted-optional-chain': [2],
       '@typescript-eslint/no-non-null-assertion': [0],
-      '@typescript-eslint/no-redeclare': [0],
+      '@typescript-eslint/no-redeclare': [2],
       '@typescript-eslint/no-redundant-type-constituents': [2],
       '@typescript-eslint/no-require-imports': [2],
       '@typescript-eslint/no-restricted-imports': [0],
@@ -254,10 +256,10 @@ export default defineConfig([
       '@typescript-eslint/prefer-function-type': [2],
       '@typescript-eslint/prefer-includes': [2],
       '@typescript-eslint/prefer-literal-enum-member': [0],
-      '@typescript-eslint/prefer-namespace-keyword': [0],
+      '@typescript-eslint/prefer-namespace-keyword': [2],
       '@typescript-eslint/prefer-nullish-coalescing': [0],
       '@typescript-eslint/prefer-optional-chain': [2, {requireNullish: true}],
-      '@typescript-eslint/prefer-promise-reject-errors': [0],
+      '@typescript-eslint/prefer-promise-reject-errors': [2],
       '@typescript-eslint/prefer-readonly': [0],
       '@typescript-eslint/prefer-readonly-parameter-types': [0],
       '@typescript-eslint/prefer-reduce-type-parameter': [0],
@@ -268,7 +270,7 @@ export default defineConfig([
       '@typescript-eslint/require-array-sort-compare': [0],
       '@typescript-eslint/require-await': [0],
       '@typescript-eslint/restrict-plus-operands': [2],
-      '@typescript-eslint/restrict-template-expressions': [0],
+      '@typescript-eslint/restrict-template-expressions': [2],
       '@typescript-eslint/return-await': [0],
       '@typescript-eslint/strict-boolean-expressions': [0],
       '@typescript-eslint/strict-void-return': [0],
@@ -295,6 +297,8 @@ export default defineConfig([
       'consistent-this': [0],
       'constructor-super': [2],
       'curly': [0],
+      'de-morgan/no-negated-conjunction': [2],
+      'de-morgan/no-negated-disjunction': [2],
       'default-case-last': [2],
       'default-case': [0],
       'default-param-last': [0],
@@ -342,7 +346,7 @@ export default defineConfig([
       'import-x/first': [2],
       'import-x/group-exports': [0],
       'import-x/max-dependencies': [0],
-      'import-x/named': [2],
+      'import-x/named': [0],
       'import-x/namespace': [0],
       'import-x/newline-after-import': [0],
       'import-x/no-absolute-path': [0],
@@ -437,7 +441,7 @@ export default defineConfig([
       'no-import-assign': [2],
       'no-inline-comments': [0],
       'no-inner-declarations': [2],
-      'no-invalid-regexp': [2],
+      'no-invalid-regexp': [0], // handled by regexp/no-invalid-regexp
       'no-invalid-this': [0],
       'no-irregular-whitespace': [2],
       'no-iterator': [2],
@@ -551,7 +555,7 @@ export default defineConfig([
       'no-new-func': [0], // handled by @typescript-eslint/no-implied-eval
       'no-new-native-nonconstructor': [2],
       'no-new-object': [2],
-      'no-new-symbol': [2],
+      'no-new-symbol': [0], // handled by no-new-native-nonconstructor
       'no-new-wrappers': [2],
       'no-new': [0],
       'no-nonoctal-decimal-escape': [2],
@@ -582,10 +586,11 @@ export default defineConfig([
       'no-template-curly-in-string': [2],
       'no-ternary': [0],
       'no-this-before-super': [2],
-      'no-throw-literal': [2],
+      'no-throw-literal': [0], // handled by @typescript-eslint/only-throw-error
       'no-undef-init': [2],
       'no-undef': [2], // it is still needed by eslint & IDE to prompt undefined names in real time
       'no-undefined': [0],
+      'no-unassigned-vars': [2],
       'no-underscore-dangle': [0],
       'no-unexpected-multiline': [2],
       'no-unmodified-loop-condition': [2],
@@ -600,7 +605,7 @@ export default defineConfig([
       'no-unused-vars': [0], // handled by @typescript-eslint/no-unused-vars
       'no-use-before-define': [0], // handled by @typescript-eslint/no-use-before-define
       'no-useless-assignment': [2],
-      'no-useless-backreference': [2],
+      'no-useless-backreference': [0], // handled by regexp/no-useless-backreference
       'no-useless-call': [2],
       'no-useless-catch': [2],
       'no-useless-computed-key': [2],
@@ -608,7 +613,7 @@ export default defineConfig([
       'no-useless-constructor': [2],
       'no-useless-escape': [2],
       'no-useless-rename': [2],
-      'no-useless-return': [2],
+      'no-useless-return': [0], // handled by sonarjs/no-redundant-jump
       'no-var': [2],
       'no-void': [2],
       'no-warning-comments': [0],
@@ -617,7 +622,7 @@ export default defineConfig([
       'one-var-declaration-per-line': [0],
       'one-var': [0],
       'operator-assignment': [2, 'always'],
-      'operator-linebreak': [2, 'after'],
+      'operator-linebreak': [0], // handled by @stylistic/operator-linebreak
       'prefer-arrow-callback': [2, {allowNamedFunctions: true, allowUnboundThis: true}],
       'prefer-const': [2, {destructuring: 'all', ignoreReadBeforeAssign: true}],
       'prefer-destructuring': [0],
@@ -626,19 +631,20 @@ export default defineConfig([
       'prefer-numeric-literals': [2],
       'prefer-object-has-own': [2],
       'prefer-object-spread': [2],
-      'prefer-promise-reject-errors': [2, {allowEmptyReject: false}],
+      'prefer-promise-reject-errors': [0], // handled by @typescript-eslint/prefer-promise-reject-errors
       'prefer-regex-literals': [2],
       'prefer-rest-params': [2],
       'prefer-spread': [2],
       'prefer-template': [2],
-      'radix': [2, 'as-needed'],
+      'preserve-caught-error': [0],
+      'radix': [0],
       'regexp/confusing-quantifier': [2],
       'regexp/control-character-escape': [2],
       'regexp/hexadecimal-escape': [0],
       'regexp/letter-case': [0],
       'regexp/match-any': [2],
       'regexp/negation': [2],
-      'regexp/no-contradiction-with-assertion': [0],
+      'regexp/no-contradiction-with-assertion': [2],
       'regexp/no-control-character': [0],
       'regexp/no-dupe-characters-character-class': [2],
       'regexp/no-dupe-disjunctions': [2],
@@ -654,8 +660,8 @@ export default defineConfig([
       'regexp/no-invisible-character': [2],
       'regexp/no-lazy-ends': [2],
       'regexp/no-legacy-features': [2],
-      'regexp/no-misleading-capturing-group': [0],
-      'regexp/no-misleading-unicode-character': [0],
+      'regexp/no-misleading-capturing-group': [2],
+      'regexp/no-misleading-unicode-character': [2],
       'regexp/no-missing-g-flag': [2],
       'regexp/no-non-standard-flag': [2],
       'regexp/no-obscure-range': [2],
@@ -697,7 +703,7 @@ export default defineConfig([
       'regexp/prefer-question-quantifier': [2],
       'regexp/prefer-range': [2],
       'regexp/prefer-regexp-exec': [2],
-      'regexp/prefer-regexp-test': [2],
+      'regexp/prefer-regexp-test': [0], // handled by unicorn/prefer-regexp-test
       'regexp/prefer-result-array-groups': [0],
       'regexp/prefer-set-operation': [2],
       'regexp/prefer-star-quantifier': [2],
@@ -727,7 +733,7 @@ export default defineConfig([
       'sonarjs/no-empty-collection': [2],
       'sonarjs/no-extra-arguments': [2],
       'sonarjs/no-gratuitous-expressions': [2],
-      'sonarjs/no-identical-conditions': [2],
+      'sonarjs/no-identical-conditions': [0], // handled by no-dupe-else-if
       'sonarjs/no-identical-expressions': [2],
       'sonarjs/no-identical-functions': [2, 5],
       'sonarjs/no-ignored-return': [2],
@@ -740,7 +746,7 @@ export default defineConfig([
       'sonarjs/no-small-switch': [0],
       'sonarjs/no-unused-collection': [2],
       'sonarjs/no-use-of-empty-return-value': [2],
-      'sonarjs/no-useless-catch': [2],
+      'sonarjs/no-useless-catch': [0], // handled by no-useless-catch
       'sonarjs/non-existent-operator': [2],
       'sonarjs/prefer-immediate-return': [0],
       'sonarjs/prefer-object-literal': [0],
@@ -767,6 +773,7 @@ export default defineConfig([
       'unicorn/filename-case': [0],
       'unicorn/import-index': [0],
       'unicorn/import-style': [0],
+      'unicorn/isolated-functions': [2, {functions: []}],
       'unicorn/new-for-builtins': [2],
       'unicorn/no-abusive-eslint-disable': [0],
       'unicorn/no-anonymous-default-export': [0],
@@ -806,7 +813,7 @@ export default defineConfig([
       'unicorn/no-unnecessary-await': [2],
       'unicorn/no-unnecessary-polyfills': [2],
       'unicorn/no-unreadable-array-destructuring': [0],
-      'unicorn/no-unreadable-iife': [2],
+      'unicorn/no-unreadable-iife': [0],
       'unicorn/no-unused-properties': [2],
       'unicorn/no-useless-collection-argument': [2],
       'unicorn/no-useless-fallback-in-spread': [2],
@@ -819,7 +826,7 @@ export default defineConfig([
       'unicorn/number-literal-case': [0],
       'unicorn/numeric-separators-style': [0],
       'unicorn/prefer-add-event-listener': [2],
-      'unicorn/prefer-array-find': [2],
+      'unicorn/prefer-array-find': [0], // handled by @typescript-eslint/prefer-find
       'unicorn/prefer-array-flat': [2],
       'unicorn/prefer-array-flat-map': [2],
       'unicorn/prefer-array-index-of': [2],
@@ -836,7 +843,7 @@ export default defineConfig([
       'unicorn/prefer-event-target': [2],
       'unicorn/prefer-export-from': [0],
       'unicorn/prefer-global-this': [0],
-      'unicorn/prefer-includes': [2],
+      'unicorn/prefer-includes': [0], // handled by @typescript-eslint/prefer-includes
       'unicorn/prefer-json-parse-buffer': [0],
       'unicorn/prefer-keyboard-event-key': [2],
       'unicorn/prefer-logical-operator-over-ternary': [2],
@@ -863,7 +870,7 @@ export default defineConfig([
       'unicorn/prefer-string-raw': [0],
       'unicorn/prefer-string-replace-all': [0],
       'unicorn/prefer-string-slice': [0],
-      'unicorn/prefer-string-starts-ends-with': [2],
+      'unicorn/prefer-string-starts-ends-with': [0], // handled by @typescript-eslint/prefer-string-starts-ends-with
       'unicorn/prefer-string-trim-start-end': [2],
       'unicorn/prefer-structured-clone': [2],
       'unicorn/prefer-switch': [0],
@@ -910,9 +917,10 @@ export default defineConfig([
   },
   {
     ...playwright.configs['flat/recommended'],
-    files: ['tests/e2e/**'],
+    files: ['tests/e2e/**/*.test.ts'],
     rules: {
       ...playwright.configs['flat/recommended'].rules,
+      'playwright/expect-expect': [0],
     },
   },
   {
@@ -924,7 +932,7 @@ export default defineConfig([
     },
     extends: [
       vue.configs['flat/recommended'],
-      vueScopedCss.configs['flat/recommended'] as any,
+      vueScopedCss.configs.recommended as any,
     ],
     rules: {
       'vue/attributes-order': [0],
@@ -959,6 +967,7 @@ export default defineConfig([
       'vitest/no-interpolation-in-snapshots': [0],
       'vitest/no-large-snapshots': [0],
       'vitest/no-mocks-import': [0],
+      'vitest/no-importing-vitest-globals': [2],
       'vitest/no-restricted-matchers': [0],
       'vitest/no-restricted-vi-methods': [0],
       'vitest/no-standalone-expect': [0],
@@ -987,7 +996,8 @@ export default defineConfig([
       'vitest/require-to-throw-message': [0],
       'vitest/require-top-level-describe': [0],
       'vitest/valid-describe-callback': [2],
-      'vitest/valid-expect': [2],
+      'vitest/valid-expect': [2, {maxArgs: 2}],
+      'vitest/valid-expect-in-promise': [2],
       'vitest/valid-title': [2],
     },
   },

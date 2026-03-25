@@ -104,7 +104,7 @@ func GetProtectedTagByID(ctx context.Context, id int64) (*ProtectedTag, error) {
 		return nil, err
 	}
 	if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return tag, nil
 }
@@ -117,7 +117,7 @@ func GetProtectedTagByNamePattern(ctx context.Context, repoID int64, pattern str
 		return nil, err
 	}
 	if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return tag, nil
 }

@@ -6,17 +6,16 @@ package user
 import (
 	"testing"
 
-	organization_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestReplacePrimaryEmailAddress(t *testing.T) {
+func TestUserEmail(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	t.Run("User", func(t *testing.T) {
+	t.Run("PrimaryEmailAddress", func(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13})
 
 		emails, err := user_model.GetEmailAddresses(t.Context(), user.ID)
@@ -42,50 +41,36 @@ func TestReplacePrimaryEmailAddress(t *testing.T) {
 		assert.NoError(t, ReplacePrimaryEmailAddress(t.Context(), user, "primary-13@example.com"))
 	})
 
-	t.Run("Organization", func(t *testing.T) {
-		org := unittest.AssertExistsAndLoadBean(t, &organization_model.Organization{ID: 3})
+	t.Run("AddEmailAddresses", func(t *testing.T) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-		assert.Equal(t, "org3@example.com", org.Email)
+		assert.Error(t, AddEmailAddresses(t.Context(), user, []string{" invalid email "}))
 
-		assert.NoError(t, ReplacePrimaryEmailAddress(t.Context(), org.AsUser(), "primary-org@example.com"))
+		emails := []string{"user1234@example.com", "user5678@example.com"}
 
-		assert.Equal(t, "primary-org@example.com", org.Email)
+		assert.NoError(t, AddEmailAddresses(t.Context(), user, emails))
+
+		err := AddEmailAddresses(t.Context(), user, emails)
+		assert.Error(t, err)
+		assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 	})
-}
 
-func TestAddEmailAddresses(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	t.Run("DeleteEmailAddresses", func(t *testing.T) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		emails := []string{"user2-2@example.com"}
 
-	assert.Error(t, AddEmailAddresses(t.Context(), user, []string{" invalid email "}))
+		err := DeleteEmailAddresses(t.Context(), user, emails)
+		assert.NoError(t, err)
 
-	emails := []string{"user1234@example.com", "user5678@example.com"}
+		err = DeleteEmailAddresses(t.Context(), user, emails)
+		assert.Error(t, err)
+		assert.True(t, user_model.IsErrEmailAddressNotExist(err))
 
-	assert.NoError(t, AddEmailAddresses(t.Context(), user, emails))
+		emails = []string{"user2@example.com"}
 
-	err := AddEmailAddresses(t.Context(), user, emails)
-	assert.Error(t, err)
-	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
-}
-
-func TestDeleteEmailAddresses(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	emails := []string{"user2-2@example.com"}
-
-	err := DeleteEmailAddresses(t.Context(), user, emails)
-	assert.NoError(t, err)
-
-	err = DeleteEmailAddresses(t.Context(), user, emails)
-	assert.Error(t, err)
-	assert.True(t, user_model.IsErrEmailAddressNotExist(err))
-
-	emails = []string{"user2@example.com"}
-
-	err = DeleteEmailAddresses(t.Context(), user, emails)
-	assert.Error(t, err)
-	assert.True(t, user_model.IsErrPrimaryEmailCannotDelete(err))
+		err = DeleteEmailAddresses(t.Context(), user, emails)
+		assert.Error(t, err)
+		assert.True(t, user_model.IsErrPrimaryEmailCannotDelete(err))
+	})
 }

@@ -24,7 +24,7 @@ func indexSettingToGitGrepPathspecList() (list []string) {
 	return list
 }
 
-func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Repository, ref git.RefName, keyword string, searchMode indexer.SearchModeType) (searchResults []*code_indexer.Result, total int, err error) {
+func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Repository, ref git.RefName, keyword string, searchMode indexer.SearchModeType) (searchResults []*code_indexer.Result, total int64, err error) {
 	grepMode := git.GrepModeWords
 	switch searchMode {
 	case indexer.SearchModeExact:
@@ -47,7 +47,7 @@ func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Rep
 		return nil, 0, fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
 	}
 
-	total = len(res)
+	total = int64(len(res))
 	pageStart := min((page-1)*setting.UI.RepoSearchPagingNum, len(res))
 	pageEnd := min(page*setting.UI.RepoSearchPagingNum, len(res))
 	res = res[pageStart:pageEnd]

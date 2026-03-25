@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -90,12 +91,12 @@ func CryptoRandomBytes(length int64) ([]byte, error) {
 	return buf, err
 }
 
-// ToUpperASCII returns s with all ASCII letters mapped to their upper case.
-func ToUpperASCII(s string) string {
+// ToLowerASCII returns s with all ASCII letters mapped to their lower case.
+func ToLowerASCII(s string) string {
 	b := []byte(s)
 	for i, c := range b {
-		if 'a' <= c && c <= 'z' {
-			b[i] -= 'a' - 'A'
+		if 'A' <= c && c <= 'Z' {
+			b[i] += 'a' - 'A'
 		}
 	}
 	return string(b)
@@ -197,11 +198,6 @@ func ToFloat64(number any) (float64, error) {
 	return value, nil
 }
 
-// ToPointer returns the pointer of a copy of any given value
-func ToPointer[T any](val T) *T {
-	return &val
-}
-
 // Iif is an "inline-if", it returns "trueVal" if "condition" is true, otherwise "falseVal"
 func Iif[T any](condition bool, trueVal, falseVal T) T {
 	if condition {
@@ -243,6 +239,20 @@ func OptionalArg[T any](optArg []T, defaultValue ...T) (ret T) {
 		return defaultValue[0]
 	}
 	return ret
+}
+
+type EnumConst[T comparable] interface {
+	EnumValues() []T
+}
+
+// EnumValue returns the value if it's in the enum const's values,
+// otherwise returns the first item of enums as default value.
+func EnumValue[T comparable](val EnumConst[T]) (ret T, valid bool) {
+	enums := val.EnumValues()
+	if slices.Contains(enums, val.(T)) {
+		return val.(T), true
+	}
+	return enums[0], false
 }
 
 func ReserveLineBreakForTextarea(input string) string {

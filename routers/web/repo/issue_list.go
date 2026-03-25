@@ -462,14 +462,7 @@ func renderMilestones(ctx *context.Context) {
 		return
 	}
 
-	openMilestones, closedMilestones := issues_model.MilestoneList{}, issues_model.MilestoneList{}
-	for _, milestone := range milestones {
-		if milestone.IsClosed {
-			closedMilestones = append(closedMilestones, milestone)
-		} else {
-			openMilestones = append(openMilestones, milestone)
-		}
-	}
+	openMilestones, closedMilestones := issues_model.MilestoneList(milestones).SplitByOpenClosed()
 	ctx.Data["OpenMilestones"] = openMilestones
 	ctx.Data["ClosedMilestones"] = closedMilestones
 }
@@ -582,9 +575,9 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	}
 
 	// prepare pager
-	total := int(issueStats.OpenCount + issueStats.ClosedCount)
+	total := issueStats.OpenCount + issueStats.ClosedCount
 	if isShowClosed.Has() {
-		total = util.Iif(isShowClosed.Value(), int(issueStats.ClosedCount), int(issueStats.OpenCount))
+		total = util.Iif(isShowClosed.Value(), issueStats.ClosedCount, issueStats.OpenCount)
 	}
 	page := max(ctx.FormInt("page"), 1)
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
@@ -669,10 +662,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	handleMentionableAssigneesAndTeams(ctx, shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers))
-	if ctx.Written() {
-		return
-	}
+	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
 

@@ -150,12 +150,12 @@ func DeleteBranch(ctx *context.APIContext) {
 		}
 	}
 
-	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName, nil); err != nil {
+	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			ctx.APIErrorNotFound(err)
 		case errors.Is(err, repo_service.ErrBranchIsDefault):
-			ctx.APIError(http.StatusForbidden, errors.New("can not delete default branch"))
+			ctx.APIError(http.StatusForbidden, errors.New("can not delete default or pull request target branch"))
 		case errors.Is(err, git_model.ErrBranchIsProtected):
 			ctx.APIError(http.StatusForbidden, errors.New("branch protected"))
 		default:
@@ -375,7 +375,7 @@ func ListBranches(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.SetLinkHeader(int(totalNumOfBranches), listOptions.PageSize)
+	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
 	ctx.SetTotalCountHeader(totalNumOfBranches)
 	ctx.JSON(http.StatusOK, apiBranches)
 }

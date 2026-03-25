@@ -1,5 +1,4 @@
 import '../fomantic/build/fomantic.js';
-import '../../node_modules/easymde/dist/easymde.min.css'; // TODO: lazy load in "switchToEasyMDE"
 
 import {initHtmx} from './htmx.ts';
 import {initDashboardRepoList} from './features/dashboard.ts';
@@ -64,6 +63,8 @@ import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton}
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
+import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
+import {initGlobalShortcut} from './modules/shortcut.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -83,6 +84,7 @@ const initPerformanceTracer = callInitFunctions([
   initGlobalComboMarkdownEditor,
   initGlobalDeleteButton,
   initGlobalInput,
+  initGlobalShortcut,
 
   initCommonOrganization,
   initCommonIssueListQuickGoto,
@@ -158,6 +160,7 @@ const initPerformanceTracer = callInitFunctions([
   initOAuth2SettingsDisableCheckbox,
 
   initRepoFileView,
+  initActionsPermissionsForm,
 ]);
 
 // it must be the last one, then the "querySelectorAll" only needs to be executed once for global init functions.

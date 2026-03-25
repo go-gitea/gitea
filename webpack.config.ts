@@ -39,7 +39,6 @@ const webComponents = new Set([
   // our own, in web_src/js/webcomponents
   'overflow-menu',
   'origin-url',
-  'absolute-date',
   // from dependencies
   'markdown-toolbar',
   'relative-time',
@@ -67,7 +66,6 @@ export default {
   entry: {
     index: [
       fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
-      fileURLToPath(new URL('web_src/fomantic/build/fomantic.css', import.meta.url)),
       fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
     ],
     swagger: [

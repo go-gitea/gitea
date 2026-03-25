@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	actions_service "code.gitea.io/gitea/services/actions"
 
@@ -420,7 +419,7 @@ jobs:
 		// user4 forks the repo
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
 			&api.CreateForkOption{
-				Name: util.ToPointer("actions-concurrency-fork"),
+				Name: new("actions-concurrency-fork"),
 			}).AddTokenAuth(user4Token)
 		resp := MakeRequest(t, req, http.StatusAccepted)
 		var apiForkRepo api.Repository
@@ -454,7 +453,7 @@ jobs:
 		runner.fetchNoTask(t)
 		// user2 approves the run
 		pr2Run1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, TriggerUserID: user4.ID})
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/approve", baseRepo.OwnerName, baseRepo.Name, pr2Run1.Index))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/approve", baseRepo.OwnerName, baseRepo.Name, pr2Run1.ID))
 		user2Session.MakeRequest(t, req, http.StatusOK)
 		// fetch the task and the previous task has been cancelled
 		pr2Task1 := runner.fetchTask(t)
@@ -620,7 +619,7 @@ jobs:
 		assert.Equal(t, actions_model.StatusCancelled, wf2Job2ActionJob.Status)
 
 		// rerun wf2
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, wf2Run.Index))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, wf2Run.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// (rerun1) cannot fetch wf2-job2
@@ -644,7 +643,7 @@ jobs:
 		assert.Equal(t, "job-main-v1.24.0", wf2Job2Rerun1Job.ConcurrencyGroup)
 
 		// rerun wf2-job2
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, wf2Run.Index, 1))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, wf2Run.ID, wf2Job2ActionJob.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 		// (rerun2) fetch and exec wf2-job2
 		wf2Job2Rerun2Task := runner1.fetchTask(t)
@@ -913,6 +912,10 @@ jobs:
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		runner.fetchNoTask(t) // cannot fetch task because task2 is not completed
+		run3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID}, unittest.OrderBy("id DESC"))
+		assert.Equal(t, actions_model.StatusBlocked, run3.Status)
+		job3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RepoID: repo.ID, RunID: run3.ID})
+		assert.Equal(t, actions_model.StatusBlocked, job3.Status)
 
 		// run the workflow with appVersion=v1.22 and cancel=true
 		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
@@ -934,10 +937,10 @@ jobs:
 
 		// rerun cancel true scenario
 
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.Index))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run4.Index))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run4.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		task5 := runner.fetchTask(t)
@@ -953,17 +956,19 @@ jobs:
 
 		// rerun cancel false scenario
 
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.Index))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		run2_2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
 		assert.Equal(t, actions_model.StatusWaiting, run2_2.Status)
 
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.Index+1))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run3.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		task6 := runner.fetchTask(t)
-		_, _, run3 := getTaskAndJobAndRunByTaskID(t, task6.Id)
+		_, _, run3_2 := getTaskAndJobAndRunByTaskID(t, task6.Id)
+		assert.Equal(t, run3.ID, run3_2.ID)
+		assert.Equal(t, actions_model.StatusRunning, run3_2.Status)
 		assert.Equal(t, "workflow-dispatch-v1.22", run3.ConcurrencyGroup)
 
 		run2_2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2_2.ID})
@@ -1034,7 +1039,7 @@ jobs:
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 		task2 := runner.fetchTask(t)
-		_, _, run2 := getTaskAndJobAndRunByTaskID(t, task2.Id)
+		_, job2, run2 := getTaskAndJobAndRunByTaskID(t, task2.Id)
 		assert.Equal(t, "workflow-dispatch-v1.22", run2.ConcurrencyGroup)
 
 		// run the workflow with appVersion=v1.22 and cancel=false again
@@ -1045,6 +1050,10 @@ jobs:
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		runner.fetchNoTask(t) // cannot fetch task because task2 is not completed
+		run3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID}, unittest.OrderBy("id DESC"))
+		assert.Equal(t, actions_model.StatusBlocked, run3.Status)
+		job3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RepoID: repo.ID, RunID: run3.ID})
+		assert.Equal(t, actions_model.StatusBlocked, job3.Status)
 
 		// run the workflow with appVersion=v1.22 and cancel=true
 		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
@@ -1054,7 +1063,7 @@ jobs:
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 		task4 := runner.fetchTask(t)
-		_, _, run4 := getTaskAndJobAndRunByTaskID(t, task4.Id)
+		_, job4, run4 := getTaskAndJobAndRunByTaskID(t, task4.Id)
 		assert.Equal(t, actions_model.StatusRunning, run4.Status)
 		assert.Equal(t, "workflow-dispatch-v1.22", run4.ConcurrencyGroup)
 		_, _, run2 = getTaskAndJobAndRunByTaskID(t, task2.Id)
@@ -1065,11 +1074,10 @@ jobs:
 		})
 
 		// rerun cancel true scenario
-
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index, 1))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.ID, job2.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run4.Index, 1))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run4.ID, job4.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		task5 := runner.fetchTask(t)
@@ -1085,17 +1093,17 @@ jobs:
 
 		// rerun cancel false scenario
 
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index, 1))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.ID, job2.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		run2_2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
 		assert.Equal(t, actions_model.StatusWaiting, run2_2.Status)
 
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index+1, 1))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run3.ID, job3.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		task6 := runner.fetchTask(t)
-		_, _, run3 := getTaskAndJobAndRunByTaskID(t, task6.Id)
+		_, _, run3 = getTaskAndJobAndRunByTaskID(t, task6.Id)
 		assert.Equal(t, "workflow-dispatch-v1.22", run3.ConcurrencyGroup)
 
 		run2_2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2_2.ID})
@@ -1455,7 +1463,7 @@ jobs:
 		runner.fetchNoTask(t)
 
 		// cancel the first run
-		req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/cancel", user2.Name, repo.Name, run1.Index))
+		req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/cancel", user2.Name, repo.Name, run1.ID))
 		user2Session.MakeRequest(t, req, http.StatusOK)
 
 		// the first run has been cancelled

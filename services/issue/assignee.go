@@ -20,10 +20,10 @@ import (
 // DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array
 func DeleteNotPassedAssignee(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assignees []*user_model.User) (err error) {
 	var found bool
-	oriAssignes := make([]*user_model.User, len(issue.Assignees))
-	_ = copy(oriAssignes, issue.Assignees)
+	oriAssignees := make([]*user_model.User, len(issue.Assignees))
+	_ = copy(oriAssignees, issue.Assignees)
 
-	for _, assignee := range oriAssignes {
+	for _, assignee := range oriAssignees {
 		found = false
 		for _, alreadyAssignee := range assignees {
 			if assignee.ID == alreadyAssignee.ID {
@@ -234,7 +234,7 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 	}
 
 	if comment == nil || !isAdd {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil because no comment was created or it is a removal
 	}
 
 	return comment, teamReviewRequestNotify(ctx, issue, doer, reviewer, isAdd, comment)

@@ -161,7 +161,7 @@ func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, c
 
 func findHeadRepoFromRootBase(ctx context.Context, baseRepo *repo_model.Repository, headUserID int64, traverseLevel int) (*repo_model.Repository, error) {
 	if traverseLevel == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	// test if we are lucky
 	repo, err := repo_model.GetUserFork(ctx, baseRepo.ID, headUserID)
@@ -185,5 +185,5 @@ func findHeadRepoFromRootBase(ctx context.Context, baseRepo *repo_model.Reposito
 			return forked, nil
 		}
 	}
-	return nil, nil
+	return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 }

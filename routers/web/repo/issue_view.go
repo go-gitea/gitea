@@ -469,7 +469,7 @@ func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
 	// Get Dependencies
-	blockedBy, err := issue.BlockedByDependencies(ctx, db.ListOptions{})
+	blockedBy, _, err := issue.BlockedByDependencies(ctx, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("BlockedByDependencies", err)
 		return
@@ -905,9 +905,8 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 	// Check correct values and select default
 	if ms, ok := ctx.Data["MergeStyle"].(repo_model.MergeStyle); !ok ||
 		!prConfig.IsMergeStyleAllowed(ms) {
-		defaultMergeStyle := prConfig.GetDefaultMergeStyle()
-		if prConfig.IsMergeStyleAllowed(defaultMergeStyle) && !ok {
-			mergeStyle = defaultMergeStyle
+		if prConfig.IsMergeStyleAllowed(prConfig.DefaultMergeStyle) && !ok {
+			mergeStyle = prConfig.DefaultMergeStyle
 		} else if prConfig.AllowMerge {
 			mergeStyle = repo_model.MergeStyleMerge
 		} else if prConfig.AllowRebase {

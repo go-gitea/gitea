@@ -96,7 +96,7 @@ func (t telegramConvertor) Push(p *api.PushPayload) (TelegramPayload, error) {
 
 	var htmlCommits strings.Builder
 	for _, commit := range p.Commits {
-		htmlCommits.WriteString(fmt.Sprintf("\n[%s] %s", htmlLinkFormatter(commit.URL, commit.ID[:7]), html.EscapeString(strings.TrimRight(commit.Message, "\r\n"))))
+		fmt.Fprintf(&htmlCommits, "\n[%s] %s", htmlLinkFormatter(commit.URL, commit.ID[:7]), html.EscapeString(strings.TrimRight(commit.Message, "\r\n")))
 		if commit.Author != nil {
 			htmlCommits.WriteString(" - " + html.EscapeString(commit.Author.Name))
 		}

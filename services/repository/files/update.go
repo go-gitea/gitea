@@ -510,7 +510,7 @@ func modifyFile(ctx context.Context, t *TemporaryUploadRepository, file *ChangeR
 	}
 
 	if writeObjectRet.LfsContent == nil {
-		return nil, nil // No LFS pointer, so nothing to do
+		return nil, nil //nolint:nilnil // No LFS pointer, so nothing to do
 	}
 	defer writeObjectRet.LfsContent.Close()
 

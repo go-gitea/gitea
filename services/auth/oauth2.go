@@ -152,16 +152,9 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataS
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
 func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	// These paths are not API paths, but we still want to check for tokens because they maybe in the API returned URLs
-	detector := newAuthPathDetector(req)
-	if !detector.isAPIPath() && !detector.isAttachmentDownload() && !detector.isAuthenticatedTokenRequest() &&
-		!detector.isGitRawOrAttachPath() && !detector.isArchivePath() {
-		return nil, nil
-	}
-
 	token, ok := parseToken(req)
 	if !ok {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	user, err := o.userFromToken(req.Context(), token, store)

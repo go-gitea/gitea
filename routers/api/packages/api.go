@@ -88,21 +88,26 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	}
 }
 
-func verifyAuth(r *web.Router, authMethods []auth.Method) {
+type verifyAuthOptions struct {
+	afterAuthCallback func(ctx *context.Context, err error)
+}
+
+func verifyAuth(r *web.Router, authMethods []auth.Method, opts verifyAuthOptions) {
 	if setting.Service.EnableReverseProxyAuth {
 		authMethods = append(authMethods, &auth.ReverseProxy{})
 	}
 	authGroup := auth.NewGroup(authMethods...)
 
-	r.Use(func(ctx *context.Context) {
+	r.AfterRouting(func(ctx *context.Context) {
 		var err error
 		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if err != nil {
+		ctx.IsSigned = ctx.Doer != nil
+		if opts.afterAuthCallback != nil {
+			opts.afterAuthCallback(ctx, err)
+		} else if err != nil {
 			log.Error("Failed to verify user: %v", err)
 			ctx.HTTPError(http.StatusUnauthorized, "Failed to authenticate user")
-			return
 		}
-		ctx.IsSigned = ctx.Doer != nil
 	})
 }
 
@@ -111,15 +116,15 @@ func verifyAuth(r *web.Router, authMethods []auth.Method) {
 func CommonRoutes() *web.Router {
 	r := web.NewRouter()
 
-	r.Use(context.PackageContexter())
+	r.AfterRouting(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
 		&auth.OAuth2{},
 		&auth.Basic{},
 		&nuget.Auth{},
-		&conan.Auth{},
+		&Auth{},
 		&chef.Auth{},
-	})
+	}, verifyAuthOptions{})
 
 	r.Group("/{username}", func() {
 		r.Group("/alpine", func() {
@@ -533,11 +538,19 @@ func CommonRoutes() *web.Router {
 func ContainerRoutes() *web.Router {
 	r := web.NewRouter()
 
-	r.Use(context.PackageContexter())
+	r.AfterRouting(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
 		&auth.Basic{},
-		&container.Auth{},
+		// container auth requires token, so container.Authenticate issues a Ghost user token for anonymous access
+		&Auth{AllowGhostUser: true},
+	}, verifyAuthOptions{
+		afterAuthCallback: func(ctx *context.Context, err error) {
+			if err != nil {
+				log.Error("Failed to verify container user: %v", err)
+				container.APIUnauthorizedError(ctx)
+			}
+		},
 	})
 
 	// TODO: Content Discovery / References (not implemented yet)

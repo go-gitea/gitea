@@ -32,7 +32,7 @@
 									{{template "repo/icon" .}}
 								</div>
 								<div class="flex-item-main">
-									<a class="flex-item-title text primary" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
+									<a class="flex-item-title tw-text-primary" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
 										{{$.Org.Name}}/{{.Name}}
 									</a>
 								</div>
@@ -46,7 +46,7 @@
 							</div>
 						{{else}}
 							<div class="flex-item">
-								<span class="text grey tw-italic">{{ctx.Locale.Tr "org.teams.repos.none"}}</span>
+								<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "org.teams.repos.none"}}</span>
 							</div>
 						{{end}}
 					</div>

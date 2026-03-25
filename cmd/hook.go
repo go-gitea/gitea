@@ -194,7 +194,7 @@ Gitea or set your environment appropriately.`, "")
 	userID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
 	deployKeyID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvDeployKeyID), 10, 64)
-	actionPerm, _ := strconv.Atoi(os.Getenv(repo_module.EnvActionPerm))
+	actionsTaskID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvActionsTaskID), 10, 64)
 
 	hookOptions := private.HookOptions{
 		UserID:                          userID,
@@ -204,7 +204,8 @@ Gitea or set your environment appropriately.`, "")
 		GitPushOptions:                  pushOptions(),
 		PullRequestID:                   prID,
 		DeployKeyID:                     deployKeyID,
-		ActionPerm:                      actionPerm,
+		ActionsTaskID:                   actionsTaskID,
+		IsWiki:                          isWiki,
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -274,6 +275,9 @@ Gitea or set your environment appropriately.`, "")
 			fmt.Fprintf(out, "\n")
 			lastline = 0
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		return fail(ctx, "Hook failed: stdin read error", "scanner error: %v", err)
 	}
 
 	if count > 0 {
@@ -366,6 +370,7 @@ Gitea or set your environment appropriately.`, "")
 		GitPushOptions:                  pushOptions(),
 		PullRequestID:                   prID,
 		PushTrigger:                     repo_module.PushTrigger(os.Getenv(repo_module.EnvPushTrigger)),
+		IsWiki:                          isWiki,
 	}
 	oldCommitIDs := make([]string, hookBatchSize)
 	newCommitIDs := make([]string, hookBatchSize)
@@ -412,6 +417,11 @@ Gitea or set your environment appropriately.`, "")
 			results = append(results, resp.Results...)
 			count = 0
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		_ = dWriter.Close()
+		hookPrintResults(results)
+		return fail(ctx, "Hook failed: stdin read error", "scanner error: %v", err)
 	}
 
 	if count == 0 {
@@ -513,6 +523,7 @@ Gitea or set your environment appropriately.`, "")
 
 	reader := bufio.NewReader(os.Stdin)
 	repoUser := os.Getenv(repo_module.EnvRepoUsername)
+	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
 	repoName := os.Getenv(repo_module.EnvRepoName)
 	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	pusherName := os.Getenv(repo_module.EnvPusherName)
@@ -590,6 +601,7 @@ Gitea or set your environment appropriately.`, "")
 		UserName:       pusherName,
 		UserID:         pusherID,
 		GitPushOptions: make(map[string]string),
+		IsWiki:         isWiki,
 	}
 	hookOptions.OldCommitIDs = make([]string, 0, hookBatchSize)
 	hookOptions.NewCommitIDs = make([]string, 0, hookBatchSize)

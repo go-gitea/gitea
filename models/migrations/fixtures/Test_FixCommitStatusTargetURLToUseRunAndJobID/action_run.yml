@@ -1,0 +1,9 @@
+# type ActionRun struct {
+#   ID     int64 `xorm:"pk autoincr"`
+#   RepoID int64 `xorm:"index"`
+#   Index  int64
+# }
+-
+  id: 106
+  repo_id: 1
+  index: 7

@@ -45,22 +45,6 @@ func GetImageCaptcha() *captcha.Captcha {
 	return cpt
 }
 
-// SetCaptchaData sets common captcha data
-func SetCaptchaData(ctx *Context) {
-	if !setting.Service.EnableCaptcha {
-		return
-	}
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
-	ctx.Data["Captcha"] = GetImageCaptcha()
-	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
-	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
-}
-
 const (
 	gRecaptchaResponseField  = "g-recaptcha-response"
 	hCaptchaResponseField    = "h-captcha-response"
@@ -98,6 +82,6 @@ func VerifyCaptcha(ctx *Context, tpl templates.TplName, form any) {
 
 	if !valid {
 		ctx.Data["Err_Captcha"] = true
-		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tpl, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.captcha_incorrect"), tpl, form)
 	}
 }

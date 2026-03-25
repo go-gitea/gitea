@@ -20,6 +20,7 @@ func NewDiffPatch(ctx *context.Context) {
 	}
 
 	ctx.Data["PageIsPatch"] = true
+	ctx.Data["CodeEditorConfig"] = CodeEditorConfig{} // not really editing a file, so no need to fill in the config
 	ctx.HTML(http.StatusOK, tplPatchFile)
 }
 

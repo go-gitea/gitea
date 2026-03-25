@@ -1,10 +1,11 @@
+{{$isActionsEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeActions}}
 <div class="repo-setting-content">
+	<!-- Enable/Disable Actions Section (First) -->
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.general.enable_actions"}}
 	</h4>
 	<div class="ui attached segment">
 		<form class="ui form" action="{{.Link}}/actions_unit" method="post">
-			{{$isActionsEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeActions}}
 			{{$isActionsGlobalDisabled := ctx.Consts.RepoUnitTypeActions.UnitGlobalDisabled}}
 			<div class="inline field">
 				<label>{{ctx.Locale.Tr "actions.actions"}}</label>
@@ -22,8 +23,40 @@
 		</form>
 	</div>
 
-{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
+{{if $isActionsEnabled}}
+	<!-- Token Permissions Section -->
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.general.permissions"}}
+	</h4>
+	<div class="ui attached segment">
+		<form class="ui form" action="{{.RepoLink}}/settings/actions/general/token_permissions" method="post" data-global-init="initRepoActionsPermissionsForm">
+			<!-- Override Owner Configuration -->
+			<div class="field">
+				<div class="ui checkbox">
+					<input type="checkbox" name="override_owner_config" {{if .OverrideOwnerConfig}}checked{{end}}>
+					<label><strong>{{ctx.Locale.Tr "actions.general.token_permissions.override_owner"}}</strong></label>
+				</div>
+				<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.override_owner_desc"}}</div>
+			</div>
+
+			<div class="divider"></div>
+
+			<div class="field js-repo-token-permissions-config">
+				{{template "shared/actions/permission_mode_select" .}}
+				<div class="divider"></div>
+				{{template "shared/actions/permissions_table" .}}
+			</div>
+
+			<div class="field">
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
+			</div>
+		</form>
+	</div>
+{{end}}
+
+{{if $isActionsEnabled}}
 	{{if .Repository.IsPrivate}}
+	<!-- Collaborative Owners Section -->
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.general.collaborative_owners_management"}}
 	</h4>

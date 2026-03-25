@@ -56,11 +56,11 @@
 						{{$index := index .GetIssueInfos 0}}
 						{{ctx.Locale.Tr "action.delete_branch" (.GetRepoLink ctx) .GetBranch (.ShortRepoPath ctx)}}
 					{{else if .GetOpType.InActions "mirror_sync_push"}}
-						{{ctx.Locale.Tr "action.mirror_sync_push" (.GetRepoLink ctx) (.GetRefLink ctx) .GetBranch (.ShortRepoPath ctx)}}
+						{{ctx.Locale.Tr "action.mirror_sync_push" (.GetRepoLink ctx) (.GetRefLink ctx) .RefName (.ShortRepoPath ctx)}}
 					{{else if .GetOpType.InActions "mirror_sync_create"}}
-						{{ctx.Locale.Tr "action.mirror_sync_create" (.GetRepoLink ctx) (.GetRefLink ctx) .GetBranch (.ShortRepoPath ctx)}}
+						{{ctx.Locale.Tr "action.mirror_sync_create" (.GetRepoLink ctx) (.GetRefLink ctx) .RefName (.ShortRepoPath ctx)}}
 					{{else if .GetOpType.InActions "mirror_sync_delete"}}
-						{{ctx.Locale.Tr "action.mirror_sync_delete" (.GetRepoLink ctx) .GetBranch (.ShortRepoPath ctx)}}
+						{{ctx.Locale.Tr "action.mirror_sync_delete" (.GetRepoLink ctx) .RefName (.ShortRepoPath ctx)}}
 					{{else if .GetOpType.InActions "approve_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{ctx.Locale.Tr "action.approve_pull_request" (printf "%s/pulls/%s" (.GetRepoLink ctx) $index) $index (.ShortRepoPath ctx)}}
@@ -93,7 +93,7 @@
 							<div class="flex-text-block">
 								<img loading="lazy" alt class="ui avatar" src="{{$push.AvatarLink ctx .AuthorEmail}}" title="{{.AuthorName}}" width="16" height="16">
 								<a class="ui sha label" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
-								<span class="text truncate">
+								<span class="tw-inline-block tw-truncate">
 									{{ctx.RenderUtils.RenderCommitMessage .Message $repo}}
 								</span>
 							</div>
@@ -103,26 +103,26 @@
 						<a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{ctx.Locale.Tr "action.compare_commits" $push.Len}} »</a>
 					{{end}}
 				{{else if .GetOpType.InActions "create_issue"}}
-					<span class="text truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
+					<span class="tw-inline-block tw-truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "create_pull_request"}}
-					<span class="text truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
+					<span class="tw-inline-block tw-truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "comment_issue" "approve_pull_request" "reject_pull_request" "comment_pull"}}
-					<a href="{{.GetCommentLink ctx}}" class="text truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
+					<a href="{{.GetCommentLink ctx}}" class="tw-inline-block tw-truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 					{{$comment := index .GetIssueInfos 1}}
 					{{if $comment}}
 						<div class="render-content markup tw-text-14">{{ctx.RenderUtils.MarkdownToHtml $comment}}</div>
 					{{end}}
 				{{else if .GetOpType.InActions "merge_pull_request"}}
-					<div class="flex-item-body text black">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</div>
+					<div class="flex-item-body tw-text-text">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</div>
 				{{else if .GetOpType.InActions "close_issue" "reopen_issue" "close_pull_request" "reopen_pull_request"}}
-					<span class="text truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
+					<span class="tw-inline-block tw-truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "pull_review_dismissed"}}
-				<div class="flex-item-body text black">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</div>
-				<div class="flex-item-body text black">{{index .GetIssueInfos 2 | ctx.RenderUtils.RenderEmoji}}</div>
+				<div class="flex-item-body tw-text-text">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</div>
+				<div class="flex-item-body tw-text-text">{{index .GetIssueInfos 2 | ctx.RenderUtils.RenderEmoji}}</div>
 				{{end}}
 			</div>
 			<div class="flex-item-trailing">
-				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32 "text grey tw-mr-1"}}
+				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32 "tw-text-text-light tw-mr-1"}}
 			</div>
 		</div>
 	{{end}}

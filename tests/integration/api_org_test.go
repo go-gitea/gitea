@@ -137,34 +137,45 @@ func TestAPIOrgGeneral(t *testing.T) {
 	})
 
 	t.Run("OrgEdit", func(t *testing.T) {
-		org := api.EditOrgOption{
-			FullName:    "Org3 organization new full name",
-			Description: "A new description",
-			Website:     "https://try.gitea.io/new",
-			Location:    "Beijing",
-			Visibility:  "private",
-		}
-		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org).AddTokenAuth(user1Token)
-		resp := MakeRequest(t, req, http.StatusOK)
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
+		assert.NotEqual(t, api.VisibleTypeLimited, org3.Visibility)
 
-		var apiOrg api.Organization
-		DecodeJSON(t, resp, &apiOrg)
+		org3Edit := api.EditOrgOption{
+			FullName:    new("new full name"),
+			Description: new("new description"),
+			Website:     new("https://org3-new-website.example.com"),
+			Location:    new("new location"),
+			Visibility:  new("limited"),
+			Email:       new("org3-new-email@example.com"),
+		}
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org3Edit).AddTokenAuth(user1Token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		apiOrg := DecodeJSON(t, resp, &api.Organization{})
 
 		assert.Equal(t, "org3", apiOrg.Name)
-		assert.Equal(t, org.FullName, apiOrg.FullName)
-		assert.Equal(t, org.Description, apiOrg.Description)
-		assert.Equal(t, org.Website, apiOrg.Website)
-		assert.Equal(t, org.Location, apiOrg.Location)
-		assert.Equal(t, org.Visibility, apiOrg.Visibility)
+		assert.Equal(t, *org3Edit.FullName, apiOrg.FullName)
+		assert.Equal(t, *org3Edit.Description, apiOrg.Description)
+		assert.Equal(t, *org3Edit.Website, apiOrg.Website)
+		assert.Equal(t, *org3Edit.Location, apiOrg.Location)
+		assert.Equal(t, *org3Edit.Visibility, apiOrg.Visibility)
+		assert.Equal(t, *org3Edit.Email, apiOrg.Email)
+		org3 = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
+		assert.Equal(t, api.VisibleTypeLimited, org3.Visibility)
+
+		// empty email can clear the email, nil fields won't change the settings
+		req = NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &api.EditOrgOption{
+			Email: new(""),
+		}).AddTokenAuth(user1Token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		apiOrg = DecodeJSON(t, resp, &api.Organization{})
+		assert.Equal(t, *org3Edit.FullName, apiOrg.FullName)
+		assert.Equal(t, *org3Edit.Visibility, apiOrg.Visibility)
+		assert.Empty(t, apiOrg.Email)
 	})
 
-	t.Run("OrgEditBadVisibility", func(t *testing.T) {
+	t.Run("OrgEditInvalidVisibility", func(t *testing.T) {
 		org := api.EditOrgOption{
-			FullName:    "Org3 organization new full name",
-			Description: "A new description",
-			Website:     "https://try.gitea.io/new",
-			Location:    "Beijing",
-			Visibility:  "badvisibility",
+			Visibility: new("invalid-visibility"),
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org).AddTokenAuth(user1Token)
 		MakeRequest(t, req, http.StatusUnprocessableEntity)

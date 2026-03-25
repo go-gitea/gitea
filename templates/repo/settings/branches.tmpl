@@ -9,22 +9,23 @@
 				{{ctx.Locale.Tr "repo.default_branch"}}
 			</h4>
 			<div class="ui attached segment">
-				<p>
-					{{ctx.Locale.Tr "repo.settings.default_branch_desc"}}
-				</p>
-				<form class="tw-flex" action="{{.Link}}" method="post">
+				<p>{{ctx.Locale.Tr "repo.settings.default_branch_desc"}}</p>
+				<form class="ui form" action="{{.Link}}" method="post">
 					<input type="hidden" name="action" value="default_branch">
-					<div class="ui dropdown selection search tw-flex-1 tw-mr-2 tw-max-w-96">
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
-						<div class="default text">{{.Repository.DefaultBranch}}</div>
-						<div class="menu">
-							{{range .Branches}}
-								<div class="item" data-value="{{.}}">{{.}}</div>
-							{{end}}
+					<div class="flex-text-block">
+						<div class="ui dropdown selection search tw-flex-1 tw-mr-2 tw-max-w-96">
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
+							<div class="default text">{{.Repository.DefaultBranch}}</div>
+							<div class="menu">
+								{{range .Branches}}
+									<div class="item" data-value="{{.}}">{{.}}</div>
+								{{end}}
+							</div>
 						</div>
+						<button class="ui primary button"{{if .Repository.IsEmpty}} disabled{{end}}>{{ctx.Locale.Tr "repo.settings.branches.update_default_branch"}}</button>
 					</div>
-					<button class="ui primary button"{{if .Repository.IsEmpty}} disabled{{end}}>{{ctx.Locale.Tr "repo.settings.branches.update_default_branch"}}</button>
+					<div class="help tw-mt-4 tw-p-0">{{ctx.Locale.Tr "repo.settings.default_target_branch_desc"}}</div>
 				</form>
 			</div>
 

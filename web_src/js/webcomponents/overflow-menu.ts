@@ -22,6 +22,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       const div = document.createElement('div');
       div.tabIndex = -1; // for initial focus, programmatic focus only
       div.addEventListener('keydown', (e) => {
+        if (e.isComposing) return;
         if (e.key === 'Tab') {
           const items = this.tippyContent.querySelectorAll<HTMLElement>('[role="menuitem"]');
           if (e.shiftKey) {

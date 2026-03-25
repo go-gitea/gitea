@@ -49,7 +49,7 @@ defineProps<{
 
 const isLoading = shallowRef(false);
 const errorText = shallowRef('');
-const repoLink = pageData.repoLink;
+const repoLink = pageData.repoLink!;
 const data = shallowRef<DayData[]>([]);
 
 onMounted(() => {
@@ -153,7 +153,7 @@ const options: ChartOptions<'line'> = {
           <SvgIcon name="gitea-running" class="tw-mr-2 rotate-clockwise"/>
           {{ locale.loadingInfo }}
         </div>
-        <div v-else class="text red">
+        <div v-else class="tw-text-red">
           <SvgIcon name="octicon-x-circle-fill"/>
           {{ errorText }}
         </div>

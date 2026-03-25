@@ -9,6 +9,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
@@ -25,7 +26,9 @@ var (
 	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
 )
 
-var versionMatcher = regexp.MustCompile(`\A[0-9]+(?:\.[0-9a-zA-Z]+)*(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z`)
+var versionMatcher = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`\A[0-9]+(?:\.[0-9a-zA-Z]+)*(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z`)
+})
 
 // Package represents a RubyGems package
 type Package struct {
@@ -128,7 +131,7 @@ func (r requirement) AsVersionRequirement() []VersionRequirement {
 			continue
 		}
 		version, ok := versionInt.(string)
-		if !ok || version == "0" {
+		if !ok || (version == "0" && restriction == ">=") {
 			continue
 		}
 
@@ -176,7 +179,7 @@ func parseMetadataFile(r io.Reader) (*Package, error) {
 		return nil, ErrInvalidName
 	}
 
-	if !versionMatcher.MatchString(spec.Version.Version) {
+	if !versionMatcher().MatchString(spec.Version.Version) {
 		return nil, ErrInvalidVersion
 	}
 

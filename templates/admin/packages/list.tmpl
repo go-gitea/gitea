@@ -26,7 +26,7 @@
 			</form>
 		</div>
 		<div class="ui attached table segment">
-			<table class="ui very basic striped table unstackable">
+			<table class="ui very basic table unstackable">
 				<thead>
 					<tr>
 						<th>ID</th>
@@ -57,7 +57,7 @@
 							<td>
 								<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 								{{if .Owner.Visibility.IsPrivate}}
-									<span class="text gold">{{svg "octicon-lock"}}</span>
+									<span class="tw-text-gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 							</td>
 							<td>{{.Package.Type.Name}}</td>
@@ -72,7 +72,7 @@
 							<td>{{FileSize .CalculateBlobSize}}</td>
 							<td>{{DateUtils.AbsoluteShort .Version.CreatedUnix}}</td>
 							<td>
-								<a class="text red show-modal" href data-modal="#admin-package-delete-modal"
+								<a class="tw-text-red show-modal" href data-modal="#admin-package-delete-modal"
 									data-modal-form.action="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.Version.ID}}"
 									data-modal-package-name="{{.Package.Name}}" data-modal-package-version="{{.Version.Version}}"
 								>{{svg "octicon-trash"}}</a>
