@@ -82,9 +82,12 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 }
 
 func serveSetHeadersByUserContent(w http.ResponseWriter, contentPrefetchBuf []byte, opts ServeHeaderOptions) {
+	var detectCharset bool
+
 	if setting.MimeTypeMap.Enabled {
 		fileExtension := strings.ToLower(path.Ext(opts.Filename))
 		opts.ContentType = setting.MimeTypeMap.Map[fileExtension]
+		detectCharset = !strings.Contains(opts.ContentType, "charset=")
 	}
 
 	if opts.ContentType == "" {
@@ -94,11 +97,15 @@ func serveSetHeadersByUserContent(w http.ResponseWriter, contentPrefetchBuf []by
 		} else if sniffedType.IsText() {
 			//  intentionally do not render user's HTML content as a page, for safety, and avoid content spamming & abusing
 			opts.ContentType = "text/plain"
-			if charset, _ := charsetModule.DetectEncoding(contentPrefetchBuf); charset != "" {
-				opts.ContentType += "; charset=" + strings.ToLower(charset)
-			}
+			detectCharset = true
 		} else {
 			opts.ContentType = typesniffer.MimeTypeApplicationOctetStream
+		}
+	}
+
+	if detectCharset {
+		if charset, _ := charsetModule.DetectEncoding(contentPrefetchBuf); charset != "" {
+			opts.ContentType += "; charset=" + strings.ToLower(charset)
 		}
 	}
 
