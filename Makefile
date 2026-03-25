@@ -537,7 +537,7 @@ playwright: deps-frontend
 	@$(NODE_VARS) pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium $(if $(CI),firefox) $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e
-test-e2e: playwright $(EXECUTABLE_E2E)
+test-e2e: playwright $(EXECUTABLE_E2E) $(WEBPACK_DEST)
 	@EXECUTABLE=$(EXECUTABLE_E2E) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: bench-sqlite

@@ -11,11 +11,11 @@ test.describe('events', () => {
 
     await Promise.all([apiCreateUser(request, owner), apiCreateUser(request, commenter)]);
 
-    // Create repo before login
-    await apiCreateRepo(request, {name: repoName, headers: apiUserHeaders(owner)});
-
-    // Login as the owner first — event stream connects with no unread notifications
-    await loginUser(page, owner);
+    // Create repo and login in parallel — repo is needed for the issue, login for the event stream
+    await Promise.all([
+      apiCreateRepo(request, {name: repoName, headers: apiUserHeaders(owner)}),
+      loginUser(page, owner),
+    ]);
     const badge = page.locator('a.not-mobile .notification_count');
     await expect(badge).toBeHidden();
 
