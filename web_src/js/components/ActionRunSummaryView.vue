@@ -54,6 +54,7 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 6px;
   padding: 12px;
   border-bottom: 1px solid var(--color-secondary);
 }
@@ -67,9 +68,6 @@ onBeforeUnmount(() => {
   .action-run-summary-block {
     flex-direction: column;
     align-items: flex-start;
-  }
-  .action-run-summary-trigger {
-    margin-bottom: 6px;
   }
 }
 </style>
