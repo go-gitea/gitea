@@ -32,13 +32,11 @@ onBeforeUnmount(() => {
   <div>
     <div class="action-run-summary-block">
       <p class="action-run-summary-trigger">
-        {{ locale.triggeredVia.replace('%s', run.triggerEvent) }}
-        &nbsp;•&nbsp;<relative-time :datetime="runTriggeredAtIso" prefix=" "/>
+        {{ locale.triggeredVia.replace('%s', run.triggerEvent) }}&nbsp;•&nbsp;<relative-time :datetime="runTriggeredAtIso"/>
       </p>
       <p class="tw-mb-0">
         <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="16"/>
-        <span class="tw-ml-2">{{ locale.status[run.status] }}</span>
-        <span class="tw-ml-3">{{ locale.totalDuration }} {{ run.duration || '–' }}</span>
+        <span class="tw-ml-2">{{ locale.status[run.status] }}</span>&nbsp;•&nbsp;<span>{{ locale.totalDuration }} {{ run.duration || '–' }}</span>
       </p>
     </div>
     <WorkflowGraph
@@ -52,12 +50,25 @@ onBeforeUnmount(() => {
 </template>
 <style scoped>
 .action-run-summary-block {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 12px;
   border-bottom: 1px solid var(--color-secondary);
 }
 
 .action-run-summary-trigger {
-  margin-bottom: 6px;
+  margin-bottom: 0;
   color: var(--color-text-light-2);
+}
+
+@media (max-width: 767.98px) {
+  .action-run-summary-block {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .action-run-summary-trigger {
+    margin-bottom: 6px;
+  }
 }
 </style>

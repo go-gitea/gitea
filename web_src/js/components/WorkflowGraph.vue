@@ -600,9 +600,9 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
       <h4 class="graph-title">Workflow Dependencies</h4>
       <div class="graph-stats">
         {{ jobs.length }} jobs • {{ edges.length }} dependencies
-        <span v-if="graphMetrics" class="graph-metrics">
-          • {{ graphMetrics.successRate }} success
-        </span>
+        <template v-if="graphMetrics">
+          • <span class="graph-metrics">{{ graphMetrics.successRate }} success</span>
+        </template>
       </div>
       <div class="flex-text-block">
         <button @click="zoomIn" class="ui compact tiny icon button" title="Zoom in">
@@ -753,6 +753,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   align-items: center;
   padding: 8px 14px;
   background: var(--color-box-header);
+  border-bottom: 1px solid var(--color-secondary);
   gap: 20px;
   flex-wrap: wrap;
 }
