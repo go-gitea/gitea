@@ -61,9 +61,8 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 	ctx.ServeContent(reader, &context.ServeHeaderOptions{
 		Filename:           fmt.Sprintf("%v-%v-%v.log", workflowName, curJob.Name, task.ID),
 		ContentLength:      &task.LogSize,
-		ContentType:        "text/plain",
-		ContentTypeCharset: "utf-8",
-		Disposition:        httplib.ContentDispositionAttachment,
+		ContentType:        "text/plain; charset=utf-8",
+		ContentDisposition: httplib.ContentDispositionAttachment,
 	})
 	return nil
 }

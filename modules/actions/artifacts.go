@@ -4,9 +4,8 @@
 package actions
 
 import (
-	"errors"
-	"mime"
 	"net/http"
+	"path"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -17,27 +16,16 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-// Artifacts using the v4 backend are stored as a single combined zip file per artifact on the backend
-// The v4 backend ensures ContentEncoding contains a slash (otherwise this uses application/zip instead of the custom mime type), which is not the case for the old backend
+// IsArtifactV4 detects whether the artifact is likely from v4.
+// V4 backend stores the files as a single combined zip file per artifact, and ensures ContentEncoding contains a slash
+// (otherwise this uses application/zip instead of the custom mime type), which is not the case for the old backend.
 func IsArtifactV4(art *actions_model.ActionArtifact) bool {
 	return strings.Contains(art.ContentEncodingOrType, "/")
 }
 
-func GetArtifactContentTypeAndDisposition(artifact *actions_model.ActionArtifact) (contentType, contentDisposition string, _ error) {
-	contentType = mime.FormatMediaType(artifact.ContentEncodingOrType, nil)
-	contentDisposition = httplib.EncodeContentDisposition(httplib.ContentDispositionInline, artifact.ArtifactPath)
-	if contentType == "" || contentDisposition == "" {
-		setting.PanicInDevOrTesting("cannot generate mime headers")
-		return "", "", errors.New("cannot generate mime headers")
-	}
-	return contentType, contentDisposition, nil
-}
-
-func GetArtifactV4ServeDirectURL(ctx *context.Base, art *actions_model.ActionArtifact, method string) (string, error) {
-	contentType, contentDisposition, err := GetArtifactContentTypeAndDisposition(art)
-	if err != nil {
-		return "", err
-	}
+func GetArtifactV4ServeDirectURL(art *actions_model.ActionArtifact, method string) (string, error) {
+	contentType := art.ContentEncodingOrType
+	contentDisposition := httplib.EncodeContentDisposition(httplib.ContentDispositionInline, path.Base(art.ArtifactPath))
 	u, err := storage.ActionsArtifacts.ServeDirectURL(art.StoragePath, art.ArtifactPath, method, &storage.ServeDirectOptions{
 		ContentType:        contentType,
 		ContentDisposition: contentDisposition,
@@ -51,7 +39,7 @@ func GetArtifactV4ServeDirectURL(ctx *context.Base, art *actions_model.ActionArt
 
 func DownloadArtifactV4ServeDirectOnly(ctx *context.Base, art *actions_model.ActionArtifact) (bool, error) {
 	if setting.Actions.ArtifactStorage.ServeDirect() {
-		u, err := GetArtifactV4ServeDirectURL(ctx, art, ctx.Req.Method)
+		u, err := GetArtifactV4ServeDirectURL(art, ctx.Req.Method)
 		if u != "" && err == nil {
 			ctx.Redirect(u, http.StatusFound)
 			return true, nil
@@ -67,28 +55,13 @@ func DownloadArtifactV4Fallback(ctx *context.Base, art *actions_model.ActionArti
 	}
 	defer f.Close()
 
-	contentType, contentDisposition, err := GetArtifactContentTypeAndDisposition(art)
-	if err != nil {
-		return err
-	}
-
-	mediaType, _, err := mime.ParseMediaType(contentType)
-	if err != nil {
-		return err
-	}
-
-	ctx.Resp.Header().Set("Content-Type", contentType)
-	ctx.Resp.Header().Set("Content-Disposition", contentDisposition)
-
-	switch mediaType {
-	case "application/pdf":
-		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context, it seems fine to render it inline
-		ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
-	default:
-		// Disable script execution of html files, since we serve the file from the same domain as gitea
-		ctx.Resp.Header().Set("Content-Security-Policy", "sandbox; style-src 'unsafe-inline'; default-src 'none';")
-	}
-	http.ServeContent(ctx.Resp, ctx.Req, art.ArtifactPath, art.CreatedUnix.AsLocalTime(), f)
+	contentType := art.ContentEncodingOrType
+	contentLength := int64(-1) // do we know the content length (by artifact)?
+	httplib.ServeContentByReader(ctx.Req, ctx.Resp, contentLength, f, httplib.ServeHeaderOptions{
+		Filename:           path.Base(art.ArtifactPath),
+		ContentType:        contentType,
+		ContentDisposition: httplib.ContentDispositionInline,
+	})
 	return nil
 }
 

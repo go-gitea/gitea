@@ -35,7 +35,7 @@ func ServeBlob(ctx *context.Base, repo *repo_model.Repository, filePath string, 
 	}()
 
 	_ = repo.LoadOwner(ctx)
-	httplib.ServeContentByReader(ctx.Req, ctx.Resp, blob.Size(), dataRc, &httplib.ServeHeaderOptions{
+	httplib.ServeContentByReader(ctx.Req, ctx.Resp, blob.Size(), dataRc, httplib.ServeHeaderOptions{
 		Filename:      path.Base(filePath),
 		CacheIsPublic: !repo.IsPrivate && repo.Owner != nil && repo.Owner.Visibility == structs.VisibleTypePublic,
 		CacheDuration: setting.StaticCacheTime,
@@ -44,9 +44,9 @@ func ServeBlob(ctx *context.Base, repo *repo_model.Repository, filePath string, 
 }
 
 func ServeContentByReader(ctx *context.Base, filePath string, size int64, reader io.Reader) {
-	httplib.ServeContentByReader(ctx.Req, ctx.Resp, size, reader, &httplib.ServeHeaderOptions{Filename: path.Base(filePath)})
+	httplib.ServeContentByReader(ctx.Req, ctx.Resp, size, reader, httplib.ServeHeaderOptions{Filename: path.Base(filePath)})
 }
 
 func ServeContentByReadSeeker(ctx *context.Base, filePath string, modTime *time.Time, reader io.ReadSeeker) {
-	httplib.ServeContentByReadSeeker(ctx.Req, ctx.Resp, modTime, reader, &httplib.ServeHeaderOptions{Filename: path.Base(filePath)})
+	httplib.ServeContentByReadSeeker(ctx.Req, ctx.Resp, modTime, reader, httplib.ServeHeaderOptions{Filename: path.Base(filePath)})
 }

@@ -26,18 +26,19 @@ import (
 )
 
 type ServeHeaderOptions struct {
-	ContentType        string // defaults to "application/octet-stream"
-	ContentTypeCharset string
-	ContentLength      *int64
-	Disposition        ContentDispositionType // defaults to "attachment"
+	ContentType   string // defaults to "application/octet-stream"
+	ContentLength *int64
+
 	Filename           string
-	CacheIsPublic      bool
-	CacheDuration      time.Duration // defaults to 5 minutes
-	LastModified       time.Time
+	ContentDisposition ContentDispositionType
+
+	CacheIsPublic bool
+	CacheDuration time.Duration // defaults to 5 minutes
+	LastModified  time.Time
 }
 
 // ServeSetHeaders sets necessary content serve headers
-func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
+func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	header := w.Header()
 
 	skipCompressionExts := container.SetOf(".gz", ".bz2", ".zip", ".xz", ".zst", ".deb", ".apk", ".jar", ".png", ".jpg", ".webp")
@@ -45,14 +46,7 @@ func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 		w.Header().Add(gzhttp.HeaderNoCompression, "1")
 	}
 
-	contentType := typesniffer.MimeTypeApplicationOctetStream
-	if opts.ContentType != "" {
-		if opts.ContentTypeCharset != "" {
-			contentType = opts.ContentType + "; charset=" + strings.ToLower(opts.ContentTypeCharset)
-		} else {
-			contentType = opts.ContentType
-		}
-	}
+	contentType := util.IfZero(opts.ContentType, typesniffer.MimeTypeApplicationOctetStream)
 	header.Set("Content-Type", contentType)
 	header.Set("X-Content-Type-Options", "nosniff")
 
@@ -60,13 +54,17 @@ func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))
 	}
 
-	if opts.Filename != "" {
-		disposition := opts.Disposition
-		if disposition == "" {
-			disposition = ContentDispositionAttachment
+	if opts.Filename != "" && opts.ContentDisposition != "" {
+		// Disable script execution of HTML files, since we serve the file from the same domain as gitea
+		header.Set("Content-Security-Policy", "sandbox; style-src 'unsafe-inline'; default-src 'none';")
+		if strings.Contains(contentType, "application/pdf") {
+			// no sandbox attribute for PDF as it breaks rendering in at least safari. this
+			// should generally be safe as scripts inside PDF can not escape the PDF document
+			// see https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
+			// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
+			header.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
 		}
-
-		header.Set("Content-Disposition", EncodeContentDisposition(disposition, opts.Filename))
+		header.Set("Content-Disposition", EncodeContentDisposition(opts.ContentDisposition, path.Base(opts.Filename)))
 		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 
@@ -82,13 +80,10 @@ func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 	}
 }
 
-// ServeData download file from io.Reader
-func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, mineBuf []byte, opts *ServeHeaderOptions) {
+func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, mineBuf []byte, opts ServeHeaderOptions) {
 	// do not set "Content-Length", because the length could only be set by callers, and it needs to support range requests
 	sniffedType := typesniffer.DetectContentType(mineBuf)
-
-	// the "render" parameter came from year 2016: 638dd24c, it doesn't have clear meaning, so I think it could be removed later
-	isPlain := sniffedType.IsText() || r.FormValue("render") != ""
+	isText := sniffedType.IsText()
 
 	if setting.MimeTypeMap.Enabled {
 		fileExtension := strings.ToLower(filepath.Ext(opts.Filename))
@@ -98,33 +93,22 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, mineBuf []byt
 	if opts.ContentType == "" {
 		if sniffedType.IsBrowsableBinaryType() {
 			opts.ContentType = sniffedType.GetMimeType()
-		} else if isPlain {
+		} else if isText {
 			opts.ContentType = "text/plain"
 		} else {
 			opts.ContentType = typesniffer.MimeTypeApplicationOctetStream
 		}
 	}
 
-	if isPlain {
-		charset, _ := charsetModule.DetectEncoding(mineBuf)
-		opts.ContentTypeCharset = strings.ToLower(charset)
+	if isText && !strings.Contains(opts.ContentType, "charset=") {
+		if charset, _ := charsetModule.DetectEncoding(mineBuf); charset != "" {
+			opts.ContentType += "; charset=" + strings.ToLower(charset)
+		}
 	}
 
-	// serve types that can present a security risk with CSP
-	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-
-	if sniffedType.IsPDF() {
-		// no sandbox attribute for PDF as it breaks rendering in at least safari. this
-		// should generally be safe as scripts inside PDF can not escape the PDF document
-		// see https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
-		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
-		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
-	}
-
-	// TODO: UNIFY-CONTENT-DISPOSITION-FROM-STORAGE
-	opts.Disposition = ContentDispositionInline
+	opts.ContentDisposition = ContentDispositionInline
 	if sniffedType.IsSvgImage() && !setting.UI.SVG.Enabled {
-		opts.Disposition = ContentDispositionAttachment
+		opts.ContentDisposition = ContentDispositionAttachment
 	}
 
 	ServeSetHeaders(w, opts)
@@ -132,7 +116,7 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, mineBuf []byt
 
 const mimeDetectionBufferLen = 1024
 
-func ServeContentByReader(r *http.Request, w http.ResponseWriter, size int64, reader io.Reader, opts *ServeHeaderOptions) {
+func ServeContentByReader(r *http.Request, w http.ResponseWriter, size int64, reader io.Reader, opts ServeHeaderOptions) {
 	buf := make([]byte, mimeDetectionBufferLen)
 	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
@@ -205,7 +189,7 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, size int64, re
 	_, _ = io.CopyN(w, reader, partialLength) // just like http.ServeContent, not necessary to handle the error
 }
 
-func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, modTime *time.Time, reader io.ReadSeeker, opts *ServeHeaderOptions) {
+func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, modTime *time.Time, reader io.ReadSeeker, opts ServeHeaderOptions) {
 	buf := make([]byte, mimeDetectionBufferLen)
 	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {

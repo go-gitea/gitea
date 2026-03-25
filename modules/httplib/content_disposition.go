@@ -5,6 +5,7 @@ package httplib
 
 import (
 	"mime"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -37,6 +38,7 @@ func getSafeName(s string) (_ string, needsEncoding bool) {
 
 // EncodeContentDisposition encodes a correct Content-Disposition Header
 func EncodeContentDisposition(t ContentDispositionType, filename string) string {
+	filename = path.Base(filename)
 	safeFilename, needsEncoding := getSafeName(filename)
 	result := mime.FormatMediaType(string(t), map[string]string{"filename": safeFilename})
 	// No need for the utf8 encoding
