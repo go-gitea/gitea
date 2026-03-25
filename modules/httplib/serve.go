@@ -81,7 +81,7 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	}
 }
 
-func serveSetHeadersByFileContent(w http.ResponseWriter, contentPrefetchBuf []byte, opts ServeHeaderOptions) {
+func serveSetHeadersByUserContent(w http.ResponseWriter, contentPrefetchBuf []byte, opts ServeHeaderOptions) {
 	if setting.MimeTypeMap.Enabled {
 		fileExtension := strings.ToLower(path.Ext(opts.Filename))
 		opts.ContentType = setting.MimeTypeMap.Map[fileExtension]
@@ -126,7 +126,7 @@ func ServeUserContentByReader(r *http.Request, w http.ResponseWriter, size int64
 	if n >= 0 {
 		buf = buf[:n]
 	}
-	serveSetHeadersByFileContent(w, buf, opts)
+	serveSetHeadersByUserContent(w, buf, opts)
 
 	// reset the reader to the beginning
 	reader = io.MultiReader(bytes.NewReader(buf), reader)
