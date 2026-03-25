@@ -202,9 +202,9 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 
 			artifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{ID: finalizeResp.ArtifactId})
 			if entry.contentType != "" {
-				assert.Equal(t, entry.contentType, artifact.ContentEncoding)
+				assert.Equal(t, entry.contentType, artifact.ContentEncodingOrType)
 			} else {
-				assert.Equal(t, actions.ArtifactV4ContentEncoding, artifact.ContentEncoding)
+				assert.Equal(t, "application/zip", artifact.ContentEncodingOrType)
 			}
 			if entry.path != "" {
 				assert.Equal(t, entry.path, artifact.ArtifactPath)
@@ -485,9 +485,9 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 
 			artifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{ID: finalizeResp.ArtifactId})
 			if entry.contentType != "" {
-				assert.Equal(t, entry.contentType, artifact.ContentEncoding)
+				assert.Equal(t, entry.contentType, artifact.ContentEncodingOrType)
 			} else {
-				assert.Equal(t, actions.ArtifactV4ContentEncoding, artifact.ContentEncoding)
+				assert.Equal(t, "application/zip", artifact.ContentEncodingOrType)
 			}
 			assert.Equal(t, actions_model.ArtifactStatusUploadConfirmed, artifact.Status)
 			assert.Equal(t, int64(2048), artifact.FileSize)
@@ -510,10 +510,10 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 		ContentType        string
 		ContentDisposition string
 	}{
-		{Name: "Download-Zip", ArtifactName: "artifact-v4-download", FileName: "artifact-v4-download.zip", ContentType: actions.ArtifactV4ContentEncoding},
+		{Name: "Download-Zip", ArtifactName: "artifact-v4-download", FileName: "artifact-v4-download.zip", ContentType: "application/zip"},
 		{Name: "Download-Pdf", ArtifactName: "report.pdf", FileName: "report.pdf", ContentType: "application/pdf"},
 		{Name: "Download-Html", ArtifactName: "report.html", FileName: "report.html", ContentType: "application/html"},
-		{Name: "ServeDirect-Zip", ArtifactName: "artifact-v4-download", FileName: "artifact-v4-download.zip", ContentType: actions.ArtifactV4ContentEncoding, ServeDirect: true},
+		{Name: "ServeDirect-Zip", ArtifactName: "artifact-v4-download", FileName: "artifact-v4-download.zip", ContentType: "application/zip", ServeDirect: true},
 		{Name: "ServeDirect-Pdf", ArtifactName: "report.pdf", FileName: "report.pdf", ContentType: "application/pdf", ServeDirect: true},
 		{Name: "ServeDirect-Html", ArtifactName: "report.html", FileName: "report.html", ContentType: "application/html", ServeDirect: true},
 	}

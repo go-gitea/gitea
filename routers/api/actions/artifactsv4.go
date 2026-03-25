@@ -119,10 +119,7 @@ import (
 	"xorm.io/builder"
 )
 
-const (
-	ArtifactV4RouteBase       = "/twirp/github.actions.results.api.v1.ArtifactService"
-	ArtifactV4ContentEncoding = "application/zip"
-)
+const ArtifactV4RouteBase = "/twirp/github.actions.results.api.v1.ArtifactService"
 
 type artifactV4Routes struct {
 	prefix string
@@ -331,8 +328,8 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 		encoding, _, _ = mime.ParseMediaType(encoding)
 	}
 	fileName := artifactName
-	if !strings.Contains(encoding, "/") || strings.EqualFold(encoding, ArtifactV4ContentEncoding) && !strings.HasSuffix(fileName, ".zip") {
-		encoding = ArtifactV4ContentEncoding
+	if !strings.Contains(encoding, "/") || strings.EqualFold(encoding, actions_model.ContentTypeZip) && !strings.HasSuffix(fileName, ".zip") {
+		encoding = actions_model.ContentTypeZip
 		fileName = artifactName + ".zip"
 	}
 	// create or get artifact with name and path
@@ -342,7 +339,7 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusInternalServerError, "Error create or get artifact")
 		return
 	}
-	artifact.ContentEncoding = encoding
+	artifact.ContentEncodingOrType = encoding
 	artifact.FileSize = 0
 	artifact.FileCompressedSize = 0
 

@@ -20,11 +20,11 @@ import (
 // Artifacts using the v4 backend are stored as a single combined zip file per artifact on the backend
 // The v4 backend ensures ContentEncoding contains a slash (otherwise this uses application/zip instead of the custom mime type), which is not the case for the old backend
 func IsArtifactV4(art *actions_model.ActionArtifact) bool {
-	return strings.Contains(art.ContentEncoding, "/")
+	return strings.Contains(art.ContentEncodingOrType, "/")
 }
 
 func GetArtifactContentTypeAndDisposition(artifact *actions_model.ActionArtifact) (contentType, contentDisposition string, _ error) {
-	contentType = mime.FormatMediaType(artifact.ContentEncoding, nil)
+	contentType = mime.FormatMediaType(artifact.ContentEncodingOrType, nil)
 	contentDisposition = httplib.EncodeContentDisposition(httplib.ContentDispositionInline, artifact.ArtifactPath)
 	if contentType == "" || contentDisposition == "" {
 		setting.PanicInDevOrTesting("cannot generate mime headers")

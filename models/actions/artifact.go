@@ -53,7 +53,10 @@ func init() {
 	db.RegisterModel(new(ActionArtifact))
 }
 
-const ContentEncodingV4Gzip = "gzip"
+const (
+	ContentEncodingV4Gzip = "gzip"
+	ContentTypeZip        = "application/zip"
+)
 
 // ActionArtifact is a file that is stored in the artifact storage.
 type ActionArtifact struct {
@@ -67,11 +70,13 @@ type ActionArtifact struct {
 	FileSize           int64  // The size of the artifact in bytes
 	FileCompressedSize int64  // The size of the artifact in bytes after gzip compression
 
-	// The content encoding or content type (abused?) of the artifact
-	// * empty or null: legacy (v3) uncompressed content
-	// * magic string "gzip": v4 gzip content, the content itself is a gzip file, so serve it directly
-	// * mime type like "application/zip" for "Content-Type"
-	ContentEncoding string
+	// The content encoding or content type of the artifact
+	// * empty or null: legacy (v3) uncompressed content?
+	// * magic string "gzip" (ContentEncodingV4Gzip): v4 gzip content, the content itself is a gzip file, so serve it directly?
+	// * mime type like for "Content-Type":
+	//   * "application/zip" (ContentTypeZip), seems to be an abuse, fortunately there is no conflict, and it won't cause problems?
+	//   * "application/pdf", "text/html", etc.: real content type of the artifact
+	ContentEncodingOrType string
 
 	ArtifactPath string             `xorm:"index unique(runid_name_path)"` // The path to the artifact when runner uploads it
 	ArtifactName string             `xorm:"index unique(runid_name_path)"` // The name of the artifact when runner uploads it
@@ -164,7 +169,8 @@ func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	}
 	if opts.FinalizedArtifactsV4 {
 		cond = cond.And(builder.Eq{"status": ArtifactStatusUploadConfirmed}.Or(builder.Eq{"status": ArtifactStatusExpired}))
-		cond = cond.And(builder.Like{"content_encoding", "/"})
+		// see the comment of ActionArtifact.ContentEncodingOrType: "*/*" means the field is a content type
+		cond = cond.And(builder.Like{"content_encoding", "%/%"})
 	}
 
 	return cond
