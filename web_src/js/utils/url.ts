@@ -1,5 +1,3 @@
-import {html, htmlRaw} from './html.ts';
-
 export function pathEscapeSegments(s: string): string {
   return s.split('/').map(encodeURIComponent).join('/');
 }
@@ -15,8 +13,8 @@ export function linkifyURLs(content: string): string {
     const trailingPunct = url.match(trailingPunctPattern);
     const cleanUrl = trailingPunct ? url.slice(0, -trailingPunct[0].length) : url;
     const trailing = trailingPunct ? trailingPunct[0] : '';
-    const rawUrl = htmlRaw(cleanUrl);
-    return html`<a href="${rawUrl}" target="_blank" rel="noopener noreferrer">${rawUrl}</a>` + trailing;
+    // safe because ansi_up already HTML-escapes and the URL regex excludes "<>\"'"
+    return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>${trailing}`; // eslint-disable-line github/unescaped-html-literal
   });
 }
 
