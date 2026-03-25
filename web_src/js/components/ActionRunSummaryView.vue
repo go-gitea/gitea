@@ -32,7 +32,7 @@ onBeforeUnmount(() => {
   <div>
     <div class="action-run-summary-block">
       <p class="action-run-summary-trigger">
-        {{ locale.triggeredVia.replace('%s', run.triggerEvent) }}&nbsp;•&nbsp;<relative-time :datetime="runTriggeredAtIso"/>
+        {{ locale.triggeredVia.replace('%s', run.triggerEvent) }}&nbsp;•&nbsp;<relative-time :datetime="runTriggeredAtIso" prefix=""/>
       </p>
       <p class="tw-mb-0">
         <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="16"/>
