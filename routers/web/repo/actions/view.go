@@ -717,6 +717,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		}
 	}
 
+	// FIXME: what if IsArtifactV4 but have multiple artifacts?
 	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
 		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
@@ -730,34 +731,37 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 
 	// Artifacts using the v1-v3 backend are stored as multiple individual files per artifact on the backend
 	// Those need to be zipped for download
-	writer := zip.NewWriter(ctx.Resp)
-	defer writer.Close()
-	for _, art := range artifacts {
+	zipWriter := zip.NewWriter(ctx.Resp)
+	defer zipWriter.Close()
+
+	writeArtifactToZip := func(art *actions_model.ActionArtifact) error {
 		f, err := storage.ActionsArtifacts.Open(art.StoragePath)
 		if err != nil {
-			ctx.ServerError("ActionsArtifacts.Open", err)
-			return
+			return fmt.Errorf("ActionsArtifacts.Open: %w", err)
 		}
+		defer f.Close()
 
-		var r io.ReadCloser
+		var r io.ReadCloser = f
 		if art.ContentEncodingOrType == actions_model.ContentEncodingV4Gzip {
 			r, err = gzip.NewReader(f)
 			if err != nil {
-				ctx.ServerError("gzip.NewReader", err)
-				return
+				return fmt.Errorf("gzip.NewReader: %w", err)
 			}
-		} else {
-			r = f
 		}
 		defer r.Close()
 
-		w, err := writer.Create(art.ArtifactPath)
+		w, err := zipWriter.Create(art.ArtifactPath)
 		if err != nil {
-			ctx.ServerError("writer.Create", err)
-			return
+			return fmt.Errorf("zipWriter.Create: %w", err)
 		}
-		if _, err := io.Copy(w, r); err != nil {
-			ctx.ServerError("io.Copy", err)
+		_, err = io.Copy(w, r)
+		return fmt.Errorf("io.Copy: %w", err)
+	}
+
+	for _, art := range artifacts {
+		err := writeArtifactToZip(art)
+		if err != nil {
+			ctx.ServerError("writeArtifactToZip", err)
 			return
 		}
 	}
