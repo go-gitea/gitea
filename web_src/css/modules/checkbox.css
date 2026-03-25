@@ -101,7 +101,6 @@ input[type="checkbox"]:indeterminate::before {
   cursor: auto;
   position: relative;
   display: block;
-  user-select: none;
 }
 
 .ui.checkbox label,

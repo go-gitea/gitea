@@ -23,78 +23,79 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// CmdDump represents the available dump sub-command.
-var CmdDump = &cli.Command{
-	Name:        "dump",
-	Usage:       "Dump Gitea files and database",
-	Description: `Dump compresses all related files and database into zip file. It can be used for backup and capture Gitea server image to send to maintainer`,
-	Action:      runDump,
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:    "file",
-			Aliases: []string{"f"},
-			Usage:   `Name of the dump file which will be created, default to "gitea-dump-{time}.zip". Supply '-' for stdout. See type for available types.`,
+func newDumpCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "dump",
+		Usage:       "Dump Gitea files and database",
+		Description: `Dump compresses all related files and database into zip file. It can be used for backup and capture Gitea server image to send to maintainer`,
+		Action:      runDump,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "file",
+				Aliases: []string{"f"},
+				Usage:   `Name of the dump file which will be created, default to "gitea-dump-{time}.zip". Supply '-' for stdout. See type for available types.`,
+			},
+			&cli.BoolFlag{
+				Name:    "verbose",
+				Aliases: []string{"V"},
+				Usage:   "Show process details",
+			},
+			&cli.BoolFlag{
+				Name:    "quiet",
+				Aliases: []string{"q"},
+				Usage:   "Only display warnings and errors",
+			},
+			&cli.StringFlag{
+				Name:    "tempdir",
+				Aliases: []string{"t"},
+				Value:   os.TempDir(),
+				Usage:   "Temporary dir path",
+			},
+			&cli.StringFlag{
+				Name:    "database",
+				Aliases: []string{"d"},
+				Usage:   "Specify the database SQL syntax: sqlite3, mysql, mssql, postgres",
+			},
+			&cli.BoolFlag{
+				Name:    "skip-repository",
+				Aliases: []string{"R"},
+				Usage:   "Skip the repository dumping",
+			},
+			&cli.BoolFlag{
+				Name:    "skip-log",
+				Aliases: []string{"L"},
+				Usage:   "Skip the log dumping",
+			},
+			&cli.BoolFlag{
+				Name:  "skip-custom-dir",
+				Usage: "Skip custom directory",
+			},
+			&cli.BoolFlag{
+				Name:  "skip-lfs-data",
+				Usage: "Skip LFS data",
+			},
+			&cli.BoolFlag{
+				Name:  "skip-attachment-data",
+				Usage: "Skip attachment data",
+			},
+			&cli.BoolFlag{
+				Name:  "skip-package-data",
+				Usage: "Skip package data",
+			},
+			&cli.BoolFlag{
+				Name:  "skip-index",
+				Usage: "Skip bleve index data",
+			},
+			&cli.BoolFlag{
+				Name:  "skip-db",
+				Usage: "Skip database",
+			},
+			&cli.StringFlag{
+				Name:  "type",
+				Usage: `Dump output format, default to "zip", supported types: ` + strings.Join(dump.SupportedOutputTypes, ", "),
+			},
 		},
-		&cli.BoolFlag{
-			Name:    "verbose",
-			Aliases: []string{"V"},
-			Usage:   "Show process details",
-		},
-		&cli.BoolFlag{
-			Name:    "quiet",
-			Aliases: []string{"q"},
-			Usage:   "Only display warnings and errors",
-		},
-		&cli.StringFlag{
-			Name:    "tempdir",
-			Aliases: []string{"t"},
-			Value:   os.TempDir(),
-			Usage:   "Temporary dir path",
-		},
-		&cli.StringFlag{
-			Name:    "database",
-			Aliases: []string{"d"},
-			Usage:   "Specify the database SQL syntax: sqlite3, mysql, mssql, postgres",
-		},
-		&cli.BoolFlag{
-			Name:    "skip-repository",
-			Aliases: []string{"R"},
-			Usage:   "Skip the repository dumping",
-		},
-		&cli.BoolFlag{
-			Name:    "skip-log",
-			Aliases: []string{"L"},
-			Usage:   "Skip the log dumping",
-		},
-		&cli.BoolFlag{
-			Name:  "skip-custom-dir",
-			Usage: "Skip custom directory",
-		},
-		&cli.BoolFlag{
-			Name:  "skip-lfs-data",
-			Usage: "Skip LFS data",
-		},
-		&cli.BoolFlag{
-			Name:  "skip-attachment-data",
-			Usage: "Skip attachment data",
-		},
-		&cli.BoolFlag{
-			Name:  "skip-package-data",
-			Usage: "Skip package data",
-		},
-		&cli.BoolFlag{
-			Name:  "skip-index",
-			Usage: "Skip bleve index data",
-		},
-		&cli.BoolFlag{
-			Name:  "skip-db",
-			Usage: "Skip database",
-		},
-		&cli.StringFlag{
-			Name:  "type",
-			Usage: `Dump output format, default to "zip", supported types: ` + strings.Join(dump.SupportedOutputTypes, ", "),
-		},
-	},
+	}
 }
 
 func fatal(format string, args ...any) {
