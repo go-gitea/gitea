@@ -1,10 +1,8 @@
 import {test, expect} from '@playwright/test';
 import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiDeleteUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch} from './utils.ts';
 
-// These tests rely on EVENT_SOURCE_UPDATE_TIME=1s in the e2e server config.
+// These tests rely on a short EVENT_SOURCE_UPDATE_TIME in the e2e server config.
 test.describe('events', () => {
-  test.describe.configure({timeout: 90000});
-
   test('notification count', async ({page, request}) => {
     const id = `ev-notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const owner = `${id}-owner`;
@@ -25,11 +23,10 @@ test.describe('events', () => {
     await apiCreateIssue(request, owner, repoName, {title: 'events notification test', headers: apiUserHeaders(commenter)});
 
     // Wait for the notification badge to appear via server event
-    await expect(badge).toBeVisible({timeout: 60000});
+    await expect(badge).toBeVisible({timeout: 15000});
 
     // Cleanup
-    await apiDeleteUser(request, commenter);
-    await apiDeleteUser(request, owner);
+    await Promise.all([apiDeleteUser(request, commenter), apiDeleteUser(request, owner)]);
   });
 
   test('stopwatch', async ({page, request}) => {
@@ -76,7 +73,7 @@ test.describe('events', () => {
     await page1.goto('/user/logout');
 
     // page2 should be redirected via the logout event
-    await expect(page2.getByRole('link', {name: 'Sign In'})).toBeVisible({timeout: 60000});
+    await expect(page2.getByRole('link', {name: 'Sign In'})).toBeVisible();
 
     await context.close();
 
