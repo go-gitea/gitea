@@ -31,6 +31,7 @@ func TestParseRawPermissions_ReadAll(t *testing.T) {
 	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeActions])
 	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeWiki])
 	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeProjects])
+	assert.Equal(t, perm.AccessModeNone, result.IDTokenAccessMode)
 }
 
 // TestParseRawPermissions_GithubScopes verifies that all scopes that github supports are accounted for
@@ -78,11 +79,13 @@ func TestParseRawPermissions_WriteAll(t *testing.T) {
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeActions])
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeWiki])
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeProjects])
+	assert.Equal(t, perm.AccessModeWrite, result.IDTokenAccessMode)
 }
 
 func TestParseRawPermissions_IndividualScopes(t *testing.T) {
 	yamlContent := `
 contents: write
+id-token: write
 issues: read
 pull-requests: none
 packages: write
@@ -104,6 +107,7 @@ projects: none
 	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeActions])
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeWiki])
 	assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypeProjects])
+	assert.Equal(t, perm.AccessModeWrite, result.IDTokenAccessMode)
 }
 
 func TestParseRawPermissions_Priority(t *testing.T) {

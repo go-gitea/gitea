@@ -116,6 +116,10 @@ func generateTaskContext(t *actions_model.ActionTask) (*structpb.Struct, error) 
 	gitCtx := GenerateGiteaContext(t.Job.Run, t.Job)
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
+	if allowed, err := TaskAllowsOIDCToken(context.Background(), t); err == nil && allowed {
+		gitCtx["actions_id_token_request_url"] = OIDCTokenRequestURL(t)
+		gitCtx["actions_id_token_request_token"] = giteaRuntimeToken
+	}
 
 	return structpb.NewStruct(gitCtx)
 }
