@@ -69,7 +69,8 @@ type ServeDirectOptions struct {
 func prepareServeDirectOptions(optsOptional *ServeDirectOptions, name string) (ret struct {
 	ContentType        string
 	ContentDisposition string
-}) {
+},
+) {
 	// Here we might not know the real filename, and it's quite inefficient to detect the MIME type by pre-fetching the object head.
 	// So we just do a quick detection by extension name, at least it works for the "View Raw File" for an LFS file on the Web UI.
 	// TODO: OBJECT-STORAGE-CONTENT-TYPE: need a complete solution and refactor for Azure in the future
