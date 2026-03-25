@@ -525,9 +525,9 @@ func (r *artifactV4Routes) finalizeDefaultArtifact(ctx *ArtifactContext, req *Fi
 }
 
 func (r *artifactV4Routes) finalizeAzureServeDirect(ctx *ArtifactContext, req *FinalizeArtifactRequest, artifact *actions_model.ActionArtifact) {
-	checksumValue, found := strings.CutPrefix(req.GetHash().GetValue(), "sha256:")
+	checksumValue, hasSha256Checksum := strings.CutPrefix(req.GetHash().GetValue(), "sha256:")
 	var actualLength int64
-	if found {
+	if hasSha256Checksum {
 		hashSha256 := sha256.New()
 		obj, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
 		if err != nil {
