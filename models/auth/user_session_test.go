@@ -5,6 +5,7 @@ package auth_test
 
 import (
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -190,9 +191,9 @@ func TestCleanupExpiredUserSessions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	retentionSeconds := int64(86400 * 30) // 30 days
-	maxLifetime := int64(86400)           // 1 day
-	require.NoError(t, auth_model.CleanupExpiredUserSessions(t.Context(), retentionSeconds, maxLifetime))
+	retention := 30 * 24 * time.Hour // 30 days
+	maxLifetime := 24 * time.Hour    // 1 day
+	require.NoError(t, auth_model.CleanupExpiredUserSessions(t.Context(), retention, maxLifetime))
 
 	// Active session should still exist
 	_, err = auth_model.GetUserSessionByID(t.Context(), "sess-cleanup-active")
@@ -207,10 +208,10 @@ func TestCleanupExpiredUserSessionsAbandoned(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	now := timeutil.TimeStampNow()
-	retentionSeconds := int64(86400 * 30) // 30 days
-	maxLifetime := int64(86400)           // 1 day
+	retention := 30 * 24 * time.Hour // 30 days
+	maxLifetime := 24 * time.Hour    // 1 day
 
-	cutoff := int64(now) - maxLifetime - retentionSeconds
+	cutoff := int64(now) - int64(maxLifetime.Seconds()) - int64(retention.Seconds())
 
 	// Abandoned session clearly older than cutoff — should be cleaned up.
 	_, err := db.GetEngine(t.Context()).Insert(&auth_model.UserSession{
@@ -239,7 +240,7 @@ func TestCleanupExpiredUserSessionsAbandoned(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	require.NoError(t, auth_model.CleanupExpiredUserSessions(t.Context(), retentionSeconds, maxLifetime))
+	require.NoError(t, auth_model.CleanupExpiredUserSessions(t.Context(), retention, maxLifetime))
 
 	// Clearly old abandoned session should be gone.
 	_, err = auth_model.GetUserSessionByID(t.Context(), "sess-cleanup-abandoned-old")

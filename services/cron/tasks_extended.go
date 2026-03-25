@@ -182,9 +182,8 @@ func registerCleanupUserSessions() {
 		OlderThan: time.Hour * 24 * 30, // 30 day retention
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		retentionSeconds := int64(olderThanConfig.OlderThan.Seconds())
-		maxLifetime := setting.SessionConfig.Maxlifetime
-		return auth_model.CleanupExpiredUserSessions(ctx, retentionSeconds, maxLifetime)
+		maxLifetime := time.Duration(setting.SessionConfig.Maxlifetime) * time.Second
+		return auth_model.CleanupExpiredUserSessions(ctx, olderThanConfig.OlderThan, maxLifetime)
 	})
 }
 

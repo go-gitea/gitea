@@ -6,6 +6,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -117,12 +118,12 @@ func UpdateSessionActivity(ctx context.Context, sessionID, currentIP string) err
 
 // CleanupExpiredUserSessions removes old session records based on retention policy.
 // It deletes:
-// - Sessions that were logged out more than retentionSeconds ago
-// - Abandoned sessions (never logged out) whose last activity is older than maxLifetime + retentionSeconds
-func CleanupExpiredUserSessions(ctx context.Context, retentionSeconds, maxLifetime int64) error {
+// - Sessions that were logged out more than retention ago
+// - Abandoned sessions (never logged out) whose last activity is older than maxLifetime + retention
+func CleanupExpiredUserSessions(ctx context.Context, retention, maxLifetime time.Duration) error {
 	now := int64(timeutil.TimeStampNow())
-	logoutCutoff := now - retentionSeconds
-	abandonedCutoff := now - maxLifetime - retentionSeconds
+	logoutCutoff := now - int64(retention.Seconds())
+	abandonedCutoff := now - int64(maxLifetime.Seconds()) - int64(retention.Seconds())
 
 	_, err := db.GetEngine(ctx).Where(
 		builder.Or(

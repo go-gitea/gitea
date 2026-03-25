@@ -43,7 +43,6 @@ func UserSessions(ctx *context.Context) {
 	}
 
 	ctx.Data["Sessions"] = sessions
-	ctx.Data["SessionsTotal"] = len(sessions)
 
 	activeCount := 0
 	for _, s := range sessions {
