@@ -78,7 +78,7 @@ func prepareServeDirectOptions(optsOptional *ServeDirectOptions, name string) (r
 	if optsOptional != nil {
 		ret.ContentType = optsOptional.ContentType
 	}
-
+	name = path.Base(name)
 	if ret.ContentType == "" {
 		ext := path.Ext(name)
 		ret.ContentType = public.DetectWellKnownMimeType(ext)
