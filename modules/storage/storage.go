@@ -75,11 +75,10 @@ func prepareServeDirectOptions(optsOptional *ServeDirectOptions, name string) (r
 	// So we just do a quick detection by extension name, at least it works for the "View Raw File" for an LFS file on the Web UI.
 	// TODO: OBJECT-STORAGE-CONTENT-TYPE: need a complete solution and refactor for Azure in the future
 
-	if optsOptional == nil {
-		return ret
+	if optsOptional != nil {
+		ret.ContentType = optsOptional.ContentType
 	}
 
-	ret.ContentType = optsOptional.ContentType
 	if ret.ContentType == "" {
 		ext := path.Ext(name)
 		ret.ContentType = public.DetectWellKnownMimeType(ext)

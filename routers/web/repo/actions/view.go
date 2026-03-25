@@ -756,7 +756,10 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 			return fmt.Errorf("zipWriter.Create: %w", err)
 		}
 		_, err = io.Copy(w, r)
-		return fmt.Errorf("io.Copy: %w", err)
+		if err != nil {
+			return fmt.Errorf("io.Copy: %w", err)
+		}
+		return nil
 	}
 
 	for _, art := range artifacts {

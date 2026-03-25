@@ -268,7 +268,7 @@ func (r *artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*
 
 func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID int64, name string) (*actions_model.ActionArtifact, error) {
 	var art actions_model.ActionArtifact
-	has, err := db.GetEngine(ctx).Where(builder.Eq{"run_id": runID, "artifact_name": name}, builder.Like{"content_encoding", "/"}).Get(&art)
+	has, err := db.GetEngine(ctx).Where(builder.Eq{"run_id": runID, "artifact_name": name}, builder.Like{"content_encoding", "%/%"}).Get(&art)
 	if err != nil {
 		return nil, err
 	} else if !has {
