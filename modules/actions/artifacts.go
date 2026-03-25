@@ -52,13 +52,12 @@ func DownloadArtifactV4ReadStorage(ctx *context.Base, art *actions_model.ActionA
 	}
 	defer f.Close()
 
-	stat, err := f.Stat()
-	if err != nil {
-		return err
-	}
-
 	contentType := art.ContentEncodingOrType
-	httplib.ServeContentByReadSeeker(ctx.Req, ctx.Resp, new(stat.ModTime()), f, httplib.ServeHeaderOptions{
+	contentLength := int64(-1) // TODO: do we know the content length (by artifact)?
+
+	// here it intentionally doesn't use httplib.ServeContentByReadSeeker,
+	// because when using object storage, ReadSeeker emits more (2) requests (read prefetch buffer, seek, serve) than by Reader (only one GET request)
+	httplib.ServeContentByReader(ctx.Req, ctx.Resp, contentLength, f, httplib.ServeHeaderOptions{
 		Filename:           path.Base(art.ArtifactPath),
 		ContentType:        contentType,
 		ContentDisposition: httplib.ContentDispositionInline,
