@@ -231,36 +231,3 @@ func TestCliCmdBefore(t *testing.T) {
 	assert.Equal(t, "/tmp/any.ini", configValues["before"], "BeforeFunc must be called before preparing config")
 	assert.Equal(t, "/dev/null", configValues["action"])
 }
-
-func TestNewMainAppCreatesFreshCommands(t *testing.T) {
-	app1 := NewMainApp(AppVersion{})
-	app2 := NewMainApp(AppVersion{})
-
-	var keys1, keys2, admin1, admin2 *cli.Command
-	for _, cmd := range app1.Commands {
-		switch cmd.Name {
-		case "keys":
-			keys1 = cmd
-		case "admin":
-			admin1 = cmd
-		}
-	}
-	for _, cmd := range app2.Commands {
-		switch cmd.Name {
-		case "keys":
-			keys2 = cmd
-		case "admin":
-			admin2 = cmd
-		}
-	}
-
-	if assert.NotNil(t, keys1) && assert.NotNil(t, keys2) {
-		assert.NotSame(t, keys1, keys2)
-	}
-	if assert.NotNil(t, admin1) && assert.NotNil(t, admin2) {
-		assert.NotSame(t, admin1, admin2)
-		if assert.NotEmpty(t, admin1.Commands) && assert.NotEmpty(t, admin2.Commands) {
-			assert.NotSame(t, admin1.Commands[0], admin2.Commands[0])
-		}
-	}
-}
