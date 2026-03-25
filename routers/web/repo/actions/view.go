@@ -717,7 +717,9 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		}
 	}
 
-	// FIXME: what if IsArtifactV4 but have multiple artifacts?
+	// A v4 Artifact may only contain a single file
+	// Multiple files are uploaded as a single file archive
+	// All other cases fall back to the legacy v1–v3 zip handling below
 	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
 		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
@@ -742,7 +744,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		defer f.Close()
 
 		var r io.ReadCloser = f
-		if art.ContentEncodingOrType == actions_model.ContentEncodingV4Gzip {
+		if art.ContentEncodingOrType == actions_model.ContentEncodingV3Gzip {
 			r, err = gzip.NewReader(f)
 			if err != nil {
 				return fmt.Errorf("gzip.NewReader: %w", err)

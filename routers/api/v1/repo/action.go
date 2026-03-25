@@ -1784,7 +1784,7 @@ func buildDownloadRawEndpoint(repo *repo_model.Repository, artifactID int64) str
 func buildSigURL(ctx go_context.Context, endPoint string, artifactID int64) string {
 	// endPoint is a path like "api/v1/repos/owner/repo/actions/artifacts/1/zip/raw"
 	expires := time.Now().Add(60 * time.Minute).Unix()
-	uploadURL := httplib.GuessCurrentAppURL(ctx) + endPoint + "?sig=" + base64.URLEncoding.EncodeToString(buildSignature(endPoint, expires, artifactID)) + "&expires=" + strconv.FormatInt(expires, 10)
+	uploadURL := httplib.GuessCurrentAppURL(ctx) + endPoint + "?sig=" + base64.RawURLEncoding.EncodeToString(buildSignature(endPoint, expires, artifactID)) + "&expires=" + strconv.FormatInt(expires, 10)
 	return uploadURL
 }
 
@@ -1831,6 +1831,8 @@ func DownloadArtifact(ctx *context.APIContext) {
 	}
 
 	if actions.IsArtifactV4(art) {
+		// @actions/toolkit asserts that downloaded artifacts of a different runid return 302
+		// https://github.com/actions/toolkit/blob/44d43b5490b02998bd09b0c4ff369a4cc67876c2/packages/artifact/src/internal/download/download-artifact.ts#L203-L210
 		ok, err := actions.DownloadArtifactV4ServeDirectOnly(ctx.Base, art)
 		if ok {
 			return
@@ -1867,7 +1869,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 
 	sigStr := ctx.Req.URL.Query().Get("sig")
 	expiresStr := ctx.Req.URL.Query().Get("expires")
-	sigBytes, _ := base64.URLEncoding.DecodeString(sigStr)
+	sigBytes, _ := base64.RawURLEncoding.DecodeString(sigStr)
 	expires, _ := strconv.ParseInt(expiresStr, 10, 64)
 
 	expectedSig := buildSignature(buildDownloadRawEndpoint(repo, art.ID), expires, art.ID)

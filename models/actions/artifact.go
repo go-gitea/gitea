@@ -54,7 +54,7 @@ func init() {
 }
 
 const (
-	ContentEncodingV4Gzip = "gzip"
+	ContentEncodingV3Gzip = "gzip"
 	ContentTypeZip        = "application/zip"
 )
 
@@ -71,12 +71,14 @@ type ActionArtifact struct {
 	FileCompressedSize int64  // The size of the artifact in bytes after gzip compression
 
 	// The content encoding or content type of the artifact
-	// * empty or null: legacy (v3) uncompressed content?
-	// * magic string "gzip" (ContentEncodingV4Gzip): v4 gzip content, the content itself is a gzip file, so serve it directly?
+	// * empty or null: legacy (v3) uncompressed content
+	// * magic string "gzip" (ContentEncodingV3Gzip): v3 gzip compressed content
+	//   * requires gzip decoding before storing in a zip for download
+	//   * requires gzip content-encoding header when downloaded single files within a workflow
 	// * mime type like for "Content-Type":
 	//   * "application/zip" (ContentTypeZip), seems to be an abuse, fortunately there is no conflict, and it won't cause problems?
 	//   * "application/pdf", "text/html", etc.: real content type of the artifact
-	ContentEncodingOrType string
+	ContentEncodingOrType string `xorm:"'content_encoding'"`
 
 	ArtifactPath string             `xorm:"index unique(runid_name_path)"` // The path to the artifact when runner uploads it
 	ArtifactName string             `xorm:"index unique(runid_name_path)"` // The name of the artifact when runner uploads it
