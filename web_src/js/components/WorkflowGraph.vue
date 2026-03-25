@@ -55,6 +55,9 @@ const dragStart = ref({ x: 0, y: 0 });
 const lastMousePos = ref({ x: 0, y: 0 });
 const graphContainer = ref<HTMLElement | null>(null);
 const hoveredJobId = ref<number | null>(null);
+const containerViewport = ref({width: 0, height: 0});
+const hasCustomizedView = ref(false);
+let resizeObserver: ResizeObserver | null = null;
 
 const stateKey = () => {
   return `${props.store.viewData.currentRun.repoId}-${props.workflowId}`;
@@ -63,10 +66,12 @@ const stateKey = () => {
 const loadSavedState = () => {
   const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKeyStates, {});
   const saved = allStates[stateKey()];
-  if (!saved) return;
+  if (!saved) return false;
   scale.value = saved.scale ?? scale.value;
   translateX.value = saved.translateX ?? translateX.value;
   translateY.value = saved.translateY ?? translateY.value;
+  hasCustomizedView.value = true;
+  return true;
 }
 
 const saveState = () => {
@@ -86,7 +91,6 @@ const saveState = () => {
   localUserSettings.setJsonObject(settingKeyStates, limitedStates);
 };
 
-loadSavedState();
 watch([translateX, translateY, scale], debounce(500, saveState))
 
 const nodeWidth = computed(() => {
@@ -105,6 +109,21 @@ const graphHeight = computed(() => {
   if (jobsWithLayout.value.length === 0) return 400;
   const maxY = Math.max(...jobsWithLayout.value.map(j => j.y + nodeHeight));
   return maxY + margin * 2;
+});
+
+const containerPaddingX = 32;
+const containerPaddingY = 32;
+
+const viewportWidth = computed(() => Math.max(containerViewport.value.width - containerPaddingX, 0));
+const viewportHeight = computed(() => Math.max(containerViewport.value.height - containerPaddingY, 0));
+
+const fittedScale = computed(() => {
+  if (!viewportWidth.value || !viewportHeight.value) return 1;
+  return Math.min(
+    1,
+    viewportWidth.value / graphWidth.value,
+    viewportHeight.value / graphHeight.value,
+  );
 });
 
 const jobsWithLayout = computed<JobNode[]>(() => {
@@ -350,19 +369,62 @@ const graphMetrics = computed(() => {
 const nodeHeight = 48;
 const verticalSpacing = 88;
 const margin = 40;
+const minScale = 0.1;
+const maxScale = 3;
+
+function updateContainerViewport() {
+  if (!graphContainer.value) return;
+  containerViewport.value = {
+    width: graphContainer.value.clientWidth,
+    height: graphContainer.value.clientHeight,
+  };
+}
+
+function fitGraphToViewport() {
+  const nextScale = fittedScale.value;
+  scale.value = nextScale;
+  translateX.value = Math.max((viewportWidth.value - graphWidth.value * nextScale) / 2, 0);
+  translateY.value = Math.max((viewportHeight.value - graphHeight.value * nextScale) / 2, 0);
+}
+
+function clampScale(nextScale: number): number {
+  return Math.min(Math.max(nextScale, minScale), maxScale);
+}
+
+function zoomTo(nextScale: number, clientX?: number, clientY?: number) {
+  const clampedScale = clampScale(nextScale);
+  const container = graphContainer.value;
+  if (!container) {
+    scale.value = clampedScale;
+    return;
+  }
+
+  const rect = container.getBoundingClientRect();
+  const fallbackClientX = rect.left + containerPaddingX / 2;
+  const fallbackClientY = rect.top + containerPaddingY / 2;
+  const pointerX = (clientX ?? fallbackClientX) - rect.left - containerPaddingX / 2;
+  const pointerY = (clientY ?? fallbackClientY) - rect.top - containerPaddingY / 2;
+  const contentX = (pointerX - translateX.value) / scale.value;
+  const contentY = (pointerY - translateY.value) / scale.value;
+
+  scale.value = clampedScale;
+  translateX.value = pointerX - contentX * clampedScale;
+  translateY.value = pointerY - contentY * clampedScale;
+}
 
 function zoomIn() {
-  scale.value = Math.min(scale.value * 1.2, 3);
+  hasCustomizedView.value = true;
+  zoomTo(scale.value * 1.2);
 }
 
 function zoomOut() {
-  scale.value = Math.max(scale.value / 1.2, 0.5);
+  hasCustomizedView.value = true;
+  zoomTo(scale.value / 1.2);
 }
 
 function resetView() {
-  scale.value = 1;
-  translateX.value = 0;
-  translateY.value = 0;
+  hasCustomizedView.value = false;
+  fitGraphToViewport();
 }
 
 function handleMouseDown(e: MouseEvent) {
@@ -389,6 +451,7 @@ function handleMouseMoveOnDocument(event: MouseEvent) {
   const dx = event.clientX - lastMousePos.value.x;
   const dy = event.clientY - lastMousePos.value.y;
 
+  hasCustomizedView.value = true;
   translateX.value += dx;
   translateY.value += dy;
 
@@ -402,13 +465,37 @@ function handleMouseUpOnDocument() {
 }
 
 onMounted(() => {
+  const hadSavedState = loadSavedState();
+  updateContainerViewport();
+  if (!hadSavedState) {
+    fitGraphToViewport();
+  }
+
+  resizeObserver = new ResizeObserver(() => {
+    updateContainerViewport();
+    if (!hasCustomizedView.value) {
+      fitGraphToViewport();
+    }
+  });
+  if (graphContainer.value) {
+    resizeObserver.observe(graphContainer.value);
+  }
+
   document.addEventListener('mousemove', handleMouseMoveOnDocument);
   document.addEventListener('mouseup', handleMouseUpOnDocument);
 });
 
 onUnmounted(() => {
+  resizeObserver?.disconnect();
+  resizeObserver = null;
   document.removeEventListener('mousemove', handleMouseMoveOnDocument);
   document.removeEventListener('mouseup', handleMouseUpOnDocument);
+});
+
+watch([graphWidth, graphHeight], () => {
+  if (!hasCustomizedView.value) {
+    fitGraphToViewport();
+  }
 });
 
 function handleNodeMouseEnter(job: JobNode) {
@@ -417,6 +504,13 @@ function handleNodeMouseEnter(job: JobNode) {
 
 function handleNodeMouseLeave() {
   hoveredJobId.value = null;
+}
+
+function handleWheel(event: WheelEvent) {
+  event.preventDefault();
+  hasCustomizedView.value = true;
+  const zoomFactor = Math.exp(-event.deltaY * 0.0015);
+  zoomTo(scale.value * zoomFactor, event.clientX, event.clientY);
 }
 
 function isEdgeHighlighted(edge: RoutedEdge): boolean {
@@ -438,14 +532,6 @@ const nodesWithOutgoingEdge = computed(() => {
   return set;
 });
 
-function getDisplayName(name: string, hasDuration: boolean): string {
-  const maxChars = hasDuration ? 18 : 22;
-  if (name.length <= maxChars) {
-    return name;
-  }
-
-  return name.substring(0, maxChars - 3) + '...';
-}
 
 function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
   const jobMap = new Map<string, ActionsJob>()
@@ -554,6 +640,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
       class="graph-container"
       ref="graphContainer"
       @mousedown="handleMouseDown"
+      @wheel.prevent="handleWheel"
       :class="{ 'dragging': isDragging }"
     >
       <svg
@@ -625,31 +712,20 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             </div>
           </foreignObject>
 
-          <text
-            :x="job.x + 40"
-            :y="job.y + nodeHeight / 2 + 1"
-            :fill="'var(--color-text)'"
-            font-size="11"
-            font-weight="600"
-            text-anchor="start"
-            dominant-baseline="middle"
-            class="job-name"
+          <foreignObject
+            :x="job.x + 36"
+            :y="job.y"
+            :width="nodeWidth - 40"
+            :height="nodeHeight"
           >
-            {{ getDisplayName(job.name, Boolean(job.duration || job.status === 'success' || job.status === 'failure')) }}
-          </text>
-
-          <text
-            v-if="job.duration || (job.status === 'success' || job.status === 'failure')"
-            :x="job.x + nodeWidth - 14"
-            :y="job.y + nodeHeight / 2 + 1"
-            :fill="'var(--color-text-light-2)'"
-            font-size="8.5"
-            text-anchor="end"
-            dominant-baseline="middle"
-            class="job-duration"
-          >
-            {{ job.duration }}
-          </text>
+            <div xmlns="http://www.w3.org/1999/xhtml" class="job-text-wrap">
+              <span class="job-name">{{ job.name }}</span>
+              <span
+                v-if="job.duration || job.status === 'success' || job.status === 'failure'"
+                class="job-duration"
+              >{{ job.duration }}</span>
+            </div>
+          </foreignObject>
 
         </g>
       </svg>
@@ -701,7 +777,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   border-radius: 10px;
   cursor: grab;
   min-height: 300px;
-  max-height: 600px;
+  max-height: 70vh;
   position: relative;
   background: var(--color-body);
 }
@@ -712,6 +788,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
 .graph-svg {
   display: block;
+  max-width: none;
   will-change: transform;
 }
 
@@ -729,7 +806,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 .job-node-group {
   cursor: pointer;
   transition: all 0.2s ease;
-  --node-width: v-bind(nodeWidth + "px");
 }
 
 .job-node-group:hover .job-rect {
@@ -737,16 +813,33 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   transform: translateX(1px);
 }
 
+.job-text-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding-right: 8px;
+}
+
 .job-name {
-  max-width: calc(var(--node-width, 150px) - 92px);
-  text-overflow: ellipsis;
+  flex: 1;
   overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text);
   user-select: none;
   pointer-events: none;
 }
 
 .job-duration {
+  font-size: 11px;
+  color: var(--color-text-light-2);
+  white-space: nowrap;
+  flex-shrink: 0;
   user-select: none;
   pointer-events: none;
 }
