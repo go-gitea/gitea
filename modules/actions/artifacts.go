@@ -51,9 +51,8 @@ func DownloadArtifactV4ReadStorage(ctx *context.Base, art *actions_model.ActionA
 	}
 	defer f.Close()
 	httplib.ServeUserContentByFile(ctx.Req, ctx.Resp, f, httplib.ServeHeaderOptions{
-		Filename:           art.ArtifactPath,
-		ContentType:        art.ContentEncodingOrType,        // v4 guarantees that the field is Content-Type
-		ContentDisposition: httplib.ContentDispositionInline, // allow to view the contents in browser (TODO: html is still rendered as text due to legacy logic)
+		Filename:    art.ArtifactPath,
+		ContentType: art.ContentEncodingOrType, // v4 guarantees that the field is Content-Type
 	})
 	return nil
 }

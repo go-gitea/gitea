@@ -102,10 +102,12 @@ func serveSetHeadersByUserContent(w http.ResponseWriter, contentPrefetchBuf []by
 		}
 	}
 
-	sniffedType := typesniffer.FromContentType(opts.ContentType)
-	opts.ContentDisposition = ContentDispositionInline
-	if sniffedType.IsSvgImage() && !setting.UI.SVG.Enabled {
-		opts.ContentDisposition = ContentDispositionAttachment
+	if opts.ContentDisposition == "" {
+		sniffedType := typesniffer.FromContentType(opts.ContentType)
+		opts.ContentDisposition = ContentDispositionInline
+		if sniffedType.IsSvgImage() && !setting.UI.SVG.Enabled {
+			opts.ContentDisposition = ContentDispositionAttachment
+		}
 	}
 
 	ServeSetHeaders(w, opts)
