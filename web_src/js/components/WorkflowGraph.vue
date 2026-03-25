@@ -3,6 +3,7 @@ import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {localUserSettings} from "../modules/user-settings.ts";
+import {isPlainClick} from '../utils/dom.ts';
 import {debounce} from "throttle-debounce";
 import type {ActionsJob, ActionsRunStatus} from '../modules/gitea-actions.ts';
 import type {ActionRunViewStore} from './ActionRunView.ts';
@@ -51,13 +52,9 @@ const scale = ref(1);
 const translateX = ref(0);
 const translateY = ref(0);
 const isDragging = ref(false);
-const dragStart = ref({ x: 0, y: 0 });
 const lastMousePos = ref({ x: 0, y: 0 });
 const graphContainer = ref<HTMLElement | null>(null);
 const hoveredJobId = ref<number | null>(null);
-const containerViewport = ref({width: 0, height: 0});
-const hasCustomizedView = ref(false);
-let resizeObserver: ResizeObserver | null = null;
 
 const stateKey = () => {
   return `${props.store.viewData.currentRun.repoId}-${props.workflowId}`;
@@ -66,12 +63,10 @@ const stateKey = () => {
 const loadSavedState = () => {
   const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKeyStates, {});
   const saved = allStates[stateKey()];
-  if (!saved) return false;
+  if (!saved) return;
   scale.value = saved.scale ?? scale.value;
   translateX.value = saved.translateX ?? translateX.value;
   translateY.value = saved.translateY ?? translateY.value;
-  hasCustomizedView.value = true;
-  return true;
 }
 
 const saveState = () => {
@@ -113,18 +108,6 @@ const graphHeight = computed(() => {
 
 const containerPaddingX = 32;
 const containerPaddingY = 32;
-
-const viewportWidth = computed(() => Math.max(containerViewport.value.width - containerPaddingX, 0));
-const viewportHeight = computed(() => Math.max(containerViewport.value.height - containerPaddingY, 0));
-
-const fittedScale = computed(() => {
-  if (!viewportWidth.value || !viewportHeight.value) return 1;
-  return Math.min(
-    1,
-    viewportWidth.value / graphWidth.value,
-    viewportHeight.value / graphHeight.value,
-  );
-});
 
 const jobsWithLayout = computed<JobNode[]>(() => {
   try {
@@ -372,21 +355,6 @@ const margin = 40;
 const minScale = 0.1;
 const maxScale = 3;
 
-function updateContainerViewport() {
-  if (!graphContainer.value) return;
-  containerViewport.value = {
-    width: graphContainer.value.clientWidth,
-    height: graphContainer.value.clientHeight,
-  };
-}
-
-function fitGraphToViewport() {
-  const nextScale = fittedScale.value;
-  scale.value = nextScale;
-  translateX.value = Math.max((viewportWidth.value - graphWidth.value * nextScale) / 2, 0);
-  translateY.value = Math.max((viewportHeight.value - graphHeight.value * nextScale) / 2, 0);
-}
-
 function clampScale(nextScale: number): number {
   return Math.min(Math.max(nextScale, minScale), maxScale);
 }
@@ -413,34 +381,29 @@ function zoomTo(nextScale: number, clientX?: number, clientY?: number) {
 }
 
 function zoomIn() {
-  hasCustomizedView.value = true;
   zoomTo(scale.value * 1.2);
 }
 
 function zoomOut() {
-  hasCustomizedView.value = true;
   zoomTo(scale.value / 1.2);
 }
 
 function resetView() {
-  hasCustomizedView.value = false;
-  fitGraphToViewport();
+  scale.value = 1;
+  translateX.value = 0;
+  translateY.value = 0;
 }
 
 function handleMouseDown(e: MouseEvent) {
-  if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return; // only left mouse button can drag
+  if (!isPlainClick(e)) return;
   const target = e.target as Element;
-  // don't start the drag if the click is on an interactive element (e.g.: link, button) or text element
+  // don't start drag on interactive/text elements inside the SVG
   const interactive = target.closest('div, p, a, span, button, input, text, .job-node-group');
   if (interactive?.closest('svg')) return;
 
   e.preventDefault();
 
   isDragging.value = true;
-  dragStart.value = {
-    x: e.clientX - translateX.value,
-    y: e.clientY - translateY.value,
-  };
   lastMousePos.value = { x: e.clientX, y: e.clientY };
   graphContainer.value!.style.cursor = 'grabbing';
 }
@@ -451,7 +414,6 @@ function handleMouseMoveOnDocument(event: MouseEvent) {
   const dx = event.clientX - lastMousePos.value.x;
   const dy = event.clientY - lastMousePos.value.y;
 
-  hasCustomizedView.value = true;
   translateX.value += dx;
   translateY.value += dy;
 
@@ -465,37 +427,15 @@ function handleMouseUpOnDocument() {
 }
 
 onMounted(() => {
-  const hadSavedState = loadSavedState();
-  updateContainerViewport();
-  if (!hadSavedState) {
-    fitGraphToViewport();
-  }
-
-  if (graphContainer.value) {
-    resizeObserver = new ResizeObserver(() => {
-      updateContainerViewport();
-      if (!hasCustomizedView.value) {
-        fitGraphToViewport();
-      }
-    });
-    resizeObserver.observe(graphContainer.value);
-  }
+  loadSavedState();
 
   document.addEventListener('mousemove', handleMouseMoveOnDocument);
   document.addEventListener('mouseup', handleMouseUpOnDocument);
 });
 
 onUnmounted(() => {
-  resizeObserver?.disconnect();
-  resizeObserver = null;
   document.removeEventListener('mousemove', handleMouseMoveOnDocument);
   document.removeEventListener('mouseup', handleMouseUpOnDocument);
-});
-
-watch([graphWidth, graphHeight], () => {
-  if (!hasCustomizedView.value) {
-    fitGraphToViewport();
-  }
 });
 
 function handleNodeMouseEnter(job: JobNode) {
@@ -508,7 +448,6 @@ function handleNodeMouseLeave() {
 
 function handleWheel(event: WheelEvent) {
   event.preventDefault();
-  hasCustomizedView.value = true;
   const zoomFactor = Math.exp(-event.deltaY * 0.0015);
   zoomTo(scale.value * zoomFactor, event.clientX, event.clientY);
 }
@@ -619,7 +558,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
       <h4 class="graph-title">Workflow Dependencies</h4>
       <div class="graph-stats">
         {{ jobs.length }} jobs • {{ edges.length }} dependencies
-        <span v-if="graphMetrics" class="graph-metrics">
+        <span class="graph-metrics">
           • {{ graphMetrics.successRate }} success
         </span>
       </div>
