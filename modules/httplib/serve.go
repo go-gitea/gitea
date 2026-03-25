@@ -26,7 +26,7 @@ import (
 
 type ServeHeaderOptions struct {
 	ContentType   string // defaults to "application/octet-stream"
-	ContentLength *int64
+	ContentLength *int64 // the length can only be set by callers, it is required for range requests
 
 	Filename           string
 	ContentDisposition ContentDispositionType
@@ -80,32 +80,28 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	}
 }
 
-func setServeHeadersByFile(w http.ResponseWriter, mineBuf []byte, opts ServeHeaderOptions) {
-	// do not set "Content-Length", because the length could only be set by callers, and it needs to support range requests
-	sniffedType := typesniffer.DetectContentType(mineBuf)
-	isText := sniffedType.IsText()
-
+func serveSetHeadersByFileContent(w http.ResponseWriter, contentPrefetchBuf []byte, opts ServeHeaderOptions) {
 	if setting.MimeTypeMap.Enabled {
 		fileExtension := strings.ToLower(path.Ext(opts.Filename))
 		opts.ContentType = setting.MimeTypeMap.Map[fileExtension]
 	}
 
 	if opts.ContentType == "" {
+		sniffedType := typesniffer.DetectContentType(contentPrefetchBuf)
 		if sniffedType.IsBrowsableBinaryType() {
 			opts.ContentType = sniffedType.GetMimeType()
-		} else if isText {
+		} else if sniffedType.IsText() {
+			//  intentionally do not render user's HTML content as a page, for safety, and avoid content spamming & abusing
 			opts.ContentType = "text/plain"
+			if charset, _ := charsetModule.DetectEncoding(contentPrefetchBuf); charset != "" {
+				opts.ContentType += "; charset=" + strings.ToLower(charset)
+			}
 		} else {
 			opts.ContentType = typesniffer.MimeTypeApplicationOctetStream
 		}
 	}
 
-	if isText && !strings.Contains(opts.ContentType, "charset=") {
-		if charset, _ := charsetModule.DetectEncoding(mineBuf); charset != "" {
-			opts.ContentType += "; charset=" + strings.ToLower(charset)
-		}
-	}
-
+	sniffedType := typesniffer.FromContentType(opts.ContentType)
 	opts.ContentDisposition = ContentDispositionInline
 	if sniffedType.IsSvgImage() && !setting.UI.SVG.Enabled {
 		opts.ContentDisposition = ContentDispositionAttachment
@@ -126,7 +122,7 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, size int64, re
 	if n >= 0 {
 		buf = buf[:n]
 	}
-	setServeHeadersByFile(w, buf, opts)
+	serveSetHeadersByFileContent(w, buf, opts)
 
 	// reset the reader to the beginning
 	reader = io.MultiReader(bytes.NewReader(buf), reader)
@@ -203,7 +199,7 @@ func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, modTime *t
 	if n >= 0 {
 		buf = buf[:n]
 	}
-	setServeHeadersByFile(w, buf, opts)
+	serveSetHeadersByFileContent(w, buf, opts)
 	if modTime == nil {
 		modTime = &time.Time{}
 	}
