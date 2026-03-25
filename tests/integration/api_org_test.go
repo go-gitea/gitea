@@ -178,7 +178,7 @@ func TestAPIOrgGeneral(t *testing.T) {
 		}).AddTokenAuth(user1Token)
 		resp = MakeRequest(t, req, http.StatusOK)
 		apiOrg = DecodeJSON(t, resp, &api.Organization{})
-		assert.Equal(t, "", apiOrg.Email)
+		assert.Empty(t, apiOrg.Email)
 		assert.Equal(t, "limited", apiOrg.Visibility)
 	})
 
