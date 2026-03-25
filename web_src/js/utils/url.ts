@@ -10,7 +10,6 @@ const trailingPunctPattern = /[.,;:!?]+$/;
 
 // Convert URLs to clickable links in HTML, preserving existing HTML tags
 export function linkifyURLs(content: string): string {
-  if (!/https?:\/\//i.test(content)) return content;
   return content.replace(urlLinkifyPattern, (_match, tag, url) => {
     if (tag) return tag;
     const trailingPunct = url.match(trailingPunctPattern);
