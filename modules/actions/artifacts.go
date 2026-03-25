@@ -32,7 +32,7 @@ func GetArtifactV4ServeDirectURL(art *actions_model.ActionArtifact, method strin
 	return u.String(), nil
 }
 
-func DownloadArtifactV4ServeDirectOnly(ctx *context.Base, art *actions_model.ActionArtifact) bool {
+func DownloadArtifactV4ServeDirect(ctx *context.Base, art *actions_model.ActionArtifact) bool {
 	if !setting.Actions.ArtifactStorage.ServeDirect() {
 		return false
 	}
@@ -45,7 +45,7 @@ func DownloadArtifactV4ServeDirectOnly(ctx *context.Base, art *actions_model.Act
 	return true
 }
 
-func DownloadArtifactV4Fallback(ctx *context.Base, art *actions_model.ActionArtifact) error {
+func DownloadArtifactV4ReadStorage(ctx *context.Base, art *actions_model.ActionArtifact) error {
 	f, err := storage.ActionsArtifacts.Open(art.StoragePath)
 	if err != nil {
 		return err
@@ -63,8 +63,8 @@ func DownloadArtifactV4Fallback(ctx *context.Base, art *actions_model.ActionArti
 }
 
 func DownloadArtifactV4(ctx *context.Base, art *actions_model.ActionArtifact) error {
-	if DownloadArtifactV4ServeDirectOnly(ctx, art) {
+	if DownloadArtifactV4ServeDirect(ctx, art) {
 		return nil
 	}
-	return DownloadArtifactV4Fallback(ctx, art)
+	return DownloadArtifactV4ReadStorage(ctx, art)
 }

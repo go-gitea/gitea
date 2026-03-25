@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -54,16 +53,17 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))
 	}
 
+	// Disable script execution of HTML files, since we serve the file from the same domain as gitea
+	header.Set("Content-Security-Policy", "sandbox; style-src 'unsafe-inline'; default-src 'none';")
+	if strings.Contains(contentType, "application/pdf") {
+		// no sandbox attribute for PDF as it breaks rendering in at least safari. this
+		// should generally be safe as scripts inside PDF can not escape the PDF document
+		// see https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
+		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
+		header.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
+	}
+
 	if opts.Filename != "" && opts.ContentDisposition != "" {
-		// Disable script execution of HTML files, since we serve the file from the same domain as gitea
-		header.Set("Content-Security-Policy", "sandbox; style-src 'unsafe-inline'; default-src 'none';")
-		if strings.Contains(contentType, "application/pdf") {
-			// no sandbox attribute for PDF as it breaks rendering in at least safari. this
-			// should generally be safe as scripts inside PDF can not escape the PDF document
-			// see https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
-			// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
-			header.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
-		}
 		header.Set("Content-Disposition", EncodeContentDisposition(opts.ContentDisposition, path.Base(opts.Filename)))
 		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
@@ -80,13 +80,13 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	}
 }
 
-func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, mineBuf []byte, opts ServeHeaderOptions) {
+func setServeHeadersByFile(w http.ResponseWriter, mineBuf []byte, opts ServeHeaderOptions) {
 	// do not set "Content-Length", because the length could only be set by callers, and it needs to support range requests
 	sniffedType := typesniffer.DetectContentType(mineBuf)
 	isText := sniffedType.IsText()
 
 	if setting.MimeTypeMap.Enabled {
-		fileExtension := strings.ToLower(filepath.Ext(opts.Filename))
+		fileExtension := strings.ToLower(path.Ext(opts.Filename))
 		opts.ContentType = setting.MimeTypeMap.Map[fileExtension]
 	}
 
@@ -126,7 +126,7 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, size int64, re
 	if n >= 0 {
 		buf = buf[:n]
 	}
-	setServeHeadersByFile(r, w, buf, opts)
+	setServeHeadersByFile(w, buf, opts)
 
 	// reset the reader to the beginning
 	reader = io.MultiReader(bytes.NewReader(buf), reader)
@@ -203,7 +203,7 @@ func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, modTime *t
 	if n >= 0 {
 		buf = buf[:n]
 	}
-	setServeHeadersByFile(r, w, buf, opts)
+	setServeHeadersByFile(w, buf, opts)
 	if modTime == nil {
 		modTime = &time.Time{}
 	}

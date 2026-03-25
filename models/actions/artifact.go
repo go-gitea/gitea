@@ -75,7 +75,7 @@ type ActionArtifact struct {
 	// * magic string "gzip" (ContentEncodingV3Gzip): v3 gzip compressed content
 	//   * requires gzip decoding before storing in a zip for download
 	//   * requires gzip content-encoding header when downloaded single files within a workflow
-	// * mime type like for "Content-Type":
+	// * mime type for "Content-Type":
 	//   * "application/zip" (ContentTypeZip), seems to be an abuse, fortunately there is no conflict, and it won't cause problems?
 	//   * "application/pdf", "text/html", etc.: real content type of the artifact
 	ContentEncodingOrType string `xorm:"content_encoding"`

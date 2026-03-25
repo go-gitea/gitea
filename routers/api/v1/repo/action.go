@@ -1833,7 +1833,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 	if actions.IsArtifactV4(art) {
 		// @actions/toolkit asserts that downloaded artifacts of a different runid return 302
 		// https://github.com/actions/toolkit/blob/44d43b5490b02998bd09b0c4ff369a4cc67876c2/packages/artifact/src/internal/download/download-artifact.ts#L203-L210
-		if actions.DownloadArtifactV4ServeDirectOnly(ctx.Base, art) {
+		if actions.DownloadArtifactV4ServeDirect(ctx.Base, art) {
 			return
 		}
 

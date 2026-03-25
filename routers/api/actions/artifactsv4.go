@@ -688,10 +688,10 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	err = actions.DownloadArtifactV4Fallback(ctx.Base, artifact)
+	err = actions.DownloadArtifactV4ReadStorage(ctx.Base, artifact)
 	if err != nil {
 		log.Error("Error serve artifact: %v", err)
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, "failed to download artifact")
 	}
 }
 
