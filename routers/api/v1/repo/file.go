@@ -179,7 +179,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 
 		// If not cached - serve!
-		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
+		common.ServeContentByReadSeeker(ctx.Base, ctx.Repo.TreePath, lastModified, bytes.NewReader(buf))
 		return
 	}
 
@@ -193,7 +193,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 			return
 		}
 
-		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
+		common.ServeContentByReadSeeker(ctx.Base, ctx.Repo.TreePath, lastModified, bytes.NewReader(buf))
 		return
 	} else if err != nil {
 		ctx.APIErrorInternal(err)
