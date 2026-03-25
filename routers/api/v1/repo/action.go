@@ -1842,6 +1842,8 @@ func DownloadArtifact(ctx *context.APIContext) {
 			return
 		}
 
+		// @actions/toolkit asserts a 302 for the artifact download, so we have to build a signed URL and redirect to it
+		// TODO: a perma link to the code for reference
 		redirectURL := buildSigURL(ctx, buildDownloadRawEndpoint(ctx.Repo.Repository, art.ID), art.ID)
 		ctx.Redirect(redirectURL, http.StatusFound)
 		return
