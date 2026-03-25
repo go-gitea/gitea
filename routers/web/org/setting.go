@@ -5,6 +5,7 @@
 package org
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 
@@ -70,7 +71,7 @@ func SettingsPost(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 	if err := org_service.UpdateOrgEmailAddress(ctx, org, &form.Email); err != nil {
-		if user_model.IsErrEmailCharIsNotSupported(err) || user_model.IsErrEmailInvalid(err) {
+		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplSettingsOptions, &form)
 			return
