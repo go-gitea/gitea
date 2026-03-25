@@ -64,7 +64,7 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	}
 
 	if opts.Filename != "" && opts.ContentDisposition != "" {
-		header.Set("Content-Disposition", EncodeContentDisposition(opts.ContentDisposition, path.Base(opts.Filename)))
+		header.Set("Content-Disposition", encodeContentDisposition(opts.ContentDisposition, path.Base(opts.Filename)))
 		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 

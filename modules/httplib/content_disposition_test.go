@@ -53,7 +53,7 @@ func TestContentDisposition(t *testing.T) {
 
 	for _, entry := range table {
 		t.Run(string(entry.disposition)+"_"+entry.filename, func(t *testing.T) {
-			encoded := EncodeContentDisposition(entry.disposition, entry.filename)
+			encoded := encodeContentDisposition(entry.disposition, entry.filename)
 			assert.Equal(t, entry.header, encoded)
 			disposition, params, err := mime.ParseMediaType(encoded)
 			require.NoError(t, err)

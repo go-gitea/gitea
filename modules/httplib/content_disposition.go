@@ -35,8 +35,16 @@ func getSafeName(s string) (_ string, needsEncoding bool) {
 	return out.String(), needsEncoding
 }
 
-// EncodeContentDisposition encodes a correct Content-Disposition Header
-func EncodeContentDisposition(t ContentDispositionType, filename string) string {
+func EncodeContentDispositionAttachment(filename string) string {
+	return encodeContentDisposition(ContentDispositionAttachment, filename)
+}
+
+func EncodeContentDispositionInline(filename string) string {
+	return encodeContentDisposition(ContentDispositionInline, filename)
+}
+
+// encodeContentDisposition encodes a correct Content-Disposition Header
+func encodeContentDisposition(t ContentDispositionType, filename string) string {
 	safeFilename, needsEncoding := getSafeName(filename)
 	result := mime.FormatMediaType(string(t), map[string]string{"filename": safeFilename})
 	// No need for the utf8 encoding
