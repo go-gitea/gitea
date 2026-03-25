@@ -23,9 +23,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestOrgRepos(t *testing.T) {
+func TestOrg(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("OrgRepos", testOrgRepos)
+	t.Run("PrivateOrg", testPrivateOrg)
+	t.Run("LimitedOrg", testLimitedOrg)
+	t.Run("OrgMembers", testOrgMembers)
+	t.Run("OrgRestrictedUser", testOrgRestrictedUser)
+	t.Run("TeamSearch", testTeamSearch)
+	t.Run("OrgSettings", testOrgSettings)
+}
 
+func testOrgRepos(t *testing.T) {
 	var (
 		users = []string{"user1", "user2"}
 		cases = map[string][]string{
@@ -53,10 +62,8 @@ func TestOrgRepos(t *testing.T) {
 	}
 }
 
-func TestLimitedOrg(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	// not logged in user
+func testLimitedOrg(t *testing.T) {
+	// not logged-in user
 	req := NewRequest(t, "GET", "/limited_org")
 	MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequest(t, "GET", "/limited_org/public_repo_on_limited_org")
@@ -83,10 +90,8 @@ func TestLimitedOrg(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
-func TestPrivateOrg(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	// not logged in user
+func testPrivateOrg(t *testing.T) {
+	// not logged-in user
 	req := NewRequest(t, "GET", "/privated_org")
 	MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org")
@@ -122,10 +127,8 @@ func TestPrivateOrg(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
-func TestOrgMembers(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	// not logged in user
+func testOrgMembers(t *testing.T) {
+	// not logged-in user
 	req := NewRequest(t, "GET", "/org/org25/members")
 	MakeRequest(t, req, http.StatusOK)
 
@@ -140,9 +143,7 @@ func TestOrgMembers(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
-func TestOrgRestrictedUser(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testOrgRestrictedUser(t *testing.T) {
 	// privated_org is a private org who has id 23
 	orgName := "privated_org"
 
@@ -200,9 +201,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 	restrictedSession.MakeRequest(t, req, http.StatusOK)
 }
 
-func TestTeamSearch(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testTeamSearch(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
@@ -250,4 +249,25 @@ func TestTeamSearch(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, teams, 1) // team permission is "write", so can write "code"
 	})
+}
+
+func testOrgSettings(t *testing.T) {
+	session := loginUser(t, "user2")
+
+	req := NewRequestWithValues(t, "POST", "/org/org3/settings", map[string]string{
+		"full_name": "org3 new full name",
+		"email":     "org3-new-email@example.com",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	assert.Equal(t, "org3 new full name", org.FullName)
+	assert.Equal(t, "org3-new-email@example.com", org.Email)
+
+	req = NewRequestWithValues(t, "POST", "/org/org3/settings", map[string]string{
+		"email": "", // empty email means "clear email"
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	assert.Equal(t, "org3 new full name", org.FullName)
+	assert.Empty(t, org.Email)
 }

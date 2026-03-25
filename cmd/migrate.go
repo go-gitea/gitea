@@ -14,12 +14,13 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// CmdMigrate represents the available migrate sub-command.
-var CmdMigrate = &cli.Command{
-	Name:        "migrate",
-	Usage:       "Migrate the database",
-	Description: `This is a command for migrating the database, so that you can run "gitea admin create user" before starting the server.`,
-	Action:      runMigrate,
+func newMigrateCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "migrate",
+		Usage:       "Migrate the database",
+		Description: `This is a command for migrating the database, so that you can run "gitea admin create user" before starting the server.`,
+		Action:      runMigrate,
+	}
 }
 
 func runMigrate(ctx context.Context, c *cli.Command) error {
