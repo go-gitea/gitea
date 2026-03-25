@@ -86,10 +86,6 @@ function iifePlugin(): Plugin {
             },
           },
         },
-        define: {
-          // needed for tippy.js
-          'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
-        },
         plugins: [
           stringPlugin(),
         ],
