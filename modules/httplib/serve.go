@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"path"
 	"strconv"
@@ -26,7 +27,7 @@ import (
 
 type ServeHeaderOptions struct {
 	ContentType   string // defaults to "application/octet-stream"
-	ContentLength *int64 // the length can only be set by callers, it is required for range requests
+	ContentLength *int64
 
 	Filename           string
 	ContentDisposition ContentDispositionType
@@ -112,7 +113,10 @@ func serveSetHeadersByFileContent(w http.ResponseWriter, contentPrefetchBuf []by
 
 const mimeDetectionBufferLen = 1024
 
-func ServeContentByReader(r *http.Request, w http.ResponseWriter, size int64, reader io.Reader, opts ServeHeaderOptions) {
+func ServeUserContentByReader(r *http.Request, w http.ResponseWriter, size int64, reader io.Reader, opts ServeHeaderOptions) {
+	if opts.ContentLength != nil {
+		panic("do not set ContentLength, use size argument instead")
+	}
 	buf := make([]byte, mimeDetectionBufferLen)
 	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
@@ -176,32 +180,29 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, size int64, re
 	partialLength := end - start + 1
 	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, size))
 	w.Header().Set("Content-Length", strconv.FormatInt(partialLength, 10))
-	if _, err = io.CopyN(io.Discard, reader, start); err != nil {
-		http.Error(w, "serve content: unable to skip", http.StatusInternalServerError)
-		return
+
+	if seeker, ok := reader.(io.Seeker); ok {
+		if _, err = seeker.Seek(start, io.SeekStart); err != nil {
+			http.Error(w, "serve content: unable to seek", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		if _, err = io.CopyN(io.Discard, reader, start); err != nil {
+			http.Error(w, "serve content: unable to skip", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusPartialContent)
 	_, _ = io.CopyN(w, reader, partialLength) // just like http.ServeContent, not necessary to handle the error
 }
 
-func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, modTime *time.Time, reader io.ReadSeeker, opts ServeHeaderOptions) {
-	buf := make([]byte, mimeDetectionBufferLen)
-	n, err := util.ReadAtMost(reader, buf)
+func ServeUserContentByFile(r *http.Request, w http.ResponseWriter, file fs.File, opts ServeHeaderOptions) {
+	info, err := file.Stat()
 	if err != nil {
-		http.Error(w, "serve content: unable to read", http.StatusInternalServerError)
+		http.Error(w, "unable to serve file, stat error", http.StatusInternalServerError)
 		return
 	}
-	if _, err = reader.Seek(0, io.SeekStart); err != nil {
-		http.Error(w, "serve content: unable to seek", http.StatusInternalServerError)
-		return
-	}
-	if n >= 0 {
-		buf = buf[:n]
-	}
-	serveSetHeadersByFileContent(w, buf, opts)
-	if modTime == nil {
-		modTime = &time.Time{}
-	}
-	http.ServeContent(w, r, opts.Filename, *modTime, reader)
+	opts.LastModified = info.ModTime()
+	ServeUserContentByReader(r, w, info.Size(), file, opts)
 }

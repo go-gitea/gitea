@@ -5,7 +5,6 @@ package actions
 
 import (
 	"net/http"
-	"path"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -51,16 +50,9 @@ func DownloadArtifactV4ReadStorage(ctx *context.Base, art *actions_model.ActionA
 		return err
 	}
 	defer f.Close()
-
-	contentType := art.ContentEncodingOrType
-	contentLength := int64(-1) // TODO: do we know the content length (by artifact)?
-
-	// here it intentionally doesn't use httplib.ServeContentByReadSeeker,
-	// because when using object storage, ReadSeeker emits more (2) requests (read prefetch buffer, seek, serve) than by Reader (only one GET request)
-	httplib.ServeContentByReader(ctx.Req, ctx.Resp, contentLength, f, httplib.ServeHeaderOptions{
-		Filename:           path.Base(art.ArtifactPath),
-		ContentType:        contentType,
-		ContentDisposition: httplib.ContentDispositionInline,
+	httplib.ServeUserContentByFile(ctx.Req, ctx.Resp, f, httplib.ServeHeaderOptions{
+		Filename:    art.ArtifactPath,
+		ContentType: art.ContentEncodingOrType, // v4 guarantees that the field is Content-Type
 	})
 	return nil
 }
