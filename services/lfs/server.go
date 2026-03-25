@@ -172,7 +172,7 @@ func DownloadHandler(ctx *context.Context) {
 	if len(filename) > 0 {
 		decodedFilename, err := base64.RawURLEncoding.DecodeString(filename)
 		if err == nil {
-			ctx.Resp.Header().Set("Content-Disposition", "attachment; filename=\""+string(decodedFilename)+"\"")
+			ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment(string(decodedFilename)))
 			ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 		}
 	}

@@ -10,6 +10,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
@@ -60,9 +61,8 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 	ctx.ServeContent(reader, &context.ServeHeaderOptions{
 		Filename:           fmt.Sprintf("%v-%v-%v.log", workflowName, curJob.Name, task.ID),
 		ContentLength:      &task.LogSize,
-		ContentType:        "text/plain",
-		ContentTypeCharset: "utf-8",
-		Disposition:        "attachment",
+		ContentType:        "text/plain; charset=utf-8",
+		ContentDisposition: httplib.ContentDispositionAttachment,
 	})
 	return nil
 }
