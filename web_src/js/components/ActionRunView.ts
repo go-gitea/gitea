@@ -30,7 +30,7 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
 };
 
 // Pattern for ::cmd:: and ::cmd args:: format (args are stripped for display)
-const logLineCmdPattern = /^::(error|warning|notice|debug)(?:\s[^:]*)?::/;
+const LogLineCmdPattern = /^::(error|warning|notice|debug)(?:\s[^:]*)?::/;
 
 export type LogLine = {
   index: number;
@@ -52,7 +52,7 @@ export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
     }
   }
   // Handle ::cmd:: and ::cmd args:: format (runner may pass these through raw)
-  const match = logLineCmdPattern.exec(line.message);
+  const match = LogLineCmdPattern.exec(line.message);
   if (match) {
     return {name: match[1] as LogLineCommandName, prefix: match[0]};
   }
@@ -77,9 +77,9 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   const logMsg = createElementFromAttrs('span', logMsgAttrs);
   const label = cmd ? LogLineLabelMap[cmd.name] : null;
   if (label) {
-    logMsg.append(createElementFromAttrs('span', {class: 'log-msg-label'}, `${label}: `));
+    logMsg.append(createElementFromAttrs('span', {class: 'log-msg-label'}, `${label}:`));
     const msgSpan = createElementFromAttrs('span', null);
-    msgSpan.innerHTML = renderAnsi(msgContent);
+    msgSpan.innerHTML = ` ${renderAnsi(msgContent.trimStart())}`;
     logMsg.append(msgSpan);
   } else {
     logMsg.innerHTML = renderAnsi(msgContent);
