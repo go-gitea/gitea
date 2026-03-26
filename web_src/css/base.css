@@ -393,8 +393,6 @@ img.ui.avatar,
   aspect-ratio: 1;
 }
 
-
-
 .full.height {
   flex-grow: 1;
   padding-bottom: var(--page-space-bottom);
