@@ -42,6 +42,7 @@
 }
 
 .ui.message .header {
+  color: inherit;
   filter: saturate(2);
 }
 

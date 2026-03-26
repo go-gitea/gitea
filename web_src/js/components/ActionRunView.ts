@@ -78,7 +78,7 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   const label = cmd ? LogLineLabelMap[cmd.name] : null;
   if (label) {
     logMsg.append(createElementFromAttrs('span', {class: 'log-msg-label'}, `${label}:`));
-    const msgSpan = createElementFromAttrs('span', null);
+    const msgSpan = document.createElement('span');
     msgSpan.innerHTML = ` ${renderAnsi(msgContent.trimStart())}`;
     logMsg.append(msgSpan);
   } else {
