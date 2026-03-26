@@ -22,6 +22,7 @@ test('linkifyURLs', () => {
   expect(linkifyURLs('https://')).toEqual('https://');
   // existing <a> tags from ansi_up OSC 8 hyperlinks are not double-linkified
   expect(linkifyURLs('<a href="https://example.com">Click here</a>')).toEqual('<a href="https://example.com">Click here</a>');
+  expect(linkifyURLs('<a\nhref="https://example.com">Click here</a>')).toEqual('<a\nhref="https://example.com">Click here</a>');
   expect(linkifyURLs('<a href="https://example.com">https://example.com</a>')).toEqual('<a href="https://example.com">https://example.com</a>');
 });
 

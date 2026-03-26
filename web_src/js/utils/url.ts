@@ -2,28 +2,30 @@ export function pathEscapeSegments(s: string): string {
   return s.split('/').map(encodeURIComponent).join('/');
 }
 
-// Match HTML tags (to skip) or URLs (to linkify) in ANSI-rendered HTML output
-const urlLinkifyPattern = /(<[^>]*>)|(https?:\/\/[^\s<>"'`|(){}[\]]+)/gi;
+// Match HTML tags (to skip) or URLs (to linkify) in HTML content
+const urlLinkifyPattern = /(<([-\w]+)[^>]*>)|(<\/([-\w]+)[^>]*>)|(https?:\/\/[^\s<>"'`|(){}[\]]+)/gi;
 const trailingPunctPattern = /[.,;:!?]+$/;
 
 // Convert URLs to clickable links in HTML, preserving existing HTML tags
 export function linkifyURLs(html: string): string {
   let inAnchor = false;
-  return html.replace(urlLinkifyPattern, (_match, tag, url) => {
-    if (tag) {
-      // skip URLs inside existing <a> tags from ansi_up OSC 8 hyperlinks
-      if (tag.startsWith('<a ') || tag.startsWith('<a>')) { // eslint-disable-line github/unescaped-html-literal
-        inAnchor = true;
-      } else if (tag === '</a>') {
-        inAnchor = false;
-      }
-      return tag;
+  return html.replace(urlLinkifyPattern, (match, _openTagFull, openTag, _closeTagFull, closeTag, url) => {
+    // skip URLs inside existing <a> tags
+    if (openTag === 'a') {
+      inAnchor = true;
+      return match;
+    } else if (closeTag === 'a') {
+      inAnchor = false;
+      return match;
     }
-    if (inAnchor) return url;
+    if (inAnchor || !url) {
+      return match;
+    }
+
     const trailingPunct = url.match(trailingPunctPattern);
     const cleanUrl = trailingPunct ? url.slice(0, -trailingPunct[0].length) : url;
     const trailing = trailingPunct ? trailingPunct[0] : '';
-    // safe because ansi_up already HTML-escaped the content
+    // safe because regexp only matches valid URLs (no quotes or angle brackets)
     return `<a href="${cleanUrl}" target="_blank">${cleanUrl}</a>${trailing}`; // eslint-disable-line github/unescaped-html-literal
   });
 }
