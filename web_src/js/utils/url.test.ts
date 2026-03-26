@@ -31,6 +31,7 @@ test('linkifyURLs', () => {
   expect(linkifyURLs("https://evil.com/'onclick='alert(1)")).toEqual(`${link('https://evil.com/')}'onclick='alert(1)`);
   expect(linkifyURLs('data:text/html,<script>alert(1)</script>')).toEqual('data:text/html,<script>alert(1)</script>');
   expect(linkifyURLs('https://evil.com/\nonclick=alert(1)')).toEqual(`${link('https://evil.com/')}\nonclick=alert(1)`);
+  expect(linkifyURLs('https://evil.com/&#34;onmouseover=alert(1)')).toEqual(`${link('https://evil.com/&#34;onmouseover=alert')}(1)`);
 });
 
 test('toOriginUrl', () => {
