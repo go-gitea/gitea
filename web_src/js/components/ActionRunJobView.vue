@@ -647,7 +647,7 @@ async function hashChangeListener() {
 }
 
 .job-step-logs .log-msg-label {
-  font-weight: bold;
+  font-weight: var(--font-weight-semibold);
 }
 
 .job-step-logs .log-line-error {
