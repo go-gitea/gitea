@@ -106,8 +106,6 @@ const graphHeight = computed(() => {
   return maxY + margin * 2;
 });
 
-const containerPaddingX = 32;
-const containerPaddingY = 32;
 
 const jobsWithLayout = computed<JobNode[]>(() => {
   try {
@@ -359,25 +357,8 @@ function clampScale(nextScale: number): number {
   return Math.min(Math.max(nextScale, minScale), maxScale);
 }
 
-function zoomTo(nextScale: number, clientX?: number, clientY?: number) {
-  const clampedScale = clampScale(nextScale);
-  const container = graphContainer.value;
-  if (!container) {
-    scale.value = clampedScale;
-    return;
-  }
-
-  const rect = container.getBoundingClientRect();
-  const fallbackClientX = rect.left + containerPaddingX / 2;
-  const fallbackClientY = rect.top + containerPaddingY / 2;
-  const pointerX = (clientX ?? fallbackClientX) - rect.left - containerPaddingX / 2;
-  const pointerY = (clientY ?? fallbackClientY) - rect.top - containerPaddingY / 2;
-  const contentX = (pointerX - translateX.value) / scale.value;
-  const contentY = (pointerY - translateY.value) / scale.value;
-
-  scale.value = clampedScale;
-  translateX.value = pointerX - contentX * clampedScale;
-  translateY.value = pointerY - contentY * clampedScale;
+function zoomTo(nextScale: number) {
+  scale.value = clampScale(nextScale);
 }
 
 function zoomIn() {
@@ -449,7 +430,7 @@ function handleNodeMouseLeave() {
 function handleWheel(event: WheelEvent) {
   event.preventDefault();
   const zoomFactor = Math.exp(-event.deltaY * 0.0015);
-  zoomTo(scale.value * zoomFactor, event.clientX, event.clientY);
+  zoomTo(scale.value * zoomFactor);
 }
 
 function isEdgeHighlighted(edge: RoutedEdge): boolean {
@@ -739,7 +720,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
 .highlighted-edge {
   stroke-width: 2.25 !important;
-  stroke: color-mix(in srgb, var(--color-primary) 35%, var(--color-secondary)) !important;
+  stroke: var(--color-workflow-box-border) !important;
 }
 
 .job-node-group {
