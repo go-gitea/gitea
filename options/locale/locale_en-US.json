@@ -161,8 +161,6 @@
   "search.type_tooltip": "Search type",
   "search.fuzzy": "Fuzzy",
   "search.fuzzy_tooltip": "Include results that closely match the search term",
-  "search.code_archived_filter.all": "Archived and not archived",
-  "search.code_archived_filter.not_archived": "Not Archived",
   "search.words": "Words",
   "search.words_tooltip": "Include only results that match the search term words",
   "search.regexp": "Regexp",

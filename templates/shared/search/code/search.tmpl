@@ -15,9 +15,10 @@
 			<span class="text">{{ctx.Locale.Tr "filter_title"}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu flex-items-menu">
-				<label class="item"><input type="radio" name="archived" {{if eq .ArchivedMode "include"}}checked{{end}} value="include"> {{ctx.Locale.Tr "search.code_archived_filter.all"}}</label>
-				<label class="item"><input type="radio" name="archived" {{if eq .ArchivedMode "exclude"}}checked{{end}} value="exclude"> {{ctx.Locale.Tr "search.code_archived_filter.not_archived"}}</label>
+				<label class="item"><input type="radio" name="clear-filter"> {{ctx.Locale.Tr "filter.clear"}}</label>
+				<div class="divider"></div>
 				<label class="item"><input type="radio" name="archived" {{if eq .ArchivedMode "only"}}checked{{end}} value="only"> {{ctx.Locale.Tr "filter.is_archived"}}</label>
+				<label class="item"><input type="radio" name="archived" {{if eq .ArchivedMode "exclude"}}checked{{end}} value="exclude"> {{ctx.Locale.Tr "filter.not_archived"}}</label>
 			</div>
 		</div>
 		{{end}}
