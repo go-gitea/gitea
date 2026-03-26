@@ -496,7 +496,7 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 		ctx.Resp.Header().Set("Content-Encoding", "gzip")
 	}
 	log.Debug("[artifact] downloadArtifact, name: %s, path: %s, storage: %s, size: %d", artifact.ArtifactName, artifact.ArtifactPath, artifact.StoragePath, artifact.FileSize)
-	ctx.ServeContent(fd, &context.ServeHeaderOptions{
+	ctx.ServeContent(fd, context.ServeHeaderOptions{
 		Filename:     artifact.ArtifactName,
 		LastModified: artifact.CreatedUnix.AsLocalTime(),
 	})

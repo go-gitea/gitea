@@ -87,7 +87,7 @@ func serveSetHeadersByUserContent(w http.ResponseWriter, contentPrefetchBuf []by
 	if setting.MimeTypeMap.Enabled {
 		fileExtension := strings.ToLower(path.Ext(opts.Filename))
 		opts.ContentType = setting.MimeTypeMap.Map[fileExtension]
-		detectCharset = !strings.Contains(opts.ContentType, "charset=")
+		detectCharset = strings.HasPrefix(opts.ContentType, "text/") && !strings.Contains(opts.ContentType, "charset=")
 	}
 
 	if opts.ContentType == "" {

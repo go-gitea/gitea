@@ -281,7 +281,7 @@ func DownloadManifest(ctx *context.Context) {
 		filename = fmt.Sprintf("Package@swift-%s.swift", swiftVersion)
 	}
 
-	ctx.ServeContent(strings.NewReader(m.Content), &context.ServeHeaderOptions{
+	ctx.ServeContent(strings.NewReader(m.Content), context.ServeHeaderOptions{
 		ContentType:  "text/x-swift",
 		Filename:     filename,
 		LastModified: pv.CreatedUnix.AsLocalTime(),
@@ -437,7 +437,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		Digest: pd.Files[0].Blob.HashSHA256,
 	})
 
-	helper.ServePackageFile(ctx, s, u, pf, &context.ServeHeaderOptions{
+	helper.ServePackageFile(ctx, s, u, pf, context.ServeHeaderOptions{
 		Filename:     pf.Name,
 		ContentType:  "application/zip",
 		LastModified: pf.CreatedUnix.AsLocalTime(),
