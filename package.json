@@ -50,7 +50,7 @@
     "postcss-loader": "8.2.1",
     "sortablejs": "1.15.7",
     "swagger-ui-dist": "5.32.1",
-    "tailwindcss": "3.4.17",
+    "tailwindcss": "3.4.19",
     "throttle-debounce": "5.0.2",
     "tippy.js": "6.3.7",
     "toastify-js": "1.12.0",
