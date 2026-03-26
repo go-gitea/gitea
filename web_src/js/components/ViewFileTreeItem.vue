@@ -51,6 +51,9 @@ const onItemClick = (e: MouseEvent) => {
     }"
     :title="item.entryName"
     :href="store.buildTreePathWebUrl(item.fullPath)"
+    role="treeitem"
+    :aria-expanded="item.entryMode === 'tree' ? !collapsed : undefined"
+    :aria-selected="store.selectedItem === item.fullPath"
     @click.stop="onItemClick"
   >
     <div v-if="item.entryMode === 'tree'" class="item-toggle">
@@ -64,7 +67,7 @@ const onItemClick = (e: MouseEvent) => {
     </div>
   </a>
 
-  <div v-if="children?.length" v-show="!collapsed" class="sub-items">
+  <div v-if="children?.length" v-show="!collapsed" class="sub-items" role="group">
     <ViewFileTreeItem v-for="childItem in children" :key="childItem.entryName" :item="childItem" :store="store"/>
   </div>
 </template>

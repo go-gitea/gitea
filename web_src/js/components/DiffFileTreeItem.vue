@@ -26,7 +26,17 @@ function getIconForDiffStatus(pType: DiffStatus) {
 
 <template>
   <template v-if="item.EntryMode === 'tree'">
-    <div class="item-directory" :class="{ 'viewed': item.IsViewed }" :title="item.DisplayName" @click.stop="collapsed = !collapsed">
+    <div
+      class="item-directory"
+      :class="{ 'viewed': item.IsViewed }"
+      :title="item.DisplayName"
+      role="treeitem"
+      :aria-expanded="!collapsed"
+      tabindex="0"
+      @click.stop="collapsed = !collapsed"
+      @keydown.enter="collapsed = !collapsed"
+      @keydown.space.prevent="collapsed = !collapsed"
+    >
       <!-- directory -->
       <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
       <!-- eslint-disable-next-line vue/no-v-html -->
@@ -34,14 +44,18 @@ function getIconForDiffStatus(pType: DiffStatus) {
       <span class="gt-ellipsis">{{ item.DisplayName }}</span>
     </div>
 
-    <div v-show="!collapsed" class="sub-items">
+    <div v-show="!collapsed" class="sub-items" role="group">
       <DiffFileTreeItem v-for="childItem in item.Children" :key="childItem.DisplayName" :item="childItem"/>
     </div>
   </template>
   <a
     v-else
-    class="item-file" :class="{ 'selected': store.selectedItem === '#diff-' + item.NameHash, 'viewed': item.IsViewed }"
-    :title="item.DisplayName" :href="'#diff-' + item.NameHash"
+    class="item-file"
+    :class="{ 'selected': store.selectedItem === '#diff-' + item.NameHash, 'viewed': item.IsViewed }"
+    :title="item.DisplayName"
+    :href="'#diff-' + item.NameHash"
+    role="treeitem"
+    :aria-selected="store.selectedItem === '#diff-' + item.NameHash"
   >
     <!-- file -->
     <!-- eslint-disable-next-line vue/no-v-html -->

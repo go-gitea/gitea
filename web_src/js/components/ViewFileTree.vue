@@ -23,7 +23,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="view-file-tree-items" ref="elRoot">
+  <div class="view-file-tree-items" ref="elRoot" role="tree" :aria-label="'File tree'">
     <ViewFileTreeItem v-for="item in store.rootFiles" :key="item.entryName" :item="item" :store="store"/>
   </div>
 </template>

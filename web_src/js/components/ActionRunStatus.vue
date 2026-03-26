@@ -18,7 +18,7 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <span :data-tooltip-content="localeStatus ?? status" v-if="status">
+  <span :data-tooltip-content="localeStatus ?? status" :aria-label="localeStatus ?? status" role="img" v-if="status">
     <SvgIcon name="octicon-check-circle-fill" class="tw-text-green" :size="size" :class="className" v-if="status === 'success'"/>
     <SvgIcon name="octicon-skip" class="tw-text-text-light" :size="size" :class="className" v-else-if="status === 'skipped'"/>
     <SvgIcon name="octicon-stop" class="tw-text-text-light" :size="size" :class="className" v-else-if="status === 'cancelled'"/>
