@@ -217,8 +217,11 @@ func TestAPIChangeProjectStatus(t *testing.T) {
 
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteIssue)
 
-	req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/projects/%d/close", owner.Name, repo.Name, project.ID).
-		AddTokenAuth(token)
+	// Close via PATCH with state=closed
+	closed := "closed"
+	req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d", owner.Name, repo.Name, project.ID), &api.EditProjectOption{
+		State: &closed,
+	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var updatedProject api.Project
@@ -226,8 +229,11 @@ func TestAPIChangeProjectStatus(t *testing.T) {
 	assert.True(t, updatedProject.IsClosed)
 	assert.NotNil(t, updatedProject.ClosedDate)
 
-	req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/projects/%d/reopen", owner.Name, repo.Name, project.ID).
-		AddTokenAuth(token)
+	// Reopen via PATCH with state=open
+	open := "open"
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d", owner.Name, repo.Name, project.ID), &api.EditProjectOption{
+		State: &open,
+	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &updatedProject)

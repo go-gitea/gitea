@@ -1580,8 +1580,6 @@ func Routes() *web.Router {
 						m.Combo("").Get(repo.GetProject).
 							Patch(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.EditProjectOption{}), repo.EditProject).
 							Delete(reqToken(), reqRepoWriter(unit.TypeProjects), repo.DeleteProject)
-						m.Post("/close", reqToken(), reqRepoWriter(unit.TypeProjects), repo.CloseProject)
-						m.Post("/reopen", reqToken(), reqRepoWriter(unit.TypeProjects), repo.ReopenProject)
 						m.Combo("/columns").Get(repo.ListProjectColumns).
 							Post(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.CreateProjectColumnOption{}), repo.CreateProjectColumn)
 					})
