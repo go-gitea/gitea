@@ -24,7 +24,7 @@ export function linkifyURLs(content: string): string {
     const cleanUrl = trailingPunct ? url.slice(0, -trailingPunct[0].length) : url;
     const trailing = trailingPunct ? trailingPunct[0] : '';
     // safe because ansi_up already HTML-escaped the content
-    return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>${trailing}`; // eslint-disable-line github/unescaped-html-literal
+    return `<a href="${cleanUrl}" target="_blank">${cleanUrl}</a>${trailing}`; // eslint-disable-line github/unescaped-html-literal
   });
 }
 

@@ -6,7 +6,7 @@ test('pathEscapeSegments', () => {
 });
 
 test('linkifyURLs', () => {
-  const link = (url: string) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+  const link = (url: string) => `<a href="${url}" target="_blank">${url}</a>`;
   expect(linkifyURLs('https://example.com')).toEqual(link('https://example.com'));
   expect(linkifyURLs('https://dl.google.com/go/go1.23.6.linux-amd64.tar.gz')).toEqual(link('https://dl.google.com/go/go1.23.6.linux-amd64.tar.gz'));
   expect(linkifyURLs('https://example.com/path?query=1&amp;b=2#frag')).toEqual(link('https://example.com/path?query=1&amp;b=2#frag'));
