@@ -17,4 +17,9 @@ test('renderAnsi', () => {
   // treat "\033[0K" and "\033[0J" (Erase display/line) as "\r", then it will be covered to "\n" finally.
   expect(renderAnsi('a\x1b[Kb\x1b[2Jc')).toEqual('a\nb\nc');
   expect(renderAnsi('\x1b[48;5;88ma\x1b[38;208;48;5;159mb\x1b[m')).toEqual(`<span style="background-color:rgb(135,0,0)">a</span><span style="background-color:rgb(175,255,255)">b</span>`);
+
+  // URLs in ANSI output become clickable links
+  const link = (url: string) => `<a href="${url}" target="_blank">${url}</a>`;
+  expect(renderAnsi('Downloading https://github.com/actions/upload-artifact/releases')).toEqual(`Downloading ${link('https://github.com/actions/upload-artifact/releases')}`);
+  expect(renderAnsi('\x1b[32mhttps://proxy.golang.org/cached-only\x1b[0m')).toEqual(`<span class="ansi-green-fg">${link('https://proxy.golang.org/cached-only')}</span>`);
 });

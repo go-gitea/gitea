@@ -74,6 +74,7 @@ gitea-theme-meta-info {
   --color-console-active-bg: #2e353b;
   --color-console-menu-bg: #262b31;
   --color-console-menu-border: #414b55;
+  --color-console-link: #8f9ba8;
   /* named colors */
   --color-red: #cc4848;
   --color-orange: #cc580c;
