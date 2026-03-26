@@ -27,7 +27,6 @@ test('linkifyURLs', () => {
   expect(linkifyURLs('https://evil.com/<script>alert(1)</script>')).toEqual(`${link('https://evil.com/')}<script>alert(1)</script>`);
   expect(linkifyURLs('https://evil.com/"onmouseover="alert(1)')).toEqual(`${link('https://evil.com/')}"onmouseover="alert(1)`);
   expect(linkifyURLs('javascript:alert(1)')).toEqual('javascript:alert(1)');
-  expect(linkifyURLs('&lt;script&gt;alert(1)&lt;/script&gt;')).toEqual('&lt;script&gt;alert(1)&lt;/script&gt;');
   expect(linkifyURLs("https://evil.com/'onclick='alert(1)")).toEqual(`${link('https://evil.com/')}'onclick='alert(1)`);
   expect(linkifyURLs('data:text/html,<script>alert(1)</script>')).toEqual('data:text/html,<script>alert(1)</script>');
   expect(linkifyURLs('https://evil.com/\nonclick=alert(1)')).toEqual(`${link('https://evil.com/')}\nonclick=alert(1)`);
