@@ -15,8 +15,8 @@
   /* line-height: use the default value as "modules/normalize.css" */
   --line-height-default: normal;
   /* images */
-  --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
-  --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
+  --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="9" viewBox="0 0 12 9"><path fill-rule="evenodd" d="M11.78.22a.75.75 0 0 1 0 1.061L4.52 8.541a.75.75 0 0 1-1.062 0L.202 5.285a.75.75 0 0 1 1.061-1.061l2.725 2.723L10.718.22a.75.75 0 0 1 1.062 0"/></svg>');
+  --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="2" viewBox="0 0 10 2"><path fill-rule="evenodd" d="M0 1a1 1 0 0 1 1-1h8a1 1 0 1 1 0 2H1a1 1 0 0 1-1-1" clip-rule="evenodd"/></svg>');
   --octicon-chevron-right: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg>');
   --select-arrows: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="m4.074 9.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.043 9H4.251a.25.25 0 0 0-.177.427m0-1.957L7.47 4.073a.25.25 0 0 1 .354 0L11.22 7.47a.25.25 0 0 1-.177.426H4.251a.25.25 0 0 1-.177-.426"/></svg>');
   /* other variables */
@@ -27,14 +27,14 @@
   --height-loading: 16rem;
   --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
   --tab-size: 4;
-  --checkbox-size: 15px; /* height and width of checkbox and radio inputs */
+  --checkbox-size: 14px; /* height and width of checkbox and radio inputs */
   --page-spacing: 16px; /* space between page elements */
   --page-margin-x: 32px; /* minimum space on left and right side of page */
   --page-space-bottom: 64px; /* space between last page element and footer */
   --transition-hover-fade: opacity 0.2s ease; /* fade transition for elements that show on hover */
 
   /* z-index */
-  --z-index-modal: 1001; /* modal dialog, hard-coded from Fomantic modal.css */
+  --z-index-modal: 1001; /* modal dialog */
   --z-index-toast: 1002; /* should be larger than modal */
 
   --font-size-label: 12px; /* font size of individual labels */
@@ -238,7 +238,8 @@ progress::-moz-progress-bar {
   background: var(--color-hover);
 }
 
-::selection {
+::selection,
+relative-time::part(root)::selection {
   background: var(--color-primary-light-1);
   color: var(--color-white);
 }
@@ -257,6 +258,12 @@ progress::-moz-progress-bar {
 .ellipsis-button {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
+  user-select: none;
+}
+
+.container-disabled {
+  opacity: var(--opacity-disabled);
+  pointer-events: none;
   user-select: none;
 }
 
@@ -336,37 +343,6 @@ a.label,
   background: currentcolor;
 }
 
-.ui.search > .results {
-  background: var(--color-body);
-  border-color: var(--color-secondary);
-  overflow-wrap: anywhere; /* allow text to wrap as fomantic limits this to 18em width */
-}
-
-.ui.search > .results .result {
-  background: var(--color-body);
-  border-color: var(--color-secondary);
-  display: flex;
-  align-items: center;
-}
-
-.ui.search > .results .result .title {
-  color: var(--color-text-dark);
-}
-
-.ui.search > .results .result .description {
-  color: var(--color-text-light-2);
-}
-
-.ui.search > .results .result .image {
-  width: auto;
-  height: auto;
-}
-
-.ui.search > .results .result:hover,
-.ui.category.search > .results .category .result:hover {
-  background: var(--color-hover);
-}
-
 .empty-placeholder {
   display: flex;
   flex-direction: column;
@@ -415,12 +391,6 @@ img.ui.avatar,
   border-radius: var(--border-radius);
   object-fit: contain;
   aspect-ratio: 1;
-}
-
-.ui.error.message .header,
-.ui.warning.message .header {
-  color: inherit;
-  filter: saturate(2);
 }
 
 .full.height {

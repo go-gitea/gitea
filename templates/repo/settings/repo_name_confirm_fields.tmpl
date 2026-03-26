@@ -1,0 +1,10 @@
+<div class="field">
+	<label>
+		{{ctx.Locale.Tr "repo.settings.enter_repo_name_to_confirm"}}
+		<span class="tw-text-red">{{.RepoName}}</span>
+	</label>
+</div>
+<div class="required field">
+	<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+	<input name="repo_name" required maxlength="100">
+</div>
