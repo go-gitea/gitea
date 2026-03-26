@@ -11,7 +11,7 @@ export function linkifyURLs(html: string): string {
   let inAnchor = false;
   return html.replace(urlLinkifyPattern, (_match, tag, url) => {
     if (tag) {
-      // skip URLs inside existing <a> tags (e.g. from ansi_up OSC 8 hyperlinks)
+      // skip URLs inside existing <a> tags from ansi_up OSC 8 hyperlinks
       if (tag.startsWith('<a ') || tag.startsWith('<a>')) { // eslint-disable-line github/unescaped-html-literal
         inAnchor = true;
       } else if (tag === '</a>') {
