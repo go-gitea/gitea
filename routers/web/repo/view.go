@@ -181,7 +181,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 			if err != nil {
 				if admin_model.IsErrTaskDoesNotExist(err) {
 					ctx.Data["Repo"] = ctx.Repo
-					ctx.Data["CloneAddr"] = ""
+					ctx.Data["CloneAddr"] = ctx.Repo.Repository.SanitizedOriginalURL()
 					ctx.Data["Failed"] = true
 					ctx.HTML(http.StatusOK, tplMigrating)
 					return
