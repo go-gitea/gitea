@@ -217,7 +217,7 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 
 // HTMLTypeColorClass returns the CSS class used in the ui indicating the review
 func (r *Review) HTMLTypeColorClass() string {
-	switch r.Type {
+	switch r.Type { //nolint:exhaustive // only displayable review types
 	case ReviewTypeApprove:
 		if !r.Official {
 			return "tw-text-text-light"
@@ -238,7 +238,7 @@ func (r *Review) HTMLTypeColorClass() string {
 
 // TooltipContent returns the locale string describing the review type
 func (r *Review) TooltipContent() string {
-	switch r.Type {
+	switch r.Type { //nolint:exhaustive // only displayable review types
 	case ReviewTypeApprove:
 		if r.Stale {
 			return "repo.issues.review.stale"

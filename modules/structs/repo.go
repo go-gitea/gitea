@@ -343,7 +343,7 @@ func (gt GitServiceType) Name() string {
 
 // Title represents the service type's proper title
 func (gt GitServiceType) Title() string {
-	switch gt {
+	switch gt { //nolint:exhaustive // only titled git services
 	case GithubService:
 		return "GitHub"
 	case GiteaService:
@@ -403,7 +403,7 @@ type MigrateRepoOptions struct {
 
 // TokenAuth represents whether a service type supports token-based auth
 func (gt GitServiceType) TokenAuth() bool {
-	switch gt {
+	switch gt { //nolint:exhaustive // only token-auth services
 	case GithubService, GiteaService, GitlabService:
 		return true
 	}

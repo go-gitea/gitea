@@ -32,7 +32,7 @@ func (m *mailNotifier) CreateIssueComment(ctx context.Context, doer *user_model.
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
 	var act activities_model.ActionType
-	switch comment.Type {
+	switch comment.Type { //nolint:exhaustive // only mailable comment types
 	case issues_model.CommentTypeClose:
 		act = activities_model.ActionCloseIssue
 	case issues_model.CommentTypeReopen:
@@ -97,7 +97,7 @@ func (m *mailNotifier) NewPullRequest(ctx context.Context, pr *issues_model.Pull
 
 func (m *mailNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, r *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	var act activities_model.ActionType
-	switch comment.Type {
+	switch comment.Type { //nolint:exhaustive // only mailable comment types
 	case issues_model.CommentTypeClose:
 		act = activities_model.ActionCloseIssue
 	case issues_model.CommentTypeReopen:

@@ -200,7 +200,7 @@ func NewFixturesLoader(x *xorm.Engine, opts FixturesOptions) (FixturesLoader, er
 	}
 
 	f := &fixturesLoaderInternal{xormEngine: x, db: x.DB().DB, dbType: x.Dialect().URI().DBType, fixtures: fixtureItems}
-	switch f.dbType {
+	switch f.dbType { //nolint:exhaustive // only supported DB dialects
 	case schemas.SQLITE:
 		f.quoteObject = func(s string) string { return fmt.Sprintf(`"%s"`, s) }
 		f.paramPlaceholder = func(idx int) string { return "?" }

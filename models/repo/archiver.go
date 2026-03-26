@@ -38,7 +38,7 @@ const (
 
 // String converts an ArchiveType to string: the extension of the archive file without prefix dot
 func (a ArchiveType) String() string {
-	switch a {
+	switch a { //nolint:exhaustive // only known archive formats
 	case ArchiveZip:
 		return "zip"
 	case ArchiveTarGz:

@@ -39,7 +39,7 @@ func getPullRequestInfo(p *api.PullRequestPayload) (title, link, by, operator, o
 	for i, user := range assignList {
 		assignStringList[i] = user.UserName
 	}
-	switch p.Action {
+	switch p.Action { //nolint:exhaustive // only assign/milestone actions set operateResult
 	case api.HookIssueAssigned:
 		operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
 	case api.HookIssueUnassigned:
@@ -65,7 +65,7 @@ func getIssuesInfo(p *api.IssuePayload) (issueTitle, link, by, operator, operate
 	for i, user := range assignList {
 		assignStringList[i] = user.UserName
 	}
-	switch p.Action {
+	switch p.Action { //nolint:exhaustive // only assign/milestone actions set operateResult
 	case api.HookIssueAssigned:
 		operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
 	case api.HookIssueUnassigned:
@@ -101,7 +101,7 @@ func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, with
 	titleLink := linkFormatter(fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Index), issueTitle)
 	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 
-	switch p.Action {
+	switch p.Action { //nolint:exhaustive // other actions use default text and color
 	case api.HookIssueOpened:
 		text = fmt.Sprintf("[%s] Issue opened: %s", repoLink, titleLink)
 		color = orangeColor
@@ -151,7 +151,7 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 	titleLink := linkFormatter(p.PullRequest.URL, issueTitle)
 	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 
-	switch p.Action {
+	switch p.Action { //nolint:exhaustive // other actions use default text and color
 	case api.HookIssueOpened:
 		text = fmt.Sprintf("[%s] Pull request opened: %s", repoLink, titleLink)
 		extraMarkdown = p.PullRequest.Body

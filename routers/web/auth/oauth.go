@@ -152,7 +152,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 				return
 			}
 			if uname == "" {
-				switch setting.OAuth2Client.Username {
+				switch setting.OAuth2Client.Username { //nolint:exhaustive // only name-based username sources
 				case setting.OAuth2UsernameNickname:
 					missingFields = append(missingFields, "nickname")
 				case setting.OAuth2UsernamePreferredUsername:

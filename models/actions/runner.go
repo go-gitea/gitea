@@ -91,7 +91,7 @@ func (r *ActionRunner) BelongsToOwnerType() types.OwnerType {
 		return types.OwnerTypeRepository
 	}
 	if r.OwnerID != 0 {
-		switch r.Owner.Type {
+		switch r.Owner.Type { //nolint:exhaustive // only relevant owner types
 		case user_model.UserTypeOrganization:
 			return types.OwnerTypeOrganization
 		case user_model.UserTypeIndividual:

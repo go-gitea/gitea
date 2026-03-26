@@ -202,7 +202,7 @@ func (m msteamsConvertor) PullRequest(p *api.PullRequestPayload) (MSTeamsPayload
 func (m msteamsConvertor) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (MSTeamsPayload, error) {
 	var text, title string
 	var color int
-	switch p.Action {
+	switch p.Action { //nolint:exhaustive // only the reviewed action needs formatting
 	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {

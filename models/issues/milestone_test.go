@@ -40,7 +40,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64, state api.StateType) {
 		var isClosed optional.Option[bool]
-		switch state {
+		switch state { //nolint:exhaustive // only open/closed are filtered
 		case api.StateClosed, api.StateOpen:
 			isClosed = optional.Some(state == api.StateClosed)
 		}

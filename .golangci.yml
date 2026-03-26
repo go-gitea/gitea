@@ -10,6 +10,7 @@ linters:
     - depguard
     - dupl
     - errcheck
+    - exhaustive
     - forbidigo
     - gocheckcompilerdirectives
     - gocritic
@@ -105,6 +106,8 @@ linters:
       os-temp-dir: true
     perfsprint:
       concat-loop: false
+    exhaustive:
+      default-signifies-exhaustive: true
     govet:
       enable:
         - nilness

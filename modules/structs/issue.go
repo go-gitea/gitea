@@ -198,7 +198,7 @@ func (l *IssueTemplateStringSlice) UnmarshalYAML(value *yaml.Node) error {
 		*l = labels
 		return nil
 	}
-	switch value.Kind {
+	switch value.Kind { //nolint:exhaustive // only scalar and sequence nodes
 	case yaml.ScalarNode:
 		str := ""
 		err := value.Decode(&str)

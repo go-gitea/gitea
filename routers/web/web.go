@@ -905,7 +905,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	individualPermsChecker := func(ctx *context.Context) {
 		// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
 		if ctx.ContextUser.IsIndividual() {
-			switch ctx.ContextUser.Visibility {
+			switch ctx.ContextUser.Visibility { //nolint:exhaustive // only restricted visibility types need checks
 			case structs.VisibleTypePrivate:
 				if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
 					ctx.NotFound(nil)

@@ -13,7 +13,7 @@ import (
 func ChangeU2FCounterType(x *xorm.Engine) error {
 	var err error
 
-	switch x.Dialect().URI().DBType {
+	switch x.Dialect().URI().DBType { //nolint:exhaustive // SQLite needs no change
 	case schemas.MYSQL:
 		_, err = x.Exec("ALTER TABLE `u2f_registration` MODIFY `counter` BIGINT")
 	case schemas.POSTGRES:

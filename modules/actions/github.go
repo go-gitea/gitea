@@ -27,7 +27,7 @@ const (
 
 // IsDefaultBranchWorkflow returns true if the event only triggers workflows on the default branch
 func IsDefaultBranchWorkflow(triggedEvent webhook_module.HookEventType) bool {
-	switch triggedEvent {
+	switch triggedEvent { //nolint:exhaustive // only default-branch-only events
 	case webhook_module.HookEventDelete:
 		// GitHub "delete" event
 		// https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#delete

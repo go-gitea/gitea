@@ -26,7 +26,7 @@ func indexSettingToGitGrepPathspecList() (list []string) {
 
 func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Repository, ref git.RefName, keyword string, searchMode indexer.SearchModeType) (searchResults []*code_indexer.Result, total int64, err error) {
 	grepMode := git.GrepModeWords
-	switch searchMode {
+	switch searchMode { //nolint:exhaustive // only non-default search modes
 	case indexer.SearchModeExact:
 		grepMode = git.GrepModeExact
 	case indexer.SearchModeRegexp:

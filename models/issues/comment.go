@@ -174,7 +174,7 @@ func AsCommentType(typeName string) CommentType {
 }
 
 func (t CommentType) HasContentSupport() bool {
-	switch t {
+	switch t { //nolint:exhaustive // other types have no content
 	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview:
 		return true
 	}
@@ -182,7 +182,7 @@ func (t CommentType) HasContentSupport() bool {
 }
 
 func (t CommentType) HasAttachmentSupport() bool {
-	switch t {
+	switch t { //nolint:exhaustive // other types have no attachments
 	case CommentTypeComment, CommentTypeCode, CommentTypeReview:
 		return true
 	}
@@ -190,7 +190,7 @@ func (t CommentType) HasAttachmentSupport() bool {
 }
 
 func (t CommentType) HasMailReplySupport() bool {
-	switch t {
+	switch t { //nolint:exhaustive // other types not mail-replyable
 	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview, CommentTypeReopen, CommentTypeClose, CommentTypeMergePull, CommentTypeAssignees:
 		return true
 	}
@@ -880,7 +880,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 
 func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment *Comment) (err error) {
 	// Check comment type.
-	switch opts.Type {
+	switch opts.Type { //nolint:exhaustive // only types needing extra updates
 	case CommentTypeCode:
 		if err = UpdateCommentAttachments(ctx, comment, opts.Attachments); err != nil {
 			return err

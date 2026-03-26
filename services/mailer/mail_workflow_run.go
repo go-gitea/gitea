@@ -49,7 +49,7 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 	}
 
 	var subjectTrString string
-	switch run.Status {
+	switch run.Status { //nolint:exhaustive // other statuses not emailed
 	case actions_model.StatusFailure:
 		subjectTrString = "mail.repo.actions.run.failed"
 	case actions_model.StatusCancelled:
@@ -97,7 +97,7 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 	for lang, tos := range langMap {
 		locale := translation.NewLocale(lang)
 		var runStatusTrString string
-		switch run.Status {
+		switch run.Status { //nolint:exhaustive // other statuses not emailed
 		case actions_model.StatusSuccess:
 			runStatusTrString = "mail.repo.actions.jobs.all_succeeded"
 		case actions_model.StatusFailure:

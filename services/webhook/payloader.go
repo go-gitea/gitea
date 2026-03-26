@@ -42,7 +42,7 @@ func convertUnmarshalledJSON[T, P any](convert func(P) (T, error), data []byte) 
 }
 
 func newPayload[T any](rc payloadConvertor[T], data []byte, event webhook_module.HookEventType) (t T, err error) {
-	switch event {
+	switch event { //nolint:exhaustive // events not listed here are unsupported
 	case webhook_module.HookEventCreate:
 		return convertUnmarshalledJSON(rc.Create, data)
 	case webhook_module.HookEventDelete:

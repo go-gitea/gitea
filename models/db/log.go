@@ -74,7 +74,7 @@ func (l *XORMLogBridge) Warnf(format string, v ...any) {
 
 // Level get logger level
 func (l *XORMLogBridge) Level() xormlog.LogLevel {
-	switch l.logger.GetLevel() {
+	switch l.logger.GetLevel() { //nolint:exhaustive // only mapped log levels
 	case log.TRACE, log.DEBUG:
 		return xormlog.LOG_DEBUG
 	case log.INFO:

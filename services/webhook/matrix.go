@@ -203,7 +203,7 @@ func (m matrixConvertor) Review(p *api.PullRequestPayload, event webhook_module.
 	repoLink := htmlLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text string
 
-	switch p.Action {
+	switch p.Action { //nolint:exhaustive // only the reviewed action needs formatting
 	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {

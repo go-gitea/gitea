@@ -102,7 +102,7 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 }
 
 func entryModeString(entryMode git.EntryMode) string {
-	switch entryMode {
+	switch entryMode { //nolint:exhaustive // unknown modes fall through
 	case git.EntryModeBlob:
 		return "blob"
 	case git.EntryModeExec:

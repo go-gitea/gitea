@@ -126,7 +126,7 @@ func (t telegramConvertor) PullRequest(p *api.PullRequestPayload) (TelegramPaylo
 // Review implements PayloadConvertor Review method
 func (t telegramConvertor) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (TelegramPayload, error) {
 	var text, extraMarkdown string
-	switch p.Action {
+	switch p.Action { //nolint:exhaustive // only the reviewed action needs formatting
 	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {

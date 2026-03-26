@@ -72,7 +72,7 @@ func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 // refType should be empty, ObjectTag or ObjectBranch. All other values are equivalent to empty.
 func (repo *Repository) WalkReferences(refType ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
 	var args gitcmd.TrustedCmdArgs
-	switch refType {
+	switch refType { //nolint:exhaustive // only tag and branch refs
 	case ObjectTag:
 		args = gitcmd.TrustedCmdArgs{TagPrefix, "--sort=-taggerdate"}
 	case ObjectBranch:

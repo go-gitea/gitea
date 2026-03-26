@@ -175,7 +175,7 @@ func (w *Webhook) HasEvent(evt webhook_module.HookEventType) bool {
 		return evt == webhook_module.HookEventPush
 	}
 	checkEvt := evt
-	switch evt {
+	switch evt { //nolint:exhaustive // only sub-event aliases
 	case webhook_module.HookEventPullRequestReviewApproved, webhook_module.HookEventPullRequestReviewRejected, webhook_module.HookEventPullRequestReviewComment:
 		checkEvt = webhook_module.HookEventPullRequestReview
 	}

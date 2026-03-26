@@ -127,7 +127,7 @@ func (wc wechatworkConvertor) PullRequest(p *api.PullRequestPayload) (Wechatwork
 // Review implements PayloadConvertor Review method
 func (wc wechatworkConvertor) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (WechatworkPayload, error) {
 	var text, title string
-	switch p.Action {
+	switch p.Action { //nolint:exhaustive // only the reviewed action needs formatting
 	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {

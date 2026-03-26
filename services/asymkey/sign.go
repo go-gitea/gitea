@@ -42,7 +42,7 @@ func signingModeFromStrings(modeStrings []string) []signingMode {
 	returnable := make([]signingMode, 0, len(modeStrings))
 	for _, mode := range modeStrings {
 		signMode := signingMode(strings.ToLower(strings.TrimSpace(mode)))
-		switch signMode {
+		switch signMode { //nolint:exhaustive // skips unrecognized modes
 		case never:
 			return []signingMode{never}
 		case always:
@@ -142,7 +142,7 @@ func SignInitialCommit(ctx context.Context, u *user_model.User) (bool, *git.Sign
 
 Loop:
 	for _, rule := range rules {
-		switch rule {
+		switch rule { //nolint:exhaustive // only signing policy rules
 		case never:
 			return false, nil, nil, &ErrWontSign{never}
 		case always:
@@ -178,7 +178,7 @@ func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *g
 
 Loop:
 	for _, rule := range rules {
-		switch rule {
+		switch rule { //nolint:exhaustive // only signing policy rules
 		case never:
 			return false, nil, nil, &ErrWontSign{never}
 		case always:
@@ -226,7 +226,7 @@ func SignCRUDAction(ctx context.Context, u *user_model.User, gitRepo *git.Reposi
 
 Loop:
 	for _, rule := range rules {
-		switch rule {
+		switch rule { //nolint:exhaustive // only signing policy rules
 		case never:
 			return false, nil, nil, &ErrWontSign{never}
 		case always:
@@ -295,7 +295,7 @@ func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.
 
 Loop:
 	for _, rule := range rules {
-		switch rule {
+		switch rule { //nolint:exhaustive // only signing policy rules
 		case never:
 			return false, nil, nil, &ErrWontSign{never}
 		case always:

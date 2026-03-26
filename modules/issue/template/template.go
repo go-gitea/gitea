@@ -172,7 +172,7 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 
 	for optIdx, option := range options {
 		position := newErrorPosition(idx, field.Type, optIdx)
-		switch field.Type {
+		switch field.Type { //nolint:exhaustive // only field types with options
 		case api.IssueFormFieldTypeDropdown:
 			if _, ok := option.(string); !ok {
 				return position.Errorf("should be a string")
@@ -428,7 +428,7 @@ type valuedOption struct {
 }
 
 func (o *valuedOption) Label() string {
-	switch o.field.Type {
+	switch o.field.Type { //nolint:exhaustive // only field types with options
 	case api.IssueFormFieldTypeDropdown:
 		if label, ok := o.data.(string); ok {
 			return label
@@ -444,7 +444,7 @@ func (o *valuedOption) Label() string {
 }
 
 func (o *valuedOption) IsChecked() bool {
-	switch o.field.Type {
+	switch o.field.Type { //nolint:exhaustive // only field types with options
 	case api.IssueFormFieldTypeDropdown:
 		checks := strings.Split(o.field.Get("form-field-"+o.field.ID), ",")
 		idx := strconv.Itoa(o.index)

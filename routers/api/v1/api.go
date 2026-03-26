@@ -841,7 +841,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 func individualPermsChecker(ctx *context.APIContext) {
 	// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
 	if ctx.ContextUser.IsIndividual() {
-		switch ctx.ContextUser.Visibility {
+		switch ctx.ContextUser.Visibility { //nolint:exhaustive // only restricted visibility types need checks
 		case api.VisibleTypePrivate:
 			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
 				ctx.APIErrorNotFound("Visit Project", nil)

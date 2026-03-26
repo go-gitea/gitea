@@ -276,7 +276,7 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 
 func ToWorkflowRunAction(status actions_model.Status) string {
 	var action string
-	switch status {
+	switch status { //nolint:exhaustive // done statuses handled below
 	case actions_model.StatusWaiting, actions_model.StatusBlocked:
 		action = "requested"
 	case actions_model.StatusRunning:
@@ -291,7 +291,7 @@ func ToWorkflowRunAction(status actions_model.Status) string {
 func ToActionsStatus(status actions_model.Status) (string, string) {
 	var action string
 	var conclusion string
-	switch status {
+	switch status { //nolint:exhaustive // done statuses handled below
 	// This is a naming conflict of the webhook between Gitea and GitHub Actions
 	case actions_model.StatusWaiting:
 		action = "queued"
@@ -302,7 +302,7 @@ func ToActionsStatus(status actions_model.Status) (string, string) {
 	}
 	if status.IsDone() {
 		action = "completed"
-		switch status {
+		switch status { //nolint:exhaustive // only done statuses have conclusions
 		case actions_model.StatusSuccess:
 			conclusion = "success"
 		case actions_model.StatusCancelled:

@@ -203,7 +203,7 @@ func ViewPackageVersion(ctx *context.Context) {
 	}
 	ctx.Data["PackageRegistryHost"] = registryHostURL.Host
 
-	switch pd.Package.Type {
+	switch pd.Package.Type { //nolint:exhaustive // only types with extra metadata
 	case packages_model.TypeAlpine:
 		branches := make(container.Set[string])
 		repositories := make(container.Set[string])

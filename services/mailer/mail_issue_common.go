@@ -287,7 +287,7 @@ func generateMessageIDForIssue(issue *issues_model.Issue, comment *issues_model.
 	if comment != nil {
 		extra = fmt.Sprintf("/comment/%d", comment.ID)
 	} else {
-		switch actionType {
+		switch actionType { //nolint:exhaustive // only state-change actions need IDs
 		case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
 			extra = fmt.Sprintf("/close/%d", time.Now().UnixNano()/1e6)
 		case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:

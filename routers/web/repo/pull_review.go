@@ -236,7 +236,7 @@ func SubmitReview(ctx *context.Context) {
 	}
 
 	reviewType := form.ReviewType()
-	switch reviewType {
+	switch reviewType { //nolint:exhaustive // only unknown and self-review need guards
 	case issues_model.ReviewTypeUnknown:
 		ctx.ServerError("ReviewType", fmt.Errorf("unknown ReviewType: %s", form.Type))
 		return

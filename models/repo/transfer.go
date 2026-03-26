@@ -210,7 +210,7 @@ func DeleteRepositoryTransfer(ctx context.Context, repoID int64) error {
 
 // TestRepositoryReadyForTransfer make sure repo is ready to transfer
 func TestRepositoryReadyForTransfer(status RepositoryStatus) error {
-	switch status {
+	switch status { //nolint:exhaustive // only blocking statuses
 	case RepositoryBeingMigrated:
 		return errors.New("repo is not ready, currently migrating")
 	case RepositoryPendingTransfer:

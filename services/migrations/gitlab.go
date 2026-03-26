@@ -165,7 +165,7 @@ func (g *GitlabDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, e
 	}
 
 	var private bool
-	switch gr.Visibility {
+	switch gr.Visibility { //nolint:exhaustive // public visibility is the default
 	case gitlab.InternalVisibility:
 		private = true
 	case gitlab.PrivateVisibility:

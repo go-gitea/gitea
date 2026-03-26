@@ -593,7 +593,7 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 	}
 	if err := user_model.CreateUser(ctx, u, meta, overwrites); err != nil {
 		if possibleLinkAccountData != nil && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
-			switch setting.OAuth2Client.AccountLinking {
+			switch setting.OAuth2Client.AccountLinking { //nolint:exhaustive // only auto and login linking modes
 			case setting.OAuth2AccountLinkingAuto:
 				var user *user_model.User
 				user = &user_model.User{Name: u.Name}

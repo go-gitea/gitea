@@ -45,7 +45,7 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 		}
 	}
 
-	switch r.Type {
+	switch r.Type { //nolint:exhaustive // only maps known review states
 	case issues_model.ReviewTypeApprove:
 		result.State = api.ReviewStateApproved
 	case issues_model.ReviewTypeReject:

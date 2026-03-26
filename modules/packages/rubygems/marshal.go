@@ -96,7 +96,7 @@ func (e *MarshalEncoder) marshal(v any) error {
 		typ = typ.Elem()
 	}
 
-	switch typ.Kind() {
+	switch typ.Kind() { //nolint:exhaustive // only marshalable reflect kinds
 	case reflect.Bool:
 		return e.marshalBool(val.Bool())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:

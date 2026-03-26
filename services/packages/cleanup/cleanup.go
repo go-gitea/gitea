@@ -120,7 +120,7 @@ func executeCleanupOneRule(ctx context.Context, pcr *packages_model.PackageClean
 	}
 
 	if anyVersionDeleted {
-		switch pcr.Type {
+		switch pcr.Type { //nolint:exhaustive // only repo-based packages need rebuild
 		case packages_model.TypeDebian:
 			if err := debian_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
 				return fmt.Errorf("CleanupRule [%d]: debian.BuildAllRepositoryFiles failed: %w", pcr.ID, err)

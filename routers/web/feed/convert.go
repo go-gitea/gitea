@@ -198,7 +198,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 
 		// description & content
 		{
-			switch act.OpType {
+			switch act.OpType { //nolint:exhaustive // only actions with descriptions
 			case activities_model.ActionCommitRepo, activities_model.ActionMirrorSyncPush:
 				push := templates.ActionContent2Commits(act)
 				_ = act.LoadRepo(ctx)

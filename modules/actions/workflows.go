@@ -440,7 +440,7 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 		// converted_to_draft, ready_for_review, locked, unlocked, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued
 
 		action := prPayload.Action
-		switch action {
+		switch action { //nolint:exhaustive // only actions needing name conversion
 		case api.HookIssueSynchronized:
 			action = "synchronize"
 		case api.HookIssueLabelUpdated:
@@ -659,7 +659,7 @@ func matchReleaseEvent(payload *api.ReleasePayload, evt *jobparser.Event) bool {
 			// unpublished, created, deleted, prereleased, released
 
 			action := payload.Action
-			switch action {
+			switch action { //nolint:exhaustive // only actions needing name conversion
 			case api.HookReleaseUpdated:
 				action = "edited"
 			}
@@ -696,7 +696,7 @@ func matchPackageEvent(payload *api.PackagePayload, evt *jobparser.Event) bool {
 			// updated
 
 			action := payload.Action
-			switch action {
+			switch action { //nolint:exhaustive // only actions needing name conversion
 			case api.HookPackageCreated:
 				action = "published"
 			}
