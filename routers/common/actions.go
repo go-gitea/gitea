@@ -58,7 +58,7 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 	if p := strings.Index(workflowName, "."); p > 0 {
 		workflowName = workflowName[0:p]
 	}
-	ctx.ServeContent(reader, &context.ServeHeaderOptions{
+	ctx.ServeContent(reader, context.ServeHeaderOptions{
 		Filename:           fmt.Sprintf("%v-%v-%v.log", workflowName, curJob.Name, task.ID),
 		ContentLength:      &task.LogSize,
 		ContentType:        "text/plain; charset=utf-8",
