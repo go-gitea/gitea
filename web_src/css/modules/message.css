@@ -41,16 +41,7 @@
   margin-bottom: 1em;
 }
 
-.ui.info.message .header,
-.ui.blue.message .header,
-.ui.success.message .header,
-.ui.positive.message .header,
-.ui.green.message .header,
-.ui.error.message .header,
-.ui.negative.message .header,
-.ui.red.message .header,
-.ui.warning.message .header,
-.ui.yellow.message .header {
+.ui.message .header {
   filter: saturate(2);
 }
 
