@@ -13926,50 +13926,6 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/projects/{id}/close": {
-      "post": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Close a project",
-        "operationId": "repoCloseProject",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the project",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/Project"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
     "/repos/{owner}/{repo}/projects/{id}/columns": {
       "get": {
         "produces": [
@@ -14077,50 +14033,6 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/projects/{id}/reopen": {
-      "post": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Reopen a project",
-        "operationId": "repoReopenProject",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the project",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/Project"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -25307,6 +25219,11 @@
           "description": "Project description",
           "type": "string",
           "x-go-name": "Description"
+        },
+        "state": {
+          "description": "State of the project (open or closed)",
+          "type": "string",
+          "x-go-name": "State"
         },
         "title": {
           "description": "Project title",

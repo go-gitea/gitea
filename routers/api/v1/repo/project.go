@@ -1,4 +1,4 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package repo
@@ -17,6 +17,41 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	project_service "code.gitea.io/gitea/services/projects"
 )
+
+func getRepoProjectByID(ctx *context.APIContext) *project_model.Project {
+	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	if err != nil {
+		if project_model.IsErrProjectNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return nil
+	}
+	return project
+}
+
+func getRepoProjectColumn(ctx *context.APIContext) *project_model.Column {
+	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("id"))
+	if err != nil {
+		if project_model.IsErrProjectColumnNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return nil
+	}
+	_, err = project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, column.ProjectID)
+	if err != nil {
+		if project_model.IsErrProjectNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return nil
+	}
+	return column
+}
 
 // ListProjects lists all projects in a repository
 func ListProjects(ctx *context.APIContext) {
@@ -124,17 +159,12 @@ func GetProject(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	project := getRepoProjectByID(ctx)
+	if ctx.Written() {
 		return
 	}
 
-	if err := project_service.LoadIssueNumbersForProjects(ctx, []*project_model.Project{project}, ctx.Doer); err != nil {
+	if err := project_service.LoadIssueNumbersForProject(ctx, project, ctx.Doer); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -191,11 +221,6 @@ func CreateProject(ctx *context.APIContext) {
 		return
 	}
 
-	if err := project_service.LoadIssueNumbersForProjects(ctx, []*project_model.Project{p}, ctx.Doer); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
 	ctx.JSON(http.StatusCreated, convert.ToProject(ctx, p))
 }
 
@@ -237,13 +262,8 @@ func EditProject(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	project := getRepoProjectByID(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -263,97 +283,17 @@ func EditProject(ctx *context.APIContext) {
 		return
 	}
 
-	if err := project_service.LoadIssueNumbersForProjects(ctx, []*project_model.Project{project}, ctx.Doer); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, convert.ToProject(ctx, project))
-}
-
-// CloseProject closes a project
-func CloseProject(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/projects/{id}/close repository repoCloseProject
-	// ---
-	// summary: Close a project
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: id
-	//   in: path
-	//   description: id of the project
-	//   type: integer
-	//   format: int64
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/Project"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-
-	changeProjectStatus(ctx, true)
-}
-
-// ReopenProject reopens a project
-func ReopenProject(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/projects/{id}/reopen repository repoReopenProject
-	// ---
-	// summary: Reopen a project
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: id
-	//   in: path
-	//   description: id of the project
-	//   type: integer
-	//   format: int64
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/Project"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-
-	changeProjectStatus(ctx, false)
-}
-
-func changeProjectStatus(ctx *context.APIContext, isClosed bool) {
-	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
+	if form.State != nil {
+		isClosed := *form.State == string(api.StateClosed)
+		if isClosed != project.IsClosed {
+			if err := project_model.ChangeProjectStatus(ctx, project, isClosed); err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
 		}
-		return
 	}
 
-	if err := project_model.ChangeProjectStatus(ctx, project, isClosed); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	if err := project_service.LoadIssueNumbersForProjects(ctx, []*project_model.Project{project}, ctx.Doer); err != nil {
+	if err := project_service.LoadIssueNumbersForProject(ctx, project, ctx.Doer); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -389,14 +329,8 @@ func DeleteProject(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// Verify project exists and belongs to this repository
-	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	project := getRepoProjectByID(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -446,13 +380,8 @@ func ListProjectColumns(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	project := getRepoProjectByID(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -512,13 +441,8 @@ func CreateProjectColumn(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	project := getRepoProjectByID(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -577,24 +501,8 @@ func EditProjectColumn(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("id"))
-	if err != nil {
-		if project_model.IsErrProjectColumnNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return
-	}
-
-	// Verify column belongs to this repo's project
-	_, err = project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, column.ProjectID)
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	column := getRepoProjectColumn(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -651,24 +559,8 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("id"))
-	if err != nil {
-		if project_model.IsErrProjectColumnNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return
-	}
-
-	// Verify column belongs to this repo's project
-	_, err = project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, column.ProjectID)
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	column := getRepoProjectColumn(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -720,31 +612,13 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("id"))
-	if err != nil {
-		if project_model.IsErrProjectColumnNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	column := getRepoProjectColumn(ctx)
+	if ctx.Written() {
 		return
 	}
 
-	// Verify column belongs to this repo's project
-	_, err = project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, column.ProjectID)
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return
-	}
-
-	// Parse request body
 	form := web.GetForm(ctx).(*api.AddIssueToProjectColumnOption)
 
-	// Verify issue exists and belongs to this repository
 	issue, err := issues_model.GetIssueByID(ctx, form.IssueID)
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
@@ -760,7 +634,6 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 		return
 	}
 
-	// Assign issue to column, creating an audit comment on the issue timeline
 	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, column.ProjectID, column.ID); err != nil {
 		ctx.APIErrorInternal(err)
 		return

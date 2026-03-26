@@ -49,6 +49,8 @@ type EditProjectOption struct {
 	Description *string `json:"description,omitempty"`
 	// Card type: 0=text_only, 1=images_and_text
 	CardType *int `json:"card_type,omitempty"`
+	// State of the project (open or closed)
+	State *string `json:"state,omitempty"`
 }
 
 // ProjectColumn represents a project column (board)
