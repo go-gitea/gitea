@@ -7,9 +7,9 @@ const urlLinkifyPattern = /(<[^>]*>)|(https?:\/\/[^\s<>"'`|(){}[\]]+)/gi;
 const trailingPunctPattern = /[.,;:!?]+$/;
 
 // Convert URLs to clickable links in HTML, preserving existing HTML tags
-export function linkifyURLs(content: string): string {
+export function linkifyURLs(html: string): string {
   let inAnchor = false;
-  return content.replace(urlLinkifyPattern, (_match, tag, url) => {
+  return html.replace(urlLinkifyPattern, (_match, tag, url) => {
     if (tag) {
       // skip URLs inside existing <a> tags (e.g. from ansi_up OSC 8 hyperlinks)
       if (tag.startsWith('<a ') || tag.startsWith('<a>')) { // eslint-disable-line github/unescaped-html-literal
