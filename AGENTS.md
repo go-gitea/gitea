@@ -1,8 +1,13 @@
-- Use `make help` to find available development targets
-- Run `make fmt` to format `.go` files, and run `make lint-go` to lint them
+- Run `make help` to find available development targets
+- Run `make fmt` to format and `make lint-go` to lint `.go` files
 - Run `make lint-js` to lint `.ts` files
-- Run `make tidy` after any `go.mod` changes
-- Add the current year into the copyright header of new `.go` files
-- Ensure no trailing whitespace in edited files
-- Never force-push to pull request branches
-- Always start issue and pull request comments with an authorship attribution
+- Run `make tidy` after `go.mod` changes
+- Add current year in copyright header of new `.go` files
+- No trailing whitespace in edited files
+- Never force-push to PR branches
+- Start issue and PR comments with authorship attribution
+- Keep changes minimal and focused
+- Don't remove existing comments that still apply
+- Use `tw-*` classes instead of `style=` attributes, check `tailwind.config.ts`
+- Use CSS variables for all colors, avoid `color-mix`
+- Use `!` non-null assertion in TypeScript when value is guaranteed
