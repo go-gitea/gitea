@@ -43,5 +43,6 @@ describe('navigateToIframeLink', () => {
     expect(assignSpy).toHaveBeenCalledTimes(0);
     expect(window.location.href).toBe('http://localhost:3000/');
     errorSpy.mockRestore();
+    vi.clearAllMocks();
   });
 });
