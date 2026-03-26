@@ -25,7 +25,7 @@ test('linkifyURLs', () => {
   expect(linkifyURLs('<a href="https://example.com">https://example.com</a>')).toEqual('<a href="https://example.com">https://example.com</a>');
   expect(linkifyURLs('https://evil.com/<script>alert(1)</script>')).toEqual(`${link('https://evil.com/')}<script>alert(1)</script>`);
   expect(linkifyURLs('https://evil.com/"onmouseover="alert(1)')).toEqual(`${link('https://evil.com/')}"onmouseover="alert(1)`);
-  expect(linkifyURLs('javascript:alert(1)')).toEqual('javascript:alert(1)');
+  expect(linkifyURLs('javascript:alert(1)')).toEqual('javascript:alert(1)'); // eslint-disable-line no-script-url
   expect(linkifyURLs("https://evil.com/'onclick='alert(1)")).toEqual(`${link('https://evil.com/')}'onclick='alert(1)`);
   expect(linkifyURLs('data:text/html,<script>alert(1)</script>')).toEqual('data:text/html,<script>alert(1)</script>');
   expect(linkifyURLs('https://evil.com/\nonclick=alert(1)')).toEqual(`${link('https://evil.com/')}\nonclick=alert(1)`);
