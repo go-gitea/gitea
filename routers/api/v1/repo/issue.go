@@ -309,6 +309,12 @@ func ListIssues(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues issue issueListIssues
 	// ---
 	// summary: List a repository's issues
+	// description: |
+	//   List issues in a repository with various filtering options.
+	//
+	//   **Required permissions:** `repo` or `read:issue` (for public repos, no authentication required)
+	//
+	//   **Pagination:** Use `page` and `limit` parameters. Response includes `X-Total-Count` header.
 	// produces:
 	// - application/json
 	// parameters:
@@ -317,11 +323,13 @@ func ListIssues(ctx *context.APIContext) {
 	//   description: owner of the repo
 	//   type: string
 	//   required: true
+	//   example: gitea
 	// - name: repo
 	//   in: path
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	//   example: gitea
 	// - name: state
 	//   in: query
 	//   description: whether issue is open or closed
@@ -331,9 +339,11 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: comma separated list of label names. Fetch only issues that have any of this label names. Non existent labels are discarded.
 	//   type: string
+	//   example: bug,enhancement
 	// - name: q
 	//   in: query
 	//   description: search string
+	//   type: string
 	//   type: string
 	// - name: type
 	//   in: query
@@ -557,6 +567,12 @@ func GetIssue(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{index} issue issueGetIssue
 	// ---
 	// summary: Get an issue
+	// description: |
+	//   Get a specific issue by its index number in a repository.
+	//
+	//   **Required permissions:** `repo` or `read:issue` (for public repos, no authentication required)
+	// consumes:
+	// - application/json
 	// produces:
 	// - application/json
 	// parameters:
@@ -565,17 +581,20 @@ func GetIssue(ctx *context.APIContext) {
 	//   description: owner of the repo
 	//   type: string
 	//   required: true
+	//   example: gitea
 	// - name: repo
 	//   in: path
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	//   example: gitea
 	// - name: index
 	//   in: path
 	//   description: index of the issue to get
 	//   type: integer
 	//   format: int64
 	//   required: true
+	//   example: 1
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
@@ -603,6 +622,17 @@ func CreateIssue(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues issue issueCreateIssue
 	// ---
 	// summary: Create an issue. If using deadline only the date will be taken into account, and time of day ignored.
+	// description: |
+	//   Create a new issue in a repository. The authenticated user must have write access to the repository.
+	//
+	//   **Required permissions:** `repo` or `write:issue`
+	//
+	//   **Error scenarios:**
+	//   - 403: User does not have permission to create issues in this repository
+	//   - 404: Repository not found or user does not have access
+	//   - 412: Repository is empty (no branches)
+	//   - 422: Validation error (e.g., missing title, invalid assignee, invalid milestone)
+	//   - 423: Repository is archived and does not allow new issues
 	// consumes:
 	// - application/json
 	// produces:
@@ -613,15 +643,24 @@ func CreateIssue(ctx *context.APIContext) {
 	//   description: owner of the repo
 	//   type: string
 	//   required: true
+	//   example: gitea
 	// - name: repo
 	//   in: path
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	//   example: gitea
 	// - name: body
 	//   in: body
 	//   schema:
 	//     "$ref": "#/definitions/CreateIssueOption"
+	//   example:
+	//     title: "Bug: API returns 500 error"
+	//     body: "When calling the API endpoint, I get a 500 error..."
+	//     labels: [1, 2]
+	//     assignees: ["username"]
+	//     milestone: 1
+	//     due_date: "2025-12-31T23:59:59Z"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
@@ -726,6 +765,17 @@ func EditIssue(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index} issue issueEditIssue
 	// ---
 	// summary: Edit an issue. If using deadline only the date will be taken into account, and time of day ignored.
+	// description: |
+	//   Edit an existing issue in a repository. The authenticated user must be the issue author or have write access to the repository.
+	//
+	//   **Required permissions:** `repo` or `write:issue`
+	//
+	//   **Note:** All parameters are optional. Only provided fields will be updated.
+	//
+	//   **Error scenarios:**
+	//   - 403: User is not the issue author and does not have write access
+	//   - 404: Issue or repository not found
+	//   - 412: Repository is empty or issue content was modified concurrently
 	// consumes:
 	// - application/json
 	// produces:
@@ -736,21 +786,28 @@ func EditIssue(ctx *context.APIContext) {
 	//   description: owner of the repo
 	//   type: string
 	//   required: true
+	//   example: gitea
 	// - name: repo
 	//   in: path
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	//   example: gitea
 	// - name: index
 	//   in: path
 	//   description: index of the issue to edit
 	//   type: integer
 	//   format: int64
 	//   required: true
+	//   example: 1
 	// - name: body
 	//   in: body
 	//   schema:
 	//     "$ref": "#/definitions/EditIssueOption"
+	//   example:
+	//     title: "Updated issue title"
+	//     body: "Updated issue description"
+	//     state: "closed"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"

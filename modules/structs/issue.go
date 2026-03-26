@@ -85,36 +85,66 @@ type Issue struct {
 }
 
 // CreateIssueOption options to create one issue
+// swagger:model
 type CreateIssueOption struct {
 	// required:true
+	// description: Title of the issue
+	// example: Bug: API returns 500 error when creating issue
 	Title string `json:"title" binding:"Required"`
-	Body  string `json:"body"`
-	Ref   string `json:"ref"`
-	// deprecated
-	Assignee  string   `json:"assignee"`
+	// description: Body of the issue (markdown supported)
+	// example: When calling the POST /repos/{owner}/{repo}/issues endpoint, I get a 500 error.
+	Body string `json:"body"`
+	// description: Reference for the issue (e.g., a branch name or commit SHA)
+	// example: main
+	Ref string `json:"ref"`
+	// deprecated: true
+	// description: (Deprecated) Username of the assignee. Use assignees instead.
+	Assignee string `json:"assignee"`
+	// description: List of usernames to assign to the issue
+	// example: ["username1", "username2"]
 	Assignees []string `json:"assignees"`
 	// swagger:strfmt date-time
+	// description: Due date for the issue (only the date portion is used)
+	// example: "2025-12-31T23:59:59Z"
 	Deadline *time.Time `json:"due_date"`
-	// milestone id
+	// description: Milestone ID to associate with the issue
+	// example: 1
 	Milestone int64 `json:"milestone"`
-	// list of label ids
+	// description: List of label IDs to associate with the issue
+	// example: [1, 2, 3]
 	Labels []int64 `json:"labels"`
-	Closed bool    `json:"closed"`
+	// description: Whether to create the issue as closed (default: false)
+	Closed bool `json:"closed"`
 }
 
 // EditIssueOption options for editing an issue
+// swagger:model
 type EditIssueOption struct {
-	Title string  `json:"title"`
-	Body  *string `json:"body"`
-	Ref   *string `json:"ref"`
-	// deprecated
-	Assignee  *string  `json:"assignee"`
+	// description: New title for the issue
+	// example: Updated issue title
+	Title string `json:"title"`
+	// description: New body content for the issue (markdown supported). Set to empty string to clear.
+	// example: Updated issue description with more details
+	Body *string `json:"body"`
+	// description: New reference for the issue
+	Ref *string `json:"ref"`
+	// deprecated: true
+	// description: (Deprecated) Username of the assignee. Use assignees instead.
+	Assignee *string `json:"assignee"`
+	// description: List of usernames to assign to the issue. Replaces existing assignees.
+	// example: ["username1", "username2"]
 	Assignees []string `json:"assignees"`
-	Milestone *int64   `json:"milestone"`
-	State     *string  `json:"state"`
+	// description: Milestone ID to associate with the issue. Set to 0 to remove milestone.
+	Milestone *int64 `json:"milestone"`
+	// description: New state for the issue. Valid values: "open", "closed"
+	// enum: [open, closed]
+	// example: closed
+	State *string `json:"state"`
 	// swagger:strfmt date-time
-	Deadline       *time.Time `json:"due_date"`
-	RemoveDeadline *bool      `json:"unset_due_date"`
+	// description: New due date for the issue. Set to null to remove deadline.
+	Deadline *time.Time `json:"due_date"`
+	// description: Set to true to remove the due date
+	RemoveDeadline *bool `json:"unset_due_date"`
 }
 
 // EditDeadlineOption options for creating a deadline
