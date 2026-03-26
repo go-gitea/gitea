@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
@@ -716,8 +717,9 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		}
 	}
 
-	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(artifactName), artifactName))
-
+	// A v4 Artifact may only contain a single file
+	// Multiple files are uploaded as a single file archive
+	// All other cases fall back to the legacy v1–v3 zip handling below
 	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
 		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
@@ -729,34 +731,41 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 
 	// Artifacts using the v1-v3 backend are stored as multiple individual files per artifact on the backend
 	// Those need to be zipped for download
-	writer := zip.NewWriter(ctx.Resp)
-	defer writer.Close()
-	for _, art := range artifacts {
+	ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment(artifactName+".zip"))
+	zipWriter := zip.NewWriter(ctx.Resp)
+	defer zipWriter.Close()
+
+	writeArtifactToZip := func(art *actions_model.ActionArtifact) error {
 		f, err := storage.ActionsArtifacts.Open(art.StoragePath)
 		if err != nil {
-			ctx.ServerError("ActionsArtifacts.Open", err)
-			return
+			return fmt.Errorf("ActionsArtifacts.Open: %w", err)
 		}
+		defer f.Close()
 
-		var r io.ReadCloser
-		if art.ContentEncoding == "gzip" {
+		var r io.ReadCloser = f
+		if art.ContentEncodingOrType == actions_model.ContentEncodingV3Gzip {
 			r, err = gzip.NewReader(f)
 			if err != nil {
-				ctx.ServerError("gzip.NewReader", err)
-				return
+				return fmt.Errorf("gzip.NewReader: %w", err)
 			}
-		} else {
-			r = f
 		}
 		defer r.Close()
 
-		w, err := writer.Create(art.ArtifactPath)
+		w, err := zipWriter.Create(art.ArtifactPath)
 		if err != nil {
-			ctx.ServerError("writer.Create", err)
-			return
+			return fmt.Errorf("zipWriter.Create: %w", err)
 		}
-		if _, err := io.Copy(w, r); err != nil {
-			ctx.ServerError("io.Copy", err)
+		_, err = io.Copy(w, r)
+		if err != nil {
+			return fmt.Errorf("io.Copy: %w", err)
+		}
+		return nil
+	}
+
+	for _, art := range artifacts {
+		err := writeArtifactToZip(art)
+		if err != nil {
+			ctx.ServerError("writeArtifactToZip", err)
 			return
 		}
 	}

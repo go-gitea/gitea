@@ -7,15 +7,17 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var subcmdUser = &cli.Command{
-	Name:  "user",
-	Usage: "Modify users",
-	Commands: []*cli.Command{
-		microcmdUserCreate(),
-		microcmdUserList,
-		microcmdUserChangePassword(),
-		microcmdUserDelete(),
-		microcmdUserGenerateAccessToken,
-		microcmdUserMustChangePassword(),
-	},
+func newUserCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "user",
+		Usage: "Modify users",
+		Commands: []*cli.Command{
+			microcmdUserCreate(),
+			newUserListCommand(),
+			microcmdUserChangePassword(),
+			microcmdUserDelete(),
+			newUserGenerateAccessTokenCommand(),
+			microcmdUserMustChangePassword(),
+		},
+	}
 }

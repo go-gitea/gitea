@@ -33,6 +33,36 @@ func TestParseRawPermissions_ReadAll(t *testing.T) {
 	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeProjects])
 }
 
+// TestParseRawPermissions_GithubScopes verifies that all scopes that github supports are accounted for
+func TestParseRawPermissions_GithubScopes(t *testing.T) {
+	var rawPerms yaml.Node
+	// Taken and stripped down from:
+	// https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#defining-access-for-the-github_token-scopes
+	yamlContent := `
+actions: read
+artifact-metadata: read
+attestations: read
+checks: read
+contents: read
+deployments: read
+id-token: write
+issues: read
+models: read
+discussions: read
+packages: read
+pages: read
+pull-requests: read
+security-events: read
+statuses: read`
+	err := yaml.Unmarshal([]byte(yamlContent), &rawPerms)
+	require.NoError(t, err)
+
+	result := parseRawPermissionsExplicit(&rawPerms)
+	require.NotNil(t, result)
+
+	// No asserts for permissions set on purpose
+}
+
 func TestParseRawPermissions_WriteAll(t *testing.T) {
 	var rawPerms yaml.Node
 	err := yaml.Unmarshal([]byte(`write-all`), &rawPerms)

@@ -282,7 +282,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 		artifact.FileCompressedSize != chunksTotalSize {
 		artifact.FileSize = fileRealTotalSize
 		artifact.FileCompressedSize = chunksTotalSize
-		artifact.ContentEncoding = ctx.Req.Header.Get("Content-Encoding")
+		artifact.ContentEncodingOrType = ctx.Req.Header.Get("Content-Encoding")
 		if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 			log.Error("Error update artifact: %v", err)
 			ctx.HTTPError(http.StatusInternalServerError, "Error update artifact")
@@ -492,11 +492,11 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 	defer fd.Close()
 
 	// if artifact is compressed, set content-encoding header to gzip
-	if artifact.ContentEncoding == "gzip" {
+	if artifact.ContentEncodingOrType == actions.ContentEncodingV3Gzip {
 		ctx.Resp.Header().Set("Content-Encoding", "gzip")
 	}
 	log.Debug("[artifact] downloadArtifact, name: %s, path: %s, storage: %s, size: %d", artifact.ArtifactName, artifact.ArtifactPath, artifact.StoragePath, artifact.FileSize)
-	ctx.ServeContent(fd, &context.ServeHeaderOptions{
+	ctx.ServeContent(fd, context.ServeHeaderOptions{
 		Filename:     artifact.ArtifactName,
 		LastModified: artifact.CreatedUnix.AsLocalTime(),
 	})

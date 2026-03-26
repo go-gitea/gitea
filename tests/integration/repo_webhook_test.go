@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/repo"
@@ -1146,6 +1147,10 @@ func Test_WebhookWorkflowRun(t *testing.T) {
 				testWorkflowRunEventsOnCancellingAbandonedRun(t, webhookData, false)
 			},
 		},
+		{
+			name:     "WorkflowRunOnStoppingEndlessTasksForMultipleRuns",
+			testFunc: testWorkflowRunOnStoppingEndlessTasksForMultipleRuns,
+		},
 	}
 	for _, obj := range testCases {
 		t.Run(obj.name, func(t *testing.T) {
@@ -1574,6 +1579,84 @@ jobs:
 	assert.Equal(t, commitID, webhookData.payloads[1].WorkflowRun.HeadSha)
 	assert.Equal(t, repoName, webhookData.payloads[1].Repo.Name)
 	assert.Equal(t, "user2/"+repoName, webhookData.payloads[1].Repo.FullName)
+}
+
+func testWorkflowRunOnStoppingEndlessTasksForMultipleRuns(t *testing.T, webhookData *workflowRunWebhook) {
+	defer test.MockVariableValue(&setting.Actions.EndlessTaskTimeout, time.Second)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+	repoName := "test-workflow-run-stop-endless-tasks"
+	testRepo := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: createActionsTestRepo(t, token, repoName, false).ID})
+
+	testAPICreateWebhookForRepo(t, session, "user2", repoName, webhookData.URL, "workflow_run")
+
+	runners := make([]*mockRunner, 2)
+	for i := range runners {
+		runners[i] = newMockRunner()
+		runners[i].registerAsRepoRunner(t, "user2", repoName, fmt.Sprintf("mock-runner-%d", i), []string{"ubuntu-latest"}, false)
+	}
+
+	workflowPath1 := ".gitea/workflows/endless-1.yml"
+	workflowPath2 := ".gitea/workflows/endless-2.yml"
+	workflowContent1 := `name: endless-1
+on:
+  push:
+    paths:
+      - '.gitea/workflows/endless-1.yml'
+jobs:
+  job-1:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job-1'
+`
+	workflowContent2 := `name: endless-2
+on:
+  push:
+    paths:
+      - '.gitea/workflows/endless-2.yml'
+jobs:
+  job-2:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job-2'
+`
+
+	opts1 := getWorkflowCreateFileOptions(user2, testRepo.DefaultBranch, "create "+workflowPath1, workflowContent1)
+	createWorkflowFile(t, token, "user2", repoName, workflowPath1, opts1)
+	opts2 := getWorkflowCreateFileOptions(user2, testRepo.DefaultBranch, "create "+workflowPath2, workflowContent2)
+	createWorkflowFile(t, token, "user2", repoName, workflowPath2, opts2)
+
+	task1 := runners[0].fetchTask(t)
+	task2 := runners[1].fetchTask(t)
+	_, job1, _ := getTaskAndJobAndRunByTaskID(t, task1.Id)
+	_, job2, _ := getTaskAndJobAndRunByTaskID(t, task2.Id)
+	require.NotEqual(t, job1.RunID, job2.RunID)
+
+	initialRunEventsLen := len(webhookData.payloads)
+
+	time.Sleep(2 * time.Second)
+
+	require.NoError(t, actions.StopEndlessTasks(t.Context()))
+
+	require.Len(t, webhookData.payloads, initialRunEventsLen+2)
+
+	var completedRunIDs []int64
+	for _, payload := range webhookData.payloads[initialRunEventsLen:] {
+		assert.Equal(t, "completed", payload.Action)
+		assert.Equal(t, "completed", payload.WorkflowRun.Status)
+		completedRunIDs = append(completedRunIDs, payload.WorkflowRun.ID)
+	}
+	assert.Len(t, completedRunIDs, 2)
+	assert.Contains(t, completedRunIDs, job1.RunID)
+	assert.Contains(t, completedRunIDs, job2.RunID)
+
+	run1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: job1.RunID})
+	run2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: job2.RunID})
+	assert.Equal(t, actions_model.StatusFailure, run1.Status)
+	assert.Equal(t, actions_model.StatusFailure, run2.Status)
 }
 
 func testWebhookWorkflowRun(t *testing.T, webhookData *workflowRunWebhook) {
