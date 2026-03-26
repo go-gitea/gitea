@@ -55,7 +55,16 @@ func home(ctx *context.Context, viewRepositories bool) {
 	var orderBy db.SearchOrderBy
 	sortOrder := ctx.FormString("sort")
 	if _, ok := repo_model.OrderByFlatMap[sortOrder]; !ok {
-		sortOrder = setting.UI.ExploreDefaultSort // TODO: add new default sort order for org home?
+		repoDefaultSort, err := getOrgRepoDefaultSort(ctx, org)
+		if err != nil {
+			ctx.ServerError("GetUserSetting", err)
+			return
+		}
+		if repoDefaultSort != "" {
+			sortOrder = repoDefaultSort
+		} else {
+			sortOrder = setting.UI.ExploreDefaultSort
+		}
 	}
 	ctx.Data["SortType"] = sortOrder
 	orderBy = repo_model.OrderByFlatMap[sortOrder]

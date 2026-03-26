@@ -24,4 +24,6 @@ const (
 	SettingEmailNotificationGiteaActionsDisabled    = "disabled"
 
 	SettingsKeyActionsConfig = "actions.config"
+
+	SettingsKeyOrgRepoDefaultSort = "org.repo_default_sort"
 )

@@ -48,6 +48,13 @@ func Settings(ctx *context.Context) {
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
 
+	repoDefaultSort, err := getOrgRepoDefaultSort(ctx, ctx.Org.Organization)
+	if err != nil {
+		ctx.ServerError("GetUserSetting", err)
+		return
+	}
+	ctx.Data["RepoDefaultSort"] = repoDefaultSort
+
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
@@ -65,6 +72,9 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 
 	if ctx.HasError() {
+		if repoDefaultSort, err := getOrgRepoDefaultSort(ctx, ctx.Org.Organization); err == nil {
+			ctx.Data["RepoDefaultSort"] = repoDefaultSort
+		}
 		ctx.HTML(http.StatusOK, tplSettingsOptions)
 		return
 	}
@@ -78,6 +88,19 @@ func SettingsPost(ctx *context.Context) {
 		}
 		ctx.ServerError("UpdateOrgEmailAddress", err)
 		return
+	}
+
+	repoDefaultSort := ""
+	if form.RepoDefaultSort != nil {
+		repoDefaultSort = *form.RepoDefaultSort
+		if repoDefaultSort != "" {
+			if _, ok := repo_model.OrderByFlatMap[repoDefaultSort]; !ok {
+				ctx.Data["Err_RepoDefaultSort"] = true
+				ctx.Data["RepoDefaultSort"] = repoDefaultSort
+				ctx.RenderWithErrDeprecated(ctx.Tr("org.settings.repo_default_sort_invalid"), tplSettingsOptions, &form)
+				return
+			}
+		}
 	}
 
 	opts := &user_service.UpdateOptions{
@@ -94,6 +117,20 @@ func SettingsPost(ctx *context.Context) {
 	if err := user_service.UpdateUser(ctx, org.AsUser(), opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
+	}
+
+	if form.RepoDefaultSort != nil {
+		if repoDefaultSort == "" {
+			if err := user_model.DeleteUserSetting(ctx, org.ID, user_model.SettingsKeyOrgRepoDefaultSort); err != nil {
+				ctx.ServerError("DeleteUserSetting", err)
+				return
+			}
+		} else {
+			if err := user_model.SetUserSetting(ctx, org.ID, user_model.SettingsKeyOrgRepoDefaultSort, repoDefaultSort); err != nil {
+				ctx.ServerError("SetUserSetting", err)
+				return
+			}
+		}
 	}
 
 	log.Trace("Organization setting updated: %s", org.Name)
