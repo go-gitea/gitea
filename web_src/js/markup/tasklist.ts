@@ -3,8 +3,10 @@ import {showErrorToast} from '../modules/toast.ts';
 
 const preventListener = (e: Event) => e.preventDefault();
 
-/** Toggle a task list checkbox in markdown content at the given byte position.
- * Returns the updated content, or null if the position is invalid. */
+/**
+ * Toggle a task list checkbox in markdown content at the given byte position.
+ * Returns the updated content, or null if the position is invalid.
+ */
 export function toggleTasklistCheckbox(content: string, position: number, checked: boolean): string | null {
   const buffer = new TextEncoder().encode(content);
   // Indexes may fall off the ends and return undefined.
