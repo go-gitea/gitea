@@ -23,7 +23,8 @@ type manifestEntry struct {
 }
 
 type manifestDataStruct struct {
-	paths     map[string]string
+	paths     map[string]string // unhashed path -> hashed path
+	names     map[string]string // hashed path -> entry name
 	modTime   int64
 	checkTime time.Time
 }
@@ -35,14 +36,15 @@ var (
 
 const manifestPath = "assets/.vite/manifest.json"
 
-func parseManifest(data []byte) map[string]string {
+func parseManifest(data []byte) (map[string]string, map[string]string) {
 	var manifest map[string]manifestEntry
 	if err := json.Unmarshal(data, &manifest); err != nil {
 		log.Error("Failed to parse frontend manifest: %v", err)
-		return nil
+		return nil, nil
 	}
 
 	paths := make(map[string]string)
+	names := make(map[string]string)
 	for _, entry := range manifest {
 		if !entry.IsEntry || entry.Name == "" {
 			continue
@@ -52,13 +54,15 @@ func parseManifest(data []byte) map[string]string {
 		ext := path.Ext(entry.File)
 		key := dir + "/" + entry.Name + ext
 		paths[key] = entry.File
+		names[entry.File] = entry.Name
 		// Map associated CSS files, e.g. "css/index.css" -> "css/index.B3zrQPqD.css"
 		for _, css := range entry.CSS {
 			cssKey := path.Dir(css) + "/" + entry.Name + path.Ext(css)
 			paths[cssKey] = css
+			names[css] = entry.Name
 		}
 	}
-	return paths
+	return paths, names
 }
 
 func reloadManifest() *manifestDataStruct {
@@ -93,8 +97,10 @@ func reloadManifest() *manifestDataStruct {
 		log.Error("Failed to read frontend manifest: %v", err)
 		return data
 	}
+	paths, names := parseManifest(manifestContent)
 	data = &manifestDataStruct{
-		paths:     parseManifest(manifestContent),
+		paths:     paths,
+		names:     names,
 		modTime:   fi.ModTime().UnixNano(),
 		checkTime: now,
 	}
@@ -125,4 +131,15 @@ func getAssetPath(name string) string {
 		return p
 	}
 	return name
+}
+
+// AssetName returns the unhashed entry name for a content-hashed asset path.
+// Example: AssetName("css/theme-gitea-dark.CyAaQnn5.css") returns "theme-gitea-dark"
+// Returns empty string if the path is not found in the manifest.
+func AssetName(hashedPath string) string {
+	getManifestPaths() // ensure manifest is loaded
+	if data := manifestData.Load(); data != nil {
+		return data.names[hashedPath]
+	}
+	return ""
 }

@@ -43,7 +43,7 @@ func TestParseManifest(t *testing.T) {
 		}
 	}`)
 
-	paths := parseManifest(manifest)
+	paths, names := parseManifest(manifest)
 
 	// JS entries
 	assert.Equal(t, "js/index.C6Z2MRVQ.js", paths["js/index.js"])
@@ -59,12 +59,20 @@ func TestParseManifest(t *testing.T) {
 
 	// Non-entry chunks should not be included
 	assert.Empty(t, paths["js/chunk.js"])
+
+	// Names: hashed path -> entry name
+	assert.Equal(t, "index", names["js/index.C6Z2MRVQ.js"])
+	assert.Equal(t, "index", names["css/index.B3zrQPqD.css"])
+	assert.Equal(t, "swagger", names["js/swagger.SujiEmYM.js"])
+	assert.Equal(t, "swagger", names["css/swagger._-APWT_3.css"])
+	assert.Equal(t, "theme-gitea-dark", names["css/theme-gitea-dark.CyAaQnn5.css"])
+	assert.Equal(t, "sharedworker", names["js/sharedworker.Dug1twio.js"])
 }
 
 func TestGetAssetPathFallback(t *testing.T) {
 	// When manifest is not loaded, getAssetPath should return the input as-is
 	old := manifestData.Load()
-	manifestData.Store(&manifestDataStruct{paths: make(map[string]string)})
+	manifestData.Store(&manifestDataStruct{paths: make(map[string]string), names: make(map[string]string)})
 	defer func() { manifestData.Store(old) }()
 
 	assert.Equal(t, "js/index.js", getAssetPath("js/index.js"))

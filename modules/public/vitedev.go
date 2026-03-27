@@ -92,7 +92,13 @@ func AssetPath(name string) string {
 
 func viteDevSourceURL(name string) string {
 	if strings.HasPrefix(name, "css/theme-") {
-		return setting.AppSubURL + "/web_src/css/themes/" + strings.TrimPrefix(name, "css/")
+		// Only redirect built-in themes to Vite source; custom themes are served from custom/public/assets/css/
+		themeFile := strings.TrimPrefix(name, "css/")
+		srcPath := filepath.Join(setting.StaticRootPath, "web_src/css/themes", themeFile)
+		if _, err := os.Stat(srcPath); err == nil {
+			return setting.AppSubURL + "/web_src/css/themes/" + themeFile
+		}
+		return ""
 	}
 	if strings.HasPrefix(name, "css/") {
 		return setting.AppSubURL + "/web_src/" + name

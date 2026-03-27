@@ -108,21 +108,17 @@ func parseThemeMetaInfoToMap(cssContent string) map[string]string {
 	return m
 }
 
-// stripContentHash removes a Vite content hash suffix from a name.
-// e.g. "gitea-dark.CyAaQnn5" -> "gitea-dark"
-// It might be wrong when user's theme name is like "my-theme-1.2.css", fortunately it is not a serious problem at the moment
-// If we'd like to "fix" it, we can add a "hash prefix" to the Vite assets like "index.h~123456.css", then in most cases we do best guess to strip the hash correctly.
-func stripContentHash(name string) string {
-	if i := strings.LastIndex(name, "."); i > 0 {
-		return name[:i]
-	}
-	return name
-}
-
 func defaultThemeMetaInfoByFileName(fileName string) *ThemeMetaInfo {
+	internalName := strings.TrimSuffix(strings.TrimPrefix(fileName, fileNamePrefix), fileNameSuffix)
+	// For built-in themes, the manifest knows the unhashed entry name (e.g. "theme-gitea-dark")
+	// which lets us correctly strip the content hash without guessing.
+	// Custom themes are not in the manifest and never have content hashes.
+	if name := public.AssetName("css/" + fileName); name != "" {
+		internalName = strings.TrimPrefix(name, fileNamePrefix)
+	}
 	themeInfo := &ThemeMetaInfo{
 		FileName:     fileName,
-		InternalName: stripContentHash(strings.TrimSuffix(strings.TrimPrefix(fileName, fileNamePrefix), fileNameSuffix)),
+		InternalName: internalName,
 	}
 	themeInfo.DisplayName = themeInfo.InternalName
 	return themeInfo
