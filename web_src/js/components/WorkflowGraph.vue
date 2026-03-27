@@ -427,12 +427,6 @@ function handleNodeMouseLeave() {
   hoveredJobId.value = null;
 }
 
-function handleWheel(event: WheelEvent) {
-  event.preventDefault();
-  const zoomFactor = Math.exp(-event.deltaY * 0.0015);
-  zoomTo(scale.value * zoomFactor);
-}
-
 function isEdgeHighlighted(edge: RoutedEdge): boolean {
   if (!hoveredJobId.value) {
     return false;
@@ -560,7 +554,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
       class="graph-container"
       ref="graphContainer"
       @mousedown="handleMouseDown"
-      @wheel.prevent="handleWheel"
       :class="{ 'dragging': isDragging }"
     >
       <svg
