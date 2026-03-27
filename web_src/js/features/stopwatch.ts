@@ -56,7 +56,7 @@ export function initStopwatch() {
         updateStopwatchData(JSON.parse(event.data.data));
       }
     });
-    worker.start();
+    worker.startPort();
     return;
   }
 

@@ -41,7 +41,7 @@ export function initNotificationCount() {
         receiveUpdateCount(event); // no await
       }
     });
-    worker.start();
+    worker.startPort();
     return;
   }
 

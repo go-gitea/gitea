@@ -46,7 +46,7 @@ class UserEventsSharedWorker {
     });
   }
 
-  start() {
+  startPort() {
     this.sharedWorker.port.start();
   }
 }
