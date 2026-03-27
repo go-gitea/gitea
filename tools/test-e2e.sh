@@ -34,6 +34,9 @@ INSTALL_LOCK = true
 [service]
 ENABLE_CAPTCHA = false
 
+[ui.notification]
+EVENT_SOURCE_UPDATE_TIME = 500ms
+
 [log]
 MODE = console
 LEVEL = Warn
