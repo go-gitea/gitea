@@ -3,8 +3,11 @@ import {showErrorToast} from '../modules/toast.ts';
 
 const preventListener = (e: Event) => e.preventDefault();
 
+/** Toggle a task list checkbox in markdown content at the given byte position.
+ * Returns the updated content, or null if the position is invalid. */
 export function toggleTasklistCheckbox(content: string, position: number, checked: boolean): string | null {
   const buffer = new TextEncoder().encode(content);
+  // Indexes may fall off the ends and return undefined.
   if (buffer[position - 1] !== '['.charCodeAt(0) ||
     buffer[position] !== ' '.charCodeAt(0) && buffer[position] !== 'x'.charCodeAt(0) ||
     buffer[position + 1] !== ']'.charCodeAt(0)) {
@@ -41,6 +44,7 @@ export function initMarkupTasklist(elMarkup: HTMLElement): void {
 
       const newContent = toggleTasklistCheckbox(oldContent, position, checkbox.checked);
       if (newContent === null) {
+        // Position is probably wrong. Revert and don't allow change.
         checkbox.checked = !checkbox.checked;
         throw new Error(`Expected position to be space or x and surrounded by brackets, but it's not: position=${position}`);
       }
