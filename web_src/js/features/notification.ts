@@ -1,6 +1,6 @@
 import {GET} from '../modules/fetch.ts';
 import {toggleElem, createElementFromHTML} from '../utils/dom.ts';
-import {initUserEventsSharedWorker} from '../modules/worker.ts';
+import {UserEventsSharedWorker} from '../modules/worker.ts';
 
 const {appSubUrl, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
@@ -33,7 +33,7 @@ export function initNotificationCount() {
 
   if (notificationSettings.EventSourceUpdateTime > 0 && window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    const worker = initUserEventsSharedWorker('notification-worker');
+    const worker = new UserEventsSharedWorker('notification-worker');
     worker.addMessageEventListener((event: MessageEvent) => {
       if (event.data.type === 'no-event-source') {
         if (!usingPeriodicPoller) startPeriodicPoller(notificationSettings.MinTimeout);

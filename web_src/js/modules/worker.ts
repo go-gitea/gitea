@@ -1,9 +1,10 @@
 const {appSubUrl, assetVersionEncoded} = window.config;
 
-class UserEventsSharedWorker {
+export class UserEventsSharedWorker {
   sharedWorker: SharedWorker;
 
-  constructor(worker: SharedWorker) {
+  constructor(options: string) {
+    const worker = new SharedWorker(`${window.__webpack_public_path__}js/eventsource.sharedworker.js?v=${assetVersionEncoded}`, options);
     this.sharedWorker = worker;
     worker.addEventListener('error', (event) => {
       console.error('worker error', event);
@@ -49,9 +50,4 @@ class UserEventsSharedWorker {
   startPort() {
     this.sharedWorker.port.start();
   }
-}
-
-export function initUserEventsSharedWorker(options: string) : UserEventsSharedWorker {
-  const sharedWorker = new SharedWorker(`${window.__webpack_public_path__}js/eventsource.sharedworker.js?v=${assetVersionEncoded}`, options);
-  return new UserEventsSharedWorker(sharedWorker);
 }

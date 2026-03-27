@@ -1,7 +1,7 @@
 import {createTippy} from '../modules/tippy.ts';
 import {GET} from '../modules/fetch.ts';
 import {hideElem, queryElems, showElem} from '../utils/dom.ts';
-import {initUserEventsSharedWorker} from '../modules/worker.ts';
+import {UserEventsSharedWorker} from '../modules/worker.ts';
 
 const {appSubUrl, notificationSettings, enableTimeTracking} = window.config;
 
@@ -47,7 +47,7 @@ export function initStopwatch() {
   // if the browser supports EventSource and SharedWorker, use it instead of the periodic poller
   if (notificationSettings.EventSourceUpdateTime > 0 && window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    const worker = initUserEventsSharedWorker('notification-worker');
+    const worker = new UserEventsSharedWorker('notification-worker');
     worker.addMessageEventListener((event) => {
       if (event.data.type === 'no-event-source') {
         // browser doesn't support EventSource, falling back to periodic poller
