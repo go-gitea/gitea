@@ -61,7 +61,7 @@ func TestParseManifest(t *testing.T) {
 	assert.Empty(t, paths["js/chunk.js"])
 }
 
-func TestgetAssetPathFallback(t *testing.T) {
+func TestGetAssetPathFallback(t *testing.T) {
 	// When manifest is not loaded, getAssetPath should return the input as-is
 	old := manifestData.Load()
 	manifestData.Store(&manifestDataStruct{paths: make(map[string]string)})
