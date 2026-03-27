@@ -138,10 +138,8 @@ func getHashedPath(originPath string) string {
 // so the reverse proxy serves them from the Vite dev server.
 // In production, it resolves the content-hashed path from the manifest.
 func AssetPath(originPath string) string {
-	if IsViteDevMode() {
-		if src := viteDevSourceURL(originPath); src != "" {
-			return src
-		}
+	if src := viteDevSourceURL(originPath); src != "" {
+		return src
 	}
 	return setting.StaticURLPrefix + "/assets/" + getHashedPath(originPath)
 }

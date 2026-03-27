@@ -56,7 +56,7 @@ func getViteDevProxy() *httputil.ReverseProxy {
 // It is registered as middleware in non-production mode and lazily discovers
 // the Vite dev server port from the port file written by the viteDevServerPortPlugin.
 func ViteDevMiddleware(resp http.ResponseWriter, req *http.Request) {
-	if !IsViteDevRequest(req) {
+	if !isViteDevRequest(req) {
 		return
 	}
 	proxy := getViteDevProxy()
@@ -66,9 +66,9 @@ func ViteDevMiddleware(resp http.ResponseWriter, req *http.Request) {
 	proxy.ServeHTTP(resp, req)
 }
 
-// IsViteDevMode returns true if the Vite dev server port file exists.
+// isViteDevMode returns true if the Vite dev server port file exists.
 // In production mode, the result is cached after the first check.
-func IsViteDevMode() bool {
+func isViteDevMode() bool {
 	if setting.IsProd {
 		return false
 	}
@@ -78,6 +78,9 @@ func IsViteDevMode() bool {
 }
 
 func viteDevSourceURL(name string) string {
+	if !isViteDevMode() {
+		return ""
+	}
 	if strings.HasPrefix(name, "css/theme-") {
 		// Only redirect built-in themes to Vite source; custom themes are served from custom/public/assets/css/
 		themeFile := strings.TrimPrefix(name, "css/")
@@ -102,13 +105,13 @@ func viteDevSourceURL(name string) string {
 	return ""
 }
 
-// IsViteDevRequest returns true if the request should be proxied to the Vite dev server.
+// isViteDevRequest returns true if the request should be proxied to the Vite dev server.
 // Vite internal prefixes are defined in the Vite source:
 //   - packages/vite/src/node/constants.ts (/@vite/, /@fs/, /__vite)
 //   - packages/vite/src/shared/constants.ts (/@id/)
 //   - packages/vite/src/node/server/ws.ts (vite-hmr, vite-ping WebSocket protocols)
 //   - packages/vite/src/node/utils.ts (?import, ?raw query params)
-func IsViteDevRequest(req *http.Request) bool {
+func isViteDevRequest(req *http.Request) bool {
 	wsProtocol := req.Header.Get("Sec-WebSocket-Protocol")
 	if req.Header.Get("Upgrade") == "websocket" && (wsProtocol == "vite-hmr" || wsProtocol == "vite-ping") {
 		return true
