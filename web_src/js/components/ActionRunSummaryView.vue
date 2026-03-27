@@ -29,7 +29,7 @@ onBeforeUnmount(() => {
 });
 </script>
 <template>
-  <div>
+  <div class="action-run-summary-view">
     <div class="action-run-summary-block">
       <p class="action-run-summary-trigger">
         {{ locale.triggeredVia.replace('%s', run.triggerEvent) }}&nbsp;•&nbsp;<relative-time :datetime="runTriggeredAtIso" prefix=""/>
@@ -50,6 +50,13 @@ onBeforeUnmount(() => {
   </div>
 </template>
 <style scoped>
+.action-run-summary-view {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .action-run-summary-block {
   display: flex;
   justify-content: space-between;
@@ -62,6 +69,11 @@ onBeforeUnmount(() => {
 .action-run-summary-trigger {
   margin-bottom: 0;
   color: var(--color-text-light-2);
+}
+
+.workflow-graph-container {
+  flex: 1;
+  min-height: 0;
 }
 
 @media (max-width: 767.98px) {

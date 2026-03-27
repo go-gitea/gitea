@@ -2,9 +2,9 @@
 import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
-import {localUserSettings} from "../modules/user-settings.ts";
+import {localUserSettings} from '../modules/user-settings.ts';
 import {isPlainClick} from '../utils/dom.ts';
-import {debounce} from "throttle-debounce";
+import {debounce} from 'throttle-debounce';
 import type {ActionsJob, ActionsRunStatus} from '../modules/gitea-actions.ts';
 import type {ActionRunViewStore} from './ActionRunView.ts';
 
@@ -52,13 +52,11 @@ const scale = ref(1);
 const translateX = ref(0);
 const translateY = ref(0);
 const isDragging = ref(false);
-const lastMousePos = ref({ x: 0, y: 0 });
+const lastMousePos = ref({x: 0, y: 0});
 const graphContainer = ref<HTMLElement | null>(null);
 const hoveredJobId = ref<number | null>(null);
 
-const stateKey = () => {
-  return `${props.store.viewData.currentRun.repoId}-${props.workflowId}`;
-}
+const stateKey = () => `${props.store.viewData.currentRun.repoId}-${props.workflowId}`;
 
 const loadSavedState = () => {
   const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKeyStates, {});
@@ -67,7 +65,7 @@ const loadSavedState = () => {
   scale.value = saved.scale ?? scale.value;
   translateX.value = saved.translateX ?? translateX.value;
   translateY.value = saved.translateY ?? translateY.value;
-}
+};
 
 const saveState = () => {
   const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKeyStates, {});
@@ -82,11 +80,10 @@ const saveState = () => {
     .sort(([, a], [, b]) => b.timestamp - a.timestamp)
     .slice(0, maxStoredStates);
 
-  const limitedStates = Object.fromEntries(sortedStates);
-  localUserSettings.setJsonObject(settingKeyStates, limitedStates);
+  localUserSettings.setJsonObject(settingKeyStates, Object.fromEntries(sortedStates));
 };
 
-watch([translateX, translateY, scale], debounce(500, saveState))
+watch([translateX, translateY, scale], debounce(500, saveState));
 
 const nodeWidth = computed(() => {
   const maxNameLength = Math.max(...props.jobs.map(j => j.name.length));
@@ -378,14 +375,13 @@ function resetView() {
 function handleMouseDown(e: MouseEvent) {
   if (!isPlainClick(e)) return;
   const target = e.target as Element;
-  // don't start drag on interactive/text elements inside the SVG
   const interactive = target.closest('div, p, a, span, button, input, text, .job-node-group');
   if (interactive?.closest('svg')) return;
 
   e.preventDefault();
 
   isDragging.value = true;
-  lastMousePos.value = { x: e.clientX, y: e.clientY };
+  lastMousePos.value = {x: e.clientX, y: e.clientY};
   graphContainer.value!.style.cursor = 'grabbing';
 }
 
@@ -398,13 +394,19 @@ function handleMouseMoveOnDocument(event: MouseEvent) {
   translateX.value += dx;
   translateY.value += dy;
 
-  lastMousePos.value = { x: event.clientX, y: event.clientY };
+  lastMousePos.value = {x: event.clientX, y: event.clientY};
 }
 
 function handleMouseUpOnDocument() {
   if (!isDragging.value) return;
   isDragging.value = false;
   graphContainer.value!.style.cursor = 'grab';
+}
+
+function handleWheel(event: WheelEvent) {
+  event.preventDefault();
+  const zoomFactor = Math.exp(-event.deltaY * 0.0015);
+  zoomTo(scale.value * zoomFactor);
 }
 
 onMounted(() => {
@@ -538,13 +540,13 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
         </span>
       </div>
       <div class="flex-text-block">
-        <button @click="zoomIn" class="ui compact tiny icon button" title="Zoom in">
+        <button type="button" @click="zoomIn" class="ui compact tiny icon button" title="Zoom in">
           <SvgIcon name="octicon-zoom-in" :size="12"/>
         </button>
-        <button @click="resetView" class="ui compact tiny icon button" title="Reset view">
+        <button type="button" @click="resetView" class="ui compact tiny icon button" title="Reset view">
           <SvgIcon name="octicon-sync" :size="12"/>
         </button>
-        <button @click="zoomOut" class="ui compact tiny icon button" title="Zoom out">
+        <button type="button" @click="zoomOut" class="ui compact tiny icon button" title="Zoom out">
           <SvgIcon name="octicon-zoom-out" :size="12"/>
         </button>
       </div>
@@ -554,7 +556,8 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
       class="graph-container"
       ref="graphContainer"
       @mousedown="handleMouseDown"
-      :class="{ 'dragging': isDragging }"
+      @wheel.prevent="handleWheel"
+      :class="{dragging: isDragging}"
     >
       <svg
         :width="graphWidth"
@@ -562,7 +565,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
         class="graph-svg"
         :style="{
           transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
-          transformOrigin: '0 0'
+          transformOrigin: '0 0',
         }"
       >
         <path
@@ -649,6 +652,10 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 <style scoped>
 .workflow-graph {
   position: relative;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .graph-header {
@@ -660,6 +667,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   border-bottom: 1px solid var(--color-secondary);
   gap: 20px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .graph-title {
@@ -688,12 +696,12 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 .graph-container {
   overflow: hidden;
   padding: 12px 16px 20px;
-  border-radius: 10px;
-  cursor: grab;
-  min-height: 300px;
-  max-height: 70vh;
+  border-radius: 0 0 10px 10px;
+  flex: 1;
+  min-height: 0;
   position: relative;
   background: var(--color-body);
+  cursor: grab;
 }
 
 .graph-container.dragging {
