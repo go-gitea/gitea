@@ -103,8 +103,8 @@ func viteDevSourceURL(name string) string {
 	if strings.HasPrefix(name, "css/") {
 		return setting.AppSubURL + "/web_src/" + name
 	}
-	if name == "js/sharedworker.js" {
-		return setting.AppSubURL + "/web_src/js/features/sharedworker.ts"
+	if name == "js/eventsource.sharedworker.js" {
+		return setting.AppSubURL + "/web_src/js/features/eventsource.sharedworker.ts"
 	}
 	if name == "js/iife.js" {
 		return setting.AppSubURL + "/__vite_iife.js"

@@ -163,7 +163,7 @@ function filterCssUrlPlugin(): Plugin {
   };
 }
 
-const viteDevServerPort = Number(env.VITE_DEV_SERVER_PORT) || 3001;
+const viteDevServerPort = Number(env.FRONTEND_DEV_SERVER_PORT) || 3001;
 const viteDevPortFilePath = join(outDir, '.vite', 'dev-port');
 
 // Write the Vite dev server's actual port to a file so the Go server can discover it for proxying.
@@ -210,7 +210,7 @@ export default defineConfig(commonViteOpts({
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
         swagger: join(import.meta.dirname, 'web_src/js/standalone/swagger.ts'),
         'external-render-iframe': join(import.meta.dirname, 'web_src/js/standalone/external-render-iframe.ts'),
-        sharedworker: join(import.meta.dirname, 'web_src/js/features/sharedworker.ts'),
+        'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/features/eventsource.sharedworker.ts'),
         ...(!isProduction && {
           devtest: join(import.meta.dirname, 'web_src/js/standalone/devtest.ts'),
         }),

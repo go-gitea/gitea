@@ -31,10 +31,10 @@ func TestParseManifest(t *testing.T) {
 			"src": "web_src/css/themes/theme-gitea-dark.css",
 			"isEntry": true
 		},
-		"web_src/js/features/sharedworker.ts": {
-			"file": "js/sharedworker.Dug1twio.js",
-			"name": "sharedworker",
-			"src": "web_src/js/features/sharedworker.ts",
+		"web_src/js/features/eventsource.sharedworker.ts": {
+			"file": "js/eventsource.sharedworker.Dug1twio.js",
+			"name": "eventsource.sharedworker",
+			"src": "web_src/js/features/eventsource.sharedworker.ts",
 			"isEntry": true
 		},
 		"_chunk.js": {
@@ -48,7 +48,7 @@ func TestParseManifest(t *testing.T) {
 	// JS entries
 	assert.Equal(t, "js/index.C6Z2MRVQ.js", paths["js/index.js"])
 	assert.Equal(t, "js/swagger.SujiEmYM.js", paths["js/swagger.js"])
-	assert.Equal(t, "js/sharedworker.Dug1twio.js", paths["js/sharedworker.js"])
+	assert.Equal(t, "js/eventsource.sharedworker.Dug1twio.js", paths["js/eventsource.sharedworker.js"])
 
 	// Associated CSS from JS entries
 	assert.Equal(t, "css/index.B3zrQPqD.css", paths["css/index.css"])
@@ -66,7 +66,7 @@ func TestParseManifest(t *testing.T) {
 	assert.Equal(t, "swagger", names["js/swagger.SujiEmYM.js"])
 	assert.Equal(t, "swagger", names["css/swagger._-APWT_3.css"])
 	assert.Equal(t, "theme-gitea-dark", names["css/theme-gitea-dark.CyAaQnn5.css"])
-	assert.Equal(t, "sharedworker", names["js/sharedworker.Dug1twio.js"])
+	assert.Equal(t, "eventsource.sharedworker", names["js/eventsource.sharedworker.Dug1twio.js"])
 }
 
 func TestGetAssetPathFallback(t *testing.T) {
