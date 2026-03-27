@@ -74,6 +74,7 @@ gitea-theme-meta-info {
   --color-console-active-bg: #2e353b;
   --color-console-menu-bg: #262b31;
   --color-console-menu-border: #414b55;
+  --color-console-link: #8f9ba8;
   /* named colors */
   --color-red: #cc4848;
   --color-orange: #cc580c;
@@ -161,20 +162,20 @@ gitea-theme-meta-info {
   --color-diff-removed-row-border: #634343;
   --color-diff-removed-word-bg: #6f3333;
   --color-diff-inactive: #22282d;
-  --color-error-border: #a04141;
-  --color-error-bg: #522;
-  --color-error-bg-active: #744;
-  --color-error-bg-hover: #633;
-  --color-error-text: #f9cbcb;
+  --color-error-border: #da3633;
+  --color-error-bg: #3c2425;
+  --color-error-bg-active: #5a3637;
+  --color-error-bg-hover: #4c2d2e;
+  --color-error-text: #f5817c;
   --color-success-border: #458a57;
   --color-success-bg: #284034;
-  --color-success-text: #6cc664;
-  --color-warning-border: #bb9d00;
-  --color-warning-bg: #3a3a30;
-  --color-warning-text: #fbbd08;
+  --color-success-text: #69be61;
+  --color-warning-border: #9e6a03;
+  --color-warning-bg: #2f2a1b;
+  --color-warning-text: #d29922;
   --color-info-border: #306090;
   --color-info-bg: #26354c;
-  --color-info-text: #38a8e8;
+  --color-info-text: #48b7f8;
   --color-red-badge: #db2828;
   --color-red-badge-bg: #db28281a;
   --color-red-badge-hover-bg: #db28284d;

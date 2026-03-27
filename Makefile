@@ -382,7 +382,7 @@ watch: ## watch everything and continuously rebuild
 .PHONY: watch-frontend
 watch-frontend: node_modules ## watch frontend files and continuously rebuild
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress --disable-interpret
+	NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress
 
 .PHONY: watch-backend
 watch-backend: ## watch backend files and continuously rebuild
@@ -783,7 +783,7 @@ $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
 	@$(MAKE) -s node_modules
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	@echo "Running webpack..."
-	@BROWSERSLIST_IGNORE_OLD_DATA=true $(NODE_VARS) pnpm exec webpack --disable-interpret
+	@BROWSERSLIST_IGNORE_OLD_DATA=true $(NODE_VARS) pnpm exec webpack
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg

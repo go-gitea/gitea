@@ -229,7 +229,8 @@ function createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd:
   toggleElem(logTimeStamp, timeVisible.value['log-time-stamp']);
   toggleElem(logTimeSeconds, timeVisible.value['log-time-seconds']);
 
-  return createElementFromAttrs('div', {id: `jobstep-${stepIndex}-${line.index}`, class: 'job-log-line'},
+  const lineClass = cmd?.name ? `job-log-line log-line-${cmd.name}` : 'job-log-line';
+  return createElementFromAttrs('div', {id: `jobstep-${stepIndex}-${line.index}`, class: lineClass},
     lineNum, logTimeStamp, logMsg, logTimeSeconds,
   );
 }
@@ -641,12 +642,37 @@ async function hashChangeListener() {
   overflow-wrap: anywhere;
 }
 
+.job-step-logs .log-msg a {
+  color: var(--color-console-link) !important;
+  text-decoration: underline;
+}
+
 .job-step-logs .job-log-line .log-cmd-command {
   color: var(--color-ansi-blue);
 }
 
-.job-step-logs .job-log-line .log-cmd-error {
-  color: var(--color-ansi-red);
+.job-step-logs .log-msg-label {
+  font-weight: var(--font-weight-semibold);
+}
+
+.job-step-logs .log-line-error {
+  background: var(--color-error-bg);
+}
+
+.job-step-logs .log-line-warning {
+  background: var(--color-warning-bg);
+}
+
+.job-step-logs .log-cmd-error > .log-msg-label {
+  color: var(--color-error-text);
+}
+
+.job-step-logs .log-cmd-warning > .log-msg-label {
+  color: var(--color-warning-text);
+}
+
+.job-step-logs .log-cmd-debug {
+  color: var(--color-violet);
 }
 
 /* selectors here are intentionally exact to only match fullscreen */

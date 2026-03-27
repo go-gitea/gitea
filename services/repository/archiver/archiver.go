@@ -359,7 +359,7 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) error
 	}
 	defer fr.Close()
 
-	ctx.ServeContent(fr, &gitea_context.ServeHeaderOptions{
+	ctx.ServeContent(fr, gitea_context.ServeHeaderOptions{
 		Filename:     downloadName,
 		LastModified: archiver.CreatedUnix.AsLocalTime(),
 	})
