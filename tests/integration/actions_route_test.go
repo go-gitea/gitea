@@ -53,9 +53,29 @@ jobs:
 		task2 := runner2.fetchTask(t)
 		_, job2, run2 := getTaskAndJobAndRunByTaskID(t, task2.Id)
 
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo1.Name, run1.ID))
+		user2Session.MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo1.Name, run1.Index))
+		resp := user2Session.MakeRequest(t, req, http.StatusFound)
+		assert.Equal(t, fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo1.Name, run1.ID), resp.Header().Get("Location"))
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run1.ID, job1.ID))
+		user2Session.MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/0", user2.Name, repo1.Name, run1.Index))
+		resp = user2Session.MakeRequest(t, req, http.StatusFound)
+		assert.Equal(t, fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run1.ID, job1.ID), resp.Header().Get("Location"))
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo1.Name, 999999))
+		user2Session.MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/1", user2.Name, repo1.Name, run1.Index))
+		user2Session.MakeRequest(t, req, http.StatusNotFound)
+
 		// run1 and job1 belong to repo1, success
-		req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run1.ID, job1.ID))
-		resp := user2Session.MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run1.ID, job1.ID))
+		resp = user2Session.MakeRequest(t, req, http.StatusOK)
 		var viewResp actions_web.ViewResponse
 		DecodeJSON(t, resp, &viewResp)
 		assert.Len(t, viewResp.State.Run.Jobs, 1)

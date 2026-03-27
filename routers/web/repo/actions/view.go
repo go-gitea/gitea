@@ -52,13 +52,47 @@ func findCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_mode
 	return nil, true
 }
 
-func getCurrentRunByPathParam(ctx *context_module.Context) (run *actions_model.ActionRun) {
+func getCurrentRunByPathParam(ctx *context_module.Context) *actions_model.ActionRun {
+	return resolveCurrentRunByPathParam(ctx, false)
+}
+
+// resolveCurrentRunByPathParam loads the requested run and optionally redirects legacy run/job index URLs to run/job ID URLs.
+func resolveCurrentRunByPathParam(ctx *context_module.Context, allowLegacyRedirect bool) (run *actions_model.ActionRun) {
 	var err error
 	// if run param is "latest", get the latest run id
 	if ctx.PathParam("run") == "latest" {
 		run, err = actions_model.GetLatestRun(ctx, ctx.Repo.Repository.ID)
 	} else {
-		run, err = actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("run"))
+		runID := ctx.PathParamInt64("run")
+		if runID <= 0 {
+			ctx.NotFound(nil)
+			return nil
+		}
+
+		// Prefer ID-based URLs. Legacy index-based URLs are only handled as a best-effort fallback when the ID-based lookup does not resolve.
+		run, err = actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
+		if errors.Is(err, util.ErrNotExist) && allowLegacyRedirect {
+			// fallback to the legacy run index format and redirect to the run/job ID URL when it resolves
+			run, err = actions_model.GetRunByRepoAndIndex(ctx, ctx.Repo.Repository.ID, runID)
+			if err == nil {
+				redirectURL := fmt.Sprintf("%s/actions/runs/%d", ctx.Repo.RepoLink, run.ID)
+				if ctx.PathParam("job") != "" {
+					jobs, jobsErr := actions_model.GetRunJobsByRunID(ctx, run.ID)
+					if jobsErr != nil {
+						ctx.ServerError("GetRunJobsByRunID", jobsErr)
+						return nil
+					}
+					jobIndex := ctx.PathParamInt64("job")
+					if jobIndex < 0 || jobIndex >= int64(len(jobs)) {
+						ctx.NotFound(nil)
+						return nil
+					}
+					redirectURL = fmt.Sprintf("%s/jobs/%d", redirectURL, jobs[jobIndex].ID)
+				}
+				ctx.Redirect(redirectURL, http.StatusFound)
+				return nil
+			}
+		}
 	}
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.NotFound(nil)
@@ -70,10 +104,34 @@ func getCurrentRunByPathParam(ctx *context_module.Context) (run *actions_model.A
 
 func View(ctx *context_module.Context) {
 	ctx.Data["PageIsActions"] = true
-	run := getCurrentRunByPathParam(ctx)
+	run := resolveCurrentRunByPathParam(ctx, true)
 	if ctx.Written() {
 		return
 	}
+
+	// mormalize legacy job index URLs to job ID URLs on job detail pages
+	if ctx.PathParam("job") != "" {
+		jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+		if err != nil {
+			ctx.ServerError("GetRunJobsByRunID", err)
+			return
+		}
+		if len(jobs) == 0 {
+			ctx.NotFound(nil)
+			return
+		}
+		currentJob, hasPathParam := findCurrentJobByPathParam(ctx, jobs)
+		if hasPathParam && currentJob == nil {
+			jobIndex := ctx.PathParamInt64("job")
+			if jobIndex >= 0 && jobIndex < int64(len(jobs)) {
+				ctx.Redirect(fmt.Sprintf("%s/actions/runs/%d/jobs/%d", ctx.Repo.RepoLink, run.ID, jobs[jobIndex].ID), http.StatusFound)
+				return
+			}
+			ctx.NotFound(nil)
+			return
+		}
+	}
+
 	ctx.Data["RunID"] = run.ID
 	ctx.Data["JobID"] = ctx.PathParamInt64("job") // it can be 0 when no job (e.g.: run summary view)
 	ctx.Data["ActionsURL"] = ctx.Repo.RepoLink + "/actions"
