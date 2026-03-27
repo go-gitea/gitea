@@ -25,7 +25,7 @@ const (
 
 func init() {
 	Register(&Check{
-		Title:     "Fix legacy Actions commit status target URLs",
+		Title:     "Fix legacy Actions commit status target URLs (Slow fix, see #37008)",
 		Name:      "fix-commit-status-target-url",
 		IsDefault: false,
 		Run:       fixCommitStatusTargetURL,
