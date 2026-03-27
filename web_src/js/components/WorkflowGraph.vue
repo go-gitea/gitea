@@ -58,11 +58,18 @@ const hoveredJobId = ref<number | null>(null);
 
 const stateKey = () => `${props.store.viewData.currentRun.repoId}-${props.workflowId}`;
 
+const minScale = 0.1;
+const maxScale = 1;
+
+function clampScale(nextScale: number): number {
+  return Math.min(Math.max(nextScale, minScale), maxScale);
+}
+
 const loadSavedState = () => {
   const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKeyStates, {});
   const saved = allStates[stateKey()];
   if (!saved) return;
-  scale.value = saved.scale ?? scale.value;
+  scale.value = clampScale(saved.scale ?? scale.value);
   translateX.value = saved.translateX ?? translateX.value;
   translateY.value = saved.translateY ?? translateY.value;
 };
@@ -347,12 +354,8 @@ const graphMetrics = computed(() => {
 const nodeHeight = 48;
 const verticalSpacing = 88;
 const margin = 40;
-const minScale = 0.1;
-const maxScale = 3;
 
-function clampScale(nextScale: number): number {
-  return Math.min(Math.max(nextScale, minScale), maxScale);
-}
+const canZoomIn = computed(() => scale.value < maxScale - 1e-9);
 
 function zoomTo(nextScale: number) {
   scale.value = clampScale(nextScale);
@@ -404,6 +407,10 @@ function handleMouseUpOnDocument() {
 }
 
 function handleWheel(event: WheelEvent) {
+  // Without a modifier, let the wheel scroll the page
+  if (!event.ctrlKey && !event.metaKey) {
+    return;
+  }
   event.preventDefault();
   const zoomFactor = Math.exp(-event.deltaY * 0.0015);
   zoomTo(scale.value * zoomFactor);
@@ -540,13 +547,19 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
         </span>
       </div>
       <div class="flex-text-block">
-        <button type="button" @click="zoomIn" class="ui compact tiny icon button" title="Zoom in">
+        <button
+          type="button"
+          @click="zoomIn"
+          class="ui compact tiny icon button"
+          :disabled="!canZoomIn"
+          :title="canZoomIn ? 'Zoom in (Ctrl/Cmd + scroll on graph)' : 'Already at 100% zoom'"
+        >
           <SvgIcon name="octicon-zoom-in" :size="12"/>
         </button>
         <button type="button" @click="resetView" class="ui compact tiny icon button" title="Reset view">
           <SvgIcon name="octicon-sync" :size="12"/>
         </button>
-        <button type="button" @click="zoomOut" class="ui compact tiny icon button" title="Zoom out">
+        <button type="button" @click="zoomOut" class="ui compact tiny icon button" title="Zoom out (Ctrl/Cmd + scroll on graph)">
           <SvgIcon name="octicon-zoom-out" :size="12"/>
         </button>
       </div>
@@ -556,7 +569,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
       class="graph-container"
       ref="graphContainer"
       @mousedown="handleMouseDown"
-      @wheel.prevent="handleWheel"
+      @wheel="handleWheel"
       :class="{dragging: isDragging}"
     >
       <svg
