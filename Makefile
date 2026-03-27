@@ -381,7 +381,7 @@ watch: ## watch everything and continuously rebuild
 
 .PHONY: watch-frontend
 watch-frontend: node_modules ## start vite dev server for frontend
-	NODE_ENV=development $(NODE_VARS) pnpm exec vite dev
+	NODE_ENV=development $(NODE_VARS) pnpm exec vite
 
 .PHONY: watch-backend
 watch-backend: ## watch backend files and continuously rebuild
