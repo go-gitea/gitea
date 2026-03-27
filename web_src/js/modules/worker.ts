@@ -40,10 +40,12 @@ export class UserEventsSharedWorker {
         this.sharedWorker.port.close();
         // slightly delay our "logout" for a short while, in case there are other logout requests in-flight.
         // * if the logout is triggered by a page redirection (e.g.: user clicks "/user/logout")
-        //   * "beforeunload" event is triggered, this branch won't execute
+        //   * "beforeunload" event is triggered, this code path won't execute
         // * if the logout is triggered by a fetch call
-        //   * "beforeunload" event is not triggered before the fetch call is completed
-        //   * there can be a data-race between the fetch call's redirecting and the "logout" message from the worker
+        //   * "beforeunload" event is not triggered until JS does the redirection.
+        //     * in this case, the logout fetch call already completes and has sent the "logout" message to the worker
+        //   * there can be a data-race between the fetch call's redirection and the "logout" message from the worker
+        //     * the fetch call's logout redirection should always win over the worker message, because it might have a custom location
         setTimeout(() => { window.location.href = `${appSubUrl}/` }, 500);
       } else if (event.data.type === 'close') {
         this.sharedWorker.port.postMessage({type: 'close'});
