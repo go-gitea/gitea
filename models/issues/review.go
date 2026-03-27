@@ -657,7 +657,7 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 			return nil, err
 		}
 		if pb != nil {
-			dismissPreviousApprovals = pb.DismissApprovalsOnRequest
+			dismissPreviousApprovals = pb.DismissApprovalsOnReRequest
 		}
 
 		review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)

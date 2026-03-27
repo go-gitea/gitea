@@ -57,7 +57,7 @@ type ProtectedBranch struct {
 	BlockOnRejectedReviews        bool     `xorm:"NOT NULL DEFAULT false"`
 	BlockOnOfficialReviewRequests bool     `xorm:"NOT NULL DEFAULT false"`
 	BlockOnOutdatedBranch         bool     `xorm:"NOT NULL DEFAULT false"`
-	DismissApprovalsOnRequest     bool     `xorm:"NOT NULL DEFAULT true"`
+	DismissApprovalsOnReRequest   bool     `xorm:"NOT NULL DEFAULT true"`
 	DismissStaleApprovals         bool     `xorm:"NOT NULL DEFAULT false"`
 	IgnoreStaleApprovals          bool     `xorm:"NOT NULL DEFAULT false"`
 	RequireSignedCommits          bool     `xorm:"NOT NULL DEFAULT false"`

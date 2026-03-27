@@ -366,22 +366,14 @@ func TestAPIPullReviewRequest(t *testing.T) {
 }
 
 func TestAPIPullReviewReRequestDismissesPreviousApproval(t *testing.T) {
-	t.Run("DismissApprovalsOnRequestDisabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-		defer tests.PrintCurrentTest(t)()
+	defer tests.PrepareTestEnv(t)()
+	defer tests.PrintCurrentTest(t)()
 
-		testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t, false)
-	})
-
-	t.Run("DismissApprovalsOnRequestEnabled", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-		defer tests.PrintCurrentTest(t)()
-
-		testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t, true)
-	})
+	testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t, false)
+	testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t, true)
 }
 
-func testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t *testing.T, dismissApprovalsOnRequest bool) {
+func testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t *testing.T, dismissApprovalsOnReRequest bool) {
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
 	assert.NoError(t, pullIssue.LoadAttributes(t.Context()))
 	assert.NoError(t, pullIssue.LoadPullRequest(t.Context()))
@@ -395,7 +387,7 @@ func testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t *testing.
 			RuleName: pullIssue.PullRequest.BaseBranch,
 		}
 	}
-	pb.DismissApprovalsOnRequest = dismissApprovalsOnRequest
+	pb.DismissApprovalsOnReRequest = dismissApprovalsOnReRequest
 	require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo, pb, git_model.WhitelistOptions{}))
 
 	requester := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -452,7 +444,7 @@ func testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t *testing.
 
 	require.NotNil(t, refreshedApproval)
 	assert.EqualValues(t, "APPROVED", refreshedApproval.State)
-	assert.Equal(t, dismissApprovalsOnRequest, refreshedApproval.Dismissed)
+	assert.Equal(t, dismissApprovalsOnReRequest, refreshedApproval.Dismissed)
 
 	require.NotNil(t, requestReview)
 	assert.False(t, requestReview.Dismissed)
@@ -464,7 +456,7 @@ func testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t *testing.
 			nonDismissedStates = append(nonDismissedStates, string(review.State))
 		}
 	}
-	if dismissApprovalsOnRequest {
+	if dismissApprovalsOnReRequest {
 		assert.Equal(t, []string{"REQUEST_REVIEW"}, nonDismissedStates)
 	} else {
 		assert.ElementsMatch(t, []string{"APPROVED", "REQUEST_REVIEW"}, nonDismissedStates)

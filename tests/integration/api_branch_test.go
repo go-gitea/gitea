@@ -375,16 +375,16 @@ func TestAPIBranchProtection(t *testing.T) {
 
 	// explicitly enable and disable to verify dismiss-on-review-request flag round-trip
 	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
-		DismissApprovalsOnRequest: true,
+		DismissApprovalsOnReRequest: true,
 	}, http.StatusOK)
 	bp = testAPIGetBranchProtection(t, "master", http.StatusOK)
-	assert.True(t, bp.DismissApprovalsOnRequest)
+	assert.True(t, bp.DismissApprovalsOnReRequest)
 
 	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
-		DismissApprovalsOnRequest: false,
+		DismissApprovalsOnReRequest: false,
 	}, http.StatusOK)
 	bp = testAPIGetBranchProtection(t, "master", http.StatusOK)
-	assert.False(t, bp.DismissApprovalsOnRequest)
+	assert.False(t, bp.DismissApprovalsOnReRequest)
 
 	// Can only create once
 	testAPICreateBranchProtection(t, "master", 0, http.StatusForbidden)
