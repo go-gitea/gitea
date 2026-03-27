@@ -10,6 +10,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -365,11 +366,37 @@ func TestAPIPullReviewRequest(t *testing.T) {
 }
 
 func TestAPIPullReviewReRequestDismissesPreviousApproval(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	t.Run("DismissApprovalsOnRequestDisabled", func(t *testing.T) {
+		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
 
+		testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t, false)
+	})
+
+	t.Run("DismissApprovalsOnRequestEnabled", func(t *testing.T) {
+		defer tests.PrepareTestEnv(t)()
+		defer tests.PrintCurrentTest(t)()
+
+		testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t, true)
+	})
+}
+
+func testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t *testing.T, dismissApprovalsOnRequest bool) {
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
 	assert.NoError(t, pullIssue.LoadAttributes(t.Context()))
+	assert.NoError(t, pullIssue.LoadPullRequest(t.Context()))
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID})
+
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(t.Context(), pullIssue.PullRequest.BaseRepoID, pullIssue.PullRequest.BaseBranch)
+	require.NoError(t, err)
+	if pb == nil {
+		pb = &git_model.ProtectedBranch{
+			RepoID:   repo.ID,
+			RuleName: pullIssue.PullRequest.BaseBranch,
+		}
+	}
+	pb.DismissApprovalsOnRequest = dismissApprovalsOnRequest
+	require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo, pb, git_model.WhitelistOptions{}))
 
 	requester := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	requesterSession := loginUser(t, requester.LoginName)
@@ -396,7 +423,7 @@ func TestAPIPullReviewReRequestDismissesPreviousApproval(t *testing.T) {
 	assert.EqualValues(t, "APPROVED", approvedReview.State)
 	assert.False(t, approvedReview.Dismissed)
 
-	// re-request the same reviewer, the approval should be dismissed
+	// re-request the same reviewer
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{reviewer.LoginName},
 	}).AddTokenAuth(requesterToken)
@@ -425,7 +452,7 @@ func TestAPIPullReviewReRequestDismissesPreviousApproval(t *testing.T) {
 
 	require.NotNil(t, refreshedApproval)
 	assert.EqualValues(t, "APPROVED", refreshedApproval.State)
-	assert.True(t, refreshedApproval.Dismissed)
+	assert.Equal(t, dismissApprovalsOnRequest, refreshedApproval.Dismissed)
 
 	require.NotNil(t, requestReview)
 	assert.False(t, requestReview.Dismissed)
@@ -437,7 +464,11 @@ func TestAPIPullReviewReRequestDismissesPreviousApproval(t *testing.T) {
 			nonDismissedStates = append(nonDismissedStates, string(review.State))
 		}
 	}
-	assert.Equal(t, []string{"REQUEST_REVIEW"}, nonDismissedStates)
+	if dismissApprovalsOnRequest {
+		assert.Equal(t, []string{"REQUEST_REVIEW"}, nonDismissedStates)
+	} else {
+		assert.ElementsMatch(t, []string{"APPROVED", "REQUEST_REVIEW"}, nonDismissedStates)
+	}
 }
 
 func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
