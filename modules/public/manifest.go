@@ -108,7 +108,7 @@ func reloadManifest() *manifestDataStruct {
 	return data
 }
 
-func getManifestPaths() map[string]string {
+func getManifestData() *manifestDataStruct {
 	data := manifestData.Load()
 
 	// In production the manifest is immutable (embedded in the binary).
@@ -116,19 +116,17 @@ func getManifestPaths() map[string]string {
 	if data == nil || !setting.IsProd {
 		data = reloadManifest()
 	}
-	if data != nil {
-		return data.paths
-	}
-	return nil
+	return data
 }
 
 // getAssetPath resolves an unhashed asset path to its content-hashed path from the frontend manifest.
 // Example: getAssetPath("js/index.js") returns "js/index.C6Z2MRVQ.js"
 // Falls back to returning the input path unchanged if the manifest is unavailable.
 func getAssetPath(name string) string {
-	paths := getManifestPaths()
-	if p, ok := paths[name]; ok {
-		return p
+	if data := getManifestData(); data != nil {
+		if p, ok := data.paths[name]; ok {
+			return p
+		}
 	}
 	return name
 }
@@ -137,8 +135,7 @@ func getAssetPath(name string) string {
 // Example: AssetName("css/theme-gitea-dark.CyAaQnn5.css") returns "theme-gitea-dark"
 // Returns empty string if the path is not found in the manifest.
 func AssetName(hashedPath string) string {
-	getManifestPaths() // ensure manifest is loaded
-	if data := manifestData.Load(); data != nil {
+	if data := getManifestData(); data != nil {
 		return data.names[hashedPath]
 	}
 	return ""
