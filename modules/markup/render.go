@@ -238,8 +238,8 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 			return renderIFrame(ctx, extOpts.ContentSandbox, output)
 		}
 		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
-		extraStyleHref := setting.AppSubURL + "/assets/" + public.GetAssetPath("css/external-render-iframe.css")
-		extraScriptSrc := setting.AppSubURL + "/assets/" + public.GetAssetPath("js/external-render-iframe.js")
+		extraStyleHref := public.AssetURL("css/external-render-iframe.css")
+		extraScriptSrc := public.AssetURL("js/external-render-iframe.js")
 		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
 		extraHeadHTML = htmlutil.HTMLFormat(`<script type="module" src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraStyleHref)
 	}

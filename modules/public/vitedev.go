@@ -67,7 +67,11 @@ func ViteDevMiddleware(resp http.ResponseWriter, req *http.Request) {
 }
 
 // IsViteDevMode returns true if the Vite dev server port file exists.
+// In production mode, the result is cached after the first check.
 func IsViteDevMode() bool {
+	if setting.IsProd {
+		return false
+	}
 	portFile := filepath.Join(setting.StaticRootPath, viteDevPortFile)
 	_, err := os.Stat(portFile)
 	return err == nil
@@ -92,6 +96,9 @@ func viteDevSourceURL(name string) string {
 	}
 	if strings.HasPrefix(name, "css/") {
 		return setting.AppSubURL + "/web_src/" + name
+	}
+	if name == "js/sharedworker.js" {
+		return setting.AppSubURL + "/web_src/js/features/sharedworker.ts"
 	}
 	if name == "js/iife.js" {
 		return setting.AppSubURL + "/__vite_iife.js"

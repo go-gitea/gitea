@@ -62,19 +62,17 @@ func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, out
 <html>
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" href="%s/assets/%s">
+	<link rel="stylesheet" href="%s">
 </head>
 <body>
 	<div id="swagger-ui"><textarea class="swagger-spec-content" data-spec-filename="%s">%s</textarea></div>
-	<script type="module" src="%s/assets/%s"></script>
+	<script type="module" src="%s"></script>
 </body>
 </html>`,
-		setting.StaticURLPrefix,
-		public.GetAssetPath("css/swagger.css"),
+		public.AssetURL("css/swagger.css"),
 		html.EscapeString(ctx.RenderOptions.RelativePath),
 		html.EscapeString(util.UnsafeBytesToString(content)),
-		setting.StaticURLPrefix,
-		public.GetAssetPath("js/swagger.js"),
+		public.AssetURL("js/swagger.js"),
 	))
 	return err
 }
