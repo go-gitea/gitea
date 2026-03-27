@@ -91,18 +91,21 @@ func reloadManifest(existingData *manifestDataStruct) *manifestDataStruct {
 	if !needReload {
 		return data
 	}
-
 	manifestContent, err := io.ReadAll(f)
 	if err != nil {
 		log.Error("Failed to read frontend manifest: %v", err)
 		return data
 	}
+	return storeManifestFromBytes(manifestContent, fi.ModTime().UnixNano(), now)
+}
+
+func storeManifestFromBytes(manifestContent []byte, modTime int64, checkTime time.Time) *manifestDataStruct {
 	paths, names := parseManifest(manifestContent)
-	data = &manifestDataStruct{
+	data := &manifestDataStruct{
 		paths:     paths,
 		names:     names,
-		modTime:   fi.ModTime().UnixNano(),
-		checkTime: now,
+		modTime:   modTime,
+		checkTime: checkTime,
 	}
 	manifestData.Store(data)
 	return data
