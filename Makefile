@@ -380,9 +380,9 @@ watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: node_modules ## watch frontend files and continuously rebuild
-	@rm -rf $(FRONTEND_DEST_ENTRIES)
-	NODE_ENV=development $(NODE_VARS) pnpm exec vite build --watch
+watch-frontend: node_modules ## start vite dev server for frontend
+	@NODE_ENV=development $(NODE_VARS) pnpm exec vite build
+	NODE_ENV=development $(NODE_VARS) pnpm exec vite dev
 
 .PHONY: watch-backend
 watch-backend: ## watch backend files and continuously rebuild

@@ -94,6 +94,7 @@ func NewFuncMap() template.FuncMap {
 			return setting.Domain
 		},
 		"GetAssetPath": public.GetAssetPath,
+		"AssetURL":     public.AssetURL,
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
 		},

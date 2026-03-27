@@ -54,6 +54,8 @@ function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
       target: 'es2020',
       minify: isProduction ? 'oxc' : false,
       cssMinify: isProduction ? 'esbuild' : false,
+      chunkSizeWarningLimit: Infinity,
+      assetsInlineLimit: 32768,
       reportCompressedSize: false,
       rolldownOptions: {
         ...commonRolldownOptions,
@@ -65,41 +67,82 @@ function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
   };
 }
 
-// Build iife.js as a blocking IIFE bundle to avoid pop-in effects
+const iifeEntry = join(import.meta.dirname, 'web_src/js/iife.ts');
+
+function iifeBuildOpts({entryFileNames, write}: {entryFileNames: string, write?: boolean}) {
+  return commonViteOpts({
+    build: {
+      lib: {entry: iifeEntry, formats: ['iife'], name: 'iife'},
+      rolldownOptions: {output: {entryFileNames}},
+      ...(write === false && {write: false}),
+    },
+    plugins: [stringPlugin()],
+  });
+}
+
+// Build iife.js as a blocking IIFE bundle. In dev mode, serves it from memory
+// and rebuilds on file changes. In prod mode, writes to disk during closeBundle.
 function iifePlugin(): Plugin {
+  let iifeCode = '';
+  let iifeMap = '';
+  const iifeModules = new Set<string>();
+  let isBuilding = false;
   return {
     name: 'iife',
+    async configureServer(server) {
+      const buildAndCache = async () => {
+        const result = await build(iifeBuildOpts({entryFileNames: 'js/iife.js', write: false}));
+        const output = (Array.isArray(result) ? result[0] : result) as Rolldown.RolldownOutput;
+        const chunk = output.output[0];
+        iifeCode = chunk.code.replace(/\/\/# sourceMappingURL=.*/, '//# sourceMappingURL=__vite_iife.js.map');
+        const mapAsset = output.output.find((o) => o.fileName.endsWith('.map'));
+        iifeMap = mapAsset && 'source' in mapAsset ? String(mapAsset.source) : '';
+        iifeModules.clear();
+        for (const id of Object.keys(chunk.modules)) iifeModules.add(id);
+      };
+      await buildAndCache();
+
+      let needsRebuild = false;
+      server.watcher.on('change', async (path) => {
+        if (!iifeModules.has(path)) return;
+        needsRebuild = true;
+        if (isBuilding) return;
+        isBuilding = true;
+        try {
+          do {
+            needsRebuild = false;
+            await buildAndCache();
+          } while (needsRebuild);
+          server.ws.send({type: 'full-reload'});
+        } finally {
+          isBuilding = false;
+        }
+      });
+
+      server.middlewares.use((req, res, next) => {
+        const pathname = req.url!.split('?')[0];
+        if (pathname === '/__vite_iife.js') {
+          res.setHeader('Content-Type', 'application/javascript');
+          res.setHeader('Cache-Control', 'no-store');
+          res.end(iifeCode);
+          return;
+        }
+        if (pathname === '/__vite_iife.js.map') {
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Cache-Control', 'no-store');
+          res.end(iifeMap);
+          return;
+        }
+        next();
+      });
+    },
     async closeBundle() {
-      // Clean up old hashed files before rebuilding
       for (const file of globSync('js/iife.*.js*', {cwd: outDir})) unlinkSync(join(outDir, file));
-
-      const result = await build(commonViteOpts({
-        build: {
-          lib: {
-            entry: join(import.meta.dirname, 'web_src/js/iife.ts'),
-            formats: ['iife'],
-            name: 'iife',
-          },
-          rolldownOptions: {
-            output: {
-              entryFileNames: 'js/iife.[hash:8].js',
-            },
-          },
-        },
-        define: {
-          // needed for tippy.js
-          'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
-        },
-        plugins: [
-          stringPlugin(),
-        ],
-      }));
-
-      // Append IIFE entry to the main Vite manifest
-      const manifestPath = join(outDir, '.vite', 'manifest.json');
+      const result = await build(iifeBuildOpts({entryFileNames: 'js/iife.[hash:8].js'}));
       const buildOutput = (Array.isArray(result) ? result[0] : result) as Rolldown.RolldownOutput;
       const entry = buildOutput.output.find((o) => o.fileName.startsWith('js/iife.'));
       if (!entry) throw new Error('IIFE build produced no output');
+      const manifestPath = join(outDir, '.vite', 'manifest.json');
       writeFileSync(manifestPath, JSON.stringify({
         ...JSON.parse(readFileSync(manifestPath, 'utf8')),
         'web_src/js/iife.ts': {file: entry.fileName, name: 'iife', isEntry: true},
@@ -120,11 +163,48 @@ function filterCssUrlPlugin(): Plugin {
   };
 }
 
+const viteDevServerPort = Number(env.VITE_DEV_SERVER_PORT) || 3001;
+const viteDevPortFilePath = join(outDir, '.vite', 'dev-port');
+
+// Write the Vite dev server's actual port to a file so the Go server can discover it for proxying.
+function viteDevServerPortPlugin(): Plugin {
+  return {
+    name: 'vite-dev-server-port',
+    apply: 'serve',
+    configureServer(server) {
+      server.httpServer!.once('listening', () => {
+        const addr = server.httpServer!.address();
+        if (typeof addr === 'object' && addr) {
+          writeFileSync(viteDevPortFilePath, String(addr.port));
+        }
+      });
+    },
+  };
+}
+
 export default defineConfig(commonViteOpts({
+  appType: 'custom', // Go serves all HTML, disable Vite's HTML handling
+  clearScreen: false,
+  server: {
+    port: viteDevServerPort,
+    open: false,
+    host: '0.0.0.0',
+    strictPort: false,
+    headers: {
+      'Cache-Control': 'no-store', // prevent browser disk cache
+    },
+    warmup: {
+      clientFiles: [
+        // warmup the important entry points
+        'web_src/js/index.ts',
+        'web_src/css/index.css',
+        'web_src/css/themes/*.css',
+      ],
+    },
+  },
   build: {
     modulePreload: false,
     manifest: true,
-    chunkSizeWarningLimit: Infinity,
     rolldownOptions: {
       input: {
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
@@ -171,6 +251,7 @@ export default defineConfig(commonViteOpts({
   },
   plugins: [
     iifePlugin(),
+    viteDevServerPortPlugin(),
     filterCssUrlPlugin(),
     stringPlugin(),
     vuePlugin({
