@@ -77,17 +77,17 @@ func IsViteDevMode() bool {
 	return err == nil
 }
 
-// AssetURL returns the full URL path for a frontend asset.
+// AssetPath returns the rooted path for a frontend asset.
 // In Vite dev mode, known entry points are mapped to their source paths
 // so the reverse proxy serves them from the Vite dev server.
 // In production, it resolves the content-hashed path from the manifest.
-func AssetURL(name string) string {
+func AssetPath(name string) string {
 	if IsViteDevMode() {
 		if src := viteDevSourceURL(name); src != "" {
 			return src
 		}
 	}
-	return setting.StaticURLPrefix + "/assets/" + GetAssetPath(name)
+	return setting.StaticURLPrefix + "/assets/" + getAssetPath(name)
 }
 
 func viteDevSourceURL(name string) string {

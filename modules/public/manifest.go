@@ -65,7 +65,7 @@ func reloadManifest() *manifestDataStruct {
 	now := time.Now()
 	data := manifestData.Load()
 	if data != nil && now.Sub(data.checkTime) < time.Second {
-		// a single request triggers multiple calls to GetAssetPath
+		// a single request triggers multiple calls to getAssetPath
 		// do not check the manifest file too frequently
 		return data
 	}
@@ -116,10 +116,10 @@ func getManifestPaths() map[string]string {
 	return nil
 }
 
-// GetAssetPath resolves an unhashed asset path to its content-hashed path from the frontend manifest.
-// Example: GetAssetPath("js/index.js") returns "js/index.C6Z2MRVQ.js"
+// getAssetPath resolves an unhashed asset path to its content-hashed path from the frontend manifest.
+// Example: getAssetPath("js/index.js") returns "js/index.C6Z2MRVQ.js"
 // Falls back to returning the input path unchanged if the manifest is unavailable.
-func GetAssetPath(name string) string {
+func getAssetPath(name string) string {
 	paths := getManifestPaths()
 	if p, ok := paths[name]; ok {
 		return p

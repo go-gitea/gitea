@@ -93,7 +93,7 @@ func NewFuncMap() template.FuncMap {
 		"AppDomain": func() string { // documented in mail-templates.md
 			return setting.Domain
 		},
-		"AssetURL": public.AssetURL,
+		"AssetPath": public.AssetPath,
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
 		},
