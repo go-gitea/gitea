@@ -47,7 +47,7 @@ export function initStopwatch() {
   // if the browser supports EventSource and SharedWorker, use it instead of the periodic poller
   if (notificationSettings.EventSourceUpdateTime > 0 && window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    const worker = new UserEventsSharedWorker('notification-worker');
+    const worker = new UserEventsSharedWorker('stopwatch-worker');
     worker.addMessageEventListener((event) => {
       if (event.data.type === 'no-event-source') {
         // browser doesn't support EventSource, falling back to periodic poller

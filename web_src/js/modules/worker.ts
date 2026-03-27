@@ -3,7 +3,8 @@ const {appSubUrl, assetVersionEncoded} = window.config;
 export class UserEventsSharedWorker {
   sharedWorker: SharedWorker;
 
-  constructor(options: string) {
+  // options can be either a string (the debug name of the worker) or an object of type WorkerOptions
+  constructor(options?: string | WorkerOptions) {
     const worker = new SharedWorker(`${window.__webpack_public_path__}js/eventsource.sharedworker.js?v=${assetVersionEncoded}`, options);
     this.sharedWorker = worker;
     worker.addEventListener('error', (event) => {
