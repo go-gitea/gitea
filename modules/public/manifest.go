@@ -65,11 +65,11 @@ func parseManifest(data []byte) (map[string]string, map[string]string) {
 	return paths, names
 }
 
-func reloadManifest() *manifestDataStruct {
+func reloadManifest(existingData *manifestDataStruct) *manifestDataStruct {
 	now := time.Now()
-	data := manifestData.Load()
+	data := existingData
 	if data != nil && now.Sub(data.checkTime) < time.Second {
-		// a single request triggers multiple calls to getAssetPath
+		// a single request triggers multiple calls to getHashedPath
 		// do not check the manifest file too frequently
 		return data
 	}
@@ -114,29 +114,41 @@ func getManifestData() *manifestDataStruct {
 	// In production the manifest is immutable (embedded in the binary).
 	// In dev mode, check if it changed on disk (for watch-frontend).
 	if data == nil || !setting.IsProd {
-		data = reloadManifest()
+		data = reloadManifest(data)
+	}
+	if data == nil {
+		data = &manifestDataStruct{}
 	}
 	return data
 }
 
-// getAssetPath resolves an unhashed asset path to its content-hashed path from the frontend manifest.
-// Example: getAssetPath("js/index.js") returns "js/index.C6Z2MRVQ.js"
+// getHashedPath resolves an unhashed asset path (origin path) to its content-hashed path from the frontend manifest.
+// Example: getHashedPath("js/index.js") returns "js/index.C6Z2MRVQ.js"
 // Falls back to returning the input path unchanged if the manifest is unavailable.
-func getAssetPath(name string) string {
-	if data := getManifestData(); data != nil {
-		if p, ok := data.paths[name]; ok {
-			return p
-		}
+func getHashedPath(originPath string) string {
+	data := getManifestData()
+	if p, ok := data.paths[originPath]; ok {
+		return p
 	}
-	return name
+	return originPath
 }
 
-// AssetName returns the unhashed entry name for a content-hashed asset path.
-// Example: AssetName("css/theme-gitea-dark.CyAaQnn5.css") returns "theme-gitea-dark"
-// Returns empty string if the path is not found in the manifest.
-func AssetName(hashedPath string) string {
-	if data := getManifestData(); data != nil {
-		return data.names[hashedPath]
+// AssetPath returns the asset path (full URL path) for a frontend asset.
+// In Vite dev mode, known entry points are mapped to their source paths
+// so the reverse proxy serves them from the Vite dev server.
+// In production, it resolves the content-hashed path from the manifest.
+func AssetPath(originPath string) string {
+	if IsViteDevMode() {
+		if src := viteDevSourceURL(originPath); src != "" {
+			return src
+		}
 	}
-	return ""
+	return setting.StaticURLPrefix + "/assets/" + getHashedPath(originPath)
+}
+
+// AssetNameFromHashedPath returns the asset entry name for a given hashed asset path.
+// Example: returns "theme-gitea-dark" for "css/theme-gitea-dark.CyAaQnn5.css".
+// Returns empty string if the path is not found in the manifest.
+func AssetNameFromHashedPath(hashedPath string) string {
+	return getManifestData().names[hashedPath]
 }

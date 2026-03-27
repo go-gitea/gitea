@@ -70,11 +70,11 @@ func TestParseManifest(t *testing.T) {
 }
 
 func TestGetAssetPathFallback(t *testing.T) {
-	// When manifest is not loaded, getAssetPath should return the input as-is
+	// When manifest is not loaded, getHashedPath should return the input as-is
 	old := manifestData.Load()
-	manifestData.Store(&manifestDataStruct{paths: make(map[string]string), names: make(map[string]string)})
+	manifestData.Store(&manifestDataStruct{paths: make(map[string]string), origins: make(map[string]string)})
 	defer func() { manifestData.Store(old) }()
 
-	assert.Equal(t, "js/index.js", getAssetPath("js/index.js"))
-	assert.Equal(t, "css/theme-gitea-dark.css", getAssetPath("css/theme-gitea-dark.css"))
+	assert.Equal(t, "js/index.js", getHashedPath("js/index.js"))
+	assert.Equal(t, "css/theme-gitea-dark.css", getHashedPath("css/theme-gitea-dark.css"))
 }

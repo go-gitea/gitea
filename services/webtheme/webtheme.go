@@ -113,7 +113,7 @@ func defaultThemeMetaInfoByFileName(fileName string) *ThemeMetaInfo {
 	// For built-in themes, the manifest knows the unhashed entry name (e.g. "theme-gitea-dark")
 	// which lets us correctly strip the content hash without guessing.
 	// Custom themes are not in the manifest and never have content hashes.
-	if name := public.AssetName("css/" + fileName); name != "" {
+	if name := public.AssetNameFromHashedPath("css/" + fileName); name != "" {
 		internalName = strings.TrimPrefix(name, fileNamePrefix)
 	}
 	themeInfo := &ThemeMetaInfo{
