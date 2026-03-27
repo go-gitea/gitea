@@ -38,7 +38,13 @@ export class UserEventsSharedWorker {
         if (event.data.data !== 'here') return;
         this.sharedWorker.port.postMessage({type: 'close'});
         this.sharedWorker.port.close();
-        window.location.href = `${appSubUrl}/`;
+        // slightly delay our "logout" for a short while, in case there are other logout requests in-flight.
+        // * if the logout is triggered by a page redirection (e.g.: user clicks "/user/logout")
+        //   * "beforeunload" event is triggered, this branch won't execute
+        // * if the logout is triggered by a fetch call
+        //   * "beforeunload" event is not triggered before the fetch call is completed
+        //   * there can be a data-race between the fetch call's redirecting and the "logout" message from the worker
+        setTimeout(() => { window.location.href = `${appSubUrl}/` }, 500);
       } else if (event.data.type === 'close') {
         this.sharedWorker.port.postMessage({type: 'close'});
         this.sharedWorker.port.close();
