@@ -8,3 +8,4 @@
 - Preserve existing code comments, do not remove or rewrite comments that are still relevant
 - In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
 - Always start issue and pull request comments with an authorship attribution
+- Add `Co-Authored-By` lines to commits, indicating name and model used.
