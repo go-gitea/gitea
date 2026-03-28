@@ -235,6 +235,7 @@ async function deleteArtifact(name: string) {
 @media (max-width: 767.98px) {
   .action-view-left {
     position: static; /* can not sticky because multiple jobs would overlap into right view */
+    max-height: unset;
   }
 }
 
