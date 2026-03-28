@@ -45,6 +45,33 @@ const (
 	TplActivatePrompt templates.TplName = "user/auth/activate_prompt" // for showing a message for user activation
 )
 
+type CommonAuthOptions struct {
+	EnableCaptcha bool
+}
+
+func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
+	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
+	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
+
+	// for OpenID Connect
+	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
+
+	if opt.EnableCaptcha {
+		ctx.Data["EnableCaptcha"] = true
+		ctx.Data["RecaptchaAPIScriptURL"] = strings.TrimSuffix(setting.Service.RecaptchaURL, "/") + "/api.js"
+		ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+		ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+		ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+		ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+		ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+		ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
+		if setting.Service.CaptchaType == setting.ImageCaptcha {
+			ctx.Data["Captcha"] = context.GetImageCaptcha()
+		}
+	}
+}
+
 // autoSignIn reads cookie and try to auto-login.
 func autoSignIn(ctx *context.Context) (bool, error) {
 	isSucceed := false
@@ -199,12 +226,10 @@ func prepareSignInPageData(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
 	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
-	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
-	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
 
-	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
-		context.SetCaptchaData(ctx)
-	}
+	prepareCommonAuthPageData(ctx, CommonAuthOptions{
+		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin,
+	})
 }
 
 // SignIn render sign in page
@@ -442,50 +467,51 @@ func buildSignOutRedirectURL(ctx *context.Context) string {
 	return setting.AppSubURL + "/"
 }
 
-// SignUp render the register page
-func SignUp(ctx *context.Context) {
+func prepareSignUpPageData(ctx *context.Context) bool {
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
+	ctx.Data["PageIsSignUp"] = true
 
-	hasUsers, _ := user_model.HasUsers(ctx)
+	hasUsers, err := user_model.HasUsers(ctx)
+	if err != nil {
+		ctx.ServerError("HasUsers", err)
+		return false
+	}
 	ctx.Data["IsFirstTimeRegistration"] = !hasUsers.HasAnyUser
 
 	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
-		ctx.ServerError("UserSignUp", err)
-		return
+		ctx.ServerError("GetOAuth2Providers", err)
+		return false
 	}
-
 	ctx.Data["OAuth2Providers"] = oauth2Providers
-	context.SetCaptchaData(ctx)
 
-	ctx.Data["PageIsSignUp"] = true
+	prepareCommonAuthPageData(ctx, CommonAuthOptions{
+		EnableCaptcha: setting.Service.EnableCaptcha,
+	})
 
 	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration
 
-	rememberAuthRedirectLink(ctx)
+	return true
+}
 
+// SignUp render the register page
+func SignUp(ctx *context.Context) {
+	if !prepareSignUpPageData(ctx) {
+		return
+	}
+	rememberAuthRedirectLink(ctx)
 	ctx.HTML(http.StatusOK, tplSignUp)
 }
 
 // SignUpPost response for sign up information submission
 func SignUpPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RegisterForm)
-	ctx.Data["Title"] = ctx.Tr("sign_up")
-
-	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
-
-	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
-	if err != nil {
-		ctx.ServerError("UserSignUp", err)
+	if !prepareSignUpPageData(ctx) {
 		return
 	}
 
-	ctx.Data["OAuth2Providers"] = oauth2Providers
-	context.SetCaptchaData(ctx)
-
-	ctx.Data["PageIsSignUp"] = true
+	form := web.GetForm(ctx).(*forms.RegisterForm)
 
 	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {

@@ -95,7 +95,9 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	uniqTeams := make(map[string]*org_model.Team)
 	for _, rule := range rules {
 		for _, f := range changedFiles {
-			if (rule.Rule.MatchString(f) && !rule.Negative) || (!rule.Rule.MatchString(f) && rule.Negative) {
+			shouldMatch := !rule.Negative
+			matched, _ := rule.Rule.MatchString(f) // err only happens when timeouts, any error can be considered as not matched
+			if matched == shouldMatch {
 				for _, u := range rule.Users {
 					uniqUsers[u.ID] = u
 				}

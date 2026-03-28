@@ -6,6 +6,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"hash"
 	"hash/fnv"
@@ -326,9 +327,10 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *Re
 		urlStr = "/" + urlStr
 	}
 	req, err := http.NewRequest(method, urlStr, body)
-	assert.NoError(t, err)
-	req.RequestURI = urlStr
-
+	require.NoError(t, err)
+	if req.URL.User != nil {
+		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(req.URL.User.String())))
+	}
 	return &RequestWrapper{req}
 }
 
@@ -408,12 +410,13 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	}
 }
 
-func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
+func DecodeJSON[T any](t testing.TB, resp *httptest.ResponseRecorder, v T) (ret T) {
 	t.Helper()
 
 	// FIXME: JSON-KEY-CASE: for testing purpose only, because many structs don't provide `json` tags, they just use capitalized field names
 	decoder := json.NewDecoderCaseInsensitive(resp.Body)
 	require.NoError(t, decoder.Decode(v))
+	return v
 }
 
 func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile string) {

@@ -76,6 +76,14 @@
         ],
         "summary": "Get all runners",
         "operationId": "getAdminRunners",
+        "parameters": [
+          {
+            "type": "boolean",
+            "description": "filter by disabled status (true or false)",
+            "name": "disabled",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/definitions/ActionRunnersResponse"
@@ -164,6 +172,49 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update a global runner",
+        "operationId": "updateAdminRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditActionRunnerOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/definitions/ActionRunner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -1947,6 +1998,12 @@
             "name": "org",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "filter by disabled status (true or false)",
+            "name": "disabled",
+            "in": "query"
           }
         ],
         "responses": {
@@ -2060,6 +2117,56 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Update an org-level runner",
+        "operationId": "updateOrgRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditActionRunnerOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/definitions/ActionRunner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -4873,6 +4980,12 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "filter by disabled status (true or false)",
+            "name": "disabled",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4929,7 +5042,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get an repo-level runner",
+        "summary": "Get a repo-level runner",
         "operationId": "getRepoRunner",
         "parameters": [
           {
@@ -4973,7 +5086,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Delete an repo-level runner",
+        "summary": "Delete a repo-level runner",
         "operationId": "deleteRepoRunner",
         "parameters": [
           {
@@ -5007,6 +5120,63 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update a repo-level runner",
+        "operationId": "updateRepoRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditActionRunnerOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/definitions/ActionRunner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -5393,6 +5563,55 @@
         "responses": {
           "201": {
             "$ref": "#/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/rerun-failed-jobs": {
+      "post": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reruns all failed jobs in a workflow run",
+        "operationId": "rerunFailedWorkflowRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -15283,7 +15502,7 @@
           },
           {
             "type": "boolean",
-            "description": "filter (exclude / include) drafts, if you dont have repo write access none will show",
+            "description": "filter (exclude / include) drafts, if you don't have repo write access none will show",
             "name": "draft",
             "in": "query"
           },
@@ -18442,6 +18661,14 @@
         ],
         "summary": "Get user-level runners",
         "operationId": "getUserRunners",
+        "parameters": [
+          {
+            "type": "boolean",
+            "description": "filter by disabled status (true or false)",
+            "name": "disabled",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/definitions/ActionRunnersResponse"
@@ -18480,7 +18707,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Get an user-level runner",
+        "summary": "Get a user-level runner",
         "operationId": "getUserRunner",
         "parameters": [
           {
@@ -18510,7 +18737,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Delete an user-level runner",
+        "summary": "Delete a user-level runner",
         "operationId": "deleteUserRunner",
         "parameters": [
           {
@@ -18530,6 +18757,49 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Update a user-level runner",
+        "operationId": "updateUserRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditActionRunnerOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/definitions/ActionRunner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -21115,6 +21385,10 @@
         "busy": {
           "type": "boolean",
           "x-go-name": "Busy"
+        },
+        "disabled": {
+          "type": "boolean",
+          "x-go-name": "Disabled"
         },
         "ephemeral": {
           "type": "boolean",
@@ -24206,6 +24480,20 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "EditActionRunnerOption": {
+      "type": "object",
+      "title": "EditActionRunnerOption represents the editable fields for a runner.",
+      "required": [
+        "disabled"
+      ],
+      "properties": {
+        "disabled": {
+          "type": "boolean",
+          "x-go-name": "Disabled"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "EditAttachmentOptions": {
       "description": "EditAttachmentOptions options for editing attachments",
       "type": "object",
@@ -24568,7 +24856,7 @@
           "x-go-name": "Description"
         },
         "email": {
-          "description": "The email address of the organization",
+          "description": "The email address of the organization; use empty string to clear",
           "type": "string",
           "x-go-name": "Email"
         },
