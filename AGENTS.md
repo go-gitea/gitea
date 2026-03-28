@@ -4,5 +4,8 @@
 - Run `make tidy` after any `go.mod` changes
 - Add the current year into the copyright header of new `.go` files
 - Ensure no trailing whitespace in edited files
+- Preserve existing code comments, do not remove or rewrite comments that are still relevant
+- Keep diffs minimal and focused on the task at hand, avoid unrelated refactors or reformatting
+- In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to exist
 - Never force-push to pull request branches
 - Always start issue and pull request comments with an authorship attribution
