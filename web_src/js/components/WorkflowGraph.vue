@@ -58,11 +58,11 @@ const hoveredJobId = ref<number | null>(null);
 
 const stateKey = () => `${props.store.viewData.currentRun.repoId}-${props.workflowId}`;
 
-const minScale = 0.1;
+const minScale = 0.3;
 const maxScale = 1;
 
 function clampScale(nextScale: number): number {
-  return Math.min(Math.max(nextScale, minScale), maxScale);
+  return Math.min(Math.max(Math.round(nextScale * 100) / 100, minScale), maxScale);
 }
 
 const loadSavedState = () => {
@@ -355,7 +355,7 @@ const nodeHeight = 48;
 const verticalSpacing = 88;
 const margin = 40;
 
-const canZoomIn = computed(() => scale.value < maxScale - 1e-9);
+const canZoomIn = computed(() => scale.value < maxScale);
 
 function zoomTo(nextScale: number) {
   scale.value = clampScale(nextScale);
@@ -672,7 +672,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   padding: 8px 14px;
   background: var(--color-box-header);
   border-bottom: 1px solid var(--color-secondary);
-  gap: 20px;
+  gap: var(--gap-block);
   flex-wrap: wrap;
 }
 
@@ -796,21 +796,5 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
 .node-edge {
   transition: stroke-width 0.2s ease, opacity 0.2s ease;
-}
-
-@media (max-width: 768px) {
-  .graph-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .graph-stats {
-    font-size: 12px;
-  }
-
-  .workflow-graph {
-    padding: 15px;
-  }
 }
 </style>
