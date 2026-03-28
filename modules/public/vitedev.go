@@ -106,30 +106,23 @@ func viteDevSourceURL(name string) string {
 }
 
 // isViteDevRequest returns true if the request should be proxied to the Vite dev server.
-// Vite internal prefixes are defined in the Vite source:
-//   - packages/vite/src/node/constants.ts (/@vite/, /@fs/, /__vite)
-//   - packages/vite/src/shared/constants.ts (/@id/)
-//   - packages/vite/src/node/server/ws.ts (vite-hmr, vite-ping WebSocket protocols)
-//   - packages/vite/src/node/utils.ts (?import, ?raw query params)
+// Ref: Vite source packages/vite/src/node/constants.ts and packages/vite/src/shared/constants.ts
 func isViteDevRequest(req *http.Request) bool {
-	wsProtocol := req.Header.Get("Sec-WebSocket-Protocol")
-	if req.Header.Get("Upgrade") == "websocket" && (wsProtocol == "vite-hmr" || wsProtocol == "vite-ping") {
-		return true
+	if req.Header.Get("Upgrade") == "websocket" {
+		wsProtocol := req.Header.Get("Sec-WebSocket-Protocol")
+		return wsProtocol == "vite-hmr" || wsProtocol == "vite-ping"
 	}
 	path := req.URL.Path
-	if strings.HasPrefix(path, "/@vite/") ||
-		strings.HasPrefix(path, "/@fs/") ||
-		strings.HasPrefix(path, "/@id/") ||
-		strings.HasPrefix(path, "/__vite") ||
-		strings.HasPrefix(path, "/node_modules/") ||
-		strings.HasPrefix(path, "/web_src/") {
+	if strings.HasPrefix(path, "/@vite/") || // HMR client
+		strings.HasPrefix(path, "/@fs/") || // out-of-root file access
+		strings.HasPrefix(path, "/@id/") || // virtual modules
+		strings.HasPrefix(path, "/__vite") || // ping endpoint, iife
+		strings.HasPrefix(path, "/node_modules/") || // optimized deps
+		strings.HasPrefix(path, "/web_src/") { // source files
 		return true
 	}
-	query := req.URL.Query()
-	if _, ok := query["import"]; ok {
-		return true
-	}
-	if _, ok := query["raw"]; ok {
+	// Vite adds ?import to non-JS/CSS imports (e.g. SVG, JSON files)
+	if _, ok := req.URL.Query()["import"]; ok {
 		return true
 	}
 	return false
