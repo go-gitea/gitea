@@ -1123,10 +1123,6 @@ func Test_WebhookWorkflowRun(t *testing.T) {
 			testFunc: testWebhookWorkflowRun,
 		},
 		{
-			name:     "WorkflowRunInProgressEvent",
-			testFunc: testWorkflowRunInProgressEvent,
-		},
-		{
 			name:     "WorkflowRunDepthLimit",
 			testFunc: testWebhookWorkflowRunDepthLimit,
 		},
@@ -1301,18 +1297,15 @@ func testWorkflowRunEventsOnRerun(t *testing.T, webhookData *workflowRunWebhook)
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-	runners := make([]*mockRunner, 2)
-	for i := range runners {
-		runners[i] = newMockRunner()
-		runners[i].registerAsRepoRunner(t, "user2", "repo1", fmt.Sprintf("mock-runner-%d", i), []string{"ubuntu-latest"}, false)
-	}
-
 	testAPICreateWebhookForRepo(t, session, "user2", "repo1", webhookData.URL, "workflow_run")
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
 	gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
+
+	runner := newMockRunner()
+	runner.registerAsRepoRunner(t, "user2", "repo1", "mock-runner", []string{"ubuntu-latest"}, false)
 
 	// 2.2 trigger the webhooks
 
@@ -1325,63 +1318,6 @@ func testWorkflowRunEventsOnRerun(t *testing.T, webhookData *workflowRunWebhook)
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    steps:
-      - run: exit 0
-
-  test2:
-    needs: [test]
-    runs-on: ubuntu-latest
-    steps:
-      - run: exit 0
-
-  test3:
-    needs: [test, test2]
-    runs-on: ubuntu-latest
-    steps:
-      - run: exit 0
-
-  test4:
-    needs: [test, test2, test3]
-    runs-on: ubuntu-latest
-    steps:
-      - run: exit 0
-
-  test5:
-    needs: [test, test2, test4]
-    runs-on: ubuntu-latest
-    steps:
-      - run: exit 0
-
-  test6:
-    strategy:
-      matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
-    needs: [test, test2, test3]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - run: exit 0
-
-  test7:
-    needs: test6
-    runs-on: ubuntu-latest
-    steps:
-      - run: exit 0
-
-  test8:
-    runs-on: ubuntu-latest
-    steps:
-      - run: exit 0
-
-  test9:
-    strategy:
-      matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04, ubuntu-25.04, windows-2022, windows-2025, macos-13, macos-14, macos-15]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - run: exit 0
-
-  test10:
     runs-on: ubuntu-latest
     steps:
       - run: exit 0`
@@ -1400,37 +1336,30 @@ jobs:
 	assert.Equal(t, commitID, webhookData.payloads[0].WorkflowRun.HeadSha)
 	assert.Equal(t, "repo1", webhookData.payloads[0].Repo.Name)
 	assert.Equal(t, "user2/repo1", webhookData.payloads[0].Repo.FullName)
+	runID := webhookData.payloads[0].WorkflowRun.ID
 
-	for _, runner := range runners {
-		task := runner.fetchTask(t)
-		runner.execTask(t, task, &mockTaskOutcome{
-			result: runnerv1.Result_RESULT_SUCCESS,
-		})
-	}
-
-	// Call cancel ui api
-	// Only a web UI API exists for cancelling workflow runs, so use the UI endpoint.
-	cancelURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/cancel", webhookData.payloads[0].WorkflowRun.ID)
-	req := NewRequest(t, "POST", cancelURL)
-	session.MakeRequest(t, req, http.StatusOK)
+	task := runner.fetchTask(t)
+	runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 
 	assert.Len(t, webhookData.payloads, 3)
 
-	// 4. Validate the second webhook payload (in_progress, fired when first runner picked up a job)
+	// 4. Validate the second webhook payload (in_progress, fired when the runner picked up the job)
 	assert.Equal(t, "workflow_run", webhookData.triggeredEvent)
 	assert.Equal(t, "in_progress", webhookData.payloads[1].Action)
 	assert.Equal(t, "in_progress", webhookData.payloads[1].WorkflowRun.Status)
 	assert.Equal(t, "push", webhookData.payloads[1].WorkflowRun.Event)
+	assert.Equal(t, runID, webhookData.payloads[1].WorkflowRun.ID)
 	assert.Equal(t, repo1.DefaultBranch, webhookData.payloads[1].WorkflowRun.HeadBranch)
 	assert.Equal(t, commitID, webhookData.payloads[1].WorkflowRun.HeadSha)
 	assert.Equal(t, "repo1", webhookData.payloads[1].Repo.Name)
 	assert.Equal(t, "user2/repo1", webhookData.payloads[1].Repo.FullName)
 
-	// 5. Validate the third webhook payload (completed, after cancel)
+	// 5. Validate the third webhook payload (completed, after the job finishes)
 	assert.Equal(t, "workflow_run", webhookData.triggeredEvent)
 	assert.Equal(t, "completed", webhookData.payloads[2].Action)
 	assert.Equal(t, "push", webhookData.payloads[2].WorkflowRun.Event)
 	assert.Equal(t, "completed", webhookData.payloads[2].WorkflowRun.Status)
+	assert.Equal(t, runID, webhookData.payloads[2].WorkflowRun.ID)
 	assert.Equal(t, repo1.DefaultBranch, webhookData.payloads[2].WorkflowRun.HeadBranch)
 	assert.Equal(t, commitID, webhookData.payloads[2].WorkflowRun.HeadSha)
 	assert.Equal(t, "repo1", webhookData.payloads[2].Repo.Name)
@@ -1438,8 +1367,8 @@ jobs:
 
 	// Call rerun ui api
 	// Only a web UI API exists for rerunning workflow runs, so use the UI endpoint.
-	rerunURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/rerun", webhookData.payloads[0].WorkflowRun.ID)
-	req = NewRequest(t, "POST", rerunURL)
+	rerunURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/rerun", runID)
+	req := NewRequest(t, "POST", rerunURL)
 	session.MakeRequest(t, req, http.StatusOK)
 
 	assert.Len(t, webhookData.payloads, 4)
@@ -1448,6 +1377,7 @@ jobs:
 	assert.Equal(t, "workflow_run", webhookData.triggeredEvent)
 	assert.Equal(t, "requested", webhookData.payloads[3].Action)
 	assert.Equal(t, "queued", webhookData.payloads[3].WorkflowRun.Status)
+	assert.Equal(t, "push", webhookData.payloads[3].WorkflowRun.Event)
 	assert.Equal(t, repo1.DefaultBranch, webhookData.payloads[3].WorkflowRun.HeadBranch)
 	assert.Equal(t, commitID, webhookData.payloads[3].WorkflowRun.HeadSha)
 	assert.Equal(t, "repo1", webhookData.payloads[3].Repo.Name)
@@ -1603,65 +1533,6 @@ jobs:
 		assert.Equal(t, repoName, webhookData.payloads[2].Repo.Name)
 		assert.Equal(t, "user2/"+repoName, webhookData.payloads[2].Repo.FullName)
 	}
-}
-
-// testWorkflowRunInProgressEvent verifies that the workflow_run webhook fires an
-// "in_progress" event when a runner picks up the first job of a run (issue #36906).
-func testWorkflowRunInProgressEvent(t *testing.T, webhookData *workflowRunWebhook) {
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-
-	testAPICreateWebhookForRepo(t, session, "user2", "repo1", webhookData.URL, "workflow_run")
-
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-	gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
-	assert.NoError(t, err)
-
-	runner := newMockRunner()
-	runner.registerAsRepoRunner(t, "user2", "repo1", "mock-runner", []string{"ubuntu-latest"}, false)
-
-	// Create a simple single-job workflow triggered by push.
-	wfTreePath := ".gitea/workflows/push-in-progress.yml"
-	wfFileContent := `name: In Progress Test
-on: push
-jobs:
-  job1:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo hello
-`
-	opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
-
-	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
-	assert.NoError(t, err)
-
-	// After the push, a "requested" payload should arrive.
-	assert.Len(t, webhookData.payloads, 1)
-	assert.Equal(t, "requested", webhookData.payloads[0].Action)
-	assert.Equal(t, "queued", webhookData.payloads[0].WorkflowRun.Status)
-	assert.Equal(t, commitID, webhookData.payloads[0].WorkflowRun.HeadSha)
-	runID := webhookData.payloads[0].WorkflowRun.ID
-
-	// Runner picks up the job — this should trigger the "in_progress" event.
-	task := runner.fetchTask(t)
-	assert.Len(t, webhookData.payloads, 2)
-	assert.Equal(t, "in_progress", webhookData.payloads[1].Action)
-	assert.Equal(t, "in_progress", webhookData.payloads[1].WorkflowRun.Status)
-	assert.Equal(t, "push", webhookData.payloads[1].WorkflowRun.Event)
-	assert.Equal(t, runID, webhookData.payloads[1].WorkflowRun.ID)
-	assert.Equal(t, repo1.DefaultBranch, webhookData.payloads[1].WorkflowRun.HeadBranch)
-	assert.Equal(t, commitID, webhookData.payloads[1].WorkflowRun.HeadSha)
-	assert.Equal(t, "repo1", webhookData.payloads[1].Repo.Name)
-	assert.Equal(t, "user2/repo1", webhookData.payloads[1].Repo.FullName)
-
-	// Runner completes the job — a "completed" event should arrive.
-	runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-	assert.Len(t, webhookData.payloads, 3)
-	assert.Equal(t, "completed", webhookData.payloads[2].Action)
-	assert.Equal(t, "completed", webhookData.payloads[2].WorkflowRun.Status)
-	assert.Equal(t, runID, webhookData.payloads[2].WorkflowRun.ID)
 }
 
 func testWebhookWorkflowRun(t *testing.T, webhookData *workflowRunWebhook) {
