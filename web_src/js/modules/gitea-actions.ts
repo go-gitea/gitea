@@ -2,6 +2,7 @@
 export type ActionsRunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
 
 export type ActionsRun = {
+  repoId: number,
   link: string,
   title: string,
   titleHTML: string,
