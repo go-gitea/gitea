@@ -45,7 +45,6 @@ onBeforeUnmount(() => {
       :jobs="run.jobs"
       :run-link="run.link"
       :workflow-id="run.workflowID"
-      class="workflow-graph-container"
     />
   </div>
 </template>
@@ -69,11 +68,6 @@ onBeforeUnmount(() => {
 .action-run-summary-trigger {
   margin-bottom: 0;
   color: var(--color-text-light-2);
-}
-
-.workflow-graph-container {
-  flex: 1;
-  min-height: 0;
 }
 
 @media (max-width: 767.98px) {

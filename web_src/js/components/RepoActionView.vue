@@ -164,7 +164,6 @@ async function deleteArtifact(name: string) {
   padding-bottom: 12px;
   display: flex;
   gap: 12px;
-  min-height: 0;
 }
 
 /* ================ */
@@ -223,7 +222,11 @@ async function deleteArtifact(name: string) {
   max-width: 400px;
   position: sticky;
   top: 12px;
-  max-height: 100vh;
+
+  /* about 12px top padding + 12px bottom padding + 37px footer height,
+  TODO: need to use JS to calculate the height for better scrolling experience*/
+  max-height: calc(100vh - 62px);
+
   overflow-y: auto;
   background: var(--color-body);
   z-index: 2; /* above .job-info-header */
@@ -320,8 +323,6 @@ async function deleteArtifact(name: string) {
   border: 1px solid var(--color-console-border);
   border-radius: var(--border-radius);
   background: var(--color-console-bg);
-  align-self: stretch;
-  min-height: 0;
 }
 
 /* begin fomantic button overrides */
@@ -354,51 +355,5 @@ async function deleteArtifact(name: string) {
   .action-view-left {
     max-width: none;
   }
-}
-</style>
-
-<style> /* eslint-disable-line vue-scoped-css/enforce-style-type */
-body.action-run-summary-page {
-  height: 100vh;
-}
-
-body.action-run-summary-page > .full.height {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  padding-bottom: 0;
-}
-
-body.action-run-summary-page .page-content {
-  flex: 1 1 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-body.action-run-summary-page .page-content > *:not(#repo-action-view) {
-  flex-shrink: 0;
-}
-
-body.action-run-summary-page #repo-action-view {
-  flex: 1 1 0;
-  min-height: 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-body.action-run-summary-page #repo-action-view > .ui.fluid.container {
-  flex: 1 1 0;
-  min-height: 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-body.action-run-summary-page #repo-action-view .action-view-body {
-  flex: 1;
-  min-height: 0;
 }
 </style>

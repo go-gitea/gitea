@@ -377,6 +377,8 @@ function resetView() {
 
 function handleMouseDown(e: MouseEvent) {
   if (!isPlainClick(e)) return;
+
+  // don't start drag on interactive/text elements inside the SVG
   const target = e.target as Element;
   const interactive = target.closest('div, p, a, span, button, input, text, .job-node-group');
   if (interactive?.closest('svg')) return;
@@ -663,14 +665,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 </template>
 
 <style scoped>
-.workflow-graph {
-  position: relative;
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
 .graph-header {
   display: flex;
   justify-content: space-between;
@@ -680,7 +674,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   border-bottom: 1px solid var(--color-secondary);
   gap: 20px;
   flex-wrap: wrap;
-  flex-shrink: 0;
 }
 
 .graph-title {
@@ -710,11 +703,9 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   overflow: hidden;
   padding: 12px 16px 20px;
   border-radius: 0 0 10px 10px;
-  flex: 1;
-  min-height: 0;
+  cursor: grab;
   position: relative;
   background: var(--color-body);
-  cursor: grab;
 }
 
 .graph-container.dragging {
