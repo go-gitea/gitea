@@ -248,6 +248,7 @@ export class ComboMarkdownEditor {
             return;
           }
           this.value(newContent);
+          triggerEditorContentChanged(this.container);
         });
       }
     });
