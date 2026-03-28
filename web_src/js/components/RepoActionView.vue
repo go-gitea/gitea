@@ -222,7 +222,11 @@ async function deleteArtifact(name: string) {
   max-width: 400px;
   position: sticky;
   top: 12px;
-  max-height: 100vh;
+
+  /* about 12px top padding + 12px bottom padding + 37px footer height,
+  TODO: need to use JS to calculate the height for better scrolling experience*/
+  max-height: calc(100vh - 62px);
+
   overflow-y: auto;
   background: var(--color-body);
   z-index: 2; /* above .job-info-header */
@@ -231,12 +235,13 @@ async function deleteArtifact(name: string) {
 @media (max-width: 767.98px) {
   .action-view-left {
     position: static; /* can not sticky because multiple jobs would overlap into right view */
+    max-height: unset;
   }
 }
 
 .left-list-header {
-  font-size: 12px;
-  color: var(--color-grey);
+  font-size: 13px;
+  color: var(--color-text-light-2);
 }
 
 .job-artifacts-item {
@@ -299,7 +304,6 @@ async function deleteArtifact(name: string) {
 
 .job-brief-item .job-brief-item-left .job-brief-name {
   display: block;
-  width: 70%;
 }
 
 .job-brief-item .job-brief-item-right {
@@ -320,7 +324,6 @@ async function deleteArtifact(name: string) {
   border: 1px solid var(--color-console-border);
   border-radius: var(--border-radius);
   background: var(--color-console-bg);
-  align-self: flex-start;
 }
 
 /* begin fomantic button overrides */

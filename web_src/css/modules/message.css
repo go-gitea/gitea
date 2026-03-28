@@ -43,7 +43,7 @@
 
 .ui.message .header {
   color: inherit;
-  filter: saturate(2);
+  font-weight: var(--font-weight-semibold);
 }
 
 .ui.info.message,

@@ -129,11 +129,11 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
         const textColor = contrastColor(elColumnColor.value);
         elBoardColumn.style.setProperty('background', elColumnColor.value, 'important');
         elBoardColumn.style.setProperty('color', textColor, 'important');
-        queryElemChildren<HTMLElement>(elBoardColumn, '.divider', (divider) => divider.style.color = textColor);
+        queryElemChildren(elBoardColumn, '.divider', (divider: HTMLElement) => divider.style.color = textColor);
       } else {
         elBoardColumn.style.removeProperty('background');
         elBoardColumn.style.removeProperty('color');
-        queryElemChildren<HTMLElement>(elBoardColumn, '.divider', (divider) => divider.style.removeProperty('color'));
+        queryElemChildren(elBoardColumn, '.divider', (divider: HTMLElement) => divider.style.removeProperty('color'));
       }
 
       fomanticQuery(elModal).modal('hide');
