@@ -5,6 +5,6 @@
 - Add the current year into the copyright header of new `.go` files
 - Ensure no trailing whitespace in edited files
 - Preserve existing code comments, do not remove or rewrite comments that are still relevant
-- In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to exist
+- In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
 - Never force-push to pull request branches
 - Always start issue and pull request comments with an authorship attribution
