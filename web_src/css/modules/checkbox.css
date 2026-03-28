@@ -92,13 +92,11 @@ input[type="checkbox"]:indeterminate::before {
 }
 
 .ui.checkbox input[type="checkbox"]:enabled,
-.ui.checkbox input[type="radio"]:enabled,
-.ui.checkbox label:enabled {
+.ui.checkbox input[type="radio"]:enabled {
   cursor: pointer;
 }
 
 .ui.checkbox label {
-  cursor: auto;
   position: relative;
   display: block;
 }
