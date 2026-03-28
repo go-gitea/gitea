@@ -235,3 +235,29 @@ func TestIsValidSSHAccessRepoName(t *testing.T) {
 	assert.False(t, IsValidSSHAccessRepoName("foo.git"))
 	assert.False(t, IsValidSSHAccessRepoName("foo.RSS"))
 }
+
+func TestGitHubRepoLinks(t *testing.T) {
+	t.Run("website wins", func(t *testing.T) {
+		repo := &Repository{
+			Website:     "https://github.com/example/from-website",
+			OriginalURL: "https://github.com/example/from-original.git",
+		}
+
+		assert.Equal(t, "https://github.com/example/from-website", repo.GitHubRepoWebLink())
+		assert.Equal(t, "https://github.com/example/from-website/pulls", repo.GitHubPullsLink())
+	})
+
+	t.Run("normalize original url", func(t *testing.T) {
+		repo := &Repository{OriginalURL: "git@github.com:example/from-ssh.git"}
+
+		assert.Equal(t, "https://github.com/example/from-ssh", repo.GitHubRepoWebLink())
+		assert.Equal(t, "https://github.com/example/from-ssh/pulls", repo.GitHubPullsLink())
+	})
+
+	t.Run("non github url ignored", func(t *testing.T) {
+		repo := &Repository{OriginalURL: "https://gitlab.com/example/project.git"}
+
+		assert.Empty(t, repo.GitHubRepoWebLink())
+		assert.Empty(t, repo.GitHubPullsLink())
+	})
+}

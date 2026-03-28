@@ -127,6 +127,18 @@
 		{{end}}
 		{{if .IsFork}}<div class="fork-flag">{{ctx.Locale.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{.BaseRepo.FullName}}</a></div>{{end}}
 		{{if .IsGenerated}}<div class="fork-flag">{{ctx.Locale.Tr "repo.generated_from"}} <a href="{{(.TemplateRepo ctx).Link}}">{{(.TemplateRepo ctx).FullName}}</a></div>{{end}}
+		{{$githubRepoLink := .GitHubRepoWebLink}}
+		{{if $githubRepoLink}}
+			<div class="fork-flag">
+				{{ctx.Locale.Tr "repo.github_upstream"}}
+				<a target="_blank" rel="noopener noreferrer" href="{{$githubRepoLink}}">{{ctx.Locale.Tr "repo.github_repo"}}</a>
+				{{$githubPullsLink := .GitHubPullsLink}}
+				{{if $githubPullsLink}}
+					<span aria-hidden="true">&middot;</span>
+					<a target="_blank" rel="noopener noreferrer" href="{{$githubPullsLink}}">{{ctx.Locale.Tr "repo.github_pulls"}}</a>
+				{{end}}
+			</div>
+		{{end}}
 	</div>
 {{end}}
 	<div class="ui container">

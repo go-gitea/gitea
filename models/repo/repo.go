@@ -250,6 +250,58 @@ func (repo *Repository) SanitizedOriginalURL() string {
 	return u
 }
 
+func normalizeGitHubRepoWebURL(rawURL string) string {
+	rawURL = strings.TrimSpace(rawURL)
+	if rawURL == "" {
+		return ""
+	}
+
+	parsedURL, err := giturl.ParseGitURL(rawURL)
+	if err != nil || parsedURL == nil || parsedURL.URL == nil {
+		return ""
+	}
+
+	switch parsedURL.URL.Scheme {
+	case "http", "https", "ssh", "git+ssh":
+	default:
+		return ""
+	}
+
+	hostname, _, _ := net.SplitHostPort(parsedURL.URL.Host)
+	hostname = util.IfZero(hostname, parsedURL.URL.Host)
+	hostname = strings.ToLower(strings.TrimPrefix(hostname, "www."))
+	if hostname != "github.com" {
+		return ""
+	}
+
+	repoPath := strings.Trim(parsedURL.URL.Path, "/")
+	repoPath = strings.TrimSuffix(repoPath, ".git")
+	pathParts := strings.Split(repoPath, "/")
+	if len(pathParts) < 2 || pathParts[0] == "" || pathParts[1] == "" {
+		return ""
+	}
+
+	return "https://github.com/" + pathParts[0] + "/" + pathParts[1]
+}
+
+func (repo *Repository) GitHubRepoWebLink() string {
+	if repo == nil {
+		return ""
+	}
+	if repoURL := normalizeGitHubRepoWebURL(repo.Website); repoURL != "" {
+		return repoURL
+	}
+	return normalizeGitHubRepoWebURL(repo.SanitizedOriginalURL())
+}
+
+func (repo *Repository) GitHubPullsLink() string {
+	repoURL := repo.GitHubRepoWebLink()
+	if repoURL == "" {
+		return ""
+	}
+	return repoURL + "/pulls"
+}
+
 // text representations to be returned in SizeDetail.Name
 const (
 	SizeDetailNameGit = "git"
