@@ -6,5 +6,5 @@
 - Ensure no trailing whitespace in edited files
 - Preserve existing code comments, do not remove or rewrite comments that are still relevant
 - In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
-- Never force-push, amend, or squash unless asked. PR updates: new commits + normal-push.
+- Never force-push, amend, or squash unless asked. Use new commits and normal push for PR updates.
 - Always start issue and pull request comments with an authorship attribution
