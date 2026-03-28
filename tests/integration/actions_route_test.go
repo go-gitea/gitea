@@ -11,7 +11,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	actions_web "code.gitea.io/gitea/routers/web/repo/actions"
@@ -115,54 +115,15 @@ jobs:
 func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	user2Session := loginUser(t, user2.Name)
-	user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-
-	repo := createActionsTestRepo(t, user2Token, "actions-route-legacy-index-url", false)
-
-	generateTestRunAndJobs := func(title string, runID, runIndex int64, jobIDs ...int64) (*actions_model.ActionRun, []*actions_model.ActionRunJob) {
-		run := &actions_model.ActionRun{
-			ID:            runID,
-			Index:         runIndex,
-			RepoID:        repo.ID,
-			OwnerID:       user2.ID,
-			WorkflowID:    title + ".yml",
-			TriggerUserID: user2.ID,
-			Status:        actions_model.StatusSuccess,
-			CommitSHA:     title + "sha",
-		}
-
-		jobs := make([]*actions_model.ActionRunJob, 0, len(jobIDs))
-		for _, jobID := range jobIDs {
-			job := &actions_model.ActionRunJob{
-				ID:      jobID,
-				RunID:   run.ID,
-				RepoID:  repo.ID,
-				OwnerID: user2.ID,
-				Name:    fmt.Sprintf("%s-job-%d", title, jobID),
-				Status:  actions_model.StatusSuccess,
-			}
-			jobs = append(jobs, job)
-		}
-		return run, jobs
-	}
-
-	smallIDRun, smallIDJobs := generateTestRunAndJobs("small-id-run", 80, 20, 170)             // run_id=80, run_index=20
-	otherSmallRun, otherSmallJobs := generateTestRunAndJobs("other-small", 90, 30, 180)        // run_id=90, run_index=30
-	normalRun, normalRunJobs := generateTestRunAndJobs("normal", 1500, 900, 1600)              // run_id=1500, run_index=900
-	collisionRun, collisionJobs := generateTestRunAndJobs("collision", 2400, 1500, 2600, 2601) // run_id=2400, run_index=1500
-
-	_, err := db.GetEngine(t.Context()).Insert(
-		smallIDRun,
-		smallIDJobs[0],
-		otherSmallRun,
-		otherSmallJobs[0],
-		normalRun,
-		normalRunJobs[0],
-		collisionRun,
-		collisionJobs[0],
-		collisionJobs[1],
-	)
-	assert.NoError(t, err)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	smallIDRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 80})
+	smallIDJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 170})
+	otherSmallJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 180})
+	normalRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 1500})
+	normalRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 1600})
+	collisionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 2400})
+	collisionJob0 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 2600})
+	collisionJob1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 2601})
 
 	t.Run("OnlyRunID", func(t *testing.T) {
 		// ID-based URLs must be valid
@@ -186,9 +147,9 @@ func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 
 	t.Run("RunIDAndJobID", func(t *testing.T) {
 		// ID-based URLs must be valid
-		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, smallIDRun.ID, smallIDJobs[0].ID))
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, smallIDRun.ID, smallIDJob.ID))
 		user2Session.MakeRequest(t, req, http.StatusOK)
-		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, normalRun.ID, normalRunJobs[0].ID))
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, normalRun.ID, normalRunJob.ID))
 		user2Session.MakeRequest(t, req, http.StatusOK)
 	})
 
@@ -196,17 +157,17 @@ func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 		// legacy job index 0 should redirect to the first job's ID
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/0", user2.Name, repo.Name, collisionRun.Index))
 		resp := user2Session.MakeRequest(t, req, http.StatusFound)
-		assert.Equal(t, fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, collisionRun.ID, collisionJobs[0].ID), resp.Header().Get("Location"))
+		assert.Equal(t, fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, collisionRun.ID, collisionJob0.ID), resp.Header().Get("Location"))
 
 		// legacy job index 1 should redirect to the second job's ID
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/1", user2.Name, repo.Name, collisionRun.Index))
 		resp = user2Session.MakeRequest(t, req, http.StatusFound)
-		assert.Equal(t, fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, collisionRun.ID, collisionJobs[1].ID), resp.Header().Get("Location"))
+		assert.Equal(t, fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, collisionRun.ID, collisionJob1.ID), resp.Header().Get("Location"))
 	})
 
 	t.Run("InvalidURLs", func(t *testing.T) {
 		// the job ID from a different run should not match
-		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, smallIDRun.ID, otherSmallJobs[0].ID))
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, smallIDRun.ID, otherSmallJob.ID))
 		user2Session.MakeRequest(t, req, http.StatusNotFound)
 
 		// resolve the run by index first and then return not found because the job index is out-of-range
