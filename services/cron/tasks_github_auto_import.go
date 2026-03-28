@@ -5,6 +5,7 @@ package cron
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -52,7 +53,7 @@ func registerGitHubRepoAutoImportTask() {
 
 func runGitHubRepoAutoImport(ctx context.Context, cfg *GitHubRepoAutoImportConfig) error {
 	if strings.TrimSpace(cfg.GiteaOwner) == "" {
-		return fmt.Errorf("cron.github_repo_auto_import.GITEA_OWNER must be set")
+		return errors.New("cron.github_repo_auto_import.GITEA_OWNER must be set")
 	}
 
 	token, err := resolveGitHubRepoAutoImportToken(cfg.Token, cfg.TokenFile)
@@ -166,7 +167,7 @@ func resolveGitHubRepoAutoImportToken(inlineToken, tokenFile string) (string, er
 		}
 		return token, nil
 	}
-	return "", fmt.Errorf("cron.github_repo_auto_import requires TOKEN or TOKEN_FILE")
+	return "", errors.New("cron.github_repo_auto_import requires TOKEN or TOKEN_FILE")
 }
 
 func shouldAutoImportGitHubRepo(cfg *GitHubRepoAutoImportConfig, repo *github.Repository) bool {

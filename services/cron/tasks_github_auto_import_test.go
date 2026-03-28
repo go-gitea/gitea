@@ -45,27 +45,35 @@ func TestShouldAutoImportGitHubRepo(t *testing.T) {
 		ImportArchived: false,
 	}
 
+	publicName := "public-repo"
+	publicCloneURL := "https://github.com/example/public-repo.git"
 	publicRepo := &github.Repository{
-		Name:     github.Ptr("public-repo"),
-		CloneURL: github.Ptr("https://github.com/example/public-repo.git"),
+		Name:     &publicName,
+		CloneURL: &publicCloneURL,
 	}
 	if !shouldAutoImportGitHubRepo(cfg, publicRepo) {
 		t.Fatal("expected public repo to be imported")
 	}
 
+	privateName := "private-repo"
+	privateCloneURL := "https://github.com/example/private-repo.git"
+	privateValue := true
 	privateRepo := &github.Repository{
-		Name:     github.Ptr("private-repo"),
-		CloneURL: github.Ptr("https://github.com/example/private-repo.git"),
-		Private:  github.Ptr(true),
+		Name:     &privateName,
+		CloneURL: &privateCloneURL,
+		Private:  &privateValue,
 	}
 	if shouldAutoImportGitHubRepo(cfg, privateRepo) {
 		t.Fatal("expected private repo to be skipped")
 	}
 
+	archivedName := "archived-repo"
+	archivedCloneURL := "https://github.com/example/archived-repo.git"
+	archivedValue := true
 	archivedRepo := &github.Repository{
-		Name:     github.Ptr("archived-repo"),
-		CloneURL: github.Ptr("https://github.com/example/archived-repo.git"),
-		Archived: github.Ptr(true),
+		Name:     &archivedName,
+		CloneURL: &archivedCloneURL,
+		Archived: &archivedValue,
 	}
 	if shouldAutoImportGitHubRepo(cfg, archivedRepo) {
 		t.Fatal("expected archived repo to be skipped")
