@@ -95,15 +95,15 @@ func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mo
 // with existing records. It minimizes DB operations by performing selective inserts, updates, and deletes
 // instead of removing all existing records and re-adding them.
 func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap map[int64]*userAccess) (err error) {
-	minMode := perm.AccessModeRead
+	minModeToKeep := perm.AccessModeRead
 	if err := repo.LoadOwner(ctx); err != nil {
 		return fmt.Errorf("LoadOwner: %w", err)
 	}
 
-	// If the repo isn't private and isn't owned by a organization,
+	// If the repo isn't private and isn't owned by an organization,
 	// increase the minMode to Write.
 	if !repo.IsPrivate && !repo.Owner.IsOrganization() {
-		minMode = perm.AccessModeWrite
+		minModeToKeep = perm.AccessModeWrite
 	}
 
 	// Query existing accesses for cross-comparison
@@ -116,18 +116,12 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 		existingMap[a.UserID] = a.Mode
 	}
 
-	type accessUpdate struct {
-		UserID int64
-		Mode   perm.AccessMode
-	}
-
 	var toDelete []int64
-	var toInsert []Access
-	var toUpdate []accessUpdate
+	var toInsert, toUpdate []Access
 
 	// Determine changes
 	for userID, ua := range accessMap {
-		if ua.Mode < minMode && !ua.User.IsRestricted {
+		if ua.Mode < minModeToKeep && !ua.User.IsRestricted {
 			// No explicit access record needed (handled by default permissions, e.g., public repo access)
 			if _, exists := existingMap[userID]; exists {
 				toDelete = append(toDelete, userID)
@@ -136,14 +130,10 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 			desiredMode := ua.Mode
 			if existingMode, exists := existingMap[userID]; exists {
 				if existingMode != desiredMode {
-					toUpdate = append(toUpdate, accessUpdate{UserID: userID, Mode: desiredMode})
+					toUpdate = append(toUpdate, Access{UserID: userID, RepoID: repo.ID, Mode: desiredMode})
 				}
 			} else {
-				toInsert = append(toInsert, Access{
-					UserID: userID,
-					RepoID: repo.ID,
-					Mode:   desiredMode,
-				})
+				toInsert = append(toInsert, Access{UserID: userID, RepoID: repo.ID, Mode: desiredMode})
 			}
 		}
 		delete(existingMap, userID)
