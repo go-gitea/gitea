@@ -665,6 +665,11 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 </template>
 
 <style scoped>
+.workflow-graph {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 .graph-header {
   display: flex;
   justify-content: space-between;
@@ -700,9 +705,10 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .graph-container {
+  flex: 1;
   overflow: hidden;
   padding: 12px 16px 20px;
-  border-radius: 0 0 10px 10px;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
   cursor: grab;
   position: relative;
   background: var(--color-body);

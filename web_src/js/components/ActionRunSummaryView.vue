@@ -50,8 +50,7 @@ onBeforeUnmount(() => {
 </template>
 <style scoped>
 .action-run-summary-view {
-  height: 100%;
-  min-height: 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
