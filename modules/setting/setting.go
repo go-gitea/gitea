@@ -29,10 +29,9 @@ var (
 	IsWindows   bool
 
 	// IsInTesting indicates whether the testing is running (unit test or integration test). It can be used for:
-	// * Skip nonsense error logs during testing caused by unreliable code
+	// * Skip nonsense error logs during testing caused by unreliable code (TODO: this is only a temporary solution, we should make the test code more reliable)
 	// * Panic in dev or testing mode to make the problem more obvious and easier to debug
 	// * Mock some functions or options to make testing easier (eg: session store, time, URL detection, etc.)
-	// TODO: this is only a temporary solution, we should make the test code more reliable
 	IsInTesting = false
 )
 
