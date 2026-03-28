@@ -31,13 +31,13 @@ onBeforeUnmount(() => {
 <template>
   <div class="action-run-summary-view">
     <div class="action-run-summary-block">
-      <p class="action-run-summary-trigger">
-        {{ locale.triggeredVia.replace('%s', run.triggerEvent) }}&nbsp;•&nbsp;<relative-time :datetime="runTriggeredAtIso" prefix=""/>
-      </p>
-      <p class="tw-mb-0">
+      <div class="flex-text-block tw-text-text-light-2">
+        {{ locale.triggeredVia.replace('%s', run.triggerEvent) }} • <relative-time :datetime="runTriggeredAtIso" prefix=""/>
+      </div>
+      <div class="flex-text-block">
         <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="16"/>
-        <span class="tw-ml-2">{{ locale.status[run.status] }}</span>&nbsp;•&nbsp;<span>{{ locale.totalDuration }} {{ run.duration || '–' }}</span>
-      </p>
+        <span>{{ locale.status[run.status] }}</span> • <span>{{ locale.totalDuration }} {{ run.duration || '–' }}</span>
+      </div>
     </div>
     <WorkflowGraph
       v-if="run.jobs.length > 0"
@@ -62,11 +62,6 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 12px;
   border-bottom: 1px solid var(--color-secondary);
-}
-
-.action-run-summary-trigger {
-  margin-bottom: 0;
-  color: var(--color-text-light-2);
 }
 
 @media (max-width: 767.98px) {
