@@ -11,7 +11,17 @@ import licensePlugin from 'rollup-plugin-license';
 import type {InlineConfig, Plugin, Rolldown} from 'vite';
 
 const isProduction = env.NODE_ENV !== 'development';
-const enableSourcemap = env.ENABLE_SOURCEMAP ? env.ENABLE_SOURCEMAP === 'true' : !isProduction;
+
+// ENABLE_SOURCEMAP accepts the following values:
+// true - all sourcemaps enabled, the default in development
+// reduced - sourcemaps only for index.js, the default in production
+// false - all sourcemaps disabled
+let enableSourcemap: string;
+if ('ENABLE_SOURCEMAP' in env) {
+  enableSourcemap = ['true', 'false'].includes(env.ENABLE_SOURCEMAP!) ? env.ENABLE_SOURCEMAP! : 'reduced';
+} else {
+  enableSourcemap = isProduction ? 'reduced' : 'true';
+}
 const outDir = join(import.meta.dirname, 'public/assets');
 
 const themes: Record<string, string> = {};
@@ -50,7 +60,7 @@ function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
     build: {
       outDir,
       emptyOutDir: false,
-      sourcemap: enableSourcemap,
+      sourcemap: enableSourcemap !== 'false',
       target: 'es2020',
       minify: isProduction ? 'oxc' : false,
       cssMinify: isProduction ? 'esbuild' : false,
@@ -147,6 +157,20 @@ function iifePlugin(): Plugin {
         ...JSON.parse(readFileSync(manifestPath, 'utf8')),
         'web_src/js/iife.ts': {file: entry.fileName, name: 'iife', isEntry: true},
       }, null, 2));
+    },
+  };
+}
+
+// In reduced sourcemap mode, only keep sourcemaps for main files
+function reducedSourcemapPlugin(): Plugin {
+  return {
+    name: 'reduced-sourcemap',
+    apply: 'build',
+    closeBundle() {
+      if (enableSourcemap !== 'reduced') return;
+      for (const file of globSync('{js,css}/*.map', {cwd: outDir})) {
+        if (!file.startsWith('js/index.') && !file.startsWith('js/iife.')) unlinkSync(join(outDir, file));
+      }
     },
   };
 }
@@ -252,6 +276,7 @@ export default defineConfig(commonViteOpts({
   plugins: [
     iifePlugin(),
     viteDevServerPortPlugin(),
+    reducedSourcemapPlugin(),
     filterCssUrlPlugin(),
     stringPlugin(),
     vuePlugin({
