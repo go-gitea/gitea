@@ -7,6 +7,10 @@
   padding: 0 10px;
 }
 
+#navbar:has(+ .ui.message) {
+  border-bottom: none;
+}
+
 #navbar .navbar-left,
 #navbar .navbar-right {
   display: flex;
