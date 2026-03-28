@@ -218,6 +218,10 @@ type runOpts struct {
 	// The correct approach is to use `--git-dir" global argument
 	Dir string
 
+	// SSHAuthSock is the path to an SSH agent socket for authentication
+	// If provided, SSH_AUTH_SOCK environment variable will be set
+	SSHAuthSock string
+
 	PipelineFunc func(Context) error
 }
 
@@ -273,6 +277,11 @@ func (c *Command) WithEnv(env []string) *Command {
 
 func (c *Command) WithTimeout(timeout time.Duration) *Command {
 	c.opts.Timeout = timeout
+	return c
+}
+
+func (c *Command) WithSSHAuthSock(sshAuthSock string) *Command {
+	c.opts.SSHAuthSock = sshAuthSock
 	return c
 }
 
@@ -443,6 +452,11 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 
 	process.SetSysProcAttribute(c.cmd)
 	c.cmd.Env = append(c.cmd.Env, CommonGitCmdEnvs()...)
+
+	if c.opts.SSHAuthSock != "" {
+		c.cmd.Env = append(c.cmd.Env, "SSH_AUTH_SOCK="+c.opts.SSHAuthSock)
+	}
+
 	c.cmd.Dir = c.opts.Dir
 	c.cmd.Stdout = c.cmdStdout
 	c.cmd.Stdin = c.cmdStdin

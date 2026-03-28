@@ -6,6 +6,7 @@ package repo
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -32,6 +33,11 @@ type Mirror struct {
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
+}
+
+// IsSSHRemoteAddress returns true if the mirror's remote address uses SSH.
+func (m *Mirror) IsSSHRemoteAddress() bool {
+	return strings.HasPrefix(m.RemoteAddress, "ssh://")
 }
 
 func init() {

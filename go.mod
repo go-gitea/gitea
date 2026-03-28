@@ -23,6 +23,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.0
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.2
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
+	github.com/Microsoft/go-winio v0.6.2
 	github.com/ProtonMail/go-crypto v1.3.0
 	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.8.0
@@ -136,7 +137,6 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
-	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/RoaringBitmap/roaring/v2 v2.10.0 // indirect
 	github.com/STARRY-S/zip v0.2.3 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
