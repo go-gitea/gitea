@@ -69,7 +69,6 @@ func ViteDevMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(resp, req)
 			return
 		}
-		// TODO: there are too many logs, need to hide them in the future
 		routing.MarkLongPolling(resp, req)
 		proxy.ServeHTTP(resp, req)
 	})
