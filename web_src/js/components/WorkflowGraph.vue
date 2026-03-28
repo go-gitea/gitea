@@ -636,7 +636,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             :y="job.y + 14"
             width="20"
             height="20"
-            class="job-status-fo"
+            class="job-status-fg-obj"
           >
             <div class="job-status-icon-wrap">
               <ActionRunStatus :status="job.status"/>
@@ -776,7 +776,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   pointer-events: none;
 }
 
-.job-status-fo,
+.job-status-fg-obj,
 .job-status-icon-wrap {
   pointer-events: none;
 }
