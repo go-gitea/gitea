@@ -43,7 +43,7 @@ LEVEL = Warn
 EOF
 
 export GITEA_WORK_DIR="$WORK_DIR"
-export GITEA_E2E_TEST=true
+export GITEA_TEST_E2E=true
 
 # Start Gitea server
 echo "Starting Gitea server on port $FREE_PORT (workdir: $WORK_DIR)..."
