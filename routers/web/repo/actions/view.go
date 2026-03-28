@@ -52,17 +52,13 @@ func findCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_mode
 	return nil, true
 }
 
-func loadCurrentRunByIDPathParam(ctx *context_module.Context) (run *actions_model.ActionRun) {
+func getCurrentRunByPathParam(ctx *context_module.Context) (run *actions_model.ActionRun) {
 	var err error
+	// if run param is "latest", get the latest run id
 	if ctx.PathParam("run") == "latest" {
 		run, err = actions_model.GetLatestRun(ctx, ctx.Repo.Repository.ID)
 	} else {
-		runID := ctx.PathParamInt64("run")
-		if runID <= 0 {
-			ctx.NotFound(nil)
-			return nil
-		}
-		run, err = actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
+		run, err = actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("run"))
 	}
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.NotFound(nil)
@@ -77,7 +73,7 @@ func loadCurrentRunByIDPathParam(ctx *context_module.Context) (run *actions_mode
 // For job pages, probe run/job IDs first and fall back to legacy index-based resolution.
 func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.ActionRun {
 	if ctx.PathParam("run") == "latest" {
-		return loadCurrentRunByIDPathParam(ctx)
+		return getCurrentRunByPathParam(ctx)
 	}
 
 	runNum := ctx.PathParamInt64("run")
@@ -186,7 +182,7 @@ func View(ctx *context_module.Context) {
 }
 
 func ViewWorkflowFile(ctx *context_module.Context) {
-	run := loadCurrentRunByIDPathParam(ctx)
+	run := getCurrentRunByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -611,7 +607,7 @@ func RerunFailed(ctx *context_module.Context) {
 }
 
 func Logs(ctx *context_module.Context) {
-	run := loadCurrentRunByIDPathParam(ctx)
+	run := getCurrentRunByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -659,7 +655,7 @@ func Cancel(ctx *context_module.Context) {
 }
 
 func Approve(ctx *context_module.Context) {
-	run := loadCurrentRunByIDPathParam(ctx)
+	run := getCurrentRunByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -738,7 +734,7 @@ func approveRuns(ctx *context_module.Context, runIDs []int64) {
 }
 
 func Delete(ctx *context_module.Context) {
-	run := loadCurrentRunByIDPathParam(ctx)
+	run := getCurrentRunByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -759,7 +755,7 @@ func Delete(ctx *context_module.Context) {
 // getRunJobs loads the run and its jobs for runID
 // Any error will be written to the ctx, empty jobs will also result in 404 error, then the return values are all nil.
 func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.ActionRun, []*actions_model.ActionRunJob) {
-	run := loadCurrentRunByIDPathParam(ctx)
+	run := getCurrentRunByPathParam(ctx)
 	if ctx.Written() {
 		return nil, nil
 	}
@@ -781,7 +777,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 }
 
 func ArtifactsDeleteView(ctx *context_module.Context) {
-	run := loadCurrentRunByIDPathParam(ctx)
+	run := getCurrentRunByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -794,7 +790,7 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 }
 
 func ArtifactsDownloadView(ctx *context_module.Context) {
-	run := loadCurrentRunByIDPathParam(ctx)
+	run := getCurrentRunByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
