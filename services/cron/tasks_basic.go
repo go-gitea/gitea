@@ -170,6 +170,9 @@ func initBasicTasks() {
 	if setting.Mirror.Enabled {
 		registerUpdateMirrorTask()
 	}
+	if !setting.Repository.DisableMigrations {
+		registerGitHubRepoAutoImportTask()
+	}
 	registerRepoHealthCheck()
 	registerCheckRepoStats()
 	registerArchiveCleanup()
