@@ -3,17 +3,246 @@
 
 package v1_26
 
-// Migration 326 used to rewrite legacy Actions commit status target URLs
-// from run/job indexes to run/job IDs.
+import (
+	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
+
+	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
+
+	"xorm.io/xorm"
+)
+
+const (
+	actionsRunPath = "/actions/runs/"
+
+	// Only commit status target URLs whose resolved run ID is smaller than this
+	// threshold are rewritten by this partial migration.
+	legacyURLIDThreshold int64 = 1000
+)
+
+type migrationRepository struct {
+	ID        int64
+	OwnerName string
+	Name      string
+}
+
+type migrationActionRun struct {
+	ID           int64
+	RepoID       int64
+	Index        int64
+	CommitSHA    string `xorm:"commit_sha"`
+	Event        webhook_module.HookEventType
+	TriggerEvent string
+	EventPayload string
+}
+
+type migrationActionRunJob struct {
+	ID    int64
+	RunID int64
+}
+
+type migrationCommitStatus struct {
+	ID        int64
+	RepoID    int64
+	TargetURL string
+}
+
+type commitSHAAndRuns struct {
+	commitSHA string
+	runs      map[int64]*migrationActionRun
+}
+
+// FixCommitStatusTargetURLToUseRunAndJobID partially migrates legacy Actions
+// commit status target URLs to the new run/job ID-based form.
 //
-// The original migration required scanning and updating large commit status
-// tables, which could make upgrades unacceptably slow on large instances.
-// Compatibility is now handled in the web Actions routes by best-effort
-// redirects from legacy index-based URLs to ID-based URLs on demand, instead
-// of strictly rewriting every legacy target URL in the database.
-//
-// Administrators who need to rewrite legacy target URLs explicitly can run the
-// "fix-commit-status-target-url" doctor check.
-//
-// The migration itself is registered as a no-op in models/migrations/migrations.go
-// to preserve the existing migration sequence.
+// Only rows whose resolved run ID is below legacyURLIDThreshold are rewritten.
+// This is because smaller legacy run indexes are more likely to collide with run ID URLs during runtime resolution,
+// so this migration prioritizes that lower range and leaves the remaining legacy target URLs to the web compatibility logic.
+func FixCommitStatusTargetURLToUseRunAndJobID(x *xorm.Engine) error {
+	jobsByRunIDCache := make(map[int64][]int64)
+	repoLinkCache := make(map[int64]string)
+	groups, err := loadLegacyMigrationRunGroups(x)
+	if err != nil {
+		return err
+	}
+
+	for repoID, groupsBySHA := range groups {
+		for _, group := range groupsBySHA {
+			if err := migrateCommitStatusTargetURLForGroup(x, "commit_status", repoID, group.commitSHA, group.runs, jobsByRunIDCache, repoLinkCache); err != nil {
+				return err
+			}
+			if err := migrateCommitStatusTargetURLForGroup(x, "commit_status_summary", repoID, group.commitSHA, group.runs, jobsByRunIDCache, repoLinkCache); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func loadLegacyMigrationRunGroups(x *xorm.Engine) (map[int64]map[string]*commitSHAAndRuns, error) {
+	var runs []migrationActionRun
+	if err := x.Table("action_run").
+		Where("id < ?", legacyURLIDThreshold).
+		Cols("id", "repo_id", "`index`", "commit_sha", "event", "trigger_event", "event_payload").
+		Find(&runs); err != nil {
+		return nil, fmt.Errorf("query action_run: %w", err)
+	}
+
+	groups := make(map[int64]map[string]*commitSHAAndRuns)
+	for i := range runs {
+		run := runs[i]
+		_, commitID, err := (&actions_model.ActionRun{
+			ID:           run.ID,
+			RepoID:       run.RepoID,
+			Index:        run.Index,
+			CommitSHA:    run.CommitSHA,
+			Event:        run.Event,
+			TriggerEvent: run.TriggerEvent,
+			EventPayload: run.EventPayload,
+		}).GetCommitStatusEventNameAndCommitID() // get the commitID used for creating commit statuses
+		if err != nil {
+			log.Warn("skip action_run id=%d when resolving commit status commit SHA: %v", run.ID, err)
+			continue
+		}
+		if commitID == "" {
+			// empty commitID means the run didn't create any commit status records, just skip
+			continue
+		}
+		if groups[run.RepoID] == nil {
+			groups[run.RepoID] = make(map[string]*commitSHAAndRuns)
+		}
+		if groups[run.RepoID][commitID] == nil {
+			groups[run.RepoID][commitID] = &commitSHAAndRuns{
+				commitSHA: commitID,
+				runs:      make(map[int64]*migrationActionRun),
+			}
+		}
+		groups[run.RepoID][commitID].runs[run.Index] = &run
+	}
+	return groups, nil
+}
+
+func migrateCommitStatusTargetURLForGroup(
+	x *xorm.Engine,
+	table string,
+	repoID int64,
+	sha string,
+	runs map[int64]*migrationActionRun,
+	jobsByRunIDCache map[int64][]int64,
+	repoLinkCache map[int64]string,
+) error {
+	var rows []migrationCommitStatus
+	if err := x.Table(table).
+		Where("repo_id = ?", repoID).
+		And("sha = ?", sha).
+		And("target_url LIKE ?", "%"+actionsRunPath+"%").
+		Cols("id", "repo_id", "target_url").
+		Find(&rows); err != nil {
+		return fmt.Errorf("query %s for repo_id=%d sha=%s: %w", table, repoID, sha, err)
+	}
+
+	for _, row := range rows {
+		repoLink, err := getRepoLinkCached(x, repoLinkCache, row.RepoID)
+		if err != nil || repoLink == "" {
+			if err != nil {
+				log.Warn("convert %s id=%d getRepoLinkCached: %v", table, row.ID, err)
+			} else {
+				log.Warn("convert %s id=%d: repo=%d not found", table, row.ID, row.RepoID)
+			}
+			continue
+		}
+
+		runNum, jobNum, ok := parseTargetURL(row.TargetURL, repoLink)
+		if !ok {
+			continue
+		}
+
+		run, ok := runs[runNum]
+		if !ok {
+			continue
+		}
+
+		jobID, ok, err := getJobIDByIndexCached(x, jobsByRunIDCache, run.ID, jobNum)
+		if err != nil || !ok {
+			if err != nil {
+				log.Warn("convert %s id=%d getJobIDByIndexCached: %v", table, row.ID, err)
+			} else {
+				log.Warn("convert %s id=%d: job not found for run_id=%d job_index=%d", table, row.ID, run.ID, jobNum)
+			}
+			continue
+		}
+
+		oldURL := row.TargetURL
+		newURL := fmt.Sprintf("%s%s%d/jobs/%d", repoLink, actionsRunPath, run.ID, jobID)
+		if oldURL == newURL {
+			continue
+		}
+
+		if _, err := x.Table(table).ID(row.ID).Cols("target_url").Update(&migrationCommitStatus{TargetURL: newURL}); err != nil {
+			return fmt.Errorf("update %s id=%d target_url from %s to %s: %w", table, row.ID, oldURL, newURL, err)
+		}
+	}
+	return nil
+}
+
+func getRepoLinkCached(x *xorm.Engine, cache map[int64]string, repoID int64) (string, error) {
+	if link, ok := cache[repoID]; ok {
+		return link, nil
+	}
+	repo := &migrationRepository{}
+	has, err := x.Table("repository").Where("id=?", repoID).Get(repo)
+	if err != nil {
+		return "", err
+	}
+	if !has {
+		cache[repoID] = ""
+		return "", nil
+	}
+	link := setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
+	cache[repoID] = link
+	return link, nil
+}
+
+func getJobIDByIndexCached(x *xorm.Engine, cache map[int64][]int64, runID, jobIndex int64) (int64, bool, error) {
+	jobIDs, ok := cache[runID]
+	if !ok {
+		var jobs []migrationActionRunJob
+		if err := x.Table("action_run_job").Where("run_id=?", runID).Asc("id").Cols("id").Find(&jobs); err != nil {
+			return 0, false, err
+		}
+		jobIDs = make([]int64, 0, len(jobs))
+		for _, job := range jobs {
+			jobIDs = append(jobIDs, job.ID)
+		}
+		cache[runID] = jobIDs
+	}
+	if jobIndex < 0 || jobIndex >= int64(len(jobIDs)) {
+		return 0, false, nil
+	}
+	return jobIDs[jobIndex], true, nil
+}
+
+func parseTargetURL(targetURL, repoLink string) (runNum, jobNum int64, ok bool) {
+	prefix := repoLink + actionsRunPath
+	if !strings.HasPrefix(targetURL, prefix) {
+		return 0, 0, false
+	}
+	rest := targetURL[len(prefix):]
+
+	parts := strings.Split(rest, "/")
+	if len(parts) == 3 && parts[1] == "jobs" {
+		runNum, err1 := strconv.ParseInt(parts[0], 10, 64)
+		jobNum, err2 := strconv.ParseInt(parts[2], 10, 64)
+		if err1 != nil || err2 != nil {
+			return 0, 0, false
+		}
+		return runNum, jobNum, true
+	}
+
+	return 0, 0, false
+}

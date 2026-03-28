@@ -220,6 +220,63 @@ func UpdateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 	return err
 }
 
+// GetCommitStatusEventNameAndCommitID returns the event name and commit SHA used when creating commit statuses for this run.
+// Unsupported events return empty values.
+func (run *ActionRun) GetCommitStatusEventNameAndCommitID() (event, commitID string, _ error) {
+	switch run.Event {
+	case webhook_module.HookEventPush:
+		event = "push"
+		payload, err := run.GetPushEventPayload()
+		if err != nil {
+			return "", "", fmt.Errorf("GetPushEventPayload: %w", err)
+		}
+		if payload.HeadCommit == nil {
+			return "", "", errors.New("head commit is missing in event payload")
+		}
+		commitID = payload.HeadCommit.ID
+	case webhook_module.HookEventPullRequest,
+		webhook_module.HookEventPullRequestSync,
+		webhook_module.HookEventPullRequestAssign,
+		webhook_module.HookEventPullRequestLabel,
+		webhook_module.HookEventPullRequestReviewRequest,
+		webhook_module.HookEventPullRequestMilestone:
+		if run.TriggerEvent == "pull_request_target" {
+			event = "pull_request_target"
+		} else {
+			event = "pull_request"
+		}
+		payload, err := run.GetPullRequestEventPayload()
+		if err != nil {
+			return "", "", fmt.Errorf("GetPullRequestEventPayload: %w", err)
+		}
+		if payload.PullRequest == nil {
+			return "", "", errors.New("pull request is missing in event payload")
+		} else if payload.PullRequest.Head == nil {
+			return "", "", errors.New("head of pull request is missing in event payload")
+		}
+		commitID = payload.PullRequest.Head.Sha
+	case webhook_module.HookEventPullRequestReviewApproved,
+		webhook_module.HookEventPullRequestReviewRejected,
+		webhook_module.HookEventPullRequestReviewComment:
+		event = run.TriggerEvent
+		payload, err := run.GetPullRequestEventPayload()
+		if err != nil {
+			return "", "", fmt.Errorf("GetPullRequestEventPayload: %w", err)
+		}
+		if payload.PullRequest == nil {
+			return "", "", errors.New("pull request is missing in event payload")
+		} else if payload.PullRequest.Head == nil {
+			return "", "", errors.New("head of pull request is missing in event payload")
+		}
+		commitID = payload.PullRequest.Head.Sha
+	case webhook_module.HookEventRelease:
+		event = string(run.Event)
+		commitID = run.CommitSHA
+	default:
+	}
+	return event, commitID, nil
+}
+
 // CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.
 // It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) ([]*ActionRunJob, error) {

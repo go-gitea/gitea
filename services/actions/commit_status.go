@@ -16,12 +16,10 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 )
 
@@ -33,9 +31,9 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 		return
 	}
 
-	event, commitID, err := getCommitStatusEventNameAndCommitID(run)
+	event, commitID, err := run.GetCommitStatusEventNameAndCommitID()
 	if err != nil {
-		log.Error("GetCommitStatusEventNameAndSHA: %v", err)
+		log.Error("GetCommitStatusEventNameAndCommitID: %v", err)
 	}
 	if event == "" || commitID == "" {
 		return // unsupported event, or no commit id, or error occurs, do nothing
@@ -78,63 +76,6 @@ func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.Commit
 		runs = append(runs, run)
 	}
 	return runs, nil
-}
-
-func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {
-	switch run.Event {
-	case webhook_module.HookEventPush:
-		event = "push"
-		payload, err := run.GetPushEventPayload()
-		if err != nil {
-			return "", "", fmt.Errorf("GetPushEventPayload: %w", err)
-		}
-		if payload.HeadCommit == nil {
-			return "", "", errors.New("head commit is missing in event payload")
-		}
-		commitID = payload.HeadCommit.ID
-	case // pull_request
-		webhook_module.HookEventPullRequest,
-		webhook_module.HookEventPullRequestSync,
-		webhook_module.HookEventPullRequestAssign,
-		webhook_module.HookEventPullRequestLabel,
-		webhook_module.HookEventPullRequestReviewRequest,
-		webhook_module.HookEventPullRequestMilestone:
-		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
-			event = "pull_request_target"
-		} else {
-			event = "pull_request"
-		}
-		payload, err := run.GetPullRequestEventPayload()
-		if err != nil {
-			return "", "", fmt.Errorf("GetPullRequestEventPayload: %w", err)
-		}
-		if payload.PullRequest == nil {
-			return "", "", errors.New("pull request is missing in event payload")
-		} else if payload.PullRequest.Head == nil {
-			return "", "", errors.New("head of pull request is missing in event payload")
-		}
-		commitID = payload.PullRequest.Head.Sha
-	case // pull_request_review events share the same PullRequestPayload as pull_request
-		webhook_module.HookEventPullRequestReviewApproved,
-		webhook_module.HookEventPullRequestReviewRejected,
-		webhook_module.HookEventPullRequestReviewComment:
-		event = run.TriggerEvent
-		payload, err := run.GetPullRequestEventPayload()
-		if err != nil {
-			return "", "", fmt.Errorf("GetPullRequestEventPayload: %w", err)
-		}
-		if payload.PullRequest == nil {
-			return "", "", errors.New("pull request is missing in event payload")
-		} else if payload.PullRequest.Head == nil {
-			return "", "", errors.New("head of pull request is missing in event payload")
-		}
-		commitID = payload.PullRequest.Head.Sha
-	case webhook_module.HookEventRelease:
-		event = string(run.Event)
-		commitID = run.CommitSHA
-	default: // do nothing, return empty
-	}
-	return event, commitID, nil
 }
 
 func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {
