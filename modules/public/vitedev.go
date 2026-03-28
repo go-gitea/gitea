@@ -55,15 +55,18 @@ func getViteDevProxy() *httputil.ReverseProxy {
 // ViteDevMiddleware proxies matching requests to the Vite dev server.
 // It is registered as middleware in non-production mode and lazily discovers
 // the Vite dev server port from the port file written by the viteDevServerPortPlugin.
-func ViteDevMiddleware(resp http.ResponseWriter, req *http.Request) {
-	if !isViteDevRequest(req) {
-		return
-	}
-	proxy := getViteDevProxy()
-	if proxy == nil {
-		return
-	}
-	proxy.ServeHTTP(resp, req)
+func ViteDevMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		if !isViteDevRequest(req) {
+			next.ServeHTTP(resp, req)
+			return
+		}
+		proxy := getViteDevProxy()
+		if proxy == nil {
+			return
+		}
+		proxy.ServeHTTP(resp, req)
+	})
 }
 
 // isViteDevMode returns true if the Vite dev server port file exists.
