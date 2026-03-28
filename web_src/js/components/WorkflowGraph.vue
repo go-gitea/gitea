@@ -58,13 +58,6 @@ const hoveredJobId = ref<number | null>(null);
 
 const stateKey = () => `${props.store.viewData.currentRun.repoId}-${props.workflowId}`;
 
-const minScale = 0.3;
-const maxScale = 1;
-
-function clampScale(nextScale: number): number {
-  return Math.min(Math.max(Math.round(nextScale * 100) / 100, minScale), maxScale);
-}
-
 const loadSavedState = () => {
   const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKeyStates, {});
   const saved = allStates[stateKey()];
@@ -89,8 +82,6 @@ const saveState = () => {
 
   localUserSettings.setJsonObject(settingKeyStates, Object.fromEntries(sortedStates));
 };
-
-watch([translateX, translateY, scale], debounce(500, saveState));
 
 const nodeWidth = computed(() => {
   const maxNameLength = Math.max(...props.jobs.map(j => j.name.length));
@@ -355,6 +346,13 @@ const nodeHeight = 48;
 const verticalSpacing = 88;
 const margin = 40;
 
+const minScale = 0.3;
+const maxScale = 1;
+
+function clampScale(nextScale: number): number {
+  return Math.min(Math.max(Math.round(nextScale * 100) / 100, minScale), maxScale);
+}
+
 const canZoomIn = computed(() => scale.value < maxScale);
 
 function zoomTo(nextScale: number) {
@@ -420,6 +418,8 @@ function handleWheel(event: WheelEvent) {
 
 onMounted(() => {
   loadSavedState();
+  watch([translateX, translateY, scale], debounce(500, saveState));
+  watch([scale], debounce(100, saveState));
 
   document.addEventListener('mousemove', handleMouseMoveOnDocument);
   document.addEventListener('mouseup', handleMouseUpOnDocument);
