@@ -31,7 +31,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="action-run-summary-view">
     <div class="action-run-summary-block">
-      <div class="flex-text-block tw-text-text-light-2">
+      <div class="flex-text-block">
         {{ locale.triggeredVia.replace('%s', run.triggerEvent) }} • <relative-time :datetime="runTriggeredAtIso" prefix=""/>
       </div>
       <div class="flex-text-block">
@@ -53,6 +53,7 @@ onBeforeUnmount(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  color: var(--color-text-light-1);
 }
 
 .action-run-summary-block {
@@ -63,5 +64,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 12px;
   border-bottom: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  background: var(--color-box-header);
 }
 </style>

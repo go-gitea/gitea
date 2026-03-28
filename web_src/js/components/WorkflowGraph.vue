@@ -711,7 +711,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
   cursor: grab;
   position: relative;
-  background: var(--color-body);
+  background: var(--color-box-body);
 }
 
 .graph-container.dragging {
