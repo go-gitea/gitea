@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web/routing"
 )
 
 const viteDevPortFile = "public/assets/.vite/dev-port"
@@ -56,11 +57,14 @@ func getViteDevProxy() *httputil.ReverseProxy {
 // It is registered as middleware in non-production mode and lazily discovers
 // the Vite dev server port from the port file written by the viteDevServerPortPlugin.
 func ViteDevMiddleware(next http.Handler) http.Handler {
+	// FIXME: there is a strange error log, not sure why it happens yet
+	// 2026/03/28 19:50:13 modules/log/misc.go:72:(*loggerToWriter).Write() [I] Unsolicited response received on idle HTTP channel starting with "HTTP/1.1 400 Bad Request\r\n\r\n"; err=<nil>
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		if !isViteDevRequest(req) {
 			next.ServeHTTP(resp, req)
 			return
 		}
+		routing.MarkLongPolling(resp, req)
 		proxy := getViteDevProxy()
 		if proxy == nil {
 			return
