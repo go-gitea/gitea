@@ -121,9 +121,14 @@ func isViteDevRequest(req *http.Request) bool {
 		strings.HasPrefix(path, "/web_src/") { // source files
 		return true
 	}
+
 	// Vite uses a path relative to project root and adds "?import" to non-JS/CSS asset imports:
-	// - /public/assets/... (e.g. SVG icons from public/assets/img/svg/)
-	if strings.HasPrefix(path, "/public/assets/") {
+	// - {WebSite}/public/assets/... (e.g. SVG icons from public/assets/img/svg/)
+	// - {WebSite}/assets/emoji.json: it is an exception for the frontend assets, it is imported by JS.
+	//   - KEEP IN MIND: all static frontend assets are served from "{AssetsFS}/public/assets" to "{WebSite}/assets" by Gitea Web Server
+	//   - "{RepoRoot}/assets/emoji.json" just happens to have the dir name "assets", it is not related to frontend assets
+	//   - BAD DESIGN: indeed it is a "conflicted and polluted name" sample
+	if path == "/assets/emoji.json" || strings.HasPrefix(path, "/public/assets/") {
 		if _, ok := req.URL.Query()["import"]; ok {
 			return true
 		}
