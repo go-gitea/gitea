@@ -808,9 +808,7 @@ table th[data-sortt-desc] .svg {
 
 .btn,
 .ui.ui.dropdown,
-.flex-text-inline,
-.flex-text-inline > a,
-.flex-text-inline > span {
+.flex-text-inline {
   display: inline-flex;
   align-items: center;
   gap: var(--gap-inline);
