@@ -1302,15 +1302,18 @@ func testWorkflowRunEventsOnRerun(t *testing.T, webhookData *workflowRunWebhook)
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
+	runners := make([]*mockRunner, 2)
+	for i := range runners {
+		runners[i] = newMockRunner()
+		runners[i].registerAsRepoRunner(t, "user2", "repo1", fmt.Sprintf("mock-runner-%d", i), []string{"ubuntu-latest"}, false)
+	}
+
 	testAPICreateWebhookForRepo(t, session, "user2", "repo1", webhookData.URL, "workflow_run")
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
 	gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
-
-	runner := newMockRunner()
-	runner.registerAsRepoRunner(t, "user2", "repo1", "mock-runner", []string{"ubuntu-latest"}, false)
 
 	// 2.2 trigger the webhooks
 
@@ -1323,6 +1326,63 @@ func testWorkflowRunEventsOnRerun(t *testing.T, webhookData *workflowRunWebhook)
 
 jobs:
   test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 0
+
+  test2:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 0
+
+  test3:
+    needs: [test, test2]
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 0
+
+  test4:
+    needs: [test, test2, test3]
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 0
+
+  test5:
+    needs: [test, test2, test4]
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 0
+
+  test6:
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+    needs: [test, test2, test3]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - run: exit 0
+
+  test7:
+    needs: test6
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 0
+
+  test8:
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 0
+
+  test9:
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04, ubuntu-25.04, windows-2022, windows-2025, macos-13, macos-14, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - run: exit 0
+
+  test10:
     runs-on: ubuntu-latest
     steps:
       - run: exit 0`
@@ -1343,12 +1403,24 @@ jobs:
 	assert.Equal(t, "user2/repo1", webhookData.payloads[0].Repo.FullName)
 	runID := webhookData.payloads[0].WorkflowRun.ID
 
-	task := runner.fetchTask(t)
-	runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+	// The first runner to pick up a task fires in_progress (Started.IsZero() is true only once per run).
+	// The second runner picking up an independent job does not fire another in_progress event.
+	for _, runner := range runners {
+		task := runner.fetchTask(t)
+		runner.execTask(t, task, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+		})
+	}
+
+	// Call cancel ui api
+	// Only a web UI API exists for cancelling workflow runs, so use the UI endpoint.
+	cancelURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/cancel", runID)
+	req := NewRequest(t, "POST", cancelURL)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	assert.Len(t, webhookData.payloads, 3)
 
-	// 4. Validate the second webhook payload (in_progress, fired when the runner picked up the job)
+	// 4. Validate the second webhook payload (in_progress, fired when the first runner picked up a job)
 	assert.Equal(t, "workflow_run", webhookData.triggeredEvent)
 	assert.Equal(t, "in_progress", webhookData.payloads[1].Action)
 	assert.Equal(t, "in_progress", webhookData.payloads[1].WorkflowRun.Status)
@@ -1359,7 +1431,7 @@ jobs:
 	assert.Equal(t, "repo1", webhookData.payloads[1].Repo.Name)
 	assert.Equal(t, "user2/repo1", webhookData.payloads[1].Repo.FullName)
 
-	// 5. Validate the third webhook payload (completed, after the job finishes)
+	// 5. Validate the third webhook payload (completed, fired after cancel)
 	assert.Equal(t, "workflow_run", webhookData.triggeredEvent)
 	assert.Equal(t, "completed", webhookData.payloads[2].Action)
 	assert.Equal(t, "push", webhookData.payloads[2].WorkflowRun.Event)
@@ -1373,12 +1445,12 @@ jobs:
 	// Call rerun ui api
 	// Only a web UI API exists for rerunning workflow runs, so use the UI endpoint.
 	rerunURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/rerun", runID)
-	req := NewRequest(t, "POST", rerunURL)
+	req = NewRequest(t, "POST", rerunURL)
 	session.MakeRequest(t, req, http.StatusOK)
 
 	assert.Len(t, webhookData.payloads, 4)
 
-	// 6. Validate the fourth webhook payload (requested, after rerun)
+	// 6. Validate the fourth webhook payload (requested, fired after rerun)
 	assert.Equal(t, "workflow_run", webhookData.triggeredEvent)
 	assert.Equal(t, "requested", webhookData.payloads[3].Action)
 	assert.Equal(t, "queued", webhookData.payloads[3].WorkflowRun.Status)
