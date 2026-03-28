@@ -136,11 +136,12 @@ func getHashedPath(originPath string) string {
 	return originPath
 }
 
-// AssetPath returns the asset path (full URL path) for a frontend asset.
+// AssetURI returns the URI for a frontend asset.
+// It may return a relative path or a full URL depending on the StaticURLPrefix setting.
 // In Vite dev mode, known entry points are mapped to their source paths
 // so the reverse proxy serves them from the Vite dev server.
 // In production, it resolves the content-hashed path from the manifest.
-func AssetPath(originPath string) string {
+func AssetURI(originPath string) string {
 	if src := viteDevSourceURL(originPath); src != "" {
 		return src
 	}

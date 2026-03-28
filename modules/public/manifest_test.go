@@ -51,8 +51,8 @@ func TestViteManifest(t *testing.T) {
 
 	t.Run("EmptyManifest", func(t *testing.T) {
 		storeManifestFromBytes([]byte(``), 0, time.Now())
-		assert.Equal(t, "/assets/js/index.js", AssetPath("js/index.js"))
-		assert.Equal(t, "/assets/css/theme-gitea-dark.css", AssetPath("css/theme-gitea-dark.css"))
+		assert.Equal(t, "/assets/js/index.js", AssetURI("js/index.js"))
+		assert.Equal(t, "/assets/css/theme-gitea-dark.css", AssetURI("css/theme-gitea-dark.css"))
 		assert.Equal(t, "", AssetNameFromHashedPath("css/no-such-file.css"))
 	})
 
@@ -84,8 +84,8 @@ func TestViteManifest(t *testing.T) {
 		assert.Equal(t, "eventsource.sharedworker", names["js/eventsource.sharedworker.Dug1twio.js"])
 
 		// Test Asset related functions
-		assert.Equal(t, "/assets/js/index.C6Z2MRVQ.js", AssetPath("js/index.js"))
-		assert.Equal(t, "/assets/css/theme-gitea-dark.CyAaQnn5.css", AssetPath("css/theme-gitea-dark.css"))
+		assert.Equal(t, "/assets/js/index.C6Z2MRVQ.js", AssetURI("js/index.js"))
+		assert.Equal(t, "/assets/css/theme-gitea-dark.CyAaQnn5.css", AssetURI("css/theme-gitea-dark.css"))
 		assert.Equal(t, "theme-gitea-dark", AssetNameFromHashedPath("css/theme-gitea-dark.CyAaQnn5.css"))
 	})
 }

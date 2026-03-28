@@ -69,10 +69,10 @@ func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, out
 	<script type="module" src="%s"></script>
 </body>
 </html>`,
-		public.AssetPath("css/swagger.css"),
+		public.AssetURI("css/swagger.css"),
 		html.EscapeString(ctx.RenderOptions.RelativePath),
 		html.EscapeString(util.UnsafeBytesToString(content)),
-		public.AssetPath("js/swagger.js"),
+		public.AssetURI("js/swagger.js"),
 	))
 	return err
 }
