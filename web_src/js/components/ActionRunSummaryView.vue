@@ -59,15 +59,9 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 12px;
   border-bottom: 1px solid var(--color-secondary);
-}
-
-@media (max-width: 767.98px) {
-  .action-run-summary-block {
-    flex-direction: column;
-    align-items: flex-start;
-  }
 }
 </style>
