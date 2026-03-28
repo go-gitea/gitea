@@ -1740,7 +1740,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/swagger.v1.json", SwaggerV1Json)
 	}
 
-	if !setting.IsProd {
+	if !setting.IsProd || setting.IsE2ETest {
 		m.Group("/devtest", func() {
 			m.Any("", devtest.List)
 			m.Any("/fetch-action-test", devtest.FetchActionTest)

@@ -31,6 +31,10 @@ var (
 	// IsInTesting indicates whether the testing is running. A lot of unreliable code causes a lot of nonsense error logs during testing
 	// TODO: this is only a temporary solution, we should make the test code more reliable
 	IsInTesting = false
+
+	// IsE2ETest indicates whether the server is running for e2e tests, set via GITEA_E2E_TEST env var.
+	// IsInTesting is unsuitable because it has many side effects for in-process unit/integration tests.
+	IsE2ETest = os.Getenv("GITEA_E2E_TEST") == "true"
 )
 
 func init() {
