@@ -36,7 +36,7 @@ type testMigrationActionRun struct {
 	CommitSHA    string `xorm:"commit_sha"`
 	Event        webhook_module.HookEventType
 	TriggerEvent string
-	EventPayload string
+	EventPayload string `xorm:"LONGTEXT"`
 }
 
 func (testMigrationActionRun) TableName() string { return "action_run" }

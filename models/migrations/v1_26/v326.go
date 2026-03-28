@@ -4,14 +4,16 @@
 package v1_26
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"xorm.io/xorm"
@@ -96,15 +98,7 @@ func loadLegacyMigrationRunGroups(x *xorm.Engine) (map[int64]map[string]*commitS
 	groups := make(map[int64]map[string]*commitSHAAndRuns)
 	for i := range runs {
 		run := runs[i]
-		_, commitID, err := (&actions_model.ActionRun{
-			ID:           run.ID,
-			RepoID:       run.RepoID,
-			Index:        run.Index,
-			CommitSHA:    run.CommitSHA,
-			Event:        run.Event,
-			TriggerEvent: run.TriggerEvent,
-			EventPayload: run.EventPayload,
-		}).GetCommitStatusEventNameAndCommitID() // get the commitID used for creating commit statuses
+		commitID, err := getCommitStatusCommitID(&run)
 		if err != nil {
 			log.Warn("skip action_run id=%d when resolving commit status commit SHA: %v", run.ID, err)
 			continue
@@ -245,4 +239,73 @@ func parseTargetURL(targetURL, repoLink string) (runNum, jobNum int64, ok bool) 
 	}
 
 	return 0, 0, false
+}
+
+func getCommitStatusCommitID(run *migrationActionRun) (string, error) {
+	switch run.Event {
+	case webhook_module.HookEventPush:
+		payload, err := getPushEventPayload(run)
+		if err != nil {
+			return "", fmt.Errorf("getPushEventPayload: %w", err)
+		}
+		if payload.HeadCommit == nil {
+			return "", errors.New("head commit is missing in event payload")
+		}
+		return payload.HeadCommit.ID, nil
+	case webhook_module.HookEventPullRequest,
+		webhook_module.HookEventPullRequestSync,
+		webhook_module.HookEventPullRequestAssign,
+		webhook_module.HookEventPullRequestLabel,
+		webhook_module.HookEventPullRequestReviewRequest,
+		webhook_module.HookEventPullRequestMilestone:
+		payload, err := getPullRequestEventPayload(run)
+		if err != nil {
+			return "", fmt.Errorf("getPullRequestEventPayload: %w", err)
+		}
+		if payload.PullRequest == nil {
+			return "", errors.New("pull request is missing in event payload")
+		} else if payload.PullRequest.Head == nil {
+			return "", errors.New("head of pull request is missing in event payload")
+		}
+		return payload.PullRequest.Head.Sha, nil
+	case webhook_module.HookEventPullRequestReviewApproved,
+		webhook_module.HookEventPullRequestReviewRejected,
+		webhook_module.HookEventPullRequestReviewComment:
+		payload, err := getPullRequestEventPayload(run)
+		if err != nil {
+			return "", fmt.Errorf("getPullRequestEventPayload: %w", err)
+		}
+		if payload.PullRequest == nil {
+			return "", errors.New("pull request is missing in event payload")
+		} else if payload.PullRequest.Head == nil {
+			return "", errors.New("head of pull request is missing in event payload")
+		}
+		return payload.PullRequest.Head.Sha, nil
+	case webhook_module.HookEventRelease:
+		return run.CommitSHA, nil
+	default:
+		return "", nil
+	}
+}
+
+func getPushEventPayload(run *migrationActionRun) (*api.PushPayload, error) {
+	if run.Event != webhook_module.HookEventPush {
+		return nil, fmt.Errorf("event %s is not a push event", run.Event)
+	}
+	var payload api.PushPayload
+	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
+		return nil, err
+	}
+	return &payload, nil
+}
+
+func getPullRequestEventPayload(run *migrationActionRun) (*api.PullRequestPayload, error) {
+	if !run.Event.IsPullRequest() && !run.Event.IsPullRequestReview() {
+		return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
+	}
+	var payload api.PullRequestPayload
+	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
+		return nil, err
+	}
+	return &payload, nil
 }
