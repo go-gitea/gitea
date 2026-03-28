@@ -35,7 +35,7 @@ func GetRepositoryKey(ctx *context.Context) {
 		return
 	}
 
-	ctx.ServeContent(strings.NewReader(pub), &context.ServeHeaderOptions{
+	ctx.ServeContent(strings.NewReader(pub), context.ServeHeaderOptions{
 		ContentType: "application/pgp-keys",
 	})
 }
@@ -232,7 +232,7 @@ func GetPackageOrRepositoryFile(ctx *context.Context) {
 			return
 		}
 
-		ctx.ServeContent(bytes.NewReader(data), &context.ServeHeaderOptions{
+		ctx.ServeContent(bytes.NewReader(data), context.ServeHeaderOptions{
 			Filename: filenameOrig,
 		})
 		return

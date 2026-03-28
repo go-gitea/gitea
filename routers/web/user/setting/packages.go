@@ -112,7 +112,7 @@ func RegenerateChefKeyPair(ctx *context.Context) {
 		return
 	}
 
-	ctx.ServeContent(strings.NewReader(priv), &context.ServeHeaderOptions{
+	ctx.ServeContent(strings.NewReader(priv), context.ServeHeaderOptions{
 		ContentType: "application/x-pem-file",
 		Filename:    ctx.Doer.Name + ".priv",
 	})

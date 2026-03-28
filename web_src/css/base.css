@@ -393,12 +393,6 @@ img.ui.avatar,
   aspect-ratio: 1;
 }
 
-.ui.error.message .header,
-.ui.warning.message .header {
-  color: inherit;
-  filter: saturate(2);
-}
-
 .full.height {
   flex-grow: 1;
   padding-bottom: var(--page-space-bottom);
@@ -814,9 +808,7 @@ table th[data-sortt-desc] .svg {
 
 .btn,
 .ui.ui.dropdown,
-.flex-text-inline,
-.flex-text-inline > a,
-.flex-text-inline > span {
+.flex-text-inline {
   display: inline-flex;
   align-items: center;
   gap: var(--gap-inline);
