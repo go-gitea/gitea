@@ -1,11 +1,11 @@
-const {appSubUrl, sharedWorkerPath} = window.config;
+const {appSubUrl, sharedWorkerUri} = window.config;
 
 export class UserEventsSharedWorker {
   sharedWorker: SharedWorker;
 
   // options can be either a string (the debug name of the worker) or an object of type WorkerOptions
   constructor(options?: string | WorkerOptions) {
-    const worker = new SharedWorker(sharedWorkerPath, options);
+    const worker = new SharedWorker(sharedWorkerUri, options);
     this.sharedWorker = worker;
     worker.addEventListener('error', (event) => {
       console.error('worker error', event);

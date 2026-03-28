@@ -23,7 +23,7 @@ interface Window {
     appUrl: string,
     appSubUrl: string,
     assetUrlPrefix: string,
-    sharedWorkerPath: string,
+    sharedWorkerUri: string,
     runModeIsProd: boolean,
     customEmojis: Record<string, string>,
     pageData: Record<string, any> & {
