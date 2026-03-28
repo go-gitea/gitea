@@ -18,61 +18,51 @@ import (
 	"xorm.io/xorm"
 )
 
-type testMigrationRepository struct {
-	ID        int64 `xorm:"pk autoincr"`
-	OwnerName string
-	Name      string
-}
-
-func (testMigrationRepository) TableName() string { return "repository" }
-
-type testMigrationActionRun struct {
-	ID           int64 `xorm:"pk autoincr"`
-	RepoID       int64 `xorm:"index"`
-	Index        int64
-	CommitSHA    string `xorm:"commit_sha"`
-	Event        string
-	TriggerEvent string
-	EventPayload string `xorm:"LONGTEXT"`
-}
-
-func (testMigrationActionRun) TableName() string { return "action_run" }
-
-type testMigrationActionRunJob struct {
-	ID    int64 `xorm:"pk autoincr"`
-	RunID int64 `xorm:"index"`
-}
-
-func (testMigrationActionRunJob) TableName() string { return "action_run_job" }
-
-type testMigrationCommitStatus struct {
-	ID        int64 `xorm:"pk autoincr"`
-	RepoID    int64 `xorm:"index"`
-	SHA       string
-	TargetURL string
-}
-
-func (testMigrationCommitStatus) TableName() string { return "commit_status" }
-
-type testMigrationCommitStatusSummary struct {
-	ID        int64  `xorm:"pk autoincr"`
-	RepoID    int64  `xorm:"index"`
-	SHA       string `xorm:"VARCHAR(64) NOT NULL"`
-	State     string `xorm:"VARCHAR(7) NOT NULL"`
-	TargetURL string
-}
-
-func (testMigrationCommitStatusSummary) TableName() string { return "commit_status_summary" }
-
 func Test_FixCommitStatusTargetURLToUseRunAndJobID(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppSubURL, "")()
 
+	type Repository struct {
+		ID        int64 `xorm:"pk autoincr"`
+		OwnerName string
+		Name      string
+	}
+
+	type ActionRun struct {
+		ID           int64 `xorm:"pk autoincr"`
+		RepoID       int64 `xorm:"index"`
+		Index        int64
+		CommitSHA    string `xorm:"commit_sha"`
+		Event        string
+		TriggerEvent string
+		EventPayload string `xorm:"LONGTEXT"`
+	}
+
+	type ActionRunJob struct {
+		ID    int64 `xorm:"pk autoincr"`
+		RunID int64 `xorm:"index"`
+	}
+
+	type CommitStatus struct {
+		ID        int64 `xorm:"pk autoincr"`
+		RepoID    int64 `xorm:"index"`
+		SHA       string
+		TargetURL string
+	}
+
+	type CommitStatusSummary struct {
+		ID        int64  `xorm:"pk autoincr"`
+		RepoID    int64  `xorm:"index"`
+		SHA       string `xorm:"VARCHAR(64) NOT NULL"`
+		State     string `xorm:"VARCHAR(7) NOT NULL"`
+		TargetURL string
+	}
+
 	x, deferable := base.PrepareTestEnv(t, 0,
-		new(testMigrationRepository),
-		new(testMigrationActionRun),
-		new(testMigrationActionRunJob),
-		new(testMigrationCommitStatus),
-		new(testMigrationCommitStatusSummary),
+		new(Repository),
+		new(ActionRun),
+		new(ActionRunJob),
+		new(CommitStatus),
+		new(CommitStatusSummary),
 	)
 	defer deferable()
 
