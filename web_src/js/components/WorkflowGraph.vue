@@ -609,8 +609,8 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             :width="nodeWidth"
             :height="nodeHeight"
             rx="10"
-            fill="var(--color-workflow-box-bg)"
-            stroke="var(--color-workflow-box-border)"
+            fill="var(--color-button)"
+            stroke="var(--color-light-border)"
             stroke-width="1.25"
             class="job-rect"
           />
@@ -725,7 +725,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
 .highlighted-edge {
   stroke-width: 2.25 !important;
-  stroke: var(--color-workflow-box-border) !important;
+  stroke: var(--color-workflow-edge-hover) !important;
 }
 
 .job-node-group {
@@ -734,8 +734,9 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .job-node-group:hover .job-rect {
-  fill: var(--color-workflow-box-hover-bg);
-  transform: translateX(1px);
+  /* due to SVG rendering limitation, only one of fill and drop-shadow can work */
+  fill: var(--color-hover);
+  /* filter: drop-shadow(0 1px 3px var(--color-shadow-opaque)); */
 }
 
 .job-text-wrap {
@@ -782,14 +783,9 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   justify-content: center;
 }
 
-.job-rect {
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.15));
-  transition: fill 0.2s ease, transform 0.2s ease;
-}
-
 .node-port {
   fill: var(--color-box-body);
-  stroke: var(--color-workflow-box-border);
+  stroke: var(--color-light-border);
   stroke-width: 1.5;
   pointer-events: none;
 }
