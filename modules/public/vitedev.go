@@ -57,6 +57,16 @@ func getViteDevProxy() *httputil.ReverseProxy {
 			r.SetURL(target)
 			r.Out.Host = target.Host
 		},
+		ModifyResponse: func(resp *http.Response) error {
+			// add a header to indicate the Vite dev server port,
+			// make developers know that this request is proxied to Vite dev server and which port it is
+			resp.Header.Add("X-Gitea-Vite-Port", port)
+			return nil
+		},
+		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
+			log.Error("Error proxying to Vite dev server: %v", err)
+			http.Error(w, "Error proxying to Vite dev server: "+err.Error(), http.StatusBadGateway)
+		},
 	}
 	viteDevProxy.Store(proxy)
 	return proxy
