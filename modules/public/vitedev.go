@@ -121,9 +121,13 @@ func isViteDevRequest(req *http.Request) bool {
 		strings.HasPrefix(path, "/web_src/") { // source files
 		return true
 	}
-	// Vite adds ?import to non-JS/CSS imports (e.g. SVG, JSON files)
-	if _, ok := req.URL.Query()["import"]; ok {
-		return true
+	// Vite adds ?import to non-JS/CSS asset imports:
+	// - /public/assets/... (e.g. SVG icons from public/assets/img/svg/)
+	// - /assets/... (e.g. assets/emoji.json)
+	if strings.HasPrefix(path, "/assets/") || strings.HasPrefix(path, "/public/assets/") {
+		if _, ok := req.URL.Query()["import"]; ok {
+			return true
+		}
 	}
 	return false
 }
