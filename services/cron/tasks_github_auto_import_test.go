@@ -4,10 +4,15 @@
 package cron
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
+	base "code.gitea.io/gitea/modules/migration"
 	"github.com/google/go-github/v74/github"
 )
 
@@ -77,5 +82,64 @@ func TestShouldAutoImportGitHubRepo(t *testing.T) {
 	}
 	if shouldAutoImportGitHubRepo(cfg, archivedRepo) {
 		t.Fatal("expected archived repo to be skipped")
+	}
+}
+
+func TestQueueGitHubRepoAutoImportMigrationsContinuesAfterQueueFailure(t *testing.T) {
+	originalGetRepositoryByOwnerAndName := repoModelGetRepositoryByOwnerAndName
+	originalMigrateRepository := gitHubRepoAutoImportMigrateRepository
+	t.Cleanup(func() {
+		repoModelGetRepositoryByOwnerAndName = originalGetRepositoryByOwnerAndName
+		gitHubRepoAutoImportMigrateRepository = originalMigrateRepository
+	})
+
+	repoModelGetRepositoryByOwnerAndName = func(ctx context.Context, ownerName, repoName string) (*repo_model.Repository, error) {
+		return nil, repo_model.ErrRepoNotExist{OwnerName: ownerName, RepoName: repoName}
+	}
+
+	attempted := make([]string, 0, 2)
+	gitHubRepoAutoImportMigrateRepository = func(ctx context.Context, doer, owner *user_model.User, opts base.MigrateOptions) error {
+		attempted = append(attempted, opts.RepoName)
+		if opts.RepoName == "broken-repo" {
+			return errors.New("invalid repo name")
+		}
+		return nil
+	}
+
+	cfg := &GitHubRepoAutoImportConfig{
+		Mirror:         true,
+		MirrorInterval: "8h0m0s",
+		ImportPrivate:  true,
+		ImportArchived: true,
+	}
+	owner := &user_model.User{Name: "owner"}
+
+	brokenName := "broken-repo"
+	brokenCloneURL := "https://github.com/example/broken-repo.git"
+	okName := "ok-repo"
+	okCloneURL := "https://github.com/example/ok-repo.git"
+	repos := []*github.Repository{
+		{Name: &brokenName, CloneURL: &brokenCloneURL},
+		{Name: &okName, CloneURL: &okCloneURL},
+	}
+
+	imported, skipped, failed, failedRepos, err := queueGitHubRepoAutoImportMigrations(t.Context(), cfg, owner, "example", "token", repos)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if imported != 1 {
+		t.Fatalf("unexpected imported count %d", imported)
+	}
+	if skipped != 0 {
+		t.Fatalf("unexpected skipped count %d", skipped)
+	}
+	if failed != 1 {
+		t.Fatalf("unexpected failed count %d", failed)
+	}
+	if len(failedRepos) != 1 || failedRepos[0] != "broken-repo" {
+		t.Fatalf("unexpected failed repos %#v", failedRepos)
+	}
+	if len(attempted) != 2 || attempted[0] != "broken-repo" || attempted[1] != "ok-repo" {
+		t.Fatalf("unexpected attempted repos %#v", attempted)
 	}
 }

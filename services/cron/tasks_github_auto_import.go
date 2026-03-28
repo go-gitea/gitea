@@ -35,6 +35,11 @@ type GitHubRepoAutoImportConfig struct {
 	ImportArchived bool
 }
 
+var (
+	repoModelGetRepositoryByOwnerAndName = repo_model.GetRepositoryByOwnerAndName
+	gitHubRepoAutoImportMigrateRepository = task_service.MigrateRepository
+)
+
 func registerGitHubRepoAutoImportTask() {
 	RegisterTaskFatal("github_repo_auto_import", &GitHubRepoAutoImportConfig{
 		BaseConfig: BaseConfig{
@@ -87,49 +92,22 @@ func runGitHubRepoAutoImport(ctx context.Context, cfg *GitHubRepoAutoImportConfi
 
 	imported := 0
 	skipped := 0
+	failed := 0
+	failedRepos := make([]string, 0)
 	for {
 		repos, resp, err := client.Repositories.ListByAuthenticatedUser(ctx, opt)
 		if err != nil {
 			return fmt.Errorf("list GitHub repositories: %w", err)
 		}
 
-		for _, ghRepo := range repos {
-			if !shouldAutoImportGitHubRepo(cfg, ghRepo) {
-				skipped++
-				continue
-			}
-
-			repoName := ghRepo.GetName()
-			if _, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, repoName); err == nil {
-				skipped++
-				continue
-			} else if !repo_model.IsErrRepoNotExist(err) {
-				return fmt.Errorf("check existing repository %q: %w", repoName, err)
-			}
-
-			opts := base.MigrateOptions{
-				CloneAddr:      ghRepo.GetCloneURL(),
-				RepoName:       repoName,
-				Mirror:         cfg.Mirror,
-				MirrorInterval: cfg.MirrorInterval,
-				Private:        ghRepo.GetPrivate(),
-				Description:    ghRepo.GetDescription(),
-				OriginalURL:    ghRepo.GetCloneURL(),
-				GitServiceType: structs.GithubService,
-				AuthUsername:   githubLogin,
-				AuthToken:      token,
-				Wiki:           true,
-			}
-
-			if err := task_service.MigrateRepository(ctx, owner, owner, opts); err != nil {
-				if repo_model.IsErrRepoAlreadyExist(err) {
-					skipped++
-					continue
-				}
-				return fmt.Errorf("queue migration for %q: %w", repoName, err)
-			}
-			imported++
+		pageImported, pageSkipped, pageFailed, pageFailedRepos, err := queueGitHubRepoAutoImportMigrations(ctx, cfg, owner, githubLogin, token, repos)
+		if err != nil {
+			return err
 		}
+		imported += pageImported
+		skipped += pageSkipped
+		failed += pageFailed
+		failedRepos = append(failedRepos, pageFailedRepos...)
 
 		if resp == nil || resp.NextPage == 0 {
 			break
@@ -137,8 +115,59 @@ func runGitHubRepoAutoImport(ctx context.Context, cfg *GitHubRepoAutoImportConfi
 		opt.Page = resp.NextPage
 	}
 
-	log.Info("GitHub repo auto-import completed for %s into %s: imported=%d skipped=%d", githubLogin, owner.Name, imported, skipped)
+	log.Info("GitHub repo auto-import completed for %s into %s: imported=%d skipped=%d failed=%d", githubLogin, owner.Name, imported, skipped, failed)
+	if failed > 0 {
+		return fmt.Errorf("GitHub repo auto-import failed for %d repositories: %s", failed, strings.Join(failedRepos, ", "))
+	}
 	return nil
+}
+
+func queueGitHubRepoAutoImportMigrations(ctx context.Context, cfg *GitHubRepoAutoImportConfig, owner *user_model.User, githubLogin, token string, repos []*github.Repository) (imported, skipped, failed int, failedRepos []string, err error) {
+	failedRepos = make([]string, 0)
+
+	for _, ghRepo := range repos {
+		if !shouldAutoImportGitHubRepo(cfg, ghRepo) {
+			skipped++
+			continue
+		}
+
+		repoName := ghRepo.GetName()
+		if _, err := repoModelGetRepositoryByOwnerAndName(ctx, owner.Name, repoName); err == nil {
+			skipped++
+			continue
+		} else if !repo_model.IsErrRepoNotExist(err) {
+			return imported, skipped, failed, failedRepos, fmt.Errorf("check existing repository %q: %w", repoName, err)
+		}
+
+		opts := base.MigrateOptions{
+			CloneAddr:      ghRepo.GetCloneURL(),
+			RepoName:       repoName,
+			Mirror:         cfg.Mirror,
+			MirrorInterval: cfg.MirrorInterval,
+			Private:        ghRepo.GetPrivate(),
+			Description:    ghRepo.GetDescription(),
+			OriginalURL:    ghRepo.GetCloneURL(),
+			GitServiceType: structs.GithubService,
+			AuthUsername:   githubLogin,
+			AuthToken:      token,
+			Wiki:           true,
+		}
+
+		if err := gitHubRepoAutoImportMigrateRepository(ctx, owner, owner, opts); err != nil {
+			if repo_model.IsErrRepoAlreadyExist(err) {
+				skipped++
+				continue
+			}
+			failed++
+			failedRepos = append(failedRepos, repoName)
+			log.Warn("GitHub repo auto-import failed to queue %q for %s into %s: %v", repoName, githubLogin, owner.Name, err)
+			continue
+		}
+
+		imported++
+	}
+
+	return imported, skipped, failed, failedRepos, nil
 }
 
 func newGitHubRepoAutoImportClient(token string) *github.Client {
