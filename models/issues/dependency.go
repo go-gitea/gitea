@@ -193,32 +193,6 @@ func issueDepExists(ctx context.Context, issueID, depID int64) (bool, error) {
 	return db.GetEngine(ctx).Where("(issue_id = ? AND dependency_id = ?)", issueID, depID).Exist(&IssueDependency{})
 }
 
-// GetBlockedByDependencyRefs returns refs to issues that block the given issue
-func GetBlockedByDependencyRefs(ctx context.Context, issueID int64) ([]DependencyRef, error) {
-	var refs []DependencyRef
-	err := db.GetEngine(ctx).
-		Table("issue_dependency").
-		Select("repository.owner_name, repository.name AS repo_name, issue.`index`").
-		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
-		Join("INNER", "repository", "repository.id = issue.repo_id").
-		Where("issue_dependency.issue_id = ?", issueID).
-		Find(&refs)
-	return refs, err
-}
-
-// GetBlockingDependencyRefs returns refs to issues that the given issue blocks
-func GetBlockingDependencyRefs(ctx context.Context, issueID int64) ([]DependencyRef, error) {
-	var refs []DependencyRef
-	err := db.GetEngine(ctx).
-		Table("issue_dependency").
-		Select("repository.owner_name, repository.name AS repo_name, issue.`index`").
-		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
-		Join("INNER", "repository", "repository.id = issue.repo_id").
-		Where("issue_dependency.dependency_id = ?", issueID).
-		Find(&refs)
-	return refs, err
-}
-
 // IssueNoDependenciesLeft checks if issue can be closed
 func IssueNoDependenciesLeft(ctx context.Context, issue *Issue) (bool, error) {
 	exists, err := db.GetEngine(ctx).

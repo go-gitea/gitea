@@ -19,11 +19,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // ToIssueOptions controls optional data included in issue API responses
 type ToIssueOptions struct {
 	IncludeDependencies bool
+	filteredDeps        map[int64][2]*issue_service.FilteredDependencies
 }
 
 func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
@@ -148,22 +150,22 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	}
 
 	if opts.IncludeDependencies {
-		if !issue.IsDependencyRefsLoaded() {
-			blockedBy, err := issues_model.GetBlockedByDependencyRefs(ctx, issue.ID)
-			if err != nil {
-				log.Error("GetBlockedByDependencyRefs: %v", err)
-				return apiIssue
+		var blockedBy, blocking *issue_service.FilteredDependencies
+		if opts.filteredDeps != nil {
+			if deps, ok := opts.filteredDeps[issue.ID]; ok {
+				blockedBy, blocking = deps[0], deps[1]
 			}
-			blocking, err := issues_model.GetBlockingDependencyRefs(ctx, issue.ID)
-			if err != nil {
-				log.Error("GetBlockingDependencyRefs: %v", err)
-				return apiIssue
-			}
-			issue.BlockedByRefs = blockedBy
-			issue.BlockingRefs = blocking
 		}
-		apiIssue.BlockedBy = toIssueMetas(issue.BlockedByRefs)
-		apiIssue.Blocking = toIssueMetas(issue.BlockingRefs)
+		if blockedBy == nil {
+			var err error
+			blockedBy, blocking, err = issue_service.GetFilteredDependencyRefs(ctx, doer, issue)
+			if err != nil {
+				log.Error("GetFilteredDependencyRefs: %v", err)
+				return apiIssue
+			}
+		}
+		apiIssue.BlockedBy = toIssueMetas(blockedBy.Visible)
+		apiIssue.Blocking = toIssueMetas(blocking.Visible)
 	}
 
 	return apiIssue
@@ -175,8 +177,11 @@ func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.Iss
 	result := make([]*api.Issue, len(il))
 	_ = il.LoadPinOrder(ctx)
 	if o.IncludeDependencies {
-		if err := il.LoadDependencyRefs(ctx); err != nil {
-			log.Error("LoadDependencyRefs: %v", err)
+		deps, err := issue_service.GetFilteredDependencyRefsForList(ctx, doer, il)
+		if err != nil {
+			log.Error("GetFilteredDependencyRefsForList: %v", err)
+		} else {
+			o.filteredDeps = deps
 		}
 	}
 	for i := range il {
@@ -191,8 +196,11 @@ func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.
 	result := make([]*api.Issue, len(il))
 	_ = il.LoadPinOrder(ctx)
 	if o.IncludeDependencies {
-		if err := il.LoadDependencyRefs(ctx); err != nil {
-			log.Error("LoadDependencyRefs: %v", err)
+		deps, err := issue_service.GetFilteredDependencyRefsForList(ctx, doer, il)
+		if err != nil {
+			log.Error("GetFilteredDependencyRefsForList: %v", err)
+		} else {
+			o.filteredDeps = deps
 		}
 	}
 	for i := range il {
