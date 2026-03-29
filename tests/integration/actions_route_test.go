@@ -116,14 +116,28 @@ func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	user2Session := loginUser(t, user2.Name)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	smallIDRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 80})
-	smallIDJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 170})
-	otherSmallJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 180})
-	normalRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 1500})
-	normalRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 1600})
-	collisionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 2400})
-	collisionJob0 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 2600})
-	collisionJob1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 2601})
+
+	// A small ID-based run/job pair that should always resolve directly.
+	smallIDRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 80, Index: 20})
+	smallIDJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 170, RunID: smallIDRun.ID})
+	// Another small run used to provide a job ID that belongs to a different run.
+	otherSmallRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 90, Index: 30})
+	otherSmallJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 180, RunID: otherSmallRun.ID})
+
+	// A large-ID run whose legacy run index should redirect to its ID-based URL.
+	normalRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 1500, Index: 900})
+	normalRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 1600, RunID: normalRun.ID})
+	// A run whose index collides with normalRun.ID to exercise summary-page ID-first behavior.
+	collisionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 2400, Index: 1500})
+	collisionJobIdx0 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 2600, RunID: collisionRun.ID})
+	collisionJobIdx1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 2601, RunID: collisionRun.ID})
+
+	// A small ID-based run/job pair that collides with a different legacy run/job index pair.
+	ambiguousIDRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 3, Index: 1})
+	ambiguousIDJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 4, RunID: ambiguousIDRun.ID})
+	// The legacy run/job target for the ambiguous /runs/3/jobs/4 URL.
+	ambiguousLegacyRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 1501, Index: 3})
+	ambiguousLegacyJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 1605, RunID: ambiguousLegacyRun.ID}) // job_index=4
 
 	t.Run("OnlyRunID", func(t *testing.T) {
 		// ID-based URLs must be valid
@@ -139,10 +153,15 @@ func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 		resp := user2Session.MakeRequest(t, req, http.StatusFound)
 		assert.Equal(t, fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo.Name, normalRun.ID), resp.Header().Get("Location"))
 
-		// Best-effort compatibility prefers the run ID when the same number also exists as a legacy run index in the repo.
+		// Best-effort compatibility prefers the run ID when the same number also exists as a legacy run index.
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo.Name, collisionRun.Index))
 		resp = user2Session.MakeRequest(t, req, http.StatusOK)
-		assert.Contains(t, resp.Body.String(), fmt.Sprintf(`data-run-id="%d"`, normalRun.ID))
+		assert.Contains(t, resp.Body.String(), fmt.Sprintf(`data-run-id="%d"`, normalRun.ID)) // because collisionRun.Index == normalRun.ID
+
+		// by_index=1 should force the summary page to use the legacy run index interpretation.
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d?by_index=1", user2.Name, repo.Name, collisionRun.Index))
+		resp = user2Session.MakeRequest(t, req, http.StatusFound)
+		assert.Equal(t, fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo.Name, collisionRun.ID), resp.Header().Get("Location"))
 	})
 
 	t.Run("RunIDAndJobID", func(t *testing.T) {
@@ -154,15 +173,35 @@ func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 	})
 
 	t.Run("RunIndexAndJobIndex", func(t *testing.T) {
-		// legacy job index 0 should redirect to the first job's ID
-		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/0", user2.Name, repo.Name, collisionRun.Index))
+		// /user2/repo2/actions/runs/3/jobs/4 is ambiguous:
+		//   - it may resolve as the ID-based URL for run_id=3/job_id=4,
+		//   - or as the legacy index-based URL for run_index=3/job_index=4 which should redirect to run_id=1501/job_id=1605.
+		idBasedURL := fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, ambiguousIDRun.ID, ambiguousIDJob.ID)
+		indexBasedURL := fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, ambiguousLegacyRun.Index, 4)
+		assert.Equal(t, idBasedURL, indexBasedURL)
+		// When both interpretations are valid, prefer the legacy index-based target.
+		req := NewRequest(t, "GET", indexBasedURL)
 		resp := user2Session.MakeRequest(t, req, http.StatusFound)
-		assert.Equal(t, fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, collisionRun.ID, collisionJob0.ID), resp.Header().Get("Location"))
+		redirectURL := fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, ambiguousLegacyRun.ID, ambiguousLegacyJob.ID)
+		assert.Equal(t, redirectURL, resp.Header().Get("Location"))
+		// Users can still access the ID-based interpretation manually with query param `by_id=1`.
+		req = NewRequest(t, "GET", idBasedURL+"?by_id=1")
+		user2Session.MakeRequest(t, req, http.StatusOK)
+
+		// by_index=1 should explicitly force the same legacy run/job index interpretation.
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d?by_index=1", user2.Name, repo.Name, ambiguousLegacyRun.Index, ambiguousIDJob.ID))
+		resp = user2Session.MakeRequest(t, req, http.StatusFound)
+		assert.Equal(t, redirectURL, resp.Header().Get("Location"))
+
+		// legacy job index 0 should redirect to the first job's ID
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/0", user2.Name, repo.Name, collisionRun.Index))
+		resp = user2Session.MakeRequest(t, req, http.StatusFound)
+		assert.Equal(t, fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, collisionRun.ID, collisionJobIdx0.ID), resp.Header().Get("Location"))
 
 		// legacy job index 1 should redirect to the second job's ID
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/1", user2.Name, repo.Name, collisionRun.Index))
 		resp = user2Session.MakeRequest(t, req, http.StatusFound)
-		assert.Equal(t, fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, collisionRun.ID, collisionJob1.ID), resp.Header().Get("Location"))
+		assert.Equal(t, fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, collisionRun.ID, collisionJobIdx1.ID), resp.Header().Get("Location"))
 	})
 
 	t.Run("InvalidURLs", func(t *testing.T) {

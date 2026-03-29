@@ -18,6 +18,10 @@ import (
 	"xorm.io/builder"
 )
 
+// MaxJobNumPerRun is the maximum number of jobs in a single run.
+// https://docs.github.com/en/actions/reference/limits#existing-system-limits
+const MaxJobNumPerRun = 256
+
 // ActionRunJob represents a job of a run
 type ActionRunJob struct {
 	ID                int64

@@ -172,6 +172,28 @@
   commit_sha: "1111111111111111111111111111111111111111"
   event: "push"
   trigger_event: "push"
+  event_payload: '{"head_commit":{"id":"1111111111111111111111111111111111111111"}}'
+  is_fork_pull_request: 0
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+  created: 1683636108
+  updated: 1683636626
+  need_approval: 0
+  approved_by: 0
+-
+  id: 3
+  title: "legacy route ambiguous id"
+  repo_id: 2
+  owner_id: 2
+  workflow_id: "legacy-route.yml"
+  index: 1
+  trigger_user_id: 2
+  ref: "refs/heads/master"
+  commit_sha: "5555555555555555555555555555555555555555"
+  event: "push"
+  trigger_event: "push"
+  event_payload: '{"head_commit":{"id":"5555555555555555555555555555555555555555"}}'
   is_fork_pull_request: 0
   status: 1
   started: 1683636528
@@ -192,6 +214,7 @@
   commit_sha: "2222222222222222222222222222222222222222"
   event: "push"
   trigger_event: "push"
+  event_payload: '{"head_commit":{"id":"2222222222222222222222222222222222222222"}}'
   is_fork_pull_request: 0
   status: 1
   started: 1683636528
@@ -212,6 +235,28 @@
   commit_sha: "3333333333333333333333333333333333333333"
   event: "push"
   trigger_event: "push"
+  event_payload: '{"head_commit":{"id":"3333333333333333333333333333333333333333"}}'
+  is_fork_pull_request: 0
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+  created: 1683636108
+  updated: 1683636626
+  need_approval: 0
+  approved_by: 0
+-
+  id: 1501
+  title: "legacy route ambiguous legacy"
+  repo_id: 2
+  owner_id: 2
+  workflow_id: "legacy-route.yml"
+  index: 3
+  trigger_user_id: 2
+  ref: "refs/heads/master"
+  commit_sha: "6666666666666666666666666666666666666666"
+  event: "push"
+  trigger_event: "push"
+  event_payload: '{"head_commit":{"id":"6666666666666666666666666666666666666666"}}'
   is_fork_pull_request: 0
   status: 1
   started: 1683636528
@@ -232,6 +277,7 @@
   commit_sha: "4444444444444444444444444444444444444444"
   event: "push"
   trigger_event: "push"
+  event_payload: '{"head_commit":{"id":"4444444444444444444444444444444444444444"}}'
   is_fork_pull_request: 0
   status: 1
   started: 1683636528

@@ -158,6 +158,19 @@
   started: 1683636528
   stopped: 1683636626
 -
+  id: 4
+  run_id: 3
+  repo_id: 2
+  owner_id: 2
+  commit_sha: "5555555555555555555555555555555555555555"
+  is_fork_pull_request: 0
+  name: legacy-ambiguous-id-job
+  attempt: 1
+  job_id: legacy-ambiguous-id-job
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+-
   id: 180
   run_id: 90
   repo_id: 2
@@ -180,6 +193,71 @@
   name: legacy-normal-job
   attempt: 1
   job_id: legacy-normal-job
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+-
+  id: 1601
+  run_id: 1501
+  repo_id: 2
+  owner_id: 2
+  commit_sha: "6666666666666666666666666666666666666666"
+  is_fork_pull_request: 0
+  name: legacy-ambiguous-legacy-job-0
+  attempt: 1
+  job_id: legacy-ambiguous-legacy-job-0
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+-
+  id: 1602
+  run_id: 1501
+  repo_id: 2
+  owner_id: 2
+  commit_sha: "6666666666666666666666666666666666666666"
+  is_fork_pull_request: 0
+  name: legacy-ambiguous-legacy-job-1
+  attempt: 1
+  job_id: legacy-ambiguous-legacy-job-1
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+-
+  id: 1603
+  run_id: 1501
+  repo_id: 2
+  owner_id: 2
+  commit_sha: "6666666666666666666666666666666666666666"
+  is_fork_pull_request: 0
+  name: legacy-ambiguous-legacy-job-2
+  attempt: 1
+  job_id: legacy-ambiguous-legacy-job-2
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+-
+  id: 1604
+  run_id: 1501
+  repo_id: 2
+  owner_id: 2
+  commit_sha: "6666666666666666666666666666666666666666"
+  is_fork_pull_request: 0
+  name: legacy-ambiguous-legacy-job-3
+  attempt: 1
+  job_id: legacy-ambiguous-legacy-job-3
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+-
+  id: 1605
+  run_id: 1501
+  repo_id: 2
+  owner_id: 2
+  commit_sha: "6666666666666666666666666666666666666666"
+  is_fork_pull_request: 0
+  name: legacy-ambiguous-legacy-job-4
+  attempt: 1
+  job_id: legacy-ambiguous-legacy-job-4
   status: 1
   started: 1683636528
   stopped: 1683636626

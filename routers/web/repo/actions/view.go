@@ -68,11 +68,17 @@ func getCurrentRunByPathParam(ctx *context_module.Context) (run *actions_model.A
 	return run
 }
 
-// resolveCurrentRunForView resolves GET Actions page URLs and provides compatibility for both id-based URLs and legacy index-based URLs.
-// For run summary pages (no {job} path parameter), use a best-effort ID-first fallback.
-// For job pages, probe run/job IDs first and fall back to legacy index-based resolution.
+// resolveCurrentRunForView resolves GET Actions page URLs and supports both ID-based and legacy index-based forms.
+//
+// By default, run summary pages use a best-effort ID-first fallback,
+// job pages try to confirm an ID-based URL first and prefer the legacy interpretation when both are valid.
+//
+// `by_id=1` param explicitly forces the ID-based path, and `by_index=1` explicitly forces the legacy index-based path.
+// If both are present, `by_id` takes precedence.
 func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.ActionRun {
-	if ctx.PathParam("run") == "latest" {
+	// `by_id` explicitly requests ID-based resolution, so the request skips the legacy index-based disambiguation logic and resolves the run by ID directly.
+	// It takes precedence over `by_index` when both query parameters are present.
+	if ctx.PathParam("run") == "latest" || ctx.FormBool("by_id") {
 		return getCurrentRunByPathParam(ctx)
 	}
 
@@ -82,22 +88,28 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 		return nil
 	}
 
+	byIndex := ctx.FormBool("by_index")
+
 	if ctx.PathParam("job") == "" {
-		// The URL does not contain a {job} path parameter, so it cannot use the job-specific rules to disambiguate IDs from legacy indexes.
-		// Because of that, this path is handled with a best-effort ID-first fallback.
+		// The URL does not contain a {job} path parameter, so it cannot use the
+		// job-specific rules to disambiguate ID-based URLs from legacy index-based URLs.
+		// Because of that, this path is handled with a best-effort ID-first fallback by default.
 		//
 		// When the same repository contains:
 		//  - a run whose ID matches runNum, and
 		//  - a different run whose repo-scope index also matches runNum
-		// this path prefers the ID match and may show a different run than the old legacy URL originally intended.
+		// this path prefers the ID match and may show a different run than the old legacy URL originally intended,
+		// unless `by_index=1` explicitly forces the legacy index-based interpretation.
 
-		runByID, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runNum)
-		if err == nil {
-			return runByID
-		}
-		if !errors.Is(err, util.ErrNotExist) {
-			ctx.ServerError("GetRun:"+ctx.PathParam("run"), err)
-			return nil
+		if !byIndex {
+			runByID, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runNum)
+			if err == nil {
+				return runByID
+			}
+			if !errors.Is(err, util.ErrNotExist) {
+				ctx.ServerError("GetRun:"+ctx.PathParam("run"), err)
+				return nil
+			}
 		}
 
 		runByIndex, err := actions_model.GetRunByRepoAndIndex(ctx, ctx.Repo.Repository.ID, runNum)
@@ -119,11 +131,17 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 		return nil
 	}
 
+	// A job index should not be larger than MaxJobNumPerRun, so larger values can skip the legacy index-based path and be treated as job IDs directly.
+	if !byIndex && jobNum >= actions_model.MaxJobNumPerRun {
+		return getCurrentRunByPathParam(ctx)
+	}
+
+	var runByID, runByIndex *actions_model.ActionRun
+	var targetJobByIndex *actions_model.ActionRunJob
+
 	// Each run must have at least one job, so a valid job ID in the same run cannot be smaller than the run ID.
-	// Only in that range do we probe the repo-scoped job ID before falling back to legacy index resolution.
-	if jobNum >= runNum {
+	if !byIndex && jobNum >= runNum {
 		// Probe the repo-scoped job ID first and only accept it when the job exists and belongs to the same runNum.
-		// If that match cannot be confirmed, fall through and continue with the legacy run-index/job-index resolution below.
 		job, err := actions_model.GetRunJobByRepoAndID(ctx, ctx.Repo.Repository.ID, jobNum)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			ctx.ServerError("GetRunJobByRepoAndID", err)
@@ -135,34 +153,56 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 				return nil
 			}
 			if job.Run.ID == runNum {
-				return job.Run
+				runByID = job.Run
 			}
 		}
 	}
 
-	// Reaching this point means the URL could not be confirmed as ID-based by runNum and jobNum.
-	// It must either be a legacy index-based URL or an invalid one.
+	// Try to resolve the request as a legacy run-index/job-index URL.
+	{
+		run, err := actions_model.GetRunByRepoAndIndex(ctx, ctx.Repo.Repository.ID, runNum)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			ctx.ServerError("GetRunByRepoAndIndex", err)
+			return nil
+		}
+		if run != nil {
+			jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+			if err != nil {
+				ctx.ServerError("GetRunJobsByRunID", err)
+				return nil
+			}
+			if jobNum < int64(len(jobs)) {
+				runByIndex = run
+				targetJobByIndex = jobs[jobNum]
+			}
+		}
+	}
 
-	run, err := actions_model.GetRunByRepoAndIndex(ctx, ctx.Repo.Repository.ID, runNum)
-	if errors.Is(err, util.ErrNotExist) {
+	if runByID == nil && runByIndex == nil {
 		ctx.NotFound(nil)
 		return nil
 	}
-	if err != nil {
-		ctx.ServerError("GetRunByRepoAndIndex", err)
-		return nil
+
+	if runByID != nil && runByIndex == nil {
+		return runByID
 	}
-	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
-	if err != nil {
-		ctx.ServerError("GetRunJobsByRunID", err)
-		return nil
-	}
-	if jobNum >= int64(len(jobs)) {
-		ctx.NotFound(nil)
+
+	if runByID == nil && runByIndex != nil {
+		ctx.Redirect(fmt.Sprintf("%s/actions/runs/%d/jobs/%d", ctx.Repo.RepoLink, runByIndex.ID, targetJobByIndex.ID), http.StatusFound)
 		return nil
 	}
 
-	ctx.Redirect(fmt.Sprintf("%s/actions/runs/%d/jobs/%d", ctx.Repo.RepoLink, run.ID, jobs[jobNum].ID), http.StatusFound)
+	// Reaching this point means both ID-based and legacy index-based interpretations are valid.
+
+	if runByID.ID == runByIndex.ID && jobNum == targetJobByIndex.ID {
+		// If both interpretations resolve to the same run/job pair, there is no ambiguity and the ID-based URL can be used directly.
+		return runByID
+	}
+
+	// For job pages, prefer the legacy interpretation when both are valid.
+	// Use `by_id=1` query parameter to access the ID-based URL when necessary.
+	redirectTo := fmt.Sprintf("%s/actions/runs/%d/jobs/%d", ctx.Repo.RepoLink, runByIndex.ID, targetJobByIndex.ID)
+	ctx.Redirect(redirectTo, http.StatusFound)
 	return nil
 }
 
