@@ -20,7 +20,6 @@
   "customizations": {
     "vscode": {
       "settings": {},
-      // keep in sync with the project's recommended extensions
       "extensions": [
         "editorconfig.editorconfig",
         "dbaeumer.vscode-eslint",
