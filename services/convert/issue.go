@@ -40,7 +40,7 @@ func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.
 	return toIssue(ctx, doer, issue, APIAssetDownloadURL, mergeOpts(opts))
 }
 
-func toIssueMetas(refs []issues_model.DependencyRef) *[]*api.IssueMeta {
+func toIssueMetas(refs []issues_model.DependencyRef) []*api.IssueMeta {
 	result := make([]*api.IssueMeta, len(refs))
 	for i, r := range refs {
 		result[i] = &api.IssueMeta{
@@ -49,7 +49,7 @@ func toIssueMetas(refs []issues_model.DependencyRef) *[]*api.IssueMeta {
 			Index: r.Index,
 		}
 	}
-	return &result
+	return result
 }
 
 func mergeOpts(opts []ToIssueOptions) ToIssueOptions {

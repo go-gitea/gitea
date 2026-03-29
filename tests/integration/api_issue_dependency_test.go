@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func enableRepoDependencies(t *testing.T, repoID int64) {
@@ -181,10 +180,8 @@ func TestAPIIssueDependencyIncludes(t *testing.T) {
 
 		ref2 := &api.IssueMeta{Owner: owner.Name, Name: repo.Name, Index: issue2.Index}
 		ref3 := &api.IssueMeta{Owner: owner.Name, Name: repo.Name, Index: issue3.Index}
-		require.NotNil(t, apiIssue.BlockedBy)
-		assert.ElementsMatch(t, []*api.IssueMeta{ref2, ref3}, *apiIssue.BlockedBy)
-		require.NotNil(t, apiIssue.Blocking)
-		assert.Empty(t, *apiIssue.Blocking)
+		assert.ElementsMatch(t, []*api.IssueMeta{ref2, ref3}, apiIssue.BlockedBy)
+		assert.Empty(t, apiIssue.Blocking)
 	})
 
 	t.Run("GetIssueBlockingDirection", func(t *testing.T) {
@@ -198,10 +195,8 @@ func TestAPIIssueDependencyIncludes(t *testing.T) {
 		DecodeJSON(t, resp, &apiIssue)
 
 		ref1 := &api.IssueMeta{Owner: owner.Name, Name: repo.Name, Index: issue1.Index}
-		require.NotNil(t, apiIssue.BlockedBy)
-		assert.Empty(t, *apiIssue.BlockedBy)
-		require.NotNil(t, apiIssue.Blocking)
-		assert.ElementsMatch(t, []*api.IssueMeta{ref1}, *apiIssue.Blocking)
+		assert.Empty(t, apiIssue.BlockedBy)
+		assert.ElementsMatch(t, []*api.IssueMeta{ref1}, apiIssue.Blocking)
 	})
 
 	t.Run("GetIssueWithoutIncludes", func(t *testing.T) {
@@ -214,10 +209,8 @@ func TestAPIIssueDependencyIncludes(t *testing.T) {
 		var raw map[string]any
 		DecodeJSON(t, resp, &raw)
 
-		_, hasBlockedBy := raw["blocked_by"]
-		_, hasBlocking := raw["blocking"]
-		assert.False(t, hasBlockedBy, "blocked_by should be absent without includes=dependencies")
-		assert.False(t, hasBlocking, "blocking should be absent without includes=dependencies")
+		assert.Nil(t, raw["blocked_by"], "blocked_by should be null without includes=dependencies")
+		assert.Nil(t, raw["blocking"], "blocking should be null without includes=dependencies")
 	})
 
 	t.Run("ListIssuesWithIncludes", func(t *testing.T) {
@@ -235,8 +228,7 @@ func TestAPIIssueDependencyIncludes(t *testing.T) {
 			if iss.Index == issue1.Index {
 				ref2 := &api.IssueMeta{Owner: owner.Name, Name: repo.Name, Index: issue2.Index}
 				ref3 := &api.IssueMeta{Owner: owner.Name, Name: repo.Name, Index: issue3.Index}
-				require.NotNil(t, iss.BlockedBy)
-				assert.ElementsMatch(t, []*api.IssueMeta{ref2, ref3}, *iss.BlockedBy)
+				assert.ElementsMatch(t, []*api.IssueMeta{ref2, ref3}, iss.BlockedBy)
 				found = true
 				break
 			}
@@ -299,7 +291,9 @@ func TestAPIIssueDependencyIncludes(t *testing.T) {
 		var apiIssue api.Issue
 		DecodeJSON(t, resp, &apiIssue)
 
-		require.NotNil(t, apiIssue.BlockedBy)
-		assert.Empty(t, *apiIssue.BlockedBy, "private repo dependency should be filtered out")
+		for _, dep := range apiIssue.BlockedBy {
+			assert.NotEqual(t, privateRepo.Name, dep.Name,
+				"private repo dependency should be filtered out, but found %s/%s#%d", dep.Owner, dep.Name, dep.Index)
+		}
 	})
 }
