@@ -20,7 +20,7 @@
   "customizations": {
     "vscode": {
       "settings": {},
-      // same extensions as Gitpod, should match /.gitpod.yml
+      // keep in sync with the project's recommended extensions
       "extensions": [
         "editorconfig.editorconfig",
         "dbaeumer.vscode-eslint",
