@@ -629,6 +629,25 @@ func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb
 	return s, u, pf, nil
 }
 
+// RemovePackage deletes the package and all its versions
+func RemovePackage(ctx context.Context, doer *user_model.User, p *packages_model.Package) error {
+	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		PackageID:  p.ID,
+		IsInternal: optional.None[bool](),
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, pv := range pvs {
+		if err := RemovePackageVersion(ctx, doer, pv); err != nil {
+			return err
+		}
+	}
+
+	return packages_model.DeletePackageByID(ctx, p.ID)
+}
+
 // RemoveAllPackages for User
 func RemoveAllPackages(ctx context.Context, userID int64) (int, error) {
 	count := 0

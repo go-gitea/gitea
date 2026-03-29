@@ -10,7 +10,7 @@
 			{{template "user/overview/header" .}}
 		{{end}}
 		{{template "base/alert" .}}
-		<p><a href="{{.PackageDescriptor.VersionWebLink}}">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</a> / <strong>{{ctx.Locale.Tr "repo.settings"}}</strong></p>
+		<p><a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a> / <strong>{{ctx.Locale.Tr "repo.settings"}}</strong></p>
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "packages.settings.link"}}
 		</h4>
@@ -45,7 +45,7 @@
 						</div>
 						<div class="content">
 							<div class="ui warning message tw-break-anywhere">
-								{{ctx.Locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
+								{{ctx.Locale.Tr "packages.settings.delete.notice.package" .PackageDescriptor.Package.Name}}
 							</div>
 							<form class="ui form" action="{{.Link}}" method="post">
 								<input type="hidden" name="action" value="delete">

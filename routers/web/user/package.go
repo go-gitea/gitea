@@ -491,9 +491,28 @@ func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSett
 }
 
 func packageSettingsPostActionDelete(ctx *context.Context) {
-	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
-	if err != nil {
+	pd := ctx.Package.Descriptor
+
+	if err := packages_service.RemovePackage(ctx, ctx.Doer, pd.Package); err != nil {
 		log.Error("Error deleting package: %v", err)
+		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
+	} else {
+		ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
+	}
+
+	ctx.Redirect(ctx.Package.Owner.HomeLink() + "/-/packages")
+}
+
+// PackageVersionDelete deletes a package version
+func PackageVersionDelete(ctx *context.Context) {
+	pd := ctx.Package.Descriptor
+	if pd.Version == nil {
+		ctx.NotFound(nil)
+		return
+	}
+
+	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pd.Version); err != nil {
+		log.Error("Error deleting package version: %v", err)
 		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
 	} else {
 		ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
@@ -501,8 +520,8 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 
 	redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
 	// redirect to the package if there are still versions available
-	if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID, IsInternal: optional.Some(false)}); has {
-		redirectURL = ctx.Package.Descriptor.PackageWebLink()
+	if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: pd.Package.ID, IsInternal: optional.Some(false)}); has {
+		redirectURL = pd.PackageWebLink()
 	}
 
 	ctx.Redirect(redirectURL)

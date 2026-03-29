@@ -70,22 +70,39 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, any)) *Package
 
 	packageType := ctx.PathParam("type")
 	name := ctx.PathParam("name")
-	version := ctx.PathParam("version")
-	if packageType != "" && name != "" && version != "" {
-		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pkg.Owner.ID, packages_model.Type(packageType), name, version)
-		if err != nil {
-			if err == packages_model.ErrPackageNotExist {
-				errCb(http.StatusNotFound, fmt.Errorf("GetVersionByNameAndVersion: %w", err))
-			} else {
-				errCb(http.StatusInternalServerError, fmt.Errorf("GetVersionByNameAndVersion: %w", err))
+	if packageType != "" && name != "" {
+		version := ctx.PathParam("version")
+		if version != "" {
+			pv, err := packages_model.GetVersionByNameAndVersion(ctx, pkg.Owner.ID, packages_model.Type(packageType), name, version)
+			if err != nil {
+				if err == packages_model.ErrPackageNotExist {
+					errCb(http.StatusNotFound, fmt.Errorf("GetVersionByNameAndVersion: %w", err))
+				} else {
+					errCb(http.StatusInternalServerError, fmt.Errorf("GetVersionByNameAndVersion: %w", err))
+				}
+				return pkg
 			}
-			return pkg
-		}
 
-		pkg.Descriptor, err = packages_model.GetPackageDescriptor(ctx, pv)
-		if err != nil {
-			errCb(http.StatusInternalServerError, fmt.Errorf("GetPackageDescriptor: %w", err))
-			return pkg
+			pkg.Descriptor, err = packages_model.GetPackageDescriptor(ctx, pv)
+			if err != nil {
+				errCb(http.StatusInternalServerError, fmt.Errorf("GetPackageDescriptor: %w", err))
+				return pkg
+			}
+		} else {
+			p, err := packages_model.GetPackageByName(ctx, pkg.Owner.ID, packages_model.Type(packageType), name)
+			if err != nil {
+				if err == packages_model.ErrPackageNotExist {
+					errCb(http.StatusNotFound, fmt.Errorf("GetPackageByName: %w", err))
+				} else {
+					errCb(http.StatusInternalServerError, fmt.Errorf("GetPackageByName: %w", err))
+				}
+				return pkg
+			}
+
+			pkg.Descriptor = &packages_model.PackageDescriptor{
+				Package: p,
+				Owner:   pkg.Owner,
+			}
 		}
 	}
 

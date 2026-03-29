@@ -3607,6 +3607,7 @@
   "packages.settings.delete": "Delete package",
   "packages.settings.delete.description": "Deleting a package is permanent and cannot be undone.",
   "packages.settings.delete.notice": "You are about to delete %s (%s). This operation is irreversible, are you sure?",
+  "packages.settings.delete.notice.package": "You are about to delete %s and all its versions. This operation is irreversible, are you sure?",
   "packages.settings.delete.success": "The package has been deleted.",
   "packages.settings.delete.error": "Failed to delete the package.",
   "packages.owner.settings.cargo.title": "Cargo Registry Index",
