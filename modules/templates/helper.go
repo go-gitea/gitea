@@ -6,6 +6,7 @@ package templates
 
 import (
 	"fmt"
+	"html"
 	"html/template"
 	"net/url"
 	"strconv"
@@ -69,6 +70,8 @@ func NewFuncMap() template.FuncMap {
 			return strconv.FormatInt(time.Since(startTime).Nanoseconds()/1e6, 10) + "ms"
 		},
 
+		"AssetURI":     public.AssetURI,
+		"ScriptImport": scriptImport,
 		// -----------------------------------------------------------------
 		// setting
 		"AppName": func() string {
@@ -93,7 +96,6 @@ func NewFuncMap() template.FuncMap {
 		"AppDomain": func() string { // documented in mail-templates.md
 			return setting.Domain
 		},
-		"AssetURI": public.AssetURI,
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
 		},
@@ -301,4 +303,25 @@ func QueryBuild(a ...any) template.URL {
 		}
 	}
 	return template.URL(s)
+}
+
+func scriptImport(attrs ...string) template.HTML {
+	var sb strings.Builder
+	sb.WriteString("<script")
+	for i := 0; i < len(attrs)-1; i += 2 {
+		sb.WriteString(fmt.Sprintf(` %s="%s"`, attrs[i], html.EscapeString(attrs[i+1])))
+	}
+	// the message will be directly put in the onerror JS code's string
+	onErrorPrompt := `Please make sure the asset files can be accessed.`
+	if !setting.IsProd {
+		onErrorPrompt += `\n\nFor development, run: make watch-frontend.`
+	}
+	// add onerror handler to alert users when the script fails to load:
+	// * for end users: there were many users reporting that "UI doesn't work", actually they made mistakes in their config
+	// * for developers: help them to remember to run "make watch-frontend" to build frontend assets
+	onErrorJS := fmt.Sprintf(`alert('Failed to load asset file from ' + this.src + '. %s')`, onErrorPrompt)
+	sb.WriteString(` onerror="`)
+	sb.WriteString(html.EscapeString(onErrorJS))
+	sb.WriteString(`"></script>`)
+	return template.HTML(sb.String())
 }

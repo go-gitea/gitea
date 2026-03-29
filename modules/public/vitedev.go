@@ -75,6 +75,7 @@ func getViteDevProxy() *httputil.ReverseProxy {
 // ViteDevMiddleware proxies matching requests to the Vite dev server.
 // It is registered as middleware in non-production mode and lazily discovers
 // the Vite dev server port from the port file written by the viteDevServerPortPlugin.
+// It is needed because there are container-based development, only Gitea web server's port is exposed.
 func ViteDevMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		if !isViteDevRequest(req) {
