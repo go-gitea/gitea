@@ -104,6 +104,10 @@ export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, pass
   await expect(page.getByRole('link', {name: 'Sign In'})).toBeHidden();
 }
 
+export async function assertNoJsError(page: Page) {
+  await expect(page.locator('.js-global-error')).toHaveCount(0);
+}
+
 export async function logout(page: Page) {
   await page.context().clearCookies(); // workaround issues related to fomantic dropdown
   await page.goto('/');
