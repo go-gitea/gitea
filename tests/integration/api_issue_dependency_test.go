@@ -271,4 +271,35 @@ func TestAPIIssueDependencyIncludes(t *testing.T) {
 		assert.True(t, ok, "blocking should be present as empty array")
 		assert.NotNil(t, blocking)
 	})
+
+	t.Run("CrossRepoDepsFilteredByPermission", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		publicRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		privateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		assert.False(t, publicRepo.IsPrivate)
+		assert.True(t, privateRepo.IsPrivate)
+
+		publicIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: publicRepo.ID, Index: 1})
+		privateIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: privateRepo.ID, Index: 1})
+
+		enableRepoDependencies(t, publicRepo.ID)
+		enableRepoDependencies(t, privateRepo.ID)
+
+		assert.NoError(t, issues_model.CreateIssueDependency(t.Context(), user1, publicIssue, privateIssue))
+
+		outsideUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		outsideToken := getUserToken(t, outsideUser.Name, auth_model.AccessTokenScopeReadIssue)
+
+		publicOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: publicRepo.OwnerID})
+		url := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d?includes=dependencies", publicOwner.Name, publicRepo.Name, publicIssue.Index)
+		req := NewRequest(t, "GET", url).AddTokenAuth(outsideToken)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+
+		require.NotNil(t, apiIssue.BlockedBy)
+		assert.Empty(t, *apiIssue.BlockedBy, "private repo dependency should be filtered out")
+	})
 }
