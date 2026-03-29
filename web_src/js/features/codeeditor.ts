@@ -129,7 +129,7 @@ function updateTheme(monaco: Monaco): void {
 type CreateMonacoOpts = MonacoOpts & {language?: string};
 
 export async function createMonaco(textarea: HTMLTextAreaElement, filename: string, opts: CreateMonacoOpts): Promise<{monaco: Monaco, editor: IStandaloneCodeEditor}> {
-  const monaco = await import(/* webpackChunkName: "monaco" */'monaco-editor');
+  const monaco = await import('../modules/monaco.ts');
 
   initLanguages(monaco);
   let {language, ...other} = opts;

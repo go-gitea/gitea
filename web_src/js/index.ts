@@ -1,29 +1,188 @@
-// bootstrap module must be the first one to be imported, it handles webpack lazy-loading and global errors
-import './bootstrap.ts';
+import '../fomantic/build/fomantic.js';
+import '../css/index.css';
+import type {HtmxResponseInfo} from 'htmx.org';
+import {showErrorToast} from './modules/toast.ts';
 
-// many users expect to use jQuery in their custom scripts (https://docs.gitea.com/administration/customizing-gitea#example-plantuml)
-// so load globals (including jQuery) as early as possible
-import './globals.ts';
+import {initDashboardRepoList} from './features/dashboard.ts';
+import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
+import {initRepoGraphGit} from './features/repo-graph.ts';
+import {initHeatmap} from './features/heatmap.ts';
+import {initImageDiff} from './features/imagediff.ts';
+import {initRepoMigration} from './features/repo-migration.ts';
+import {initRepoProject} from './features/repo-projects.ts';
+import {initTableSort} from './features/tablesort.ts';
+import {initAdminUserListSearchForm} from './features/admin/users.ts';
+import {initAdminConfigs} from './features/admin/config.ts';
+import {initMarkupAnchors} from './markup/anchors.ts';
+import {initNotificationCount} from './features/notification.ts';
+import {initRepoIssueContentHistory} from './features/repo-issue-content.ts';
+import {initStopwatch} from './features/stopwatch.ts';
+import {initRepoFileSearch} from './features/repo-findfile.ts';
+import {initMarkupContent} from './markup/content.ts';
+import {initRepoFileView} from './features/file-view.ts';
+import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
+import {initRepoPullRequestAllowMaintainerEdit, initRepoPullRequestReview, initRepoIssueSidebarDependency, initRepoIssueFilterItemLabel} from './features/repo-issue.ts';
+import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
+import {initRepoTopicBar} from './features/repo-home.ts';
+import {initAdminCommon} from './features/admin/common.ts';
+import {initRepoCodeView} from './features/repo-code.ts';
+import {initSshKeyFormParser} from './features/sshkey-helper.ts';
+import {initUserSettings} from './features/user-settings.ts';
+import {initRepoActivityTopAuthorsChart, initRepoArchiveLinks} from './features/repo-common.ts';
+import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
+import {initRepoDiffView} from './features/repo-diff.ts';
+import {initOrgTeam} from './features/org-team.ts';
+import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
+import {initRepoReleaseNew} from './features/repo-release.ts';
+import {initRepoEditor} from './features/repo-editor.ts';
+import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
+import {initInstall} from './features/install.ts';
+import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
+import {initRepoBranchButton} from './features/repo-branch.ts';
+import {initCommonOrganization} from './features/common-organization.ts';
+import {initRepoWikiForm} from './features/repo-wiki.ts';
+import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
+import {initCopyContent} from './features/copycontent.ts';
+import {initCaptcha} from './features/captcha.ts';
+import {initRepositoryActionView} from './features/repo-actions.ts';
+import {initGlobalTooltips} from './modules/tippy.ts';
+import {initGiteaFomantic} from './modules/fomantic.ts';
+import {initSubmitEventPolyfill} from './utils/dom.ts';
+import {initRepoIssueList} from './features/repo-issue-list.ts';
+import {initCommonIssueListQuickGoto} from './features/common-issue-list.ts';
+import {initRepoContributors} from './features/contributors.ts';
+import {initRepoCodeFrequency} from './features/code-frequency.ts';
+import {initRepoRecentCommits} from './features/recent-commits.ts';
+import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.ts';
+import {initGlobalSelectorObserver} from './modules/observer.ts';
+import {initRepositorySearch} from './features/repo-search.ts';
+import {initColorPickers} from './features/colorpicker.ts';
+import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
+import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
+import {initGlobalFetchAction} from './features/common-fetch-action.ts';
+import {initCommmPageComponents, initGlobalComponent, initGlobalDropdown, initGlobalInput} from './features/common-page.ts';
+import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton} from './features/common-button.ts';
+import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
+import {callInitFunctions} from './modules/init.ts';
+import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
+import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
+import {initGlobalShortcut} from './modules/shortcut.ts';
 
-import './webcomponents/index.ts';
-import './modules/user-settings.ts'; // templates also need to use localUserSettings in inline scripts
-import {onDomReady} from './utils/dom.ts';
+const initStartTime = performance.now();
+const initPerformanceTracer = callInitFunctions([
+  initSubmitEventPolyfill,
+  initGiteaFomantic,
 
-// TODO: There is a bug in htmx, it incorrectly checks "readyState === 'complete'" when the DOM tree is ready and won't trigger DOMContentLoaded
-// Then importing the htmx in our onDomReady will make htmx skip its initialization.
-// If the bug would be fixed (https://github.com/bigskysoftware/htmx/pull/3365), then we can only import htmx in "onDomReady"
-import 'htmx.org';
+  initGlobalComponent,
+  initGlobalDropdown,
+  initGlobalFetchAction,
+  initGlobalTooltips,
+  initGlobalButtonClickOnEnter,
+  initGlobalButtons,
+  initGlobalCopyToClipboardListener,
+  initGlobalEnterQuickSubmit,
+  initGlobalFormDirtyLeaveConfirm,
+  initGlobalComboMarkdownEditor,
+  initGlobalDeleteButton,
+  initGlobalInput,
+  initGlobalShortcut,
 
-onDomReady(async () => {
-  // when navigate before the import complete, there will be an error from webpack chunk loader:
-  // JavaScript promise rejection: Loading chunk index-domready failed.
-  try {
-    await import(/* webpackChunkName: "index-domready" */'./index-domready.ts');
-  } catch (e) {
-    if (e.name === 'ChunkLoadError') {
-      console.error('Error loading index-domready:', e);
-    } else {
-      throw e;
-    }
-  }
+  initCommonOrganization,
+  initCommonIssueListQuickGoto,
+
+  initCompSearchUserBox,
+  initCompWebHookEditor,
+
+  initInstall,
+
+  initCommmPageComponents,
+
+  initHeatmap,
+  initImageDiff,
+  initMarkupAnchors,
+  initMarkupContent,
+  initSshKeyFormParser,
+  initStopwatch,
+  initTableSort,
+  initRepoFileSearch,
+  initCopyContent,
+
+  initAdminCommon,
+  initAdminUserListSearchForm,
+  initAdminConfigs,
+  initAdminSelfCheck,
+
+  initDashboardRepoList,
+
+  initNotificationCount,
+
+  initOrgTeam,
+
+  initRepoActivityTopAuthorsChart,
+  initRepoArchiveLinks,
+  initRepoBranchButton,
+  initRepoCodeView,
+  initBranchSelectorTabs,
+  initRepoEllipsisButton,
+  initRepoDiffCommitBranchesAndTags,
+  initRepoEditor,
+  initRepoGraphGit,
+  initRepoIssueContentHistory,
+  initRepoIssueList,
+  initRepoIssueFilterItemLabel,
+  initRepoIssueSidebarDependency,
+  initRepoMigration,
+  initRepoMigrationStatusChecker,
+  initRepoProject,
+  initRepoPullRequestAllowMaintainerEdit,
+  initRepoPullRequestReview,
+  initRepoReleaseNew,
+  initRepoTopicBar,
+  initRepoViewFileTree,
+  initRepoWikiForm,
+  initRepository,
+  initRepositoryActionView,
+  initRepositorySearch,
+  initRepoContributors,
+  initRepoCodeFrequency,
+  initRepoRecentCommits,
+
+  initCommitStatuses,
+  initCaptcha,
+
+  initUserCheckAppUrl,
+  initUserAuthOauth2,
+  initUserAuthWebAuthn,
+  initUserAuthWebAuthnRegister,
+  initUserSettings,
+  initRepoDiffView,
+  initColorPickers,
+
+  initOAuth2SettingsDisableCheckbox,
+
+  initRepoFileView,
+  initActionsPermissionsForm,
+]);
+
+// it must be the last one, then the "querySelectorAll" only needs to be executed once for global init functions.
+initGlobalSelectorObserver(initPerformanceTracer);
+if (initPerformanceTracer) initPerformanceTracer.printResults();
+
+const initDur = performance.now() - initStartTime;
+if (initDur > 500) {
+  console.error(`slow init functions took ${initDur.toFixed(3)}ms`);
+}
+
+// https://htmx.org/events/#htmx:sendError
+type HtmxEvent = Event & {detail: HtmxResponseInfo};
+document.body.addEventListener('htmx:sendError', (event) => {
+  // TODO: add translations
+  showErrorToast(`Network error when calling ${(event as HtmxEvent).detail.requestConfig.path}`);
 });
+// https://htmx.org/events/#htmx:responseError
+document.body.addEventListener('htmx:responseError', (event) => {
+  // TODO: add translations
+  showErrorToast(`Error ${(event as HtmxEvent).detail.xhr.status} when calling ${(event as HtmxEvent).detail.requestConfig.path}`);
+});
+
+document.dispatchEvent(new CustomEvent('gitea:index-ready'));

@@ -47,7 +47,7 @@ export function newRenderPlugin3DViewer(): FileRenderPlugin {
 
     async render(container: HTMLElement, fileUrl: string): Promise<void> {
       // TODO: height and/or max-height?
-      const OV = await import(/* webpackChunkName: "online-3d-viewer" */'online-3d-viewer');
+      const OV = await import('online-3d-viewer');
       const viewer = new OV.EmbeddedViewer(container, {
         backgroundColor: new OV.RGBAColor(59, 68, 76, 0),
         defaultColor: new OV.RGBColor(65, 131, 196),

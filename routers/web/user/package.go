@@ -84,9 +84,9 @@ func ListPackages(ctx *context.Context) {
 			continue
 		}
 
-		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		permission, err := access_model.GetDoerRepoPermission(ctx, pd.Repository, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
+			ctx.ServerError("GetDoerRepoPermission", err)
 			return
 		}
 		repositoryAccessMap[pd.Repository.ID] = permission.HasAnyUnitAccess()
@@ -320,9 +320,9 @@ func ViewPackageVersion(ctx *context.Context) {
 
 	hasRepositoryAccess := false
 	if pd.Repository != nil {
-		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		permission, err := access_model.GetDoerRepoPermission(ctx, pd.Repository, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
+			ctx.ServerError("GetDoerRepoPermission", err)
 			return
 		}
 		hasRepositoryAccess = permission.HasAnyUnitAccess()
