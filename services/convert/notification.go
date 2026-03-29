@@ -25,9 +25,9 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 
 	// since user only get notifications when he has access to use minimal access mode
 	if n.Repository != nil {
-		perm, err := access_model.GetUserRepoPermission(ctx, n.Repository, n.User)
+		perm, err := access_model.GetIndividualUserRepoPermission(ctx, n.Repository, n.User)
 		if err != nil {
-			log.Error("GetUserRepoPermission failed: %v", err)
+			log.Error("GetIndividualUserRepoPermission failed: %v", err)
 			return result
 		}
 		if perm.HasAnyUnitAccessOrPublicAccess() { // if user has been revoked access to repo, do not show repo info

@@ -43,7 +43,7 @@ func renderRepoIssueIconTitle(ctx context.Context, opts markup.RenderIssueIconTi
 	}
 
 	if webCtx.Repo.Repository == nil || dbRepo.ID != webCtx.Repo.Repository.ID {
-		perms, err := access.GetUserRepoPermission(ctx, dbRepo, webCtx.Doer)
+		perms, err := access.GetDoerRepoPermission(ctx, dbRepo, webCtx.Doer)
 		if err != nil {
 			return "", err
 		}
