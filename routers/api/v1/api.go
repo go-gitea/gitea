@@ -202,7 +202,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			if needTwoFactor {
 				ctx.Repo.Permission = access_model.PermissionNoAccess()
 			} else {
-				ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+				ctx.Repo.Permission, err = access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 				if err != nil {
 					ctx.APIErrorInternal(err)
 					return

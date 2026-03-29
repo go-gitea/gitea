@@ -63,11 +63,11 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 
 	repoUserPerm, err := cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, fmt.Sprintf("%d-%d", pr.BaseRepoID, doerID),
 		func(ctx context.Context, _ string) (access_model.Permission, error) {
-			return access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
+			return access_model.GetDoerRepoPermission(ctx, pr.BaseRepo, doer)
 		},
 	)
 	if err != nil {
-		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
+		log.Error("GetDoerRepoPermission[%d]: %v", pr.BaseRepoID, err)
 		repoUserPerm.AccessMode = perm.AccessModeNone
 	}
 
@@ -181,9 +181,9 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if pr.HeadRepo != nil && pr.Flow == issues_model.PullRequestFlowGithub {
-		p, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
+		p, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
 		if err != nil {
-			log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
+			log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
 			p.AccessMode = perm.AccessModeNone
 		}
 
@@ -334,9 +334,9 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 	}
 	defer gitRepo.Close()
 
-	baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, baseRepo, doer)
+	baseRepoPerm, err := access_model.GetDoerRepoPermission(ctx, baseRepo, doer)
 	if err != nil {
-		log.Error("GetUserRepoPermission[%d]: %v", baseRepo.ID, err)
+		log.Error("GetDoerRepoPermission[%d]: %v", baseRepo.ID, err)
 		baseRepoPerm.AccessMode = perm.AccessModeNone
 	}
 
@@ -435,9 +435,9 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 				apiPullRequest.Head.Ref = pr.HeadBranch
 			}
 			if pr.HeadRepoID != pr.BaseRepoID {
-				p, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
+				p, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
 				if err != nil {
-					log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
+					log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
 					p.AccessMode = perm.AccessModeNone
 				}
 				apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
