@@ -29,7 +29,7 @@ func getWatchedRepos(ctx *context.APIContext, user *user_model.User, private boo
 
 	repos := make([]*api.Repository, len(watchedRepos))
 	for i, watched := range watchedRepos {
-		permission, err := access_model.GetUserRepoPermission(ctx, watched, user)
+		permission, err := access_model.GetIndividualUserRepoPermission(ctx, watched, user)
 		if err != nil {
 			return nil, 0, err
 		}
