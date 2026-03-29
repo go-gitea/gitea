@@ -16,49 +16,54 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-const maxPushCommitsCount = 1000
+const maxPushCommitsInCommentCount = 1000
 
-func preparePushPullCommentPushActionContent(ctx context.Context, pusher *user_model.User, pr *issues_model.PullRequest, oldCommitID, newCommitID string, isForcePush bool) (data issues_model.PushActionContent, shouldCreate bool, err error) {
+func preparePushPullCommentPushActionContent(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string, isForcePush bool) (data issues_model.PushActionContent, shouldCreate bool, err error) {
 	if isForcePush {
 		// if it's a force push, we need to get the whole pull request commits
 		// the force-push timeline comment should always be created, so all errors are ignored and logged only.
 		mergeBase, err := gitrepo.MergeBase(ctx, pr.BaseRepo, pr.BaseBranch, newCommitID)
 		if err != nil {
-			log.Debug("GetCommitIDsBetween %q..%q failed: %v", mergeBase, newCommitID, err)
+			log.Debug("MergeBase %q..%q failed: %v", mergeBase, newCommitID, err)
 		} else {
-			data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReversed(ctx, pr.BaseRepo, mergeBase, newCommitID, maxPushCommitsCount)
+			data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReversed(ctx, pr.BaseRepo, mergeBase, newCommitID, maxPushCommitsInCommentCount)
 			if err != nil {
-				log.Debug("GetCommitIDsBetween %q..%q failed: %v", mergeBase, newCommitID, err)
+				log.Debug("GetCommitIDsBetweenReversed %q..%q failed: %v", mergeBase, newCommitID, err)
 			}
 		}
 		return data, true, nil
 	}
 
 	// for a normal push, it maybe an empty pull request, only non-empty pull request need to create push comment
-	data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReversed(ctx, pr.BaseRepo, oldCommitID, newCommitID, maxPushCommitsCount)
+	data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReversed(ctx, pr.BaseRepo, oldCommitID, newCommitID, maxPushCommitsInCommentCount)
 	return data, len(data.CommitIDs) > 0, err
 }
 
-func prepareOldCommitCommentsToDelete(ctx context.Context, oldCommitComments []*issues_model.Comment, data *issues_model.PushActionContent) (needDeleteCommentIDs []int64) {
-	commitIDMaps := container.SetOf(data.CommitIDs...)
+func prepareOldCommitCommentsToDelete(ctx context.Context, oldCommitComments []*issues_model.Comment, newData *issues_model.PushActionContent) (needDeleteCommentIDs []int64) {
+	newPushCommitIDMaps := container.SetOf(newData.CommitIDs...)
 	for _, oldCommitComment := range oldCommitComments {
 		oldData, err := oldCommitComment.GetPushActionContent()
 		if err != nil {
 			continue
 		}
 		if oldData.IsForcePush {
+			// old comment is for force push, it should be kept
 			continue
 		}
 
-		oldData.CommitIDs = slices.DeleteFunc(oldData.CommitIDs, func(commitID string) bool { return !commitIDMaps.Contains(commitID) })
+		// remove the old comment's commit IDs which are not in the new push
+		oldData.CommitIDs = slices.DeleteFunc(oldData.CommitIDs, func(oldCommitID string) bool { return !newPushCommitIDMaps.Contains(oldCommitID) })
+		// if old comment doesn't contain any commit ID, then it can be deleted
 		if len(oldData.CommitIDs) == 0 {
 			needDeleteCommentIDs = append(needDeleteCommentIDs, oldCommitComment.ID)
 			continue
 		}
-
-		for _, commitID := range oldData.CommitIDs {
-			data.CommitIDs = slices.DeleteFunc(data.CommitIDs, func(id string) bool { return id == commitID })
+		// remove new comment's commit IDs which are already in old comment
+		for _, oldCommitID := range oldData.CommitIDs {
+			newData.CommitIDs = slices.DeleteFunc(newData.CommitIDs, func(newCommitID string) bool { return newCommitID == oldCommitID })
 		}
+
+		// update the old comment's content (the commit IDs have been changed)
 		updatedOldContent, _ := json.Marshal(oldData)
 		_, err = db.GetEngine(ctx).ID(oldCommitComment.ID).Cols("content").NoAutoTime().Update(&issues_model.Comment{Content: string(updatedOldContent)})
 		if err != nil {
@@ -92,7 +97,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 		return nil, false, nil
 	}
 
-	data, shouldCreate, err := preparePushPullCommentPushActionContent(ctx, pusher, pr, oldCommitID, newCommitID, isForcePush)
+	data, shouldCreate, err := preparePushPullCommentPushActionContent(ctx, pr, oldCommitID, newCommitID, isForcePush)
 	if !shouldCreate {
 		return nil, false, err
 	}
@@ -106,6 +111,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 		}
 
 		if len(data.CommitIDs) > 0 {
+			// if the push has commit IDs, add a "normal push" commit comment
 			dataJSON, _ := json.Marshal(data)
 			opts := &issues_model.CreateCommentOptions{
 				Type:    issues_model.CommentTypePullRequestPush,
@@ -138,9 +144,5 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 		}
 		return comment, nil
 	})
-
-	if err != nil {
-		return nil, false, err
-	}
-	return comment, true, nil
+	return comment, comment != nil, err
 }
