@@ -26,16 +26,16 @@ func preparePushPullCommentPushActionContent(ctx context.Context, pr *issues_mod
 		if err != nil {
 			log.Debug("MergeBase %q..%q failed: %v", mergeBase, newCommitID, err)
 		} else {
-			data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReversed(ctx, pr.BaseRepo, mergeBase, newCommitID, maxPushCommitsInCommentCount)
+			data.CommitIDs, err = gitrepo.GetLastCommitIDsBetween(ctx, pr.BaseRepo, mergeBase, newCommitID, maxPushCommitsInCommentCount)
 			if err != nil {
-				log.Debug("GetCommitIDsBetweenReversed %q..%q failed: %v", mergeBase, newCommitID, err)
+				log.Debug("GetLastCommitIDsBetween %q..%q failed: %v", mergeBase, newCommitID, err)
 			}
 		}
 		return data, true, nil
 	}
 
 	// for a normal push, it maybe an empty pull request, only non-empty pull request need to create push comment
-	data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReversed(ctx, pr.BaseRepo, oldCommitID, newCommitID, maxPushCommitsInCommentCount)
+	data.CommitIDs, err = gitrepo.GetLastCommitIDsBetween(ctx, pr.BaseRepo, oldCommitID, newCommitID, maxPushCommitsInCommentCount)
 	return data, len(data.CommitIDs) > 0, err
 }
 
