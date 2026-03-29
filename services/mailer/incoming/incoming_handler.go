@@ -67,7 +67,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 		return err
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (h *UnsubscribeHandler) Handle(ctx context.Context, _ *MailContent, doer *u
 			return err
 		}
 
-		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+		perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return err
 		}

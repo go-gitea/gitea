@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup/internal"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -237,10 +238,10 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 			return renderIFrame(ctx, extOpts.ContentSandbox, output)
 		}
 		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
-		extraStyleHref := setting.AppSubURL + "/assets/css/external-render-iframe.css"
-		extraScriptSrc := setting.AppSubURL + "/assets/js/external-render-iframe.js"
+		extraStyleHref := public.AssetURI("css/external-render-iframe.css")
+		extraScriptSrc := public.AssetURI("js/external-render-iframe.js")
 		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
-		extraHeadHTML = htmlutil.HTMLFormat(`<script src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraStyleHref)
+		extraHeadHTML = htmlutil.HTMLFormat(`<script type="module" src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraStyleHref)
 	}
 
 	ctx.usedByRender = true

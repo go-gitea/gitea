@@ -157,7 +157,7 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 				continue
 			}
 
-			perm, err := access_model.GetUserRepoPermission(ctx, refRepo, doer)
+			perm, err := access_model.GetDoerRepoPermission(ctx, refRepo, doer)
 			if err != nil {
 				return err
 			}

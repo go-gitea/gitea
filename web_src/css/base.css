@@ -393,12 +393,6 @@ img.ui.avatar,
   aspect-ratio: 1;
 }
 
-.ui.error.message .header,
-.ui.warning.message .header {
-  color: inherit;
-  filter: saturate(2);
-}
-
 .full.height {
   flex-grow: 1;
   padding-bottom: var(--page-space-bottom);
@@ -544,6 +538,58 @@ strong.attention-caution, svg.attention-caution {
 overflow-menu {
   border-bottom: 1px solid var(--color-secondary) !important;
   display: flex;
+  position: relative;
+}
+
+overflow-menu .overflow-menu-popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 100;
+  background-color: var(--color-menu);
+  color: var(--color-text);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  box-shadow: 0 6px 18px var(--color-shadow);
+  padding: 4px 0;
+}
+
+overflow-menu .overflow-menu-popup::before,
+overflow-menu .overflow-menu-popup::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  border: 8px solid transparent;
+}
+
+overflow-menu .overflow-menu-popup::before {
+  bottom: 100%;
+  border-bottom-color: var(--color-secondary);
+}
+
+overflow-menu .overflow-menu-popup::after {
+  bottom: calc(100% - 1px);
+  border-bottom-color: var(--color-menu);
+}
+
+overflow-menu .overflow-menu-popup > .item {
+  display: flex;
+  align-items: center;
+  padding: 9px 18px !important;
+  color: var(--color-text) !important;
+  background: transparent !important;
+  text-decoration: none;
+  gap: 10px;
+  width: 100%;
+}
+
+overflow-menu .overflow-menu-popup > .item:hover,
+overflow-menu .overflow-menu-popup > .item:focus {
+  background: var(--color-hover) !important;
+}
+
+overflow-menu .overflow-menu-popup > .item.active {
+  background: var(--color-active) !important;
 }
 
 overflow-menu .overflow-menu-items {
@@ -814,9 +860,7 @@ table th[data-sortt-desc] .svg {
 
 .btn,
 .ui.ui.dropdown,
-.flex-text-inline,
-.flex-text-inline > a,
-.flex-text-inline > span {
+.flex-text-inline {
   display: inline-flex;
   align-items: center;
   gap: var(--gap-inline);

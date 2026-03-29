@@ -200,7 +200,7 @@ func ToStopWatches(ctx context.Context, doer *user_model.User, sws []*issues_mod
 		// ADD: Check user permissions
 		perm, ok := permCache[repo.ID]
 		if !ok {
-			perm, err = access_model.GetUserRepoPermission(ctx, repo, doer)
+			perm, err = access_model.GetDoerRepoPermission(ctx, repo, doer)
 			if err != nil {
 				continue
 			}
@@ -234,7 +234,7 @@ func ToTrackedTimeList(ctx context.Context, doer *user_model.User, tl issues_mod
 			continue
 		}
 		perm, err := cache.GetWithEphemeralCache(ctx, permCache, "repo-perm", t.Issue.RepoID, func(ctx context.Context, repoID int64) (access_model.Permission, error) {
-			return access_model.GetUserRepoPermission(ctx, t.Issue.Repo, doer)
+			return access_model.GetDoerRepoPermission(ctx, t.Issue.Repo, doer)
 		})
 		if err != nil {
 			continue
