@@ -540,7 +540,11 @@ func TestAPIIssueProjectMeta(t *testing.T) {
 	t.Run("IssueWithoutProject", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/4", owner.Name, repo.Name)).AddTokenAuth(token)
+		repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		owner2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo2.OwnerID})
+		token2 := getTokenForLoggedInUser(t, loginUser(t, owner2.Name), auth_model.AccessTokenScopeReadIssue)
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/1", owner2.Name, repo2.Name)).AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusOK)
 		var apiIssue api.Issue
 		DecodeJSON(t, resp, &apiIssue)
