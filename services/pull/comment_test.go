@@ -70,7 +70,7 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 
 		// force push, the old push comments should be deleted, and one new force-push comment should be created.
 		// the pushed branch is the same as base branch, so no commit between old and new commit, no regular push comment
-		comment, err := CreatePushPullComment(t.Context(), pusher, pr, baseCommit.ID.String(), baseCommit.ID.String(), true)
+		comment, _, err := CreatePushPullComment(t.Context(), pusher, pr, baseCommit.ID.String(), baseCommit.ID.String(), true)
 		require.NoError(t, err)
 		require.NotNil(t, comment)
 		assertCommitCommentCount(t, 1, 1)
@@ -87,7 +87,7 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		require.NoError(t, err)
 
 		commitIDZero := git.Sha1ObjectFormat.EmptyObjectID().String()
-		comment, err := CreatePushPullComment(t.Context(), pusher, pr, commitIDZero, headCommit.ID.String(), true)
+		comment, _, err := CreatePushPullComment(t.Context(), pusher, pr, commitIDZero, headCommit.ID.String(), true)
 		require.NoError(t, err)
 		require.NotNil(t, comment)
 		createdData, err := comment.GetPushActionContent()
@@ -97,7 +97,7 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		assertCommitCommentCount(t, 2, 1)
 
 		// force push again, the old force push comment should not be deleted, new we have 2 force push comments.
-		_, err = CreatePushPullComment(t.Context(), pusher, pr, commitIDZero, headCommit.ID.String(), true)
+		_, _, err = CreatePushPullComment(t.Context(), pusher, pr, commitIDZero, headCommit.ID.String(), true)
 		require.NoError(t, err)
 		assertCommitCommentCount(t, 3, 2)
 	})
@@ -115,7 +115,7 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
 		require.NoError(t, err)
 
-		_, err = CreatePushPullComment(t.Context(), pusher, pr, baseCommit.ID.String(), headCommit.ID.String(), true)
+		_, _, err = CreatePushPullComment(t.Context(), pusher, pr, baseCommit.ID.String(), headCommit.ID.String(), true)
 		require.NoError(t, err)
 		// 2 comments should exist now: one regular push comment and one force-push comment.
 		assertCommitCommentCount(t, 2, 1)

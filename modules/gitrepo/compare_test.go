@@ -48,6 +48,7 @@ func TestGetCommitIDsBetweenReversed(t *testing.T) {
 	commitIDs, err := GetCommitIDsBetweenReversed(t.Context(), repo,
 		"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
 		"ce064814f4a0d337b333e646ece456cd39fab612",
+		100,
 	)
 
 	assert.NoError(t, err)
@@ -63,6 +64,7 @@ func TestGetCommitIDsBetweenReversed(t *testing.T) {
 	commitIDs, err = GetCommitIDsBetweenReversed(t.Context(), repo,
 		"test",
 		"master",
+		100,
 	)
 
 	assert.NoError(t, err)

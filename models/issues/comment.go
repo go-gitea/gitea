@@ -350,9 +350,7 @@ func (c *Comment) GetPushActionContent() (*PushActionContent, error) {
 		return nil, errors.New("not a pull request push comment")
 	}
 	var data PushActionContent
-	if err := json.Unmarshal([]byte(c.Content), &data); err != nil {
-		return nil, err
-	}
+	_ = json.Unmarshal(util.UnsafeStringToBytes(c.Content), &data)
 	return &data, nil
 }
 
