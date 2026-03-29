@@ -83,8 +83,8 @@ type Issue struct {
 
 	PinOrder int `json:"pin_order"`
 
-	BlockedBy []*IssueMeta `json:"blocked_by,omitzero"`
-	Blocking  []*IssueMeta `json:"blocking,omitzero"`
+	BlockedBy *[]*IssueMeta `json:"blocked_by,omitempty"`
+	Blocking  *[]*IssueMeta `json:"blocking,omitempty"`
 }
 
 // CreateIssueOption options to create one issue
