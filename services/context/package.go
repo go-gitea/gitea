@@ -4,6 +4,7 @@
 package context
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -75,7 +76,7 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, any)) *Package
 		if version != "" {
 			pv, err := packages_model.GetVersionByNameAndVersion(ctx, pkg.Owner.ID, packages_model.Type(packageType), name, version)
 			if err != nil {
-				if err == packages_model.ErrPackageNotExist {
+				if errors.Is(err, packages_model.ErrPackageNotExist) {
 					errCb(http.StatusNotFound, fmt.Errorf("GetVersionByNameAndVersion: %w", err))
 				} else {
 					errCb(http.StatusInternalServerError, fmt.Errorf("GetVersionByNameAndVersion: %w", err))
@@ -91,7 +92,7 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, any)) *Package
 		} else {
 			p, err := packages_model.GetPackageByName(ctx, pkg.Owner.ID, packages_model.Type(packageType), name)
 			if err != nil {
-				if err == packages_model.ErrPackageNotExist {
+				if errors.Is(err, packages_model.ErrPackageNotExist) {
 					errCb(http.StatusNotFound, fmt.Errorf("GetPackageByName: %w", err))
 				} else {
 					errCb(http.StatusInternalServerError, fmt.Errorf("GetPackageByName: %w", err))
