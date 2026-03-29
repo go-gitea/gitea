@@ -22,16 +22,16 @@ import (
 var catFileBatchDebugWaitClose atomic.Int64
 
 type catFileBatchCommunicator struct {
-	cancel      context.CancelFunc
+	closeFunc   func(err error)
 	reqWriter   io.Writer
 	respReader  *bufio.Reader
 	debugGitCmd *gitcmd.Command
 }
 
 func (b *catFileBatchCommunicator) Close() {
-	if b.cancel != nil {
-		b.cancel()
-		b.cancel = nil
+	if b.closeFunc != nil {
+		b.closeFunc(nil)
+		b.closeFunc = nil
 	}
 }
 
@@ -47,10 +47,19 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 		}
 		stdPipeClose()
 	}
+	closeFunc := func(err error) {
+		ctxCancel(err)
+		pipeClose()
+	}
+	return newCatFileBatchWithCloseFunc(ctx, repoPath, cmdCatFile, stdinWriter, stdoutReader, closeFunc)
+}
 
-	ret = &catFileBatchCommunicator{
+func newCatFileBatchWithCloseFunc(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Command,
+	stdinWriter gitcmd.PipeWriter, stdoutReader gitcmd.PipeReader, closeFunc func(err error),
+) *catFileBatchCommunicator {
+	ret := &catFileBatchCommunicator{
 		debugGitCmd: cmdCatFile,
-		cancel:      func() { ctxCancel(nil) },
+		closeFunc:   closeFunc,
 		reqWriter:   stdinWriter,
 		respReader:  bufio.NewReaderSize(stdoutReader, 32*1024), // use a buffered reader for rich operations
 	}
@@ -60,8 +69,7 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 		log.Error("Unable to start git command %v: %v", cmdCatFile.LogString(), err)
 		// ideally here it should return the error, but it would require refactoring all callers
 		// so just return a dummy communicator that does nothing, almost the same behavior as before, not bad
-		ctxCancel(err)
-		pipeClose()
+		closeFunc(err)
 		return ret
 	}
 
@@ -70,8 +78,7 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 		if err != nil && !errors.Is(err, context.Canceled) {
 			log.Error("cat-file --batch command failed in repo %s, error: %v", repoPath, err)
 		}
-		ctxCancel(err)
-		pipeClose()
+		closeFunc(err)
 	}()
 
 	return ret
