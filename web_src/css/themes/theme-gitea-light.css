@@ -74,6 +74,7 @@ gitea-theme-meta-info {
   --color-console-active-bg: #d0d7de;
   --color-console-menu-bg: #f8f9fb;
   --color-console-menu-border: #d0d7de;
+  --color-console-link: #5c656d;
   /* named colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
@@ -161,20 +162,20 @@ gitea-theme-meta-info {
   --color-diff-removed-row-border: #f1c0c0;
   --color-diff-removed-word-bg: #fdb8c0;
   --color-diff-inactive: #f0f2f4;
-  --color-error-border: #e0b4b4;
-  --color-error-bg: #fff6f6;
-  --color-error-bg-active: #fbb;
-  --color-error-bg-hover: #fdd;
-  --color-error-text: #9f3a38;
-  --color-success-border: #a3c293;
-  --color-success-bg: #fcfff5;
-  --color-success-text: #2c662d;
-  --color-warning-border: #c9ba9b;
-  --color-warning-bg: #fffaf3;
-  --color-warning-text: #573a08;
-  --color-info-border: #a9d5de;
-  --color-info-bg: #f8ffff;
-  --color-info-text: #276f86;
+  --color-error-border: #ff818266;
+  --color-error-bg: #ffebe9;
+  --color-error-bg-active: #ffcecb;
+  --color-error-bg-hover: #ffdcd7;
+  --color-error-text: var(--color-text);
+  --color-success-border: #4ac26b66;
+  --color-success-bg: #dafbe1;
+  --color-success-text: var(--color-text);
+  --color-warning-border: #d4a72c66;
+  --color-warning-bg: #fff8c5;
+  --color-warning-text: var(--color-text);
+  --color-info-border: #54aeff66;
+  --color-info-bg: #ddf4ff;
+  --color-info-text: var(--color-text);
   --color-red-badge: #db2828;
   --color-red-badge-bg: #db28281a;
   --color-red-badge-hover-bg: #db28284d;
@@ -207,7 +208,6 @@ gitea-theme-meta-info {
   --color-input-toggle-background: #d0d7de;
   --color-input-border: var(--color-secondary-dark-1);
   --color-light: #00001706;
-  --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000171d;
   --color-hover: #00001708;
   --color-hover-opaque: #f1f3f5; /* TODO: color-mix(in srgb, var(--color-body), var(--color-hover)); */
@@ -248,6 +248,7 @@ gitea-theme-meta-info {
   --color-danger: var(--color-red);
   --color-transparency-grid-light: #fafafa;
   --color-transparency-grid-dark: #e2e2e2;
+  --color-workflow-edge-hover: #b1b7bd;
   accent-color: var(--color-accent);
   color-scheme: light;
 }

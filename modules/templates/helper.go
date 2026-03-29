@@ -6,15 +6,18 @@ package templates
 
 import (
 	"fmt"
+	"html"
 	"html/template"
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/templates/eval"
@@ -68,6 +71,8 @@ func NewFuncMap() template.FuncMap {
 			return strconv.FormatInt(time.Since(startTime).Nanoseconds()/1e6, 10) + "ms"
 		},
 
+		"AssetURI":     public.AssetURI,
+		"ScriptImport": scriptImport,
 		// -----------------------------------------------------------------
 		// setting
 		"AppName": func() string {
@@ -91,9 +96,6 @@ func NewFuncMap() template.FuncMap {
 		},
 		"AppDomain": func() string { // documented in mail-templates.md
 			return setting.Domain
-		},
-		"AssetVersion": func() string {
-			return setting.AssetVersion
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
@@ -302,4 +304,31 @@ func QueryBuild(a ...any) template.URL {
 		}
 	}
 	return template.URL(s)
+}
+
+var globalVars = sync.OnceValue(func() (ret struct {
+	scriptImportRemainingPart string
+},
+) {
+	// add onerror handler to alert users when the script fails to load:
+	// * for end users: there were many users reporting that "UI doesn't work", actually they made mistakes in their config
+	// * for developers: help them to remember to run "make watch-frontend" to build frontend assets
+	// the message will be directly put in the onerror JS code's string
+	onScriptErrorPrompt := `Please make sure the asset files can be accessed.`
+	if !setting.IsProd {
+		onScriptErrorPrompt += `\n\nFor development, run: make watch-frontend.`
+	}
+	onScriptErrorJS := fmt.Sprintf(`alert('Failed to load asset file from ' + this.src + '. %s')`, onScriptErrorPrompt)
+	ret.scriptImportRemainingPart = `onerror="` + html.EscapeString(onScriptErrorJS) + `"></script>`
+	return ret
+})
+
+func scriptImport(path string, typ ...string) template.HTML {
+	if len(typ) > 0 {
+		if typ[0] == "module" {
+			return template.HTML(`<script type="module" src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
+		}
+		panic("unsupported script type: " + typ[0])
+	}
+	return template.HTML(`<script src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
 }

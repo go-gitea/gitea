@@ -23,11 +23,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-var (
-	_ ObjectStorage = &MinioStorage{}
-
-	quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
-)
+var _ ObjectStorage = &MinioStorage{}
 
 type minioObject struct {
 	*minio.Object

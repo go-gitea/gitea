@@ -9,7 +9,7 @@ export function newRenderPluginPdfViewer(): FileRenderPlugin {
     },
 
     async render(container: HTMLElement, fileUrl: string): Promise<void> {
-      const PDFObject = await import(/* webpackChunkName: "pdfobject" */'pdfobject');
+      const PDFObject = await import('pdfobject');
       // TODO: the PDFObject library does not support dynamic height adjustment,
       container.style.height = `${window.innerHeight - 100}px`;
       if (!PDFObject.default.embed(fileUrl, container)) {

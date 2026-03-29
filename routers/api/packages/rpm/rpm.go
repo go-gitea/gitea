@@ -57,7 +57,7 @@ func GetRepositoryKey(ctx *context.Context) {
 		return
 	}
 
-	ctx.ServeContent(strings.NewReader(pub), &context.ServeHeaderOptions{
+	ctx.ServeContent(strings.NewReader(pub), context.ServeHeaderOptions{
 		ContentType: "application/pgp-keys",
 		Filename:    "repository.key",
 	})
@@ -80,7 +80,7 @@ func CheckRepositoryFileExistence(ctx *context.Context) {
 		return
 	}
 
-	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+	ctx.SetServeHeaders(context.ServeHeaderOptions{
 		Filename:     pf.Name,
 		LastModified: pf.CreatedUnix.AsLocalTime(),
 	})

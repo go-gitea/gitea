@@ -887,21 +887,8 @@
 				</div>
 				<form class="ui form" action="{{.Link}}" method="post">
 					<input type="hidden" name="action" value="convert">
-					<div class="field">
-						<label>
-							{{ctx.Locale.Tr "repo.settings.transfer_form_title"}}
-							<span class="tw-text-red">{{.Repository.Name}}</span>
-						</label>
-					</div>
-					<div class="required field">
-						<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
-						<input name="repo_name" required maxlength="100">
-					</div>
-
-					<div class="actions">
-						<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-						<button class="ui red button">{{ctx.Locale.Tr "repo.settings.convert_confirm"}}</button>
-					</div>
+					{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
+					{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.convert_confirm"))}}
 				</form>
 			</div>
 		</div>
@@ -917,21 +904,8 @@
 				</div>
 				<form class="ui form" action="{{.Link}}" method="post">
 					<input type="hidden" name="action" value="convert_fork">
-					<div class="field">
-						<label>
-							{{ctx.Locale.Tr "repo.settings.transfer_form_title"}}
-							<span class="tw-text-red">{{.Repository.Name}}</span>
-						</label>
-					</div>
-					<div class="required field">
-						<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
-						<input name="repo_name" required>
-					</div>
-
-					<div class="actions">
-						<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-						<button class="ui red button">{{ctx.Locale.Tr "repo.settings.convert_fork_confirm"}}</button>
-					</div>
+					{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
+					{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.convert_fork_confirm"))}}
 				</form>
 			</div>
 		</div>
@@ -949,25 +923,13 @@
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				<input type="hidden" name="action" value="transfer">
-				<div class="field">
-					<label>
-						{{ctx.Locale.Tr "repo.settings.transfer_form_title"}}
-						<span class="tw-text-red">{{.Repository.Name}}</span>
-					</label>
-				</div>
-				<div class="required field">
-					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input name="repo_name" required>
-				</div>
+				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
 				<div class="required field">
 					<label for="new_owner_name">{{ctx.Locale.Tr "repo.settings.transfer_owner"}}</label>
 					<input id="new_owner_name" name="new_owner_name" required>
 				</div>
 
-				<div class="actions">
-					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-					<button class="ui red button">{{ctx.Locale.Tr "repo.settings.transfer_perform"}}</button>
-				</div>
+				{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.transfer_perform"))}}
 			</form>
 		</div>
 	</div>
@@ -986,49 +948,57 @@
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				<input type="hidden" name="action" value="delete">
-				<div class="field">
-					<label>
-						{{ctx.Locale.Tr "repo.settings.transfer_form_title"}}
-						<span class="tw-text-red">{{.Repository.Name}}</span>
-					</label>
-				</div>
-				<div class="required field">
-					<label for="repo_name_to_delete">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input id="repo_name_to_delete" name="repo_name" required>
-				</div>
-
-				<div class="actions">
-					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-					<button class="ui red button">{{ctx.Locale.Tr "repo.settings.confirm_delete"}}</button>
-				</div>
+				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
+				{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.confirm_delete"))}}
 			</form>
 		</div>
 	</div>
 
 	{{if not .Repository.IsFork}}
-		<div class="ui g-modal-confirm modal" id="visibility-repo-modal">
+		<div class="ui small modal" id="visibility-repo-modal">
 			<div class="header">
 				{{ctx.Locale.Tr "repo.visibility"}}
 			</div>
 			<div class="content">
-					{{if .Repository.IsPrivate}}
-						<p>{{ctx.Locale.Tr "repo.settings.visibility.public.bullet_title"}}</p>
-						<ul>
-							<li>{{ctx.Locale.Tr "repo.settings.visibility.public.bullet_one"}}</li>
+				{{if .Repository.IsPrivate}}
+					<p>{{ctx.Locale.Tr "repo.settings.visibility.public.bullet_title"}}</p>
+					<ul>
+						<li>{{ctx.Locale.Tr "repo.settings.visibility.public.bullet_one"}}</li>
+					</ul>
+				{{else}}
+					<p>{{ctx.Locale.Tr "repo.settings.visibility.private.bullet_title"}}</p>
+					<ul>
+						<li>{{ctx.Locale.Tr "repo.settings.visibility.private.bullet_one"}}</li>
+						<li>
+							{{ctx.Locale.Tr "repo.settings.visibility.private.bullet_two"}}
+						</li>
+						{{if or .Repository.NumStars .Repository.NumWatches .Repository.NumForks}}
+						<ul class="tw-my-0 tw-pl-4">
+							{{if .Repository.NumStars}}<li>{{ctx.Locale.Tr "repo.settings.visibility.private.stats_stars" .Repository.NumStars}}</li>{{end}}
+							{{if .Repository.NumWatches}}<li>{{ctx.Locale.Tr "repo.settings.visibility.private.stats_watchers" .Repository.NumWatches}}</li>{{end}}
+							{{if .Repository.NumForks}}<li>{{ctx.Locale.Tr "repo.settings.visibility.private.stats_forks" .Repository.NumForks}}</li>{{end}}
 						</ul>
-					{{else}}
-						<p>{{ctx.Locale.Tr "repo.settings.visibility.private.bullet_title"}}</p>
-						<ul>
-							<li>{{ctx.Locale.Tr "repo.settings.visibility.private.bullet_one"}}</li>
-							<li>{{ctx.Locale.Tr "repo.settings.visibility.private.bullet_two"}}{{if .Repository.NumForks}}<span class="tw-text-red">{{ctx.Locale.Tr "repo.visibility_fork_helper"}}</span>{{end}}</li>
-						</ul>
+						{{end}}
+					</ul>
+				{{end}}
+				<form class="ui form tw-mt-5 form-fetch-action" action="{{.Link}}" method="post">
+					<input type="hidden" name="action" value="visibility">
+					<input type="hidden" name="private" value="{{not .Repository.IsPrivate}}">
+					{{if not .Repository.IsPrivate}}
+						<div class="field">
+							<label>
+								{{ctx.Locale.Tr "repo.settings.enter_repo_full_name_to_confirm"}}
+								<span class="tw-text-red">{{.Repository.FullName}}</span>
+							</label>
+						</div>
+						<div class="required field">
+							<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+							<input name="confirm_repo_name" required maxlength="200">
+						</div>
 					{{end}}
+					{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (Iif .Repository.IsPrivate (ctx.Locale.Tr "repo.settings.visibility.public.button") (ctx.Locale.Tr "repo.settings.visibility.private.button")))}}
+				</form>
 			</div>
-			<form action="{{.Link}}" method="post">
-				<input type="hidden" name="action" value="visibility">
-				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
-				{{template "base/modal_actions_confirm" .}}
-			</form>
 		</div>
 	{{end}}
 
@@ -1044,21 +1014,8 @@
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				<input type="hidden" name="action" value="delete-wiki">
-				<div class="field">
-					<label>
-						{{ctx.Locale.Tr "repo.settings.transfer_form_title"}}
-						<span class="tw-text-red">{{.Repository.Name}}</span>
-					</label>
-				</div>
-				<div class="required field">
-					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input name="repo_name" required>
-				</div>
-
-				<div class="actions">
-					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-					<button class="ui red button">{{ctx.Locale.Tr "repo.settings.confirm_wiki_delete"}}</button>
-				</div>
+				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
+				{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.confirm_wiki_delete"))}}
 			</form>
 		</div>
 	</div>

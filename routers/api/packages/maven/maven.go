@@ -200,7 +200,7 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 		return
 	}
 
-	opts := &context.ServeHeaderOptions{
+	opts := context.ServeHeaderOptions{
 		ContentLength: &pb.Size,
 		LastModified:  pf.CreatedUnix.AsLocalTime(),
 	}

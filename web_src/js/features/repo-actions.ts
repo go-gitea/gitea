@@ -4,6 +4,8 @@ import RepoActionView from '../components/RepoActionView.vue';
 export function initRepositoryActionView() {
   const el = document.querySelector('#repo-action-view');
   if (!el) return;
+  const runId = parseInt(el.getAttribute('data-run-id')!);
+  const jobId = parseInt(el.getAttribute('data-job-id')!);
 
   // TODO: the parent element's full height doesn't work well now,
   // but we can not pollute the global style at the moment, only fix the height problem for pages with this component
@@ -11,8 +13,8 @@ export function initRepositoryActionView() {
   if (parentFullHeight) parentFullHeight.classList.add('tw-pb-0');
 
   const view = createApp(RepoActionView, {
-    runId: parseInt(el.getAttribute('data-run-id')!),
-    jobId: parseInt(el.getAttribute('data-job-id')!),
+    runId,
+    jobId,
     actionsUrl: el.getAttribute('data-actions-url'),
     locale: {
       approve: el.getAttribute('data-locale-approve'),
