@@ -130,20 +130,19 @@ function iifePlugin(): Plugin {
       });
 
       server.middlewares.use((req, res, next) => {
+        // "__vite_iife" is a virtual file in memory, serve it directly
         const pathname = req.url!.split('?')[0];
-        if (pathname === '/__vite_iife.js') {
+        if (pathname === '/web_src/js/__vite_iife.js') {
           res.setHeader('Content-Type', 'application/javascript');
           res.setHeader('Cache-Control', 'no-store');
           res.end(iifeCode);
-          return;
-        }
-        if (pathname === '/__vite_iife.js.map') {
+        } else if (pathname === '/web_src/js/__vite_iife.js.map') {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Cache-Control', 'no-store');
           res.end(iifeMap);
-          return;
+        } else {
+          next();
         }
-        next();
       });
     },
     async closeBundle() {
@@ -214,6 +213,18 @@ export default defineConfig(commonViteOpts({
     open: false,
     host: '0.0.0.0',
     strictPort: false,
+    fs: {
+      // VITE-DEV-SERVER-SECURITY: the dev server will be exposed to public by Gitea's web server, so we need to strictly limit the access
+      // Otherwise `/@fs/*` will be able to access any file (including app.ini which contains INTERNAL_TOKEN)
+      strict: true,
+      allow: [
+        'assets',
+        'node_modules',
+        'public',
+        'web_src',
+        // do not add any other directories here, unless you are absolutely sure it's safe to expose them to the public
+      ],
+    },
     headers: {
       'Cache-Control': 'no-store', // prevent browser disk cache
     },

@@ -123,7 +123,7 @@ func viteDevSourceURL(name string) string {
 		return setting.AppSubURL + "/web_src/js/features/eventsource.sharedworker.ts"
 	}
 	if name == "js/iife.js" {
-		return setting.AppSubURL + "/__vite_iife.js"
+		return setting.AppSubURL + "/web_src/js/__vite_iife.js"
 	}
 	if name == "js/index.js" {
 		return setting.AppSubURL + "/web_src/js/index.ts"
@@ -139,12 +139,18 @@ func isViteDevRequest(req *http.Request) bool {
 		return wsProtocol == "vite-hmr" || wsProtocol == "vite-ping"
 	}
 	path := req.URL.Path
-	if strings.HasPrefix(path, "/@vite/") || // HMR client
-		strings.HasPrefix(path, "/@fs/") || // out-of-root file access
-		strings.HasPrefix(path, "/@id/") || // virtual modules
-		strings.HasPrefix(path, "/__vite") || // ping endpoint, iife
-		strings.HasPrefix(path, "/node_modules/") || // optimized deps
-		strings.HasPrefix(path, "/web_src/") { // source files
+
+	// vite internal requests
+	if strings.HasPrefix(path, "/@vite/") /* HMR client */ ||
+		strings.HasPrefix(path, "/@fs/") /* out-of-root file access, see vite.config.ts: fs.allow */ ||
+		strings.HasPrefix(path, "/@id/") /* virtual modules */ {
+		return true
+	}
+
+	// local source requests (VITE-DEV-SERVER-SECURITY: don't serve sensitive files outside the allowed paths)
+	if strings.HasPrefix(path, "/node_modules/") ||
+		strings.HasPrefix(path, "/public/assets/") ||
+		strings.HasPrefix(path, "/web_src/") {
 		return true
 	}
 
@@ -155,10 +161,8 @@ func isViteDevRequest(req *http.Request) bool {
 	//   - "{AssetFS}" is a layered filesystem from "{RepoRoot}/public" or embedded assets, and user's custom files in "{CustomPath}/public"
 	//   - "{RepoRoot}/assets/emoji.json" just happens to have the dir name "assets", it is not related to frontend assets
 	//   - BAD DESIGN: indeed it is a "conflicted and polluted name" sample
-	if path == "/assets/emoji.json" || strings.HasPrefix(path, "/public/assets/") {
-		if _, ok := req.URL.Query()["import"]; ok {
-			return true
-		}
+	if path == "/assets/emoji.json" {
+		return true
 	}
 	return false
 }
