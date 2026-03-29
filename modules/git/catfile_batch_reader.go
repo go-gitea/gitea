@@ -56,9 +56,8 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 
 func newCatFileBatchWithCloseFunc(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Command,
 	stdinWriter gitcmd.PipeWriter, stdoutReader gitcmd.PipeReader, closeFunc func(err error),
-) (ret *catFileBatchCommunicator) {
-
-	ret = &catFileBatchCommunicator{
+) *catFileBatchCommunicator {
+	ret := &catFileBatchCommunicator{
 		debugGitCmd: cmdCatFile,
 		closeFunc:   closeFunc,
 		reqWriter:   stdinWriter,
