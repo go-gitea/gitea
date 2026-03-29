@@ -4,6 +4,8 @@
 package webtheme
 
 import (
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -141,21 +143,53 @@ func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 }
 
 func loadThemesFromAssets() (themeList []*ThemeMetaInfo, themeMap map[string]*ThemeMetaInfo) {
-	cssFiles, err := public.AssetFS().ListFiles("assets/css")
-	if err != nil {
-		log.Error("Failed to list themes: %v", err)
-		return nil, nil
+	var foundThemes []*ThemeMetaInfo
+	seenNames := make(container.Set[string])
+
+	// In dev mode, use source theme files directly instead of relying on built assets.
+	if !setting.IsProd {
+		srcDir := filepath.Join(setting.StaticRootPath, "web_src/css/themes")
+		if entries, err := os.ReadDir(srcDir); err == nil {
+			for _, entry := range entries {
+				fileName := entry.Name()
+				if !strings.HasPrefix(fileName, fileNamePrefix) || !strings.HasSuffix(fileName, fileNameSuffix) {
+					continue
+				}
+				content, err := os.ReadFile(filepath.Join(srcDir, fileName))
+				if err != nil {
+					log.Error("Failed to read theme source file %q: %v", fileName, err)
+					continue
+				}
+				themeInfo := parseThemeMetaInfo(fileName, util.UnsafeBytesToString(content))
+				foundThemes = append(foundThemes, themeInfo)
+				seenNames.Add(themeInfo.InternalName)
+			}
+		}
 	}
 
-	var foundThemes []*ThemeMetaInfo
-	for _, fileName := range cssFiles {
-		if strings.HasPrefix(fileName, fileNamePrefix) && strings.HasSuffix(fileName, fileNameSuffix) {
+	// Check custom assets
+	cssFiles, err := public.AssetFS().ListFiles("assets/css")
+	if err != nil {
+		if len(foundThemes) == 0 {
+			log.Error("Failed to list themes: %v", err)
+			return nil, nil
+		}
+	} else {
+		for _, fileName := range cssFiles {
+			if !strings.HasPrefix(fileName, fileNamePrefix) || !strings.HasSuffix(fileName, fileNameSuffix) {
+				continue
+			}
 			content, err := public.AssetFS().ReadFile("/assets/css/" + fileName)
 			if err != nil {
 				log.Error("Failed to read theme file %q: %v", fileName, err)
 				continue
 			}
-			foundThemes = append(foundThemes, parseThemeMetaInfo(fileName, util.UnsafeBytesToString(content)))
+			themeInfo := parseThemeMetaInfo(fileName, util.UnsafeBytesToString(content))
+			if seenNames.Contains(themeInfo.InternalName) {
+				continue
+			}
+			foundThemes = append(foundThemes, themeInfo)
+			seenNames.Add(themeInfo.InternalName)
 		}
 	}
 

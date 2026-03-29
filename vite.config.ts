@@ -1,7 +1,7 @@
 import {build, defineConfig} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
-import {readFileSync, writeFileSync, unlinkSync, globSync} from 'node:fs';
+import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
 import {join, parse} from 'node:path';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
@@ -198,6 +198,7 @@ function viteDevServerPortPlugin(): Plugin {
       server.httpServer!.once('listening', () => {
         const addr = server.httpServer!.address();
         if (typeof addr === 'object' && addr) {
+          mkdirSync(join(outDir, '.vite'), {recursive: true});
           writeFileSync(viteDevPortFilePath, String(addr.port));
         }
       });
