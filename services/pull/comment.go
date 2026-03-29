@@ -24,7 +24,7 @@ func preparePushPullCommentPushActionContent(ctx context.Context, pr *issues_mod
 		// the force-push timeline comment should always be created, so all errors are ignored and logged only.
 		mergeBase, err := gitrepo.MergeBase(ctx, pr.BaseRepo, pr.BaseBranch, newCommitID)
 		if err != nil {
-			log.Debug("MergeBase %q..%q failed: %v", mergeBase, newCommitID, err)
+			log.Debug("MergeBase %q..%q failed: %v", pr.BaseBranch, newCommitID, err)
 		} else {
 			data.CommitIDs, err = gitrepo.GetLastCommitIDsBetween(ctx, pr.BaseRepo, mergeBase, newCommitID, maxPushCommitsInCommentCount)
 			if err != nil {
