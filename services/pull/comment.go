@@ -51,9 +51,9 @@ func prepareOldCommitCommentsToDelete(ctx context.Context, oldCommitComments []*
 			continue
 		}
 
-		// remove the old comment's commit IDs which are not in the new push
+		// remove the old comment's commit IDs which are not in the new "force" push
 		oldData.CommitIDs = slices.DeleteFunc(oldData.CommitIDs, func(oldCommitID string) bool { return !newPushCommitIDMaps.Contains(oldCommitID) })
-		// if old comment doesn't contain any commit ID, then it can be deleted
+		// if old comment doesn't contain any commit ID after the force push, then it can be deleted
 		if len(oldData.CommitIDs) == 0 {
 			needDeleteCommentIDs = append(needDeleteCommentIDs, oldCommitComment.ID)
 			continue
@@ -130,12 +130,15 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 			// if it's a force push, we need to add a force push comment
 			forcePushDataJSON, _ := json.Marshal(&issues_model.PushActionContent{IsForcePush: true, CommitIDs: []string{oldCommitID, newCommitID}})
 			opts := &issues_model.CreateCommentOptions{
-				Type:        issues_model.CommentTypePullRequestPush,
-				Doer:        pusher,
-				Repo:        pr.BaseRepo,
-				Issue:       pr.Issue,
-				IsForcePush: true,
-				Content:     string(forcePushDataJSON), // it seems the field is unnecessary any more because PushActionContent includes IsForcePush field
+				Type:    issues_model.CommentTypePullRequestPush,
+				Doer:    pusher,
+				Repo:    pr.BaseRepo,
+				Issue:   pr.Issue,
+				Content: string(forcePushDataJSON),
+
+				// It seems the field is unnecessary anymore because PushActionContent includes IsForcePush field.
+				// However, it can't be simply removed.
+				IsForcePush: true, // See the comment of "Comment.IsForcePush"
 			}
 			comment, err = issues_model.CreateComment(ctx, opts)
 			if err != nil {
