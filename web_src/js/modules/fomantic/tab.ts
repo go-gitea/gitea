@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {queryElemSiblings} from '../../utils/dom.ts';
 
 export function initFomanticTab() {

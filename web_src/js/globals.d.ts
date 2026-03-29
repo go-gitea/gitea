@@ -22,8 +22,8 @@ interface Window {
   config: {
     appUrl: string,
     appSubUrl: string,
-    assetVersionEncoded: string,
     assetUrlPrefix: string,
+    sharedWorkerUri: string,
     runModeIsProd: boolean,
     customEmojis: Record<string, string>,
     pageData: Record<string, any> & {
@@ -64,10 +64,19 @@ interface Window {
   codeEditors: any[], // export editor for customization
   localUserSettings: typeof import('./modules/user-settings.ts').localUserSettings,
 
+  MonacoEnvironment?: {
+    getWorker: (workerId: string, label: string) => Worker,
+  },
+
   // various captcha plugins
   grecaptcha: any,
   turnstile: any,
   hcaptcha: any,
 
   // do not add more properties here unless it is a must
+}
+
+declare module '*?worker' {
+  const workerConstructor: new () => Worker;
+  export default workerConstructor;
 }
