@@ -95,9 +95,9 @@ func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 		return nil
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
+		ctx.ServerError("GetDoerRepoPermission", err)
 		return nil
 	}
 
@@ -958,9 +958,9 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 		if pull.HeadRepo != nil {
 			if !pull.HasMerged && ctx.Doer != nil {
-				perm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
+				perm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
+					ctx.ServerError("GetDoerRepoPermission", err)
 					return
 				}
 

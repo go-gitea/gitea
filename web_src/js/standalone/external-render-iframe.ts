@@ -11,6 +11,8 @@ RENDER_COMMAND = `echo '<div style="width: 100%; height: 2000px; border: 10px so
 
 */
 
+import '../../css/standalone/external-render-iframe.css';
+
 function mainExternalRenderIframe() {
   const u = new URL(window.location.href);
   const iframeId = u.searchParams.get('gitea-iframe-id');

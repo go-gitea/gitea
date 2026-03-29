@@ -665,9 +665,9 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 			continue
 		}
 		// Normal users must have read access to the referencing issue
-		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, user)
+		perm, err := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, user)
 		if err != nil {
-			return nil, fmt.Errorf("GetUserRepoPermission [%d]: %w", user.ID, err)
+			return nil, fmt.Errorf("GetIndividualUserRepoPermission [%d]: %w", user.ID, err)
 		}
 		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
 			continue

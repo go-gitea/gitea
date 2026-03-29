@@ -93,7 +93,7 @@ func CanMaintainerWriteToBranch(ctx context.Context, p access_model.Permission, 
 			if err != nil {
 				continue
 			}
-			prPerm, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, user)
+			prPerm, err := access_model.GetIndividualUserRepoPermission(ctx, pr.BaseRepo, user)
 			if err != nil {
 				continue
 			}
