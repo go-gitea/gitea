@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
@@ -305,23 +306,28 @@ func QueryBuild(a ...any) template.URL {
 	return template.URL(s)
 }
 
-func scriptImport(attrs ...string) template.HTML {
-	var sb strings.Builder
-	sb.WriteString("<script")
-	for i := 0; i < len(attrs)-1; i += 2 {
-		sb.WriteString(fmt.Sprintf(` %s="%s"`, attrs[i], html.EscapeString(attrs[i+1])))
-	}
-	// the message will be directly put in the onerror JS code's string
-	onErrorPrompt := `Please make sure the asset files can be accessed.`
-	if !setting.IsProd {
-		onErrorPrompt += `\n\nFor development, run: make watch-frontend.`
-	}
+var globalVars = sync.OnceValue(func() (ret struct {
+	scriptImportRemainingPart string
+}) {
 	// add onerror handler to alert users when the script fails to load:
 	// * for end users: there were many users reporting that "UI doesn't work", actually they made mistakes in their config
 	// * for developers: help them to remember to run "make watch-frontend" to build frontend assets
-	onErrorJS := fmt.Sprintf(`alert('Failed to load asset file from ' + this.src + '. %s')`, onErrorPrompt)
-	sb.WriteString(` onerror="`)
-	sb.WriteString(html.EscapeString(onErrorJS))
-	sb.WriteString(`"></script>`)
-	return template.HTML(sb.String())
+	// the message will be directly put in the onerror JS code's string
+	onScriptErrorPrompt := `Please make sure the asset files can be accessed.`
+	if !setting.IsProd {
+		onScriptErrorPrompt += `\n\nFor development, run: make watch-frontend.`
+	}
+	onScriptErrorJS := fmt.Sprintf(`alert('Failed to load asset file from ' + this.src + '. %s')`, onScriptErrorPrompt)
+	ret.scriptImportRemainingPart = `onerror="` + html.EscapeString(onScriptErrorJS) + `"></script>`
+	return ret
+})
+
+func scriptImport(path string, typ ...string) template.HTML {
+	if len(typ) > 0 {
+		if typ[0] == "module" {
+			return template.HTML(`<script type="module" src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
+		}
+		panic("unsupported script type: " + typ[0])
+	}
+	return template.HTML(`<script src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
 }
