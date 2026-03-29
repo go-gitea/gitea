@@ -539,9 +539,9 @@ func canUserCancelTransfer(ctx context.Context, r *repo_model.RepoTransfer, u *u
 		return r.Repo.OwnerID == u.ID
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, r.Repo, u)
+	perm, err := access_model.GetIndividualUserRepoPermission(ctx, r.Repo, u)
 	if err != nil {
-		log.Error("GetUserRepoPermission: %v", err)
+		log.Error("GetIndividualUserRepoPermission: %v", err)
 		return false
 	}
 	return perm.IsOwner()

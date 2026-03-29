@@ -120,10 +120,10 @@ LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/r
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
 
-WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
-WEBPACK_CONFIGS := webpack.config.ts tailwind.config.ts
-WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
-WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts
+FRONTEND_SOURCES := $(shell find web_src/js web_src/css -type f)
+FRONTEND_CONFIGS := vite.config.ts tailwind.config.ts
+FRONTEND_DEST := public/assets/.vite/manifest.json
+FRONTEND_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts public/assets/.vite
 
 BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* modules/options/bindata.* modules/templates/bindata.*
 
@@ -199,7 +199,7 @@ git-check:
 
 .PHONY: clean-all
 clean-all: clean ## delete backend, frontend and integration files
-	rm -rf $(WEBPACK_DEST_ENTRIES) node_modules
+	rm -rf $(FRONTEND_DEST_ENTRIES) node_modules
 
 .PHONY: clean
 clean: ## delete backend and integration files
@@ -380,9 +380,8 @@ watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: node_modules ## watch frontend files and continuously rebuild
-	@rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress
+watch-frontend: node_modules ## start vite dev server for frontend
+	NODE_ENV=development $(NODE_VARS) pnpm exec vite
 
 .PHONY: watch-backend
 watch-backend: ## watch backend files and continuously rebuild
@@ -645,7 +644,7 @@ install: $(wildcard *.go)
 build: frontend backend ## build everything
 
 .PHONY: frontend
-frontend: $(WEBPACK_DEST) ## build frontend files
+frontend: $(FRONTEND_DEST) ## build frontend files
 
 .PHONY: backend
 backend: generate-backend $(EXECUTABLE) ## build backend files
@@ -672,7 +671,7 @@ ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)
 endif
 	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
 
-$(EXECUTABLE_E2E): $(GO_SOURCES) $(WEBPACK_DEST)
+$(EXECUTABLE_E2E): $(GO_SOURCES) $(FRONTEND_DEST)
 	CGO_ENABLED=1 $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TEST_TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
 
 .PHONY: release
@@ -776,15 +775,15 @@ update-py: node_modules ## update py dependencies
 	uv sync
 	@touch .venv
 
-.PHONY: webpack
-webpack: $(WEBPACK_DEST) ## build webpack files
+.PHONY: vite
+vite: $(FRONTEND_DEST) ## build vite files
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
+$(FRONTEND_DEST): $(FRONTEND_SOURCES) $(FRONTEND_CONFIGS) pnpm-lock.yaml
 	@$(MAKE) -s node_modules
-	@rm -rf $(WEBPACK_DEST_ENTRIES)
-	@echo "Running webpack..."
-	@BROWSERSLIST_IGNORE_OLD_DATA=true $(NODE_VARS) pnpm exec webpack
-	@touch $(WEBPACK_DEST)
+	@rm -rf $(FRONTEND_DEST_ENTRIES)
+	@echo "Running vite build..."
+	@$(NODE_VARS) pnpm exec vite build
+	@touch $(FRONTEND_DEST)
 
 .PHONY: svg
 svg: node_modules ## build svg files

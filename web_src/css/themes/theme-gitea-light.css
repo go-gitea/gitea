@@ -162,20 +162,20 @@ gitea-theme-meta-info {
   --color-diff-removed-row-border: #f1c0c0;
   --color-diff-removed-word-bg: #fdb8c0;
   --color-diff-inactive: #f0f2f4;
-  --color-error-border: #d63333;
-  --color-error-bg: #ffebeb;
-  --color-error-bg-active: #fdd;
-  --color-error-bg-hover: #fee;
-  --color-error-text: #8a3231;
-  --color-success-border: #49842b;
-  --color-success-bg: #eef6e4;
-  --color-success-text: #2f6e30;
-  --color-warning-border: #bf8700;
-  --color-warning-bg: #fff8e1;
-  --color-warning-text: #744500;
-  --color-info-border: #2d8fa8;
-  --color-info-bg: #e8f4fd;
-  --color-info-text: #216078;
+  --color-error-border: #ff818266;
+  --color-error-bg: #ffebe9;
+  --color-error-bg-active: #ffcecb;
+  --color-error-bg-hover: #ffdcd7;
+  --color-error-text: var(--color-text);
+  --color-success-border: #4ac26b66;
+  --color-success-bg: #dafbe1;
+  --color-success-text: var(--color-text);
+  --color-warning-border: #d4a72c66;
+  --color-warning-bg: #fff8c5;
+  --color-warning-text: var(--color-text);
+  --color-info-border: #54aeff66;
+  --color-info-bg: #ddf4ff;
+  --color-info-text: var(--color-text);
   --color-red-badge: #db2828;
   --color-red-badge-bg: #db28281a;
   --color-red-badge-hover-bg: #db28284d;
@@ -208,7 +208,6 @@ gitea-theme-meta-info {
   --color-input-toggle-background: #d0d7de;
   --color-input-border: var(--color-secondary-dark-1);
   --color-light: #00001706;
-  --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000171d;
   --color-hover: #00001708;
   --color-hover-opaque: #f1f3f5; /* TODO: color-mix(in srgb, var(--color-body), var(--color-hover)); */
@@ -249,6 +248,7 @@ gitea-theme-meta-info {
   --color-danger: var(--color-red);
   --color-transparency-grid-light: #fafafa;
   --color-transparency-grid-dark: #e2e2e2;
+  --color-workflow-edge-hover: #b1b7bd;
   accent-color: var(--color-accent);
   color-scheme: light;
 }

@@ -157,9 +157,9 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 				ctx.ServerError("GetRepositoryByID", err)
 				return
 			}
-			perm, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			perm, err = access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
-				ctx.ServerError("GetUserRepoPermission", err)
+				ctx.ServerError("GetDoerRepoPermission", err)
 				return
 			}
 		} else {

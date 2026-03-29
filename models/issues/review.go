@@ -919,7 +919,7 @@ func CanMarkConversation(ctx context.Context, issue *Issue, doer *user_model.Use
 		return false, nil
 	}
 	if doer.ID != issue.PosterID {
-		p, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+		p, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return false, err
 		}

@@ -9,6 +9,7 @@ import (
 	"io"
 
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -61,19 +62,17 @@ func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, out
 <html>
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" href="%s/assets/css/swagger.css?v=%s">
+	<link rel="stylesheet" href="%s">
 </head>
 <body>
 	<div id="swagger-ui"><textarea class="swagger-spec-content" data-spec-filename="%s">%s</textarea></div>
-	<script src="%s/assets/js/swagger.js?v=%s"></script>
+	<script type="module" src="%s"></script>
 </body>
 </html>`,
-		setting.StaticURLPrefix,
-		setting.AssetVersion,
+		public.AssetURI("css/swagger.css"),
 		html.EscapeString(ctx.RenderOptions.RelativePath),
 		html.EscapeString(util.UnsafeBytesToString(content)),
-		setting.StaticURLPrefix,
-		setting.AssetVersion,
+		public.AssetURI("js/swagger.js"),
 	))
 	return err
 }

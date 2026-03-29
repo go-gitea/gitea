@@ -16,8 +16,8 @@ export async function initMarkupCodeMath(elMarkup: HTMLElement): Promise<void> {
   // .markup code.language-math'
   queryElems(elMarkup, 'code.language-math', async (el) => {
     const [{default: katex}] = await Promise.all([
-      import(/* webpackChunkName: "katex" */'katex'),
-      import(/* webpackChunkName: "katex" */'katex/dist/katex.css'),
+      import('katex'),
+      import('katex/dist/katex.css'),
     ]);
 
     const MAX_CHARS = 1000;

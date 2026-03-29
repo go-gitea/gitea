@@ -525,7 +525,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 			return false
 		}
 		ctx.user = user
-		userPerm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
+		userPerm, err := access_model.GetDoerRepoPermission(ctx, ctx.Repo.Repository, user)
 		if err != nil {
 			log.Error("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{

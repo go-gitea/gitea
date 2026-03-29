@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import type {FomanticInitFunction} from '../../types.ts';
 import {queryElems} from '../../utils/dom.ts';
 import {hideToastsFrom} from '../toast.ts';

@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 type requestRecord struct {
@@ -23,6 +25,7 @@ type requestRecord struct {
 
 	// mutable fields
 	isLongPolling bool
+	logLevel      log.Level
 	funcInfo      *FuncInfo
 	panicError    error
 }
