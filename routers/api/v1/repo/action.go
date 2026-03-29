@@ -847,6 +847,12 @@ func ListActionTasks(ctx *context.APIContext) {
 	res := new(api.ActionTaskResponse)
 	res.TotalCount = total
 
+	taskList := actions_model.TaskList(tasks)
+	if err := taskList.LoadAttributes(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	res.Entries = make([]*api.ActionTask, len(tasks))
 	for i := range tasks {
 		convertedTask, err := convert.ToActionTask(ctx, tasks[i])
