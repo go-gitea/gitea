@@ -308,7 +308,8 @@ func QueryBuild(a ...any) template.URL {
 
 var globalVars = sync.OnceValue(func() (ret struct {
 	scriptImportRemainingPart string
-}) {
+},
+) {
 	// add onerror handler to alert users when the script fails to load:
 	// * for end users: there were many users reporting that "UI doesn't work", actually they made mistakes in their config
 	// * for developers: help them to remember to run "make watch-frontend" to build frontend assets
