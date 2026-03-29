@@ -224,8 +224,10 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 
 // ToActionTask convert a actions_model.ActionTask to an api.ActionTask
 func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.ActionTask, error) {
-	if err := t.LoadAttributes(ctx); err != nil {
-		return nil, err
+	if t.Job == nil {
+		if err := t.LoadAttributes(ctx); err != nil {
+			return nil, err
+		}
 	}
 
 	url := strings.TrimSuffix(setting.AppURL, "/") + t.GetRunLink()
@@ -248,9 +250,10 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 }
 
 func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
-	err := run.LoadAttributes(ctx)
-	if err != nil {
-		return nil, err
+	if run.TriggerUser == nil {
+		if err := run.LoadAttributes(ctx); err != nil {
+			return nil, err
+		}
 	}
 	status, conclusion := ToActionsStatus(run.Status)
 	return &api.ActionWorkflowRun{
