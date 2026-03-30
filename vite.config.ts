@@ -1,7 +1,7 @@
 import {build, defineConfig} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
-import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync, utimesSync} from 'node:fs';
+import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync, utimesSync, rmSync} from 'node:fs';
 import path, {join, parse} from 'node:path';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
@@ -201,8 +201,25 @@ function viteDevServerPortPlugin(): Plugin {
         if (typeof addr === 'object' && addr) {
           mkdirSync(path.dirname(viteDevPortFilePath), {recursive: true});
           writeFileSync(viteDevPortFilePath, String(addr.port));
+
+          let cleanedUp = false;
           // keep updating the timestamp of the file to tell the Gitea vite dev proxy that the server is still alive
-          setInterval(() => utimesSync(viteDevPortFilePath, new Date(), new Date()), 2000);
+          setInterval(() => {
+            if (cleanedUp) return;
+            utimesSync(viteDevPortFilePath, new Date(), new Date());
+          }, 2000);
+
+          // clean up the port file on exit to prevent stale port info for the next dev server or interfere the Gitea vite dev proxy
+          const viteDevServerCleanUp = () => {
+            if (cleanedUp) return;
+            console.info('cleaning up vite dev server...');
+            rmSync(viteDevPortFilePath);
+            server.close();
+            cleanedUp = true;
+            process.exit(0);
+          };
+          process.on('SIGINT', viteDevServerCleanUp);
+          process.on('SIGTERM', viteDevServerCleanUp);
         }
       });
     },
