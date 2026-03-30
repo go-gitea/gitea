@@ -113,6 +113,12 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   ];
   const matchedLang = cm.language.LanguageDescription.matchFilename(languageDescriptions, config.filename);
 
+  // Remove the loading placeholder before appending the editor container to prevent
+  // both elements from coexisting in the DOM, which would temporarily double the
+  // height of the editor area and cause a scroll offset shift.
+  const loading = textarea.parentNode!.querySelector('.editor-loading');
+  if (loading) loading.remove();
+
   const container = document.createElement('div');
   container.className = 'code-editor-container';
   container.setAttribute('data-language', matchedLang?.name.toLowerCase() || '');
@@ -199,9 +205,6 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       }),
     ],
   });
-
-  const loading = document.querySelector('.editor-loading');
-  if (loading) loading.remove();
 
   const editor: CodemirrorEditor = {
     view,

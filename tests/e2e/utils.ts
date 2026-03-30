@@ -96,7 +96,6 @@ export async function loginUser(page: Page, username: string) {
   return login(page, username, testUserPassword);
 }
 
-
 export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, password = env.GITEA_TEST_E2E_PASSWORD) {
   await page.goto('/user/login');
   await page.getByLabel('Username or Email Address').fill(username);

@@ -62,7 +62,7 @@ export function clickableUrls(cm: CodemirrorModules) {
 
   const handler = cm.view.EditorView.domEventHandlers({
     mousedown(event: MouseEvent, view: EditorView) {
-      if (!(event.metaKey || event.ctrlKey)) return false;
+      if (!event.metaKey && !event.ctrlKey) return false;
       const pos = view.posAtCoords({x: event.clientX, y: event.clientY});
       if (pos === null) return false;
       const line = view.state.doc.lineAt(pos);

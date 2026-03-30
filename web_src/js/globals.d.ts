@@ -63,10 +63,6 @@ interface Window {
   },
   localUserSettings: typeof import('./modules/user-settings.ts').localUserSettings,
 
-  MonacoEnvironment?: {
-    getWorker: (workerId: string, label: string) => Worker,
-  },
-
   // various captcha plugins
   grecaptcha: any,
   turnstile: any,
