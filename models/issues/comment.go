@@ -116,6 +116,8 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+
+	CommentTypeCloseWithReason // 39 Close an issue with a structured close reason
 )
 
 var commentStrings = []string{
@@ -158,6 +160,7 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"close_with_reason",
 }
 
 func (t CommentType) String() string {
@@ -191,7 +194,7 @@ func (t CommentType) HasAttachmentSupport() bool {
 
 func (t CommentType) HasMailReplySupport() bool {
 	switch t {
-	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview, CommentTypeReopen, CommentTypeClose, CommentTypeMergePull, CommentTypeAssignees:
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview, CommentTypeReopen, CommentTypeClose, CommentTypeCloseWithReason, CommentTypeMergePull, CommentTypeAssignees:
 		return true
 	}
 	return false
@@ -240,9 +243,11 @@ const SpecialDoerNameCodeOwners SpecialDoerNameType = "CODEOWNERS"
 
 // CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
 type CommentMetaData struct {
-	ProjectColumnID    int64  `json:"project_column_id,omitempty"`
-	ProjectColumnTitle string `json:"project_column_title,omitempty"`
-	ProjectTitle       string `json:"project_title,omitempty"`
+	ProjectColumnID    int64            `json:"project_column_id,omitempty"`
+	ProjectColumnTitle string           `json:"project_column_title,omitempty"`
+	ProjectTitle       string           `json:"project_title,omitempty"`
+	CloseReason        IssueCloseReason `json:"close_reason,omitempty"`
+	CloseReasonParam   string           `json:"close_reason_param,omitempty"`
 
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
 }
@@ -823,6 +828,12 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 				SpecialDoerName: opts.SpecialDoerName,
 			}
 		}
+		if opts.CloseReason != IssueCloseReasonNone {
+			commentMetaData = &CommentMetaData{
+				CloseReason:      opts.CloseReason,
+				CloseReasonParam: opts.CloseReasonParam,
+			}
+		}
 
 		comment := &Comment{
 			Type:             opts.Type,
@@ -1020,6 +1031,8 @@ type CreateCommentOptions struct {
 	IsForcePush        bool
 	Invalidated        bool
 	SpecialDoerName    SpecialDoerNameType // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+	CloseReason        IssueCloseReason    // for CommentTypeCloseWithReason
+	CloseReasonParam   string              // JSON-serialized param for the close reason
 }
 
 // GetCommentByID returns the comment by given ID.

@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -157,7 +158,39 @@ func NewComment(ctx *context.Context) {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
 				if form.Status == "close" && !issue.IsClosed {
-					if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
+					opts := issue_service.IssueCloseOptions{}
+					if form.StateReason != nil {
+						reason, err := issues_model.ParseIssueCloseReason(*form.StateReason)
+						if err != nil {
+							ctx.JSONError(err.Error())
+							return
+						}
+						opts.Reason = reason
+						opts.ReasonParam = form.StateReasonParam
+						if opts.Reason == issue_service.CloseReasonAnswered && opts.ReasonParam == "" {
+							if comment == nil {
+								ctx.JSONError(ctx.Tr("repo.issues.close_reason.answered_requires_comment"))
+								return
+							}
+							b, err := json.Marshal(issue_service.CloseReasonAnsweredParam{CommentID: comment.ID})
+							if err != nil {
+								ctx.ServerError("Marshal answered close reason param", err)
+								return
+							}
+							opts.ReasonParam = string(b)
+						}
+					}
+					opts.Normalize()
+					if opts.IsSystemOnly() {
+						ctx.JSONError("this close reason is system-only")
+						return
+					}
+					if err := opts.Validate(ctx, issue); err != nil {
+						log.Error("CloseIssue opts.Validate: %v", err)
+						ctx.JSONError(err.Error())
+						return
+					}
+					if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, "", opts); err != nil {
 						log.Error("CloseIssue: %v", err)
 						if issues_model.IsErrDependenciesLeft(err) {
 							if issue.IsPull {

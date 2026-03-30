@@ -41,6 +41,7 @@ export type Issue = {
   title: string,
   body: string,
   state: 'open' | 'closed',
+  state_reason?: string,
   created_at: string,
   pull_request?: {
     draft: boolean;

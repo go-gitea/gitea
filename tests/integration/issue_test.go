@@ -248,6 +248,100 @@ func TestIssueCommentClose(t *testing.T) {
 	assert.Equal(t, "Description", val)
 }
 
+func TestIssueCommentCloseWithDuplicateReason(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Close duplicate", "Description")
+
+	getReq := NewRequest(t, "GET", issueURL)
+	getResp := session.MakeRequest(t, getReq, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, getResp.Body)
+	formAction, exists := htmlDoc.doc.Find("#comment-form").Attr("action")
+	assert.True(t, exists, "The template has changed")
+
+	postReq := NewRequestWithValues(t, "POST", formAction, map[string]string{
+		"content":            "close as duplicate",
+		"status":             "close",
+		"state_reason":       "duplicate",
+		"state_reason_param": `{"issue_index":4}`,
+	})
+	postResp := session.MakeRequest(t, postReq, http.StatusOK)
+
+	redirectReq := NewRequest(t, "GET", test.RedirectURL(postResp))
+	session.MakeRequest(t, redirectReq, http.StatusOK)
+
+	indexStr := issueURL[strings.LastIndexByte(issueURL, '/')+1:]
+	issueIndex, err := strconv.ParseInt(indexStr, 10, 64)
+	assert.NoError(t, err)
+
+	issue, err := issues_model.GetIssueByIndex(t.Context(), 1, issueIndex)
+	assert.NoError(t, err)
+	assert.True(t, issue.IsClosed)
+	assert.Equal(t, issues_model.IssueCloseReasonDuplicate, issue.CloseReason)
+	assert.Contains(t, issue.CloseReasonParam, "\"issue_index\":4")
+
+	cmt := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeCloseWithReason})
+	assert.NotNil(t, cmt.CommentMetaData)
+	assert.Equal(t, issues_model.IssueCloseReasonDuplicate, cmt.CommentMetaData.CloseReason)
+}
+
+func TestIssueCommentCloseAsAnsweredAutoBind(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Close answered", "Description")
+
+	getReq := NewRequest(t, "GET", issueURL)
+	getResp := session.MakeRequest(t, getReq, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, getResp.Body)
+	formAction, exists := htmlDoc.doc.Find("#comment-form").Attr("action")
+	assert.True(t, exists, "The template has changed")
+
+	postReq := NewRequestWithValues(t, "POST", formAction, map[string]string{
+		"content":      "final answer in this closing comment",
+		"status":       "close",
+		"state_reason": "answered",
+	})
+	postResp := session.MakeRequest(t, postReq, http.StatusOK)
+
+	redirectReq := NewRequest(t, "GET", test.RedirectURL(postResp))
+	session.MakeRequest(t, redirectReq, http.StatusOK)
+
+	indexStr := issueURL[strings.LastIndexByte(issueURL, '/')+1:]
+	issueIndex, err := strconv.ParseInt(indexStr, 10, 64)
+	assert.NoError(t, err)
+
+	issue, err := issues_model.GetIssueByIndex(t.Context(), 1, issueIndex)
+	assert.NoError(t, err)
+	assert.True(t, issue.IsClosed)
+	assert.Equal(t, issues_model.IssueCloseReasonAnswered, issue.CloseReason)
+	assert.Contains(t, issue.CloseReasonParam, "comment_id")
+
+	cmt := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeCloseWithReason})
+	assert.NotNil(t, cmt.CommentMetaData)
+	assert.Equal(t, issues_model.IssueCloseReasonAnswered, cmt.CommentMetaData.CloseReason)
+	assert.Contains(t, cmt.CommentMetaData.CloseReasonParam, "comment_id")
+}
+
+func TestIssueCommentCloseRejectSystemOnlyReason(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Reject system-only reason", "Description")
+
+	getReq := NewRequest(t, "GET", issueURL)
+	getResp := session.MakeRequest(t, getReq, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, getResp.Body)
+	formAction, exists := htmlDoc.doc.Find("#comment-form").Attr("action")
+	assert.True(t, exists, "The template has changed")
+
+	postReq := NewRequestWithValues(t, "POST", formAction, map[string]string{
+		"content":            "attempt invalid reason",
+		"status":             "close",
+		"state_reason":       "completed_by_commit",
+		"state_reason_param": `{"commit_hash":"deadbeef"}`,
+	})
+	session.MakeRequest(t, postReq, http.StatusBadRequest)
+}
+
 func TestIssueCommentDelete(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")

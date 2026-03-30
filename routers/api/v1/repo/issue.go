@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -702,7 +703,7 @@ func CreateIssue(ctx *context.APIContext) {
 	}
 
 	if form.Closed {
-		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
+		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, "", issue_service.CloseOptionsCompleted()); err != nil {
 			if issues_model.IsErrDependenciesLeft(err) {
 				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue because it still has open dependencies")
 				return
@@ -891,7 +892,29 @@ func EditIssue(ctx *context.APIContext) {
 		}
 
 		state := api.StateType(*form.State)
-		closeOrReopenIssue(ctx, issue, state)
+		opts := issue_service.IssueCloseOptions{}
+		if state == api.StateClosed && form.StateReason != nil {
+			reason, err := issues_model.ParseIssueCloseReason(*form.StateReason)
+			if err != nil {
+				ctx.APIError(http.StatusBadRequest, err)
+				return
+			}
+			opts.Reason = reason
+			if form.StateReasonParam != nil {
+				b, _ := json.Marshal(form.StateReasonParam)
+				opts.ReasonParam = string(b)
+			}
+			opts.Normalize()
+			if err := opts.Validate(ctx, issue); err != nil {
+				ctx.APIError(http.StatusBadRequest, err)
+				return
+			}
+			if opts.IsSystemOnly() {
+				ctx.APIError(http.StatusBadRequest, "this close reason is system-only")
+				return
+			}
+		}
+		closeOrReopenIssue(ctx, issue, state, opts)
 		if ctx.Written() {
 			return
 		}
@@ -1018,14 +1041,14 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: deadlineUnix.AsTimePtr()})
 }
 
-func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType) {
+func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType, opts issue_service.IssueCloseOptions) {
 	if state != api.StateOpen && state != api.StateClosed {
 		ctx.APIError(http.StatusPreconditionFailed, fmt.Sprintf("unknown state: %s", state))
 		return
 	}
 
 	if state == api.StateClosed && !issue.IsClosed {
-		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
+		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, "", opts); err != nil {
 			if issues_model.IsErrDependenciesLeft(err) {
 				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue or pull request because it still has open dependencies")
 				return

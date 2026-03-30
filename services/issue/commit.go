@@ -219,7 +219,7 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 						return err
 					}
 				}
-				if err := CloseIssue(ctx, refIssue, doer, c.Sha1); err != nil {
+				if err := CloseIssue(ctx, refIssue, doer, c.Sha1, CloseOptionsCompletedByCommit(c.Sha1)); err != nil {
 					return err
 				}
 			} else if ref.Action == references.XRefActionReopens && refIssue.IsClosed {

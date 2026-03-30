@@ -42,7 +42,59 @@
 		{{if .HasMerged}}
 			<div class="ui purple label issue-state-label">{{svg "octicon-git-merge" 16 "tw-mr-1"}} {{if eq .Issue.PullRequest.Status 3}}{{ctx.Locale.Tr "repo.pulls.manually_merged"}}{{else}}{{ctx.Locale.Tr "repo.pulls.merged"}}{{end}}</div>
 		{{else if .Issue.IsClosed}}
-			<div class="ui red label issue-state-label">{{svg (Iif .Issue.IsPull "octicon-git-pull-request-closed" "octicon-issue-closed")}} {{ctx.Locale.Tr "repo.issues.closed_title"}}</div>
+			{{$statusText := ctx.Locale.Tr "repo.issues.closed_title"}}
+			{{$statusIcon := Iif .Issue.IsPull "octicon-git-pull-request-closed" "octicon-issue-closed"}}
+			{{$statusLabelClass := "ui red label issue-state-label"}}
+			{{if not .Issue.IsPull}}
+				{{$reasonText := ""}}
+				{{$closeReason := .Issue.CloseReasonForDisplay}}
+				{{$statusLabelClass = "ui label issue-state-label issue-state-label-closed-completed"}}
+				{{if eq $closeReason "completed"}}
+					{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.completed")}}
+				{{else if eq $closeReason "not_planned"}}
+					{{$statusIcon = "octicon-skip"}}
+					{{$statusLabelClass = "ui label issue-state-label issue-state-label-closed-neutral"}}
+					{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.not_planned")}}
+				{{else if eq $closeReason "duplicate"}}
+					{{$statusIcon = "octicon-skip"}}
+					{{$statusLabelClass = "ui label issue-state-label issue-state-label-closed-neutral"}}
+					{{$dupIdx := .Issue.CloseReasonDuplicateIssueIndex}}
+					{{if gt $dupIdx 0}}
+						{{$dupLink := HTMLFormat `<a href="%s/issues/%d">#%d</a>` $.RepoLink $dupIdx $dupIdx}}
+						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as_duplicate" $dupLink}}
+					{{else}}
+						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.duplicate")}}
+					{{end}}
+				{{else if eq $closeReason "answered"}}
+					{{$commentID := .Issue.CloseReasonAnsweredCommentID}}
+					{{if gt $commentID 0}}
+						{{$answerLink := HTMLFormat `<a href="#issuecomment-%d">comment #%d</a>` $commentID $commentID}}
+						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as_answered_by_comment" $answerLink}}
+					{{else}}
+						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.answered")}}
+					{{end}}
+				{{else if eq $closeReason "completed_by_commit"}}
+					{{$hash := .Issue.CloseReasonCommitHash}}
+					{{if $hash}}
+						{{$commitLink := HTMLFormat `<a class="ui sha" href="%[1]s/commit/%[2]s"><b>%[3]s</b></a>` $.RepoLink $hash (ShortSha $hash)}}
+						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_by_commit" $commitLink}}
+					{{else}}
+						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.completed")}}
+					{{end}}
+				{{else if eq $closeReason "completed_by_pull"}}
+					{{$pullIdx := .Issue.CloseReasonPullIndex}}
+					{{if gt $pullIdx 0}}
+						{{$pullLink := HTMLFormat `<a href="%s/pulls/%d">#%d</a>` $.RepoLink $pullIdx $pullIdx}}
+						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_by_pull" $pullLink}}
+					{{else}}
+						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.completed")}}
+					{{end}}
+				{{end}}
+				{{if $reasonText}}
+					{{$statusText = $reasonText}}
+				{{end}}
+			{{end}}
+			<div class="{{$statusLabelClass}}">{{svg $statusIcon}} {{$statusText}}</div>
 		{{else if .Issue.IsPull}}
 			{{if .IsPullWorkInProgress}}
 				<div class="ui grey label issue-state-label">{{svg "octicon-git-pull-request-draft"}} {{ctx.Locale.Tr "repo.issues.draft_title"}}</div>

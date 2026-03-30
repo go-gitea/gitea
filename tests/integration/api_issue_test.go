@@ -448,3 +448,60 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 }
+
+func TestAPIEditIssueStateReasonDuplicate(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+
+	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	assert.False(t, issueBefore.IsClosed)
+
+	state := "closed"
+	reason := "duplicate"
+	urlStr := "/api/v1/repos/user2/repo1/issues/1"
+	req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{
+		State:            &state,
+		StateReason:      &reason,
+		StateReasonParam: map[string]any{"issue_index": 4},
+	}).AddTokenAuth(token)
+
+	resp := MakeRequest(t, req, http.StatusCreated)
+	var apiIssue api.Issue
+	DecodeJSON(t, resp, &apiIssue)
+
+	assert.Equal(t, api.StateClosed, apiIssue.State)
+	assert.Equal(t, "duplicate", apiIssue.StateReason)
+	param, ok := apiIssue.StateReasonParam.(map[string]any)
+	assert.True(t, ok)
+	assert.Equal(t, float64(4), param["issue_index"])
+
+	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	assert.True(t, issueAfter.IsClosed)
+	assert.Equal(t, issues_model.IssueCloseReasonDuplicate, issueAfter.CloseReason)
+	assert.Contains(t, issueAfter.CloseReasonParam, "\"issue_index\":4")
+}
+
+func TestAPIEditIssueRejectSystemOnlyStateReason(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+
+	state := "closed"
+	reason := "completed_by_commit"
+	urlStr := "/api/v1/repos/user2/repo1/issues/1"
+	req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{
+		State:            &state,
+		StateReason:      &reason,
+		StateReasonParam: map[string]any{"commit_hash": "deadbeef"},
+	}).AddTokenAuth(token)
+
+	MakeRequest(t, req, http.StatusBadRequest)
+
+	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	assert.False(t, issueAfter.IsClosed)
+	assert.Empty(t, issueAfter.CloseReason)
+	assert.Empty(t, issueAfter.CloseReasonParam)
+}

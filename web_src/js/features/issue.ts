@@ -18,6 +18,12 @@ export function getIssueIcon(issue: Issue) {
   if (issue.state === 'open') {
     return 'octicon-issue-opened'; // Open Issue
   }
+
+  const closeReason = issue.state_reason || 'completed';
+  if (closeReason === 'duplicate' || closeReason === 'not_planned') {
+    return 'octicon-skip'; // Closed Issue (duplicate/not planned)
+  }
+
   return 'octicon-issue-closed'; // Closed Issue
 }
 
@@ -37,5 +43,11 @@ export function getIssueColorClass(issue: Issue) {
   if (issue.state === 'open') {
     return 'tw-text-green'; // Open Issue
   }
-  return 'tw-text-red'; // Closed Issue
+
+  const closeReason = issue.state_reason || 'completed';
+  if (closeReason === 'duplicate' || closeReason === 'not_planned') {
+    return 'tw-text-text-light'; // Closed Issue (duplicate/not planned)
+  }
+
+  return 'tw-text-purple'; // Closed Issue (completed/answered/completed_by_*)
 }

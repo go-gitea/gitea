@@ -48,7 +48,7 @@ func TestCreateIssueDependency(t *testing.T) {
 	assert.False(t, left)
 
 	// Close #2 and check again
-	_, err = issues_model.CloseIssue(t.Context(), issue2, user1)
+	_, err = issues_model.CloseIssue(t.Context(), issue2, user1, issues_model.IssueCloseOptions{})
 	assert.NoError(t, err)
 
 	issue2Closed, err := issues_model.GetIssueByID(t.Context(), 2)

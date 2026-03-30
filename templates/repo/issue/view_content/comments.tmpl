@@ -94,9 +94,21 @@
 					{{end}}
 				</span>
 			</div>
-		{{else if eq .Type 2}}
+		{{else if or (eq .Type 2) (eq .Type 39)}}
 			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge tw-bg-red tw-text-white">{{svg "octicon-issue-closed"}}</span>
+				{{$closeBadgeClass := "badge tw-bg-red tw-text-white"}}
+				{{$closeBadgeIcon := "octicon-issue-closed"}}
+				{{$closeReason := ""}}
+				{{if and (eq .Type 39) (not .Issue.IsPull)}}
+					{{$closeReason = .CloseReasonForDisplay}}
+					{{if or (eq $closeReason "duplicate") (eq $closeReason "not_planned")}}
+						{{$closeBadgeClass = "badge issue-close-reason-badge-neutral"}}
+						{{$closeBadgeIcon = "octicon-skip"}}
+					{{else}}
+						{{$closeBadgeClass = "badge issue-close-reason-badge-completed"}}
+					{{end}}
+				{{end}}
+				<span class="{{$closeBadgeClass}}">{{svg $closeBadgeIcon}}</span>
 				{{if not .OriginalAuthor}}
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
@@ -105,7 +117,52 @@
 					{{if .Issue.IsPull}}
 						{{ctx.Locale.Tr "repo.pulls.closed_at" .EventTag $createdStr}}
 					{{else}}
-						{{ctx.Locale.Tr "repo.issues.closed_at" .EventTag $createdStr}}
+						{{if eq .Type 39}}
+							{{$reasonPhrase := ""}}
+							{{if not $closeReason}}
+								{{$closeReason = .CloseReasonForDisplay}}
+							{{end}}
+							{{if eq $closeReason "completed"}}
+								{{$reasonPhrase = ctx.Locale.Tr "repo.issues.close_reason.as_completed"}}
+							{{else if eq $closeReason "not_planned"}}
+								{{$reasonPhrase = ctx.Locale.Tr "repo.issues.close_reason.as_not_planned"}}
+							{{else if eq $closeReason "duplicate"}}
+								{{$dupIdx := .CloseReasonDuplicateIssueIndex}}
+								{{if gt $dupIdx 0}}
+									{{$dupLink := HTMLFormat `<a href="%s/issues/%d">#%d</a>` $.RepoLink $dupIdx $dupIdx}}
+									{{$reasonPhrase = ctx.Locale.Tr "repo.issues.close_reason.as_duplicate_of" $dupLink}}
+								{{else}}
+									{{$reasonPhrase = ctx.Locale.Tr "repo.issues.close_reason.as_duplicate"}}
+								{{end}}
+							{{else if eq $closeReason "answered"}}
+								{{$commentID := .CloseReasonAnsweredCommentID}}
+								{{if gt $commentID 0}}
+									{{$answerLink := HTMLFormat `<a href="#issuecomment-%d">comment #%d</a>` $commentID $commentID}}
+									{{$reasonPhrase = ctx.Locale.Tr "repo.issues.close_reason.as_answered_by_comment" $answerLink}}
+								{{else}}
+									{{$reasonPhrase = ctx.Locale.Tr "repo.issues.close_reason.as_answered"}}
+								{{end}}
+							{{else if eq $closeReason "completed_by_commit"}}
+								{{$hash := .CloseReasonCommitHash}}
+								{{if $hash}}
+									{{$commitLink := HTMLFormat `<a class="ui sha" href="%[1]s/commit/%[2]s"><b>%[3]s</b></a>` $.RepoLink $hash (ShortSha $hash)}}
+									{{$reasonPhrase = ctx.Locale.Tr "repo.issues.close_reason.via_commit" $commitLink}}
+								{{end}}
+							{{else if eq $closeReason "completed_by_pull"}}
+								{{$pullIdx := .CloseReasonPullIndex}}
+								{{if gt $pullIdx 0}}
+									{{$pullLink := HTMLFormat `<a href="%s/pulls/%d">#%d</a>` $.RepoLink $pullIdx $pullIdx}}
+									{{$reasonPhrase = ctx.Locale.Tr "repo.issues.close_reason.via_pull" $pullLink}}
+								{{end}}
+							{{end}}
+							{{if $reasonPhrase}}
+								{{ctx.Locale.Tr "repo.issues.closed_at_with_reason" $reasonPhrase .EventTag $createdStr}}
+							{{else}}
+								{{ctx.Locale.Tr "repo.issues.closed_at" .EventTag $createdStr}}
+							{{end}}
+						{{else}}
+							{{ctx.Locale.Tr "repo.issues.closed_at" .EventTag $createdStr}}
+						{{end}}
 					{{end}}
 				</span>
 			</div>

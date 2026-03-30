@@ -5,6 +5,7 @@ package convert
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -121,6 +122,20 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	}
 	if issue.DeadlineUnix != 0 {
 		apiIssue.Deadline = issue.DeadlineUnix.AsTimePtr()
+	}
+
+	// Set state_reason: if issue is closed but close_reason is empty, treat as "completed"
+	if issue.IsClosed {
+		if issue.CloseReason == issues_model.IssueCloseReasonNone {
+			apiIssue.StateReason = "completed"
+		} else {
+			apiIssue.StateReason = issue.CloseReason.String()
+		}
+		if issue.CloseReasonParam != "" {
+			var param any
+			_ = json.Unmarshal([]byte(issue.CloseReasonParam), &param)
+			apiIssue.StateReasonParam = param
+		}
 	}
 
 	return apiIssue

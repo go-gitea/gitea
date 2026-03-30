@@ -388,6 +388,16 @@ td .commit-summary {
   margin-right: 4px;
 }
 
+.issue-state-label.issue-state-label-closed-completed {
+  background-color: purple;
+  color: white;
+}
+
+.issue-state-label.issue-state-label-closed-neutral {
+  background-color: gray;
+  color: white;
+}
+
 .repository.view.issue .pull-desc code {
   color: var(--color-primary);
   background: transparent;
@@ -610,6 +620,90 @@ td .commit-summary {
   width: calc(100% + 2rem);
 }
 
+#close-with-reason-group {
+  position: relative;
+}
+
+#close-with-reason-menu {
+  left: auto;
+  right: 0;
+  top: calc(100% + 4px);
+  bottom: auto;
+  z-index: 1200;
+}
+
+.close-reason-duplicate-modal {
+  width: min(560px, 92vw);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  background: var(--color-box-body);
+  color: var(--color-text);
+  padding: 0;
+}
+
+.close-reason-duplicate-modal::backdrop {
+  background: rgb(0 0 0 / 40%);
+}
+
+.close-reason-duplicate-modal .header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-secondary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.close-reason-duplicate-modal .content {
+  padding: 16px;
+}
+
+.close-reason-duplicate-modal .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-secondary);
+}
+
+#duplicate-issue-list {
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+}
+
+.close-reason-duplicate-item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--color-secondary);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.close-reason-duplicate-item:last-child {
+  border-bottom: 0;
+}
+
+.close-reason-duplicate-item:hover {
+  background: var(--color-hover);
+}
+
+.close-reason-duplicate-item-main {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.close-reason-duplicate-item-state {
+  color: var(--color-text-light-2);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
 .merge-section-info code {
   border: 1px solid var(--color-light-border);
   border-radius: var(--border-radius);
@@ -628,6 +722,10 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .comment .ui.form .field.footer {
   overflow: hidden;
+}
+
+.repository.view.issue .comment-list #comment-form > .field.footer {
+  overflow: visible;
 }
 
 .repository.view.issue .comment-list .comment .ui.form .field .tab.markup {
