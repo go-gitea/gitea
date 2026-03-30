@@ -134,7 +134,6 @@ func migrateCommitStatusTargetURLForGroup(
 	if err := x.Table(table).
 		Where("repo_id = ?", repoID).
 		And("sha = ?", sha).
-		And("target_url LIKE ?", "%"+actionsRunPath+"%").
 		Cols("id", "repo_id", "target_url").
 		Find(&rows); err != nil {
 		return fmt.Errorf("query %s for repo_id=%d sha=%s: %w", table, repoID, sha, err)
