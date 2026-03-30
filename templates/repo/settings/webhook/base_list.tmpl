@@ -14,7 +14,7 @@
 			<div class="item">
 				<span class="{{if eq .LastStatus 1}}tw-text-green{{else if eq .LastStatus 2}}tw-text-red{{else}}tw-text-text-light{{end}}">{{svg "octicon-dot-fill" 22}}</span>
 				<div class="gt-ellipsis tw-flex-1">
-					<a title="{{.URL}}" href="{{$.BaseLink}}/{{.ID}}">{{.URL}}</a>
+					<a title="{{.URL}}" href="{{$.BaseLink}}/{{.ID}}">{{if .Name}}{{.Name}}{{else}}{{.URL}}{{end}}</a>
 				</div>
 				<a class="muted tw-p-2" href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
 				<a class="tw-text-red tw-p-2 link-action"

@@ -2257,6 +2257,8 @@
   "repo.settings.payload_url": "Target URL",
   "repo.settings.http_method": "HTTP Method",
   "repo.settings.content_type": "POST Content Type",
+  "repo.settings.webhook.name": "Webhook name",
+  "repo.settings.webhook.name_placeholder": "Optional: give this webhook a friendly name",
   "repo.settings.secret": "Secret",
   "repo.settings.webhook_secret_desc": "If the webhook server supports using secret, you can follow the webhook's manual and fill in a secret here.",
   "repo.settings.slack_username": "Username",
