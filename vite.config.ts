@@ -9,7 +9,7 @@ import tailwindConfig from './tailwind.config.ts';
 import wrapAnsi from 'wrap-ansi';
 import licensePlugin from 'rollup-plugin-license';
 import type {InlineConfig, Plugin, Rolldown} from 'vite';
-import {setInterval} from "node:timers";
+import {setInterval} from 'node:timers';
 
 const isProduction = env.NODE_ENV !== 'development';
 

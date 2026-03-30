@@ -178,7 +178,7 @@ func loadThemesFromAssets() (themeList []*ThemeMetaInfo, themeMap map[string]*Th
 	foundThemes, err := collectThemeFiles(themeDir, themePath)
 	if err != nil {
 		log.Error("Failed to load theme files: %v", err)
-		return
+		return themeList, themeMap
 	}
 
 	themeList = foundThemes
