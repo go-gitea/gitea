@@ -1,11 +1,9 @@
 {
   "consumes": [
-    "application/json",
-    "text/plain"
+    "application/json"
   ],
   "produces": [
-    "application/json",
-    "text/html"
+    "application/json"
   ],
   "schemes": [
     "https",
@@ -86,7 +84,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunnersResponse"
+            "$ref": "#/responses/RunnerList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -135,7 +133,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunner"
+            "$ref": "#/responses/Runner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -205,7 +203,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunner"
+            "$ref": "#/responses/Runner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -2008,7 +2006,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunnersResponse"
+            "$ref": "#/responses/RunnerList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -2073,7 +2071,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunner"
+            "$ref": "#/responses/Runner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -2157,7 +2155,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunner"
+            "$ref": "#/responses/Runner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -4989,7 +4987,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunnersResponse"
+            "$ref": "#/responses/RunnerList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5068,7 +5066,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunner"
+            "$ref": "#/responses/Runner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5166,7 +5164,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunner"
+            "$ref": "#/responses/Runner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5287,7 +5285,7 @@
             "required": true
           },
           {
-            "type": "string",
+            "type": "integer",
             "description": "id of the run",
             "name": "run",
             "in": "path",
@@ -10230,7 +10228,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "$ref": "#/responses/empty"
           },
           "403": {
@@ -11969,7 +11967,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "$ref": "#/responses/empty"
           },
           "403": {
@@ -14494,6 +14492,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -18670,7 +18671,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunnersResponse"
+            "$ref": "#/responses/RunnerList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -18719,7 +18720,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunner"
+            "$ref": "#/responses/Runner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -18789,7 +18790,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunner"
+            "$ref": "#/responses/Runner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -23887,7 +23888,16 @@
           "x-go-name": "CommitID"
         },
         "event": {
-          "$ref": "#/definitions/ReviewStateType"
+          "type": "string",
+          "enum": [
+            "APPROVED",
+            "PENDING",
+            "COMMENT",
+            "REQUEST_CHANGES",
+            "REQUEST_REVIEW"
+          ],
+          "x-go-enum-desc": "APPROVED ReviewStateApproved  ReviewStateApproved pr is approved\nPENDING ReviewStatePending  ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment  ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges  ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview  ReviewStateRequestReview review is requested from user",
+          "x-go-name": "Event"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -24835,6 +24845,10 @@
         "state": {
           "description": "State indicates the updated state of the milestone",
           "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
           "x-go-name": "State"
         },
         "title": {
@@ -26272,7 +26286,13 @@
           "$ref": "#/definitions/RepositoryMeta"
         },
         "state": {
-          "$ref": "#/definitions/StateType"
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-name": "State"
         },
         "time_estimate": {
           "type": "integer",
@@ -26373,7 +26393,16 @@
           "x-go-name": "ID"
         },
         "type": {
-          "$ref": "#/definitions/IssueFormFieldType"
+          "type": "string",
+          "enum": [
+            "markdown",
+            "textarea",
+            "input",
+            "dropdown",
+            "checkboxes"
+          ],
+          "x-go-enum-desc": "markdown IssueFormFieldTypeMarkdown\ntextarea IssueFormFieldTypeTextarea\ninput IssueFormFieldTypeInput\ndropdown IssueFormFieldTypeDropdown\ncheckboxes IssueFormFieldTypeCheckboxes",
+          "x-go-name": "Type"
         },
         "validations": {
           "type": "object",
@@ -26383,21 +26412,16 @@
         "visible": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/IssueFormFieldVisible"
+            "type": "string",
+            "enum": [
+              "form",
+              "content"
+            ],
+            "x-go-enum-desc": "form IssueFormFieldVisibleForm\ncontent IssueFormFieldVisibleContent"
           },
           "x-go-name": "Visible"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "IssueFormFieldType": {
-      "type": "string",
-      "title": "IssueFormFieldType defines issue form field type, can be \"markdown\", \"textarea\", \"input\", \"dropdown\" or \"checkboxes\"",
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "IssueFormFieldVisible": {
-      "description": "IssueFormFieldVisible defines issue form field visible",
-      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "IssueLabelsOption": {
@@ -26897,7 +26921,14 @@
           "x-go-name": "OpenIssues"
         },
         "state": {
-          "$ref": "#/definitions/StateType"
+          "description": "State indicates if the milestone is open or closed\nopen StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-name": "State"
         },
         "title": {
           "description": "Title is the title of the milestone",
@@ -27111,7 +27142,15 @@
           "x-go-name": "LatestCommentURL"
         },
         "state": {
-          "$ref": "#/definitions/StateType"
+          "description": "State indicates the current state of the notification subject\nopen NotifySubjectStateOpen  NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed  NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged  NotifySubjectStateMerged is a merged pull request",
+          "type": "string",
+          "enum": [
+            "open",
+            "closed",
+            "merged"
+          ],
+          "x-go-enum-desc": "open NotifySubjectStateOpen  NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed  NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged  NotifySubjectStateMerged is a merged pull request",
+          "x-go-name": "State"
         },
         "title": {
           "description": "Title is the title of the notification subject",
@@ -27119,7 +27158,16 @@
           "x-go-name": "Title"
         },
         "type": {
-          "$ref": "#/definitions/NotifySubjectType"
+          "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue  NotifySubjectIssue an issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull an pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit an commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository an repository is subject of an notification",
+          "type": "string",
+          "enum": [
+            "Issue",
+            "Pull",
+            "Commit",
+            "Repository"
+          ],
+          "x-go-enum-desc": "Issue NotifySubjectIssue  NotifySubjectIssue an issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull an pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit an commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository an repository is subject of an notification",
+          "x-go-name": "Type"
         },
         "url": {
           "description": "URL is the API URL for the notification subject",
@@ -27167,11 +27215,6 @@
           "x-go-name": "URL"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "NotifySubjectType": {
-      "description": "NotifySubjectType represent type of notification subject",
-      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "OAuth2Application": {
@@ -27806,7 +27849,14 @@
           "x-go-name": "ReviewComments"
         },
         "state": {
-          "$ref": "#/definitions/StateType"
+          "description": "The current state of the pull request\nopen StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-name": "State"
         },
         "title": {
           "description": "The title of the pull request",
@@ -27898,7 +27948,16 @@
           "x-go-name": "Stale"
         },
         "state": {
-          "$ref": "#/definitions/ReviewStateType"
+          "type": "string",
+          "enum": [
+            "APPROVED",
+            "PENDING",
+            "COMMENT",
+            "REQUEST_CHANGES",
+            "REQUEST_REVIEW"
+          ],
+          "x-go-enum-desc": "APPROVED ReviewStateApproved  ReviewStateApproved pr is approved\nPENDING ReviewStatePending  ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment  ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges  ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview  ReviewStateRequestReview review is requested from user",
+          "x-go-name": "State"
         },
         "submitted_at": {
           "type": "string",
@@ -28635,11 +28694,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "ReviewStateType": {
-      "description": "ReviewStateType review state type",
-      "type": "string",
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "RunDetails": {
       "description": "RunDetails returns workflow_dispatch runid and url",
       "type": "object",
@@ -28714,11 +28768,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "StateType": {
-      "description": "StateType issue state type",
-      "type": "string",
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "StopWatch": {
       "description": "StopWatch represent a running stopwatch",
       "type": "object",
@@ -28772,7 +28821,16 @@
           "x-go-name": "Body"
         },
         "event": {
-          "$ref": "#/definitions/ReviewStateType"
+          "type": "string",
+          "enum": [
+            "APPROVED",
+            "PENDING",
+            "COMMENT",
+            "REQUEST_CHANGES",
+            "REQUEST_REVIEW"
+          ],
+          "x-go-enum-desc": "APPROVED ReviewStateApproved  ReviewStateApproved pr is approved\nPENDING ReviewStatePending  ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment  ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges  ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview  ReviewStateRequestReview review is requested from user",
+          "x-go-name": "Event"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
