@@ -294,7 +294,7 @@ async function updateEditorLanguage(cm: CodemirrorModules, editor: CodemirrorEdi
     {
       effects: [
         compartments.wordWrap.reconfigure(
-          lineWrapExts.includes(extname(filename)) ? cm.view.EditorView.lineWrapping : [],
+          lineWrapExts.includes(extname(filename).toLowerCase()) ? cm.view.EditorView.lineWrapping : [],
         ),
         compartments.language.reconfigure(newLanguage ? await newLanguage.load() : []),
         compartments.lint.reconfigure(await getLinterExtension(cm, filename, newLanguage)),

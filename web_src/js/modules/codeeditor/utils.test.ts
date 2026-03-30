@@ -23,11 +23,25 @@ test('matchUrls', () => {
   expect(matchUrls('[![](https://img.shields.io/npm/v/pkg.svg?style=flat)](https://www.npmjs.org/package/pkg)')).toEqual(['https://img.shields.io/npm/v/pkg.svg?style=flat', 'https://www.npmjs.org/package/pkg']);
 });
 
+test('trimUrlPunctuation', () => {
+  expect(trimUrlPunctuation('https://example.com.')).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://example.com,')).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://example.com;')).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://example.com:')).toEqual('https://example.com');
+  expect(trimUrlPunctuation("https://example.com'")).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://example.com"')).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://example.com.,;')).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://example.com/path')).toEqual('https://example.com/path');
+  expect(trimUrlPunctuation('https://example.com/path_(wiki)')).toEqual('https://example.com/path_(wiki)');
+  expect(trimUrlPunctuation('https://example.com)')).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://en.wikipedia.org/wiki/Rust_(lang))')).toEqual('https://en.wikipedia.org/wiki/Rust_(lang)');
+});
+
 test('findUrlAtPosition', () => {
   const doc = 'visit https://example.com for info';
   expect(findUrlAtPosition(doc, 0)).toBeNull();
   expect(findUrlAtPosition(doc, 6)).toEqual('https://example.com');
   expect(findUrlAtPosition(doc, 15)).toEqual('https://example.com');
-  expect(findUrlAtPosition(doc, 25)).toEqual('https://example.com');
-  expect(findUrlAtPosition(doc, 26)).toBeNull();
+  expect(findUrlAtPosition(doc, 24)).toEqual('https://example.com');
+  expect(findUrlAtPosition(doc, 25)).toBeNull();
 });
