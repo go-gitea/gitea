@@ -18,7 +18,7 @@ import (
 
 const maxPushCommitsInCommentCount = 1000
 
-func preparePushPullCommentPushActionContent(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID, baseCommitID string, isForcePush bool) (data issues_model.PushActionContent, shouldCreate bool, err error) {
+func preparePushPullCommentPushActionContent(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string, isForcePush bool) (data issues_model.PushActionContent, shouldCreate bool, err error) {
 	if isForcePush {
 		// if it's a force push, we need to get the whole pull request commits
 		// the force-push timeline comment should always be created, so all errors are ignored and logged only.
@@ -26,16 +26,16 @@ func preparePushPullCommentPushActionContent(ctx context.Context, pr *issues_mod
 		if err != nil {
 			log.Debug("MergeBase %q..%q failed: %v", pr.BaseBranch, newCommitID, err)
 		} else {
-			data.CommitIDs, err = gitrepo.GetLastCommitIDsBetween(ctx, pr.BaseRepo, mergeBase, newCommitID, "", maxPushCommitsInCommentCount)
+			data.CommitIDs, err = gitrepo.GetLastCommitIDsBetweenReverse(ctx, pr.BaseRepo, mergeBase, newCommitID, "", maxPushCommitsInCommentCount)
 			if err != nil {
-				log.Debug("GetLastCommitIDsBetween %q..%q failed: %v", mergeBase, newCommitID, err)
+				log.Debug("GetLastCommitIDsBetweenReverse %q..%q failed: %v", mergeBase, newCommitID, err)
 			}
 		}
 		return data, true, nil
 	}
 
 	// for a normal push, it maybe an empty pull request, only non-empty pull request need to create push comment
-	data.CommitIDs, err = gitrepo.GetLastCommitIDsBetween(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch, maxPushCommitsInCommentCount)
+	data.CommitIDs, err = gitrepo.GetLastCommitIDsBetweenReverse(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch, maxPushCommitsInCommentCount)
 	return data, len(data.CommitIDs) > 0, err
 }
 
@@ -111,12 +111,8 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 	if err != nil {
 		return nil, false, err
 	}
-	baseCommitID, err := gitRepo.GetRefCommitID(pr.BaseBranch)
-	if err != nil {
-		return nil, false, err
-	}
 
-	data, shouldCreate, err := preparePushPullCommentPushActionContent(ctx, pr, oldCommitID, newCommitID, baseCommitID, isForcePush)
+	data, shouldCreate, err := preparePushPullCommentPushActionContent(ctx, pr, oldCommitID, newCommitID, isForcePush)
 	if !shouldCreate {
 		return nil, false, err
 	}

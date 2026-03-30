@@ -43,9 +43,9 @@ func GetDivergingCommits(ctx context.Context, repo Repository, baseBranch, targe
 	return &DivergeObject{Ahead: ahead, Behind: behind}, nil
 }
 
-// GetLastCommitIDsBetween returns the last commit IDs between two commits in reverse order (from old to new) with limit.
+// GetLastCommitIDsBetweenReverse returns the last commit IDs between two commits in reverse order (from old to new) with limit.
 // If the result exceeds the limit, the old commits IDs will be ignored
-func GetLastCommitIDsBetween(ctx context.Context, repo Repository, startRef, endRef, notRef string, limit int) ([]string, error) {
+func GetLastCommitIDsBetweenReverse(ctx context.Context, repo Repository, startRef, endRef, notRef string, limit int) ([]string, error) {
 	genCmd := func(reversions ...string) *gitcmd.Command {
 		cmd := gitcmd.NewCommand("rev-list", "--reverse").
 			AddArguments("-n").AddDynamicArguments(strconv.Itoa(limit)).
