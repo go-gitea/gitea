@@ -273,7 +273,7 @@ func (p *Project) GetDefaultColumnWithFallback(ctx context.Context) (*Column, er
 		return &column, nil
 	}
 
-	// try to first the first column by sorting
+	// try to find the first column by sorting
 	has, err = db.GetEngine(ctx).Where("project_id=?", p.ID).OrderBy("sorting, id").Get(&column)
 	if err != nil {
 		return nil, err

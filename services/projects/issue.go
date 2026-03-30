@@ -88,7 +88,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 }
 
 // LoadIssuesFromProject load issues assigned to each project column inside the given project
-func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (map[int64]issues_model.IssueList, error) {
+func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (results map[int64]issues_model.IssueList, _ error) {
 	issueList, err := issues_model.Issues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
 		o.ProjectID = project.ID
 		o.SortType = "project-column-sorting"
@@ -103,7 +103,8 @@ func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, 
 
 	defaultColumn, err := project.GetDefaultColumnWithFallback(ctx)
 	if err != nil {
-		return nil, util.Iif(errors.Is(err, util.ErrNotExist), nil, err)
+		// treat not exist error as empty result, because it means there is no column in the project, so no issue can be assigned to any column
+		return results, util.Iif(errors.Is(err, util.ErrNotExist), nil, err)
 	}
 
 	issueColumnMap, err := issues_model.LoadProjectIssueColumnMap(ctx, project.ID, defaultColumn.ID)
@@ -111,7 +112,7 @@ func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, 
 		return nil, err
 	}
 
-	results := make(map[int64]issues_model.IssueList)
+	results = make(map[int64]issues_model.IssueList)
 	for _, issue := range issueList {
 		projectColumnID, ok := issueColumnMap[issue.ID]
 		if !ok {

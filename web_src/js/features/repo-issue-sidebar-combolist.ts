@@ -25,7 +25,7 @@ export class IssueSidebarComboList {
     if (!['single', 'multiple'].includes(this.selectionMode)) throw new Error(`Invalid data-update-on: ${this.selectionMode}`);
     if (!['diff', 'all'].includes(this.updateAlgo)) throw new Error(`Invalid data-update-algo: ${this.updateAlgo}`);
     this.elDropdown = container.querySelector<HTMLElement>(':scope > .ui.dropdown')!;
-    this.elList = container.querySelector<HTMLElement>(':scope > .ui.list')!;
+    this.elList = container.querySelector<HTMLElement>(':scope > .ui.list');
     this.elComboValue = container.querySelector<HTMLInputElement>(':scope > .combo-value')!;
 
     this.elIssueMainContent = document.querySelector('.issue-content-left')!;
@@ -85,11 +85,13 @@ export class IssueSidebarComboList {
       for (const value of this.initialValues) {
         if (!changedValues.includes(value)) {
           lastResp = await POST(this.updateUrl, {data: new URLSearchParams({action: 'detach', id: value})});
+          if (!lastResp.ok) return lastResp;
         }
       }
       for (const value of changedValues) {
         if (!this.initialValues.includes(value)) {
           lastResp = await POST(this.updateUrl, {data: new URLSearchParams({action: 'attach', id: value})});
+          if (!lastResp.ok) return lastResp;
         }
       }
     } else {
