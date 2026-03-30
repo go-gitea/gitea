@@ -531,7 +531,7 @@ func PackageVersionDelete(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64("fileid"))
 	if err != nil {
-		if err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetFileForVersionByID", err)

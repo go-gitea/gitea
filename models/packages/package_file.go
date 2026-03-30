@@ -125,7 +125,6 @@ func DeleteFilesByPackageID(ctx context.Context, packageID int64) error {
 
 // DeleteFilesByVersionID deletes all files of a specific version
 func DeleteFilesByVersionID(ctx context.Context, versionID int64) error {
-
 	_, err := db.GetEngine(ctx).Where("version_id = ?", versionID).Delete(&PackageFile{})
 	return err
 }
