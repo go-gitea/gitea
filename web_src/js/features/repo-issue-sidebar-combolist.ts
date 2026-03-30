@@ -73,6 +73,14 @@ export class IssueSidebarComboList {
     const newTimelineItems = newMainContent.querySelectorAll(`.timeline-item[id]`);
     for (const newItem of newTimelineItems) {
       const newItemId = newItem.getAttribute('id')!;
+      if (newItem.classList.contains('event')) {
+        // for event item (e.g.: "add & remove labels"), we want to replace the existing one if exists
+        const oldItem = this.elIssueMainContent.querySelector(`.timeline-item.event[id="${CSS.escape(newItemId)}"]`);
+        if (oldItem) {
+          oldItem.replaceWith(newItem);
+          continue;
+        }
+      }
       if (this.elIssueMainContent.querySelector(`.timeline-item[id="${CSS.escape(newItemId)}"]`)) continue;
       lastTimelineItemForInsertion.insertAdjacentElement('afterend', newItem);
       lastTimelineItemForInsertion = newItem;
