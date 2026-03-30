@@ -788,6 +788,15 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 
+	// Fail fast: if content_version is provided and already stale, reject
+	// before any mutations. The DB-level check in ChangeContent still
+	// handles concurrent requests.
+	// TODO: wrap all mutations in a transaction to fully prevent partial writes.
+	if form.ContentVersion != nil && *form.ContentVersion != issue.ContentVersion {
+		ctx.APIError(http.StatusConflict, issues_model.ErrIssueAlreadyChanged)
+		return
+	}
+
 	if len(form.Title) > 0 {
 		err = issue_service.ChangeTitle(ctx, issue, ctx.Doer, form.Title)
 		if err != nil {
