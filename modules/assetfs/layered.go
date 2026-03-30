@@ -95,8 +95,9 @@ func (l *LayeredFS) ReadDir(name string) (files []fs.DirEntry, _ error) {
 			return nil, err
 		}
 		for _, entry := range entries {
-			if shouldInclude(entry) {
-				filesMap[entry.Name()] = entry
+			entryName := entry.Name()
+			if _, exist := filesMap[entryName]; !exist && shouldInclude(entry) {
+				filesMap[entryName] = entry
 			}
 		}
 	}

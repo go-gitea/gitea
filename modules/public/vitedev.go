@@ -45,7 +45,7 @@ func getViteDevProxy() *httputil.ReverseProxy {
 
 	target, err := url.Parse(viteDevServerBaseURL)
 	if err != nil {
-		log.Error("Failed to parse vite dev server base url %s, err: %v", viteDevServerBaseURL, err)
+		log.Error("Failed to parse Vite dev server base URL %s, err: %v", viteDevServerBaseURL, err)
 		return nil
 	}
 
@@ -103,7 +103,7 @@ var viteDevModeCheck atomic.Pointer[struct {
 	time  time.Time
 }]
 
-// IsViteDevMode returns true if the Vite dev server port file exists and is alive
+// IsViteDevMode returns true if the Vite dev server port file exists and the server is alive
 func IsViteDevMode() bool {
 	if setting.IsProd {
 		return false
@@ -122,6 +122,9 @@ func IsViteDevMode() bool {
 
 	req := httplib.NewRequest(viteDevServerBaseURL+"/web_src/js/__vite_dev_server_check", "GET")
 	resp, _ := req.Response()
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
 	isDev := resp != nil && resp.StatusCode == http.StatusOK
 	viteDevModeCheck.Store(&struct {
 		isDev bool

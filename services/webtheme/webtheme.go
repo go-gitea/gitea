@@ -172,7 +172,7 @@ func loadThemesFromAssets(isViteDevMode bool) (themeList []*ThemeMetaInfo, theme
 		// In vite dev mode, Vite serves themes directly from source files.
 		themeDir, themePath = os.DirFS(setting.StaticRootPath).(fs.ReadDirFS), "web_src/css/themes"
 	} else {
-		// In prod mode, use built assets from AssetFS.
+		// Without vite dev server, use built assets from AssetFS.
 		themeDir, themePath = public.AssetFS(), "assets/css"
 	}
 
