@@ -142,55 +142,49 @@ func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 	return themeInfo
 }
 
+func collectThemeFiles(fileNames []string, readFile func(string) ([]byte, error)) []*ThemeMetaInfo {
+	var themes []*ThemeMetaInfo
+	for _, fileName := range fileNames {
+		if !strings.HasPrefix(fileName, fileNamePrefix) || !strings.HasSuffix(fileName, fileNameSuffix) {
+			continue
+		}
+		content, err := readFile(fileName)
+		if err != nil {
+			log.Error("Failed to read theme file %q: %v", fileName, err)
+			continue
+		}
+		themes = append(themes, parseThemeMetaInfo(fileName, util.UnsafeBytesToString(content)))
+	}
+	return themes
+}
+
 func loadThemesFromAssets() (themeList []*ThemeMetaInfo, themeMap map[string]*ThemeMetaInfo) {
 	var foundThemes []*ThemeMetaInfo
-	seenNames := make(container.Set[string])
 
-	// In dev mode, use source theme files directly instead of relying on built assets.
 	if !setting.IsProd {
+		// In dev mode, Vite serves themes directly from source files.
 		srcDir := filepath.Join(setting.StaticRootPath, "web_src/css/themes")
-		if entries, err := os.ReadDir(srcDir); err == nil {
+		entries, err := os.ReadDir(srcDir)
+		if err != nil {
+			log.Warn("Failed to read theme source directory %q: %v", srcDir, err)
+		} else {
+			fileNames := make([]string, 0, len(entries))
 			for _, entry := range entries {
-				fileName := entry.Name()
-				if !strings.HasPrefix(fileName, fileNamePrefix) || !strings.HasSuffix(fileName, fileNameSuffix) {
-					continue
-				}
-				content, err := os.ReadFile(filepath.Join(srcDir, fileName))
-				if err != nil {
-					log.Error("Failed to read theme source file %q: %v", fileName, err)
-					continue
-				}
-				themeInfo := parseThemeMetaInfo(fileName, util.UnsafeBytesToString(content))
-				foundThemes = append(foundThemes, themeInfo)
-				seenNames.Add(themeInfo.InternalName)
+				fileNames = append(fileNames, entry.Name())
 			}
+			foundThemes = collectThemeFiles(fileNames, func(name string) ([]byte, error) {
+				return os.ReadFile(filepath.Join(srcDir, name))
+			})
 		}
-	}
-
-	// Check custom assets
-	cssFiles, err := public.AssetFS().ListFiles("assets/css")
-	if err != nil {
-		if len(foundThemes) == 0 {
+	} else {
+		cssFiles, err := public.AssetFS().ListFiles("assets/css")
+		if err != nil {
 			log.Error("Failed to list themes: %v", err)
 			return nil, nil
 		}
-	} else {
-		for _, fileName := range cssFiles {
-			if !strings.HasPrefix(fileName, fileNamePrefix) || !strings.HasSuffix(fileName, fileNameSuffix) {
-				continue
-			}
-			content, err := public.AssetFS().ReadFile("/assets/css/" + fileName)
-			if err != nil {
-				log.Error("Failed to read theme file %q: %v", fileName, err)
-				continue
-			}
-			themeInfo := parseThemeMetaInfo(fileName, util.UnsafeBytesToString(content))
-			if seenNames.Contains(themeInfo.InternalName) {
-				continue
-			}
-			foundThemes = append(foundThemes, themeInfo)
-			seenNames.Add(themeInfo.InternalName)
-		}
+		foundThemes = collectThemeFiles(cssFiles, func(name string) ([]byte, error) {
+			return public.AssetFS().ReadFile("/assets/css/" + name)
+		})
 	}
 
 	themeList = foundThemes
