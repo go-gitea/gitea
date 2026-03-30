@@ -12,7 +12,6 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
@@ -96,15 +95,17 @@ func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, 
 	if err != nil {
 		return nil, err
 	}
-
+	if len(issueList) == 0 {
+		// if no issue, return directly, then no need to create a default column for an empty project
+		return results, nil
+	}
 	if err := issueList.LoadComments(ctx); err != nil {
 		return nil, err
 	}
 
-	defaultColumn, err := project.GetDefaultColumnWithFallback(ctx)
+	defaultColumn, err := project.MustDefaultColumn(ctx)
 	if err != nil {
-		// treat not exist error as empty result, because it means there is no column in the project, so no issue can be assigned to any column
-		return results, util.Iif(errors.Is(err, util.ErrNotExist), nil, err)
+		return nil, err
 	}
 
 	issueColumnMap, err := issues_model.LoadProjectIssueColumnMap(ctx, project.ID, defaultColumn.ID)

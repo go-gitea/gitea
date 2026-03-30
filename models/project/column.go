@@ -257,8 +257,9 @@ func (p *Project) GetColumns(ctx context.Context) (ColumnList, error) {
 	return columns, nil
 }
 
-// GetDefaultColumnWithFallback return default column if one exists, otherwise return the first column by sorting and set it as default column
-func (p *Project) GetDefaultColumnWithFallback(ctx context.Context) (*Column, error) {
+// getDefaultColumnWithFallback return default column if one exists
+// otherwise return the first column by sorting and set it as default column
+func (p *Project) getDefaultColumnWithFallback(ctx context.Context) (*Column, error) {
 	var column Column
 
 	// try to find a column "default=true"
@@ -294,7 +295,7 @@ func (p *Project) GetDefaultColumnWithFallback(ctx context.Context) (*Column, er
 // If none exists, the first column will be elevated to the default column of this project
 // If there is no column, it creates a default column and returns it
 func (p *Project) MustDefaultColumn(ctx context.Context) (*Column, error) {
-	c, err := p.GetDefaultColumnWithFallback(ctx)
+	c, err := p.getDefaultColumnWithFallback(ctx)
 	if err != nil && !IsErrProjectColumnNotExist(err) {
 		return nil, err
 	}
