@@ -5,7 +5,7 @@ import {addDelegatedEventListener, queryElemChildren, queryElems, toggleElem} fr
 // if there are draft comments, confirm before reloading, to avoid losing comments
 function issueSidebarReloadConfirmDraftComment() {
   const commentTextareas = [
-    document.querySelector<HTMLTextAreaElement>('.edit-content-zone:not(.tw-hidden) textarea'),
+    document.querySelector<HTMLTextAreaElement>('.edit-content-zone:not(.tw\\:hidden) textarea'),
     document.querySelector<HTMLTextAreaElement>('#comment-form textarea'),
   ];
   for (const textarea of commentTextareas) {

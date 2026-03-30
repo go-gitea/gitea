@@ -14,13 +14,13 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
   const elDetailDialog = createElementFromHTML(`
 <div class="ui modal content-history-detail-dialog">
   ${svg('octicon-x', 16, 'close icon inside')}
-  <div class="header tw-flex tw-items-center tw-justify-between">
+  <div class="header tw:flex tw:items-center tw:justify-between">
     <div>${itemTitleHtml}</div>
-    <div class="ui dropdown dialog-header-options tw-mr-8 tw-hidden">
+    <div class="ui dropdown dialog-header-options tw:mr-8 tw:hidden">
       ${i18nTextOptions}
       ${svg('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
-        <div class="item tw-text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
+        <div class="item tw:text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
       </div>
     </div>
   </div>

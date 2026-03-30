@@ -1,0 +1,19 @@
+/* stylelint-disable at-rule-prelude-no-invalid */
+@import "tailwindcss/theme.css" layer(theme) prefix(tw);
+@import "./tailwind-theme.css";
+@import "tailwindcss/utilities.css" layer(utilities) source(none) prefix(tw) important;
+@import "./tailwind-custom-utilities.css";
+/* stylelint-enable at-rule-prelude-no-invalid */
+
+@source "../../build";
+@source "../../models";
+@source "../../modules";
+@source "../../routers";
+@source "../../services";
+@source "../../templates";
+@source "../../web_src/js";
+
+@source not "../../templates/devtest";
+@source not "../../templates/swagger/v1_json.tmpl";
+@source not "../../templates/user/auth/oidc_wellknown.tmpl";
+@source not "../../web_src/js/standalone/devtest.ts";

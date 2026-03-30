@@ -46,7 +46,7 @@ async function deleteArtifact(name: string) {
           <!-- eslint-disable-next-line vue/no-v-html -->
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
-        <div class="flex-text-block tw-shrink-0 tw-flex-wrap">
+        <div class="flex-text-block tw:shrink-0 tw:flex-wrap">
           <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
             {{ locale.approve }}
           </button>
@@ -84,8 +84,8 @@ async function deleteArtifact(name: string) {
           {{ locale.pushedBy }}
           <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
         </template>
-        <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
-          <span v-if="run.commit.branch.isDeleted" class="gt-ellipsis tw-line-through" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</span>
+        <span class="ui label tw:max-w-full" v-if="run.commit.shortSHA">
+          <span v-if="run.commit.branch.isDeleted" class="gt-ellipsis tw:line-through" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</span>
           <a v-else class="gt-ellipsis" :href="run.commit.branch.link" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</a>
         </span>
       </div>
@@ -95,8 +95,8 @@ async function deleteArtifact(name: string) {
         <div class="job-group-section">
           <a class="job-brief-item" :href="run.link" :class="!props.jobId ? 'selected' : ''">
             <div class="job-brief-item-left">
-              <SvgIcon name="octicon-list-unordered" class="tw-mr-2"/>
-              <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ locale.summary }}</span>
+              <SvgIcon name="octicon-list-unordered" class="tw:mr-2"/>
+              <span class="job-brief-name tw:mx-2 gt-ellipsis">{{ locale.summary }}</span>
             </div>
           </a>
           <div class="ui divider"/>
@@ -105,10 +105,10 @@ async function deleteArtifact(name: string) {
             <a class="job-brief-item" :href="run.link+'/jobs/'+job.id" :class="props.jobId === job.id ? 'selected' : ''" v-for="job in run.jobs" :key="job.id">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
-                <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
+                <span class="job-brief-name tw:mx-2 gt-ellipsis">{{ job.name }}</span>
               </div>
               <span class="job-brief-item-right">
-                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw:mx-2 link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
             </a>
@@ -122,17 +122,17 @@ async function deleteArtifact(name: string) {
               <li class="job-artifacts-item">
                 <template v-if="artifact.status !== 'expired'">
                   <a class="flex-text-inline" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
-                    <SvgIcon name="octicon-file" class="tw-text-text"/>
+                    <SvgIcon name="octicon-file" class="tw:text-text"/>
                     <span class="gt-ellipsis">{{ artifact.name }}</span>
                   </a>
                   <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
-                    <SvgIcon name="octicon-trash" class="tw-text-text"/>
+                    <SvgIcon name="octicon-trash" class="tw:text-text"/>
                   </a>
                 </template>
-                <span v-else class="flex-text-inline tw-text-grey-light">
+                <span v-else class="flex-text-inline tw:text-grey-light">
                   <SvgIcon name="octicon-file"/>
                   <span class="gt-ellipsis">{{ artifact.name }}</span>
-                  <span class="ui label tw-text-grey-light tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
+                  <span class="ui label tw:text-grey-light tw:shrink-0">{{ locale.artifactExpired }}</span>
                 </span>
               </li>
             </template>

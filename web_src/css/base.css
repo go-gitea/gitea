@@ -101,7 +101,7 @@ pre,
 code,
 kbd,
 samp,
-.tw-font-mono {
+.tw\:font-mono {
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 

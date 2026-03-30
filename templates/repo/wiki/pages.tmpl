@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository wiki pages">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<h2 class="ui header tw-flex tw-items-center tw-justify-between">
+		<h2 class="ui header tw:flex tw:items-center tw:justify-between">
 			<span>{{ctx.Locale.Tr "repo.wiki.pages"}}</span>
 			<span>
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
@@ -21,7 +21,7 @@
 							<a class="wiki-git-entry" href="{{$.RepoLink}}/wiki/{{.GitEntryName | PathEscape}}" data-tooltip-content="{{ctx.Locale.Tr "repo.wiki.original_git_entry_tooltip"}}">{{svg "octicon-chevron-right"}}</a>
 						</td>
 						{{$timeSince := DateUtils.TimeSince .UpdatedUnix}}
-						<td class="tw-text-right">{{ctx.Locale.Tr "repo.wiki.last_updated" $timeSince}}</td>
+						<td class="tw:text-right">{{ctx.Locale.Tr "repo.wiki.last_updated" $timeSince}}</td>
 					</tr>
 				{{end}}
 			</tbody>

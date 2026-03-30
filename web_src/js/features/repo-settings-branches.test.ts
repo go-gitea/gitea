@@ -13,19 +13,22 @@ vi.mock('../modules/sortable.ts', () => ({
 
 const branchesHTML = `
   <div id="protected-branches-list" data-update-priority-url="some/repo/branches/priority">
-    <div class="flex-item tw-items-center item" data-id="1">
+    <div class="flex-item tw:items-center item" data-id="1">
       <div class="drag-handle"></div>
     </div>
-    <div class="flex-item tw-items-center item" data-id="2">
+    <div class="flex-item tw:items-center item" data-id="2">
       <div class="drag-handle"></div>
     </div>
-    <div class="flex-item tw-items-center item" data-id="3">
+    <div class="flex-item tw:items-center item" data-id="3">
       <div class="drag-handle"></div>
     </div>
   </div>
 `;
 
 describe('Repository Branch Settings', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
   test('should initialize sortable for protected branches list', () => {
     document.body.innerHTML = branchesHTML;
     const callsBefore = vi.mocked(createSortable).mock.calls.length;

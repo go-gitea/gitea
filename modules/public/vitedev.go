@@ -136,6 +136,16 @@ func IsViteDevMode() bool {
 	return isDev
 }
 
+func viteDevSourceURLByCandidates(candidates ...string) string {
+	for _, candidate := range candidates {
+		srcPath := filepath.Join(setting.StaticRootPath, filepath.FromSlash(candidate))
+		if _, err := os.Stat(srcPath); err == nil {
+			return setting.AppSubURL + "/" + filepath.ToSlash(candidate)
+		}
+	}
+	return ""
+}
+
 func viteDevSourceURL(name string) string {
 	if !IsViteDevMode() {
 		return ""
@@ -143,14 +153,14 @@ func viteDevSourceURL(name string) string {
 	if strings.HasPrefix(name, "css/theme-") {
 		// Only redirect built-in themes to Vite source; custom themes are served from custom/public/assets/css/
 		themeFile := strings.TrimPrefix(name, "css/")
-		srcPath := filepath.Join(setting.StaticRootPath, "web_src/css/themes", themeFile)
-		if _, err := os.Stat(srcPath); err == nil {
-			return setting.AppSubURL + "/web_src/css/themes/" + themeFile
-		}
-		return ""
+		return viteDevSourceURLByCandidates("web_src/css/themes/" + themeFile)
 	}
 	if strings.HasPrefix(name, "css/") {
-		return setting.AppSubURL + "/web_src/" + name
+		file := strings.TrimPrefix(name, "css/")
+		return viteDevSourceURLByCandidates(
+			"web_src/css/"+file,
+			"web_src/css/standalone/"+file,
+		)
 	}
 	if name == "js/eventsource.sharedworker.js" {
 		return setting.AppSubURL + "/web_src/js/features/eventsource.sharedworker.ts"
@@ -158,8 +168,12 @@ func viteDevSourceURL(name string) string {
 	if name == "js/iife.js" {
 		return setting.AppSubURL + "/web_src/js/__vite_iife.js"
 	}
-	if name == "js/index.js" {
-		return setting.AppSubURL + "/web_src/js/index.ts"
+	if strings.HasPrefix(name, "js/") {
+		file := strings.TrimSuffix(strings.TrimPrefix(name, "js/"), ".js") + ".ts"
+		return viteDevSourceURLByCandidates(
+			"web_src/js/"+file,
+			"web_src/js/standalone/"+file,
+		)
 	}
 	return ""
 }

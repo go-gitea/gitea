@@ -7,7 +7,7 @@
 		<div class="flex-list">
 			{{range .Members}}
 				{{$isPublic := index $.MembersIsPublicMember .ID}}
-				<div class="flex-item {{if $.PublicOnly}}tw-items-center{{end}}">
+				<div class="flex-item {{if $.PublicOnly}}tw:items-center{{end}}">
 					<div class="flex-item-leading">
 						<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
 					</div>
@@ -28,7 +28,7 @@
 								{{ctx.Locale.Tr "admin.users.2fa"}}
 								<strong>
 									{{if index $.MembersTwoFaStatus .ID}}
-										<span class="tw-text-green">{{svg "octicon-check"}}</span>
+										<span class="tw:text-green">{{svg "octicon-check"}}</span>
 									{{else}}
 										{{svg "octicon-x"}}
 									{{end}}

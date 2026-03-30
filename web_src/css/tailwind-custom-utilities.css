@@ -1,0 +1,13 @@
+@layer utilities {
+  .tw\:font-mono {
+    font-size: 0.95em;
+  }
+
+  .tw\:hidden.tw\:hidden {
+    display: none !important;
+  }
+
+  .tw\:break-anywhere {
+    overflow-wrap: anywhere;
+  }
+}

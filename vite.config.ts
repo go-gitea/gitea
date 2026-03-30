@@ -1,11 +1,10 @@
 import {build, defineConfig} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
+import tailwindcss from '@tailwindcss/vite';
 import {stringPlugin} from 'vite-string-plugin';
 import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
 import path, {join, parse} from 'node:path';
 import {env} from 'node:process';
-import tailwindcss from 'tailwindcss';
-import tailwindConfig from './tailwind.config.ts';
 import wrapAnsi from 'wrap-ansi';
 import licensePlugin from 'rollup-plugin-license';
 import type {InlineConfig, Plugin, Rolldown} from 'vite';
@@ -276,11 +275,6 @@ export default defineConfig(commonViteOpts({
   },
   css: {
     transformer: 'postcss',
-    postcss: {
-      plugins: [
-        tailwindcss(tailwindConfig),
-      ],
-    },
   },
   define: {
     __VUE_OPTIONS_API__: true,
@@ -288,6 +282,7 @@ export default defineConfig(commonViteOpts({
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
   },
   plugins: [
+    tailwindcss(),
     iifePlugin(),
     viteDevServerPortPlugin(),
     reducedSourcemapPlugin(),

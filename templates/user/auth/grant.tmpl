@@ -1,6 +1,6 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content oauth2-authorize-application-box">
-	<div class="ui container tw-max-w-[500px]">
+	<div class="ui container tw:max-w-[500px]">
 		<h3 class="ui top attached header">
 			{{ctx.Locale.Tr "auth.authorize_title" .Application.Name}}
 		</h3>
@@ -17,7 +17,7 @@
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "auth.authorize_redirect_notice" .ApplicationRedirectDomainHTML}}</p>
 		</div>
-		<div class="ui attached segment tw-text-center">
+		<div class="ui attached segment tw:text-center">
 			<form method="post" action="{{AppSubUrl}}/login/oauth/grant">
 				<input type="hidden" name="client_id" value="{{.Application.ClientID}}">
 				<input type="hidden" name="state" value="{{.State}}">

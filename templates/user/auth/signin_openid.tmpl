@@ -1,8 +1,8 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user signin openid">
 	<div class="ui middle very relaxed page grid">
-		<div class="column tw-flex tw-flex-col tw-gap-4 tw-max-w-2xl tw-m-auto">
-			<a href="{{AppSubUrl}}/user/login" class="tw-mx-auto">
+		<div class="column tw:flex tw:flex-col tw:gap-4 tw:max-w-2xl tw:m-auto">
+			<a href="{{AppSubUrl}}/user/login" class="tw:mx-auto">
 				<img width="100" height="100" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}">
 			</a>
 
@@ -13,7 +13,7 @@
 					OpenID
 				</h4>
 				<div class="ui attached segment">
-					<form class="ui form tw-m-auto" action="{{.Link}}" method="post">
+					<form class="ui form tw:m-auto" action="{{.Link}}" method="post">
 						<div class="inline field">
 							{{ctx.Locale.Tr "auth.openid_signin_desc"}}
 						</div>
@@ -31,7 +31,7 @@
 							</div>
 						</div>
 						<div class="inline field">
-							<button class="ui primary button tw-w-full">{{ctx.Locale.Tr "sign_in"}}</button>
+							<button class="ui primary button tw:w-full">{{ctx.Locale.Tr "sign_in"}}</button>
 						</div>
 					</form>
 				</div>
@@ -40,7 +40,7 @@
 			<div class="ui container fluid">
 				{{template "user/auth/webauthn_error" .}}
 
-				<div class="ui attached segment header top tw-flex tw-flex-col tw-items-center">
+				<div class="ui attached segment header top tw:flex tw:flex-col tw:items-center">
 					<a href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "auth.back_to_sign_in"}}</a>
 				</div>
 			</div>

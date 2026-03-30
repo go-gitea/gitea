@@ -120,7 +120,7 @@ export default {
     '@stylistic/value-list-comma-space-after': null,
     '@stylistic/value-list-comma-space-before': null,
     '@stylistic/value-list-max-empty-lines': 0,
-    'at-rule-no-unknown': [true, {ignoreAtRules: ['tailwind']}],
+    'at-rule-no-unknown': [true, {ignoreAtRules: ['source', 'tailwind', 'theme']}],
     'at-rule-no-vendor-prefix': true,
     'csstools/value-no-unknown-custom-properties': [true, {importFrom: cssVarFiles}],
     'declaration-block-no-duplicate-properties': [true, {ignore: ['consecutive-duplicates-with-different-values']}],

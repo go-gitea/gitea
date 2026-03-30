@@ -121,7 +121,7 @@ GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/m
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
 
 FRONTEND_SOURCES := $(shell find web_src/js web_src/css -type f)
-FRONTEND_CONFIGS := vite.config.ts tailwind.config.ts
+FRONTEND_CONFIGS := vite.config.ts web_src/css/tailwind.css
 FRONTEND_DEST := public/assets/.vite/manifest.json
 FRONTEND_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts public/assets/.vite
 
