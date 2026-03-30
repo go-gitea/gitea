@@ -4,6 +4,29 @@ import {showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 import {parseDom} from '../utils.ts';
 
+export function syncIssueMainContentTimelineItems(oldMainContent: Element, newMainContent: Element) {
+  // find the last ".timeline-item[id]" in current main content, and insert new items after it, some cases:
+  // * a new empty issue: "timeline-item comment first", "timeline-item comment form (optional)"
+  // * issue with timeline events: "timeline-item comment first", "timeline-item event"+id, "timeline-item comment form (optional)"
+  let lastTimelineItemForInsertion = oldMainContent.querySelector('.timeline-item[id="timeline-comments-end"]');
+  if (!lastTimelineItemForInsertion) return;
+
+  const newTimelineItems = newMainContent.querySelectorAll(`.timeline-item[id]`);
+  for (const newItem of newTimelineItems) {
+    const newItemId = newItem.getAttribute('id')!;
+    const oldItem = oldMainContent.querySelector(`.timeline-item[id="${CSS.escape(newItemId)}"]`);
+    if (oldItem) {
+      if (oldItem.classList.contains('event')) {
+        // for event item (e.g.: "add & remove labels"), we want to replace the existing one if exists
+        oldItem.replaceWith(newItem);
+      }
+      continue;
+    }
+    lastTimelineItemForInsertion.insertAdjacentElement('beforebegin', newItem);
+    lastTimelineItemForInsertion = newItem;
+  }
+}
+
 export class IssueSidebarComboList {
   updateUrl: string;
   updateAlgo: string;
@@ -62,29 +85,7 @@ export class IssueSidebarComboList {
 
     // for the main content (left side), at the moment we only support adding new timeline items
     const newMainContent = doc.querySelector('.issue-content-left')!;
-
-    // find the last ".timeline-item[id]" in current main content, and insert new items after it, some cases:
-    // * a new empty issue: "timeline-item comment first", "timeline-item comment form (optional)"
-    // * issue with timeline events: "timeline-item comment first", "timeline-item event"+id, "timeline-item comment form (optional)"
-    const timelineItemsWithId = this.elIssueMainContent.querySelectorAll('.timeline-item[id]');
-    let lastTimelineItemForInsertion = timelineItemsWithId[timelineItemsWithId.length - 1] ?? this.elIssueMainContent.querySelector('.timeline-item');
-    if (!lastTimelineItemForInsertion) return;
-
-    const newTimelineItems = newMainContent.querySelectorAll(`.timeline-item[id]`);
-    for (const newItem of newTimelineItems) {
-      const newItemId = newItem.getAttribute('id')!;
-      if (newItem.classList.contains('event')) {
-        // for event item (e.g.: "add & remove labels"), we want to replace the existing one if exists
-        const oldItem = this.elIssueMainContent.querySelector(`.timeline-item.event[id="${CSS.escape(newItemId)}"]`);
-        if (oldItem) {
-          oldItem.replaceWith(newItem);
-          continue;
-        }
-      }
-      if (this.elIssueMainContent.querySelector(`.timeline-item[id="${CSS.escape(newItemId)}"]`)) continue;
-      lastTimelineItemForInsertion.insertAdjacentElement('afterend', newItem);
-      lastTimelineItemForInsertion = newItem;
-    }
+    syncIssueMainContentTimelineItems(this.elIssueMainContent, newMainContent);
   }
 
   async sendRequestToBackend(changedValues: Array<string>): Promise<Response | null> {
