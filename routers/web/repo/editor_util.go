@@ -72,6 +72,7 @@ type CodeEditorConfig struct {
 	PreviewableExtensions []string `json:"previewableExtensions,omitempty"`
 	LineWrapExtensions    []string `json:"lineWrapExtensions,omitempty"`
 	LineWrap              bool     `json:"lineWrap"`
+	Previewable           bool     `json:"previewable,omitempty"`
 
 	// the following can be read from .editorconfig if exists, or use default value
 	IndentStyle            string `json:"indentStyle"` // in most cases, keep it empty by default, detected by the source code
@@ -85,6 +86,7 @@ func getCodeEditorConfigByEditorconfig(ctx *context_service.Context, treePath st
 	ret.PreviewableExtensions = markup.PreviewableExtensions()
 	ret.LineWrapExtensions = setting.Repository.Editor.LineWrapExtensions
 	ret.LineWrap = util.SliceContainsString(ret.LineWrapExtensions, path.Ext(treePath), true)
+	ret.Previewable = util.SliceContainsString(ret.PreviewableExtensions, path.Ext(treePath), true)
 	ec, _, err := ctx.Repo.GetEditorconfig()
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
