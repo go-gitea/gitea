@@ -75,7 +75,7 @@ func TestAPICreateHookNameEdgeCases(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var created *api.Hook
 	DecodeJSON(t, resp, &created)
-	assert.Equal(t, "", created.Name)
+	assert.Empty(t, created.Name)
 
 	hookURL := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d", owner.Name, repo.Name, created.ID)
 
@@ -101,5 +101,5 @@ func TestAPICreateHookNameEdgeCases(t *testing.T) {
 	clearResp := MakeRequest(t, clearReq, http.StatusOK)
 	var cleared *api.Hook
 	DecodeJSON(t, clearResp, &cleared)
-	assert.Equal(t, "", cleared.Name)
+	assert.Empty(t, cleared.Name)
 }
