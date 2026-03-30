@@ -6,7 +6,6 @@ package gitrepo
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -48,7 +47,7 @@ func GetDivergingCommits(ctx context.Context, repo Repository, baseBranch, targe
 // If the result exceeds the limit, the old commits IDs will be ignored
 func GetLastCommitIDsBetween(ctx context.Context, repo Repository, startRef, endRef, notRef string, limit int) ([]string, error) {
 	genCmd := func(reversions ...string) *gitcmd.Command {
-		cmd := gitcmd.NewCommand("rev-list").
+		cmd := gitcmd.NewCommand("rev-list", "--reverse").
 			AddArguments("-n").AddDynamicArguments(strconv.Itoa(limit)).
 			AddDynamicArguments(reversions...)
 		if notRef != "" { // --not should be kep as the last parameter of git command, otherwise the result will be wrong
@@ -57,7 +56,7 @@ func GetLastCommitIDsBetween(ctx context.Context, repo Repository, startRef, end
 		return cmd
 	}
 	stdout, _, err := RunCmdString(ctx, repo, genCmd(startRef+".."+endRef))
-	// example git error message: fatal: origin/main...HEAD: no merge base
+	// example git error message: fatal: origin/main..HEAD: no merge base
 	if err != nil && strings.Contains(err.Stderr(), "no merge base") {
 		// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 		// previously it would return the results of git rev-list before last so let's try that...
@@ -68,6 +67,5 @@ func GetLastCommitIDsBetween(ctx context.Context, repo Repository, startRef, end
 	}
 
 	commitIDs := strings.Fields(strings.TrimSpace(stdout))
-	slices.Reverse(commitIDs)
 	return commitIDs, nil
 }
