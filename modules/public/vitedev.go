@@ -89,14 +89,33 @@ func ViteDevMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+var viteDevModeCheck atomic.Pointer[struct {
+	isDev bool
+	time  time.Time
+}]
+
 // IsViteDevMode returns true if the Vite dev server port file exists and is alive
 func IsViteDevMode() bool {
 	if setting.IsProd {
 		return false
 	}
+
+	now := time.Now()
+	lastCheck := viteDevModeCheck.Load()
+	if lastCheck != nil && time.Now().Sub(lastCheck.time) < time.Second {
+		return lastCheck.isDev
+	}
 	portFile := filepath.Join(setting.StaticRootPath, viteDevPortFile)
 	stat, err := os.Stat(portFile)
-	return err == nil && time.Now().Sub(stat.ModTime()) < 10*time.Second
+	isDev := err == nil && time.Now().Sub(stat.ModTime()) < 10*time.Second
+	viteDevModeCheck.Store(&struct {
+		isDev bool
+		time  time.Time
+	}{
+		isDev: isDev,
+		time:  now,
+	})
+	return isDev
 }
 
 func viteDevSourceURL(name string) string {
