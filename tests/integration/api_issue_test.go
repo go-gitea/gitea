@@ -472,8 +472,7 @@ func testAPIIssueContentVersion(t *testing.T) {
 
 		req := NewRequest(t, "GET", urlStr).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var before api.Issue
-		DecodeJSON(t, resp, &before)
+		before := DecodeJSON(t, resp, &api.Issue{})
 		req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{
 			Body:           new("updated body with correct version"),
 			ContentVersion: new(before.ContentVersion),
