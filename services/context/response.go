@@ -69,11 +69,11 @@ func (r *Response) WriteHeader(statusCode int) {
 	}
 }
 
-// Hijack implements http.Hijacker by forwarding to the underlying ResponseWriter.
-// This is required for WebSocket upgrades.
+// Hijack implements http.Hijacker, delegating to the underlying ResponseWriter.
+// This is needed for WebSocket upgrades through reverse proxies.
 func (r *Response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	if h, ok := r.ResponseWriter.(http.Hijacker); ok {
-		return h.Hijack()
+	if hj, ok := r.ResponseWriter.(http.Hijacker); ok {
+		return hj.Hijack()
 	}
 	return nil, nil, http.ErrNotSupported
 }

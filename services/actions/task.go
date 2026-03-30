@@ -103,6 +103,11 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 
 	CreateCommitStatusForRunJobs(ctx, job.Run, job)
 	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, actionTask)
+	// job.Run is loaded inside the transaction before UpdateRunJob sets run.Started,
+	// so Started is zero only on the very first pick-up of that run.
+	if job.Run.Started.IsZero() {
+		NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
+	}
 
 	return task, true, nil
 }

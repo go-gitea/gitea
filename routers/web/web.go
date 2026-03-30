@@ -260,8 +260,12 @@ func Routes() *web.Router {
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	routes.BeforeRouting(chi_middleware.GetHead)
 
+	if !setting.IsProd {
+		routes.BeforeRouting(public.ViteDevMiddleware)
+	}
+
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
-	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", optionsCorsHandler(), public.FileHandlerFunc())
+	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", routing.MarkLogLevelTrace, optionsCorsHandler(), public.FileHandlerFunc())
 	routes.Methods("GET, HEAD", "/avatars/*", avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
@@ -723,7 +727,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("", user_setting.BlockedUsers)
 			m.Post("", web.Bind(forms.BlockUserForm{}), user_setting.BlockedUsersPost)
 		})
-	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "EnablePackages", setting.Packages.Enabled, "EnableNotifyMail", setting.Service.EnableNotifyMail))
+	}, reqSignIn, user_setting.SettingsCtxData)
 
 	m.Group("/user", func() {
 		m.Get("/activate", auth.Activate)
@@ -1742,7 +1746,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/swagger.v1.json", SwaggerV1Json)
 	}
 
-	if !setting.IsProd {
+	if !setting.IsProd || setting.IsInE2eTesting() {
 		m.Group("/devtest", func() {
 			m.Any("", devtest.List)
 			m.Any("/fetch-action-test", devtest.FetchActionTest)

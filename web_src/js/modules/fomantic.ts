@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {initAriaCheckboxPatch} from './fomantic/checkbox.ts';
 import {initAriaFormFieldPatch} from './fomantic/form.ts';
 import {initAriaDropdownPatch} from './fomantic/dropdown.ts';

@@ -34,12 +34,16 @@ INSTALL_LOCK = true
 [service]
 ENABLE_CAPTCHA = false
 
+[ui.notification]
+EVENT_SOURCE_UPDATE_TIME = 500ms
+
 [log]
 MODE = console
 LEVEL = Warn
 EOF
 
 export GITEA_WORK_DIR="$WORK_DIR"
+export GITEA_TEST_E2E=true
 
 # Start Gitea server
 echo "Starting Gitea server on port $FREE_PORT (workdir: $WORK_DIR)..."

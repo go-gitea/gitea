@@ -7,6 +7,11 @@
   padding: 0 10px;
 }
 
+/* When notification message is present after navbar, hide border to avoid double border */
+#navbar:has(+ .ui.message) {
+  border-bottom: none;
+}
+
 #navbar .navbar-left,
 #navbar .navbar-right {
   display: flex;

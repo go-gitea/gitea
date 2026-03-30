@@ -86,7 +86,6 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
-			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
 			DefaultDeleteBranchAfterMerge            bool
@@ -211,7 +210,6 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
-			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
 			DefaultDeleteBranchAfterMerge            bool

@@ -561,7 +561,7 @@ func (Action) ListRunners(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/ActionRunnersResponse"
+	//     "$ref": "#/responses/RunnerList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -594,7 +594,7 @@ func (Action) GetRunner(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/ActionRunner"
+	//     "$ref": "#/responses/Runner"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -666,7 +666,7 @@ func (Action) UpdateRunner(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/EditActionRunnerOption"
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/ActionRunner"
+	//     "$ref": "#/responses/Runner"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -1192,7 +1192,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 	// - name: run
 	//   in: path
 	//   description: id of the run
-	//   type: string
+	//   type: integer
 	//   required: true
 	// responses:
 	//   "200":
@@ -1784,7 +1784,7 @@ func buildDownloadRawEndpoint(repo *repo_model.Repository, artifactID int64) str
 func buildSigURL(ctx go_context.Context, endPoint string, artifactID int64) string {
 	// endPoint is a path like "api/v1/repos/owner/repo/actions/artifacts/1/zip/raw"
 	expires := time.Now().Add(60 * time.Minute).Unix()
-	uploadURL := httplib.GuessCurrentAppURL(ctx) + endPoint + "?sig=" + base64.URLEncoding.EncodeToString(buildSignature(endPoint, expires, artifactID)) + "&expires=" + strconv.FormatInt(expires, 10)
+	uploadURL := httplib.GuessCurrentAppURL(ctx) + endPoint + "?sig=" + base64.RawURLEncoding.EncodeToString(buildSignature(endPoint, expires, artifactID)) + "&expires=" + strconv.FormatInt(expires, 10)
 	return uploadURL
 }
 
@@ -1829,18 +1829,16 @@ func DownloadArtifact(ctx *context.APIContext) {
 		ctx.APIError(http.StatusNotFound, "Artifact has expired")
 		return
 	}
-	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
 
 	if actions.IsArtifactV4(art) {
-		ok, err := actions.DownloadArtifactV4ServeDirectOnly(ctx.Base, art)
-		if ok {
-			return
-		}
-		if err != nil {
-			ctx.APIErrorInternal(err)
+		// @actions/toolkit asserts that downloaded artifacts of a different runid return 302
+		// https://github.com/actions/toolkit/blob/44d43b5490b02998bd09b0c4ff369a4cc67876c2/packages/artifact/src/internal/download/download-artifact.ts#L203-L210
+		if actions.DownloadArtifactV4ServeDirect(ctx.Base, art) {
 			return
 		}
 
+		// @actions/toolkit asserts a 302 for the artifact download, so we have to build a signed URL and redirect to it
+		// TODO: a perma link to the code for reference
 		redirectURL := buildSigURL(ctx, buildDownloadRawEndpoint(ctx.Repo.Repository, art.ID), art.ID)
 		ctx.Redirect(redirectURL, http.StatusFound)
 		return
@@ -1868,7 +1866,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 
 	sigStr := ctx.Req.URL.Query().Get("sig")
 	expiresStr := ctx.Req.URL.Query().Get("expires")
-	sigBytes, _ := base64.URLEncoding.DecodeString(sigStr)
+	sigBytes, _ := base64.RawURLEncoding.DecodeString(sigStr)
 	expires, _ := strconv.ParseInt(expiresStr, 10, 64)
 
 	expectedSig := buildSignature(buildDownloadRawEndpoint(repo, art.ID), expires, art.ID)
@@ -1887,8 +1885,6 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 		ctx.APIError(http.StatusNotFound, "Artifact has expired")
 		return
 	}
-	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
-
 	if actions.IsArtifactV4(art) {
 		err := actions.DownloadArtifactV4(ctx.Base, art)
 		if err != nil {

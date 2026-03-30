@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -139,7 +140,10 @@ func init() {
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (source *Source) BeforeSet(colName string, val xorm.Cell) {
 	if colName == "type" {
-		typ := Type(db.Cell2Int64(val))
+		typ, _, err := db.CellToInt(val, NoType)
+		if err != nil {
+			setting.PanicInDevOrTesting("Unable to convert login source (id=%d) type: %v", source.ID, err)
+		}
 		constructor, ok := registeredConfigs[typ]
 		if !ok {
 			return

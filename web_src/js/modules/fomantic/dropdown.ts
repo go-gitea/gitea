@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import type {FomanticInitFunction} from '../../types.ts';
 import {generateElemId, queryElems} from '../../utils/dom.ts';
 

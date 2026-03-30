@@ -74,6 +74,7 @@ gitea-theme-meta-info {
   --color-console-active-bg: #2e353b;
   --color-console-menu-bg: #262b31;
   --color-console-menu-border: #414b55;
+  --color-console-link: #8f9ba8;
   /* named colors */
   --color-red: #cc4848;
   --color-orange: #cc580c;
@@ -161,20 +162,20 @@ gitea-theme-meta-info {
   --color-diff-removed-row-border: #634343;
   --color-diff-removed-word-bg: #6f3333;
   --color-diff-inactive: #22282d;
-  --color-error-border: #a04141;
-  --color-error-bg: #522;
-  --color-error-bg-active: #744;
-  --color-error-bg-hover: #633;
-  --color-error-text: #f9cbcb;
-  --color-success-border: #458a57;
-  --color-success-bg: #284034;
-  --color-success-text: #6cc664;
-  --color-warning-border: #bb9d00;
-  --color-warning-bg: #3a3a30;
-  --color-warning-text: #fbbd08;
-  --color-info-border: #306090;
-  --color-info-bg: #26354c;
-  --color-info-text: #38a8e8;
+  --color-error-border: #763232;
+  --color-error-bg: #322226;
+  --color-error-bg-active: #49262a;
+  --color-error-bg-hover: #3c2427;
+  --color-error-text: var(--color-text);
+  --color-success-border: #225633;
+  --color-success-bg: #1c3329;
+  --color-success-text: var(--color-text);
+  --color-warning-border: #5f481a;
+  --color-warning-bg: #342e1f;
+  --color-warning-text: var(--color-text);
+  --color-info-border: #254a7e;
+  --color-info-bg: #1b283a;
+  --color-info-text: var(--color-text);
   --color-red-badge: #db2828;
   --color-red-badge-bg: #db28281a;
   --color-red-badge-hover-bg: #db28284d;
@@ -207,7 +208,6 @@ gitea-theme-meta-info {
   --color-input-toggle-background: #2e353c;
   --color-input-border: var(--color-secondary-dark-1);
   --color-light: #00001728;
-  --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #e8f3ff28;
   --color-hover: #e8f3ff19;
   --color-hover-opaque: #21252a; /* TODO: color-mix(in srgb, var(--color-body), var(--color-hover)); */
@@ -248,6 +248,7 @@ gitea-theme-meta-info {
   --color-danger: var(--color-red);
   --color-transparency-grid-light: #2a2a2a;
   --color-transparency-grid-dark: #1a1a1a;
+  --color-workflow-edge-hover: #616e78;
   accent-color: var(--color-accent);
   color-scheme: dark;
 }
