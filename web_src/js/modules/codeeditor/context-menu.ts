@@ -80,10 +80,11 @@ function buildMenuItems(cm: CodemirrorModules, view: EditorView, togglePalette: 
   const tree = cm.language.syntaxTree(view.state);
   const nodeAtCursor = tree.resolveInner(from, 1);
   const hasDefinition = nodeAtCursor?.name === 'VariableName';
+  const hasWord = !!getWordAtPosition(view, from, to);
   return [
     {label: 'Go to Definition', disabled: !hasDefinition, run: (v) => { goToDefinitionAt(cm, v, v.state.selection.main.from) }},
     {label: 'Go to Symbol…', keys: 'Mod+Shift+O', run: goToSymbol},
-    {label: 'Change All Occurrences', keys: 'Mod+F2', run: (v) => selectAllOccurrences(cm, v)},
+    {label: 'Change All Occurrences', keys: 'Mod+F2', disabled: !hasWord, run: (v) => selectAllOccurrences(cm, v)},
     'separator',
     {label: 'Cut', keys: 'Mod+X', disabled: !hasSelection, run: (v) => {
       const {from, to} = v.state.selection.main;
@@ -228,6 +229,7 @@ export function contextMenu(cm: CodemirrorModules, togglePalette: (view: EditorV
         }
       }, {signal: controller.signal});
       view.scrollDOM.addEventListener('scroll', dismiss, {signal: controller.signal, once: true});
+      document.body.addEventListener('scroll', dismiss, {signal: controller.signal, once: true});
       window.addEventListener('blur', dismiss, {signal: controller.signal});
       window.addEventListener('resize', dismiss, {signal: controller.signal});
     },
