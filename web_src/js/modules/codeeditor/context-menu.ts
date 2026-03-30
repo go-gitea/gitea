@@ -80,9 +80,9 @@ function buildMenuItems(cm: CodemirrorModules, view: EditorView, togglePalette: 
   const tree = cm.language.syntaxTree(view.state);
   const nodeAtCursor = tree.resolveInner(from, 1);
   const hasDefinition = nodeAtCursor?.name === 'VariableName';
-  const hasWord = !!getWordAtPosition(view, from, to);
+  const hasWord = Boolean(getWordAtPosition(view, from, to));
   return [
-    {label: 'Go to Definition', disabled: !hasDefinition, run: (v) => { goToDefinitionAt(cm, v, v.state.selection.main.from) }},
+    {label: 'Go to Definition', keys: 'F12', disabled: !hasDefinition, run: (v) => { goToDefinitionAt(cm, v, v.state.selection.main.from) }},
     {label: 'Go to Symbol…', keys: 'Mod+Shift+O', run: goToSymbol},
     {label: 'Change All Occurrences', keys: 'Mod+F2', disabled: !hasWord, run: (v) => selectAllOccurrences(cm, v)},
     'separator',

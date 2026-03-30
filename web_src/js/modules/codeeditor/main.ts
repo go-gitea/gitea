@@ -6,7 +6,7 @@ import {commandPalette} from './command-palette.ts';
 import type {PaletteCommand} from './command-palette.ts';
 import {contextMenu, collectSymbols, selectAllOccurrences} from './context-menu.ts';
 import {createJsonLinter, createSyntaxErrorLinter} from './linter.ts';
-import {clickableUrls, trimTrailingWhitespaceFromView} from './utils.ts';
+import {clickableUrls, goToDefinitionAt, trimTrailingWhitespaceFromView} from './utils.ts';
 import type {LanguageDescription} from '@codemirror/language';
 import type {Compartment, Extension} from '@codemirror/state';
 import type {EditorView, ViewUpdate} from '@codemirror/view';
@@ -208,6 +208,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       cm.view.keymap.of([
         {key: 'Mod-Shift-o', run: goToSymbol, preventDefault: true},
         {key: 'Mod-F2', run: (v) => { selectAllOccurrences(cm, v); return true }, preventDefault: true},
+        {key: 'F12', run: (v) => goToDefinitionAt(cm, v, v.state.selection.main.from), preventDefault: true},
       ]),
       contextMenu(cm, palette.togglePalette, goToSymbol),
       clickableUrls(cm),
