@@ -69,8 +69,82 @@ class Source {
   }
 }
 
+// WsSource provides a WebSocket transport alongside EventSource.
+// It delivers real-time notification-count pushes using the same client list
+// as the associated Source, normalising messages to the SSE event format so
+// that callers do not need to know which transport delivered the event.
+class WsSource {
+  wsUrl: string;
+  ws: WebSocket | null;
+  source: Source;
+  reconnectTimer: ReturnType<typeof setTimeout> | null;
+  reconnectDelay: number;
+
+  constructor(wsUrl: string, source: Source) {
+    this.wsUrl = wsUrl;
+    this.source = source;
+    this.ws = null;
+    this.reconnectTimer = null;
+    this.reconnectDelay = 50;
+    this.connect();
+  }
+
+  connect() {
+    this.ws = new WebSocket(this.wsUrl);
+
+    this.ws.addEventListener('open', () => {
+      this.reconnectDelay = 50;
+    });
+
+    this.ws.addEventListener('message', (event: MessageEvent<string>) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'notification-count') {
+          // Normalise to SSE event format so the receiver is transport-agnostic.
+          this.source.notifyClients({
+            type: 'notification-count',
+            data: JSON.stringify({Count: msg.count}),
+          });
+        }
+      } catch {
+        // ignore malformed messages
+      }
+    });
+
+    this.ws.addEventListener('close', () => {
+      this.ws = null;
+      this.scheduleReconnect();
+    });
+
+    this.ws.addEventListener('error', () => {
+      this.ws = null;
+      this.scheduleReconnect();
+    });
+  }
+
+  scheduleReconnect() {
+    if (this.reconnectTimer !== null) return;
+    const delay = this.reconnectDelay;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect();
+    }, delay);
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, 10000);
+  }
+
+  close() {
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.ws?.close();
+    this.ws = null;
+  }
+}
+
 const sourcesByUrl = new Map<string, Source | null>();
 const sourcesByPort = new Map<MessagePort, Source | null>();
+const wsSourcesByUrl = new Map<string, WsSource | null>();
 
 (self as unknown as SharedWorkerGlobalScope).addEventListener('connect', (e: MessageEvent) => {
   for (const port of e.ports) {
@@ -102,6 +176,11 @@ const sourcesByPort = new Map<MessagePort, Source | null>();
           if (count === 0) {
             source.close();
             sourcesByUrl.set(source.url, null);
+            const ws = wsSourcesByUrl.get(source.url);
+            if (ws) {
+              ws.close();
+              wsSourcesByUrl.set(source.url, null);
+            }
           }
         }
         // Create a new Source
@@ -109,6 +188,9 @@ const sourcesByPort = new Map<MessagePort, Source | null>();
         source.register(port);
         sourcesByUrl.set(url, source);
         sourcesByPort.set(port, source);
+        // Start WebSocket alongside EventSource for real-time notification pushes.
+        const wsUrl = url.replace(/^http/, 'ws').replace(/\/user\/events$/, '/-/ws');
+        wsSourcesByUrl.set(url, new WsSource(wsUrl, source));
       } else if (event.data.type === 'listen') {
         const source = sourcesByPort.get(port)!;
         source.listen(event.data.eventType);
@@ -121,6 +203,11 @@ const sourcesByPort = new Map<MessagePort, Source | null>();
           source.close();
           sourcesByUrl.set(source.url, null);
           sourcesByPort.set(port, null);
+          const ws = wsSourcesByUrl.get(source.url);
+          if (ws) {
+            ws.close();
+            wsSourcesByUrl.set(source.url, null);
+          }
         }
       } else if (event.data.type === 'status') {
         const source = sourcesByPort.get(port);
