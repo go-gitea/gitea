@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -22,21 +23,29 @@ const viteDevPortFile = "public/assets/.vite/dev-port"
 
 var viteDevProxy atomic.Pointer[httputil.ReverseProxy]
 
+func getViteDevServerBaseURL() string {
+	portFile := filepath.Join(setting.StaticRootPath, viteDevPortFile)
+	portContent, _ := os.ReadFile(portFile)
+	port := strings.TrimSpace(string(portContent))
+	if port == "" {
+		return ""
+	}
+	return "http://localhost:" + port
+}
+
 func getViteDevProxy() *httputil.ReverseProxy {
 	if proxy := viteDevProxy.Load(); proxy != nil {
 		return proxy
 	}
 
-	portFile := filepath.Join(setting.StaticRootPath, viteDevPortFile)
-	portContent, err := os.ReadFile(portFile)
-	if err != nil {
+	viteDevServerBaseURL := getViteDevServerBaseURL()
+	if viteDevServerBaseURL == "" {
 		return nil
 	}
-	viteDevServerPort := strings.TrimSpace(string(portContent))
 
-	target, err := url.Parse("http://localhost:" + viteDevServerPort)
+	target, err := url.Parse(viteDevServerBaseURL)
 	if err != nil {
-		log.Error("Failed to use dev port (%s) to construct URL: %v", viteDevServerPort, err)
+		log.Error("Failed to parse vite dev server base url %s, err: %v", viteDevServerBaseURL, err)
 		return nil
 	}
 
@@ -57,7 +66,7 @@ func getViteDevProxy() *httputil.ReverseProxy {
 		ModifyResponse: func(resp *http.Response) error {
 			// add a header to indicate the Vite dev server port,
 			// make developers know that this request is proxied to Vite dev server and which port it is
-			resp.Header.Add("X-Gitea-Vite-Port", viteDevServerPort)
+			resp.Header.Add("X-Gitea-Vite-Dev-Server", viteDevServerBaseURL)
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
@@ -105,9 +114,15 @@ func IsViteDevMode() bool {
 	if lastCheck != nil && time.Now().Sub(lastCheck.time) < time.Second {
 		return lastCheck.isDev
 	}
-	portFile := filepath.Join(setting.StaticRootPath, viteDevPortFile)
-	stat, err := os.Stat(portFile)
-	isDev := err == nil && time.Now().Sub(stat.ModTime()) < 10*time.Second
+
+	viteDevServerBaseURL := getViteDevServerBaseURL()
+	if viteDevServerBaseURL == "" {
+		return false
+	}
+
+	req := httplib.NewRequest(viteDevServerBaseURL+"/web_src/js/__vite_dev_server_check", "GET")
+	resp, _ := req.Response()
+	isDev := resp != nil && resp.StatusCode == http.StatusOK
 	viteDevModeCheck.Store(&struct {
 		isDev bool
 		time  time.Time

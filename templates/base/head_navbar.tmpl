@@ -7,7 +7,6 @@
 
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
 		<div class="ui secondary menu navbar-mobile-right only-mobile">
-			{{if $.ViteModeIsDev}}<span class="ui basic label primary">ViteDevMode</span>{{end}}
 			{{template "base/head_navbar_icons" dict "PageGlobalData" .PageGlobalData}}
 			<button class="item ui icon mini button tw-m-0" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
 		</div>
@@ -43,7 +42,6 @@
 
 	<!-- the full dropdown menus -->
 	<div class="navbar-right">
-		{{if $.ViteModeIsDev}}<span class="not-mobile ui basic label primary">ViteDevMode</span>{{end}}
 		{{if and .IsSigned .MustChangePassword}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 				<span class="text">
