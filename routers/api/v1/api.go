@@ -11,11 +11,9 @@
 //
 //	Consumes:
 //	- application/json
-//	- text/plain
 //
 //	Produces:
 //	- application/json
-//	- text/html
 //
 //	Security:
 //	- BasicAuth :
