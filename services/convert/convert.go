@@ -72,7 +72,7 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 				return nil, err
 			}
 
-			perms, err := access_model.GetUserRepoPermission(ctx, repo, user)
+			perms, err := access_model.GetIndividualUserRepoPermission(ctx, repo, user)
 			if err != nil {
 				return nil, err
 			}
@@ -105,7 +105,7 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 	}
 
 	if user != nil {
-		permission, err := access_model.GetUserRepoPermission(ctx, repo, user)
+		permission, err := access_model.GetIndividualUserRepoPermission(ctx, repo, user)
 		if err != nil {
 			return nil, err
 		}

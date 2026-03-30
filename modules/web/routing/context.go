@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/gtprof"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/reqctx"
 )
 
@@ -40,6 +41,18 @@ func MarkLongPolling(resp http.ResponseWriter, req *http.Request) {
 
 	record.lock.Lock()
 	record.isLongPolling = true
+	record.logLevel = log.TRACE
+	record.lock.Unlock()
+}
+
+func MarkLogLevelTrace(resp http.ResponseWriter, req *http.Request) {
+	record, ok := req.Context().Value(contextKey).(*requestRecord)
+	if !ok {
+		return
+	}
+
+	record.lock.Lock()
+	record.logLevel = log.TRACE
 	record.lock.Unlock()
 }
 

@@ -221,7 +221,7 @@ func Search(ctx *context.APIContext) {
 			})
 			return
 		}
-		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
@@ -588,7 +588,7 @@ func GetByID(ctx *context.APIContext) {
 		return
 	}
 
-	permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

@@ -79,7 +79,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			if err := pr.LoadHeadRepo(ctx); err != nil {
 				return err
 			}
-			perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, issue.Poster)
+			perm, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, issue.Poster)
 			if err != nil {
 				return err
 			}
@@ -159,7 +159,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 
 	// Request reviews, these should be requested before other notifications because they will add request reviews record
 	// on database
-	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
+	permDoer, err := access_model.GetDoerRepoPermission(ctx, repo, issue.Poster)
 	if err != nil {
 		return err
 	}
