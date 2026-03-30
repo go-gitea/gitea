@@ -4,17 +4,22 @@
 			<a target="_blank" href="https://about.gitea.com">{{ctx.Locale.Tr "powered_by" "Gitea"}}</a>
 		{{end}}
 		{{if (or .ShowFooterVersion .PageIsAdmin)}}
+			<span>
 			{{ctx.Locale.Tr "version"}}:
 			{{if .IsAdmin}}
 				<a href="{{AppSubUrl}}/-/admin/config">{{AppVer}}</a>
 			{{else}}
 				{{AppVer}}
 			{{end}}
+			</span>
 		{{end}}
 		{{if and .TemplateLoadTimes ShowFooterTemplateLoadTime}}
-			{{ctx.Locale.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong>
-			{{ctx.Locale.Tr "template"}}{{if .TemplateName}} {{.TemplateName}}{{end}}: <strong>{{call .TemplateLoadTimes}}</strong>
+			<span>
+				{{ctx.Locale.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong>
+				{{ctx.Locale.Tr "template"}}{{if .TemplateName}} {{.TemplateName}}{{end}}: <strong>{{call .TemplateLoadTimes}}</strong>
+			</span>
 		{{end}}
+		{{if $.ViteModeIsDev}}<span class="ui basic label primary">ViteDevMode</span>{{end}}
 	</div>
 	<div class="right-links" role="group" aria-label="{{ctx.Locale.Tr "aria.footer.links"}}">
 		<div class="ui dropdown custom" id="footer-theme-selector">
