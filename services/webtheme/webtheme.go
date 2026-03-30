@@ -177,7 +177,7 @@ func loadThemesFromAssets() (themeList []*ThemeMetaInfo, themeMap map[string]*Th
 			})
 		}
 	} else {
-		// In production, use built assets from AssetFS.
+		// In prod mode, use built assets from AssetFS.
 		cssFiles, err := public.AssetFS().ListFiles("assets/css")
 		if err != nil {
 			log.Error("Failed to list themes: %v", err)
