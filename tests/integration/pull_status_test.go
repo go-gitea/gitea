@@ -21,6 +21,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/pull"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -60,7 +61,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			commitstatus.CommitStatusError,
 			commitstatus.CommitStatusFailure,
 			commitstatus.CommitStatusSuccess,
-			commitstatus.CommitStatusWarning,
+			commitstatus.CommitStatusSkipped,
 		}
 
 		statesIcons := map[commitstatus.CommitStatusState]string{
@@ -68,7 +69,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			commitstatus.CommitStatusSuccess: "octicon-check",
 			commitstatus.CommitStatusError:   "gitea-exclamation",
 			commitstatus.CommitStatusFailure: "octicon-x",
-			commitstatus.CommitStatusWarning: "gitea-exclamation",
+			commitstatus.CommitStatusSkipped: "octicon-check",
 		}
 
 		testCtx := NewAPITestContext(t, "user1", "repo1", auth_model.AccessTokenScopeWriteRepository)
@@ -102,12 +103,27 @@ func doAPICreateCommitStatusTest(ctx APITestContext, ref string, state commitsta
 	return func(t *testing.T) {
 		link := fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s", ctx.Username, ctx.Reponame, url.PathEscape(ref))
 		req := NewRequestWithJSON(t, http.MethodPost, link, api.CreateStatusOption{
-			State:     state,
+			State:     api.CreateCommitStatusState(state),
 			TargetURL: "http://test.ci/",
 			Context:   statusContext,
 		}).AddTokenAuth(ctx.Token)
 		ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 	}
+}
+
+func TestAPICommitStatusRejectsWarningState(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
+	link := fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s", ctx.Username, ctx.Reponame, "65f1bf27bc3bf70f64657658635e66094edbcb4d")
+
+	req := NewRequestWithJSON(t, http.MethodPost, link, api.CreateStatusOption{
+		State:     api.CreateCommitStatusState(commitstatus.CommitStatusWarning),
+		TargetURL: "http://test.ci/",
+		Context:   "testci",
+	}).AddTokenAuth(ctx.Token)
+
+	ctx.Session.MakeRequest(t, req, http.StatusBadRequest)
 }
 
 func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {

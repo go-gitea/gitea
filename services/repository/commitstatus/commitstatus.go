@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/notify"
 )
 
@@ -69,6 +70,9 @@ func deleteCommitStatusCache(repoID int64, branchName string) error {
 // NOTE: All text-values will be trimmed from whitespaces.
 // Requires: Repo, Creator, SHA
 func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creator *user_model.User, sha string, status *git_model.CommitStatus) error {
+	if !status.State.IsValid() {
+		return util.NewInvalidArgumentErrorf("invalid commit status state: %s", status.State)
+	}
 	// confirm that commit is exist
 	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {

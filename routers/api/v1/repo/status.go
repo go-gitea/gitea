@@ -4,12 +4,15 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	"code.gitea.io/gitea/modules/commitstatus"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
@@ -59,13 +62,17 @@ func NewCommitStatus(ctx *context.APIContext) {
 		return
 	}
 	status := &git_model.CommitStatus{
-		State:       form.State,
+		State:       commitstatus.CommitStatusState(form.State),
 		TargetURL:   form.TargetURL,
 		Description: form.Description,
 		Context:     form.Context,
 	}
 	if err := commitstatus_service.CreateCommitStatus(ctx, ctx.Repo.Repository, ctx.Doer, sha, status); err != nil {
-		ctx.APIErrorInternal(err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.APIError(http.StatusBadRequest, err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
 		return
 	}
 

@@ -56,6 +56,17 @@ func (css CommitStatusState) IsSkipped() bool {
 	return css == CommitStatusSkipped
 }
 
+// IsValid returns true for states that may be created via the API.
+// CommitStatusWarning is excluded: existing rows are preserved but new ones are rejected.
+func (css CommitStatusState) IsValid() bool {
+	switch css {
+	case CommitStatusPending, CommitStatusSuccess, CommitStatusError, CommitStatusFailure, CommitStatusSkipped:
+		return true
+	default:
+		return false
+	}
+}
+
 type CommitStatusStates []CommitStatusState //nolint:revive // export stutter
 
 // According to https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference

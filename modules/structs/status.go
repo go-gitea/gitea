@@ -9,11 +9,28 @@ import (
 	"code.gitea.io/gitea/modules/commitstatus"
 )
 
+// CreateCommitStatusState holds the state of a CommitStatus that may be created via the API.
+// swagger:enum CreateCommitStatusState
+type CreateCommitStatusState string
+
+const (
+	// CreateCommitStatusPending is for when the CommitStatus is Pending
+	CreateCommitStatusPending CreateCommitStatusState = "pending"
+	// CreateCommitStatusSuccess is for when the CommitStatus is Success
+	CreateCommitStatusSuccess CreateCommitStatusState = "success"
+	// CreateCommitStatusError is for when the CommitStatus is Error
+	CreateCommitStatusError CreateCommitStatusState = "error"
+	// CreateCommitStatusFailure is for when the CommitStatus is Failure
+	CreateCommitStatusFailure CreateCommitStatusState = "failure"
+	// CreateCommitStatusSkipped is for when CommitStatus is Skipped
+	CreateCommitStatusSkipped CreateCommitStatusState = "skipped"
+)
+
 // CommitStatus holds a single status of a single Commit
 type CommitStatus struct {
 	// ID is the unique identifier for the commit status
 	ID int64 `json:"id"`
-	// State represents the status state (pending, success, error, failure)
+	// State represents the status state (pending, success, error, failure, warning, skipped)
 	State commitstatus.CommitStatusState `json:"status"`
 	// TargetURL is the URL to link to for more details
 	TargetURL string `json:"target_url"`
@@ -51,8 +68,8 @@ type CombinedStatus struct {
 
 // CreateStatusOption holds the information needed to create a new CommitStatus for a Commit
 type CreateStatusOption struct {
-	// State represents the status state to set (pending, success, error, failure)
-	State commitstatus.CommitStatusState `json:"state"`
+	// State represents the status state to set (pending, success, error, failure, skipped)
+	State CreateCommitStatusState `json:"state"`
 	// TargetURL is the URL to link to for more details
 	TargetURL string `json:"target_url"`
 	// Description provides a brief description of the status
