@@ -11,6 +11,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -103,9 +104,12 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 	}
 	defer closer.Close()
 
-	oldCommitID, err := gitRepo.GetRefCommitID(oldRef)
-	if err != nil {
-		return nil, false, err
+	oldCommitID := oldRef
+	if !git.IsEmptyCommitID(oldRef) {
+		oldCommitID, err = gitRepo.GetRefCommitID(oldRef)
+		if err != nil {
+			return nil, false, err
+		}
 	}
 	newCommitID, err := gitRepo.GetRefCommitID(newRef)
 	if err != nil {
