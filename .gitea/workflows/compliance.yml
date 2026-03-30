@@ -16,6 +16,9 @@ jobs:
       - run: make lint-backend
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
+      - name: cleanup
+        if: always()
+        run: go clean -cache -testcache 2>/dev/null || true
 
   lint-go-windows:
     runs-on: ubuntu-latest
@@ -31,6 +34,9 @@ jobs:
           TAGS: bindata sqlite sqlite_unlock_notify
           GOOS: windows
           GOARCH: amd64
+      - name: cleanup
+        if: always()
+        run: go clean -cache -testcache 2>/dev/null || true
 
   lint-go-gogit:
     runs-on: ubuntu-latest
@@ -44,6 +50,9 @@ jobs:
       - run: make lint-go
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
+      - name: cleanup
+        if: always()
+        run: go clean -cache -testcache 2>/dev/null || true
 
   checks-backend:
     runs-on: ubuntu-latest
@@ -55,6 +64,9 @@ jobs:
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend
+      - name: cleanup
+        if: always()
+        run: go clean -cache -testcache 2>/dev/null || true
 
   lint-spell:
     runs-on: ubuntu-latest
@@ -65,6 +77,9 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - run: make lint-spell
+      - name: cleanup
+        if: always()
+        run: go clean -cache -testcache 2>/dev/null || true
 
   frontend:
     runs-on: ubuntu-latest
@@ -81,6 +96,9 @@ jobs:
       - run: make checks-frontend
       - run: make test-frontend
       - run: make frontend
+      - name: cleanup
+        if: always()
+        run: rm -rf dist/ node_modules/.cache 2>/dev/null || true
 
   lint-json:
     runs-on: ubuntu-latest
@@ -154,23 +172,32 @@ jobs:
           check-latest: true
       - run: make deps-backend
       - run: go build -o gitea_no_gcc
+      - name: cleanup-before-cross-compile
+        run: go clean -cache && rm -f gitea_no_gcc
       - name: build-backend-arm64
         run: make backend
         env:
           GOOS: linux
           GOARCH: arm64
           TAGS: bindata gogit
+      - name: cleanup-arm64
+        run: go clean -cache && rm -f gitea
       - name: build-backend-windows
         run: go build -o gitea_windows
         env:
           GOOS: windows
           GOARCH: amd64
           TAGS: bindata gogit
+      - name: cleanup-windows
+        run: go clean -cache && rm -f gitea_windows
       - name: build-backend-386
         run: go build -o gitea_linux_386
         env:
           GOOS: linux
           GOARCH: 386
+      - name: cleanup
+        if: always()
+        run: go clean -cache -testcache && rm -f gitea_linux_386 2>/dev/null || true
 
   actions:
     runs-on: ubuntu-latest
@@ -181,3 +208,6 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - run: make lint-actions
+      - name: cleanup
+        if: always()
+        run: go clean -cache -testcache 2>/dev/null || true
