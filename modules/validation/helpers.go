@@ -16,16 +16,20 @@ import (
 )
 
 type globalVarsStruct struct {
-	externalTrackerRegex   *regexp.Regexp
-	validUsernamePattern   *regexp.Regexp
-	invalidUsernamePattern *regexp.Regexp
+	externalTrackerRegex    *regexp.Regexp
+	validUsernamePattern    *regexp.Regexp
+	invalidUsernamePattern  *regexp.Regexp
+	validBadgeSlugPattern   *regexp.Regexp
+	invalidBadgeSlugPattern *regexp.Regexp
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
 	return &globalVarsStruct{
-		externalTrackerRegex:   regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`),
-		validUsernamePattern:   regexp.MustCompile(`^[\da-zA-Z][-.\w]*$`),
-		invalidUsernamePattern: regexp.MustCompile(`[-._]{2,}|[-._]$`), // No consecutive or trailing non-alphanumeric chars
+		externalTrackerRegex:    regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`),
+		validUsernamePattern:    regexp.MustCompile(`^[\da-zA-Z][-.\w]*$`),
+		invalidUsernamePattern:  regexp.MustCompile(`[-._]{2,}|[-._]$`), // No consecutive or trailing non-alphanumeric chars
+		validBadgeSlugPattern:   regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`),
+		invalidBadgeSlugPattern: regexp.MustCompile(`[-._]{2,}|[-._]$`),
 	}
 })
 
@@ -130,4 +134,9 @@ func IsValidUsername(name string) bool {
 	// but it's easier to use positive and negative checks.
 	vars := globalVars()
 	return vars.validUsernamePattern.MatchString(name) && !vars.invalidUsernamePattern.MatchString(name)
+}
+
+func IsValidBadgeSlug(slug string) bool {
+	vars := globalVars()
+	return vars.validBadgeSlugPattern.MatchString(slug) && !vars.invalidBadgeSlugPattern.MatchString(slug)
 }

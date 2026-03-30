@@ -898,6 +898,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "405":
@@ -1113,7 +1115,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	}()
 
 	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
-	permBase, err := access_model.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
+	permBase, err := access_model.GetDoerRepoPermission(ctx, baseRepo, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
@@ -1127,7 +1129,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 
 	// user should have permission to read headRepo's codes
 	// TODO: could the logic be simplified if the headRepo is the same as the baseRepo? Need to think more about it.
-	permHead, err := access_model.GetUserRepoPermission(ctx, headRepo, ctx.Doer)
+	permHead, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil

@@ -53,7 +53,7 @@ func (m *webhookNotifier) IssueClearLabels(ctx context.Context, doer *user_model
 		return
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
 	var err error
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
@@ -83,8 +83,8 @@ func (m *webhookNotifier) IssueClearLabels(ctx context.Context, doer *user_model
 }
 
 func (m *webhookNotifier) ForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository) {
-	oldPermission, _ := access_model.GetUserRepoPermission(ctx, oldRepo, doer)
-	permission, _ := access_model.GetUserRepoPermission(ctx, repo, doer)
+	oldPermission, _ := access_model.GetDoerRepoPermission(ctx, oldRepo, doer)
+	permission, _ := access_model.GetDoerRepoPermission(ctx, repo, doer)
 
 	// forked webhook
 	if err := PrepareWebhooks(ctx, EventSource{Repository: oldRepo}, webhook_module.HookEventFork, &api.ForkPayload{
@@ -147,7 +147,7 @@ func (m *webhookNotifier) MigrateRepository(ctx context.Context, doer, u *user_m
 
 func (m *webhookNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
 	if issue.IsPull {
-		permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+		permission, _ := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 
 		if err := issue.LoadPullRequest(ctx); err != nil {
 			log.Error("LoadPullRequest failed: %v", err)
@@ -170,7 +170,7 @@ func (m *webhookNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 			return
 		}
 	} else {
-		permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+		permission, _ := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(ctx, doer, issue),
@@ -191,7 +191,7 @@ func (m *webhookNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 }
 
 func (m *webhookNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
 	var err error
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
@@ -231,7 +231,7 @@ func (m *webhookNotifier) IssueChangeTitle(ctx context.Context, doer *user_model
 }
 
 func (m *webhookNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
 	var err error
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
@@ -282,7 +282,7 @@ func (m *webhookNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 		return
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
 	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssues, &api.IssuePayload{
 		Action:     api.HookIssueOpened,
 		Index:      issue.Index,
@@ -295,7 +295,7 @@ func (m *webhookNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 }
 
 func (m *webhookNotifier) DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+	permission, _ := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 	if issue.IsPull {
 		if err := issue.LoadPullRequest(ctx); err != nil {
 			log.Error("LoadPullRequest: %v", err)
@@ -345,7 +345,7 @@ func (m *webhookNotifier) NewPullRequest(ctx context.Context, pull *issues_model
 		return
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, pull.Issue.Repo, pull.Issue.Poster)
+	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, pull.Issue.Repo, pull.Issue.Poster)
 	if err := PrepareWebhooks(ctx, EventSource{Repository: pull.Issue.Repo}, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Issue.Index,
@@ -363,7 +363,7 @@ func (m *webhookNotifier) IssueChangeContent(ctx context.Context, doer *user_mod
 		return
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
 	var err error
 	if issue.IsPull {
 		if err := issue.LoadPullRequest(ctx); err != nil {
@@ -425,7 +425,7 @@ func (m *webhookNotifier) UpdateComment(ctx context.Context, doer *user_model.Us
 		eventType = webhook_module.HookEventIssueComment
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, c.Issue.Repo, doer)
+	permission, _ := access_model.GetDoerRepoPermission(ctx, c.Issue.Repo, doer)
 	if err := PrepareWebhooks(ctx, EventSource{Repository: c.Issue.Repo}, eventType, &api.IssueCommentPayload{
 		Action:      api.HookIssueCommentEdited,
 		Issue:       convert.ToAPIIssue(ctx, doer, c.Issue),
@@ -460,7 +460,7 @@ func (m *webhookNotifier) CreateIssueComment(ctx context.Context, doer *user_mod
 		eventType = webhook_module.HookEventIssueComment
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, repo, doer)
+	permission, _ := access_model.GetDoerRepoPermission(ctx, repo, doer)
 	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, eventType, &api.IssueCommentPayload{
 		Action:      api.HookIssueCommentCreated,
 		Issue:       convert.ToAPIIssue(ctx, doer, issue),
@@ -501,7 +501,7 @@ func (m *webhookNotifier) DeleteComment(ctx context.Context, doer *user_model.Us
 		eventType = webhook_module.HookEventIssueComment
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, comment.Issue.Repo, doer)
+	permission, _ := access_model.GetDoerRepoPermission(ctx, comment.Issue.Repo, doer)
 	if err := PrepareWebhooks(ctx, EventSource{Repository: comment.Issue.Repo}, eventType, &api.IssueCommentPayload{
 		Action:      api.HookIssueCommentDeleted,
 		Issue:       convert.ToAPIIssue(ctx, doer, comment.Issue),
@@ -568,7 +568,7 @@ func (m *webhookNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 		return
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
 			log.Error("loadPullRequest: %v", err)
@@ -613,7 +613,7 @@ func (m *webhookNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 		return
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+	permission, _ := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 	if issue.IsPull {
 		err = issue.PullRequest.LoadIssue(ctx)
 		if err != nil {
@@ -687,9 +687,9 @@ func (*webhookNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 		return
 	}
 
-	permission, err := access_model.GetUserRepoPermission(ctx, pr.Issue.Repo, doer)
+	permission, err := access_model.GetDoerRepoPermission(ctx, pr.Issue.Repo, doer)
 	if err != nil {
-		log.Error("models.GetUserRepoPermission: %v", err)
+		log.Error("models.GetDoerRepoPermission: %v", err)
 		return
 	}
 
@@ -715,7 +715,7 @@ func (m *webhookNotifier) PullRequestChangeTargetBranch(ctx context.Context, doe
 
 	issue := pr.Issue
 
-	mode, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	mode, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
 	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
 		Action: api.HookIssueEdited,
 		Index:  issue.Index,
@@ -753,9 +753,9 @@ func (m *webhookNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 		return
 	}
 
-	permission, err := access_model.GetUserRepoPermission(ctx, review.Issue.Repo, review.Issue.Poster)
+	permission, err := access_model.GetIndividualUserRepoPermission(ctx, review.Issue.Repo, review.Issue.Poster)
 	if err != nil {
-		log.Error("models.GetUserRepoPermission: %v", err)
+		log.Error("models.GetIndividualUserRepoPermission: %v", err)
 		return
 	}
 	if err := PrepareWebhooks(ctx, EventSource{Repository: review.Issue.Repo}, reviewHookType, &api.PullRequestPayload{
@@ -779,7 +779,7 @@ func (m *webhookNotifier) PullRequestReviewRequest(ctx context.Context, doer *us
 		log.Warn("PullRequestReviewRequest: issue is not a pull request: %v", issue.ID)
 		return
 	}
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+	permission, _ := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 	if err := issue.LoadPullRequest(ctx); err != nil {
 		log.Error("LoadPullRequest failed: %v", err)
 		return
@@ -857,7 +857,7 @@ func sendReleaseHook(ctx context.Context, doer *user_model.User, rel *repo_model
 		return
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, rel.Repo, doer)
+	permission, _ := access_model.GetDoerRepoPermission(ctx, rel.Repo, doer)
 	if err := PrepareWebhooks(ctx, EventSource{Repository: rel.Repo}, webhook_module.HookEventRelease, &api.ReleasePayload{
 		Action:     action,
 		Release:    convert.ToAPIRelease(ctx, rel.Repo, rel),

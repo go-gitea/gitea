@@ -120,8 +120,8 @@ export function blobToDataURI(blob: Blob): Promise<string> {
         reject(new Error('blobToDataURI: FileReader error'));
       });
       reader.readAsDataURL(blob);
-    } catch (err) {
-      reject(err);
+    } catch (err: unknown) {
+      reject(err instanceof Error ? err : new Error(String(err)));
     }
   });
 }
@@ -143,16 +143,16 @@ export function convertImage(blob: Blob, mime: string): Promise<Blob> {
             if (!(blob instanceof Blob)) return reject(new Error('convertImage: toBlob failed'));
             resolve(blob);
           }, mime);
-        } catch (err) {
-          reject(err);
+        } catch (err: unknown) {
+          reject(err instanceof Error ? err : new Error(String(err)));
         }
       });
       img.addEventListener('error', () => {
         reject(new Error('convertImage: image failed to load'));
       });
       img.src = await blobToDataURI(blob);
-    } catch (err) {
-      reject(err);
+    } catch (err: unknown) {
+      reject(err instanceof Error ? err : new Error(String(err)));
     }
   });
 }

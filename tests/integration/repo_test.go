@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
@@ -525,18 +527,38 @@ func TestGenerateRepository(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo44 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 44})
 
+	tmplRepoLabels := []*issues_model.Label{
+		{RepoID: 44, Name: "priority/high", Exclusive: true, ExclusiveOrder: 2, Color: "#ee0000", Description: "desc-high"},
+		{RepoID: 44, Name: "priority/low", Exclusive: true, ExclusiveOrder: 1, Color: "#0000ee", Description: "desc-low"},
+	}
+
+	require.NoError(t, issues_model.NewLabels(t.Context(), tmplRepoLabels...))
+
 	generatedRepo, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
-		Name:       "generated-from-template-44",
-		GitContent: true,
+		Name:        "generated-from-template-44",
+		GitContent:  true,
+		IssueLabels: true,
 	})
-	assert.NoError(t, err)
-	assert.NotNil(t, generatedRepo)
+	require.NoError(t, err)
+	require.NotNil(t, generatedRepo)
 
 	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, generatedRepo.Name))
-	assert.NoError(t, err)
-	assert.True(t, exist)
+	require.NoError(t, err)
+	require.True(t, exist)
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: generatedRepo.Name})
+
+	generatedLabels, err := issues_model.GetLabelsByRepoID(t.Context(), generatedRepo.ID, "", db.ListOptions{})
+	require.NoError(t, err)
+	require.Len(t, generatedLabels, len(tmplRepoLabels))
+	for i, tmplLabel := range tmplRepoLabels {
+		genLabel := generatedLabels[i]
+		assert.Equal(t, tmplLabel.Name, genLabel.Name)
+		assert.Equal(t, tmplLabel.Exclusive, genLabel.Exclusive)
+		assert.Equal(t, tmplLabel.ExclusiveOrder, genLabel.ExclusiveOrder)
+		assert.Equal(t, tmplLabel.Color, genLabel.Color)
+		assert.Equal(t, tmplLabel.Description, genLabel.Description)
+	}
 
 	err = repo_service.DeleteRepositoryDirectly(t.Context(), generatedRepo.ID)
 	assert.NoError(t, err)

@@ -291,7 +291,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 		return
 	}
 
-	permission, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, collaborator)
+	permission, err := access_model.GetIndividualUserRepoPermission(ctx, ctx.Repo.Repository, collaborator)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

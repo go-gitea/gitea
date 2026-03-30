@@ -24,8 +24,8 @@
 
 .markup .anchor {
   float: left;
-  padding-right: 4px;
-  margin-left: -20px;
+  padding-inline-end: 4px;
+  margin-inline-start: -20px;
   color: inherit;
 }
 
@@ -151,7 +151,7 @@ In markup content, we always use bottom margin for all elements */
 
 .markup ul,
 .markup ol {
-  padding-left: 2em;
+  padding-inline-start: 2em;
 }
 
 .markup ul.no-list,
@@ -164,18 +164,23 @@ In markup content, we always use bottom margin for all elements */
   list-style-type: none;
 }
 
+.markup .task-list-item > ul {
+  margin-top: 4px;
+}
+
 .markup .task-list-item p + ul {
   margin-top: 16px;
 }
 
 .markup .task-list-item input[type="checkbox"] {
-  margin: 0 .3em .25em -1.4em;
+  margin-bottom: 0.25em;
+  margin-inline: -1.4em 0.6em;
   vertical-align: middle;
   padding: 0;
 }
 
 .markup .task-list-item input[type="checkbox"] + p {
-  margin-left: -0.2em;
+  margin-inline-start: -0.2em;
   display: inline;
 }
 
@@ -188,48 +193,12 @@ In markup content, we always use bottom margin for all elements */
 }
 
 .markup input[type="checkbox"] {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  position: relative;
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
-  background: var(--color-input-background);
-  height: 14px;
-  width: 14px;
+  margin-inline-end: .25em;
+  margin-bottom: .25em;
+  cursor: default;
   opacity: 1 !important; /* override fomantic on edit preview */
   pointer-events: auto !important; /* override fomantic on edit preview */
   vertical-align: middle !important; /* override fomantic on edit preview */
-  -webkit-print-color-adjust: exact;
-  color-adjust: exact;
-}
-
-.markup input[type="checkbox"]:not([disabled]):hover,
-.markup input[type="checkbox"]:not([disabled]):active {
-  border-color: var(--color-primary);
-}
-
-.markup input[type="checkbox"]::after {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: var(--color-text);
-  mask-size: cover;
-  -webkit-mask-size: cover;
-}
-
-.markup input[type="checkbox"]:checked::after {
-  content: "";
-  mask-image: var(--checkbox-mask-checked);
-  -webkit-mask-image: var(--checkbox-mask-checked);
-  -webkit-print-color-adjust: exact;
-  color-adjust: exact;
-}
-
-.markup input[type="checkbox"]:indeterminate::after {
-  content: "";
-  mask-image: var(--checkbox-mask-indeterminate);
-  -webkit-mask-image: var(--checkbox-mask-indeterminate);
 }
 
 .markup ul ul,
@@ -271,7 +240,7 @@ In markup content, we always use bottom margin for all elements */
 }
 
 .markup blockquote {
-  margin-left: 0;
+  margin-inline-start: 0;
   padding: 0 15px;
   color: var(--color-text-light-2);
   border-left: 0.25em solid var(--color-secondary);
@@ -316,6 +285,16 @@ In markup content, we always use bottom margin for all elements */
   box-sizing: initial;
 }
 
+/* GitHub-style dark/light image switching.
+   These fragments are kept in the rendered HTML as part of the `src` attribute.
+   We decide which to show via `data-gitea-theme-dark` on `<html>`, which is
+   mirrored from `--is-dark-theme` in JS (so it also works with auto/custom themes).
+*/
+html[data-gitea-theme-dark="true"] .markup img[src*="#gh-light-mode-only"],
+html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
+  display: none;
+}
+
 .file-view.markup {
   padding: 1em 2em;
   font-size: 16px;
@@ -340,12 +319,12 @@ In markup content, we always use bottom margin for all elements */
 
 .markup img[align="right"],
 .markup video[align="right"] {
-  padding-left: 20px;
+  padding-inline-start: 20px;
 }
 
 .markup img[align="left"],
 .markup video[align="left"] {
-  padding-right: 28px;
+  padding-inline-end: 28px;
 }
 
 .markup span.frame {
@@ -417,7 +396,7 @@ In markup content, we always use bottom margin for all elements */
 .markup span.float-left {
   display: block;
   float: left;
-  margin-right: 13px;
+  margin-inline-end: 13px;
   overflow: hidden;
 }
 
@@ -428,7 +407,7 @@ In markup content, we always use bottom margin for all elements */
 .markup span.float-right {
   display: block;
   float: right;
-  margin-left: 13px;
+  margin-inline-start: 13px;
   overflow: hidden;
 }
 
@@ -530,7 +509,7 @@ In markup content, we always use bottom margin for all elements */
 .markup .ui.list .list,
 .markup ol.ui.list ol,
 .markup ul.ui.list ul {
-  padding-left: 2em;
+  padding-inline-start: 2em;
 }
 
 .markup details.frontmatter-content summary {
