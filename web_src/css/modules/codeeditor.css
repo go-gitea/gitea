@@ -499,11 +499,11 @@
 
 /* syntax highlighting classes from @lezer/highlight classHighlighter */
 .code-editor-container .tok-keyword,
-.code-editor-container .tok-atom,
-.code-editor-container .tok-bool { color: var(--color-syntax-keyword); }
-.code-editor-container .tok-variableName { color: var(--color-syntax-text-alt); }
+.code-editor-container .tok-atom { color: var(--color-syntax-keyword); }
+.code-editor-container .tok-bool { color: var(--color-syntax-bool); }
+.code-editor-container .tok-variableName { color: var(--color-syntax-variable); }
 .code-editor-container .tok-variableName2 { color: var(--color-syntax-keyword); }
-.code-editor-container .tok-propertyName { color: var(--color-syntax-text-alt); }
+.code-editor-container .tok-propertyName { color: var(--color-syntax-property); }
 .code-editor-container .tok-typeName,
 .code-editor-container .tok-className { color: var(--color-syntax-type); }
 .code-editor-container .tok-namespace { color: var(--color-syntax-namespace); }
@@ -518,8 +518,8 @@
 .code-editor-container .tok-meta { color: var(--color-syntax-preproc); }
 .code-editor-container .tok-invalid { color: var(--color-syntax-invalid); }
 .code-editor-container .tok-link { color: var(--color-syntax-link); }
-.code-editor-container .tok-heading { color: var(--color-syntax-type); }
-.code-editor-container .tok-emphasis { font-style: italic; }
+.code-editor-container .tok-heading { color: var(--color-syntax-heading); }
+.code-editor-container .tok-emphasis { color: var(--color-syntax-emph); font-style: italic; }
 .code-editor-container .tok-strong { font-weight: var(--font-weight-bold); }
 .code-editor-container .tok-inserted { color: var(--color-syntax-string); }
 .code-editor-container .tok-deleted { color: var(--color-syntax-invalid); }
@@ -528,7 +528,7 @@
 .code-editor-container[data-language="json"] .tok-propertyName,
 .code-editor-container[data-language="json5"] .tok-propertyName,
 .code-editor-container[data-language="yaml"] .tok-propertyName { color: var(--color-syntax-tag); }
-.code-editor-container[data-language="css"] .tok-propertyName { color: var(--color-syntax-keyword); }
+.code-editor-container[data-language="css"] .tok-propertyName { color: var(--color-syntax-name); }
 .code-editor-container[data-language="html"] .tok-propertyName,
 .code-editor-container[data-language="xml"] .tok-propertyName { color: var(--color-syntax-attribute); }
 

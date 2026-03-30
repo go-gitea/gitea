@@ -30,7 +30,7 @@
 .chroma .gu { color: var(--color-syntax-subheading); } /* GenericSubheading */
 .chroma .il { color: var(--color-syntax-number); } /* LiteralNumberIntegerLong */
 .chroma .k { color: var(--color-syntax-keyword); } /* Keyword */
-.chroma .kc { color: var(--color-syntax-keyword); } /* KeywordConstant */
+.chroma .kc { color: var(--color-syntax-bool); } /* KeywordConstant */
 .chroma .kd { color: var(--color-syntax-keyword); } /* KeywordDeclaration */
 .chroma .kn { color: var(--color-syntax-control); } /* KeywordNamespace */
 .chroma .kp { color: var(--color-syntax-keyword); } /* KeywordPseudo */

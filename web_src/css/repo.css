@@ -1767,11 +1767,21 @@ tbody.commit-list {
 }
 
 .removed-code {
+  color: var(--color-text);
   background: var(--color-diff-removed-word-bg);
 }
 
+.removed-code span {
+  color: inherit !important;
+}
+
 .added-code {
+  color: var(--color-text);
   background: var(--color-diff-added-word-bg);
+}
+
+.added-code span {
+  color: inherit !important;
 }
 
 .code-diff-unified .del-code,
