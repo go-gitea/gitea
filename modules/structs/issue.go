@@ -115,7 +115,7 @@ type EditIssueOption struct {
 	State     *string  `json:"state"`
 	// swagger:strfmt date-time
 	Deadline       *time.Time `json:"due_date"`
-	RemoveDeadline *bool `json:"unset_due_date"`
+	RemoveDeadline *bool      `json:"unset_due_date"`
 	// The current version of the issue content to detect conflicts during editing
 	ContentVersion *int `json:"content_version"`
 }
