@@ -40,7 +40,7 @@ func preparePushPullCommentPushActionContent(ctx context.Context, pr *issues_mod
 	return data, len(data.CommitIDs) > 0, err
 }
 
-func prepareOldCommitCommentsToDelete(ctx context.Context, oldCommitComments []*issues_model.Comment, newData *issues_model.PushActionContent) (needDeleteCommentIDs []int64) {
+func reconcileOldCommitCommentsForForcePush(ctx context.Context, oldCommitComments []*issues_model.Comment, newData *issues_model.PushActionContent) (needDeleteCommentIDs []int64) {
 	newPushCommitIDMaps := container.SetOf(newData.CommitIDs...)
 	for _, oldCommitComment := range oldCommitComments {
 		oldData, err := oldCommitComment.GetPushActionContent()
@@ -84,7 +84,7 @@ func cleanUpOldCommitCommentsForNewForcePush(ctx context.Context, pr *issues_mod
 		return err
 	}
 
-	needDeleteCommentIDs := prepareOldCommitCommentsToDelete(ctx, oldCommitComments, data)
+	needDeleteCommentIDs := reconcileOldCommitCommentsForForcePush(ctx, oldCommitComments, data)
 	if len(needDeleteCommentIDs) == 0 {
 		return nil
 	}
