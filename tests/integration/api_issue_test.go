@@ -465,8 +465,7 @@ func TestAPIIssueContentVersion(t *testing.T) {
 
 		req := NewRequest(t, "GET", urlStr).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var apiIssue api.Issue
-		DecodeJSON(t, resp, &apiIssue)
+		apiIssue := DecodeJSON(t, resp, &api.Issue{})
 		assert.GreaterOrEqual(t, apiIssue.ContentVersion, 0)
 	})
 
@@ -477,38 +476,29 @@ func TestAPIIssueContentVersion(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 		var before api.Issue
 		DecodeJSON(t, resp, &before)
-
-		body := "updated body with correct version"
-		cv := before.ContentVersion
 		req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{
-			Body:           &body,
-			ContentVersion: &cv,
+			Body:           new("updated body with correct version"),
+			ContentVersion: new(before.ContentVersion),
 		}).AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusCreated)
-		var after api.Issue
-		DecodeJSON(t, resp, &after)
-		assert.Equal(t, body, after.Body)
+		after := DecodeJSON(t, resp, &api.Issue{})
+		assert.Equal(t, "updated body with correct version", after.Body)
 		assert.Greater(t, after.ContentVersion, before.ContentVersion)
 	})
 
 	t.Run("EditWithWrongVersion", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-
-		wrongVersion := 99999
-		body := "should fail"
 		req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{
-			Body:           &body,
-			ContentVersion: &wrongVersion,
+			Body:           new("should fail"),
+			ContentVersion: new(99999),
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusConflict)
 	})
 
 	t.Run("EditWithoutVersion", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-
-		body := "edit without version succeeds"
 		req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{
-			Body: &body,
+			Body: new("edit without version succeeds"),
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 	})
