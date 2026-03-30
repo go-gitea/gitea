@@ -67,10 +67,10 @@ func (css CommitStatusStates) Combine() CommitStatusState {
 	successCnt := 0
 	for _, state := range css {
 		switch {
-		case state.IsError() || state.IsFailure():
+		case state.IsError() || state.IsFailure() || state.IsWarning():
 			return CommitStatusFailure
 		case state.IsPending():
-		case state.IsSuccess() || state.IsWarning() || state.IsSkipped():
+		case state.IsSuccess() || state.IsSkipped():
 			successCnt++
 		}
 	}
