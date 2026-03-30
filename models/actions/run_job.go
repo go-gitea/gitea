@@ -20,6 +20,7 @@ import (
 
 // MaxJobNumPerRun is the maximum number of jobs in a single run.
 // https://docs.github.com/en/actions/reference/limits#existing-system-limits
+// TODO: apply this limit when creating jobs
 const MaxJobNumPerRun = 256
 
 // ActionRunJob represents a job of a run
