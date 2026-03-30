@@ -90,7 +90,8 @@ type PullRequest struct {
 	Closed *time.Time `json:"closed_at"`
 
 	// The pin order for the pull request
-	PinOrder int `json:"pin_order"`
+	PinOrder       int `json:"pin_order"`
+	ContentVersion int `json:"content_version"`
 }
 
 // PRBranchInfo information about a branch
@@ -168,6 +169,7 @@ type EditPullRequestOption struct {
 	RemoveDeadline *bool `json:"unset_due_date"`
 	// Whether to allow maintainer edits
 	AllowMaintainerEdit *bool `json:"allow_maintainer_edit"`
+	ContentVersion      *int  `json:"content_version"`
 }
 
 // ChangedFile store information about files affected by the pull request
