@@ -97,6 +97,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		Created:        pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:        pr.Issue.UpdatedUnix.AsTimePtr(),
 		PinOrder:       util.Iif(apiIssue.PinOrder == -1, 0, apiIssue.PinOrder),
+		ContentVersion: apiIssue.ContentVersion,
 
 		// output "[]" rather than null to align to github outputs
 		RequestedReviewers:      []*api.User{},
@@ -372,6 +373,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			Created:        pr.Issue.CreatedUnix.AsTimePtr(),
 			Updated:        pr.Issue.UpdatedUnix.AsTimePtr(),
 			PinOrder:       util.Iif(apiIssue.PinOrder == -1, 0, apiIssue.PinOrder),
+			ContentVersion: apiIssue.ContentVersion,
 
 			AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
