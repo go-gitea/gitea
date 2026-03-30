@@ -1120,7 +1120,7 @@ func TestHighlightCodeLines(t *testing.T) {
 			},
 		}
 		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("// abc\xcc def\xcd")) // ISO-8859-1 bytes
-		assert.Equal(t, "<span class=\"c1\">// abcÌ defÍ\n</span>", string(ret[0]))
+		assert.Equal(t, "<span class=\"c\">// abcÌ defÍ</span>", string(ret[0]))
 	})
 
 	t.Run("LeftLines", func(t *testing.T) {

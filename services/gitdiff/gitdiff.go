@@ -40,7 +40,6 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/alecthomas/chroma/v2"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
@@ -307,7 +306,6 @@ type DiffSection struct {
 	language              *diffVarMutable[string]
 	highlightedLeftLines  *diffVarMutable[map[int]template.HTML]
 	highlightedRightLines *diffVarMutable[map[int]template.HTML]
-	highlightLexer        *diffVarMutable[chroma.Lexer]
 
 	FileName string
 	Lines    []*DiffLine
@@ -349,10 +347,7 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 	if setting.Git.DisableDiffHighlight {
 		return template.HTML(html.EscapeString(diffLine.Content[1:]))
 	}
-	if diffSection.highlightLexer.value == nil {
-		diffSection.highlightLexer.value = highlight.DetectChromaLexerByFileName(diffSection.FileName, fileLanguage)
-	}
-	return highlight.RenderCodeByLexer(diffSection.highlightLexer.value, diffLine.Content[1:])
+	return highlight.RenderCode(diffSection.FileName, fileLanguage, diffLine.Content[1:])
 }
 
 func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, leftLine, rightLine *DiffLine, locale translation.Locale) DiffInline {
@@ -462,7 +457,6 @@ type DiffFile struct {
 
 	// for render purpose only, will be filled by the extra loop in GitDiffForRender, the maps of lines are 0-based
 	language              diffVarMutable[string]
-	highlightRender       diffVarMutable[chroma.Lexer] // cache render (atm: lexer) for current file, only detect once for line-by-line mode
 	highlightedLeftLines  diffVarMutable[map[int]template.HTML]
 	highlightedRightLines diffVarMutable[map[int]template.HTML]
 }
@@ -943,7 +937,6 @@ func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
 func newDiffSectionForDiffFile(curFile *DiffFile) *DiffSection {
 	return &DiffSection{
 		language:              &curFile.language,
-		highlightLexer:        &curFile.highlightRender,
 		highlightedLeftLines:  &curFile.highlightedLeftLines,
 		highlightedRightLines: &curFile.highlightedRightLines,
 	}
@@ -1407,8 +1400,7 @@ func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool,
 	}
 
 	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))
-	lexer := highlight.DetectChromaLexerByFileName(name, lang)
-	highlightedNewContent := highlight.RenderCodeByLexer(lexer, content)
+	highlightedNewContent := highlight.RenderCode(name, lang, content)
 	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
 	lines := make(map[int]template.HTML, len(unsafeLines))
 	// only save the highlighted lines we need, but not the whole file, to save memory

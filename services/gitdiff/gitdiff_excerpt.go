@@ -11,8 +11,6 @@ import (
 	"io"
 
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/alecthomas/chroma/v2"
 )
 
 type BlobExcerptOptions struct {
@@ -67,7 +65,6 @@ func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExc
 	chunkSize := BlobExcerptChunkSize
 	section := &DiffSection{
 		language:              &diffVarMutable[string]{value: language},
-		highlightLexer:        &diffVarMutable[chroma.Lexer]{},
 		highlightedLeftLines:  &diffVarMutable[map[int]template.HTML]{},
 		highlightedRightLines: &diffVarMutable[map[int]template.HTML]{},
 		FileName:              filePath,

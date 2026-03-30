@@ -101,6 +101,6 @@ func TestRender_Source(t *testing.T) {
 int a;
 #+end_src
 `, `<div class="src src-c">
-<pre><code class="chroma language-c"><span class="kt">int</span> <span class="n">a</span><span class="p">;</span></code></pre>
+<pre><code class="chroma language-c"><span class="kt">int</span> <span class="nv">a</span><span class="p">;</span></code></pre>
 </div>`)
 }

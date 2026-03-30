@@ -20,6 +20,7 @@ import (
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 )
 
@@ -86,19 +87,70 @@ func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML,
 	// diff view newline will be passed as empty, change to literal '\n' so it can be copied
 	// preserve literal newline in blame view
 	if code == "" || code == "\n" {
+		recordHighlightRender(highlightOpRenderCodeSlowGuess, highlightRendererPlaintext)
 		return "\n", nil, ""
 	}
 
 	if len(code) > sizeLimit {
+		recordHighlightRender(highlightOpRenderCodeSlowGuess, highlightRendererPlaintext)
 		return template.HTML(template.HTMLEscapeString(code)), nil, ""
 	}
 
+	attempt := tryRenderCodeByTreeSitterDetailed(fileName, language, util.UnsafeStringToBytes(code), true)
+	if attempt.ok {
+		recordHighlightRender(highlightOpRenderCodeSlowGuess, highlightRendererTreeSitter)
+		return attempt.rendered, nil, attempt.displayName
+	}
+	recordHighlightFallback(highlightOpRenderCodeSlowGuess, attempt.fallbackReason)
+
 	lexer = detectChromaLexerWithAnalyze(fileName, language, util.UnsafeStringToBytes(code)) // it is also slow
-	return RenderCodeByLexer(lexer, code), lexer, formatLexerName(lexer.Config().Name)
+	recordHighlightRender(highlightOpRenderCodeSlowGuess, highlightRendererChroma)
+	return renderCodeByChromaLexer(lexer, code), lexer, formatLexerName(lexer.Config().Name)
+}
+
+// RenderCode returns highlighted HTML for a snippet, preferring gotreesitter and
+// falling back to Chroma.
+func RenderCode(fileName, language, code string) template.HTML {
+	if len(code) > sizeLimit {
+		recordHighlightRender(highlightOpRenderCode, highlightRendererPlaintext)
+		return template.HTML(template.HTMLEscapeString(code))
+	}
+	attempt := tryRenderCodeByTreeSitterDetailed(fileName, language, util.UnsafeStringToBytes(code), false)
+	if attempt.ok {
+		recordHighlightRender(highlightOpRenderCode, highlightRendererTreeSitter)
+		return attempt.rendered
+	}
+	recordHighlightFallback(highlightOpRenderCode, attempt.fallbackReason)
+	lexer := DetectChromaLexerByFileName(fileName, language)
+	recordHighlightRender(highlightOpRenderCode, highlightRendererChroma)
+	return renderCodeByChromaLexer(lexer, code)
 }
 
 // RenderCodeByLexer returns a HTML version of code string with chroma syntax highlighting classes
 func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
+	if len(code) > sizeLimit {
+		recordHighlightRender(highlightOpRenderCodeByLexer, highlightRendererPlaintext)
+		return template.HTML(template.HTMLEscapeString(code))
+	}
+	if lexer != nil {
+		attempt := tryRenderCodeByTreeSitterWithLexerDetailed(lexer.Config().Name, util.UnsafeStringToBytes(code))
+		if attempt.ok {
+			recordHighlightRender(highlightOpRenderCodeByLexer, highlightRendererTreeSitter)
+			return attempt.rendered
+		}
+		recordHighlightFallback(highlightOpRenderCodeByLexer, attempt.fallbackReason)
+	} else {
+		recordHighlightFallback(highlightOpRenderCodeByLexer, highlightFallbackLexerUnavailable)
+	}
+	recordHighlightRender(highlightOpRenderCodeByLexer, highlightRendererChroma)
+	return renderCodeByChromaLexer(lexer, code)
+}
+
+func renderCodeByChromaLexer(lexer chroma.Lexer, code string) template.HTML {
+	if lexer == nil {
+		lexer = lexers.Fallback
+	}
+
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
 		html.PreventSurroundingPre(true),
@@ -128,9 +180,21 @@ func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
 // RenderFullFile returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name
 func RenderFullFile(fileName, language string, code []byte) ([]template.HTML, string, error) {
 	if len(code) > sizeLimit {
+		recordHighlightRender(highlightOpRenderFullFile, highlightRendererPlaintext)
 		return RenderPlainText(code), "", nil
 	}
 
+	attempt, err := renderFullFileByTreeSitterDetailed(fileName, language, code)
+	if err == nil {
+		recordHighlightRender(highlightOpRenderFullFile, highlightRendererTreeSitter)
+		return attempt.lines, attempt.displayName, nil
+	}
+	recordHighlightFallback(highlightOpRenderFullFile, attempt.fallbackReason)
+	recordHighlightRender(highlightOpRenderFullFile, highlightRendererChroma)
+	return renderFullFileByChroma(fileName, language, code)
+}
+
+func renderFullFileByChroma(fileName, language string, code []byte) ([]template.HTML, string, error) {
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
 		html.PreventSurroundingPre(true),

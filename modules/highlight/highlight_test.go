@@ -69,20 +69,20 @@ func TestFile(t *testing.T) {
 		{
 			name:      "eol-no.py",
 			code:      "a=1",
-			want:      lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>`),
+			want:      lines(`<span class="nv">a</span><span class="o">=</span><span class="m">1</span>`),
 			lexerName: "Python",
 		},
 		{
 			name:      "eol-newline1.py",
 			code:      "a=1\n",
-			want:      lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n`),
+			want:      lines(`<span class="nv">a</span><span class="o">=</span><span class="m">1</span>\n`),
 			lexerName: "Python",
 		},
 		{
 			name: "eol-newline2.py",
 			code: "a=1\n\n",
 			want: lines(`
-<span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n
+<span class="nv">a</span><span class="o">=</span><span class="m">1</span>\n
 \n
 			`,
 			),
@@ -111,7 +111,7 @@ c=2
 		{
 			name:      "test.sql",
 			code:      "--\nSELECT",
-			want:      []template.HTML{"<span class=\"c1\">--\n</span>", `<span class="k">SELECT</span>`},
+			want:      []template.HTML{"<span class=\"c\">--</span>\n", `<span class="k">SELECT</span>`},
 			lexerName: "SQL",
 		},
 	}
@@ -186,6 +186,17 @@ c=2`),
 			assert.Equal(t, tt.want, out)
 		})
 	}
+}
+
+func TestSizeLimitReturnsPlaintext(t *testing.T) {
+	big := strings.Repeat("x", sizeLimit+1)
+	escaped := template.HTML(template.HTMLEscapeString(big))
+
+	got := RenderCode("big.go", "Go", big)
+	assert.Equal(t, escaped, got, "RenderCode should return escaped plaintext for oversized input")
+
+	got = RenderCodeByLexer(nil, big)
+	assert.Equal(t, escaped, got, "RenderCodeByLexer should return escaped plaintext for oversized input")
 }
 
 func TestUnsafeSplitHighlightedLines(t *testing.T) {

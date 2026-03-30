@@ -47,7 +47,7 @@ func BenchmarkRenderCodeByLexer(b *testing.B) {
 	for b.Loop() {
 		// Really slow ....... the regexp2 used by Chroma takes most of the time
 		// BenchmarkRenderCodeByLexer-12    	      22	  47159038 ns/op
-		RenderCodeByLexer(lexer, code)
+		renderCodeByChromaLexer(lexer, code)
 	}
 }
 
