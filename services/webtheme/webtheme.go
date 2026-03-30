@@ -4,8 +4,9 @@
 package webtheme
 
 import (
+	"io/fs"
 	"os"
-	"path/filepath"
+	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -142,50 +143,42 @@ func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 	return themeInfo
 }
 
-func collectThemeFiles(fileNames []string, readFile func(string) ([]byte, error)) []*ThemeMetaInfo {
-	var themes []*ThemeMetaInfo
-	for _, fileName := range fileNames {
+func collectThemeFiles(dirFS fs.ReadDirFS, fsPath string) (themes []*ThemeMetaInfo, _ error) {
+	files, err := dirFS.ReadDir(fsPath)
+	if err != nil {
+		return nil, err
+	}
+	for _, file := range files {
+		fileName := file.Name()
 		if !strings.HasPrefix(fileName, fileNamePrefix) || !strings.HasSuffix(fileName, fileNameSuffix) {
 			continue
 		}
-		content, err := readFile(fileName)
+		content, err := fs.ReadFile(dirFS, path.Join(fsPath, file.Name()))
 		if err != nil {
 			log.Error("Failed to read theme file %q: %v", fileName, err)
 			continue
 		}
 		themes = append(themes, parseThemeMetaInfo(fileName, util.UnsafeBytesToString(content)))
 	}
-	return themes
+	return themes, nil
 }
 
 func loadThemesFromAssets() (themeList []*ThemeMetaInfo, themeMap map[string]*ThemeMetaInfo) {
-	var foundThemes []*ThemeMetaInfo
+	var themeDir fs.ReadDirFS
+	var themePath string
 
 	if !setting.IsProd {
 		// In dev mode, Vite serves themes directly from source files.
-		srcDir := filepath.Join(setting.StaticRootPath, "web_src/css/themes")
-		entries, err := os.ReadDir(srcDir)
-		if err != nil {
-			log.Warn("Failed to read theme source directory %q: %v", srcDir, err)
-		} else {
-			fileNames := make([]string, 0, len(entries))
-			for _, entry := range entries {
-				fileNames = append(fileNames, entry.Name())
-			}
-			foundThemes = collectThemeFiles(fileNames, func(name string) ([]byte, error) {
-				return os.ReadFile(filepath.Join(srcDir, name))
-			})
-		}
+		themeDir, themePath = os.DirFS(setting.StaticRootPath).(fs.ReadDirFS), "web_src/css/themes"
 	} else {
 		// In prod mode, use built assets from AssetFS.
-		cssFiles, err := public.AssetFS().ListFiles("assets/css")
-		if err != nil {
-			log.Error("Failed to list themes: %v", err)
-			return nil, nil
-		}
-		foundThemes = collectThemeFiles(cssFiles, func(name string) ([]byte, error) {
-			return public.AssetFS().ReadFile("/assets/css/" + name)
-		})
+		themeDir, themePath = public.AssetFS(), "assets/css"
+	}
+
+	foundThemes, err := collectThemeFiles(themeDir, themePath)
+	if err != nil {
+		log.Error("Failed to load theme files: %v", err)
+		return
 	}
 
 	themeList = foundThemes
