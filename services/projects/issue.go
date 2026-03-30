@@ -12,6 +12,7 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
@@ -100,9 +101,9 @@ func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, 
 		return nil, err
 	}
 
-	defaultColumn, err := project.MustDefaultColumn(ctx)
+	defaultColumn, err := project.GetDefaultColumnWithFallback(ctx)
 	if err != nil {
-		return nil, err
+		return nil, util.Iif(errors.Is(err, util.ErrNotExist), nil, err)
 	}
 
 	issueColumnMap, err := issues_model.LoadProjectIssueColumnMap(ctx, project.ID, defaultColumn.ID)

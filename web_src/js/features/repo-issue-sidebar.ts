@@ -1,12 +1,12 @@
 import {POST} from '../modules/fetch.ts';
 import {queryElems, toggleElem} from '../utils/dom.ts';
 import {IssueSidebarComboList} from './repo-issue-sidebar-combolist.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
-function initBranchSelector() {
+function initRepoIssueBranchSelector(elSidebar: HTMLElement) {
   // TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl"
-  const elSelectBranch = document.querySelector('.ui.dropdown.select-branch.branch-selector-dropdown');
+  const elSelectBranch = elSidebar.querySelector('.ui.dropdown.select-branch.branch-selector-dropdown');
   if (!elSelectBranch) return;
-
   const urlUpdateIssueRef = elSelectBranch.getAttribute('data-url-update-issueref');
   const elBranchMenu = elSelectBranch.querySelector('.reference-list-menu')!;
   queryElems(elBranchMenu, '.item:not(.no-select)', (el) => el.addEventListener('click', async function (e) {
@@ -30,23 +30,24 @@ function initBranchSelector() {
   }));
 }
 
-function initRepoIssueDue() {
-  const form = document.querySelector<HTMLFormElement>('.issue-due-form');
+function initRepoIssueDue(elSidebar: HTMLElement) {
+  const form = elSidebar.querySelector<HTMLFormElement>('.issue-due-form');
   if (!form) return;
   const deadline = form.querySelector<HTMLInputElement>('input[name=deadline]')!;
-  document.querySelector('.issue-due-edit')?.addEventListener('click', () => {
+  elSidebar.querySelector('.issue-due-edit')?.addEventListener('click', () => {
     toggleElem(form);
   });
-  document.querySelector('.issue-due-remove')?.addEventListener('click', () => {
+  elSidebar.querySelector('.issue-due-remove')?.addEventListener('click', () => {
     deadline.value = '';
     form.dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));
   });
 }
 
 export function initRepoIssueSidebar() {
-  initBranchSelector();
-  initRepoIssueDue();
-
-  // init the combo list: a dropdown for selecting items, and a list for showing selected items and related actions
-  queryElems<HTMLElement>(document, '.issue-sidebar-combo', (el) => new IssueSidebarComboList(el).init());
+  registerGlobalInitFunc('initRepoIssueSidebar', (elSidebar) => {
+    initRepoIssueBranchSelector(elSidebar);
+    initRepoIssueDue(elSidebar);
+    // init the combo list: a dropdown for selecting items, and a list for showing selected items and related actions
+    queryElems(elSidebar, '.issue-sidebar-combo', (el) => new IssueSidebarComboList(el).init());
+  });
 }

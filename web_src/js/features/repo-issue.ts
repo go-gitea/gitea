@@ -566,6 +566,8 @@ function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
 }
 
 export function initRepoCommentFormAndSidebar() {
+  initRepoIssueSidebar();
+
   const commentForm = document.querySelector<HTMLFormElement>('.comment.form');
   if (!commentForm) return;
 
@@ -576,6 +578,4 @@ export function initRepoCommentFormAndSidebar() {
     // it's quite unclear about the "comment form" elements, sometimes it's for issue comment, sometimes it's for file editor/uploader message
     initSingleCommentEditor(commentForm);
   }
-
-  initRepoIssueSidebar();
 }

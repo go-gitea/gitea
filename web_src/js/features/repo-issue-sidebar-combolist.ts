@@ -1,36 +1,21 @@
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {POST} from '../modules/fetch.ts';
+import {GET, POST} from '../modules/fetch.ts';
+import {showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
-
-// if there are draft comments, confirm before reloading, to avoid losing comments
-function issueSidebarReloadConfirmDraftComment() {
-  const commentTextareas = [
-    document.querySelector<HTMLTextAreaElement>('.edit-content-zone:not(.tw-hidden) textarea'),
-    document.querySelector<HTMLTextAreaElement>('#comment-form textarea'),
-  ];
-  for (const textarea of commentTextareas) {
-    // Most users won't feel too sad if they lose a comment with 10 chars, they can re-type these in seconds.
-    // But if they have typed more (like 50) chars and the comment is lost, they will be very unhappy.
-    if (textarea && textarea.value.trim().length > 10) {
-      textarea.parentElement!.scrollIntoView();
-      if (!window.confirm('Page will be reloaded, but there are draft comments. Continuing to reload will discard the comments. Continue?')) {
-        return;
-      }
-      break;
-    }
-  }
-  window.location.reload();
-}
+import {parseDom} from '../utils.ts';
 
 export class IssueSidebarComboList {
   updateUrl: string;
   updateAlgo: string;
   selectionMode: string;
   elDropdown: HTMLElement;
-  elList: HTMLElement;
+  elList: HTMLElement | null;
   elComboValue: HTMLInputElement;
   initialValues: string[];
   container: HTMLElement;
+
+  elIssueMainContent: HTMLElement;
+  elIssueSidebar: HTMLElement;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -42,6 +27,9 @@ export class IssueSidebarComboList {
     this.elDropdown = container.querySelector<HTMLElement>(':scope > .ui.dropdown')!;
     this.elList = container.querySelector<HTMLElement>(':scope > .ui.list')!;
     this.elComboValue = container.querySelector<HTMLInputElement>(':scope > .combo-value')!;
+
+    this.elIssueMainContent = document.querySelector('.issue-content-left')!;
+    this.elIssueSidebar = document.querySelector('.issue-content-right')!;
   }
 
   collectCheckedValues() {
@@ -49,6 +37,7 @@ export class IssueSidebarComboList {
   }
 
   updateUiList(changedValues: Array<string>) {
+    if (!this.elList) return;
     const elEmptyTip = this.elList.querySelector('.item.empty-list')!;
     queryElemChildren(this.elList, '.item:not(.empty-list)', (el) => el.remove());
     for (const value of changedValues) {
@@ -62,22 +51,68 @@ export class IssueSidebarComboList {
     toggleElem(elEmptyTip, !hasItems);
   }
 
-  async updateToBackend(changedValues: Array<string>) {
+  async reloadPagePartially() {
+    const resp = await GET(window.location.href);
+    if (!resp.ok) throw new Error(`Failed to reload page: ${resp.statusText}`);
+    const doc = parseDom(await resp.text(), 'text/html');
+
+    // we can safely replace the whole right part (sidebar) because there are only some dropdowns and lists
+    const newSidebar = doc.querySelector('.issue-content-right')!;
+    this.elIssueSidebar.replaceWith(newSidebar);
+
+    // for the main content (left side), at the moment we only support adding new timeline items
+    const newMainContent = doc.querySelector('.issue-content-left')!;
+
+    // find the last ".timeline-item[id]" in current main content, and insert new items after it, some cases:
+    // * a new empty issue: "timeline-item comment first", "timeline-item comment form (optional)"
+    // * issue with timeline events: "timeline-item comment first", "timeline-item event"+id, "timeline-item comment form (optional)"
+    const timelineItemsWithId = this.elIssueMainContent.querySelectorAll('.timeline-item[id]');
+    let lastTimelineItemForInsertion = timelineItemsWithId[timelineItemsWithId.length - 1] ?? this.elIssueMainContent.querySelector('.timeline-item');
+    if (!lastTimelineItemForInsertion) return;
+
+    const newTimelineItems = newMainContent.querySelectorAll(`.timeline-item[id]`);
+    for (const newItem of newTimelineItems) {
+      const newItemId = newItem.getAttribute('id')!;
+      if (this.elIssueMainContent.querySelector(`.timeline-item[id="${CSS.escape(newItemId)}"]`)) continue;
+      lastTimelineItemForInsertion.insertAdjacentElement('afterend', newItem);
+      lastTimelineItemForInsertion = newItem;
+    }
+  }
+
+  async sendRequestToBackend(changedValues: Array<string>): Promise<Response | null> {
+    let lastResp: Response | null = null;
     if (this.updateAlgo === 'diff') {
       for (const value of this.initialValues) {
         if (!changedValues.includes(value)) {
-          await POST(this.updateUrl, {data: new URLSearchParams({action: 'detach', id: value})});
+          lastResp = await POST(this.updateUrl, {data: new URLSearchParams({action: 'detach', id: value})});
         }
       }
       for (const value of changedValues) {
         if (!this.initialValues.includes(value)) {
-          await POST(this.updateUrl, {data: new URLSearchParams({action: 'attach', id: value})});
+          lastResp = await POST(this.updateUrl, {data: new URLSearchParams({action: 'attach', id: value})});
         }
       }
     } else {
-      await POST(this.updateUrl, {data: new URLSearchParams({id: changedValues.join(',')})});
+      lastResp = await POST(this.updateUrl, {data: new URLSearchParams({id: changedValues.join(',')})});
     }
-    issueSidebarReloadConfirmDraftComment();
+    return lastResp;
+  }
+
+  async updateToBackend(changedValues: Array<string>) {
+    this.elIssueSidebar.classList.add('is-loading');
+    try {
+      const resp = await this.sendRequestToBackend(changedValues);
+      if (!resp) return; // no request sent, no need to reload
+      if (!resp.ok) {
+        showErrorToast(`Failed to update to backend: ${resp.statusText}`);
+        return;
+      }
+      await this.reloadPagePartially();
+    } catch (e) {
+      showErrorToast(`Failed to update to backend: ${e}`);
+    } finally {
+      this.elIssueSidebar.classList.remove('is-loading');
+    }
   }
 
   async doUpdate() {
