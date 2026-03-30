@@ -532,16 +532,11 @@ func DeletePackageVersionAndReferences(ctx context.Context, pv *packages_model.P
 	if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeVersion, pv.ID); err != nil {
 		return err
 	}
-
-	pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
-	if err != nil {
+	if err := packages_model.DeleteFilePropertiesByVersionID(ctx, pv.ID); err != nil {
 		return err
 	}
-
-	for _, pf := range pfs {
-		if err := DeletePackageFile(ctx, pf); err != nil {
-			return err
-		}
+	if err := packages_model.DeleteFilesByVersionID(ctx, pv.ID); err != nil {
+		return err
 	}
 
 	return packages_model.DeleteVersionByID(ctx, pv.ID)
@@ -630,22 +625,31 @@ func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb
 }
 
 // RemovePackage deletes the package and all its versions
-func RemovePackage(ctx context.Context, doer *user_model.User, p *packages_model.Package) error {
-	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		PackageID:  p.ID,
-		IsInternal: optional.None[bool](),
-	})
-	if err != nil {
-		return err
-	}
-
-	for _, pv := range pvs {
-		if err := RemovePackageVersion(ctx, doer, pv); err != nil {
+func RemovePackage(ctx context.Context, p *packages_model.Package) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		err := packages_model.DeletePropertiesByPackageID(ctx, packages_model.PropertyTypePackage, p.ID)
+		if err != nil {
 			return err
 		}
-	}
+		err = packages_model.DeletePropertiesByPackageID(ctx, packages_model.PropertyTypeFile, p.ID)
+		if err != nil {
+			return err
+		}
+		err = packages_model.DeletePropertiesByPackageID(ctx, packages_model.PropertyTypeVersion, p.ID)
+		if err != nil {
+			return err
+		}
+		err = packages_model.DeleteFilesByPackageID(ctx, p.ID)
+		if err != nil {
+			return err
+		}
+		err = packages_model.DeleteVersionsByPackageID(ctx, p.ID)
+		if err != nil {
+			return err
+		}
 
-	return packages_model.DeletePackageByID(ctx, p.ID)
+		return packages_model.DeletePackageByID(ctx, p.ID)
+	})
 }
 
 // RemoveAllPackages for User
