@@ -28,18 +28,15 @@ func getViteDevProxy() *httputil.ReverseProxy {
 	}
 
 	portFile := filepath.Join(setting.StaticRootPath, viteDevPortFile)
-	data, err := os.ReadFile(portFile)
+	portContent, err := os.ReadFile(portFile)
 	if err != nil {
 		return nil
 	}
-	port := strings.TrimSpace(string(data))
-	if port == "" {
-		return nil
-	}
+	viteDevServerPort := strings.TrimSpace(string(portContent))
 
-	target, err := url.Parse("http://localhost:" + port)
+	target, err := url.Parse("http://localhost:" + viteDevServerPort)
 	if err != nil {
-		log.Error("Failed to parse Vite dev server URL: %v", err)
+		log.Error("Failed to use dev port (%s) to construct URL: %v", viteDevServerPort, err)
 		return nil
 	}
 
@@ -60,7 +57,7 @@ func getViteDevProxy() *httputil.ReverseProxy {
 		ModifyResponse: func(resp *http.Response) error {
 			// add a header to indicate the Vite dev server port,
 			// make developers know that this request is proxied to Vite dev server and which port it is
-			resp.Header.Add("X-Gitea-Vite-Port", port)
+			resp.Header.Add("X-Gitea-Vite-Port", viteDevServerPort)
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
@@ -92,19 +89,18 @@ func ViteDevMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// isViteDevMode returns true if the Vite dev server port file exists.
-// In production mode, the result is cached after the first check.
-func isViteDevMode() bool {
+// IsViteDevMode returns true if the Vite dev server port file exists and is alive
+func IsViteDevMode() bool {
 	if setting.IsProd {
 		return false
 	}
 	portFile := filepath.Join(setting.StaticRootPath, viteDevPortFile)
-	_, err := os.Stat(portFile)
-	return err == nil
+	stat, err := os.Stat(portFile)
+	return err == nil && time.Now().Sub(stat.ModTime()) < 10*time.Second
 }
 
 func viteDevSourceURL(name string) string {
-	if !isViteDevMode() {
+	if !IsViteDevMode() {
 		return ""
 	}
 	if strings.HasPrefix(name, "css/theme-") {

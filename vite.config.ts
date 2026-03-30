@@ -1,14 +1,15 @@
 import {build, defineConfig} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
-import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
-import {join, parse} from 'node:path';
+import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync, utimesSync} from 'node:fs';
+import path, {join, parse} from 'node:path';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
 import wrapAnsi from 'wrap-ansi';
 import licensePlugin from 'rollup-plugin-license';
 import type {InlineConfig, Plugin, Rolldown} from 'vite';
+import {setInterval} from "node:timers";
 
 const isProduction = env.NODE_ENV !== 'development';
 
@@ -198,8 +199,10 @@ function viteDevServerPortPlugin(): Plugin {
       server.httpServer!.once('listening', () => {
         const addr = server.httpServer!.address();
         if (typeof addr === 'object' && addr) {
-          mkdirSync(join(outDir, '.vite'), {recursive: true});
+          mkdirSync(path.dirname(viteDevPortFilePath), {recursive: true});
           writeFileSync(viteDevPortFilePath, String(addr.port));
+          // keep updating the timestamp of the file to tell the Gitea vite dev proxy that the server is still alive
+          setInterval(() => utimesSync(viteDevPortFilePath, new Date(), new Date()), 2000);
         }
       });
     },
