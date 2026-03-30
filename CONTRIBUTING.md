@@ -70,16 +70,18 @@ For configuring IDEs for Gitea development, see the [contributed IDE configurati
 
 ## AI Contribution Policy
 
-Contributions made with the assistance of AI tools are welcome, but contributors must use them responsibly.
+Contributions made with the assistance of AI tools are welcome, but contributors must use them responsibly and disclose that use clearly.
 
-1. Include related issues or pull requests in the prompt so that the AI has ideal context.
-2. Review AI-generated code closely before submitting a pull request.
-3. Manually test the changes and add appropriate automated tests where feasible.
-4. Only use AI to assist in contributions that you understand well enough to respond to feedback without relying on AI.
-5. Indicate AI-generated content in issue and pull requests descriptions and comments. Specify which model was used.
-6. Do not use AI to reply to questions about your issue or pull request. The questions are for you, not an AI model.
+1. Review AI-generated code closely before marking a pull request ready for review.
+2. Manually test the changes and add appropriate automated tests where feasible.
+3. Only use AI to assist in contributions that you understand well enough to explain, defend, and revise yourself during review.
+4. Disclose AI-assisted content clearly.
+5. Do not use AI to reply to questions about your issue or pull request. The questions are for you, not an AI model.
+6. AI may be used to help draft issues and pull requests, but contributors remain responsible for the accuracy, completeness, and intent of what they submit.
 
-Maintainers reserve the right to close pull requests and issues that appear to be low-quality AI-generated content. We welcome new contributors, but cannot sustain the effort of supporting contributors who primarily defer to AI rather than engaging substantively with the review process.
+Maintainers reserve the right to close pull requests and issues that do not disclose AI assistance, that appear to be low-quality AI-generated content, or where the contributor cannot explain or defend the proposed changes themselves.
+
+We welcome new contributors, but cannot sustain the effort of supporting contributors who primarily defer to AI rather than engaging substantively with the review process.
 
 ## Issues
 

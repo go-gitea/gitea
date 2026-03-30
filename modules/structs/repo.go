@@ -114,7 +114,7 @@ type Repository struct {
 	Internal                      bool             `json:"internal"`
 	MirrorInterval                string           `json:"mirror_interval"`
 	// ObjectFormatName of the underlying git repository
-	// enum: sha1,sha256
+	// enum: ["sha1","sha256"]
 	ObjectFormatName string `json:"object_format_name"`
 	// swagger:strfmt date-time
 	MirrorUpdated time.Time     `json:"mirror_updated"`
@@ -150,10 +150,10 @@ type CreateRepoOption struct {
 	// DefaultBranch of the repository (used when initializes and in template)
 	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
 	// TrustModel of the repository
-	// enum: default,collaborator,committer,collaboratorcommitter
+	// enum: ["default","collaborator","committer","collaboratorcommitter"]
 	TrustModel string `json:"trust_model"`
 	// ObjectFormatName of the underlying git repository, empty string for default (sha1)
-	// enum: sha1,sha256
+	// enum: ["sha1","sha256"]
 	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6)"`
 }
 
@@ -378,7 +378,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
-	// enum: git,github,gitea,gitlab,gogs,onedev,gitbucket,codebase,codecommit
+	// enum: ["git","github","gitea","gitlab","gogs","onedev","gitbucket","codebase","codecommit"]
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
