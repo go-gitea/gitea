@@ -376,16 +376,17 @@
 }
 
 .cm-command-palette-list {
-  max-height: 200px;
+  position: relative;
+  max-height: calc(8 * 24px);
   overflow-y: auto;
-  padding: 2px 0;
 }
 
 .cm-command-palette-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 4px;
+  height: 24px;
+  padding: 0 6px;
   border-radius: 2px;
   cursor: pointer;
 }
@@ -419,23 +420,6 @@
   gap: 2px;
   margin-left: 8px;
   font-size: 8px;
-}
-
-.cm-command-palette-keys kbd {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 3px;
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow-kbd);
-  background-color: var(--color-button);
-  color: var(--color-text-light);
-  font-family: var(--fonts-regular);
-  font-size: 10px;
-  line-height: 1;
 }
 
 .code-editor-container .cm-gutter-lint {
@@ -547,3 +531,40 @@
 .code-editor-container[data-language="css"] .tok-propertyName { color: var(--color-syntax-keyword); }
 .code-editor-container[data-language="html"] .tok-propertyName,
 .code-editor-container[data-language="xml"] .tok-propertyName { color: var(--color-syntax-attribute); }
+
+/* context menu — uses tippy "menu" theme for base styling */
+.cm-context-menu {
+  min-width: 200px;
+  font-size: 13px;
+  user-select: none;
+}
+
+.cm-context-menu .item {
+  height: 24px !important;
+  padding: 0 12px !important;
+  cursor: pointer;
+}
+
+.cm-context-menu .item.disabled {
+  color: var(--color-text-light-3);
+  cursor: default;
+  pointer-events: none;
+}
+
+.cm-context-menu-keys {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding-left: 30px;
+  font-size: 12px;
+}
+
+.cm-context-menu-keys kbd {
+  font-size: inherit;
+}
+
+.cm-context-menu-separator {
+  border-top: 1px solid var(--color-secondary);
+  margin: 4px 0;
+}

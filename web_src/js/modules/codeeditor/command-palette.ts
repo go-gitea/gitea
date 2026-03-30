@@ -3,7 +3,7 @@ import {trimTrailingWhitespaceFromView} from './utils.ts';
 import type {EditorView} from '@codemirror/view';
 import type {CodemirrorModules} from './main.ts';
 
-type PaletteCommand = {
+export type PaletteCommand = {
   label: string;
   keys: string;
   run: (view: EditorView) => void;
@@ -84,43 +84,50 @@ export function commandPalette(cm: CodemirrorModules) {
       }
       item.append(label);
 
-      const keysEl = document.createElement('span');
-      keysEl.className = 'cm-command-palette-keys';
-      for (const [chordIndex, chord] of formatKeys(cmd.keys).entries()) {
-        if (chordIndex > 0) keysEl.append('→');
-        for (const k of chord) {
-          const kbd = document.createElement('kbd');
-          kbd.textContent = k;
-          keysEl.append(kbd);
+      if (cmd.keys) {
+        const keysEl = document.createElement('span');
+        keysEl.className = 'cm-command-palette-keys';
+        for (const [chordIndex, chord] of formatKeys(cmd.keys).entries()) {
+          if (chordIndex > 0) keysEl.append('→');
+          for (const k of chord) {
+            const kbd = document.createElement('kbd');
+            kbd.textContent = k;
+            keysEl.append(kbd);
+          }
         }
+        item.append(keysEl);
       }
-      item.append(keysEl);
       list.append(item);
     }
   }
 
-  function show(view: EditorView) {
+  function show(view: EditorView, items?: PaletteCommand[], placeholder?: string) {
     const container = view.dom.closest('.code-editor-container')!;
     overlay = document.createElement('div');
     overlay.className = 'cm-command-palette';
 
     const input = document.createElement('input');
     input.className = 'cm-command-palette-input';
-    input.placeholder = 'Type a command...';
+    input.placeholder = placeholder || 'Type a command...';
 
     const list = document.createElement('div');
     list.className = 'cm-command-palette-list';
     list.setAttribute('role', 'listbox');
 
-    filtered = commands;
+    const source = items || commands;
+    filtered = source;
     selectedIndex = 0;
 
     const updateSelected = () => {
       list.querySelector('[aria-selected]')?.removeAttribute('aria-selected');
-      const el = list.children[selectedIndex];
+      const el = list.children[selectedIndex] as HTMLElement | undefined;
       if (el) {
         el.setAttribute('aria-selected', 'true');
-        el.scrollIntoView({block: 'nearest'});
+        if (el.offsetTop < list.scrollTop) {
+          list.scrollTop = el.offsetTop;
+        } else if (el.offsetTop + el.offsetHeight > list.scrollTop + list.clientHeight) {
+          list.scrollTop = el.offsetTop + el.offsetHeight - list.clientHeight;
+        }
       }
     };
 
@@ -146,7 +153,7 @@ export function commandPalette(cm: CodemirrorModules) {
 
     input.addEventListener('input', () => {
       const q = input.value.toLowerCase();
-      filtered = q ? commands.filter((cmd) => cmd.label.toLowerCase().includes(q)) : commands;
+      filtered = q ? source.filter((cmd) => cmd.label.toLowerCase().includes(q)) : source;
       selectedIndex = 0;
       renderList(list, q);
     });
@@ -184,6 +191,11 @@ export function commandPalette(cm: CodemirrorModules) {
     cleanupClickOutside = () => document.removeEventListener('mousedown', handleClickOutside);
   }
 
+  function showWithItems(view: EditorView, items: PaletteCommand[], placeholder: string) {
+    if (overlay) hide(view);
+    show(view, items, placeholder);
+  }
+
   function togglePalette(view: EditorView) {
     if (overlay) {
       hide(view);
@@ -199,5 +211,6 @@ export function commandPalette(cm: CodemirrorModules) {
       {key: 'F1', run: togglePalette, preventDefault: true},
     ]),
     togglePalette,
+    showWithItems,
   };
 }

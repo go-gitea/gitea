@@ -39,6 +39,27 @@ export function findUrlAtPosition(doc: string, pos: number): string | null {
   return null;
 }
 
+/** Try to jump to the definition of the symbol at the given position. */
+export function goToDefinitionAt(cm: CodemirrorModules, view: EditorView, pos: number): boolean {
+  const tree = cm.language.syntaxTree(view.state);
+  const node = tree.resolveInner(pos, 1);
+  if (!node || node.name !== 'VariableName') return false;
+  const name = view.state.doc.sliceString(node.from, node.to);
+  let target: number | null = null;
+  tree.iterate({
+    enter(n): false | void {
+      if (target !== null) return false;
+      if (n.name === 'VariableDefinition' && view.state.doc.sliceString(n.from, n.to) === name && n.from !== node.from) {
+        target = n.from;
+        return false;
+      }
+    },
+  });
+  if (target === null) return false;
+  view.dispatch({selection: {anchor: target}, scrollIntoView: true});
+  return true;
+}
+
 /** CodeMirror extension that makes URLs clickable via Ctrl/Cmd+click. */
 export function clickableUrls(cm: CodemirrorModules) {
   const urlMark = cm.view.Decoration.mark({class: 'cm-url'});
@@ -67,10 +88,17 @@ export function clickableUrls(cm: CodemirrorModules) {
       if (pos === null) return false;
       const line = view.state.doc.lineAt(pos);
       const url = findUrlAtPosition(line.text, pos - line.from);
-      if (!url) return false;
-      window.open(url, '_blank', 'noopener');
-      event.preventDefault();
-      return true;
+      if (url) {
+        window.open(url, '_blank', 'noopener');
+        event.preventDefault();
+        return true;
+      }
+      // Fall back to go-to-definition: find the symbol at cursor and jump to its definition
+      if (goToDefinitionAt(cm, view, pos)) {
+        event.preventDefault();
+        return true;
+      }
+      return false;
     },
   });
 

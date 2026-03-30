@@ -3,6 +3,8 @@ import {createElementFromHTML, toggleElem} from '../../utils/dom.ts';
 import {html, htmlRaw} from '../../utils/html.ts';
 import {svg} from '../../svg.ts';
 import {commandPalette} from './command-palette.ts';
+import type {PaletteCommand} from './command-palette.ts';
+import {contextMenu, collectSymbols, selectAllOccurrences} from './context-menu.ts';
 import {createJsonLinter, createSyntaxErrorLinter} from './linter.ts';
 import {clickableUrls, trimTrailingWhitespaceFromView} from './utils.ts';
 import type {LanguageDescription} from '@codemirror/language';
@@ -131,6 +133,17 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   const lintComp = new cm.state.Compartment();
   const palette = commandPalette(cm);
 
+  const goToSymbol = (view: EditorView) => {
+    const symbols = collectSymbols(cm, view);
+    const items: PaletteCommand[] = symbols.map((sym) => ({
+      label: `${sym.label}  (${sym.kind})`,
+      keys: '',
+      run: (v: EditorView) => v.dispatch({selection: {anchor: sym.from}, scrollIntoView: true}),
+    }));
+    palette.showWithItems(view, items, 'Go to symbol…');
+    return true;
+  };
+
   const view = new cm.view.EditorView({
     doc: textarea.defaultValue, // use defaultValue to prevent browser from restoring form values on refresh
     parent: container,
@@ -192,6 +205,11 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       }),
       cm.commands.history(),
       palette.extensions,
+      cm.view.keymap.of([
+        {key: 'Mod-Shift-o', run: goToSymbol, preventDefault: true},
+        {key: 'Mod-F2', run: (v) => { selectAllOccurrences(cm, v); return true }, preventDefault: true},
+      ]),
+      contextMenu(cm, palette.togglePalette, goToSymbol),
       clickableUrls(cm),
       tabSize.of(cm.state.EditorState.tabSize.of(config.tabWidth || 4)),
       wordWrap.of(config.lineWrap ? cm.view.EditorView.lineWrapping : []),
