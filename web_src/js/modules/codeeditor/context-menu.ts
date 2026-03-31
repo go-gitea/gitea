@@ -1,3 +1,4 @@
+import {clippie} from 'clippie';
 import {createTippy} from '../tippy.ts';
 import {keySymbols} from '../../utils.ts';
 import {goToDefinitionAt} from './utils.ts';
@@ -92,14 +93,15 @@ function buildMenuItems(cm: CodemirrorModules, view: EditorView, togglePalette: 
     {label: 'Go to Symbol…', keys: 'Mod+Shift+O', run: goToSymbol},
     {label: 'Change All Occurrences', keys: 'Mod+F2', disabled: !hasWord, run: (v) => selectAllOccurrences(cm, v)},
     'separator',
-    {label: 'Cut', keys: 'Mod+X', disabled: !hasSelection, run: (v) => {
+    {label: 'Cut', keys: 'Mod+X', disabled: !hasSelection, run: async (v) => {
       const {from, to} = v.state.selection.main;
-      navigator.clipboard.writeText(v.state.doc.sliceString(from, to));
-      v.dispatch({changes: {from, to}});
+      if (await clippie(v.state.doc.sliceString(from, to))) {
+        v.dispatch({changes: {from, to}});
+      }
     }},
-    {label: 'Copy', keys: 'Mod+C', disabled: !hasSelection, run: (v) => {
+    {label: 'Copy', keys: 'Mod+C', disabled: !hasSelection, run: async (v) => {
       const {from, to} = v.state.selection.main;
-      navigator.clipboard.writeText(v.state.doc.sliceString(from, to));
+      await clippie(v.state.doc.sliceString(from, to));
     }},
     {label: 'Paste', keys: 'Mod+V', run: async (view) => {
       try {

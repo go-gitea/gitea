@@ -424,7 +424,6 @@
   align-items: center;
   gap: 2px;
   margin-left: 8px;
-  font-size: 8px;
 }
 
 .code-editor-container .cm-gutter-lint {
@@ -562,11 +561,6 @@
   gap: 2px;
   margin-left: auto;
   padding-left: 30px;
-  font-size: 12px;
-}
-
-.cm-context-menu-keys kbd {
-  font-size: inherit;
 }
 
 .cm-context-menu-separator {
