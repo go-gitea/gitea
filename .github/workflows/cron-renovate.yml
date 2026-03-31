@@ -9,6 +9,8 @@ jobs:
   cron-renovate:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
+    permissions:
+      contents: read
     steps:
       - uses: actions/create-github-app-token@v1
         id: get_token
