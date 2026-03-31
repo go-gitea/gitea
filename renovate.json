@@ -3,6 +3,5 @@
   "extends": ["config:recommended"],
   "enabledManagers": ["github-actions"],
   "labels": ["modifies/dependencies"],
-  "schedule": ["before 6am"],
   "minimumReleaseAge": "5 days"
 }
