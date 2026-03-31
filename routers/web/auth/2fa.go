@@ -59,7 +59,7 @@ func TwoFactorPost(ctx *context.Context) {
 	}
 
 	// Validate the passcode with the stored TOTP secret.
-	ok, err := twofa.ValidateTOTP(form.Passcode)
+	ok, _, err := twofa.ValidateTOTP(form.Passcode)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
