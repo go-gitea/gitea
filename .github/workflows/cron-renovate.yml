@@ -8,7 +8,7 @@ on:
 jobs:
   cron-renovate:
     runs-on: ubuntu-latest
-    if: github.repository == 'go-gitea/gitea'
+    if: github.repository == 'go-gitea/gitea' # prevent running on forks
     permissions:
       contents: read
     steps:
