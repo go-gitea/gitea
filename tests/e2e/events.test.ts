@@ -23,7 +23,7 @@ test.describe('events', () => {
     await apiCreateIssue(request, owner, repoName, {title: 'events notification test', headers: apiUserHeaders(commenter)});
 
     // Wait for the notification badge to appear via server event
-    await expect(badge).toBeVisible({timeout: 15000});
+    await expect(badge).toBeVisible();
 
     // Cleanup
     await Promise.all([apiDeleteUser(request, commenter), apiDeleteUser(request, owner)]);
