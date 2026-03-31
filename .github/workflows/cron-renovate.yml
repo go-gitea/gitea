@@ -18,7 +18,7 @@ jobs:
           app-id: ${{ secrets.RENOVATE_APP_ID }}
           private-key: ${{ secrets.RENOVATE_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
-          repositories: gitea
+          repositories: gitea # scope token to this repo only
       - uses: actions/checkout@v6
       - uses: renovatebot/github-action@v46
         with:
