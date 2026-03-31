@@ -3,5 +3,6 @@
   "extends": ["config:recommended"],
   "enabledManagers": ["github-actions"],
   "labels": ["modifies/dependencies"],
-  "minimumReleaseAge": "5 days"
+  "minimumReleaseAge": "5 days",
+  "branchPrefix": "renovate/"
 }
