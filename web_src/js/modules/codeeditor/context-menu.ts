@@ -237,7 +237,7 @@ export function contextMenu(cm: CodemirrorModules, togglePalette: (view: EditorV
         }
       }, {signal: controller.signal});
       view.scrollDOM.addEventListener('scroll', dismiss, {signal: controller.signal, once: true});
-      document.body.addEventListener('scroll', dismiss, {signal: controller.signal, once: true});
+      document.addEventListener('scroll', dismiss, {signal: controller.signal, once: true});
       window.addEventListener('blur', dismiss, {signal: controller.signal});
       window.addEventListener('resize', dismiss, {signal: controller.signal});
     },
