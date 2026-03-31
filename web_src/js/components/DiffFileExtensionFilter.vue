@@ -65,7 +65,6 @@ export default defineComponent({
         const filename = (box as HTMLElement).getAttribute('data-new-filename') || '';
         const ext = this.getExtension(filename);
         const isHidden = (box as HTMLElement).classList.contains('tw-hidden');
-        
         if (!extensionMap.has(ext)) {
           extensionMap.set(ext, {total: 0, visible: 0});
         }
@@ -155,7 +154,7 @@ export default defineComponent({
     <button
       ref="expandBtn"
       class="ui tiny basic button tw-relative"
-      :class="{red: isFiltering}"
+      :class="{'diff-ext-filter-btn-active': isFiltering}"
       @click.stop="toggleMenu()"
       :data-tooltip-content="locale.filter_by_file_extension"
       aria-haspopup="true"
@@ -167,6 +166,8 @@ export default defineComponent({
     </button>
     <!-- this dropdown is not managed by Fomantic UI, so it needs some classes like "transition" explicitly -->
     <div class="left menu transition" :id="uniqueIdMenu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
+      <div class="header">{{ locale.filter_by_file_extension }}</div>
+      <div class="ui divider tw-mt-2 tw-mb-0"/>
       <div class="ui form">
         <!-- Extension checkboxes -->
         <div class="grouped fields">
@@ -178,7 +179,7 @@ export default defineComponent({
                   :id="`ext-filter-${ext.ext}`"
                   v-model="ext.checked"
                 />
-                <label :for="`ext-filter-${ext.ext}`" style="cursor: pointer">
+                <label :for="`ext-filter-${ext.ext}`" class="tw-cursor-pointer">
                   <span class="tw-font-mono">{{ ext.ext }}</span>
                   <span class="tw-text-text-light-2">({{ ext.count }})</span>
                 </label>
@@ -189,14 +190,14 @@ export default defineComponent({
       </div>
 
       <!-- Select all / Deselect all buttons -->
-      <div class="ui divider" style="margin: 0.5rem 0"/>
+      <div class="ui divider tw-my-2"/>
       <div class="tw-flex tw-gap-2 tw-px-2">
-        <a href="#" class="tw-flex-1" @click.prevent="selectAll()">{{ locale.select_all }}</a>
-        <a href="#" class="tw-flex-1" @click.prevent="deselectAll()">{{ locale.deselect_all }}</a>
+        <button type="button" class="diff-ext-text-btn tw-flex-1" @click="selectAll()">{{ locale.select_all }}</button>
+        <button type="button" class="diff-ext-text-btn tw-flex-1" @click="deselectAll()">{{ locale.deselect_all }}</button>
       </div>
 
       <!-- Apply button -->
-      <div class="ui divider" style="margin: 0.5rem 0"/>
+      <div class="ui divider tw-my-2"/>
       <button class="ui button fluid" @click="applyFilter()">
         {{ locale.apply }}
       </button>
@@ -209,6 +210,12 @@ export default defineComponent({
     overflow-x: hidden;
     max-height: 450px;
     padding: 0.75rem;
+    padding-top: 0.5rem;
+  }
+
+  .ui.dropdown.diff-file-extension-filter .menu > .header {
+    margin-top: 0;
+    padding-top: 0;
   }
 
   .ui.dropdown.diff-file-extension-filter .menu .ui.form {
@@ -223,10 +230,23 @@ export default defineComponent({
     margin-bottom: 0;
   }
 
-  .ui.dropdown.diff-file-extension-filter .button.red {
+  .ui.dropdown.diff-file-extension-filter .diff-ext-filter-btn-active {
     color: var(--color-red-700);
     border-color: var(--color-red-300);
     background: var(--color-red-50);
+  }
+
+  .ui.dropdown.diff-file-extension-filter .diff-ext-text-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-size: inherit;
+  }
+
+  .ui.dropdown.diff-file-extension-filter .diff-ext-text-btn:hover {
+    text-decoration: underline;
   }
 
   .ui.dropdown.diff-file-extension-filter .filter-indicator-dot {
