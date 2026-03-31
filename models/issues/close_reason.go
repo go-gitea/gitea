@@ -4,10 +4,7 @@
 package issues
 
 import (
-	"database/sql/driver"
 	"fmt"
-
-	"code.gitea.io/gitea/modules/json"
 )
 
 type IssueCloseReason int64
@@ -72,73 +69,4 @@ func parseIssueCloseReasonNumber(reason int64) (IssueCloseReason, error) {
 		return IssueCloseReasonNone, fmt.Errorf("unknown close reason %d", reason)
 	}
 	return r, nil
-}
-
-func (r IssueCloseReason) Value() (driver.Value, error) {
-	if !r.IsValid() {
-		return nil, fmt.Errorf("unknown close reason %d", r)
-	}
-	return r.String(), nil
-}
-
-func (r *IssueCloseReason) Scan(src any) error {
-	if src == nil {
-		*r = IssueCloseReasonNone
-		return nil
-	}
-
-	switch v := src.(type) {
-	case string:
-		parsed, err := ParseIssueCloseReason(v)
-		if err != nil {
-			return err
-		}
-		*r = parsed
-		return nil
-	case []byte:
-		return r.Scan(string(v))
-	case int64:
-		parsed, err := parseIssueCloseReasonNumber(v)
-		if err != nil {
-			return err
-		}
-		*r = parsed
-		return nil
-	case int:
-		return r.Scan(int64(v))
-	default:
-		return fmt.Errorf("unsupported close reason type %T", src)
-	}
-}
-
-func (r IssueCloseReason) MarshalJSON() ([]byte, error) {
-	return json.Marshal(r.String())
-}
-
-func (r *IssueCloseReason) UnmarshalJSON(data []byte) error {
-	if string(data) == "null" {
-		*r = IssueCloseReasonNone
-		return nil
-	}
-
-	var s string
-	if err := json.Unmarshal(data, &s); err == nil {
-		parsed, parseErr := ParseIssueCloseReason(s)
-		if parseErr != nil {
-			return parseErr
-		}
-		*r = parsed
-		return nil
-	}
-
-	var n int64
-	if err := json.Unmarshal(data, &n); err != nil {
-		return err
-	}
-	parsed, err := parseIssueCloseReasonNumber(n)
-	if err != nil {
-		return err
-	}
-	*r = parsed
-	return nil
 }
