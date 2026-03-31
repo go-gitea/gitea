@@ -139,7 +139,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 				},
 			},
 			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusPending,
+				State: commitstatus.CommitStatusFailure,
 			},
 		},
 		{
