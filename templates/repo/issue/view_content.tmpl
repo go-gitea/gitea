@@ -66,6 +66,7 @@
 			</div>
 
 			{{template "repo/issue/view_content/comments" .}}
+			<div class="timeline-item tw-hidden" id="timeline-comments-end"></div>
 
 			{{if and .Issue.IsPull (not $.Repository.IsArchived)}}
 				{{template "repo/issue/view_content/pull_merge_box".}}
