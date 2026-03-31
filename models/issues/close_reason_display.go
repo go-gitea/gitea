@@ -3,7 +3,7 @@
 
 package issues
 
-import "encoding/json"
+import "code.gitea.io/gitea/modules/json"
 
 type closeReasonParam struct {
 	IssueIndex int64  `json:"issue_index"`
@@ -48,37 +48,37 @@ func (issue *Issue) CloseReasonPullIndex() int64 {
 	return parseCloseReasonParam(issue.CloseReasonParam).PullIndex
 }
 
-func (comment *Comment) CloseReasonForDisplay() string {
-	if comment.CommentMetaData == nil {
+func (c *Comment) CloseReasonForDisplay() string {
+	if c.CommentMetaData == nil {
 		return ""
 	}
-	return normalizeCloseReason(true, comment.CommentMetaData.CloseReason)
+	return normalizeCloseReason(true, c.CommentMetaData.CloseReason)
 }
 
-func (comment *Comment) CloseReasonDuplicateIssueIndex() int64 {
-	if comment.CommentMetaData == nil {
+func (c *Comment) CloseReasonDuplicateIssueIndex() int64 {
+	if c.CommentMetaData == nil {
 		return 0
 	}
-	return parseCloseReasonParam(comment.CommentMetaData.CloseReasonParam).IssueIndex
+	return parseCloseReasonParam(c.CommentMetaData.CloseReasonParam).IssueIndex
 }
 
-func (comment *Comment) CloseReasonAnsweredCommentID() int64 {
-	if comment.CommentMetaData == nil {
+func (c *Comment) CloseReasonAnsweredCommentID() int64 {
+	if c.CommentMetaData == nil {
 		return 0
 	}
-	return parseCloseReasonParam(comment.CommentMetaData.CloseReasonParam).CommentID
+	return parseCloseReasonParam(c.CommentMetaData.CloseReasonParam).CommentID
 }
 
-func (comment *Comment) CloseReasonCommitHash() string {
-	if comment.CommentMetaData == nil {
+func (c *Comment) CloseReasonCommitHash() string {
+	if c.CommentMetaData == nil {
 		return ""
 	}
-	return parseCloseReasonParam(comment.CommentMetaData.CloseReasonParam).CommitHash
+	return parseCloseReasonParam(c.CommentMetaData.CloseReasonParam).CommitHash
 }
 
-func (comment *Comment) CloseReasonPullIndex() int64 {
-	if comment.CommentMetaData == nil {
+func (c *Comment) CloseReasonPullIndex() int64 {
+	if c.CommentMetaData == nil {
 		return 0
 	}
-	return parseCloseReasonParam(comment.CommentMetaData.CloseReasonParam).PullIndex
+	return parseCloseReasonParam(c.CommentMetaData.CloseReasonParam).PullIndex
 }

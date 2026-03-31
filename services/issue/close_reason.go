@@ -5,9 +5,9 @@ package issue
 
 import (
 	"context"
-	"encoding/json"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -48,26 +48,26 @@ type CloseReasonPullParam struct {
 	PullIndex int64 `json:"pull_index"` // pull request index that triggered the close
 }
 
-// IssueCloseOptions carries the close reason and its serialized param.
+// CloseOptions carries the close reason and its serialized param.
 // ReasonParam is a JSON string whose schema depends on Reason:
 //   - completed / not_planned: empty
 //   - duplicate: CloseReasonDuplicateParam
 //   - answered: CloseReasonAnsweredParam
 //   - completed_by_commit: CloseReasonCommitParam
 //   - completed_by_pull: CloseReasonPullParam
-type IssueCloseOptions struct {
+type CloseOptions struct {
 	Reason      issues_model.IssueCloseReason
 	ReasonParam string // JSON-serialized param, empty when no param is needed
 }
 
 // IsSystemOnly returns true when this reason must only be written by internal
 // code and must not be accepted from external API or Web requests.
-func (o IssueCloseOptions) IsSystemOnly() bool {
+func (o CloseOptions) IsSystemOnly() bool {
 	return systemOnlyCloseReasons[o.Reason]
 }
 
 // Normalize fills in the default close reason ("completed") when Reason is empty.
-func (o *IssueCloseOptions) Normalize() {
+func (o *CloseOptions) Normalize() {
 	if o.Reason == CloseReasonNone {
 		o.Reason = CloseReasonCompleted
 	}
@@ -76,7 +76,7 @@ func (o *IssueCloseOptions) Normalize() {
 // Validate checks that Reason is known, that the serialized param is valid for
 // the given reason, and that any referenced issue or comment actually exists
 // in the repository and satisfies the required constraints.
-func (o *IssueCloseOptions) Validate(ctx context.Context, issue *issues_model.Issue) error {
+func (o *CloseOptions) Validate(ctx context.Context, issue *issues_model.Issue) error {
 	switch o.Reason {
 	case CloseReasonCompleted, CloseReasonNotPlanned:
 		// no param required
@@ -157,32 +157,32 @@ func unmarshalParam(param string, dst any) error {
 	return json.Unmarshal([]byte(param), dst)
 }
 
-// Constructor helpers — use these instead of building IssueCloseOptions by hand.
+// Constructor helpers — use these instead of building CloseOptions by hand.
 
-func CloseOptionsCompleted() IssueCloseOptions {
-	return IssueCloseOptions{Reason: CloseReasonCompleted}
+func CloseOptionsCompleted() CloseOptions {
+	return CloseOptions{Reason: CloseReasonCompleted}
 }
 
-func CloseOptionsNotPlanned() IssueCloseOptions {
-	return IssueCloseOptions{Reason: CloseReasonNotPlanned}
+func CloseOptionsNotPlanned() CloseOptions {
+	return CloseOptions{Reason: CloseReasonNotPlanned}
 }
 
-func CloseOptionsDuplicate(issueIndex int64) IssueCloseOptions {
+func CloseOptionsDuplicate(issueIndex int64) CloseOptions {
 	b, _ := json.Marshal(CloseReasonDuplicateParam{IssueIndex: issueIndex})
-	return IssueCloseOptions{Reason: CloseReasonDuplicate, ReasonParam: string(b)}
+	return CloseOptions{Reason: CloseReasonDuplicate, ReasonParam: string(b)}
 }
 
-func CloseOptionsAnswered(commentID int64) IssueCloseOptions {
+func CloseOptionsAnswered(commentID int64) CloseOptions {
 	b, _ := json.Marshal(CloseReasonAnsweredParam{CommentID: commentID})
-	return IssueCloseOptions{Reason: CloseReasonAnswered, ReasonParam: string(b)}
+	return CloseOptions{Reason: CloseReasonAnswered, ReasonParam: string(b)}
 }
 
-func CloseOptionsCompletedByCommit(commitHash string) IssueCloseOptions {
+func CloseOptionsCompletedByCommit(commitHash string) CloseOptions {
 	b, _ := json.Marshal(CloseReasonCommitParam{CommitHash: commitHash})
-	return IssueCloseOptions{Reason: CloseReasonCompletedByCommit, ReasonParam: string(b)}
+	return CloseOptions{Reason: CloseReasonCompletedByCommit, ReasonParam: string(b)}
 }
 
-func CloseOptionsCompletedByPull(pullIndex int64) IssueCloseOptions {
+func CloseOptionsCompletedByPull(pullIndex int64) CloseOptions {
 	b, _ := json.Marshal(CloseReasonPullParam{PullIndex: pullIndex})
-	return IssueCloseOptions{Reason: CloseReasonCompletedByPull, ReasonParam: string(b)}
+	return CloseOptions{Reason: CloseReasonCompletedByPull, ReasonParam: string(b)}
 }

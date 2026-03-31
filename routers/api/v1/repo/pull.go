@@ -773,7 +773,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 
 		state := api.StateType(*form.State)
-		closeOrReopenIssue(ctx, issue, state, issue_service.IssueCloseOptions{})
+		closeOrReopenIssue(ctx, issue, state, issue_service.CloseOptions{})
 		if ctx.Written() {
 			return
 		}

@@ -4,12 +4,11 @@
 package issue
 
 import (
-	"encoding/json"
-	"errors"
 	"testing"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -20,21 +19,21 @@ import (
 // Normalize
 // ---------------------------------------------------------------------------
 
-func TestIssueCloseOptions_Normalize(t *testing.T) {
+func TestCloseOptions_Normalize(t *testing.T) {
 	t.Run("empty reason becomes completed", func(t *testing.T) {
-		o := IssueCloseOptions{}
+		o := CloseOptions{}
 		o.Normalize()
 		assert.Equal(t, CloseReasonCompleted, o.Reason)
 	})
 
 	t.Run("non-empty reason is unchanged", func(t *testing.T) {
-		o := IssueCloseOptions{Reason: CloseReasonNotPlanned}
+		o := CloseOptions{Reason: CloseReasonNotPlanned}
 		o.Normalize()
 		assert.Equal(t, CloseReasonNotPlanned, o.Reason)
 	})
 
 	t.Run("system reason is unchanged", func(t *testing.T) {
-		o := IssueCloseOptions{Reason: CloseReasonCompletedByCommit}
+		o := CloseOptions{Reason: CloseReasonCompletedByCommit}
 		o.Normalize()
 		assert.Equal(t, CloseReasonCompletedByCommit, o.Reason)
 	})
@@ -44,7 +43,7 @@ func TestIssueCloseOptions_Normalize(t *testing.T) {
 // IsSystemOnly
 // ---------------------------------------------------------------------------
 
-func TestIssueCloseOptions_IsSystemOnly(t *testing.T) {
+func TestCloseOptions_IsSystemOnly(t *testing.T) {
 	cases := []struct {
 		reason   issues_model.IssueCloseReason
 		expected bool
@@ -57,7 +56,7 @@ func TestIssueCloseOptions_IsSystemOnly(t *testing.T) {
 		{CloseReasonCompletedByPull, true},
 	}
 	for _, c := range cases {
-		o := IssueCloseOptions{Reason: c.reason}
+		o := CloseOptions{Reason: c.reason}
 		assert.Equal(t, c.expected, o.IsSystemOnly(), "reason=%s", c.reason)
 	}
 }
@@ -120,16 +119,16 @@ var issueForValidate = &issues_model.Issue{ID: 1, RepoID: 1, Index: 1}
 
 func TestValidate_NoParam_Reasons(t *testing.T) {
 	for _, reason := range []issues_model.IssueCloseReason{CloseReasonCompleted, CloseReasonNotPlanned} {
-		o := IssueCloseOptions{Reason: reason}
+		o := CloseOptions{Reason: reason}
 		assert.NoError(t, o.Validate(t.Context(), issueForValidate), "reason=%s", reason.String())
 	}
 }
 
 func TestValidate_UnknownReason(t *testing.T) {
-	o := IssueCloseOptions{Reason: issues_model.IssueCloseReason(999)}
+	o := CloseOptions{Reason: issues_model.IssueCloseReason(999)}
 	err := o.Validate(t.Context(), issueForValidate)
 	require.Error(t, err)
-	assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
 }
 
 func TestValidate_CompletedByCommit(t *testing.T) {
@@ -139,24 +138,24 @@ func TestValidate_CompletedByCommit(t *testing.T) {
 	})
 
 	t.Run("empty hash is rejected", func(t *testing.T) {
-		o := IssueCloseOptions{Reason: CloseReasonCompletedByCommit, ReasonParam: `{"commit_hash":""}`}
+		o := CloseOptions{Reason: CloseReasonCompletedByCommit, ReasonParam: `{"commit_hash":""}`}
 		err := o.Validate(t.Context(), issueForValidate)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 
 	t.Run("missing param treated as zero-value", func(t *testing.T) {
-		o := IssueCloseOptions{Reason: CloseReasonCompletedByCommit, ReasonParam: ""}
+		o := CloseOptions{Reason: CloseReasonCompletedByCommit, ReasonParam: ""}
 		err := o.Validate(t.Context(), issueForValidate)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 
 	t.Run("invalid JSON param", func(t *testing.T) {
-		o := IssueCloseOptions{Reason: CloseReasonCompletedByCommit, ReasonParam: "not-json"}
+		o := CloseOptions{Reason: CloseReasonCompletedByCommit, ReasonParam: "not-json"}
 		err := o.Validate(t.Context(), issueForValidate)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 }
 
@@ -167,26 +166,26 @@ func TestValidate_CompletedByPull(t *testing.T) {
 	})
 
 	t.Run("zero index is rejected", func(t *testing.T) {
-		o := IssueCloseOptions{Reason: CloseReasonCompletedByPull, ReasonParam: `{"pull_index":0}`}
+		o := CloseOptions{Reason: CloseReasonCompletedByPull, ReasonParam: `{"pull_index":0}`}
 		err := o.Validate(t.Context(), issueForValidate)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 
 	t.Run("missing param treated as zero-value", func(t *testing.T) {
-		o := IssueCloseOptions{Reason: CloseReasonCompletedByPull, ReasonParam: ""}
+		o := CloseOptions{Reason: CloseReasonCompletedByPull, ReasonParam: ""}
 		err := o.Validate(t.Context(), issueForValidate)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 }
 
 func TestValidate_Duplicate_NoDBErrors(t *testing.T) {
 	t.Run("zero index is rejected without DB call", func(t *testing.T) {
-		o := IssueCloseOptions{Reason: CloseReasonDuplicate, ReasonParam: `{"issue_index":0}`}
+		o := CloseOptions{Reason: CloseReasonDuplicate, ReasonParam: `{"issue_index":0}`}
 		err := o.Validate(t.Context(), issueForValidate)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 
 	t.Run("self-reference is rejected without DB call", func(t *testing.T) {
@@ -194,44 +193,44 @@ func TestValidate_Duplicate_NoDBErrors(t *testing.T) {
 		o := CloseOptionsDuplicate(1)
 		err := o.Validate(t.Context(), issueForValidate)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 
 	t.Run("missing param treated as zero-value", func(t *testing.T) {
-		o := IssueCloseOptions{Reason: CloseReasonDuplicate, ReasonParam: ""}
+		o := CloseOptions{Reason: CloseReasonDuplicate, ReasonParam: ""}
 		err := o.Validate(t.Context(), issueForValidate)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 
 	t.Run("invalid JSON param", func(t *testing.T) {
-		o := IssueCloseOptions{Reason: CloseReasonDuplicate, ReasonParam: "not-json"}
+		o := CloseOptions{Reason: CloseReasonDuplicate, ReasonParam: "not-json"}
 		err := o.Validate(t.Context(), issueForValidate)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 }
 
 func TestValidate_Answered_NoDBErrors(t *testing.T) {
 	t.Run("zero comment id is rejected without DB call", func(t *testing.T) {
-		o := IssueCloseOptions{Reason: CloseReasonAnswered, ReasonParam: `{"comment_id":0}`}
+		o := CloseOptions{Reason: CloseReasonAnswered, ReasonParam: `{"comment_id":0}`}
 		err := o.Validate(t.Context(), issueForValidate)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 
 	t.Run("missing param treated as zero-value", func(t *testing.T) {
-		o := IssueCloseOptions{Reason: CloseReasonAnswered, ReasonParam: ""}
+		o := CloseOptions{Reason: CloseReasonAnswered, ReasonParam: ""}
 		err := o.Validate(t.Context(), issueForValidate)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 
 	t.Run("invalid JSON param", func(t *testing.T) {
-		o := IssueCloseOptions{Reason: CloseReasonAnswered, ReasonParam: "not-json"}
+		o := CloseOptions{Reason: CloseReasonAnswered, ReasonParam: "not-json"}
 		err := o.Validate(t.Context(), issueForValidate)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 }
 
@@ -263,14 +262,14 @@ func TestValidate_Duplicate_DB(t *testing.T) {
 		o := CloseOptionsDuplicate(2)
 		err := o.Validate(t.Context(), currentIssue)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 
 	t.Run("target issue does not exist", func(t *testing.T) {
 		o := CloseOptionsDuplicate(99999)
 		err := o.Validate(t.Context(), currentIssue)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 }
 
@@ -291,13 +290,13 @@ func TestValidate_Answered_DB(t *testing.T) {
 		o := CloseOptionsAnswered(4)
 		err := o.Validate(t.Context(), currentIssue)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 
 	t.Run("comment does not exist", func(t *testing.T) {
 		o := CloseOptionsAnswered(99999)
 		err := o.Validate(t.Context(), currentIssue)
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, util.ErrInvalidArgument))
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 }

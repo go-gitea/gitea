@@ -14,12 +14,12 @@ import (
 )
 
 // CloseIssue close an issue.
-func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string, opts IssueCloseOptions) error {
+func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string, opts CloseOptions) error {
 	// Pull requests are excluded from the close-reason feature by design.
 	// Reset any reason that may have been passed, so the model layer falls back
 	// to the plain CommentTypeClose path.
 	if issue.IsPull {
-		opts = IssueCloseOptions{}
+		opts = CloseOptions{}
 	} else {
 		opts.Normalize()
 	}

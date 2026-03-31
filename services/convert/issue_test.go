@@ -4,7 +4,6 @@
 package convert
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -14,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -53,7 +53,7 @@ func TestToAPIIssue_StateReason_WithParam(t *testing.T) {
 
 	param, ok := apiIssue.StateReasonParam.(map[string]any)
 	require.True(t, ok)
-	assert.Equal(t, float64(4), param["issue_index"])
+	assert.InDelta(t, 4, param["issue_index"], 0)
 }
 
 func TestLabel_ToLabel(t *testing.T) {

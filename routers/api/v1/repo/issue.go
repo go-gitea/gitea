@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -908,7 +908,7 @@ func EditIssue(ctx *context.APIContext) {
 		}
 
 		state := api.StateType(*form.State)
-		opts := issue_service.IssueCloseOptions{}
+		opts := issue_service.CloseOptions{}
 		if state == api.StateClosed && form.StateReason != nil {
 			reason, err := issues_model.ParseIssueCloseReason(*form.StateReason)
 			if err != nil {
@@ -1057,7 +1057,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: deadlineUnix.AsTimePtr()})
 }
 
-func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType, opts issue_service.IssueCloseOptions) {
+func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType, opts issue_service.CloseOptions) {
 	if state != api.StateOpen && state != api.StateClosed {
 		ctx.APIError(http.StatusPreconditionFailed, fmt.Sprintf("unknown state: %s", state))
 		return

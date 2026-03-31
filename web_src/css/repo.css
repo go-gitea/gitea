@@ -615,10 +615,7 @@ td .commit-summary {
 }
 
 #close-with-reason-menu {
-  left: auto;
-  right: 0;
-  top: calc(100% + 4px);
-  bottom: auto;
+  inset: calc(100% + 4px) 0 auto auto;
   z-index: 1200;
 }
 
@@ -717,7 +714,7 @@ td .commit-summary {
 
 #close-reason-menu .item.is-selected .close-reason-menu-item-check {
   visibility: visible;
-  color: var(--color-success);
+  color: var(--color-success-text);
 }
 
 .close-reason-menu-item-title {

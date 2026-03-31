@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -17,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -158,7 +158,7 @@ func NewComment(ctx *context.Context) {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
 				if form.Status == "close" && !issue.IsClosed {
-					opts := issue_service.IssueCloseOptions{}
+					opts := issue_service.CloseOptions{}
 					if form.StateReason != nil {
 						reason, err := issues_model.ParseIssueCloseReason(*form.StateReason)
 						if err != nil {

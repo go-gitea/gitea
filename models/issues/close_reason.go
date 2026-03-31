@@ -5,8 +5,9 @@ package issues
 
 import (
 	"database/sql/driver"
-	"encoding/json"
 	"fmt"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 type IssueCloseReason int64
