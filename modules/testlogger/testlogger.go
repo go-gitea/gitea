@@ -121,11 +121,13 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 			Printf("!!! %s defer function hasn't been run but Cleanup is called, usually caused by panic", t.Name())
 		}
 	})
-	testHeader := fmt.Sprintf("=== %s (%s:%d)\n", log.NewColoredValue(t.Name()), strings.TrimPrefix(filename, prefix), line)
+	printTestHeader := func() {
+		Printf("=== %s (%s:%d)\n", log.NewColoredValue(t.Name()), strings.TrimPrefix(filename, prefix), line)
+	}
 
 	WriterCloser.pushT(t)
 	timeoutChecker := time.AfterFunc(TestTimeout, func() {
-		Printf("%s", testHeader)
+		printTestHeader()
 		Printf("!!! %s ... timeout: %v ... stacktrace:\n%s\n\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestTimeout, getRuntimeStackAll())
 	})
 	return func() {
@@ -144,7 +146,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 		runDuration := time.Since(runStart)
 		flushDuration := time.Since(flushStart)
 		if t.Failed() {
-			Printf("%s", testHeader)
+			printTestHeader()
 		}
 		if runDuration > TestSlowRun {
 			Printf("+++ %s is a slow test (run: %v, flush: %v)\n", log.NewColoredValue(t.Name(), log.Bold, log.FgYellow), runDuration, flushDuration)
