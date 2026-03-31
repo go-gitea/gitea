@@ -2811,7 +2811,7 @@
   "org.teams.owners_permission_suggestion": "You can create new teams for members to get fine-grained access control.",
   "org.teams.members": "Team Members",
   "org.teams.manage_team_member": "Manage teams and members",
-  "org.teams.manage_team_member_prompt": "Organization manages its members by teams, add members to teams to join this organization.",
+  "org.teams.manage_team_member_prompt": "Members are managed through teams. Add users to a team to invite them to this organization.",
   "org.teams.update_settings": "Update Settings",
   "org.teams.delete_team": "Delete Team",
   "org.teams.add_team_member": "Add Team Member",
