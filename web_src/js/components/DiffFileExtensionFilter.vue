@@ -191,9 +191,9 @@ export default defineComponent({
 
       <!-- Select all / Deselect all buttons -->
       <div class="ui divider tw-my-2"/>
-      <div class="tw-flex tw-gap-2 tw-px-2">
-        <button type="button" class="diff-ext-text-btn tw-flex-1" @click="selectAll()">{{ locale.select_all }}</button>
-        <button type="button" class="diff-ext-text-btn tw-flex-1" @click="deselectAll()">{{ locale.deselect_all }}</button>
+      <div class="tw-flex tw-items-center tw-justify-center tw-gap-4 tw-px-2 tw-py-1">
+        <button type="button" class="diff-ext-text-btn" @click="selectAll()">{{ locale.select_all }}</button>
+        <button type="button" class="diff-ext-text-btn" @click="deselectAll()">{{ locale.deselect_all }}</button>
       </div>
 
       <!-- Apply button -->
@@ -243,6 +243,7 @@ export default defineComponent({
     color: var(--color-primary);
     cursor: pointer;
     font-size: inherit;
+    text-align: center;
   }
 
   .ui.dropdown.diff-file-extension-filter .diff-ext-text-btn:hover {
