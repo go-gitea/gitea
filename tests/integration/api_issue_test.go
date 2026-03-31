@@ -215,18 +215,31 @@ func testAPIEditIssue(t *testing.T) {
 
 	// update values of issue
 	issueState := "closed"
+	stateReason := "duplicate"
 	removeDeadline := true
 	milestone := int64(4)
 	body := "new content!"
 	title := "new title from api set"
+	duplicateTargetTitle := "duplicate target issue"
+	duplicateTargetBody := "duplicate target body"
+
+	createReq := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repoBefore.Name), &api.CreateIssueOption{
+		Title: duplicateTargetTitle,
+		Body:  duplicateTargetBody,
+	}).AddTokenAuth(token)
+	createResp := MakeRequest(t, createReq, http.StatusCreated)
+	duplicateTarget := DecodeJSON(t, createResp, &api.Issue{})
+	stateReasonParam := fmt.Sprintf(`{"issue_index":%d}`, duplicateTarget.Index)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", owner.Name, repoBefore.Name, issueBefore.Index)
 	req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{
-		State:          &issueState,
-		RemoveDeadline: &removeDeadline,
-		Milestone:      &milestone,
-		Body:           &body,
-		Title:          title,
+		State:            &issueState,
+		StateReason:      &stateReason,
+		StateReasonParam: &stateReasonParam,
+		RemoveDeadline:   &removeDeadline,
+		Milestone:        &milestone,
+		Body:             &body,
+		Title:            title,
 
 		// ToDo change more
 	}).AddTokenAuth(token)
@@ -253,13 +266,20 @@ func testAPIEditIssue(t *testing.T) {
 
 	// API response
 	assert.Equal(t, api.StateClosed, apiIssue.State)
+	assert.Equal(t, stateReason, apiIssue.StateReason)
 	assert.Equal(t, milestone, apiIssue.Milestone.ID)
 	assert.Equal(t, body, apiIssue.Body)
 	assert.Nil(t, apiIssue.Deadline)
 	assert.Equal(t, title, apiIssue.Title)
+	param, ok := apiIssue.StateReasonParam.(map[string]any)
+	if assert.True(t, ok) {
+		assert.InDelta(t, duplicateTarget.Index, param["issue_index"], 0)
+	}
 
 	// in database
 	assert.Equal(t, api.StateClosed, issueAfter.State())
+	assert.Equal(t, issues_model.IssueCloseReasonDuplicate, issueAfter.CloseReason)
+	assert.JSONEq(t, stateReasonParam, issueAfter.CloseReasonParam)
 	assert.Equal(t, milestone, issueAfter.MilestoneID)
 	assert.Equal(t, int64(0), int64(issueAfter.DeadlineUnix))
 	assert.Equal(t, body, issueAfter.Content)
