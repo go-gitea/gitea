@@ -115,16 +115,17 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   ];
   const matchedLang = cm.language.LanguageDescription.matchFilename(languageDescriptions, config.filename);
 
-  // Remove the loading placeholder before appending the editor container to prevent
-  // both elements from coexisting in the DOM, which would temporarily double the
-  // height of the editor area and cause a scroll offset shift.
-  const loading = textarea.parentNode!.querySelector('.editor-loading');
-  if (loading) loading.remove();
-
   const container = document.createElement('div');
   container.className = 'code-editor-container';
   container.setAttribute('data-language', matchedLang?.name.toLowerCase() || '');
-  textarea.parentNode!.append(container);
+  // Replace the loading placeholder with the editor container in one operation
+  // to avoid a flash where neither element is in the DOM.
+  const loading = textarea.parentNode!.querySelector<HTMLElement>('.editor-loading');
+  if (loading) {
+    loading.replaceWith(container);
+  } else {
+    textarea.parentNode!.append(container);
+  }
 
   const wordWrap = new cm.state.Compartment();
   const language = new cm.state.Compartment();

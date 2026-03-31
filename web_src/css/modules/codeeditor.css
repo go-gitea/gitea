@@ -340,6 +340,7 @@
 /* command palette */
 .code-editor-container {
   position: relative;
+  min-height: 90vh;
 }
 
 .cm-command-palette {
