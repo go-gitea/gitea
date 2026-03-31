@@ -56,16 +56,18 @@ export default defineComponent({
       const currentIndex = focusableItems.indexOf(currentFocused.closest('[role="menuitem"]') as HTMLElement);
 
       switch (event.key) {
-        case 'ArrowDown': // select next element
+        case 'ArrowDown': { // select next element
           event.preventDefault();
           const nextIndex = currentIndex === -1 ? 0 : Math.min(currentIndex + 1, focusableItems.length - 1);
           this.focusElem(focusableItems[nextIndex], currentIndex >= 0 ? focusableItems[currentIndex] : null);
           break;
-        case 'ArrowUp': // select previous element
+        }
+        case 'ArrowUp': { // select previous element
           event.preventDefault();
           const prevIndex = currentIndex === -1 ? focusableItems.length - 1 : Math.max(currentIndex - 1, 0);
           this.focusElem(focusableItems[prevIndex], currentIndex >= 0 ? focusableItems[currentIndex] : null);
           break;
+        }
         case 'Escape': // close menu
           event.preventDefault();
           if (currentIndex >= 0) {
@@ -105,7 +107,8 @@ export default defineComponent({
       const extensionMap = new Map<string, {total: number, visible: number}>();
       const fileBoxes = document.querySelectorAll('#diff-file-boxes .diff-file-box[data-new-filename]');
 
-      // Count extensions and track visibility
+      // Count extensions, track visibility and hidden count in a single pass
+      let hiddenCount = 0;
       fileBoxes.forEach((box) => {
         const filename = (box as HTMLElement).getAttribute('data-new-filename') || '';
         const ext = this.getExtension(filename);
@@ -117,6 +120,8 @@ export default defineComponent({
         stats.total += 1;
         if (!isHidden) {
           stats.visible += 1;
+        } else {
+          hiddenCount += 1;
         }
       });
 
@@ -130,13 +135,6 @@ export default defineComponent({
         }))
         .sort((a, b) => b.count - a.count);
 
-      // Update filtering state based on current visibility
-      let hiddenCount = 0;
-      fileBoxes.forEach((box) => {
-        if ((box as HTMLElement).classList.contains('tw-hidden')) {
-          hiddenCount += 1;
-        }
-      });
       this.isFiltering = hiddenCount > 0;
     },
     /**
@@ -190,11 +188,9 @@ export default defineComponent({
         }
       });
 
-      // Update filtering state
+      // Update filtering state and close the menu
       this.isFiltering = hiddenCount > 0;
-
-      // Close the menu after applying
-      this.menuVisible = false;
+      this.toggleMenu();
     },
   },
 });
@@ -203,7 +199,7 @@ export default defineComponent({
   <div class="ui scrolling dropdown custom diff-file-extension-filter">
     <button
       ref="expandBtn"
-      class="ui tiny basic button tw-relative"
+      class="ui tiny basic button"
       :class="{'diff-ext-filter-btn-active': isFiltering}"
       @click="toggleMenu()"
       :data-tooltip-content="locale.filter_by_file_extension"
