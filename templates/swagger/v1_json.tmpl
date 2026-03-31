@@ -10362,6 +10362,7 @@
         }
       },
       "patch": {
+        "description": "Pass `content_version` to enable optimistic locking on body edits.\nIf the version doesn't match the current value, the request fails with 409 Conflict.\n",
         "consumes": [
           "application/json"
         ],
@@ -24766,6 +24767,12 @@
           "type": "string",
           "x-go-name": "Body"
         },
+        "content_version": {
+          "description": "The current version of the issue content to detect conflicts during editing",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContentVersion"
+        },
         "due_date": {
           "type": "string",
           "format": "date-time",
@@ -24944,6 +24951,12 @@
           "description": "The new description body for the pull request",
           "type": "string",
           "x-go-name": "Body"
+        },
+        "content_version": {
+          "description": "The current version of the pull request content to detect conflicts during editing",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContentVersion"
         },
         "due_date": {
           "type": "string",
@@ -26229,6 +26242,12 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Comments"
+        },
+        "content_version": {
+          "description": "The version of the issue content for optimistic locking",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContentVersion"
         },
         "created_at": {
           "type": "string",
@@ -27739,6 +27758,12 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Comments"
+        },
+        "content_version": {
+          "description": "The version of the pull request content for optimistic locking",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContentVersion"
         },
         "created_at": {
           "type": "string",

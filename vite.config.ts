@@ -1,8 +1,8 @@
 import {build, defineConfig} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
-import {readFileSync, writeFileSync, unlinkSync, globSync} from 'node:fs';
-import {join, parse} from 'node:path';
+import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
+import path, {join, parse} from 'node:path';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
@@ -132,7 +132,9 @@ function iifePlugin(): Plugin {
       server.middlewares.use((req, res, next) => {
         // "__vite_iife" is a virtual file in memory, serve it directly
         const pathname = req.url!.split('?')[0];
-        if (pathname === '/web_src/js/__vite_iife.js') {
+        if (pathname === '/web_src/js/__vite_dev_server_check') {
+          res.end('ok');
+        } else if (pathname === '/web_src/js/__vite_iife.js') {
           res.setHeader('Content-Type', 'application/javascript');
           res.setHeader('Cache-Control', 'no-store');
           res.end(iifeCode);
@@ -198,6 +200,7 @@ function viteDevServerPortPlugin(): Plugin {
       server.httpServer!.once('listening', () => {
         const addr = server.httpServer!.address();
         if (typeof addr === 'object' && addr) {
+          mkdirSync(path.dirname(viteDevPortFilePath), {recursive: true});
           writeFileSync(viteDevPortFilePath, String(addr.port));
         }
       });
