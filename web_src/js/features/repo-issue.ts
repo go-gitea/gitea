@@ -1,4 +1,4 @@
-import {htmlEscape} from '../utils/html.ts';
+import {html, htmlEscape} from '../utils/html.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {
   addDelegatedEventListener,
@@ -10,7 +10,7 @@ import {
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {toAbsoluteUrl} from '../utils.ts';
+import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';

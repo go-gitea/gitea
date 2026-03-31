@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -917,8 +916,7 @@ func EditIssue(ctx *context.APIContext) {
 			}
 			opts.Reason = reason
 			if form.StateReasonParam != nil {
-				b, _ := json.Marshal(form.StateReasonParam)
-				opts.ReasonParam = string(b)
+				opts.ReasonParam = *form.StateReasonParam
 			}
 			opts.Normalize()
 			if err := opts.Validate(ctx, issue); err != nil {

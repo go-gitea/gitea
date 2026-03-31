@@ -62,11 +62,3 @@ func ParseIssueCloseReason(reason string) (IssueCloseReason, error) {
 		return IssueCloseReasonNone, fmt.Errorf("unknown close reason %q", reason)
 	}
 }
-
-func parseIssueCloseReasonNumber(reason int64) (IssueCloseReason, error) {
-	r := IssueCloseReason(reason)
-	if !r.IsValid() {
-		return IssueCloseReasonNone, fmt.Errorf("unknown close reason %d", reason)
-	}
-	return r, nil
-}
