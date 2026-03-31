@@ -27,10 +27,10 @@ export default defineComponent({
     };
   },
   mounted() {
-    document.body.addEventListener('click', this.onBodyClick);
+    document.body.addEventListener('click', this.onBodyClick, true);
   },
   unmounted() {
-    document.body.removeEventListener('click', this.onBodyClick);
+    document.body.removeEventListener('click', this.onBodyClick, true);
   },
   methods: {
     onBodyClick(event: MouseEvent) {
@@ -155,7 +155,7 @@ export default defineComponent({
       ref="expandBtn"
       class="ui tiny basic button tw-relative"
       :class="{'diff-ext-filter-btn-active': isFiltering}"
-      @click.stop="toggleMenu()"
+      @click="toggleMenu()"
       :data-tooltip-content="locale.filter_by_file_extension"
       aria-haspopup="true"
       :aria-label="locale.filter_by_file_extension"
@@ -181,7 +181,7 @@ export default defineComponent({
                 />
                 <label :for="`ext-filter-${ext.ext}`" class="tw-cursor-pointer">
                   <span class="tw-font-mono">{{ ext.ext }}</span>
-                  <span class="tw-text-text-light-2">({{ ext.count }})</span>
+                  <span class="tw-text-text-light-2"> ({{ ext.count }})</span>
                 </label>
               </div>
             </div>
