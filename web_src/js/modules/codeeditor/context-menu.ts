@@ -96,8 +96,10 @@ function buildMenuItems(cm: CodemirrorModules, view: EditorView, togglePalette: 
       navigator.clipboard.writeText(v.state.doc.sliceString(from, to));
     }},
     {label: 'Paste', keys: 'Mod+V', run: async (view) => {
-      const text = await navigator.clipboard.readText();
-      view.dispatch(view.state.replaceSelection(text));
+      try {
+        const text = await navigator.clipboard.readText();
+        view.dispatch(view.state.replaceSelection(text));
+      } catch { /* clipboard permission denied */ }
     }},
     'separator',
     {label: 'Command Palette', keys: 'F1', run: (v) => { togglePalette(v) }},
