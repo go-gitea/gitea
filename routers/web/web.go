@@ -1072,11 +1072,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Get("", user.ListPackages)
 				m.Group("/{type}/{name}", func() {
 					m.Get("", user.RedirectToLastVersion)
-					// use `~` as a separator; otherwise it might clash with a user package named `-` or `settings`
-					m.Group("/~/settings", func() {
-						m.Get("", user.PackageSettings)
-						m.Post("", web.Bind(forms.PackageSettingForm{}), user.PackageSettingsPost)
-					}, reqPackageAccess(perm.AccessModeWrite))
 					m.Get("/versions", user.ListPackageVersions)
 					m.Group("/{version}", func() {
 						m.Get("", user.ViewPackageVersion)
@@ -1085,6 +1080,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Get("/files/{fileid}", user.DownloadPackageFile)
 					})
 				})
+				m.Group("/packages-settings/{type}/{name}", func() {
+					m.Get("", user.PackageSettings)
+					m.Post("", web.Bind(forms.PackageSettingForm{}), user.PackageSettingsPost)
+				}, reqPackageAccess(perm.AccessModeWrite))
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 

@@ -77,6 +77,11 @@ func (pd *PackageDescriptor) PackageWebLink() string {
 	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
+// PackageSettingsLink returns the relative package settings link
+func (pd *PackageDescriptor) PackageSettingsLink() string {
+	return fmt.Sprintf("%s/-/packages-settings/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+}
+
 // VersionWebLink returns the relative package version web link
 func (pd *PackageDescriptor) VersionWebLink() string {
 	return fmt.Sprintf("%s/%s", pd.PackageWebLink(), url.PathEscape(pd.Version.LowerVersion))
