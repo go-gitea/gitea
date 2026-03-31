@@ -7,9 +7,11 @@
 			{{template "org/team/sidebar" .}}
 			<div class="ui ten wide column">
 				{{template "org/team/navbar" .}}
+				{{$hasTopAttachedSegment := false}}
 				{{$canAddRemove := and $.IsOrganizationOwner (not $.Team.IncludesAllRepositories)}}
 				{{if $canAddRemove}}
-					<div class="ui top attached segment tw-flex tw-flex-wrap tw-gap-2">
+					{{$hasTopAttachedSegment = true}}
+					<div class="ui top attached segment flex-text-block tw-flex-wrap">
 						<form class="ui form ignore-dirty tw-flex-1 tw-flex" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
 							<div data-global-init="initSearchRepoBox" data-uid="{{.Org.ID}}" class="ui search">
 								<div class="ui input">
@@ -24,7 +26,11 @@
 						</div>
 					</div>
 				{{end}}
-				<div class="ui{{if not $canAddRemove}} top{{end}} attached segment">
+				{{if $.Team.IncludesAllRepositories}}
+					{{$hasTopAttachedSegment = true}}
+					<div class="ui top attached segment">{{ctx.Locale.Tr "org.teams.all_repositories"}}</div>
+				{{end}}
+				<div class="ui {{if not $hasTopAttachedSegment}}top{{end}} attached segment">
 					<div class="flex-list">
 						{{range $.TeamRepos}}
 							<div class="flex-item tw-items-center">
