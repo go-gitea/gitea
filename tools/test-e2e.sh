@@ -89,11 +89,11 @@ GITEA_TEST_E2E_EMAIL="$GITEA_TEST_E2E_USER@$GITEA_TEST_E2E_DOMAIN"
   --admin
 
 # timeout multiplier, CI runners are slower
-if [ -z "${GITEA_TEST_E2E_FACTOR:-}" ]; then
+if [ -z "${GITEA_TEST_E2E_TIMEOUT_FACTOR:-}" ]; then
   if [ -n "${CI:-}" ]; then
-    GITEA_TEST_E2E_FACTOR=3
+    GITEA_TEST_E2E_TIMEOUT_FACTOR=3
   else
-    GITEA_TEST_E2E_FACTOR=1
+    GITEA_TEST_E2E_TIMEOUT_FACTOR=1
   fi
 fi
 
@@ -102,6 +102,6 @@ export GITEA_TEST_E2E_DOMAIN
 export GITEA_TEST_E2E_USER
 export GITEA_TEST_E2E_PASSWORD
 export GITEA_TEST_E2E_EMAIL
-export GITEA_TEST_E2E_FACTOR
+export GITEA_TEST_E2E_TIMEOUT_FACTOR
 
 pnpm exec playwright test "$@"

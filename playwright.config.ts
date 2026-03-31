@@ -1,8 +1,8 @@
 import {env} from 'node:process';
 import {defineConfig, devices} from '@playwright/test';
 
-const factor = Number(env.GITEA_TEST_E2E_FACTOR) || 1;
-const timeout = 5000 * factor;
+const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
+const timeout = 5000 * timeoutFactor;
 
 export default defineConfig({
   testDir: './tests/e2e/',
