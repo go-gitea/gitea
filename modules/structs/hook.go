@@ -84,8 +84,8 @@ type EditHookOption struct {
 	AuthorizationHeader string `json:"authorization_header"`
 	// Whether the webhook is active and will be triggered
 	Active *bool `json:"active"`
-	// Optional human-readable name; json tag must not use omitempty (json v2 drops "" for *string).
-	Name *string `json:"name" binding:"MaxSize(255)"`
+	// Optional human-readable name
+	Name *string `json:"name,omitzero" binding:"MaxSize(255)"`
 }
 
 // Payloader payload is some part of one hook
