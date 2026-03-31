@@ -126,11 +126,60 @@ jobs:
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped},
 		},
+		{
+			name: "max-parallel=1 promotes exactly one blocked job when one slot is open",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "build", Status: actions_model.StatusRunning, Needs: []string{}, MaxParallel: 1},
+				{ID: 2, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1},
+				{ID: 3, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1},
+			},
+			want: map[int64]actions_model.Status{},
+		},
+		{
+			name: "max-parallel=1 promotes one job after running job finishes",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "build", Status: actions_model.StatusSuccess, Needs: []string{}, MaxParallel: 1},
+				{ID: 2, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1},
+				{ID: 3, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1},
+			},
+			want: nil, // map iteration is non-deterministic; checked by count below
+		},
+		{
+			name: "max-parallel=2 does not promote when limit is reached",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "test", Status: actions_model.StatusRunning, Needs: []string{}, MaxParallel: 2},
+				{ID: 2, JobID: "test", Status: actions_model.StatusRunning, Needs: []string{}, MaxParallel: 2},
+				{ID: 3, JobID: "test", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
+				{ID: 4, JobID: "test", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
+			},
+			want: map[int64]actions_model.Status{},
+		},
+		{
+			name: "max-parallel=2 promotes one job when one slot opens",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "test", Status: actions_model.StatusSuccess, Needs: []string{}, MaxParallel: 2},
+				{ID: 2, JobID: "test", Status: actions_model.StatusRunning, Needs: []string{}, MaxParallel: 2},
+				{ID: 3, JobID: "test", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
+				{ID: 4, JobID: "test", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
+			},
+			want: nil, // checked by count below
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := newJobStatusResolver(tt.jobs, nil)
-			assert.Equal(t, tt.want, r.Resolve(t.Context()))
+			got := r.Resolve(t.Context())
+			if tt.want == nil {
+				waitingCount := 0
+				for _, s := range got {
+					if s == actions_model.StatusWaiting {
+						waitingCount++
+					}
+				}
+				assert.Equal(t, 1, waitingCount, "expected exactly 1 job promoted to Waiting, got %v", got)
+			} else {
+				assert.Equal(t, tt.want, got)
+			}
 		})
 	}
 }

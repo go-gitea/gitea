@@ -10,8 +10,8 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/actions/jobparser"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
@@ -106,6 +106,9 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
 
+			// waitingCountByJobID limits initial Waiting slots per JobID to MaxParallel.
+			waitingCountByJobID := make(map[string]int)
+
 		for _, v := range jobs {
 			id, job := v.Job()
 			needs := job.Needs()
@@ -167,6 +170,16 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 					if err != nil {
 						return fmt.Errorf("prepare to start job with concurrency: %w", err)
 					}
+				}
+			}
+
+					// Enforce max-parallel: excess jobs start as Blocked and are promoted
+					// by jobStatusResolver when a slot opens.
+					if runJob.Status == actions_model.StatusWaiting && runJob.MaxParallel > 0 {
+				if waitingCountByJobID[id] >= runJob.MaxParallel {
+					runJob.Status = actions_model.StatusBlocked
+				} else {
+					waitingCountByJobID[id]++
 				}
 			}
 
