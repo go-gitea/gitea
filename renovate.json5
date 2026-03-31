@@ -4,5 +4,5 @@
   "enabledManagers": ["github-actions"],
   "labels": ["modifies/dependencies"],
   "minimumReleaseAge": "5 days",
-  "branchPrefix": "renovate/"
+  "branchPrefix": "renovate/",
 }
