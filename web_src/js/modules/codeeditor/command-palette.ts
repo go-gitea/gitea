@@ -161,11 +161,11 @@ export function commandPalette(cm: CodemirrorModules) {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        selectedIndex = Math.min(selectedIndex + 1, filtered.length - 1);
+        selectedIndex = (selectedIndex + 1) % filtered.length;
         updateSelected();
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        selectedIndex = Math.max(selectedIndex - 1, 0);
+        selectedIndex = (selectedIndex - 1 + filtered.length) % filtered.length;
         updateSelected();
       } else if (e.key === 'Enter') {
         e.preventDefault();

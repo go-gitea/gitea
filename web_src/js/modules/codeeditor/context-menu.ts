@@ -215,7 +215,8 @@ export function contextMenu(cm: CodemirrorModules, togglePalette: (view: EditorV
         }
       };
       const nextEnabled = (from: number, dir: number) => {
-        for (let idx = from + dir; idx >= 0 && idx < actions.length; idx += dir) {
+        for (let step = 1; step <= actions.length; step++) {
+          const idx = (from + dir * step + actions.length) % actions.length;
           if (actions[idx]) return idx;
         }
         return from;
@@ -225,17 +226,18 @@ export function contextMenu(cm: CodemirrorModules, togglePalette: (view: EditorV
         if (!menuEl.contains(e.target as Element)) dismiss();
       }, {signal: controller.signal});
       document.addEventListener('keydown', (e: KeyboardEvent) => {
-        e.stopPropagation(); // prevent editor from handling keys while menu is open
+        e.stopPropagation();
+        e.preventDefault();
         if (e.key === 'Escape') {
           dismiss(); view.focus();
         } else if (e.key === 'ArrowDown') {
-          e.preventDefault(); setFocus(nextEnabled(focusIndex, 1));
+          setFocus(nextEnabled(focusIndex, 1));
         } else if (e.key === 'ArrowUp') {
-          e.preventDefault(); setFocus(nextEnabled(focusIndex, -1));
+          setFocus(nextEnabled(focusIndex, -1));
         } else if (e.key === 'Enter' && focusIndex >= 0 && actions[focusIndex]) {
-          e.preventDefault(); actions[focusIndex]!();
+          actions[focusIndex]!();
         }
-      }, {signal: controller.signal});
+      }, {signal: controller.signal, capture: true});
       view.scrollDOM.addEventListener('scroll', dismiss, {signal: controller.signal, once: true});
       document.addEventListener('scroll', dismiss, {signal: controller.signal, once: true});
       window.addEventListener('blur', dismiss, {signal: controller.signal});
