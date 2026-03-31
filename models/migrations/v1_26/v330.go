@@ -9,7 +9,7 @@ import (
 
 func AddNameToWebhook(x *xorm.Engine) error {
 	type Webhook struct {
-		Name string `xorm:"VARCHAR(255)"`
+		Name string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	}
 	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(Webhook))
 	return err
