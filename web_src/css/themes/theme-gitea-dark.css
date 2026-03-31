@@ -1,6 +1,3 @@
-@import "../chroma/dark.css";
-@import "../codemirror/dark.css";
-
 gitea-theme-meta-info {
   --theme-display-name: "Dark";
   --theme-color-scheme: "dark";
@@ -224,7 +221,8 @@ gitea-theme-meta-info {
   --color-secondary-bg: #2a3137;
   --color-expand-button: #2f363d;
   --color-placeholder-text: var(--color-text-light-3);
-  --color-editor-line-highlight: var(--color-primary-light-5);
+  --color-editor-line-highlight: var(--color-secondary-alpha-40);
+  --color-editor-selection: var(--color-primary-alpha-50);
   --color-project-column-bg: var(--color-secondary-light-2);
   --color-caret: var(--color-text); /* should ideally be --color-text-dark, see #15651 */
   --color-reaction-bg: #e8f3ff12;
@@ -243,12 +241,53 @@ gitea-theme-meta-info {
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-5);
   --color-highlight-fg: #87651e;
-  --color-highlight-bg: #352c1c;
+  --color-highlight-bg: #443a27;
   --color-overlay-backdrop: #080808c0;
   --color-danger: var(--color-red);
   --color-transparency-grid-light: #2a2a2a;
   --color-transparency-grid-dark: #1a1a1a;
   --color-workflow-edge-hover: #616e78;
+  --color-syntax-keyword: #ff8854;
+  --color-syntax-bool: #25bbc9;
+  --color-syntax-control: #dd9e17;
+  --color-syntax-name: #c7a618;
+  --color-syntax-type: #eb8cb3;
+  --color-syntax-number: #63b2dd;
+  --color-syntax-operator: #ff8854;
+  --color-syntax-regexp: #b89de4;
+  --color-syntax-string: #95b62a;
+  --color-syntax-comment: #8898b0;
+  --color-syntax-invalid: #ff8686;
+  --color-syntax-link: var(--color-primary);
+  --color-syntax-tag: #ff8854;
+  --color-syntax-attribute: #c792ff;
+  --color-syntax-property: #55afff;
+  --color-syntax-variable: #e29b33;
+  --color-syntax-string-special: #dd9e17;
+  --color-syntax-escape: #c7a618;
+  --color-syntax-entity: #c792ff;
+  --color-syntax-preproc: #4cbe7a;
+  --color-syntax-preproc-file: #63b2dd;
+  --color-syntax-decorator: #4cbe7a;
+  --color-syntax-namespace: #c9d1d9;
+  --color-syntax-name-pseudo: #c792ff;
+  --color-syntax-comment-special: #b89de4;
+  --color-syntax-text: #c9d1d9;
+  --color-syntax-text-alt: #b9bcc7;
+  --color-syntax-punctuation: #d2d4db;
+  --color-syntax-whitespace: #7f8699;
+  --color-syntax-diff-fg: #ffffff;
+  --color-syntax-deleted-bg: #5f3737;
+  --color-syntax-inserted-bg: #3a523a;
+  --color-syntax-emph: #d1a242;
+  --color-syntax-strong: #e29b33;
+  --color-syntax-heading: #dd9e17;
+  --color-syntax-subheading: #95b62a;
+  --color-syntax-output: #8898b0;
+  --color-syntax-prompt: #e29b33;
+  --color-syntax-traceback: #ff8686;
+  --color-syntax-matching-bracket-bg: #00918a48;
+  --color-syntax-nonmatching-bracket-bg: #cc484848;
   accent-color: var(--color-accent);
   color-scheme: dark;
 }

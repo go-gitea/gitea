@@ -2,7 +2,7 @@
 	<div class="repo-setting-content">
 		<form class="ui form" action="{{.Link}}" method="post">
 			<h4 class="ui top attached header flex-text-block tw-justify-between tw-flex-wrap">
-				{{ctx.Locale.Tr "repo.settings.githooks"}}
+				{{.Hook.Name}}
 				<div class="tw-font-normal tw-font-sans tw-text-base">
 					{{template "repo/editor/options" dict "CodeEditorConfig" $.CodeEditorConfig}}
 				</div>
@@ -10,13 +10,10 @@
 			<div class="ui attached segment">
 				<p>{{ctx.Locale.Tr "repo.settings.githook_edit_desc"}}</p>
 				{{with .Hook}}
-					<div class="inline field">
-						<label>{{ctx.Locale.Tr "repo.settings.githook_name"}}</label>
-						<span class="hook-filename">{{.Name}}</span>
-					</div>
 					<div class="field">
-						<label for="content">{{ctx.Locale.Tr "repo.settings.githook_content"}}</label>
-						<textarea id="content" name="content" class="tw-hidden">{{if .IsActive}}{{.Content}}{{else}}{{.Sample}}{{end}}</textarea>
+						<textarea id="content" name="content" class="tw-hidden"
+							data-code-editor-config="{{JsonUtils.EncodeToString $.CodeEditorConfig}}"
+							placeholder="{{ctx.Locale.Tr "editor.code_editor.placeholder"}}">{{if .IsActive}}{{.Content}}{{else}}{{.Sample}}{{end}}</textarea>
 						<div class="editor-loading is-loading"></div>
 					</div>
 					<div class="inline field">
