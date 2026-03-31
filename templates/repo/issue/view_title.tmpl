@@ -49,10 +49,10 @@
 				{{$reasonText := ""}}
 				{{$closeReason := .Issue.CloseReasonForDisplay}}
 				{{if eq $closeReason "completed"}}
-					{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.completed")}}
+					{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as_completed"}}
 				{{else if eq $closeReason "not_planned"}}
 					{{$statusIcon = "octicon-skip"}}
-					{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.not_planned")}}
+					{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as_not_planned"}}
 				{{else if eq $closeReason "duplicate"}}
 					{{$statusIcon = "octicon-skip"}}
 					{{$dupIdx := .Issue.CloseReasonDuplicateIssueIndex}}
@@ -60,7 +60,7 @@
 						{{$dupLink := HTMLFormat `<a href="%s/issues/%d">#%d</a>` $.RepoLink $dupIdx $dupIdx}}
 						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as_duplicate" $dupLink}}
 					{{else}}
-						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.duplicate")}}
+						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as_duplicate_generic"}}
 					{{end}}
 				{{else if eq $closeReason "answered"}}
 					{{$commentID := .Issue.CloseReasonAnsweredCommentID}}
@@ -68,7 +68,7 @@
 						{{$answerLink := HTMLFormat `<a href="#issuecomment-%d">comment #%d</a>` $commentID $commentID}}
 						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as_answered_by_comment" $answerLink}}
 					{{else}}
-						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.answered")}}
+						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as_answered"}}
 					{{end}}
 				{{else if eq $closeReason "completed_by_commit"}}
 					{{$hash := .Issue.CloseReasonCommitHash}}
@@ -76,7 +76,7 @@
 						{{$commitLink := HTMLFormat `<a class="ui sha" href="%[1]s/commit/%[2]s"><b>%[3]s</b></a>` $.RepoLink $hash (ShortSha $hash)}}
 						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_by_commit" $commitLink}}
 					{{else}}
-						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.completed")}}
+						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as_completed"}}
 					{{end}}
 				{{else if eq $closeReason "completed_by_pull"}}
 					{{$pullIdx := .Issue.CloseReasonPullIndex}}
@@ -84,7 +84,7 @@
 						{{$pullLink := HTMLFormat `<a href="%s/pulls/%d">#%d</a>` $.RepoLink $pullIdx $pullIdx}}
 						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_by_pull" $pullLink}}
 					{{else}}
-						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.completed")}}
+						{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as_completed"}}
 					{{end}}
 				{{end}}
 				{{if $reasonText}}
