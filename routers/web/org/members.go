@@ -127,5 +127,5 @@ func MembersAction(ctx *context.Context) {
 	}
 
 	log.Error("Action(%s): %v", ctx.PathParam("action"), err)
-	ctx.JSONError(err.Error()) // FIXME: legacy logic, errors are handled together, no distinguishing between different errors
+	ctx.JSONError(err.Error()) // FIXME: legacy logic, errors are handled together, it's not right, need to distinguish between different errors
 }

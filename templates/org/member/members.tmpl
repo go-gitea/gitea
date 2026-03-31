@@ -59,11 +59,11 @@
 								data-modal-confirm-content="{{ctx.Locale.Tr "org.members.leave.detail" $.Org.DisplayName}}"
 								>{{ctx.Locale.Tr "org.members.leave"}}</button>
 						{{else if $.IsOrganizationOwner}}
-								<button class="ui red tiny button link-action"
-									data-url="{{$.OrgLink}}/members/action/remove?uid={{.ID}}"
-									data-modal-confirm-header="{{ctx.Locale.Tr "org.members.remove"}}"
-									data-modal-confirm-content="{{ctx.Locale.Tr "org.members.remove.detail" .DisplayName $.Org.DisplayName}}"
-								>{{ctx.Locale.Tr "org.members.remove"}}</button>
+							<button class="ui red tiny button link-action"
+								data-url="{{$.OrgLink}}/members/action/remove?uid={{.ID}}"
+								data-modal-confirm-header="{{ctx.Locale.Tr "org.members.remove"}}"
+								data-modal-confirm-content="{{ctx.Locale.Tr "org.members.remove.detail" .DisplayName $.Org.DisplayName}}"
+							>{{ctx.Locale.Tr "org.members.remove"}}</button>
 						{{end}}
 					</div>
 				</div>
