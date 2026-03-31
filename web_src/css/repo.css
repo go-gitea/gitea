@@ -590,6 +590,21 @@ td .commit-summary {
     width: 100%;
     margin: 0;
   }
+
+  .repository.view.issue .comment-list .comment .content .form #close-with-reason-group {
+    width: 100%;
+    display: flex;
+  }
+
+  .repository.view.issue .comment-list .comment .content .form #close-with-reason-group #status-button {
+    width: auto;
+    flex: 1;
+  }
+
+  .repository.view.issue .comment-list .comment .content .form #close-with-reason-group #close-reason-dropdown-btn {
+    width: auto;
+    flex: 0 0 auto;
+  }
 }
 
 .repository.view.issue .comment-list .comment .merge-section {

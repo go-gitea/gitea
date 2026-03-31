@@ -85,7 +85,7 @@
 								<input type="hidden" id="close-reason-param-hidden" name="state_reason_param" value="">
 								{{end}}
 								<div class="field footer">
-									<div class="flex-text-block tw-justify-end">
+									<div class="flex-text-block tw-flex-wrap tw-justify-end">
 										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 											{{if .Issue.IsClosed}}
 												{{$btnTextNoComment := ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.reopen" "repo.issues.reopen_issue")}}
