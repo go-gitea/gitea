@@ -28,9 +28,11 @@ export default defineComponent({
   },
   mounted() {
     document.body.addEventListener('click', this.onBodyClick, true);
+    this.$el.addEventListener('keydown', this.onKeyDown);
   },
   unmounted() {
     document.body.removeEventListener('click', this.onBodyClick, true);
+    this.$el.removeEventListener('keydown', this.onKeyDown);
   },
   methods: {
     onBodyClick(event: MouseEvent) {
@@ -38,6 +40,49 @@ export default defineComponent({
       if (this.$el.contains(event.target)) return;
       if (this.menuVisible) {
         this.toggleMenu();
+      }
+    },
+    onKeyDown(event: KeyboardEvent) {
+      if (!this.menuVisible) return;
+      const currentFocused = document.activeElement as HTMLElement;
+      if (!this.$el.contains(currentFocused)) return;
+
+      // Get all focusable menu items (checkboxes and buttons)
+      const menu = this.$el.querySelector('.menu') as HTMLElement;
+      const focusableItems = Array.from(menu.querySelectorAll('[role="menuitem"]')) as HTMLElement[];
+
+      if (!focusableItems.length) return;
+
+      const currentIndex = focusableItems.indexOf(currentFocused.closest('[role="menuitem"]') as HTMLElement);
+
+      switch (event.key) {
+        case 'ArrowDown': // select next element
+          event.preventDefault();
+          const nextIndex = currentIndex === -1 ? 0 : Math.min(currentIndex + 1, focusableItems.length - 1);
+          this.focusElem(focusableItems[nextIndex], currentIndex >= 0 ? focusableItems[currentIndex] : null);
+          break;
+        case 'ArrowUp': // select previous element
+          event.preventDefault();
+          const prevIndex = currentIndex === -1 ? focusableItems.length - 1 : Math.max(currentIndex - 1, 0);
+          this.focusElem(focusableItems[prevIndex], currentIndex >= 0 ? focusableItems[currentIndex] : null);
+          break;
+        case 'Escape': // close menu
+          event.preventDefault();
+          if (currentIndex >= 0) {
+            focusableItems[currentIndex].tabIndex = -1;
+          }
+          this.toggleMenu();
+          break;
+      }
+    },
+    /** Focus given element */
+    focusElem(elem: HTMLElement | null, prevElem: HTMLElement | null) {
+      if (elem) {
+        elem.tabIndex = 0;
+        if (prevElem) prevElem.tabIndex = -1;
+        // Focus the input/button inside the menuitem if it exists, otherwise focus the item itself
+        const focusTarget = elem.querySelector('input, button') as HTMLElement || elem;
+        focusTarget.focus();
       }
     },
     /**
@@ -101,6 +146,11 @@ export default defineComponent({
       this.menuVisible = !this.menuVisible;
       if (this.menuVisible) {
         this.scanExtensions();
+      } else {
+        // when closing menu, restore focus to the button
+        const button = this.$refs.expandBtn as HTMLElement;
+        button.tabIndex = 0;
+        button.focus();
       }
     },
     /**
@@ -162,7 +212,6 @@ export default defineComponent({
       :aria-controls="uniqueIdMenu"
     >
       <svg-icon name="octicon-filter"/>
-      <span v-if="isFiltering" class="filter-indicator-dot"/>
     </button>
     <!-- this dropdown is not managed by Fomantic UI, so it needs some classes like "transition" explicitly -->
     <div class="left menu transition" :id="uniqueIdMenu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
@@ -172,7 +221,7 @@ export default defineComponent({
         <!-- Extension checkboxes -->
         <div class="grouped fields">
           <template v-for="ext in extensions" :key="ext.ext">
-            <div class="field">
+            <div class="field" role="menuitem" tabindex="-1">
               <div class="ui checkbox">
                 <input
                   type="checkbox"
@@ -192,13 +241,13 @@ export default defineComponent({
       <!-- Select all / Deselect all buttons -->
       <div class="ui divider tw-my-2"/>
       <div class="tw-flex tw-items-center tw-justify-center tw-gap-4 tw-px-2 tw-py-1">
-        <button type="button" class="diff-ext-text-btn" @click="selectAll()">{{ locale.select_all }}</button>
-        <button type="button" class="diff-ext-text-btn" @click="deselectAll()">{{ locale.deselect_all }}</button>
+        <button type="button" class="diff-ext-text-btn" tabindex="-1" role="menuitem" @click="selectAll()">{{ locale.select_all }}</button>
+        <button type="button" class="diff-ext-text-btn" tabindex="-1" role="menuitem" @click="deselectAll()">{{ locale.deselect_all }}</button>
       </div>
 
       <!-- Apply button -->
       <div class="ui divider tw-my-2"/>
-      <button class="ui button fluid" @click="applyFilter()">
+      <button class="ui button fluid" tabindex="-1" role="menuitem" @click="applyFilter()">
         {{ locale.apply }}
       </button>
     </div>
@@ -248,16 +297,5 @@ export default defineComponent({
 
   .ui.dropdown.diff-file-extension-filter .diff-ext-text-btn:hover {
     text-decoration: underline;
-  }
-
-  .ui.dropdown.diff-file-extension-filter .filter-indicator-dot {
-    position: absolute;
-    top: 0.15rem;
-    right: 0.15rem;
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 9999px;
-    background: var(--color-red-600);
-    box-shadow: 0 0 0 2px var(--color-body);
   }
 </style>
