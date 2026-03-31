@@ -22,8 +22,7 @@ import (
 const (
 	actionsRunPath = "/actions/runs/"
 
-	// Only commit status target URLs whose resolved run ID is smaller than this
-	// threshold are rewritten by this partial migration.
+	// Only commit status target URLs whose resolved run ID is smaller than this threshold are rewritten by this partial migration.
 	legacyURLIDThreshold int64 = 1000
 )
 

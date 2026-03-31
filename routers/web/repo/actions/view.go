@@ -70,8 +70,8 @@ func getCurrentRunByPathParam(ctx *context_module.Context) (run *actions_model.A
 
 // resolveCurrentRunForView resolves GET Actions page URLs and supports both ID-based and legacy index-based forms.
 //
-// By default, run summary pages use a best-effort ID-first fallback,
-// job pages try to confirm an ID-based URL first and prefer the legacy interpretation when both are valid.
+// By default, run summary pages (/actions/runs/{run}) use a best-effort ID-first fallback,
+// job pages (/actions/runs/{run}/jobs/{job}) try to confirm an ID-based URL first and prefer the legacy interpretation when both are valid.
 //
 // `by_id=1` param explicitly forces the ID-based path, and `by_index=1` explicitly forces the legacy index-based path.
 // If both are present, `by_id` takes precedence.
