@@ -124,7 +124,7 @@ type Issue struct {
 	TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
 
 	CloseReason      IssueCloseReason `xorm:"INDEX DEFAULT 0"`
-	CloseReasonParam string           `xorm:"TEXT NOT NULL DEFAULT ''"`
+	CloseReasonParam string           `xorm:"TEXT JSON"`
 }
 
 var (

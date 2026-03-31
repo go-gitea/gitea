@@ -8,7 +8,7 @@ import "xorm.io/xorm"
 func AddCloseReasonColumnsToIssue(x *xorm.Engine) error {
 	type Issue struct {
 		CloseReason      int64  `xorm:"INDEX DEFAULT 0"`
-		CloseReasonParam string `xorm:"TEXT NOT NULL DEFAULT ''"`
+		CloseReasonParam string `xorm:"TEXT JSON"`
 	}
 
 	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(Issue))
