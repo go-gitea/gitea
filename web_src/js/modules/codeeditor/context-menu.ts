@@ -54,18 +54,24 @@ export function collectSymbols(cm: CodemirrorModules, view: EditorView): {label:
   };
   tree.iterate({
     enter(node): false | void {
-      if (node.name === 'VariableDefinition') {
+      if (node.name === 'VariableDefinition' || node.name === 'DefName') {
         addSymbol(view.state.doc.sliceString(node.from, node.to), 'variable', node.from);
-      } else if (node.name === 'FunctionDeclaration' || node.name === 'ClassDeclaration') {
-        const nameNode = node.node.getChild('VariableDefinition');
+      } else if (node.name === 'FunctionDeclaration' || node.name === 'FunctionDecl' || node.name === 'ClassDeclaration') {
+        const nameNode = node.node.getChild('VariableDefinition') || node.node.getChild('DefName');
         if (nameNode) {
-          addSymbol(view.state.doc.sliceString(nameNode.from, nameNode.to), node.name === 'FunctionDeclaration' ? 'function' : 'class', nameNode.from);
+          const kind = node.name === 'ClassDeclaration' ? 'class' : 'function';
+          addSymbol(view.state.doc.sliceString(nameNode.from, nameNode.to), kind, nameNode.from);
         }
         return false;
-      } else if (node.name === 'MethodDeclaration' || node.name === 'PropertyDefinition') {
-        const nameNode = node.node.getChild('PropertyDefinition') || node.node.getChild('PropertyName');
+      } else if (node.name === 'MethodDeclaration' || node.name === 'MethodDecl' || node.name === 'PropertyDefinition') {
+        const nameNode = node.node.getChild('PropertyDefinition') || node.node.getChild('PropertyName') || node.node.getChild('DefName');
         if (nameNode) {
-          addSymbol(view.state.doc.sliceString(nameNode.from, nameNode.to), node.name === 'MethodDeclaration' ? 'method' : 'property', nameNode.from);
+          addSymbol(view.state.doc.sliceString(nameNode.from, nameNode.to), node.name === 'PropertyDefinition' ? 'property' : 'method', nameNode.from);
+        }
+      } else if (node.name === 'TypeDecl' || node.name === 'TypeSpec') {
+        const nameNode = node.node.getChild('DefName');
+        if (nameNode) {
+          addSymbol(view.state.doc.sliceString(nameNode.from, nameNode.to), 'type', nameNode.from);
         }
       }
     },

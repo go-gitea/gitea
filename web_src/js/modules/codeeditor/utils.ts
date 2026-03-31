@@ -39,17 +39,20 @@ export function findUrlAtPosition(doc: string, pos: number): string | null {
   return null;
 }
 
-/** Try to jump to the definition of the symbol at the given position. */
+// Lezer syntax tree node names for identifier usages and definitions across grammars
+const usageNodes = new Set(['VariableName', 'Identifier', 'TypeIdentifier', 'TypeName', 'FieldIdentifier']);
+const definitionNodes = new Set(['VariableDefinition', 'DefName', 'Definition', 'TypeDefinition', 'TypeDef']);
+
 export function goToDefinitionAt(cm: CodemirrorModules, view: EditorView, pos: number): boolean {
   const tree = cm.language.syntaxTree(view.state);
   const node = tree.resolveInner(pos, 1);
-  if (!node || node.name !== 'VariableName') return false;
+  if (!node || !usageNodes.has(node.name)) return false;
   const name = view.state.doc.sliceString(node.from, node.to);
   let target: number | null = null;
   tree.iterate({
     enter(n): false | void {
       if (target !== null) return false;
-      if (n.name === 'VariableDefinition' && view.state.doc.sliceString(n.from, n.to) === name && n.from !== node.from) {
+      if (definitionNodes.has(n.name) && n.from !== node.from && view.state.doc.sliceString(n.from, n.to) === name) {
         target = n.from;
         return false;
       }
