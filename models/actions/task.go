@@ -264,8 +264,8 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			continue
 		}
 
-			// max-parallel is enforced at insertion time (InsertRun) and by
-			// jobStatusResolver, so a Waiting job is guaranteed a free slot.
+		// max-parallel is enforced at insertion time (InsertRun) and by
+		// jobStatusResolver, so a Waiting job is guaranteed a free slot.
 
 		job = v
 		break

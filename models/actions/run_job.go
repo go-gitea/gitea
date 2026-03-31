@@ -21,21 +21,23 @@ import (
 // ActionRunJob represents a job of a run
 type ActionRunJob struct {
 	ID                int64
-	RunID             int64                  `xorm:"index index(idx_action_run_job_run_id_job_id)"`
+	RunID             int64                  `xorm:"index index(idx_run_id_job_id)"`
 	Run               *ActionRun             `xorm:"-"`
 	RepoID            int64                  `xorm:"index(repo_concurrency)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
 	CommitSHA         string                 `xorm:"index"`
 	IsForkPullRequest bool
-	Name              string `xorm:"VARCHAR(255)"`
-	Attempt           int64
+
+	// ...existing code...
+	Name    string `xorm:"VARCHAR(255)"`
+	Attempt int64
 
 	// WorkflowPayload is act/jobparser.SingleWorkflow for act/jobparser.Parse
 	// it should contain exactly one job with global workflow fields for this model
 	WorkflowPayload []byte
 
-	JobID  string   `xorm:"VARCHAR(255) index(idx_action_run_job_run_id_job_id)"` // job id in workflow, not job's id
+	JobID  string   `xorm:"VARCHAR(255) index(idx_run_id_job_id)"` // job id in workflow, not job's id
 	Needs  []string `xorm:"JSON TEXT"`
 	RunsOn []string `xorm:"JSON TEXT"`
 	TaskID int64    // the latest task of the job

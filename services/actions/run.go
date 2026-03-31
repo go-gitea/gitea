@@ -106,8 +106,8 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
 
-			// waitingCountByJobID limits initial Waiting slots per JobID to MaxParallel.
-			waitingCountByJobID := make(map[string]int)
+		// waitingCountByJobID limits initial Waiting slots per JobID to MaxParallel.
+		waitingCountByJobID := make(map[string]int)
 
 		for _, v := range jobs {
 			id, job := v.Job()
@@ -173,9 +173,9 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				}
 			}
 
-					// Enforce max-parallel: excess jobs start as Blocked and are promoted
-					// by jobStatusResolver when a slot opens.
-					if runJob.Status == actions_model.StatusWaiting && runJob.MaxParallel > 0 {
+			// Enforce max-parallel: excess jobs start as Blocked and are promoted
+			// by jobStatusResolver when a slot opens.
+			if runJob.Status == actions_model.StatusWaiting && runJob.MaxParallel > 0 {
 				if waitingCountByJobID[id] >= runJob.MaxParallel {
 					runJob.Status = actions_model.StatusBlocked
 				} else {

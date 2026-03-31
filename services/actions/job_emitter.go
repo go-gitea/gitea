@@ -352,9 +352,9 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			}
 		}
 
-			// Enforce max-parallel: count occupied slots from the current snapshot
-			// plus within-pass promotions.
-			if newStatus == actions_model.StatusWaiting && actionRunJob.MaxParallel > 0 {
+		// Enforce max-parallel: count occupied slots from the current snapshot
+		// plus within-pass promotions.
+		if newStatus == actions_model.StatusWaiting && actionRunJob.MaxParallel > 0 {
 			occupiedSlots := 0
 			for otherID, otherStatus := range r.statuses {
 				otherJob := r.jobMap[otherID]
@@ -363,9 +363,9 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 					occupiedSlots++
 				}
 			}
-				if occupiedSlots+promotedWaitingByJobID[actionRunJob.JobID] >= actionRunJob.MaxParallel {
-					continue // no free slot; leave blocked
-				}
+			if occupiedSlots+promotedWaitingByJobID[actionRunJob.JobID] >= actionRunJob.MaxParallel {
+				continue // no free slot; leave blocked
+			}
 			promotedWaitingByJobID[actionRunJob.JobID]++
 		}
 
