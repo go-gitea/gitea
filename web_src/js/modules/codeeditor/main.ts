@@ -152,14 +152,14 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       cm.lint.lintGutter(),
       cm.language.codeFolding({
         placeholderDOM(_view: EditorView, onclick: (event: Event) => void) {
-          const el = createElementFromHTML(html`<span class="cm-foldPlaceholder">${htmlRaw(svg('octicon-kebab-horizontal', 16))}</span>`);
+          const el = createElementFromHTML(html`<span class="cm-foldPlaceholder">${htmlRaw(svg('octicon-kebab-horizontal', 13))}</span>`);
           el.addEventListener('click', onclick);
           return el as unknown as HTMLElement;
         },
       }),
       cm.language.foldGutter({
         markerDOM(open: boolean) {
-          return createElementFromHTML(svg(open ? 'octicon-chevron-down' : 'octicon-chevron-right', 16));
+          return createElementFromHTML(svg(open ? 'octicon-chevron-down' : 'octicon-chevron-right', 13));
         },
       }),
       cm.view.highlightActiveLineGutter(),

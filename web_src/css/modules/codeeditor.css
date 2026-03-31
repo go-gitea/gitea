@@ -166,13 +166,17 @@
   align-items: center;
   justify-content: center;
   padding: 0 2px;
+  overflow: hidden;
 }
 
 .code-editor-container .cm-foldGutter .cm-gutterElement svg {
-  width: 12px;
-  height: 12px;
   color: var(--color-text-light-2);
   cursor: pointer;
+  visibility: hidden;
+}
+
+.code-editor-container .cm-gutters:hover .cm-foldGutter .cm-gutterElement svg {
+  visibility: visible;
 }
 
 .code-editor-container .cm-foldGutter .cm-gutterElement:hover svg {
@@ -186,7 +190,7 @@
 .code-editor-container .cm-editor .cm-line ::selection,
 .code-editor-container .cm-editor .cm-line::selection {
   color: currentcolor;
-  background-color: var(--color-primary-alpha-30);
+  background-color: var(--color-editor-selection);
 }
 
 .code-editor-container .cm-foldPlaceholder {
