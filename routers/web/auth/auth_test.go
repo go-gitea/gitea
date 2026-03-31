@@ -149,11 +149,6 @@ func TestSignInAutoRedirectSingleProvider(t *testing.T) {
 	ctx, resp := contexttest.MockContext(t, "/user/login?redirect_to=/other")
 	SignIn(ctx)
 	assert.Equal(t, http.StatusSeeOther, resp.Code)
-	expectedURL := "/user/oauth2/dummy-auth-source-signin-auto?redirect_to=" +
-		url.QueryEscape("/other")
+	expectedURL := "/user/oauth2/dummy-auth-source-signin-auto?redirect_to=" + url.QueryEscape("/other")
 	assert.Equal(t, expectedURL, test.RedirectURL(resp))
-
-	ctx, resp = contexttest.MockContext(t, "/user/login?redirect_to=/other&skipAutoLogin=true")
-	SignIn(ctx)
-	assert.Equal(t, http.StatusOK, resp.Code)
 }
