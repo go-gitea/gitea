@@ -81,15 +81,6 @@ STORED_VERSION_FILE := VERSION
 GITHUB_REF_TYPE ?= branch
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 
-# Enable typescript support in Node.js before 22.18
-# TODO: Remove this once we can raise the minimum Node.js version to 22.18 (alpine >= 3.23)
-NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v 2>/dev/null | cut -c2- | sed 's/-.*//' | tr '.' ' '))
-ifeq ($(shell test "$(NODE_VERSION)" -lt "022018000"; echo $$?),0)
-	NODE_VARS := NODE_OPTIONS="--experimental-strip-types"
-else
-	NODE_VARS :=
-endif
-
 ifneq ($(GITHUB_REF_TYPE),branch)
 	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
 	GITEA_VERSION ?= $(VERSION)
@@ -293,33 +284,33 @@ lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backen
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js and ts files
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES)
-	$(NODE_VARS) pnpm exec vue-tsc
+	pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES)
+	pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js and ts files and fix issues
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES) --fix
-	$(NODE_VARS) pnpm exec vue-tsc
+	pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES) --fix
+	pnpm exec vue-tsc
 
 .PHONY: lint-css
 lint-css: node_modules ## lint css files
-	$(NODE_VARS) pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES)
+	pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES)
 
 .PHONY: lint-css-fix
 lint-css-fix: node_modules ## lint css files and fix issues
-	$(NODE_VARS) pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES) --fix
+	pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES) --fix
 
 .PHONY: lint-swagger
 lint-swagger: node_modules ## lint swagger files
-	$(NODE_VARS) pnpm exec spectral lint -q -F hint $(SWAGGER_SPEC)
+	pnpm exec spectral lint -q -F hint $(SWAGGER_SPEC)
 
 .PHONY: lint-md
 lint-md: node_modules ## lint markdown files
-	$(NODE_VARS) pnpm exec markdownlint *.md
+	pnpm exec markdownlint *.md
 
 .PHONY: lint-md-fix
 lint-md-fix: node_modules ## lint markdown files and fix issues
-	$(NODE_VARS) pnpm exec markdownlint --fix *.md
+	pnpm exec markdownlint --fix *.md
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
@@ -369,11 +360,11 @@ lint-yaml: .venv ## lint yaml files
 
 .PHONY: lint-json
 lint-json: node_modules ## lint json files
-	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY)
+	pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY)
 
 .PHONY: lint-json-fix
 lint-json-fix: node_modules ## lint and fix json files
-	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) --fix
+	pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) --fix
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
@@ -381,7 +372,7 @@ watch: ## watch everything and continuously rebuild
 
 .PHONY: watch-frontend
 watch-frontend: node_modules ## start vite dev server for frontend
-	NODE_ENV=development $(NODE_VARS) pnpm exec vite
+	NODE_ENV=development pnpm exec vite
 
 .PHONY: watch-backend
 watch-backend: ## watch backend files and continuously rebuild
@@ -397,7 +388,7 @@ test-backend: ## test backend files
 
 .PHONY: test-frontend
 test-frontend: node_modules ## test frontend files
-	$(NODE_VARS) pnpm exec vitest
+	pnpm exec vitest
 
 .PHONY: test-check
 test-check:
@@ -533,7 +524,7 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 .PHONY: playwright
 playwright: deps-frontend
 	@# on GitHub Actions VMs, playwright's system deps are pre-installed
-	@$(NODE_VARS) pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium $(if $(CI),firefox) $(PLAYWRIGHT_FLAGS)
+	@pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium $(if $(CI),firefox) $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e
 test-e2e: playwright $(EXECUTABLE_E2E)
@@ -749,7 +740,7 @@ deps-tools: ## install tool dependencies
 	wait
 
 node_modules: pnpm-lock.yaml
-	$(NODE_VARS) pnpm install --frozen-lockfile
+	pnpm install --frozen-lockfile
 	@touch node_modules
 
 .venv: uv.lock
@@ -761,16 +752,16 @@ update: update-js update-py ## update js and py dependencies
 
 .PHONY: update-js
 update-js: node_modules ## update js dependencies
-	$(NODE_VARS) pnpm exec updates -u -f package.json
+	pnpm exec updates -u -f package.json
 	rm -rf node_modules pnpm-lock.yaml
-	$(NODE_VARS) pnpm install
-	$(NODE_VARS) pnpm exec nolyfill install
-	$(NODE_VARS) pnpm install
+	pnpm install
+	pnpm exec nolyfill install
+	pnpm install
 	@touch node_modules
 
 .PHONY: update-py
 update-py: node_modules ## update py dependencies
-	$(NODE_VARS) pnpm exec updates -u -f pyproject.toml
+	pnpm exec updates -u -f pyproject.toml
 	rm -rf .venv uv.lock
 	uv sync
 	@touch .venv
@@ -782,7 +773,7 @@ $(FRONTEND_DEST): $(FRONTEND_SOURCES) $(FRONTEND_CONFIGS) pnpm-lock.yaml
 	@$(MAKE) -s node_modules
 	@rm -rf $(FRONTEND_DEST_ENTRIES)
 	@echo "Running vite build..."
-	@$(NODE_VARS) pnpm exec vite build
+	@pnpm exec vite build
 	@touch $(FRONTEND_DEST)
 
 .PHONY: svg
@@ -802,7 +793,7 @@ svg-check: svg
 
 .PHONY: lockfile-check
 lockfile-check:
-	$(NODE_VARS) pnpm install --frozen-lockfile
+	pnpm install --frozen-lockfile
 	@diff=$$(git diff --color=always pnpm-lock.yaml); \
 	if [ -n "$$diff" ]; then \
 		echo "pnpm-lock.yaml is inconsistent with package.json"; \
