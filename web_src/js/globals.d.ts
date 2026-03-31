@@ -61,12 +61,7 @@ interface Window {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
-  codeEditors: any[], // export editor for customization
   localUserSettings: typeof import('./modules/user-settings.ts').localUserSettings,
-
-  MonacoEnvironment?: {
-    getWorker: (workerId: string, label: string) => Worker,
-  },
 
   // various captcha plugins
   grecaptcha: any,

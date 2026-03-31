@@ -14,7 +14,7 @@ export default defineConfig({
     timeout,
   },
   use: {
-    baseURL: env.GITEA_TEST_E2E_URL?.replace?.(/\/$/g, ''),
+    baseURL: env.GITEA_TEST_E2E_URL?.replace?.(/\/$/, ''),
     locale: 'en-US',
     actionTimeout: timeout,
     navigationTimeout: 2 * timeout,

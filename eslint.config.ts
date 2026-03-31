@@ -329,7 +329,7 @@ export default defineConfig([
       'github/no-innerText': [2],
       'github/no-then': [2],
       'github/no-useless-passive': [2],
-      'github/prefer-observers': [2],
+      'github/prefer-observers': [0],
       'github/require-passive-events': [2],
       'github/unescaped-html-literal': [2],
       'grouped-accessor-pairs': [2],
@@ -1013,7 +1013,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['*', 'tools/**/*'],
+    files: ['*', 'tools/**/*', 'tests/**/*'],
     languageOptions: {globals: globals.nodeBuiltin},
   },
   {
