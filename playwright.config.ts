@@ -1,6 +1,7 @@
 import {env} from 'node:process';
 import {defineConfig, devices} from '@playwright/test';
 import {timeoutFactor} from './tests/e2e/utils.ts';
+
 const timeout = 5000 * timeoutFactor;
 
 export default defineConfig({
