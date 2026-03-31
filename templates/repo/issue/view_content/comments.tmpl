@@ -102,10 +102,7 @@
 				{{if and (eq .Type 39) (not .Issue.IsPull)}}
 					{{$closeReason = .CloseReasonForDisplay}}
 					{{if or (eq $closeReason "duplicate") (eq $closeReason "not_planned")}}
-						{{$closeBadgeClass = "badge issue-close-reason-badge-neutral"}}
 						{{$closeBadgeIcon = "octicon-skip"}}
-					{{else}}
-						{{$closeBadgeClass = "badge issue-close-reason-badge-completed"}}
 					{{end}}
 				{{end}}
 				<span class="{{$closeBadgeClass}}">{{svg $closeBadgeIcon}}</span>

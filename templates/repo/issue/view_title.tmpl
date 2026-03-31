@@ -48,16 +48,13 @@
 			{{if not .Issue.IsPull}}
 				{{$reasonText := ""}}
 				{{$closeReason := .Issue.CloseReasonForDisplay}}
-				{{$statusLabelClass = "ui label issue-state-label issue-state-label-closed-completed"}}
 				{{if eq $closeReason "completed"}}
 					{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.completed")}}
 				{{else if eq $closeReason "not_planned"}}
 					{{$statusIcon = "octicon-skip"}}
-					{{$statusLabelClass = "ui label issue-state-label issue-state-label-closed-neutral"}}
 					{{$reasonText = ctx.Locale.Tr "repo.issues.close_reason.closed_as" (ctx.Locale.Tr "repo.issues.close_reason.not_planned")}}
 				{{else if eq $closeReason "duplicate"}}
 					{{$statusIcon = "octicon-skip"}}
-					{{$statusLabelClass = "ui label issue-state-label issue-state-label-closed-neutral"}}
 					{{$dupIdx := .Issue.CloseReasonDuplicateIssueIndex}}
 					{{if gt $dupIdx 0}}
 						{{$dupLink := HTMLFormat `<a href="%s/issues/%d">#%d</a>` $.RepoLink $dupIdx $dupIdx}}
