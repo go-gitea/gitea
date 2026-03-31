@@ -45,17 +45,17 @@ export type CodemirrorModules = Awaited<ReturnType<typeof importCodemirror>>;
 
 async function importCodemirror() {
   const [autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap] = await Promise.all([
-    import(/* webpackChunkName: "codemirror" */ '@codemirror/autocomplete'),
-    import(/* webpackChunkName: "codemirror" */ '@codemirror/commands'),
-    import(/* webpackChunkName: "codemirror" */ '@codemirror/language'),
-    import(/* webpackChunkName: "codemirror" */ '@codemirror/language-data'),
-    import(/* webpackChunkName: "codemirror" */ '@codemirror/lint'),
-    import(/* webpackChunkName: "codemirror" */ '@codemirror/search'),
-    import(/* webpackChunkName: "codemirror" */ '@codemirror/state'),
-    import(/* webpackChunkName: "codemirror" */ '@codemirror/view'),
-    import(/* webpackChunkName: "codemirror" */ '@lezer/highlight'),
-    import(/* webpackChunkName: "codemirror" */ '@replit/codemirror-indentation-markers'),
-    import(/* webpackChunkName: "codemirror" */ '@replit/codemirror-vscode-keymap'),
+    import('@codemirror/autocomplete'),
+    import('@codemirror/commands'),
+    import('@codemirror/language'),
+    import('@codemirror/language-data'),
+    import('@codemirror/lint'),
+    import('@codemirror/search'),
+    import('@codemirror/state'),
+    import('@codemirror/view'),
+    import('@lezer/highlight'),
+    import('@replit/codemirror-indentation-markers'),
+    import('@replit/codemirror-vscode-keymap'),
   ]);
   return {autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap};
 }

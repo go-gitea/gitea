@@ -3,7 +3,7 @@ import type {Extension} from '@codemirror/state';
 
 /** Creates a linter for JSON files using `jsonParseLinter` from `@codemirror/lang-json`. */
 export async function createJsonLinter(cm: CodemirrorModules): Promise<Extension> {
-  const {jsonParseLinter} = await import(/* webpackChunkName: "codemirror" */ '@codemirror/lang-json');
+  const {jsonParseLinter} = await import('@codemirror/lang-json');
   const baseLinter = jsonParseLinter();
   return cm.lint.linter((view) => {
     return baseLinter(view).map((d) => {
