@@ -109,6 +109,10 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       load: async () => new cm.language.LanguageSupport(cm.language.StreamLanguage.define((await import('@codemirror/legacy-modes/mode/shell')).shell)),
     }),
     cm.language.LanguageDescription.of({
+      name: 'Dotenv', extensions: ['env'], filename: /^\.env(\..*)?$/,
+      load: async () => new cm.language.LanguageSupport(cm.language.StreamLanguage.define((await import('@codemirror/legacy-modes/mode/shell')).shell)),
+    }),
+    cm.language.LanguageDescription.of({
       name: 'JSON5', extensions: ['json5', 'jsonc'],
       load: async () => (await import('@codemirror/lang-json')).json(),
     }),
