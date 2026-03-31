@@ -26,7 +26,8 @@
 		</div>
 		{{if eq .Team.LowerName "owners"}}
 			<div class="item">
-				{{ctx.Locale.Tr "org.teams.owners_permission_desc"}}
+				<p>{{ctx.Locale.Tr "org.teams.owners_permission_desc"}}</p>
+				<p>{{ctx.Locale.Tr "org.teams.owners_permission_suggestion"}}</p>
 			</div>
 		{{else}}
 			<div class="item">

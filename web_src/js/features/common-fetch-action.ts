@@ -153,6 +153,7 @@ async function onLinkActionClick(el: HTMLElement, e: Event) {
     return;
   }
 
+  hideToastsAll();
   if (await confirmModal(elModal)) {
     await doRequest();
   }
