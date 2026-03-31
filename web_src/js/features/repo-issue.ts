@@ -516,6 +516,7 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
   const closeReasonParamHidden = document.querySelector<HTMLInputElement>('#close-reason-param-hidden');
   const closeReasonDropdownBtn = document.querySelector<HTMLElement>('#close-reason-dropdown-btn');
   const closeReasonMenu = document.querySelector<HTMLElement>('#close-reason-menu');
+  const closeReasonCompletedItem = closeReasonMenu?.querySelector<HTMLElement>('.item[data-reason="completed"]');
   const closeReasonAnsweredItem = document.querySelector<HTMLElement>('#close-reason-answered-item');
   const issueCommentForm = document.querySelector<HTMLFormElement>('#comment-form') ?? commentForm;
   const duplicateModal = document.querySelector<HTMLDialogElement>('#close-reason-duplicate-modal');
@@ -541,6 +542,16 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
     statusButtonIcon.innerHTML = svg(iconName);
   };
 
+  const setCloseReasonMenuSelection = (reason: string) => {
+    if (!closeReasonMenu) return;
+    const selectedReason = reason || 'completed';
+    for (const item of closeReasonMenu.querySelectorAll<HTMLElement>('.item')) {
+      const isSelected = item.getAttribute('data-reason') === selectedReason;
+      item.classList.toggle('is-selected', isSelected);
+      item.setAttribute('aria-selected', String(isSelected));
+    }
+  };
+
   const syncUiState = () => {
     const editorText = editor.value().trim(), isUploading = editor.isUploading();
     if (statusButton) {
@@ -551,13 +562,11 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
     if (closeReasonAnsweredItem) {
       toggleElem(closeReasonAnsweredItem, editorText.length > 0);
       if (editorText.length === 0 && closeReasonHidden?.value === 'answered') {
-        if (closeReasonHidden) closeReasonHidden.value = '';
-        if (closeReasonParamHidden) closeReasonParamHidden.value = '';
-        if (statusButton) {
-          statusButton.setAttribute('data-status', defaultStatusText);
-          statusButton.setAttribute('data-status-and-comment', defaultStatusAndCommentText);
-        }
-        setStatusButtonIcon(defaultStatusIcon);
+        const completedNoCommentText = closeReasonCompletedItem?.getAttribute('data-text-no-comment') ?? defaultStatusText;
+        const completedWithCommentText = closeReasonCompletedItem?.getAttribute('data-text-with-comment') ?? defaultStatusAndCommentText;
+        const completedIcon = getCloseReasonIcon(closeReasonCompletedItem ?? null);
+        applyCloseReasonState('completed', completedNoCommentText, completedWithCommentText, '', completedIcon);
+        return;
       }
     }
     if (commentButton) {
@@ -565,7 +574,7 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
     }
   };
 
-  const applyCloseReasonState = (reason: string, noCommentText: string, withCommentText: string, reasonParam = '', icon = defaultStatusIcon) => {
+  function applyCloseReasonState(reason: string, noCommentText: string, withCommentText: string, reasonParam = '', icon = defaultStatusIcon) {
     if (closeReasonHidden) closeReasonHidden.value = reason;
     if (closeReasonParamHidden) closeReasonParamHidden.value = reasonParam;
     if (statusButton) {
@@ -573,12 +582,13 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
       statusButton.setAttribute('data-status-and-comment', withCommentText);
     }
     setStatusButtonIcon(icon);
+    setCloseReasonMenuSelection(reason);
     syncUiState();
-  };
+  }
 
-  const getCloseReasonIcon = (element: Element | null): SvgName => {
+  function getCloseReasonIcon(element: Element | null): SvgName {
     return (element?.getAttribute('data-icon') ?? defaultStatusIcon) as SvgName;
-  };
+  }
 
   const normalizeIssueIndex = (value: string): number => {
     const m = /^#?(\d+)$/.exec(value.trim());
@@ -781,6 +791,7 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
 
   editor.container.addEventListener(ComboMarkdownEditor.EventUploadStateChanged, syncUiState);
   editor.container.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, syncUiState);
+  setCloseReasonMenuSelection(closeReasonHidden?.value || 'completed');
   syncUiState();
 }
 

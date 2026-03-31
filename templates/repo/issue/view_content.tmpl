@@ -113,31 +113,47 @@
 													<div class="ui dropdown icon button" id="close-reason-dropdown-btn">
 														{{svg "octicon-triangle-down" 14}}
 														<div class="menu" id="close-reason-menu">
-															<div class="item" data-reason="completed" data-icon="octicon-issue-closed"
+															<div class="item is-selected" data-reason="completed" data-icon="octicon-issue-closed"
 																data-text-no-comment="{{ctx.Locale.Tr "repo.issues.close_reason.completed_action"}}"
 																data-text-with-comment="{{ctx.Locale.Tr "repo.issues.close_reason.completed_action_with_comment"}}">
-																{{svg "octicon-issue-closed"}}
-																{{ctx.Locale.Tr "repo.issues.close_reason.completed"}}
+																<span class="close-reason-menu-item-check">{{svg "octicon-check" 14}}</span>
+																<span class="close-reason-menu-item-icon">{{svg "octicon-issue-closed"}}</span>
+																<span class="close-reason-menu-item-content">
+																	<span class="close-reason-menu-item-title">{{ctx.Locale.Tr "repo.issues.close_reason.completed_action"}}</span>
+																	<span class="close-reason-menu-item-desc">{{ctx.Locale.Tr "repo.issues.close_reason.completed_desc"}}</span>
+																</span>
 															</div>
 															<div class="item" data-reason="not_planned" data-icon="octicon-skip"
 																data-text-no-comment="{{ctx.Locale.Tr "repo.issues.close_reason.not_planned_action"}}"
 																data-text-with-comment="{{ctx.Locale.Tr "repo.issues.close_reason.not_planned_action_with_comment"}}">
-																{{svg "octicon-skip"}}
-																{{ctx.Locale.Tr "repo.issues.close_reason.not_planned"}}
+																<span class="close-reason-menu-item-check">{{svg "octicon-check" 14}}</span>
+																<span class="close-reason-menu-item-icon">{{svg "octicon-skip"}}</span>
+																<span class="close-reason-menu-item-content">
+																	<span class="close-reason-menu-item-title">{{ctx.Locale.Tr "repo.issues.close_reason.not_planned_action"}}</span>
+																	<span class="close-reason-menu-item-desc">{{ctx.Locale.Tr "repo.issues.close_reason.not_planned_desc"}}</span>
+																</span>
 															</div>
 															<div class="item" data-reason="duplicate" data-icon="octicon-skip"
 																data-text-no-comment="{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_action"}}"
 																data-text-with-comment="{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_action_with_comment"}}"
 																data-text-no-comment-template="{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_action_of" "__INDEX__"}}"
 																data-text-with-comment-template="{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_action_of_with_comment" "__INDEX__"}}">
-																{{svg "octicon-skip"}}
-																{{ctx.Locale.Tr "repo.issues.close_reason.duplicate"}}
+																<span class="close-reason-menu-item-check">{{svg "octicon-check" 14}}</span>
+																<span class="close-reason-menu-item-icon">{{svg "octicon-skip"}}</span>
+																<span class="close-reason-menu-item-content">
+																	<span class="close-reason-menu-item-title">{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_action_label"}}</span>
+																	<span class="close-reason-menu-item-desc">{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_desc"}}</span>
+																</span>
 															</div>
 															<div class="item" id="close-reason-answered-item" data-reason="answered" data-icon="octicon-issue-closed" data-requires-comment="true"
 																data-text-no-comment="{{ctx.Locale.Tr "repo.issues.close_reason.answered_action"}}"
 																data-text-with-comment="{{ctx.Locale.Tr "repo.issues.close_reason.answered_action_with_comment"}}">
-																{{svg "octicon-issue-closed"}}
-																{{ctx.Locale.Tr "repo.issues.close_reason.answered"}}
+																<span class="close-reason-menu-item-check">{{svg "octicon-check" 14}}</span>
+																<span class="close-reason-menu-item-icon">{{svg "octicon-issue-closed"}}</span>
+																<span class="close-reason-menu-item-content">
+																	<span class="close-reason-menu-item-title">{{ctx.Locale.Tr "repo.issues.close_reason.answered_action"}}</span>
+																	<span class="close-reason-menu-item-desc">{{ctx.Locale.Tr "repo.issues.close_reason.answered_desc"}}</span>
+																</span>
 															</div>
 														</div>
 													</div>
