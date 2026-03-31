@@ -1,8 +1,5 @@
-import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiDeleteUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch} from './utils.ts';
-
-const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
+import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiDeleteUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, timeoutFactor} from './utils.ts';
 
 // These tests rely on a short EVENT_SOURCE_UPDATE_TIME in the e2e server config.
 test.describe('events', () => {
