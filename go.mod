@@ -112,12 +112,12 @@ require (
 	github.com/yuin/goldmark-meta v1.1.0
 	gitlab.com/gitlab-org/api/client-go v0.142.4
 	go.yaml.in/yaml/v4 v4.0.0-rc.3
-	golang.org/x/crypto v0.48.0
+	golang.org/x/crypto v0.49.0
 	golang.org/x/image v0.38.0
-	golang.org/x/net v0.50.0
+	golang.org/x/net v0.52.0
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/sync v0.20.0
-	golang.org/x/sys v0.41.0
+	golang.org/x/sys v0.42.0
 	golang.org/x/text v0.35.0
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
