@@ -88,10 +88,18 @@ GITEA_TEST_E2E_EMAIL="$GITEA_TEST_E2E_USER@$GITEA_TEST_E2E_DOMAIN"
   --must-change-password=false \
   --admin
 
+# timeout multiplier, CI runners are slower
+if [ -n "${CI:-}" ]; then
+  GITEA_TEST_E2E_FACTOR=3
+else
+  GITEA_TEST_E2E_FACTOR=1
+fi
+
 export GITEA_TEST_E2E_URL="$E2E_URL"
 export GITEA_TEST_E2E_DOMAIN
 export GITEA_TEST_E2E_USER
 export GITEA_TEST_E2E_PASSWORD
 export GITEA_TEST_E2E_EMAIL
+export GITEA_TEST_E2E_FACTOR
 
 pnpm exec playwright test "$@"

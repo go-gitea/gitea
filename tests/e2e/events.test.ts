@@ -1,5 +1,8 @@
+import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiDeleteUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch} from './utils.ts';
+
+const factor = Number(env.GITEA_TEST_E2E_FACTOR) || 1;
 
 // These tests rely on a short EVENT_SOURCE_UPDATE_TIME in the e2e server config.
 test.describe('events', () => {
@@ -23,7 +26,7 @@ test.describe('events', () => {
     await apiCreateIssue(request, owner, repoName, {title: 'events notification test', headers: apiUserHeaders(commenter)});
 
     // Wait for the notification badge to appear via server event
-    await expect(badge).toBeVisible();
+    await expect(badge).toBeVisible({timeout: 15000 * factor});
 
     // Cleanup
     await Promise.all([apiDeleteUser(request, commenter), apiDeleteUser(request, owner)]);
