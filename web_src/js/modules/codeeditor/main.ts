@@ -127,6 +127,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
     textarea.parentNode!.append(container);
   }
 
+  const loadedLang = matchedLang ? await matchedLang.load() : null;
   const wordWrap = new cm.state.Compartment();
   const language = new cm.state.Compartment();
   const tabSize = new cm.state.Compartment();
@@ -150,7 +151,6 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
     parent: container,
     extensions: [
       cm.view.lineNumbers(),
-      cm.lint.lintGutter(),
       cm.language.codeFolding({
         placeholderDOM(_view: EditorView, onclick: (event: Event) => void) {
           const el = createElementFromHTML(html`<span class="cm-foldPlaceholder">${htmlRaw(svg('octicon-kebab-horizontal', 13))}</span>`);
@@ -215,8 +215,8 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       clickableUrls(cm),
       tabSize.of(cm.state.EditorState.tabSize.of(config.tabWidth || 4)),
       wordWrap.of(config.lineWrap ? cm.view.EditorView.lineWrapping : []),
-      language.of(matchedLang ? await matchedLang.load() : []),
-      lintComp.of(await getLinterExtension(cm, config.filename, matchedLang)),
+      language.of(loadedLang ?? []),
+      lintComp.of(await getLinterExtension(cm, config.filename, loadedLang)),
       cm.view.EditorView.updateListener.of((update: ViewUpdate) => {
         if (update.docChanged) {
           textarea.value = update.state.doc.toString();
@@ -294,21 +294,21 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
 // files that are JSONC despite having a .json extension
 const jsoncFilesRegex = /^([jt]sconfig.*|devcontainer)\.json$/;
 
-async function getLinterExtension(cm: CodemirrorModules, filename: string, matchedLang: LanguageDescription | null): Promise<Extension> {
+async function getLinterExtension(cm: CodemirrorModules, filename: string, loadedLang: {language: unknown} | null): Promise<Extension> {
   const ext = extname(filename).toLowerCase();
   if (ext === '.json' || ext === '.map') {
-    return jsoncFilesRegex.test(filename) ? [] : createJsonLinter(cm);
+    return jsoncFilesRegex.test(filename) ? [] : [cm.lint.lintGutter(), await createJsonLinter(cm)];
   }
-  if (matchedLang) {
-    return createSyntaxErrorLinter(cm);
-  }
-  return [];
+  // StreamLanguage (legacy modes) don't produce Lezer error nodes
+  if (!loadedLang || loadedLang.language instanceof cm.language.StreamLanguage) return [];
+  return [cm.lint.lintGutter(), createSyntaxErrorLinter(cm)];
 }
 
 async function updateEditorLanguage(cm: CodemirrorModules, editor: CodemirrorEditor, filename: string, lineWrapExts: string[]): Promise<void> {
   const {compartments, view, languages: editorLanguages} = editor;
 
   const newLanguage = cm.language.LanguageDescription.matchFilename(editorLanguages, filename);
+  const newLoadedLang = newLanguage ? await newLanguage.load() : null;
   view.dom.closest('.code-editor-container')!.setAttribute('data-language', newLanguage?.name.toLowerCase() || '');
   view.dispatch(
     {
@@ -316,8 +316,8 @@ async function updateEditorLanguage(cm: CodemirrorModules, editor: CodemirrorEdi
         compartments.wordWrap.reconfigure(
           lineWrapExts.includes(extname(filename).toLowerCase()) ? cm.view.EditorView.lineWrapping : [],
         ),
-        compartments.language.reconfigure(newLanguage ? await newLanguage.load() : []),
-        compartments.lint.reconfigure(await getLinterExtension(cm, filename, newLanguage)),
+        compartments.language.reconfigure(newLoadedLang ?? []),
+        compartments.lint.reconfigure(await getLinterExtension(cm, filename, newLoadedLang)),
       ],
     },
     // clear stale diagnostics from the previous language on filename change
