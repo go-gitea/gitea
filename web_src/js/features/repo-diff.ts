@@ -1,6 +1,7 @@
 import {initRepoIssueContentHistory} from './repo-issue-content.ts';
 import {initDiffFileTree} from './repo-diff-filetree.ts';
 import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
+import {initDiffFileExtensionFilter} from './repo-diff-extensionfilter.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initViewedCheckboxListenerFor, initExpandAndCollapseFilesButton} from './pull-view-file.ts';
 import {initImageDiff} from './imagediff.ts';
@@ -281,6 +282,7 @@ export function initRepoDiffView() {
   initRepoDiffConversationNav(); // "previous" and "next" buttons only appear on "diff" page
   initDiffFileTree();
   initDiffCommitSelect();
+  initDiffFileExtensionFilter();
   initRepoDiffShowMore();
   initDiffHeaderPopup();
   initViewedCheckboxListenerFor();
