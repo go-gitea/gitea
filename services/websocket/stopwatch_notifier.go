@@ -19,8 +19,8 @@ import (
 )
 
 type stopwatchesEvent struct {
-	Type string          `json:"type"`
-	Data json.RawMessage `json:"data"`
+	Type string `json:"type"`
+	Data any    `json:"data"`
 }
 
 // PublishEmptyStopwatches immediately pushes an empty stopwatches list to the
@@ -28,7 +28,7 @@ type stopwatchesEvent struct {
 func PublishEmptyStopwatches(userID int64) {
 	msg, err := json.Marshal(stopwatchesEvent{
 		Type: "stopwatches",
-		Data: json.RawMessage(`[]`),
+		Data: []any{},
 	})
 	if err != nil {
 		log.Error("websocket: marshal empty stopwatches: %v", err)
@@ -88,15 +88,9 @@ func runStopwatch(ctx context.Context) {
 					continue
 				}
 
-				dataBs, err := json.Marshal(apiSWs)
-				if err != nil {
-					log.Error("websocket: marshal stopwatches: %v", err)
-					continue
-				}
-
 				msg, err := json.Marshal(stopwatchesEvent{
 					Type: "stopwatches",
-					Data: dataBs,
+					Data: apiSWs,
 				})
 				if err != nil {
 					continue
