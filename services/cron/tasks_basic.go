@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -156,6 +157,16 @@ func registerCleanupPackages() {
 	})
 }
 
+func registerCleanupDeviceAuthorizations() {
+	RegisterTaskFatal("cleanup_device_authorizations", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: false,
+		Schedule:   "@every 24h",
+	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+		return auth_model.DeleteExpiredDeviceAuthorizations(ctx)
+	})
+}
+
 func registerSyncRepoLicenses() {
 	RegisterTaskFatal("sync_repo_licenses", &BaseConfig{
 		Enabled:    false,
@@ -182,5 +193,6 @@ func initBasicTasks() {
 	if setting.Packages.Enabled {
 		registerCleanupPackages()
 	}
+	registerCleanupDeviceAuthorizations()
 	registerSyncRepoLicenses()
 }

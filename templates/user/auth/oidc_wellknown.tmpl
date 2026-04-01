@@ -2,6 +2,7 @@
     "issuer": "{{.OidcIssuer}}",
     "authorization_endpoint": "{{.OidcBaseUrl}}/login/oauth/authorize",
     "token_endpoint": "{{.OidcBaseUrl}}/login/oauth/access_token",
+    "device_authorization_endpoint": "{{.OidcBaseUrl}}/login/oauth/device_authorization",
     "jwks_uri": "{{.OidcBaseUrl}}/login/oauth/keys",
     "userinfo_endpoint": "{{.OidcBaseUrl}}/login/oauth/userinfo",
     "introspection_endpoint": "{{.OidcBaseUrl}}/login/oauth/introspect",
@@ -44,6 +45,7 @@
     ],
     "grant_types_supported": [
         "authorization_code",
+        "urn:ietf:params:oauth:grant-type:device_code",
         "refresh_token"
     ]
 }

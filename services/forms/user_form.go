@@ -176,6 +176,7 @@ type AccessTokenForm struct {
 	ClientSecret string `json:"client_secret"`
 	RedirectURI  string `json:"redirect_uri"`
 	Code         string `json:"code"`
+	DeviceCode   string `json:"device_code"`
 	RefreshToken string `json:"refresh_token"`
 
 	// PKCE support
@@ -184,6 +185,41 @@ type AccessTokenForm struct {
 
 // Validate validates the fields
 func (f *AccessTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// DeviceAuthorizationForm for issuing a device code to a public OAuth client
+type DeviceAuthorizationForm struct {
+	ClientID string `json:"client_id" binding:"Required"`
+	Scope    string `json:"scope"`
+}
+
+// Validate validates the fields
+func (f *DeviceAuthorizationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// DeviceVerificationForm collects the user-facing device code from the browser flow.
+type DeviceVerificationForm struct {
+	UserCode string `form:"user_code"`
+}
+
+// Validate validates the fields
+func (f *DeviceVerificationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// DeviceGrantApplicationForm posts the user's device-flow approve/deny decision.
+type DeviceGrantApplicationForm struct {
+	DeviceAuthorizationID int64 `form:"device_authorization_id" binding:"Required"`
+	Granted               bool  `form:"granted"`
+}
+
+// Validate validates the fields
+func (f *DeviceGrantApplicationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

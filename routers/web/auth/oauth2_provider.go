@@ -175,6 +175,15 @@ func IntrospectOAuth(ctx *context.Context) {
 }
 
 // AuthorizeOAuth manages authorize requests
+// oauthApplicationCreatorLinkHTML returns an HTML link to the application creator's profile
+// or to the site root when the application is owned by the system.
+func oauthApplicationCreatorLinkHTML(user *user_model.User) template.HTML {
+	if user != nil {
+		return template.HTML(fmt.Sprintf(`<a href="%s">@%s</a>`, html.EscapeString(user.HomeLink()), html.EscapeString(user.Name)))
+	}
+	return template.HTML(fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(setting.AppSubURL+"/"), html.EscapeString(setting.AppName)))
+}
+
 func AuthorizeOAuth(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AuthorizationForm)
 	errs := binding.Errors{}
@@ -316,11 +325,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 	ctx.Data["State"] = form.State
 	ctx.Data["Scope"] = form.Scope
 	ctx.Data["Nonce"] = form.Nonce
-	if user != nil {
-		ctx.Data["ApplicationCreatorLinkHTML"] = template.HTML(fmt.Sprintf(`<a href="%s">@%s</a>`, html.EscapeString(user.HomeLink()), html.EscapeString(user.Name)))
-	} else {
-		ctx.Data["ApplicationCreatorLinkHTML"] = template.HTML(fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(setting.AppSubURL+"/"), html.EscapeString(setting.AppName)))
-	}
+	ctx.Data["ApplicationCreatorLinkHTML"] = oauthApplicationCreatorLinkHTML(user)
 	ctx.Data["ApplicationRedirectDomainHTML"] = template.HTML("<strong>" + html.EscapeString(form.RedirectURI) + "</strong>")
 	// TODO document SESSION <=> FORM
 	err = ctx.Session.Set("client_id", app.ClientID)
@@ -511,10 +516,12 @@ func AccessTokenOAuth(ctx *context.Context) {
 		handleRefreshToken(ctx, form, serverKey, clientKey)
 	case "authorization_code":
 		handleAuthorizationCode(ctx, form, serverKey, clientKey)
+	case "urn:ietf:params:oauth:grant-type:device_code":
+		handleDeviceCode(ctx, form, serverKey, clientKey)
 	default:
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeUnsupportedGrantType,
-			ErrorDescription: "Only refresh_token or authorization_code grant type is supported",
+			ErrorDescription: "Only refresh_token, authorization_code, or device_code grant type is supported",
 		})
 	}
 }

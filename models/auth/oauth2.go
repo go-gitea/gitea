@@ -58,27 +58,31 @@ func init() {
 }
 
 type BuiltinOAuth2Application struct {
-	ConfigName   string
-	DisplayName  string
-	RedirectURIs []string
+	ConfigName         string
+	DisplayName        string
+	RedirectURIs       []string
+	ConfidentialClient bool
 }
 
 func BuiltinApplications() map[string]*BuiltinOAuth2Application {
 	m := make(map[string]*BuiltinOAuth2Application)
 	m["a4792ccc-144e-407e-86c9-5e7d8d9c3269"] = &BuiltinOAuth2Application{
-		ConfigName:   "git-credential-oauth",
-		DisplayName:  "git-credential-oauth",
-		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+		ConfigName:         "git-credential-oauth",
+		DisplayName:        "git-credential-oauth",
+		RedirectURIs:       []string{"http://127.0.0.1", "https://127.0.0.1"},
+		ConfidentialClient: false,
 	}
 	m["e90ee53c-94e2-48ac-9358-a874fb9e0662"] = &BuiltinOAuth2Application{
-		ConfigName:   "git-credential-manager",
-		DisplayName:  "Git Credential Manager",
-		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+		ConfigName:         "git-credential-manager",
+		DisplayName:        "Git Credential Manager",
+		RedirectURIs:       []string{"http://127.0.0.1", "https://127.0.0.1"},
+		ConfidentialClient: false,
 	}
 	m["d57cb8c4-630c-4168-8324-ec79935e18d4"] = &BuiltinOAuth2Application{
-		ConfigName:   "tea",
-		DisplayName:  "tea",
-		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+		ConfigName:         "tea",
+		DisplayName:        "tea",
+		RedirectURIs:       []string{"http://127.0.0.1", "https://127.0.0.1"},
+		ConfidentialClient: false,
 	}
 	return m
 }
@@ -128,9 +132,10 @@ func Init(ctx context.Context) error {
 	for clientID := range clientIDsToAdd {
 		builtinApp := builtinApps[clientID]
 		if err := db.Insert(ctx, &OAuth2Application{
-			Name:         builtinApp.DisplayName,
-			ClientID:     clientID,
-			RedirectURIs: builtinApp.RedirectURIs,
+			Name:               builtinApp.DisplayName,
+			ClientID:           clientID,
+			RedirectURIs:       builtinApp.RedirectURIs,
+			ConfidentialClient: builtinApp.ConfidentialClient,
 		}); err != nil {
 			return err
 		}
@@ -349,6 +354,10 @@ func deleteOAuth2Application(ctx context.Context, id, userid int64) error {
 	}
 
 	if _, err := sess.In("id", codeIDs).Delete(new(OAuth2AuthorizationCode)); err != nil {
+		return err
+	}
+
+	if _, err := sess.Where("application_id = ?", id).Delete(new(OAuth2DeviceAuthorization)); err != nil {
 		return err
 	}
 
@@ -644,6 +653,14 @@ func DeleteOAuth2RelictsByUserID(ctx context.Context, userID int64) error {
 
 	if _, err := db.GetEngine(ctx).In("grant_id", deleteCond).
 		Delete(&OAuth2AuthorizationCode{}); err != nil {
+		return err
+	}
+
+	if _, err := db.GetEngine(ctx).Where(builder.Eq{"user_id": userID}).Delete(&OAuth2DeviceAuthorization{}); err != nil {
+		return err
+	}
+	if _, err := db.GetEngine(ctx).In("application_id", builder.Select("id").From("oauth2_application").Where(builder.Eq{"uid": userID})).
+		Delete(&OAuth2DeviceAuthorization{}); err != nil {
 		return err
 	}
 

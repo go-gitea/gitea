@@ -593,12 +593,16 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("", func() {
 			m.Get("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
 			m.Post("/grant", web.Bind(forms.GrantApplicationForm{}), auth.GrantApplicationOAuth)
+			m.Get("/device", web.Bind(forms.DeviceVerificationForm{}), auth.DeviceVerifyShowOAuth)
+			m.Post("/device", web.Bind(forms.DeviceVerificationForm{}), auth.DeviceVerifyOAuth)
+			m.Post("/device/confirm", web.Bind(forms.DeviceGrantApplicationForm{}), auth.DeviceGrantApplicationOAuth)
 			// TODO manage redirection
 			m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
 		}, reqSignIn)
 
 		m.Group("", func() {
 			m.Methods("GET, POST, OPTIONS", "/userinfo", auth.InfoOAuth)
+			m.Methods("POST, OPTIONS", "/device_authorization", web.Bind(forms.DeviceAuthorizationForm{}), auth.DeviceAuthorizationOAuth)
 			m.Methods("POST, OPTIONS", "/access_token", web.Bind(forms.AccessTokenForm{}), auth.AccessTokenOAuth)
 			m.Methods("GET, OPTIONS", "/keys", auth.OIDCKeys)
 			m.Methods("POST, OPTIONS", "/introspect", web.Bind(forms.IntrospectTokenForm{}), auth.IntrospectOAuth)
