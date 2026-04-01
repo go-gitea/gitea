@@ -15,7 +15,7 @@ type Extension = {
   count: number,
 }
 
-const el = document.querySelector('#diff-extension-filter')!;
+const el = document.querySelector<HTMLElement>('#diff-extension-filter')!;
 const menuVisible = ref(false);
 const extensions = ref<Array<Extension>>([]);
 const isFiltering = ref(false);
