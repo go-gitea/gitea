@@ -8,6 +8,8 @@ import (
 )
 
 // ReviewStateType review state type
+//
+// swagger:enum ReviewStateType
 type ReviewStateType string
 
 const (
@@ -21,9 +23,10 @@ const (
 	ReviewStateRequestChanges ReviewStateType = "REQUEST_CHANGES"
 	// ReviewStateRequestReview review is requested from user
 	ReviewStateRequestReview ReviewStateType = "REQUEST_REVIEW"
-	// ReviewStateUnknown state of pr is unknown
-	ReviewStateUnknown ReviewStateType = ""
 )
+
+// ReviewStateUnknown is an internal sentinel for unknown review state, not a valid API value.
+const ReviewStateUnknown = ""
 
 // PullReview represents a pull request review
 type PullReview struct {

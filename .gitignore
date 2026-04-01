@@ -79,6 +79,7 @@ cpu.out
 /yarn-error.log
 /npm-debug.log*
 /.pnpm-store
+/public/assets/.vite
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
@@ -87,8 +88,6 @@ cpu.out
 /VERSION
 /.air
 
-# Files and folders that were previously generated
-/public/assets/img/webpack
 
 # Snapcraft
 /gitea_a*.txt

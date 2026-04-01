@@ -2,7 +2,7 @@
 // even if backend is in testing mode, frontend could be complied in production mode
 // so this function only checks if the frontend is in unit testing mode (usually from *.test.ts files)
 export function isInFrontendUnitTest() {
-  return import.meta.env.TEST === 'true';
+  return import.meta.env.MODE === 'test';
 }
 
 /** strip common indentation from a string and trim it */

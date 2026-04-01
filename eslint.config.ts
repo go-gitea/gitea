@@ -329,7 +329,7 @@ export default defineConfig([
       'github/no-innerText': [2],
       'github/no-then': [2],
       'github/no-useless-passive': [2],
-      'github/prefer-observers': [2],
+      'github/prefer-observers': [0],
       'github/require-passive-events': [2],
       'github/unescaped-html-literal': [2],
       'grouped-accessor-pairs': [2],
@@ -572,7 +572,11 @@ export default defineConfig([
       'no-restricted-exports': [0],
       'no-restricted-globals': [2, ...restrictedGlobals],
       'no-restricted-properties': [2, ...restrictedProperties],
-      'no-restricted-imports': [0],
+      'no-restricted-imports': [2, {paths: [
+        {name: 'jquery', message: 'Use the global $ instead', allowTypeImports: true},
+        {name: 'htmx.org', message: 'Use the global htmx instead', allowTypeImports: true},
+        {name: 'idiomorph/htmx', message: 'Loaded in globals.ts', allowTypeImports: true},
+      ]}],
       'no-restricted-syntax': [2, 'WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression'],
       'no-return-assign': [0],
       'no-script-url': [2],
@@ -1009,11 +1013,11 @@ export default defineConfig([
     },
   },
   {
-    files: ['*', 'tools/**/*'],
+    files: ['*', 'tools/**/*', 'tests/**/*'],
     languageOptions: {globals: globals.nodeBuiltin},
   },
   {
     files: ['web_src/**/*'],
-    languageOptions: {globals: {...globals.browser, ...globals.webpack}},
+    languageOptions: {globals: {...globals.browser, ...globals.jquery, htmx: false}},
   },
 ]);
