@@ -97,15 +97,34 @@ func TestWebAuthOAuth2(t *testing.T) {
 	})
 
 	t.Run("RedirectSingleProvider", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, false)()
-		defer test.MockVariableValue(&setting.Service.EnableOpenIDSignIn, false)()
-		defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, false)()
+		enablePassword := &setting.Service.EnablePasswordSignInForm
+		enableOpenID := &setting.Service.EnableOpenIDSignIn
+		enablePasskey := &setting.Service.EnablePasskeyAuth
+		defer test.MockVariableValue(enablePassword, false)()
+		defer test.MockVariableValue(enableOpenID, false)()
+		defer test.MockVariableValue(enablePasskey, false)()
 
-		ctx, resp := contexttest.MockContext(t, "/user/login?redirect_to=/other")
-		SignIn(ctx)
-		assert.Equal(t, http.StatusSeeOther, resp.Code)
-		expectedURL := "/user/oauth2/dummy-auth-source?redirect_to=" + url.QueryEscape("/other")
-		assert.Equal(t, expectedURL, test.RedirectURL(resp))
+		testSignIn := func(t *testing.T, link string, expectedCode int, expectedRedirect string) {
+			ctx, resp := contexttest.MockContext(t, link)
+			SignIn(ctx)
+			assert.Equal(t, expectedCode, resp.Code)
+			if expectedCode == http.StatusSeeOther {
+				assert.Equal(t, expectedRedirect, test.RedirectURL(resp))
+			}
+		}
+		testSignIn(t, "/user/login", http.StatusSeeOther, "/user/oauth2/dummy-auth-source")
+		testSignIn(t, "/user/login?redirect_to=/", http.StatusSeeOther, "/user/oauth2/dummy-auth-source?redirect_to=%2F")
+
+		*enablePassword, *enableOpenID, *enablePasskey = true, false, false
+		testSignIn(t, "/user/login", http.StatusOK, "")
+		*enablePassword, *enableOpenID, *enablePasskey = false, true, false
+		testSignIn(t, "/user/login", http.StatusOK, "")
+		*enablePassword, *enableOpenID, *enablePasskey = false, false, true
+		testSignIn(t, "/user/login", http.StatusOK, "")
+
+		*enablePassword, *enableOpenID, *enablePasskey = false, false, false
+		addOAuth2Source(t, "dummy-auth-source-2", oauth2.Source{})
+		testSignIn(t, "/user/login", http.StatusOK, "")
 	})
 
 	t.Run("OIDCLogout", func(t *testing.T) {

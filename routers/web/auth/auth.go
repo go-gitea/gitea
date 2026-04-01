@@ -218,31 +218,50 @@ func performAutoLogin(ctx *context.Context) bool {
 	return false
 }
 
-func performAutoLoginOAuth2(ctx *context.Context) bool {
-	providers, ok := ctx.Data["OAuth2Providers"].([]oauth2.Provider)
-	if ok && len(providers) == 1 {
-		skipToOAuthURL := setting.AppSubURL + "/user/oauth2/" + url.PathEscape(providers[0].DisplayName())
-		if redirectTo := ctx.FormString("redirect_to"); redirectTo != "" {
-			skipToOAuthURL += "?" + url.Values{"redirect_to": []string{redirectTo}}.Encode()
-		}
-		ctx.Redirect(skipToOAuthURL)
-		return true
+func performAutoLoginOAuth2(ctx *context.Context, data *preparedSignInData) bool {
+	// If only 1 OAuth provider is present and other login methods are disabled, redirect to the OAuth provider.
+	onlySingleOAuth2 := len(data.oauth2Providers) == 1 &&
+		!setting.Service.EnablePasswordSignInForm &&
+		!setting.Service.EnableOpenIDSignIn &&
+		!setting.Service.EnablePasskeyAuth &&
+		!data.enableSSPI
+
+	if !onlySingleOAuth2 {
+		return false
 	}
-	return false
+
+	skipToOAuthURL := setting.AppSubURL + "/user/oauth2/" + url.QueryEscape(data.oauth2Providers[0].DisplayName())
+	if redirectTo := ctx.FormString("redirect_to"); redirectTo != "" {
+		skipToOAuthURL += "?redirect_to=" + url.QueryEscape(redirectTo)
+	}
+	ctx.Redirect(skipToOAuthURL)
+	return true
 }
 
-func prepareSignInPageData(ctx *context.Context) {
+type preparedSignInData struct {
+	oauth2Providers []oauth2.Provider
+	enableSSPI      bool
+}
+
+func prepareSignInPageData(ctx *context.Context) (ret preparedSignInData) {
+	var err error
+	ret.enableSSPI = auth.IsSSPIEnabled(ctx)
+	ret.oauth2Providers, err = oauth2.GetOAuth2Providers(ctx, optional.Some(true))
+	if err != nil {
+		log.Error("Failed to get OAuth2 providers: %v", err)
+	}
 	ctx.Data["Title"] = ctx.Tr("sign_in")
-	ctx.Data["OAuth2Providers"], _ = oauth2.GetOAuth2Providers(ctx, optional.Some(true))
+	ctx.Data["OAuth2Providers"] = ret.oauth2Providers
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
-	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
+	ctx.Data["EnableSSPI"] = ret.enableSSPI
 
 	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin,
 	})
+	return ret
 }
 
 // SignIn render sign in page
@@ -254,20 +273,10 @@ func SignIn(ctx *context.Context) {
 		redirectAfterAuth(ctx)
 		return
 	}
-	prepareSignInPageData(ctx)
-
-	enableSSPI, _ := ctx.Data["EnableSSPI"].(bool)
-
-	// If only 1 OAuth provider is present and other login methods are disabled, redirect to the OAuth provider.
-	if !setting.Service.EnablePasswordSignInForm &&
-		!setting.Service.EnableOpenIDSignIn &&
-		!setting.Service.EnablePasskeyAuth &&
-		!enableSSPI {
-		if performAutoLoginOAuth2(ctx) {
-			return
-		}
+	data := prepareSignInPageData(ctx)
+	if performAutoLoginOAuth2(ctx, &data) {
+		return
 	}
-
 	ctx.HTML(http.StatusOK, tplSignIn)
 }
 
