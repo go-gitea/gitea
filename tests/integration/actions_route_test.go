@@ -181,11 +181,11 @@ func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 		assert.Equal(t, idBasedURL, indexBasedURL)
 		// When both interpretations are valid, prefer the ID-based target by default.
 		req := NewRequest(t, "GET", indexBasedURL)
-		resp := user2Session.MakeRequest(t, req, http.StatusOK)
+		user2Session.MakeRequest(t, req, http.StatusOK)
 		redirectURL := fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, ambiguousLegacyRun.ID, ambiguousLegacyJob.ID)
 		// by_index=1 should explicitly force the legacy run/job index interpretation.
 		req = NewRequest(t, "GET", indexBasedURL+"?by_index=1")
-		resp = user2Session.MakeRequest(t, req, http.StatusFound)
+		resp := user2Session.MakeRequest(t, req, http.StatusFound)
 		assert.Equal(t, redirectURL, resp.Header().Get("Location"))
 
 		// legacy job index 0 should redirect to the first job's ID
