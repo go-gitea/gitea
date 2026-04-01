@@ -372,11 +372,11 @@ onUnmounted(() => {
     margin: 0;
   }
 
-  .ui.dropdown.diff-file-extension-filter .grouped.fields > .field {
+  .ui.dropdown.diff-file-extension-filter .grouped.fields > div > .field {
     margin-bottom: 0.5rem;
   }
 
-  .ui.dropdown.diff-file-extension-filter .grouped.fields > .field:last-child {
+  .ui.dropdown.diff-file-extension-filter .grouped.fields > div > .field:last-child {
     margin-bottom: 0;
   }
 
