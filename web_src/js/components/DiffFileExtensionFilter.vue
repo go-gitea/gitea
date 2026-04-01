@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {ref, onMounted, onUnmounted, useTemplateRef, type ShallowRef} from 'vue';
+import {ref, computed, onMounted, onUnmounted} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {generateElemId} from '../utils/dom.ts';
 
@@ -20,7 +20,7 @@ const menuVisible = ref(false);
 const extensions = ref<Array<Extension>>([]);
 const isFiltering = ref(false);
 const appliedExtensions = ref<Array<string> | null>(null);
-const expandBtn = useTemplateRef('expandBtn') as Readonly<ShallowRef<HTMLButtonElement>>;
+const searchQuery = ref('');
 const mutationObserver = ref<MutationObserver | null>(null);
 const uniqueIdMenu = generateElemId('diff-extension-filter-menu-');
 const locale = {
@@ -28,7 +28,20 @@ const locale = {
   select_all: el.getAttribute('data-select_all') ?? 'Select all',
   deselect_all: el.getAttribute('data-deselect_all') ?? 'Deselect all',
   apply: el.getAttribute('data-apply') ?? 'Apply',
+  search: el.getAttribute('data-search') ?? 'Search extensions...',
 } as Record<string, string>;
+
+/**
+ * Filter extensions based on search query
+ * Matches against extension name (e.g., ".ts", ".go")
+ */
+const filteredExtensions = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return extensions.value;
+  }
+  const query = searchQuery.value.toLowerCase();
+  return extensions.value.filter((ext) => ext.ext.toLowerCase().includes(query));
+});
 
 /**
  * Extract file extension from filename
@@ -124,18 +137,17 @@ function focusElem(elem: HTMLElement | null, prevElem: HTMLElement | null) {
 
 /**
  * Toggle dropdown menu visibility
- * Rescans extensions when opening, optionally restores focus to button when closing
- * @param refocus Whether to refocus the expand button when closing (default: true)
+ * Rescans extensions when opening, clears search when closing
  */
-function toggleMenu(refocus = true) {
+function toggleMenu() {
   menuVisible.value = !menuVisible.value;
   if (menuVisible.value) {
+    searchQuery.value = '';
     scanExtensions();
-  } else if (refocus) {
-    if (expandBtn.value) {
-      expandBtn.value.tabIndex = 0;
-      expandBtn.value.focus();
-    }
+    setTimeout(() => {
+      const searchInput = el.querySelector('.diff-ext-search-input') as HTMLInputElement;
+      if (searchInput) searchInput.focus();
+    }, 0);
   }
 }
 
@@ -274,7 +286,6 @@ onUnmounted(() => {
 <template>
   <div class="ui scrolling dropdown custom diff-file-extension-filter">
     <button
-      ref="expandBtn"
       class="ui tiny basic button"
       :class="{'diff-ext-filter-btn-active': isFiltering}"
       @click="toggleMenu()"
@@ -289,10 +300,23 @@ onUnmounted(() => {
     <div class="left menu transition" :id="uniqueIdMenu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
       <div class="header">{{ locale.filter_by_file_extension }}</div>
       <div class="ui divider tw-mt-2 tw-mb-0"/>
+      <!-- Search input -->
+      <div class="ui form tw-mb-2">
+        <div class="ui input fluid field tw-mb-0">
+          <input
+            type="text"
+            v-model="searchQuery"
+            class="diff-ext-search-input"
+            :placeholder="locale.search"
+            @keydown.escape="toggleMenu()"
+          />
+        </div>
+      </div>
+      <div class="ui divider tw-mt-2 tw-mb-0"/>
       <div class="ui form">
         <!-- Extension checkboxes -->
         <div class="grouped fields">
-          <template v-for="ext in extensions" :key="ext.ext">
+          <template v-if="filteredExtensions.length > 0" v-for="ext in filteredExtensions" :key="ext.ext">
             <div class="field" role="menuitem" tabindex="-1">
               <div class="ui checkbox">
                 <input
@@ -307,6 +331,9 @@ onUnmounted(() => {
               </div>
             </div>
           </template>
+          <div v-if="filteredExtensions.length === 0" class="tw-py-4 tw-text-center tw-text-text-light-2">
+            {{ locale.no_results ?? 'No extensions found' }}
+          </div>
         </div>
       </div>
 
@@ -368,5 +395,13 @@ onUnmounted(() => {
 
   .ui.dropdown.diff-file-extension-filter .diff-ext-text-btn:hover {
     text-decoration: underline;
+  }
+
+  .ui.dropdown.diff-file-extension-filter .diff-ext-search-input {
+    width: 100%;
+  }
+
+  .ui.dropdown.diff-file-extension-filter .ui.input {
+    margin-bottom: 0.5rem;
   }
 </style>
