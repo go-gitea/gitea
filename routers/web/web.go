@@ -261,6 +261,9 @@ func Routes() *web.Router {
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", optionsCorsHandler(), public.FileHandlerFunc())
+	// Since the avatar is accessed via a hash-based URL and the hash cannot be enumerated, it does not need to respect REQUIRE_SIGNIN_VIEW.
+	routes.Methods("GET, HEAD", "/avatars/*", avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	routes.Methods("GET, HEAD", "/repo-avatars/*", avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.Methods("GET, HEAD", "/apple-touch-icon-precomposed.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.Methods("GET, HEAD", "/favicon.ico", misc.StaticRedirect("/assets/img/favicon.png"))
@@ -329,10 +332,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// optional sign in (if signed in, use the user as doer, if not, no doer)
 	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
 	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
-
-	// avatar should follow REQUIRE_SIGNIN_VIEW configuration for privacy protection
-	m.Methods("GET, HEAD", "/avatars/*", optSignIn, avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
-	m.Methods("GET, HEAD", "/repo-avatars/*", optSignIn, avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
 	validation.AddBindingRules()
 
