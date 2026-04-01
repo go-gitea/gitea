@@ -11,6 +11,9 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
+
+	"github.com/markbates/goth"
 )
 
 const (
@@ -28,14 +31,16 @@ const maxGroupPages = 20
 type Client struct {
 	httpClient     *http.Client
 	groupsEndpoint string
+	claimName      string
 }
 
 // NewClient creates a Client using the given authenticated HTTP client.
 // The client should be built from an OAuth2 token carrying IAMScope.
-func NewClient(httpClient *http.Client) *Client {
+func NewClient(httpClient *http.Client, claimName string) *Client {
 	return &Client{
 		httpClient:     httpClient,
 		groupsEndpoint: defaultIAMGroupsEndpoint,
+		claimName:      claimName,
 	}
 }
 
@@ -105,4 +110,22 @@ func (c *Client) FetchGroups(ctx context.Context, email string) ([]string, error
 	}
 
 	return groups, nil
+}
+
+// FetchAdditionalInfo implements oauth2.AdditionalInfoProvider.
+// It fetches Google Workspace group memberships and injects them into
+// gothUser.RawData under the given claimName key.
+func (c *Client) FetchAdditionalInfo(ctx context.Context, user goth.User) (goth.User, error) {
+	groups, err := c.FetchGroups(ctx, user.Email)
+	if err != nil {
+		return user, err
+	}
+	if user.RawData == nil {
+		user.RawData = make(map[string]any)
+	}
+	if existing, has := user.RawData[c.claimName]; has {
+		log.Warn("OAuth2 Google: RawData already contains claim %q with some value. Consider to use different claim name for groups information", c.claimName, existing)
+	}
+	user.RawData[c.claimName] = groups
+	return user, nil
 }

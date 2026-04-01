@@ -17,7 +17,7 @@ import (
 
 func newTestClient(t *testing.T, server *httptest.Server) *Client {
 	t.Helper()
-	c := NewClient(server.Client())
+	c := NewClient(server.Client(), "groups")
 	c.groupsEndpoint = server.URL
 	return c
 }
