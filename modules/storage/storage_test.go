@@ -53,7 +53,12 @@ func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
 	}
 }
 
-func testSingleBlobStorageURLContentTypeAndDisposition(t *testing.T, s ObjectStorage, path, name string, expected ServeDirectOptions, reqParams *ServeDirectOptions) {
+type expectedServeDirectHeaders struct {
+	ContentType        string
+	ContentDisposition string
+}
+
+func testSingleBlobStorageURLContentTypeAndDisposition(t *testing.T, s ObjectStorage, path, name string, expected expectedServeDirectHeaders, reqParams *ServeDirectOptions) {
 	u, err := s.ServeDirectURL(path, name, http.MethodGet, reqParams)
 	require.NoError(t, err)
 	resp, err := http.Get(u.String())
@@ -71,36 +76,29 @@ func testBlobStorageURLContentTypeAndDisposition(t *testing.T, typStr Type, cfg 
 	s, err := NewStorage(typStr, cfg)
 	assert.NoError(t, err)
 
-	data := "Q2xTckt6Y1hDOWh0" // arbitrary test content; specific value is irrelevant to this test
-	testfilename := "test.txt" // arbitrary file name; specific value is irrelevant to this test
-	_, err = s.Save(testfilename, strings.NewReader(data), int64(len(data)))
+	testFilename := "test.txt"
+	_, err = s.Save(testFilename, strings.NewReader("dummy-content"), -1)
 	assert.NoError(t, err)
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", ServeDirectOptions{
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testFilename, "test.txt", expectedServeDirectHeaders{
 		ContentType:        "text/plain; charset=utf-8",
-		ContentDisposition: `inline; filename="test.txt"`,
+		ContentDisposition: `inline; filename=test.txt`,
 	}, nil)
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.pdf", ServeDirectOptions{
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testFilename, "test.pdf", expectedServeDirectHeaders{
 		ContentType:        "application/pdf",
-		ContentDisposition: `inline; filename="test.pdf"`,
+		ContentDisposition: `inline; filename=test.pdf`,
 	}, nil)
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", ServeDirectOptions{
-		ContentDisposition: `inline; filename="test.wasm"`,
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testFilename, "test.wasm", expectedServeDirectHeaders{
+		ContentDisposition: `inline; filename=test.wasm`,
 	}, nil)
 
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.wasm", ServeDirectOptions{
-		ContentDisposition: `inline; filename="test.wasm"`,
-	}, &ServeDirectOptions{})
-
-	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testfilename, "test.txt", ServeDirectOptions{
-		ContentType:        "application/octet-stream",
-		ContentDisposition: `inline; filename="test.xml"`,
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testFilename, "test.wasm", expectedServeDirectHeaders{
+		ContentType:        "application/wasm",
+		ContentDisposition: `inline; filename=test.wasm`,
 	}, &ServeDirectOptions{
-		ContentType:        "application/octet-stream",
-		ContentDisposition: `inline; filename="test.xml"`,
+		ContentType: "application/wasm",
 	})
-
-	assert.NoError(t, s.Delete(testfilename))
+	assert.NoError(t, s.Delete(testFilename))
 }

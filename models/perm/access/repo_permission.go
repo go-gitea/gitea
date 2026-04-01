@@ -331,7 +331,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 
 	// Check permission like simple user but limit to read-only (PR #36095)
 	// Enhanced to also grant read-only access if isSameRepo is true and target repository is public
-	botPerm, err := GetUserRepoPermission(ctx, repo, user_model.NewActionsUser())
+	botPerm, err := GetIndividualUserRepoPermission(ctx, repo, user_model.NewActionsUser())
 	if err != nil {
 		return perm, err
 	}
@@ -379,8 +379,19 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	return perm, nil
 }
 
-// GetUserRepoPermission returns the user permissions to the repository
-func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
+// GetDoerRepoPermission returns the repository permission for the current actor,
+// dispatching to GetActionsUserRepoPermission when the actor is an Actions token user.
+func GetDoerRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (Permission, error) {
+	if taskID, ok := user_model.GetActionsUserTaskID(user); ok {
+		return GetActionsUserRepoPermission(ctx, repo, user, taskID)
+	}
+	return GetIndividualUserRepoPermission(ctx, repo, user)
+}
+
+// GetIndividualUserRepoPermission returns the permissions for an explicit user identity.
+// In most request paths, callers should use GetDoerRepoPermission instead.
+// Unlike GetDoerRepoPermission, this helper does not resolve Actions task users.
+func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
 	defer func() {
 		if err == nil {
 			finalProcessRepoUnitPermission(user, &perm)
@@ -539,8 +550,9 @@ func AccessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 
 // AccessLevelUnit returns the Access a user has to a repository's. Will return NoneAccess if the
 // user does not have access.
+// This helper only supports explicit user identities and does not resolve Actions task users.
 func AccessLevelUnit(ctx context.Context, user *user_model.User, repo *repo_model.Repository, unitType unit.Type) (perm_model.AccessMode, error) { //nolint:revive // export stutter
-	perm, err := GetUserRepoPermission(ctx, repo, user)
+	perm, err := GetIndividualUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		return perm_model.AccessModeNone, err
 	}
@@ -559,7 +571,7 @@ func CanBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.
 	if user.IsOrganization() {
 		return false, fmt.Errorf("organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
 	}
-	perm, err := GetUserRepoPermission(ctx, repo, user)
+	perm, err := GetIndividualUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		return false, err
 	}
@@ -568,6 +580,7 @@ func CanBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.
 }
 
 // HasAnyUnitAccess see the comment of "perm.HasAnyUnitAccess"
+// This helper only supports explicit user identities and does not resolve Actions task users.
 func HasAnyUnitAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (bool, error) {
 	var user *user_model.User
 	var err error
@@ -577,7 +590,7 @@ func HasAnyUnitAccess(ctx context.Context, userID int64, repo *repo_model.Reposi
 			return false, err
 		}
 	}
-	perm, err := GetUserRepoPermission(ctx, repo, user)
+	perm, err := GetIndividualUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		return false, err
 	}
@@ -625,13 +638,14 @@ func GetUserIDsWithUnitAccess(ctx context.Context, repo *repo_model.Repository, 
 }
 
 // CheckRepoUnitUser check whether user could visit the unit of this repository
+// This helper only supports explicit user identities and does not resolve Actions task users.
 func CheckRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
 	if user != nil && user.IsAdmin {
 		return true
 	}
-	perm, err := GetUserRepoPermission(ctx, repo, user)
+	perm, err := GetIndividualUserRepoPermission(ctx, repo, user)
 	if err != nil {
-		log.Error("GetUserRepoPermission: %w", err)
+		log.Error("GetIndividualUserRepoPermission: %w", err)
 		return false
 	}
 

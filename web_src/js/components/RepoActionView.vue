@@ -92,52 +92,62 @@ async function deleteArtifact(name: string) {
     </div>
     <div class="action-view-body">
       <div class="action-view-left">
-        <div class="job-group-section">
-          <a class="job-brief-item" :href="run.link" :class="!props.jobId ? 'selected' : ''">
-            <div class="job-brief-item-left">
-              <SvgIcon name="octicon-list-unordered" class="tw-mr-2"/>
-              <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ locale.summary }}</span>
-            </div>
-          </a>
-          <div class="ui divider"/>
-          <div class="job-brief-list">
-            <div class="left-list-header">{{ locale.allJobs }}</div>
-            <a class="job-brief-item" :href="run.link+'/jobs/'+job.id" :class="props.jobId === job.id ? 'selected' : ''" v-for="job in run.jobs" :key="job.id">
-              <div class="job-brief-item-left">
-                <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
-                <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
-              </div>
-              <span class="job-brief-item-right">
-                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
-                <span class="step-summary-duration">{{ job.duration }}</span>
-              </span>
+        <!-- summary -->
+        <a class="job-brief-item silenced" :href="run.link" :class="!props.jobId ? 'selected' : ''">
+          <SvgIcon name="octicon-list-unordered"/>
+          <span class="gt-ellipsis">{{ locale.summary }}</span>
+        </a>
+
+        <!-- jobs list -->
+        <div class="ui divider"/>
+        <div class="left-list-header">{{ locale.allJobs }}</div>
+        <!-- unlike other lists, the items have paddings already -->
+        <ul class="ui relaxed list flex-items-block tw-p-0">
+          <li class="item job-brief-item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
+            <a class="tw-contents silenced" :href="run.link+'/jobs/'+job.id">
+              <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
+              <span class="tw-flex-1 gt-ellipsis">{{ job.name }}</span>
+              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
+              <span>{{ job.duration }}</span>
             </a>
-          </div>
-        </div>
-        <div class="job-artifacts" v-if="artifacts.length > 0">
+          </li>
+        </ul>
+
+        <!-- artifacts list -->
+        <template v-if="artifacts.length > 0">
           <div class="ui divider"/>
           <div class="left-list-header">{{ locale.artifactsTitle }} ({{ artifacts.length }})</div>
-          <ul class="job-artifacts-list">
-            <template v-for="artifact in artifacts" :key="artifact.name">
-              <li class="job-artifacts-item">
-                <template v-if="artifact.status !== 'expired'">
-                  <a class="flex-text-inline" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
-                    <SvgIcon name="octicon-file" class="tw-text-text"/>
-                    <span class="gt-ellipsis">{{ artifact.name }}</span>
-                  </a>
-                  <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
-                    <SvgIcon name="octicon-trash" class="tw-text-text"/>
-                  </a>
-                </template>
-                <span v-else class="flex-text-inline tw-text-grey-light">
-                  <SvgIcon name="octicon-file"/>
-                  <span class="gt-ellipsis">{{ artifact.name }}</span>
-                  <span class="ui label tw-text-grey-light tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
-                </span>
-              </li>
-            </template>
+          <ul class="ui relaxed list flex-items-block">
+            <li class="item" v-for="artifact in artifacts" :key="artifact.name">
+              <template v-if="artifact.status !== 'expired'">
+                <a class="tw-flex-1 flex-text-block" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                  <SvgIcon name="octicon-file" class="tw-text-text"/>
+                  <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
+                </a>
+                <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
+                  <SvgIcon name="octicon-trash" class="tw-text-text"/>
+                </a>
+              </template>
+              <span v-else class="flex-text-block tw-flex-1 tw-text-grey-light">
+                <SvgIcon name="octicon-file"/>
+                <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
+                <span class="ui label tw-text-grey-light tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
+              </span>
+            </li>
           </ul>
-        </div>
+        </template>
+
+        <!-- run details -->
+        <div class="ui divider"/>
+        <div class="left-list-header">{{ locale.runDetails }}</div>
+        <ul class="ui relaxed list">
+          <li class="item">
+            <a class="flex-text-block" :href="`${run.link}/workflow`">
+              <SvgIcon name="octicon-file-code" class="tw-text-text"/>
+              <span class="gt-ellipsis">{{ locale.workflowFile }}</span>
+            </a>
+          </li>
+        </ul>
       </div>
 
       <div class="action-view-right">
@@ -222,7 +232,11 @@ async function deleteArtifact(name: string) {
   max-width: 400px;
   position: sticky;
   top: 12px;
-  max-height: 100vh;
+
+  /* about 12px top padding + 12px bottom padding + 37px footer height,
+  TODO: need to use JS to calculate the height for better scrolling experience*/
+  max-height: calc(100vh - 62px);
+
   overflow-y: auto;
   background: var(--color-body);
   z-index: 2; /* above .job-info-header */
@@ -231,42 +245,27 @@ async function deleteArtifact(name: string) {
 @media (max-width: 767.98px) {
   .action-view-left {
     position: static; /* can not sticky because multiple jobs would overlap into right view */
+    max-height: unset;
   }
 }
 
 .left-list-header {
-  font-size: 12px;
-  color: var(--color-grey);
+  font-size: 13px;
+  color: var(--color-text-light-2);
 }
 
-.job-artifacts-item {
-  margin: 5px 0;
-  padding: 6px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.job-artifacts-list {
-  padding-left: 4px;
-  list-style: none;
-}
-
-.job-brief-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.action-view-left .ui.relaxed.list {
+  margin: var(--gap-block) 0;
+  padding-left: 10px;
 }
 
 .job-brief-item {
   padding: 6px 10px;
   border-radius: var(--border-radius);
-  text-decoration: none;
   display: flex;
   flex-wrap: nowrap;
-  justify-content: space-between;
   align-items: center;
-  color: var(--color-text);
+  gap: var(--gap-block);
 }
 
 .job-brief-item:hover {
@@ -276,35 +275,6 @@ async function deleteArtifact(name: string) {
 .job-brief-item.selected {
   font-weight: var(--font-weight-bold);
   background-color: var(--color-active);
-}
-
-.job-brief-item:first-of-type {
-  margin-top: 0;
-}
-
-.job-brief-item .job-brief-rerun {
-  cursor: pointer;
-}
-
-.job-brief-item .job-brief-item-left {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-}
-
-.job-brief-item .job-brief-item-left span {
-  display: flex;
-  align-items: center;
-}
-
-.job-brief-item .job-brief-item-left .job-brief-name {
-  display: block;
-  width: 70%;
-}
-
-.job-brief-item .job-brief-item-right {
-  display: flex;
-  align-items: center;
 }
 
 /* ================ */
@@ -320,7 +290,6 @@ async function deleteArtifact(name: string) {
   border: 1px solid var(--color-console-border);
   border-radius: var(--border-radius);
   background: var(--color-console-bg);
-  align-self: flex-start;
 }
 
 /* begin fomantic button overrides */

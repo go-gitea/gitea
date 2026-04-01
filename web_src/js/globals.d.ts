@@ -22,12 +22,34 @@ interface Window {
   config: {
     appUrl: string,
     appSubUrl: string,
-    assetVersionEncoded: string,
     assetUrlPrefix: string,
+    sharedWorkerUri: string,
     runModeIsProd: boolean,
     customEmojis: Record<string, string>,
-    pageData: Record<string, any>,
-    notificationSettings: Record<string, any>,
+    pageData: Record<string, any> & {
+      adminUserListSearchForm?: {
+        SortType: string,
+        StatusFilterMap: Record<string, string>,
+      },
+      citationFileContent?: string,
+      prReview?: {
+        numberOfFiles: number,
+        numberOfViewedFiles: number,
+      },
+      DiffFileTree?: import('./modules/diff-file.ts').DiffFileTreeData,
+      FolderIcon?: string,
+      FolderOpenIcon?: string,
+      repoLink?: string,
+      repoActivityTopAuthors?: any[],
+      pullRequestMergeForm?: Record<string, any>,
+      dashboardRepoList?: Record<string, any>,
+    },
+    notificationSettings: {
+      MinTimeout: number,
+      TimeoutStep: number,
+      MaxTimeout: number,
+      EventSourceUpdateTime: number,
+    },
     enableTimeTracking: boolean,
     mermaidMaxSourceCharacters: number,
     i18n: Record<string, string>,
@@ -39,7 +61,6 @@ interface Window {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
-  codeEditors: any[], // export editor for customization
   localUserSettings: typeof import('./modules/user-settings.ts').localUserSettings,
 
   // various captcha plugins
@@ -48,4 +69,9 @@ interface Window {
   hcaptcha: any,
 
   // do not add more properties here unless it is a must
+}
+
+declare module '*?worker' {
+  const workerConstructor: new () => Worker;
+  export default workerConstructor;
 }

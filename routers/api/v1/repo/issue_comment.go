@@ -219,7 +219,7 @@ func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *issue
 		if err != nil {
 			return false
 		}
-		perm, err := access_model.GetUserRepoPermission(ctx, c.RefRepo, user)
+		perm, err := access_model.GetDoerRepoPermission(ctx, c.RefRepo, user)
 		if err != nil {
 			return false
 		}

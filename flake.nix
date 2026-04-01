@@ -33,9 +33,9 @@
               inherit (pkgs) lib;
 
               # only bump toolchain versions here
-              go = pkgs.go_1_25;
+              go = pkgs.go_1_26;
               nodejs = pkgs.nodejs_24;
-              python3 = pkgs.python312;
+              python3 = pkgs.python314;
               pnpm = pkgs.pnpm_10;
 
               # Platform-specific dependencies

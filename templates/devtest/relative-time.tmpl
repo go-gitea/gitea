@@ -3,7 +3,7 @@
 	<div class="tw-grid tw-grid-cols-3 tw-gap-4">
 		<div>
 			<h2>Relative (auto)</h2>
-			<div>now: <relative-time datetime="{{.TimeNow.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>now: <relative-time data-testid="relative-time-now" datetime="{{.TimeNow.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
 			<div>3m ago: <relative-time datetime="{{.TimePast3m.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
 			<div>3h ago: <relative-time datetime="{{.TimePast3h.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
 			<div>1d ago: <relative-time datetime="{{.TimePast1d.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>

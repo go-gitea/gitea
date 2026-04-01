@@ -25,9 +25,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIListIssues(t *testing.T) {
+func TestAPIIssue(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("ListIssues", testAPIListIssues)
+	t.Run("ListIssuesPublicOnly", testAPIListIssuesPublicOnly)
+	t.Run("SearchIssues", testAPISearchIssues)
+	t.Run("SearchIssuesWithLabels", testAPISearchIssuesWithLabels)
+	t.Run("EditIssue", testAPIEditIssue)
+	t.Run("IssueContentVersion", testAPIIssueContentVersion)
+	t.Run("CreateIssue", testAPICreateIssue)
+	t.Run("CreateIssueParallel", testAPICreateIssueParallel)
+}
 
+func testAPIListIssues(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -75,9 +85,7 @@ func TestAPIListIssues(t *testing.T) {
 	}
 }
 
-func TestAPIListIssuesPublicOnly(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIListIssuesPublicOnly(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo1.OwnerID})
 
@@ -103,8 +111,7 @@ func TestAPIListIssuesPublicOnly(t *testing.T) {
 	MakeRequest(t, req, http.StatusForbidden)
 }
 
-func TestAPICreateIssue(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testAPICreateIssue(t *testing.T) {
 	const body, title = "apiTestBody", "apiTestTitle"
 
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -142,9 +149,7 @@ func TestAPICreateIssue(t *testing.T) {
 	MakeRequest(t, req, http.StatusForbidden)
 }
 
-func TestAPICreateIssueParallel(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPICreateIssueParallel(t *testing.T) {
 	// FIXME: There seems to be a bug in github.com/mattn/go-sqlite3 with sqlite_unlock_notify, when doing concurrent writes to the same database,
 	// some requests may get stuck in "go-sqlite3.(*SQLiteRows).Next", "go-sqlite3.(*SQLiteStmt).exec" and "go-sqlite3.unlock_notify_wait",
 	// because the "unlock_notify_wait" never returns and the internal lock never gets releases.
@@ -152,7 +157,7 @@ func TestAPICreateIssueParallel(t *testing.T) {
 	// The trigger is: a previous test created issues and made the real issue indexer queue start processing, then this test does concurrent writing.
 	// Adding this "Sleep" makes go-sqlite3 "finish" some internal operations before concurrent writes and then won't get stuck.
 	// To reproduce: make a new test run these 2 tests enough times:
-	// > func TestBug() { for i := 0; i < 100; i++ { testAPICreateIssue(t); testAPICreateIssueParallel(t) } }
+	// > func testBug() { for i := 0; i < 100; i++ { testAPICreateIssue(t); testAPICreateIssueParallel(t) } }
 	// Usually the test gets stuck in fewer than 10 iterations without this "sleep".
 	time.Sleep(time.Second)
 
@@ -197,9 +202,7 @@ func TestAPICreateIssueParallel(t *testing.T) {
 	wg.Wait()
 }
 
-func TestAPIEditIssue(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIEditIssue(t *testing.T) {
 	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
@@ -263,8 +266,7 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, title, issueAfter.Title)
 }
 
-func TestAPISearchIssues(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testAPISearchIssues(t *testing.T) {
 	defer test.MockVariableValue(&setting.API.DefaultPagingNum, 20)()
 	expectedIssueCount := 20 // 20 is from the fixtures
 
@@ -391,9 +393,7 @@ func TestAPISearchIssues(t *testing.T) {
 	assert.Len(t, apiIssues, 3)
 }
 
-func TestAPISearchIssuesWithLabels(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPISearchIssuesWithLabels(t *testing.T) {
 	// as this API was used in the frontend, it uses UI page size
 	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
 
@@ -447,4 +447,56 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
+}
+
+func testAPIIssueContentVersion(t *testing.T) {
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", owner.Name, repo.Name, issue.Index)
+
+	t.Run("ResponseIncludesContentVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", urlStr).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		apiIssue := DecodeJSON(t, resp, &api.Issue{})
+		assert.GreaterOrEqual(t, apiIssue.ContentVersion, 0)
+	})
+
+	t.Run("EditWithCorrectVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", urlStr).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		before := DecodeJSON(t, resp, &api.Issue{})
+		req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{
+			Body:           new("updated body with correct version"),
+			ContentVersion: new(before.ContentVersion),
+		}).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusCreated)
+		after := DecodeJSON(t, resp, &api.Issue{})
+		assert.Equal(t, "updated body with correct version", after.Body)
+		assert.Greater(t, after.ContentVersion, before.ContentVersion)
+	})
+
+	t.Run("EditWithWrongVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{
+			Body:           new("should fail"),
+			ContentVersion: new(99999),
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusConflict)
+	})
+
+	t.Run("EditWithoutVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{
+			Body: new("edit without version succeeds"),
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+	})
 }

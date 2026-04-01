@@ -34,42 +34,43 @@ import (
 // PIDFile could be set from build tag
 var PIDFile = "/run/gitea.pid"
 
-// CmdWeb represents the available web sub-command.
-var CmdWeb = &cli.Command{
-	Name:  "web",
-	Usage: "Start Gitea web server",
-	Description: `Gitea web server is the only thing you need to run,
+func newWebCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "web",
+		Usage: "Start Gitea web server",
+		Description: `Gitea web server is the only thing you need to run,
 and it takes care of all the other things for you`,
-	Before: PrepareConsoleLoggerLevel(log.INFO),
-	Action: runWeb,
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:    "port",
-			Aliases: []string{"p"},
-			Value:   "3000",
-			Usage:   "Temporary port number to prevent conflict",
+		Before: PrepareConsoleLoggerLevel(log.INFO),
+		Action: runWeb,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "port",
+				Aliases: []string{"p"},
+				Value:   "3000",
+				Usage:   "Temporary port number to prevent conflict",
+			},
+			&cli.StringFlag{
+				Name:  "install-port",
+				Value: "3000",
+				Usage: "Temporary port number to run the install page on to prevent conflict",
+			},
+			&cli.StringFlag{
+				Name:    "pid",
+				Aliases: []string{"P"},
+				Value:   PIDFile,
+				Usage:   "Custom pid file path",
+			},
+			&cli.BoolFlag{
+				Name:    "quiet",
+				Aliases: []string{"q"},
+				Usage:   "Only display Fatal logging errors until logging is set-up",
+			},
+			&cli.BoolFlag{
+				Name:  "verbose",
+				Usage: "Set initial logging to TRACE level until logging is properly set-up",
+			},
 		},
-		&cli.StringFlag{
-			Name:  "install-port",
-			Value: "3000",
-			Usage: "Temporary port number to run the install page on to prevent conflict",
-		},
-		&cli.StringFlag{
-			Name:    "pid",
-			Aliases: []string{"P"},
-			Value:   PIDFile,
-			Usage:   "Custom pid file path",
-		},
-		&cli.BoolFlag{
-			Name:    "quiet",
-			Aliases: []string{"q"},
-			Usage:   "Only display Fatal logging errors until logging is set-up",
-		},
-		&cli.BoolFlag{
-			Name:  "verbose",
-			Usage: "Set initial logging to TRACE level until logging is properly set-up",
-		},
-	},
+	}
 }
 
 func runHTTPRedirector() {

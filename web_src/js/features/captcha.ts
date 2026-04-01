@@ -34,7 +34,7 @@ export async function initCaptcha() {
       break;
     }
     case 'm-captcha': {
-      const mCaptcha = await import(/* webpackChunkName: "mcaptcha-vanilla-glue" */'@mcaptcha/vanilla-glue');
+      const mCaptcha = await import('@mcaptcha/vanilla-glue');
 
       // FIXME: the mCaptcha code is not right, it's a miracle that the wrong code could run
       // * the "vanilla-glue" has some problems with es6 module.

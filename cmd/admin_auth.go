@@ -17,14 +17,17 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	microcmdAuthDelete = &cli.Command{
+func newAuthDeleteCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "delete",
 		Usage:  "Delete specific auth source",
 		Flags:  []cli.Flag{idFlag()},
 		Action: runDeleteAuth,
 	}
-	microcmdAuthList = &cli.Command{
+}
+
+func newAuthListCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "list",
 		Usage:  "List auth sources",
 		Action: runListAuth,
@@ -55,7 +58,7 @@ var (
 			},
 		},
 	}
-)
+}
 
 func runListAuth(ctx context.Context, c *cli.Command) error {
 	if err := initDB(ctx); err != nil {
