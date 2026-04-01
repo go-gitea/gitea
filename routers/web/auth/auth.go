@@ -497,6 +497,7 @@ func prepareSignUpPageData(ctx *context.Context) bool {
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 	ctx.Data["PageIsSignUp"] = true
+	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
 
 	hasUsers, err := user_model.HasUsers(ctx)
 	if err != nil {
