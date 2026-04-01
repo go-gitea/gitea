@@ -1,191 +1,274 @@
-<script lang="ts">
-import {defineComponent} from 'vue';
+<script lang="ts" setup>
+import {ref, onMounted, onUnmounted, useTemplateRef, type ShallowRef} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {generateElemId} from '../utils/dom.ts';
 
+/**
+ * Represents a file extension entry in the filter dropdown
+ * @property ext - Extension with dot (e.g., ".ts", ".go") or "(no extension)"
+ * @property checked - Whether this extension is currently selected for display
+ * @property count - Total number of diff files with this extension
+ */
 type Extension = {
   ext: string,
   checked: boolean,
   count: number,
 }
 
-export default defineComponent({
-  components: {SvgIcon},
-  data: () => {
-    const el = document.querySelector('#diff-extension-filter')!;
-    return {
-      menuVisible: false,
-      extensions: [] as Array<Extension>,
-      isFiltering: false,
-      locale: {
-        filter_by_file_extension: el.getAttribute('data-filter_by_file_extension'),
-        select_all: el.getAttribute('data-select_all'),
-        deselect_all: el.getAttribute('data-deselect_all'),
-        apply: el.getAttribute('data-apply'),
-      } as Record<string, string>,
-      uniqueIdMenu: generateElemId('diff-extension-filter-menu-'),
-    };
-  },
-  mounted() {
-    document.body.addEventListener('click', this.onBodyClick, true);
-    this.$el.addEventListener('keydown', this.onKeyDown);
-  },
-  unmounted() {
-    document.body.removeEventListener('click', this.onBodyClick, true);
-    this.$el.removeEventListener('keydown', this.onKeyDown);
-  },
-  methods: {
-    onBodyClick(event: MouseEvent) {
-      if (this.$el.contains(event.target)) return;
-      if (this.menuVisible) {
-        this.toggleMenu();
+const el = document.querySelector('#diff-extension-filter')!;
+const menuVisible = ref(false);
+const extensions = ref<Array<Extension>>([]);
+const isFiltering = ref(false);
+const appliedExtensions = ref<Array<string> | null>(null);
+const expandBtn = useTemplateRef('expandBtn') as Readonly<ShallowRef<HTMLButtonElement>>;
+const mutationObserver = ref<MutationObserver | null>(null);
+const uniqueIdMenu = generateElemId('diff-extension-filter-menu-');
+const locale = {
+  filter_by_file_extension: el.getAttribute('data-filter_by_file_extension') ?? 'Filter by extension',
+  select_all: el.getAttribute('data-select_all') ?? 'Select all',
+  deselect_all: el.getAttribute('data-deselect_all') ?? 'Deselect all',
+  apply: el.getAttribute('data-apply') ?? 'Apply',
+} as Record<string, string>;
+
+/**
+ * Extract file extension from filename
+ * Returns the extension with dot (e.g., ".ts", ".go")
+ * Returns "(no extension)" for files without extension
+ */
+function getExtension(filename: string): string {
+  const lastDot = filename.lastIndexOf('.');
+  if (lastDot === -1 || lastDot === 0) {
+    return '(no extension)';
+  }
+  return filename.substring(lastDot);
+}
+
+/**
+ * Scan all diff-file-box elements and build extension list
+ * Checks current visibility state and sets checked state accordingly
+ * Updates the extensions array sorted by file count (descending)
+ */
+function scanExtensions() {
+  const extensionMap = new Map<string, {total: number, visible: number}>();
+  const fileBoxes = document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
+
+  let hiddenCount = 0;
+  fileBoxes.forEach((box) => {
+    const filename = box.getAttribute('data-new-filename') || '';
+    const ext = getExtension(filename);
+    const isHidden = box.classList.contains('tw-hidden');
+    if (!extensionMap.has(ext)) {
+      extensionMap.set(ext, {total: 0, visible: 0});
+    }
+    const stats = extensionMap.get(ext)!;
+    stats.total += 1;
+    if (!isHidden) {
+      stats.visible += 1;
+    } else {
+      hiddenCount += 1;
+    }
+  });
+
+  extensions.value = Array.from(extensionMap.entries())
+    .map(([ext, stats]) => ({
+      ext,
+      checked: appliedExtensions.value ? appliedExtensions.value.includes(ext) : stats.visible > 0,
+      count: stats.total,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  isFiltering.value = hiddenCount > 0;
+}
+
+/**
+ * Apply filter to all diff file boxes by adding/removing tw-hidden class
+ * Updates isFiltering state and persists applied extensions for load-more sync
+ * @param checkedExtensions Set of extensions that should be visible
+ */
+function applyFilterToFileBoxes(checkedExtensions: Set<string>) {
+  const fileBoxes = document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
+  let hiddenCount = 0;
+
+  fileBoxes.forEach((box) => {
+    const filename = box.getAttribute('data-new-filename') || '';
+    const ext = getExtension(filename);
+    const isChecked = checkedExtensions.has(ext);
+
+    if (isChecked) {
+      box.classList.remove('tw-hidden');
+    } else {
+      box.classList.add('tw-hidden');
+      hiddenCount += 1;
+    }
+  });
+
+  isFiltering.value = hiddenCount > 0;
+  appliedExtensions.value = hiddenCount > 0 ? Array.from(checkedExtensions) : null;
+}
+
+/**
+ * Focus a menu item element, updating tabIndex for keyboard navigation
+ * Focuses the first input or button within the element if available
+ * @param elem Element to focus
+ * @param prevElem Previous focused element to remove from tab order
+ */
+function focusElem(elem: HTMLElement | null, prevElem: HTMLElement | null) {
+  if (elem) {
+    elem.tabIndex = 0;
+    if (prevElem) prevElem.tabIndex = -1;
+    // Focus the input/button inside the menuitem if it exists, otherwise focus the item itself
+    const focusTarget = elem.querySelector('input, button') as HTMLElement || elem;
+    focusTarget.focus();
+  }
+}
+
+/**
+ * Toggle dropdown menu visibility
+ * Rescans extensions when opening, optionally restores focus to button when closing
+ * @param refocus Whether to refocus the expand button when closing (default: true)
+ */
+function toggleMenu(refocus = true) {
+  menuVisible.value = !menuVisible.value;
+  if (menuVisible.value) {
+    scanExtensions();
+  } else if (refocus) {
+    if (expandBtn.value) {
+      expandBtn.value.tabIndex = 0;
+      expandBtn.value.focus();
+    }
+  }
+}
+
+/**
+ * Select all file extensions
+ */
+function selectAll() {
+  for (const ext of extensions.value) {
+    ext.checked = true;
+  }
+}
+
+/**
+ * Deselect all file extensions
+ */
+function deselectAll() {
+  for (const ext of extensions.value) {
+    ext.checked = false;
+  }
+}
+
+/**
+ * Apply the current filter selection to diff files and close the dropdown
+ * Hides/shows diff-file-box elements based on checked extensions
+ */
+function applyFilter() {
+  const checkedExtensions = new Set(extensions.value.filter((e) => e.checked).map((e) => e.ext));
+  applyFilterToFileBoxes(checkedExtensions);
+  toggleMenu(false);
+}
+
+/**
+ * Close dropdown when clicking outside the component
+ * @param event Click event
+ */
+function onBodyClick(event: MouseEvent) {
+  if (!el.contains(event.target as Node)) {
+    if (menuVisible.value) {
+      toggleMenu();
+    }
+  }
+}
+
+/**
+ * Handle keyboard navigation within the dropdown menu
+ * Arrow Up/Down: navigate through checkboxes and buttons
+ * Space/Enter: toggle checkboxes or activate buttons
+ * Escape: close the dropdown
+ * @param event Keyboard event
+ */
+function onKeyDown(event: KeyboardEvent) {
+  if (!menuVisible.value) return;
+  const currentFocused = document.activeElement as HTMLElement;
+  if (!el.contains(currentFocused)) return;
+
+  const menu = el.querySelector('.menu') as HTMLElement;
+  const focusableItems = Array.from(menu.querySelectorAll('[role="menuitem"]')) as HTMLElement[];
+
+  if (!focusableItems.length) return;
+
+  const currentIndex = focusableItems.indexOf(currentFocused.closest('[role="menuitem"]') as HTMLElement);
+
+  switch (event.key) {
+    case 'ArrowDown': {
+      event.preventDefault();
+      const nextIndex = currentIndex === -1 ? 0 : Math.min(currentIndex + 1, focusableItems.length - 1);
+      focusElem(focusableItems[nextIndex], currentIndex >= 0 ? focusableItems[currentIndex] : null);
+      break;
+    }
+    case 'ArrowUp': {
+      event.preventDefault();
+      const prevIndex = currentIndex === -1 ? focusableItems.length - 1 : Math.max(currentIndex - 1, 0);
+      focusElem(focusableItems[prevIndex], currentIndex >= 0 ? focusableItems[currentIndex] : null);
+      break;
+    }
+    case ' ':
+    case 'Enter': {
+      event.preventDefault();
+      const currentElement = document.activeElement as HTMLElement;
+
+      // Try to find and toggle a checkbox (currentElement may be the input itself or a parent)
+      const checkbox = (currentElement?.matches('input[type="checkbox"]')
+        ? currentElement
+        : currentElement?.querySelector('input[type="checkbox"]')) as HTMLInputElement | null;
+      if (checkbox) {
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change', {bubbles: true}));
+        break;
       }
-    },
-    onKeyDown(event: KeyboardEvent) {
-      if (!this.menuVisible) return;
-      const currentFocused = document.activeElement as HTMLElement;
-      if (!this.$el.contains(currentFocused)) return;
 
-      const menu = this.$el.querySelector('.menu') as HTMLElement;
-      const focusableItems = Array.from(menu.querySelectorAll('[role="menuitem"]')) as HTMLElement[];
-
-      if (!focusableItems.length) return;
-
-      const currentIndex = focusableItems.indexOf(currentFocused.closest('[role="menuitem"]') as HTMLElement);
-
-      switch (event.key) {
-        case 'ArrowDown': {
-          event.preventDefault();
-          const nextIndex = currentIndex === -1 ? 0 : Math.min(currentIndex + 1, focusableItems.length - 1);
-          this.focusElem(focusableItems[nextIndex], currentIndex >= 0 ? focusableItems[currentIndex] : null);
-          break;
-        }
-        case 'ArrowUp': {
-          event.preventDefault();
-          const prevIndex = currentIndex === -1 ? focusableItems.length - 1 : Math.max(currentIndex - 1, 0);
-          this.focusElem(focusableItems[prevIndex], currentIndex >= 0 ? focusableItems[currentIndex] : null);
-          break;
-        }
-        case 'Escape':
-          event.preventDefault();
-          if (currentIndex >= 0) {
-            focusableItems[currentIndex].tabIndex = -1;
-          }
-          this.toggleMenu();
-          break;
+      // If focused element is a button, click it
+      if (currentElement?.tagName === 'BUTTON') {
+        currentElement.click();
       }
-    },
-    /** Focus given element */
-    focusElem(elem: HTMLElement | null, prevElem: HTMLElement | null) {
-      if (elem) {
-        elem.tabIndex = 0;
-        if (prevElem) prevElem.tabIndex = -1;
-        // Focus the input/button inside the menuitem if it exists, otherwise focus the item itself
-        const focusTarget = elem.querySelector('input, button') as HTMLElement || elem;
-        focusTarget.focus();
+      break;
+    }
+    case 'Escape':
+      event.preventDefault();
+      if (currentIndex >= 0) {
+        focusableItems[currentIndex].tabIndex = -1;
       }
-    },
-    /**
-     * Extract file extension from filename
-     * Returns the extension with dot (e.g., ".ts", ".go")
-     * Returns "(no extension)" for files without extension
-     */
-    getExtension(filename: string): string {
-      const lastDot = filename.lastIndexOf('.');
-      if (lastDot === -1 || lastDot === 0) {
-        return '(no extension)';
+      toggleMenu();
+      break;
+  }
+}
+
+onMounted(() => {
+  document.body.addEventListener('click', onBodyClick, true);
+  el.addEventListener('keydown', onKeyDown);
+
+  // Watch for new files being added (e.g., when "load more" is clicked)
+  const fileBoxesContainer = document.querySelector('#diff-file-boxes');
+  if (fileBoxesContainer) {
+    mutationObserver.value = new MutationObserver(() => {
+      if (appliedExtensions.value) {
+        applyFilterToFileBoxes(new Set(appliedExtensions.value));
       }
-      return filename.substring(lastDot);
-    },
-    /**
-     * Scan all diff-file-box elements and build extension list
-     * Check current visibility state and set checked state accordingly
-     */
-    scanExtensions() {
-      const extensionMap = new Map<string, {total: number, visible: number}>();
-      const fileBoxes = document.querySelectorAll('#diff-file-boxes .diff-file-box[data-new-filename]');
 
-      let hiddenCount = 0;
-      fileBoxes.forEach((box) => {
-        const filename = (box as HTMLElement).getAttribute('data-new-filename') || '';
-        const ext = this.getExtension(filename);
-        const isHidden = (box as HTMLElement).classList.contains('tw-hidden');
-        if (!extensionMap.has(ext)) {
-          extensionMap.set(ext, {total: 0, visible: 0});
-        }
-        const stats = extensionMap.get(ext)!;
-        stats.total += 1;
-        if (!isHidden) {
-          stats.visible += 1;
-        } else {
-          hiddenCount += 1;
-        }
-      });
-
-      this.extensions = Array.from(extensionMap.entries())
-        .map(([ext, stats]) => ({
-          ext,
-          checked: stats.visible > 0,
-          count: stats.total,
-        }))
-        .sort((a, b) => b.count - a.count);
-
-      this.isFiltering = hiddenCount > 0;
-    },
-    /**
-     * Open dropdown, rescan extensions
-     */
-    toggleMenu(refocus = true) {
-      this.menuVisible = !this.menuVisible;
-      if (this.menuVisible) {
-        this.scanExtensions();
-      } else if (refocus) {
-        const button = this.$refs.expandBtn as HTMLElement;
-        button.tabIndex = 0;
-        button.focus();
+      if (menuVisible.value) {
+        scanExtensions();
       }
-    },
-    /**
-     * Select all extensions
-     */
-    selectAll() {
-      for (const ext of this.extensions) {
-        ext.checked = true;
-      }
-    },
-    /**
-     * Deselect all extensions
-     */
-    deselectAll() {
-      for (const ext of this.extensions) {
-        ext.checked = false;
-      }
-    },
-    /**
-     * Apply the filter: hide/show diff-file-box elements based on checked extensions
-     */
-    applyFilter() {
-      const checkedExtensions = new Set(this.extensions.filter((e) => e.checked).map((e) => e.ext));
-      const fileBoxes = document.querySelectorAll('#diff-file-boxes .diff-file-box[data-new-filename]');
-      let hiddenCount = 0;
+    });
+    mutationObserver.value.observe(fileBoxesContainer, {childList: true, subtree: false});
+  }
+});
 
-      fileBoxes.forEach((box) => {
-        const filename = (box as HTMLElement).getAttribute('data-new-filename') || '';
-        const ext = this.getExtension(filename);
-        const isChecked = checkedExtensions.has(ext);
+onUnmounted(() => {
+  document.body.removeEventListener('click', onBodyClick, true);
+  el.removeEventListener('keydown', onKeyDown);
 
-        if (isChecked) {
-          (box as HTMLElement).classList.remove('tw-hidden');
-        } else {
-          (box as HTMLElement).classList.add('tw-hidden');
-          hiddenCount += 1;
-        }
-      });
-
-      this.isFiltering = hiddenCount > 0;
-      this.toggleMenu(false);
-    },
-  },
+  if (mutationObserver.value) {
+    mutationObserver.value.disconnect();
+  }
 });
 </script>
 <template>
@@ -200,7 +283,7 @@ export default defineComponent({
       :aria-label="locale.filter_by_file_extension"
       :aria-controls="uniqueIdMenu"
     >
-      <svg-icon name="octicon-filter"/>
+      <SvgIcon name="octicon-filter"/>
     </button>
     <!-- this dropdown is not managed by Fomantic UI, so it needs some classes like "transition" explicitly -->
     <div class="left menu transition" :id="uniqueIdMenu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
@@ -216,7 +299,7 @@ export default defineComponent({
                   type="checkbox"
                   :id="`ext-filter-${ext.ext}`"
                   v-model="ext.checked"
-                />
+                >
                 <label :for="`ext-filter-${ext.ext}`" class="tw-cursor-pointer">
                   <span class="tw-font-mono">{{ ext.ext }}</span>
                   <span class="tw-text-text-light-2"> ({{ ext.count }})</span>
@@ -236,7 +319,7 @@ export default defineComponent({
 
       <!-- Apply button -->
       <div class="ui divider tw-my-2"/>
-      <button class="ui button fluid" tabindex="-1" role="menuitem" @click="applyFilter()">
+      <button type="button" class="ui button fluid" tabindex="-1" role="menuitem" @click="applyFilter()">
         {{ locale.apply }}
       </button>
     </div>
