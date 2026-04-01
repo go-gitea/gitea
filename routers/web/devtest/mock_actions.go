@@ -59,25 +59,29 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 }
 
 func MockActionsView(ctx *context.Context) {
-	ctx.Data["RunID"] = ctx.PathParam("run")
-	ctx.Data["JobID"] = ctx.PathParam("job")
+	ctx.Data["RunID"] = ctx.PathParamInt64("run")
+	ctx.Data["JobID"] = ctx.PathParamInt64("job")
 	ctx.HTML(http.StatusOK, "devtest/repo-action-view")
 }
 
 func MockActionsRunsJobs(ctx *context.Context) {
 	runID := ctx.PathParamInt64("run")
 
-	req := web.GetForm(ctx).(*actions.ViewRequest)
 	resp := &actions.ViewResponse{}
+	resp.State.Run.RepoID = 12345
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
 	resp.State.Run.Link = setting.AppSubURL + "/devtest/repo-action-view/runs/" + strconv.FormatInt(runID, 10)
 	resp.State.Run.Status = actions_model.StatusRunning.String()
 	resp.State.Run.CanCancel = runID == 10
 	resp.State.Run.CanApprove = runID == 20
 	resp.State.Run.CanRerun = runID == 30
+	resp.State.Run.CanRerunFailed = runID == 30
 	resp.State.Run.CanDeleteArtifact = true
 	resp.State.Run.WorkflowID = "workflow-id"
 	resp.State.Run.WorkflowLink = "./workflow-link"
+	resp.State.Run.Duration = "1h 23m 45s"
+	resp.State.Run.TriggeredAt = time.Now().Add(-time.Hour).Unix()
+	resp.State.Run.TriggerEvent = "push"
 	resp.State.Run.Commit = actions.ViewCommit{
 		ShortSha: "ccccdddd",
 		Link:     "./commit-link",
@@ -132,13 +136,48 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID*10 + 2,
 		JobID:    "job-102",
-		Name:     "job 102",
+		Name:     "ULTRA LOOOOOOOOOOOONG job name 102 that exceeds the limit",
 		Status:   actions_model.StatusFailure.String(),
 		CanRerun: false,
 		Duration: "3h",
 		Needs:    []string{"job-100", "job-101"},
 	})
+	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
+		ID:       runID*10 + 3,
+		JobID:    "job-103",
+		Name:     "job 103",
+		Status:   actions_model.StatusCancelled.String(),
+		CanRerun: false,
+		Duration: "2m",
+		Needs:    []string{"job-100"},
+	})
 
+	// add more jobs to a run for UI testing
+	if resp.State.Run.CanCancel {
+		for i := range 10 {
+			resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
+				ID:       runID*1000 + int64(i),
+				JobID:    "job-dup-test-" + strconv.Itoa(i),
+				Name:     "job dup test " + strconv.Itoa(i),
+				Status:   actions_model.StatusSuccess.String(),
+				CanRerun: false,
+				Duration: "2m",
+				Needs:    []string{"job-103", "job-101", "job-100"},
+			})
+		}
+	}
+
+	fillViewRunResponseCurrentJob(ctx, resp)
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewResponse) {
+	jobID := ctx.PathParamInt64("job")
+	if jobID == 0 {
+		return
+	}
+
+	req := web.GetForm(ctx).(*actions.ViewRequest)
 	var mockLogOptions []generateMockStepsLogOptions
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
 		Summary:  "step 0 (mock slow)",
@@ -162,7 +201,6 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	mockLogOptions = append(mockLogOptions, generateMockStepsLogOptions{mockCountFirst: 30, mockCountGeneral: 3, groupRepeat: 3})
 
 	if len(req.LogCursors) == 0 {
-		ctx.JSON(http.StatusOK, resp)
 		return
 	}
 
@@ -188,5 +226,4 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	} else {
 		time.Sleep(time.Duration(100) * time.Millisecond) // actually, frontend reload every 1 second, any smaller delay is fine
 	}
-	ctx.JSON(http.StatusOK, resp)
 }

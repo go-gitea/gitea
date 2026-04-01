@@ -1,5 +1,5 @@
 import {GET, POST} from '../modules/fetch.ts';
-import {showGlobalErrorMessage} from '../bootstrap.ts';
+import {showGlobalErrorMessage} from '../modules/errors.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';

@@ -317,7 +317,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 			}
 			hasOnlineRunner := false
 			for _, runner := range runners {
-				if runner.CanMatchLabels(job.RunsOn) {
+				if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
 					hasOnlineRunner = true
 					break
 				}

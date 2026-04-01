@@ -100,13 +100,17 @@
 			{{end}}
 			{{if .Badges}}
 			<li>
-				<ul class="user-badges">
+				<div class="user-badges">
 				{{range .Badges}}
-					<li>
+					<span class="user-badge-item">
+						{{if .ImageURL}}
 						<img loading="lazy" width="64" height="64" src="{{.ImageURL}}" alt="{{.Description}}" data-tooltip-content="{{.Description}}">
-					</li>
+						{{else}}
+						<span class="ui label user-badge-chip" data-tooltip-content="{{if .Description}}{{.Description}}{{else}}{{.Slug}}{{end}}">{{.Slug}}</span>
+						{{end}}
+					</span>
 				{{end}}
-				</ul>
+				</div>
 			</li>
 			{{end}}
 			{{if and .IsSigned (ne .SignedUserID .ContextUser.ID)}}

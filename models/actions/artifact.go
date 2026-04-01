@@ -53,6 +53,11 @@ func init() {
 	db.RegisterModel(new(ActionArtifact))
 }
 
+const (
+	ContentEncodingV3Gzip = "gzip"
+	ContentTypeZip        = "application/zip"
+)
+
 // ActionArtifact is a file that is stored in the artifact storage.
 type ActionArtifact struct {
 	ID                 int64 `xorm:"pk autoincr"`
@@ -61,16 +66,26 @@ type ActionArtifact struct {
 	RepoID             int64 `xorm:"index"`
 	OwnerID            int64
 	CommitSHA          string
-	StoragePath        string             // The path to the artifact in the storage
-	FileSize           int64              // The size of the artifact in bytes
-	FileCompressedSize int64              // The size of the artifact in bytes after gzip compression
-	ContentEncoding    string             // The content encoding of the artifact
-	ArtifactPath       string             `xorm:"index unique(runid_name_path)"` // The path to the artifact when runner uploads it
-	ArtifactName       string             `xorm:"index unique(runid_name_path)"` // The name of the artifact when runner uploads it
-	Status             ArtifactStatus     `xorm:"index"`                         // The status of the artifact, uploading, expired or need-delete
-	CreatedUnix        timeutil.TimeStamp `xorm:"created"`
-	UpdatedUnix        timeutil.TimeStamp `xorm:"updated index"`
-	ExpiredUnix        timeutil.TimeStamp `xorm:"index"` // The time when the artifact will be expired
+	StoragePath        string // The path to the artifact in the storage
+	FileSize           int64  // The size of the artifact in bytes
+	FileCompressedSize int64  // The size of the artifact in bytes after gzip compression
+
+	// The content encoding or content type of the artifact
+	// * empty or null: legacy (v3) uncompressed content
+	// * magic string "gzip" (ContentEncodingV3Gzip): v3 gzip compressed content
+	//   * requires gzip decoding before storing in a zip for download
+	//   * requires gzip content-encoding header when downloaded single files within a workflow
+	// * mime type for "Content-Type":
+	//   * "application/zip" (ContentTypeZip), seems to be an abuse, fortunately there is no conflict, and it won't cause problems?
+	//   * "application/pdf", "text/html", etc.: real content type of the artifact
+	ContentEncodingOrType string `xorm:"content_encoding"`
+
+	ArtifactPath string             `xorm:"index unique(runid_name_path)"` // The path to the artifact when runner uploads it
+	ArtifactName string             `xorm:"index unique(runid_name_path)"` // The name of the artifact when runner uploads it
+	Status       ArtifactStatus     `xorm:"index"`                         // The status of the artifact, uploading, expired or need-delete
+	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"updated index"`
+	ExpiredUnix  timeutil.TimeStamp `xorm:"index"` // The time when the artifact will be expired
 }
 
 func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPath string, expiredDays int64) (*ActionArtifact, error) {
@@ -156,7 +171,8 @@ func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	}
 	if opts.FinalizedArtifactsV4 {
 		cond = cond.And(builder.Eq{"status": ArtifactStatusUploadConfirmed}.Or(builder.Eq{"status": ArtifactStatusExpired}))
-		cond = cond.And(builder.Eq{"content_encoding": "application/zip"})
+		// see the comment of ActionArtifact.ContentEncodingOrType: "*/*" means the field is a content type
+		cond = cond.And(builder.Like{"content_encoding", "%/%"})
 	}
 
 	return cond
@@ -170,10 +186,10 @@ type ActionArtifactMeta struct {
 }
 
 // ListUploadedArtifactsMeta returns all uploaded artifacts meta of a run
-func ListUploadedArtifactsMeta(ctx context.Context, runID int64) ([]*ActionArtifactMeta, error) {
+func ListUploadedArtifactsMeta(ctx context.Context, repoID, runID int64) ([]*ActionArtifactMeta, error) {
 	arts := make([]*ActionArtifactMeta, 0, 10)
 	return arts, db.GetEngine(ctx).Table("action_artifact").
-		Where("run_id=? AND (status=? OR status=?)", runID, ArtifactStatusUploadConfirmed, ArtifactStatusExpired).
+		Where("repo_id=? AND run_id=? AND (status=? OR status=?)", repoID, runID, ArtifactStatusUploadConfirmed, ArtifactStatusExpired).
 		GroupBy("artifact_name").
 		Select("artifact_name, sum(file_size) as file_size, max(status) as status").
 		Find(&arts)
