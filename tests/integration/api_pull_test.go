@@ -457,9 +457,8 @@ func TestAPIEditPull(t *testing.T) {
 		Base:  "master",
 		Title: title,
 	}).AddTokenAuth(token)
-	apiPull := new(api.PullRequest)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, apiPull)
+	apiPull := DecodeJSON(t, resp, &api.PullRequest{})
 	assert.Equal(t, "master", apiPull.Base.Name)
 
 	newTitle := "edit a this pr"
@@ -470,8 +469,9 @@ func TestAPIEditPull(t *testing.T) {
 		Body:  &newBody,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, apiPull)
+	apiPull = DecodeJSON(t, resp, &api.PullRequest{})
 	assert.Equal(t, "feature/1", apiPull.Base.Name)
+
 	// check comment history
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: apiPull.ID})
 	err := pull.LoadIssue(t.Context())
@@ -483,6 +483,62 @@ func TestAPIEditPull(t *testing.T) {
 		Base: "not-exist",
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
+
+	t.Run("PullContentVersion", func(t *testing.T) {
+		testAPIPullContentVersion(t, pull.ID)
+	})
+}
+
+func testAPIPullContentVersion(t *testing.T, pullID int64) {
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pullID})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pull.BaseRepoID})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner.Name, repo.Name, pull.Index)
+
+	t.Run("ResponseIncludesContentVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", urlStr).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		apiPull := DecodeJSON(t, resp, &api.PullRequest{})
+		assert.GreaterOrEqual(t, apiPull.ContentVersion, 0)
+	})
+
+	t.Run("EditWithCorrectVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", urlStr).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		before := DecodeJSON(t, resp, &api.PullRequest{})
+		req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditPullRequestOption{
+			Body:           new("updated body with correct version"),
+			ContentVersion: new(before.ContentVersion),
+		}).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusCreated)
+		after := DecodeJSON(t, resp, &api.PullRequest{})
+		assert.Equal(t, "updated body with correct version", after.Body)
+		assert.Greater(t, after.ContentVersion, before.ContentVersion)
+	})
+
+	t.Run("EditWithWrongVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditPullRequestOption{
+			Body:           new("should fail"),
+			ContentVersion: new(99999),
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusConflict)
+	})
+
+	t.Run("EditWithoutVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditPullRequestOption{
+			Body: new("edit without version succeeds"),
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+	})
 }
 
 func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, callback func(*testing.T, []*api.ChangedFile)) func(*testing.T) {

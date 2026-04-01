@@ -4,6 +4,53 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.25.5](https://github.com/go-gitea/gitea/releases/tag/v1.25.5) - 2026-03-10
+
+* SECURITY
+  * Toolchain Update to Go 1.25.6 (#36480) (#36487)
+  * Adjust the toolchain version (#36537) (#36542)
+  * Update toolchain to 1.25.8 for v1.25 (#36888)
+  * Prevent redirect bypasses via backslash-encoded paths (#36660) (#36716)
+  * Fix get release draft permission check (#36659) (#36715)
+  * Fix a bug user could change another user's primary email (#36586) (#36607)
+  * Fix OAuth2 authorization code expiry and reuse handling (#36797) (#36851)
+  * Add validation constraints for repository creation fields (#36671) (#36757)
+  * Fix bug to check whether user can update pull request branch or rebase branch (#36465) (#36838)
+  * Add migration http transport for push/sync mirror lfs (#36665) (#36691)
+  * Fix track time list permission check (#36662) (#36744)
+  * Fix track time issue id (#36664) (#36689)
+  * Fix path resolving (#36734) (#36746)
+  * Fix dump release asset bug (#36799) (#36839)
+  * Fix org permission API visibility checks for hidden members and private orgs (#36798) (#36841)
+  * Fix forwarded proto handling for public URL detection (#36810) (#36836)
+  * Add a git grep search timeout (#36809) (#36835)
+  * Fix oauth2 s256 (#36462) (#36477)
+* ENHANCEMENTS
+  * Make `security-check` informational only (#36681) (#36852)
+  * Upgrade to github.com/cloudflare/circl 1.6.3, svgo 4.0.1, markdownlint-cli 0.48.0 (#36840)
+  * Add some validation on values provided to USER_DISABLED_FEATURES and EXTERNAL_USER_DISABLED_FEATURES (#36688) (#36692)
+  * Upgrade gogit to 5.16.5 (#36687)
+  * Add wrap to runner label list (#36565) (#36574)
+  * Add dnf5 command for Fedora in RPM package instructions (#36527) (#36572)
+  * Allow scroll propagation outside code editor (#36502) (#36510)
+* BUGFIXES
+  * Fix non-admins unable to automerge PRs from forks (#36833) (#36843)
+  * Fix bug when pushing mirror with wiki (#36795) (#36807)
+  * Fix artifacts v4 backend upload problems (#36805) (#36834)
+  * Fix CRAN package version validation to allow more than 4 version components (#36813) (#36821)
+  * Fix force push time-line commit comments of pull request (#36653) (#36717)
+  * Fix SVG height calculation in diff viewer (#36748) (#36750)
+  * Fix push time bug (#36693) (#36713)
+  * Fix bug the protected branch rule name is conflicted with renamed branch name (#36650) (#36661)
+  * Fix bug when do LFS GC (#36500) (#36608)
+  * Fix focus lost bugs in the Monaco editor (#36609)
+  * Reprocess htmx content after loading more files (#36568) (#36577)
+  * Fix assignee sidebar links and empty placeholder (#36559) (#36563)
+  * Fix issues filter dropdown showing empty label scope section (#36535) (#36544)
+  * Fix various mermaid bugs (#36547) (#36552)
+  * Fix data race when uploading container blobs concurrently (#36524) (#36526)
+  * Correct spacing between username and bot label (#36473) (#36484)
+
 ## [1.25.4](https://github.com/go-gitea/gitea/releases/tag/v1.25.4) - 2026-01-15
 
 * SECURITY

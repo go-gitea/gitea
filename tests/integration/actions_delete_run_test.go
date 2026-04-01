@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"testing"
 	"time"
 
@@ -121,47 +122,55 @@ jobs:
 		opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create "+testCase.treePath, testCase.fileContent)
 		createWorkflowFile(t, token, user2.Name, apiRepo.Name, testCase.treePath, opts)
 
-		runIndex := ""
+		var runID int64
 		for i := 0; i < len(testCase.outcomes); i++ {
 			task := runner.fetchTask(t)
 			jobName := getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, task.Id)
 			outcome := testCase.outcomes[jobName]
 			assert.NotNil(t, outcome)
 			runner.execTask(t, task, outcome)
-			runIndex = task.Context.GetFields()["run_number"].GetStringValue()
-			assert.Equal(t, "1", runIndex)
+			runIndex := task.Context.GetFields()["run_number"].GetStringValue()
+			parsedRunIndex, err := strconv.ParseInt(runIndex, 10, 64)
+			assert.NoError(t, err)
+			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: apiRepo.ID, Index: parsedRunIndex})
+			runID = run.ID
 		}
 
+		jobs, err := actions_model.GetRunJobsByRunID(t.Context(), runID)
+		assert.NoError(t, err)
+
 		for i := 0; i < len(testCase.outcomes); i++ {
-			req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%s/jobs/%d", user2.Name, apiRepo.Name, runIndex, i))
+			jobID := jobs[i].ID
+			req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, apiRepo.Name, runID, jobID))
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			var listResp actions.ViewResponse
 			err := json.Unmarshal(resp.Body.Bytes(), &listResp)
 			assert.NoError(t, err)
 			assert.Len(t, listResp.State.Run.Jobs, 3)
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%s/jobs/%d/logs", user2.Name, apiRepo.Name, runIndex, i)).
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/logs", user2.Name, apiRepo.Name, runID, jobID)).
 				AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusOK)
 		}
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%s", user2.Name, apiRepo.Name, runIndex))
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, apiRepo.Name, runID))
 		session.MakeRequest(t, req, http.StatusOK)
 
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%s/delete", user2.Name, apiRepo.Name, runIndex))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/delete", user2.Name, apiRepo.Name, runID))
 		session.MakeRequest(t, req, http.StatusOK)
 
-		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%s/delete", user2.Name, apiRepo.Name, runIndex))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/delete", user2.Name, apiRepo.Name, runID))
 		session.MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%s", user2.Name, apiRepo.Name, runIndex))
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, apiRepo.Name, runID))
 		session.MakeRequest(t, req, http.StatusNotFound)
 
 		for i := 0; i < len(testCase.outcomes); i++ {
-			req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%s/jobs/%d", user2.Name, apiRepo.Name, runIndex, i))
+			jobID := jobs[i].ID
+			req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, apiRepo.Name, runID, jobID))
 			session.MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%s/jobs/%d/logs", user2.Name, apiRepo.Name, runIndex, i)).
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/logs", user2.Name, apiRepo.Name, runID, jobID)).
 				AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusNotFound)
 		}

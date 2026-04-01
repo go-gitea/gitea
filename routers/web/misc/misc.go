@@ -51,6 +51,12 @@ func StaticRedirect(target string) func(w http.ResponseWriter, req *http.Request
 	}
 }
 
+func LocationRedirect(target string) func(w http.ResponseWriter, req *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, target, http.StatusSeeOther)
+	}
+}
+
 func WebBannerDismiss(ctx *context.Context) {
 	_, rev, _ := setting.Config().Instance.WebBanner.ValueRevision(ctx)
 	middleware.SetSiteCookie(ctx.Resp, middleware.CookieWebBannerDismissed, strconv.Itoa(rev), 48*3600)

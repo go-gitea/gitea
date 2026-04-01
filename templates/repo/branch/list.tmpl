@@ -7,7 +7,7 @@
 		{{if .DefaultBranchBranch}}
 			<h4 class="ui top attached header">
 				{{ctx.Locale.Tr "repo.default_branch"}}
-				{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
+				{{if and $.IsWriter $.Repository.CanContentChange (not .IsDeleted)}}
 				<a role="button" class="right" href="{{.RepoLink}}/settings/branches" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.branches.switch_default_branch"}}">
 					{{svg "octicon-arrow-switch"}}
 				</a>
@@ -31,7 +31,7 @@
 							</td>
 							{{/* FIXME: here and below, the tw-overflow-visible is not quite right but it is still needed the moment: to show the important buttons when the width is narrow */}}
 							<td class="tw-text-right tw-overflow-visible">
-								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
+								{{if and $.IsWriter $.Repository.CanContentChange (not .IsDeleted)}}
 									<button class="btn interact-bg show-create-branch-modal tw-p-2"
 										data-modal="#create-branch-modal"
 										data-branch-from="{{$.DefaultBranchBranch.DBBranch.Name}}"
@@ -53,7 +53,7 @@
 										</div>
 									</div>
 								{{end}}
-								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not $.IsMirror)}}
+								{{if and $.IsWriter $.Repository.CanContentChange (not .IsDeleted)}}
 									<button class="btn interact-bg tw-p-2 show-modal show-rename-branch-modal"
 										data-is-default-branch="true"
 										data-modal="#rename-branch-modal"
@@ -157,7 +157,7 @@
 							</td>
 							{{/* FIXME: here and above, the tw-overflow-visible is not quite right */}}
 							<td class="three wide tw-text-right tw-overflow-visible">
-								{{if and $.IsWriter (not $.Repository.IsArchived) (not .DBBranch.IsDeleted)}}
+								{{if and $.IsWriter $.Repository.CanContentChange (not .DBBranch.IsDeleted)}}
 									<button class="btn interact-bg tw-p-2 show-modal show-create-branch-modal"
 										data-branch-from="{{.DBBranch.Name}}"
 										data-branch-from-urlcomponent="{{PathEscapeSegments .DBBranch.Name}}"
@@ -179,7 +179,7 @@
 										</div>
 									</div>
 								{{end}}
-								{{if and $.IsWriter (not $.Repository.IsArchived) (not .DBBranch.IsDeleted) (not $.IsMirror)}}
+								{{if and $.IsWriter $.Repository.CanContentChange (not .DBBranch.IsDeleted)}}
 									<button class="btn interact-bg tw-p-2 show-modal show-rename-branch-modal"
 										data-is-default-branch="false"
 										data-old-branch-name="{{.DBBranch.Name}}"
@@ -189,7 +189,7 @@
 										{{svg "octicon-pencil"}}
 									</button>
 								{{end}}
-								{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
+								{{if and $.IsWriter $.Repository.CanContentChange (not .IsProtected)}}
 									{{if .DBBranch.IsDeleted}}
 										<button class="btn interact-bg tw-p-2 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DBBranch.ID}}&name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.restore" (.DBBranch.Name)}}">
 											<span class="tw-text-blue">

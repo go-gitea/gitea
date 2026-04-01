@@ -45,7 +45,7 @@
     "verbatimModuleSyntax": true,
     "types": [
       "node",
-      "webpack/module",
+      "vite/client",
       "vitest/globals",
       "./web_src/js/globals.d.ts",
       "./types.d.ts",
