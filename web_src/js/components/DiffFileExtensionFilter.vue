@@ -352,7 +352,7 @@ onUnmounted(() => {
   }
 
   .ui.dropdown.diff-file-extension-filter .diff-ext-filter-btn-active {
-    outline: 1px solid currentColor;
+    outline: 1px solid var(--color-primary);
     outline-offset: -1px;
   }
 
