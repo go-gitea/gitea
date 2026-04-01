@@ -34,6 +34,11 @@ export function initStopwatch() {
       interactive: true,
       hideOnClick: true,
       theme: 'default',
+      onShow(instance) {
+        // Re-clone so the tooltip always reflects the latest stopwatch state,
+        // even when the icon became visible via a real-time WebSocket push.
+        instance.setContent(stopwatchPopup.cloneNode(true) as Element);
+      },
     });
   }
 

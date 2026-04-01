@@ -29,7 +29,7 @@ test.describe('events', () => {
     await Promise.all([apiDeleteUser(request, commenter), apiDeleteUser(request, owner)]);
   });
 
-  test('stopwatch', async ({page, request}) => {
+  test('stopwatch visible at page load', async ({page, request}) => {
     const name = `ev-sw-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const headers = apiUserHeaders(name);
 
@@ -46,6 +46,28 @@ test.describe('events', () => {
     // Verify stopwatch is visible and links to the correct issue
     const stopwatch = page.locator('.active-stopwatch.not-mobile');
     await expect(stopwatch).toBeVisible();
+
+    // Cleanup
+    await apiDeleteUser(request, name);
+  });
+
+  test('stopwatch appears via real-time push', async ({page, request}) => {
+    const name = `ev-sw-push-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const headers = apiUserHeaders(name);
+
+    await apiCreateUser(request, name);
+    await apiCreateRepo(request, {name, headers});
+    await apiCreateIssue(request, name, name, {title: 'events stopwatch push test', headers});
+
+    // Login before starting stopwatch — page loads without active stopwatch
+    await loginUser(page, name);
+
+    const stopwatch = page.locator('.active-stopwatch.not-mobile');
+    await expect(stopwatch).toBeHidden();
+
+    // Start stopwatch after page is loaded — icon should appear via WebSocket push
+    await apiStartStopwatch(request, name, name, 1, {headers});
+    await expect(stopwatch).toBeVisible({timeout: 15000});
 
     // Cleanup
     await apiDeleteUser(request, name);
