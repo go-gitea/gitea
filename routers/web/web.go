@@ -330,6 +330,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
 	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
 
+	// avatar should follow REQUIRE_SIGNIN_VIEW configuration for privacy protection
 	m.Methods("GET, HEAD", "/avatars/*", optSignIn, avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	m.Methods("GET, HEAD", "/repo-avatars/*", optSignIn, avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
@@ -728,7 +729,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/activate", auth.Activate)
 		m.Post("/activate", auth.ActivatePost)
 		m.Any("/activate_email", auth.ActivateEmail)
-		m.Get("/avatar/{username}/{size}", user.AvatarByUsernameSize)
+		// avatar should follow REQUIRE_SIGNIN_VIEW configuration for privacy protection
+		m.Get("/avatar/{username}/{size}", optSignIn, user.AvatarByUsernameSize)
 		m.Get("/recover_account", auth.ResetPasswd)
 		m.Post("/recover_account", auth.ResetPasswdPost)
 		m.Get("/forgot_password", auth.ForgotPasswd)
@@ -742,7 +744,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	})
 	// ***** END: User *****
-
+	// Avatars must remain accessible without sign-in; otherwise, avatar images cannot be loaded in emails.
+	// Since only the hash is provided, it cannot be used to iterate or retrieve other avatars.
 	m.Get("/avatar/{hash}", user.AvatarByEmailHash)
 
 	adminReq := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true, AdminRequired: true})
