@@ -493,7 +493,7 @@ func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSett
 func packageSettingsPostActionDelete(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
-	if err := packages_service.RemovePackage(ctx, pd.Package); err != nil {
+	if err := packages_service.RemovePackage(ctx, ctx.Doer, pd.Package); err != nil {
 		log.Error("Error deleting package: %v", err)
 		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
 	} else {

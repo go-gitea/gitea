@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
@@ -269,6 +270,15 @@ func GetPackageFileDescriptors(ctx context.Context, pfs []*PackageFile) ([]*Pack
 
 // GetPackageDescriptors gets the package descriptions for the versions
 func GetPackageDescriptors(ctx context.Context, pvs []*PackageVersion) ([]*PackageDescriptor, error) {
+	return getPackageDescriptors(ctx, pvs, cache.NewEphemeralCache())
+}
+
+// GetAllPackageDescriptors gets all package descriptors for a package
+func GetAllPackageDescriptors(ctx context.Context, p *Package) ([]*PackageDescriptor, error) {
+	pvs := make([]*PackageVersion, 0, 10)
+	if err := db.GetEngine(ctx).Where("package_id = ?", p.ID).Find(&pvs); err != nil {
+		return nil, err
+	}
 	return getPackageDescriptors(ctx, pvs, cache.NewEphemeralCache())
 }
 

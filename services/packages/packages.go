@@ -625,8 +625,12 @@ func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb
 }
 
 // RemovePackage deletes the package and all its versions
-func RemovePackage(ctx context.Context, p *packages_model.Package) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+func RemovePackage(ctx context.Context, doer *user_model.User, p *packages_model.Package) error {
+	pds, err := packages_model.GetAllPackageDescriptors(ctx, p)
+	if err != nil {
+		return err
+	}
+	err = db.WithTx(ctx, func(ctx context.Context) error {
 		err := packages_model.DeletePropertiesByPackageID(ctx, packages_model.PropertyTypePackage, p.ID)
 		if err != nil {
 			return err
@@ -650,6 +654,13 @@ func RemovePackage(ctx context.Context, p *packages_model.Package) error {
 
 		return packages_model.DeletePackageByID(ctx, p.ID)
 	})
+	if err != nil {
+		return err
+	}
+	for _, pd := range pds {
+		notify_service.PackageDelete(ctx, doer, pd)
+	}
+	return nil
 }
 
 // RemoveAllPackages for User

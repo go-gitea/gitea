@@ -5,6 +5,7 @@ package packages
 
 import (
 	"context"
+	"errors"
 
 	"code.gitea.io/gitea/models/db"
 
@@ -111,6 +112,8 @@ func DeletePropertiesByPackageID(ctx context.Context, refType PropertyType, pack
 		deleteStmt = builder.Delete(
 			builder.Eq{"ref_type": PropertyTypePackage}, builder.Eq{"ref_id": packageID}).
 			From("package_property")
+	default:
+		return errors.New("invalid ref type")
 	}
 
 	_, err := db.GetEngine(ctx).Exec(deleteStmt)
