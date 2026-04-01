@@ -23,6 +23,12 @@ const (
 	actionsRunPath = "/actions/runs/"
 
 	// Only commit status target URLs whose resolved run ID is smaller than this threshold are rewritten by this partial migration.
+	// The fixed value 1000 is a conservative cutoff chosen to cover the smaller legacy run indexes that are most likely to be confused with ID-based URLs at runtime.
+	// Larger legacy {run} or {job} numbers are usually easier to disambiguate. For example:
+	//   * /actions/runs/1200/jobs/1420 is most likely an ID-based URL, because a run should not contain more than 256 jobs.
+	//   * /actions/runs/1500/jobs/3 is most likely an index-based URL, because a job ID cannot be smaller than its run ID.
+	// But URLs with small numbers, such as /actions/runs/5/jobs/6, are much harder to distinguish reliably.
+	// This migration therefore prioritizes rewriting target URLs for runs in that lower range.
 	legacyURLIDThreshold int64 = 1000
 )
 

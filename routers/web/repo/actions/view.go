@@ -71,7 +71,7 @@ func getCurrentRunByPathParam(ctx *context_module.Context) (run *actions_model.A
 // resolveCurrentRunForView resolves GET Actions page URLs and supports both ID-based and legacy index-based forms.
 //
 // By default, run summary pages (/actions/runs/{run}) use a best-effort ID-first fallback,
-// job pages (/actions/runs/{run}/jobs/{job}) try to confirm an ID-based URL first and prefer the legacy interpretation when both are valid.
+// and job pages (/actions/runs/{run}/jobs/{job}) try to confirm an ID-based URL first and prefer the ID-based interpretation when both are valid.
 //
 // `by_id=1` param explicitly forces the ID-based path, and `by_index=1` explicitly forces the legacy index-based path.
 // If both are present, `by_id` takes precedence.
@@ -192,18 +192,9 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 		return nil
 	}
 
-	// Reaching this point means both ID-based and legacy index-based interpretations are valid.
-
-	if runByID.ID == runByIndex.ID && jobNum == targetJobByIndex.ID {
-		// If both interpretations resolve to the same run/job pair, there is no ambiguity and the ID-based URL can be used directly.
-		return runByID
-	}
-
-	// For job pages, prefer the legacy interpretation when both are valid.
-	// Use `by_id=1` query parameter to access the ID-based URL when necessary.
-	redirectTo := fmt.Sprintf("%s/actions/runs/%d/jobs/%d", ctx.Repo.RepoLink, runByIndex.ID, targetJobByIndex.ID)
-	ctx.Redirect(redirectTo, http.StatusFound)
-	return nil
+	// Reaching this point means both ID-based and legacy index-based interpretations are valid. Prefer the ID-based interpretation by default.
+	// Use `by_index=1` query parameter to access the legacy index-based interpretation when necessary.
+	return runByID
 }
 
 func View(ctx *context_module.Context) {
