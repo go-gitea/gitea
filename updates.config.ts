@@ -5,6 +5,5 @@ export default {
     '@mcaptcha/vanilla-glue': '^0.1', // breaking changes in rc versions need to be handled
     'cropperjs': '^1', // need to migrate to v2 but v2 is not compatible with v1
     'tailwindcss': '^3', // need to migrate
-    'typescript': '^5', // wait on https://github.com/typescript-eslint/typescript-eslint/issues/12123
   },
 } satisfies Config;
