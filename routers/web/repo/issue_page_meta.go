@@ -34,9 +34,14 @@ type issueSidebarAssigneesData struct {
 }
 
 type issueSidebarProjectsData struct {
-	SelectedProjectID int64
-	OpenProjects      []*project_model.Project
-	ClosedProjects    []*project_model.Project
+	SelectedProjectIDs []int64 // TODO: support multiple projects in the future
+
+	// the "selected" fields are only valid when len(SelectedProjectIDs)==1
+	SelectedProjectColumns []*project_model.Column
+	SelectedProjectColumn  *project_model.Column
+
+	OpenProjects   []*project_model.Project
+	ClosedProjects []*project_model.Project
 }
 
 type IssuePageMetaData struct {
@@ -88,6 +93,11 @@ func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository
 
 	// it sets the "Assignees" template data, and the data is also used to "mention" users.
 	data.retrieveAssigneesData(ctx)
+	if ctx.Written() {
+		return data
+	}
+
+	data.retrieveProjectData(ctx)
 	if ctx.Written() {
 		return data
 	}
@@ -158,9 +168,33 @@ func (d *IssuePageMetaData) retrieveAssigneesData(ctx *context.Context) {
 	ctx.Data["Assignees"] = d.AssigneesData.CandidateAssignees
 }
 
+func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
+	if d.Issue == nil || d.Issue.Project == nil {
+		return
+	}
+	d.ProjectsData.SelectedProjectIDs = []int64{d.Issue.Project.ID}
+	columns, err := d.Issue.Project.GetColumns(ctx)
+	if err != nil {
+		ctx.ServerError("GetProjectColumns", err)
+		return
+	}
+	d.ProjectsData.SelectedProjectColumns = columns
+	columnID, err := d.Issue.ProjectColumnID(ctx)
+	if err != nil {
+		ctx.ServerError("ProjectColumnID", err)
+		return
+	}
+	for _, col := range columns {
+		if col.ID == columnID {
+			d.ProjectsData.SelectedProjectColumn = col
+			break
+		}
+	}
+}
+
 func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {
 	if d.Issue != nil && d.Issue.Project != nil {
-		d.ProjectsData.SelectedProjectID = d.Issue.Project.ID
+		d.ProjectsData.SelectedProjectIDs = []int64{d.Issue.Project.ID}
 	}
 	d.ProjectsData.OpenProjects, d.ProjectsData.ClosedProjects = retrieveProjectsInternal(ctx, ctx.Repo.Repository)
 }

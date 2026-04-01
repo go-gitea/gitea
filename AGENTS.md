@@ -4,5 +4,8 @@
 - Run `make tidy` after any `go.mod` changes
 - Add the current year into the copyright header of new `.go` files
 - Ensure no trailing whitespace in edited files
-- Never force-push to pull request branches
-- Always start issue and pull request comments with an authorship attribution
+- Never force-push, amend, or squash unless asked. Use new commits and normal push for pull request updates
+- Preserve existing code comments, do not remove or rewrite comments that are still relevant
+- In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
+- Include authorship attribution in issue and pull request comments
+- Add `Co-Authored-By` lines to all commits, indicating name and model used

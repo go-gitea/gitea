@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
@@ -62,31 +63,30 @@ type Object interface {
 type ServeDirectOptions struct {
 	// Overrides the automatically detected MIME type.
 	ContentType string
-	// Overrides the default Content-Disposition header, which is `inline; filename="name"`.
-	ContentDisposition string
 }
 
 // Safe defaults are applied only when not explicitly overridden by the caller.
-func prepareServeDirectOptions(optsOptional *ServeDirectOptions, name string) (ret ServeDirectOptions) {
+func prepareServeDirectOptions(optsOptional *ServeDirectOptions, name string) (ret struct {
+	ContentType        string
+	ContentDisposition string
+},
+) {
 	// Here we might not know the real filename, and it's quite inefficient to detect the MIME type by pre-fetching the object head.
 	// So we just do a quick detection by extension name, at least it works for the "View Raw File" for an LFS file on the Web UI.
 	// TODO: OBJECT-STORAGE-CONTENT-TYPE: need a complete solution and refactor for Azure in the future
 
 	if optsOptional != nil {
-		ret = *optsOptional
+		ret.ContentType = optsOptional.ContentType
 	}
-
-	// TODO: UNIFY-CONTENT-DISPOSITION-FROM-STORAGE
+	name = path.Base(name)
 	if ret.ContentType == "" {
 		ext := path.Ext(name)
 		ret.ContentType = public.DetectWellKnownMimeType(ext)
 	}
-	if ret.ContentDisposition == "" {
-		// When using ServeDirect, the URL is from the object storage's web server,
-		// it is not the same origin as Gitea server, so it should be safe enough to use "inline" to render the content directly.
-		// If a browser doesn't support the content type to be displayed inline, browser will download with the filename.
-		ret.ContentDisposition = fmt.Sprintf(`inline; filename="%s"`, quoteEscaper.Replace(name))
-	}
+	// When using ServeDirect, the URL is from the object storage's web server,
+	// it is not the same origin as Gitea server, so it should be safe enough to use "inline" to render the content directly.
+	// If a browser doesn't support the content type to be displayed inline, browser will download with the filename.
+	ret.ContentDisposition = httplib.EncodeContentDispositionInline(name)
 	return ret
 }
 

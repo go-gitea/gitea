@@ -23,7 +23,7 @@ func TestDoctorRun(t *testing.T) {
 		SkipDatabaseInitialization: true,
 	})
 	app := &cli.Command{
-		Commands: []*cli.Command{cmdDoctorCheck},
+		Commands: []*cli.Command{newDoctorCheckCommand()},
 	}
 	err := app.Run(t.Context(), []string{"./gitea", "check", "--run", "test-check"})
 	assert.NoError(t, err)

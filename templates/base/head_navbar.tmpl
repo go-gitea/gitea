@@ -47,7 +47,7 @@
 				<span class="text">
 					{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-1"}}
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
-					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
+					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
 					<div class="header">
@@ -64,9 +64,9 @@
 		{{else if .IsSigned}}
 			{{template "base/head_navbar_icons" dict "ItemExtraClass" "not-mobile" "PageGlobalData" .PageGlobalData}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
-				<span class="text">
+				<span class="flex-text-block">
 					{{svg "octicon-plus"}}
-					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
+					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 					<span class="only-mobile">{{ctx.Locale.Tr "create_new"}}</span>
 				</span>
 				<div class="menu">
@@ -93,7 +93,7 @@
 						{{if .IsAdmin}}{{svg "octicon-shield-check" 16 "navbar-admin-badge"}}{{end}}
 					</span>
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
-					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
+					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
 					<div class="header">

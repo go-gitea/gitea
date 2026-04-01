@@ -5,12 +5,15 @@ import "google/protobuf/wrappers.proto";
 
 package github.actions.results.api.v1;
 
+option go_package = "code.gitea.io/gitea/routers/api/actions";
+
 message CreateArtifactRequest {
     string workflow_run_backend_id = 1;
     string workflow_job_run_backend_id = 2;
     string name = 3;
     google.protobuf.Timestamp expires_at = 4;
     int32 version = 5;
+    google.protobuf.StringValue mime_type = 6;
 }
 
 message CreateArtifactResponse {

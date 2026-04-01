@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestServeContentByReader(t *testing.T) {
+func TestServeUserContentByReader(t *testing.T) {
 	data := "0123456789abcdef"
 
 	test := func(t *testing.T, expectedStatusCode int, expectedContent string) {
@@ -27,7 +27,7 @@ func TestServeContentByReader(t *testing.T) {
 		}
 		reader := strings.NewReader(data)
 		w := httptest.NewRecorder()
-		ServeContentByReader(r, w, int64(len(data)), reader, &ServeHeaderOptions{})
+		ServeUserContentByReader(r, w, int64(len(data)), reader, ServeHeaderOptions{})
 		assert.Equal(t, expectedStatusCode, w.Code)
 		if expectedStatusCode == http.StatusPartialContent || expectedStatusCode == http.StatusOK {
 			assert.Equal(t, strconv.Itoa(len(expectedContent)), w.Header().Get("Content-Length"))
@@ -58,7 +58,7 @@ func TestServeContentByReader(t *testing.T) {
 	})
 }
 
-func TestServeContentByReadSeeker(t *testing.T) {
+func TestServeUserContentByFile(t *testing.T) {
 	data := "0123456789abcdef"
 	tmpFile := t.TempDir() + "/test"
 	err := os.WriteFile(tmpFile, []byte(data), 0o644)
@@ -76,7 +76,7 @@ func TestServeContentByReadSeeker(t *testing.T) {
 		defer seekReader.Close()
 
 		w := httptest.NewRecorder()
-		ServeContentByReadSeeker(r, w, nil, seekReader, &ServeHeaderOptions{})
+		ServeUserContentByFile(r, w, seekReader, ServeHeaderOptions{})
 		assert.Equal(t, expectedStatusCode, w.Code)
 		if expectedStatusCode == http.StatusPartialContent || expectedStatusCode == http.StatusOK {
 			assert.Equal(t, strconv.Itoa(len(expectedContent)), w.Header().Get("Content-Length"))

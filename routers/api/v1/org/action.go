@@ -492,7 +492,7 @@ func (Action) ListRunners(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/ActionRunnersResponse"
+	//     "$ref": "#/responses/RunnerList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -520,7 +520,7 @@ func (Action) GetRunner(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/ActionRunner"
+	//     "$ref": "#/responses/Runner"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -582,7 +582,7 @@ func (Action) UpdateRunner(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/EditActionRunnerOption"
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/ActionRunner"
+	//     "$ref": "#/responses/Runner"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
