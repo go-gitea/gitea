@@ -36,7 +36,6 @@ export default defineComponent({
   },
   methods: {
     onBodyClick(event: MouseEvent) {
-      // close this menu on click outside of this element when the dropdown is currently visible opened
       if (this.$el.contains(event.target)) return;
       if (this.menuVisible) {
         this.toggleMenu();
@@ -47,7 +46,6 @@ export default defineComponent({
       const currentFocused = document.activeElement as HTMLElement;
       if (!this.$el.contains(currentFocused)) return;
 
-      // Get all focusable menu items (checkboxes and buttons)
       const menu = this.$el.querySelector('.menu') as HTMLElement;
       const focusableItems = Array.from(menu.querySelectorAll('[role="menuitem"]')) as HTMLElement[];
 
@@ -56,19 +54,19 @@ export default defineComponent({
       const currentIndex = focusableItems.indexOf(currentFocused.closest('[role="menuitem"]') as HTMLElement);
 
       switch (event.key) {
-        case 'ArrowDown': { // select next element
+        case 'ArrowDown': {
           event.preventDefault();
           const nextIndex = currentIndex === -1 ? 0 : Math.min(currentIndex + 1, focusableItems.length - 1);
           this.focusElem(focusableItems[nextIndex], currentIndex >= 0 ? focusableItems[currentIndex] : null);
           break;
         }
-        case 'ArrowUp': { // select previous element
+        case 'ArrowUp': {
           event.preventDefault();
           const prevIndex = currentIndex === -1 ? focusableItems.length - 1 : Math.max(currentIndex - 1, 0);
           this.focusElem(focusableItems[prevIndex], currentIndex >= 0 ? focusableItems[currentIndex] : null);
           break;
         }
-        case 'Escape': // close menu
+        case 'Escape':
           event.preventDefault();
           if (currentIndex >= 0) {
             focusableItems[currentIndex].tabIndex = -1;
@@ -107,7 +105,6 @@ export default defineComponent({
       const extensionMap = new Map<string, {total: number, visible: number}>();
       const fileBoxes = document.querySelectorAll('#diff-file-boxes .diff-file-box[data-new-filename]');
 
-      // Count extensions, track visibility and hidden count in a single pass
       let hiddenCount = 0;
       fileBoxes.forEach((box) => {
         const filename = (box as HTMLElement).getAttribute('data-new-filename') || '';
@@ -125,8 +122,6 @@ export default defineComponent({
         }
       });
 
-      // Convert to array and sort by count descending
-      // checked = true if any files of this extension are visible
       this.extensions = Array.from(extensionMap.entries())
         .map(([ext, stats]) => ({
           ext,
@@ -140,12 +135,11 @@ export default defineComponent({
     /**
      * Open dropdown, rescan extensions
      */
-    toggleMenu() {
+    toggleMenu(refocus = true) {
       this.menuVisible = !this.menuVisible;
       if (this.menuVisible) {
         this.scanExtensions();
-      } else {
-        // when closing menu, restore focus to the button
+      } else if (refocus) {
         const button = this.$refs.expandBtn as HTMLElement;
         button.tabIndex = 0;
         button.focus();
@@ -188,9 +182,8 @@ export default defineComponent({
         }
       });
 
-      // Update filtering state and close the menu
       this.isFiltering = hiddenCount > 0;
-      this.toggleMenu();
+      this.toggleMenu(false);
     },
   },
 });
@@ -276,9 +269,8 @@ export default defineComponent({
   }
 
   .ui.dropdown.diff-file-extension-filter .diff-ext-filter-btn-active {
-    color: var(--color-red-700);
-    border-color: var(--color-red-300);
-    background: var(--color-red-50);
+    outline: 1px solid currentColor;
+    outline-offset: -1px;
   }
 
   .ui.dropdown.diff-file-extension-filter .diff-ext-text-btn {
