@@ -40,7 +40,6 @@ interface StoredState {
 
 const props = defineProps<{
   jobs: ActionsJob[];
-  currentJobId: number;
   runLink: string;
   workflowId: string;
 }>()
@@ -86,9 +85,7 @@ const saveState = () => {
 };
 
 loadSavedState();
-watch([translateX, translateY, scale], () => {
-  debounce(500, saveState);
-})
+watch([translateX, translateY, scale], debounce(500, saveState))
 
 const nodeWidth = computed(() => {
   const maxNameLength = Math.max(...props.jobs.map(j => j.name.length));
@@ -588,8 +585,6 @@ function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
 }
 
 function onNodeClick(job: JobNode, event: MouseEvent) {
-  if (job.id === props.currentJobId) return;
-
   const link = `${props.runLink}/jobs/${job.id}`;
   if (event.ctrlKey || event.metaKey) {
     window.open(link, '_blank');
@@ -652,7 +647,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
         <g
           v-for="job in jobsWithLayout"
           :key="job.id"
-          :class="{'current-job': job.id === currentJobId}"
           class="job-node-group"
           @click="onNodeClick(job, $event)"
           @mouseenter="handleNodeMouseEnter(job)"
@@ -665,8 +659,8 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             :height="nodeHeight"
             rx="8"
             :fill="getNodeColor(job.status)"
-            :stroke="job.id === currentJobId ? 'var(--color-primary)' : 'var(--color-card-border)'"
-            :stroke-width="job.id === currentJobId ? '3' : '2'"
+            stroke="var(--color-card-border)"
+            stroke-width="2"
             class="job-rect"
           />
 
@@ -734,18 +728,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
               keySplines="0.4, 0, 0.2, 1"
             />
           </rect>
-
-          <text
-            v-if="job.needs?.length"
-            :x="job.x + nodeWidth / 2"
-            :y="job.y - 8"
-            fill="var(--color-text-light-2)"
-            font-size="10"
-            text-anchor="middle"
-            class="job-deps-label"
-          >
-            ← {{ job.needs.length }} deps
-          </text>
         </g>
 
         <defs>
@@ -769,10 +751,9 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--color-secondary-alpha-20);
-  gap: 15px;
+  padding: 8px 14px;
+  background: var(--color-box-header);
+  gap: 20px;
   flex-wrap: wrap;
 }
 
@@ -786,7 +767,10 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .graph-stats {
-  color: var(--color-text-light-2);
+  display: flex;
+  align-items: baseline;
+  column-gap: 8px;
+  color: var(--color-text-light-1);
   font-size: 13px;
   white-space: nowrap;
 }
@@ -805,7 +789,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 .graph-container {
   overflow: auto;
   padding: 12px;
-  border-radius: 8px;
   cursor: grab;
   min-height: 300px;
   max-height: 600px;
@@ -844,14 +827,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   z-index: 10;
 }
 
-.job-node-group.current-job {
-  cursor: default;
-}
-
-.job-node-group.current-job .job-rect {
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 30%, transparent));
-}
-
 .job-name {
   max-width: calc(var(--node-width, 150px) - 50px);
   text-overflow: ellipsis;
@@ -862,8 +837,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .job-status,
-.job-duration,
-.job-deps-label {
+.job-duration {
   user-select: none;
   pointer-events: none;
 }

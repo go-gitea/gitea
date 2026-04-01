@@ -1,0 +1,24 @@
+<tr>
+	<td>
+		<strong>{{.UnitDisplayName}}</strong>
+		<div class="help">{{.UnitDisplayDesc}}</div>
+	</td>
+	<td class="tw-text-center">
+		<div class="ui radio checkbox">
+			<input type="radio" name="max_unit_access_mode_{{.UnitType}}" value="none" {{if not .UnitAccessMode}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.none_access"}}">
+			<label></label>
+		</div>
+	</td>
+	<td class="tw-text-center">
+		<div class="ui radio checkbox">
+			<input type="radio" name="max_unit_access_mode_{{.UnitType}}" value="read" {{if eq .UnitAccessMode 1}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.read_access"}}">
+			<label></label>
+		</div>
+	</td>
+	<td class="tw-text-center">
+		<div class="ui radio checkbox">
+			<input type="radio" name="max_unit_access_mode_{{.UnitType}}" value="write" {{if eq .UnitAccessMode 2}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
+			<label></label>
+		</div>
+	</td>
+</tr>
