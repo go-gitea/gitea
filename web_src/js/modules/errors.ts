@@ -23,19 +23,6 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error') {
   msgContainer.prepend(msgDiv);
 }
 
-export function shouldIgnoreError(err: Error) {
-  const ignorePatterns: Array<RegExp> = [
-    // https://github.com/go-gitea/gitea/issues/30861
-    // https://github.com/microsoft/monaco-editor/issues/4496
-    // https://github.com/microsoft/monaco-editor/issues/4679
-    /\/assets\/js\/.*(monaco|editor\.(api|worker))/,
-  ];
-  for (const pattern of ignorePatterns) {
-    if (pattern.test(err.stack ?? '')) return true;
-  }
-  return false;
-}
-
 export function processWindowErrorEvent({error, reason, message, type, filename, lineno, colno}: ErrorEvent & PromiseRejectionEvent) {
   const err = error ?? reason;
   const assetBaseUrl = String(new URL(`${window.config?.assetUrlPrefix ?? '/assets'}/`, window.location.origin));
@@ -51,13 +38,9 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
     if (runModeIsProd) return;
   }
 
-  if (err instanceof Error) {
-    // If the error stack trace does not include the base URL of our script assets, it likely came
-    // from a browser extension or inline script. Do not show such errors in production.
-    if (!err.stack?.includes(assetBaseUrl) && runModeIsProd) return;
-    // Ignore some known errors that are unable to fix
-    if (shouldIgnoreError(err)) return;
-  }
+  // If the error stack trace does not include the base URL of our script assets, it likely came
+  // from a browser extension or inline script. Do not show such errors in production.
+  if (err instanceof Error && !err.stack?.includes(assetBaseUrl) && runModeIsProd) return;
 
   let msg = err?.message ?? message;
   if (lineno) msg += ` (${filename} @ ${lineno}:${colno})`;

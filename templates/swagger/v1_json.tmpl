@@ -23463,6 +23463,11 @@
           },
           "x-go-name": "Events"
         },
+        "name": {
+          "description": "Optional human-readable name for the webhook",
+          "type": "string",
+          "x-go-name": "Name"
+        },
         "type": {
           "type": "string",
           "enum": [
@@ -24729,6 +24734,11 @@
             "type": "string"
           },
           "x-go-name": "Events"
+        },
+        "name": {
+          "description": "Optional human-readable name",
+          "type": "string",
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -26148,6 +26158,11 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "name": {
+          "description": "Optional human-readable name for the webhook",
+          "type": "string",
+          "x-go-name": "Name"
         },
         "type": {
           "description": "The type of the webhook (e.g., gitea, slack, discord)",
