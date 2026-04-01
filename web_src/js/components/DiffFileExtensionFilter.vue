@@ -176,7 +176,7 @@ function deselectAll() {
 function applyFilter() {
   const checkedExtensions = new Set(extensions.value.filter((e) => e.checked).map((e) => e.ext));
   applyFilterToFileBoxes(checkedExtensions);
-  toggleMenu(false);
+  toggleMenu();
 }
 
 /**
@@ -309,28 +309,30 @@ onUnmounted(() => {
             class="diff-ext-search-input"
             :placeholder="locale.search"
             @keydown.escape="toggleMenu()"
-          />
+          >
         </div>
       </div>
       <div class="ui divider tw-mt-2 tw-mb-0"/>
       <div class="ui form">
         <!-- Extension checkboxes -->
         <div class="grouped fields">
-          <template v-if="filteredExtensions.length > 0" v-for="ext in filteredExtensions" :key="ext.ext">
-            <div class="field" role="menuitem" tabindex="-1">
-              <div class="ui checkbox">
-                <input
-                  type="checkbox"
-                  :id="`ext-filter-${ext.ext}`"
-                  v-model="ext.checked"
-                >
-                <label :for="`ext-filter-${ext.ext}`" class="tw-cursor-pointer">
-                  <span class="tw-font-mono">{{ ext.ext }}</span>
-                  <span class="tw-text-text-light-2"> ({{ ext.count }})</span>
-                </label>
+          <div v-if="filteredExtensions.length > 0">
+            <template v-for="ext in filteredExtensions" :key="ext.ext">
+              <div class="field" role="menuitem" tabindex="-1">
+                <div class="ui checkbox">
+                  <input
+                    type="checkbox"
+                    :id="`ext-filter-${ext.ext}`"
+                    v-model="ext.checked"
+                  >
+                  <label :for="`ext-filter-${ext.ext}`" class="tw-cursor-pointer">
+                    <span class="tw-font-mono">{{ ext.ext }}</span>
+                    <span class="tw-text-text-light-2"> ({{ ext.count }})</span>
+                  </label>
+                </div>
               </div>
-            </div>
-          </template>
+            </template>
+          </div>
           <div v-if="filteredExtensions.length === 0" class="tw-py-4 tw-text-center tw-text-text-light-2">
             {{ locale.no_results ?? 'No extensions found' }}
           </div>
