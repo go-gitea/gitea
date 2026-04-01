@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models"
 	authmodel "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
@@ -160,8 +159,8 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(automerge.Init)
 	mustInit(task.Init)
 	mustInit(repo_migrations.Init)
-	eventsource.GetManager().Init()
 	mustInit(websocket_service.Init)
+	mustInit(websocket_service.InitStopwatch)
 	mustInitCtx(ctx, mailer_incoming.Init)
 
 	mustInitCtx(ctx, syncAppConfForGit)

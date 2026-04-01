@@ -1,20 +1,13 @@
+// Source manages the list of connected page ports for one logical connection.
+// It no longer creates an EventSource; all real-time data is delivered by the
+// accompanying WsSource over WebSocket.
 class Source {
   url: string;
-  eventSource: EventSource | null;
-  listening: Record<string, boolean>;
   clients: Array<MessagePort>;
 
   constructor(url: string) {
     this.url = url;
-    this.eventSource = new EventSource(url);
-    this.listening = {};
     this.clients = [];
-    this.listen('open');
-    this.listen('close');
-    this.listen('logout');
-    this.listen('notification-count');
-    this.listen('stopwatches');
-    this.listen('error');
   }
 
   register(port: MessagePort) {
@@ -37,24 +30,6 @@ class Source {
     return this.clients.length;
   }
 
-  close() {
-    if (!this.eventSource) return;
-
-    this.eventSource.close();
-    this.eventSource = null;
-  }
-
-  listen(eventType: string) {
-    if (this.listening[eventType]) return;
-    this.listening[eventType] = true;
-    this.eventSource?.addEventListener(eventType, (event) => {
-      this.notifyClients({
-        type: eventType,
-        data: event.data,
-      });
-    });
-  }
-
   notifyClients(event: {type: string, data: any}) {
     for (const client of this.clients) {
       client.postMessage(event);
@@ -64,15 +39,14 @@ class Source {
   status(port: MessagePort) {
     port.postMessage({
       type: 'status',
-      message: `url: ${this.url} readyState: ${this.eventSource?.readyState}`,
+      message: `url: ${this.url}`,
     });
   }
 }
 
-// WsSource provides a WebSocket transport alongside EventSource.
-// It delivers real-time notification-count pushes using the same client list
-// as the associated Source, normalising messages to the SSE event format so
-// that callers do not need to know which transport delivered the event.
+// WsSource provides a WebSocket transport for real-time event delivery.
+// It normalises messages to the SSE event format so that callers do not
+// need to know which transport delivered the event.
 class WsSource {
   wsUrl: string;
   ws: WebSocket | null;
@@ -104,6 +78,16 @@ class WsSource {
           this.source.notifyClients({
             type: 'notification-count',
             data: JSON.stringify({Count: msg.count}),
+          });
+        } else if (msg.type === 'stopwatches') {
+          this.source.notifyClients({
+            type: 'stopwatches',
+            data: JSON.stringify(msg.data),
+          });
+        } else if (msg.type === 'logout') {
+          this.source.notifyClients({
+            type: 'logout',
+            data: msg.data ?? '',
           });
         }
       } catch {
@@ -149,13 +133,6 @@ const wsSourcesByUrl = new Map<string, WsSource | null>();
 (self as unknown as SharedWorkerGlobalScope).addEventListener('connect', (e: MessageEvent) => {
   for (const port of e.ports) {
     port.addEventListener('message', (event: MessageEvent) => {
-      if (!self.EventSource) {
-        // some browsers (like PaleMoon, Firefox<53) don't support EventSource in SharedWorkerGlobalScope.
-        // this event handler needs EventSource when doing "new Source(url)", so just post a message back to the caller,
-        // in case the caller would like to use a fallback method to do its work.
-        port.postMessage({type: 'no-event-source'});
-        return;
-      }
       if (event.data.type === 'start') {
         const url = event.data.url;
         let source = sourcesByUrl.get(url);
@@ -167,14 +144,13 @@ const wsSourcesByUrl = new Map<string, WsSource | null>();
         }
         source = sourcesByPort.get(port);
         if (source) {
-          if (source.eventSource && source.url === url) return;
+          if (source.url === url) return;
 
           // How this has happened I don't understand...
           // deregister from that source
           const count = source.deregister(port);
           // Clean-up
           if (count === 0) {
-            source.close();
             sourcesByUrl.set(source.url, null);
             const ws = wsSourcesByUrl.get(source.url);
             if (ws) {
@@ -183,24 +159,19 @@ const wsSourcesByUrl = new Map<string, WsSource | null>();
             }
           }
         }
-        // Create a new Source
+        // Create a new Source and its WebSocket transport
         source = new Source(url);
         source.register(port);
         sourcesByUrl.set(url, source);
         sourcesByPort.set(port, source);
-        // Start WebSocket alongside EventSource for real-time notification pushes.
         const wsUrl = url.replace(/^http/, 'ws').replace(/\/user\/events$/, '/-/ws');
         wsSourcesByUrl.set(url, new WsSource(wsUrl, source));
-      } else if (event.data.type === 'listen') {
-        const source = sourcesByPort.get(port)!;
-        source.listen(event.data.eventType);
       } else if (event.data.type === 'close') {
         const source = sourcesByPort.get(port);
         if (!source) return;
 
         const count = source.deregister(port);
         if (count === 0) {
-          source.close();
           sourcesByUrl.set(source.url, null);
           sourcesByPort.set(port, null);
           const ws = wsSourcesByUrl.get(source.url);

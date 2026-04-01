@@ -6,8 +6,8 @@ package repo
 import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/services/context"
+	websocket_service "code.gitea.io/gitea/services/websocket"
 )
 
 // IssueStartStopwatch creates a stopwatch for the given issue.
@@ -76,10 +76,7 @@ func CancelStopwatch(c *context.Context) {
 		return
 	}
 	if len(stopwatches) == 0 {
-		eventsource.GetManager().SendMessage(c.Doer.ID, &eventsource.Event{
-			Name: "stopwatches",
-			Data: "{}",
-		})
+		websocket_service.PublishEmptyStopwatches(c.Doer.ID)
 	}
 
 	c.JSONRedirect("")

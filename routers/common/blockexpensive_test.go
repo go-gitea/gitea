@@ -26,5 +26,5 @@ func TestBlockExpensive(t *testing.T) {
 		assert.Equal(t, c.expensive, isRoutePathExpensive(c.routePath), "routePath: %s", c.routePath)
 	}
 
-	assert.True(t, isRoutePathForLongPolling("/user/events"))
+	assert.True(t, isRoutePathForLongPolling("/-/ws"))
 }

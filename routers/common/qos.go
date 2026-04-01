@@ -79,9 +79,9 @@ func QoS() func(next http.Handler) http.Handler {
 				return
 			}
 
-			// Release long-polling immediately, so they don't always
+			// Release long-lived connections immediately, so they don't always
 			// take up an in-flight request
-			if strings.Contains(req.URL.Path, "/user/events") {
+			if strings.Contains(req.URL.Path, "/-/ws") {
 				c.Release()
 			} else {
 				defer c.Release()

@@ -72,7 +72,7 @@ func isRoutePathExpensive(routePattern string) bool {
 }
 
 func isRoutePathForLongPolling(routePattern string) bool {
-	return routePattern == "/user/events"
+	return routePattern == "/-/ws"
 }
 
 func determineRequestPriority(reqCtx reqctx.RequestContext) (ret struct {
