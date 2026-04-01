@@ -42,7 +42,7 @@ func (l PortablePdbList) Close() {
 func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 	archive, err := zip.NewReader(r, size)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("not a valid symbol package: %v", err)
 	}
 
 	var pdbs PortablePdbList
