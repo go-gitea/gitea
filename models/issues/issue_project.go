@@ -64,36 +64,6 @@ func LoadProjectIssueColumnMap(ctx context.Context, projectID, defaultColumnID i
 	return result, nil
 }
 
-// LoadIssuesFromColumn load issues assigned to this column
-func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *IssuesOptions) (IssueList, error) {
-	issueList, err := Issues(ctx, opts.Copy(func(o *IssuesOptions) {
-		o.ProjectColumnID = b.ID
-		o.ProjectID = b.ProjectID
-		o.SortType = "project-column-sorting"
-	}))
-	if err != nil {
-		return nil, err
-	}
-
-	if b.Default {
-		issues, err := Issues(ctx, opts.Copy(func(o *IssuesOptions) {
-			o.ProjectColumnID = db.NoConditionID
-			o.ProjectID = b.ProjectID
-			o.SortType = "project-column-sorting"
-		}))
-		if err != nil {
-			return nil, err
-		}
-		issueList = append(issueList, issues...)
-	}
-
-	if err := issueList.LoadComments(ctx); err != nil {
-		return nil, err
-	}
-
-	return issueList, nil
-}
-
 // IssueAssignOrRemoveProject changes the project associated with an issue
 // If newProjectID is 0, the issue is removed from the project
 func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID, newColumnID int64) error {
