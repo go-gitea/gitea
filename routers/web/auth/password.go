@@ -74,7 +74,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	if !u.IsLocal() && !u.IsOAuth2() {
 		ctx.Data["Err_Email"] = true
-		ctx.RenderWithErr(ctx.Tr("auth.non_local_account"), tplForgotPassword, nil)
+		ctx.RenderWithErrDeprecated(ctx.Tr("auth.non_local_account"), tplForgotPassword, nil)
 		return
 	}
 
@@ -171,7 +171,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			if !twofa.VerifyScratchToken(ctx.FormString("token")) {
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Token"] = true
-				ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplResetPassword, nil)
+				ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplResetPassword, nil)
 				return
 			}
 			regenerateScratchToken = true
@@ -185,7 +185,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			if !ok || twofa.LastUsedPasscode == passcode {
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Passcode"] = true
-				ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplResetPassword, nil)
+				ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_passcode_incorrect"), tplResetPassword, nil)
 				return
 			}
 
@@ -206,13 +206,13 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.Data["Err_Password"] = true
 		switch {
 		case errors.Is(err, password.ErrMinLength):
-			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
 		case errors.Is(err, password.ErrComplexity):
-			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
+			ctx.RenderWithErrDeprecated(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
 		case errors.Is(err, password.ErrIsPwned):
-			ctx.RenderWithErr(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplResetPassword, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplResetPassword, nil)
 		case password.IsErrIsPwnedRequest(err):
-			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplResetPassword, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplResetPassword, nil)
 		default:
 			ctx.ServerError("UpdateAuth", err)
 		}
@@ -275,7 +275,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	if form.Password != form.Retype {
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplMustChangePassword, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.password_not_match"), tplMustChangePassword, &form)
 		return
 	}
 
@@ -287,16 +287,16 @@ func MustChangePasswordPost(ctx *context.Context) {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplMustChangePassword, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplMustChangePassword, &form)
 		case errors.Is(err, password.ErrComplexity):
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
+			ctx.RenderWithErrDeprecated(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
 		case errors.Is(err, password.ErrIsPwned):
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplMustChangePassword, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplMustChangePassword, &form)
 		case password.IsErrIsPwnedRequest(err):
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplMustChangePassword, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplMustChangePassword, &form)
 		default:
 			ctx.ServerError("UpdateAuth", err)
 		}

@@ -150,7 +150,7 @@ func DeleteBranch(ctx *context.APIContext) {
 		}
 	}
 
-	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName, nil); err != nil {
+	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			ctx.APIErrorNotFound(err)
@@ -375,7 +375,7 @@ func ListBranches(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.SetLinkHeader(int(totalNumOfBranches), listOptions.PageSize)
+	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
 	ctx.SetTotalCountHeader(totalNumOfBranches)
 	ctx.JSON(http.StatusOK, apiBranches)
 }

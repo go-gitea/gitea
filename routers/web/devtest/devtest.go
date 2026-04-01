@@ -51,16 +51,7 @@ func FetchActionTest(ctx *context.Context) {
 	ctx.JSONRedirect("")
 }
 
-func prepareMockDataGiteaUI(ctx *context.Context) {
-	now := time.Now()
-	ctx.Data["TimeNow"] = now
-	ctx.Data["TimePast5s"] = now.Add(-5 * time.Second)
-	ctx.Data["TimeFuture5s"] = now.Add(5 * time.Second)
-	ctx.Data["TimePast2m"] = now.Add(-2 * time.Minute)
-	ctx.Data["TimeFuture2m"] = now.Add(2 * time.Minute)
-	ctx.Data["TimePast1y"] = now.Add(-1 * 366 * 86400 * time.Second)
-	ctx.Data["TimeFuture1y"] = now.Add(1 * 366 * 86400 * time.Second)
-}
+func prepareMockDataGiteaUI(_ *context.Context) {}
 
 func prepareMockDataBadgeCommitSign(ctx *context.Context) {
 	var commits []*asymkey.SignCommit
@@ -166,6 +157,29 @@ func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 	ctx.Data["SelectedStyle"] = selectedStyle
 }
 
+func prepareMockDataRelativeTime(ctx *context.Context) {
+	now := time.Now()
+	ctx.Data["TimeNow"] = now
+	ctx.Data["TimePast5s"] = now.Add(-5 * time.Second)
+	ctx.Data["TimeFuture5s"] = now.Add(5 * time.Second)
+	ctx.Data["TimePast2m"] = now.Add(-2 * time.Minute)
+	ctx.Data["TimeFuture2m"] = now.Add(2 * time.Minute)
+	ctx.Data["TimePast3m"] = now.Add(-3 * time.Minute)
+	ctx.Data["TimePast1h"] = now.Add(-1 * time.Hour)
+	ctx.Data["TimePast3h"] = now.Add(-3 * time.Hour)
+	ctx.Data["TimePast1d"] = now.Add(-24 * time.Hour)
+	ctx.Data["TimePast2d"] = now.Add(-2 * 24 * time.Hour)
+	ctx.Data["TimePast3d"] = now.Add(-3 * 24 * time.Hour)
+	ctx.Data["TimePast26h"] = now.Add(-26 * time.Hour)
+	ctx.Data["TimePast40d"] = now.Add(-40 * 24 * time.Hour)
+	ctx.Data["TimePast60d"] = now.Add(-60 * 24 * time.Hour)
+	ctx.Data["TimePast1y"] = now.Add(-366 * 24 * time.Hour)
+	ctx.Data["TimeFuture1h"] = now.Add(1 * time.Hour)
+	ctx.Data["TimeFuture3h"] = now.Add(3 * time.Hour)
+	ctx.Data["TimeFuture3d"] = now.Add(3 * 24 * time.Hour)
+	ctx.Data["TimeFuture1y"] = now.Add(366 * 24 * time.Hour)
+}
+
 func prepareMockData(ctx *context.Context) {
 	switch ctx.Req.URL.Path {
 	case "/devtest/gitea-ui":
@@ -174,6 +188,8 @@ func prepareMockData(ctx *context.Context) {
 		prepareMockDataBadgeCommitSign(ctx)
 	case "/devtest/badge-actions-svg":
 		prepareMockDataBadgeActionsSvg(ctx)
+	case "/devtest/relative-time":
+		prepareMockDataRelativeTime(ctx)
 	}
 }
 

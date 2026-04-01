@@ -60,29 +60,27 @@ type CreateOrgOption struct {
 	// The location of the organization
 	Location string `json:"location" binding:"MaxSize(50)"`
 	// possible values are `public` (default), `limited` or `private`
-	// enum: public,limited,private
+	// enum: ["public","limited","private"]
 	Visibility string `json:"visibility" binding:"In(,public,limited,private)"`
 	// Whether repository administrators can change team access
 	RepoAdminChangeTeamAccess bool `json:"repo_admin_change_team_access"`
 }
 
-// TODO: make EditOrgOption fields optional after https://gitea.com/go-chi/binding/pulls/5 got merged
-
 // EditOrgOption options for editing an organization
 type EditOrgOption struct {
 	// The full display name of the organization
-	FullName string `json:"full_name" binding:"MaxSize(100)"`
-	// The email address of the organization
-	Email string `json:"email" binding:"MaxSize(255)"`
+	FullName *string `json:"full_name" binding:"MaxSize(100)"`
+	// The email address of the organization; use empty string to clear
+	Email *string `json:"email" binding:"MaxSize(255)"`
 	// The description of the organization
-	Description string `json:"description" binding:"MaxSize(255)"`
+	Description *string `json:"description" binding:"MaxSize(255)"`
 	// The website URL of the organization
-	Website string `json:"website" binding:"ValidUrl;MaxSize(255)"`
+	Website *string `json:"website" binding:"ValidUrl;MaxSize(255)"`
 	// The location of the organization
-	Location string `json:"location" binding:"MaxSize(50)"`
+	Location *string `json:"location" binding:"MaxSize(50)"`
 	// possible values are `public`, `limited` or `private`
-	// enum: public,limited,private
-	Visibility string `json:"visibility" binding:"In(,public,limited,private)"`
+	// enum: ["public","limited","private"]
+	Visibility *string `json:"visibility" binding:"In(,public,limited,private)"`
 	// Whether repository administrators can change team access
 	RepoAdminChangeTeamAccess *bool `json:"repo_admin_change_team_access"`
 }

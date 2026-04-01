@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -46,11 +47,13 @@ func ListRunners(ctx *context.APIContext, ownerID, repoID int64) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
-	runners, total, err := db.FindAndCount[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{
+	opts := &actions_model.FindRunnerOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
 		ListOptions: utils.GetListOptions(ctx),
-	})
+	}
+	opts.IsDisabled = ctx.FormOptionalBool("disabled")
+	runners, total, err := db.FindAndCount[actions_model.ActionRunner](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -124,4 +127,24 @@ func DeleteRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+func UpdateRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
+	runner, ok := getRunnerByID(ctx, ownerID, repoID, runnerID)
+	if !ok {
+		return
+	}
+
+	form := web.GetForm(ctx).(*api.EditActionRunnerOption)
+	if form.Disabled == nil {
+		ctx.APIError(http.StatusUnprocessableEntity, "[Disabled]: Required")
+		return
+	}
+
+	if err := actions_model.SetRunnerDisabled(ctx, runner, *form.Disabled); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	GetRunner(ctx, ownerID, repoID, runnerID)
 }

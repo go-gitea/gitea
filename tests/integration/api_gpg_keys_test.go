@@ -63,8 +63,8 @@ func TestGPGKeys(t *testing.T) {
 			t.Run("CreateInvalidGPGKey", func(t *testing.T) {
 				testCreateInvalidGPGKey(t, tc.makeRequest, tc.token, tc.results[4])
 			})
-			t.Run("CreateNoneRegistredEmailGPGKey", func(t *testing.T) {
-				testCreateNoneRegistredEmailGPGKey(t, tc.makeRequest, tc.token, tc.results[5])
+			t.Run("CreateNoneRegisteredEmailGPGKey", func(t *testing.T) {
+				testCreateNoneRegisteredEmailGPGKey(t, tc.makeRequest, tc.token, tc.results[5])
 			})
 			t.Run("CreateValidGPGKey", func(t *testing.T) {
 				testCreateValidGPGKey(t, tc.makeRequest, tc.token, tc.results[6])
@@ -179,7 +179,7 @@ func testCreateInvalidGPGKey(t *testing.T, makeRequest makeRequestFunc, token st
 	testCreateGPGKey(t, makeRequest, token, expected, "invalid_key")
 }
 
-func testCreateNoneRegistredEmailGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
+func testCreateNoneRegisteredEmailGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
 	testCreateGPGKey(t, makeRequest, token, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFmGUygBCACjCNbKvMGgp0fd5vyFW9olE1CLCSyyF9gQN2hSuzmZLuAZF2Kh

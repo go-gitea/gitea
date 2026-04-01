@@ -292,6 +292,7 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
 }
 
 .labels-list a {
+  display: inline-flex;
   max-width: 100%; /* for ellipsis */
 }
 

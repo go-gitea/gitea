@@ -402,6 +402,8 @@ func TestAPIBranchProtection(t *testing.T) {
 	// Test branch deletion
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
+	testAPIDeleteBranch(t, "branch2", http.StatusNotFound)        // deleted branch, there is a record in DB with IsDelete=true
+	testAPIDeleteBranch(t, "no-such-branch", http.StatusNotFound) // non-existing branch, not exist in git or DB
 }
 
 func TestAPICreateBranchWithSyncBranches(t *testing.T) {

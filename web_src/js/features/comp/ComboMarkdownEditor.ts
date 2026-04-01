@@ -10,6 +10,7 @@ import {
 } from './EditorUpload.ts';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.ts';
 import {renderPreviewPanelContent} from '../repo-editor.ts';
+import {toggleTasklistCheckbox} from '../../markup/tasklist.ts';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.ts';
 import {initTextExpander} from './TextExpander.ts';
 import {showErrorToast} from '../../modules/toast.ts';
@@ -236,6 +237,20 @@ export class ComboMarkdownEditor {
       const response = await POST(this.previewUrl, {data: formData});
       const data = await response.text();
       renderPreviewPanelContent(panelPreviewer, data);
+      // enable task list checkboxes in preview and sync state back to the editor
+      for (const checkbox of panelPreviewer.querySelectorAll<HTMLInputElement>('.task-list-item input[type=checkbox]')) {
+        checkbox.disabled = false;
+        checkbox.addEventListener('input', () => {
+          const position = parseInt(checkbox.getAttribute('data-source-position')!) + 1;
+          const newContent = toggleTasklistCheckbox(this.value(), position, checkbox.checked);
+          if (newContent === null) {
+            checkbox.checked = !checkbox.checked;
+            return;
+          }
+          this.value(newContent);
+          triggerEditorContentChanged(this.container);
+        });
+      }
     });
   }
 
@@ -266,8 +281,8 @@ export class ComboMarkdownEditor {
     addTableButton.addEventListener('click', () => addTablePanelTippy.show());
 
     addTablePanel.querySelector('.ui.button.primary')!.addEventListener('click', () => {
-      let rows = parseInt(addTablePanel.querySelector<HTMLInputElement>('[name=rows]')!.value);
-      let cols = parseInt(addTablePanel.querySelector<HTMLInputElement>('[name=cols]')!.value);
+      let rows = parseInt(addTablePanel.querySelector<HTMLInputElement>('.add-table-rows')!.value);
+      let cols = parseInt(addTablePanel.querySelector<HTMLInputElement>('.add-table-cols')!.value);
       rows = Math.max(1, Math.min(100, rows));
       cols = Math.max(1, Math.min(100, cols));
       replaceTextareaSelection(this.textarea, `\n${this.generateMarkdownTable(rows, cols)}\n\n`);
@@ -318,8 +333,10 @@ export class ComboMarkdownEditor {
 
   async switchToEasyMDE() {
     if (this.easyMDE) return;
-    // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
-    const {default: EasyMDE} = await import(/* webpackChunkName: "easymde" */'easymde');
+    const [{default: EasyMDE}] = await Promise.all([
+      import('easymde'),
+      import('../../../css/easymde.css'),
+    ]);
     const easyMDEOpt: EasyMDE.Options = {
       autoDownloadFontAwesome: false,
       element: this.textarea,

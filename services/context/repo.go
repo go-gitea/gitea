@@ -344,9 +344,9 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, templateRepo, ctx.Doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, templateRepo, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
+		ctx.ServerError("GetDoerRepoPermission", err)
 		return
 	}
 
@@ -421,9 +421,9 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	if ctx.DoerNeedTwoFactorAuth() {
 		ctx.Repo.Permission = access_model.PermissionNoAccess()
 	} else {
-		ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		ctx.Repo.Permission, err = access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
+			ctx.ServerError("GetDoerRepoPermission", err)
 			return
 		}
 	}
@@ -961,7 +961,8 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				}
 				// If short commit ID add canonical link header
 				if len(refShortName) < ctx.Repo.GetObjectFormat().FullLength() {
-					canonicalURL := util.URLJoin(httplib.GuessCurrentAppURL(ctx), strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refShortName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1))
+					// FIXME: the dirty hack of "strings.Replace" should be fixed
+					canonicalURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") + strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refShortName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1)
 					ctx.RespHeader().Set("Link", fmt.Sprintf(`<%s>; rel="canonical"`, canonicalURL))
 				}
 			} else {

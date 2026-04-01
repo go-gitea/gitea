@@ -95,9 +95,9 @@ func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 		return nil
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
+		ctx.ServerError("GetDoerRepoPermission", err)
 		return nil
 	}
 
@@ -282,7 +282,7 @@ func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 	compareInfo, err := git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo,
 		git.RefName(baseCommit), git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
-		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "unknown revision or path not in the working tree") {
+		if gitcmd.IsStdErrorNotValidObjectName(err) || strings.Contains(err.Error(), "unknown revision or path not in the working tree") {
 			ctx.Data["IsPullRequestBroken"] = true
 			ctx.Data["BaseTarget"] = pull.BaseBranch
 			ctx.Data["NumCommits"] = 0
@@ -442,7 +442,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
 			git.RefName(pull.MergeBase), git.RefName(pull.GetGitHeadRefName()), false, false)
 		if err != nil {
-			if strings.Contains(err.Error(), "fatal: Not a valid object name") {
+			if gitcmd.IsStdErrorNotValidObjectName(err) {
 				ctx.Data["IsPullRequestBroken"] = true
 				ctx.Data["BaseTarget"] = pull.BaseBranch
 				ctx.Data["NumCommits"] = 0
@@ -584,7 +584,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
 		git.RefNameFromBranch(pull.BaseBranch), git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
-		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
+		if gitcmd.IsStdErrorNotValidObjectName(err) {
 			ctx.Data["IsPullRequestBroken"] = true
 			ctx.Data["BaseTarget"] = pull.BaseBranch
 			ctx.Data["NumCommits"] = 0
@@ -913,10 +913,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	handleMentionableAssigneesAndTeams(ctx, shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers))
-	if ctx.Written() {
-		return
-	}
+	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	currentReview, err := issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
 	if err != nil && !issues_model.IsErrReviewNotExist(err) {
@@ -961,9 +958,9 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 		if pull.HeadRepo != nil {
 			if !pull.HasMerged && ctx.Doer != nil {
-				perm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
+				perm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
+					ctx.ServerError("GetDoerRepoPermission", err)
 					return
 				}
 

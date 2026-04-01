@@ -13,6 +13,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -61,7 +62,8 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		Updated:     issue.UpdatedUnix.AsTime(),
 		PinOrder:    util.Iif(issue.PinOrder == -1, 0, issue.PinOrder), // -1 means loaded with no pin order
 
-		TimeEstimate: issue.TimeEstimate,
+		TimeEstimate:   issue.TimeEstimate,
+		ContentVersion: issue.ContentVersion,
 	}
 
 	if issue.Repo != nil {
@@ -199,7 +201,7 @@ func ToStopWatches(ctx context.Context, doer *user_model.User, sws []*issues_mod
 		// ADD: Check user permissions
 		perm, ok := permCache[repo.ID]
 		if !ok {
-			perm, err = access_model.GetUserRepoPermission(ctx, repo, doer)
+			perm, err = access_model.GetDoerRepoPermission(ctx, repo, doer)
 			if err != nil {
 				continue
 			}
@@ -226,7 +228,21 @@ func ToStopWatches(ctx context.Context, doer *user_model.User, sws []*issues_mod
 // ToTrackedTimeList converts TrackedTimeList to API format
 func ToTrackedTimeList(ctx context.Context, doer *user_model.User, tl issues_model.TrackedTimeList) api.TrackedTimeList {
 	result := make([]*api.TrackedTime, 0, len(tl))
+	permCache := cache.NewEphemeralCache()
 	for _, t := range tl {
+		// If the issue is not loaded, conservatively skip this entry to avoid bypassing permission checks.
+		if t.Issue == nil || t.Issue.Repo == nil {
+			continue
+		}
+		perm, err := cache.GetWithEphemeralCache(ctx, permCache, "repo-perm", t.Issue.RepoID, func(ctx context.Context, repoID int64) (access_model.Permission, error) {
+			return access_model.GetDoerRepoPermission(ctx, t.Issue.Repo, doer)
+		})
+		if err != nil {
+			continue
+		}
+		if !perm.CanReadIssuesOrPulls(t.Issue.IsPull) {
+			continue
+		}
 		result = append(result, ToTrackedTime(ctx, doer, t))
 	}
 	return result
