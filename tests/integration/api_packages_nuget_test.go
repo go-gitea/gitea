@@ -937,7 +937,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 		packageContent := createPackage(packageName, packageVersion).Bytes()
 
-		// Simulate dotnet nuget push which sends multipart/form-data
+		// Simulate dotnet nuget push which sends multipart/form-data with X-NuGet-ApiKey auth
 		var body bytes.Buffer
 		mpw := multipart.NewWriter(&body)
 		part, err := mpw.CreateFormFile("package", "package.nupkg")
@@ -948,9 +948,13 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		assert.NoError(t, err)
 
 		req := NewRequestWithBody(t, "PUT", url, &body).
-			AddBasicAuth(user.Name).
 			SetHeader("Content-Type", mpw.FormDataContentType())
+		addNuGetAPIKeyHeader(req, writeToken)
 		MakeRequest(t, req, http.StatusCreated)
+
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
+		assert.NoError(t, err)
+		assert.Len(t, pvs, 1)
 
 		// Clean up
 		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, packageVersion)).
