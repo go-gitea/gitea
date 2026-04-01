@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
@@ -97,6 +96,18 @@ func TestWebAuthOAuth2(t *testing.T) {
 		assert.Contains(t, ctx.Flash.ErrorMsg, "auth.oauth.signin.error.general")
 	})
 
+	t.Run("RedirectSingleProvider", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, false)()
+		defer test.MockVariableValue(&setting.Service.EnableOpenIDSignIn, false)()
+		defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, false)()
+
+		ctx, resp := contexttest.MockContext(t, "/user/login?redirect_to=/other")
+		SignIn(ctx)
+		assert.Equal(t, http.StatusSeeOther, resp.Code)
+		expectedURL := "/user/oauth2/dummy-auth-source?redirect_to=" + url.QueryEscape("/other")
+		assert.Equal(t, expectedURL, test.RedirectURL(resp))
+	})
+
 	t.Run("OIDCLogout", func(t *testing.T) {
 		var mockServer *httptest.Server
 		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -135,20 +146,4 @@ func TestWebAuthOAuth2(t *testing.T) {
 		u.RawQuery = ""
 		assert.Equal(t, "https://example.com/oidc-logout", u.String())
 	})
-}
-
-func TestSignInAutoRedirectSingleProvider(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, false)()
-	defer test.MockVariableValue(&setting.Service.EnableOpenIDSignIn, false)()
-	defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, false)()
-
-	_ = oauth2.Init(t.Context())
-	addOAuth2Source(t, "dummy-auth-source-signin-auto", oauth2.Source{})
-
-	ctx, resp := contexttest.MockContext(t, "/user/login?redirect_to=/other")
-	SignIn(ctx)
-	assert.Equal(t, http.StatusSeeOther, resp.Code)
-	expectedURL := "/user/oauth2/dummy-auth-source-signin-auto?redirect_to=" + url.QueryEscape("/other")
-	assert.Equal(t, expectedURL, test.RedirectURL(resp))
 }
