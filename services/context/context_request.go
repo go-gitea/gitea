@@ -13,16 +13,17 @@ import (
 // Only form files need to get closed.
 func (ctx *Context) UploadStream() (rd io.ReadCloser, needToClose bool, err error) {
 	contentType := strings.ToLower(ctx.Req.Header.Get("Content-Type"))
-	if strings.HasPrefix(contentType, "multipart/form-data") {
+	if strings.HasPrefix(contentType, "application/x-www-form-urlencoded") || strings.HasPrefix(contentType, "multipart/form-data") {
 		if err := ctx.Req.ParseMultipartForm(32 << 20); err != nil {
 			return nil, false, err
 		}
-		if ctx.Req.MultipartForm != nil {
-			for _, files := range ctx.Req.MultipartForm.File {
-				if len(files) > 0 {
-					r, err := files[0].Open()
-					return r, true, err
-				}
+		if ctx.Req.MultipartForm.File == nil {
+			return nil, false, http.ErrMissingFile
+		}
+		for _, files := range ctx.Req.MultipartForm.File {
+			if len(files) > 0 {
+				r, err := files[0].Open()
+				return r, true, err
 			}
 		}
 		return nil, false, http.ErrMissingFile
