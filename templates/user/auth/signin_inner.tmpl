@@ -46,12 +46,12 @@
 				</button>
 			</div>
 		</form>
-		{{end}}{{/*if .EnablePasswordSignInForm*/}}
-		{{$hasExternalAuthMethods := or .OAuth2Providers .EnableOpenIDSignIn .EnableSSPI}}
-		{{if and $hasExternalAuthMethods .EnablePasswordSignInForm}}
+		{{end}}{{/*end if .EnablePasswordSignInForm*/}}
+		{{$showExternalAuthMethods := or .OAuth2Providers .EnableOpenIDSignIn .EnableSSPI}}
+		{{if and $showExternalAuthMethods .EnablePasswordSignInForm}}
 			<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
 		{{end}}
-		{{if $hasExternalAuthMethods}}
+		{{if $showExternalAuthMethods}}
 			{{template "user/auth/external_auth_methods" .}}
 		{{end}}
 	</div>
