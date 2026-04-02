@@ -686,6 +686,7 @@ overflow-menu .ui.label {
 }
 
 .lines-num,
+.lines-escape,
 .lines-code {
   font-size: 12px;
   font-family: var(--fonts-monospace);

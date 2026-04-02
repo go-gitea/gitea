@@ -19,6 +19,7 @@
   visibility: visible;
   content: "⚠️";
   font-family: var(--fonts-emoji);
+  padding: 0 2px;
   color: var(--color-red);
 }
 
