@@ -1,9 +1,9 @@
 import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
-import {login, apiCreateRepo, apiDeleteRepo, randomString} from './utils.ts';
+import {login, apiCreateRepo, apiDeleteRepo} from './utils.ts';
 
 test('codeeditor textarea updates correctly', async ({page, request}) => {
-  const repoName = `e2e-codeeditor-${randomString(8)}`;
+  const repoName = 'e2e-codeeditor';
   await apiCreateRepo(request, {name: repoName});
   try {
     await login(page);

@@ -1,9 +1,9 @@
 import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
-import {login, apiCreateRepo, apiCreateIssue, apiDeleteRepo, randomString} from './utils.ts';
+import {login, apiCreateRepo, apiCreateIssue, apiDeleteRepo} from './utils.ts';
 
 test('toggle issue reactions', async ({page, request}) => {
-  const repoName = `e2e-reactions-${randomString(8)}`;
+  const repoName = 'e2e-reactions';
   const owner = env.GITEA_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName});
   await Promise.all([
