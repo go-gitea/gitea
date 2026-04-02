@@ -94,7 +94,7 @@ func (w *WebSearchGroup) doLoadChildren(opts *WebSearchOptions) error {
 	slices.SortStableFunc(repos, func(a, b *repo_model.Repository) int {
 		return a.GroupSortOrder - b.GroupSortOrder
 	})
-	latestCommitStatuses, err := commitstatus_service.FindReposLastestCommitStatuses(opts.Ctx, repos)
+	latestCommitStatuses, err := commitstatus_service.FindReposLatestCommitStatuses(opts.Ctx, repos)
 	if err != nil {
 		log.Error("FindReposLastestCommitStatuses: %v", err)
 		return err

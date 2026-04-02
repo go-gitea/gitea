@@ -160,7 +160,7 @@ func migratePushMirrors(x *xorm.Engine) error {
 
 func getRemoteAddress(ownerName, repoName, remoteName string) (string, error) {
 	ctx := context.Background()
-	relativePath := repo_model.RelativePath(ownerName, repoName)
+	relativePath := repo_model.RelativePath(ownerName, repoName, 0)
 	if exist, _ := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(relativePath)); !exist {
 		return "", nil
 	}

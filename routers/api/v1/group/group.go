@@ -357,7 +357,7 @@ func GetGroupRepos(ctx *context.APIContext) {
 	}
 	repos := make([]*api.Repository, len(groupRepos))
 	for i, repo := range groupRepos {
-		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		permission, err := access_model.GetIndividualUserRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
