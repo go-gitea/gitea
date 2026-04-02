@@ -3,14 +3,14 @@
 
 package v1_26
 
-import "xorm.io/xorm"
+import (
+	"xorm.io/xorm"
+)
 
-func AddCloseReasonColumnsToIssue(x *xorm.Engine) error {
-	type Issue struct {
-		CloseReason      int64  `xorm:"INDEX DEFAULT 0"`
-		CloseReasonParam string `xorm:"TEXT"`
+func AddNameToWebhook(x *xorm.Engine) error {
+	type Webhook struct {
+		Name string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	}
-
-	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(Issue))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(Webhook))
 	return err
 }

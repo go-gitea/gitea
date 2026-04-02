@@ -1,21 +1,24 @@
 import {env} from 'node:process';
 import {defineConfig, devices} from '@playwright/test';
 
+const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
+const timeout = 5000 * timeoutFactor;
+
 export default defineConfig({
   testDir: './tests/e2e/',
   outputDir: './tests/e2e-output/',
   testMatch: /.*\.test\.ts/,
   forbidOnly: Boolean(env.CI),
   reporter: 'list',
-  timeout: env.CI ? 12000 : 6000,
+  timeout: 2 * timeout,
   expect: {
-    timeout: env.CI ? 6000 : 3000,
+    timeout,
   },
   use: {
-    baseURL: env.GITEA_TEST_E2E_URL?.replace?.(/\/$/g, ''),
+    baseURL: env.GITEA_TEST_E2E_URL?.replace?.(/\/$/, ''),
     locale: 'en-US',
-    actionTimeout: env.CI ? 6000 : 3000,
-    navigationTimeout: env.CI ? 12000 : 6000,
+    actionTimeout: timeout,
+    navigationTimeout: 2 * timeout,
   },
   projects: [
     {

@@ -3,6 +3,8 @@ import {env} from 'node:process';
 import {expect} from '@playwright/test';
 import type {APIRequestContext, Locator, Page} from '@playwright/test';
 
+export const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
+
 export function baseUrl() {
   return env.GITEA_TEST_E2E_URL?.replace(/\/$/g, '');
 }
@@ -22,7 +24,7 @@ async function apiRetry(fn: () => Promise<{ok: () => boolean; status: () => numb
     if (response.ok()) return;
     if ([500, 502, 503].includes(response.status()) && attempt < maxAttempts - 1) {
       const jitter = Math.random() * 500;
-      await new Promise((resolve) => globalThis.setTimeout(resolve, 1000 * (attempt + 1) + jitter));
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1) + jitter));
       continue;
     }
     throw new Error(`${label} failed: ${response.status()} ${await response.text()}`);
