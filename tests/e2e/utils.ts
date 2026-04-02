@@ -1,13 +1,17 @@
-import {randomBytes} from 'node:crypto';
 import {env} from 'node:process';
 import {expect} from '@playwright/test';
 import type {APIRequestContext, Locator, Page} from '@playwright/test';
 
 export const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
 
-/** Generate a random hex string. */
-export function randomString(length: number) {
-  return randomBytes(Math.ceil(length / 2)).toString('hex').slice(0, length);
+/** Generate a random string. */
+export function randomString(length: number): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let idx = 0; idx < length; idx++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }
 
 export function baseUrl() {
@@ -70,8 +74,7 @@ export async function apiDeleteOrg(requestContext: APIRequestContext, name: stri
 
 /** Generate a random password that satisfies the complexity requirements. */
 function generatePassword() {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  return `${Array.from(randomBytes(12), (b) => chars[b % chars.length]).join('')}!aA1`;
+  return `${randomString(12)}!aA1`;
 }
 
 /** Random password shared by all test users — used for both API user creation and browser login. */
