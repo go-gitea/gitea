@@ -66,7 +66,11 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 
 	// erase authentication before storing in database
 	u.User = nil
+	m.RemoteAddress = u.String()
 	m.Repo.OriginalURL = u.String()
+	if err = repo_model.UpdateMirror(ctx, m); err != nil {
+		return err
+	}
 	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url")
 }
 
