@@ -17,8 +17,10 @@ Only show the real-char:
   content: attr(data-escaped);
 }
 .broken-code-point[data-escaped] .char {
-  display: inline-block;
-  width: 0; /* make it copyable by selecting the text */
+  /* make it copyable by selecting the text (AI suggestion, no other solution) */
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /*
