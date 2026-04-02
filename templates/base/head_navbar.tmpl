@@ -159,14 +159,14 @@
 				<span class="stopwatch-issue">{{if $activeStopwatch}}{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}{{end}}</span>
 			</a>
 			<div class="tw-flex tw-gap-1">
-				<form class="stopwatch-commit form-fetch-action" method="post" action="{{if $activeStopwatch}}{{$activeStopwatch.IssueLink}}/times/stopwatch/stop{{end}}">
+				<form class="stopwatch-commit" method="post" action="{{if $activeStopwatch}}{{$activeStopwatch.IssueLink}}/times/stopwatch/stop{{end}}">
 					<button
 						type="submit"
 						class="ui button mini compact basic icon tw-mr-0"
 						data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
 					>{{svg "octicon-square-fill"}}</button>
 				</form>
-				<form class="stopwatch-cancel form-fetch-action" method="post" action="{{if $activeStopwatch}}{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel{{end}}">
+				<form class="stopwatch-cancel" method="post" action="{{if $activeStopwatch}}{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel{{end}}">
 					<button
 						type="submit"
 						class="ui button mini compact basic icon tw-mr-0"

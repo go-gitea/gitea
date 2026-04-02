@@ -1,6 +1,6 @@
 import {createTippy} from '../modules/tippy.ts';
-import {GET} from '../modules/fetch.ts';
-import {hideElem, queryElems, showElem} from '../utils/dom.ts';
+import {GET, POST} from '../modules/fetch.ts';
+import {addDelegatedEventListener, hideElem, queryElems, showElem} from '../utils/dom.ts';
 import {UserEventsSharedWorker} from '../modules/worker.ts';
 
 const {appSubUrl, notificationSettings, enableTimeTracking} = window.config;
@@ -41,6 +41,16 @@ export function initStopwatch() {
       },
     });
   }
+
+  // Handle stop/cancel from the navbar popup without triggering a page reload.
+  // These forms are not form-fetch-action so they won't navigate; the WebSocket
+  // push (or periodic poller) updates the icon after the action completes.
+  addDelegatedEventListener(document, 'submit', '.stopwatch-commit,.stopwatch-cancel', async (form: HTMLFormElement, e: SubmitEvent) => {
+    e.preventDefault();
+    const action = form.getAttribute('action');
+    if (!action) return;
+    await POST(action, {data: new FormData(form)});
+  });
 
   let usingPeriodicPoller = false;
   const startPeriodicPoller = (timeout: number) => {
