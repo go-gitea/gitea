@@ -23,10 +23,10 @@ import (
 const sizeLimit = 1024 * 1024
 
 type globalVarsType struct {
-	highlightMapping   map[string]string
-	githubStyles       *chroma.Style
-	escapeFull         []template.HTML
-	escapeControlChars []template.HTML
+	highlightMapping map[string]string
+	githubStyles     *chroma.Style
+	escapeFull       []template.HTML
+	escCtrlCharsMap  []template.HTML
 }
 
 var (
@@ -42,7 +42,7 @@ func globalVars() *globalVarsType {
 		globalVarsPtr = &globalVarsType{}
 		globalVarsPtr.githubStyles = styles.Get("github")
 		globalVarsPtr.highlightMapping = setting.GetHighlightMapping()
-		globalVarsPtr.escapeControlChars = make([]template.HTML, 256)
+		globalVarsPtr.escCtrlCharsMap = make([]template.HTML, 256)
 		// ASCII Table 0x00 - 0x1F
 		controlCharNames := []string{
 			"NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
@@ -54,14 +54,14 @@ func globalVars() *globalVarsType {
 		// don't worry, even if you forget to comment it out and push it to git repo, the CI tests will catch it and fail
 		// controlCharNames = append(controlCharNames, "SP")
 		for i, s := range controlCharNames {
-			globalVarsPtr.escapeControlChars[i] = template.HTML(`<span class="broken-code-point" data-escaped="` + s + `"><span class="char">` + string(byte(i)) + `</span></span>`)
+			globalVarsPtr.escCtrlCharsMap[i] = template.HTML(`<span class="broken-code-point" data-escaped="` + s + `"><span class="char">` + string(byte(i)) + `</span></span>`)
 		}
-		globalVarsPtr.escapeControlChars[0x7f] = template.HTML(`<span class="broken-code-point" data-escaped="DEL"><span class="char">` + string(byte(0x7f)) + `</span></span>`)
-		globalVarsPtr.escapeControlChars['\t'] = ""
-		globalVarsPtr.escapeControlChars['\n'] = ""
-		globalVarsPtr.escapeControlChars['\r'] = ""
+		globalVarsPtr.escCtrlCharsMap[0x7f] = template.HTML(`<span class="broken-code-point" data-escaped="DEL"><span class="char">` + string(byte(0x7f)) + `</span></span>`)
+		globalVarsPtr.escCtrlCharsMap['\t'] = ""
+		globalVarsPtr.escCtrlCharsMap['\n'] = ""
+		globalVarsPtr.escCtrlCharsMap['\r'] = ""
 
-		globalVarsPtr.escapeFull = slices.Clone(globalVarsPtr.escapeControlChars)
+		globalVarsPtr.escapeFull = slices.Clone(globalVarsPtr.escCtrlCharsMap)
 		// exactly the same as Golang's html.EscapeString
 		globalVarsPtr.escapeFull['&'] = "&amp;"
 		globalVarsPtr.escapeFull['\''] = "&#39;"
@@ -102,7 +102,7 @@ func escapeFullString(code string) template.HTML {
 }
 
 func escapeControlChars(code []byte) template.HTML {
-	return escapeByMap(code, globalVars().escapeControlChars)
+	return escapeByMap(code, globalVars().escCtrlCharsMap)
 }
 
 // UnsafeSplitHighlightedLines splits highlighted code into lines preserving HTML tags
@@ -174,6 +174,11 @@ func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
 		log.Error("Can't format code: %v", err)
 		return escapeFullString(code)
 	}
+
+	// At the moment, we do not escape control chars here (unlike RenderFullFile which escapes control chars).
+	// The reason is: it is a very rare case that a text file contains control chars.
+	// This function is usually used by highlight diff and blame, not quite sure whether there will be side effects.
+	// If there would be new user feedback about this, we can re-consider about various edge cases.
 	return template.HTML(htmlBuf.String())
 }
 
