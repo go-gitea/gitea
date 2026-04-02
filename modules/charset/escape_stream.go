@@ -199,12 +199,20 @@ func (e *escapeStreamer) invisibleRune(r rune) error {
 	e.escaped.Escaped = true
 	e.escaped.HasInvisible = true
 
+	// Use Unicode Control Pictures for ASCII control chars
+	escaped := fmt.Sprintf("[U+%04X]", r)
+	if r >= 0 && r <= 0x1f {
+		escaped = string(0x2400 + r)
+	} else if r == 0x7f {
+		escaped = string(rune(0x2421))
+	}
+
 	if err := e.PassthroughHTMLStreamer.StartTag("span", html.Attribute{
 		Key: "class",
 		Val: "escaped-code-point",
 	}, html.Attribute{
 		Key: "data-escaped",
-		Val: fmt.Sprintf("[U+%04X]", r),
+		Val: escaped,
 	}); err != nil {
 		return err
 	}

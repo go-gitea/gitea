@@ -43,20 +43,12 @@ func globalVars() *globalVarsType {
 		globalVarsPtr.githubStyles = styles.Get("github")
 		globalVarsPtr.highlightMapping = setting.GetHighlightMapping()
 		globalVarsPtr.escCtrlCharsMap = make([]template.HTML, 256)
-		// ASCII Table 0x00 - 0x1F
-		controlCharNames := []string{
-			"NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
-			"BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI",
-			"DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
-			"CAN", "EM", "SUB", "ESC", "FS", "GS", "RS", "US",
+		// ASCII control characters 0x00-0x1F map to Unicode Control Pictures U+2400-U+241F
+		for i := range 0x20 {
+			globalVarsPtr.escCtrlCharsMap[i] = template.HTML(`<span class="broken-code-point" data-escaped="` + string(rune(0x2400+i)) + `"><span class="char">` + string(byte(i)) + `</span></span>`)
 		}
-		// Uncomment this line if you'd debug the layout without creating a special file, then Space (0x20) will also be escaped.
-		// Don't worry, even if you forget to comment it out and push it to git repo, the CI tests will catch it and fail.
-		// controlCharNames = append(controlCharNames, "SP")
-		for i, s := range controlCharNames {
-			globalVarsPtr.escCtrlCharsMap[i] = template.HTML(`<span class="broken-code-point" data-escaped="` + s + `"><span class="char">` + string(byte(i)) + `</span></span>`)
-		}
-		globalVarsPtr.escCtrlCharsMap[0x7f] = template.HTML(`<span class="broken-code-point" data-escaped="DEL"><span class="char">` + string(byte(0x7f)) + `</span></span>`)
+		// DEL (0x7F) maps to U+2421
+		globalVarsPtr.escCtrlCharsMap[0x7f] = template.HTML(`<span class="broken-code-point" data-escaped="` + string(rune(0x2421)) + `"><span class="char">` + string(byte(0x7f)) + `</span></span>`)
 		globalVarsPtr.escCtrlCharsMap['\t'] = ""
 		globalVarsPtr.escCtrlCharsMap['\n'] = ""
 		globalVarsPtr.escCtrlCharsMap['\r'] = ""

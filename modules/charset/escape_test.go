@@ -151,7 +151,7 @@ func TestEscapeControlReader(t *testing.T) {
 	for _, test := range escapeControlTests {
 		test.name += " (+Control)"
 		test.text = addPrefix("\u001E", test.text)
-		test.result = addPrefix(`<span class="escaped-code-point" data-escaped="[U+001E]"><span class="char">`+"\u001e"+`</span></span>`, test.result)
+		test.result = addPrefix(`<span class="escaped-code-point" data-escaped="`+string(rune(0x241e))+`"><span class="char">`+"\u001e"+`</span></span>`, test.result)
 		test.status.Escaped = true
 		test.status.HasInvisible = true
 		tests = append(tests, test)
