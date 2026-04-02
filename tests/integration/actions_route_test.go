@@ -277,10 +277,10 @@ func insertBeansWithExplicitIDs(t *testing.T, table string, beans ...any) {
 	t.Helper()
 	ctx := t.Context()
 	if setting.Database.Type.IsMSSQL() {
-		_, err := db.Exec(ctx, fmt.Sprintf("SET IDENTITY_INSERT `%s` ON", table))
+		_, err := db.Exec(ctx, fmt.Sprintf("SET IDENTITY_INSERT [%s] ON", table))
 		require.NoError(t, err)
 		defer func() {
-			_, err = db.Exec(ctx, fmt.Sprintf("SET IDENTITY_INSERT `%s` OFF", table))
+			_, err = db.Exec(ctx, fmt.Sprintf("SET IDENTITY_INSERT [%s] OFF", table))
 			require.NoError(t, err)
 		}()
 	}
