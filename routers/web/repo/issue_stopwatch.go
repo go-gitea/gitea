@@ -51,6 +51,16 @@ func IssueStopStopwatch(c *context.Context) {
 	} else if !ok {
 		c.Flash.Warning(c.Tr("repo.issues.stopwatch_already_stopped"))
 	}
+
+	stopwatches, err := issues_model.GetUserStopwatches(c, c.Doer.ID, db.ListOptions{})
+	if err != nil {
+		c.ServerError("GetUserStopwatches", err)
+		return
+	}
+	if len(stopwatches) == 0 {
+		websocket_service.PublishEmptyStopwatches(c.Doer.ID)
+	}
+
 	c.JSONRedirect("")
 }
 
