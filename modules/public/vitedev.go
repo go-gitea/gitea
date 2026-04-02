@@ -149,17 +149,21 @@ func viteDevSourceURL(name string) string {
 		}
 		return ""
 	}
-	if strings.HasPrefix(name, "css/") {
-		return setting.AppSubURL + "/web_src/" + name
-	}
-	if name == "js/eventsource.sharedworker.js" {
+	switch name {
+	case "js/eventsource.sharedworker.js":
 		return setting.AppSubURL + "/web_src/js/features/eventsource.sharedworker.ts"
-	}
-	if name == "js/iife.js" {
+	case "js/iife.js":
 		return setting.AppSubURL + "/web_src/js/__vite_iife.js"
-	}
-	if name == "js/index.js" {
+	case "js/index.js":
 		return setting.AppSubURL + "/web_src/js/index.ts"
+	}
+	webSrcDir := filepath.Join(setting.StaticRootPath, "web_src")
+	srcPath := filepath.Join(webSrcDir, name)
+	if !strings.HasPrefix(srcPath, webSrcDir+string(filepath.Separator)) {
+		return ""
+	}
+	if _, err := os.Stat(srcPath); err == nil {
+		return setting.AppSubURL + "/web_src/" + name
 	}
 	return ""
 }

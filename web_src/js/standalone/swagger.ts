@@ -1,12 +1,14 @@
-import '../../css/standalone/swagger.css';
 import SwaggerUI from 'swagger-ui-dist/swagger-ui-es-bundle.js';
 import 'swagger-ui-dist/swagger-ui.css';
+import '../../css/standalone/swagger.css';
 import {load as loadYaml} from 'js-yaml';
 
-const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-const apply = () => document.documentElement.classList.toggle('dark-mode', prefersDark.matches);
-apply();
-prefersDark.addEventListener('change', apply);
+function isDarkTheme(): boolean {
+  const value = getComputedStyle(document.documentElement).getPropertyValue('--is-dark-theme').trim().toLowerCase();
+  if (value) return value === 'true';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+document.documentElement.classList.toggle('dark-mode', isDarkTheme());
 
 window.addEventListener('load', async () => {
   const elSwaggerUi = document.querySelector('#swagger-ui')!;

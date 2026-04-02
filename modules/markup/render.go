@@ -209,7 +209,7 @@ func renderIFrame(ctx *RenderContext, sandbox string, output io.Writer) error {
 	if sandbox != "" {
 		sandboxAttrValue = htmlutil.HTMLFormat(`sandbox="%s"`, sandbox)
 	}
-	iframe := htmlutil.HTMLFormat(`<iframe data-src="%s" class="external-render-iframe" %s></iframe>`, src, sandboxAttrValue)
+	iframe := htmlutil.HTMLFormat(`<iframe data-src="%s" class="external-render-iframe is-loading" %s></iframe>`, src, sandboxAttrValue)
 	_, err := io.WriteString(output, string(iframe))
 	return err
 }

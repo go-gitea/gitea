@@ -1,5 +1,4 @@
 import {generateElemId, queryElemChildren} from '../utils/dom.ts';
-import {isDarkTheme} from '../utils.ts';
 
 function safeRenderIframeLink(link: any): string | null {
   try {
@@ -38,7 +37,7 @@ async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
     if (!e.data?.giteaIframeCmd || e.data?.giteaIframeId !== iframe.id) return;
     const cmd = e.data.giteaIframeCmd;
     if (cmd === 'resize') {
-      iframe.style.height = `${e.data.iframeHeight}px`;
+      if (!iframe.classList.contains('is-loading')) iframe.style.height = `${e.data.iframeHeight}px`;
     } else if (cmd === 'open-link') {
       navigateToIframeLink(e.data.openLink, e.data.anchorTarget);
     } else {
@@ -46,8 +45,19 @@ async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
     }
   });
 
+  iframe.addEventListener('load', () => {
+    try {
+      const parentStyle = getComputedStyle(document.documentElement);
+      const iframeRoot = iframe.contentDocument!.documentElement;
+      for (const prop of ['--color-box-body', '--is-dark-theme']) {
+        const value = parentStyle.getPropertyValue(prop).trim();
+        if (value) iframeRoot.style.setProperty(prop, value);
+      }
+    } catch { /* cross-origin — ignore */ }
+    iframe.classList.remove('is-loading');
+  });
+
   const u = new URL(iframeSrcUrl, window.location.origin);
-  u.searchParams.set('gitea-is-dark-theme', String(isDarkTheme()));
   u.searchParams.set('gitea-iframe-id', iframe.id);
   iframe.src = u.href;
 }
