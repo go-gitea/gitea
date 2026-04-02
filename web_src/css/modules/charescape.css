@@ -1,0 +1,20 @@
+.broken-code-point {
+  border-radius: 4px;
+  padding: 0 2px;
+  color: var(--color-body);
+  background: var(--color-text-light-1);
+}
+
+.unicode-escaped .escaped-code-point[data-escaped]::before {
+  visibility: visible;
+  content: attr(data-escaped);
+  color: var(--color-red);
+}
+
+.unicode-escaped .escaped-code-point .char {
+  display: none;
+}
+
+.unicode-escaped .ambiguous-code-point {
+  border: 1px var(--color-yellow) solid;
+}
