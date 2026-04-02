@@ -5,6 +5,11 @@ import type {APIRequestContext, Locator, Page} from '@playwright/test';
 
 export const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
 
+/** Generate a random hex string. */
+export function randomString(length: number) {
+  return randomBytes(Math.ceil(length / 2)).toString('hex').slice(0, length);
+}
+
 export function baseUrl() {
   return env.GITEA_TEST_E2E_URL?.replace(/\/$/g, '');
 }
