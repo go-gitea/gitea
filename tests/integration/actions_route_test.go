@@ -275,9 +275,12 @@ func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 
 func insertBeansWithExplicitIDs(t *testing.T, table string, beans ...any) {
 	t.Helper()
-	ctx := t.Context()
+	ctx, committer, err := db.TxContext(t.Context())
+	require.NoError(t, err)
+	defer committer.Close()
+
 	if setting.Database.Type.IsMSSQL() {
-		_, err := db.Exec(ctx, fmt.Sprintf("SET IDENTITY_INSERT [%s] ON", table))
+		_, err = db.Exec(ctx, fmt.Sprintf("SET IDENTITY_INSERT [%s] ON", table))
 		require.NoError(t, err)
 		defer func() {
 			_, err = db.Exec(ctx, fmt.Sprintf("SET IDENTITY_INSERT [%s] OFF", table))
@@ -285,4 +288,5 @@ func insertBeansWithExplicitIDs(t *testing.T, table string, beans ...any) {
 		}()
 	}
 	require.NoError(t, db.Insert(ctx, beans...))
+	require.NoError(t, committer.Commit())
 }
