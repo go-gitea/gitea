@@ -633,11 +633,6 @@ td .commit-summary {
   position: relative;
 }
 
-#close-with-reason-menu {
-  inset: calc(100% + 4px) 0 auto auto;
-  z-index: 1200;
-}
-
 .close-reason-duplicate-modal {
   width: min(560px, 92vw);
   border: 1px solid var(--color-secondary);
@@ -716,7 +711,6 @@ td .commit-summary {
   min-width: 0;
 }
 
-.close-reason-menu-item-check,
 .close-reason-menu-item-icon {
   width: 16px;
   height: 16px;
@@ -724,16 +718,6 @@ td .commit-summary {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-.close-reason-menu-item-check {
-  visibility: hidden;
-  color: var(--color-text-light-2);
-}
-
-#close-reason-menu .item.is-selected .close-reason-menu-item-check {
-  visibility: visible;
-  color: var(--color-success-text);
 }
 
 .close-reason-menu-item-title {
@@ -751,6 +735,15 @@ td .commit-summary {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+#close-reason-menu .item:hover,
+#close-reason-menu .item:focus-visible {
+  background: var(--color-error-bg);
+}
+
+.close-reason-duplicate-item.is-selected {
+  background: var(--color-error-bg);
 }
 
 .merge-section-info code {

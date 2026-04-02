@@ -17,7 +17,6 @@ import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
-import {svg, type SvgName} from '../svg.ts';
 
 const {appSubUrl} = window.config;
 
@@ -456,7 +455,6 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
   const closeReasonParamHidden = document.querySelector<HTMLInputElement>('#close-reason-param-hidden');
   const closeReasonDropdownBtn = document.querySelector<HTMLElement>('#close-reason-dropdown-btn');
   const closeReasonMenu = document.querySelector<HTMLElement>('#close-reason-menu');
-  const closeReasonCompletedItem = closeReasonMenu?.querySelector<HTMLElement>('.item[data-reason="completed"]');
   const closeReasonAnsweredItem = document.querySelector<HTMLElement>('#close-reason-answered-item');
   const issueCommentForm = document.querySelector<HTMLFormElement>('#comment-form') ?? commentForm;
   const duplicateModal = document.querySelector<HTMLDialogElement>('#close-reason-duplicate-modal');
@@ -469,66 +467,55 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
 
   const defaultStatusText = statusButton?.getAttribute('data-status') ?? '';
   const defaultStatusAndCommentText = statusButton?.getAttribute('data-status-and-comment') ?? '';
-  const defaultStatusIcon = (statusButton?.getAttribute('data-icon') ?? 'octicon-issue-closed') as SvgName;
   let selectedDuplicateIssueIndex = 0;
   let duplicateSearchTimer: ReturnType<typeof setTimeout> | undefined;
+  let menuShown = false;
+  let duplicateModalReturnFocus: HTMLElement | null = null;
 
-  const setStatusButtonIcon = (icon: string) => {
-    if (!statusButton) return;
-    const statusButtonIcon = statusButton.querySelector<HTMLElement>('.status-button-icon');
-    if (!statusButtonIcon) return;
-    const iconName = (icon || defaultStatusIcon) as SvgName;
-    statusButton.setAttribute('data-icon', iconName);
-    statusButtonIcon.innerHTML = svg(iconName);
+  const hideMenu = () => {
+    if (!menuShown || !closeReasonMenu) return;
+    menuShown = false;
+    closeReasonMenu.classList.remove('show');
+    closeReasonMenu.style.display = 'none';
   };
 
-  const setCloseReasonMenuSelection = (reason: string) => {
+  const hasComment = () => editor.value().trim().length > 0;
+
+  const clearCloseReasonFields = () => {
+    if (closeReasonHidden) closeReasonHidden.value = '';
+    if (closeReasonParamHidden) closeReasonParamHidden.value = '';
+  };
+
+  const syncCloseReasonMenuLabels = (withComment: boolean) => {
     if (!closeReasonMenu) return;
-    const selectedReason = reason || 'completed';
-    for (const item of closeReasonMenu.querySelectorAll<HTMLElement>('.item')) {
-      const isSelected = item.getAttribute('data-reason') === selectedReason;
-      item.classList.toggle('is-selected', isSelected);
-      item.setAttribute('aria-selected', String(isSelected));
+    for (const item of closeReasonMenu.querySelectorAll<HTMLElement>('.item[data-reason]')) {
+      item.querySelector<HTMLElement>('.close-reason-menu-item-title')!.textContent = item.getAttribute(withComment ? 'data-text-with-comment' : 'data-text-no-comment') ?? '';
     }
   };
 
+  const submitCloseWithReason = (reason: string, reasonParam = '') => {
+    if (!statusButton || statusButton.disabled) return;
+    if (closeReasonHidden) closeReasonHidden.value = reason;
+    if (closeReasonParamHidden) closeReasonParamHidden.value = reasonParam;
+    hideMenu();
+    issueCommentForm.requestSubmit(statusButton);
+  };
+
   const syncUiState = () => {
-    const editorText = editor.value().trim(), isUploading = editor.isUploading();
+    const editorText = editor.value().trim();
+    const isUploading = editor.isUploading();
     if (statusButton) {
-      const statusText = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
-      statusButton.querySelector<HTMLElement>('.status-button-text')!.textContent = statusText;
+      statusButton.querySelector<HTMLElement>('.status-button-text')!.textContent = editorText ? defaultStatusAndCommentText : defaultStatusText;
       statusButton.disabled = isUploading;
     }
     if (closeReasonAnsweredItem) {
       toggleElem(closeReasonAnsweredItem, editorText.length > 0);
-      if (editorText.length === 0 && closeReasonHidden?.value === 'answered') {
-        const completedNoCommentText = closeReasonCompletedItem?.getAttribute('data-text-no-comment') ?? defaultStatusText;
-        const completedWithCommentText = closeReasonCompletedItem?.getAttribute('data-text-with-comment') ?? defaultStatusAndCommentText;
-        const completedIcon = getCloseReasonIcon(closeReasonCompletedItem ?? null);
-        applyCloseReasonState('completed', completedNoCommentText, completedWithCommentText, '', completedIcon);
-        return;
-      }
     }
+    syncCloseReasonMenuLabels(editorText.length > 0);
     if (commentButton) {
       commentButton.disabled = !editorText || isUploading;
     }
   };
-
-  function applyCloseReasonState(reason: string, noCommentText: string, withCommentText: string, reasonParam = '', icon = defaultStatusIcon) {
-    if (closeReasonHidden) closeReasonHidden.value = reason;
-    if (closeReasonParamHidden) closeReasonParamHidden.value = reasonParam;
-    if (statusButton) {
-      statusButton.setAttribute('data-status', noCommentText);
-      statusButton.setAttribute('data-status-and-comment', withCommentText);
-    }
-    setStatusButtonIcon(icon);
-    setCloseReasonMenuSelection(reason);
-    syncUiState();
-  }
-
-  function getCloseReasonIcon(element: Element | null): SvgName {
-    return (element?.getAttribute('data-icon') ?? defaultStatusIcon) as SvgName;
-  }
 
   const normalizeIssueIndex = (value: string): number => {
     const m = /^#?(\d+)$/.exec(value.trim());
@@ -551,6 +538,9 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
     for (const item of duplicateList.querySelectorAll<HTMLButtonElement>('.close-reason-duplicate-item')) {
       item.addEventListener('click', () => {
         selectedDuplicateIssueIndex = parseInt(item.getAttribute('data-index') || '0', 10);
+        for (const sibling of duplicateList.querySelectorAll<HTMLElement>('.close-reason-duplicate-item')) {
+          sibling.classList.toggle('is-selected', sibling === item);
+        }
         if (duplicateInput) duplicateInput.value = `#${selectedDuplicateIssueIndex}`;
         if (duplicateConfirmBtn) duplicateConfirmBtn.disabled = selectedDuplicateIssueIndex <= 0;
       });
@@ -563,6 +553,8 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
       duplicateModal.close();
     }
     duplicateModal.removeAttribute('open');
+    duplicateModalReturnFocus?.focus();
+    duplicateModalReturnFocus = null;
   };
 
   const searchDuplicateIssues = async (query: string) => {
@@ -601,6 +593,7 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
 
   const openDuplicateModal = () => {
     if (!duplicateModal) return;
+    duplicateModalReturnFocus = closeReasonDropdownBtn;
     selectedDuplicateIssueIndex = 0;
     if (duplicateConfirmBtn) duplicateConfirmBtn.disabled = true;
     if (duplicateInput) duplicateInput.value = '';
@@ -618,21 +611,24 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
 
   // Split button dropdown logic for close reason (only present for open, non-PR issues)
   if (closeReasonDropdownBtn && closeReasonMenu) {
-    let menuShown = false;
-
-    const hideMenu = () => {
-      if (menuShown) {
-        menuShown = false;
-        closeReasonMenu.classList.remove('show');
-        closeReasonMenu.style.display = 'none';
-      }
-    };
-
     closeReasonDropdownBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       menuShown = !menuShown;
       closeReasonMenu.classList.toggle('show', menuShown);
       closeReasonMenu.style.display = menuShown ? 'block' : 'none';
+    });
+
+    closeReasonDropdownBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideMenu();
+      }
+    });
+
+    closeReasonMenu.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideMenu();
+        closeReasonDropdownBtn.focus();
+      }
     });
 
     document.addEventListener('mouseup', hideMenu);
@@ -641,9 +637,6 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
       item.addEventListener('click', (e) => {
         e.stopPropagation();
         const reason = item.getAttribute('data-reason') ?? '';
-        const noCommentText = item.getAttribute('data-text-no-comment') ?? '';
-        const withCommentText = item.getAttribute('data-text-with-comment') ?? '';
-        const icon = getCloseReasonIcon(item);
 
         if (reason === 'duplicate') {
           hideMenu();
@@ -651,14 +644,12 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
           return;
         }
 
-        if (reason === 'answered' && editor.value().trim().length === 0) {
+        if (reason === 'answered' && !hasComment()) {
           hideMenu();
           return;
         }
 
-        applyCloseReasonState(reason, noCommentText, withCommentText, '', icon);
-
-        hideMenu();
+        submitCloseWithReason(reason);
       });
     }
   }
@@ -688,25 +679,14 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
   if (duplicateConfirmBtn) {
     duplicateConfirmBtn.addEventListener('click', () => {
       if (selectedDuplicateIssueIndex <= 0) return;
-      const duplicateItem = closeReasonMenu?.querySelector<HTMLElement>('.item[data-reason="duplicate"]');
-      if (!duplicateItem) return;
-
-      const indexText = String(selectedDuplicateIssueIndex);
-      const noCommentTemplate = duplicateItem.getAttribute('data-text-no-comment-template') ?? '';
-      const withCommentTemplate = duplicateItem.getAttribute('data-text-with-comment-template') ?? '';
-      const icon = getCloseReasonIcon(duplicateItem);
-      const noCommentText = (noCommentTemplate || duplicateItem.getAttribute('data-text-no-comment') || '').replace('__INDEX__', indexText);
-      const withCommentText = (withCommentTemplate || duplicateItem.getAttribute('data-text-with-comment') || '').replace('__INDEX__', indexText);
-      const reasonParam = JSON.stringify({issue_index: selectedDuplicateIssueIndex});
-      applyCloseReasonState('duplicate', noCommentText, withCommentText, reasonParam, icon);
       closeDuplicateModal();
+      submitCloseWithReason('duplicate', JSON.stringify({issue_index: selectedDuplicateIssueIndex}));
     });
   }
 
   // Serialize reason param as JSON on form submit
   issueCommentForm.addEventListener('submit', (e) => {
-    if (!closeReasonHidden?.value) return;
-    const reason = closeReasonHidden.value;
+    const reason = closeReasonHidden?.value ?? '';
 
     if (reason === 'duplicate' && !closeReasonParamHidden?.value) {
       e.preventDefault();
@@ -714,24 +694,20 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
       return;
     }
 
-    if (reason === 'answered') {
-      const hasComment = editor.value().trim().length > 0;
-      if (!hasComment) {
-        e.preventDefault();
-        showErrorToast('Close as answered requires a comment');
-        return;
-      }
-      if (closeReasonParamHidden) closeReasonParamHidden.value = '';
+    if (reason === 'answered' && !hasComment()) {
+      e.preventDefault();
+      showErrorToast('Close as answered requires a comment');
+      return;
     }
 
-    if (reason !== 'duplicate' && reason !== 'answered' && closeReasonParamHidden) {
+    if (reason !== 'duplicate' && closeReasonParamHidden) {
       closeReasonParamHidden.value = '';
     }
   });
 
   editor.container.addEventListener(ComboMarkdownEditor.EventUploadStateChanged, syncUiState);
   editor.container.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, syncUiState);
-  setCloseReasonMenuSelection(closeReasonHidden?.value || 'completed');
+  clearCloseReasonFields();
   syncUiState();
 }
 
