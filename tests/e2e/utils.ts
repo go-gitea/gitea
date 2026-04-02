@@ -4,7 +4,7 @@ import type {APIRequestContext, Locator, Page} from '@playwright/test';
 
 export const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
 
-/** Generate a random string. */
+/** Generate a random alphanumerical string. */
 export function randomString(length: number): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
