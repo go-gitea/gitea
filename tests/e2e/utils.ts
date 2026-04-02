@@ -63,6 +63,41 @@ export async function apiDeleteOrg(requestContext: APIRequestContext, name: stri
   }), 'apiDeleteOrg');
 }
 
+export async function apiCreateBranch(requestContext: APIRequestContext, owner: string, repo: string, branch: string) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branches`, {
+    headers: apiHeaders(),
+    data: {new_branch_name: branch},
+  }), 'apiCreateBranch');
+}
+
+export async function apiCreatePullRequest(requestContext: APIRequestContext, owner: string, repo: string, {title, head, base = 'main'}: {title: string; head: string; base?: string}): Promise<{number: number; head_sha: string}> {
+  const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {
+    headers: apiHeaders(),
+    data: {title, head, base},
+  });
+  if (!response.ok()) throw new Error(`apiCreatePullRequest failed: ${response.status()} ${await response.text()}`);
+  const data = await response.json();
+  return {number: data.number, head_sha: data.head.sha};
+}
+
+export async function apiSetCommitStatus(requestContext: APIRequestContext, owner: string, repo: string, sha: string, {context, state, description = ''}: {context: string; state: string; description?: string}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/statuses/${sha}`, {
+    headers: apiHeaders(),
+    data: {context, state, description, target_url: `${baseUrl()}`},
+  }), 'apiSetCommitStatus');
+}
+
+export async function apiSetBranchProtection(requestContext: APIRequestContext, owner: string, repo: string, branch: string, {statusCheckContexts = []}: {statusCheckContexts?: string[]} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branch_protections`, {
+    headers: apiHeaders(),
+    data: {
+      branch_name: branch,
+      enable_status_check: statusCheckContexts.length > 0,
+      status_check_contexts: statusCheckContexts,
+    },
+  }), 'apiSetBranchProtection');
+}
+
 /** Generate a random password that satisfies the complexity requirements. */
 function generatePassword() {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
