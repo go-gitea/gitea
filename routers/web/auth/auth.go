@@ -218,18 +218,50 @@ func performAutoLogin(ctx *context.Context) bool {
 	return false
 }
 
-func prepareSignInPageData(ctx *context.Context) {
+func performAutoLoginOAuth2(ctx *context.Context, data *preparedSignInData) bool {
+	// If only 1 OAuth provider is present and other login methods are disabled, redirect to the OAuth provider.
+	onlySingleOAuth2 := len(data.oauth2Providers) == 1 &&
+		!setting.Service.EnablePasswordSignInForm &&
+		!setting.Service.EnableOpenIDSignIn &&
+		!setting.Service.EnablePasskeyAuth &&
+		!data.enableSSPI
+
+	if !onlySingleOAuth2 {
+		return false
+	}
+
+	skipToOAuthURL := setting.AppSubURL + "/user/oauth2/" + url.QueryEscape(data.oauth2Providers[0].DisplayName())
+	if redirectTo := ctx.FormString("redirect_to"); redirectTo != "" {
+		skipToOAuthURL += "?redirect_to=" + url.QueryEscape(redirectTo)
+	}
+	ctx.Redirect(skipToOAuthURL)
+	return true
+}
+
+type preparedSignInData struct {
+	oauth2Providers []oauth2.Provider
+	enableSSPI      bool
+}
+
+func prepareSignInPageData(ctx *context.Context) (ret preparedSignInData) {
+	var err error
+	ret.enableSSPI = auth.IsSSPIEnabled(ctx)
+	ret.oauth2Providers, err = oauth2.GetOAuth2Providers(ctx, optional.Some(true))
+	if err != nil {
+		log.Error("Failed to get OAuth2 providers: %v", err)
+	}
 	ctx.Data["Title"] = ctx.Tr("sign_in")
-	ctx.Data["OAuth2Providers"], _ = oauth2.GetOAuth2Providers(ctx, optional.Some(true))
+	ctx.Data["OAuth2Providers"] = ret.oauth2Providers
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
-	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
+	ctx.Data["EnableSSPI"] = ret.enableSSPI
 
 	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin,
 	})
+	return ret
 }
 
 // SignIn render sign in page
@@ -241,7 +273,10 @@ func SignIn(ctx *context.Context) {
 		redirectAfterAuth(ctx)
 		return
 	}
-	prepareSignInPageData(ctx)
+	data := prepareSignInPageData(ctx)
+	if performAutoLoginOAuth2(ctx, &data) {
+		return
+	}
 	ctx.HTML(http.StatusOK, tplSignIn)
 }
 
@@ -471,6 +506,7 @@ func prepareSignUpPageData(ctx *context.Context) bool {
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 	ctx.Data["PageIsSignUp"] = true
+	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
 
 	hasUsers, err := user_model.HasUsers(ctx)
 	if err != nil {
