@@ -11,14 +11,20 @@ Only show the real-char:
   background: var(--color-text-light-1);
 }
 
+.broken-code-point[data-escaped] {
+  position: relative;
+}
+
 .broken-code-point[data-escaped]::before {
   visibility: visible;
   content: attr(data-escaped);
   color: var(--color-red);
 }
+
 .broken-code-point[data-escaped] .char {
-  /* make it copyable by selecting the text (AI suggestion, no other solution) */
+  /* keep the original character selectable/copyable while showing the escaped label via ::before */
   position: absolute;
+  left: 0;
   opacity: 0;
   pointer-events: none;
 }
