@@ -23,21 +23,26 @@ import (
 
 // UploadIssueAttachment response for Issue/PR attachments
 func UploadIssueAttachment(ctx *context.Context) {
-	uploadAttachment(ctx, ctx.Repo.Repository.ID, setting.Attachment.AllowedTypes)
-}
-
-// UploadReleaseAttachment response for uploading release attachments
-func UploadReleaseAttachment(ctx *context.Context) {
-	uploadAttachment(ctx, ctx.Repo.Repository.ID, setting.Repository.Release.AllowedTypes)
-}
-
-// UploadAttachment response for uploading attachments
-func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	if !setting.Attachment.Enabled {
 		ctx.HTTPError(http.StatusNotFound, "attachment is not enabled")
 		return
 	}
 
+	uploadAttachmentOrReleaseAttachment(ctx, ctx.Repo.Repository.ID, false)
+}
+
+// UploadReleaseAttachment response for uploading release attachments
+func UploadReleaseAttachment(ctx *context.Context) {
+	if !setting.Repository.Release.EnableAttachment {
+		ctx.HTTPError(http.StatusNotFound, "release asset storage is not enabled")
+		return
+	}
+
+	uploadAttachmentOrReleaseAttachment(ctx, ctx.Repo.Repository.ID, true)
+}
+
+// UploadAttachment response for uploading attachments
+func uploadAttachmentOrReleaseAttachment(ctx *context.Context, repoID int64, isRelease bool) {
 	file, header, err := ctx.Req.FormFile("file")
 	if err != nil {
 		ctx.ServerError("FormFile", err)
@@ -46,11 +51,11 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	defer file.Close()
 
 	uploaderFile := attachment.NewLimitedUploaderKnownSize(file, header.Size)
-	attach, err := attachment.UploadAttachmentReleaseSizeLimit(ctx, uploaderFile, allowedTypes, &repo_model.Attachment{
+	attach, err := attachment.UploadAttachmentOrReleaseAttachmentSizeLimit(ctx, uploaderFile, &repo_model.Attachment{
 		Name:       header.Filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     repoID,
-	})
+	}, isRelease)
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
@@ -66,8 +71,8 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	})
 }
 
-// DeleteAttachment response for deleting issue's attachment
-func DeleteAttachment(ctx *context.Context) {
+// DeleteAttachmentOrReleaseAttachment response for deleting issue's attachment or release asset
+func DeleteAttachmentOrReleaseAttachment(ctx *context.Context) {
 	file := ctx.FormString("file")
 	attach, err := repo_model.GetAttachmentByUUID(ctx, file)
 	if err != nil {
@@ -109,7 +114,7 @@ func DeleteAttachment(ctx *context.Context) {
 		}
 	}
 
-	err = repo_model.DeleteAttachment(ctx, attach, true)
+	err = repo_model.DeleteAttachmentOrReleaseAttachment(ctx, attach, true)
 	if err != nil {
 		ctx.ServerError("DeleteAttachment", err)
 		return
@@ -177,9 +182,30 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		return
 	}
 
-	if setting.Attachment.Storage.ServeDirect() {
+	var (
+		storageSetting *setting.Storage
+		storageChoice  storage.ObjectStorage
+		storageEnabled bool
+	)
+
+	if attach.ReleaseID > 0 {
+		storageSetting = setting.Repository.Release.AttachmentStorage
+		storageChoice = storage.ReleaseAttachments
+		storageEnabled = setting.Repository.Release.EnableAttachment
+	} else {
+		storageSetting = setting.Attachment.Storage
+		storageChoice = storage.Attachments
+		storageEnabled = setting.Attachment.Enabled
+	}
+
+	if !storageEnabled {
+		ctx.NotFound(nil)
+		return
+	}
+
+	if storageSetting.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.Attachments.ServeDirectURL(attach.RelativePath(), attach.Name, ctx.Req.Method, nil)
+		u, err := storageChoice.ServeDirectURL(attach.RelativePath(), attach.Name, ctx.Req.Method, nil)
 
 		if u != nil && err == nil {
 			ctx.Redirect(u.String())
@@ -192,7 +218,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	}
 
 	// If we have matched and access to release or issue
-	fr, err := storage.Attachments.Open(attach.RelativePath())
+	fr, err := storageChoice.Open(attach.RelativePath())
 	if err != nil {
 		ctx.ServerError("Open", err)
 		return

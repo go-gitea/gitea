@@ -105,11 +105,11 @@ func TestRelease_Create(t *testing.T) {
 
 	testPlayload := "testtest"
 
-	attach, err := attachment.NewAttachment(t.Context(), &repo_model.Attachment{
+	attach, err := attachment.NewAttachmentOrReleaseAttachment(t.Context(), &repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, strings.NewReader(testPlayload), int64(len([]byte(testPlayload))))
+	}, strings.NewReader(testPlayload), int64(len([]byte(testPlayload))), true)
 	assert.NoError(t, err)
 
 	release := repo_model.Release{
@@ -238,11 +238,11 @@ func TestRelease_Update(t *testing.T) {
 
 	// Add new attachments
 	samplePayload := "testtest"
-	attach, err := attachment.NewAttachment(t.Context(), &repo_model.Attachment{
+	attach, err := attachment.NewAttachmentOrReleaseAttachment(t.Context(), &repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, strings.NewReader(samplePayload), int64(len([]byte(samplePayload))))
+	}, strings.NewReader(samplePayload), int64(len([]byte(samplePayload))), true)
 	assert.NoError(t, err)
 
 	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, []string{attach.UUID}, nil, nil))

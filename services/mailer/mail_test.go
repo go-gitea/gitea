@@ -75,22 +75,22 @@ func prepareMailerBase64Test(t *testing.T) (doer *user_model.User, repo *repo_mo
 	user, repo, issue, comment := prepareMailerTest(t)
 	setting.MailService.EmbedAttachmentImages = true
 
-	att1, err := attachment.NewAttachment(t.Context(), &repo_model.Attachment{
+	att1, err := attachment.NewAttachmentOrReleaseAttachment(t.Context(), &repo_model.Attachment{
 		RepoID:     repo.ID,
 		IssueID:    issue.ID,
 		UploaderID: user.ID,
 		CommentID:  comment.ID,
 		Name:       "test.png",
-	}, bytes.NewReader([]byte("\x89\x50\x4e\x47\x0d\x0a\x1a\x0a")), 8)
+	}, bytes.NewReader([]byte("\x89\x50\x4e\x47\x0d\x0a\x1a\x0a")), 8, false)
 	require.NoError(t, err)
 
-	att2, err = attachment.NewAttachment(t.Context(), &repo_model.Attachment{
+	att2, err = attachment.NewAttachmentOrReleaseAttachment(t.Context(), &repo_model.Attachment{
 		RepoID:     repo.ID,
 		IssueID:    issue.ID,
 		UploaderID: user.ID,
 		CommentID:  comment.ID,
 		Name:       "test.png",
-	}, bytes.NewReader([]byte("\x89\x50\x4e\x47\x0d\x0a\x1a\x0a"+strings.Repeat("\x00", 1024))), 8+1024)
+	}, bytes.NewReader([]byte("\x89\x50\x4e\x47\x0d\x0a\x1a\x0a"+strings.Repeat("\x00", 1024))), 8+1024, false)
 	require.NoError(t, err)
 
 	return user, repo, issue, att1, att2

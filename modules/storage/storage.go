@@ -180,6 +180,9 @@ var (
 	Actions ObjectStorage = uninitializedStorage
 	// ActionsArtifacts Artifacts represents actions artifacts storage
 	ActionsArtifacts ObjectStorage = uninitializedStorage
+
+	// ReleaseAttachments represents release attachments storage
+	ReleaseAttachments ObjectStorage = uninitializedStorage
 )
 
 // Init init the storage
@@ -192,6 +195,7 @@ func Init() error {
 		initRepoArchives,
 		initPackages,
 		initActions,
+		InitReleaseAttachmentsStorage,
 	} {
 		if err := f(); err != nil {
 			return err
@@ -226,6 +230,23 @@ func initAttachments() (err error) {
 	}
 	log.Info("Initialising Attachment storage with type: %s", setting.Attachment.Storage.Type)
 	Attachments, err = NewStorage(setting.Attachment.Storage.Type, setting.Attachment.Storage)
+	return err
+}
+
+func InitReleaseAttachmentsStorage() (err error) {
+	if !setting.Repository.Release.EnableAttachment {
+		ReleaseAttachments = discardStorage("Release storage isn't enabled")
+		return nil
+	}
+
+	if setting.Repository.Release.AttachmentStorage == setting.Attachment.Storage {
+		ReleaseAttachments = Attachments
+		log.Info("Release attachments storage is the same as Attachment storage, no need to initialize a new one")
+		return nil
+	}
+
+	log.Info("Initialising Release attachments storage with type: %s", setting.Repository.Release.AttachmentStorage.Type)
+	ReleaseAttachments, err = NewStorage(setting.Repository.Release.AttachmentStorage.Type, setting.Repository.Release.AttachmentStorage)
 	return err
 }
 

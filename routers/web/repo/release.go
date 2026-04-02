@@ -342,7 +342,7 @@ func newReleaseCommon(ctx *context.Context) {
 	}
 	ctx.Data["Tags"] = tags
 
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	ctx.Data["IsAttachmentEnabled"] = setting.Repository.Release.EnableAttachment
 	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetRepoAssignees", err)
@@ -495,7 +495,7 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
-	attachmentUUIDs := util.Iif(setting.Attachment.Enabled, form.Files, nil)
+	attachmentUUIDs := util.Iif(setting.Repository.Release.EnableAttachment, form.Files, nil)
 
 	// no existing release, create a new release
 	if rel == nil {
@@ -631,7 +631,7 @@ func EditReleasePost(ctx *context.Context) {
 	const editPrefix = "attachment-edit-"
 	var addAttachmentUUIDs, delAttachmentUUIDs []string
 	editAttachments := make(map[string]string) // uuid -> new name
-	if setting.Attachment.Enabled {
+	if setting.Repository.Release.EnableAttachment {
 		addAttachmentUUIDs = form.Files
 		for k, v := range ctx.Req.Form {
 			if strings.HasPrefix(k, delPrefix) && v[0] == "true" {
