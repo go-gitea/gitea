@@ -15,12 +15,23 @@
   transform: scale(1.1);
 }
 
+.lines-escape .toggle-escape-button {
+  padding: 2px;
+  transform: translateY(-1px);
+}
+
 .lines-escape .toggle-escape-button::before {
   visibility: visible;
-  content: "⚠️";
-  font-family: var(--fonts-emoji);
-  padding: 0 2px;
-  color: var(--color-red);
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+  background-color: var(--color-yellow);
+  mask-image: var(--octicon-alert-fill);
+  -webkit-mask-image: var(--octicon-alert-fill);
+  mask-size: contain;
+  -webkit-mask-size: contain;
 }
 
 .repository .diff-file-box .code-diff td.lines-escape {
