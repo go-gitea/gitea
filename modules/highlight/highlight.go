@@ -50,10 +50,13 @@ func globalVars() *globalVarsType {
 			"DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
 			"CAN", "EM", "SUB", "ESC", "FS", "GS", "RS", "US",
 		}
+		// uncomment this line if you'd like to debug the layout without really creating a file, then space will also be escaped
+		// don't worry, even if you forget to comment it out and push it to git repo, the CI tests will catch it and fail
+		// controlCharNames = append(controlCharNames, "SP")
 		for i, s := range controlCharNames {
-			globalVarsPtr.escapeControlChars[i] = template.HTML(`<span class="broken-code-point">` + s + `</span>`)
+			globalVarsPtr.escapeControlChars[i] = template.HTML(`<span class="broken-code-point" data-escaped="` + s + `"><span class="char">` + string(byte(i)) + `</span></span>`)
 		}
-		globalVarsPtr.escapeControlChars[0x7f] = `<span class="broken-code-point">DEL</span>`
+		globalVarsPtr.escapeControlChars[0x7f] = template.HTML(`<span class="broken-code-point" data-escaped="DEL"><span class="char">` + string(byte(0x7f)) + `</span></span>`)
 		globalVarsPtr.escapeControlChars['\t'] = ""
 		globalVarsPtr.escapeControlChars['\n'] = ""
 		globalVarsPtr.escapeControlChars['\r'] = ""

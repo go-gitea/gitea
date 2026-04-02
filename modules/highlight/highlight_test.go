@@ -206,12 +206,12 @@ func TestUnsafeSplitHighlightedLines(t *testing.T) {
 }
 
 func TestEscape(t *testing.T) {
-	assert.Equal(t, template.HTML("\t\r\n<span class=\"broken-code-point\">NUL</span><span class=\"broken-code-point\">US</span>&'\"<>"), escapeControlChars([]byte("\t\r\n\x00\x1f&'\"<>")))
-	assert.Equal(t, template.HTML("<span class=\"broken-code-point\">NUL</span><span class=\"broken-code-point\">US</span>&amp;&#39;&#34;&lt;&gt;\t\r\n"), escapeFullString("\x00\x1f&'\"<>\t\r\n"))
+	assert.Equal(t, template.HTML("\t\r\n<span class=\"broken-code-point\" data-escaped=\"NUL\"><span class=\"char\">\x00</span></span><span class=\"broken-code-point\" data-escaped=\"US\"><span class=\"char\">\x1f</span></span>&'\"<>"), escapeControlChars([]byte("\t\r\n\x00\x1f&'\"<>")))
+	assert.Equal(t, template.HTML("<span class=\"broken-code-point\" data-escaped=\"NUL\"><span class=\"char\">\x00</span></span><span class=\"broken-code-point\" data-escaped=\"US\"><span class=\"char\">\x1f</span></span>&amp;&#39;&#34;&lt;&gt;\t\r\n"), escapeFullString("\x00\x1f&'\"<>\t\r\n"))
 
 	out, _ := RenderFullFile("a.py", "", []byte("# \x7f<>"))
-	assert.Equal(t, template.HTML(`<span class="c1"># <span class="broken-code-point">DEL</span>&lt;&gt;</span>`), out[0])
+	assert.Equal(t, template.HTML(`<span class="c1"># <span class="broken-code-point" data-escaped="DEL"><span class="char">`+string(byte(0x7f))+`</span></span>&lt;&gt;</span>`), out[0])
 
 	out = renderPlainText([]byte("# \x7f<>"))
-	assert.Equal(t, template.HTML(`# <span class="broken-code-point">DEL</span>&lt;&gt;`), out[0])
+	assert.Equal(t, template.HTML(`# <span class="broken-code-point" data-escaped="DEL"><span class="char">`+string(byte(0x7f))+`</span></span>&lt;&gt;`), out[0])
 }
