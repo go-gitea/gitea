@@ -86,9 +86,9 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
-			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
+			DefaultDeleteBranchAfterMerge            bool
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -210,9 +210,9 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
-			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
+			DefaultDeleteBranchAfterMerge            bool
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See

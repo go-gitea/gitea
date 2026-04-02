@@ -66,8 +66,8 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
   const el = box.querySelector<HTMLElement>('#pull-request-merge-form');
   if (!el) return;
 
-  const {default: PullRequestMergeForm} = await import(/* webpackChunkName: "PullRequestMergeForm" */ '../components/PullRequestMergeForm.vue');
-  const view = createApp(PullRequestMergeForm, {elRoot: el});
+  const {default: PullRequestMergeForm} = await import('../components/PullRequestMergeForm.vue');
+  const view = createApp(PullRequestMergeForm);
   view.mount(el);
 }
 

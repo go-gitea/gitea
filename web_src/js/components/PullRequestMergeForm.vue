@@ -3,9 +3,9 @@ import {computed, onMounted, onUnmounted, shallowRef, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {toggleElem} from '../utils/dom.ts';
 
-const props = defineProps<{elRoot: HTMLElement}>();
+const {pageData} = window.config;
 
-const mergeForm = JSON.parse(props.elRoot.getAttribute('data-merge-form')!);
+const mergeForm = pageData.pullRequestMergeForm!;
 
 const mergeTitleFieldValue = shallowRef('');
 const mergeMessageFieldValue = shallowRef('');

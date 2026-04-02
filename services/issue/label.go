@@ -51,7 +51,7 @@ func RemoveLabel(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 			return err
 		}
 
-		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+		perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return err
 		}

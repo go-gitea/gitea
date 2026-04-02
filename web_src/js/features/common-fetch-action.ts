@@ -99,7 +99,7 @@ export async function submitFormFetchAction(formEl: HTMLFormElement, opts: Submi
   if (formMethod.toLowerCase() === 'get') {
     const params = new URLSearchParams();
     for (const [key, value] of formData) {
-      params.append(key, value.toString());
+      params.append(key, value as string);
     }
     const pos = reqUrl.indexOf('?');
     if (pos !== -1) {
