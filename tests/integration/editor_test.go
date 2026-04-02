@@ -385,7 +385,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		uploadForm := htmlDoc.doc.Find(".form-fetch-action")
+		uploadForm := htmlDoc.doc.Find("form.form-fetch-action.comment")
 		formAction := uploadForm.AttrOr("action", "")
 		assert.Equal(t, fmt.Sprintf("/%s/%s-1/_upload/%s/%s?from_base_branch=%s&foo=bar", user, repo, branch, filePath, branch), formAction)
 		uploadLink := uploadForm.Find(".dropzone").AttrOr("data-link-url", "")
