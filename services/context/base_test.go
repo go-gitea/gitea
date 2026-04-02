@@ -38,9 +38,9 @@ func TestRedirect(t *testing.T) {
 
 	req, _ = http.NewRequest(http.MethodGet, "/", nil)
 	resp := httptest.NewRecorder()
-	req.Header.Add("HX-Request", "true")
+	req.Header.Add("X-Gitea-Page-Action", "true")
 	b := NewBaseContextForTest(resp, req)
 	b.Redirect("/other")
-	assert.Equal(t, "/other", resp.Header().Get("HX-Redirect"))
+	assert.Equal(t, "/other", resp.Header().Get("X-Gitea-Redirect"))
 	assert.Equal(t, http.StatusNoContent, resp.Code)
 }

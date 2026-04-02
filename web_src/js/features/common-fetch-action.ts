@@ -67,7 +67,53 @@ async function fetchActionDoRequest(actionElem: HTMLElement, url: string, opt: R
 
 async function onFormFetchActionSubmit(formEl: HTMLFormElement, e: SubmitEvent) {
   e.preventDefault();
-  await submitFormFetchAction(formEl, {formSubmitter: submitEventSubmitter(e)});
+  const swapTarget = formEl.getAttribute('data-swap');
+  if (swapTarget) {
+    await submitFormSwapAction(formEl, swapTarget, submitEventSubmitter(e));
+  } else {
+    await submitFormFetchAction(formEl, {formSubmitter: submitEventSubmitter(e)});
+  }
+}
+
+async function submitFormSwapAction(formEl: HTMLFormElement, swapTarget: string, submitter?: HTMLElement) {
+  if (formEl.classList.contains('is-loading')) return;
+  formEl.classList.add('is-loading');
+  const formActionUrl = formEl.getAttribute('action') || window.location.href;
+  const formMethod = formEl.getAttribute('method') || 'post';
+  try {
+    const formData = new FormData(formEl);
+    if (submitter?.getAttribute('name')) {
+      formData.append(submitter.getAttribute('name')!, submitter.getAttribute('value') || '');
+    }
+    const resp = await request(formActionUrl, {
+      method: formMethod.toUpperCase(),
+      headers: {'X-Gitea-Page-Action': 'true'},
+      data: formData,
+    });
+    const redirect = resp.headers.get('X-Gitea-Redirect');
+    if (redirect) {
+      window.location.href = redirect;
+      return;
+    }
+    if (!resp.ok) {
+      showErrorToast(`Error ${resp.status} when calling ${formActionUrl}`);
+      formEl.classList.remove('is-loading');
+      return;
+    }
+    const html = await resp.text();
+    const targetEl = swapTarget === 'this' ? formEl : document.querySelector(swapTarget);
+    if (!targetEl) {
+      formEl.classList.remove('is-loading');
+      return;
+    }
+    formEl.classList.remove('is-loading');
+    targetEl.outerHTML = html;
+    const eventName = resp.headers.get('X-Gitea-Dispatch-Event');
+    if (eventName) document.body.dispatchEvent(new CustomEvent(eventName));
+  } catch {
+    showErrorToast(`Network error when calling ${formActionUrl}`);
+    formEl.classList.remove('is-loading');
+  }
 }
 
 type SubmitFormFetchActionOpts = {

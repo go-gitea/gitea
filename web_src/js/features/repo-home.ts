@@ -3,6 +3,17 @@ import {hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast, type Toast} from '../modules/toast.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
+
+registerGlobalInitFunc('initLastCommitLoader', async (el: HTMLElement) => {
+  for (const cell of el.querySelectorAll<HTMLElement>('.repo-file-cell.message')) {
+    cell.classList.add('is-loading');
+  }
+  try {
+    const resp = await POST(el.getAttribute('data-loader-url')!);
+    if (resp.ok) el.outerHTML = await resp.text();
+  } catch { /* ignore */ }
+});
 
 const {appSubUrl} = window.config;
 

@@ -11,14 +11,14 @@
 		<div class="ui field {{if .Required}}required{{end}}">
 			{{if eq .Type "choice"}}
 				<label>{{or .Description .Name}}:</label>
-				{{/* htmx won't initialize the fomantic dropdown, so it is a standard "select" input */}}
+				{{/* this content is dynamically loaded, so use a standard "select" instead of fomantic dropdown */}}
 				<select class="ui selection dropdown" name="{{.Name}}">
 					{{range .Options}}
 						<option value="{{.}}" {{if eq $item.Default .}}selected{{end}}>{{.}}</option>
 					{{end}}
 				</select>
 			{{else if eq .Type "boolean"}}
-				{{/* htmx doesn't trigger our JS code to attach fomantic label to checkbox, so here we use standard checkbox */}}
+				{{/* this content is dynamically loaded, so use a standard checkbox instead of fomantic */}}
 				<label class="tw-flex flex-text-inline">
 					<input type="checkbox" name="{{.Name}}" {{if eq .Default "true"}}checked{{end}}>
 					{{or .Description .Name}}

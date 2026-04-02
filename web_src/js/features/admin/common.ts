@@ -1,7 +1,8 @@
 import {checkAppUrl} from '../common-page.ts';
 import {hideElem, queryElems, showElem, toggleElem} from '../../utils/dom.ts';
-import {POST} from '../../modules/fetch.ts';
+import {GET, POST} from '../../modules/fetch.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {registerGlobalInitFunc} from '../../modules/observer.ts';
 import {urlQueryEscape} from '../../utils.ts';
 
 const {appSubUrl} = window.config;
@@ -24,6 +25,20 @@ export function initAdminCommon(): void {
   initAdminAuthentication();
   initAdminNotice();
 }
+
+registerGlobalInitFunc('initAdminSystemStatus', (el: HTMLElement) => {
+  const url = el.getAttribute('data-poll-url')!;
+  const interval = setInterval(async () => {
+    if (!el.isConnected) {
+      clearInterval(interval);
+      return;
+    }
+    try {
+      const resp = await GET(url);
+      if (resp.ok) el.innerHTML = await resp.text();
+    } catch { /* ignore polling errors */ }
+  }, 5000);
+});
 
 function initAdminUser() {
   const pageContent = document.querySelector('.page-content.admin.edit.user, .page-content.admin.new.user');

@@ -1,5 +1,20 @@
 import {createApp} from 'vue';
 import RepoActionView from '../components/RepoActionView.vue';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {GET} from '../modules/fetch.ts';
+
+registerGlobalInitFunc('initWorkflowDispatchRef', (el: HTMLElement) => {
+  let controller: AbortController | undefined;
+  el.addEventListener('change', async () => {
+    controller?.abort();
+    controller = new AbortController();
+    const url = `${el.getAttribute('data-dispatch-url')!}&ref=${encodeURIComponent((el as HTMLInputElement).value)}`;
+    try {
+      const resp = await GET(url, {signal: controller.signal});
+      if (resp.ok) document.querySelector(el.getAttribute('data-target')!)!.innerHTML = await resp.text();
+    } catch { /* aborted */ }
+  });
+});
 
 export function initRepositoryActionView() {
   const el = document.querySelector('#repo-action-view');

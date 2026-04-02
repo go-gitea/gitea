@@ -172,7 +172,6 @@ async function loadMoreFiles(btn: Element): Promise<boolean> {
     // * append the newly loaded file list items to the existing list
     const respFileBoxesChildren = Array.from(respFileBoxes.children); // "children:HTMLCollection" will be empty after replaceWith
     document.querySelector('#diff-incomplete')!.replaceWith(...respFileBoxesChildren);
-    for (const el of respFileBoxesChildren) window.htmx.process(el);
     onShowMoreFiles();
     return true;
   } catch (error) {
@@ -204,7 +203,6 @@ function initRepoDiffShowMore() {
       const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body')!;
       const respFileBodyChildren = Array.from(respFileBody.children); // "children:HTMLCollection" will be empty after replaceWith
       el.parentElement!.replaceWith(...respFileBodyChildren);
-      for (const el of respFileBodyChildren) window.htmx.process(el);
       // FIXME: calling onShowMoreFiles is not quite right here.
       // But since onShowMoreFiles mixes "init diff box" and "init diff body" together,
       // so it still needs to call it to make the "ImageDiff" and something similar work.
@@ -252,7 +250,7 @@ async function onLocationHashChange() {
         if (expandButton.hasAttribute(attrAutoLoadClicked)) return;
         expandButton.setAttribute(attrAutoLoadClicked, 'true');
         expandButton.click();
-        await sleep(500); // Wait for HTMX to load the content. FIXME: need to drop htmx in the future
+        await sleep(500); // Wait for the content to load
         continue; // Try again to find the element
       }
     }
@@ -290,5 +288,13 @@ export function initRepoDiffView() {
   registerGlobalSelectorFunc('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
   addDelegatedEventListener(document, 'click', '.fold-file', (el) => {
     invertFileFolding(el.closest('.file-content')!, el);
+  });
+  addDelegatedEventListener(document, 'click', '.code-expander-button', async (el) => {
+    const url = el.getAttribute('data-url')!;
+    const tr = el.closest('tr')!;
+    try {
+      const resp = await GET(url);
+      if (resp.ok) tr.outerHTML = await resp.text();
+    } catch { /* ignore */ }
   });
 }

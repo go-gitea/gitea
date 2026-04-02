@@ -26,6 +26,6 @@ func ActionStar(ctx *context.Context) {
 		ctx.ServerError("GetRepositoryByName", err)
 		return
 	}
-	ctx.RespHeader().Add("hx-trigger", "refreshUserCards") // see the `hx-trigger="refreshUserCards ..."` comments in tmpl
+	ctx.RespHeader().Add("X-Gitea-Dispatch-Event", "refreshUserCards")
 	ctx.HTML(http.StatusOK, tplStarUnstar)
 }

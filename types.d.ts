@@ -36,11 +36,6 @@ declare module '*.vue' {
   export function initRepositoryActionView(): void;
 }
 
-declare module 'htmx.org/dist/htmx.esm.js' {
-  const value = await import('htmx.org');
-  export default value;
-}
-
 declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
   const value = await import('swagger-ui-dist');
   export default value.SwaggerUIBundle;

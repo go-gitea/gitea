@@ -159,11 +159,11 @@ func (b *Base) Redirect(location string, status ...int) {
 		// So in this case, we should remove the session cookie from the response header
 		removeSessionCookieHeader(b.Resp)
 	}
-	// in case the request is made by htmx, have it redirect the browser instead of trying to follow the redirect inside htmx
-	if b.Req.Header.Get("HX-Request") == "true" {
-		b.Resp.Header().Set("HX-Redirect", location)
-		// we have to return a non-redirect status code so XMLHTTPRequest will not immediately follow the redirect
-		// so as to give htmx redirect logic a chance to run
+	// for page-action requests (form-fetch-action with data-swap), return 204 with a redirect header
+	// instead of a 30x redirect, because fetch() auto-follows redirects and the JS handler needs
+	// to perform a full navigation instead
+	if b.Req.Header.Get("X-Gitea-Page-Action") == "true" {
+		b.Resp.Header().Set("X-Gitea-Redirect", location)
 		b.Status(http.StatusNoContent)
 		return
 	}

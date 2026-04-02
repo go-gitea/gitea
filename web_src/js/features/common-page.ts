@@ -5,6 +5,7 @@ import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
+import {parseDom} from '../utils.ts';
 
 const {appUrl, appSubUrl} = window.config;
 
@@ -103,6 +104,7 @@ export function initGlobalComponent() {
   fomanticQuery('.ui.menu.tabular:not(.custom) .item').tab();
   registerGlobalInitFunc('initAvatarUploader', initAvatarUploaderWithCropper);
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
+  initUserCards();
 }
 
 // for performance considerations, it only uses performant syntax
@@ -158,6 +160,20 @@ export function checkAppUrl() {
   }
   showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
 Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`, 'warning');
+}
+
+function initUserCards() {
+  document.body.addEventListener('refreshUserCards', async () => {
+    const el = document.querySelector('.user-cards');
+    if (!el) return;
+    try {
+      const resp = await GET(window.location.href);
+      if (!resp.ok) return;
+      const doc = parseDom(await resp.text(), 'text/html');
+      const newCards = doc.querySelector('.user-cards');
+      if (newCards) el.outerHTML = newCards.outerHTML;
+    } catch { /* ignore */ }
+  });
 }
 
 export function checkAppUrlScheme() {

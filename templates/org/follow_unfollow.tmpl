@@ -1,7 +1,9 @@
-<button class="ui basic button tw-mr-0" hx-post="{{.Org.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}">
-	{{if $.IsFollowing}}
-		{{ctx.Locale.Tr "user.unfollow"}}
-	{{else}}
-		{{ctx.Locale.Tr "user.follow"}}
-	{{end}}
-</button>
+<form class="form-fetch-action" data-swap="this" method="post" action="{{.Org.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}">
+	<button type="submit" class="ui basic button tw-mr-0">
+		{{if $.IsFollowing}}
+			{{ctx.Locale.Tr "user.unfollow"}}
+		{{else}}
+			{{ctx.Locale.Tr "user.follow"}}
+		{{end}}
+	</button>
+</form>

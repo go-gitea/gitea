@@ -93,7 +93,6 @@ async function updateNotificationTable() {
       if (parseInt(el.getAttribute('data-sequence-number')!) === notificationSequenceNumber) {
         notificationDiv.outerHTML = data;
         notificationDiv = document.querySelector('#notification_div')!;
-        window.htmx.process(notificationDiv); // when using htmx, we must always remember to process the new content changed by us
       }
     } catch (error) {
       console.error(error);

@@ -45,7 +45,6 @@ function formatLicenseText(licenseText: string) {
 
 const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
-    eval: false, // htmx needs eval
     pluginTimings: false,
   },
 };

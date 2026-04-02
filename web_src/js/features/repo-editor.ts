@@ -32,6 +32,23 @@ function initEditPreviewTab(elForm: HTMLFormElement) {
     const data = await response.text();
     renderPreviewPanelContent(elPreviewPanel, data);
   });
+
+  const elDiffTab = elTabMenu.querySelector<HTMLElement>('a[data-tab="diff"]');
+  const elDiffPanel = elForm.querySelector<HTMLElement>('.tab[data-tab="diff"]');
+  if (elDiffTab && elDiffPanel) {
+    elDiffTab.addEventListener('click', async () => {
+      elDiffPanel.classList.add('is-loading');
+      try {
+        const formData = new FormData();
+        formData.append('context', elDiffTab.getAttribute('data-diff-context')!);
+        formData.append('content', elForm.querySelector<HTMLTextAreaElement>('#edit_area')!.value);
+        const resp = await POST(elDiffTab.getAttribute('data-diff-url')!, {data: formData});
+        if (resp.ok) elDiffPanel.innerHTML = await resp.text();
+      } finally {
+        elDiffPanel.classList.remove('is-loading');
+      }
+    });
+  }
 }
 
 export function initRepoEditor() {

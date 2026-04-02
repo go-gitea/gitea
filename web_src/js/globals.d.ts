@@ -56,7 +56,6 @@ interface Window {
   },
   $: JQueryStatic,
   jQuery: JQueryStatic,
-  htmx: typeof import('htmx.org').default,
   _globalHandlerErrors: Array<ErrorEvent & PromiseRejectionEvent> & {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
