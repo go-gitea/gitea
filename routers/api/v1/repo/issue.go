@@ -919,12 +919,12 @@ func EditIssue(ctx *context.APIContext) {
 				opts.ReasonParam = *form.StateReasonParam
 			}
 			opts.Normalize()
-			if err := opts.Validate(ctx, issue); err != nil {
-				ctx.APIError(http.StatusBadRequest, err)
+			if opts.IsSystemOnly() {
+				ctx.APIError(http.StatusBadRequest, ctx.Locale.TrString("repo.issues.close_reason.system_only"))
 				return
 			}
-			if opts.IsSystemOnly() {
-				ctx.APIError(http.StatusBadRequest, "this close reason is system-only")
+			if err := opts.Validate(ctx, issue); err != nil {
+				ctx.APIError(http.StatusBadRequest, err)
 				return
 			}
 		}

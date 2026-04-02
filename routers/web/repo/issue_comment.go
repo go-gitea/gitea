@@ -182,7 +182,7 @@ func NewComment(ctx *context.Context) {
 					}
 					opts.Normalize()
 					if opts.IsSystemOnly() {
-						ctx.JSONError("this close reason is system-only")
+						ctx.JSONError(ctx.Tr("repo.issues.close_reason.system_only"))
 						return
 					}
 					if err := opts.Validate(ctx, issue); err != nil {

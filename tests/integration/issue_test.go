@@ -339,7 +339,29 @@ func TestIssueCommentCloseRejectSystemOnlyReason(t *testing.T) {
 		"state_reason":       "completed_by_commit",
 		"state_reason_param": `{"commit_hash":"deadbeef"}`,
 	})
-	session.MakeRequest(t, postReq, http.StatusBadRequest)
+	resp := session.MakeRequest(t, postReq, http.StatusBadRequest)
+	assert.Equal(t, "This close reason is system-only", test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+}
+
+func TestIssueCommentCloseRejectParamForCompletedReason(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Reject param for completed reason", "Description")
+
+	getReq := NewRequest(t, "GET", issueURL)
+	getResp := session.MakeRequest(t, getReq, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, getResp.Body)
+	formAction, exists := htmlDoc.doc.Find("#comment-form").Attr("action")
+	assert.True(t, exists, "The template has changed")
+
+	postReq := NewRequestWithValues(t, "POST", formAction, map[string]string{
+		"content":            "attempt invalid param",
+		"status":             "close",
+		"state_reason":       "completed",
+		"state_reason_param": `{"unexpected":true}`,
+	})
+	resp := session.MakeRequest(t, postReq, http.StatusBadRequest)
+	assert.Equal(t, "completed close reason does not accept a param", test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 }
 
 func TestIssueCommentDelete(t *testing.T) {

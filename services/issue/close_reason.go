@@ -79,7 +79,9 @@ func (o *CloseOptions) Normalize() {
 func (o *CloseOptions) Validate(ctx context.Context, issue *issues_model.Issue) error {
 	switch o.Reason {
 	case CloseReasonCompleted, CloseReasonNotPlanned:
-		// no param required
+		if o.ReasonParam != "" {
+			return util.NewInvalidArgumentErrorf("%s close reason does not accept a param", o.Reason.String())
+		}
 
 	case CloseReasonDuplicate:
 		var p CloseReasonDuplicateParam

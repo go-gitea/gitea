@@ -1556,6 +1556,7 @@
   "repo.issues.close_reason.answered_desc": "Resolved/answered by this comment",
   "repo.issues.close_reason.answered_placeholder": "Comment ID",
   "repo.issues.close_reason.answered_requires_comment": "Close as answered requires a comment",
+  "repo.issues.close_reason.system_only": "This close reason is system-only",
   "repo.issues.close_reason.closed_as_duplicate": "Closed as duplicate of %s",
   "repo.issues.close_reason.closed_as_answered_by_comment": "Closed as answered by %s",
   "repo.issues.close_reason.closed_by_commit": "Closed by commit %s",
