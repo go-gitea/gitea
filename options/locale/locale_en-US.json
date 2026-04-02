@@ -1043,6 +1043,7 @@
   "repo.forks": "Forks",
   "repo.stars": "Stars",
   "repo.reactions_more": "and %d more",
+  "repo.reactions": "Reactions",
   "repo.add_reaction": "Add reaction",
   "repo.unit_disabled": "The site administrator has disabled this repository section.",
   "repo.language_other": "Other",

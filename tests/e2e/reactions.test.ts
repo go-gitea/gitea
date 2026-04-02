@@ -15,12 +15,14 @@ test('toggle issue reactions', async ({page, request}) => {
 
     const issueComment = page.locator('.timeline-item.comment.first');
 
-    await issueComment.locator('.select-reaction').click();
-    await issueComment.locator('.select-reaction .item[data-reaction-content="+1"]').click();
-    await expect(issueComment.locator('.bottom-reactions a[role="button"][data-reaction-content="+1"] .reaction-count')).toHaveText('1');
+    await issueComment.getByLabel('Add reaction').click();
+    await issueComment.getByLabel('Add reaction').getByLabel('+1').click();
 
-    await issueComment.locator('.bottom-reactions a[role="button"][data-reaction-content="+1"]').click();
-    await expect(issueComment.locator('.bottom-reactions a[role="button"][data-reaction-content="+1"]')).toHaveCount(0);
+    const reactions = issueComment.getByRole('group', {name: 'Reactions'});
+    await expect(reactions.getByRole('button', {name: /^\+1:/})).toContainText('1');
+
+    await reactions.getByRole('button', {name: /^\+1:/}).click();
+    await expect(reactions.getByRole('button', {name: /^\+1:/})).toHaveCount(0);
   } finally {
     await apiDeleteRepo(request, owner, repoName);
   }
