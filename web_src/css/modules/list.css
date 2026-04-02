@@ -25,15 +25,6 @@
   list-style-position: outside;
 }
 
-.ui.list > .list > .item::after,
-.ui.list > .item::after {
-  content: "";
-  display: block;
-  height: 0;
-  clear: both;
-  visibility: hidden;
-}
-
 .ui.list .list:not(.icon) {
   clear: both;
   margin: 0;

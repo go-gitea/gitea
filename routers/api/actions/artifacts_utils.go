@@ -20,8 +20,8 @@ const (
 	artifactXActionsResultsMD5Header = "x-actions-results-md5"
 )
 
-// The rules are from https://github.com/actions/toolkit/blob/main/packages/artifact/src/internal/path-and-artifact-name-validation.ts#L32
-var invalidArtifactNameChars = strings.Join([]string{"\\", "/", "\"", ":", "<", ">", "|", "*", "?", "\r", "\n"}, "")
+// The rules are from https://github.com/actions/toolkit/blob/main/packages/artifact/src/internal/upload/path-and-artifact-name-validation.ts
+const invalidArtifactNameChars = "\\/\":<>|*?\r\n"
 
 func validateArtifactName(ctx *ArtifactContext, artifactName string) bool {
 	if strings.ContainsAny(artifactName, invalidArtifactNameChars) {
@@ -84,11 +84,10 @@ func parseArtifactItemPath(ctx *ArtifactContext) (string, string, bool) {
 
 // getUploadFileSize returns the size of the file to be uploaded.
 // The raw size is the size of the file as reported by the header X-TFS-FileLength.
-func getUploadFileSize(ctx *ArtifactContext) (int64, int64) {
-	contentLength := ctx.Req.ContentLength
+func getUploadFileSize(ctx *ArtifactContext) int64 {
 	xTfsLength, _ := strconv.ParseInt(ctx.Req.Header.Get(artifactXTfsFileLengthHeader), 10, 64)
 	if xTfsLength > 0 {
-		return xTfsLength, contentLength
+		return xTfsLength
 	}
-	return contentLength, contentLength
+	return ctx.Req.ContentLength
 }

@@ -1,5 +1,3 @@
-import $ from 'jquery';
-
 export function initFomanticTransition() {
   const transitionNopBehaviors = new Set([
     'clear queue', 'stop', 'stop all', 'destroy',

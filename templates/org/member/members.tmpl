@@ -4,6 +4,13 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 
+		{{if .IsOrganizationOwner}}
+			<div class="flex-text-block">
+				<div class="tw-flex-1">{{ctx.Locale.Tr "org.teams.manage_team_member_prompt"}}</div>
+				<a class="ui primary button" href="./teams">{{ctx.Locale.Tr "org.teams.manage_team_member"}}</a>
+			</div>
+			<div class="divider"></div>
+		{{end}}
 		<div class="flex-list">
 			{{range .Members}}
 				{{$isPublic := index $.MembersIsPublicMember .ID}}
@@ -15,27 +22,27 @@
 						<div class="flex-item-title">
 							{{template "shared/user/name" .}}
 							{{if not $isPublic}}
-								<span class="ui basic tiny label">{{ctx.Locale.Tr "org.members.private"}}</span>
+								<span class="ui basic small label">{{ctx.Locale.Tr "org.members.private"}}</span>
 							{{end}}
 						</div>
-						{{if not $.PublicOnly}}
-							<div class="flex-item-body">
+						<div class="tw-flex tw-flex-col tw-gap-1">
+							{{if not $.PublicOnly}}
+							<div>
 								{{ctx.Locale.Tr "org.members.member_role"}}
 								<strong class="flex-text-inline">{{if index $.MembersIsUserOrgOwner .ID}}{{svg "octicon-shield-lock"}} {{ctx.Locale.Tr "org.members.owner"}}{{else}}{{ctx.Locale.Tr "org.members.member"}}{{end}}</strong>
 							</div>
+							{{end}}
 							{{if $.IsOrganizationOwner}}
-							<div class="flex-item-body">
-								{{ctx.Locale.Tr "admin.users.2fa"}}
-								<strong>
-									{{if index $.MembersTwoFaStatus .ID}}
-										<span class="text green">{{svg "octicon-check"}}</span>
-									{{else}}
-										{{svg "octicon-x"}}
-									{{end}}
-								</strong>
+							<div>
+								{{ctx.Locale.Tr "admin.users.2fa"}}:
+								{{if index $.MembersTwoFaStatus .ID}}
+									<span class="tw-text-green tw-flex">{{svg "octicon-check"}}</span>
+								{{else}}
+									{{svg "octicon-x"}}
+								{{end}}
 							</div>
 							{{end}}
-						{{end}}
+						</div>
 					</div>
 					<div class="flex-item-trailing">
 						{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}
@@ -46,45 +53,23 @@
 							{{end}}
 						{{end}}
 						{{if eq $.SignedUser.ID .ID}}
-							<form>
-								<button class="ui red tiny button delete-button" data-modal-id="leave-organization"
-									data-url="{{$.OrgLink}}/members/action/leave" data-datauid="{{.ID}}"
-									data-name="{{.DisplayName}}"
-									data-data-organization-name="{{$.Org.DisplayName}}">{{ctx.Locale.Tr "org.members.leave"}}</button>
-							</form>
+							<button class="ui red tiny button link-action"
+								data-url="{{$.OrgLink}}/members/action/leave?uid={{.ID}}"
+								data-modal-confirm-header="{{ctx.Locale.Tr "org.members.leave"}}"
+								data-modal-confirm-content="{{ctx.Locale.Tr "org.members.leave.detail" $.Org.DisplayName}}"
+								>{{ctx.Locale.Tr "org.members.leave"}}</button>
 						{{else if $.IsOrganizationOwner}}
-							<form>
-								<button class="ui red tiny button delete-button" data-modal-id="remove-organization-member"
-									data-url="{{$.OrgLink}}/members/action/remove" data-datauid="{{.ID}}"
-									data-name="{{.DisplayName}}"
-									data-data-organization-name="{{$.Org.DisplayName}}">{{ctx.Locale.Tr "org.members.remove"}}</button>
-							</form>
+							<button class="ui red tiny button link-action"
+								data-url="{{$.OrgLink}}/members/action/remove?uid={{.ID}}"
+								data-modal-confirm-header="{{ctx.Locale.Tr "org.members.remove"}}"
+								data-modal-confirm-content="{{ctx.Locale.Tr "org.members.remove.detail" .DisplayName $.Org.DisplayName}}"
+							>{{ctx.Locale.Tr "org.members.remove"}}</button>
 						{{end}}
 					</div>
 				</div>
 			{{end}}
 		</div>
-
 		{{template "base/paginate" .}}
 	</div>
 </div>
-<div class="ui g-modal-confirm delete modal" id="leave-organization">
-	<div class="header">
-		{{ctx.Locale.Tr "org.members.leave"}}
-	</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "org.members.leave.detail" (HTMLFormat `<span class="%s"></span>` "dataOrganizationName")}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
-</div>
-<div class="ui g-modal-confirm delete modal" id="remove-organization-member">
-	<div class="header">
-		{{ctx.Locale.Tr "org.members.remove"}}
-	</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "org.members.remove.detail" (HTMLFormat `<span class="%s"></span>` "name") (HTMLFormat `<span class="%s"></span>` "dataOrganizationName")}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
-</div>
-
 {{template "base/footer" .}}

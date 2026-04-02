@@ -699,7 +699,7 @@ func (c *Comment) LoadTime(ctx context.Context) error {
 		return nil
 	}
 	var err error
-	c.Time, err = GetTrackedTimeByID(ctx, c.TimeID)
+	c.Time, err = GetTrackedTimeByID(ctx, c.IssueID, c.TimeID)
 	return err
 }
 

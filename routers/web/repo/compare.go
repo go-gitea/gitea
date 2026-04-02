@@ -226,9 +226,9 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	// If we're not merging from the same repo:
 	if !isSameRepo {
 		// Assert ctx.Doer has permission to read headRepo's codes
-		permHead, err := access_model.GetUserRepoPermission(ctx, headRepo, ctx.Doer)
+		permHead, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
+			ctx.ServerError("GetDoerRepoPermission", err)
 			return nil
 		}
 		if !permHead.CanRead(unit.TypeCode) {

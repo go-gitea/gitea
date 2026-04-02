@@ -17,13 +17,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
-
-	"github.com/nektos/act/pkg/jobparser"
 )
 
 // CreateCommitStatusForRunJobs creates a commit status for the given job if it has a supported event and related commit.
@@ -57,21 +56,21 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) ([]*actions_model.ActionRun, error) {
 	runMap := make(map[int64]*actions_model.ActionRun)
 	for _, status := range statuses {
-		runIndex, _, ok := status.ParseGiteaActionsTargetURL(ctx)
+		runID, _, ok := status.ParseGiteaActionsTargetURL(ctx)
 		if !ok {
 			continue
 		}
-		_, ok = runMap[runIndex]
+		_, ok = runMap[runID]
 		if !ok {
-			run, err := actions_model.GetRunByIndex(ctx, status.RepoID, runIndex)
+			run, err := actions_model.GetRunByRepoAndID(ctx, status.RepoID, runID)
 			if err != nil {
 				if errors.Is(err, util.ErrNotExist) {
 					// the run may be deleted manually, just skip it
 					continue
 				}
-				return nil, fmt.Errorf("GetRunByIndex: %w", err)
+				return nil, fmt.Errorf("GetRunByRepoAndID: %w", err)
 			}
-			runMap[runIndex] = run
+			runMap[runID] = run
 		}
 	}
 	runs := make([]*actions_model.ActionRun, 0, len(runMap))
@@ -105,6 +104,21 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 		} else {
 			event = "pull_request"
 		}
+		payload, err := run.GetPullRequestEventPayload()
+		if err != nil {
+			return "", "", fmt.Errorf("GetPullRequestEventPayload: %w", err)
+		}
+		if payload.PullRequest == nil {
+			return "", "", errors.New("pull request is missing in event payload")
+		} else if payload.PullRequest.Head == nil {
+			return "", "", errors.New("head of pull request is missing in event payload")
+		}
+		commitID = payload.PullRequest.Head.Sha
+	case // pull_request_review events share the same PullRequestPayload as pull_request
+		webhook_module.HookEventPullRequestReviewApproved,
+		webhook_module.HookEventPullRequestReviewRejected,
+		webhook_module.HookEventPullRequestReviewComment:
+		event = run.TriggerEvent
 		payload, err := run.GetPullRequestEventPayload()
 		if err != nil {
 			return "", "", fmt.Errorf("GetPullRequestEventPayload: %w", err)
@@ -167,15 +181,10 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 		description = "Unknown status: " + strconv.Itoa(int(job.Status))
 	}
 
-	index, err := getIndexOfJob(ctx, job)
-	if err != nil {
-		return fmt.Errorf("getIndexOfJob: %w", err)
-	}
-
 	creator := user_model.NewActionsUser()
 	status := git_model.CommitStatus{
 		SHA:         commitID,
-		TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), index),
+		TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID),
 		Description: description,
 		Context:     ctxName,
 		CreatorID:   creator.ID,
@@ -198,18 +207,4 @@ func toCommitStatus(status actions_model.Status) commitstatus.CommitStatusState 
 	default:
 		return commitstatus.CommitStatusError
 	}
-}
-
-func getIndexOfJob(ctx context.Context, job *actions_model.ActionRunJob) (int, error) {
-	// TODO: store job index as a field in ActionRunJob to avoid this
-	jobs, err := actions_model.GetRunJobsByRunID(ctx, job.RunID)
-	if err != nil {
-		return 0, err
-	}
-	for i, v := range jobs {
-		if v.ID == job.ID {
-			return i, nil
-		}
-	}
-	return 0, nil
 }

@@ -362,7 +362,7 @@ func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 		return
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, rel.Repo, doer)
+	permission, _ := access_model.GetDoerRepoPermission(ctx, rel.Repo, doer)
 
 	newNotifyInput(rel.Repo, doer, webhook_module.HookEventRelease).
 		WithRef(git.RefNameFromTag(rel.TagName).String()).
@@ -413,8 +413,8 @@ func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *rep
 	}
 
 	// don't need approval if the user can write
-	if perm, err := access_model.GetUserRepoPermission(ctx, repo, user); err != nil {
-		return false, fmt.Errorf("GetUserRepoPermission: %w", err)
+	if perm, err := access_model.GetDoerRepoPermission(ctx, repo, user); err != nil {
+		return false, fmt.Errorf("GetDoerRepoPermission: %w", err)
 	} else if perm.CanWrite(unit_model.TypeActions) {
 		log.Trace("do not need approval because user %d can write", user.ID)
 		return false, nil

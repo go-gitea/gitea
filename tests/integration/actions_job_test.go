@@ -27,6 +27,7 @@ import (
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestJobWithNeeds(t *testing.T) {
@@ -347,6 +348,122 @@ jobs:
 			})
 		}
 	})
+}
+
+func TestRunnerDisableEnable(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		t.Run("BasicDisableEnable", func(t *testing.T) {
+			testData := prepareRunnerDisableEnableTest(t, user2, token, "actions-runner-disable-enable", "mock-runner", "runner-disable-enable")
+
+			task1 := testData.runner.fetchTask(t)
+			require.NotNil(t, task1)
+
+			triggerRunnerDisableEnableRun(t, user2, token, testData.repo, "second-push.txt")
+
+			req := newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), true).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
+
+			testData.runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+			testData.runner.fetchNoTask(t, 2*time.Second)
+
+			req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), false).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
+
+			task2 := testData.runner.fetchTask(t, 5*time.Second)
+			require.NotNil(t, task2)
+			testData.runner.execTask(t, task2, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+		})
+
+		t.Run("TasksVersionPath", func(t *testing.T) {
+			testData := prepareRunnerDisableEnableTest(t, user2, token, "actions-runner-version-path", "mock-runner-version-path", "runner-version-path")
+
+			var firstVersion int64
+			var task1 *runnerv1.Task
+			ddl := time.Now().Add(5 * time.Second)
+			for time.Now().Before(ddl) {
+				task1, firstVersion = testData.runner.fetchTaskOnce(t, 0)
+				if task1 != nil {
+					break
+				}
+				time.Sleep(200 * time.Millisecond)
+			}
+			require.NotNil(t, task1, "expected to receive first task")
+			require.NotZero(t, firstVersion, "response TasksVersion should be set")
+
+			// Trigger a second run so there is a pending job after we re-enable the runner
+			triggerRunnerDisableEnableRun(t, user2, token, testData.repo, "second-push.txt")
+			time.Sleep(500 * time.Millisecond) // allow workflow run to be created
+
+			req := newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), true).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
+
+			testData.runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+
+			// Fetch with the version we had before disable. Server has bumped version on disable,
+			// so we enter PickTask with a re-loaded runner (disabled) and get no task.
+			taskAfterDisable, _ := testData.runner.fetchTaskOnce(t, firstVersion)
+			assert.Nil(t, taskAfterDisable, "disabled runner must not receive a task when sending previous TasksVersion")
+
+			req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), false).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
+
+			task2 := testData.runner.fetchTask(t, 5*time.Second)
+			require.NotNil(t, task2, "after re-enable runner should receive tasks again")
+			testData.runner.execTask(t, task2, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+		})
+	})
+}
+
+type runnerDisableEnableTestData struct {
+	repo     *api.Repository
+	runner   *mockRunner
+	runnerID int64
+}
+
+func prepareRunnerDisableEnableTest(t *testing.T, user *user_model.User, authToken, repoName, runnerName, workflowName string) *runnerDisableEnableTestData {
+	t.Helper()
+
+	apiRepo := createActionsTestRepo(t, authToken, repoName, false)
+	runner := newMockRunner()
+	runner.registerAsRepoRunner(t, user.Name, apiRepo.Name, runnerName, []string{"ubuntu-latest"}, false)
+
+	wfTreePath := fmt.Sprintf(".gitea/workflows/%s.yml", workflowName)
+	wfContent := fmt.Sprintf(`name: %s
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo %s
+`, workflowName, workflowName)
+	opts := getWorkflowCreateFileOptions(user, apiRepo.DefaultBranch, "create workflow", wfContent)
+	createWorkflowFile(t, authToken, user.Name, apiRepo.Name, wfTreePath, opts)
+
+	return &runnerDisableEnableTestData{
+		repo:     apiRepo,
+		runner:   runner,
+		runnerID: getRepoRunnerID(t, authToken, user.Name, apiRepo.Name),
+	}
+}
+
+func triggerRunnerDisableEnableRun(t *testing.T, user *user_model.User, authToken string, repo *api.Repository, treePath string) {
+	t.Helper()
+	opts := getWorkflowCreateFileOptions(user, repo.DefaultBranch, "second push", "second run")
+	createWorkflowFile(t, authToken, user.Name, repo.Name, treePath, opts)
+}
+
+func getRepoRunnerID(t *testing.T, authToken, ownerName, repoName string) int64 {
+	t.Helper()
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners", ownerName, repoName)).AddTokenAuth(authToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+	runnerList := api.ActionRunnersResponse{}
+	DecodeJSON(t, resp, &runnerList)
+	require.Len(t, runnerList.Entries, 1)
+	return runnerList.Entries[0].ID
 }
 
 func TestActionsGiteaContext(t *testing.T) {

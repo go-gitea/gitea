@@ -76,16 +76,16 @@ func DeployKeysPost(ctx *context.Context) {
 		switch {
 		case asymkey_model.IsErrDeployKeyAlreadyExist(err):
 			ctx.Data["Err_Content"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.settings.key_been_used"), tplDeployKeys, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.key_been_used"), tplDeployKeys, &form)
 		case asymkey_model.IsErrKeyAlreadyExist(err):
 			ctx.Data["Err_Content"] = true
-			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplDeployKeys, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("settings.ssh_key_been_used"), tplDeployKeys, &form)
 		case asymkey_model.IsErrKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
 		case asymkey_model.IsErrDeployKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
 		default:
 			ctx.ServerError("AddDeployKey", err)
 		}
