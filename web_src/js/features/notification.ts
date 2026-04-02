@@ -21,10 +21,8 @@ async function receiveUpdateCount(event: MessageEvent<{type: string, data: strin
 export function initNotificationCount() {
   if (!document.querySelector('.notification_count')) return;
 
-  let usingPeriodicPoller = false;
   const startPeriodicPoller = (timeout: number, lastCount?: number) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
-    usingPeriodicPoller = true;
     lastCount = lastCount ?? getCurrentCount();
     setTimeout(async () => {
       await updateNotificationCountWithCallback(startPeriodicPoller, timeout, lastCount);
@@ -35,9 +33,7 @@ export function initNotificationCount() {
     // Try to connect to the event source via the shared worker first
     const worker = new UserEventsSharedWorker('notification-worker');
     worker.addMessageEventListener((event: MessageEvent) => {
-      if (event.data.type === 'no-event-source') {
-        if (!usingPeriodicPoller) startPeriodicPoller(notificationSettings.MinTimeout);
-      } else if (event.data.type === 'notification-count') {
+      if (event.data.type === 'notification-count') {
         receiveUpdateCount(event); // no await
       }
     });

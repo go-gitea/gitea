@@ -60,8 +60,8 @@ export function initStopwatch() {
     const url = btn.getAttribute('data-url');
     if (!url) return;
 
-    const startGroup = document.querySelector('.issue-start-buttons');
-    const stopGroup = document.querySelector('.issue-stop-cancel-buttons');
+    const startGroup = document.querySelector('.issue-start-buttons')!;
+    const stopGroup = document.querySelector('.issue-stop-cancel-buttons')!;
     const isStart = btn.classList.contains('issue-start-time');
 
     btn.classList.add('is-loading');
@@ -81,10 +81,8 @@ export function initStopwatch() {
     }
   });
 
-  let usingPeriodicPoller = false;
   const startPeriodicPoller = (timeout: number) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
-    usingPeriodicPoller = true;
     setTimeout(() => updateStopwatchWithCallback(startPeriodicPoller, timeout), timeout);
   };
 
@@ -93,10 +91,7 @@ export function initStopwatch() {
     // Try to connect to the event source via the shared worker first
     const worker = new UserEventsSharedWorker('stopwatch-worker');
     worker.addMessageEventListener((event) => {
-      if (event.data.type === 'no-event-source') {
-        // browser doesn't support EventSource, falling back to periodic poller
-        if (!usingPeriodicPoller) startPeriodicPoller(notificationSettings.MinTimeout);
-      } else if (event.data.type === 'stopwatches') {
+      if (event.data.type === 'stopwatches') {
         updateStopwatchData(JSON.parse(event.data.data));
       }
     });
