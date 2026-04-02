@@ -4,10 +4,14 @@
 package webtheme
 
 import (
+	"io/fs"
+	"os"
+	"path"
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
+	"sync/atomic"
+	"time"
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
@@ -16,15 +20,15 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-type themeCollection struct {
+type themeCollectionStruct struct {
+	lastCheckTime    time.Time
+	usingViteDevMode bool
+
 	themeList []*ThemeMetaInfo
 	themeMap  map[string]*ThemeMetaInfo
 }
 
-var (
-	themeMu         sync.RWMutex
-	availableThemes *themeCollection
-)
+var themeCollection atomic.Pointer[themeCollectionStruct]
 
 const (
 	fileNamePrefix = "theme-"
@@ -140,23 +144,42 @@ func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 	return themeInfo
 }
 
-func loadThemesFromAssets() (themeList []*ThemeMetaInfo, themeMap map[string]*ThemeMetaInfo) {
-	cssFiles, err := public.AssetFS().ListFiles("assets/css")
+func collectThemeFiles(dirFS fs.ReadDirFS, fsPath string) (themes []*ThemeMetaInfo, _ error) {
+	files, err := dirFS.ReadDir(fsPath)
 	if err != nil {
-		log.Error("Failed to list themes: %v", err)
-		return nil, nil
+		return nil, err
+	}
+	for _, file := range files {
+		fileName := file.Name()
+		if !strings.HasPrefix(fileName, fileNamePrefix) || !strings.HasSuffix(fileName, fileNameSuffix) {
+			continue
+		}
+		content, err := fs.ReadFile(dirFS, path.Join(fsPath, file.Name()))
+		if err != nil {
+			log.Error("Failed to read theme file %q: %v", fileName, err)
+			continue
+		}
+		themes = append(themes, parseThemeMetaInfo(fileName, util.UnsafeBytesToString(content)))
+	}
+	return themes, nil
+}
+
+func loadThemesFromAssets(isViteDevMode bool) (themeList []*ThemeMetaInfo, themeMap map[string]*ThemeMetaInfo) {
+	var themeDir fs.ReadDirFS
+	var themePath string
+
+	if isViteDevMode {
+		// In vite dev mode, Vite serves themes directly from source files.
+		themeDir, themePath = os.DirFS(setting.StaticRootPath).(fs.ReadDirFS), "web_src/css/themes"
+	} else {
+		// Without vite dev server, use built assets from AssetFS.
+		themeDir, themePath = public.AssetFS(), "assets/css"
 	}
 
-	var foundThemes []*ThemeMetaInfo
-	for _, fileName := range cssFiles {
-		if strings.HasPrefix(fileName, fileNamePrefix) && strings.HasSuffix(fileName, fileNameSuffix) {
-			content, err := public.AssetFS().ReadFile("/assets/css/" + fileName)
-			if err != nil {
-				log.Error("Failed to read theme file %q: %v", fileName, err)
-				continue
-			}
-			foundThemes = append(foundThemes, parseThemeMetaInfo(fileName, util.UnsafeBytesToString(content)))
-		}
+	foundThemes, err := collectThemeFiles(themeDir, themePath)
+	if err != nil {
+		log.Error("Failed to load theme files: %v", err)
+		return themeList, themeMap
 	}
 
 	themeList = foundThemes
@@ -187,20 +210,21 @@ func loadThemesFromAssets() (themeList []*ThemeMetaInfo, themeMap map[string]*Th
 	return themeList, themeMap
 }
 
-func getAvailableThemes() (themeList []*ThemeMetaInfo, themeMap map[string]*ThemeMetaInfo) {
-	themeMu.RLock()
-	if availableThemes != nil {
-		themeList, themeMap = availableThemes.themeList, availableThemes.themeMap
-	}
-	themeMu.RUnlock()
-	if len(themeList) != 0 {
-		return themeList, themeMap
+func getAvailableThemes() *themeCollectionStruct {
+	themes := themeCollection.Load()
+
+	now := time.Now()
+	if themes != nil && now.Sub(themes.lastCheckTime) < time.Second {
+		return themes
 	}
 
-	themeMu.Lock()
-	defer themeMu.Unlock()
-	// no need to double-check "availableThemes.themeList" since the loading isn't really slow, to keep code simple
-	themeList, themeMap = loadThemesFromAssets()
+	isViteDevMode := public.IsViteDevMode()
+	useLoadedThemes := themes != nil && (setting.IsProd || themes.usingViteDevMode == isViteDevMode)
+	if useLoadedThemes && len(themes.themeList) > 0 {
+		return themes
+	}
+
+	themeList, themeMap := loadThemesFromAssets(isViteDevMode)
 	hasAvailableThemes := len(themeList) > 0
 	if !hasAvailableThemes {
 		defaultTheme := defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)
@@ -215,27 +239,19 @@ func getAvailableThemes() (themeList []*ThemeMetaInfo, themeMap map[string]*Them
 		if themeMap[setting.UI.DefaultTheme] == nil {
 			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.UI.DefaultTheme)
 		}
-		availableThemes = &themeCollection{themeList, themeMap}
-		return themeList, themeMap
 	}
 
-	// In dev mode, only store the loaded themes if the list is not empty, in case the frontend is still being built.
-	// TBH, there still could be a data-race that the themes are only partially built then the list is incomplete for first time loading.
-	// Such edge case can be handled by checking whether the loaded themes are the same in a period or there is a flag file, but it is an over-kill, so, no.
-	if hasAvailableThemes {
-		availableThemes = &themeCollection{themeList, themeMap}
-	}
-	return themeList, themeMap
-}
-
-func GetAvailableThemes() []*ThemeMetaInfo {
-	themes, _ := getAvailableThemes()
+	themes = &themeCollectionStruct{now, isViteDevMode, themeList, themeMap}
+	themeCollection.Store(themes)
 	return themes
 }
 
+func GetAvailableThemes() []*ThemeMetaInfo {
+	return getAvailableThemes().themeList
+}
+
 func GetThemeMetaInfo(internalName string) *ThemeMetaInfo {
-	_, themeMap := getAvailableThemes()
-	return themeMap[internalName]
+	return getAvailableThemes().themeMap[internalName]
 }
 
 // GuaranteeGetThemeMetaInfo guarantees to return a non-nil ThemeMetaInfo,

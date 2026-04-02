@@ -4,13 +4,13 @@
 	{{- $activeStopwatch := call $data.GetActiveStopwatch -}}
 	{{- $notificationUnreadCount := call $data.GetNotificationUnreadCount -}}
 	<a class="item active-stopwatch{{if not $activeStopwatch}} tw-hidden{{end}} {{$itemExtraClass}}" {{if $activeStopwatch}}href="{{$activeStopwatch.IssueLink}}" data-seconds="{{$activeStopwatch.Seconds}}"{{end}} title="{{ctx.Locale.Tr "active_stopwatch"}}">
-		<div class="tw-relative">
+		<div class="tw-relative flex-text-block">
 			{{svg "octicon-stopwatch"}}
 			<span class="header-stopwatch-dot"></span>
 		</div>
 	</a>
 	<a class="item {{$itemExtraClass}}" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}">
-		<div class="tw-relative">
+		<div class="tw-relative flex-text-block">
 			{{svg "octicon-bell"}}
 			<span class="notification_count{{if not $notificationUnreadCount}} tw-hidden{{end}}">{{$notificationUnreadCount}}</span>
 		</div>

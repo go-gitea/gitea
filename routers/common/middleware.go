@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -38,6 +39,10 @@ func ProtocolMiddlewares() (handlers []any) {
 
 	if setting.IsAccessLogEnabled() {
 		handlers = append(handlers, context.AccessLogger())
+	}
+
+	if !setting.IsProd {
+		handlers = append(handlers, public.ViteDevMiddleware)
 	}
 
 	return handlers

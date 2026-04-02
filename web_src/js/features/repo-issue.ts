@@ -1,5 +1,5 @@
-import {html, htmlEscape} from '../utils/html.ts';
-import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
+import {htmlEscape} from '../utils/html.ts';
+import {createTippy} from '../modules/tippy.ts';
 import {
   addDelegatedEventListener,
   createElementFromHTML,
@@ -10,7 +10,7 @@ import {
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
+import {toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
@@ -19,40 +19,6 @@ import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 const {appSubUrl} = window.config;
-
-export function initRepoIssueSidebarDependency() {
-  const elDropdown = document.querySelector('#new-dependency-drop-list');
-  if (!elDropdown) return;
-
-  const issuePageInfo = parseIssuePageInfo();
-  const crossRepoSearch = elDropdown.getAttribute('data-issue-cross-repo-search');
-  let issueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}`;
-  if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}`;
-  }
-  fomanticQuery(elDropdown).dropdown({
-    fullTextSearch: true,
-    apiSettings: {
-      cache: false,
-      rawResponse: true,
-      url: issueSearchUrl,
-      onResponse(response: any) {
-        const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
-        const currIssueId = elDropdown.getAttribute('data-issue-id');
-        // Parse the response from the api to work with our dropdown
-        for (const issue of response) {
-          // Don't list current issue in the dependency list.
-          if (String(issue.id) === currIssueId) continue;
-          filteredResponse.results.push({
-            value: issue.id,
-            name: html`<div class="gt-ellipsis">#${issue.number} ${issue.title}</div><div class="text small tw-break-anywhere">${issue.repository.full_name}</div>`,
-          });
-        }
-        return filteredResponse;
-      },
-    },
-  });
-}
 
 function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
   const url = new URL(window.location.href);
@@ -193,32 +159,6 @@ export function initRepoIssueCodeCommentCancel() {
       showElem(form.closest('.comment-code-cloud')!.querySelectorAll('button.comment-form-reply'));
     } else {
       form.closest('.comment-code-cloud')?.remove();
-    }
-  });
-}
-
-export function initRepoPullRequestAllowMaintainerEdit() {
-  const wrapper = document.querySelector('#allow-edits-from-maintainers')!;
-  if (!wrapper) return;
-  const checkbox = wrapper.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
-  checkbox.addEventListener('input', async () => {
-    const url = `${wrapper.getAttribute('data-url')}/set_allow_maintainer_edit`;
-    wrapper.classList.add('is-loading');
-    try {
-      const resp = await POST(url, {data: new URLSearchParams({
-        allow_maintainer_edit: String(checkbox.checked),
-      })});
-      if (!resp.ok) {
-        throw new Error('Failed to update maintainer edit permission');
-      }
-      const data = await resp.json();
-      checkbox.checked = data.allow_maintainer_edit;
-    } catch (error) {
-      checkbox.checked = !checkbox.checked;
-      console.error(error);
-      showTemporaryTooltip(wrapper, wrapper.getAttribute('data-prompt-error')!);
-    } finally {
-      wrapper.classList.remove('is-loading');
     }
   });
 }
@@ -566,6 +506,8 @@ function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
 }
 
 export function initRepoCommentFormAndSidebar() {
+  initRepoIssueSidebar();
+
   const commentForm = document.querySelector<HTMLFormElement>('.comment.form');
   if (!commentForm) return;
 
@@ -576,6 +518,4 @@ export function initRepoCommentFormAndSidebar() {
     // it's quite unclear about the "comment form" elements, sometimes it's for issue comment, sometimes it's for file editor/uploader message
     initSingleCommentEditor(commentForm);
   }
-
-  initRepoIssueSidebar();
 }

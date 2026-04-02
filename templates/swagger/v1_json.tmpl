@@ -10362,6 +10362,7 @@
         }
       },
       "patch": {
+        "description": "Pass `content_version` to enable optimistic locking on body edits.\nIf the version doesn't match the current value, the request fails with 409 Conflict.\n",
         "consumes": [
           "application/json"
         ],
@@ -23462,6 +23463,11 @@
           },
           "x-go-name": "Events"
         },
+        "name": {
+          "description": "Optional human-readable name for the webhook",
+          "type": "string",
+          "x-go-name": "Name"
+        },
         "type": {
           "type": "string",
           "enum": [
@@ -24728,6 +24734,11 @@
             "type": "string"
           },
           "x-go-name": "Events"
+        },
+        "name": {
+          "description": "Optional human-readable name",
+          "type": "string",
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -24765,6 +24776,12 @@
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "content_version": {
+          "description": "The current version of the issue content to detect conflicts during editing",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContentVersion"
         },
         "due_date": {
           "type": "string",
@@ -24937,6 +24954,12 @@
           "description": "The new description body for the pull request",
           "type": "string",
           "x-go-name": "Body"
+        },
+        "content_version": {
+          "description": "The current version of the pull request content to detect conflicts during editing",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContentVersion"
         },
         "due_date": {
           "type": "string",
@@ -26136,6 +26159,11 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "name": {
+          "description": "Optional human-readable name for the webhook",
+          "type": "string",
+          "x-go-name": "Name"
+        },
         "type": {
           "description": "The type of the webhook (e.g., gitea, slack, discord)",
           "type": "string",
@@ -26222,6 +26250,12 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Comments"
+        },
+        "content_version": {
+          "description": "The version of the issue content for optimistic locking",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContentVersion"
         },
         "created_at": {
           "type": "string",
@@ -27724,6 +27758,12 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Comments"
+        },
+        "content_version": {
+          "description": "The version of the pull request content for optimistic locking",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContentVersion"
         },
         "created_at": {
           "type": "string",
