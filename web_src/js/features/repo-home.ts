@@ -6,13 +6,20 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 registerGlobalInitFunc('initLastCommitLoader', async (el: HTMLElement) => {
-  for (const cell of el.querySelectorAll<HTMLElement>('.repo-file-cell.message')) {
+  const cells = el.querySelectorAll<HTMLElement>('.repo-file-cell.message');
+  for (const cell of cells) {
     cell.classList.add('is-loading');
   }
   try {
     const resp = await POST(el.getAttribute('data-loader-url')!);
-    if (resp.ok) el.outerHTML = await resp.text();
+    if (resp.ok) {
+      el.outerHTML = await resp.text();
+      return;
+    }
   } catch { /* ignore */ }
+  for (const cell of cells) {
+    cell.classList.remove('is-loading');
+  }
 });
 
 const {appSubUrl} = window.config;
