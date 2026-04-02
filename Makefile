@@ -115,6 +115,7 @@ FRONTEND_SOURCES := $(shell find web_src/js web_src/css -type f)
 FRONTEND_CONFIGS := vite.config.ts tailwind.config.ts
 FRONTEND_DEST := public/assets/.vite/manifest.json
 FRONTEND_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts public/assets/.vite
+FRONTEND_DEV_LOG_LEVEL ?= warn
 
 BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* modules/options/bindata.* modules/templates/bindata.*
 
@@ -372,7 +373,7 @@ watch: ## watch everything and continuously rebuild
 
 .PHONY: watch-frontend
 watch-frontend: node_modules ## start vite dev server for frontend
-	NODE_ENV=development pnpm exec vite
+	NODE_ENV=development pnpm exec vite --logLevel $(FRONTEND_DEV_LOG_LEVEL)
 
 .PHONY: watch-backend
 watch-backend: ## watch backend files and continuously rebuild
