@@ -2,6 +2,16 @@ import {env} from 'node:process';
 import {expect} from '@playwright/test';
 import type {APIRequestContext, Page} from '@playwright/test';
 
+/** Generate a random alphanumeric string. */
+export function randomString(length: number): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let idx = 0; idx < length; idx++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 export const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
 
 export function baseUrl() {

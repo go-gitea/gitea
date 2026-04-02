@@ -5,6 +5,8 @@ const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
 const timeout = 5000 * timeoutFactor;
 
 export default defineConfig({
+  workers: '50%',
+  fullyParallel: true,
   testDir: './tests/e2e/',
   outputDir: './tests/e2e-output/',
   testMatch: /.*\.test\.ts/,
@@ -28,11 +30,11 @@ export default defineConfig({
         permissions: ['clipboard-read', 'clipboard-write'],
       },
     },
-    ...env.CI ? [{
+    {
       name: 'firefox',
       use: {
         ...devices['Desktop Firefox'],
       },
-    }] : [],
+    },
   ],
 });
