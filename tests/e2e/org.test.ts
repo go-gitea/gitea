@@ -1,8 +1,8 @@
 import {test, expect} from '@playwright/test';
-import {login, apiDeleteOrg, randomString} from './utils.ts';
+import {login, apiDeleteOrg} from './utils.ts';
 
 test('create an organization', async ({page}) => {
-  const orgName = `e2e-org-${randomString(8)}`;
+  const orgName = 'e2e-org';
   await login(page);
   await page.goto('/org/create');
   await page.getByLabel('Organization Name').fill(orgName);
