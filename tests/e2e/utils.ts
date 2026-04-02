@@ -1,8 +1,18 @@
 import {env} from 'node:process';
 import {expect} from '@playwright/test';
-import type {APIRequestContext, Page} from '@playwright/test';
+import type {APIRequestContext, Locator, Page} from '@playwright/test';
 
 export const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
+
+/** Generate a random alphanumerical string. */
+export function randomString(length: number): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let idx = 0; idx < length; idx++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
 
 export function baseUrl() {
   return env.GITEA_TEST_E2E_URL?.replace(/\/$/g, '');
@@ -62,8 +72,13 @@ export async function apiDeleteOrg(requestContext: APIRequestContext, name: stri
   }), 'apiDeleteOrg');
 }
 
-/** Password shared by all test users — used for both API user creation and browser login. */
-const testUserPassword = 'e2e-password!aA1';
+/** Generate a random password that satisfies the complexity requirements. */
+function generatePassword() {
+  return `${randomString(12)}!aA1`;
+}
+
+/** Random password shared by all test users — used for both API user creation and browser login. */
+const testUserPassword = generatePassword();
 
 export function apiUserHeaders(username: string) {
   return apiAuthHeader(username, testUserPassword);
@@ -80,6 +95,11 @@ export async function apiDeleteUser(requestContext: APIRequestContext, username:
   await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/admin/users/${username}?purge=true`, {
     headers: apiHeaders(),
   }), 'apiDeleteUser');
+}
+
+export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {
+  await trigger.click();
+  await page.getByText(itemText).click();
 }
 
 export async function loginUser(page: Page, username: string) {

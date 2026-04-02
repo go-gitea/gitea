@@ -1,8 +1,8 @@
 import {test, expect} from '@playwright/test';
-import {login} from './utils.ts';
+import {login, randomString} from './utils.ts';
 
 test('update profile biography', async ({page}) => {
-  const bio = 'e2e-bio';
+  const bio = `e2e-bio-${randomString(8)}`;
   await login(page);
   await page.goto('/user/settings');
   await page.getByLabel('Biography').fill(bio);
