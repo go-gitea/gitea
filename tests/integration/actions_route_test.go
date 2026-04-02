@@ -11,13 +11,15 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	actions_web "code.gitea.io/gitea/routers/web/repo/actions"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestActionsRoute(t *testing.T) {
@@ -115,29 +117,78 @@ jobs:
 func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	user2Session := loginUser(t, user2.Name)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	repo := createActionsTestRepo(t, user2Token, "actions-route-legacy-url", false)
+
+	mkRun := func(id, index int64, title, sha string) *actions_model.ActionRun {
+		return &actions_model.ActionRun{
+			ID:            id,
+			Index:         index,
+			RepoID:        repo.ID,
+			OwnerID:       user2.ID,
+			Title:         title,
+			WorkflowID:    "legacy-route.yml",
+			TriggerUserID: user2.ID,
+			Ref:           "refs/heads/master",
+			CommitSHA:     sha,
+			Status:        actions_model.StatusWaiting,
+		}
+	}
+	mkJob := func(id, runID int64, name, sha string) *actions_model.ActionRunJob {
+		return &actions_model.ActionRunJob{
+			ID:        id,
+			RunID:     runID,
+			RepoID:    repo.ID,
+			OwnerID:   user2.ID,
+			CommitSHA: sha,
+			Name:      name,
+			Status:    actions_model.StatusWaiting,
+		}
+	}
 
 	// A small ID-based run/job pair that should always resolve directly.
-	smallIDRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 80, Index: 20})
-	smallIDJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 170, RunID: smallIDRun.ID})
+	smallIDRun := mkRun(80, 20, "legacy route small id", "aaa001")
+	smallIDJob := mkJob(170, smallIDRun.ID, "legacy-small-job", smallIDRun.CommitSHA)
 	// Another small run used to provide a job ID that belongs to a different run.
-	otherSmallRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 90, Index: 30})
-	otherSmallJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 180, RunID: otherSmallRun.ID})
+	otherSmallRun := mkRun(90, 30, "legacy route other small", "aaa002")
+	otherSmallJob := mkJob(180, otherSmallRun.ID, "legacy-other-small-job", otherSmallRun.CommitSHA)
 
 	// A large-ID run whose legacy run index should redirect to its ID-based URL.
-	normalRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 1500, Index: 900})
-	normalRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 1600, RunID: normalRun.ID})
+	normalRun := mkRun(1500, 900, "legacy route normal", "aaa003")
+	normalRunJob := mkJob(1600, normalRun.ID, "legacy-normal-job", normalRun.CommitSHA)
 	// A run whose index collides with normalRun.ID to exercise summary-page ID-first behavior.
-	collisionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 2400, Index: 1500})
-	collisionJobIdx0 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 2600, RunID: collisionRun.ID})
-	collisionJobIdx1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 2601, RunID: collisionRun.ID})
+	collisionRun := mkRun(2400, 1500, "legacy route collision", "aaa004")
+	collisionJobIdx0 := mkJob(2600, collisionRun.ID, "legacy-collision-job-1", collisionRun.CommitSHA)
+	collisionJobIdx1 := mkJob(2601, collisionRun.ID, "legacy-collision-job-2", collisionRun.CommitSHA)
 
 	// A small ID-based run/job pair that collides with a different legacy run/job index pair.
-	ambiguousIDRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 3, Index: 1})
-	ambiguousIDJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 4, RunID: ambiguousIDRun.ID})
+	ambiguousIDRun := mkRun(3, 1, "legacy route ambiguous id", "aaa005")
+	ambiguousIDJob := mkJob(4, ambiguousIDRun.ID, "legacy-ambiguous-id-job", ambiguousIDRun.CommitSHA)
 	// The legacy run/job target for the ambiguous /runs/3/jobs/4 URL.
-	ambiguousLegacyRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 1501, Index: 3})
-	ambiguousLegacyJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 1605, RunID: ambiguousLegacyRun.ID}) // job_index=4
+	ambiguousLegacyRun := mkRun(1501, ambiguousIDRun.ID, "legacy route ambiguous legacy", "aaa006")
+	ambiguousLegacyJobIdx0 := mkJob(1601, ambiguousLegacyRun.ID, "legacy-ambiguous-legacy-job-0", ambiguousLegacyRun.CommitSHA)
+	ambiguousLegacyJobIdx1 := mkJob(1602, ambiguousLegacyRun.ID, "legacy-ambiguous-legacy-job-1", ambiguousLegacyRun.CommitSHA)
+	ambiguousLegacyJobIdx2 := mkJob(1603, ambiguousLegacyRun.ID, "legacy-ambiguous-legacy-job-2", ambiguousLegacyRun.CommitSHA)
+	ambiguousLegacyJobIdx3 := mkJob(1604, ambiguousLegacyRun.ID, "legacy-ambiguous-legacy-job-3", ambiguousLegacyRun.CommitSHA)
+	ambiguousLegacyJobIdx4 := mkJob(1605, ambiguousLegacyRun.ID, "legacy-ambiguous-legacy-job-4", ambiguousLegacyRun.CommitSHA) // job_index=4
+	ambiguousLegacyJobIdx5 := mkJob(1606, ambiguousLegacyRun.ID, "legacy-ambiguous-legacy-job-5", ambiguousLegacyRun.CommitSHA)
+	ambiguousLegacyJobs := []*actions_model.ActionRunJob{
+		ambiguousLegacyJobIdx0,
+		ambiguousLegacyJobIdx1,
+		ambiguousLegacyJobIdx2,
+		ambiguousLegacyJobIdx3,
+		ambiguousLegacyJobIdx4,
+		ambiguousLegacyJobIdx5,
+	}
+	targetAmbiguousLegacyJob := ambiguousLegacyJobs[int(ambiguousIDJob.ID)]
+
+	insertBeansWithExplicitIDs(t, "action_run",
+		smallIDRun, otherSmallRun, normalRun, ambiguousIDRun, ambiguousLegacyRun, collisionRun,
+	)
+	insertBeansWithExplicitIDs(t, "action_run_job",
+		smallIDJob, otherSmallJob, normalRunJob, ambiguousIDJob, collisionJobIdx0, collisionJobIdx1,
+		ambiguousLegacyJobIdx0, ambiguousLegacyJobIdx1, ambiguousLegacyJobIdx2, ambiguousLegacyJobIdx3, ambiguousLegacyJobIdx4, ambiguousLegacyJobIdx5,
+	)
 
 	t.Run("OnlyRunID", func(t *testing.T) {
 		// ID-based URLs must be valid
@@ -177,12 +228,12 @@ func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 		//   - it may resolve as the ID-based URL for run_id=3/job_id=4,
 		//   - or as the legacy index-based URL for run_index=3/job_index=4 which should redirect to run_id=1501/job_id=1605.
 		idBasedURL := fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, ambiguousIDRun.ID, ambiguousIDJob.ID)
-		indexBasedURL := fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, ambiguousLegacyRun.Index, 4)
+		indexBasedURL := fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, ambiguousLegacyRun.Index, 4) // for ambiguousLegacyJobIdx4
 		assert.Equal(t, idBasedURL, indexBasedURL)
 		// When both interpretations are valid, prefer the ID-based target by default.
 		req := NewRequest(t, "GET", indexBasedURL)
 		user2Session.MakeRequest(t, req, http.StatusOK)
-		redirectURL := fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, ambiguousLegacyRun.ID, ambiguousLegacyJob.ID)
+		redirectURL := fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, ambiguousLegacyRun.ID, targetAmbiguousLegacyJob.ID)
 		// by_index=1 should explicitly force the legacy run/job index interpretation.
 		req = NewRequest(t, "GET", indexBasedURL+"?by_index=1")
 		resp := user2Session.MakeRequest(t, req, http.StatusFound)
@@ -220,4 +271,18 @@ func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/0", user2.Name, repo.Name, 999999))
 		user2Session.MakeRequest(t, req, http.StatusNotFound)
 	})
+}
+
+func insertBeansWithExplicitIDs(t *testing.T, table string, beans ...any) {
+	t.Helper()
+	ctx := t.Context()
+	if setting.Database.Type.IsMSSQL() {
+		_, err := db.Exec(ctx, fmt.Sprintf("SET IDENTITY_INSERT `%s` ON", table))
+		require.NoError(t, err)
+		defer func() {
+			_, err = db.Exec(ctx, fmt.Sprintf("SET IDENTITY_INSERT `%s` OFF", table))
+			require.NoError(t, err)
+		}()
+	}
+	require.NoError(t, db.Insert(ctx, beans...))
 }
