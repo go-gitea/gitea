@@ -132,10 +132,12 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 					ctx.ServerError("IsOrgMember", err)
 					return
 				}
-				ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
-				if err != nil {
-					ctx.ServerError("CanCreateOrgRepo", err)
-					return
+				if ctx.Org.IsMember {
+					ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
+					if err != nil {
+						ctx.ServerError("CanCreateOrgRepo", err)
+						return
+					}
 				}
 			}
 		} else {
