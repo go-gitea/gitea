@@ -52,6 +52,35 @@ export function initStopwatch() {
     await POST(action, {data: new FormData(form)});
   });
 
+  // Handle start/stop/cancel from the issue sidebar without a page reload.
+  // Buttons toggle between the two groups (.issue-start-buttons / .issue-stop-cancel-buttons)
+  // immediately; the navbar icon is updated by the WebSocket push or periodic poller.
+  addDelegatedEventListener(document, 'click', '.issue-start-time,.issue-stop-time,.issue-cancel-time', async (btn: HTMLElement, e: MouseEvent) => {
+    e.preventDefault();
+    const url = btn.getAttribute('data-url');
+    if (!url) return;
+
+    const startGroup = document.querySelector('.issue-start-buttons');
+    const stopGroup = document.querySelector('.issue-stop-cancel-buttons');
+    const isStart = btn.classList.contains('issue-start-time');
+
+    btn.classList.add('is-loading');
+    try {
+      const resp = await POST(url);
+      if (!resp.ok) return;
+      // Toggle sidebar button groups immediately, no reload needed.
+      if (isStart) {
+        hideElem(startGroup);
+        showElem(stopGroup);
+      } else {
+        hideElem(stopGroup);
+        showElem(startGroup);
+      }
+    } finally {
+      btn.classList.remove('is-loading');
+    }
+  });
+
   let usingPeriodicPoller = false;
   const startPeriodicPoller = (timeout: number) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
