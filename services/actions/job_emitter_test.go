@@ -347,4 +347,3 @@ func Test_maxParallelWorkflowLifecycle(t *testing.T) {
 		})
 	}
 }
-
