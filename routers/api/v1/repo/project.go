@@ -385,14 +385,14 @@ func ListProjectColumns(ctx *context.APIContext) {
 		return
 	}
 
-	total, err := project.CountColumns(ctx)
+	total, err := project_model.CountProjectColumns(ctx, project.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
 	listOptions := utils.GetListOptions(ctx)
-	columns, err := project.GetColumnsPaginated(ctx, listOptions)
+	columns, err := project_model.GetProjectColumns(ctx, project.ID, listOptions)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

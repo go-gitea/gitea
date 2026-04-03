@@ -80,7 +80,7 @@ func Test_MoveColumnsOnProject(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	project1 := unittest.AssertExistsAndLoadBean(t, &Project{ID: 1})
-	columns, err := project1.GetColumns(t.Context())
+	columns, err := GetProjectColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
 	assert.EqualValues(t, 0, columns[0].Sorting) // even if there is no default sorting, the code should also work
@@ -94,7 +94,7 @@ func Test_MoveColumnsOnProject(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	columnsAfter, err := project1.GetColumns(t.Context())
+	columnsAfter, err := GetProjectColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columnsAfter, 3)
 	assert.Equal(t, columns[1].ID, columnsAfter[0].ID)
@@ -106,7 +106,7 @@ func Test_NewColumn(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	project1 := unittest.AssertExistsAndLoadBean(t, &Project{ID: 1})
-	columns, err := project1.GetColumns(t.Context())
+	columns, err := GetProjectColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
 
@@ -123,40 +123,4 @@ func Test_NewColumn(t *testing.T) {
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "maximum number of columns reached")
-}
-
-func TestCountColumns(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	project, err := GetProjectByID(t.Context(), 1)
-	assert.NoError(t, err)
-
-	count, err := project.CountColumns(t.Context())
-	assert.NoError(t, err)
-	assert.EqualValues(t, 3, count)
-}
-
-func TestGetColumnsPaginated(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	project, err := GetProjectByID(t.Context(), 1)
-	assert.NoError(t, err)
-
-	// Page 1, limit 2 — returns first 2 columns
-	page1, err := project.GetColumnsPaginated(t.Context(), db.ListOptions{Page: 1, PageSize: 2})
-	assert.NoError(t, err)
-	assert.Len(t, page1, 2)
-
-	// Page 2, limit 2 — returns remaining column
-	page2, err := project.GetColumnsPaginated(t.Context(), db.ListOptions{Page: 2, PageSize: 2})
-	assert.NoError(t, err)
-	assert.Len(t, page2, 1)
-
-	// Page 1 and page 2 together cover all columns with no overlap
-	allIDs := make(map[int64]bool)
-	for _, c := range append(page1, page2...) {
-		assert.False(t, allIDs[c.ID], "duplicate column ID %d across pages", c.ID)
-		allIDs[c.ID] = true
-	}
-	assert.Len(t, allIDs, 3)
 }
