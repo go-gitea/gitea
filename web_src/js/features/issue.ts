@@ -18,6 +18,12 @@ export function getIssueIcon(issue: Issue) {
   if (issue.state === 'open') {
     return 'octicon-issue-opened'; // Open Issue
   }
+
+  const closeReason = issue.state_reason || 'completed';
+  if (closeReason === 'duplicate' || closeReason === 'not_planned') {
+    return 'octicon-skip'; // Closed Issue (duplicate/not planned)
+  }
+
   return 'octicon-issue-closed'; // Closed Issue
 }
 

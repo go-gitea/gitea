@@ -419,7 +419,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 			continue
 		}
 		if action == "close" && !issue.IsClosed {
-			if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
+			if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, "", issue_service.CloseOptionsCompleted()); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]any{
 						"error": ctx.Tr("repo.issues.dependency.issue_batch_close_blocked", issue.Index),

@@ -82,27 +82,78 @@
 						<div class="ui segment avatar-content-left-arrow">
 							<form class="ui form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
 								{{template "repo/issue/comment_tab" .}}
+								{{if and (not .Issue.IsClosed) (not .Issue.IsPull) (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
+								<input type="hidden" id="close-reason-param-hidden" name="state_reason_param" value="">
+								{{end}}
 								<div class="field footer">
-									<div class="flex-text-block tw-justify-end">
+									<div class="flex-text-block tw-flex-wrap tw-justify-end">
 										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
-											{{$btnIconColor := ""}}{{$btnIcon := ""}}{{$btnTextNoComment := ""}}{{$btnTextWithComment := ""}}{{$btnValue := ""}}
 											{{if .Issue.IsClosed}}
-												{{$btnValue = "reopen"}}
-												{{$btnIconColor = "tw-text-green"}}
-												{{$btnIcon = Iif .Issue.IsPull "octicon-git-pull-request" "octicon-issue-reopened"}}
-												{{$btnTextNoComment = ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.reopen" "repo.issues.reopen_issue")}}
-												{{$btnTextWithComment = ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}{{/* general: Reopen with Comment */}}
+												{{$btnTextNoComment := ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.reopen" "repo.issues.reopen_issue")}}
+												{{$btnTextWithComment := ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}
+												<button id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" name="status" value="reopen">
+													<span class="status-button-icon tw-text-green">{{svg (Iif .Issue.IsPull "octicon-git-pull-request" "octicon-issue-reopened")}}</span>
+													<span class="status-button-text">{{$btnTextNoComment}}</span>
+												</button>
+											{{else if .Issue.IsPull}}
+												{{$btnTextNoComment := ctx.Locale.Tr "repo.pulls.close"}}
+												{{$btnTextWithComment := ctx.Locale.Tr "repo.issues.close_comment_issue"}}
+												<button id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" name="status" value="close">
+													<span class="status-button-icon tw-text-red">{{svg "octicon-git-pull-request-closed"}}</span>
+													<span class="status-button-text">{{$btnTextNoComment}}</span>
+												</button>
 											{{else}}
-												{{$btnValue = "close"}}
-												{{$btnIconColor = "tw-text-red"}}
-												{{$btnIcon = Iif .Issue.IsPull "octicon-git-pull-request-closed" "octicon-issue-closed"}}
-												{{$btnTextNoComment = ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.close" "repo.issues.close")}}
-												{{$btnTextWithComment = ctx.Locale.Tr "repo.issues.close_comment_issue"}}{{/* general: Close with Comment */}}
+												{{$btnTextNoComment := ctx.Locale.Tr "repo.issues.close_reason.completed_action"}}
+												{{$btnTextWithComment := ctx.Locale.Tr "repo.issues.close_comment_issue"}}
+												<input type="hidden" name="state_reason" id="close-reason-hidden" value="">
+												<div class="ui red buttons" id="close-with-reason-group">
+													<button id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" data-icon="octicon-issue-closed" name="status" value="close">
+														<span class="status-button-icon">{{svg "octicon-issue-closed"}}</span>
+														<span class="status-button-text">{{$btnTextNoComment}}</span>
+													</button>
+													<div class="ui dropdown icon button" id="close-reason-dropdown-btn">
+														{{svg "octicon-triangle-down" 14}}
+														<div class="menu" id="close-reason-menu">
+															<div class="item" data-reason="completed" data-icon="octicon-issue-closed"
+																data-text-no-comment="{{ctx.Locale.Tr "repo.issues.close_reason.completed_action"}}"
+																data-text-with-comment="{{ctx.Locale.Tr "repo.issues.close_reason.completed_action_with_comment"}}">
+																<span class="close-reason-menu-item-icon">{{svg "octicon-issue-closed"}}</span>
+																<span class="close-reason-menu-item-content">
+																	<span class="close-reason-menu-item-title">{{ctx.Locale.Tr "repo.issues.close_reason.completed_action"}}</span>
+																	<span class="close-reason-menu-item-desc">{{ctx.Locale.Tr "repo.issues.close_reason.completed_desc"}}</span>
+																</span>
+															</div>
+															<div class="item" data-reason="not_planned" data-icon="octicon-skip"
+																data-text-no-comment="{{ctx.Locale.Tr "repo.issues.close_reason.not_planned_action"}}"
+																data-text-with-comment="{{ctx.Locale.Tr "repo.issues.close_reason.not_planned_action_with_comment"}}">
+																<span class="close-reason-menu-item-icon">{{svg "octicon-skip"}}</span>
+																<span class="close-reason-menu-item-content">
+																	<span class="close-reason-menu-item-title">{{ctx.Locale.Tr "repo.issues.close_reason.not_planned_action"}}</span>
+																	<span class="close-reason-menu-item-desc">{{ctx.Locale.Tr "repo.issues.close_reason.not_planned_desc"}}</span>
+																</span>
+															</div>
+															<div class="item" data-reason="duplicate" data-icon="octicon-skip"
+																data-text-no-comment="{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_action"}}"
+																data-text-with-comment="{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_action_with_comment"}}">
+																<span class="close-reason-menu-item-icon">{{svg "octicon-skip"}}</span>
+																<span class="close-reason-menu-item-content">
+																	<span class="close-reason-menu-item-title">{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_action_label"}}</span>
+																	<span class="close-reason-menu-item-desc">{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_desc"}}</span>
+																</span>
+															</div>
+															<div class="item" id="close-reason-answered-item" data-reason="answered" data-icon="octicon-issue-closed" data-requires-comment="true"
+																data-text-no-comment="{{ctx.Locale.Tr "repo.issues.close_reason.answered_action"}}"
+																data-text-with-comment="{{ctx.Locale.Tr "repo.issues.close_reason.answered_action_with_comment"}}">
+																<span class="close-reason-menu-item-icon">{{svg "octicon-issue-closed"}}</span>
+																<span class="close-reason-menu-item-content">
+																	<span class="close-reason-menu-item-title">{{ctx.Locale.Tr "repo.issues.close_reason.answered_action"}}</span>
+																	<span class="close-reason-menu-item-desc">{{ctx.Locale.Tr "repo.issues.close_reason.answered_desc"}}</span>
+																</span>
+															</div>
+														</div>
+													</div>
+												</div>
 											{{end}}
-											<button id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" name="status" value="{{$btnValue}}">
-												<span class="status-button-icon {{$btnIconColor}}">{{svg $btnIcon}}</span>
-												<span class="status-button-text">{{$btnTextNoComment}}</span>
-											</button>
 										{{end}}
 										<button id="comment-button" class="ui primary button">
 											{{ctx.Locale.Tr "repo.issues.create_comment"}}
@@ -110,6 +161,25 @@
 									</div>
 								</div>
 							</form>
+							{{if and (not .Issue.IsClosed) (not .Issue.IsPull) (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
+							<dialog id="close-reason-duplicate-modal" class="close-reason-duplicate-modal">
+								<div class="header">{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_modal_title"}}</div>
+								<div class="content">
+									<p class="tw-mb-2">{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_modal_desc"}}</p>
+									<div class="field">
+										<label class="tw-mb-1 tw-block" for="duplicate-issue-index-input">{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_modal_title"}}</label>
+										<input type="text" id="duplicate-issue-index-input" class="ui fluid input" placeholder="{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_placeholder"}}">
+									</div>
+									<div id="duplicate-issue-loading" class="tw-hidden tw-mt-2">{{ctx.Locale.Tr "loading"}}</div>
+									<div id="duplicate-issue-empty" class="tw-hidden tw-mt-2">{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_no_results"}}</div>
+									<div id="duplicate-issue-list" class="ui relaxed divided list tw-mt-2"></div>
+								</div>
+								<div class="actions">
+									<button type="button" class="ui red button" id="duplicate-modal-confirm" disabled>{{ctx.Locale.Tr "confirm"}}</button>
+									<button type="button" class="ui button" id="duplicate-modal-cancel">{{ctx.Locale.Tr "cancel"}}</button>
+								</div>
+							</dialog>
+							{{end}}
 						</div>
 					</div>
 				</div>

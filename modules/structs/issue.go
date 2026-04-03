@@ -77,6 +77,10 @@ type Issue struct {
 
 	TimeEstimate int64 `json:"time_estimate"`
 
+	// StateReason is the reason why the issue is open/closed (for closed issues)
+	StateReason      string `json:"state_reason,omitempty"`
+	StateReasonParam any    `json:"state_reason_param,omitempty"`
+
 	PullRequest *PullRequestMeta `json:"pull_request"`
 	Repo        *RepositoryMeta  `json:"repository"`
 
@@ -109,10 +113,12 @@ type EditIssueOption struct {
 	Body  *string `json:"body"`
 	Ref   *string `json:"ref"`
 	// deprecated
-	Assignee  *string  `json:"assignee"`
-	Assignees []string `json:"assignees"`
-	Milestone *int64   `json:"milestone"`
-	State     *string  `json:"state"`
+	Assignee         *string  `json:"assignee"`
+	Assignees        []string `json:"assignees"`
+	Milestone        *int64   `json:"milestone"`
+	State            *string  `json:"state"`
+	StateReason      *string  `json:"state_reason"`
+	StateReasonParam *string  `json:"state_reason_param,omitempty"`
 	// swagger:strfmt date-time
 	Deadline       *time.Time `json:"due_date"`
 	RemoveDeadline *bool      `json:"unset_due_date"`

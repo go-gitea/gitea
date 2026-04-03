@@ -1,4 +1,4 @@
-import {htmlEscape} from '../utils/html.ts';
+import {html, htmlEscape} from '../utils/html.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {
   addDelegatedEventListener,
@@ -10,7 +10,7 @@ import {
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {toAbsoluteUrl} from '../utils.ts';
+import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
@@ -450,19 +450,264 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
   const editor = await initComboMarkdownEditor(commentForm.querySelector('.combo-markdown-editor')!);
   const statusButton = document.querySelector<HTMLButtonElement>('#status-button');
   const commentButton = document.querySelector<HTMLButtonElement>('#comment-button');
+  const issuePageInfo = parseIssuePageInfo();
+  const closeReasonHidden = document.querySelector<HTMLInputElement>('#close-reason-hidden');
+  const closeReasonParamHidden = document.querySelector<HTMLInputElement>('#close-reason-param-hidden');
+  const closeReasonDropdownBtn = document.querySelector<HTMLElement>('#close-reason-dropdown-btn');
+  const closeReasonMenu = document.querySelector<HTMLElement>('#close-reason-menu');
+  const closeReasonAnsweredItem = document.querySelector<HTMLElement>('#close-reason-answered-item');
+  const issueCommentForm = document.querySelector<HTMLFormElement>('#comment-form') ?? commentForm;
+  const duplicateModal = document.querySelector<HTMLDialogElement>('#close-reason-duplicate-modal');
+  const duplicateInput = document.querySelector<HTMLInputElement>('#duplicate-issue-index-input');
+  const duplicateLoading = document.querySelector<HTMLElement>('#duplicate-issue-loading');
+  const duplicateEmpty = document.querySelector<HTMLElement>('#duplicate-issue-empty');
+  const duplicateList = document.querySelector<HTMLElement>('#duplicate-issue-list');
+  const duplicateConfirmBtn = document.querySelector<HTMLButtonElement>('#duplicate-modal-confirm');
+  const duplicateCancelBtn = document.querySelector<HTMLButtonElement>('#duplicate-modal-cancel');
+
+  const defaultStatusText = statusButton?.getAttribute('data-status') ?? '';
+  const defaultStatusAndCommentText = statusButton?.getAttribute('data-status-and-comment') ?? '';
+  let selectedDuplicateIssueIndex = 0;
+  let duplicateSearchTimer: ReturnType<typeof setTimeout> | undefined;
+  let menuShown = false;
+  let duplicateModalReturnFocus: HTMLElement | null = null;
+
+  const hideMenu = () => {
+    if (!menuShown || !closeReasonMenu) return;
+    menuShown = false;
+    closeReasonMenu.classList.remove('show');
+    closeReasonMenu.style.display = 'none';
+  };
+
+  const hasComment = () => editor.value().trim().length > 0;
+
+  const clearCloseReasonFields = () => {
+    if (closeReasonHidden) closeReasonHidden.value = '';
+    if (closeReasonParamHidden) closeReasonParamHidden.value = '';
+  };
+
+  const syncCloseReasonMenuLabels = (withComment: boolean) => {
+    if (!closeReasonMenu) return;
+    for (const item of closeReasonMenu.querySelectorAll<HTMLElement>('.item[data-reason]')) {
+      item.querySelector<HTMLElement>('.close-reason-menu-item-title')!.textContent = item.getAttribute(withComment ? 'data-text-with-comment' : 'data-text-no-comment') ?? '';
+    }
+  };
+
+  const submitCloseWithReason = (reason: string, reasonParam = '') => {
+    if (!statusButton || statusButton.disabled) return;
+    if (closeReasonHidden) closeReasonHidden.value = reason;
+    if (closeReasonParamHidden) closeReasonParamHidden.value = reasonParam;
+    hideMenu();
+    issueCommentForm.requestSubmit(statusButton);
+  };
+
   const syncUiState = () => {
-    const editorText = editor.value().trim(), isUploading = editor.isUploading();
+    const editorText = editor.value().trim();
+    const isUploading = editor.isUploading();
     if (statusButton) {
-      const statusText = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
-      statusButton.querySelector<HTMLElement>('.status-button-text')!.textContent = statusText;
+      statusButton.querySelector<HTMLElement>('.status-button-text')!.textContent = editorText ? defaultStatusAndCommentText : defaultStatusText;
       statusButton.disabled = isUploading;
     }
+    if (closeReasonAnsweredItem) {
+      toggleElem(closeReasonAnsweredItem, editorText.length > 0);
+    }
+    syncCloseReasonMenuLabels(editorText.length > 0);
     if (commentButton) {
       commentButton.disabled = !editorText || isUploading;
     }
   };
+
+  const normalizeIssueIndex = (value: string): number => {
+    const m = /^#?(\d+)$/.exec(value.trim());
+    if (!m) return 0;
+    return parseInt(m[1], 10) || 0;
+  };
+
+  const renderDuplicateList = (issues: Array<Record<string, any>>) => {
+    if (!duplicateList) return;
+    duplicateList.innerHTML = issues.map((issue) => {
+      const stateText = issue.state === 'closed' ? 'closed' : 'open';
+      return html`
+        <button type="button" class="item close-reason-duplicate-item" data-index="${issue.number}" data-title="${htmlEscape(issue.title)}">
+          <span class="close-reason-duplicate-item-main">#${issue.number} ${htmlEscape(issue.title)}</span>
+          <span class="close-reason-duplicate-item-state">${stateText}</span>
+        </button>
+      `;
+    }).join('');
+
+    for (const item of duplicateList.querySelectorAll<HTMLButtonElement>('.close-reason-duplicate-item')) {
+      item.addEventListener('click', () => {
+        selectedDuplicateIssueIndex = parseInt(item.getAttribute('data-index') || '0', 10);
+        for (const sibling of duplicateList.querySelectorAll<HTMLElement>('.close-reason-duplicate-item')) {
+          sibling.classList.toggle('is-selected', sibling === item);
+        }
+        if (duplicateInput) duplicateInput.value = `#${selectedDuplicateIssueIndex}`;
+        if (duplicateConfirmBtn) duplicateConfirmBtn.disabled = selectedDuplicateIssueIndex <= 0;
+      });
+    }
+  };
+
+  const closeDuplicateModal = () => {
+    if (!duplicateModal) return;
+    if (typeof duplicateModal.close === 'function' && duplicateModal.open) {
+      duplicateModal.close();
+    }
+    duplicateModal.removeAttribute('open');
+    duplicateModalReturnFocus?.focus();
+    duplicateModalReturnFocus = null;
+  };
+
+  const searchDuplicateIssues = async (query: string) => {
+    const normalized = normalizeIssueIndex(query);
+    if (!duplicateList || !duplicateLoading || !duplicateEmpty) return;
+
+    selectedDuplicateIssueIndex = 0;
+    if (duplicateConfirmBtn) duplicateConfirmBtn.disabled = true;
+    duplicateList.innerHTML = '';
+
+    if (normalized <= 0) {
+      hideElem(duplicateLoading);
+      hideElem(duplicateEmpty);
+      return;
+    }
+
+    showElem(duplicateLoading);
+    hideElem(duplicateEmpty);
+    try {
+      const url = `${issuePageInfo.repoLink}/issues/search?q=${encodeURIComponent(String(normalized))}&type=issues`;
+      const resp = await GET(url);
+      if (!resp.ok) {
+        throw new Error(`Failed to search issues: ${resp.status}`);
+      }
+      const response = await resp.json() as Array<Record<string, any>>;
+      const issues = response.filter((issue) => !issue.pull_request && issue.number !== issuePageInfo.issueNumber);
+      hideElem(duplicateLoading);
+      toggleElem(duplicateEmpty, issues.length === 0);
+      renderDuplicateList(issues);
+    } catch (error: any) {
+      hideElem(duplicateLoading);
+      showElem(duplicateEmpty);
+      showErrorToast(error?.message || 'Failed to search issues');
+    }
+  };
+
+  const openDuplicateModal = () => {
+    if (!duplicateModal) return;
+    duplicateModalReturnFocus = closeReasonDropdownBtn;
+    selectedDuplicateIssueIndex = 0;
+    if (duplicateConfirmBtn) duplicateConfirmBtn.disabled = true;
+    if (duplicateInput) duplicateInput.value = '';
+    if (duplicateList) duplicateList.innerHTML = '';
+    hideElem(duplicateLoading || []);
+    hideElem(duplicateEmpty || []);
+
+    if (typeof duplicateModal.showModal === 'function') {
+      duplicateModal.showModal();
+    } else {
+      duplicateModal.setAttribute('open', 'open');
+    }
+    duplicateInput?.focus();
+  };
+
+  // Split button dropdown logic for close reason (only present for open, non-PR issues)
+  if (closeReasonDropdownBtn && closeReasonMenu) {
+    closeReasonDropdownBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menuShown = !menuShown;
+      closeReasonMenu.classList.toggle('show', menuShown);
+      closeReasonMenu.style.display = menuShown ? 'block' : 'none';
+    });
+
+    closeReasonDropdownBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideMenu();
+      }
+    });
+
+    closeReasonMenu.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideMenu();
+        closeReasonDropdownBtn.focus();
+      }
+    });
+
+    document.addEventListener('mouseup', hideMenu);
+
+    for (const item of closeReasonMenu.querySelectorAll<HTMLElement>('.item')) {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const reason = item.getAttribute('data-reason') ?? '';
+
+        if (reason === 'duplicate') {
+          hideMenu();
+          openDuplicateModal();
+          return;
+        }
+
+        if (reason === 'answered' && !hasComment()) {
+          hideMenu();
+          return;
+        }
+
+        submitCloseWithReason(reason);
+      });
+    }
+  }
+
+  if (duplicateInput) {
+    duplicateInput.addEventListener('input', () => {
+      if (duplicateSearchTimer) clearTimeout(duplicateSearchTimer);
+      duplicateSearchTimer = setTimeout(() => {
+        searchDuplicateIssues(duplicateInput.value);
+      }, 250);
+    });
+  }
+
+  if (duplicateCancelBtn) {
+    duplicateCancelBtn.addEventListener('click', () => {
+      closeDuplicateModal();
+    });
+  }
+
+  if (duplicateModal) {
+    duplicateModal.addEventListener('cancel', (e) => {
+      e.preventDefault();
+      closeDuplicateModal();
+    });
+  }
+
+  if (duplicateConfirmBtn) {
+    duplicateConfirmBtn.addEventListener('click', () => {
+      if (selectedDuplicateIssueIndex <= 0) return;
+      closeDuplicateModal();
+      submitCloseWithReason('duplicate', JSON.stringify({issue_index: selectedDuplicateIssueIndex}));
+    });
+  }
+
+  // Serialize reason param as JSON on form submit
+  issueCommentForm.addEventListener('submit', (e) => {
+    const reason = closeReasonHidden?.value ?? '';
+
+    if (reason === 'duplicate' && !closeReasonParamHidden?.value) {
+      e.preventDefault();
+      openDuplicateModal();
+      return;
+    }
+
+    if (reason === 'answered' && !hasComment()) {
+      e.preventDefault();
+      showErrorToast('Close as answered requires a comment');
+      return;
+    }
+
+    if (reason !== 'duplicate' && closeReasonParamHidden) {
+      closeReasonParamHidden.value = '';
+    }
+  });
+
   editor.container.addEventListener(ComboMarkdownEditor.EventUploadStateChanged, syncUiState);
   editor.container.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, syncUiState);
+  clearCloseReasonFields();
   syncUiState();
 }
 

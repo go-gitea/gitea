@@ -405,6 +405,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(328, "Add TokenPermissions column to ActionRunJob", v1_26.AddTokenPermissionsToActionRunJob),
 		newMigration(329, "Add unique constraint for user badge", v1_26.AddUniqueIndexForUserBadge),
 		newMigration(330, "Add name column to webhook", v1_26.AddNameToWebhook),
+		newMigration(331, "Add close reason columns to issue", v1_26.AddCloseReasonColumnsToIssue),
 	}
 	return preparedMigrations
 }

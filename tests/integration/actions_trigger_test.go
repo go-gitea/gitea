@@ -563,7 +563,7 @@ jobs:
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// closed
-		err = issue_service.CloseIssue(t.Context(), pullIssue, user2, "")
+		err = issue_service.CloseIssue(t.Context(), pullIssue, user2, "", issue_service.CloseOptions{})
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 

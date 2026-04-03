@@ -30,6 +30,17 @@ func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
 	return err
 }
 
+// IssueCloseOptions carries the close-reason payload for SetIssueAsClosed / CloseIssue.
+// CloseReason and CloseReasonParam follow the same schema as Issue.CloseReason /
+// Issue.CloseReasonParam (see services/issue/close_reason.go for the full set of
+// constants). IsMergePull is a legacy flag preserved for the PR-merge path; it will
+// be removed once step 7 migrates that path to use CloseReasonCompletedByPull.
+type IssueCloseOptions struct {
+	CloseReason      IssueCloseReason
+	CloseReasonParam string
+	IsMergePull      bool // when true and CloseReason is empty, use CommentTypeMergePull
+}
+
 // ErrIssueIsClosed is used when close a closed issue
 type ErrIssueIsClosed struct {
 	ID     int64
@@ -48,7 +59,7 @@ func (err ErrIssueIsClosed) Error() string {
 	return fmt.Sprintf("%s [id: %d, repo_id: %d, index: %d] is already closed", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.RepoID, err.Index)
 }
 
-func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
+func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, opts IssueCloseOptions) (*Comment, error) {
 	if issue.IsClosed {
 		return nil, ErrIssueIsClosed{
 			ID:     issue.ID,
@@ -73,8 +84,10 @@ func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, 
 
 	issue.IsClosed = true
 	issue.ClosedUnix = timeutil.TimeStampNow()
+	issue.CloseReason = opts.CloseReason
+	issue.CloseReasonParam = opts.CloseReasonParam
 
-	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix").
+	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix", "close_reason", "close_reason_param").
 		Where("is_closed = ?", false).
 		Update(issue); err != nil {
 		return nil, err
@@ -82,7 +95,16 @@ func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, 
 		return nil, ErrIssueAlreadyChanged
 	}
 
-	return updateIssueNumbers(ctx, issue, doer, util.Iif(isMergePull, CommentTypeMergePull, CommentTypeClose))
+	var cmtType CommentType
+	switch {
+	case opts.CloseReason != IssueCloseReasonNone:
+		cmtType = CommentTypeCloseWithReason
+	case opts.IsMergePull:
+		cmtType = CommentTypeMergePull
+	default:
+		cmtType = CommentTypeClose
+	}
+	return updateIssueNumbers(ctx, issue, doer, cmtType, opts.CloseReason, opts.CloseReasonParam)
 }
 
 // ErrIssueIsOpen is used when reopen an opened issue
@@ -115,8 +137,10 @@ func setIssueAsReopen(ctx context.Context, issue *Issue, doer *user_model.User) 
 
 	issue.IsClosed = false
 	issue.ClosedUnix = 0
+	issue.CloseReason = IssueCloseReasonNone
+	issue.CloseReasonParam = ""
 
-	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix").
+	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix", "close_reason", "close_reason_param").
 		Where("is_closed = ?", true).
 		Update(issue); err != nil {
 		return nil, err
@@ -124,10 +148,10 @@ func setIssueAsReopen(ctx context.Context, issue *Issue, doer *user_model.User) 
 		return nil, ErrIssueAlreadyChanged
 	}
 
-	return updateIssueNumbers(ctx, issue, doer, CommentTypeReopen)
+	return updateIssueNumbers(ctx, issue, doer, CommentTypeReopen, IssueCloseReasonNone, "")
 }
 
-func updateIssueNumbers(ctx context.Context, issue *Issue, doer *user_model.User, cmtType CommentType) (*Comment, error) {
+func updateIssueNumbers(ctx context.Context, issue *Issue, doer *user_model.User, cmtType CommentType, closeReason IssueCloseReason, closeReasonParam string) (*Comment, error) {
 	// Update issue count of labels
 	if err := issue.LoadLabels(ctx); err != nil {
 		return nil, err
@@ -147,7 +171,7 @@ func updateIssueNumbers(ctx context.Context, issue *Issue, doer *user_model.User
 
 	// update repository's issue closed number
 	switch cmtType {
-	case CommentTypeClose, CommentTypeMergePull:
+	case CommentTypeClose, CommentTypeMergePull, CommentTypeCloseWithReason:
 		// only increase closed count
 		if err := IncrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
 			return nil, err
@@ -162,15 +186,17 @@ func updateIssueNumbers(ctx context.Context, issue *Issue, doer *user_model.User
 	}
 
 	return CreateComment(ctx, &CreateCommentOptions{
-		Type:  cmtType,
-		Doer:  doer,
-		Repo:  issue.Repo,
-		Issue: issue,
+		Type:             cmtType,
+		Doer:             doer,
+		Repo:             issue.Repo,
+		Issue:            issue,
+		CloseReason:      closeReason,
+		CloseReasonParam: closeReasonParam,
 	})
 }
 
 // CloseIssue changes issue status to closed.
-func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
+func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User, opts IssueCloseOptions) (*Comment, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -179,7 +205,7 @@ func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comm
 	}
 
 	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
-		return SetIssueAsClosed(ctx, issue, doer, false)
+		return SetIssueAsClosed(ctx, issue, doer, opts)
 	})
 }
 

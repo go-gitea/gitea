@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -20,6 +21,40 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestToAPIIssue_StateReason_DefaultCompleted(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4})
+	require.True(t, issue.IsClosed)
+	// Fixture closed issue has no close_reason persisted; API should expose "completed".
+	assert.Empty(t, issue.CloseReason)
+
+	apiIssue := ToAPIIssue(t.Context(), nil, issue)
+	assert.Equal(t, api.StateClosed, apiIssue.State)
+	assert.Equal(t, "completed", apiIssue.StateReason)
+	assert.Nil(t, apiIssue.StateReasonParam)
+}
+
+func TestToAPIIssue_StateReason_WithParam(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	issue.IsClosed = true
+	issue.CloseReason = issues_model.IssueCloseReasonDuplicate
+
+	b, err := json.Marshal(map[string]int64{"issue_index": 4})
+	require.NoError(t, err)
+	issue.CloseReasonParam = string(b)
+
+	apiIssue := ToAPIIssue(t.Context(), nil, issue)
+	assert.Equal(t, api.StateClosed, apiIssue.State)
+	assert.Equal(t, "duplicate", apiIssue.StateReason)
+
+	param, ok := apiIssue.StateReasonParam.(map[string]any)
+	require.True(t, ok)
+	assert.InDelta(t, 4, param["issue_index"], 0)
+}
 
 func TestLabel_ToLabel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

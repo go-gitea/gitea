@@ -24801,6 +24801,14 @@
           "type": "string",
           "x-go-name": "State"
         },
+        "state_reason": {
+          "type": "string",
+          "x-go-name": "StateReason"
+        },
+        "state_reason_param": {
+          "type": "string",
+          "x-go-name": "StateReasonParam"
+        },
         "title": {
           "type": "string",
           "x-go-name": "Title"
@@ -26327,6 +26335,14 @@
           ],
           "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
           "x-go-name": "State"
+        },
+        "state_reason": {
+          "description": "StateReason is the reason why the issue is open/closed (for closed issues)",
+          "type": "string",
+          "x-go-name": "StateReason"
+        },
+        "state_reason_param": {
+          "x-go-name": "StateReasonParam"
         },
         "time_estimate": {
           "type": "integer",

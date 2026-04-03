@@ -315,7 +315,7 @@ func handleCloseCrossReferences(ctx context.Context, pr *issues_model.PullReques
 			return err
 		}
 		if ref.RefAction == references.XRefActionCloses && !ref.Issue.IsClosed {
-			if err = issue_service.CloseIssue(ctx, ref.Issue, doer, pr.MergedCommitID); err != nil {
+			if err = issue_service.CloseIssue(ctx, ref.Issue, doer, pr.MergedCommitID, issue_service.CloseOptionsCompletedByPull(pr.Index)); err != nil {
 				// Allow ErrDependenciesLeft
 				if !issues_model.IsErrDependenciesLeft(err) {
 					return err
@@ -713,7 +713,7 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 		}
 
 		// Set issue as closed
-		if _, err := issues_model.SetIssueAsClosed(ctx, pr.Issue, pr.Merger, true); err != nil {
+		if _, err := issues_model.SetIssueAsClosed(ctx, pr.Issue, pr.Merger, issues_model.IssueCloseOptions{IsMergePull: true}); err != nil {
 			return false, fmt.Errorf("ChangeIssueStatus: %w", err)
 		}
 

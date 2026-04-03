@@ -19,7 +19,11 @@
 	{{- end -}}
 {{- else -}}
 	{{- if .IsClosed -}}
-		{{- svg "octicon-issue-closed" 16 "tw-text-red" -}}
+		{{- if or (eq .CloseReasonForDisplay "duplicate") (eq .CloseReasonForDisplay "not_planned") -}}
+			{{- svg "octicon-skip" 16 "tw-text-red" -}}
+		{{- else -}}
+			{{- svg "octicon-issue-closed" 16 "tw-text-red" -}}
+		{{- end -}}
 	{{- else -}}
 		{{- svg "octicon-issue-opened" 16 "tw-text-green" -}}
 	{{- end -}}

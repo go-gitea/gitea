@@ -429,9 +429,11 @@ func (f *CreateIssueForm) Validate(req *http.Request, errs binding.Errors) bindi
 
 // CreateCommentForm form for creating comment
 type CreateCommentForm struct {
-	Content string
-	Status  string `binding:"OmitEmpty;In(reopen,close)"`
-	Files   []string
+	Content          string
+	Status           string `binding:"OmitEmpty;In(reopen,close)"`
+	Files            []string
+	StateReason      *string `form:"state_reason"`
+	StateReasonParam string  `form:"state_reason_param"`
 }
 
 // Validate validates the fields

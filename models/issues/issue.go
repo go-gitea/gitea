@@ -122,6 +122,9 @@ type Issue struct {
 
 	// Time estimate
 	TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
+
+	CloseReason      IssueCloseReason `xorm:"INDEX DEFAULT 0"`
+	CloseReasonParam string           `xorm:"TEXT"`
 }
 
 var (
