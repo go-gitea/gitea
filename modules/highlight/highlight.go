@@ -172,11 +172,7 @@ func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
 		return escapeFullString(code)
 	}
 
-	// At the moment, we do not escape control chars here (unlike RenderFullFile which escapes control chars).
-	// The reason is: it is a very rare case that a text file contains control chars.
-	// This function is usually used by highlight diff and blame, not quite sure whether there will be side effects.
-	// If there would be new user feedback about this, we can re-consider about various edge cases.
-	return template.HTML(htmlBuf.String())
+	return escapeControlChars(htmlBuf.Bytes())
 }
 
 // RenderFullFile returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name
@@ -188,10 +184,9 @@ func RenderFullFile(fileName, language string, code []byte) ([]template.HTML, st
 	lexerName := formatLexerName(lexer.Config().Name)
 	rendered := RenderCodeByLexer(lexer, util.UnsafeBytesToString(code))
 	unsafeLines := UnsafeSplitHighlightedLines(rendered)
-	lines := make([]template.HTML, 0, len(unsafeLines))
-	for _, lineBytes := range unsafeLines {
-		line := escapeControlChars(lineBytes)
-		lines = append(lines, line)
+	lines := make([]template.HTML, len(unsafeLines))
+	for idx, lineBytes := range unsafeLines {
+		lines[idx] = template.HTML(lineBytes)
 	}
 	return lines, lexerName
 }
