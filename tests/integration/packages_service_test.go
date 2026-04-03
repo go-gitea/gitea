@@ -102,17 +102,17 @@ func TestRemovePackage(t *testing.T) {
 	checkProps(p1, pv1, pf1, false)
 
 	// Check P2
-	p2_after, err := packages_model.GetPackageByID(t.Context(), p2.ID)
+	p2After, err := packages_model.GetPackageByID(t.Context(), p2.ID)
 	assert.NoError(t, err)
-	assert.NotNil(t, p2_after)
+	assert.NotNil(t, p2After)
 
-	pv2_after, err := packages_model.GetVersionByID(t.Context(), pv2.ID)
+	pv2After, err := packages_model.GetVersionByID(t.Context(), pv2.ID)
 	assert.NoError(t, err)
-	assert.NotNil(t, pv2_after)
+	assert.NotNil(t, pv2After)
 
-	pf2_after, err := packages_model.GetFileForVersionByID(t.Context(), pv2.ID, pf2.ID)
+	pf2After, err := packages_model.GetFileForVersionByID(t.Context(), pv2.ID, pf2.ID)
 	assert.NoError(t, err)
-	assert.NotNil(t, pf2_after)
+	assert.NotNil(t, pf2After)
 
 	checkProps(p2, pv2, pf2, true)
 }
