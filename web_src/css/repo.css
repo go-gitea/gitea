@@ -8,26 +8,6 @@
   min-width: 40% !important;
 }
 
-.repository .unicode-escaped .escaped-code-point[data-escaped]::before {
-  visibility: visible;
-  content: attr(data-escaped);
-  font-family: var(--fonts-monospace);
-  color: var(--color-red);
-}
-
-.repository .unicode-escaped .escaped-code-point .char {
-  display: none;
-}
-
-.repository .broken-code-point {
-  font-family: var(--fonts-monospace);
-  color: var(--color-blue);
-}
-
-.repository .unicode-escaped .ambiguous-code-point {
-  border: 1px var(--color-yellow) solid;
-}
-
 .issue-content {
   display: flex;
   align-items: flex-start;

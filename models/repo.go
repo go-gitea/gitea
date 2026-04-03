@@ -7,6 +7,7 @@ package models
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	_ "image/jpeg" // Needed for jpeg support
 
@@ -86,11 +87,20 @@ func labelStatsCorrectNumClosedIssuesRepo(ctx context.Context, id int64) error {
 	return err
 }
 
-var milestoneStatsQueryNumIssues = "SELECT `milestone`.id FROM `milestone` WHERE `milestone`.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id AND `issue`.is_closed=?) OR `milestone`.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id)"
+func milestoneStatsQueryNumIssuesSQL() string {
+	sql := `
+SELECT "milestone".id FROM "milestone"
+WHERE (
+	"milestone".num_closed_issues != (SELECT COUNT(*) FROM "issue" WHERE "issue".milestone_id="milestone".id AND "issue".is_closed=?)
+	OR "milestone".num_issues != (SELECT COUNT(*) FROM "issue" WHERE "issue".milestone_id="milestone".id)
+)
+`
+	return strings.TrimSpace(strings.ReplaceAll(sql, "\"", "`"))
+}
 
 func milestoneStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
 	e := db.GetEngine(ctx)
-	results, err := e.Query(milestoneStatsQueryNumIssues+" AND `milestone`.repo_id = ?", true, id)
+	results, err := e.Query(milestoneStatsQueryNumIssuesSQL()+" AND `milestone`.repo_id = ?", true, id)
 	if err != nil {
 		return err
 	}
@@ -192,7 +202,7 @@ func CheckRepoStats(ctx context.Context) error {
 		},
 		// Milestone.Num{,Closed}Issues
 		{
-			statsQuery(milestoneStatsQueryNumIssues, true),
+			statsQuery(milestoneStatsQueryNumIssuesSQL(), true),
 			issues_model.UpdateMilestoneCounters,
 			"milestone count 'num_closed_issues' and 'num_issues'",
 		},
