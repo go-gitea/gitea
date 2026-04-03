@@ -1531,6 +1531,7 @@
   "repo.issues.context.edit": "Edit",
   "repo.issues.context.delete": "Delete",
   "repo.issues.no_content": "No description provided.",
+  "repo.issues.comment_no_content": "No comment provided.",
   "repo.issues.close": "Close Issue",
   "repo.issues.comment_pull_merged_at": "merged commit %[1]s into %[2]s %[3]s",
   "repo.issues.comment_manually_pull_merged_at": "manually merged commit %[1]s into %[2]s %[3]s",

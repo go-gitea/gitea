@@ -6,14 +6,14 @@
 #   TargetURL string
 # }
 -
-  id: 20
-  repo_id: 1
-  sha: "012345"
-  state: success
+  id: 10020
+  repo_id: 100
+  sha: sha-shared
+  state: pending
   target_url: /testuser/repo1/actions/runs/7/jobs/0
 -
-  id: 21
-  repo_id: 1
-  sha: "678901"
-  state: success
-  target_url: https://ci.example.com/build/123
+  id: 10021
+  repo_id: 100
+  sha: sha-other
+  state: pending
+  target_url: /testuser/repo1/actions/runs/9/jobs/0

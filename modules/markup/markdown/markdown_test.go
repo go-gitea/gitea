@@ -429,9 +429,12 @@ test
 ---
 test
 `,
-			`- item1
-- item2
-
+			`<hr/>
+<ul>
+<li>item1</li>
+<li>item2</li>
+</ul>
+<hr/>
 <p>test</p>
 `,
 		},
@@ -443,8 +446,8 @@ anything
 ---
 test
 `,
-			`anything
-
+			`<hr/>
+<h2>anything</h2>
 <p>test</p>
 `,
 		},
@@ -473,12 +476,24 @@ foo: bar
 </ul>
 `,
 		},
+		// we have our own frontmatter parser, don't need to use github.com/yuin/goldmark-meta
+		{
+			"InvalidFrontmatter",
+			`---
+foo
+`,
+			`<hr/>
+<p>foo</p>
+`,
+		},
 	}
 
-	for _, test := range testcases {
-		res, err := markdown.RenderString(markup.NewTestRenderContext(), test.input)
-		assert.NoError(t, err, "Unexpected error in testcase: %q", test.name)
-		assert.Equal(t, test.expected, string(res), "Unexpected result in testcase %q", test.name)
+	for _, tt := range testcases {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := markdown.RenderString(markup.NewTestRenderContext(), tt.input)
+			assert.NoError(t, err, "Unexpected error in testcase: %q", tt.name)
+			assert.Equal(t, tt.expected, string(res), "Unexpected result in testcase %q", tt.name)
+		})
 	}
 }
 
