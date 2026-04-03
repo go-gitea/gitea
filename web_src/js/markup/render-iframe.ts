@@ -51,7 +51,7 @@ async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
       // copy theme CSS vars from parent to iframe so var(--color-box-body) etc. resolve correctly
       const parentStyle = getComputedStyle(document.documentElement);
       const iframeRoot = iframe.contentDocument!.documentElement;
-      for (const prop of ['--color-box-body', '--is-dark-theme']) {
+      for (const prop of ['--color-box-body', '--color-text', '--is-dark-theme']) {
         const value = parentStyle.getPropertyValue(prop).trim();
         if (value) iframeRoot.style.setProperty(prop, value);
       }

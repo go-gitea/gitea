@@ -39,7 +39,10 @@ func RenderFile(ctx *context.Context) {
 	}
 	defer blobReader.Close()
 
-	headScriptHTML, _ := ctx.RenderToHTML("base/head_script", ctx.Data)
+	headScriptHTML, err := ctx.RenderToHTML("base/head_script", ctx.Data)
+	if err != nil {
+		log.Error("RenderToHTML head_script: %v", err)
+	}
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
 		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
