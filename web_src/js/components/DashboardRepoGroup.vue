@@ -12,7 +12,7 @@ const emitter = defineEmits<{
   itemAdded: [ item: any, index: number ],
   itemRemoved: [ item: any, index: number ]
 }>();
-const groupData = inject<WritableComputedRef<Map<number, GroupMapType>>>('groups');
+const groupData = inject<WritableComputedRef<Map<number, GroupMapType>>>('groups')!;
 const searchUrl = inject<string>('searchURL');
 const orgName = inject<string>('orgName');
 
@@ -69,7 +69,7 @@ async function searchGroup(gid: number) {
   const tmp = groupData.value;
   groupData.value = tmp;
 }
-const orepos = inject<ComputedRef<any[]>>('repos');
+const orepos = inject<ComputedRef<any[]>>('repos')!;
 
 const dynKey = computed(() => hash(combined.value));
 function getId(it: any) {
@@ -84,9 +84,9 @@ const options: SortableOptions = {
     name: 'repo-group',
     put(to, _from, _drag, _ev) {
       const closestLi = to.el?.closest('li');
-      const base = to.el.getAttribute('data-is-group').toLowerCase() === 'true';
+      const base = to.el.getAttribute('data-is-group')?.toLowerCase() === 'true';
       if (closestLi) {
-        const input = Array.from(closestLi?.querySelector('label')?.children).find((a) => a instanceof HTMLInputElement && a.checked);
+        const input = Array.from(closestLi?.querySelector('label')?.children ?? []).find((a) => a instanceof HTMLInputElement && a.checked);
         return base && Boolean(input);
       }
       return base;
@@ -113,16 +113,16 @@ const options: SortableOptions = {
         .filter((a, pos, arr) => arr.findIndex((b) => b.id === a.id) === pos);
 
       for (let i = 0; i < groups.length; i++) {
-        const cur = groupData.value.get(groups[i]);
+        const cur = groupData.value.get(groups[i])!;
         groupData.value.set(groups[i], {
           ...cur,
           sort_order: i + 1,
         });
       }
-      const cur = groupData.value.get(curGroup);
+      const cur = groupData.value.get(curGroup)!;
       const ndata: GroupMapType = {
         ...cur,
-        subgroups: groups.toSorted((a, b) => groupData.value.get(a).sort_order - groupData.value.get(b).sort_order),
+        subgroups: groups.toSorted((a, b) => groupData.value.get(a)?.sort_order - groupData.value.get(b)?.sort_order),
         repos: repos.toSorted((a, b) => a.group_sort_order - b.group_sort_order),
       };
       groupData.value.set(curGroup, ndata);
