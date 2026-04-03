@@ -18,7 +18,10 @@ Only show the real-char:
 .broken-code-point[data-escaped]::before {
   visibility: visible;
   content: attr(data-escaped);
-  color: var(--color-red);
+  border-radius: 2px;
+  padding: 0 1px;
+  color: var(--color-body);
+  background: var(--color-text-light-1);
 }
 
 .broken-code-point[data-escaped] .char {

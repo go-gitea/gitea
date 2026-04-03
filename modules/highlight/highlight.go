@@ -10,6 +10,7 @@ import (
 	"slices"
 	"sync"
 
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -43,12 +44,12 @@ func globalVars() *globalVarsType {
 		globalVarsPtr.githubStyles = styles.Get("github")
 		globalVarsPtr.highlightMapping = setting.GetHighlightMapping()
 		globalVarsPtr.escCtrlCharsMap = make([]template.HTML, 256)
-		// ASCII control characters 0x00-0x1F map to Unicode Control Pictures U+2400-U+241F
 		for i := range 0x20 {
-			globalVarsPtr.escCtrlCharsMap[i] = template.HTML(`<span class="broken-code-point" data-escaped="` + string(rune(0x2400+i)) + `"><span class="char">` + string(byte(i)) + `</span></span>`)
+			pic, _ := charset.ControlCharPicture(rune(i))
+			globalVarsPtr.escCtrlCharsMap[i] = controlCharHTML(pic, byte(i))
 		}
-		// DEL (0x7F) maps to U+2421
-		globalVarsPtr.escCtrlCharsMap[0x7f] = template.HTML(`<span class="broken-code-point" data-escaped="` + string(rune(0x2421)) + `"><span class="char">` + string(byte(0x7f)) + `</span></span>`)
+		pic, _ := charset.ControlCharPicture(0x7f)
+		globalVarsPtr.escCtrlCharsMap[0x7f] = controlCharHTML(pic, 0x7f)
 		globalVarsPtr.escCtrlCharsMap['\t'] = ""
 		globalVarsPtr.escCtrlCharsMap['\n'] = ""
 		globalVarsPtr.escCtrlCharsMap['\r'] = ""
@@ -62,6 +63,10 @@ func globalVars() *globalVarsType {
 		globalVarsPtr.escapeFull['"'] = "&#34;"
 	}
 	return globalVarsPtr
+}
+
+func controlCharHTML(pic rune, char byte) template.HTML {
+	return template.HTML(`<span class="broken-code-point" data-escaped="` + string(pic) + `"><span class="char">` + string(char) + `</span></span>`)
 }
 
 func escapeByMap(code []byte, escapeMap []template.HTML) template.HTML {

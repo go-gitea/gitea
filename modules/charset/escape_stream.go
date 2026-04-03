@@ -18,6 +18,19 @@ import (
 // VScode defaultWordRegexp
 var defaultWordRegexp = regexp.MustCompile(`(-?\d*\.\d\w*)|([^\` + "`" + `\~\!\@\#\$\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s\x00-\x1f]+)`)
 
+// ControlCharPicture returns the Unicode Control Picture for ASCII control
+// characters (0x00-0x1F → U+2400-U+241F, 0x7F → U+2421). For other runes it
+// returns 0, false.
+func ControlCharPicture(r rune) (rune, bool) {
+	if r >= 0 && r <= 0x1f {
+		return 0x2400 + r, true
+	}
+	if r == 0x7f {
+		return 0x2421, true
+	}
+	return 0, false
+}
+
 func NewEscapeStreamer(locale translation.Locale, next HTMLStreamer, allowed ...rune) HTMLStreamer {
 	allowedM := make(map[rune]bool, len(allowed))
 	for _, v := range allowed {
@@ -199,12 +212,11 @@ func (e *escapeStreamer) invisibleRune(r rune) error {
 	e.escaped.Escaped = true
 	e.escaped.HasInvisible = true
 
-	// Use Unicode Control Pictures for ASCII control chars
-	escaped := fmt.Sprintf("[U+%04X]", r)
-	if r >= 0 && r <= 0x1f {
-		escaped = string(0x2400 + r)
-	} else if r == 0x7f {
-		escaped = string(rune(0x2421))
+	var escaped string
+	if pic, ok := ControlCharPicture(r); ok {
+		escaped = string(pic)
+	} else {
+		escaped = fmt.Sprintf("[U+%04X]", r)
 	}
 
 	if err := e.PassthroughHTMLStreamer.StartTag("span", html.Attribute{
