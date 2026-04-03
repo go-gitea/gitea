@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, logout, apiDeleteUser} from './utils.ts';
+import {login, logout, apiDeleteUser, randomString} from './utils.ts';
 
 test.beforeEach(async ({page}) => {
   await page.goto('/user/sign_up');
@@ -32,7 +32,7 @@ test('register with mismatched passwords shows error', async ({page}) => {
 });
 
 test('register then login', async ({page}) => {
-  const username = `e2e-register-${Date.now()}`;
+  const username = `e2e-register-${randomString(8)}`;
   const email = `${username}@${env.GITEA_TEST_E2E_DOMAIN}`;
   const password = 'password123!';
 
