@@ -28,10 +28,8 @@ type ActionRunJob struct {
 	OwnerID           int64                  `xorm:"index"`
 	CommitSHA         string                 `xorm:"index"`
 	IsForkPullRequest bool
-
-	// ...existing code...
-	Name    string `xorm:"VARCHAR(255)"`
-	Attempt int64
+	Name              string 									`xorm:"VARCHAR(255)"`
+	Attempt           int64
 
 	// WorkflowPayload is act/jobparser.SingleWorkflow for act/jobparser.Parse
 	// it should contain exactly one job with global workflow fields for this model
