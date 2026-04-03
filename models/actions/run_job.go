@@ -28,7 +28,7 @@ type ActionRunJob struct {
 	OwnerID           int64                  `xorm:"index"`
 	CommitSHA         string                 `xorm:"index"`
 	IsForkPullRequest bool
-	Name              string 									`xorm:"VARCHAR(255)"`
+	Name              string `xorm:"VARCHAR(255)"`
 	Attempt           int64
 
 	// WorkflowPayload is act/jobparser.SingleWorkflow for act/jobparser.Parse
