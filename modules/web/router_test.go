@@ -100,7 +100,8 @@ func TestPathProcessor(t *testing.T) {
 		chiCtx := chi.NewRouteContext()
 		chiCtx.RouteMethod = "GET"
 		p := newRouterPathMatcher("GET", patternRegexp(pattern), http.NotFound)
-		assert.True(t, p.matchPath(chiCtx, uri), "use pattern %s to process uri %s", pattern, uri)
+		shouldProcess := expectedPathParams != nil
+		assert.Equal(t, shouldProcess, p.matchPath(chiCtx, uri), "use pattern %s to process uri %s", pattern, uri)
 		assert.Equal(t, expectedPathParams, chiURLParamsToMap(chiCtx), "use pattern %s to process uri %s", pattern, uri)
 	}
 
@@ -113,6 +114,10 @@ func TestPathProcessor(t *testing.T) {
 	testProcess("/<p1:*>/<p2>", "/a", map[string]string{"p1": "", "p2": "a"})
 	testProcess("/<p1:*>/<p2>", "/a/b", map[string]string{"p1": "a", "p2": "b"})
 	testProcess("/<p1:*>/<p2>", "/a/b/c", map[string]string{"p1": "a/b", "p2": "c"})
+	testProcess("/<p1:*>/part/<p2>", "/a/part/c", map[string]string{"p1": "a", "p2": "c"})
+	testProcess("/<p1:*>/part/<p2>", "/part/c", map[string]string{"p1": "", "p2": "c"})
+	testProcess("/<p1:*>/part/<p2>", "/a/other-part/c", nil)
+	testProcess("/<p1:*>-part/<p2>", "/a-other-part/c", map[string]string{"p1": "a-other", "p2": "c"})
 }
 
 func TestRouter(t *testing.T) {

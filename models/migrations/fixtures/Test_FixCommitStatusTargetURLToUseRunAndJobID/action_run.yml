@@ -1,9 +1,29 @@
 # type ActionRun struct {
-#   ID     int64 `xorm:"pk autoincr"`
-#   RepoID int64 `xorm:"index"`
-#   Index  int64
+#   ID           int64 `xorm:"pk autoincr"`
+#   RepoID       int64 `xorm:"index"`
+#   Index        int64
+#   CommitSHA    string `xorm:"commit_sha"`
+#   Event        string
+#   TriggerEvent string
+#   EventPayload string `xorm:"LONGTEXT"`
 # }
 -
-  id: 106
-  repo_id: 1
+  id: 990
+  repo_id: 100
   index: 7
+  commit_sha: merge-sha
+  event: pull_request
+  event_payload: '{"pull_request":{"head":{"sha":"sha-shared"}}}'
+-
+  id: 991
+  repo_id: 100
+  index: 8
+  commit_sha: sha-shared
+  event: push
+  event_payload: '{"head_commit":{"id":"sha-shared"}}'
+-
+  id: 1991
+  repo_id: 100
+  index: 9
+  commit_sha: sha-other
+  event: release

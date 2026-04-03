@@ -118,8 +118,7 @@ c=2
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out, lexerName, err := RenderFullFile(tt.name, "", []byte(tt.code))
-			assert.NoError(t, err)
+			out, lexerName := RenderFullFile(tt.name, "", []byte(tt.code))
 			assert.Equal(t, tt.want, out)
 			assert.Equal(t, tt.lexerName, lexerName)
 		})
@@ -182,7 +181,7 @@ c=2`),
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out := RenderPlainText([]byte(tt.code))
+			out := renderPlainText([]byte(tt.code))
 			assert.Equal(t, tt.want, out)
 		})
 	}
@@ -204,4 +203,15 @@ func TestUnsafeSplitHighlightedLines(t *testing.T) {
 	assert.Len(t, ret, 2)
 	assert.Equal(t, "<span>a</span>\n", string(ret[0]))
 	assert.Equal(t, "<span>b\n</span>", string(ret[1]))
+}
+
+func TestEscape(t *testing.T) {
+	assert.Equal(t, template.HTML("\t\r\n<span class=\"broken-code-point\" data-escaped=\"NUL\"><span class=\"char\">\x00</span></span><span class=\"broken-code-point\" data-escaped=\"US\"><span class=\"char\">\x1f</span></span>&'\"<>"), escapeControlChars([]byte("\t\r\n\x00\x1f&'\"<>")))
+	assert.Equal(t, template.HTML("<span class=\"broken-code-point\" data-escaped=\"NUL\"><span class=\"char\">\x00</span></span><span class=\"broken-code-point\" data-escaped=\"US\"><span class=\"char\">\x1f</span></span>&amp;&#39;&#34;&lt;&gt;\t\r\n"), escapeFullString("\x00\x1f&'\"<>\t\r\n"))
+
+	out, _ := RenderFullFile("a.py", "", []byte("# \x7f<>"))
+	assert.Equal(t, template.HTML(`<span class="c1"># <span class="broken-code-point" data-escaped="DEL"><span class="char">`+string(byte(0x7f))+`</span></span>&lt;&gt;</span>`), out[0])
+
+	out = renderPlainText([]byte("# \x7f<>"))
+	assert.Equal(t, template.HTML(`# <span class="broken-code-point" data-escaped="DEL"><span class="char">`+string(byte(0x7f))+`</span></span>&lt;&gt;`), out[0])
 }
