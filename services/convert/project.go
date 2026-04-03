@@ -12,9 +12,6 @@ import (
 
 // ToProject converts a project_model.Project to api.Project
 func ToProject(ctx context.Context, p *project_model.Project) *api.Project {
-	if p == nil {
-		return nil
-	}
 	project := &api.Project{
 		ID:              p.ID,
 		Title:           p.Title,
@@ -32,10 +29,13 @@ func ToProject(ctx context.Context, p *project_model.Project) *api.Project {
 		Created:         p.CreatedUnix.AsTime(),
 		Updated:         p.UpdatedUnix.AsTime(),
 	}
+
 	if p.ClosedDateUnix > 0 {
 		t := p.ClosedDateUnix.AsTime()
 		project.ClosedDate = &t
 	}
+
+	// Generate project URL
 	if p.Type == project_model.TypeRepository && p.RepoID > 0 {
 		if err := p.LoadRepo(ctx); err == nil && p.Repo != nil {
 			project.URL = project_model.ProjectLinkForRepo(p.Repo, p.ID)
@@ -45,14 +45,12 @@ func ToProject(ctx context.Context, p *project_model.Project) *api.Project {
 			project.URL = project_model.ProjectLinkForOrg(p.Owner, p.ID)
 		}
 	}
+
 	return project
 }
 
 // ToProjectColumn converts a project_model.Column to api.ProjectColumn
 func ToProjectColumn(ctx context.Context, column *project_model.Column) *api.ProjectColumn {
-	if column == nil {
-		return nil
-	}
 	return &api.ProjectColumn{
 		ID:        column.ID,
 		Title:     column.Title,

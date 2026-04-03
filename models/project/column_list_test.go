@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCountColumns(t *testing.T) {
+func TestCountProjectColumns(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	project, err := GetProjectByID(t.Context(), 1)
@@ -23,7 +23,7 @@ func TestCountColumns(t *testing.T) {
 	assert.EqualValues(t, 3, count)
 }
 
-func TestGetColumnsPaginated(t *testing.T) {
+func TestGetProjectColumns(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	project, err := GetProjectByID(t.Context(), 1)
@@ -46,4 +46,20 @@ func TestGetColumnsPaginated(t *testing.T) {
 		allIDs[c.ID] = true
 	}
 	assert.Len(t, allIDs, 3)
+}
+
+func TestGetColumnsByIDs(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	project, err := GetProjectByID(t.Context(), 1)
+	assert.NoError(t, err)
+
+	columns, err := GetColumnsByIDs(t.Context(), project.ID, []int64{1, 3, 4})
+	assert.NoError(t, err)
+	assert.Len(t, columns, 2)
+	assert.ElementsMatch(t, []int64{1, 3}, []int64{columns[0].ID, columns[1].ID})
+
+	empty, err := GetColumnsByIDs(t.Context(), project.ID, nil)
+	assert.NoError(t, err)
+	assert.Empty(t, empty)
 }
