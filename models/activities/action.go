@@ -445,7 +445,6 @@ type GetFeedsOptions struct {
 	RequestedTeam   *organization.Team     // the team we want activity for
 	RequestedGroup  *group_model.Group     // the group we want activity for
 	RequestedRepo   *repo_model.Repository // the repo we want activity for
-	RequestedGroup  *group_model.Group     // the repo group we want activity for
 	Actor           *user_model.User       // the user viewing the activity
 	IncludePrivate  bool                   // include private actions
 	OnlyPerformedBy bool                   // only actions performed by requested user
