@@ -28,6 +28,7 @@ func getRepoProjectByID(ctx *context.APIContext) *project_model.Project {
 		}
 		return nil
 	}
+	project.Repo = ctx.Repo.Repository
 	return project
 }
 
@@ -713,9 +714,9 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 
 // RemoveIssueFromProjectColumn remove an issue from a project column
 func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/projects/columns/{id}/issues/{issue_id} repository repoAddIssueToProjectColumn
+	// swagger:operation DELETE /repos/{owner}/{repo}/projects/columns/{id}/issues/{issue_id} repository repoRemoveIssueFromProjectColumn
 	// ---
-	// summary: Add an issue to a project column
+	// summary: Remove an issue from a project column
 	// consumes:
 	// - application/json
 	// produces:
@@ -744,7 +745,7 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	//   format: int64
 	//   required: true
 	// responses:
-	//   "201":
+	//   "204":
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
