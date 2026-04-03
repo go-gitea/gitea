@@ -1,5 +1,5 @@
 <script lang="ts">
-import {nextTick, defineComponent, computed, ref, type Ref} from 'vue';
+import { nextTick, defineComponent, computed, reactive } from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
@@ -81,9 +81,10 @@ export default defineComponent({
     };
   },
   setup() {
-    const groups = ref(new Map<number, GroupMapType>());
-    const loadedMap = ref(new Map<number, boolean>([[0, true]]));
-    return {groupsRef: groups, loadedRef: loadedMap};
+    const groups = reactive(new Map<number, GroupMapType>());
+    const loadedMap = reactive(new Map<number, boolean>([[0, true]]));
+    const expandedGroups = reactive(new Set<number>())
+    return {groups, loadedMap, expandedGroups};
   },
   data() {
     const params = new URLSearchParams(window.location.search);
@@ -170,7 +171,6 @@ export default defineComponent({
       subUrl: appSubUrl,
       ...pageData.dashboardRepoList,
       activeIndex: -1, // don't select anything at load, first cursor down will select
-      expandedGroupsRaw: [],
     };
   },
   computed: {
@@ -199,37 +199,29 @@ export default defineComponent({
     checkboxPrivateFilterProps() {
       return {checked: this.privateFilter === 'private', indeterminate: this.privateFilter === 'both'};
     },
-    expandedGroups: {
+    /*expandedGroups: {
       get() {
         return this.expandedGroupsRaw;
       },
       set(val: number[]) {
         this.expandedGroupsRaw = val;
       },
-    },
-    groups: {
+    },*/
+    /*groups: {
       get() {
-        return this.groupData;
+        return this.groupData ;
       },
       set(v: Map<number, GroupMapType>) {
         for (const [k, val] of v) {
           this.groupData.set(k, val);
         }
       },
-    },
+    },*/
     computedRepos() {
       return this.repos;
     },
     root() {
       return [...(this.groups.get(0)?.subgroups ?? []), ...this.repos];
-    },
-    loadedMap: {
-      get() {
-        return this.loadedRef;
-      },
-      set(v: Ref<Map<number, boolean>>) {
-        this.loadedRef = v;
-      },
     },
   },
 
@@ -260,9 +252,9 @@ export default defineComponent({
     changeReposFilter(filter: string) {
       this.reposFilter = filter;
       this.repos = [];
-      this.groups = new Map();
-      this.loadedMap = new Map();
-      this.expandedGroupsRaw = [];
+      this.groups.clear();
+      this.loadedMap.clear();
+      this.expandedGroups.clear()
       this.page = 1;
       this.counts[`${filter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
       this.searchRepos();
@@ -413,6 +405,7 @@ export default defineComponent({
             return g.group.id;
           }),
           data: {},
+          id: 0
         });
         for (const g of json.data.subgroups) {
           this.groups.set(g.group.id, {
