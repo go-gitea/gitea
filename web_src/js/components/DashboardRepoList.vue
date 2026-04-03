@@ -51,32 +51,11 @@ export default defineComponent({
   components: {SvgIcon, DashboardRepoGroup},
   provide() {
     return {
-      expandedGroups: computed({
-        get: () => {
-          return this.expandedGroups;
-        },
-        set: (v) => {
-          this.expandedGroups = v;
-        },
-      }),
+      expandedGroups: this.expandedGroups,
       searchURL: this.searchURL,
-      groups: computed({
-        get: () => {
-          return this.groups;
-        },
-        set: (v) => {
-          this.groups = v;
-        },
-      }),
+      groups: this.groups,
       repos: computed(() => this.computedRepos),
-      loadedMap: computed({
-        get: () => {
-          return this.loadedMap;
-        },
-        set: (v) => {
-          this.loadedMap = v;
-        },
-      }),
+      loadedMap: this.loadedMap,
       orgName: this.organizationName,
     };
   },
@@ -98,7 +77,7 @@ export default defineComponent({
     return {
       tab,
       repos: [] as DashboardRepo[],
-      groupData: this.groupsRef,
+      groupData: this.groups,
       reposTotalCount: null as number | null,
       reposFilter,
       archivedFilter,

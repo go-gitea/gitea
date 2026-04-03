@@ -3,24 +3,25 @@ import type {SortableOptions} from 'sortablejs';
 import DashboardRepoGroupItem from './DashboardRepoGroupItem.vue';
 import {Sortable} from 'sortablejs-vue3';
 import hash from 'object-hash';
-import {computed, inject, nextTick, type ComputedRef, type WritableComputedRef} from 'vue';
+import {computed, inject, nextTick, type ComputedRef} from 'vue';
 import {GET, POST} from '../modules/fetch.ts';
 import type {GroupMapType} from './DashboardRepoList.vue';
-const {curGroup, depth} = defineProps<{ curGroup: number; depth: number; }>();
+const props = defineProps<{ curGroup: number; depth: number; }>();
+const {curGroup, depth} = props;
 const emitter = defineEmits<{
   loadChanged: [ boolean ],
   itemAdded: [ item: any, index: number ],
   itemRemoved: [ item: any, index: number ]
 }>();
-const groupData = inject<WritableComputedRef<Map<number, GroupMapType>>>('groups')!;
+const groupData = inject<Map<number, GroupMapType>>('groups')!;
 const searchUrl = inject<string>('searchURL');
 const orgName = inject<string>('orgName');
 
 const combined = computed(() => {
-  let groups = groupData.value.get(curGroup)?.subgroups ?? [];
+  let groups = groupData.get(curGroup)?.subgroups ?? [];
   groups = Array.from(new Set(groups));
 
-  const repos = (groupData.value.get(curGroup)?.repos ?? []).filter((a, pos, arr) => arr.findIndex((b) => b.id === a.id) === pos);
+  const repos = (groupData.get(curGroup)?.repos ?? []).filter((a, pos, arr) => arr.findIndex((b) => b.id === a.id) === pos);
   const c = [
     ...groups, // ,
     ...repos,
@@ -36,7 +37,7 @@ function repoMapper(webSearchRepo: any) {
   };
 }
 function mapper(item: any) {
-  groupData.value.set(item.group.id, {
+  groupData.set(item.group.id, {
     repos: item.repos.map((a: any) => repoMapper(a)),
     subgroups: item.subgroups.map((a: {group: any}) => a.group.id),
     ...item.group,
@@ -66,8 +67,6 @@ async function searchGroup(gid: number) {
     mapper(g);
   }
   emitter('loadChanged', false);
-  const tmp = groupData.value;
-  groupData.value = tmp;
 }
 const orepos = inject<ComputedRef<any[]>>('repos')!;
 
@@ -113,21 +112,21 @@ const options: SortableOptions = {
         .filter((a, pos, arr) => arr.findIndex((b) => b.id === a.id) === pos);
 
       for (let i = 0; i < groups.length; i++) {
-        const cur = groupData.value.get(groups[i])!;
-        groupData.value.set(groups[i], {
+        const cur = groupData.get(groups[i])!;
+        groupData.set(groups[i], {
           ...cur,
           sort_order: i + 1,
         });
       }
-      const cur = groupData.value.get(curGroup)!;
+      const cur = groupData.get(curGroup)!;
       const ndata: GroupMapType = {
         ...cur,
-        subgroups: groups.toSorted((a, b) => groupData.value.get(a)?.sort_order - groupData.value.get(b)?.sort_order),
+        subgroups: groups.toSorted((a, b) => groupData.get(a)?.sort_order - groupData.get(b)?.sort_order),
         repos: repos.toSorted((a, b) => a.group_sort_order - b.group_sort_order),
       };
-      groupData.value.set(curGroup, ndata);
-      // const tmp = groupData.value;
-      // groupData.value = tmp;
+      groupData.set(curGroup, ndata);
+      // const tmp = groupData;
+      // groupData = tmp;
       for (let i = 0; i < ndata.subgroups.length; i++) {
         const sg = ndata.subgroups[i];
         const data = {

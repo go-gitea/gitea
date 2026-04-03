@@ -1,15 +1,15 @@
 <script lang="ts" setup>
-import {computed, inject, type WritableComputedRef} from 'vue';
+import {computed, inject} from 'vue';
 import {commitStatus, type CommitStatus, type GroupMapType} from './DashboardRepoList.vue';
 import DashboardRepoGroup from './DashboardRepoGroup.vue';
 import {SvgIcon, type SvgName} from '../svg.ts';
 const {depth} = defineProps<{index: number; depth: number;}>();
-const groupData = inject<WritableComputedRef<Map<number, GroupMapType>>>('groups')!;
-const loadedMap = inject<WritableComputedRef<Map<number, boolean>>>('loadedMap')!;
+const groupData = inject<Map<number, GroupMapType>>('groups')!;
+const loadedMap = inject<Map<number, boolean>>('loadedMap')!;
 const expandedGroups = inject<Set<number>>('expandedGroups')!;
 const itemProp = defineModel<any>('item');
 const isGroup = computed<boolean>(() => typeof itemProp.value === 'number');
-const item = computed(() => isGroup.value ? groupData.value.get(itemProp.value as number) : itemProp.value);
+const item = computed(() => isGroup.value ? groupData.get(itemProp.value as number) : itemProp.value);
 const id = computed(() => typeof itemProp.value === 'number' ? itemProp.value : itemProp.value.id);
 const idKey = computed<string>(() => {
   const prefix = isGroup.value ? 'group' : 'repo';
@@ -50,9 +50,9 @@ function onCheck(nv: boolean) {
   if (isGroup.value && expandedGroups) {
     if (nv) {
       expandedGroups.add(item.value.id)
-      if (!loadedMap.value.has(item.value.id)) {
+      if (!loadedMap.has(item.value.id)) {
         emitter('loadRequested', item.value.id as number);
-        loadedMap.value.set(item.value.id, true);
+        loadedMap.set(item.value.id, true);
       }
     } else {
       expandedGroups.delete(item.value.id as number)
