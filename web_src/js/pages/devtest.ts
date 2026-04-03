@@ -1,5 +1,5 @@
-import {showInfoToast, showWarningToast, showErrorToast} from './toast.ts';
-import type {Toast} from './toast.ts';
+import {showInfoToast, showWarningToast, showErrorToast} from '../modules/toast.ts';
+import type {Toast} from '../modules/toast.ts';
 
 type LevelMap = Record<string, (message: string) => Toast | null>;
 

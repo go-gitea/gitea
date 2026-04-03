@@ -11,11 +11,11 @@ RENDER_COMMAND = `echo '<div style="width: 100%; height: 2000px; border: 10px so
 
 */
 
-export function initExternalRenderIframe() {
-  const url = new URL(window.location.href);
-  const iframeId = url.searchParams.get('gitea-iframe-id');
-  if (!iframeId) return;
+import '../../css/pages/external-render-iframe.css';
 
+const url = new URL(window.location.href);
+const iframeId = url.searchParams.get('gitea-iframe-id');
+if (iframeId) {
   // iframe is in different origin, so we need to use postMessage to communicate
   const postIframeMsg = (cmd: string, data: Record<string, any> = {}) => {
     window.parent.postMessage({giteaIframeCmd: cmd, giteaIframeId: iframeId, ...data}, '*');

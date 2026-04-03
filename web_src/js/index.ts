@@ -67,8 +67,8 @@ import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
-import {initSwagger} from './modules/swagger.ts';
-import {initDevtest} from './modules/devtest.ts';
+import {initSwagger} from './pages/swagger.ts';
+import {initDevtest} from './pages/devtest.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([

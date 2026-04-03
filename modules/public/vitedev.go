@@ -165,7 +165,7 @@ func viteDevSourceURL(name string) string {
 	case "js/index.js":
 		return setting.AppSubURL + "/web_src/js/index.ts"
 	case "js/external-render-iframe.js":
-		return setting.AppSubURL + "/web_src/js/standalone/external-render-iframe.ts"
+		return setting.AppSubURL + "/web_src/js/pages/external-render-iframe.ts"
 	}
 	webSrcDir := filepath.Join(setting.StaticRootPath, "web_src")
 	srcPath := filepath.Join(webSrcDir, name)
