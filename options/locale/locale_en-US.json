@@ -1043,6 +1043,7 @@
   "repo.forks": "Forks",
   "repo.stars": "Stars",
   "repo.reactions_more": "and %d more",
+  "repo.reactions": "Reactions",
   "repo.unit_disabled": "The site administrator has disabled this repository section.",
   "repo.language_other": "Other",
   "repo.adopt_search": "Enter username to search for unadopted repositories… (leave blank to find all)",
