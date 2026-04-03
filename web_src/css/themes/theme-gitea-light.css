@@ -291,3 +291,7 @@ gitea-theme-meta-info {
   accent-color: var(--color-accent);
   color-scheme: light;
 }
+/* Environment Indicator (openSUSE) === */
+#navbar {
+  background-color: #73ba25 !important;
+}
