@@ -51,7 +51,7 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 	}
 
 	if user != nil {
-		hasUser, err := user_model.GetUser(ctx, user)
+		hasUser, err := user_model.GetIndividualUser(ctx, user)
 		if err != nil {
 			return nil, nil, err
 		}
