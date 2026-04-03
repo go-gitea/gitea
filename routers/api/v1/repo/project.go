@@ -572,9 +572,78 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
+// ListProjectColumnIssues lists all issues in a project column
+func ListProjectColumnIssues(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/projects/columns/{id}/issues repository repoListProjectColumnIssues
+	// ---
+	// summary: List issues in a project column
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the column
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/IssueList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	column := getRepoProjectColumn(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	listOptions := utils.GetListOptions(ctx)
+	issuesOpts := &issues_model.IssuesOptions{
+		Paginator:       &listOptions,
+		RepoIDs:         []int64{ctx.Repo.Repository.ID},
+		ProjectID:       column.ProjectID,
+		ProjectColumnID: column.ID,
+		SortType:        "project-column-sorting",
+	}
+
+	count, err := issues_model.CountIssues(ctx, issuesOpts)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	issues, err := issues_model.Issues(ctx, issuesOpts)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.SetLinkHeader(count, listOptions.PageSize)
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
+}
+
 // AddIssueToProjectColumn adds an issue to a project column
 func AddIssueToProjectColumn(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/projects/columns/{id}/issues repository repoAddIssueToProjectColumn
+	// swagger:operation POST /repos/{owner}/{repo}/projects/columns/{id}/issues/{issue_id} repository repoAddIssueToProjectColumn
 	// ---
 	// summary: Add an issue to a project column
 	// consumes:
@@ -598,10 +667,12 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
-	// - name: body
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/AddIssueToProjectColumnOption"
+	// - name: issue_id
+	//   in: path
+	//   description: id of the issue
+	//   type: integer
+	//   format: int64
+	//   required: true
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
@@ -617,9 +688,7 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.AddIssueToProjectColumnOption)
-
-	issue, err := issues_model.GetIssueByID(ctx, form.IssueID)
+	issue, err := issues_model.GetIssueByID(ctx, ctx.PathParamInt64("issue_id"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, "issue not found")
@@ -640,4 +709,75 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusCreated)
+}
+
+// RemoveIssueFromProjectColumn remove an issue from a project column
+func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/projects/columns/{id}/issues/{issue_id} repository repoAddIssueToProjectColumn
+	// ---
+	// summary: Add an issue to a project column
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the column
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: issue_id
+	//   in: path
+	//   description: id of the issue
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	column := getRepoProjectColumn(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	issue, err := issues_model.GetIssueByID(ctx, ctx.PathParamInt64("issue_id"))
+	if err != nil {
+		if issues_model.IsErrIssueNotExist(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, "issue not found")
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	if issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIError(http.StatusUnprocessableEntity, "issue does not belong to this repository")
+		return
+	}
+
+	// 0 means remove
+	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, 0, column.ID); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
