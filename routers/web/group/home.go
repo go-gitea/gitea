@@ -114,7 +114,7 @@ func Home(ctx *context.Context) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 
-	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
+	pager := context.NewPagination(count, setting.UI.User.RepoPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplGroupHome)

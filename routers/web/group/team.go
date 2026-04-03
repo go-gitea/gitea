@@ -141,7 +141,7 @@ func EditTeamPost(ctx *context.Context) {
 		return
 	}
 	if gt.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
-		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamEdit, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamEdit, &form)
 		return
 	}
 	if err := group_service.UpdateGroupTeam(ctx, gt); err != nil {

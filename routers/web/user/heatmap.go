@@ -56,7 +56,7 @@ func DashboardHeatmap(ctx *context.Context) {
 	if ctx.Org.Organization == nil {
 		data, err = activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 	} else {
-		data, err = activities_model.GetUserHeatmapDataByOrgTeam(ctx, ctx.Org.Organization, ctx.Org.Team, ctx.Doer)
+		data, err = activities_model.GetUserHeatmapDataByOrgTeam(ctx, ctx.Org.Organization, ctx.Org.Team, ctx.RepoGroup.Group, ctx.Doer)
 	}
 	if err != nil {
 		ctx.ServerError("GetUserHeatmapData", err)
