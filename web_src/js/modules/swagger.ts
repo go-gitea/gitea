@@ -1,23 +1,22 @@
-import SwaggerUI from 'swagger-ui-dist/swagger-ui-es-bundle.js';
-import 'swagger-ui-dist/swagger-ui.css';
-import '../../css/standalone/swagger.css';
 import {load as loadYaml} from 'js-yaml';
-
-function isDarkTheme(): boolean {
-  const value = getComputedStyle(document.documentElement).getPropertyValue('--is-dark-theme').trim().toLowerCase();
-  if (value) return value === 'true';
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
+import {isDarkTheme} from '../utils.ts';
 
 function syncDarkModeClass(): void {
   document.documentElement.classList.toggle('dark-mode', isDarkTheme());
 }
 
-syncDarkModeClass();
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncDarkModeClass);
+export async function initSwagger() {
+  const elSwaggerUi = document.querySelector('#swagger-ui');
+  if (!elSwaggerUi) return;
 
-window.addEventListener('load', async () => {
-  const elSwaggerUi = document.querySelector('#swagger-ui')!;
+  // swagger-ui has built-in dark mode triggered by html.dark-mode class
+  syncDarkModeClass();
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncDarkModeClass);
+
+  const {default: SwaggerUI} = await import('swagger-ui-dist/swagger-ui-es-bundle.js');
+  await import('swagger-ui-dist/swagger-ui.css');
+  await import('../../css/swagger.css');
+
   const url = elSwaggerUi.getAttribute('data-source')!;
   let spec: any;
   if (url) {
@@ -53,4 +52,4 @@ window.addEventListener('load', async () => {
       SwaggerUI.plugins.DownloadUrl,
     ],
   });
-});
+}

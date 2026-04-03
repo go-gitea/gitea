@@ -1,0 +1,44 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-box-body);
+}
+
+html[data-gitea-theme-dark="true"],
+html[data-gitea-theme-dark="true"] .swagger-ui,
+html[data-gitea-theme-dark="true"] .swagger-ui .scheme-container {
+  background: var(--color-box-body) !important;
+}
+
+.swagger-back-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+html[data-gitea-theme-dark="true"] .swagger-ui table.headers td {
+  color: var(--color-text) !important;
+}
+
+.swagger-back-link:hover {
+  text-decoration: underline;
+}
+
+.swagger-back-link svg {
+  color: inherit;
+  fill: currentcolor;
+  margin-right: 0.5rem;
+}
+
+.swagger-spec-content {
+  display: none;
+}

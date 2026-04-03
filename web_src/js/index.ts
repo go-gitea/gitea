@@ -67,6 +67,9 @@ import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
+import {initSwagger} from './modules/swagger.ts';
+import {initDevtest} from './modules/devtest.ts';
+import {initExternalRenderIframe} from './modules/external-render-iframe.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -160,6 +163,10 @@ const initPerformanceTracer = callInitFunctions([
 
   initRepoFileView,
   initActionsPermissionsForm,
+
+  initSwagger,
+  initDevtest,
+  initExternalRenderIframe,
 ]);
 
 // it must be the last one, then the "querySelectorAll" only needs to be executed once for global init functions.

@@ -57,6 +57,9 @@ type RenderOptions struct {
 	// used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
 	InStandalonePage bool
 
+	// pre-rendered HTML from base/head_script template, injected into standalone pages for external renderers
+	HeadScriptHTML template.HTML
+
 	// EnableHeadingIDGeneration controls whether to auto-generate IDs for HTML headings without id attribute.
 	// This should be enabled for repository files and wiki pages, but disabled for comments to avoid duplicate IDs.
 	EnableHeadingIDGeneration bool
@@ -129,6 +132,11 @@ func (ctx *RenderContext) WithMetas(metas map[string]string) *RenderContext {
 
 func (ctx *RenderContext) WithInStandalonePage(v bool) *RenderContext {
 	ctx.RenderOptions.InStandalonePage = v
+	return ctx
+}
+
+func (ctx *RenderContext) WithHeadScriptHTML(v template.HTML) *RenderContext {
+	ctx.RenderOptions.HeadScriptHTML = v
 	return ctx
 }
 
@@ -238,10 +246,8 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 			return renderIFrame(ctx, extOpts.ContentSandbox, output)
 		}
 		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
-		extraStyleHref := public.AssetURI("css/external-render-iframe.css")
-		extraScriptSrc := public.AssetURI("js/external-render-iframe.js")
-		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
-		extraHeadHTML = htmlutil.HTMLFormat(`<script type="module" src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraStyleHref)
+		indexSrc := public.AssetURI("js/index.js")
+		extraHeadHTML = ctx.RenderOptions.HeadScriptHTML + htmlutil.HTMLFormat(`<script type="module" src="%s"></script>`, indexSrc)
 	}
 
 	ctx.usedByRender = true

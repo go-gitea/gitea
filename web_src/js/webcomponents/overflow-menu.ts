@@ -2,7 +2,7 @@ import {throttle} from 'throttle-debounce';
 import {addDelegatedEventListener, generateElemId, isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
-window.customElements.define('overflow-menu', class extends HTMLElement {
+if (!window.customElements.get('overflow-menu')) window.customElements.define('overflow-menu', class extends HTMLElement {
   popup: HTMLDivElement;
   overflowItems: Array<HTMLElement>;
   button: HTMLButtonElement | null;

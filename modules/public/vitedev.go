@@ -70,6 +70,9 @@ func getViteDevProxy() *httputil.ReverseProxy {
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
+			if r.Context().Err() != nil {
+				return // client disconnected, silently ignore
+			}
 			log.Error("Error proxying to Vite dev server: %v", err)
 			http.Error(w, "Error proxying to Vite dev server: "+err.Error(), http.StatusBadGateway)
 		},
@@ -94,6 +97,11 @@ func ViteDevMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		routing.MarkLongPolling(resp, req)
+		defer func() {
+			if r := recover(); r != nil && r != http.ErrAbortHandler {
+				panic(r)
+			}
+		}()
 		proxy.ServeHTTP(resp, req)
 	})
 }
