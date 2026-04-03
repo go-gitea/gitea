@@ -5,7 +5,8 @@ import {toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
-import {createActionRunViewStore} from "./ActionRunView.ts";
+import {createActionRunViewStore} from './ActionRunView.ts';
+import {createArtifactTooltipContent, type ArtifactTooltipLocale} from './ActionRunArtifacts.ts';
 
 defineOptions({
   name: 'RepoActionView',
@@ -20,7 +21,11 @@ const props = defineProps<{
 
 const locale = props.locale;
 const store = createActionRunViewStore(props.actionsUrl, props.runId);
-const {currentRun: run , runArtifacts: artifacts} = toRefs(store.viewData);
+const {currentRun: run, runArtifacts: artifacts} = toRefs(store.viewData);
+
+function artifactTooltip(artifact: typeof artifacts.value[number]) {
+  return createArtifactTooltipContent(artifact, locale as ArtifactTooltipLocale);
+}
 
 function cancelRun() {
   POST(`${run.value.link}/cancel`);
@@ -120,7 +125,7 @@ async function deleteArtifact(name: string) {
           <ul class="ui relaxed list flex-items-block">
             <li class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
-                <a class="tw-flex-1 flex-text-block" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                <a class="tw-flex-1 flex-text-block" target="_blank" :href="run.link+'/artifacts/'+artifact.name" :data-tooltip-content="artifactTooltip(artifact)">
                   <SvgIcon name="octicon-file" class="tw-text-text"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
@@ -128,7 +133,7 @@ async function deleteArtifact(name: string) {
                   <SvgIcon name="octicon-trash" class="tw-text-text"/>
                 </a>
               </template>
-              <span v-else class="flex-text-block tw-flex-1 tw-text-grey-light">
+              <span v-else class="flex-text-block tw-flex-1 tw-text-grey-light" :data-tooltip-content="artifactTooltip(artifact)">
                 <SvgIcon name="octicon-file"/>
                 <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 <span class="ui label tw-text-grey-light tw-flex-shrink-0">{{ locale.artifactExpired }}</span>

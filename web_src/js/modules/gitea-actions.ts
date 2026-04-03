@@ -49,5 +49,7 @@ export type ActionsJob = {
 
 export type ActionsArtifact = {
   name: string;
+  size: number;
   status: string;
+  expiresUnix: number;
 };
