@@ -4,9 +4,9 @@ import {commitStatus, type CommitStatus, type GroupMapType} from './DashboardRep
 import DashboardRepoGroup from './DashboardRepoGroup.vue';
 import {SvgIcon, type SvgName} from '../svg.ts';
 const {depth} = defineProps<{index: number; depth: number;}>();
-const groupData = inject<WritableComputedRef<Map<number, GroupMapType>>>('groups');
-const loadedMap = inject<WritableComputedRef<Map<number, boolean>>>('loadedMap');
-const expandedGroups = inject<WritableComputedRef<number[]>>('expandedGroups');
+const groupData = inject<WritableComputedRef<Map<number, GroupMapType>>>('groups')!;
+const loadedMap = inject<WritableComputedRef<Map<number, boolean>>>('loadedMap')!;
+const expandedGroups = inject<Set<number>>('expandedGroups')!;
 const itemProp = defineModel<any>('item');
 const isGroup = computed<boolean>(() => typeof itemProp.value === 'number');
 const item = computed(() => isGroup.value ? groupData.value.get(itemProp.value as number) : itemProp.value);
@@ -49,20 +49,17 @@ const emitter = defineEmits<{
 function onCheck(nv: boolean) {
   if (isGroup.value && expandedGroups) {
     if (nv) {
-      expandedGroups.value = [...expandedGroups.value, item.value.id];
+      expandedGroups.add(item.value.id)
       if (!loadedMap.value.has(item.value.id)) {
         emitter('loadRequested', item.value.id as number);
         loadedMap.value.set(item.value.id, true);
       }
     } else {
-      const idx = expandedGroups.value.indexOf(item.value.id as number);
-      if (idx > -1) {
-        expandedGroups.value = expandedGroups.value.toSpliced(idx, 1);
-      }
+      expandedGroups.delete(item.value.id as number)
     }
   }
 }
-const active = computed(() => isGroup.value && expandedGroups.value.includes(id.value));
+const active = computed(() => isGroup.value && expandedGroups.has(id.value));
 </script>
 <template>
   <li class="tw-flex tw-flex-col tw-px-0 tw-pr-0 expandable-menu-item tw-mt-0" :data-sort-id="idKey" :data-is-group="isGroup" :data-id="id">
