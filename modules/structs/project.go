@@ -121,11 +121,3 @@ type EditProjectColumnOption struct {
 	// Sorting order
 	Sorting *int `json:"sorting,omitempty"`
 }
-
-// AddIssueToProjectColumnOption represents options for adding an issue to a project column
-// swagger:model
-type AddIssueToProjectColumnOption struct {
-	// Issue ID to add to the column
-	// required: true
-	IssueID int64 `json:"issue_id" binding:"Required"`
-}

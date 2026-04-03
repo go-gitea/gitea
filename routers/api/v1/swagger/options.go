@@ -240,7 +240,4 @@ type swaggerParameterBodies struct {
 	CreateProjectColumnOption api.CreateProjectColumnOption
 	// in:body
 	EditProjectColumnOption api.EditProjectColumnOption
-
-	// in:body
-	AddIssueToProjectColumnOption api.AddIssueToProjectColumnOption
 }
