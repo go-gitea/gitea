@@ -8,7 +8,13 @@ function isDarkTheme(): boolean {
   if (value) return value === 'true';
   return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
-document.documentElement.classList.toggle('dark-mode', isDarkTheme());
+
+function syncDarkModeClass(): void {
+  document.documentElement.classList.toggle('dark-mode', isDarkTheme());
+}
+
+syncDarkModeClass();
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncDarkModeClass);
 
 window.addEventListener('load', async () => {
   const elSwaggerUi = document.querySelector('#swagger-ui')!;

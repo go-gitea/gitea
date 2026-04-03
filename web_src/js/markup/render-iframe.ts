@@ -37,7 +37,7 @@ async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
     if (!e.data?.giteaIframeCmd || e.data?.giteaIframeId !== iframe.id) return;
     const cmd = e.data.giteaIframeCmd;
     if (cmd === 'resize') {
-      if (!iframe.classList.contains('is-loading')) iframe.style.height = `${e.data.iframeHeight}px`;
+      iframe.style.height = `${e.data.iframeHeight}px`;
     } else if (cmd === 'open-link') {
       navigateToIframeLink(e.data.openLink, e.data.anchorTarget);
     } else {
