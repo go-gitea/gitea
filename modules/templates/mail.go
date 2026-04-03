@@ -36,6 +36,11 @@ type MailRender struct {
 	mockedBodyTemplates map[string]*template.Template
 }
 
+// dotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent auto-linkers from detecting these as urls
+func dotEscape(raw string) string {
+	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
+}
+
 // mailSubjectTextFuncMap returns functions for injecting to text templates, it's only used for mail subject
 func mailSubjectTextFuncMap() texttmpl.FuncMap {
 	return texttmpl.FuncMap{

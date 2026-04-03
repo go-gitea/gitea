@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
-// newFuncMapWebPage returns functions for injecting to templates
 func newFuncMapWebPage() template.FuncMap {
 	return map[string]any{
 		"DumpVar": dumpVar,
@@ -88,7 +87,7 @@ func newFuncMapWebPage() template.FuncMap {
 		"AppVer": func() string {
 			return setting.AppVer
 		},
-		"AppDomain": func() string { // TODO: helm char registry still uses it, need to use current host
+		"AppDomain": func() string { // TODO: helm registry still uses it, need to use current request host in the future
 			return setting.Domain
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
@@ -168,11 +167,6 @@ func htmlFormat(s any, args ...any) template.HTML {
 
 func queryEscape(s string) template.URL {
 	return template.URL(url.QueryEscape(s))
-}
-
-// dotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent auto-linkers from detecting these as urls
-func dotEscape(raw string) string {
-	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
 }
 
 // iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
