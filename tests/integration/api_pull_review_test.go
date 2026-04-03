@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	org_model "code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -373,11 +374,26 @@ func TestAPIPullReviewReRequestDismissesPreviousApproval(t *testing.T) {
 	testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t, true)
 }
 
+func TestAPIPullReviewReRequestTeamDismissesPreviousApproval(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer tests.PrintCurrentTest(t)()
+
+	testAPIPullReviewReRequestTeamDismissesPreviousApprovalByProtection(t, false)
+	testAPIPullReviewReRequestTeamDismissesPreviousApprovalByProtection(t, true)
+}
+
 func testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t *testing.T, dismissApprovalsOnReRequest bool) {
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
 	assert.NoError(t, pullIssue.LoadAttributes(t.Context()))
 	assert.NoError(t, pullIssue.LoadPullRequest(t.Context()))
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID})
+
+	dismissCommentsBefore, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
+		ListOptions: db.ListOptionsAll,
+		IssueID:     pullIssue.ID,
+		Type:        issues_model.CommentTypeDismissReview,
+	})
+	require.NoError(t, err)
 
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(t.Context(), pullIssue.PullRequest.BaseRepoID, pullIssue.PullRequest.BaseBranch)
 	require.NoError(t, err)
@@ -460,6 +476,128 @@ func testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t *testing.
 		assert.Equal(t, []string{"REQUEST_REVIEW"}, nonDismissedStates)
 	} else {
 		assert.ElementsMatch(t, []string{"APPROVED", "REQUEST_REVIEW"}, nonDismissedStates)
+	}
+
+	dismissCommentsAfter, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
+		ListOptions: db.ListOptionsAll,
+		IssueID:     pullIssue.ID,
+		Type:        issues_model.CommentTypeDismissReview,
+	})
+	require.NoError(t, err)
+
+	if dismissApprovalsOnReRequest {
+		require.Len(t, dismissCommentsAfter, len(dismissCommentsBefore)+1)
+		dismissComment := dismissCommentsAfter[len(dismissCommentsAfter)-1]
+		assert.Equal(t, approvedReview.ID, dismissComment.ReviewID)
+		assert.Equal(t, "Review request re-submitted, approval review dismissed automatically according to repository settings", dismissComment.Content)
+	} else {
+		require.Len(t, dismissCommentsAfter, len(dismissCommentsBefore))
+	}
+}
+
+func testAPIPullReviewReRequestTeamDismissesPreviousApprovalByProtection(t *testing.T, dismissApprovalsOnReRequest bool) {
+	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12})
+	assert.NoError(t, pullIssue.LoadAttributes(t.Context()))
+	assert.NoError(t, pullIssue.LoadPullRequest(t.Context()))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID})
+
+	dismissCommentsBefore, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
+		ListOptions: db.ListOptionsAll,
+		IssueID:     pullIssue.ID,
+		Type:        issues_model.CommentTypeDismissReview,
+	})
+	require.NoError(t, err)
+
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(t.Context(), pullIssue.PullRequest.BaseRepoID, pullIssue.PullRequest.BaseBranch)
+	require.NoError(t, err)
+	if pb == nil {
+		pb = &git_model.ProtectedBranch{
+			RepoID:   repo.ID,
+			RuleName: pullIssue.PullRequest.BaseBranch,
+		}
+	}
+	pb.DismissApprovalsOnReRequest = dismissApprovalsOnReRequest
+	require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo, pb, git_model.WhitelistOptions{}))
+
+	requester := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: pullIssue.PosterID})
+	requesterSession := loginUser(t, requester.LoginName)
+	requesterToken := getTokenForLoggedInUser(t, requesterSession, auth_model.AccessTokenScopeWriteRepository)
+
+	reviewerTeam, err := org_model.GetTeam(t.Context(), repo.OwnerID, "team1")
+	require.NoError(t, err)
+	members, err := org_model.GetTeamMembers(t.Context(), &org_model.SearchMembersOptions{TeamID: reviewerTeam.ID})
+	require.NoError(t, err)
+
+	var reviewer *user_model.User
+	for _, member := range members {
+		if member.ID != pullIssue.PosterID {
+			reviewer = member
+			break
+		}
+	}
+	require.NotNil(t, reviewer)
+
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
+		TeamReviewers: []string{reviewerTeam.Name},
+	}).AddTokenAuth(requesterToken)
+	MakeRequest(t, req, http.StatusCreated)
+
+	approvedReviewModel, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
+		Type:     issues_model.ReviewTypeApprove,
+		Issue:    pullIssue,
+		Reviewer: reviewer,
+		Official: false,
+	})
+	require.NoError(t, err)
+	require.NoError(t, pullIssue.LoadRepo(t.Context()))
+	_, err = issues_model.RemoveTeamReviewRequest(t.Context(), pullIssue, reviewerTeam, nil)
+	require.NoError(t, err)
+
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
+		TeamReviewers: []string{reviewerTeam.Name},
+	}).AddTokenAuth(requesterToken)
+	MakeRequest(t, req, http.StatusCreated)
+
+	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index).
+		AddTokenAuth(requesterToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var reviews []*api.PullReview
+	DecodeJSON(t, resp, &reviews)
+
+	var requestReview *api.PullReview
+	var refreshedApproval *api.PullReview
+	for _, review := range reviews {
+		if review.Reviewer != nil && review.Reviewer.ID == reviewer.ID && review.ID == approvedReviewModel.ID {
+			refreshedApproval = review
+		}
+		if review.ReviewerTeam != nil && review.ReviewerTeam.Name == reviewerTeam.Name && review.State == "REQUEST_REVIEW" {
+			requestReview = review
+		}
+	}
+
+	require.NotNil(t, refreshedApproval)
+	assert.EqualValues(t, "APPROVED", refreshedApproval.State)
+	assert.False(t, approvedReviewModel.Dismissed)
+	assert.Equal(t, dismissApprovalsOnReRequest, refreshedApproval.Dismissed)
+
+	require.NotNil(t, requestReview)
+	assert.False(t, requestReview.Dismissed)
+
+	dismissCommentsAfter, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
+		ListOptions: db.ListOptionsAll,
+		IssueID:     pullIssue.ID,
+		Type:        issues_model.CommentTypeDismissReview,
+	})
+	require.NoError(t, err)
+
+	if dismissApprovalsOnReRequest {
+		require.Len(t, dismissCommentsAfter, len(dismissCommentsBefore)+1)
+		dismissComment := dismissCommentsAfter[len(dismissCommentsAfter)-1]
+		assert.Equal(t, approvedReviewModel.ID, dismissComment.ReviewID)
+		assert.Equal(t, "Review request re-submitted, approval review dismissed automatically according to repository settings", dismissComment.Content)
+	} else {
+		require.Len(t, dismissCommentsAfter, len(dismissCommentsBefore))
 	}
 }
 

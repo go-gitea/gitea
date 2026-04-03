@@ -6,6 +6,7 @@ package issue
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -69,8 +70,21 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 		return nil, err
 	}
 
+	var dismisser *reviewRequestApprovalDismisser
 	if isAdd {
-		comment, err = issues_model.AddReviewRequest(ctx, issue, reviewer, doer, false)
+		dismisser = newReviewRequestApprovalDismisser(issue)
+		comment, err = db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
+			comment, err := issues_model.AddReviewRequest(ctx, issue, reviewer, doer, false)
+			if err != nil || comment == nil {
+				return comment, err
+			}
+
+			if err := dismisser.dismissForUser(ctx, doer, reviewer); err != nil {
+				return nil, err
+			}
+
+			return comment, nil
+		})
 	} else {
 		comment, err = issues_model.RemoveReviewRequest(ctx, issue, reviewer, doer)
 	}
@@ -80,6 +94,9 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 	}
 
 	if comment != nil {
+		if dismisser != nil {
+			dismisser.notify(ctx)
+		}
 		notify_service.PullRequestReviewRequest(ctx, doer, issue, reviewer, isAdd, comment)
 	}
 
@@ -223,14 +240,32 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 	if err != nil {
 		return nil, err
 	}
+
+	var dismisser *reviewRequestApprovalDismisser
 	if isAdd {
-		comment, err = issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer, false)
+		dismisser = newReviewRequestApprovalDismisser(issue)
+		comment, err = db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
+			comment, err := issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer, false)
+			if err != nil || comment == nil {
+				return comment, err
+			}
+
+			if err := dismisser.dismissForTeam(ctx, doer, reviewer); err != nil {
+				return nil, err
+			}
+
+			return comment, nil
+		})
 	} else {
 		comment, err = issues_model.RemoveTeamReviewRequest(ctx, issue, reviewer, doer)
 	}
 
 	if err != nil {
 		return nil, err
+	}
+
+	if dismisser != nil {
+		dismisser.notify(ctx)
 	}
 
 	if comment == nil || !isAdd {

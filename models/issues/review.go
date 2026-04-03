@@ -270,15 +270,14 @@ func GetReviewByID(ctx context.Context, id int64) (*Review, error) {
 
 // CreateReviewOptions represent the options to create a review. Type, Issue and Reviewer are required.
 type CreateReviewOptions struct {
-	Content                  string
-	Type                     ReviewType
-	Issue                    *Issue
-	Reviewer                 *user_model.User
-	ReviewerTeam             *organization.Team
-	Official                 bool
-	CommitID                 string
-	Stale                    bool
-	DismissPreviousApprovals bool
+	Content      string
+	Type         ReviewType
+	Issue        *Issue
+	Reviewer     *user_model.User
+	ReviewerTeam *organization.Team
+	Official     bool
+	CommitID     string
+	Stale        bool
 }
 
 // IsOfficialReviewer check if at least one of the provided reviewers can make official reviews in issue (counts towards required approvals)
@@ -349,6 +348,8 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 			Stale:        opts.Stale,
 		}
 
+		// Re-request dismissal side effects are handled by service layer, but the
+		// model still keeps review records internally consistent for submit flows.
 		if opts.Reviewer != nil {
 			review.Type = opts.Type
 			review.ReviewerID = opts.Reviewer.ID
@@ -362,7 +363,7 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 			}
 			// make sure if the created review gets dismissed no old review surface
 			// other types can be ignored, as they don't affect branch protection
-			if opts.Type == ReviewTypeApprove || opts.Type == ReviewTypeReject || (opts.Type == ReviewTypeRequest && opts.DismissPreviousApprovals) {
+			if opts.Type == ReviewTypeApprove || opts.Type == ReviewTypeReject {
 				if _, err := sess.Where(reviewCond.And(builder.In("type", ReviewTypeApprove, ReviewTypeReject))).
 					Cols("dismissed").Update(&Review{Dismissed: true}); err != nil {
 					return nil, err
@@ -647,18 +648,6 @@ func InsertReviews(ctx context.Context, reviews []*Review) error {
 func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_model.User, isCodeOwners bool) (*Comment, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
 		sess := db.GetEngine(ctx)
-		dismissPreviousApprovals := false
-
-		if err := issue.LoadPullRequest(ctx); err != nil {
-			return nil, err
-		}
-		pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, issue.PullRequest.BaseRepoID, issue.PullRequest.BaseBranch)
-		if err != nil {
-			return nil, err
-		}
-		if pb != nil {
-			dismissPreviousApprovals = pb.DismissApprovalsOnReRequest
-		}
 
 		review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
 		if err != nil && !IsErrReviewNotExist(err) {
@@ -676,8 +665,10 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 			}
 
 			if issue.IsPull {
-				if err := issue.LoadPullRequest(ctx); err != nil {
-					return nil, err
+				if issue.PullRequest == nil {
+					if err := issue.LoadPullRequest(ctx); err != nil {
+						return nil, err
+					}
 				}
 				if issue.PullRequest.HasMerged {
 					return nil, ErrReviewRequestOnClosedPR{}
@@ -697,12 +688,11 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		}
 
 		review, err = CreateReview(ctx, CreateReviewOptions{
-			Type:                     ReviewTypeRequest,
-			Issue:                    issue,
-			Reviewer:                 reviewer,
-			Official:                 official,
-			Stale:                    false,
-			DismissPreviousApprovals: dismissPreviousApprovals,
+			Type:     ReviewTypeRequest,
+			Issue:    issue,
+			Reviewer: reviewer,
+			Official: official,
+			Stale:    false,
 		})
 		if err != nil {
 			return nil, err
