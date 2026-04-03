@@ -6,7 +6,7 @@ import type {APIRequestContext, Page} from '@playwright/test';
 export function randomString(length: number): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
-  for (let idx = 0; idx < length; idx++) {
+  for (let index = 0; index < length; index++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
