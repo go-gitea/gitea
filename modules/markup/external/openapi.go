@@ -62,8 +62,7 @@ func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, out
 <html>
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<script>window.config = {appSubUrl: '%s', assetUrlPrefix: '%s', i18n: {}, pageData: {}}</script>
-	<script src="%s"></script>
+	%s
 	<link rel="stylesheet" href="%s">
 </head>
 <body>
@@ -71,9 +70,7 @@ func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, out
 	<script type="module" src="%s"></script>
 </body>
 </html>`,
-		setting.AppSubURL,
-		setting.StaticURLPrefix+"/assets",
-		public.AssetURI("js/iife.js"),
+		ctx.RenderOptions.HeadScriptHTML,
 		public.AssetURI("css/swagger.css"),
 		html.EscapeString(ctx.RenderOptions.RelativePath),
 		html.EscapeString(util.UnsafeBytesToString(content)),

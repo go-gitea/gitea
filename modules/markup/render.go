@@ -57,6 +57,9 @@ type RenderOptions struct {
 	// used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
 	InStandalonePage bool
 
+	// HeadScriptHTML is pre-rendered HTML from base/head_script template, used by openapi renderer
+	HeadScriptHTML template.HTML
+
 	// EnableHeadingIDGeneration controls whether to auto-generate IDs for HTML headings without id attribute.
 	// This should be enabled for repository files and wiki pages, but disabled for comments to avoid duplicate IDs.
 	EnableHeadingIDGeneration bool
@@ -129,6 +132,11 @@ func (ctx *RenderContext) WithMetas(metas map[string]string) *RenderContext {
 
 func (ctx *RenderContext) WithInStandalonePage(v bool) *RenderContext {
 	ctx.RenderOptions.InStandalonePage = v
+	return ctx
+}
+
+func (ctx *RenderContext) WithHeadScriptHTML(v template.HTML) *RenderContext {
+	ctx.RenderOptions.HeadScriptHTML = v
 	return ctx
 }
 

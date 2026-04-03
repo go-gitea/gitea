@@ -39,10 +39,12 @@ func RenderFile(ctx *context.Context) {
 	}
 	defer blobReader.Close()
 
+	headScriptHTML, _ := ctx.RenderToHTML("base/head_script", ctx.Data)
+
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
 		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
 		CurrentTreePath: path.Dir(ctx.Repo.TreePath),
-	}).WithRelativePath(ctx.Repo.TreePath).WithInStandalonePage(true)
+	}).WithRelativePath(ctx.Repo.TreePath).WithInStandalonePage(true).WithHeadScriptHTML(headScriptHTML)
 	renderer, rendererInput, err := rctx.DetectMarkupRendererByReader(blobReader)
 	if err != nil {
 		http.Error(ctx.Resp, "Unable to find renderer", http.StatusBadRequest)
