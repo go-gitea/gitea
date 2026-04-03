@@ -24,13 +24,13 @@ type pageRenderer struct {
 }
 
 func (r *pageRenderer) funcMap(ctx context.Context) template.FuncMap {
-	pageFuncMap := NewFuncMap()
+	pageFuncMap := newFuncMapWebPage()
 	pageFuncMap["ctx"] = func() any { return ctx }
 	return pageFuncMap
 }
 
 func (r *pageRenderer) funcMapDummy() template.FuncMap {
-	dummyFuncMap := NewFuncMap()
+	dummyFuncMap := newFuncMapWebPage()
 	dummyFuncMap["ctx"] = func() any { return nil } // for template compilation only, no context available
 	return dummyFuncMap
 }
