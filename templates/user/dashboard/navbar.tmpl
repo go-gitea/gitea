@@ -84,7 +84,7 @@
 		{{if .Team}}
 		{{$suffix = PathEscape .Team.Name}}
 		{{else if .Group}}
-		{{$suffix = URLJoin "group" (StringUtils.ToString .Group.ID)}}
+		{{$suffix = print "group/" (StringUtils.ToString .Group.ID)}}
 		{{end}}
 		<div class="right menu tw-flex-wrap tw-justify-end">
 			<a class="{{if .PageIsNews}}active {{end}}item tw-ml-auto" href="{{.ContextUser.DashboardLink}}/{{$suffix}}">
