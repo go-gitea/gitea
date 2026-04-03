@@ -386,7 +386,8 @@ func Edit(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditOrgOption)
-	if form.Visibility != nil && *form.Visibility != "" && ctx.Org.Organization.Visibility.String() != *form.Visibility && !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin) {
+	visibility := optional.FromMapLookup(api.VisibilityModes, optional.FromPtr(form.Visibility).Value())
+	if visibility.Has() && visibility.Value() != ctx.Org.Organization.Visibility && !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin) {
 		ctx.APIError(http.StatusForbidden, "Organization danger zone actions are restricted to site administrators")
 		return
 	}
@@ -405,7 +406,7 @@ func Edit(ctx *context.APIContext) {
 		Description:               optional.FromPtr(form.Description),
 		Website:                   optional.FromPtr(form.Website),
 		Location:                  optional.FromPtr(form.Location),
-		Visibility:                optional.FromMapLookup(api.VisibilityModes, optional.FromPtr(form.Visibility).Value()),
+		Visibility:                visibility,
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {
