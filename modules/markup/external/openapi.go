@@ -57,7 +57,6 @@ func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, out
 		return err
 	}
 	// TODO: can extract this to a tmpl file later
-	// external-render-iframe.js is additionally prepended by RenderWithRenderer via extraHeadHTML
 	_, err = io.WriteString(output, fmt.Sprintf(
 		`<!DOCTYPE html>
 <html>
