@@ -5,10 +5,13 @@ package context
 
 import (
 	"context"
+	"html/template"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/webtheme"
@@ -68,4 +71,10 @@ func (c TemplateContext) CurrentWebBanner() *setting.WebBannerType {
 		return &banner
 	}
 	return nil
+}
+
+func (c TemplateContext) MakeAppURL(link string) template.URL {
+	s := httplib.GuessCurrentAppURL(c.parentContext())
+	s = strings.TrimSuffix(s, "/")
+	return template.URL(s + strings.TrimPrefix(link, "/"))
 }

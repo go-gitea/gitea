@@ -6,12 +6,14 @@ package templates
 import (
 	"html/template"
 	"io"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
 	"sync"
 	texttmpl "text/template"
 
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -41,10 +43,53 @@ func mailSubjectTextFuncMap() texttmpl.FuncMap {
 		"Eval": evalTokens,
 
 		"EllipsisString": util.EllipsisDisplayString,
+
 		"AppName": func() string {
 			return setting.AppName
 		},
 		"AppDomain": func() string { // documented in mail-templates.md
+			return setting.Domain
+		},
+	}
+}
+
+func mailBodyFuncMap() template.FuncMap {
+	// Some of them are documented in mail-templates.md
+	return template.FuncMap{
+		"DumpVar": dumpVar,
+		"NIL":     func() any { return nil },
+
+		// html/template related functions
+		"dict":         dict,
+		"Iif":          iif,
+		"Eval":         evalTokens,
+		"HTMLFormat":   htmlFormat,
+		"QueryEscape":  queryEscape,
+		"QueryBuild":   QueryBuild,
+		"SanitizeHTML": SanitizeHTML,
+
+		"PathEscape":         url.PathEscape,
+		"PathEscapeSegments": util.PathEscapeSegments,
+
+		"DotEscape": dotEscape,
+
+		// utils
+		"StringUtils": NewStringUtils,
+		"SliceUtils":  NewSliceUtils,
+		"JsonUtils":   NewJsonUtils,
+
+		// time / number / format
+		"ShortSha": base.ShortSha,
+		"FileSize": base.FileSize,
+
+		// setting
+		"AppName": func() string {
+			return setting.AppName
+		},
+		"AppUrl": func() string {
+			return setting.AppURL
+		},
+		"AppDomain": func() string {
 			return setting.Domain
 		},
 	}
@@ -103,7 +148,7 @@ func newMailRenderer() (*MailRender, error) {
 		return renderer.tmplRenderer.Templates().HasTemplate(name)
 	}
 
-	staticFuncMap := NewFuncMap()
+	staticFuncMap := mailBodyFuncMap()
 	renderer.BodyTemplates.ExecuteTemplate = func(w io.Writer, name string, data any) error {
 		if t, ok := renderer.mockedBodyTemplates[name]; ok {
 			return t.Execute(w, data)
@@ -131,7 +176,7 @@ func (r *MailRender) MockTemplate(name, subject, body string) func() {
 	texttmpl.Must(r.SubjectTemplates.New(name).Parse(subject))
 
 	oldBody, hasOldBody := r.mockedBodyTemplates[name]
-	mockFuncMap := NewFuncMap()
+	mockFuncMap := mailBodyFuncMap()
 	r.mockedBodyTemplates[name] = template.Must(template.New(name).Funcs(mockFuncMap).Parse(body))
 	return func() {
 		r.SubjectTemplates = oldSubject
