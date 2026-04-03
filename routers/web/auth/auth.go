@@ -499,6 +499,9 @@ func buildSignOutRedirectURL(ctx *context.Context) string {
 			return s
 		}
 	}
+	if setting.Service.EnableReverseProxyAuth && setting.ReverseProxyLogoutRedirect != "" {
+		return setting.ReverseProxyLogoutRedirect
+	}
 	return setting.AppSubURL + "/"
 }
 
