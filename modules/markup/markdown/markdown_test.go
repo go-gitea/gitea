@@ -446,8 +446,8 @@ anything
 ---
 test
 `,
-			`anything
-
+			`<hr/>
+<h2>anything</h2>
 <p>test</p>
 `,
 		},
