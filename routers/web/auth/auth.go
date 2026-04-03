@@ -633,16 +633,15 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 			case setting.OAuth2AccountLinkingAuto:
 				var user *user_model.User
 				user = &user_model.User{Name: u.Name}
-				hasUser, err := user_model.GetUser(ctx, user)
+				hasUser, err := user_model.GetIndividualUser(ctx, user)
 				if !hasUser || err != nil {
 					user = &user_model.User{Email: u.Email}
-					hasUser, err = user_model.GetUser(ctx, user)
+					hasUser, err = user_model.GetIndividualUser(ctx, user)
 					if !hasUser || err != nil {
 						ctx.ServerError("UserLinkAccount", err)
 						return false
 					}
 				}
-
 				// TODO: probably we should respect 'remember' user's choice...
 				oauth2LinkAccount(ctx, user, possibleLinkAccountData, true)
 				return false // user is already created here, all redirects are handled
