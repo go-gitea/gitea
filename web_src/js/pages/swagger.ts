@@ -13,9 +13,10 @@ export async function initSwagger() {
   syncDarkModeClass();
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncDarkModeClass);
 
-  const {default: SwaggerUI} = await import('swagger-ui-dist/swagger-ui-es-bundle.js');
-  await import('swagger-ui-dist/swagger-ui.css');
-  await import('../../css/swagger.css');
+  const [{default: SwaggerUI}] = await Promise.all([
+    import('swagger-ui-dist/swagger-ui-es-bundle.js'),
+    import('../../css/swagger.css'),
+  ]);
 
   const url = elSwaggerUi.getAttribute('data-source')!;
   let spec: any;
