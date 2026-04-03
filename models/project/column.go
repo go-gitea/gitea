@@ -247,16 +247,6 @@ func UpdateColumn(ctx context.Context, column *Column) error {
 	return err
 }
 
-// GetColumns fetches all columns related to a project
-func (p *Project) GetColumns(ctx context.Context) (ColumnList, error) {
-	columns := make([]*Column, 0, 5)
-	if err := db.GetEngine(ctx).Where("project_id=?", p.ID).OrderBy("sorting, id").Find(&columns); err != nil {
-		return nil, err
-	}
-
-	return columns, nil
-}
-
 // getDefaultColumnWithFallback return default column if one exists
 // otherwise return the first column by sorting and set it as default column
 func (p *Project) getDefaultColumnWithFallback(ctx context.Context) (*Column, error) {
@@ -349,20 +339,6 @@ func UpdateColumnSorting(ctx context.Context, cl ColumnList) error {
 		}
 		return nil
 	})
-}
-
-func GetColumnsByIDs(ctx context.Context, projectID int64, columnsIDs []int64) (ColumnList, error) {
-	columns := make([]*Column, 0, 5)
-	if len(columnsIDs) == 0 {
-		return columns, nil
-	}
-	if err := db.GetEngine(ctx).
-		Where("project_id =?", projectID).
-		In("id", columnsIDs).
-		OrderBy("sorting").Find(&columns); err != nil {
-		return nil, err
-	}
-	return columns, nil
 }
 
 // MoveColumnsOnProject sorts columns in a project
