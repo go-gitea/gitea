@@ -12,10 +12,6 @@ import (
 
 // ToProject converts a project_model.Project to api.Project
 func ToProject(ctx context.Context, p *project_model.Project) *api.Project {
-	if p == nil {
-		return nil
-	}
-
 	project := &api.Project{
 		ID:              p.ID,
 		Title:           p.Title,
@@ -55,10 +51,6 @@ func ToProject(ctx context.Context, p *project_model.Project) *api.Project {
 
 // ToProjectColumn converts a project_model.Column to api.ProjectColumn
 func ToProjectColumn(ctx context.Context, column *project_model.Column) *api.ProjectColumn {
-	if column == nil {
-		return nil
-	}
-
 	return &api.ProjectColumn{
 		ID:        column.ID,
 		Title:     column.Title,
