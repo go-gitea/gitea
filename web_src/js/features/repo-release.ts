@@ -1,7 +1,7 @@
 import {POST} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {getComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {hideElem, showElem} from '../utils/dom.ts';
+import {hideElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import {htmlEscape} from '../utils/html.ts';
@@ -36,12 +36,12 @@ function initTagNameEditor(elForm: HTMLFormElement) {
   const hideTargetInput = function(tagNameInput: HTMLInputElement) {
     const value = tagNameInput.value;
     const tagHelper = elForm.querySelector('.tag-name-helper')!;
+    // Old behavior: if the tag already exists, hide the target branch selector and show a helper text to indicate the tag already exists.
+    // However, it is not right: when creating from an existing tag (not a draft or release yet), it still needs the "target branch"
+    // So the new logic here: don't hide the target branch selector.
     if (existingTags.includes(value)) {
-      // If the tag already exists, hide the target branch selector.
-      hideElem(elForm.querySelectorAll('.tag-target-selector'));
       tagHelper.textContent = existingTagHelperText;
     } else {
-      showElem(elForm.querySelectorAll('.tag-target-selector'));
       tagHelper.textContent = value ? newTagHelperText : defaultTagHelperText;
     }
   };

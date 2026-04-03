@@ -33,6 +33,7 @@
 @import "./modules/flexcontainer.css";
 @import "./modules/codeeditor.css";
 @import "./modules/chroma.css";
+@import "./modules/charescape.css";
 
 @import "./shared/flex-list.css";
 @import "./shared/milestone.css";
