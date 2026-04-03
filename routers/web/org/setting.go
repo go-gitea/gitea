@@ -47,6 +47,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
+	ctx.Data["CanManageOrgDangerZone"] = setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin)
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
@@ -63,6 +64,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
+	ctx.Data["CanManageOrgDangerZone"] = setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSettingsOptions)
@@ -125,6 +127,11 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 
 // SettingsDeleteOrgPost response for deleting an organization
 func SettingsDeleteOrgPost(ctx *context.Context) {
+	if !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
 	if ctx.Org.Organization.Name != ctx.FormString("org_name") {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_org_name"))
 		return
@@ -198,6 +205,11 @@ func Labels(ctx *context.Context) {
 
 // SettingsRenamePost response for renaming organization
 func SettingsRenamePost(ctx *context.Context) {
+	if !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
 	form := web.GetForm(ctx).(*forms.RenameOrgForm)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
@@ -245,6 +257,11 @@ func SettingsChangeVisibilityPost(ctx *context.Context) {
 	if ctx.Org.Organization.Visibility == visibility {
 		ctx.Flash.Info(ctx.Tr("nothing_has_been_changed"))
 		ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(ctx.Org.Organization.Name) + "/settings")
+		return
+	}
+
+	if !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin) {
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 

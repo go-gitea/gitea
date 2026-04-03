@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -340,6 +341,11 @@ func Rename(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	if ctx.Doer == nil || !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin) {
+		ctx.APIError(http.StatusForbidden, "Organization danger zone actions are restricted to site administrators")
+		return
+	}
+
 	form := web.GetForm(ctx).(*api.RenameOrgOption)
 	orgUser := ctx.Org.Organization.AsUser()
 	if err := user_service.RenameUser(ctx, orgUser, form.NewName, ctx.Doer); err != nil {
@@ -380,6 +386,10 @@ func Edit(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditOrgOption)
+	if form.Visibility != nil && *form.Visibility != "" && ctx.Org.Organization.Visibility.String() != *form.Visibility && (ctx.Doer == nil || !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin)) {
+		ctx.APIError(http.StatusForbidden, "Organization danger zone actions are restricted to site administrators")
+		return
+	}
 
 	if err := org.UpdateOrgEmailAddress(ctx, ctx.Org.Organization, form.Email); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -424,6 +434,11 @@ func Delete(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
+	if ctx.Doer == nil || !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin) {
+		ctx.APIError(http.StatusForbidden, "Organization danger zone actions are restricted to site administrators")
+		return
+	}
 
 	if err := org.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
 		ctx.APIErrorInternal(err)
