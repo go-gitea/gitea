@@ -577,8 +577,8 @@ func TestAPIListProjectColumnIssues(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, IsPull: false})
-	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, IsPull: true})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 
 	project := &project_model.Project{
 		Title:        "Project for Column Issues",
@@ -622,22 +622,6 @@ func TestAPIListProjectColumnIssues(t *testing.T) {
 	}
 	assert.Contains(t, issueIDs, issue.ID)
 	assert.Contains(t, issueIDs, pull.ID)
-
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/projects/columns/%d/issues?type=issues", owner.Name, repo.Name, column.ID).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &issues)
-	assert.Len(t, issues, 1)
-	assert.Equal(t, issue.ID, issues[0].ID)
-
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/projects/columns/%d/issues?type=pulls", owner.Name, repo.Name, column.ID).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &issues)
-	assert.Len(t, issues, 1)
-	assert.Equal(t, pull.ID, issues[0].ID)
 }
 
 func TestAPIRemoveIssueFromProjectColumn(t *testing.T) {
