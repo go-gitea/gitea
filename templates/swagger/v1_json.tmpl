@@ -13947,6 +13947,62 @@
       }
     },
     "/repos/{owner}/{repo}/projects/columns/{id}/issues": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List issues in a project column",
+        "operationId": "repoListProjectColumnIssues",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the column",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/IssueList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/columns/{id}/issues/{issue_id}": {
       "post": {
         "consumes": [
           "application/json"
@@ -13983,11 +14039,12 @@
             "required": true
           },
           {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/AddIssueToProjectColumnOption"
-            }
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the issue",
+            "name": "issue_id",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
@@ -22535,22 +22592,6 @@
             "admin"
           ],
           "x-go-name": "Permission"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "AddIssueToProjectColumnOption": {
-      "description": "AddIssueToProjectColumnOption represents options for adding an issue to a project column",
-      "type": "object",
-      "required": [
-        "issue_id"
-      ],
-      "properties": {
-        "issue_id": {
-          "description": "Issue ID to add to the column",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "IssueID"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -31759,7 +31800,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/AddIssueToProjectColumnOption"
+        "$ref": "#/definitions/EditProjectColumnOption"
       }
     },
     "redirect": {
