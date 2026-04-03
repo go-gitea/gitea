@@ -15,8 +15,9 @@ test('toggle issue reactions', async ({page, request}) => {
 
     const issueComment = page.locator('.timeline-item.comment.first');
 
-    await issueComment.getByLabel('Add reaction').click();
-    await issueComment.getByLabel('Add reaction').getByLabel('+1').click();
+    const reactionPicker = issueComment.locator('.select-reaction');
+    await reactionPicker.click();
+    await reactionPicker.getByLabel('+1').click();
 
     const reactions = issueComment.getByRole('group', {name: 'Reactions'});
     await expect(reactions.getByRole('button', {name: /^\+1:/})).toContainText('1');
