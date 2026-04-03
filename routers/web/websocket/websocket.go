@@ -4,10 +4,9 @@
 package websocket
 
 import (
-	"net/http"
-
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/pubsub"
 
@@ -46,12 +45,14 @@ func rewriteLogout(msg []byte, connSessionID string) []byte {
 	return out
 }
 
-// Serve handles WebSocket upgrade and event delivery for the signed-in user.
+// Serve handles WebSocket upgrade and real-time event delivery.
+// Anonymous connections are accepted and kept open; user-specific events
+// (notification count, stopwatch, logout) are only delivered to signed-in
+// users. This allows future public event types to reuse the same endpoint
+// without requiring authentication.
 func Serve(ctx *context.Context) {
-	if !ctx.IsSigned {
-		ctx.Status(http.StatusUnauthorized)
-		return
-	}
+	routing.MarkLongPolling(ctx.Resp, ctx.Req)
+
 	conn, err := gitea_ws.Accept(ctx.Resp, ctx.Req, &gitea_ws.AcceptOptions{
 		InsecureSkipVerify: false,
 	})
@@ -61,9 +62,17 @@ func Serve(ctx *context.Context) {
 	}
 	defer conn.CloseNow() //nolint:errcheck // CloseNow is best-effort; error is intentionally ignored
 
-	sessionID := ctx.Session.ID()
-	ch, cancel := pubsub.DefaultBroker.Subscribe(pubsub.UserTopic(ctx.Doer.ID))
-	defer cancel()
+	// Subscribe to user-specific events only for signed-in users.
+	// ch is nil for anonymous users: the receive case below never fires,
+	// keeping the connection open for future public event types.
+	var ch <-chan []byte
+	var sessionID string
+	if ctx.IsSigned {
+		sessionID = ctx.Session.ID()
+		var cancel func()
+		ch, cancel = pubsub.DefaultBroker.Subscribe(pubsub.UserTopic(ctx.Doer.ID))
+		defer cancel()
+	}
 
 	wsCtx := ctx.Req.Context()
 	for {

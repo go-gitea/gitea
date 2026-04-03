@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	notify_service "code.gitea.io/gitea/services/notify"
 	"code.gitea.io/gitea/services/pubsub"
 )
 
@@ -28,10 +29,16 @@ type notificationCountEvent struct {
 	Count int64  `json:"count"`
 }
 
-// Init starts the background goroutine that polls notification counts
-// and pushes updates to connected WebSocket clients.
+// Init starts the background goroutines that push real-time updates to
+// connected WebSocket clients: notification counts and (when time-tracking
+// is enabled) active stopwatches. It also registers the websocket notifier
+// so that targeted pushes fire immediately when notification counts change.
 func Init() error {
+	notify_service.RegisterNotifier(&wsNotifier{})
 	go graceful.GetManager().RunWithShutdownContext(run)
+	if setting.Service.EnableTimetracking {
+		go graceful.GetManager().RunWithShutdownContext(runStopwatch)
+	}
 	return nil
 }
 

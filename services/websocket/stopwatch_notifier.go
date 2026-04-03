@@ -7,9 +7,9 @@ import (
 	"context"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -23,28 +23,36 @@ type stopwatchesEvent struct {
 	Data any    `json:"data"`
 }
 
-// PublishEmptyStopwatches immediately pushes an empty stopwatches list to the
-// given user's WebSocket clients — used when the user's last stopwatch is cancelled.
-func PublishEmptyStopwatches(userID int64) {
-	msg, err := json.Marshal(stopwatchesEvent{
-		Type: "stopwatches",
-		Data: []any{},
-	})
+// PublishStopwatchesForUser fetches the user's current stopwatches and pushes
+// them immediately to all connected WebSocket clients, bypassing the periodic
+// polling loop. Call this after any stopwatch start, stop, or cancel so that
+// all open tabs update without waiting for the next tick.
+func PublishStopwatchesForUser(ctx context.Context, user *user_model.User) {
+	sws, err := issues_model.GetUserStopwatches(ctx, user.ID, db.ListOptions{})
 	if err != nil {
-		log.Error("websocket: marshal empty stopwatches: %v", err)
+		log.Error("websocket: GetUserStopwatches %d: %v", user.ID, err)
 		return
 	}
-	pubsub.DefaultBroker.Publish(pubsub.UserTopic(userID), msg)
-}
 
-// InitStopwatch starts the background goroutine that polls active stopwatches
-// and pushes updates to connected WebSocket clients.
-func InitStopwatch() error {
-	if !setting.Service.EnableTimetracking {
-		return nil
+	var data any
+	if len(sws) == 0 {
+		data = []any{}
+	} else {
+		apiSWs, err := convert.ToStopWatches(ctx, user, sws)
+		if err != nil {
+			if !issues_model.IsErrIssueNotExist(err) {
+				log.Error("websocket: ToStopWatches: %v", err)
+			}
+			return
+		}
+		data = apiSWs
 	}
-	go graceful.GetManager().RunWithShutdownContext(runStopwatch)
-	return nil
+
+	msg, err := json.Marshal(stopwatchesEvent{Type: "stopwatches", Data: data})
+	if err != nil {
+		return
+	}
+	pubsub.DefaultBroker.Publish(pubsub.UserTopic(user.ID), msg)
 }
 
 func runStopwatch(ctx context.Context) {

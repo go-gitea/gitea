@@ -160,7 +160,6 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(task.Init)
 	mustInit(repo_migrations.Init)
 	mustInit(websocket_service.Init)
-	mustInit(websocket_service.InitStopwatch)
 	mustInitCtx(ctx, mailer_incoming.Init)
 
 	mustInitCtx(ctx, syncAppConfForGit)

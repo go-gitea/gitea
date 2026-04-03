@@ -51,9 +51,17 @@ func NewNotifier() notify_service.Notifier {
 }
 
 func handler(items ...issueNotificationOpts) []issueNotificationOpts {
+	ctx := graceful.GetManager().ShutdownContext()
 	for _, opts := range items {
-		if err := activities_model.CreateOrUpdateIssueNotifications(graceful.GetManager().ShutdownContext(), opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
+		if err := activities_model.CreateOrUpdateIssueNotifications(ctx, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
 			log.Error("Was unable to create issue notification: %v", err)
+			continue
+		}
+		// Push an immediate notification-count update to the affected user's
+		// WebSocket clients. Only possible when ReceiverID is known; the
+		// periodic poller handles the ReceiverID==0 (all-watchers) case.
+		if opts.ReceiverID != 0 {
+			notify_service.NotificationCountChange(ctx, opts.ReceiverID)
 		}
 	}
 	return nil
