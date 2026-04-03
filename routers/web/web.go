@@ -1080,7 +1080,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Get("/files/{fileid}", user.DownloadPackageFile)
 					})
 				})
-				m.Group("/packages-settings/{type}/{name}", func() {
+				m.Group("/settings/{type}/{name}", func() {
 					m.Get("", user.PackageSettings)
 					m.Post("", web.Bind(forms.PackageSettingForm{}), user.PackageSettingsPost)
 				}, reqPackageAccess(perm.AccessModeWrite))

@@ -80,7 +80,7 @@ func (pd *PackageDescriptor) PackageWebLink() string {
 
 // PackageSettingsLink returns the relative package settings link
 func (pd *PackageDescriptor) PackageSettingsLink() string {
-	return fmt.Sprintf("%s/-/packages-settings/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+	return fmt.Sprintf("%s/-/packages/settings/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
 // VersionWebLink returns the relative package version web link
