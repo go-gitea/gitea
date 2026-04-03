@@ -1,6 +1,7 @@
 {{$banner := ctx.CurrentWebBanner}}
 {{if $banner}}
-<div class="ui info message web-banner-container">
+	{{$bannerColor := $banner.NormalizedBackgroundColor}}
+<div class="ui message web-banner-container"{{if $bannerColor}} style="--web-banner-bg: {{$bannerColor}}; --web-banner-border: {{$banner.BorderColor}}; --web-banner-text: {{$banner.TextColor}};"{{end}}>
 	<div class="render-content markup web-banner-content">
 		{{ctx.RenderUtils.MarkdownToHtml $banner.ContentMessage}}
 	</div>

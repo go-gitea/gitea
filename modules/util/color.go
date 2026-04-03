@@ -5,9 +5,31 @@ package util
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
+
+var hexColorPattern = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^#([\da-fA-F]{3}|[\da-fA-F]{6})$`)
+})
+
+// NormalizeColor normalizes a color string to a lowercase 6-character hex code, e.g. "#aabbcc"
+func NormalizeColor(color string) (string, error) {
+	color = strings.TrimSpace(strings.ToLower(color))
+	if len(color) == 6 || len(color) == 3 {
+		color = "#" + color
+	}
+	if !hexColorPattern().MatchString(color) {
+		return "", NewInvalidArgumentErrorf("invalid color: %s", color)
+	}
+	if len(color) == 4 {
+		r, g, b := color[1], color[2], color[3]
+		color = fmt.Sprintf("#%c%c%c%c%c%c", r, r, g, g, b, b)
+	}
+	return color, nil
+}
 
 // HexToRBGColor parses color as RGB values in 0..255 range from the hex color string (with or without #)
 func HexToRBGColor(colorString string) (float64, float64, float64) {

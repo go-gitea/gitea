@@ -19,6 +19,9 @@
   position: relative;
   margin: 0;
   border-radius: 0;
+  background: var(--web-banner-bg, var(--color-info-bg));
+  color: var(--web-banner-text, var(--color-info-text));
+  border-color: var(--web-banner-border, var(--color-info-border));
 }
 
 .ui.message.web-banner-container > .web-banner-content {
@@ -27,8 +30,17 @@
   margin: auto;
 }
 
+.ui.message.web-banner-container :is(a, .header, .ui.header) {
+  color: inherit;
+}
+
+.ui.message.web-banner-container a {
+  text-decoration: underline;
+}
+
 .ui.message.web-banner-container > button.dismiss-banner {
   position: absolute;
   right: 20px;
   top: 15px;
+  color: inherit;
 }

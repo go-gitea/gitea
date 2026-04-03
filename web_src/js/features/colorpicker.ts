@@ -34,6 +34,7 @@ function initPicker(el: HTMLElement): void {
   const picker = document.createElement('hex-color-picker');
   picker.addEventListener('color-changed', (e) => {
     input.value = e.detail.value;
+    input.dispatchEvent(new Event('input', {bubbles: true}));
     input.focus();
     updateSquare(square, e.detail.value);
   });
@@ -61,7 +62,7 @@ function initPicker(el: HTMLElement): void {
     input.dispatchEvent(new Event('input', {bubbles: true}));
     updateSquare(square, color);
   };
-  el.querySelector('.generate-random-color')!.addEventListener('click', () => {
+  el.querySelector<HTMLElement>('.generate-random-color')?.addEventListener('click', () => {
     const newValue = `#${Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0')}`;
     setSelectedColor(newValue);
   });

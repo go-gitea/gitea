@@ -29,13 +29,24 @@
 
 		{{$cfgOpt = $.SystemConfig.Instance.WebBanner}}
 		{{$cfgKey = $cfgOpt.DynKey}}
-		{{$banner := $cfgOpt.Value ctx}}
+		{{$banner := ($cfgOpt.Value ctx).FormValue}}
 		<input type="hidden" data-config-dyn-key="{{$cfgKey}}" data-config-value-json="{{JsonUtils.EncodeToString $banner}}">
 		<div class="field">
 			<div class="ui checkbox tw-mb-2">
 				<input type="checkbox" name="{{$cfgKey}}.DisplayEnabled" value="true" {{if $banner.DisplayEnabled}}checked{{end}} data-config-value-type="boolean">
 				<label>{{ctx.Locale.Tr "admin.config.instance_web_banner.enabled"}}</label>
 			</div>
+		</div>
+		<div class="field">
+			<label>{{ctx.Locale.Tr "admin.config.instance_web_banner.color"}}</label>
+			<div class="web-banner-color-picker-row">
+				<div class="color-picker-combo web-banner-color-picker" data-global-init="initColorPicker">
+					<input class="js-web-banner-background-color" name="{{$cfgKey}}.BackgroundColor" value="{{$banner.BackgroundColor}}" placeholder="#ddf4ff" pattern="^#?([\dA-Fa-f]{3}|[\dA-Fa-f]{6})$" maxlength="7" data-config-value-type="string">
+				</div>
+				<button type="button" class="ui icon button js-web-banner-color-reset" data-tooltip-content="{{ctx.Locale.Tr "admin.config.instance_web_banner.color_reset"}}" data-default-color="{{$banner.DefaultBackgroundColor}}">{{svg "octicon-undo"}}</button>
+			</div>
+		</div>
+		<div class="field js-web-banner-preview" style="--web-banner-bg: {{$banner.BackgroundColor}}; --web-banner-border: {{$banner.BorderColor}}; --web-banner-text: {{$banner.TextColor}};">
 			{{template "shared/combomarkdowneditor" (dict
 				"ContainerClasses" "web-banner-content-editor"
 				"TextareaName" (print $cfgKey ".ContentMessage")

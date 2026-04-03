@@ -10,6 +10,8 @@ test('ConfigFormValueMapper', () => {
 
     <input type="hidden" data-config-dyn-key="k2" data-config-value-json='"k2-val"'>
     <input name="k2">
+    <input type="hidden" data-config-dyn-key="k3" data-config-value-json='"#aabbcc"'>
+    <input name="k3" type="color" data-config-value-type="string">
 
     <textarea name="repository.open-with.editor-apps"> a = b\n</textarea>
 
@@ -40,6 +42,7 @@ test('ConfigFormValueMapper', () => {
   expect(result).toEqual({
     'k1': 'true',
     'k2': '"k2-val"',
+    'k3': '"#aabbcc"',
     'k-flipped-false': 'false',
     'k-flipped-true': 'true',
     'repository.open-with.editor-apps': '[{"DisplayName":"a","OpenURL":"b"}]', // TODO: OPEN-WITH-EDITOR-APP-JSON: it must match backend

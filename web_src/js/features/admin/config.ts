@@ -1,6 +1,7 @@
 import {showTemporaryTooltip} from '../../modules/tippy.ts';
 import {POST} from '../../modules/fetch.ts';
 import {registerGlobalInitFunc} from '../../modules/observer.ts';
+import {contrastColor} from '../../utils/color.ts';
 import {queryElems} from '../../utils/dom.ts';
 import {submitFormFetchAction} from '../common-fetch-action.ts';
 
@@ -103,7 +104,7 @@ export class ConfigFormValueMapper {
       if (val) el.value = toDatetimeLocalValue(val);
     } else if (el.matches('textarea')) {
       el.value = String(val ?? el.value);
-    } else if (el.matches('input') && (el.getAttribute('type') ?? 'text') === 'text') {
+    } else if (el.matches('input') && ['text', 'color'].includes(el.getAttribute('type') ?? 'text')) {
       el.value = String(val ?? el.value);
     } else {
       unsupportedElement(el);
@@ -124,7 +125,7 @@ export class ConfigFormValueMapper {
       val = Math.floor(new Date(el.value).getTime() / 1000) ?? 0; // NaN is fine to JSON.stringify, it becomes null.
     } else if (el.matches('textarea')) {
       val = el.value;
-    } else if (el.matches('input') && (el.getAttribute('type') ?? 'text') === 'text') {
+    } else if (el.matches('input') && ['text', 'color'].includes(el.getAttribute('type') ?? 'text')) {
       val = el.value;
     } else {
       unsupportedElement(el);
@@ -202,9 +203,44 @@ export class ConfigFormValueMapper {
   }
 }
 
+function updateWebBannerPreview(colorInput: HTMLInputElement, previewEl: HTMLElement) {
+  const backgroundColor = colorInput.value;
+  const textColor = contrastColor(backgroundColor);
+  previewEl.style.setProperty('--web-banner-bg', backgroundColor);
+  previewEl.style.setProperty('--web-banner-border', backgroundColor);
+  previewEl.style.setProperty('--web-banner-text', textColor);
+
+  // Links don't inherit color from CSS vars without explicit rules, so set them directly
+  for (const el of previewEl.querySelectorAll<HTMLElement>('.render-content.render-preview a, .ui.tab[data-tab-panel="markdown-previewer"] a')) {
+    el.style.color = textColor;
+  }
+}
+
+function initWebBannerColorPreview(form: HTMLFormElement) {
+  const colorInput = form.querySelector<HTMLInputElement>('.js-web-banner-background-color');
+  const previewEl = form.querySelector<HTMLElement>('.js-web-banner-preview');
+  const previewTab = form.querySelector<HTMLElement>('.web-banner-content-editor .item[data-tab-for="markdown-previewer"]');
+  const resetButton = form.querySelector<HTMLButtonElement>('.js-web-banner-color-reset');
+  if (!colorInput || !previewEl) return;
+
+  updateWebBannerPreview(colorInput, previewEl);
+  colorInput.addEventListener('input', () => updateWebBannerPreview(colorInput, previewEl));
+  previewTab?.addEventListener('click', () => {
+    // The preview DOM is updated asynchronously after clicking the tab,
+    // so re-apply the banner colors on the next macrotask.
+    window.setTimeout(() => updateWebBannerPreview(colorInput, previewEl), 0);
+  });
+  resetButton?.addEventListener('click', () => {
+    colorInput.value = resetButton.getAttribute('data-default-color')!;
+    colorInput.dispatchEvent(new Event('input', {bubbles: true}));
+    colorInput.focus();
+  });
+}
+
 function initSystemConfigForm(form: HTMLFormElement) {
   const formMapper = new ConfigFormValueMapper(form);
   formMapper.fillFromSystemConfig();
+  initWebBannerColorPreview(form);
   form.addEventListener('submit', async (e) => {
     if (!form.reportValidity()) return;
     e.preventDefault();
