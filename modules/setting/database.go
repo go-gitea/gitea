@@ -115,9 +115,6 @@ func DBConnStr() (string, error) {
 		host, port := ParseMSSQLHostPort(Database.Host)
 		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, Database.Name, Database.User, Database.Passwd)
 	case "sqlite3":
-		//if !EnableSQLite3 {
-		//	return "", errors.New("this Gitea binary was not built with SQLite3 support")
-		//}
 		if err := os.MkdirAll(filepath.Dir(Database.Path), os.ModePerm); err != nil {
 			return "", fmt.Errorf("Failed to create directories: %w", err)
 		}
@@ -204,6 +201,11 @@ func ParseMSSQLHostPort(info string) (string, string) {
 type DatabaseType string
 
 func (t DatabaseType) String() string {
+	// needed as modernrc uses sqlite as name but the setting was sqlite3 and changing that would be less than ideal
+	// TODO: Strip this during loading as no DB we support ends with number anyway (except this).
+	if t == "sqlite3" {
+		return "sqlite"
+	}
 	return string(t)
 }
 
