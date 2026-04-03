@@ -503,4 +503,4 @@ class RelativeTime extends HTMLElement {
   }
 }
 
-if (!window.customElements.get('relative-time')) window.customElements.define('relative-time', RelativeTime);
+window.customElements.define('relative-time', RelativeTime);

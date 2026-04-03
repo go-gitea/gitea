@@ -56,25 +56,21 @@ func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, out
 	if err != nil {
 		return err
 	}
-	// TODO: can extract this to a tmpl file later
+	// head_script + index.js are prepended by RenderWithRenderer via extraHeadHTML
 	_, err = io.WriteString(output, fmt.Sprintf(
 		`<!DOCTYPE html>
 <html>
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	%s
 	<link rel="stylesheet" href="%s">
 </head>
 <body>
 	<div id="swagger-ui"><textarea class="swagger-spec-content" data-spec-filename="%s">%s</textarea></div>
-	<script type="module" src="%s"></script>
 </body>
 </html>`,
-		string(ctx.RenderOptions.HeadScriptHTML),
 		public.AssetURI("css/swagger.css"),
 		html.EscapeString(ctx.RenderOptions.RelativePath),
 		html.EscapeString(util.UnsafeBytesToString(content)),
-		public.AssetURI("js/index.js"),
 	))
 	return err
 }
