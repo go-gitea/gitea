@@ -464,6 +464,49 @@ func UpdateIssueProject(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
+// UpdateIssueProjectColumn moves an issue to a different column within its project
+func UpdateIssueProjectColumn(ctx *context.Context) {
+	issueID := ctx.FormInt64("issue_id")
+	columnID := ctx.FormInt64("id")
+	if issueID == 0 || columnID == 0 {
+		ctx.JSONError("invalid issue_id or column id")
+		return
+	}
+
+	issue, err := issues_model.GetIssueByID(ctx, issueID)
+	if err != nil {
+		ctx.ServerError("GetIssueByID", err)
+		return
+	}
+	if issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound(nil)
+		return
+	}
+
+	if err := issue.LoadProject(ctx); err != nil {
+		ctx.ServerError("LoadProject", err)
+		return
+	}
+
+	column, err := project_model.GetColumn(ctx, columnID)
+	if err != nil {
+		ctx.ServerError("GetColumn", err)
+		return
+	}
+
+	if issue.Project == nil || column.ProjectID != issue.Project.ID {
+		ctx.JSONError("column does not belong to the issue's project")
+		return
+	}
+
+	if err := project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, map[int64]int64{0: issueID}); err != nil {
+		ctx.ServerError("MoveIssuesOnProjectColumn", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
 // DeleteProjectColumn allows for the deletion of a project column
 func DeleteProjectColumn(ctx *context.Context) {
 	if ctx.Doer == nil {

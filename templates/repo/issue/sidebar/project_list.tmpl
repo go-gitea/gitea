@@ -2,7 +2,7 @@
 {{$data := .ProjectsData}}
 {{$issueProject := NIL}}{{if and $pageMeta.Issue $pageMeta.Issue.Project}}{{$issueProject = $pageMeta.Issue.Project}}{{end}}
 <div class="divider"></div>
-<div class="issue-sidebar-combo" data-selection-mode="single" data-update-algo="all"
+<div class="issue-sidebar-combo sidebar-project-combo" data-selection-mode="single" data-update-algo="all"
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/projects?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
 	<input class="combo-value" name="project_id" type="hidden" value="{{if and $pageMeta.CanModifyIssueOrPull $data.SelectedProjectIDs}}{{index $data.SelectedProjectIDs 0}}{{end}}">
@@ -24,6 +24,7 @@
 					<div class="header">{{ctx.Locale.Tr "repo.issues.new.open_projects"}}</div>
 					{{range $data.OpenProjects}}
 						<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
+							<span class="item-check-mark">{{svg "octicon-check"}}</span>
 							{{svg .IconName 18 "tw-shrink-0"}}<span class="tw-flex-1 tw-break-anywhere">{{.Title}}</span>
 						</a>
 					{{end}}
@@ -33,6 +34,7 @@
 					<div class="header">{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}</div>
 					{{range $data.ClosedProjects}}
 						<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
+							<span class="item-check-mark">{{svg "octicon-check"}}</span>
 							{{svg .IconName 18 "tw-shrink-0"}}<span class="tw-flex-1 tw-break-anywhere">{{.Title}}</span>
 						</a>
 					{{end}}
@@ -40,12 +42,46 @@
 			</div>
 		</div>
 	</div>
-	<div class="ui list muted-links flex-items-block">
-		<span class="item empty-list {{if $issueProject}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
-		{{if $issueProject}}
-			<a class="item" href="{{$issueProject.Link ctx}}">
-				{{svg $issueProject.IconName 18 "tw-shrink-0"}}<span class="tw-flex-1 tw-break-anywhere">{{$issueProject.Title}}</span>
+</div>
+{{range $card := $data.ProjectCards}}
+	<div class="sidebar-project-card">
+		<div class="sidebar-project-card-header">
+			<a class="muted" href="{{$card.Project.Link ctx}}">
+				{{svg $card.Project.IconName 16 "tw-shrink-0"}}<span class="tw-flex-1 tw-break-anywhere">{{$card.Project.Title}}</span>
 			</a>
+		</div>
+		{{if gt (len $card.Columns) 1}}
+			{{if $pageMeta.CanModifyIssueOrPull}}
+				<div class="issue-sidebar-combo sidebar-project-column-combo" data-selection-mode="single" data-update-algo="all"
+					data-update-url="{{$pageMeta.RepoLink}}/issues/projects/column?issue_id={{$pageMeta.Issue.ID}}">
+					<input class="combo-value" name="column_id" type="hidden" value="{{$card.SelectedColumnID}}">
+					<div class="ui dropdown full-width">
+						<a class="sidebar-project-column-text muted">
+							{{range $card.Columns}}{{if eq .ID $card.SelectedColumnID}}{{if .Color}}<span class="sidebar-column-dot" style="background-color: {{.Color}}"></span>{{end}}{{.Title}}{{end}}{{end}}
+							{{svg "octicon-triangle-down" 14 "tw-ml-1"}}
+						</a>
+						<div class="menu">
+							{{range $card.Columns}}
+								<div class="item{{if eq .ID $card.SelectedColumnID}} checked{{end}}" data-value="{{.ID}}">
+									<span class="item-check-mark">{{svg "octicon-check"}}</span>
+									{{if .Color}}<span class="sidebar-column-dot" style="background-color: {{.Color}}"></span>{{end}}{{.Title}}
+								</div>
+							{{end}}
+						</div>
+					</div>
+					<div class="ui list tw-hidden">
+						<span class="item empty-list">No column</span>
+					</div>
+				</div>
+			{{else}}
+				{{range $card.Columns}}
+					{{if eq .ID $card.SelectedColumnID}}
+						<div class="sidebar-project-column-text muted">
+							{{if .Color}}<span class="sidebar-column-dot" style="background-color: {{.Color}}"></span>{{end}}{{.Title}}
+						</div>
+					{{end}}
+				{{end}}
+			{{end}}
 		{{end}}
 	</div>
-</div>
+{{end}}

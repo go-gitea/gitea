@@ -82,6 +82,68 @@
   visibility: hidden;
 }
 
+.sidebar-project-card {
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  padding: 0.5em;
+  margin-top: 0.35em;
+}
+
+.sidebar-project-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+}
+
+.sidebar-project-card-header a {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  font-weight: var(--font-weight-semibold);
+}
+
+.sidebar-project-column-combo {
+  margin-top: 0.25em;
+  padding-left: 1.25em;
+}
+
+.sidebar-project-column-text {
+  display: flex;
+  align-items: center;
+  font-size: 0.9em;
+}
+
+.sidebar-project-card > .sidebar-project-column-text {
+  margin-top: 0.25em;
+  padding-left: 1.25em;
+}
+
+.sidebar-column-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.issue-sidebar-combo.sidebar-project-column-combo .ui.dropdown > .menu {
+  padding: 4px;
+}
+
+.issue-sidebar-combo.sidebar-project-column-combo .ui.dropdown > .menu > .item {
+  display: flex;
+  align-items: center;
+  padding: 5px 8px;
+  margin: 2px 0;
+}
+
+.issue-sidebar-combo.sidebar-project-column-combo .ui.dropdown > .menu > .item.checked {
+  background: var(--color-secondary-bg);
+  border-radius: var(--border-radius);
+}
+
 .issue-content-right .ui.list.labels-list {
   display: flex;
   gap: var(--gap-inline);
