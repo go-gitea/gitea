@@ -1,4 +1,5 @@
 import {generateElemId, queryElemChildren} from '../utils/dom.ts';
+import {isDarkTheme} from '../utils.ts';
 
 function safeRenderIframeLink(link: any): string | null {
   try {
@@ -59,6 +60,7 @@ async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
   });
 
   const u = new URL(iframeSrcUrl, window.location.origin);
+  u.searchParams.set('gitea-is-dark-theme', String(isDarkTheme()));
   u.searchParams.set('gitea-iframe-id', iframe.id);
   iframe.src = u.href;
 }
