@@ -57,9 +57,6 @@ type RenderOptions struct {
 	// used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
 	InStandalonePage bool
 
-	// pre-rendered HTML from base/head_script template, injected into standalone pages for external renderers
-	HeadScriptHTML template.HTML
-
 	// EnableHeadingIDGeneration controls whether to auto-generate IDs for HTML headings without id attribute.
 	// This should be enabled for repository files and wiki pages, but disabled for comments to avoid duplicate IDs.
 	EnableHeadingIDGeneration bool
@@ -132,11 +129,6 @@ func (ctx *RenderContext) WithMetas(metas map[string]string) *RenderContext {
 
 func (ctx *RenderContext) WithInStandalonePage(v bool) *RenderContext {
 	ctx.RenderOptions.InStandalonePage = v
-	return ctx
-}
-
-func (ctx *RenderContext) WithHeadScriptHTML(v template.HTML) *RenderContext {
-	ctx.RenderOptions.HeadScriptHTML = v
 	return ctx
 }
 
@@ -217,7 +209,7 @@ func renderIFrame(ctx *RenderContext, sandbox string, output io.Writer) error {
 	if sandbox != "" {
 		sandboxAttrValue = htmlutil.HTMLFormat(`sandbox="%s"`, sandbox)
 	}
-	iframe := htmlutil.HTMLFormat(`<iframe data-src="%s" class="external-render-iframe" %s></iframe>`, src, sandboxAttrValue)
+	iframe := htmlutil.HTMLFormat(`<iframe data-src="%s" class="external-render-iframe is-loading" %s></iframe>`, src, sandboxAttrValue)
 	_, err := io.WriteString(output, string(iframe))
 	return err
 }

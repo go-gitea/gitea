@@ -4,8 +4,6 @@
 package repo
 
 import (
-	"fmt"
-	"html/template"
 	"net/http"
 	"path"
 
@@ -13,7 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -42,14 +39,10 @@ func RenderFile(ctx *context.Context) {
 	}
 	defer blobReader.Close()
 
-	themeCSSLink := template.HTML(fmt.Sprintf(`<link rel="stylesheet" href="%s">`, public.AssetURI(fmt.Sprintf("css/theme-%s.css", ctx.TemplateContext.CurrentWebTheme().InternalName))))
-	headScriptHTML, _ := ctx.RenderToHTML("base/head_script", ctx.Data)
-	headScriptHTML = themeCSSLink + headScriptHTML
-
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
 		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
 		CurrentTreePath: path.Dir(ctx.Repo.TreePath),
-	}).WithRelativePath(ctx.Repo.TreePath).WithInStandalonePage(true).WithHeadScriptHTML(headScriptHTML)
+	}).WithRelativePath(ctx.Repo.TreePath).WithInStandalonePage(true)
 	renderer, rendererInput, err := rctx.DetectMarkupRendererByReader(blobReader)
 	if err != nil {
 		http.Error(ctx.Resp, "Unable to find renderer", http.StatusBadRequest)

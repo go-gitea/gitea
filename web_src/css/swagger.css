@@ -9,10 +9,14 @@ body {
   background: var(--color-box-body);
 }
 
-html[data-gitea-theme-dark="true"],
-html[data-gitea-theme-dark="true"] .swagger-ui,
-html[data-gitea-theme-dark="true"] .swagger-ui .scheme-container {
+html.dark-mode body,
+html.dark-mode .swagger-ui,
+html.dark-mode .swagger-ui .scheme-container {
   background: var(--color-box-body) !important;
+}
+
+html.dark-mode .swagger-ui table.headers td {
+  color: var(--color-text) !important;
 }
 
 .swagger-back-link {
@@ -23,10 +27,6 @@ html[data-gitea-theme-dark="true"] .swagger-ui .scheme-container {
   right: 1.5rem;
   display: flex;
   align-items: center;
-}
-
-html[data-gitea-theme-dark="true"] .swagger-ui table.headers td {
-  color: var(--color-text) !important;
 }
 
 .swagger-back-link:hover {

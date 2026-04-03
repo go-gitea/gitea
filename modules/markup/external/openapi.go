@@ -57,14 +57,14 @@ func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, out
 		return err
 	}
 	// TODO: can extract this to a tmpl file later
-	// HeadScriptHTML provides iife.js + window.config + theme CSS; index.js provides initSwagger
 	// external-render-iframe.js is additionally prepended by RenderWithRenderer via extraHeadHTML
 	_, err = io.WriteString(output, fmt.Sprintf(
 		`<!DOCTYPE html>
 <html>
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	%s
+	<script>window.config = {appSubUrl: '%s', assetUrlPrefix: '%s', i18n: {}, pageData: {}}</script>
+	<script src="%s"></script>
 	<link rel="stylesheet" href="%s">
 </head>
 <body>
@@ -72,7 +72,9 @@ func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, out
 	<script type="module" src="%s"></script>
 </body>
 </html>`,
-		ctx.RenderOptions.HeadScriptHTML,
+		setting.AppSubURL,
+		setting.StaticURLPrefix+"/assets",
+		public.AssetURI("js/iife.js"),
 		public.AssetURI("css/swagger.css"),
 		html.EscapeString(ctx.RenderOptions.RelativePath),
 		html.EscapeString(util.UnsafeBytesToString(content)),

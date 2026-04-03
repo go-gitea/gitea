@@ -22,10 +22,10 @@ export function initExternalRenderIframe() {
   };
 
   const updateIframeHeight = () => {
-    // Don't use integer heights from the DOM node.
-    // Use getBoundingClientRect(), then ceil the height to avoid fractional pixels which causes incorrect scrollbars.
-    const rect = document.documentElement.getBoundingClientRect();
-    postIframeMsg('resize', {iframeHeight: Math.ceil(rect.height)});
+    // Use scrollHeight to get the full content height, even when CSS sets html/body to height:100%
+    // (which would make getBoundingClientRect return the viewport height instead of content height).
+    const height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+    postIframeMsg('resize', {iframeHeight: height});
     // As long as the parent page is responsible for the iframe height, the iframe itself doesn't need scrollbars.
     // This style should only be dynamically set here when our code can run.
     document.documentElement.style.overflowY = 'hidden';
