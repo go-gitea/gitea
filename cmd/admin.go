@@ -18,36 +18,41 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	// CmdAdmin represents the available admin sub-command.
-	CmdAdmin = &cli.Command{
+func newAdminCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "admin",
 		Usage: "Perform common administrative operations",
 		Commands: []*cli.Command{
-			subcmdUser,
-			subcmdRepoSyncReleases,
-			subcmdRegenerate,
-			subcmdAuth,
-			subcmdSendMail,
+			newUserCommand(),
+			newRepoSyncReleasesCommand(),
+			newRegenerateCommand(),
+			newAuthCommand(),
+			newSendMailCommand(),
 		},
 	}
+}
 
-	subcmdRepoSyncReleases = &cli.Command{
+func newRepoSyncReleasesCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "repo-sync-releases",
 		Usage:  "Synchronize repository releases with tags",
 		Action: runRepoSyncReleases,
 	}
+}
 
-	subcmdRegenerate = &cli.Command{
+func newRegenerateCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "regenerate",
 		Usage: "Regenerate specific files",
 		Commands: []*cli.Command{
-			microcmdRegenHooks,
-			microcmdRegenKeys,
+			newRegenerateHooksCommand(),
+			newRegenerateKeysCommand(),
 		},
 	}
+}
 
-	subcmdAuth = &cli.Command{
+func newAuthCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "auth",
 		Usage: "Modify external auth providers",
 		Commands: []*cli.Command{
@@ -59,12 +64,14 @@ var (
 			microcmdAuthUpdateLdapSimpleAuth(),
 			microcmdAuthAddSMTP(),
 			microcmdAuthUpdateSMTP(),
-			microcmdAuthList,
-			microcmdAuthDelete,
+			newAuthListCommand(),
+			newAuthDeleteCommand(),
 		},
 	}
+}
 
-	subcmdSendMail = &cli.Command{
+func newSendMailCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "sendmail",
 		Usage:  "Send a message to all users",
 		Action: runSendMail,
@@ -86,7 +93,7 @@ var (
 			},
 		},
 	}
-)
+}
 
 func idFlag() *cli.Int64Flag {
 	return &cli.Int64Flag{

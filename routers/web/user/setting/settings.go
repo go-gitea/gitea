@@ -9,8 +9,16 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/context"
 )
+
+func SettingsCtxData(ctx *context.Context) {
+	ctx.Data["PageIsUserSettings"] = true
+	ctx.Data["EnablePackages"] = setting.Packages.Enabled
+	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
+}
 
 func UpdatePreferences(ctx *context.Context) {
 	type preferencesForm struct {

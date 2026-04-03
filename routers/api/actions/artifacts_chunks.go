@@ -285,6 +285,17 @@ func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int
 	return nil
 }
 
+func generateArtifactStoragePath(artifact *actions.ActionArtifact) string {
+	// if chunk is gzip, use gz as extension
+	// download-artifact action will use content-encoding header to decide if it should decompress the file
+	extension := "chunk"
+	if artifact.ContentEncodingOrType == actions.ContentEncodingV3Gzip {
+		extension = "chunk.gz"
+	}
+
+	return fmt.Sprintf("%d/%d/%d.%s", artifact.RunID%255, artifact.ID%255, time.Now().UnixNano(), extension)
+}
+
 func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st storage.ObjectStorage, artifact *actions.ActionArtifact, checksum string) error {
 	sort.Slice(chunks, func(i, j int) bool {
 		return chunks[i].Start < chunks[j].Start
@@ -335,15 +346,8 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		mergedReader = io.TeeReader(mergedReader, hashSha256)
 	}
 
-	// if chunk is gzip, use gz as extension
-	// download-artifact action will use content-encoding header to decide if it should decompress the file
-	extension := "chunk"
-	if artifact.ContentEncoding == "gzip" {
-		extension = "chunk.gz"
-	}
-
 	// save merged file
-	storagePath := fmt.Sprintf("%d/%d/%d.%s", artifact.RunID%255, artifact.ID%255, time.Now().UnixNano(), extension)
+	storagePath := generateArtifactStoragePath(artifact)
 	written, err := st.Save(storagePath, mergedReader, artifact.FileCompressedSize)
 	if err != nil {
 		return fmt.Errorf("save merged file error: %v", err)

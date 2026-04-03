@@ -29,35 +29,42 @@ onBeforeUnmount(() => {
 });
 </script>
 <template>
-  <div>
+  <div class="action-run-summary-view">
     <div class="action-run-summary-block">
-      <p class="action-run-summary-trigger">
-        {{ locale.triggeredVia.replace('%s', run.triggerEvent) }}
-        &nbsp;•&nbsp;<relative-time :datetime="runTriggeredAtIso" prefix=" "/>
-      </p>
-      <p class="tw-mb-0">
+      <div class="flex-text-block">
+        {{ locale.triggeredVia.replace('%s', run.triggerEvent) }} • <relative-time :datetime="runTriggeredAtIso" prefix=""/>
+      </div>
+      <div class="flex-text-block">
         <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="16"/>
-        <span class="tw-ml-2">{{ locale.status[run.status] }}</span>
-        <span class="tw-ml-3">{{ locale.totalDuration }} {{ run.duration || '–' }}</span>
-      </p>
+        <span>{{ locale.status[run.status] }}</span> • <span>{{ locale.totalDuration }} {{ run.duration || '–' }}</span>
+      </div>
     </div>
     <WorkflowGraph
       v-if="run.jobs.length > 0"
+      :store="store"
       :jobs="run.jobs"
       :run-link="run.link"
       :workflow-id="run.workflowID"
-      class="workflow-graph-container"
     />
   </div>
 </template>
 <style scoped>
-.action-run-summary-block {
-  padding: 12px;
-  border-bottom: 1px solid var(--color-secondary);
+.action-run-summary-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  color: var(--color-text-light-1);
 }
 
-.action-run-summary-trigger {
-  margin-bottom: 6px;
-  color: var(--color-text-light-2);
+.action-run-summary-block {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px;
+  border-bottom: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  background: var(--color-box-header);
 }
 </style>

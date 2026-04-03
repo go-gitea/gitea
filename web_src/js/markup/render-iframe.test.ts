@@ -28,6 +28,7 @@ describe('navigateToIframeLink', () => {
   });
 
   test('unsafe links', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     window.location.href = 'http://localhost:3000/';
 
     // eslint-disable-next-line no-script-url
@@ -41,6 +42,7 @@ describe('navigateToIframeLink', () => {
     expect(openSpy).toHaveBeenCalledTimes(0);
     expect(assignSpy).toHaveBeenCalledTimes(0);
     expect(window.location.href).toBe('http://localhost:3000/');
+    errorSpy.mockRestore();
     vi.clearAllMocks();
   });
 });

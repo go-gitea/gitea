@@ -44,7 +44,7 @@ func TestAPIIssuesReactions(t *testing.T) {
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "zzz",
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusNoContent)
 
 	// Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
@@ -111,7 +111,7 @@ func TestAPICommentReactions(t *testing.T) {
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "eyes",
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusNoContent)
 
 	t.Run("UnrelatedCommentID", func(t *testing.T) {
 		// Using the ID of a comment that does not belong to the repository must fail

@@ -88,7 +88,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, canSeePrivate bo
 
 	apiRepos := make([]*api.Repository, 0, len(repos))
 	for i := range repos {
-		permission, err := access_model.GetUserRepoPermission(ctx, repos[i], ctx.Doer)
+		permission, err := access_model.GetDoerRepoPermission(ctx, repos[i], ctx.Doer)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -204,7 +204,7 @@ func ListMyRepos(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 		}

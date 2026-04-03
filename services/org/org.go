@@ -168,3 +168,20 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 		return nil
 	})
 }
+
+// UpdateOrgEmailAddress validates and updates the organization's contact email.
+// A nil email means no change.
+func UpdateOrgEmailAddress(ctx context.Context, org *org_model.Organization, email *string) error {
+	if email == nil {
+		return nil
+	}
+
+	if *email != "" {
+		if err := user_model.ValidateEmail(*email); err != nil {
+			return err
+		}
+	}
+
+	org.Email = *email
+	return user_model.UpdateUserCols(ctx, org.AsUser(), "email")
+}

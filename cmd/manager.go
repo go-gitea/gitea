@@ -13,22 +13,24 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	// CmdManager represents the manager command
-	CmdManager = &cli.Command{
+func newManagerCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "manager",
 		Usage:       "Manage the running gitea process",
 		Description: "This is a command for managing the running gitea process",
 		Commands: []*cli.Command{
-			subcmdShutdown,
-			subcmdRestart,
-			subcmdReloadTemplates,
-			subcmdFlushQueues,
-			subcmdLogging,
-			subCmdProcesses,
+			newShutdownCommand(),
+			newRestartCommand(),
+			newReloadTemplatesCommand(),
+			newFlushQueuesCommand(),
+			newLoggingCommand(),
+			newProcessesCommand(),
 		},
 	}
-	subcmdShutdown = &cli.Command{
+}
+
+func newShutdownCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "shutdown",
 		Usage: "Gracefully shutdown the running process",
 		Flags: []cli.Flag{
@@ -38,7 +40,10 @@ var (
 		},
 		Action: runShutdown,
 	}
-	subcmdRestart = &cli.Command{
+}
+
+func newRestartCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "restart",
 		Usage: "Gracefully restart the running process - (not implemented for windows servers)",
 		Flags: []cli.Flag{
@@ -48,7 +53,10 @@ var (
 		},
 		Action: runRestart,
 	}
-	subcmdReloadTemplates = &cli.Command{
+}
+
+func newReloadTemplatesCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "reload-templates",
 		Usage: "Reload template files in the running process",
 		Flags: []cli.Flag{
@@ -58,7 +66,10 @@ var (
 		},
 		Action: runReloadTemplates,
 	}
-	subcmdFlushQueues = &cli.Command{
+}
+
+func newFlushQueuesCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "flush-queues",
 		Usage:  "Flush queues in the running process",
 		Action: runFlushQueues,
@@ -77,7 +88,10 @@ var (
 			},
 		},
 	}
-	subCmdProcesses = &cli.Command{
+}
+
+func newProcessesCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "processes",
 		Usage:  "Display running processes within the current process",
 		Action: runProcesses,
@@ -107,7 +121,7 @@ var (
 			},
 		},
 	}
-)
+}
 
 func runShutdown(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))

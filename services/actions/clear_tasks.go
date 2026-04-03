@@ -40,6 +40,8 @@ func notifyWorkflowJobStatusUpdate(ctx context.Context, jobs []*actions_model.Ac
 	if len(jobs) == 0 {
 		return
 	}
+	// The input jobs may belong to different runs, so track each affected run.
+	runs := make(map[int64]*actions_model.ActionRun, len(jobs))
 	for _, job := range jobs {
 		if err := job.LoadAttributes(ctx); err != nil {
 			log.Error("Failed to load job attributes: %v", err)
@@ -47,10 +49,13 @@ func notifyWorkflowJobStatusUpdate(ctx context.Context, jobs []*actions_model.Ac
 		}
 		CreateCommitStatusForRunJobs(ctx, job.Run, job)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+		if _, ok := runs[job.RunID]; !ok {
+			runs[job.RunID] = job.Run
+		}
 	}
 
-	if job := jobs[0]; job.Run != nil && job.Run.Repo != nil {
-		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
+	for _, run := range runs {
+		notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 	}
 }
 
