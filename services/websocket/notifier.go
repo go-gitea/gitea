@@ -42,6 +42,17 @@ func Init() error {
 	return nil
 }
 
+func publishNotificationCount(userID, count int64) {
+	msg, err := json.Marshal(notificationCountEvent{
+		Type:  "notification-count",
+		Count: count,
+	})
+	if err != nil {
+		return
+	}
+	pubsub.DefaultBroker.Publish(pubsub.UserTopic(userID), msg)
+}
+
 func run(ctx context.Context) {
 	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: WebSocket", process.SystemProcessType, true)
 	defer finished()
@@ -73,14 +84,7 @@ func run(ctx context.Context) {
 			}
 
 			for _, uidCount := range uidCounts {
-				msg, err := json.Marshal(notificationCountEvent{
-					Type:  "notification-count",
-					Count: uidCount.Count,
-				})
-				if err != nil {
-					continue
-				}
-				pubsub.DefaultBroker.Publish(pubsub.UserTopic(uidCount.UserID), msg)
+				publishNotificationCount(uidCount.UserID, uidCount.Count)
 			}
 
 			then = now

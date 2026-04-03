@@ -23,17 +23,7 @@ type stopwatchesEvent struct {
 	Data any    `json:"data"`
 }
 
-// PublishStopwatchesForUser fetches the user's current stopwatches and pushes
-// them immediately to all connected WebSocket clients, bypassing the periodic
-// polling loop. Call this after any stopwatch start, stop, or cancel so that
-// all open tabs update without waiting for the next tick.
-func PublishStopwatchesForUser(ctx context.Context, user *user_model.User) {
-	sws, err := issues_model.GetUserStopwatches(ctx, user.ID, db.ListOptions{})
-	if err != nil {
-		log.Error("websocket: GetUserStopwatches %d: %v", user.ID, err)
-		return
-	}
-
+func publishStopwatchesForUser(ctx context.Context, user *user_model.User, sws []*issues_model.Stopwatch) {
 	var data any
 	if len(sws) == 0 {
 		data = []any{}
@@ -53,6 +43,19 @@ func PublishStopwatchesForUser(ctx context.Context, user *user_model.User) {
 		return
 	}
 	pubsub.DefaultBroker.Publish(pubsub.UserTopic(user.ID), msg)
+}
+
+// PublishStopwatchesForUser fetches the user's current stopwatches and pushes
+// them immediately to all connected WebSocket clients, bypassing the periodic
+// polling loop. Call this after any stopwatch start, stop, or cancel so that
+// all open tabs update without waiting for the next tick.
+func PublishStopwatchesForUser(ctx context.Context, user *user_model.User) {
+	sws, err := issues_model.GetUserStopwatches(ctx, user.ID, db.ListOptions{})
+	if err != nil {
+		log.Error("websocket: GetUserStopwatches %d: %v", user.ID, err)
+		return
+	}
+	publishStopwatchesForUser(ctx, user, sws)
 }
 
 func runStopwatch(ctx context.Context) {
@@ -87,23 +90,7 @@ func runStopwatch(ctx context.Context) {
 					log.Error("websocket: GetUserByID %d: %v", us.UserID, err)
 					continue
 				}
-
-				apiSWs, err := convert.ToStopWatches(ctx, u, us.StopWatches)
-				if err != nil {
-					if !issues_model.IsErrIssueNotExist(err) {
-						log.Error("websocket: ToStopWatches: %v", err)
-					}
-					continue
-				}
-
-				msg, err := json.Marshal(stopwatchesEvent{
-					Type: "stopwatches",
-					Data: apiSWs,
-				})
-				if err != nil {
-					continue
-				}
-				pubsub.DefaultBroker.Publish(pubsub.UserTopic(us.UserID), msg)
+				publishStopwatchesForUser(ctx, u, us.StopWatches)
 			}
 		}
 	}

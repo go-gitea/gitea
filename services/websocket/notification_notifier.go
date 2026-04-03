@@ -8,10 +8,8 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	notify_service "code.gitea.io/gitea/services/notify"
-	"code.gitea.io/gitea/services/pubsub"
 )
 
 type wsNotifier struct {
@@ -32,12 +30,5 @@ func (n *wsNotifier) NotificationCountChange(ctx context.Context, userID int64) 
 		log.Error("websocket: NotificationCountChange count %d: %v", userID, err)
 		return
 	}
-	msg, err := json.Marshal(notificationCountEvent{
-		Type:  "notification-count",
-		Count: count,
-	})
-	if err != nil {
-		return
-	}
-	pubsub.DefaultBroker.Publish(pubsub.UserTopic(userID), msg)
+	publishNotificationCount(userID, count)
 }
