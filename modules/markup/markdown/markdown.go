@@ -21,7 +21,6 @@ import (
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
-	meta "github.com/yuin/goldmark-meta"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -166,7 +165,6 @@ func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 				ParseBlockDollar:         setting.Markdown.MathCodeBlockOptions.ParseBlockDollar,
 				ParseBlockSquareBrackets: setting.Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets, //  this is a bad syntax "\[ ... \]", it conflicts with normal markdown escaping
 			}),
-			meta.Meta,
 		),
 		goldmark.WithParserOptions(
 			parser.WithAttribute(),

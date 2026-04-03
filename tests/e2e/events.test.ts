@@ -1,13 +1,12 @@
 import {test, expect} from '@playwright/test';
-import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiDeleteUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, timeoutFactor} from './utils.ts';
+import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiDeleteUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, timeoutFactor, randomString} from './utils.ts';
 
 // These tests rely on a short EVENT_SOURCE_UPDATE_TIME in the e2e server config.
 test.describe('events', () => {
   test('notification count', async ({page, request}) => {
-    const id = `ev-notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    const owner = `${id}-owner`;
-    const commenter = `${id}-commenter`;
-    const repoName = id;
+    const owner = `ev-notif-owner-${randomString(8)}`;
+    const commenter = `ev-notif-commenter-${randomString(8)}`;
+    const repoName = `ev-notif-${randomString(8)}`;
 
     await Promise.all([apiCreateUser(request, owner), apiCreateUser(request, commenter)]);
 
@@ -30,7 +29,7 @@ test.describe('events', () => {
   });
 
   test('stopwatch', async ({page, request}) => {
-    const name = `ev-sw-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const name = `ev-sw-${randomString(8)}`;
     const headers = apiUserHeaders(name);
 
     await apiCreateUser(request, name);
@@ -52,7 +51,7 @@ test.describe('events', () => {
   });
 
   test('logout propagation', async ({browser, request}) => {
-    const name = `ev-logout-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const name = `ev-logout-${randomString(8)}`;
 
     await apiCreateUser(request, name);
 

@@ -119,12 +119,8 @@ func handleFileViewRenderSource(ctx *context.Context, attrs *attribute.Attribute
 	}
 
 	language := attrs.GetLanguage().Value()
-	fileContent, lexerName, err := highlight.RenderFullFile(filename, language, buf)
+	fileContent, lexerName := highlight.RenderFullFile(filename, language, buf)
 	ctx.Data["LexerName"] = lexerName
-	if err != nil {
-		log.Error("highlight.RenderFullFile failed, fallback to plain text: %v", err)
-		fileContent = highlight.RenderPlainText(buf)
-	}
 	status := &charset.EscapeStatus{}
 	statuses := make([]*charset.EscapeStatus, len(fileContent))
 	for i, line := range fileContent {

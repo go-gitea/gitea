@@ -5,10 +5,13 @@ package context
 
 import (
 	"context"
+	"html/template"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/webtheme"
@@ -68,4 +71,15 @@ func (c TemplateContext) CurrentWebBanner() *setting.WebBannerType {
 		return &banner
 	}
 	return nil
+}
+
+// AppFullLink returns a full URL link with AppSubURL for the given app link (no AppSubURL)
+// If no link is given, it returns the current app full URL with sub-path but without trailing slash (that's why it is not named as AppURL)
+func (c TemplateContext) AppFullLink(link ...string) template.URL {
+	s := httplib.GuessCurrentAppURL(c.parentContext())
+	s = strings.TrimSuffix(s, "/")
+	if len(link) == 0 {
+		return template.URL(s)
+	}
+	return template.URL(s + strings.TrimPrefix(link[0], "/"))
 }

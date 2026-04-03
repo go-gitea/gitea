@@ -816,12 +816,14 @@ func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *rep
 		return
 	}
 
-	newNotifyInput(repo, sender, webhook_module.HookEventWorkflowRun).WithPayload(&api.WorkflowRunPayload{
-		Action:       status,
-		Workflow:     convertedWorkflow,
-		WorkflowRun:  convertedRun,
-		Organization: org,
-		Repo:         convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeOwner}),
-		Sender:       convert.ToUser(ctx, sender, nil),
-	}).Notify(ctx)
+	newNotifyInput(repo, sender, webhook_module.HookEventWorkflowRun).
+		WithRef(git.RefNameFromBranch(repo.DefaultBranch).String()).
+		WithPayload(&api.WorkflowRunPayload{
+			Action:       status,
+			Workflow:     convertedWorkflow,
+			WorkflowRun:  convertedRun,
+			Organization: org,
+			Repo:         convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeOwner}),
+			Sender:       convert.ToUser(ctx, sender, nil),
+		}).Notify(ctx)
 }
