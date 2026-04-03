@@ -217,7 +217,7 @@ func renderIFrame(ctx *RenderContext, sandbox string, output io.Writer) error {
 	if sandbox != "" {
 		sandboxAttrValue = htmlutil.HTMLFormat(`sandbox="%s"`, sandbox)
 	}
-	iframe := htmlutil.HTMLFormat(`<iframe data-src="%s" class="external-render-iframe is-loading" %s></iframe>`, src, sandboxAttrValue)
+	iframe := htmlutil.HTMLFormat(`<iframe data-src="%s" class="external-render-iframe" %s></iframe>`, src, sandboxAttrValue)
 	_, err := io.WriteString(output, string(iframe))
 	return err
 }
@@ -246,8 +246,10 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 			return renderIFrame(ctx, extOpts.ContentSandbox, output)
 		}
 		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
-		indexSrc := public.AssetURI("js/index.js")
-		extraHeadHTML = ctx.RenderOptions.HeadScriptHTML + htmlutil.HTMLFormat(`<script type="module" src="%s"></script>`, indexSrc)
+		extraStyleHref := public.AssetURI("css/external-render-iframe.css")
+		extraScriptSrc := public.AssetURI("js/external-render-iframe.js")
+		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
+		extraHeadHTML = htmlutil.HTMLFormat(`<script type="module" src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraStyleHref)
 	}
 
 	ctx.usedByRender = true

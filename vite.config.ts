@@ -245,6 +245,7 @@ export default defineConfig(commonViteOpts({
     rolldownOptions: {
       input: {
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
+        'external-render-iframe': join(import.meta.dirname, 'web_src/js/standalone/external-render-iframe.ts'),
         'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/features/eventsource.sharedworker.ts'),
         swagger: join(import.meta.dirname, 'web_src/css/swagger.css'),
         devtest: join(import.meta.dirname, 'web_src/css/devtest.css'),

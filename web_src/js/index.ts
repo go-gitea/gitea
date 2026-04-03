@@ -69,7 +69,6 @@ import {initActionsPermissionsForm} from './features/common-actions-permissions.
 import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initSwagger} from './modules/swagger.ts';
 import {initDevtest} from './modules/devtest.ts';
-import {initExternalRenderIframe} from './modules/external-render-iframe.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -166,7 +165,6 @@ const initPerformanceTracer = callInitFunctions([
 
   initSwagger,
   initDevtest,
-  initExternalRenderIframe,
 ]);
 
 // it must be the last one, then the "querySelectorAll" only needs to be executed once for global init functions.
