@@ -261,6 +261,7 @@ func Routes() *web.Router {
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", routing.MarkLogLevelTrace, optionsCorsHandler(), public.FileHandlerFunc())
+	// Since the avatar is accessed via a hash-based URL and the hash cannot be enumerated, it does not need to respect REQUIRE_SIGNIN_VIEW.
 	routes.Methods("GET, HEAD", "/avatars/*", avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
@@ -727,7 +728,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/activate", auth.Activate)
 		m.Post("/activate", auth.ActivatePost)
 		m.Any("/activate_email", auth.ActivateEmail)
-		m.Get("/avatar/{username}/{size}", user.AvatarByUsernameSize)
+		// avatar should follow REQUIRE_SIGNIN_VIEW configuration for privacy protection
+		m.Get("/avatar/{username}/{size}", optSignIn, user.AvatarByUsernameSize)
 		m.Get("/recover_account", auth.ResetPasswd)
 		m.Post("/recover_account", auth.ResetPasswdPost)
 		m.Get("/forgot_password", auth.ForgotPasswd)
@@ -741,7 +743,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	})
 	// ***** END: User *****
-
+	// Avatars must remain accessible without sign-in; otherwise, avatar images cannot be loaded in emails.
+	// Since only the hash is provided, it cannot be used to iterate or retrieve other avatars.
 	m.Get("/avatar/{hash}", user.AvatarByEmailHash)
 
 	adminReq := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true, AdminRequired: true})
