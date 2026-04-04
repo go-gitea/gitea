@@ -15,9 +15,9 @@ import (
 
 var (
 	// SupportedDatabaseTypes includes all XORM supported databases type
-	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "sqlite"}
+	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "sqlite3"}
 	// DatabaseTypeNames contains the friendly names for all database types
-	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite": "SQLite3"}
+	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3"}
 
 	//// EnableSQLite3 use SQLite3, set by build flag
 	//EnableSQLite3 bool
