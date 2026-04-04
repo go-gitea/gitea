@@ -7,8 +7,7 @@ Only show the real-char:
 .broken-code-point:not([data-escaped]) {
   border-radius: 4px;
   padding: 0 2px;
-  color: var(--color-body);
-  background: var(--color-text-light-1);
+  border: 1px var(--color-yellow) solid;
 }
 
 .broken-code-point[data-escaped] {
@@ -20,8 +19,7 @@ Only show the real-char:
   content: attr(data-escaped);
   border-radius: 2px;
   padding: 0 1px;
-  color: var(--color-body);
-  background: var(--color-text-light-1);
+  border: 1px var(--color-yellow) solid;
 }
 
 .broken-code-point[data-escaped] .char {

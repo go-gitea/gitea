@@ -273,7 +273,10 @@ func (e *escapeStreamer) writeDetectResults(data []byte, results []detectResult)
 
 func (e *escapeStreamer) writeBrokenRune(bs []byte) (err error) {
 	e.escaped.HasBadRunes = true
-	_, err = fmt.Fprintf(e.out, `<span class="broken-code-point">[%X]</span>`, bs)
+	// although we'd like to use the original bytes to display get the real broken content
+	// however, when this "escape stream" module is applied to the content, the content has been processed by other modules,
+	// so the invalid bytes just can't be kept till this step, for most cases, the only thing we see is utf8.RuneError
+	_, err = io.WriteString(e.out, `<span class="broken-code-point">�</span>`)
 	return err
 }
 
