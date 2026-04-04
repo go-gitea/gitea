@@ -159,18 +159,22 @@ func SearchIssues(ctx *context.Context) {
 
 	var includedProjectIDs []int64
 	{
-		projectID := ctx.FormInt64("project")
-		if projectID > 0 {
-			includedProjectIDs = append(includedProjectIDs, projectID)
-		}
-
+		// Parse 'projects' parameter (comma-separated list, takes precedence over legacy 'project')
 		projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormTrim("projects"), ","))
 		if err != nil {
 			ctx.HTTPError(http.StatusBadRequest, "Invalid projects parameter", err.Error())
 			return
 		}
+
 		if len(projectIDs) > 0 {
+			// Use 'projects' parameter if provided (takes complete precedence)
 			includedProjectIDs = projectIDs
+		} else {
+			// Fall back to legacy 'project' parameter (single project ID)
+			projectID := ctx.FormInt64("project")
+			if projectID > 0 {
+				includedProjectIDs = append(includedProjectIDs, projectID)
+			}
 		}
 	}
 

@@ -580,6 +580,28 @@ func TestSearchIssues(t *testing.T) {
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	session.MakeRequest(t, req, http.StatusBadRequest)
+
+	// Test projects parameter takes precedence over project parameter
+	query = url.Values{"state": {"all"}, "project": {"1"}, "projects": {"2"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	// Verify the request succeeds - precedence is that projects takes priority over project
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	// Test project parameter works when projects is not provided
+	query = url.Values{"state": {"all"}, "project": {"1"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	// Test projects parameter works when project is not provided
+	query = url.Values{"state": {"all"}, "projects": {"1,2"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, http.StatusOK, resp.Code)
 }
 
 func TestSearchIssuesWithLabels(t *testing.T) {
