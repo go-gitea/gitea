@@ -28,6 +28,9 @@
       - [What is a breaking PR?](#what-is-a-breaking-pr)
       - [How to handle breaking PRs?](#how-to-handle-breaking-prs)
     - [Maintaining open PRs](#maintaining-open-prs)
+    - [Reviewing PRs](#reviewing-prs)
+      - [For reviewers](#for-reviewers)
+      - [For PR authors](#for-pr-authors)
     - [Getting PRs merged](#getting-prs-merged)
     - [Final call](#final-call)
     - [Commit messages](#commit-messages)
@@ -317,6 +320,24 @@ Merge the base branch into your branch only when you really need to, i.e. becaus
 This reduces unnecessary CI runs. \
 Don't worry about merge commits messing up your commit history as every PR will be squash merged. \
 This means that all changes are joined into a single new commit whose message is as described below.
+
+### Reviewing PRs
+
+Maintainers are encouraged to review pull requests in areas where they have expertise or particular interest.
+
+#### For reviewers
+
+- **Verification**: Verify that the PR accurately reflects the changes, and verify that the tests and documentation are complete and aligned with the implementation.
+- **Actionable feedback**: Say what should change and why, and distinguish required changes from optional suggestions.
+- **Feedback**: Focus feedback on the issue itself and avoid comments about the contributor's abilities.
+- **Request changes**: If you request changes (i.e., block a PR), give a clear rationale and, whenever possible, a concrete path to resolution.
+- **Approval**: Only approve a PR when you are fully satisfied with its current state - "rubber-stamp" approvals need to be highlighted as such.
+
+#### For PR authors
+
+- **Response**: When answering reviewer questions, use real-world cases or examples and avoid speculation.
+- **Discussion**: A discussion is always welcome and should be used to clarify the changes and the intent of the PR.
+- **Help**: If you need help with the PR or comments are unclear, ask for clarification.
 
 ### Getting PRs merged
 
