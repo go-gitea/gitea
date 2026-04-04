@@ -50,7 +50,14 @@
     - [Frontports](#frontports)
   - [Developer Certificate of Origin (DCO)](#developer-certificate-of-origin-dco)
   - [Release Cycle](#release-cycle)
+    - [Cadence](#cadence)
+    - [Feature freeze](#feature-freeze)
+    - [Patch releases](#patch-releases)
   - [Maintainers](#maintainers)
+    - [Review expectations](#review-expectations)
+    - [Becoming a maintainer](#becoming-a-maintainer)
+    - [Stepping down, advisors, and inactivity](#stepping-down-advisors-and-inactivity)
+    - [Account security](#account-security)
   - [Technical Oversight Committee (TOC)](#technical-oversight-committee-toc)
     - [TOC election process](#toc-election-process)
     - [Current TOC members](#current-toc-members)
@@ -314,12 +321,11 @@ Breaking PRs will not be merged as long as not both of these requirements are me
 
 ### Maintaining open PRs
 
-The moment you create a non-draft PR or the moment you convert a draft PR to a non-draft PR is the moment code review starts for it. \
-Once that happens, do not rebase or squash your branch anymore as it makes it difficult to review the new changes. \
-Merge the base branch into your branch only when you really need to, i.e. because of conflicting changes in the mean time. \
-This reduces unnecessary CI runs. \
-Don't worry about merge commits messing up your commit history as every PR will be squash merged. \
-This means that all changes are joined into a single new commit whose message is as described below.
+Code review starts when you open a non-draft PR or move a draft out of draft state. After that, do not rebase or squash your branch; it makes new changes harder to review.
+
+Merge the base branch into yours only when you need to, for example because of conflicting changes elsewhere. That limits unnecessary CI runs.
+
+Every PR is squash-merged, so merge commits on your branch do not matter for final history. The squash produces a single commit whose message follows the rules below.
 
 ### Reviewing PRs
 
@@ -341,26 +347,19 @@ Maintainers are encouraged to review pull requests in areas where they have expe
 
 ### Getting PRs merged
 
-Changes to Gitea must be reviewed before they are accepted — no matter who
-makes the change, even if they are an owner or a maintainer. \
-The only exception are critical bugs that prevent Gitea from being compiled or started. \
-Specifically, we require two approvals from maintainers for every PR. \
-Once this criteria has been met, your PR receives the `lgtm/done` label. \
-From this point on, your only responsibility is to fix merge conflicts or respond to/implement requests by maintainers. \
-It is the responsibility of the maintainers from this point to get your PR merged.
+Changes to Gitea must be reviewed before they are accepted, including changes from owners and maintainers. The exception is critical bugs that prevent Gitea from compiling or starting.
 
-If a PR has the `lgtm/done` label and there are no open discussions or merge conflicts anymore, any maintainer can add the `reviewed/wait-merge` label. \
-This label means that the PR is part of the merge queue and will be merged as soon as possible. \
-The merge queue will be cleared in the order of the list below:
+We require two maintainer approvals for every PR. When that is satisfied, your PR gets the `lgtm/done` label. After that, you mainly fix merge conflicts and respond to or implement maintainer requests; maintainers drive getting the PR merged.
+
+If a PR has `lgtm/done`, no open discussions, and no merge conflicts, any maintainer may add `reviewed/wait-merge`. That puts the PR in the merge queue. PRs are merged from the queue in the order of this list:
 
 <https://github.com/go-gitea/gitea/pulls?q=is%3Apr+label%3Areviewed%2Fwait-merge+sort%3Acreated-asc+is%3Aopen>
 
-Gitea uses it's own tool, the <https://github.com/GiteaBot/gitea-backporter> to automate parts of the review process. \
-This tool does the things listed below automatically:
+Gitea uses its own tool, <https://github.com/GiteaBot/gitea-backporter>, to automate parts of the review process. The backporter:
 
-- create a backport PR if needed once the initial PR was merged
-- remove the PR from the merge queue after the PR merged
-- keep the oldest branch in the merge queue up to date with merges
+- Creates a backport PR when needed after the initial PR merges.
+- Removes the PR from the merge queue after it merges.
+- Keeps the oldest branch in the merge queue up to date with merges.
 
 ### Final call
 
@@ -372,14 +371,13 @@ However, if there are no objections from maintainers, the PR can be merged with 
 
 ### Commit messages
 
-Mergers are able and required to rewrite the PR title and summary (the first comment of a PR) so that it can produce an easily understandable commit message if necessary. \
-The final commit message should no longer contain any uncertainty such as `hopefully, <x> won't happen anymore`. Replace uncertainty with certainty.
+Mergers are required to rewrite the PR title and the first comment (the summary) when necessary so the squash commit message is clear.
+
+The final commit message should not hedge: replace phrases like `hopefully, <x> won't happen anymore` with definite wording.
 
 #### PR Co-authors
 
-A person counts as a PR co-author the moment they (co-)authored a commit that is not simply a `Merge base branch into branch` commit. \
-Mergers are required to remove such "false-positive" co-authors when writing the commit message. \
-The true co-authors must remain in the commit message.
+A person counts as a PR co-author once they (co-)authored a commit that is not simply a `Merge base branch into branch` commit. Mergers must remove such false-positive co-authors when writing the squash message. Every true co-author must remain in the commit message.
 
 #### PRs targeting `main`
 
@@ -507,42 +505,51 @@ We assume in good faith that the information you provide is legally binding.
 
 ## Release Cycle
 
-We adopted a release schedule to streamline the process of working on, finishing, and issuing releases. \
-The overall goal is to make a major release every three or four months, which breaks down into two or three months of general development followed by one month of testing and polishing known as the release freeze. \
-All the feature pull requests should be
-merged before feature freeze. All feature pull requests haven't been merged before this feature freeze will be moved to next milestone, please notice our feature freeze announcement on discord. And, during the frozen period, a corresponding
-release branch is open for fixes backported from main branch. Release candidates
-are made during this period for user testing to
-obtain a final version that is maintained in this branch.
+We use a release schedule so work, stabilization, and releases stay predictable.
 
-During a development cycle, we may also publish any necessary minor releases
-for the previous version. For example, if the latest, published release is
-v1.2, then minor changes for the previous release—e.g., v1.1.0 -> v1.1.1—are
-still possible.
+### Cadence
+
+- Aim for a major release about every three or four months.
+- Roughly two or three months of general development, then about one month of testing and polish called the **release freeze**.
+
+### Feature freeze
+
+- Merge feature PRs before the freeze when you can.
+- Feature PRs still open at the freeze move to the next milestone. Watch Discord for the freeze announcement.
+- During the freeze, a **release branch** takes fixes backported from `main`. Release candidates ship for testing; the final release for that line is maintained from that branch.
+
+### Patch releases
+
+During a cycle we may ship patch releases for an older line. For example, if the latest release is v1.2, we can still publish v1.1.1 after v1.1.0.
 
 ## Maintainers
 
-To make sure every PR is checked, we have [maintainers](MAINTAINERS). \
-Every PR **must** be reviewed by at least two maintainers (or owners) before it can get merged. \
-For refactoring PRs after a week and documentation only PRs, the approval of only one maintainer is enough. \
-A maintainer should be a contributor of Gitea and contributed at least
-4 accepted PRs. A contributor should apply as a maintainer in the
-[Discord](https://discord.gg/Gitea) `#develop` channel. The team maintainers may invite the contributor. A maintainer
-should spend some time on code reviews. If a maintainer has no
-time to do that, they should apply to leave the maintainers team
-and we will give them the honor of being a member of the [advisors
-team](https://github.com/orgs/go-gitea/teams/advisors). Of course, if
-an advisor has time to code review, we will gladly welcome them back
-to the maintainers team. If a maintainer is inactive for more than 3
-months and forgets to leave the maintainers team, the owners may move
-him or her from the maintainers team to the advisors team.
-For security reasons, Maintainers should use 2FA for their accounts and
-if possible provide GPG signed commits.
-https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
-https://help.github.com/articles/signing-commits-with-gpg/
+We list [maintainers](MAINTAINERS) so every PR gets proper review.
 
-Furthermore, any account with write access (like bots and TOC members) **must** use 2FA.
-https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
+#### Review expectations
+
+Every PR **must** be reviewed by at least two maintainers (or owners) before merge. **Exception:** after one week, refactoring PRs and documentation-only PRs need only one maintainer approval.
+
+Maintainers are expected to spend time on code reviews.
+
+#### Becoming a maintainer
+
+A maintainer should already be a Gitea contributor with at least four merged PRs. To apply, use the [Discord](https://discord.gg/Gitea) `#develop` channel. Maintainer teams may also invite contributors.
+
+#### Stepping down, advisors, and inactivity
+
+If you cannot keep reviewing, apply to leave the maintainers team. You can join the [advisors team](https://github.com/orgs/go-gitea/teams/advisors); advisors who want to review again are welcome back as maintainers.
+
+If a maintainer is inactive for more than three months and has not left the team, owners may move them to the advisors team.
+
+#### Account security
+
+For security, maintainers should enable 2FA and sign commits with GPG when possible:
+
+- [Two-factor authentication](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication)
+- [Signing commits with GPG](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits)
+
+Any account with write access (including bots and TOC members) **must** use [2FA](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication).
 
 ## Technical Oversight Committee (TOC)
 
