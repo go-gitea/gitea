@@ -173,7 +173,7 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 		return
 	}
 	d.ProjectsData.SelectedProjectIDs = []int64{d.Issue.Project.ID}
-	columns, err := d.Issue.Project.GetColumns(ctx)
+	columns, err := project_model.GetProjectColumns(ctx, d.Issue.Project.ID, db.ListOptionsAll)
 	if err != nil {
 		ctx.ServerError("GetProjectColumns", err)
 		return
