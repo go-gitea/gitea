@@ -1,5 +1,6 @@
 import '../../css/standalone/devtest.css';
-import {showInfoToast, showWarningToast, showErrorToast, type Toast} from '../modules/toast.ts';
+import {showInfoToast, showWarningToast, showErrorToast} from '../modules/toast.ts';
+import type {Toast} from '../modules/toast.ts';
 
 type LevelMap = Record<string, (message: string) => Toast | null>;
 

@@ -1,4 +1,5 @@
-import {assignElementProperty, type ElementWithAssignableProperties} from './common-button.ts';
+import {assignElementProperty} from './common-button.ts';
+import type {ElementWithAssignableProperties} from './common-button.ts';
 
 test('assignElementProperty', () => {
   const elForm = document.createElement('form');

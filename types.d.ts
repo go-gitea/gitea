@@ -1,17 +1,20 @@
 declare module 'eslint-plugin-no-use-extend-native' {
   import type {Eslint} from 'eslint';
+
   const plugin: Eslint.Plugin;
   export = plugin;
 }
 
 declare module 'eslint-plugin-array-func' {
   import type {Eslint} from 'eslint';
+
   const plugin: Eslint.Plugin;
   export = plugin;
 }
 
 declare module 'eslint-plugin-github' {
   import type {Eslint} from 'eslint';
+
   const plugin: Eslint.Plugin;
   export = plugin;
 }
@@ -28,6 +31,7 @@ declare module '*.css' {
 
 declare module '*.vue' {
   import type {DefineComponent} from 'vue';
+
   const component: DefineComponent<unknown, unknown, any>;
   export default component;
   // Here we declare all exports from vue files so `tsc` or `tsgo` can work for

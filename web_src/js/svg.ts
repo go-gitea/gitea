@@ -1,4 +1,5 @@
-import {defineComponent, h, type PropType} from 'vue';
+import {defineComponent, h} from 'vue';
+import type {PropType} from 'vue';
 import {parseDom, serializeXml} from './utils.ts';
 import {html, htmlRaw} from './utils/html.ts';
 import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
