@@ -1,5 +1,4 @@
 import type {ActionsArtifact} from '../modules/gitea-actions.ts';
-import {formatDatetime} from '../utils/time.ts';
 
 export type ArtifactTooltipLocale = {
   artifactExpired: string;
@@ -11,6 +10,7 @@ export type ArtifactTooltipLocale = {
 };
 
 const sizeUnits = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB'];
+let artifactDateFormat: Intl.DateTimeFormat;
 
 export function formatArtifactSize(size: number): string {
   let value = size;
@@ -25,9 +25,20 @@ export function formatArtifactSize(size: number): string {
   return `${formattedValue} ${sizeUnits[unitIndex]}`;
 }
 
+function getArtifactDateFormat(): Intl.DateTimeFormat {
+  return artifactDateFormat ??= new Intl.DateTimeFormat(document.documentElement.lang || undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    hourCycle: new Intl.DateTimeFormat(undefined, {hour: 'numeric'}).resolvedOptions().hourCycle,
+  });
+}
+
 export function formatArtifactTimestamp(expiresUnix: number): string | null {
   if (expiresUnix === null || !Number.isFinite(expiresUnix) || expiresUnix <= 0) return null;
-  return formatDatetime(new Date(expiresUnix * 1000));
+  return getArtifactDateFormat().format(new Date(expiresUnix * 1000));
 }
 
 export function createArtifactTooltipContent(artifact: ActionsArtifact, locale: ArtifactTooltipLocale): string {
@@ -36,7 +47,7 @@ export function createArtifactTooltipContent(artifact: ActionsArtifact, locale: 
   if (artifact.status === 'expired') {
     details.push(locale.artifactExpired);
   } else {
-    details.push(`${locale.artifactExpiresAt}: ${formatArtifactTimestamp(artifact.expiresUnix) ?? locale.status.unknown}`);
+    details.push(locale.artifactExpiresAt.replace('%s', formatArtifactTimestamp(artifact.expiresUnix) ?? locale.status.unknown));
   }
   details.push(`${locale.artifactSize}: ${formatArtifactSize(artifact.size)}`);
 
