@@ -51,13 +51,14 @@
   - [Developer Certificate of Origin (DCO)](#developer-certificate-of-origin-dco)
   - [Release Cycle](#release-cycle)
     - [Cadence](#cadence)
+    - [Release schedule](#release-schedule)
     - [Feature freeze](#feature-freeze)
     - [Patch releases](#patch-releases)
   - [Maintainers](#maintainers)
-    - [Review expectations](#review-expectations)
-    - [Becoming a maintainer](#becoming-a-maintainer)
-    - [Stepping down, advisors, and inactivity](#stepping-down-advisors-and-inactivity)
-    - [Account security](#account-security)
+      - [Review expectations](#review-expectations)
+      - [Becoming a maintainer](#becoming-a-maintainer)
+      - [Stepping down, advisors, and inactivity](#stepping-down-advisors-and-inactivity)
+      - [Account security](#account-security)
   - [Technical Oversight Committee (TOC)](#technical-oversight-committee-toc)
     - [TOC election process](#toc-election-process)
     - [Current TOC members](#current-toc-members)
@@ -511,6 +512,17 @@ We use a release schedule so work, stabilization, and releases stay predictable.
 
 - Aim for a major release about every three or four months.
 - Roughly two or three months of general development, then about one month of testing and polish called the **release freeze**.
+- _Starting with v1.26 the release cycle will be more predictable and follow a more regular schedule._
+
+### Release schedule
+
+We will try to publish a new major version every three months:
+- v1.26.0 in April 2026
+- v1.27.0 in June 2026
+- v1.28.0 in September 2026
+- v1.29.0 in December 2026
+
+A feature freeze will be announced two weeks before the release date.
 
 ### Feature freeze
 
