@@ -13,7 +13,7 @@
 			{{- range $idx, $line := .HighlightLines -}}
 			<tr>
 				<td class="lines-num"><span data-line-number="{{$line.Num}}"></span></td>
-				{{ctx.RenderUtils.RenderUnicodeEscapeToggleTd $.EscapeStatus (index $.LineEscapeStatus $idx)}}
+				{{- ctx.RenderUtils.RenderUnicodeEscapeToggleTd $.EscapeStatus (index $.LineEscapeStatus $idx)}}
 				<td class="lines-code chroma"><div class="code-inner">{{$line.FormattedContent}}</div></td>{{/* only div works, span generates incorrect HTML structure */}}
 			</tr>
 			{{- end -}}
