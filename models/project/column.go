@@ -316,6 +316,32 @@ func (p *Project) MustDefaultColumn(ctx context.Context) (*Column, error) {
 	return &column, nil
 }
 
+// GetDefaultColumnsByProjectIDs returns the default columns for multiple projects in one query.
+// Returns a map of projectID -> default column. Projects without a default column are not
+// included in the result (caller should handle via MustDefaultColumn fallback).
+func GetDefaultColumnsByProjectIDs(ctx context.Context, projectIDs []int64) (map[int64]*Column, error) {
+	if len(projectIDs) == 0 {
+		return make(map[int64]*Column), nil
+	}
+
+	// Get all default columns in one query
+	var defaultColumns []*Column
+	err := db.GetEngine(ctx).
+		Where(builder.In("project_id", projectIDs).And(builder.Eq{"`default`": true})).
+		Find(&defaultColumns)
+	if err != nil {
+		return nil, err
+	}
+
+	// Map projectID -> default column
+	result := make(map[int64]*Column, len(defaultColumns))
+	for _, col := range defaultColumns {
+		result[col.ProjectID] = col
+	}
+
+	return result, nil
+}
+
 // SetDefaultColumn represents a column for issues not assigned to one
 func SetDefaultColumn(ctx context.Context, projectID, columnID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {

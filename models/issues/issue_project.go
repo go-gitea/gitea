@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -142,27 +143,49 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			return nil
 		}
 
+		// Batch load all projects to reduce queries (1 query instead of N)
+		projects, err := project_model.GetProjectsByIDs(ctx, projectsToAdd)
+		if err != nil {
+			return err
+		}
+		projectMap := make(map[int64]*project_model.Project, len(projects))
+		for _, p := range projects {
+			projectMap[p.ID] = p
+		}
+
+		// Batch load all default columns (1-2 queries instead of N)
+		defaultColumns, err := project_model.GetDefaultColumnsByProjectIDs(ctx, projectsToAdd)
+		if err != nil {
+			return err
+		}
+
 		pi := make([]*project_model.ProjectIssue, 0, len(projectsToAdd))
 
 		for _, projectID := range projectsToAdd {
 			if projectID == 0 {
 				continue
 			}
-			newProject, err := project_model.GetProjectByID(ctx, projectID)
-			if err != nil {
-				return err
+
+			newProject, ok := projectMap[projectID]
+			if !ok {
+				return fmt.Errorf("project %d not found", projectID)
 			}
 			if !newProject.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo) {
 				return util.NewPermissionDeniedErrorf("issue %d can't be accessed by project %d", issue.ID, newProject.ID)
 			}
 
-			// Always use the project's default column when adding an issue
-			defaultColumn, err := newProject.MustDefaultColumn(ctx)
-			if err != nil {
-				return err
+			// Get the default column for this project (from batch-loaded map)
+			defaultColumn, ok := defaultColumns[projectID]
+			if !ok {
+				// Fallback: if batch loading didn't find it, call the individual method
+				defaultColumn, err = newProject.MustDefaultColumn(ctx)
+				if err != nil {
+					return err
+				}
 			}
 			projectColumnID := defaultColumn.ID
 
+			// Calculate sorting position (this query must be per-project for correctness)
 			res := struct {
 				MaxSorting int64
 				IssueCount int64

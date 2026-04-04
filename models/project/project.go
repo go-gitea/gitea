@@ -302,6 +302,16 @@ func GetProjectByID(ctx context.Context, id int64) (*Project, error) {
 	return p, nil
 }
 
+// GetProjectsByIDs returns projects by a list of IDs
+func GetProjectsByIDs(ctx context.Context, ids []int64) ([]*Project, error) {
+	if len(ids) == 0 {
+		return []*Project{}, nil
+	}
+
+	projects := make([]*Project, 0, len(ids))
+	return projects, db.GetEngine(ctx).In("id", ids).Find(&projects)
+}
+
 func GetProjectByIDAndOwner(ctx context.Context, id, ownerID int64) (*Project, error) {
 	p := new(Project)
 	has, err := db.GetEngine(ctx).ID(id).And("owner_id = ?", ownerID).Get(p)
