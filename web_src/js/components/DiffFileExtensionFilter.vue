@@ -3,12 +3,6 @@ import {ref, computed, onMounted, onUnmounted} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {generateElemId} from '../utils/dom.ts';
 
-/**
- * Represents a file extension entry in the filter dropdown
- * @property ext - Extension with dot (e.g., ".ts", ".go") or "(no extension)"
- * @property checked - Whether this extension is currently selected for display
- * @property count - Total number of diff files with this extension
- */
 type Extension = {
   ext: string,
   checked: boolean,
@@ -24,17 +18,19 @@ const searchQuery = ref('');
 const mutationObserver = ref<MutationObserver | null>(null);
 const uniqueIdMenu = generateElemId('diff-extension-filter-menu-');
 const locale = {
-  filter_by_file_extension: el.getAttribute('data-filter_by_file_extension') ?? 'Filter by extension',
-  select_all: el.getAttribute('data-select_all') ?? 'Select all',
-  deselect_all: el.getAttribute('data-deselect_all') ?? 'Deselect all',
-  apply: el.getAttribute('data-apply') ?? 'Apply',
-  search: el.getAttribute('data-search') ?? 'Search extensions...',
+  filter_by_file_extension: el.getAttribute('data-filter-by-file-extension'),
+  select_all: el.getAttribute('data-select-all'),
+  deselect_all: el.getAttribute('data-deselect-all'),
+  apply: el.getAttribute('data-apply'),
+  search: el.getAttribute('data-search'),
+  no_file_extension: el.getAttribute('data-no-file-extension'),
+  no_file_extensions_found: el.getAttribute('data-no-file-extensions-found'),
 } as Record<string, string>;
 
-/**
- * Filter extensions based on search query
- * Matches against extension name (e.g., ".ts", ".go")
- */
+// Subset of extensions shown in the dropdown while the user types in the search box.
+// Does not affect which extensions are checked or which files are hidden — only narrows
+// the visible list to help the user find a specific extension quickly.
+// e.g. searchQuery=".ts" → [.ts, .tsx]; searchQuery="" → all extensions
 const filteredExtensions = computed(() => {
   if (!searchQuery.value.trim()) {
     return extensions.value;
@@ -43,24 +39,14 @@ const filteredExtensions = computed(() => {
   return extensions.value.filter((ext) => ext.ext.toLowerCase().includes(query));
 });
 
-/**
- * Extract file extension from filename
- * Returns the extension with dot (e.g., ".ts", ".go")
- * Returns "(no extension)" for files without extension
- */
 function getExtension(filename: string): string {
   const lastDot = filename.lastIndexOf('.');
-  if (lastDot === -1 || lastDot === 0) {
-    return '(no extension)';
+  if (lastDot === -1) {
+    return locale.no_file_extension;
   }
   return filename.substring(lastDot);
 }
 
-/**
- * Scan all diff-file-box elements and build extension list
- * Checks current visibility state and sets checked state accordingly
- * Updates the extensions array sorted by file count (descending)
- */
 function scanExtensions() {
   const extensionMap = new Map<string, {total: number, visible: number}>();
   const fileBoxes = document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
@@ -93,11 +79,6 @@ function scanExtensions() {
   isFiltering.value = hiddenCount > 0;
 }
 
-/**
- * Apply filter to all diff file boxes by adding/removing tw-hidden class
- * Updates isFiltering state and persists applied extensions for load-more sync
- * @param checkedExtensions Set of extensions that should be visible
- */
 function applyFilterToFileBoxes(checkedExtensions: Set<string>) {
   const fileBoxes = document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
   let hiddenCount = 0;
@@ -119,12 +100,6 @@ function applyFilterToFileBoxes(checkedExtensions: Set<string>) {
   appliedExtensions.value = hiddenCount > 0 ? Array.from(checkedExtensions) : null;
 }
 
-/**
- * Focus a menu item element, updating tabIndex for keyboard navigation
- * Focuses the first input or button within the element if available
- * @param elem Element to focus
- * @param prevElem Previous focused element to remove from tab order
- */
 function focusElem(elem: HTMLElement | null, prevElem: HTMLElement | null) {
   if (elem) {
     elem.tabIndex = 0;
@@ -135,10 +110,6 @@ function focusElem(elem: HTMLElement | null, prevElem: HTMLElement | null) {
   }
 }
 
-/**
- * Toggle dropdown menu visibility
- * Rescans extensions when opening, clears search when closing
- */
 function toggleMenu() {
   menuVisible.value = !menuVisible.value;
   if (menuVisible.value) {
@@ -151,44 +122,22 @@ function toggleMenu() {
   }
 }
 
-/**
- * Select all file extensions
- */
 function selectAll() {
   for (const ext of extensions.value) {
     ext.checked = true;
   }
 }
 
-/**
- * Deselect all file extensions
- */
 function deselectAll() {
   for (const ext of extensions.value) {
     ext.checked = false;
   }
 }
 
-/**
- * Apply the current filter selection to diff files and close the dropdown
- * Hides/shows diff-file-box elements based on checked extensions
- */
 function applyFilter() {
   const checkedExtensions = new Set(extensions.value.filter((e) => e.checked).map((e) => e.ext));
   applyFilterToFileBoxes(checkedExtensions);
   toggleMenu();
-}
-
-/**
- * Close dropdown when clicking outside the component
- * @param event Click event
- */
-function onBodyClick(event: MouseEvent) {
-  if (!el.contains(event.target as Node)) {
-    if (menuVisible.value) {
-      toggleMenu();
-    }
-  }
 }
 
 /**
@@ -255,7 +204,6 @@ function onKeyDown(event: KeyboardEvent) {
 }
 
 onMounted(() => {
-  document.body.addEventListener('click', onBodyClick, true);
   el.addEventListener('keydown', onKeyDown);
 
   // Watch for new files being added (e.g., when "load more" is clicked)
@@ -275,7 +223,6 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  document.body.removeEventListener('click', onBodyClick, true);
   el.removeEventListener('keydown', onKeyDown);
 
   if (mutationObserver.value) {
@@ -285,6 +232,7 @@ onUnmounted(() => {
 </script>
 <template>
   <div class="ui scrolling dropdown custom diff-file-extension-filter">
+    <div v-if="menuVisible" class="diff-ext-backdrop" @click="toggleMenu()"/>
     <button
       class="ui tiny basic button"
       :class="{'diff-ext-filter-btn-active': isFiltering}"
@@ -326,7 +274,7 @@ onUnmounted(() => {
                     v-model="ext.checked"
                   >
                   <label :for="`ext-filter-${ext.ext}`" class="tw-cursor-pointer">
-                    <span class="tw-font-mono">{{ ext.ext }}</span>
+                    <span>{{ ext.ext }}</span>
                     <span class="tw-text-text-light-2"> ({{ ext.count }})</span>
                   </label>
                 </div>
@@ -334,7 +282,7 @@ onUnmounted(() => {
             </template>
           </div>
           <div v-if="filteredExtensions.length === 0" class="tw-py-4 tw-text-center tw-text-text-light-2">
-            {{ locale.no_results ?? 'No extensions found' }}
+            {{ locale.no_file_extensions_found }}
           </div>
         </div>
       </div>
@@ -382,7 +330,7 @@ onUnmounted(() => {
 
   .ui.dropdown.diff-file-extension-filter .diff-ext-filter-btn-active {
     outline: 1px solid var(--color-primary);
-    outline-offset: -1px;
+    outline-offset: -2px;
   }
 
   .ui.dropdown.diff-file-extension-filter .diff-ext-text-btn {
@@ -401,6 +349,12 @@ onUnmounted(() => {
 
   .ui.dropdown.diff-file-extension-filter .diff-ext-search-input {
     width: 100%;
+  }
+
+  .diff-ext-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
   }
 
   .ui.dropdown.diff-file-extension-filter .ui.input {

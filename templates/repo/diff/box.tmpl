@@ -35,7 +35,7 @@
 			{{template "repo/diff/whitespace_dropdown" .}}
 			{{template "repo/diff/options_dropdown" .}}
 			{{if .PageIsPullFiles}}
-				<div id="diff-extension-filter" data-filter_by_file_extension="{{ctx.Locale.Tr "repo.pulls.filter_by_file_extension"}}" data-select_all="{{ctx.Locale.Tr "repo.pulls.select_all_file_extensions"}}" data-deselect_all="{{ctx.Locale.Tr "repo.pulls.deselect_all_file_extensions"}}" data-apply="{{ctx.Locale.Tr "repo.pulls.apply_file_extension_filter"}}">
+				<div id="diff-extension-filter" data-filter-by-file-extension="{{ctx.Locale.Tr "repo.pulls.filter_by_file_extension"}}" data-select-all="{{ctx.Locale.Tr "repo.pulls.select_all_file_extensions"}}" data-deselect-all="{{ctx.Locale.Tr "repo.pulls.deselect_all_file_extensions"}}" data-apply="{{ctx.Locale.Tr "repo.pulls.apply_file_extension_filter"}}" data-no-file-extension="{{ctx.Locale.Tr "repo.pulls.no_file_extension"}}" data-no-file-extensions-found="{{ctx.Locale.Tr "repo.pulls.no_file_extensions_found"}}">
 					{{/* the following will be replaced by vue component, but this avoids any loading artifacts till the vue component is initialized */}}
 					<div class="ui jump dropdown tiny basic button custom">
 						{{svg "octicon-filter"}}
