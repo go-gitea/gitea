@@ -33,7 +33,7 @@ ifeq ($(HAS_GO), yes)
 endif
 
 CGO_ENABLED ?= 0
-ifneq (,$(findstring sqlite,$(TAGS))$(findstring pam,$(TAGS)))
+ifneq (,$(findstring pam,$(TAGS)))
 	CGO_ENABLED = 1
 endif
 
@@ -131,7 +131,7 @@ TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
-TEST_TAGS ?= $(TAGS_SPLIT) sqlite sqlite_unlock_notify
+TEST_TAGS ?= $(TAGS_SPLIT)
 
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR)
 

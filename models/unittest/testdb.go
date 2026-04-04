@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -165,11 +164,8 @@ type FixturesOptions struct {
 
 // CreateTestEngine creates a memory database and loads the fixture data from fixturesDir
 func CreateTestEngine(opts FixturesOptions) error {
-	x, err := xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
+	x, err := xorm.NewEngine("sqlite3", "file::memory:?_txlock=immediate")
 	if err != nil {
-		if strings.Contains(err.Error(), "unknown driver") {
-			return fmt.Errorf("sqlite3 requires: -tags sqlite,sqlite_unlock_notify\n%w", err)
-		}
 		return err
 	}
 	x.SetMapper(names.GonicMapper{})
