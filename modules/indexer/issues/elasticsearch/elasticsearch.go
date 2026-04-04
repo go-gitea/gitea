@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 3
+	issueIndexerLatestVersion = 4
 	// multi-match-types, currently only 2 types are used
 	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
 	esMultiMatchTypeBestFields   = "best_fields"
@@ -69,6 +69,7 @@ const (
 			"no_label": { "type": "boolean", "index": true },
 			"milestone_id": { "type": "integer", "index": true },
 			"project_ids": { "type": "integer", "index": true },
+			"no_project": { "type": "boolean", "index": true },
 			"project_board_id": { "type": "integer", "index": true },
 			"poster_id": { "type": "integer", "index": true },
 			"assignee_id": { "type": "integer", "index": true },
@@ -204,7 +205,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(elastic.NewTermsQuery("milestone_id", toAnySlice(options.MilestoneIDs)...))
 	}
 
-	if len(options.ProjectIDs) > 0 {
+	if options.NoProjectOnly {
+		query.Must(elastic.NewTermQuery("no_project", true))
+	} else if len(options.ProjectIDs) > 0 {
 		query.Must(elastic.NewTermsQuery("project_ids", toAnySlice(options.ProjectIDs)...))
 	}
 	if options.ProjectColumnID.Has() {

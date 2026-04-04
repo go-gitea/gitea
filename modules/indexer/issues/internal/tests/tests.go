@@ -355,6 +355,26 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
+		Name: "no ProjectIDs (empty array)",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 50,
+			},
+			NoProjectOnly: true,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			// Verify only issues with no projects are returned
+			for _, v := range result.Hits {
+				assert.Empty(t, data[v.ID].ProjectIDs, "Issue %d should have no projects", v.ID)
+			}
+			// Verify we got ALL issues with no projects
+			expectedCount := countIndexerData(data, func(v *internal.IndexerData) bool {
+				return len(v.ProjectIDs) == 0
+			})
+			assert.Equal(t, expectedCount, result.Total, "Should return all %d issues with no project", expectedCount)
+		},
+	},
+	{
 		Name: "PosterID",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
@@ -706,6 +726,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				NoLabel:            len(labelIDs) == 0,
 				MilestoneID:        issueIndex % 4,
 				ProjectIDs:         projectIDs,
+				NoProject:          len(projectIDs) == 0,
 				ProjectColumnID:    issueIndex % 6,
 				PosterID:           id%10 + 1, // PosterID should not be 0
 				AssigneeID:         issueIndex % 10,

@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 5
+	issueIndexerLatestVersion = 6
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
@@ -72,6 +72,7 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"no_label",
 			"milestone_id",
 			"project_ids",
+			"no_project",
 			"project_board_id",
 			"poster_id",
 			"assignee_id",
@@ -182,7 +183,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(inner_meilisearch.NewFilterIn("milestone_id", options.MilestoneIDs...))
 	}
 
-	if len(options.ProjectIDs) > 0 {
+	if options.NoProjectOnly {
+		query.And(inner_meilisearch.NewFilterEq("no_project", true))
+	} else if len(options.ProjectIDs) > 0 {
 		query.And(inner_meilisearch.NewFilterIn("project_ids", options.ProjectIDs...))
 	}
 	if options.ProjectColumnID.Has() {

@@ -47,7 +47,7 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 	}
 
 	if len(opts.ProjectIDs) == 1 && opts.ProjectIDs[0] == db.NoConditionID {
-		searchOpt.ProjectIDs = []int64{0}
+		searchOpt.NoProjectOnly = true
 	} else {
 		searchOpt.ProjectIDs = opts.ProjectIDs
 	}

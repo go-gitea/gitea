@@ -27,7 +27,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 6
+	issueIndexerLatestVersion = 7
 )
 
 const unicodeNormalizeName = "unicodeNormalize"
@@ -84,6 +84,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	docMapping.AddFieldMappingsAt("no_label", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("milestone_id", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("project_ids", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("no_project", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("project_board_id", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("poster_id", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("assignee_id", numberFieldMapping)
@@ -241,7 +242,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		queries = append(queries, bleve.NewDisjunctionQuery(milestoneQueries...))
 	}
 
-	if len(options.ProjectIDs) > 0 {
+	if options.NoProjectOnly {
+		queries = append(queries, inner_bleve.BoolFieldQuery(true, "no_project"))
+	} else if len(options.ProjectIDs) > 0 {
 		var projectQueries []query.Query
 		for _, projectID := range options.ProjectIDs {
 			projectQueries = append(projectQueries, inner_bleve.NumericEqualityQuery(projectID, "project_ids"))

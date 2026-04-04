@@ -31,6 +31,7 @@ type IndexerData struct {
 	NoLabel            bool               `json:"no_label"` // True if LabelIDs is empty
 	MilestoneID        int64              `json:"milestone_id"`
 	ProjectIDs         []int64            `json:"project_ids"`
+	NoProject          bool               `json:"no_project"`       // True if ProjectIDs is empty
 	ProjectColumnID    int64              `json:"project_board_id"` // the key should be kept as project_board_id to keep compatible
 	PosterID           int64              `json:"poster_id"`
 	AssigneeID         int64              `json:"assignee_id"`
@@ -95,6 +96,7 @@ type SearchOptions struct {
 	MilestoneIDs []int64 // milestones the issues have
 
 	ProjectIDs      []int64                // project the issues belong to
+	NoProjectOnly   bool                   // if the issues have no project, if true, ProjectIDs will be ignored
 	ProjectColumnID optional.Option[int64] // project column the issues belong to
 
 	PosterID   string // poster of the issues, "(none)" or "(any)" or a user ID
