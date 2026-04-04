@@ -6,17 +6,16 @@ package highlight
 
 import (
 	"bytes"
+	gohtml "html"
 	"html/template"
-	"slices"
 	"sync"
 
-	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/formatters/html"
+	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/styles"
 )
 
@@ -26,8 +25,6 @@ const sizeLimit = 1024 * 1024
 type globalVarsType struct {
 	highlightMapping map[string]string
 	githubStyles     *chroma.Style
-	escapeFull       []template.HTML
-	escCtrlCharsMap  []template.HTML
 }
 
 var (
@@ -43,63 +40,8 @@ func globalVars() *globalVarsType {
 		globalVarsPtr = &globalVarsType{}
 		globalVarsPtr.githubStyles = styles.Get("github")
 		globalVarsPtr.highlightMapping = setting.GetHighlightMapping()
-		globalVarsPtr.escCtrlCharsMap = make([]template.HTML, 256)
-		for i := range 0x20 {
-			pic, _ := charset.ControlCharPicture(rune(i))
-			globalVarsPtr.escCtrlCharsMap[i] = controlCharHTML(pic, byte(i))
-		}
-		pic, _ := charset.ControlCharPicture(0x7f)
-		globalVarsPtr.escCtrlCharsMap[0x7f] = controlCharHTML(pic, 0x7f)
-		globalVarsPtr.escCtrlCharsMap['\t'] = ""
-		globalVarsPtr.escCtrlCharsMap['\n'] = ""
-		globalVarsPtr.escCtrlCharsMap['\r'] = ""
-
-		globalVarsPtr.escapeFull = slices.Clone(globalVarsPtr.escCtrlCharsMap)
-		// exactly the same as Golang's html.EscapeString
-		globalVarsPtr.escapeFull['&'] = "&amp;"
-		globalVarsPtr.escapeFull['\''] = "&#39;"
-		globalVarsPtr.escapeFull['<'] = "&lt;"
-		globalVarsPtr.escapeFull['>'] = "&gt;"
-		globalVarsPtr.escapeFull['"'] = "&#34;"
 	}
 	return globalVarsPtr
-}
-
-func controlCharHTML(pic rune, char byte) template.HTML {
-	return template.HTML(`<span class="broken-code-point" data-escaped="` + string(pic) + `"><span class="char">` + string(char) + `</span></span>`)
-}
-
-func escapeByMap(code []byte, escapeMap []template.HTML) template.HTML {
-	firstEscapePos := -1
-	for i, c := range code {
-		if escapeMap[c] != "" {
-			firstEscapePos = i
-			break
-		}
-	}
-	if firstEscapePos == -1 {
-		return template.HTML(util.UnsafeBytesToString(code))
-	}
-
-	buf := make([]byte, firstEscapePos, len(code)*2)
-	copy(buf[:firstEscapePos], code[:firstEscapePos])
-	for i := firstEscapePos; i < len(code); i++ {
-		c := code[i]
-		if esc := escapeMap[c]; esc != "" {
-			buf = append(buf, esc...)
-		} else {
-			buf = append(buf, c)
-		}
-	}
-	return template.HTML(util.UnsafeBytesToString(buf))
-}
-
-func escapeFullString(code string) template.HTML {
-	return escapeByMap(util.UnsafeStringToBytes(code), globalVars().escapeFull)
-}
-
-func escapeControlChars(code []byte) template.HTML {
-	return escapeByMap(code, globalVars().escCtrlCharsMap)
 }
 
 // UnsafeSplitHighlightedLines splits highlighted code into lines preserving HTML tags
@@ -134,6 +76,10 @@ func UnsafeSplitHighlightedLines(code template.HTML) (ret [][]byte) {
 	}
 }
 
+func htmlEscape(code string) template.HTML {
+	return template.HTML(gohtml.EscapeString(code))
+}
+
 // RenderCodeSlowGuess tries to get a lexer by file name and language first,
 // if not found, it will try to guess the lexer by code content, which is slow (more than several hundreds of milliseconds).
 func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML, lexer chroma.Lexer, lexerDisplayName string) {
@@ -144,7 +90,7 @@ func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML,
 	}
 
 	if len(code) > sizeLimit {
-		return escapeFullString(code), nil, ""
+		return htmlEscape(code), nil, ""
 	}
 
 	lexer = detectChromaLexerWithAnalyze(fileName, language, util.UnsafeStringToBytes(code)) // it is also slow
@@ -153,15 +99,15 @@ func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML,
 
 // RenderCodeByLexer returns a HTML version of code string with chroma syntax highlighting classes
 func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
-	formatter := html.New(html.WithClasses(true),
-		html.WithLineNumbers(false),
-		html.PreventSurroundingPre(true),
+	formatter := chromahtml.New(chromahtml.WithClasses(true),
+		chromahtml.WithLineNumbers(false),
+		chromahtml.PreventSurroundingPre(true),
 	)
 
 	iterator, err := lexer.Tokenise(nil, code)
 	if err != nil {
 		log.Error("Can't tokenize code: %v", err)
-		return escapeFullString(code)
+		return htmlEscape(code)
 	}
 
 	htmlBuf := &bytes.Buffer{}
@@ -169,10 +115,9 @@ func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
 	err = formatter.Format(htmlBuf, globalVars().githubStyles, iterator)
 	if err != nil {
 		log.Error("Can't format code: %v", err)
-		return escapeFullString(code)
+		return htmlEscape(code)
 	}
-
-	return escapeControlChars(htmlBuf.Bytes())
+	return template.HTML(htmlBuf.Bytes())
 }
 
 // RenderFullFile returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name
@@ -205,7 +150,7 @@ func renderPlainText(code []byte) []template.HTML {
 			content = code[pos : pos+nextPos+1]
 			pos += nextPos + 1
 		}
-		lines = append(lines, escapeFullString(util.UnsafeBytesToString(content)))
+		lines = append(lines, htmlEscape(util.UnsafeBytesToString(content)))
 	}
 	return lines
 }

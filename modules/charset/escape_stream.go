@@ -4,308 +4,396 @@
 package charset
 
 import (
+	"bytes"
 	"fmt"
-	"regexp"
-	"strings"
+	"io"
 	"unicode"
 	"unicode/utf8"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 
 	"golang.org/x/net/html"
 )
 
-// VScode defaultWordRegexp
-var defaultWordRegexp = regexp.MustCompile(`(-?\d*\.\d\w*)|([^\` + "`" + `\~\!\@\#\$\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s\x00-\x1f]+)`)
-
-// ControlCharPicture returns the Unicode Control Picture for ASCII control
-// characters (0x00-0x1F → U+2400-U+241F, 0x7F → U+2421). For other runes it
-// returns 0, false.
-func ControlCharPicture(r rune) (rune, bool) {
-	if r >= 0 && r <= 0x1f {
-		return 0x2400 + r, true
-	}
-	if r == 0x7f {
-		return 0x2421, true
-	}
-	return 0, false
-}
-
-func NewEscapeStreamer(locale translation.Locale, next HTMLStreamer, allowed ...rune) HTMLStreamer {
-	allowedM := make(map[rune]bool, len(allowed))
-	for _, v := range allowed {
-		allowedM[v] = true
-	}
-	return &escapeStreamer{
-		escaped:                 &EscapeStatus{},
-		PassthroughHTMLStreamer: *NewPassthroughStreamer(next),
-		locale:                  locale,
-		ambiguousTables:         AmbiguousTablesForLocale(locale),
-		allowed:                 allowedM,
-	}
-}
-
 type escapeStreamer struct {
-	PassthroughHTMLStreamer
 	escaped         *EscapeStatus
 	locale          translation.Locale
 	ambiguousTables []*AmbiguousTable
 	allowed         map[rune]bool
+
+	in       io.Reader
+	readErr  error
+	readBuf  []byte
+	curInTag bool
+
+	out io.Writer
 }
 
-func (e *escapeStreamer) EscapeStatus() *EscapeStatus {
-	return e.escaped
+func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts ...EscapeOptions) (*EscapeStatus, error) {
+	es := &escapeStreamer{
+		escaped:         &EscapeStatus{},
+		locale:          locale,
+		ambiguousTables: AmbiguousTablesForLocale(locale),
+
+		in:      in,
+		readBuf: make([]byte, 0, 32*1024),
+
+		out: out,
+	}
+
+	if len(opts) > 0 {
+		es.allowed = opts[0].Allowed
+	}
+
+	readCount := 0
+	lastIsTag := false
+	for {
+		parts, partInTag, err := es.readRunes()
+		readCount++
+		if err == io.EOF {
+			return es.escaped, nil
+		} else if err != nil {
+			return nil, err
+		}
+		for i, part := range parts {
+			if partInTag[i] {
+				lastIsTag = true
+				if _, err := out.Write(part); err != nil {
+					return nil, err
+				}
+			} else {
+				// if last part is tag, then this part is content begin
+				// if the content is the first part of the first read, then it's also content begin
+				isContentBegin := lastIsTag || (readCount == 1 && i == 0)
+				lastIsTag = false
+				if isContentBegin {
+					if part, err = es.trimAndWriteBom(part); err != nil {
+						return nil, err
+					}
+				}
+				if err = es.detectAndWriteRunes(part); err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
 }
 
-// Text tells the next streamer there is a text
-func (e *escapeStreamer) Text(data string) error {
-	sb := &strings.Builder{}
-	var until int
-	var next int
+func (e *escapeStreamer) trimAndWriteBom(part []byte) ([]byte, error) {
+	remaining, ok := bytes.CutPrefix(part, globalVars().utf8Bom)
+	if ok {
+		part = remaining
+		if _, err := e.out.Write(globalVars().utf8Bom); err != nil {
+			return part, err
+		}
+	}
+	return part, nil
+}
+
+const longSentenceDetectionLimit = 20
+
+func (e *escapeStreamer) possibleLongSentence(results []detectResult, pos int) bool {
+	countBasic := 0
+	countNonASCII := 0
+	for i := max(pos-longSentenceDetectionLimit, 0); i < min(pos+longSentenceDetectionLimit, len(results)); i++ {
+		if results[i].runeType == runeTypeBasic && results[i].runeChar != ' ' {
+			countBasic++
+		}
+		if results[i].runeType == runeTypeNonASCII || results[i].runeType == runeTypeAmbiguous {
+			countNonASCII++
+		}
+	}
+	countChar := countBasic + countNonASCII
+	// many non-ASCII runes around, it seems to be a sentence,
+	// don't handle the invisible/ambiguous chars in it, otherwise it will be too noisy
+	return countChar != 0 && countNonASCII*100/countChar >= 50
+}
+
+func (e *escapeStreamer) analyzeDetectResults(results []detectResult) {
+	for i := range results {
+		res := &results[i]
+		if res.runeType == runeTypeInvisible || res.runeType == runeTypeAmbiguous {
+			leftIsNonASCII := i > 0 && (results[i-1].runeType == runeTypeNonASCII || results[i-1].runeType == runeTypeAmbiguous)
+			rightIsNonASCII := i < len(results)-1 && (results[i+1].runeType == runeTypeNonASCII || results[i+1].runeType == runeTypeAmbiguous)
+			surroundingNonASCII := leftIsNonASCII || rightIsNonASCII
+			if !surroundingNonASCII {
+				if len(results) < longSentenceDetectionLimit {
+					res.needEscape = setting.UI.AmbiguousUnicodeDetection
+				} else if !e.possibleLongSentence(results, i) {
+					res.needEscape = setting.UI.AmbiguousUnicodeDetection
+				}
+			}
+		}
+	}
+}
+
+func (e *escapeStreamer) detectAndWriteRunes(part []byte) error {
+	results := e.detectRunes(part)
+	e.analyzeDetectResults(results)
+	return e.writeDetectResults(part, results)
+}
+
+func (e *escapeStreamer) readRunes() (parts [][]byte, partInTag []bool, _ error) {
+	// we have read everything, eof
+	if e.readErr != nil && len(e.readBuf) == 0 {
+		return nil, nil, e.readErr
+	}
+
+	// not eof, and the there is space in the buffer, try to read more data
+	if e.readErr == nil && len(e.readBuf) <= cap(e.readBuf)*3/4 {
+		n, err := e.in.Read(e.readBuf[len(e.readBuf):cap(e.readBuf)])
+		e.readErr = err
+		e.readBuf = e.readBuf[:len(e.readBuf)+n]
+	}
+	if len(e.readBuf) == 0 {
+		return nil, nil, e.readErr
+	}
+
+	// try to exact tag parts and content parts
 	pos := 0
-	if len(data) > len(UTF8BOM) && data[:len(UTF8BOM)] == string(UTF8BOM) {
-		_, _ = sb.WriteString(data[:len(UTF8BOM)])
-		pos = len(UTF8BOM)
-	}
-	dataBytes := []byte(data)
-	for pos < len(data) {
-		nextIdxs := defaultWordRegexp.FindStringIndex(data[pos:])
-		if nextIdxs == nil {
-			until = len(data)
-			next = until
-		} else {
-			until = min(nextIdxs[0]+pos, len(data))
-			next = min(nextIdxs[1]+pos, len(data))
-		}
-
-		// from pos until we know that the runes are not \r\t\n or even ' '
-		n := next - until
-		runes := make([]rune, 0, n)
-		positions := make([]int, 0, n+1)
-
-		for pos < until {
-			r, sz := utf8.DecodeRune(dataBytes[pos:])
-			positions = positions[:0]
-			positions = append(positions, pos, pos+sz)
-			types, confusables, _ := e.runeTypes(r)
-			if err := e.handleRunes(dataBytes, []rune{r}, positions, types, confusables, sb); err != nil {
-				return err
-			}
-			pos += sz
-		}
-
-		for i := pos; i < next; {
-			r, sz := utf8.DecodeRune(dataBytes[i:])
-			runes = append(runes, r)
-			positions = append(positions, i)
-			i += sz
-		}
-		positions = append(positions, next)
-		types, confusables, runeCounts := e.runeTypes(runes...)
-		if runeCounts.needsEscape() {
-			if err := e.handleRunes(dataBytes, runes, positions, types, confusables, sb); err != nil {
-				return err
+	for pos < len(e.readBuf) {
+		var curPartEnd int
+		nextInTag := e.curInTag
+		if e.curInTag {
+			// if cur part is in tag, try to find the tag close char '>'
+			idx := bytes.IndexByte(e.readBuf[pos:], '>')
+			if idx == -1 {
+				// if no tag close char, then the whole buffer is in tag
+				curPartEnd = len(e.readBuf)
+			} else {
+				// tag part ends, switch to content part
+				curPartEnd = pos + idx + 1
+				nextInTag = !nextInTag
 			}
 		} else {
-			_, _ = sb.Write(dataBytes[pos:next])
+			// if cur part is in content, try to find the tag open char '<'
+			idx := bytes.IndexByte(e.readBuf[pos:], '<')
+			if idx == -1 {
+				// if no tag open char, then the whole buffer is in content
+				curPartEnd = len(e.readBuf)
+			} else {
+				// content part ends, switch to tag part
+				curPartEnd = pos + idx
+				nextInTag = !nextInTag
+			}
 		}
-		pos = next
+
+		curPartLen := curPartEnd - pos
+		if curPartLen == 0 {
+			// if cur part is empty, only need to switch the part type
+			if e.curInTag == nextInTag {
+				panic("impossible, curPartLen is 0 but the part in tag status is not switched")
+			}
+			e.curInTag = nextInTag
+			continue
+		}
+
+		// now, curPartLen can't be 0
+		curPart := make([]byte, curPartLen)
+		copy(curPart, e.readBuf[pos:curPartEnd])
+		// now we get the curPart bytes, but we can't directly use it, the last rune in it might have been cut
+		// try to decode the last rune, if it's invalid, then we cut the last byte and try again until we get a valid rune or no byte left
+		for i := curPartLen - 1; i >= 0; i-- {
+			last, lastSize := utf8.DecodeLastRune(curPart[i:])
+			if last == utf8.RuneError && lastSize == 1 {
+				curPartLen--
+			} else {
+				curPartLen += lastSize - 1
+				break
+			}
+		}
+		if curPartLen == 0 {
+			// actually it's impossible that the part doesn't contain any valid rune,
+			// the only case is that the cap(readBuf) is too small, or the origin contain indeed doesn't contain any valid rune
+			// * try to leave the last 4 bytes (possible longest utf-8 encoding) to next round
+			// * at least consume 1 byte to avoid infinite loop
+			curPartLen = max(len(curPart)-utf8.UTFMax, 1)
+		}
+		// finally, we get the real part we need
+		curPart = curPart[:curPartLen]
+		parts = append(parts, curPart)
+		partInTag = append(partInTag, e.curInTag)
+
+		pos += curPartLen
+		e.curInTag = nextInTag
 	}
-	if sb.Len() > 0 {
-		if err := e.PassthroughHTMLStreamer.Text(sb.String()); err != nil {
+
+	copy(e.readBuf, e.readBuf[pos:])
+	e.readBuf = e.readBuf[:len(e.readBuf)-pos]
+	return parts, partInTag, nil
+}
+
+func (e *escapeStreamer) writeDetectResults(data []byte, results []detectResult) error {
+	lastWriteRawIdx := -1
+	for idx := range results {
+		res := &results[idx]
+		if !res.needEscape {
+			if lastWriteRawIdx == -1 {
+				lastWriteRawIdx = idx
+			}
+			continue
+		}
+
+		if lastWriteRawIdx != -1 {
+			if _, err := e.out.Write(data[results[lastWriteRawIdx].position:res.position]); err != nil {
+				return err
+			}
+			lastWriteRawIdx = -1
+		}
+		switch res.runeType {
+		case runeTypeBroken:
+			if err := e.writeBrokenRune(data[res.position : res.position+res.runeSize]); err != nil {
+				return err
+			}
+		case runeTypeAmbiguous:
+			if err := e.writeAmbiguousRune(res.runeChar, res.confusable); err != nil {
+				return err
+			}
+		case runeTypeInvisible:
+			if err := e.writeInvisibleRune(res.runeChar); err != nil {
+				return err
+			}
+		case runeTypeControlChar:
+			if err := e.writeControlRune(res.runeChar); err != nil {
+				return err
+			}
+		default:
+			panic("unreachable")
+		}
+	}
+	if lastWriteRawIdx != -1 {
+		lastResult := results[len(results)-1]
+		if _, err := e.out.Write(data[results[lastWriteRawIdx].position : lastResult.position+lastResult.runeSize]); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (e *escapeStreamer) handleRunes(data []byte, runes []rune, positions []int, types []runeType, confusables []rune, sb *strings.Builder) error {
-	for i, r := range runes {
-		switch types[i] {
-		case brokenRuneType:
-			if sb.Len() > 0 {
-				if err := e.PassthroughHTMLStreamer.Text(sb.String()); err != nil {
-					return err
-				}
-				sb.Reset()
-			}
-			end := positions[i+1]
-			start := positions[i]
-			if err := e.brokenRune(data[start:end]); err != nil {
-				return err
-			}
-		case ambiguousRuneType:
-			if sb.Len() > 0 {
-				if err := e.PassthroughHTMLStreamer.Text(sb.String()); err != nil {
-					return err
-				}
-				sb.Reset()
-			}
-			if err := e.ambiguousRune(r, confusables[0]); err != nil {
-				return err
-			}
-			confusables = confusables[1:]
-		case invisibleRuneType:
-			if sb.Len() > 0 {
-				if err := e.PassthroughHTMLStreamer.Text(sb.String()); err != nil {
-					return err
-				}
-				sb.Reset()
-			}
-			if err := e.invisibleRune(r); err != nil {
-				return err
-			}
-		default:
-			_, _ = sb.WriteRune(r)
-		}
-	}
-	return nil
-}
-
-func (e *escapeStreamer) brokenRune(bs []byte) error {
-	e.escaped.Escaped = true
+func (e *escapeStreamer) writeBrokenRune(bs []byte) (err error) {
 	e.escaped.HasBadRunes = true
-
-	if err := e.PassthroughHTMLStreamer.StartTag("span", html.Attribute{
-		Key: "class",
-		Val: "broken-code-point",
-	}); err != nil {
-		return err
-	}
-	if err := e.PassthroughHTMLStreamer.Text(fmt.Sprintf("<%X>", bs)); err != nil {
-		return err
-	}
-
-	return e.PassthroughHTMLStreamer.EndTag("span")
+	_, err = fmt.Fprintf(e.out, `<span class="broken-code-point">[%X]</span>`, bs)
+	return err
 }
 
-func (e *escapeStreamer) ambiguousRune(r, c rune) error {
+func (e *escapeStreamer) writeEscapedCharHTML(tag1, attr, tag2, content, tag3 string) (err error) {
+	_, err = io.WriteString(e.out, tag1)
+	if err != nil {
+		return err
+	}
+	_, err = io.WriteString(e.out, html.EscapeString(attr))
+	if err != nil {
+		return err
+	}
+	_, err = io.WriteString(e.out, tag2)
+	if err != nil {
+		return err
+	}
+	_, err = io.WriteString(e.out, html.EscapeString(content))
+	if err != nil {
+		return err
+	}
+	_, err = io.WriteString(e.out, tag3)
+	return err
+}
+
+func (e *escapeStreamer) writeAmbiguousRune(r, c rune) (err error) {
 	e.escaped.Escaped = true
 	e.escaped.HasAmbiguous = true
-
-	if err := e.PassthroughHTMLStreamer.StartTag("span", html.Attribute{
-		Key: "class",
-		Val: "ambiguous-code-point",
-	}, html.Attribute{
-		Key: "data-tooltip-content",
-		Val: e.locale.TrString("repo.ambiguous_character", r, c),
-	}); err != nil {
-		return err
-	}
-	if err := e.PassthroughHTMLStreamer.StartTag("span", html.Attribute{
-		Key: "class",
-		Val: "char",
-	}); err != nil {
-		return err
-	}
-	if err := e.PassthroughHTMLStreamer.Text(string(r)); err != nil {
-		return err
-	}
-	if err := e.PassthroughHTMLStreamer.EndTag("span"); err != nil {
-		return err
-	}
-
-	return e.PassthroughHTMLStreamer.EndTag("span")
+	return e.writeEscapedCharHTML(
+		`<span class="ambiguous-code-point" data-tooltip-content="`,
+		e.locale.TrString("repo.ambiguous_character", r, c),
+		`"><span class="char">`,
+		string(r),
+		`</span></span>`,
+	)
 }
 
-func (e *escapeStreamer) invisibleRune(r rune) error {
+func (e *escapeStreamer) writeInvisibleRune(r rune) error {
 	e.escaped.Escaped = true
 	e.escaped.HasInvisible = true
+	return e.writeEscapedCharHTML(
+		`<span class="escaped-code-point" data-escaped="`,
+		fmt.Sprintf("[U+%04X]", r),
+		`"><span class="char">`,
+		string(r),
+		`</span></span>`,
+	)
+}
 
-	var escaped string
-	if pic, ok := ControlCharPicture(r); ok {
-		escaped = string(pic)
+func (e *escapeStreamer) writeControlRune(r rune) error {
+	var pic string
+	if r >= 0 && r <= 0x1f {
+		pic = string(0x2400 + r)
+	} else if r == 0x7f {
+		pic = string(rune(0x2421))
 	} else {
-		escaped = fmt.Sprintf("[U+%04X]", r)
+		pic = fmt.Sprintf("[U+%04X]", r)
 	}
-
-	if err := e.PassthroughHTMLStreamer.StartTag("span", html.Attribute{
-		Key: "class",
-		Val: "escaped-code-point",
-	}, html.Attribute{
-		Key: "data-escaped",
-		Val: escaped,
-	}); err != nil {
-		return err
-	}
-	if err := e.PassthroughHTMLStreamer.StartTag("span", html.Attribute{
-		Key: "class",
-		Val: "char",
-	}); err != nil {
-		return err
-	}
-	if err := e.PassthroughHTMLStreamer.Text(string(r)); err != nil {
-		return err
-	}
-	if err := e.PassthroughHTMLStreamer.EndTag("span"); err != nil {
-		return err
-	}
-
-	return e.PassthroughHTMLStreamer.EndTag("span")
+	return e.writeEscapedCharHTML(
+		`<span class="broken-code-point" data-escaped="`,
+		pic,
+		`"><span class="char">`,
+		string(r),
+		`</span></span>`,
+	)
 }
 
-type runeCountType struct {
-	numBasicRunes                int
-	numNonConfusingNonBasicRunes int
-	numAmbiguousRunes            int
-	numInvisibleRunes            int
-	numBrokenRunes               int
+type detectResult struct {
+	runeChar   rune
+	runeType   int
+	runeSize   int
+	position   int
+	confusable rune
+	needEscape bool
 }
-
-func (counts runeCountType) needsEscape() bool {
-	if counts.numBrokenRunes > 0 {
-		return true
-	}
-	if counts.numBasicRunes == 0 &&
-		counts.numNonConfusingNonBasicRunes > 0 {
-		return false
-	}
-	return counts.numAmbiguousRunes > 0 || counts.numInvisibleRunes > 0
-}
-
-type runeType int
 
 const (
-	basicASCIIRuneType runeType = iota // <- This is technically deadcode but its self-documenting so it should stay
-	brokenRuneType
-	nonBasicASCIIRuneType
-	ambiguousRuneType
-	invisibleRuneType
+	runeTypeBasic int = iota
+	runeTypeBroken
+	runeTypeNonASCII
+	runeTypeAmbiguous
+	runeTypeInvisible
+	runeTypeControlChar
 )
 
-func (e *escapeStreamer) runeTypes(runes ...rune) (types []runeType, confusables []rune, runeCounts runeCountType) {
-	types = make([]runeType, len(runes))
-	for i, r := range runes {
-		var confusable rune
+func (e *escapeStreamer) detectRunes(data []byte) []detectResult {
+	runeCount := utf8.RuneCount(data)
+	results := make([]detectResult, runeCount)
+	invisibleRangeTable := globalVars().invisibleRangeTable
+	var i int
+	var confusable rune
+	for pos := 0; pos < len(data); i++ {
+		r, runeSize := utf8.DecodeRune(data[pos:])
+		results[i].runeChar = r
+		results[i].runeSize = runeSize
+		results[i].position = pos
+		pos += runeSize
+
 		switch {
 		case r == utf8.RuneError:
-			types[i] = brokenRuneType
-			runeCounts.numBrokenRunes++
-		case r == ' ' || r == '\t' || r == '\n':
-			runeCounts.numBasicRunes++
-		case e.allowed[r]:
-			if r > 0x7e || r < 0x20 {
-				types[i] = nonBasicASCIIRuneType
-				runeCounts.numNonConfusingNonBasicRunes++
-			} else {
-				runeCounts.numBasicRunes++
+			results[i].runeType = runeTypeBroken
+			results[i].needEscape = true
+		case r == ' ' || r == '\t' || r == '\n' || e.allowed[r]:
+			results[i].runeType = runeTypeBasic
+			if r >= 0x80 {
+				results[i].runeType = runeTypeNonASCII
 			}
-		case unicode.Is(InvisibleRanges, r):
-			types[i] = invisibleRuneType
-			runeCounts.numInvisibleRunes++
-		case unicode.IsControl(r):
-			types[i] = invisibleRuneType
-			runeCounts.numInvisibleRunes++
+		case r < 0x20 || r == 0x7f:
+			results[i].runeType = runeTypeControlChar
+			results[i].needEscape = true
+		case unicode.Is(invisibleRangeTable, r):
+			results[i].runeType = runeTypeInvisible
+			// not sure about results[i].needEscape, will be detected separately
 		case isAmbiguous(r, &confusable, e.ambiguousTables...):
-			confusables = append(confusables, confusable)
-			types[i] = ambiguousRuneType
-			runeCounts.numAmbiguousRunes++
-		case r > 0x7e || r < 0x20:
-			types[i] = nonBasicASCIIRuneType
-			runeCounts.numNonConfusingNonBasicRunes++
-		default:
-			runeCounts.numBasicRunes++
+			results[i].runeType = runeTypeAmbiguous
+			results[i].confusable = confusable
+			// not sure about results[i].needEscape, will be detected separately
+		case r >= 0x80:
+			results[i].runeType = runeTypeNonASCII
+		default: // details to basic runes
 		}
 	}
-	return types, confusables, runeCounts
+	return results
 }

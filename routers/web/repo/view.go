@@ -159,7 +159,7 @@ func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, r
 	go func() {
 		sb := &strings.Builder{}
 		if markup.RendererNeedPostProcess(renderer) {
-			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP) // We allow NBSP here this is rendered
+			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.EscapeOptionsForView())
 		} else {
 			escaped = &charset.EscapeStatus{}
 			_, _ = io.Copy(sb, markupRd)
