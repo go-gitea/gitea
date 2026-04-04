@@ -375,6 +375,33 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
+		Name: "ProjectColumnMap consistency",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 50,
+			},
+			ProjectIDs: []int64{1, 2},
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			// Verify ProjectColumnMap is populated and consistent with ProjectIDs
+			for _, v := range result.Hits {
+				issue := data[v.ID]
+				if len(issue.ProjectIDs) > 0 {
+					// If issue has projects, it should have a ProjectColumnMap
+					assert.NotNil(t, issue.ProjectColumnMap, "Issue %d should have ProjectColumnMap", v.ID)
+					// Every project in ProjectIDs should have an entry in ProjectColumnMap
+					for _, projectID := range issue.ProjectIDs {
+						_, exists := issue.ProjectColumnMap[projectID]
+						assert.True(t, exists, "Issue %d should have column mapping for project %d", v.ID, projectID)
+					}
+					// ProjectColumnMap should only contain projects from ProjectIDs
+					assert.Len(t, issue.ProjectColumnMap, len(issue.ProjectIDs),
+						"Issue %d: ProjectColumnMap size should match ProjectIDs size", v.ID)
+				}
+			}
+		},
+	},
+	{
 		Name: "PosterID",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
@@ -713,6 +740,12 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				projectIDs[i] = int64(i) + 1 // projectID should not be 0
 			}
 
+			// Build ProjectColumnMap: map each project to a column
+			projectColumnMap := make(map[int64]int64, len(projectIDs))
+			for _, projectID := range projectIDs {
+				projectColumnMap[projectID] = issueIndex % 6
+			}
+
 			data = append(data, &internal.IndexerData{
 				ID:                 id,
 				RepoID:             repoID,
@@ -728,6 +761,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				ProjectIDs:         projectIDs,
 				NoProject:          len(projectIDs) == 0,
 				ProjectColumnID:    issueIndex % 6,
+				ProjectColumnMap:   projectColumnMap,
 				PosterID:           id%10 + 1, // PosterID should not be 0
 				AssigneeID:         issueIndex % 10,
 				MentionIDs:         mentionIDs,

@@ -27,7 +27,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 7
+	issueIndexerLatestVersion = 8
 )
 
 const unicodeNormalizeName = "unicodeNormalize"

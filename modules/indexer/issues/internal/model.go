@@ -31,8 +31,9 @@ type IndexerData struct {
 	NoLabel            bool               `json:"no_label"` // True if LabelIDs is empty
 	MilestoneID        int64              `json:"milestone_id"`
 	ProjectIDs         []int64            `json:"project_ids"`
-	NoProject          bool               `json:"no_project"`       // True if ProjectIDs is empty
-	ProjectColumnID    int64              `json:"project_board_id"` // the key should be kept as project_board_id to keep compatible
+	NoProject          bool               `json:"no_project"`                   // True if ProjectIDs is empty
+	ProjectColumnID    int64              `json:"project_board_id"`             // the key should be kept as project_board_id to keep compatible
+	ProjectColumnMap   map[int64]int64    `json:"project_column_map,omitempty"` // Maps project ID to column ID for each project the issue is in
 	PosterID           int64              `json:"poster_id"`
 	AssigneeID         int64              `json:"assignee_id"`
 	MentionIDs         []int64            `json:"mention_ids"`

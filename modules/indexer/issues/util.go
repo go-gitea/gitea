@@ -97,6 +97,11 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		return nil, false, err
 	}
 
+	projectColumnMap, err := issue.ProjectColumnMap(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+
 	if err := issue.Repo.LoadOwner(ctx); err != nil {
 		return nil, false, fmt.Errorf("issue.Repo.LoadOwner: %w", err)
 	}
@@ -117,6 +122,7 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		ProjectIDs:         projectIDs,
 		NoProject:          len(projectIDs) == 0,
 		ProjectColumnID:    projectColumnID,
+		ProjectColumnMap:   projectColumnMap,
 		PosterID:           issue.PosterID,
 		AssigneeID:         issue.AssigneeID,
 		MentionIDs:         mentionIDs,

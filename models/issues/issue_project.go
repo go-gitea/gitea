@@ -55,6 +55,21 @@ func (issue *Issue) ProjectColumnID(ctx context.Context) (int64, error) {
 	return ip.ProjectColumnID, nil
 }
 
+// ProjectColumnMap returns a map of project ID to column ID for this issue.
+// This properly handles issues assigned to multiple projects.
+func (issue *Issue) ProjectColumnMap(ctx context.Context) (map[int64]int64, error) {
+	var pis []project_model.ProjectIssue
+	if err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Find(&pis); err != nil {
+		return nil, err
+	}
+
+	result := make(map[int64]int64, len(pis))
+	for _, pi := range pis {
+		result[pi.ProjectID] = pi.ProjectColumnID
+	}
+	return result, nil
+}
+
 func LoadProjectIssueColumnMap(ctx context.Context, projectID, defaultColumnID int64) (map[int64]int64, error) {
 	issues := make([]project_model.ProjectIssue, 0)
 	if err := db.GetEngine(ctx).Where("project_id=?", projectID).Find(&issues); err != nil {
