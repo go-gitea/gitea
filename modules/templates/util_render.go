@@ -285,13 +285,10 @@ func (ut *RenderUtils) RenderUnicodeEscapeToggleButton(escapeStatus *charset.Esc
 	}
 	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
 	var title template.HTML
-	if escapeStatus.HasInvisible && escapeStatus.HasAmbiguous {
-		// legacy logic
-		title += locale.Tr("repo.invisible_runes_line") + " " + locale.Tr("repo.ambiguous_runes_line")
+	if escapeStatus.HasAmbiguous {
+		title += locale.Tr("repo.ambiguous_runes_line")
 	} else if escapeStatus.HasInvisible {
 		title += locale.Tr("repo.invisible_runes_line")
-	} else if escapeStatus.HasAmbiguous {
-		title += locale.Tr("repo.ambiguous_runes_line")
 	}
 	return htmlutil.HTMLFormat(`<button type="button" class="toggle-escape-button btn interact-bg" title="%s"></button>`, title)
 }
