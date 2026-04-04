@@ -168,6 +168,7 @@ func CreateTestEngine(opts FixturesOptions) error {
 	if err != nil {
 		return err
 	}
+	x.SetMaxOpenConns(1)
 	x.SetMapper(names.GonicMapper{})
 	db.SetDefaultEngine(context.Background(), x)
 
