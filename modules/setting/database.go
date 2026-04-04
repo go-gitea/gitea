@@ -14,10 +14,10 @@ import (
 )
 
 var (
-	// SupportedDatabaseTypes includes all XORM supported databases type, sqlite3 maybe added by `database_sqlite3.go`
-	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "sqlite3"}
+	// SupportedDatabaseTypes includes all XORM supported databases type
+	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "sqlite"}
 	// DatabaseTypeNames contains the friendly names for all database types
-	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3"}
+	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite": "SQLite3"}
 
 	//// EnableSQLite3 use SQLite3, set by build flag
 	//EnableSQLite3 bool
@@ -58,7 +58,13 @@ func LoadDBSetting() {
 
 func loadDBSetting(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("database")
-	Database.Type = DatabaseType(sec.Key("DB_TYPE").String())
+	// mattn sqlite driver was using sqlite3 as it's name
+	// Override it during loading config so it's correctly named for xorm imports
+	dbType := sec.Key("DB_TYPE").String()
+	if dbType == "sqlite3" {
+		dbType = "sqlite"
+	}
+	Database.Type = DatabaseType(dbType)
 
 	Database.Host = sec.Key("HOST").String()
 	Database.Name = sec.Key("NAME").String()
@@ -114,7 +120,7 @@ func DBConnStr() (string, error) {
 	case "mssql":
 		host, port := ParseMSSQLHostPort(Database.Host)
 		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, Database.Name, Database.User, Database.Passwd)
-	case "sqlite3":
+	case "sqlite":
 		if err := os.MkdirAll(filepath.Dir(Database.Path), os.ModePerm); err != nil {
 			return "", fmt.Errorf("Failed to create directories: %w", err)
 		}
@@ -201,11 +207,6 @@ func ParseMSSQLHostPort(info string) (string, string) {
 type DatabaseType string
 
 func (t DatabaseType) String() string {
-	// needed as modernrc uses sqlite as name but the setting was sqlite3 and changing that would be less than ideal
-	// TODO: Strip this during loading as no DB we support ends with number anyway (except this).
-	if t == "sqlite3" {
-		return "sqlite"
-	}
 	return string(t)
 }
 
