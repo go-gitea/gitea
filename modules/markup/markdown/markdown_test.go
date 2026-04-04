@@ -583,3 +583,20 @@ func TestMarkdownLink(t *testing.T) {
 	assert.Equal(t, `<p><a href="https://example.com/__init__.py" rel="nofollow">https://example.com/__init__.py</a></p>
 `, string(result))
 }
+
+func TestMarkdownUlDir(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, false)()
+	result, err := markdown.RenderString(markup.NewTestRenderContext(), `
+* a
+  * b
+`)
+	assert.NoError(t, err)
+	assert.Equal(t, `<ul dir="auto">
+<li>a
+<ul>
+<li>b</li>
+</ul>
+</li>
+</ul>
+`, string(result))
+}

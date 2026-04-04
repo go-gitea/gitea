@@ -78,11 +78,7 @@ func runGenerateInternalToken(_ context.Context, c *cli.Command) error {
 }
 
 func runGenerateLfsJwtSecret(_ context.Context, c *cli.Command) error {
-	_, jwtSecretBase64, err := generate.NewJwtSecretWithBase64()
-	if err != nil {
-		return err
-	}
-
+	_, jwtSecretBase64 := generate.NewJwtSecretWithBase64()
 	fmt.Printf("%s", jwtSecretBase64)
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {
