@@ -273,13 +273,20 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 	allProjects := append(slices.Clone(pageMetaData.ProjectsData.OpenProjects), pageMetaData.ProjectsData.ClosedProjects...)
 	candidateProjects := toSet(allProjects, func(project *project_model.Project) int64 { return project.ID })
 	inputProjectIDs, _ := base.StringsToInt64s(strings.Split(form.ProjectIDs, ","))
-	var selectedProjectIDs []int64
-	for _, v := range inputProjectIDs {
-		if candidateProjects.Contains(v) {
-			selectedProjectIDs = append(selectedProjectIDs, v)
+
+	// Validate all project IDs - return error if any are invalid
+	var invalidProjectIDs []int64
+	for _, id := range inputProjectIDs {
+		if id > 0 && !candidateProjects.Contains(id) {
+			invalidProjectIDs = append(invalidProjectIDs, id)
 		}
 	}
-	pageMetaData.ProjectsData.SelectedProjectIDs = selectedProjectIDs
+	if len(invalidProjectIDs) > 0 {
+		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid project IDs: %v", invalidProjectIDs))
+		return ret
+	}
+
+	pageMetaData.ProjectsData.SelectedProjectIDs = inputProjectIDs
 
 	// prepare assignees
 	candidateAssignees := toSet(pageMetaData.AssigneesData.CandidateAssignees, func(user *user_model.User) int64 { return user.ID })
@@ -324,8 +331,8 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 		}
 	}
 
-	// Return only the validated project IDs (those in selectedProjectIDs).
-	ret.LabelIDs, ret.AssigneeIDs, ret.MilestoneID, ret.ProjectIDs = inputLabelIDs, inputAssigneeIDs, form.MilestoneID, selectedProjectIDs
+	// Return only the validated IDs.
+	ret.LabelIDs, ret.AssigneeIDs, ret.MilestoneID, ret.ProjectIDs = inputLabelIDs, inputAssigneeIDs, form.MilestoneID, inputProjectIDs
 	ret.Reviewers, ret.TeamReviewers = reviewers, teamReviewers
 	return ret
 }

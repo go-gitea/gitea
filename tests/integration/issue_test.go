@@ -207,6 +207,72 @@ func TestNewIssue(t *testing.T) {
 	testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 }
 
+func TestNewIssueInvalidProjectIDs(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	t.Run("Invalid project ID returns 400 error", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/user2/repo1/issues/new")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+		assert.True(t, exists, "The template has changed")
+
+		req = NewRequestWithValues(t, "POST", link, map[string]string{
+			"title":       "test issue",
+			"content":     "test content",
+			"project_ids": "999", // Invalid project ID
+		})
+		resp = session.MakeRequest(t, req, http.StatusBadRequest)
+
+		// Verify the error message contains information about the invalid ID
+		assert.Contains(t, resp.Body.String(), "Invalid project IDs")
+		assert.Contains(t, resp.Body.String(), "999")
+	})
+
+	t.Run("Multiple invalid project IDs returns 400 with all IDs listed", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/user2/repo1/issues/new")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+		assert.True(t, exists, "The template has changed")
+
+		req = NewRequestWithValues(t, "POST", link, map[string]string{
+			"title":       "test issue",
+			"content":     "test content",
+			"project_ids": "888,999", // Multiple invalid project IDs
+		})
+		resp = session.MakeRequest(t, req, http.StatusBadRequest)
+
+		// Verify both invalid IDs are mentioned
+		body := resp.Body.String()
+		assert.Contains(t, body, "Invalid project IDs")
+		assert.Contains(t, body, "888")
+		assert.Contains(t, body, "999")
+	})
+
+	t.Run("Valid project ID succeeds", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/user2/repo1/issues/new")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+		assert.True(t, exists, "The template has changed")
+
+		// Use valid project ID from test fixtures (project 1 should exist)
+		req = NewRequestWithValues(t, "POST", link, map[string]string{
+			"title":       "test issue with valid project",
+			"content":     "test content",
+			"project_ids": "1", // Valid project ID from test fixtures
+		})
+		resp = session.MakeRequest(t, req, http.StatusOK)
+
+		// Verify redirect (success)
+		issueURL := test.RedirectURL(resp)
+		assert.NotEmpty(t, issueURL)
+	})
+}
+
 func TestEditIssue(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
