@@ -115,7 +115,6 @@ func checkDatabase(ctx context.Context, checks checks) status {
 			st.Status = fail
 			st.Time = getCheckTime()
 			log.Error("SQLite3 file exists check failed with error: %v", err)
-
 		}
 	}
 
