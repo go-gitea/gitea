@@ -1580,14 +1580,14 @@ func Routes() *web.Router {
 							Delete(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.DeleteProject)
 						m.Combo("/columns").Get(repo.ListProjectColumns).
 							Post(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.CreateProjectColumnOption{}), repo.CreateProjectColumn)
-					})
-					m.Group("/columns/{id}", func() {
-						m.Combo("").
-							Patch(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.EditProjectColumnOption{}), repo.EditProjectColumn).
-							Delete(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.DeleteProjectColumn)
-						m.Get("/issues", repo.ListProjectColumnIssues)
-						m.Post("/issues/{issue_id}", reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.AddIssueToProjectColumn)
-						m.Delete("/issues/{issue_id}", reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.RemoveIssueFromProjectColumn)
+						m.Group("/columns/{column_id}", func() {
+							m.Combo("").
+								Patch(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.EditProjectColumnOption{}), repo.EditProjectColumn).
+								Delete(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.DeleteProjectColumn)
+							m.Get("/issues", repo.ListProjectColumnIssues)
+							m.Post("/issues/{issue_id}", reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.AddIssueToProjectColumn)
+							m.Delete("/issues/{issue_id}", reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.RemoveIssueFromProjectColumn)
+						})
 					})
 				}, reqRepoReader(unit.TypeProjects))
 			}, repoAssignment(), checkTokenPublicOnly())

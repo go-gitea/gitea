@@ -33,7 +33,7 @@ func getRepoProjectByID(ctx *context.APIContext) *project_model.Project {
 }
 
 func getRepoProjectColumn(ctx *context.APIContext) *project_model.Column {
-	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("id"))
+	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("column_id"))
 	if err != nil {
 		if project_model.IsErrProjectColumnNotExist(err) {
 			ctx.APIErrorNotFound()
@@ -42,7 +42,7 @@ func getRepoProjectColumn(ctx *context.APIContext) *project_model.Column {
 		}
 		return nil
 	}
-	_, err = project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, column.ProjectID)
+	p, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, column.ProjectID)
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.APIErrorNotFound()
@@ -51,6 +51,11 @@ func getRepoProjectColumn(ctx *context.APIContext) *project_model.Column {
 		}
 		return nil
 	}
+	if p.ID != ctx.PathParamInt64("id") {
+		ctx.APIErrorNotFound()
+		return nil
+	}
+
 	return column
 }
 
@@ -466,7 +471,7 @@ func CreateProjectColumn(ctx *context.APIContext) {
 
 // EditProjectColumn updates a column
 func EditProjectColumn(ctx *context.APIContext) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/projects/columns/{id} repository repoEditProjectColumn
+	// swagger:operation PATCH /repos/{owner}/{repo}/projects/{id}/columns/{column_id} repository repoEditProjectColumn
 	// ---
 	// summary: Edit a project column
 	// consumes:
@@ -485,6 +490,12 @@ func EditProjectColumn(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// - name: id
+	//   in: path
+	//   description: id of the project
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: column_id
 	//   in: path
 	//   description: id of the column
 	//   type: integer
@@ -534,7 +545,7 @@ func EditProjectColumn(ctx *context.APIContext) {
 
 // DeleteProjectColumn deletes a column
 func DeleteProjectColumn(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/projects/columns/{id} repository repoDeleteProjectColumn
+	// swagger:operation DELETE /repos/{owner}/{repo}/projects/{id}/columns/{column_id} repository repoDeleteProjectColumn
 	// ---
 	// summary: Delete a project column
 	// parameters:
@@ -549,6 +560,12 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// - name: id
+	//   in: path
+	//   description: id of the project
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: column_id
 	//   in: path
 	//   description: id of the column
 	//   type: integer
@@ -575,7 +592,7 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 
 // ListProjectColumnIssues lists all issues in a project column
 func ListProjectColumnIssues(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/projects/columns/{id}/issues repository repoListProjectColumnIssues
+	// swagger:operation GET /repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues repository repoListProjectColumnIssues
 	// ---
 	// summary: List issues in a project column
 	// produces:
@@ -592,6 +609,12 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// - name: id
+	//   in: path
+	//   description: id of the project
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: column_id
 	//   in: path
 	//   description: id of the column
 	//   type: integer
@@ -644,7 +667,7 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 
 // AddIssueToProjectColumn adds an issue to a project column
 func AddIssueToProjectColumn(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/projects/columns/{id}/issues/{issue_id} repository repoAddIssueToProjectColumn
+	// swagger:operation POST /repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues/{issue_id} repository repoAddIssueToProjectColumn
 	// ---
 	// summary: Add an issue to a project column
 	// consumes:
@@ -663,6 +686,12 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// - name: id
+	//   in: path
+	//   description: id of the project
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: column_id
 	//   in: path
 	//   description: id of the column
 	//   type: integer
@@ -714,7 +743,7 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 
 // RemoveIssueFromProjectColumn remove an issue from a project column
 func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/projects/columns/{id}/issues/{issue_id} repository repoRemoveIssueFromProjectColumn
+	// swagger:operation DELETE /repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues/{issue_id} repository repoRemoveIssueFromProjectColumn
 	// ---
 	// summary: Remove an issue from a project column
 	// consumes:
@@ -733,6 +762,12 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// - name: id
+	//   in: path
+	//   description: id of the project
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: column_id
 	//   in: path
 	//   description: id of the column
 	//   type: integer
