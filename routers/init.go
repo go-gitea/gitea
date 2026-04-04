@@ -133,7 +133,6 @@ func InitWebInstalled(ctx context.Context) {
 	external.RegisterRenderers()
 	markup.Init(markup_service.FormalRenderHelperFuncs())
 
-
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
 	mustInit(system.Init)
