@@ -77,7 +77,7 @@
 					{{- svg "octicon-plus" -}}
 				</button>
 			{{- end -}}
-			<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>
+			<code class="code-inner {{if $inlineDiff.EscapeStatus.Escaped}}has-escaped{{end}}">{{$inlineDiff.Content}}</code>
 		</td>
 	</tr>
 	{{if $line.Comments}}
