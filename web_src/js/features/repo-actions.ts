@@ -50,6 +50,8 @@ export function initRepositoryActionView() {
       },
       logsAlwaysAutoScroll: el.getAttribute('data-locale-logs-always-auto-scroll'),
       logsAlwaysExpandRunning: el.getAttribute('data-locale-logs-always-expand-running'),
+      workflowFile: el.getAttribute('data-locale-workflow-file'),
+      runDetails: el.getAttribute('data-locale-run-details'),
     },
   });
   view.mount(el);

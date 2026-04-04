@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -22,24 +23,29 @@ const viteDevPortFile = "public/assets/.vite/dev-port"
 
 var viteDevProxy atomic.Pointer[httputil.ReverseProxy]
 
+func getViteDevServerBaseURL() string {
+	portFile := filepath.Join(setting.StaticRootPath, viteDevPortFile)
+	portContent, _ := os.ReadFile(portFile)
+	port := strings.TrimSpace(string(portContent))
+	if port == "" {
+		return ""
+	}
+	return "http://localhost:" + port
+}
+
 func getViteDevProxy() *httputil.ReverseProxy {
 	if proxy := viteDevProxy.Load(); proxy != nil {
 		return proxy
 	}
 
-	portFile := filepath.Join(setting.StaticRootPath, viteDevPortFile)
-	data, err := os.ReadFile(portFile)
-	if err != nil {
-		return nil
-	}
-	port := strings.TrimSpace(string(data))
-	if port == "" {
+	viteDevServerBaseURL := getViteDevServerBaseURL()
+	if viteDevServerBaseURL == "" {
 		return nil
 	}
 
-	target, err := url.Parse("http://localhost:" + port)
+	target, err := url.Parse(viteDevServerBaseURL)
 	if err != nil {
-		log.Error("Failed to parse Vite dev server URL: %v", err)
+		log.Error("Failed to parse Vite dev server base URL %s, err: %v", viteDevServerBaseURL, err)
 		return nil
 	}
 
@@ -60,7 +66,7 @@ func getViteDevProxy() *httputil.ReverseProxy {
 		ModifyResponse: func(resp *http.Response) error {
 			// add a header to indicate the Vite dev server port,
 			// make developers know that this request is proxied to Vite dev server and which port it is
-			resp.Header.Add("X-Gitea-Vite-Port", port)
+			resp.Header.Add("X-Gitea-Vite-Dev-Server", viteDevServerBaseURL)
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
@@ -92,19 +98,46 @@ func ViteDevMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// isViteDevMode returns true if the Vite dev server port file exists.
-// In production mode, the result is cached after the first check.
-func isViteDevMode() bool {
+var viteDevModeCheck atomic.Pointer[struct {
+	isDev bool
+	time  time.Time
+}]
+
+// IsViteDevMode returns true if the Vite dev server port file exists and the server is alive
+func IsViteDevMode() bool {
 	if setting.IsProd {
 		return false
 	}
-	portFile := filepath.Join(setting.StaticRootPath, viteDevPortFile)
-	_, err := os.Stat(portFile)
-	return err == nil
+
+	now := time.Now()
+	lastCheck := viteDevModeCheck.Load()
+	if lastCheck != nil && time.Now().Sub(lastCheck.time) < time.Second {
+		return lastCheck.isDev
+	}
+
+	viteDevServerBaseURL := getViteDevServerBaseURL()
+	if viteDevServerBaseURL == "" {
+		return false
+	}
+
+	req := httplib.NewRequest(viteDevServerBaseURL+"/web_src/js/__vite_dev_server_check", "GET")
+	resp, _ := req.Response()
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
+	isDev := resp != nil && resp.StatusCode == http.StatusOK
+	viteDevModeCheck.Store(&struct {
+		isDev bool
+		time  time.Time
+	}{
+		isDev: isDev,
+		time:  now,
+	})
+	return isDev
 }
 
 func viteDevSourceURL(name string) string {
-	if !isViteDevMode() {
+	if !IsViteDevMode() {
 		return ""
 	}
 	if strings.HasPrefix(name, "css/theme-") {
