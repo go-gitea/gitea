@@ -211,7 +211,7 @@ func (t DatabaseType) String() string {
 }
 
 func (t DatabaseType) IsSQLite3() bool {
-	return t == "sqlite3"
+	return t == "sqlite"
 }
 
 func (t DatabaseType) IsMySQL() bool {
