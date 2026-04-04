@@ -164,7 +164,7 @@ type FixturesOptions struct {
 
 // CreateTestEngine creates a memory database and loads the fixture data from fixturesDir
 func CreateTestEngine(opts FixturesOptions) error {
-	x, err := xorm.NewEngine("sqlite3", "file::memory:?_txlock=immediate")
+	x, err := xorm.NewEngine("sqlite", "file::memory:?_txlock=immediate")
 	if err != nil {
 		return err
 	}
