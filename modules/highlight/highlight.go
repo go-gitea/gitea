@@ -117,7 +117,7 @@ func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
 		log.Error("Can't format code: %v", err)
 		return htmlEscape(code)
 	}
-	return template.HTML(htmlBuf.Bytes())
+	return template.HTML(util.UnsafeBytesToString(htmlBuf.Bytes()))
 }
 
 // RenderFullFile returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name
@@ -131,7 +131,7 @@ func RenderFullFile(fileName, language string, code []byte) ([]template.HTML, st
 	unsafeLines := UnsafeSplitHighlightedLines(rendered)
 	lines := make([]template.HTML, len(unsafeLines))
 	for idx, lineBytes := range unsafeLines {
-		lines[idx] = template.HTML(lineBytes)
+		lines[idx] = template.HTML(util.UnsafeBytesToString(lineBytes))
 	}
 	return lines, lexerName
 }
