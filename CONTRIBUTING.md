@@ -1,5 +1,14 @@
 # Contribution Guidelines
 
+This document explains how to contribute changes to the Gitea project. Topic-specific guides live in separate files so the essentials are easier to find.
+
+| Topic | Document |
+| :---- | :------- |
+| Backend (Go modules, API v1) | [docs/guideline-backend.md](docs/guideline-backend.md) |
+| Frontend (npm, UI guidelines) | [docs/guideline-frontend.md](docs/guideline-frontend.md) |
+| Maintainers, TOC, labels, merge queue, commit format for mergers | [docs/community-governance.md](docs/community-governance.md) |
+| Release cycle, backports, tagging releases | [docs/release-management.md](docs/release-management.md) |
+
 <details><summary>Table of Contents</summary>
 
 - [Contribution Guidelines](#contribution-guidelines)
@@ -11,10 +20,6 @@
     - [Discuss your design before the implementation](#discuss-your-design-before-the-implementation)
     - [Issue locking](#issue-locking)
   - [Building Gitea](#building-gitea)
-  - [Dependencies](#dependencies)
-    - [Backend](#backend)
-    - [Frontend](#frontend)
-  - [Design guideline](#design-guideline)
   - [Styleguide](#styleguide)
   - [Copyright](#copyright)
   - [Testing](#testing)
@@ -22,58 +27,19 @@
   - [Code review](#code-review)
     - [Pull request format](#pull-request-format)
     - [PR title and summary](#pr-title-and-summary)
-    - [Milestone](#milestone)
-    - [Labels](#labels)
     - [Breaking PRs](#breaking-prs)
       - [What is a breaking PR?](#what-is-a-breaking-pr)
       - [How to handle breaking PRs?](#how-to-handle-breaking-prs)
     - [Maintaining open PRs](#maintaining-open-prs)
     - [Reviewing PRs](#reviewing-prs)
-      - [For reviewers](#for-reviewers)
       - [For PR authors](#for-pr-authors)
-    - [Getting PRs merged](#getting-prs-merged)
-    - [Final call](#final-call)
-    - [Commit messages](#commit-messages)
-      - [PR Co-authors](#pr-co-authors)
-      - [PRs targeting `main`](#prs-targeting-main)
-      - [Backport PRs](#backport-prs)
   - [Documentation](#documentation)
-  - [API v1](#api-v1)
-    - [GitHub API compatibility](#github-api-compatibility)
-    - [Adding/Maintaining API routes](#addingmaintaining-api-routes)
-    - [When to use what HTTP method](#when-to-use-what-http-method)
-    - [Requirements for API routes](#requirements-for-api-routes)
-  - [Backports and Frontports](#backports-and-frontports)
-    - [What is backported?](#what-is-backported)
-    - [How to backport?](#how-to-backport)
-    - [Format of backport PRs](#format-of-backport-prs)
-    - [Frontports](#frontports)
   - [Developer Certificate of Origin (DCO)](#developer-certificate-of-origin-dco)
-  - [Release Cycle](#release-cycle)
-    - [Cadence](#cadence)
-    - [Release schedule](#release-schedule)
-    - [Feature freeze](#feature-freeze)
-    - [Patch releases](#patch-releases)
-  - [Maintainers](#maintainers)
-    - [Review expectations](#review-expectations)
-    - [Becoming a maintainer](#becoming-a-maintainer)
-    - [Stepping down, advisors, and inactivity](#stepping-down-advisors-and-inactivity)
-    - [Account security](#account-security)
-  - [Technical Oversight Committee (TOC)](#technical-oversight-committee-toc)
-    - [TOC election process](#toc-election-process)
-    - [Current TOC members](#current-toc-members)
-    - [Previous TOC/owners members](#previous-tocowners-members)
-  - [Governance Compensation](#governance-compensation)
-  - [TOC \& Working groups](#toc--working-groups)
-  - [Roadmap](#roadmap)
-  - [Versions](#versions)
-  - [Releasing Gitea](#releasing-gitea)
 
 </details>
 
 ## Introduction
 
-This document explains how to contribute changes to the Gitea project. \
 It assumes you have followed the [installation instructions](https://docs.gitea.com/category/installation). \
 Sensitive security-related issues should be reported to [security@gitea.io](mailto:security@gitea.io).
 
@@ -142,34 +108,6 @@ If further discussion is needed, we encourage you to open a new issue instead an
 
 See the [development setup instructions](https://docs.gitea.com/development/hacking-on-gitea).
 
-## Dependencies
-
-### Backend
-
-Go dependencies are managed using [Go Modules](https://go.dev/cmd/go/#hdr-Module_maintenance). \
-You can find more details in the [go mod documentation](https://go.dev/ref/mod) and the [Go Modules Wiki](https://github.com/golang/go/wiki/Modules).
-
-Pull requests should only modify `go.mod` and `go.sum` where it is related to your change, be it a bugfix or a new feature. \
-Apart from that, these files should only be modified by Pull Requests whose only purpose is to update dependencies.
-
-The `go.mod`, `go.sum` update needs to be justified as part of the PR description,
-and must be verified by the reviewers and/or merger to always reference
-an existing upstream commit.
-
-### Frontend
-
-For the frontend, we use [npm](https://www.npmjs.com/).
-
-The same restrictions apply for frontend dependencies as for backend dependencies, with the exceptions that the files for it are `package.json` and `package-lock.json`, and that new versions must always reference an existing version.
-
-## Design guideline
-
-Depending on your change, please read the
-
-- [backend development guideline](https://docs.gitea.com/contributing/guidelines-backend)
-- [frontend development guideline](https://docs.gitea.com/contributing/guidelines-frontend)
-- [refactoring guideline](https://docs.gitea.com/contributing/guidelines-refactoring)
-
 ## Styleguide
 
 You should always run `make fmt` before committing to conform to Gitea's styleguide.
@@ -227,6 +165,8 @@ The tool `go run build/backport-locale.go` can be used to backport locales from 
 
 ## Code review
 
+How labels, milestones, and the merge queue work is documented in [docs/community-governance.md](docs/community-governance.md).
+
 ### Pull request format
 
 Please try to make your pull request easy to review for us. \
@@ -271,29 +211,6 @@ Fixes/Closes/Resolves #<ISSUE_NR_Y>.
 to your summary. \
 Each issue that will be closed must stand on a separate line.
 
-### Milestone
-
-A PR should only be assigned to a milestone if it will likely be merged into the given version. \
-As a rule of thumb, assume that a PR will stay open for an additional month for every 100 added lines. \
-PRs without a milestone may not be merged.
-
-### Labels
-
-Almost all labels used inside Gitea can be classified as one of the following:
-
-- `modifies/…`: Determines which parts of the codebase are affected. These labels will be set through the CI.
-- `topic/…`:  Determines the conceptual component of Gitea that is affected, i.e. issues, projects, or authentication. At best, PRs should only target one component but there might be overlap. Must be set manually.
-- `type/…`: Determines the type of an issue or PR (feature, refactoring, docs, bug, …). If GitHub supported scoped labels, these labels would be exclusive, so you should set **exactly** one, not more or less (every PR should fall into one of the provided categories, and only one).
-- `issue/…` / `pr/…`: Labels that are specific to issues or PRs respectively and that are only necessary in a given context, i.e. `issue/not-a-bug` or `pr/need-2-approvals`
-
-Every PR should be labeled correctly with every label that applies.
-
-There are also some labels that will be managed automatically.\
-In particular, these are
-
-- the amount of pending required approvals
-- has all `backport`s or needs a manual backport
-
 ### Breaking PRs
 
 #### What is a breaking PR?
@@ -326,19 +243,11 @@ Code review starts when you open a non-draft PR or move a draft out of draft sta
 
 Merge the base branch into yours only when you need to, for example because of conflicting changes elsewhere. That limits unnecessary CI runs.
 
-Every PR is squash-merged, so merge commits on your branch do not matter for final history. The squash produces a single commit whose message follows the rules below.
+Every PR is squash-merged, so merge commits on your branch do not matter for final history. The squash produces a single commit; mergers follow the [commit message format](docs/community-governance.md#commit-messages) in the governance guide.
 
 ### Reviewing PRs
 
 Maintainers are encouraged to review pull requests in areas where they have expertise or particular interest.
-
-#### For reviewers
-
-- **Verification**: Verify that the PR accurately reflects the changes, and verify that the tests and documentation are complete and aligned with the implementation.
-- **Actionable feedback**: Say what should change and why, and distinguish required changes from optional suggestions.
-- **Feedback**: Focus feedback on the issue itself and avoid comments about the contributor's abilities.
-- **Request changes**: If you request changes (i.e., block a PR), give a clear rationale and, whenever possible, a concrete path to resolution.
-- **Approval**: Only approve a PR when you are fully satisfied with its current state - "rubber-stamp" approvals need to be highlighted as such.
 
 #### For PR authors
 
@@ -346,149 +255,12 @@ Maintainers are encouraged to review pull requests in areas where they have expe
 - **Discussion**: A discussion is always welcome and should be used to clarify the changes and the intent of the PR.
 - **Help**: If you need help with the PR or comments are unclear, ask for clarification.
 
-### Getting PRs merged
-
-Changes to Gitea must be reviewed before they are accepted, including changes from owners and maintainers. The exception is critical bugs that prevent Gitea from compiling or starting.
-
-We require two maintainer approvals for every PR. When that is satisfied, your PR gets the `lgtm/done` label. After that, you mainly fix merge conflicts and respond to or implement maintainer requests; maintainers drive getting the PR merged.
-
-If a PR has `lgtm/done`, no open discussions, and no merge conflicts, any maintainer may add `reviewed/wait-merge`. That puts the PR in the merge queue. PRs are merged from the queue in the order of this list:
-
-<https://github.com/go-gitea/gitea/pulls?q=is%3Apr+label%3Areviewed%2Fwait-merge+sort%3Acreated-asc+is%3Aopen>
-
-Gitea uses its own tool, <https://github.com/GiteaBot/gitea-backporter>, to automate parts of the review process. The backporter:
-
-- Creates a backport PR when needed after the initial PR merges.
-- Removes the PR from the merge queue after it merges.
-- Keeps the oldest branch in the merge queue up to date with merges.
-
-### Final call
-
-If a PR has been ignored for more than 7 days with no comments or reviews, and the author or any maintainer believes it will not survive a long wait (such as a refactoring PR), they can send "final call" to the TOC by mentioning them in a comment.
-
-After another 7 days, if there is still zero approval, this is considered a polite refusal, and the PR will be closed to avoid wasting further time. Therefore, the "final call" has a cost, and should be used cautiously.
-
-However, if there are no objections from maintainers, the PR can be merged with only one approval from the TOC (not the author).
-
-### Commit messages
-
-Mergers are required to rewrite the PR title and the first comment (the summary) when necessary so the squash commit message is clear.
-
-The final commit message should not hedge: replace phrases like `hopefully, <x> won't happen anymore` with definite wording.
-
-#### PR Co-authors
-
-A person counts as a PR co-author once they (co-)authored a commit that is not simply a `Merge base branch into branch` commit. Mergers must remove such false-positive co-authors when writing the squash message. Every true co-author must remain in the commit message.
-
-#### PRs targeting `main`
-
-The commit message of PRs targeting `main` is always
-
-```bash
-$PR_TITLE ($PR_INDEX)
-
-$REWRITTEN_PR_SUMMARY
-```
-
-#### Backport PRs
-
-The commit message of backport PRs is always
-
-```bash
-$PR_TITLE ($INITIAL_PR_INDEX) ($BACKPORT_PR_INDEX)
-
-$REWRITTEN_PR_SUMMARY
-```
+Guidance for reviewers, the merge queue, and the squash commit message format is in [docs/community-governance.md](docs/community-governance.md).
 
 ## Documentation
 
 If you add a new feature or change an existing aspect of Gitea, the documentation for that feature must be created or updated in another PR at [https://gitea.com/gitea/docs](https://gitea.com/gitea/docs).
 **The docs directory on main repository will be removed at some time. We will have a yaml file to store configuration file's meta data. After that completed, configuration documentation should be in the main repository.**
-
-## API v1
-
-The API is documented by [swagger](https://gitea.com/api/swagger) and is based on [the GitHub API](https://docs.github.com/en/rest).
-
-### GitHub API compatibility
-
-Gitea's API should use the same endpoints and fields as the GitHub API as far as possible, unless there are good reasons to deviate. \
-If Gitea provides functionality that GitHub does not, a new endpoint can be created. \
-If information is provided by Gitea that is not provided by the GitHub API, a new field can be used that doesn't collide with any GitHub fields. \
-Updating an existing API should not remove existing fields unless there is a really good reason to do so. \
-The same applies to status responses. If you notice a problem, feel free to leave a comment in the code for future refactoring to API v2 (which is currently not planned).
-
-### Adding/Maintaining API routes
-
-All expected results (errors, success, fail messages) must be documented ([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L319-L327)). \
-All JSON input types must be defined as a struct in [modules/structs/](modules/structs/) ([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/modules/structs/issue.go#L76-L91)) \
-and referenced in [routers/api/v1/swagger/options.go](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/swagger/options.go). \
-They can then be used like [this example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L318). \
-All JSON responses must be defined as a struct in [modules/structs/](modules/structs/) ([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/modules/structs/issue.go#L36-L68)) \
-and referenced in its category in [routers/api/v1/swagger/](routers/api/v1/swagger/) ([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/swagger/issue.go#L11-L16)) \
-They can be used like [this example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L277-L279).
-
-### When to use what HTTP method
-
-In general, HTTP methods are chosen as follows:
-
-- **GET** endpoints return the requested object(s) and status **OK (200)**
-- **DELETE** endpoints return the status **No Content (204)** and no content either
-- **POST** endpoints are used to **create** new objects (e.g. a User) and return the status **Created (201)** and the created object
-- **PUT** endpoints are used to **add/assign** existing Objects (e.g. a user to a team) and return the status **No Content (204)** and no content either
-- **PATCH** endpoints are used to **edit/change** an existing object and return the changed object and the status **OK (200)**
-
-### Requirements for API routes
-
-All parameters of endpoints changing/editing an object must be optional (except the ones to identify the object, which are required).
-
-Endpoints returning lists must
-
-- support pagination (`page` & `limit` options in query)
-- set `X-Total-Count` header via **SetTotalCountHeader** ([example](https://github.com/go-gitea/gitea/blob/7aae98cc5d4113f1e9918b7ee7dd09f67c189e3e/routers/api/v1/repo/issue.go#L444))
-
-## Backports and Frontports
-
-### What is backported?
-
-We backport PRs given the following circumstances:
-
-1. Feature freeze is active, but `<version>-rc0` has not been released yet. Here, we backport as much as possible. <!-- TODO: Is that our definition with the new backport bot? -->
-2. `rc0` has been released. Here, we only backport bug- and security-fixes, and small enhancements. Large PRs such as refactors are not backported anymore. <!-- TODO: Is that our definition with the new backport bot? -->
-3. We never backport new features.
-4. We never backport breaking changes except when
-    1. The breaking change has no effect on the vast majority of users
-    2. The component triggering the breaking change is marked as experimental
-
-### How to backport?
-
-In the past, it was necessary to manually backport your PRs. \
-Now, that's not a requirement anymore as our [backport bot](https://github.com/GiteaBot) tries to create backports automatically once the PR is merged when the PR
-
-- does not have the label `backport/manual`
-- has the label `backport/<version>`
-
-The `backport/manual` label signifies either that you want to backport the change yourself, or that there were conflicts when backporting, thus you **must** do it yourself.
-
-### Format of backport PRs
-
-The title of backport PRs should be
-
-```
-<original PR title> (#<original pr number>)
-```
-
-The first two lines of the summary of the backporting PR should be
-
-```
-Backport #<original pr number>
-
-```
-
-with the rest of the summary and labels matching the original PR.
-
-### Frontports
-
-Frontports behave exactly as described above for backports.
 
 ## Developer Certificate of Origin (DCO)
 
@@ -503,169 +275,3 @@ Signed-off-by: Joe Smith <joe.smith@email.com>
 If you set the `user.name` and `user.email` Git config options, you can add the line to the end of your commits automatically with `git commit -s`.
 
 We assume in good faith that the information you provide is legally binding.
-
-## Release Cycle
-
-We use a release schedule so work, stabilization, and releases stay predictable.
-
-### Cadence
-
-- Aim for a major release about every three or four months.
-- Roughly two or three months of general development, then about one month of testing and polish called the **release freeze**.
-- *Starting with v1.26 the release cycle will be more predictable and follow a more regular schedule.*
-
-### Release schedule
-
-We will try to publish a new major version every three months:
-
-- v1.26.0 in April 2026
-- v1.27.0 in June 2026
-- v1.28.0 in September 2026
-- v1.29.0 in December 2026
-
-A feature freeze will be announced two weeks before the release date.
-
-### Feature freeze
-
-- Merge feature PRs before the freeze when you can.
-- Feature PRs still open at the freeze move to the next milestone. Watch Discord for the freeze announcement.
-- During the freeze, a **release branch** takes fixes backported from `main`. Release candidates ship for testing; the final release for that line is maintained from that branch.
-
-### Patch releases
-
-During a cycle we may ship patch releases for an older line. For example, if the latest release is v1.2, we can still publish v1.1.1 after v1.1.0.
-
-## Maintainers
-
-We list [maintainers](MAINTAINERS) so every PR gets proper review.
-
-#### Review expectations
-
-Every PR **must** be reviewed by at least two maintainers (or owners) before merge. **Exception:** after one week, refactoring PRs and documentation-only PRs need only one maintainer approval.
-
-Maintainers are expected to spend time on code reviews.
-
-#### Becoming a maintainer
-
-A maintainer should already be a Gitea contributor with at least four merged PRs. To apply, use the [Discord](https://discord.gg/Gitea) `#develop` channel. Maintainer teams may also invite contributors.
-
-#### Stepping down, advisors, and inactivity
-
-If you cannot keep reviewing, apply to leave the maintainers team. You can join the [advisors team](https://github.com/orgs/go-gitea/teams/advisors); advisors who want to review again are welcome back as maintainers.
-
-If a maintainer is inactive for more than three months and has not left the team, owners may move them to the advisors team.
-
-#### Account security
-
-For security, maintainers should enable 2FA and sign commits with GPG when possible:
-
-- [Two-factor authentication](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication)
-- [Signing commits with GPG](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits)
-
-Any account with write access (including bots and TOC members) **must** use [2FA](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication).
-
-## Technical Oversight Committee (TOC)
-
-At the start of 2023, the `Owners` team was dissolved. Instead, the governance charter proposed a technical oversight committee (TOC) which expands the ownership team of the Gitea project from three elected positions to six positions. Three positions are elected as it has been over the past years, and the other three consist of appointed members from the Gitea company.
-https://blog.gitea.com/quarterly-23q1/
-
-### TOC election process
-
-Any maintainer is eligible to be part of the community TOC if they are not associated with the Gitea company.
-A maintainer can either nominate themselves, or can be nominated by other maintainers to be a candidate for the TOC election.
-If you are nominated by someone else, you must first accept your nomination before the vote starts to be a candidate.
-
-The TOC is elected for one year, the TOC election happens yearly.
-After the announcement of the results of the TOC election, elected members have two weeks time to confirm or refuse the seat.
-If an elected member does not answer within this timeframe, they are automatically assumed to refuse the seat.
-Refusals result in the person with the next highest vote getting the same choice.
-As long as seats are empty in the TOC, members of the previous TOC can fill them until an elected member accepts the seat.
-
-If an elected member that accepts the seat does not have 2FA configured yet, they will be temporarily counted as `answer pending` until they manage to configure 2FA, thus leaving their seat empty for this duration.
-
-### Current TOC members
-
-- 2024-01-01 ~ 2024-12-31
-  - Company
-    - [Jason Song](https://gitea.com/wolfogre) <i@wolfogre.com>
-    - [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
-    - [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.com>
-  - Community
-    - [6543](https://gitea.com/6543) <6543@obermui.de>
-    - [delvh](https://gitea.com/delvh) <dev.lh@web.de>
-    - [John Olheiser](https://gitea.com/jolheiser) <john.olheiser@gmail.com>
-
-### Previous TOC/owners members
-
-Here's the history of the owners and the time they served:
-
-- [Lunny Xiao](https://gitea.com/lunny) - 2016, 2017, [2018](https://github.com/go-gitea/gitea/issues/3255), [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
-- [Kim Carlbäcker](https://github.com/bkcsoft) - 2016, 2017
-- [Thomas Boerger](https://gitea.com/tboerger) - 2016, 2017
-- [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) - [2018](https://github.com/go-gitea/gitea/issues/3255), [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801)
-- [Matti Ranta](https://gitea.com/techknowlogick) - [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
-- [Andrew Thornton](https://gitea.com/zeripath) - [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
-- [6543](https://gitea.com/6543) - 2023
-- [John Olheiser](https://gitea.com/jolheiser) - 2023
-- [Jason Song](https://gitea.com/wolfogre) - 2023
-
-## Governance Compensation
-
-Each member of the community elected TOC will be granted $500 each month as compensation for their work.
-
-Furthermore, any community release manager for a specific release or LTS will be compensated $500 for the delivery of said release.
-
-These funds will come from community sources like the OpenCollective rather than directly from the company.
-Only non-company members are eligible for this compensation, and if a member of the community TOC takes the responsibility of release manager, they would only be compensated for their TOC duties.
-Gitea Ltd employees are not eligible to receive any funds from the OpenCollective unless it is reimbursement for a purchase made for the Gitea project itself.
-
-## TOC & Working groups
-
-With Gitea covering many projects outside of the main repository, several groups will be created to help focus on specific areas instead of requiring maintainers to be a jack-of-all-trades. Maintainers are of course more than welcome to be part of multiple groups should they wish to contribute in multiple places.
-
-The currently proposed groups are:
-
-- **Core Group**: maintain the primary Gitea repository
-- **Integration Group**: maintain the Gitea ecosystem's related tools, including go-sdk/tea/changelog/bots etc.
-- **Documentation Group**: maintain related documents and repositories
-- **Translation Group**: coordinate with translators and maintain translations
-- **Security Group**: managed by TOC directly, members are decided by TOC, maintains security patches/responsible for security items
-
-## Roadmap
-
-Each year a roadmap will be discussed with the entire Gitea maintainers team, and feedback will be solicited from various stakeholders.
-TOC members need to review the roadmap every year and work together on the direction of the project.
-
-When a vote is required for a proposal or other change, the vote of community elected TOC members count slightly more than the vote of company elected TOC members. With this approach, we both avoid ties and ensure that changes align with the mission statement and community opinion.
-
-You can visit our roadmap on the wiki.
-
-## Versions
-
-Gitea has the `main` branch as a tip branch and has version branches
-such as `release/v1.19`. `release/v1.19` is a release branch and we will
-tag `v1.19.0` for binary download. If `v1.19.0` has bugs, we will accept
-pull requests on the `release/v1.19` branch and publish a `v1.19.1` tag,
-after bringing the bug fix also to the main branch.
-
-Since the `main` branch is a tip version, if you wish to use Gitea
-in production, please download the latest release tag version. All the
-branches will be protected via GitHub, all the PRs to every branch must
-be reviewed by two maintainers and must pass the automatic tests.
-
-## Releasing Gitea
-
-- Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers, $vpat should be rc1, rc2, 0, 1, ...... $vmaj.$vmin will be kept the same as milestones on github or gitea in future.
-- Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on Discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody is against it in about several hours.
-- If this is a big version first you have to create PR for changelog on branch `main` with PRs with label `changelog` and after it has been merged do following steps:
-  - Create `-dev` tag as `git tag -s -F release.notes v$vmaj.$vmin.0-dev` and push the tag as `git push origin v$vmaj.$vmin.0-dev`.
-  - When CI has finished building tag then you have to create a new branch named `release/v$vmaj.$vmin`
-- If it is bugfix version create PR for changelog on branch `release/v$vmaj.$vmin` and wait till it is reviewed and merged.
-- Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`.
-- And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically create a release and upload all the compiled binary. (But currently it doesn't add the release notes automatically. Maybe we should fix that.)
-- If needed send a frontport PR for the changelog to branch `main` and update the version in `docs/config.yaml` to refer to the new version.
-- Send PR to [blog repository](https://gitea.com/gitea/blog) announcing the release.
-- Verify all release assets were correctly published through CI on dl.gitea.com and GitHub releases. Once ACKed:
-  - bump the version of https://dl.gitea.com/gitea/version.json
-  - merge the blog post PR
-  - announce the release in discord `#announcements`
