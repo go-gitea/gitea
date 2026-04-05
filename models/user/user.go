@@ -1323,9 +1323,12 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	return nil, ErrUserNotExist{Name: email}
 }
 
-// GetUser checks if a user already exists
-func GetUser(ctx context.Context, user *User) (bool, error) {
-	return db.GetEngine(ctx).Get(user)
+func GetIndividualUser(ctx context.Context, user *User) (bool, error) {
+	has, err := db.GetEngine(ctx).Get(user)
+	if has && user.Type != UserTypeIndividual {
+		has = false
+	}
+	return has, err
 }
 
 // GetUserByOpenID returns the user object by given OpenID if exists.

@@ -118,9 +118,44 @@ func GetPackage(ctx *context.APIContext) {
 
 // DeletePackage deletes a package
 func DeletePackage(ctx *context.APIContext) {
-	// swagger:operation DELETE /packages/{owner}/{type}/{name}/{version} package deletePackage
+	// swagger:operation DELETE /packages/{owner}/{type}/{name} package deletePackage
 	// ---
 	// summary: Delete a package
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the package
+	//   type: string
+	//   required: true
+	// - name: type
+	//   in: path
+	//   description: type of the package
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: path
+	//   description: name of the package
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	err := packages_service.RemovePackage(ctx, ctx.Doer, ctx.Package.Descriptor.Package)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
+
+// DeletePackageVersion deletes a package version
+func DeletePackageVersion(ctx *context.APIContext) {
+	// swagger:operation DELETE /packages/{owner}/{type}/{name}/{version} package deletePackageVersion
+	// ---
+	// summary: Delete a package version
 	// parameters:
 	// - name: owner
 	//   in: path

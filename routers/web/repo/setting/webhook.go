@@ -234,6 +234,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 	w := &webhook.Webhook{
 		RepoID:          orCtx.RepoID,
 		URL:             params.URL,
+		Name:            strings.TrimSpace(params.WebhookForm.Name),
 		HTTPMethod:      params.HTTPMethod,
 		ContentType:     params.ContentType,
 		Secret:          params.WebhookForm.Secret,
@@ -288,6 +289,7 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	}
 
 	w.URL = params.URL
+	w.Name = strings.TrimSpace(params.WebhookForm.Name)
 	w.ContentType = params.ContentType
 	w.Secret = params.WebhookForm.Secret
 	w.HookEvent = ParseHookEvent(params.WebhookForm)

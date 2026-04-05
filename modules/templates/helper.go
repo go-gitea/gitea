@@ -6,15 +6,18 @@ package templates
 
 import (
 	"fmt"
+	"html"
 	"html/template"
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/templates/eval"
@@ -22,8 +25,7 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
-// NewFuncMap returns functions for injecting to templates
-func NewFuncMap() template.FuncMap {
+func newFuncMapWebPage() template.FuncMap {
 	return map[string]any{
 		"DumpVar": dumpVar,
 		"NIL":     func() any { return nil },
@@ -37,7 +39,6 @@ func NewFuncMap() template.FuncMap {
 		"QueryEscape":  queryEscape,
 		"QueryBuild":   QueryBuild,
 		"SanitizeHTML": SanitizeHTML,
-		"DotEscape":    dotEscape,
 
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,
@@ -58,6 +59,7 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// time / number / format
+		"ShortSha": base.ShortSha,
 		"FileSize": base.FileSize,
 		"CountFmt": countFmt,
 		"Sec2Hour": util.SecToHours,
@@ -67,6 +69,9 @@ func NewFuncMap() template.FuncMap {
 		"LoadTimes": func(startTime time.Time) string {
 			return strconv.FormatInt(time.Since(startTime).Nanoseconds()/1e6, 10) + "ms"
 		},
+
+		"AssetURI":     public.AssetURI,
+		"ScriptImport": scriptImport,
 
 		// -----------------------------------------------------------------
 		// setting
@@ -79,21 +84,11 @@ func NewFuncMap() template.FuncMap {
 		"AssetUrlPrefix": func() string {
 			return setting.StaticURLPrefix + "/assets"
 		},
-		"AppUrl": func() string {
-			// The usage of AppUrl should be avoided as much as possible,
-			// because the AppURL(ROOT_URL) may not match user's visiting site and the ROOT_URL in app.ini may be incorrect.
-			// And it's difficult for Gitea to guess absolute URL correctly with zero configuration,
-			// because Gitea doesn't know whether the scheme is HTTP or HTTPS unless the reverse proxy could tell Gitea.
-			return setting.AppURL
-		},
 		"AppVer": func() string {
 			return setting.AppVer
 		},
-		"AppDomain": func() string { // documented in mail-templates.md
+		"AppDomain": func() string { // TODO: helm registry still uses it, need to use current request host in the future
 			return setting.Domain
-		},
-		"AssetVersion": func() string {
-			return setting.AssetVersion
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
@@ -141,7 +136,6 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// misc (TODO: move them to MiscUtils to avoid bloating the main func map)
-		"ShortSha":                 base.ShortSha,
 		"ActionContent2Commits":    ActionContent2Commits,
 		"IsMultilineCommitMessage": isMultilineCommitMessage,
 		"CommentMustAsDiff":        gitdiff.CommentMustAsDiff,
@@ -173,11 +167,6 @@ func htmlFormat(s any, args ...any) template.HTML {
 
 func queryEscape(s string) template.URL {
 	return template.URL(url.QueryEscape(s))
-}
-
-// dotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent auto-linkers from detecting these as urls
-func dotEscape(raw string) string {
-	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
 }
 
 // iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
@@ -302,4 +291,31 @@ func QueryBuild(a ...any) template.URL {
 		}
 	}
 	return template.URL(s)
+}
+
+var globalVars = sync.OnceValue(func() (ret struct {
+	scriptImportRemainingPart string
+},
+) {
+	// add onerror handler to alert users when the script fails to load:
+	// * for end users: there were many users reporting that "UI doesn't work", actually they made mistakes in their config
+	// * for developers: help them to remember to run "make watch-frontend" to build frontend assets
+	// the message will be directly put in the onerror JS code's string
+	onScriptErrorPrompt := `Please make sure the asset files can be accessed.`
+	if !setting.IsProd {
+		onScriptErrorPrompt += `\n\nFor development, run: make watch-frontend.`
+	}
+	onScriptErrorJS := fmt.Sprintf(`alert('Failed to load asset file from ' + this.src + '. %s')`, onScriptErrorPrompt)
+	ret.scriptImportRemainingPart = `onerror="` + html.EscapeString(onScriptErrorJS) + `"></script>`
+	return ret
+})
+
+func scriptImport(path string, typ ...string) template.HTML {
+	if len(typ) > 0 {
+		if typ[0] == "module" {
+			return template.HTML(`<script type="module" src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
+		}
+		panic("unsupported script type: " + typ[0])
+	}
+	return template.HTML(`<script src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
 }

@@ -5,7 +5,7 @@ import type {TributeCollection} from 'tributejs';
 import type {Mention} from '../types.ts';
 
 export async function attachTribute(element: HTMLElement) {
-  const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
+  const {default: Tribute} = await import('tributejs');
   const mentionsUrl = element.closest('[data-mentions-url]')?.getAttribute('data-mentions-url');
 
   const emojiCollection: TributeCollection<string> = { // emojis

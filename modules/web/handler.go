@@ -4,7 +4,9 @@
 package web
 
 import (
+	"bufio"
 	"fmt"
+	"net"
 	"net/http"
 	"reflect"
 
@@ -45,6 +47,13 @@ func (r *responseWriter) Write(bytes []byte) (int, error) {
 func (r *responseWriter) WriteHeader(statusCode int) {
 	r.status = statusCode
 	r.respWriter.WriteHeader(statusCode)
+}
+
+func (r *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if hj, ok := r.respWriter.(http.Hijacker); ok {
+		return hj.Hijack()
+	}
+	return nil, nil, http.ErrNotSupported
 }
 
 var (

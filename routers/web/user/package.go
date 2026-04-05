@@ -88,9 +88,9 @@ func ListPackages(ctx *context.Context) {
 			continue
 		}
 
-		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		permission, err := access_model.GetDoerRepoPermission(ctx, pd.Repository, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
+			ctx.ServerError("GetDoerRepoPermission", err)
 			return
 		}
 		repositoryAccessMap[pd.Repository.ID] = permission.HasAnyUnitAccess()
@@ -348,9 +348,9 @@ func ViewPackageVersion(ctx *context.Context) {
 
 	hasRepositoryAccess := false
 	if pd.Repository != nil {
-		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		permission, err := access_model.GetDoerRepoPermission(ctx, pd.Repository, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
+			ctx.ServerError("GetDoerRepoPermission", err)
 			return
 		}
 		hasRepositoryAccess = permission.HasAnyUnitAccess()
@@ -521,6 +521,30 @@ func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSett
 func packageSettingsPostActionDelete(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
+	if ctx.FormString("package_name") != pd.Package.Name {
+		ctx.Flash.Error(ctx.Tr("packages.settings.delete.invalid_package_name"))
+		ctx.Redirect(pd.PackageSettingsLink())
+		return
+	}
+
+	if err := packages_service.RemovePackage(ctx, ctx.Doer, pd.Package); err != nil {
+		log.Error("Error deleting package: %v", err)
+		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
+	} else {
+		ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
+	}
+
+	ctx.Redirect(ctx.Package.Owner.HomeLink() + "/-/packages")
+}
+
+// PackageVersionDelete deletes a package version
+func PackageVersionDelete(ctx *context.Context) {
+	pd := ctx.Package.Descriptor
+	if pd.Version == nil {
+		ctx.NotFound(nil)
+		return
+	}
+
 	if pd.Package.Type == packages_model.TypeTerraformState {
 		lock, err := terraform_module.GetLock(ctx, pd.Package.ID)
 		if err != nil {
@@ -529,7 +553,7 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 		}
 		if lock.IsLocked() {
 			ctx.Flash.Error(ctx.Tr("packages.terraform.delete.locked"))
-			ctx.Redirect(pd.VersionWebLink() + "/settings")
+			ctx.Redirect(pd.VersionWebLink())
 			return
 		}
 
@@ -543,23 +567,22 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 		}
 		if len(latestPvs) > 0 && latestPvs[0].ID == pd.Version.ID {
 			ctx.Flash.Error(ctx.Tr("packages.terraform.delete.latest"))
-			ctx.Redirect(pd.VersionWebLink() + "/settings")
+			ctx.Redirect(pd.VersionWebLink())
 			return
 		}
 	}
 
-	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pd.Version)
-	if err != nil {
-		log.Error("Error deleting package: %v", err)
+	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pd.Version); err != nil {
+		log.Error("Error deleting package version: %v", err)
 		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
 	} else {
-		ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
+		ctx.Flash.Success(ctx.Tr("packages.settings.delete.version.success"))
 	}
 
 	redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
 	// redirect to the package if there are still versions available
-	if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID, IsInternal: optional.Some(false)}); has {
-		redirectURL = ctx.Package.Descriptor.PackageWebLink()
+	if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: pd.Package.ID, IsInternal: optional.Some(false)}); has {
+		redirectURL = pd.PackageWebLink()
 	}
 
 	ctx.Redirect(redirectURL)
@@ -569,7 +592,7 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64("fileid"))
 	if err != nil {
-		if err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetFileForVersionByID", err)

@@ -246,13 +246,13 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 }
 
 // token has to be unique this counter take care of
-var tokenCounter int64
+var tokenCounter atomic.Int64
 
 // getTokenForLoggedInUser returns a token for a logged-in user.
 func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.AccessTokenScope) string {
 	t.Helper()
 	urlValues := url.Values{}
-	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)))
+	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", tokenCounter.Add(1)))
 	for _, scope := range scopes {
 		urlValues.Add("scope-dummy", string(scope)) // it only needs to start with "scope-" to be accepted
 	}
@@ -415,7 +415,7 @@ func DecodeJSON[T any](t testing.TB, resp *httptest.ResponseRecorder, v T) (ret 
 
 	// FIXME: JSON-KEY-CASE: for testing purpose only, because many structs don't provide `json` tags, they just use capitalized field names
 	decoder := json.NewDecoderCaseInsensitive(resp.Body)
-	require.NoError(t, decoder.Decode(v))
+	require.NoError(t, decoder.Decode(&v))
 	return v
 }
 

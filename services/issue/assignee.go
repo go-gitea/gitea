@@ -103,14 +103,14 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		}
 	}
 
-	permReviewer, err := access_model.GetUserRepoPermission(ctx, issue.Repo, reviewer)
+	permReviewer, err := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, reviewer)
 	if err != nil {
 		return err
 	}
 
 	if permDoer == nil {
 		permDoer = new(access_model.Permission)
-		*permDoer, err = access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+		*permDoer, err = access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return err
 		}
