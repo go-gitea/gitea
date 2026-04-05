@@ -149,9 +149,6 @@ func detectWebSrcPath(webSrcPath string) string {
 }
 
 func viteDevSourceURL(name string) string {
-	if !IsViteDevMode() {
-		return ""
-	}
 	if strings.HasPrefix(name, "css/theme-") {
 		// Only redirect built-in themes to Vite source; custom themes are served from custom/public/assets/css/
 		themeFilePath := "css/themes/" + strings.TrimPrefix(name, "css/")

@@ -77,11 +77,13 @@ function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
   };
 }
 
-function iifeBuildOpts({sourceFileName, entryFileName, write}: {sourceFileName: string, entryFileName: string, write?: boolean}) {
+function iifeBuildOpts({sourceFileName, write}: {sourceFileName: string, write?: boolean}) {
   const sourceBaseName = basename(sourceFileName, '.ts');
+  // HINT: VITE-OUTPUT-DIR: all outputted JS files are in "js" directory
+  const entryFileName = `js/${sourceBaseName}.[hash:8].js`;
   return commonViteOpts({
     build: {
-      lib: {entry: join(import.meta.dirname, 'web_src', sourceFileName), name: camelize(sourceBaseName), formats: ['iife']},
+      lib: {entry: join(import.meta.dirname, 'web_src/js', sourceFileName), name: camelize(sourceBaseName), formats: ['iife']},
       rolldownOptions: {output: {entryFileNames: entryFileName}},
       ...(write === false && {write: false}),
     },
@@ -96,17 +98,12 @@ function iifePlugin(sourceFileName: string): Plugin {
   const iifeModules = new Set<string>();
   let isBuilding = false;
 
-  const sourceDir = path.dirname(sourceFileName), sourceBaseName = path.basename(sourceFileName, '.ts');
-  const sourcePathPrefix = `${sourceDir}/${sourceBaseName}`;
+  const sourceBaseName = path.basename(sourceFileName, '.ts');
   return {
-    name: `iife:${sourcePathPrefix}`, // plugin name
+    name: `iife:${sourceFileName}`, // plugin name
     async configureServer(server) {
       const buildAndCache = async () => {
-        const result = await build(iifeBuildOpts({
-          sourceFileName: `${sourcePathPrefix}.ts`,
-          entryFileName: `${sourceDir}/${sourceBaseName}.js`,
-          write: false,
-        }));
+        const result = await build(iifeBuildOpts({sourceFileName, write: false}));
         const output = (Array.isArray(result) ? result[0] : result) as Rolldown.RolldownOutput;
         const chunk = output.output[0];
         iifeCode = chunk.code.replace(/\/\/# sourceMappingURL=.*/, `//# sourceMappingURL=${sourceBaseName}.js.map`);
@@ -139,11 +136,11 @@ function iifePlugin(sourceFileName: string): Plugin {
         const pathname = req.url!.split('?')[0];
         if (pathname === '/web_src/js/__vite_dev_server_check') {
           res.end('ok');
-        } else if (pathname === `/web_src/${sourcePathPrefix}.ts`) {
+        } else if (pathname === `/web_src/js/${sourceFileName}`) {
           res.setHeader('Content-Type', 'application/javascript');
           res.setHeader('Cache-Control', 'no-store');
           res.end(iifeCode);
-        } else if (pathname === `/web_src/js/${sourcePathPrefix}.js.map`) {
+        } else if (pathname === `/web_src/js/${sourceBaseName}.js.map`) {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Cache-Control', 'no-store');
           res.end(iifeMap);
@@ -153,18 +150,16 @@ function iifePlugin(sourceFileName: string): Plugin {
       });
     },
     async closeBundle() {
-      for (const file of globSync(`${sourcePathPrefix}.*.js*`, {cwd: outDir})) unlinkSync(join(outDir, file));
-      const result = await build(iifeBuildOpts({
-        sourceFileName: `${sourcePathPrefix}.ts`,
-        entryFileName: `${sourcePathPrefix}.[hash:8].js`,
-      }));
+      for (const file of globSync(`js/${sourceBaseName}.*.js*`, {cwd: outDir})) unlinkSync(join(outDir, file));
+
+      const result = await build(iifeBuildOpts({sourceFileName}));
       const buildOutput = (Array.isArray(result) ? result[0] : result) as Rolldown.RolldownOutput;
-      const entry = buildOutput.output.find((o) => o.fileName.startsWith(`${sourcePathPrefix}.`));
+      const entry = buildOutput.output.find((o) => o.fileName.startsWith(`js/${sourceBaseName}.`));
       if (!entry) throw new Error('IIFE build produced no output');
 
       const manifestPath = join(outDir, '.vite', 'manifest.json');
       const manifestData = JSON.parse(readFileSync(manifestPath, 'utf8'));
-      manifestData[`web_src/${sourcePathPrefix}.js`] = {file: entry.fileName, name: sourceBaseName, isEntry: true};
+      manifestData[`web_src/js/${sourceFileName}`] = {file: entry.fileName, name: sourceBaseName, isEntry: true};
       writeFileSync(manifestPath, JSON.stringify(manifestData, null, 2));
     },
   };
@@ -172,13 +167,21 @@ function iifePlugin(sourceFileName: string): Plugin {
 
 // In reduced sourcemap mode, only keep sourcemaps for main files
 function reducedSourcemapPlugin(): Plugin {
+  const standalonePrefixes = [
+    'js/index.',
+    'js/iife.',
+    'js/swagger.',
+    'js/external-render-helper.',
+    'js/eventsource.sharedworker.',
+  ];
   return {
     name: 'reduced-sourcemap',
     apply: 'build',
     closeBundle() {
       if (enableSourcemap !== 'reduced') return;
       for (const file of globSync('{js,css}/*.map', {cwd: outDir})) {
-        if (!file.startsWith('js/index.') && !file.startsWith('js/iife.') && !file.startsWith('js/standalone-')) unlinkSync(join(outDir, file));
+        if (standalonePrefixes.some((prefix) => file.startsWith(prefix))) continue;
+        unlinkSync(join(outDir, file));
       }
     },
   };
@@ -255,15 +258,15 @@ export default defineConfig(commonViteOpts({
     rolldownOptions: {
       input: {
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
-        swagger: join(import.meta.dirname, 'web_src/js/standalone-swagger.ts'),
-        'external-render-iframe': join(import.meta.dirname, 'web_src/js/standalone-external-render.ts'),
-        'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/features/eventsource.sharedworker.ts'),
+        swagger: join(import.meta.dirname, 'web_src/js/swagger.ts'),
+        'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/eventsource.sharedworker.ts'),
         devtest: join(import.meta.dirname, 'web_src/css/devtest.css'),
         ...themes,
       },
       output: {
-        // all outputted JS files are in "/js" directory, so standalone source files should also be in "js" directory
-        // to keep consistent between production and dev server and avoid unexpected behaviors.
+        // HINT: VITE-OUTPUT-DIR: all outputted JS files are in "js" directory
+        // So standalone/iife source files should also be in "js" directory,
+        // to keep consistent between production and dev server, avoid unexpected behaviors.
         entryFileNames: 'js/[name].[hash:8].js',
         chunkFileNames: 'js/[name].[hash:8].js',
         assetFileNames: ({names}) => {
@@ -297,8 +300,8 @@ export default defineConfig(commonViteOpts({
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
   },
   plugins: [
-    iifePlugin('js/iife.ts'),
-    iifePlugin('js/standalone-external-render.ts'),
+    iifePlugin('iife.ts'),
+    iifePlugin('external-render-helper.ts'),
     viteDevServerPortPlugin(),
     reducedSourcemapPlugin(),
     filterCssUrlPlugin(),
