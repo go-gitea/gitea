@@ -87,10 +87,6 @@ func testAPIGetProject(t *testing.T) {
 	}
 	err := project_model.NewProject(t.Context(), project)
 	assert.NoError(t, err)
-	defer func() {
-		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-	}()
-
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeReadIssue)
 
 	// Test getting the project
@@ -133,9 +129,6 @@ func testAPICreateProject(t *testing.T) {
 	assert.Equal(t, 1, project.TemplateType)
 	assert.Equal(t, 1, project.CardType)
 	assert.False(t, project.IsClosed)
-	defer func() {
-		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-	}()
 
 	// Test creating with minimal data
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects", owner.Name, repo.Name), &api.CreateProjectOption{
@@ -146,9 +139,6 @@ func testAPICreateProject(t *testing.T) {
 	var minimalProject api.Project
 	DecodeJSON(t, resp, &minimalProject)
 	assert.Equal(t, "Minimal Project", minimalProject.Title)
-	defer func() {
-		_ = project_model.DeleteProjectByID(t.Context(), minimalProject.ID)
-	}()
 
 	// Test creating without authentication
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects", owner.Name, repo.Name), &api.CreateProjectOption{
@@ -178,9 +168,6 @@ func testAPIUpdateProject(t *testing.T) {
 	}
 	err := project_model.NewProject(t.Context(), project)
 	assert.NoError(t, err)
-	defer func() {
-		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-	}()
 
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteIssue)
 
@@ -219,9 +206,6 @@ func testAPIChangeProjectStatus(t *testing.T) {
 	}
 	err := project_model.NewProject(t.Context(), project)
 	assert.NoError(t, err)
-	defer func() {
-		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-	}()
 
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteIssue)
 
@@ -290,9 +274,6 @@ func testAPIListProjectColumns(t *testing.T) {
 	}
 	err := project_model.NewProject(t.Context(), project)
 	assert.NoError(t, err)
-	defer func() {
-		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-	}()
 
 	// Create test columns
 	for i := 1; i <= 3; i++ {
@@ -359,9 +340,6 @@ func testAPICreateProjectColumn(t *testing.T) {
 	}
 	err := project_model.NewProject(t.Context(), project)
 	assert.NoError(t, err)
-	defer func() {
-		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-	}()
 
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteIssue)
 
@@ -414,10 +392,6 @@ func testAPIUpdateProjectColumn(t *testing.T) {
 	}
 	err := project_model.NewProject(t.Context(), project)
 	assert.NoError(t, err)
-	defer func() {
-		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-	}()
-
 	column := &project_model.Column{
 		Title:     "Original Column",
 		ProjectID: project.ID,
@@ -471,10 +445,6 @@ func testAPIDeleteProjectColumn(t *testing.T) {
 	}
 	err := project_model.NewProject(t.Context(), project)
 	assert.NoError(t, err)
-	defer func() {
-		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-	}()
-
 	column := &project_model.Column{
 		Title:     "Column to Delete",
 		ProjectID: project.ID,
@@ -511,9 +481,6 @@ func testAPIAddIssueToProjectColumn(t *testing.T) {
 	}
 	err := project_model.NewProject(t.Context(), project)
 	assert.NoError(t, err)
-	defer func() {
-		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-	}()
 
 	column1 := &project_model.Column{
 		Title:     "Column 1",
@@ -583,9 +550,6 @@ func testAPIListProjectColumnIssues(t *testing.T) {
 	}
 	err := project_model.NewProject(t.Context(), project)
 	assert.NoError(t, err)
-	defer func() {
-		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-	}()
 
 	column := &project_model.Column{
 		Title:     "Column for Issues",
@@ -632,9 +596,6 @@ func testAPIRemoveIssueFromProjectColumn(t *testing.T) {
 	}
 	err := project_model.NewProject(t.Context(), project)
 	assert.NoError(t, err)
-	defer func() {
-		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-	}()
 
 	column := &project_model.Column{
 		Title:     "Column for Issue Removal",
@@ -674,9 +635,6 @@ func testAPIProjectPermissions(t *testing.T) {
 	}
 	err := project_model.NewProject(t.Context(), project)
 	assert.NoError(t, err)
-	defer func() {
-		_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-	}()
 
 	ownerToken := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteIssue)
 	nonCollaboratorToken := getUserToken(t, nonCollaborator.Name, auth_model.AccessTokenScopeWriteIssue)
