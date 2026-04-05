@@ -255,25 +255,28 @@ func RenderTocHeadingItems(ctx *RenderContext, nodeDetailsAttrs map[string]strin
 	indent := []byte{' ', ' '}
 	_, _ = htmlutil.HTMLPrint(out, "<ul>\n")
 	for _, header := range ctx.TocHeadingItems {
+		// Go deeper: open nested <ul> elements (wrapped in <li> for valid HTML)
 		for currentLevel < header.HeadingLevel {
 			_, _ = out.Write(indent)
-			_, _ = htmlutil.HTMLPrint(out, "<ul>\n")
+			_, _ = htmlutil.HTMLPrint(out, "<li><ul>\n")
 			indent = append(indent, ' ', ' ')
 			currentLevel++
 		}
+		// Go shallower: close nested </ul></li> elements
 		for currentLevel > header.HeadingLevel {
 			indent = indent[:len(indent)-2]
 			_, _ = out.Write(indent)
-			_, _ = htmlutil.HTMLPrint(out, "</ul>\n")
+			_, _ = htmlutil.HTMLPrint(out, "</ul></li>\n")
 			currentLevel--
 		}
 		_, _ = out.Write(indent)
 		_, _ = htmlutil.HTMLPrintf(out, "<li><a href=\"#%s\">%s</a></li>\n", header.AnchorID, header.InnerText)
 	}
+	// Close any remaining nested levels
 	for currentLevel > baseLevel {
 		indent = indent[:len(indent)-2]
 		_, _ = out.Write(indent)
-		_, _ = htmlutil.HTMLPrint(out, "</ul>\n")
+		_, _ = htmlutil.HTMLPrint(out, "</ul></li>\n")
 		currentLevel--
 	}
 	_, _ = htmlutil.HTMLPrint(out, "</ul>\n</details>\n")
