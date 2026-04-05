@@ -60,6 +60,13 @@ export async function apiStartStopwatch(requestContext: APIRequestContext, owner
   }), 'apiStartStopwatch');
 }
 
+export async function apiCreateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
+    headers: apiHeaders(),
+    data: {content: globalThis.btoa(content)},
+  }), 'apiCreateFile');
+}
+
 export async function apiDeleteRepo(requestContext: APIRequestContext, owner: string, name: string) {
   await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/repos/${owner}/${name}`, {
     headers: apiHeaders(),
