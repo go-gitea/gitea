@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type escapeControlTest struct {
@@ -164,4 +165,51 @@ func TestSettingAmbiguousUnicodeDetection(t *testing.T) {
 	setting.UI.AmbiguousUnicodeDetection = false
 	_, out = EscapeControlHTML("a test", &translation.MockLocale{})
 	assert.EqualValues(t, `a test`, out)
+}
+
+func TestHTMLChunkReader(t *testing.T) {
+	type textPart struct {
+		text  string
+		isTag bool
+	}
+	testReadChunks := func(t *testing.T, chunkSize int, input string, expected []textPart) {
+		r := &htmlChunkReader{in: strings.NewReader(input), readBuf: make([]byte, 0, chunkSize)}
+		var results []textPart
+		for {
+			parts, partIsTag, err := r.readRunes()
+			if err != nil {
+				break
+			}
+			for i, part := range parts {
+				results = append(results, textPart{string(part), partIsTag[i]})
+			}
+		}
+		assert.Equal(t, expected, results, "chunk size: %d, input: %s", chunkSize, input)
+	}
+
+	testReadChunks(t, 10, "abc<def>ghi", []textPart{
+		{text: "abc", isTag: false},
+		{text: "<def>", isTag: true},
+		{text: "gh", isTag: false},
+		// -- chunk
+		{text: "i", isTag: false},
+	})
+
+	testReadChunks(t, 10, "<abc><def>ghi", []textPart{
+		{text: "<abc>", isTag: true},
+		{text: "<def>", isTag: true},
+		// -- chunk
+		{text: "ghi", isTag: false},
+	})
+
+	rune1, rune2, rune3, rune4 := "A", "é", "啊", "🌞"
+	require.Len(t, rune1, 1)
+	require.Len(t, rune2, 2)
+	require.Len(t, rune3, 3)
+	require.Len(t, rune4, 4)
+	input := "<" + rune1 + rune2 + rune3 + rune4 + ">" + rune1 + rune2 + rune3 + rune4
+	testReadChunks(t, 4, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞", true}, {">", true}, {"Aé", false}, {"啊", false}, {"🌞", false}})
+	testReadChunks(t, 5, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞>", true}, {"Aé", false}, {"啊", false}, {"🌞", false}})
+	testReadChunks(t, 6, input, []textPart{{"<Aé", true}, {"啊", true}, {"🌞>", true}, {"A", false}, {"é啊", false}, {"🌞", false}})
+	testReadChunks(t, 7, input, []textPart{{"<Aé啊", true}, {"🌞>", true}, {"A", false}, {"é啊", false}, {"🌞", false}})
 }

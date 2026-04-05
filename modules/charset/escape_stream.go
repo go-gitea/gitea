@@ -16,16 +16,20 @@ import (
 	"golang.org/x/net/html"
 )
 
-type escapeStreamer struct {
-	escaped         *EscapeStatus
-	locale          translation.Locale
-	ambiguousTables []*AmbiguousTable
-	allowed         map[rune]bool
-
+type htmlChunkReader struct {
 	in       io.Reader
 	readErr  error
 	readBuf  []byte
 	curInTag bool
+}
+
+type escapeStreamer struct {
+	htmlChunkReader
+
+	escaped         *EscapeStatus
+	locale          translation.Locale
+	ambiguousTables []*AmbiguousTable
+	allowed         map[rune]bool
 
 	out io.Writer
 }
@@ -35,10 +39,10 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 		escaped:         &EscapeStatus{},
 		locale:          locale,
 		ambiguousTables: AmbiguousTablesForLocale(locale),
-
-		in:      in,
-		readBuf: make([]byte, 0, 32*1024),
-
+		htmlChunkReader: htmlChunkReader{
+			in:      in,
+			readBuf: make([]byte, 0, 32*1024),
+		},
 		out: out,
 	}
 
@@ -134,7 +138,7 @@ func (e *escapeStreamer) detectAndWriteRunes(part []byte) error {
 	return e.writeDetectResults(part, results)
 }
 
-func (e *escapeStreamer) readRunes() (parts [][]byte, partInTag []bool, _ error) {
+func (e *htmlChunkReader) readRunes() (parts [][]byte, partInTag []bool, _ error) {
 	// we have read everything, eof
 	if e.readErr != nil && len(e.readBuf) == 0 {
 		return nil, nil, e.readErr
@@ -195,7 +199,7 @@ func (e *escapeStreamer) readRunes() (parts [][]byte, partInTag []bool, _ error)
 		// now we get the curPart bytes, but we can't directly use it, the last rune in it might have been cut
 		// try to decode the last rune, if it's invalid, then we cut the last byte and try again until we get a valid rune or no byte left
 		for i := curPartLen - 1; i >= 0; i-- {
-			last, lastSize := utf8.DecodeLastRune(curPart[i:])
+			last, lastSize := utf8.DecodeRune(curPart[i:])
 			if last == utf8.RuneError && lastSize == 1 {
 				curPartLen--
 			} else {
@@ -210,6 +214,11 @@ func (e *escapeStreamer) readRunes() (parts [][]byte, partInTag []bool, _ error)
 			// * at least consume 1 byte to avoid infinite loop
 			curPartLen = max(len(curPart)-utf8.UTFMax, 1)
 		}
+
+		// if curPartLen is not the same as curPart, it means we have cut some bytes,
+		// need to wait for more data if not eof
+		trailingCorrupted := curPartLen != len(curPart)
+
 		// finally, we get the real part we need
 		curPart = curPart[:curPartLen]
 		parts = append(parts, curPart)
@@ -217,6 +226,11 @@ func (e *escapeStreamer) readRunes() (parts [][]byte, partInTag []bool, _ error)
 
 		pos += curPartLen
 		e.curInTag = nextInTag
+
+		if trailingCorrupted && e.readErr == nil {
+			// if the last part is corrupted, and we haven't reach eof, then we need to wait for more data to get the complete part
+			break
+		}
 	}
 
 	copy(e.readBuf, e.readBuf[pos:])
