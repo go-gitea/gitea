@@ -20,9 +20,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIListProjects(t *testing.T) {
+func TestAPIProjects(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("ListProjects", testAPIListProjects)
+	t.Run("GetProject", testAPIGetProject)
+	t.Run("CreateProject", testAPICreateProject)
+	t.Run("UpdateProject", testAPIUpdateProject)
+	t.Run("ChangeProjectStatus", testAPIChangeProjectStatus)
+	t.Run("DeleteProject", testAPIDeleteProject)
+	t.Run("ListProjectColumns", testAPIListProjectColumns)
+	t.Run("CreateProjectColumn", testAPICreateProjectColumn)
+	t.Run("UpdateProjectColumn", testAPIUpdateProjectColumn)
+	t.Run("DeleteProjectColumn", testAPIDeleteProjectColumn)
+	t.Run("AddIssueToProjectColumn", testAPIAddIssueToProjectColumn)
+	t.Run("RemoveIssueFromProjectColumn", testAPIRemoveIssueFromProjectColumn)
+	t.Run("ListProjectColumnIssues", testAPIListProjectColumnIssues)
+	t.Run("Permissions", testAPIProjectPermissions)
+}
 
+func testAPIListProjects(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -57,9 +73,7 @@ func TestAPIListProjects(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 }
 
-func TestAPIGetProject(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIGetProject(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -97,9 +111,7 @@ func TestAPIGetProject(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestAPICreateProject(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPICreateProject(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -151,9 +163,7 @@ func TestAPICreateProject(t *testing.T) {
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 }
 
-func TestAPIUpdateProject(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIUpdateProject(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -195,9 +205,7 @@ func TestAPIUpdateProject(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestAPIChangeProjectStatus(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIChangeProjectStatus(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -240,9 +248,7 @@ func TestAPIChangeProjectStatus(t *testing.T) {
 	assert.False(t, updatedProject.IsClosed)
 }
 
-func TestAPIDeleteProject(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIDeleteProject(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -270,9 +276,7 @@ func TestAPIDeleteProject(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestAPIListProjectColumns(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIListProjectColumns(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -341,9 +345,7 @@ func TestAPIListProjectColumns(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestAPICreateProjectColumn(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPICreateProjectColumn(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -398,9 +400,7 @@ func TestAPICreateProjectColumn(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestAPIUpdateProjectColumn(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIUpdateProjectColumn(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -457,9 +457,7 @@ func TestAPIUpdateProjectColumn(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestAPIDeleteProjectColumn(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIDeleteProjectColumn(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -498,9 +496,7 @@ func TestAPIDeleteProjectColumn(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestAPIAddIssueToProjectColumn(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIAddIssueToProjectColumn(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID})
@@ -572,9 +568,7 @@ func TestAPIAddIssueToProjectColumn(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestAPIListProjectColumnIssues(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIListProjectColumnIssues(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
@@ -624,9 +618,7 @@ func TestAPIListProjectColumnIssues(t *testing.T) {
 	assert.Contains(t, issueIDs, pull.ID)
 }
 
-func TestAPIRemoveIssueFromProjectColumn(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIRemoveIssueFromProjectColumn(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID})
@@ -667,9 +659,7 @@ func TestAPIRemoveIssueFromProjectColumn(t *testing.T) {
 	})
 }
 
-func TestAPIProjectPermissions(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIProjectPermissions(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	nonCollaborator := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user5"})
