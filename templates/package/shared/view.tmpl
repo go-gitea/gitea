@@ -102,10 +102,10 @@
 			<div class="item">{{svg "octicon-tools"}} <a href="{{.PackageDescriptor.PackageSettingsLink}}">{{ctx.Locale.Tr "repo.settings"}}</a></div>
 			<div class="item">
 				{{svg "octicon-trash"}}
-				<a class="show-modal" data-modal="#delete-package-version-modal">{{ctx.Locale.Tr "packages.settings.delete"}}</a>
+				<a class="show-modal" data-modal="#delete-package-version-modal">{{ctx.Locale.Tr "packages.settings.delete.version"}}</a>
 				<div class="ui tiny modal" id="delete-package-version-modal">
 					<div class="header">
-						{{ctx.Locale.Tr "packages.settings.delete"}}
+						{{ctx.Locale.Tr "packages.settings.delete.version"}}
 					</div>
 					<div class="content">
 						<div class="ui warning message tw-break-anywhere">

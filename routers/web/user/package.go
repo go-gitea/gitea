@@ -493,6 +493,12 @@ func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSett
 func packageSettingsPostActionDelete(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
+	if ctx.FormString("package_name") != pd.Package.Name {
+		ctx.Flash.Error(ctx.Tr("form.enterred_invalid_repo_name"))
+		ctx.Redirect(pd.PackageSettingsLink())
+		return
+	}
+
 	if err := packages_service.RemovePackage(ctx, ctx.Doer, pd.Package); err != nil {
 		log.Error("Error deleting package: %v", err)
 		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
@@ -515,7 +521,7 @@ func PackageVersionDelete(ctx *context.Context) {
 		log.Error("Error deleting package version: %v", err)
 		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
 	} else {
-		ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
+		ctx.Flash.Success(ctx.Tr("packages.settings.delete.version.success"))
 	}
 
 	redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"

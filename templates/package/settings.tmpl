@@ -49,6 +49,16 @@
 							</div>
 							<form class="ui form" action="{{.Link}}" method="post">
 								<input type="hidden" name="action" value="delete">
+								<div class="field">
+									<label>
+										{{ctx.Locale.Tr "packages.settings.delete.confirm"}}
+										<span class="tw-text-red">{{.PackageDescriptor.Package.Name}}</span>
+									</label>
+								</div>
+								<div class="required field">
+									<label>{{ctx.Locale.Tr "packages.name"}}</label>
+									<input name="package_name" required maxlength="100">
+								</div>
 								{{template "base/modal_actions_confirm" .}}
 							</form>
 						</div>
