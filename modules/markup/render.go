@@ -205,14 +205,18 @@ func RenderString(ctx *RenderContext, content string) (string, error) {
 	return buf.String(), nil
 }
 
-func RenderIFrame(ctx *RenderContext, sandbox string, output io.Writer) error {
+func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.Writer) error {
 	src := fmt.Sprintf("%s/%s/%s/render/%s/%s", setting.AppSubURL,
 		url.PathEscape(ctx.RenderOptions.Metas["user"]),
 		url.PathEscape(ctx.RenderOptions.Metas["repo"]),
 		util.PathEscapeSegments(ctx.RenderOptions.Metas["RefTypeNameSubURL"]),
 		util.PathEscapeSegments(ctx.RenderOptions.RelativePath),
 	)
-	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" class="external-render-iframe" sandbox="%s"></iframe>`, src, sandbox)
+	var extraAttrs template.HTML
+	if opts.ContentSandbox != "" {
+		extraAttrs = htmlutil.HTMLFormat(` sandbox="%s"`, opts.ContentSandbox)
+	}
+	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" class="external-render-iframe"%s></iframe>`, src, extraAttrs)
 	return err
 }
 
@@ -237,7 +241,7 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 		if ctx.RenderOptions.StandalonePageOptions == nil {
 			// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
 			// otherwise, a <iframe> should be outputted to embed the external rendered page
-			return RenderIFrame(ctx, extOpts.ContentSandbox, output)
+			return RenderIFrame(ctx, &extOpts, output)
 		}
 		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
 		extraScriptSrc := public.AssetURI("js/external-render-helper.js")

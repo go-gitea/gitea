@@ -54,7 +54,7 @@ func (p *openAPIRenderer) GetExternalRendererOptions() (ret markup.ExternalRende
 func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	if ctx.RenderOptions.StandalonePageOptions == nil {
 		opts := p.GetExternalRendererOptions()
-		return markup.RenderIFrame(ctx, opts.ContentSandbox, output)
+		return markup.RenderIFrame(ctx, &opts, output)
 	}
 
 	content, err := util.ReadWithLimit(input, int(setting.UI.MaxDisplayFileSize))
