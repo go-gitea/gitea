@@ -34,6 +34,7 @@ func TestAPICreateHook(t *testing.T) {
 			"url":          "http://example.com/",
 		},
 		AuthorizationHeader: "Bearer s3cr3t",
+		Name:                "  CI notifications  ",
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
@@ -41,4 +42,54 @@ func TestAPICreateHook(t *testing.T) {
 	DecodeJSON(t, resp, &apiHook)
 	assert.Equal(t, "http://example.com/", apiHook.Config["url"])
 	assert.Equal(t, "Bearer s3cr3t", apiHook.AuthorizationHeader)
+	assert.Equal(t, "CI notifications", apiHook.Name)
+
+	newName := "Deploy hook"
+	patchReq := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d", owner.Name, repo.Name, apiHook.ID), api.EditHookOption{
+		Name: &newName,
+	}).AddTokenAuth(token)
+	patchResp := MakeRequest(t, patchReq, http.StatusOK)
+	var patched *api.Hook
+	DecodeJSON(t, patchResp, &patched)
+	assert.Equal(t, newName, patched.Name)
+
+	hooksURL := fmt.Sprintf("/api/v1/repos/%s/%s/hooks", owner.Name, repo.Name)
+
+	// Create with Name field omitted: Name should be ""
+	req2 := NewRequestWithJSON(t, "POST", hooksURL, api.CreateHookOption{
+		Type: "gitea",
+		Config: api.CreateHookOptionConfig{
+			"content_type": "json",
+			"url":          "http://example.com/",
+		},
+	}).AddTokenAuth(token)
+	resp2 := MakeRequest(t, req2, http.StatusCreated)
+	var created *api.Hook
+	DecodeJSON(t, resp2, &created)
+	assert.Empty(t, created.Name)
+
+	hookURL := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d", owner.Name, repo.Name, created.ID)
+
+	// PATCH with Name set: existing Name must be updated
+	setName := "original"
+	setReq := NewRequestWithJSON(t, "PATCH", hookURL, api.EditHookOption{
+		Name: &setName,
+	}).AddTokenAuth(token)
+	MakeRequest(t, setReq, http.StatusOK)
+
+	// PATCH without Name field: name must remain "original"
+	patchReq2 := NewRequestWithJSON(t, "PATCH", hookURL, api.EditHookOption{}).AddTokenAuth(token)
+	patchResp2 := MakeRequest(t, patchReq2, http.StatusOK)
+	var notCleared *api.Hook
+	DecodeJSON(t, patchResp2, &notCleared)
+	assert.Equal(t, "original", notCleared.Name)
+
+	// PATCH with Name: "" explicitly: Name should be cleared to ""
+	clearReq := NewRequestWithJSON(t, "PATCH", hookURL, api.EditHookOption{
+		Name: new(""),
+	}).AddTokenAuth(token)
+	clearResp := MakeRequest(t, clearReq, http.StatusOK)
+	var cleared *api.Hook
+	DecodeJSON(t, clearResp, &cleared)
+	assert.Empty(t, cleared.Name)
 }

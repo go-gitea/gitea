@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {generateElemId} from '../../utils/dom.ts';
 
 export function linkLabelAndInput(label: Element, input: Element) {

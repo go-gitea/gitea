@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
+	wiki_service "code.gitea.io/gitea/services/wiki"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -27,6 +28,10 @@ import (
 
 func TestMirrorPush(t *testing.T) {
 	onGiteaRun(t, testMirrorPush)
+}
+
+func TestMirrorPushWikiDefaultBranchMismatch(t *testing.T) {
+	onGiteaRun(t, testMirrorPushWikiDefaultBranchMismatch)
 }
 
 func testMirrorPush(t *testing.T, u *url.URL) {
@@ -75,6 +80,41 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	mirrors, _, err = repo_model.GetPushMirrorsByRepoID(t.Context(), srcRepo.ID, db.ListOptions{})
 	assert.NoError(t, err)
 	assert.Empty(t, mirrors)
+}
+
+func testMirrorPushWikiDefaultBranchMismatch(t *testing.T, u *url.URL) {
+	setting.Migrations.AllowLocalNetworks = true
+	assert.NoError(t, migrations.Init())
+
+	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(t.Context(), user, user, repo_service.CreateRepoOptions{
+		Name: "test-push-mirror-wiki",
+	}, true)
+	assert.NoError(t, err)
+
+	assert.NoError(t, wiki_service.AddWikiPage(t.Context(), user, mirrorRepo, wiki_service.WebPath("Home"), "Mirror wiki content", "init wiki"))
+
+	mirrorRepo.DefaultBranch = "mirror-head"
+	assert.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), mirrorRepo, "default_branch"))
+
+	wikiCommitID, err := gitrepo.GetBranchCommitID(t.Context(), mirrorRepo.WikiStorageRepo(), mirrorRepo.DefaultWikiBranch)
+	assert.NoError(t, err)
+	assert.NoError(t, gitrepo.CreateBranch(t.Context(), mirrorRepo.WikiStorageRepo(), "mirror-head", wikiCommitID))
+
+	session := loginUser(t, user.Name)
+
+	pushMirrorURL := fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(user.Name), url.PathEscape(mirrorRepo.Name))
+	testCreatePushMirror(t, session, user.Name, srcRepo.Name, pushMirrorURL, user.LowerName, userPassword, "0")
+
+	mirrors, _, err := repo_model.GetPushMirrorsByRepoID(t.Context(), srcRepo.ID, db.ListOptions{})
+	assert.NoError(t, err)
+	assert.Len(t, mirrors, 1)
+
+	ok := mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID)
+	assert.True(t, ok)
 }
 
 func testCreatePushMirror(t *testing.T, session *TestSession, owner, repo, address, username, password, interval string) {

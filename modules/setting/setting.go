@@ -28,8 +28,10 @@ var (
 	CfgProvider ConfigProvider
 	IsWindows   bool
 
-	// IsInTesting indicates whether the testing is running. A lot of unreliable code causes a lot of nonsense error logs during testing
-	// TODO: this is only a temporary solution, we should make the test code more reliable
+	// IsInTesting indicates whether the testing is running (unit test or integration test). It can be used for:
+	// * Skip nonsense error logs during testing caused by unreliable code (TODO: this is only a temporary solution, we should make the test code more reliable)
+	// * Panic in dev or testing mode to make the problem more obvious and easier to debug
+	// * Mock some functions or options to make testing easier (eg: session store, time, URL detection, etc.)
 	IsInTesting = false
 )
 
@@ -55,6 +57,10 @@ func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
 
 	currentUser := user.CurrentUsername()
 	return currentUser, runUser == currentUser
+}
+
+func IsInE2eTesting() bool {
+	return os.Getenv("GITEA_TEST_E2E") == "true"
 }
 
 // PrepareAppDataPath creates app data directory if necessary

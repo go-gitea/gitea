@@ -362,14 +362,19 @@ func testAPIRenameBranch(t *testing.T, doerName, ownerName, repoName, from, to s
 func TestAPIBranchProtection(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// Branch protection  on branch that not exist
-	testAPICreateBranchProtection(t, "master/doesnotexist", 1, http.StatusCreated)
+	// Can create branch protection on branch that not exist
+	testAPICreateBranchProtection(t, "non-existing/branch", 1, http.StatusCreated)
+	testAPIGetBranchProtection(t, "non-existing/branch", http.StatusOK)
+	testAPIDeleteBranchProtection(t, "non-existing/branch", http.StatusNoContent)
+
 	// Get branch protection on branch that exist but not branch protection
 	testAPIGetBranchProtection(t, "master", http.StatusNotFound)
 
-	testAPICreateBranchProtection(t, "master", 2, http.StatusCreated)
+	testAPICreateBranchProtection(t, "master", 1, http.StatusCreated)
 	// Can only create once
 	testAPICreateBranchProtection(t, "master", 0, http.StatusForbidden)
+
+	testAPICreateBranchProtection(t, "other-branch", 2, http.StatusCreated)
 
 	// Can't delete a protected branch
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
@@ -402,6 +407,8 @@ func TestAPIBranchProtection(t *testing.T) {
 	// Test branch deletion
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
+	testAPIDeleteBranch(t, "branch2", http.StatusNotFound)        // deleted branch, there is a record in DB with IsDelete=true
+	testAPIDeleteBranch(t, "no-such-branch", http.StatusNotFound) // non-existing branch, not exist in git or DB
 }
 
 func TestAPICreateBranchWithSyncBranches(t *testing.T) {

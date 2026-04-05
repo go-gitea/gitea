@@ -16,7 +16,11 @@ import (
 	"github.com/go-enry/go-enry/v2"
 )
 
-const mapKeyLowerPrefix = "lower/"
+const (
+	mapKeyLowerPrefix   = "lower/"
+	LanguagePlaintext   = "plaintext"
+	chromaLexerFallback = "fallback"
+)
 
 // chromaLexers is fully managed by us to do fast lookup for chroma lexers by file name or language name
 // Don't use lexers.Get because it is very slow in many cases (iterate all rules, filepath glob match, etc.)

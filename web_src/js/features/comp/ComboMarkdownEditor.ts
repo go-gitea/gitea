@@ -10,6 +10,7 @@ import {
 } from './EditorUpload.ts';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.ts';
 import {renderPreviewPanelContent} from '../repo-editor.ts';
+import {toggleTasklistCheckbox} from '../../markup/tasklist.ts';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.ts';
 import {initTextExpander} from './TextExpander.ts';
 import {showErrorToast} from '../../modules/toast.ts';
@@ -236,6 +237,20 @@ export class ComboMarkdownEditor {
       const response = await POST(this.previewUrl, {data: formData});
       const data = await response.text();
       renderPreviewPanelContent(panelPreviewer, data);
+      // enable task list checkboxes in preview and sync state back to the editor
+      for (const checkbox of panelPreviewer.querySelectorAll<HTMLInputElement>('.task-list-item input[type=checkbox]')) {
+        checkbox.disabled = false;
+        checkbox.addEventListener('input', () => {
+          const position = parseInt(checkbox.getAttribute('data-source-position')!) + 1;
+          const newContent = toggleTasklistCheckbox(this.value(), position, checkbox.checked);
+          if (newContent === null) {
+            checkbox.checked = !checkbox.checked;
+            return;
+          }
+          this.value(newContent);
+          triggerEditorContentChanged(this.container);
+        });
+      }
     });
   }
 
@@ -319,8 +334,8 @@ export class ComboMarkdownEditor {
   async switchToEasyMDE() {
     if (this.easyMDE) return;
     const [{default: EasyMDE}] = await Promise.all([
-      import(/* webpackChunkName: "easymde" */'easymde'),
-      import(/* webpackChunkName: "easymde" */'../../../css/easymde.css'),
+      import('easymde'),
+      import('../../../css/easymde.css'),
     ]);
     const easyMDEOpt: EasyMDE.Options = {
       autoDownloadFontAwesome: false,

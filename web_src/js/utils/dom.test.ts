@@ -34,7 +34,7 @@ test('querySingleVisibleElem', () => {
   el = createElementFromHTML('<div><span class="some-class tw-hidden">foo</span><span>bar</span></div>');
   expect(querySingleVisibleElem(el, 'span')!.textContent).toEqual('bar');
   el = createElementFromHTML('<div><span>foo</span><span>bar</span></div>');
-  expect(() => querySingleVisibleElem(el, 'span')).toThrowError('Expected exactly one visible element');
+  expect(() => querySingleVisibleElem(el, 'span')).toThrow('Expected exactly one visible element');
 });
 
 test('queryElemChildren', () => {

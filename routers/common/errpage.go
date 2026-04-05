@@ -53,18 +53,18 @@ func renderServerErrorPage(w http.ResponseWriter, req *http.Request, respCode in
 	_, _ = io.Copy(w, outBuf)
 }
 
-// RenderPanicErrorPage renders a 500 page, and it never panics
-func RenderPanicErrorPage(w http.ResponseWriter, req *http.Request, err any) {
-	combinedErr := fmt.Sprintf("%v\n%s", err, log.Stack(2))
-	log.Error("PANIC: %s", combinedErr)
+// renderPanicErrorPage renders a 500 page with the recovered panic value, it handles the stack trace, and it never panics
+func renderPanicErrorPage(w http.ResponseWriter, req *http.Request, recovered any) {
+	combinedErr := fmt.Errorf("%v\n%s", recovered, log.Stack(2))
+	log.Error("PANIC: %v", combinedErr)
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error("Panic occurs again when rendering error page: %v. Stack:\n%s", err, log.Stack(2))
+			log.Error("Panic occurs again when rendering error page: %v. Stack:\n%s", combinedErr, log.Stack(2))
 		}
 	}()
 
-	routing.UpdatePanicError(req.Context(), err)
+	routing.UpdatePanicError(req.Context(), combinedErr)
 
 	plainMsg := "Internal Server Error"
 	ctxData := middleware.GetContextData(req.Context())
@@ -72,7 +72,7 @@ func RenderPanicErrorPage(w http.ResponseWriter, req *http.Request, err any) {
 	// Otherwise, the 500-page may cause new panics, eg: cache.GetContextWithData, it makes the developer&users couldn't find the original panic.
 	user, _ := ctxData[middleware.ContextDataKeySignedUser].(*user_model.User)
 	if !setting.IsProd || (user != nil && user.IsAdmin) {
-		plainMsg = "PANIC: " + combinedErr
+		plainMsg = "PANIC: " + combinedErr.Error()
 		ctxData["ErrorMsg"] = plainMsg
 	}
 	renderServerErrorPage(w, req, http.StatusInternalServerError, tplStatus500, ctxData, plainMsg)

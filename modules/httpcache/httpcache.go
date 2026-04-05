@@ -60,21 +60,6 @@ func CacheControlForPrivateStatic() *CacheControlOptions {
 	}
 }
 
-// HandleGenericETagCache handles ETag-based caching for a HTTP request.
-// It returns true if the request was handled.
-func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag string) (handled bool) {
-	if len(etag) > 0 {
-		w.Header().Set("Etag", etag)
-		if checkIfNoneMatchIsValid(req, etag) {
-			w.WriteHeader(http.StatusNotModified)
-			return true
-		}
-	}
-	// not sure whether it is a public content, so just use "private" (old behavior)
-	SetCacheControlInHeader(w.Header(), CacheControlForPrivateStatic())
-	return false
-}
-
 // checkIfNoneMatchIsValid tests if the header If-None-Match matches the ETag
 func checkIfNoneMatchIsValid(req *http.Request, etag string) bool {
 	ifNoneMatch := req.Header.Get("If-None-Match")
@@ -89,10 +74,18 @@ func checkIfNoneMatchIsValid(req *http.Request, etag string) bool {
 	return false
 }
 
-// HandleGenericETagTimeCache handles ETag-based caching with Last-Modified caching for a HTTP request.
+func HandleGenericETagPublicCache(req *http.Request, w http.ResponseWriter, etag string, lastModified *time.Time) bool {
+	return handleGenericETagTimeCache(req, w, etag, lastModified, CacheControlForPublicStatic())
+}
+
+func HandleGenericETagPrivateCache(req *http.Request, w http.ResponseWriter, etag string, lastModified *time.Time) bool {
+	return handleGenericETagTimeCache(req, w, etag, lastModified, CacheControlForPrivateStatic())
+}
+
+// handleGenericETagTimeCache handles ETag-based caching with Last-Modified caching for the HTTP request.
 // It returns true if the request was handled.
-func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag string, lastModified *time.Time) (handled bool) {
-	if len(etag) > 0 {
+func handleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag string, lastModified *time.Time, cacheControlOpts *CacheControlOptions) (handled bool) {
+	if etag != "" {
 		w.Header().Set("Etag", etag)
 	}
 	if lastModified != nil && !lastModified.IsZero() {
@@ -100,7 +93,7 @@ func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 		w.Header().Set("Last-Modified", lastModified.UTC().Format(http.TimeFormat))
 	}
 
-	if len(etag) > 0 {
+	if etag != "" {
 		if checkIfNoneMatchIsValid(req, etag) {
 			w.WriteHeader(http.StatusNotModified)
 			return true
@@ -117,7 +110,6 @@ func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 		}
 	}
 
-	// not sure whether it is a public content, so just use "private" (old behavior)
-	SetCacheControlInHeader(w.Header(), CacheControlForPrivateStatic())
+	SetCacheControlInHeader(w.Header(), cacheControlOpts)
 	return false
 }
