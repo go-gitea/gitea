@@ -107,6 +107,13 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 	return events, nil
 }
 
+// ValidateWorkflowContent catches structural errors (e.g. blank lines in run: | blocks)
+// that model.ReadWorkflow alone does not detect.
+func ValidateWorkflowContent(content []byte) error {
+	_, err := jobparser.Parse(content)
+	return err
+}
+
 func DetectWorkflows(
 	gitRepo *git.Repository,
 	commit *git.Commit,
@@ -129,6 +136,9 @@ func DetectWorkflows(
 
 		// one workflow may have multiple events
 		events, err := GetEventsFromContent(content)
+		if err == nil {
+			err = ValidateWorkflowContent(content)
+		}
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
 			continue
@@ -173,6 +183,9 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 
 		// one workflow may have multiple events
 		events, err := GetEventsFromContent(content)
+		if err == nil {
+			err = ValidateWorkflowContent(content)
+		}
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
 			continue
