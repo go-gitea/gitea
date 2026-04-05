@@ -178,7 +178,7 @@ function reducedSourcemapPlugin(): Plugin {
     closeBundle() {
       if (enableSourcemap !== 'reduced') return;
       for (const file of globSync('{js,css}/*.map', {cwd: outDir})) {
-        if (!file.startsWith('js/index.') && !file.startsWith('js/iife.')) unlinkSync(join(outDir, file));
+        if (!file.startsWith('js/index.') && !file.startsWith('js/iife.') && !file.startsWith('js/standalone-')) unlinkSync(join(outDir, file));
       }
     },
   };
@@ -255,13 +255,15 @@ export default defineConfig(commonViteOpts({
     rolldownOptions: {
       input: {
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
-        swagger: join(import.meta.dirname, 'web_src/js/standalone/swagger.ts'),
-        'external-render-iframe': join(import.meta.dirname, 'web_src/js/standalone/external-render-iframe.ts'),
+        swagger: join(import.meta.dirname, 'web_src/js/standalone-swagger.ts'),
+        'external-render-iframe': join(import.meta.dirname, 'web_src/js/standalone-external-render.ts'),
         'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/features/eventsource.sharedworker.ts'),
         devtest: join(import.meta.dirname, 'web_src/css/devtest.css'),
         ...themes,
       },
       output: {
+        // all outputted JS files are in "/js" directory, so standalone source files should also be in "js" directory
+        // to keep consistent between production and dev server and avoid unexpected behaviors.
         entryFileNames: 'js/[name].[hash:8].js',
         chunkFileNames: 'js/[name].[hash:8].js',
         assetFileNames: ({names}) => {
@@ -296,7 +298,7 @@ export default defineConfig(commonViteOpts({
   },
   plugins: [
     iifePlugin('js/iife.ts'),
-    iifePlugin('js/standalone/external-render-iframe.ts'),
+    iifePlugin('js/standalone-external-render.ts'),
     viteDevServerPortPlugin(),
     reducedSourcemapPlugin(),
     filterCssUrlPlugin(),
