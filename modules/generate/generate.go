@@ -54,13 +54,13 @@ func DecodeJwtSecretBase64(src string) ([]byte, error) {
 }
 
 // NewJwtSecretWithBase64 generates a jwt secret with its base64 encoded value intended to be used for saving into config file
-func NewJwtSecretWithBase64() ([]byte, string, error) {
+func NewJwtSecretWithBase64() ([]byte, string) {
 	bytes := make([]byte, defaultJwtSecretLen)
-	_, err := io.ReadFull(rand.Reader, bytes)
+	_, err := rand.Read(bytes)
 	if err != nil {
-		return nil, "", err
+		panic(err) // rand.Read never fails
 	}
-	return bytes, base64.RawURLEncoding.EncodeToString(bytes), nil
+	return bytes, base64.RawURLEncoding.EncodeToString(bytes)
 }
 
 // NewSecretKey generate a new value intended to be used by SECRET_KEY.

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -117,7 +118,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		allowManualMerge = config.AllowManualMerge
 		autodetectManualMerge = config.AutodetectManualMerge
 		defaultDeleteBranchAfterMerge = config.DefaultDeleteBranchAfterMerge
-		defaultMergeStyle = config.GetDefaultMergeStyle()
+		defaultMergeStyle = config.DefaultMergeStyle
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
 		defaultTargetBranch = config.DefaultTargetBranch
 	}
@@ -143,6 +144,11 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		IncludeTags:   false,
 		RepoID:        repo.ID,
 	})
+
+	branchCount, err := git_model.CountBranches(ctx, repo.ID, false)
+	if err != nil {
+		log.Error("CountBranches [%d]: %v", repo.ID, err)
+	}
 
 	mirrorInterval := ""
 	var mirrorUpdated time.Time
@@ -205,6 +211,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		Stars:                         repo.NumStars,
 		Forks:                         repo.NumForks,
 		Watchers:                      repo.NumWatches,
+		BranchCount:                   int(branchCount),
 		OpenIssues:                    repo.NumOpenIssues,
 		OpenPulls:                     repo.NumOpenPulls,
 		Releases:                      int(numReleases),

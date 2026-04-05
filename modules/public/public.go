@@ -51,9 +51,9 @@ func parseAcceptEncoding(val string) container.Set[string] {
 }
 
 // setWellKnownContentType will set the Content-Type if the file is a well-known type.
-// See the comments of detectWellKnownMimeType
+// See the comments of DetectWellKnownMimeType
 func setWellKnownContentType(w http.ResponseWriter, file string) {
-	mimeType := detectWellKnownMimeType(path.Ext(file))
+	mimeType := DetectWellKnownMimeType(path.Ext(file))
 	if mimeType != "" {
 		w.Header().Set("Content-Type", mimeType)
 	}

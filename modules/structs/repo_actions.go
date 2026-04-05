@@ -196,12 +196,27 @@ type ActionRunner struct {
 	Name      string               `json:"name"`
 	Status    string               `json:"status"`
 	Busy      bool                 `json:"busy"`
+	Disabled  bool                 `json:"disabled"`
 	Ephemeral bool                 `json:"ephemeral"`
 	Labels    []*ActionRunnerLabel `json:"labels"`
+}
+
+// EditActionRunnerOption represents the editable fields for a runner.
+// swagger:model
+type EditActionRunnerOption struct {
+	// required: true
+	Disabled *bool `json:"disabled"`
 }
 
 // ActionRunnersResponse returns Runners
 type ActionRunnersResponse struct {
 	Entries    []*ActionRunner `json:"runners"`
 	TotalCount int64           `json:"total_count"`
+}
+
+// RunDetails returns workflow_dispatch runid and url
+type RunDetails struct {
+	WorkflowRunID int64  `json:"workflow_run_id"`
+	RunURL        string `json:"run_url"`
+	HTMLURL       string `json:"html_url"`
 }

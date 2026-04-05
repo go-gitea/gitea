@@ -6,12 +6,12 @@ const {pageData} = window.config;
 
 async function initInputCitationValue(citationCopyApa: HTMLButtonElement, citationCopyBibtex: HTMLButtonElement) {
   const [{Cite, plugins}] = await Promise.all([
-    import(/* webpackChunkName: "citation-js-core" */'@citation-js/core'),
-    import(/* webpackChunkName: "citation-js-formats" */'@citation-js/plugin-software-formats'),
-    import(/* webpackChunkName: "citation-js-bibtex" */'@citation-js/plugin-bibtex'),
-    import(/* webpackChunkName: "citation-js-csl" */'@citation-js/plugin-csl'),
+    import('@citation-js/core'),
+    import('@citation-js/plugin-software-formats'),
+    import('@citation-js/plugin-bibtex'),
+    import('@citation-js/plugin-csl'),
   ]);
-  const {citationFileContent} = pageData;
+  const citationFileContent = pageData.citationFileContent!;
   const config = plugins.config.get('@bibtex');
   config.constants.fieldTypes.doi = ['field', 'literal'];
   config.constants.fieldTypes.version = ['field', 'literal'];

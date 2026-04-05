@@ -140,7 +140,7 @@ type nuspecPackage struct {
 func ParsePackageMetaData(r io.ReaderAt, size int64) (*Package, error) {
 	archive, err := zip.NewReader(r, size)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("unable to parse package meta: %v", err)
 	}
 
 	for _, file := range archive.File {

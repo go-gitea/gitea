@@ -6,13 +6,14 @@ package repo
 import (
 	"bytes"
 	"html"
+	"html/template"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models/avatars"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 
@@ -53,29 +54,25 @@ func GetContentHistoryList(ctx *context.Context) {
 	// value is historyId
 	var results []map[string]any
 	for _, item := range items {
-		var actionText string
+		var actionHTML template.HTML
 		if item.IsDeleted {
-			actionTextDeleted := ctx.Locale.TrString("repo.issues.content_history.deleted")
-			actionText = "<i data-history-is-deleted='1'>" + actionTextDeleted + "</i>"
+			actionHTML = htmlutil.HTMLFormat(`<i data-history-is-deleted="1">%s</i>`, ctx.Locale.TrString("repo.issues.content_history.deleted"))
 		} else if item.IsFirstCreated {
-			actionText = ctx.Locale.TrString("repo.issues.content_history.created")
+			actionHTML = ctx.Locale.Tr("repo.issues.content_history.created")
 		} else {
-			actionText = ctx.Locale.TrString("repo.issues.content_history.edited")
+			actionHTML = ctx.Locale.Tr("repo.issues.content_history.edited")
 		}
 
-		username := item.UserName
-		if setting.UI.DefaultShowFullName && strings.TrimSpace(item.UserFullName) != "" {
-			username = strings.TrimSpace(item.UserFullName)
+		var fullNameHTML template.HTML
+		userName, fullName := item.UserName, strings.TrimSpace(item.UserFullName)
+		if fullName != "" {
+			fullNameHTML = htmlutil.HTMLFormat(` (<span class="tw-inline-flex tw-max-w-[160px]"><span class="gt-ellipsis">%s</span></span>)`, fullName)
 		}
 
-		src := html.EscapeString(item.UserAvatarLink)
-		class := avatars.DefaultAvatarClass + " tw-mr-2"
-		name := html.EscapeString(username)
-		avatarHTML := string(templates.AvatarHTML(src, 28, class, username))
-		timeSinceHTML := string(templates.TimeSince(item.EditedUnix))
-
+		avatarHTML := templates.AvatarHTML(item.UserAvatarLink, 24, avatars.DefaultAvatarClass+" tw-mr-2", userName)
+		timeSinceHTML := templates.TimeSince(item.EditedUnix)
 		results = append(results, map[string]any{
-			"name":  avatarHTML + "<strong>" + name + "</strong> " + actionText + " " + timeSinceHTML,
+			"name":  htmlutil.HTMLFormat("%s <strong>%s</strong>%s %s %s", avatarHTML, userName, fullNameHTML, actionHTML, timeSinceHTML),
 			"value": item.HistoryID,
 		})
 	}

@@ -10,6 +10,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	neturl "net/url"
@@ -929,5 +930,35 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s", url, packageName, packageVersion)).
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("UploadMultipartForm", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		packageContent := createPackage(packageName, packageVersion).Bytes()
+
+		// Simulate dotnet nuget push which sends multipart/form-data with X-NuGet-ApiKey auth
+		var body bytes.Buffer
+		mpw := multipart.NewWriter(&body)
+		part, err := mpw.CreateFormFile("package", "package.nupkg")
+		assert.NoError(t, err)
+		_, err = part.Write(packageContent)
+		assert.NoError(t, err)
+		err = mpw.Close()
+		assert.NoError(t, err)
+
+		req := NewRequestWithBody(t, "PUT", url, &body).
+			SetHeader("Content-Type", mpw.FormDataContentType())
+		addNuGetAPIKeyHeader(req, writeToken)
+		MakeRequest(t, req, http.StatusCreated)
+
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNuGet)
+		assert.NoError(t, err)
+		assert.Len(t, pvs, 1)
+
+		// Clean up
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, packageVersion)).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusNoContent)
 	})
 }

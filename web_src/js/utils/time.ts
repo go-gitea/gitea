@@ -77,7 +77,6 @@ export function formatDatetime(date: Date | number): string {
       hour: 'numeric',
       hour12: !Number.isInteger(Number(new Intl.DateTimeFormat([], {hour: 'numeric'}).format())),
       minute: '2-digit',
-      timeZoneName: 'short',
     });
   }
   return dateFormat.format(date);

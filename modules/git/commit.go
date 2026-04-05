@@ -86,50 +86,6 @@ func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
 	return c.repo.getCommitByPathWithID(c.ID, relpath)
 }
 
-// AddChanges marks local changes to be ready for commit.
-func AddChanges(ctx context.Context, repoPath string, all bool, files ...string) error {
-	cmd := gitcmd.NewCommand().AddArguments("add")
-	if all {
-		cmd.AddArguments("--all")
-	}
-	cmd.AddDashesAndList(files...)
-	_, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
-	return err
-}
-
-// CommitChangesOptions the options when a commit created
-type CommitChangesOptions struct {
-	Committer *Signature
-	Author    *Signature
-	Message   string
-}
-
-// CommitChanges commits local changes with given committer, author and message.
-// If author is nil, it will be the same as committer.
-func CommitChanges(ctx context.Context, repoPath string, opts CommitChangesOptions) error {
-	cmd := gitcmd.NewCommand()
-	if opts.Committer != nil {
-		cmd.AddOptionValues("-c", "user.name="+opts.Committer.Name)
-		cmd.AddOptionValues("-c", "user.email="+opts.Committer.Email)
-	}
-	cmd.AddArguments("commit")
-
-	if opts.Author == nil {
-		opts.Author = opts.Committer
-	}
-	if opts.Author != nil {
-		cmd.AddOptionFormat("--author='%s <%s>'", opts.Author.Name, opts.Author.Email)
-	}
-	cmd.AddOptionFormat("--message=%s", opts.Message)
-
-	_, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
-	// No stderr but exit status 1 means nothing to commit.
-	if gitcmd.IsErrorExitCode(err, 1) {
-		return nil
-	}
-	return err
-}
-
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
 func (c *Commit) CommitsByRange(page, pageSize int, not, since, until string) ([]*Commit, error) {
 	return c.repo.commitsByRangeWithTime(c.ID, page, pageSize, not, since, until)
@@ -289,27 +245,6 @@ func (c *Commit) GetFileContent(filename string, limit int) (string, error) {
 		return "", err
 	}
 	return string(bytes), nil
-}
-
-// GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
-func (c *Commit) GetBranchName() (string, error) {
-	cmd := gitcmd.NewCommand("name-rev")
-	if DefaultFeatures().CheckVersionAtLeast("2.13.0") {
-		cmd.AddArguments("--exclude", "refs/tags/*")
-	}
-	cmd.AddArguments("--name-only", "--no-undefined").AddDynamicArguments(c.ID.String())
-	data, _, err := cmd.WithDir(c.repo.Path).RunStdString(c.repo.Ctx)
-	if err != nil {
-		// handle special case where git can not describe commit
-		if strings.Contains(err.Error(), "cannot describe") {
-			return "", nil
-		}
-
-		return "", err
-	}
-
-	// name-rev commitID output will be "master" or "master~12"
-	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.

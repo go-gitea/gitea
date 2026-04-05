@@ -2,7 +2,7 @@ export type IntervalId = ReturnType<typeof setInterval>;
 
 export type Intent = 'error' | 'warning' | 'info';
 
-export type MentionValue = {
+export type Mention = {
   key: string,
   value: string,
   name: string,

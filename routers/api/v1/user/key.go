@@ -94,7 +94,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 		}
 	}
 
-	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiKeys)
 }

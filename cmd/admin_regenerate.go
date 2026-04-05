@@ -13,19 +13,21 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	microcmdRegenHooks = &cli.Command{
+func newRegenerateHooksCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "hooks",
 		Usage:  "Regenerate git-hooks",
 		Action: runRegenerateHooks,
 	}
+}
 
-	microcmdRegenKeys = &cli.Command{
+func newRegenerateKeysCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "keys",
 		Usage:  "Regenerate authorized_keys file",
 		Action: runRegenerateKeys,
 	}
-)
+}
 
 func runRegenerateHooks(ctx context.Context, _ *cli.Command) error {
 	if err := initDB(ctx); err != nil {

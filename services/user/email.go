@@ -14,7 +14,14 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// ReplacePrimaryEmailAddress replaces the user's primary email address with the given email address.
+// It also updates the user's email field to match the new primary email address.
 func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailStr string) error {
+	// FIXME: this check is from old logic, but it is not right, there are far more user types, not only "organization"
+	if u.IsOrganization() {
+		return util.NewInvalidArgumentErrorf("user %s is an organization", u.Name)
+	}
+
 	if strings.EqualFold(u.Email, emailStr) {
 		return nil
 	}
@@ -24,41 +31,38 @@ func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailSt
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if !u.IsOrganization() {
-			// Check if address exists already
-			email, err := user_model.GetEmailAddressByEmail(ctx, emailStr)
-			if err != nil && !errors.Is(err, util.ErrNotExist) {
-				return err
+		// Check if address exists already
+		email, err := user_model.GetEmailAddressByEmail(ctx, emailStr)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			return err
+		}
+		if email != nil {
+			if email.IsPrimary && email.UID == u.ID {
+				return nil
 			}
-			if email != nil {
-				if email.IsPrimary && email.UID == u.ID {
-					return nil
-				}
-				return user_model.ErrEmailAlreadyUsed{Email: emailStr}
-			}
+			return user_model.ErrEmailAlreadyUsed{Email: emailStr}
+		}
 
-			// Remove old primary address
-			primary, err := user_model.GetPrimaryEmailAddressOfUser(ctx, u.ID)
-			if err != nil {
-				return err
-			}
-			if _, err := db.DeleteByID[user_model.EmailAddress](ctx, primary.ID); err != nil {
-				return err
-			}
+		// Remove old primary address
+		primary, err := user_model.GetPrimaryEmailAddressOfUser(ctx, u.ID)
+		if err != nil {
+			return err
+		}
+		if _, err := db.DeleteByID[user_model.EmailAddress](ctx, primary.ID); err != nil {
+			return err
+		}
 
-			// Insert new primary address
-			if _, err := user_model.InsertEmailAddress(ctx, &user_model.EmailAddress{
-				UID:         u.ID,
-				Email:       emailStr,
-				IsActivated: true,
-				IsPrimary:   true,
-			}); err != nil {
-				return err
-			}
+		// Insert new primary address
+		if _, err := user_model.InsertEmailAddress(ctx, &user_model.EmailAddress{
+			UID:         u.ID,
+			Email:       emailStr,
+			IsActivated: true,
+			IsPrimary:   true,
+		}); err != nil {
+			return err
 		}
 
 		u.Email = emailStr
-
 		return user_model.UpdateUserCols(ctx, u, "email")
 	})
 }

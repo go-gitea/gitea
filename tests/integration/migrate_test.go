@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/migrations"
@@ -126,7 +127,7 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 
-	resp, err := http.Get("https://gitea.com/gitea")
+	resp, err := httplib.NewRequest("https://gitea.com/gitea/test_repo.git", "GET").SetReadWriteTimeout(5 * time.Second).Response()
 	if err != nil || resp.StatusCode != http.StatusOK {
 		if resp != nil {
 			resp.Body.Close()

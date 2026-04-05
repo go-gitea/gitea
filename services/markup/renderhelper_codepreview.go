@@ -42,7 +42,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 	}
 	doer := webCtx.Doer
 
-	perms, err := access.GetUserRepoPermission(ctx, dbRepo, doer)
+	perms, err := access.GetDoerRepoPermission(ctx, dbRepo, doer)
 	if err != nil {
 		return "", err
 	}

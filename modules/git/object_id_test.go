@@ -22,4 +22,6 @@ func TestIsValidSHAPattern(t *testing.T) {
 	assert.Equal(t, "2e65efe2a145dda7ee51d1741299f848e5bf752e", ComputeBlobHash(Sha1ObjectFormat, []byte("a")).String())
 	assert.Equal(t, "473a0f4c3be8a93681a267e3b1e9a7dcda1185436fe141f7749120a303721813", ComputeBlobHash(Sha256ObjectFormat, nil).String())
 	assert.Equal(t, "eb337bcee2061c5313c9a1392116b6c76039e9e30d71467ae359b36277e17dc7", ComputeBlobHash(Sha256ObjectFormat, []byte("a")).String())
+	assert.True(t, IsEmptyCommitID(""))
+	assert.True(t, IsEmptyCommitID("0000000000000000000000000000000000000000"))
 }

@@ -124,8 +124,12 @@ func (ctx *Context) RenderToHTML(name templates.TplName, data any) (template.HTM
 	return template.HTML(buf.String()), err
 }
 
-// RenderWithErr used for page has form validation but need to prompt error to users.
-func (ctx *Context) RenderWithErr(msg any, tpl templates.TplName, form any) {
+// RenderWithErrDeprecated render the page with form validation when it needs to prompt error to users.
+// Deprecated: use "form-fetch-action" and JSON response instead.
+// WARNING: in many cases, this function is not able to render the page or recover the form fields correctly.
+// And it is very difficult to test the page rendered by this function.
+// DO NOT USE IT ANYMORE.
+func (ctx *Context) RenderWithErrDeprecated(msg any, tpl templates.TplName, form any) {
 	if form != nil {
 		middleware.AssignForm(form, ctx.Data)
 	}
