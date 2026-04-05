@@ -473,7 +473,7 @@ func RemovePackageVersion(ctx context.Context, doer *user_model.User, pv *packag
 	if err != nil {
 		return err
 	}
-	// HINT: PACKAGE-DERER-STORAGE-DELETE: Blobs are not deleted immediately, instead they are deleted by the cleanup_packages cron task.
+	// HINT: PACKAGE-DEFER-STORAGE-DELETE: Blobs are not deleted immediately, instead they are deleted by the cleanup_packages cron task.
 	// If there are no more versions for the package, the same task removes that as well.
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		log.Trace("Deleting package: %v", pv.ID)
@@ -631,7 +631,7 @@ func RemovePackage(ctx context.Context, doer *user_model.User, p *packages_model
 	if err != nil {
 		return err
 	}
-	// HINT: PACKAGE-DERER-STORAGE-DELETE: Blobs are not deleted immediately, instead they are deleted by cleanup_packages cron task.
+	// HINT: PACKAGE-DEFER-STORAGE-DELETE: Blobs are not deleted immediately, instead they are deleted by cleanup_packages cron task.
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		err := packages_model.DeletePropertiesByPackageID(ctx, packages_model.PropertyTypePackage, p.ID)
 		if err != nil {
