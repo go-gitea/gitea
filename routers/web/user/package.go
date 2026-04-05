@@ -527,6 +527,18 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 		return
 	}
 
+	if pd.Package.Type == packages_model.TypeTerraformState {
+		lock, err := terraform_module.GetLock(ctx, pd.Package.ID)
+		if err != nil {
+			ctx.ServerError("getTerraformLock", err)
+		}
+		if lock.IsLocked() {
+			ctx.Flash.Error(ctx.Tr("packages.terraform.delete.locked"))
+			ctx.Redirect(pd.PackageSettingsLink())
+			return
+		}
+	}
+
 	if err := packages_service.RemovePackage(ctx, ctx.Doer, pd.Package); err != nil {
 		log.Error("Error deleting package: %v", err)
 		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
