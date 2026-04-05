@@ -494,7 +494,7 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
 	if ctx.FormString("package_name") != pd.Package.Name {
-		ctx.Flash.Error(ctx.Tr("form.enterred_invalid_repo_name"))
+		ctx.Flash.Error(ctx.Tr("packages.settings.delete.invalid_package_name"))
 		ctx.Redirect(pd.PackageSettingsLink())
 		return
 	}

@@ -3621,6 +3621,7 @@
   "packages.settings.delete.error": "Failed to delete the package.",
   "packages.settings.delete.version": "Delete version",
   "packages.settings.delete.confirm": "Enter package name to confirm",
+  "packages.settings.delete.invalid_package_name": "The package name you entered is incorrect.",
   "packages.owner.settings.cargo.title": "Cargo Registry Index",
   "packages.owner.settings.cargo.initialize": "Initialize Index",
   "packages.owner.settings.cargo.initialize.description": "A special index Git repository is needed to use the Cargo registry. Using this option will (re-)create the repository and configure it automatically.",
