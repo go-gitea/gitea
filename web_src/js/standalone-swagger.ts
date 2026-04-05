@@ -1,3 +1,6 @@
+// Swagger JS must be standalone because it is also used by external render like "OpenAPI render".
+// Avoid importing other JS modules to prevent unnecessary code and dependencies and chunks.
+
 import '../css/standalone-swagger.css';
 import SwaggerUI from 'swagger-ui-dist/swagger-ui-es-bundle.js';
 import 'swagger-ui-dist/swagger-ui.css';

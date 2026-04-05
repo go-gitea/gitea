@@ -1,3 +1,7 @@
+// External render JS must be a IIFE module to run as early as possible to set up the environment for the content page.
+// Avoid unnecessary dependency.
+// Do NOT introduce global pollution, because the content page should be fully controlled by the external render.
+
 /* To manually test:
 
 [markup.in-iframe]

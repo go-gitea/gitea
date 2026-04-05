@@ -61,6 +61,8 @@ func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, out
 	if err != nil {
 		return err
 	}
+
+	// HINT: SWAGGER-OPENAPI-VIEWER: another place "templates/swagger/openapi-viewer.tmpl"
 	_, err = io.WriteString(output, fmt.Sprintf(
 		`<!DOCTYPE html>
 <html>
