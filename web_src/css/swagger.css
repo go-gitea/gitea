@@ -1,11 +1,5 @@
 @import "../../node_modules/swagger-ui-dist/swagger-ui.css";
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
 body {
   margin: 0;
 }

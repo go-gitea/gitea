@@ -9,7 +9,7 @@
 // * Handle CSS styles carefully for different cases (standalone page, embedded in iframe)
 // * Take care of the JS code introduced by "index.ts" and "iife.ts", there might be global variable dependency and event listeners.
 
-import '../css/standalone-swagger.css';
+import '../css/swagger.css';
 import SwaggerUI from 'swagger-ui-dist/swagger-ui-es-bundle.js';
 import 'swagger-ui-dist/swagger-ui.css';
 import {load as loadYaml} from 'js-yaml';
