@@ -12,9 +12,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCountProjectColumns(t *testing.T) {
+func TestProjectColumns(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	t.Run("CountProjectColumns", testCountProjectColumns)
+	t.Run("GetProjectColumns", testGetProjectColumns)
+	t.Run("GetColumnsByIDs", testGetColumnsByIDs)
+}
 
+func testCountProjectColumns(t *testing.T) {
 	project, err := GetProjectByID(t.Context(), 1)
 	assert.NoError(t, err)
 
@@ -23,9 +28,7 @@ func TestCountProjectColumns(t *testing.T) {
 	assert.EqualValues(t, 3, count)
 }
 
-func TestGetProjectColumns(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testGetProjectColumns(t *testing.T) {
 	project, err := GetProjectByID(t.Context(), 1)
 	assert.NoError(t, err)
 
@@ -48,9 +51,7 @@ func TestGetProjectColumns(t *testing.T) {
 	assert.Len(t, allIDs, 3)
 }
 
-func TestGetColumnsByIDs(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testGetColumnsByIDs(t *testing.T) {
 	project, err := GetProjectByID(t.Context(), 1)
 	assert.NoError(t, err)
 
