@@ -1,0 +1,41 @@
+@import "../../node_modules/swagger-ui-dist/swagger-ui.css";
+
+body {
+  margin: 0;
+}
+
+html,
+html body,
+html .swagger-ui,
+html .swagger-ui .scheme-container {
+  background: var(--gitea-iframe-bgcolor, var(--color-box-body)) !important;
+}
+
+/* swagger's bug: the selector was incorrectly written in "thead": "html.dark-mode .swagger-ui .opblock.opblock-get thead tr td" */
+html.dark-mode .swagger-ui table.headers td {
+  color: var(--color-text) !important;
+}
+
+.swagger-back-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.swagger-back-link:hover {
+  text-decoration: underline;
+}
+
+.swagger-back-link svg {
+  color: inherit;
+  fill: currentcolor;
+  margin-right: 0.5rem;
+}
+
+.swagger-spec-content {
+  display: none;
+}
