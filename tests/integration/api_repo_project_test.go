@@ -431,7 +431,7 @@ func TestAPIUpdateProjectColumn(t *testing.T) {
 
 	// Test updating column title
 	newTitle := "Updated Column"
-	req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/columns/%d", owner.Name, repo.Name, column.ID), &api.EditProjectColumnOption{
+	req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/%d", owner.Name, repo.Name, project.ID, column.ID), &api.EditProjectColumnOption{
 		Title: &newTitle,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -442,7 +442,7 @@ func TestAPIUpdateProjectColumn(t *testing.T) {
 
 	// Test updating column color
 	newColor := "#FF0000"
-	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/columns/%d", owner.Name, repo.Name, column.ID), &api.EditProjectColumnOption{
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/%d", owner.Name, repo.Name, project.ID, column.ID), &api.EditProjectColumnOption{
 		Color: &newColor,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
@@ -451,7 +451,7 @@ func TestAPIUpdateProjectColumn(t *testing.T) {
 	assert.Equal(t, newColor, updatedColumn.Color)
 
 	// Test updating non-existent column
-	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/columns/99999", owner.Name, repo.Name), &api.EditProjectColumnOption{
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/99999", owner.Name, repo.Name, project.ID), &api.EditProjectColumnOption{
 		Title: &newTitle,
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
@@ -488,12 +488,12 @@ func TestAPIDeleteProjectColumn(t *testing.T) {
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteIssue)
 
 	// Test deleting the column
-	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/projects/columns/%d", owner.Name, repo.Name, column.ID).
+	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/projects/%d/columns/%d", owner.Name, repo.Name, project.ID, column.ID).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
 	// Test deleting non-existent column (including the one we just deleted)
-	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/projects/columns/%d", owner.Name, repo.Name, column.ID).
+	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/projects/%d/columns/%d", owner.Name, repo.Name, project.ID, column.ID).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
@@ -538,7 +538,7 @@ func TestAPIAddIssueToProjectColumn(t *testing.T) {
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteIssue)
 
 	// Test adding issue to column
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects/columns/%d/issues/%d", owner.Name, repo.Name, column1.ID, issue.ID), nil).AddTokenAuth(token)
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/%d/issues/%d", owner.Name, repo.Name, project.ID, column1.ID, issue.ID), nil).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
 	// Verify issue is in the column
@@ -549,7 +549,7 @@ func TestAPIAddIssueToProjectColumn(t *testing.T) {
 	assert.Equal(t, column1.ID, projectIssue.ProjectColumnID)
 
 	// Test moving issue to another column
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects/columns/%d/issues/%d", owner.Name, repo.Name, column2.ID, issue.ID), nil).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/%d/issues/%d", owner.Name, repo.Name, project.ID, column2.ID, issue.ID), nil).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
 	// Verify issue moved to new column
@@ -560,15 +560,15 @@ func TestAPIAddIssueToProjectColumn(t *testing.T) {
 	assert.Equal(t, column2.ID, projectIssue.ProjectColumnID)
 
 	// Test adding same issue to same column (should be idempotent)
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects/columns/%d/issues/%d", owner.Name, repo.Name, column2.ID, issue.ID), nil).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/%d/issues/%d", owner.Name, repo.Name, project.ID, column2.ID, issue.ID), nil).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
 	// Test adding non-existent issue
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects/columns/%d/issues/%d", owner.Name, repo.Name, column1.ID, 99999), nil).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/%d/issues/%d", owner.Name, repo.Name, project.ID, column1.ID, 99999), nil).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// Test adding to non-existent column
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects/columns/99999/issues/%d", owner.Name, repo.Name, issue.ID), nil).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/99999/issues/%d", owner.Name, repo.Name, project.ID, issue.ID), nil).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
@@ -608,7 +608,7 @@ func TestAPIListProjectColumnIssues(t *testing.T) {
 
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeReadIssue)
 
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/projects/columns/%d/issues", owner.Name, repo.Name, column.ID).
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/projects/%d/columns/%d/issues", owner.Name, repo.Name, project.ID, column.ID).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
@@ -657,7 +657,7 @@ func TestAPIRemoveIssueFromProjectColumn(t *testing.T) {
 
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteIssue)
 
-	req := NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/projects/columns/%d/issues/%d", owner.Name, repo.Name, column.ID, issue.ID), nil).
+	req := NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/%d/issues/%d", owner.Name, repo.Name, project.ID, column.ID, issue.ID), nil).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
