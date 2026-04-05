@@ -245,9 +245,10 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 		}
 		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
 		extraScriptSrc := public.AssetURI("js/external-render-helper.js")
+		extraLinkHref := ctx.RenderOptions.StandalonePageOptions.CurrentWebTheme.PublicAssetURI()
 		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
 		// DO NOT use "type=module", the script must run as early as possible, to set up the environment in the iframe
-		extraHeadHTML = htmlutil.HTMLFormat(`<script crossorigin src="%s"></script>`, extraScriptSrc)
+		extraHeadHTML = htmlutil.HTMLFormat(`<script crossorigin src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraLinkHref)
 	}
 
 	ctx.usedByRender = true

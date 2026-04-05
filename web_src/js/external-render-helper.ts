@@ -22,15 +22,6 @@ if (isDarkTheme) {
   document.documentElement.setAttribute('data-gitea-theme-dark', String(isDarkTheme));
 }
 
-const themeUri = url.searchParams.get('gitea-theme-uri');
-if (themeUri) {
-  const elLinkStyle = document.createElement('link');
-  elLinkStyle.id = 'current-web-theme-style';
-  elLinkStyle.rel = 'stylesheet';
-  elLinkStyle.href = themeUri;
-  document.head.append(elLinkStyle);
-}
-
 const backgroundColor = url.searchParams.get('gitea-iframe-bgcolor');
 if (backgroundColor) {
   // create a style element to set background color, then it can be overridden by the content page's own style if needed

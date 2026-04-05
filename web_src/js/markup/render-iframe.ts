@@ -58,11 +58,9 @@ async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
     }
   });
 
-  const elLinkStyle = document.querySelector<HTMLLinkElement>('link#current-web-theme-style')!;
   const u = new URL(iframeSrcUrl, window.location.origin);
   u.searchParams.set('gitea-is-dark-theme', String(isDarkTheme()));
   u.searchParams.set('gitea-iframe-id', iframe.id);
-  u.searchParams.set('gitea-theme-uri', elLinkStyle.href);
   u.searchParams.set('gitea-iframe-bgcolor', getRealBackgroundColor(iframe));
   iframe.src = u.href;
 }
