@@ -414,9 +414,15 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	}
 	defer baseGitRepo.Close()
 
-	oldCommitID, err := baseGitRepo.GetRefCommitID(git.BranchPrefix + pr.BaseBranch)
-	if err != nil {
-		return "", fmt.Errorf("failed to get base branch commit: %w", err)
+	// Use the base commit the merge was built on (merge base) for the lease, so that
+	// the push fails if the base branch has advanced since the merge was computed.
+	oldCommitID := pr.MergeBase
+	if oldCommitID == "" {
+		// Fallback: preserve previous behavior if no merge base is recorded.
+		oldCommitID, err = baseGitRepo.GetRefCommitID(git.BranchPrefix + pr.BaseBranch)
+		if err != nil {
+			return "", fmt.Errorf("failed to get base branch commit: %w", err)
+		}
 	}
 
 	// Push back to upstream.
