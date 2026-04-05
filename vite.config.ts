@@ -2,13 +2,14 @@ import {build, defineConfig} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
 import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
-import path, {join, parse} from 'node:path';
+import path, {basename, join, parse} from 'node:path';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
 import wrapAnsi from 'wrap-ansi';
 import licensePlugin from 'rollup-plugin-license';
 import type {InlineConfig, Plugin, Rolldown} from 'vite';
+import {camelize} from 'vue';
 
 const isProduction = env.NODE_ENV !== 'development';
 
@@ -76,13 +77,12 @@ function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
   };
 }
 
-const iifeEntry = join(import.meta.dirname, 'web_src/js/iife.ts');
-
-function iifeBuildOpts({entryFileNames, write}: {entryFileNames: string, write?: boolean}) {
+function iifeBuildOpts({sourceFileName, entryFileName, write}: {sourceFileName: string, entryFileName: string, write?: boolean}) {
+  const sourceBaseName = basename(sourceFileName, '.ts');
   return commonViteOpts({
     build: {
-      lib: {entry: iifeEntry, formats: ['iife'], name: 'iife'},
-      rolldownOptions: {output: {entryFileNames}},
+      lib: {entry: join(import.meta.dirname, 'web_src', sourceFileName), name: camelize(sourceBaseName), formats: ['iife']},
+      rolldownOptions: {output: {entryFileNames: entryFileName}},
       ...(write === false && {write: false}),
     },
     plugins: [stringPlugin()],
@@ -91,19 +91,25 @@ function iifeBuildOpts({entryFileNames, write}: {entryFileNames: string, write?:
 
 // Build iife.js as a blocking IIFE bundle. In dev mode, serves it from memory
 // and rebuilds on file changes. In prod mode, writes to disk during closeBundle.
-function iifePlugin(): Plugin {
-  let iifeCode = '';
-  let iifeMap = '';
+function iifePlugin(sourceFileName: string): Plugin {
+  let iifeCode = '', iifeMap = '';
   const iifeModules = new Set<string>();
   let isBuilding = false;
+
+  const sourceDir = path.dirname(sourceFileName), sourceBaseName = path.basename(sourceFileName, '.ts');
+  const sourcePathPrefix = `${sourceDir}/${sourceBaseName}`;
   return {
-    name: 'iife',
+    name: `iife:${sourcePathPrefix}`, // plugin name
     async configureServer(server) {
       const buildAndCache = async () => {
-        const result = await build(iifeBuildOpts({entryFileNames: 'js/iife.js', write: false}));
+        const result = await build(iifeBuildOpts({
+          sourceFileName: `${sourcePathPrefix}.ts`,
+          entryFileName: `${sourceDir}/${sourceBaseName}.js`,
+          write: false,
+        }));
         const output = (Array.isArray(result) ? result[0] : result) as Rolldown.RolldownOutput;
         const chunk = output.output[0];
-        iifeCode = chunk.code.replace(/\/\/# sourceMappingURL=.*/, '//# sourceMappingURL=__vite_iife.js.map');
+        iifeCode = chunk.code.replace(/\/\/# sourceMappingURL=.*/, `//# sourceMappingURL=${sourceBaseName}.js.map`);
         const mapAsset = output.output.find((o) => o.fileName.endsWith('.map'));
         iifeMap = mapAsset && 'source' in mapAsset ? String(mapAsset.source) : '';
         iifeModules.clear();
@@ -129,15 +135,15 @@ function iifePlugin(): Plugin {
       });
 
       server.middlewares.use((req, res, next) => {
-        // "__vite_iife" is a virtual file in memory, serve it directly
+        // on the dev server, an "iife" file is a virtual file in memory, serve it directly
         const pathname = req.url!.split('?')[0];
         if (pathname === '/web_src/js/__vite_dev_server_check') {
           res.end('ok');
-        } else if (pathname === '/web_src/js/__vite_iife.js') {
+        } else if (pathname === `/web_src/${sourcePathPrefix}.ts`) {
           res.setHeader('Content-Type', 'application/javascript');
           res.setHeader('Cache-Control', 'no-store');
           res.end(iifeCode);
-        } else if (pathname === '/web_src/js/__vite_iife.js.map') {
+        } else if (pathname === `/web_src/js/${sourcePathPrefix}.js.map`) {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Cache-Control', 'no-store');
           res.end(iifeMap);
@@ -147,16 +153,19 @@ function iifePlugin(): Plugin {
       });
     },
     async closeBundle() {
-      for (const file of globSync('js/iife.*.js*', {cwd: outDir})) unlinkSync(join(outDir, file));
-      const result = await build(iifeBuildOpts({entryFileNames: 'js/iife.[hash:8].js'}));
+      for (const file of globSync(`${sourcePathPrefix}.*.js*`, {cwd: outDir})) unlinkSync(join(outDir, file));
+      const result = await build(iifeBuildOpts({
+        sourceFileName: `${sourcePathPrefix}.ts`,
+        entryFileName: `${sourcePathPrefix}.[hash:8].js`,
+      }));
       const buildOutput = (Array.isArray(result) ? result[0] : result) as Rolldown.RolldownOutput;
-      const entry = buildOutput.output.find((o) => o.fileName.startsWith('js/iife.'));
+      const entry = buildOutput.output.find((o) => o.fileName.startsWith(`${sourcePathPrefix}.`));
       if (!entry) throw new Error('IIFE build produced no output');
+
       const manifestPath = join(outDir, '.vite', 'manifest.json');
-      writeFileSync(manifestPath, JSON.stringify({
-        ...JSON.parse(readFileSync(manifestPath, 'utf8')),
-        'web_src/js/iife.ts': {file: entry.fileName, name: 'iife', isEntry: true},
-      }, null, 2));
+      const manifestData = JSON.parse(readFileSync(manifestPath, 'utf8'));
+      manifestData[`web_src/${sourcePathPrefix}.js`] = {file: entry.fileName, name: sourceBaseName, isEntry: true};
+      writeFileSync(manifestPath, JSON.stringify(manifestData, null, 2));
     },
   };
 }
@@ -215,6 +224,7 @@ export default defineConfig(commonViteOpts({
     open: false,
     host: '0.0.0.0',
     strictPort: false,
+    cors: true,
     fs: {
       // VITE-DEV-SERVER-SECURITY: the dev server will be exposed to public by Gitea's web server, so we need to strictly limit the access
       // Otherwise `/@fs/*` will be able to access any file (including app.ini which contains INTERNAL_TOKEN)
@@ -245,9 +255,9 @@ export default defineConfig(commonViteOpts({
     rolldownOptions: {
       input: {
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
-        'external-render-iframe': join(import.meta.dirname, 'web_src/js/pages/external-render-iframe.ts'),
+        swagger: join(import.meta.dirname, 'web_src/js/standalone/swagger.ts'),
+        'external-render-iframe': join(import.meta.dirname, 'web_src/js/standalone/external-render-iframe.ts'),
         'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/features/eventsource.sharedworker.ts'),
-        swagger: join(import.meta.dirname, 'web_src/css/swagger.css'),
         devtest: join(import.meta.dirname, 'web_src/css/devtest.css'),
         ...themes,
       },
@@ -285,7 +295,8 @@ export default defineConfig(commonViteOpts({
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
   },
   plugins: [
-    iifePlugin(),
+    iifePlugin('js/iife.ts'),
+    iifePlugin('js/standalone/external-render-iframe.ts'),
     viteDevServerPortPlugin(),
     reducedSourcemapPlugin(),
     filterCssUrlPlugin(),

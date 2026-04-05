@@ -1,23 +1,24 @@
+import '../../css/standalone/swagger.css';
+import SwaggerUI from 'swagger-ui-dist/swagger-ui-es-bundle.js';
+import 'swagger-ui-dist/swagger-ui.css';
 import {load as loadYaml} from 'js-yaml';
-import {isDarkTheme} from '../utils.ts';
 
 function syncDarkModeClass(): void {
-  document.documentElement.classList.toggle('dark-mode', isDarkTheme());
+  // if the viewer is embedded in an iframe (external render), use the parent's theme (passed via query param)
+  // otherwise, if it is for Gitea's API, it is a standalone page, use the site's theme (detected from theme CSS variable)
+  const url = new URL(window.location.href);
+  const giteaIsDarkTheme = url.searchParams.get('gitea-is-dark-theme') ??
+    window.getComputedStyle(document.documentElement).getPropertyValue('--is-dark-theme').trim();
+  const isDark = giteaIsDarkTheme ? giteaIsDarkTheme === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.classList.toggle('dark-mode', isDark);
 }
 
-export async function initSwagger() {
-  const elSwaggerUi = document.querySelector('#swagger-ui');
-  if (!elSwaggerUi) return;
-
+async function initSwaggerUI() {
   // swagger-ui has built-in dark mode triggered by html.dark-mode class
   syncDarkModeClass();
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncDarkModeClass);
 
-  const [{default: SwaggerUI}] = await Promise.all([
-    import('swagger-ui-dist/swagger-ui-es-bundle.js'),
-    import('../../css/swagger.css'),
-  ]);
-
+  const elSwaggerUi = document.querySelector('#swagger-ui')!;
   const url = elSwaggerUi.getAttribute('data-source')!;
   let spec: any;
   if (url) {
@@ -54,3 +55,5 @@ export async function initSwagger() {
     ],
   });
 }
+
+initSwaggerUI();

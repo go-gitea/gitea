@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/routing"
 )
 
@@ -139,38 +140,34 @@ func IsViteDevMode() bool {
 	return isDev
 }
 
+func detectWebSrcPath(webSrcPath string) string {
+	localPath := util.FilePathJoinAbs(setting.StaticRootPath, "web_src", webSrcPath)
+	if _, err := os.Stat(localPath); err == nil {
+		return setting.AppSubURL + "/web_src/" + webSrcPath
+	}
+	return ""
+}
+
 func viteDevSourceURL(name string) string {
 	if !IsViteDevMode() {
 		return ""
 	}
 	if strings.HasPrefix(name, "css/theme-") {
 		// Only redirect built-in themes to Vite source; custom themes are served from custom/public/assets/css/
-		themeFile := strings.TrimPrefix(name, "css/")
-		srcPath := filepath.Join(setting.StaticRootPath, "web_src/css/themes", themeFile)
-		if _, err := os.Stat(srcPath); err == nil {
-			return setting.AppSubURL + "/web_src/css/themes/" + themeFile
+		themeFilePath := "css/themes/" + strings.TrimPrefix(name, "css/")
+		if srcPath := detectWebSrcPath(themeFilePath); srcPath != "" {
+			return srcPath
 		}
-		return ""
 	}
-	switch name {
-	case "js/eventsource.sharedworker.js":
-		return setting.AppSubURL + "/web_src/js/features/eventsource.sharedworker.ts"
-	case "js/iife.js":
-		return setting.AppSubURL + "/web_src/js/__vite_iife.js"
-	case "js/index.js":
-		return setting.AppSubURL + "/web_src/js/index.ts"
-	case "js/external-render-iframe.js":
-		return setting.AppSubURL + "/web_src/js/pages/external-render-iframe.ts"
+	// try to map ".js" files to ".ts" files
+	pathPrefix, ok := strings.CutSuffix(name, ".js")
+	if ok {
+		if srcPath := detectWebSrcPath(pathPrefix + ".ts"); srcPath != "" {
+			return srcPath
+		}
 	}
-	webSrcDir := filepath.Join(setting.StaticRootPath, "web_src")
-	srcPath := filepath.Join(webSrcDir, name)
-	if !strings.HasPrefix(srcPath, webSrcDir+string(filepath.Separator)) {
-		return ""
-	}
-	if _, err := os.Stat(srcPath); err == nil {
-		return setting.AppSubURL + "/web_src/" + name
-	}
-	return ""
+	// for all others that the names match
+	return detectWebSrcPath(name)
 }
 
 // isViteDevRequest returns true if the request should be proxied to the Vite dev server.

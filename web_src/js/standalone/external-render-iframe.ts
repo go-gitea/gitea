@@ -11,9 +11,35 @@ RENDER_COMMAND = `echo '<div style="width: 100%; height: 2000px; border: 10px so
 
 */
 
-import '../../css/pages/external-render-iframe.css';
-
 const url = new URL(window.location.href);
+
+const isDarkTheme = url.searchParams.get('gitea-is-dark-theme') === 'true';
+if (isDarkTheme) {
+  document.documentElement.setAttribute('data-gitea-theme-dark', String(isDarkTheme));
+}
+
+const themeUri = url.searchParams.get('gitea-theme-uri');
+if (themeUri) {
+  const elLinkStyle = document.createElement('link');
+  elLinkStyle.id = 'current-web-theme-style';
+  elLinkStyle.rel = 'stylesheet';
+  elLinkStyle.href = themeUri;
+  document.head.append(elLinkStyle);
+}
+
+const backgroundColor = url.searchParams.get('gitea-iframe-bgcolor');
+if (backgroundColor) {
+  // create a style element to set background color, then it can be overridden by the content page's own style if needed
+  const style = document.createElement('style');
+  style.textContent = `
+:root {
+  --gitea-iframe-bgcolor: ${backgroundColor};
+}
+body { background: ${backgroundColor}; }
+`;
+  document.head.append(style);
+}
+
 const iframeId = url.searchParams.get('gitea-iframe-id');
 if (iframeId) {
   // iframe is in different origin, so we need to use postMessage to communicate
@@ -22,6 +48,7 @@ if (iframeId) {
   };
 
   const updateIframeHeight = () => {
+    if (!document.body) return; // the body might not be available when this function is called
     // Use scrollHeight to get the full content height, even when CSS sets html/body to height:100%
     // (which would make getBoundingClientRect return the viewport height instead of content height).
     const height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);

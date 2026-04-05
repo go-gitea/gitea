@@ -47,22 +47,26 @@ func (p *openAPIRenderer) SanitizerRules() []setting.MarkupSanitizerRule {
 func (p *openAPIRenderer) GetExternalRendererOptions() (ret markup.ExternalRendererOptions) {
 	ret.SanitizerDisabled = true
 	ret.DisplayInIframe = true
-	ret.ContentSandbox = ""
+	ret.ContentSandbox = "allow-scripts allow-forms allow-modals allow-popups allow-downloads"
 	return ret
 }
 
 func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	if ctx.RenderOptions.StandalonePageOptions == nil {
+		opts := p.GetExternalRendererOptions()
+		return markup.RenderIFrame(ctx, opts.ContentSandbox, output)
+	}
+
 	content, err := util.ReadWithLimit(input, int(setting.UI.MaxDisplayFileSize))
 	if err != nil {
 		return err
 	}
-	// TODO: can extract this to a tmpl file later
 	_, err = io.WriteString(output, fmt.Sprintf(
 		`<!DOCTYPE html>
 <html>
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	%s
+	<link rel="stylesheet" href="%s">
 	<link rel="stylesheet" href="%s">
 </head>
 <body>
@@ -70,11 +74,11 @@ func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, out
 	<script type="module" src="%s"></script>
 </body>
 </html>`,
-		ctx.RenderOptions.HeadScriptHTML,
+		ctx.RenderOptions.StandalonePageOptions.CurrentWebTheme.PublicAssetURI(),
 		public.AssetURI("css/swagger.css"),
 		html.EscapeString(ctx.RenderOptions.RelativePath),
 		html.EscapeString(util.UnsafeBytesToString(content)),
-		public.AssetURI("js/index.js"),
+		public.AssetURI("js/swagger.js"),
 	))
 	return err
 }

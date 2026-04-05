@@ -2,15 +2,14 @@
 <html lang="en">
 	<head>
 		<title>Gitea API</title>
-		<link rel="stylesheet" href="{{AssetURI (printf "css/theme-%s.css" (PathEscape ctx.CurrentWebTheme.InternalName))}}">
+		<link rel="stylesheet" href="{{ctx.CurrentWebTheme.PublicAssetURI}}">
 		<link rel="stylesheet" href="{{AssetURI "css/swagger.css"}}">
-		{{template "base/head_script" .}}
 	</head>
 	<body>
 		{{/* TODO: add Help & Glossary to help users understand the API, and explain some concepts like "Owner" */}}
 		<a class="swagger-back-link" href="{{AppSubUrl}}/">{{svg "octicon-reply"}}{{ctx.Locale.Tr "return_to_gitea"}}</a>
-		<div id="swagger-ui" data-source="{{AppSubUrl}}/swagger.{{.APIJSONVersion}}.json"></div>
+		<div id="swagger-ui" data-source="{{AppSubUrl}}/swagger.v1.json"></div>
 		<footer class="page-footer"></footer>
-		{{ScriptImport "js/index.js" "module"}}
+		{{ScriptImport "js/swagger.js" "module"}}
 	</body>
 </html>

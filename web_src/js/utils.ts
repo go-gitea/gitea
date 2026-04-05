@@ -37,9 +37,8 @@ export const keySymbols: Record<string, string> = isMac ?
 
 /** returns whether a dark theme is enabled */
 export function isDarkTheme(): boolean {
-  const value = getComputedStyle(document.documentElement).getPropertyValue('--is-dark-theme').trim().toLowerCase();
-  if (value) return value === 'true';
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const style = window.getComputedStyle(document.documentElement);
+  return style.getPropertyValue('--is-dark-theme').trim().toLowerCase() === 'true';
 }
 
 /** strip <tags> from a string */

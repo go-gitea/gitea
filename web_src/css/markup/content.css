@@ -532,10 +532,6 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   border: none;
 }
 
-.external-render-iframe.is-loading {
-  visibility: hidden;
-}
-
 .markup-content-iframe {
   display: block;
   border: none;
