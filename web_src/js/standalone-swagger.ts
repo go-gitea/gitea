@@ -1,5 +1,13 @@
-// Swagger JS must be standalone because it is also used by external render like "OpenAPI render".
-// Avoid importing other JS modules to prevent unnecessary code and dependencies and chunks.
+// AVOID importing other unneeded main site JS modules to prevent unnecessary code and dependencies and chunks.
+//
+// Swagger JS is standalone because it is also used by external render like "File View -> OpenAPI render",
+// and it doesn't need any code from main site's modules (at the moment).
+//
+// In the future, if there are common utilities needed by both main site and standalone Swagger,
+// we can merge this standalone module into "index.ts", do pay attention to the following problems:
+// * HINT: SWAGGER-OPENAPI-VIEWER: there are different places rendering the swagger UI.
+// * Handle CSS styles carefully for different cases (standalone page, embedded in iframe)
+// * Take care of the JS code introduced by "index.ts" and "iife.ts", there might be global variable dependency and event listeners.
 
 import '../css/standalone-swagger.css';
 import SwaggerUI from 'swagger-ui-dist/swagger-ui-es-bundle.js';
