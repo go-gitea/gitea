@@ -54,8 +54,11 @@ func (l PackagePropertyList) GetByName(name string) string {
 
 // PackageDescriptor describes a package
 type PackageDescriptor struct {
-	Package           *Package
-	Owner             *user_model.User
+	// basic package info
+	Package *Package
+	Owner   *user_model.User
+
+	// package version info
 	Repository        *repo_model.Repository
 	Version           *PackageVersion
 	SemVer            *version.Version
