@@ -4,7 +4,6 @@
 package charset
 
 import (
-	"regexp"
 	"strings"
 	"testing"
 
@@ -138,13 +137,12 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 	{
 		name:   "ambiguous",
 		text:   "O𝐾",
-		result: `O<span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character"><span class="char">𝐾</span></span>`,
+		result: `O<span class="ambiguous-code-point" data-tooltip-content="repo.ambiguous_character:𝐾 [U+1D43E],K [U+004B]"><span class="char">𝐾</span></span>`,
 		status: EscapeStatus{Escaped: true, HasAmbiguous: true},
 	},
 }
 
 func TestEscapeControlReader(t *testing.T) {
-	re := regexp.MustCompile(`repo.ambiguous_character:\d+,\d+`) // simplify the output for the tests, remove the translation variants
 	for _, tt := range escapeControlTests {
 		t.Run(tt.name, func(t *testing.T) {
 			output := &strings.Builder{}
@@ -152,7 +150,6 @@ func TestEscapeControlReader(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, tt.status, *status)
 			outStr := output.String()
-			outStr = re.ReplaceAllString(outStr, "repo.ambiguous_character")
 			assert.Equal(t, tt.result, outStr)
 		})
 	}
