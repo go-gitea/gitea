@@ -10,6 +10,8 @@ import (
 )
 
 func InitManager() error {
-	packages_service.GetSpecManager().Add(packages_model.TypeTerraformState, &terraform.Specialization{})
+	mgr := packages_service.GetSpecManager()
+	mgr.Add(packages_model.TypeTerraformState, &terraform.Specialization{})
+	// TODO: add more in the future, refactor the existing code to use this approach
 	return nil
 }

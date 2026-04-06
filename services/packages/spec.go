@@ -14,7 +14,7 @@ import (
 type nop struct{}
 
 func (n *nop) GetViewPackageVersionData(ctx context.Context, pd *packages_model.PackageDescriptor) (any, error) {
-	return nil, nil
+	return nil, nil //nolint:nilnil // no data, no error
 }
 
 func (n *nop) OnBeforeRemovePackageAll(ctx context.Context, doer *user_model.User, pkg *packages_model.Package, pds []*packages_model.PackageDescriptor) error {
