@@ -6,9 +6,9 @@
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.terraform.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>terraform {
 	backend "http" {
-		address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/state/{{$.PackageDescriptor.Package.Name}}"></origin-url>"
-		lock_address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/state/{{$.PackageDescriptor.Package.Name}}/lock"></origin-url>"
-		unlock_address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/state/{{$.PackageDescriptor.Package.Name}}/lock"></origin-url>"
+		address = "{{ctx.AppFullLink}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/state/{{$.PackageDescriptor.Package.Name}}""
+		lock_address = "{{ctx.AppFullLink}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/state/{{$.PackageDescriptor.Package.Name}}/lock"
+		unlock_address = "{{ctx.AppFullLink}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/state/{{$.PackageDescriptor.Package.Name}}/lock"
 		lock_method = "POST"
 		unlock_method = "DELETE"
 	}
