@@ -7,8 +7,8 @@ package json
 
 import (
 	"bytes"
-	jsonv1 "encoding/json" //nolint:depguard // this package wraps it
-	"encoding/json/jsontext"
+	jsonv1 "encoding/json"    //nolint:depguard // this package wraps it
+	"encoding/json/jsontext"  //nolint:depguard // this package wraps it
 	jsonv2 "encoding/json/v2" //nolint:depguard // this package wraps it
 	"io"
 )
