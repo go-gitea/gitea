@@ -20,3 +20,5 @@ func MarshalKeepOptionalEmpty(v any) ([]byte, error) {
 func NewDecoderCaseInsensitive(reader io.Reader) Decoder {
 	return DefaultJSONHandler.NewDecoder(reader)
 }
+
+type Value = json.RawMessage

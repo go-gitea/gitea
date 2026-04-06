@@ -4,7 +4,6 @@
 package terraform
 
 import (
-	gojson "encoding/json" //nolint:depguard // go package provides RawMessage which is useful here
 	"io"
 
 	"code.gitea.io/gitea/modules/json"
@@ -20,12 +19,12 @@ var (
 )
 
 type State struct {
-	Version          int               `json:"version"`
-	TerraformVersion string            `json:"terraform_version"`
-	Serial           uint64            `json:"serial"`
-	Lineage          string            `json:"lineage"`
-	Resources        gojson.RawMessage `json:"resources"`
-	Outputs          gojson.RawMessage `json:"outputs"`
+	Version          int    `json:"version"`
+	TerraformVersion string `json:"terraform_version"`
+	Serial           uint64 `json:"serial"`
+	Lineage          string `json:"lineage"`
+	Resources        json.Value    `json:"resources"`
+	Outputs          json.Value    `json:"outputs"`
 }
 
 // ParseState parses the Terraform state file

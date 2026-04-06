@@ -7,7 +7,8 @@ package json
 
 import (
 	"bytes"
-	jsonv1 "encoding/json"    //nolint:depguard // this package wraps it
+	jsonv1 "encoding/json" //nolint:depguard // this package wraps it
+	"encoding/json/jsontext"
 	jsonv2 "encoding/json/v2" //nolint:depguard // this package wraps it
 	"io"
 )
@@ -90,3 +91,5 @@ func (d *jsonV2Decoder) Decode(v any) error {
 func NewDecoderCaseInsensitive(reader io.Reader) Decoder {
 	return &jsonV2Decoder{reader: reader, opts: jsonV2.unmarshalCaseInsensitiveOptions}
 }
+
+type Value = jsontext.Value
