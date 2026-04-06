@@ -978,6 +978,8 @@ func Routes() *web.Router {
 				Get(reqToken(), notify.GetThread).
 				Patch(reqToken(), notify.ReadThread)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification), rejectPublicOnly())
+		// notifications API should not be used with public-only tokens, as notifications are mixed with both public and private repositories
+		// if a token is used with notifications API, it should be required to have the notification scope, and the token should not be public-only
 
 		// Users (requires user scope)
 		m.Group("/users", func() {
