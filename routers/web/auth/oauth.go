@@ -18,9 +18,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	source_service "code.gitea.io/gitea/services/auth/source"
@@ -301,9 +303,48 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-func oauth2UpdateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User) {
+func oauth2AvatarAllowList(source *oauth2.Source) *hostmatcher.HostMatchList {
+	allowList := hostmatcher.ParseHostMatchList("oauth2 avatar host", "")
+	allowList.AppendBuiltin(hostmatcher.MatchBuiltinExternal)
+	if source == nil {
+		return allowList
+	}
+	addHost := func(rawURL string) {
+		if rawURL == "" {
+			return
+		}
+		parsedURL, err := url.Parse(rawURL)
+		if err != nil {
+			return
+		}
+		host := parsedURL.Hostname()
+		if host == "" {
+			return
+		}
+		allowList.AppendPattern(host)
+	} 
+
+	addHost(source.OpenIDConnectAutoDiscoveryURL)
+	if source.CustomURLMapping != nil {
+		addHost(source.CustomURLMapping.AuthURL)
+		addHost(source.CustomURLMapping.TokenURL)
+		addHost(source.CustomURLMapping.ProfileURL)
+		addHost(source.CustomURLMapping.EmailURL)
+	}
+	return allowList
+}
+
+func oauth2UpdateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User, source *oauth2.Source) {
 	if setting.OAuth2Client.UpdateAvatar && len(url) > 0 {
-		resp, err := http.Get(url)
+		allowList := oauth2AvatarAllowList(source)
+		blockList := hostmatcher.ParseHostMatchList("oauth2 avatar host", "")
+		client := &http.Client{
+			Transport: &http.Transport{
+				Proxy:       proxy.Proxy(),
+				DialContext: hostmatcher.NewDialContext("oauth2 avatar", allowList, blockList, setting.Proxy.ProxyURLFixed),
+			},
+		}
+		resp, err := client.Get(url)
 		if err == nil {
 			defer func() {
 				_ = resp.Body.Close()

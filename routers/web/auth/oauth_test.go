@@ -4,11 +4,13 @@
 package auth
 
 import (
+	"net"
 	"testing"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -72,4 +74,26 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.Equal(t, user.UpdatedUnix, oidcToken.UpdatedAt)
 	assert.Equal(t, user.Email, oidcToken.Email)
 	assert.Equal(t, user.IsActive, oidcToken.EmailVerified)
+}
+
+func TestOauth2AvatarAllowList(t *testing.T) {
+	allowList := oauth2AvatarAllowList(nil)
+	assert.True(t, allowList.MatchIPAddr(net.ParseIP("8.8.8.8")))
+	assert.False(t, allowList.MatchIPAddr(net.ParseIP("127.0.0.1")))
+
+	source := &oauth2.Source{
+		OpenIDConnectAutoDiscoveryURL: "https://idp.internal/.well-known/openid-configuration",
+		CustomURLMapping: &oauth2.CustomURLMapping{
+			AuthURL:    "https://login.example.test/oauth2/auth",
+			TokenURL:   "https://login.example.test/oauth2/token",
+			ProfileURL: "https://profile.example.test/userinfo",
+			EmailURL:   "https://mail.example.test/me",
+		},
+	}
+	allowList = oauth2AvatarAllowList(source)
+	assert.True(t, allowList.MatchHostName("idp.internal"))
+	assert.True(t, allowList.MatchHostName("login.example.test"))
+	assert.True(t, allowList.MatchHostName("profile.example.test"))
+	assert.True(t, allowList.MatchHostName("mail.example.test"))
+	assert.False(t, allowList.MatchHostName("unexpected.example.test"))
 }
