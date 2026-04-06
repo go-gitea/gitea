@@ -208,9 +208,11 @@ func View(ctx *context_module.Context) {
 	jobID := ctx.PathParamInt64("job")
 	ctx.Data["JobID"] = jobID // it can be 0 when no job (e.g.: run summary view)
 
+	attemptNum := ctx.PathParamInt64("attempt")
+
 	switch {
-	case ctx.PathParamInt64("attempt") > 0:
-		attempt, err := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, ctx.PathParamInt64("attempt"))
+	case attemptNum > 0:
+		attempt, err := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
 		if err != nil {
 			ctx.NotFoundOrServerError("GetRunAttemptByRunIDAndAttempt", func(err error) bool {
 				return errors.Is(err, util.ErrNotExist)
