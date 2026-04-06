@@ -1216,7 +1216,7 @@
   "repo.ambiguous_runes_description": "This file contains Unicode characters that might be confused with other characters. If you think that this is intentional, you can safely ignore this warning. Use the Escape button to reveal them.",
   "repo.invisible_runes_line": "This line has invisible unicode characters",
   "repo.ambiguous_runes_line": "This line has ambiguous unicode characters",
-  "repo.ambiguous_character": "%[1]c [U+%04[1]X] can be confused with %[2]c [U+%04[2]X]",
+  "repo.ambiguous_character": "%[1]s can be confused with %[2]s",
   "repo.escape_control_characters": "Escape",
   "repo.unescape_control_characters": "Unescape",
   "repo.file_copy_permalink": "Copy Permalink",
