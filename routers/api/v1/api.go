@@ -250,47 +250,59 @@ func checkTokenPublicOnly() func(ctx *context.APIContext) {
 		}
 
 		// public Only permission check
-		switch {
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryRepository):
-			if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public repos")
-				return
-			}
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryIssue):
-			if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public issues")
-				return
-			}
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryOrganization):
-			if ctx.Org.Organization != nil && ctx.Org.Organization.Visibility != api.VisibleTypePublic {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public orgs")
-				return
-			}
-			if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public orgs")
-				return
-			}
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryUser):
-			if ctx.ContextUser != nil && ctx.ContextUser.IsTokenAccessAllowed() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public users")
-				return
-			}
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryActivityPub):
-			if ctx.ContextUser != nil && ctx.ContextUser.IsTokenAccessAllowed() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public activitypub")
-				return
-			}
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryNotification):
-			if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public notifications")
-				return
-			}
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryPackage):
-			if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public packages")
-				return
+		for _, category := range requiredScopeCategories {
+			switch category {
+			case auth_model.AccessTokenScopeCategoryRepository:
+				if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public repos")
+					return
+				}
+			case auth_model.AccessTokenScopeCategoryIssue:
+				if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public issues")
+					return
+				}
+			case auth_model.AccessTokenScopeCategoryOrganization:
+				if ctx.Org.Organization != nil && ctx.Org.Organization.Visibility != api.VisibleTypePublic {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public orgs")
+					return
+				}
+				if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public orgs")
+					return
+				}
+			case auth_model.AccessTokenScopeCategoryUser:
+				if ctx.ContextUser != nil && ctx.ContextUser.IsTokenAccessAllowed() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public users")
+					return
+				}
+			case auth_model.AccessTokenScopeCategoryActivityPub:
+				if ctx.ContextUser != nil && ctx.ContextUser.IsTokenAccessAllowed() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public activitypub")
+					return
+				}
+			case auth_model.AccessTokenScopeCategoryNotification:
+				if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public notifications")
+					return
+				}
+			case auth_model.AccessTokenScopeCategoryPackage:
+				if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public packages")
+					return
+				}
 			}
 		}
+	}
+}
+
+func rejectPublicOnly() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !ctx.PublicOnly {
+			return
+		}
+
+		ctx.APIError(http.StatusForbidden, "token scope is limited to public notifications")
 	}
 }
 
@@ -965,7 +977,7 @@ func Routes() *web.Router {
 			m.Combo("/threads/{id}").
 				Get(reqToken(), notify.GetThread).
 				Patch(reqToken(), notify.ReadThread)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification), rejectPublicOnly())
 
 		// Users (requires user scope)
 		m.Group("/users", func() {
@@ -1601,7 +1613,7 @@ func Routes() *web.Router {
 		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead), checkTokenPublicOnly())
 
 		// Organizations
-		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), org.ListMyOrgs)
+		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), checkTokenPublicOnly(), org.ListMyOrgs)
 		m.Group("/users/{username}/orgs", func() {
 			m.Get("", reqToken(), org.ListUserOrgs)
 			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)

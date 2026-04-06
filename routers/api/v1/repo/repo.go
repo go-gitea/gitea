@@ -557,6 +557,10 @@ func GetByID(ctx *context.APIContext) {
 		}
 		return
 	}
+	if ctx.PublicOnly && repo.IsPrivate {
+		ctx.APIError(http.StatusForbidden, "token scope is limited to public repos")
+		return
+	}
 
 	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {

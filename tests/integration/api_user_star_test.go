@@ -153,3 +153,26 @@ func TestAPIStarDisabled(t *testing.T) {
 		MakeRequest(t, req, http.StatusForbidden)
 	})
 }
+
+func TestAPIStarPublicOnly(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)
+	req := NewRequest(t, "GET", "/api/v1/user/starred").
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var repos []api.Repository
+	DecodeJSON(t, resp, &repos)
+	if assert.Len(t, repos, 1) {
+		assert.Equal(t, "user5/repo4", repos[0].FullName)
+	}
+
+	req = NewRequest(t, "GET", "/api/v1/users/user2/starred").
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &repos)
+	if assert.Len(t, repos, 1) {
+		assert.Equal(t, "user5/repo4", repos[0].FullName)
+	}
+}

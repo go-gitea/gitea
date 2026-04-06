@@ -18,6 +18,9 @@ import (
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
+	if ctx.PublicOnly {
+		private = false
+	}
 
 	repos, count, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
 		Actor:       u,
@@ -79,7 +82,7 @@ func ListUserRepos(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	private := ctx.IsSigned
+	private := ctx.IsSigned && !ctx.PublicOnly
 	listUserRepos(ctx, ctx.ContextUser, private)
 }
 
@@ -103,11 +106,12 @@ func ListMyRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
+	private := ctx.IsSigned && !ctx.PublicOnly
 	opts := repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.Doer.ID,
-		Private:            ctx.IsSigned,
+		Private:            private,
 		IncludeDescription: true,
 	}
 

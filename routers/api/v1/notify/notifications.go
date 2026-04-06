@@ -22,7 +22,6 @@ func NewAvailable(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/NotificationCount"
-
 	total, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
 		UserID: ctx.Doer.ID,
 		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},

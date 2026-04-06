@@ -20,6 +20,9 @@ import (
 // getStarredRepos returns the repos that the user with the specified userID has
 // starred
 func getStarredRepos(ctx *context.APIContext, user *user_model.User, private bool) ([]*api.Repository, error) {
+	if ctx.PublicOnly {
+		private = false
+	}
 	starredRepos, err := repo_model.GetStarredRepos(ctx, &repo_model.StarredReposOptions{
 		ListOptions:    utils.GetListOptions(ctx),
 		StarrerID:      user.ID,
