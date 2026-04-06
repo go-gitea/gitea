@@ -29,10 +29,9 @@ type RunAttempt struct {
 	ConcurrencyGroup  string
 	ConcurrencyCancel bool `xorm:"NOT NULL DEFAULT FALSE"`
 
-	Status       Status `xorm:"index"`
-	Started      timeutil.TimeStamp
-	RunStartedAt timeutil.TimeStamp
-	Stopped      timeutil.TimeStamp
+	Status  Status `xorm:"index"`
+	Started timeutil.TimeStamp
+	Stopped timeutil.TimeStamp
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
