@@ -13,16 +13,16 @@ import (
 	"xorm.io/builder"
 )
 
-type RunAttemptList []*RunAttempt
+type ActionRunAttemptList []*ActionRunAttempt
 
 // GetUserIDs returns a slice of user's id
-func (attempts RunAttemptList) GetUserIDs() []int64 {
-	return container.FilterSlice(attempts, func(attempt *RunAttempt) (int64, bool) {
+func (attempts ActionRunAttemptList) GetUserIDs() []int64 {
+	return container.FilterSlice(attempts, func(attempt *ActionRunAttempt) (int64, bool) {
 		return attempt.TriggerUserID, true
 	})
 }
 
-func (attempts RunAttemptList) LoadTriggerUser(ctx context.Context) error {
+func (attempts ActionRunAttemptList) LoadTriggerUser(ctx context.Context) error {
 	userIDs := attempts.GetUserIDs()
 	users := make(map[int64]*user_model.User, len(userIDs))
 	if err := db.GetEngine(ctx).In("id", userIDs).Find(&users); err != nil {

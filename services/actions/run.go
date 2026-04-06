@@ -86,7 +86,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		run.Index = index
 		run.Title = util.EllipsisDisplayString(run.Title, 255)
 
-		runAttempt := &actions_model.RunAttempt{
+		runAttempt := &actions_model.ActionRunAttempt{
 			RepoID:        run.RepoID,
 			RunID:         run.ID,
 			Attempt:       1,

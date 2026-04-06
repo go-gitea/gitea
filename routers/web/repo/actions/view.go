@@ -426,7 +426,7 @@ func ViewPost(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, attempt *actions_model.RunAttempt, isLatestAttempt bool, jobs []*actions_model.ActionRunJob) {
+func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, isLatestAttempt bool, jobs []*actions_model.ActionRunJob) {
 	resp.State.Run.RepoID = ctx.Repo.Repository.ID
 	// the title for the "run" is from the commit message
 	resp.State.Run.Title = run.Title
@@ -486,7 +486,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		ctx.ServerError("ListRunAttemptsByRunID", err)
 		return
 	}
-	if err := actions_model.RunAttemptList(attempts).LoadTriggerUser(ctx); err != nil {
+	if err := actions_model.ActionRunAttemptList(attempts).LoadTriggerUser(ctx); err != nil {
 		ctx.ServerError("LoadTriggerUser", err)
 		return
 	}
@@ -683,7 +683,7 @@ func checkRunRerunAllowed(ctx *context_module.Context, run *actions_model.Action
 	return true
 }
 
-func checkLatestAttempt(ctx *context_module.Context, attempt *actions_model.RunAttempt, isLatestAttempt bool) bool {
+func checkLatestAttempt(ctx *context_module.Context, attempt *actions_model.ActionRunAttempt, isLatestAttempt bool) bool {
 	if attempt != nil && !isLatestAttempt {
 		ctx.NotFound(nil)
 		return false
@@ -830,7 +830,7 @@ func Delete(ctx *context_module.Context) {
 	ctx.JSONOK()
 }
 
-func getRunViewLink(run *actions_model.ActionRun, attempt *actions_model.RunAttempt) string {
+func getRunViewLink(run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) string {
 	if attempt == nil || run.LatestAttemptID == attempt.ID {
 		return run.Link()
 	}
@@ -839,7 +839,7 @@ func getRunViewLink(run *actions_model.ActionRun, attempt *actions_model.RunAtte
 
 // getCurrentRunJobsByPathParam resolves the current run view context from path parameters, including the run, optional attempt, and jobs to render.
 // Any error will be written to the ctx, empty jobs will also result in 404 error, then the return values are all nil.
-func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.ActionRun, *actions_model.RunAttempt, bool, []*actions_model.ActionRunJob) {
+func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.ActionRun, *actions_model.ActionRunAttempt, bool, []*actions_model.ActionRunJob) {
 	run := getCurrentRunByPathParam(ctx)
 	if ctx.Written() {
 		return nil, nil, false, nil
@@ -860,7 +860,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 	}
 
 	attemptNum := ctx.PathParamInt64("attempt")
-	var attempt *actions_model.RunAttempt
+	var attempt *actions_model.ActionRunAttempt
 	var isLatestAttempt bool
 	switch {
 	case attemptNum > 0:
@@ -919,7 +919,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 // getArtifactAttemptByQuery resolves the artifact attempt from the request.
 // It returns the explicitly requested attempt when the `attempt` query parameter is present,
 // otherwise it falls back to the run's latest attempt for attempt-scoped artifact access.
-func getArtifactAttemptByQuery(ctx *context_module.Context, run *actions_model.ActionRun) (*actions_model.RunAttempt, error) {
+func getArtifactAttemptByQuery(ctx *context_module.Context, run *actions_model.ActionRun) (*actions_model.ActionRunAttempt, error) {
 	if ctx.FormString("attempt") != "" {
 		attemptNum := ctx.FormInt64("attempt")
 		if attemptNum > 0 {
@@ -942,7 +942,7 @@ func getArtifactAttemptByQuery(ctx *context_module.Context, run *actions_model.A
 	return attempt, nil
 }
 
-func getArtifactsByRunAndAttempt(ctx *context_module.Context, run *actions_model.ActionRun, attempt *actions_model.RunAttempt, artifactName string) ([]*actions_model.ActionArtifact, error) {
+func getArtifactsByRunAndAttempt(ctx *context_module.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, artifactName string) ([]*actions_model.ActionArtifact, error) {
 	opts := actions_model.FindArtifactsOptions{
 		RunID:        run.ID,
 		ArtifactName: artifactName,

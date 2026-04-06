@@ -16,8 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// RunAttempt represents a single execution attempt of an ActionRun.
-type RunAttempt struct {
+// ActionRunAttempt represents a single execution attempt of an ActionRun.
+type ActionRunAttempt struct {
 	ID      int64
 	RepoID  int64      `xorm:"index"`
 	RunID   int64      `xorm:"index UNIQUE(run_attempt)"`
@@ -38,20 +38,20 @@ type RunAttempt struct {
 	Updated timeutil.TimeStamp `xorm:"updated"`
 }
 
-func (*RunAttempt) TableName() string {
+func (*ActionRunAttempt) TableName() string {
 	return "action_run_attempt"
 }
 
 func init() {
-	db.RegisterModel(new(RunAttempt))
+	db.RegisterModel(new(ActionRunAttempt))
 }
 
-func (attempt *RunAttempt) Duration() time.Duration {
+func (attempt *ActionRunAttempt) Duration() time.Duration {
 	return calculateDuration(attempt.Started, attempt.Stopped, attempt.Status)
 }
 
-func GetRunAttemptByRepoAndID(ctx context.Context, repoID, attemptID int64) (*RunAttempt, error) {
-	var attempt RunAttempt
+func GetRunAttemptByRepoAndID(ctx context.Context, repoID, attemptID int64) (*ActionRunAttempt, error) {
+	var attempt ActionRunAttempt
 	has, err := db.GetEngine(ctx).Where("repo_id=? AND id=?", repoID, attemptID).Get(&attempt)
 	if err != nil {
 		return nil, err
@@ -61,8 +61,8 @@ func GetRunAttemptByRepoAndID(ctx context.Context, repoID, attemptID int64) (*Ru
 	return &attempt, nil
 }
 
-func GetRunAttemptByRunIDAndAttemptNum(ctx context.Context, runID, attemptNum int64) (*RunAttempt, error) {
-	var attempt RunAttempt
+func GetRunAttemptByRunIDAndAttemptNum(ctx context.Context, runID, attemptNum int64) (*ActionRunAttempt, error) {
+	var attempt ActionRunAttempt
 	has, err := db.GetEngine(ctx).Where("run_id=? AND attempt=?", runID, attemptNum).Get(&attempt)
 	if err != nil {
 		return nil, err
@@ -72,14 +72,14 @@ func GetRunAttemptByRunIDAndAttemptNum(ctx context.Context, runID, attemptNum in
 	return &attempt, nil
 }
 
-func ListRunAttemptsByRunID(ctx context.Context, runID int64) ([]*RunAttempt, error) {
-	return db.Find[RunAttempt](ctx, &FindRunAttemptOptions{
+func ListRunAttemptsByRunID(ctx context.Context, runID int64) ([]*ActionRunAttempt, error) {
+	return db.Find[ActionRunAttempt](ctx, &FindRunAttemptOptions{
 		RunID:       runID,
 		ListOptions: db.ListOptionsAll,
 	})
 }
 
-func UpdateRunAttempt(ctx context.Context, attempt *RunAttempt, cols ...string) error {
+func UpdateRunAttempt(ctx context.Context, attempt *ActionRunAttempt, cols ...string) error {
 	if slices.Contains(cols, "status") && attempt.Started.IsZero() && attempt.Status.IsRunning() {
 		attempt.Started = timeutil.TimeStampNow()
 		cols = append(cols, "started")

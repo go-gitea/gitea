@@ -108,7 +108,7 @@ func PrepareToStartJobWithConcurrency(ctx context.Context, job *actions_model.Ac
 	return util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting), jobs, nil
 }
 
-func shouldBlockRunByConcurrency(ctx context.Context, attempt *actions_model.RunAttempt) (bool, error) {
+func shouldBlockRunByConcurrency(ctx context.Context, attempt *actions_model.ActionRunAttempt) (bool, error) {
 	if attempt.ConcurrencyGroup == "" || attempt.ConcurrencyCancel {
 		return false, nil
 	}
@@ -123,7 +123,7 @@ func shouldBlockRunByConcurrency(ctx context.Context, attempt *actions_model.Run
 
 // PrepareToStartRunWithConcurrency prepares a run attempt to start by its evaluated concurrency group and cancelling previous jobs if necessary.
 // It returns the new status of the run attempt (either StatusBlocked or StatusWaiting), any cancelled jobs, and any error encountered during the process.
-func PrepareToStartRunWithConcurrency(ctx context.Context, attempt *actions_model.RunAttempt) (actions_model.Status, []*actions_model.ActionRunJob, error) {
+func PrepareToStartRunWithConcurrency(ctx context.Context, attempt *actions_model.ActionRunAttempt) (actions_model.Status, []*actions_model.ActionRunJob, error) {
 	shouldBlock, err := shouldBlockRunByConcurrency(ctx, attempt)
 	if err != nil {
 		return actions_model.StatusBlocked, nil, err

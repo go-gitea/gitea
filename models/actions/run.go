@@ -161,24 +161,24 @@ func (run *ActionRun) Duration() time.Duration {
 	return calculateDuration(run.Started, run.Stopped, run.Status) + run.PreviousDuration
 }
 
-func (run *ActionRun) GetLatestAttempt(ctx context.Context) (*RunAttempt, bool, error) {
+// GetLatestAttempt returns
+//   - the latest attempt of the run
+//   - (nil, false, nil) for legacy runs that have no attempt records
+func (run *ActionRun) GetLatestAttempt(ctx context.Context) (*ActionRunAttempt, bool, error) {
 	if run.LatestAttemptID == 0 {
 		return nil, false, nil
 	}
 	attempt, err := GetRunAttemptByRepoAndID(ctx, run.RepoID, run.LatestAttemptID)
-	if errors.Is(err, util.ErrNotExist) {
-		return nil, false, nil
-	}
 	if err != nil {
 		return nil, false, err
 	}
 	return attempt, true, nil
 }
 
-// GetCurrentAttemptID returns
+// GetLatestAttemptID returns
 //   - the latest attempt ID for attempt-based runs
 //   - 0 for legacy runs that were created before RunAttempt existed
-func (run *ActionRun) GetCurrentAttemptID(ctx context.Context) (int64, error) {
+func (run *ActionRun) GetLatestAttemptID(ctx context.Context) (int64, error) {
 	if run.LatestAttemptID == 0 {
 		return 0, nil
 	}
@@ -449,12 +449,9 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 
 type ActionRunIndex db.ResourceIndex
 
-// GetConcurrentRunAttemptsAndJobs returns run attempts and jobs in the same concurrency group
-// whose statuses match the requested non-done statuses.
-// Under the current data model, only the latest attempt of a run may remain in a non-done state,
-// so filtering by attempt status is sufficient and does not need an extra join back to action_run.
-func GetConcurrentRunAttemptsAndJobs(ctx context.Context, repoID int64, concurrencyGroup string, status []Status) ([]*RunAttempt, []*ActionRunJob, error) {
-	attempts, err := db.Find[RunAttempt](ctx, &FindRunAttemptOptions{
+// GetConcurrentRunAttemptsAndJobs returns run attempts and jobs in the same concurrency group by statuses.
+func GetConcurrentRunAttemptsAndJobs(ctx context.Context, repoID int64, concurrencyGroup string, status []Status) ([]*ActionRunAttempt, []*ActionRunJob, error) {
+	attempts, err := db.Find[ActionRunAttempt](ctx, &FindRunAttemptOptions{
 		RepoID:           repoID,
 		Statuses:         status,
 		ConcurrencyGroup: concurrencyGroup,
@@ -476,7 +473,7 @@ func GetConcurrentRunAttemptsAndJobs(ctx context.Context, repoID int64, concurre
 	return attempts, jobs, nil
 }
 
-func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *RunAttempt) ([]*ActionRunJob, error) {
+func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunAttempt) ([]*ActionRunJob, error) {
 	if attempt.ConcurrencyGroup == "" {
 		return nil, nil
 	}

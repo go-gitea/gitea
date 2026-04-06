@@ -70,7 +70,7 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 	if err != nil {
 		return fmt.Errorf("get action run: %w", err)
 	}
-	attemptID, err := run.GetCurrentAttemptID(ctx)
+	attemptID, err := run.GetLatestAttemptID(ctx)
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func checkBlockedConcurrentRun(ctx context.Context, repoID, runID int64) (jobs, 
 		return nil, nil, nil, nil
 	}
 
-	attemptID, err := concurrentRun.GetCurrentAttemptID(ctx)
+	attemptID, err := concurrentRun.GetLatestAttemptID(ctx)
 	if err != nil {
 		return nil, nil, nil, err
 	}

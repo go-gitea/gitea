@@ -25,7 +25,7 @@ type rerunPlan struct {
 	templateJobs actions_model.ActionJobList
 	rerunJobIDs  container.Set[string]
 	vars         map[string]string
-	newAttempt   *actions_model.RunAttempt
+	newAttempt   *actions_model.ActionRunAttempt
 }
 
 func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, jobsToRerun []*actions_model.ActionRunJob) (*rerunPlan, error) {
@@ -87,7 +87,7 @@ func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actio
 	if hasTemplateAttempt {
 		attemptNum = templateAttempt.Attempt + 1
 	}
-	plan.newAttempt = &actions_model.RunAttempt{
+	plan.newAttempt = &actions_model.ActionRunAttempt{
 		RepoID:        run.RepoID,
 		RunID:         run.ID,
 		Attempt:       attemptNum,
@@ -264,7 +264,7 @@ func (p *rerunPlan) hasRerunDependency(job *actions_model.ActionRunJob) bool {
 	return false
 }
 
-func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *actions_model.RunAttempt) *actions_model.ActionRunJob {
+func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *actions_model.ActionRunAttempt) *actions_model.ActionRunJob {
 	return &actions_model.ActionRunJob{
 		RunID:                  templateJob.RunID,
 		RunAttemptID:           attempt.ID,

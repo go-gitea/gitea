@@ -28,7 +28,7 @@ type GiteaContext map[string]any
 //  1. job.Attempt when a job context is available
 //  2. attempt.Attempt when an explicit attempt context is available
 //  3. the run's latest attempt as a fallback
-func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.RunAttempt, job *actions_model.ActionRunJob) GiteaContext {
+func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob) GiteaContext {
 	event := map[string]any{}
 	_ = json.Unmarshal([]byte(run.EventPayload), &event)
 

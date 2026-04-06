@@ -207,7 +207,7 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 		RepoID: repoID,
 		ID:     run.ID,
 	})
-	recordsToDelete = append(recordsToDelete, &actions_model.RunAttempt{
+	recordsToDelete = append(recordsToDelete, &actions_model.ActionRunAttempt{
 		RepoID: repoID,
 		RunID:  run.ID,
 	})
