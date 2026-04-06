@@ -3912,6 +3912,44 @@
             "$ref": "#/responses/notFound"
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "package"
+        ],
+        "summary": "Delete a package",
+        "operationId": "deletePackage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the package",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "type of the package",
+            "name": "type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the package",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       }
     },
     "/packages/{owner}/{type}/{name}/-/latest": {
@@ -4097,8 +4135,8 @@
         "tags": [
           "package"
         ],
-        "summary": "Delete a package",
-        "operationId": "deletePackage",
+        "summary": "Delete a package version",
+        "operationId": "deletePackageVersion",
         "parameters": [
           {
             "type": "string",

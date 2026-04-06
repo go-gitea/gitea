@@ -529,6 +529,7 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
 .external-render-iframe {
   width: 100%;
   height: max(300px, 80vh);
+  border: none;
 }
 
 .markup-content-iframe {

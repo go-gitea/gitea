@@ -40,6 +40,13 @@ EVENT_SOURCE_UPDATE_TIME = 500ms
 [log]
 MODE = console
 LEVEL = Warn
+
+[markup.test-external]
+ENABLED = true
+FILE_EXTENSIONS = .external
+RENDER_COMMAND = cat
+IS_INPUT_FILE = false
+RENDER_CONTENT_MODE = iframe
 EOF
 
 export GITEA_WORK_DIR="$WORK_DIR"

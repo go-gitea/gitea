@@ -26,7 +26,7 @@ export default {
   ],
   overrides: [
     {
-      files: ['**/chroma/*', '**/codemirror/*', '**/standalone/*', '**/console.css', 'font_i18n.css'],
+      files: ['**/chroma/*', '**/codemirror/*', '**/console.css', 'font_i18n.css'],
       rules: {
         'scale-unlimited/declaration-strict-value': null,
       },
