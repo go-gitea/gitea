@@ -47,16 +47,22 @@ func (p *openAPIRenderer) SanitizerRules() []setting.MarkupSanitizerRule {
 func (p *openAPIRenderer) GetExternalRendererOptions() (ret markup.ExternalRendererOptions) {
 	ret.SanitizerDisabled = true
 	ret.DisplayInIframe = true
-	ret.ContentSandbox = ""
+	ret.ContentSandbox = "allow-scripts allow-forms allow-modals allow-popups allow-downloads"
 	return ret
 }
 
 func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	if ctx.RenderOptions.StandalonePageOptions == nil {
+		opts := p.GetExternalRendererOptions()
+		return markup.RenderIFrame(ctx, &opts, output)
+	}
+
 	content, err := util.ReadWithLimit(input, int(setting.UI.MaxDisplayFileSize))
 	if err != nil {
 		return err
 	}
-	// TODO: can extract this to a tmpl file later
+
+	// HINT: SWAGGER-OPENAPI-VIEWER: another place "templates/swagger/openapi-viewer.tmpl"
 	_, err = io.WriteString(output, fmt.Sprintf(
 		`<!DOCTYPE html>
 <html>

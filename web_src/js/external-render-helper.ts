@@ -1,3 +1,7 @@
+// External render JS must be a IIFE module to run as early as possible to set up the environment for the content page.
+// Avoid unnecessary dependency.
+// Do NOT introduce global pollution, because the content page should be fully controlled by the external render.
+
 /* To manually test:
 
 [markup.in-iframe]
@@ -11,22 +15,39 @@ RENDER_COMMAND = `echo '<div style="width: 100%; height: 2000px; border: 10px so
 
 */
 
-import '../../css/standalone/external-render-iframe.css';
+const url = new URL(window.location.href);
 
-function mainExternalRenderIframe() {
-  const u = new URL(window.location.href);
-  const iframeId = u.searchParams.get('gitea-iframe-id');
+const isDarkTheme = url.searchParams.get('gitea-is-dark-theme') === 'true';
+if (isDarkTheme) {
+  document.documentElement.setAttribute('data-gitea-theme-dark', String(isDarkTheme));
+}
 
+const backgroundColor = url.searchParams.get('gitea-iframe-bgcolor');
+if (backgroundColor) {
+  // create a style element to set background color, then it can be overridden by the content page's own style if needed
+  const style = document.createElement('style');
+  style.textContent = `
+:root {
+  --gitea-iframe-bgcolor: ${backgroundColor};
+}
+body { background: ${backgroundColor}; }
+`;
+  document.head.append(style);
+}
+
+const iframeId = url.searchParams.get('gitea-iframe-id');
+if (iframeId) {
   // iframe is in different origin, so we need to use postMessage to communicate
   const postIframeMsg = (cmd: string, data: Record<string, any> = {}) => {
     window.parent.postMessage({giteaIframeCmd: cmd, giteaIframeId: iframeId, ...data}, '*');
   };
 
   const updateIframeHeight = () => {
-    // Don't use integer heights from the DOM node.
-    // Use getBoundingClientRect(), then ceil the height to avoid fractional pixels which causes incorrect scrollbars.
-    const rect = document.documentElement.getBoundingClientRect();
-    postIframeMsg('resize', {iframeHeight: Math.ceil(rect.height)});
+    if (!document.body) return; // the body might not be available when this function is called
+    // Use scrollHeight to get the full content height, even when CSS sets html/body to height:100%
+    // (which would make getBoundingClientRect return the viewport height instead of content height).
+    const height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+    postIframeMsg('resize', {iframeHeight: height});
     // As long as the parent page is responsible for the iframe height, the iframe itself doesn't need scrollbars.
     // This style should only be dynamically set here when our code can run.
     document.documentElement.style.overflowY = 'hidden';
@@ -54,5 +75,3 @@ function mainExternalRenderIframe() {
     }
   });
 }
-
-mainExternalRenderIframe();

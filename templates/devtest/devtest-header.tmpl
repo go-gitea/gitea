@@ -1,8 +1,4 @@
 {{template "base/head" ctx.RootData}}
 <link rel="stylesheet" href="{{AssetURI "css/devtest.css"}}">
-<script>
-	// must make sure the jQuery is globally loaded
-	// ref: https://github.com/go-gitea/gitea/issues/35923
-	if (!window.jQuery) alert('jQuery is missing, user custom plugins may not work');
-</script>
+<div class="tw-hidden" data-global-init="initDevtestPage"></div>
 {{template "base/alert" .}}

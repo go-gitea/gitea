@@ -184,6 +184,7 @@ func CleanupExpiredData(ctx context.Context, olderThan time.Duration) error {
 			}
 		}
 
+		// HINT: PACKAGE-DEFER-STORAGE-DELETE: Handle blob deletion for package storage
 		pbs, err = packages_model.FindExpiredUnreferencedBlobs(ctx, olderThan)
 		if err != nil {
 			return err

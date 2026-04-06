@@ -38,6 +38,14 @@ var RenderBehaviorForTesting struct {
 	DisableAdditionalAttributes bool
 }
 
+type WebThemeInterface interface {
+	PublicAssetURI() string
+}
+
+type StandalonePageOptions struct {
+	CurrentWebTheme WebThemeInterface
+}
+
 type RenderOptions struct {
 	UseAbsoluteLink bool
 
@@ -55,7 +63,7 @@ type RenderOptions struct {
 	Metas map[string]string
 
 	// used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
-	InStandalonePage bool
+	StandalonePageOptions *StandalonePageOptions
 
 	// EnableHeadingIDGeneration controls whether to auto-generate IDs for HTML headings without id attribute.
 	// This should be enabled for repository files and wiki pages, but disabled for comments to avoid duplicate IDs.
@@ -127,8 +135,8 @@ func (ctx *RenderContext) WithMetas(metas map[string]string) *RenderContext {
 	return ctx
 }
 
-func (ctx *RenderContext) WithInStandalonePage(v bool) *RenderContext {
-	ctx.RenderOptions.InStandalonePage = v
+func (ctx *RenderContext) WithStandalonePage(opts StandalonePageOptions) *RenderContext {
+	ctx.RenderOptions.StandalonePageOptions = &opts
 	return ctx
 }
 
@@ -197,20 +205,18 @@ func RenderString(ctx *RenderContext, content string) (string, error) {
 	return buf.String(), nil
 }
 
-func renderIFrame(ctx *RenderContext, sandbox string, output io.Writer) error {
+func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.Writer) error {
 	src := fmt.Sprintf("%s/%s/%s/render/%s/%s", setting.AppSubURL,
 		url.PathEscape(ctx.RenderOptions.Metas["user"]),
 		url.PathEscape(ctx.RenderOptions.Metas["repo"]),
 		util.PathEscapeSegments(ctx.RenderOptions.Metas["RefTypeNameSubURL"]),
 		util.PathEscapeSegments(ctx.RenderOptions.RelativePath),
 	)
-
-	var sandboxAttrValue template.HTML
-	if sandbox != "" {
-		sandboxAttrValue = htmlutil.HTMLFormat(`sandbox="%s"`, sandbox)
+	var extraAttrs template.HTML
+	if opts.ContentSandbox != "" {
+		extraAttrs = htmlutil.HTMLFormat(` sandbox="%s"`, opts.ContentSandbox)
 	}
-	iframe := htmlutil.HTMLFormat(`<iframe data-src="%s" class="external-render-iframe" %s></iframe>`, src, sandboxAttrValue)
-	_, err := io.WriteString(output, string(iframe))
+	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" class="external-render-iframe"%s></iframe>`, src, extraAttrs)
 	return err
 }
 
@@ -232,16 +238,17 @@ func getExternalRendererOptions(renderer Renderer) (ret ExternalRendererOptions,
 func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
 	var extraHeadHTML template.HTML
 	if extOpts, ok := getExternalRendererOptions(renderer); ok && extOpts.DisplayInIframe {
-		if !ctx.RenderOptions.InStandalonePage {
+		if ctx.RenderOptions.StandalonePageOptions == nil {
 			// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
 			// otherwise, a <iframe> should be outputted to embed the external rendered page
-			return renderIFrame(ctx, extOpts.ContentSandbox, output)
+			return RenderIFrame(ctx, &extOpts, output)
 		}
 		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
-		extraStyleHref := public.AssetURI("css/external-render-iframe.css")
-		extraScriptSrc := public.AssetURI("js/external-render-iframe.js")
+		extraScriptSrc := public.AssetURI("js/external-render-helper.js")
+		extraLinkHref := ctx.RenderOptions.StandalonePageOptions.CurrentWebTheme.PublicAssetURI()
 		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
-		extraHeadHTML = htmlutil.HTMLFormat(`<script type="module" src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraStyleHref)
+		// DO NOT use "type=module", the script must run as early as possible, to set up the environment in the iframe
+		extraHeadHTML = htmlutil.HTMLFormat(`<script crossorigin src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraLinkHref)
 	}
 
 	ctx.usedByRender = true
