@@ -21,7 +21,7 @@ var _ packages_service.Specialization = (*Specialization)(nil)
 func (s Specialization) GetViewPackageVersionData(ctx context.Context, pd *packages_model.PackageDescriptor) (any, error) {
 	var ret struct {
 		IsLatestVersion bool
-		TerraformLock   terraform_module.LockInfo
+		TerraformLock   *terraform_module.LockInfo
 	}
 	latestPvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		PackageID:  pd.Package.ID,
@@ -39,7 +39,7 @@ func (s Specialization) GetViewPackageVersionData(ctx context.Context, pd *packa
 			return ret, nil
 		}
 		if lockInfo.IsLocked() {
-			ret.TerraformLock = lockInfo
+			ret.TerraformLock = &lockInfo
 		}
 	}
 	return ret, nil
