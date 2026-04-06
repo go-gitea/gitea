@@ -13,8 +13,8 @@ import (
 // Note: This only checks correctness of required parame
 
 type State struct {
-	Serial           uint64     `json:"serial"`
-	Lineage          string     `json:"lineage"`
+	Serial  uint64 `json:"serial"`
+	Lineage string `json:"lineage"`
 }
 
 // ParseState parses the required parts of Terraform state file
