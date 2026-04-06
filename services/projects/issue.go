@@ -80,6 +80,10 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 				}
 			}
 
+			// Update the column and sorting for this specific issue in this specific project.
+			// IMPORTANT: The WHERE clause must include both issue_id AND project_id to ensure
+			// that moving an issue's column in one project doesn't affect its column in other
+			// projects when the issue is assigned to multiple projects.
 			_, err = db.GetEngine(ctx).Table("project_issue").
 				Where("issue_id = ? AND project_id = ?", issueID, column.ProjectID).
 				Update(map[string]any{

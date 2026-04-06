@@ -412,6 +412,7 @@ func NewIssuePost(ctx *context.Context) {
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	if ctx.FormString("redirect_after_creation") == "project" && len(projectIDs) > 0 {
+		// When issue is in multiple projects, redirect to first project from form order.
 		project, err := project_model.GetProjectByID(ctx, projectIDs[0])
 		if err == nil {
 			if project.Type == project_model.TypeOrganization {
