@@ -313,12 +313,16 @@ func (e *escapeStreamer) writeEscapedCharHTML(tag1, attr, tag2, content, tag3 st
 	return err
 }
 
+func runeToHex(r rune) string {
+	return fmt.Sprintf("[U+%04X]", r)
+}
+
 func (e *escapeStreamer) writeAmbiguousRune(r, c rune) (err error) {
 	e.escaped.Escaped = true
 	e.escaped.HasAmbiguous = true
 	return e.writeEscapedCharHTML(
 		`<span class="ambiguous-code-point" data-tooltip-content="`,
-		e.locale.TrString("repo.ambiguous_character", r, c),
+		e.locale.TrString("repo.ambiguous_character", string(r)+" "+runeToHex(r), string(c)+" "+runeToHex(c)),
 		`"><span class="char">`,
 		string(r),
 		`</span></span>`,
@@ -330,7 +334,7 @@ func (e *escapeStreamer) writeInvisibleRune(r rune) error {
 	e.escaped.HasInvisible = true
 	return e.writeEscapedCharHTML(
 		`<span class="escaped-code-point" data-escaped="`,
-		fmt.Sprintf("[U+%04X]", r),
+		runeToHex(r),
 		`"><span class="char">`,
 		string(r),
 		`</span></span>`,
@@ -338,17 +342,17 @@ func (e *escapeStreamer) writeInvisibleRune(r rune) error {
 }
 
 func (e *escapeStreamer) writeControlRune(r rune) error {
-	var pic string
+	var display string
 	if r >= 0 && r <= 0x1f {
-		pic = string(0x2400 + r)
+		display = string(0x2400 + r)
 	} else if r == 0x7f {
-		pic = string(rune(0x2421))
+		display = string(rune(0x2421))
 	} else {
-		pic = fmt.Sprintf("[U+%04X]", r)
+		display = runeToHex(r)
 	}
 	return e.writeEscapedCharHTML(
 		`<span class="broken-code-point" data-escaped="`,
-		pic,
+		display,
 		`"><span class="char">`,
 		string(r),
 		`</span></span>`,
