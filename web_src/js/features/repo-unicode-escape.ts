@@ -1,9 +1,10 @@
 import {addDelegatedEventListener, hideElem, queryElemSiblings, showElem, toggleElem} from '../utils/dom.ts';
 
 export function initUnicodeEscapeButton() {
-  // buttons might appear on these pages: file view (code, rendered Markdown), diff (commit, pr conversation, pr diff), blame, wiki
+  // buttons might appear on these pages: file view (code, rendered markdown), diff (commit, pr conversation, pr diff), blame, wiki
   addDelegatedEventListener(document, 'click', '.escape-button, .unescape-button, .toggle-escape-button', (btn, e) => {
     e.preventDefault();
+
     const unicodeContentSelector = btn.getAttribute('data-unicode-content-selector');
     const container = unicodeContentSelector ?
       document.querySelector(unicodeContentSelector)! :

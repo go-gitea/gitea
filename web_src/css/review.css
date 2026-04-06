@@ -16,18 +16,15 @@
 }
 
 .lines-escape .toggle-escape-button {
-  padding: 2px;
-  transform: translateY(-1px);
+  margin: -1px 2px 0;
 }
 
 .lines-escape .toggle-escape-button::before {
-  visibility: visible;
   content: "";
-  display: inline-block;
+  display: inline-flex;
   width: 14px;
   height: 14px;
-  vertical-align: middle;
-  background-color: var(--color-yellow);
+  background-color: var(--color-yellow); /* TODO: maybe it needs a new kind of color, there is no suitable "warning" color in the current palette */
   mask-image: var(--octicon-alert-fill);
   -webkit-mask-image: var(--octicon-alert-fill);
   mask-size: contain;
