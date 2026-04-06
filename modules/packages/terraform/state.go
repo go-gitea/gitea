@@ -19,12 +19,12 @@ var (
 )
 
 type State struct {
-	Version          int    `json:"version"`
-	TerraformVersion string `json:"terraform_version"`
-	Serial           uint64 `json:"serial"`
-	Lineage          string `json:"lineage"`
-	Resources        json.Value    `json:"resources"`
-	Outputs          json.Value    `json:"outputs"`
+	Version          int        `json:"version"`
+	TerraformVersion string     `json:"terraform_version"`
+	Serial           uint64     `json:"serial"`
+	Lineage          string     `json:"lineage"`
+	Resources        json.Value `json:"resources"`
+	Outputs          json.Value `json:"outputs"`
 }
 
 // ParseState parses the Terraform state file
