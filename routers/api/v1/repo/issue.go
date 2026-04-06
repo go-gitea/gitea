@@ -34,6 +34,32 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
+// validateProjectAccess validates that all provided project IDs exist and can be accessed
+// by the given repository. Returns an error if any project is invalid or inaccessible.
+// This prevents code duplication between CreateIssue and EditIssue endpoints.
+func validateProjectAccess(ctx *context.APIContext, projectIDs []int64, repo *repo_model.Repository) error {
+	for _, projectID := range projectIDs {
+		p, err := project_model.GetProjectByID(ctx, projectID)
+		if err != nil {
+			if project_model.IsErrProjectNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project does not exist: [id: %d]", projectID))
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return err
+		}
+		if err := p.LoadRepo(ctx); err != nil {
+			ctx.APIErrorInternal(err)
+			return err
+		}
+		if !p.CanBeAccessedByOwnerRepo(repo.OwnerID, repo) {
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project cannot be accessed: [id: %d]", projectID))
+			return fmt.Errorf("project %d cannot be accessed", projectID)
+		}
+	}
+	return nil
+}
+
 // buildSearchIssuesRepoIDs builds the list of repository IDs for issue search based on query parameters.
 // It returns repoIDs, allPublic flag, and any error that occurred.
 func buildSearchIssuesRepoIDs(ctx *context.APIContext) (repoIDs []int64, allPublic bool, err error) {
@@ -694,24 +720,8 @@ func CreateIssue(ctx *context.APIContext) {
 	// Validate project IDs if provided
 	projectIDs := make([]int64, 0)
 	if ctx.Repo.CanWrite(unit.TypeIssues) && len(form.Projects) > 0 {
-		for _, projectID := range form.Projects {
-			p, err := project_model.GetProjectByID(ctx, projectID)
-			if err != nil {
-				if project_model.IsErrProjectNotExist(err) {
-					ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project does not exist: [id: %d]", projectID))
-				} else {
-					ctx.APIErrorInternal(err)
-				}
-				return
-			}
-			if err := p.LoadRepo(ctx); err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			if !p.CanBeAccessedByOwnerRepo(ctx.Repo.Repository.OwnerID, ctx.Repo.Repository) {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project cannot be accessed: [id: %d]", projectID))
-				return
-			}
+		if err := validateProjectAccess(ctx, form.Projects, ctx.Repo.Repository); err != nil {
+			return
 		}
 		projectIDs = form.Projects
 	}
@@ -942,24 +952,8 @@ func EditIssue(ctx *context.APIContext) {
 	// Update projects if provided
 	if canWrite && form.Projects != nil {
 		// Validate project IDs
-		for _, projectID := range *form.Projects {
-			p, err := project_model.GetProjectByID(ctx, projectID)
-			if err != nil {
-				if project_model.IsErrProjectNotExist(err) {
-					ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project does not exist: [id: %d]", projectID))
-				} else {
-					ctx.APIErrorInternal(err)
-				}
-				return
-			}
-			if err := p.LoadRepo(ctx); err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			if !p.CanBeAccessedByOwnerRepo(ctx.Repo.Repository.OwnerID, ctx.Repo.Repository) {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project cannot be accessed: [id: %d]", projectID))
-				return
-			}
+		if err := validateProjectAccess(ctx, *form.Projects, ctx.Repo.Repository); err != nil {
+			return
 		}
 		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, *form.Projects); err != nil {
 			ctx.APIErrorInternal(err)
