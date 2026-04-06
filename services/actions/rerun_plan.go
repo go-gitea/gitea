@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -22,12 +21,11 @@ import (
 )
 
 type rerunPlan struct {
-	run              *actions_model.ActionRun
-	templateJobs     actions_model.ActionJobList
-	rerunJobIDs      container.Set[string]
-	vars             map[string]string
-	previousDuration time.Duration
-	newAttempt       *actions_model.RunAttempt
+	run          *actions_model.ActionRun
+	templateJobs actions_model.ActionJobList
+	rerunJobIDs  container.Set[string]
+	vars         map[string]string
+	newAttempt   *actions_model.RunAttempt
 }
 
 func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, jobsToRerun []*actions_model.ActionRunJob) (*rerunPlan, error) {
@@ -83,11 +81,6 @@ func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actio
 	plan.vars, err = actions_model.GetVariablesOfRun(ctx, run)
 	if err != nil {
 		return nil, fmt.Errorf("get run %d variables: %w", run.ID, err)
-	}
-
-	plan.previousDuration = run.Duration()
-	if hasTemplateAttempt {
-		plan.previousDuration = templateAttempt.Duration()
 	}
 
 	attemptNum := int64(1)
@@ -181,12 +174,11 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) error {
 			return err
 		}
 
-		plan.run.PreviousDuration = plan.previousDuration
 		plan.run.Started = 0
 		plan.run.Stopped = 0
 		plan.run.Status = plan.newAttempt.Status
 		plan.run.LatestAttemptID = plan.newAttempt.ID
-		if err := actions_model.UpdateRun(ctx, plan.run, "previous_duration", "started", "stopped", "status", "latest_attempt_id"); err != nil {
+		if err := actions_model.UpdateRun(ctx, plan.run, "started", "stopped", "status", "latest_attempt_id"); err != nil {
 			return err
 		}
 

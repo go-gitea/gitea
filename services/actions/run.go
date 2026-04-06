@@ -93,7 +93,6 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 			TriggerUserID: run.TriggerUserID,
 			Status:        actions_model.StatusWaiting,
 			Started:       0,
-			RunStartedAt:  0,
 			Stopped:       0,
 		}
 		var jobsToCancel []*actions_model.ActionRunJob

@@ -49,15 +49,21 @@ type ActionRun struct {
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
-	LatestAttemptID   int64                        `xorm:"index NOT NULL DEFAULT 0"`
 	RawConcurrency    string                       // raw concurrency
-	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
+
+	// Started and Stopped are identical to the latest attempt after RunAttempt was introduced (see #37119).
+	// When a rerun creates a new latest attempt, they are reset until the new attempt starts and stops.
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
-	// PreviousDuration is a cached duration of the attempt immediately preceding the latest attempt.
+
+	// PreviousDuration is kept only for legacy runs created before RunAttempt existed (see #37119).
+	// New runs and reruns no longer update this field and use attempt-scoped durations instead.
 	PreviousDuration time.Duration
-	Created          timeutil.TimeStamp `xorm:"created"`
-	Updated          timeutil.TimeStamp `xorm:"updated"`
+
+	LatestAttemptID int64 `xorm:"index NOT NULL DEFAULT 0"`
+
+	Created timeutil.TimeStamp `xorm:"created"`
+	Updated timeutil.TimeStamp `xorm:"updated"`
 }
 
 func init() {

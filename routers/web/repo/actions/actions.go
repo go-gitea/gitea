@@ -291,6 +291,16 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 		log.Error("LoadIsRefDeleted", err)
 	}
 
+	runLatestDurations := make(map[int64]string, len(runs))
+	for _, run := range runs {
+		if attempt, has, err := run.GetLatestAttempt(ctx); err != nil {
+			ctx.ServerError("GetLatestAttempt", err)
+			return
+		} else if has {
+			runLatestDurations[run.ID] = attempt.Duration().String()
+		}
+	}
+
 	// Check for each run if there is at least one online runner that can run its jobs
 	runErrors := make(map[int64]string)
 	runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
@@ -329,6 +339,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 		}
 	}
 	ctx.Data["RunErrors"] = runErrors
+	ctx.Data["RunLatestDurations"] = runLatestDurations
 
 	ctx.Data["Runs"] = runs
 

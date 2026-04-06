@@ -42,7 +42,8 @@
 				{{end}}
 				<div class="run-list-item-right">
 					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince $run.Updated}}</div>
-					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{$run.Duration}}</div>
+					{{/* Prefer the latest attempt duration when available; fall back to legacy run duration for runs without attempts. */}}
+					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{or (index $.RunLatestDurations $run.ID) $run.Duration}}</div>
 				</div>
 				<div class="ui dropdown jump tw-p-2">
 					{{svg "octicon-kebab-horizontal"}}

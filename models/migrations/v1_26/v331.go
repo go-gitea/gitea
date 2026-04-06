@@ -20,7 +20,6 @@ type actionRunAttempt struct {
 	TriggerUserID     int64 `xorm:"index"`
 	Status            int   `xorm:"index"`
 	Started           timeutil.TimeStamp
-	RunStartedAt      timeutil.TimeStamp
 	Stopped           timeutil.TimeStamp
 	ConcurrencyGroup  string
 	ConcurrencyCancel bool               `xorm:"NOT NULL DEFAULT FALSE"`
