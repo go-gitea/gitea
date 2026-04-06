@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -60,17 +61,6 @@ func GetRunAttemptByRepoAndID(ctx context.Context, repoID, attemptID int64) (*Ru
 	return &attempt, nil
 }
 
-func GetLatestAttemptByRunID(ctx context.Context, runID int64) (*RunAttempt, bool, error) {
-	var attempt RunAttempt
-	has, err := db.GetEngine(ctx).Where("run_id=?", runID).Desc("attempt").Get(&attempt)
-	if err != nil {
-		return nil, false, err
-	} else if !has {
-		return nil, false, nil
-	}
-	return &attempt, true, nil
-}
-
 func GetRunAttemptByRunIDAndAttemptNum(ctx context.Context, runID, attemptNum int64) (*RunAttempt, error) {
 	var attempt RunAttempt
 	has, err := db.GetEngine(ctx).Where("run_id=? AND attempt=?", runID, attemptNum).Get(&attempt)
@@ -90,6 +80,11 @@ func ListRunAttemptsByRunID(ctx context.Context, runID int64) ([]*RunAttempt, er
 }
 
 func UpdateRunAttempt(ctx context.Context, attempt *RunAttempt, cols ...string) error {
+	if slices.Contains(cols, "status") && attempt.Started.IsZero() && attempt.Status.IsRunning() {
+		attempt.Started = timeutil.TimeStampNow()
+		cols = append(cols, "started")
+	}
+
 	sess := db.GetEngine(ctx).ID(attempt.ID)
 	if len(cols) > 0 {
 		sess.Cols(cols...)
@@ -98,6 +93,7 @@ func UpdateRunAttempt(ctx context.Context, attempt *RunAttempt, cols ...string) 
 		return err
 	}
 
+	// Only status/timing changes on an attempt need to update the latest run.
 	if len(cols) > 0 && !slices.Contains(cols, "status") && !slices.Contains(cols, "started") && !slices.Contains(cols, "stopped") {
 		return nil
 	}
@@ -107,6 +103,7 @@ func UpdateRunAttempt(ctx context.Context, attempt *RunAttempt, cols ...string) 
 		return err
 	}
 	if run.LatestAttemptID != attempt.ID {
+		log.Warn("run %d cannot be updated by an old attempt %d", run.LatestAttemptID, attempt.ID)
 		return nil
 	}
 
