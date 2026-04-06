@@ -10,7 +10,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// Note: This only checks correctness of required parame
+// Note: this is a subset of the Terraform state file format as the full one has two forms.
+// If needed, it can be expanded in the future.
 
 type State struct {
 	Serial  uint64 `json:"serial"`
