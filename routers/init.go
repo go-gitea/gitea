@@ -47,6 +47,7 @@ import (
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	"code.gitea.io/gitea/services/oauth2_provider"
+	packages_spec "code.gitea.io/gitea/services/packages/pkgspec"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -145,10 +146,10 @@ func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, oauth2.Init)
 	mustInitCtx(ctx, oauth2_provider.Init)
 	mustInit(release_service.Init)
-
 	mustInitCtx(ctx, models.Init)
 	mustInitCtx(ctx, authmodel.Init)
 	mustInitCtx(ctx, repo_service.Init)
+	mustInit(packages_spec.InitManager)
 
 	// Booting long running goroutines.
 	mustInit(indexer_service.Init)

@@ -19,7 +19,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
@@ -37,7 +36,6 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
-	terraform_service "code.gitea.io/gitea/services/packages/terraform"
 
 	"github.com/google/uuid"
 )
@@ -527,54 +525,18 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 		ctx.Redirect(pd.PackageSettingsLink())
 		return
 	}
-
-	locked, err := terraform_service.IsLocked(ctx, pd.Package)
-	if err != nil {
-		ctx.ServerError("IsLocked", err)
-		return
-	}
-	if locked {
-		ctx.Flash.Error(ctx.Tr("packages.terraform.delete.locked"))
-		ctx.Redirect(pd.PackageSettingsLink())
-		return
-	}
-
 	if err := packages_service.RemovePackage(ctx, ctx.Doer, pd.Package); err != nil {
-		log.Error("Error deleting package: %v", err)
-		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
-	} else {
-		ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
+		errTr := util.ErrorAsTranslatable(err)
+		if errTr == nil {
+			ctx.ServerError("RemovePackage", err)
+			return
+		}
+		ctx.Flash.Error(errTr.Translate(ctx.Locale))
+		ctx.Redirect(pd.PackageSettingsLink())
 	}
 
+	ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
 	ctx.Redirect(ctx.Package.Owner.HomeLink() + "/-/packages")
-}
-
-// canDeleteTerraformStateVersion is a wrapper for terraform state checks to run before deleting a version
-// Return true if it's okay to delete and fills appropriate errors for UI if not.
-func canDeleteTerraformStateVersion(ctx *context.Context) bool {
-	pd := ctx.Package.Descriptor
-	locked, err := terraform_service.IsLocked(ctx, pd.Package)
-	if err != nil {
-		ctx.ServerError("IsLocked", err)
-		return false
-	}
-	if locked {
-		ctx.Flash.Error(ctx.Tr("packages.terraform.delete.locked"))
-		ctx.Redirect(pd.VersionWebLink())
-		return false
-	}
-
-	latest, err := terraform_service.IsLatest(ctx, pd)
-	if err != nil {
-		ctx.ServerError("IsLatest", err)
-		return false
-	}
-	if latest {
-		ctx.Flash.Error(ctx.Tr("packages.terraform.delete.latest"))
-		ctx.Redirect(pd.VersionWebLink())
-		return false
-	}
-	return true
 }
 
 // PackageVersionDelete deletes a package version
@@ -585,23 +547,22 @@ func PackageVersionDelete(ctx *context.Context) {
 		return
 	}
 
-	if canDeleteTerraformStateVersion(ctx) {
-		return
-	}
-
 	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pd.Version); err != nil {
-		log.Error("Error deleting package version: %v", err)
-		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
+		errTr := util.ErrorAsTranslatable(err)
+		if errTr == nil {
+			ctx.ServerError("RemovePackageVersion", err)
+			return
+		}
+		ctx.Flash.Error(errTr.Translate(ctx.Locale))
 	} else {
 		ctx.Flash.Success(ctx.Tr("packages.settings.delete.version.success"))
 	}
 
-	redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
 	// redirect to the package if there are still versions available
+	redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
 	if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: pd.Package.ID, IsInternal: optional.Some(false)}); has {
 		redirectURL = pd.PackageWebLink()
 	}
-
 	ctx.Redirect(redirectURL)
 }
 

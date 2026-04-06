@@ -32,6 +32,11 @@ var (
 	ErrQuotaTotalCount = errors.New("maximum allowed package count exceeded")
 )
 
+type Specialization interface {
+	OnBeforeRemovePackageAll(ctx context.Context, doer *user_model.User, pkg *packages_model.Package, pds []*packages_model.PackageDescriptor) error
+	OnBeforeRemovePackageVersion(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) error
+}
+
 // PackageInfo describes a package
 type PackageInfo struct {
 	Owner       *user_model.User
@@ -475,6 +480,9 @@ func RemovePackageVersion(ctx context.Context, doer *user_model.User, pv *packag
 	if err != nil {
 		return err
 	}
+	if err := GetSpecManager().Get(pd.Package.Type).OnBeforeRemovePackageVersion(ctx, doer, pd); err != nil {
+		return err
+	}
 	// HINT: PACKAGE-DEFER-STORAGE-DELETE: Blobs are not deleted immediately, instead they are deleted by the cleanup_packages cron task.
 	// If there are no more versions for the package, the same task removes that as well.
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
@@ -633,6 +641,10 @@ func RemovePackage(ctx context.Context, doer *user_model.User, p *packages_model
 	if err != nil {
 		return err
 	}
+	if err := GetSpecManager().Get(p.Type).OnBeforeRemovePackageAll(ctx, doer, p, pds); err != nil {
+		return err
+	}
+
 	// HINT: PACKAGE-DEFER-STORAGE-DELETE: Blobs are not deleted immediately, instead they are deleted by cleanup_packages cron task.
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		err := packages_model.DeletePropertiesByPackageID(ctx, packages_model.PropertyTypePackage, p.ID)
