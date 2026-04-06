@@ -117,9 +117,11 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 	}
 	needs := container.SetOf(job.Needs...)
 
+	// By default, for legacy jobs, query by RunID only.
 	findOpts := actions_model.FindRunJobOptions{RunID: job.RunID}
 	if job.RunAttemptID > 0 {
-		findOpts = actions_model.FindRunJobOptions{RunAttemptID: job.RunAttemptID}
+		// Query jobs in the same attempt when available.
+		findOpts.RunAttemptID = job.RunAttemptID
 	}
 
 	jobs, err := db.Find[actions_model.ActionRunJob](ctx, findOpts)
