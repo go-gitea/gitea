@@ -717,7 +717,7 @@ func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 
 	repoID := ctx.Repo.Repository.ID
 
-	shared.ListJobs(ctx, 0, repoID, 0)
+	shared.ListJobs(ctx, 0, repoID, 0, false)
 }
 
 // ListWorkflowRuns Lists all runs for a repository run.
@@ -1442,7 +1442,7 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 
 	// runID is used as an additional filter next to repoID to ensure that we only list jobs for the specified repoID and runID.
 	// no additional checks for runID are needed here
-	shared.ListJobs(ctx, 0, repoID, runID)
+	shared.ListJobs(ctx, 0, repoID, runID, true)
 }
 
 // GetWorkflowJob Gets a specific workflow job for a workflow run.
