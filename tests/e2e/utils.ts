@@ -155,18 +155,19 @@ export async function createProject(
 
 export async function apiCreateIssue(
   requestContext: APIRequestContext,
-  {owner, repo, title, body, projects}: {
+  {owner, repo, title, body, projects, headers}: {
     owner: string;
     repo: string;
     title: string;
     body?: string;
     projects?: number[];
+    headers?: Record<string, string>;
   },
 ): Promise<{index: number}> {
   let result: {index: number} = {index: 0};
   await apiRetry(async () => {
     const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues`, {
-      headers: apiHeaders(),
+      headers: headers || apiHeaders(),
       data: {title, body: body || '', projects: projects || []},
     });
     if (response.ok()) {

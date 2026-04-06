@@ -16,7 +16,7 @@ test('assign issue to project and change column', async ({page}) => {
   // columns created via POST because the web UI uses modals that are hard to drive
   await Promise.all([
     ...['Backlog', 'In Progress', 'Done'].map((title) => createProjectColumn(page.request, user, repoName, projectID, title)),
-    apiCreateIssue(page.request, user, repoName, {title: 'Column picker test'}),
+    apiCreateIssue(page.request, {owner: user, repo: repoName, title: 'Column picker test'}),
   ]);
   await page.goto(`/${user}/${repoName}/issues/1`);
   await page.locator('.sidebar-project-combo .ui.dropdown').click();
