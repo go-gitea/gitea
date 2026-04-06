@@ -10,16 +10,14 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// Note: This only checks correctness of required parame
+
 type State struct {
-	Version          int        `json:"version"`
-	TerraformVersion string     `json:"terraform_version"`
 	Serial           uint64     `json:"serial"`
 	Lineage          string     `json:"lineage"`
-	Resources        json.Value `json:"resources"`
-	Outputs          json.Value `json:"outputs"`
 }
 
-// ParseState parses the Terraform state file
+// ParseState parses the required parts of Terraform state file
 func ParseState(r io.Reader) (*State, error) {
 	var state State
 	err := json.NewDecoder(r).Decode(&state)
@@ -30,21 +28,9 @@ func ParseState(r io.Reader) (*State, error) {
 	if state.Serial == 0 {
 		return nil, util.NewInvalidArgumentErrorf("state serial is missing")
 	}
-	if state.Version != 4 {
-		return nil, util.NewInvalidArgumentErrorf("state version %d is not supported", state.Version)
-	}
-	if state.TerraformVersion == "" {
-		return nil, util.NewInvalidArgumentErrorf("state terraform version is missing")
-	}
 	// Lineage should always be set
 	if state.Lineage == "" {
 		return nil, util.NewInvalidArgumentErrorf("state lineage is missing")
-	}
-	if state.Resources == nil {
-		return nil, util.NewInvalidArgumentErrorf("state resources are missing")
-	}
-	if state.Outputs == nil {
-		return nil, util.NewInvalidArgumentErrorf("state outputs are missing")
 	}
 
 	return &state, nil
