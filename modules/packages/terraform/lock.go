@@ -19,8 +19,6 @@ import (
 
 const LockFile = "terraform.lock"
 
-var ErrMissingLockID = util.NewInvalidArgumentErrorf("terraform lock is missing an ID")
-
 // LockInfo is the metadata for a terraform lock.
 type LockInfo struct {
 	ID        string    `json:"ID"`
@@ -44,7 +42,7 @@ func ParseLockInfo(r io.Reader) (*LockInfo, error) {
 	}
 	// ID is required. Rest is less important.
 	if lock.ID == "" {
-		return nil, ErrMissingLockID
+		return nil, util.NewInvalidArgumentErrorf("terraform lock is missing an ID")
 	}
 	return &lock, nil
 }

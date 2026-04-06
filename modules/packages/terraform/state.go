@@ -10,14 +10,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-var (
-	ErrNoSerial           = util.NewInvalidArgumentErrorf("state serial is missing")
-	ErrNoLineage          = util.NewInvalidArgumentErrorf("state lineage is missing")
-	ErrNoTerraformVersion = util.NewInvalidArgumentErrorf("state terraform version is missing")
-	ErrNoResources        = util.NewInvalidArgumentErrorf("state resources are missing")
-	ErrNoOutputs          = util.NewInvalidArgumentErrorf("state outputs are missing")
-)
-
 type State struct {
 	Version          int        `json:"version"`
 	TerraformVersion string     `json:"terraform_version"`
@@ -36,23 +28,23 @@ func ParseState(r io.Reader) (*State, error) {
 	}
 	// Serial starts at 1; 0 means it wasn't set in the state file
 	if state.Serial == 0 {
-		return nil, ErrNoSerial
+		return nil, util.NewInvalidArgumentErrorf("state serial is missing")
 	}
 	if state.Version != 4 {
 		return nil, util.NewInvalidArgumentErrorf("state version %d is not supported", state.Version)
 	}
 	if state.TerraformVersion == "" {
-		return nil, ErrNoTerraformVersion
+		return nil, util.NewInvalidArgumentErrorf("state terraform version is missing")
 	}
 	// Lineage should always be set
 	if state.Lineage == "" {
-		return nil, ErrNoLineage
+		return nil, util.NewInvalidArgumentErrorf("state lineage is missing")
 	}
 	if state.Resources == nil {
-		return nil, ErrNoResources
+		return nil, util.NewInvalidArgumentErrorf("state resources are missing")
 	}
 	if state.Outputs == nil {
-		return nil, ErrNoOutputs
+		return nil, util.NewInvalidArgumentErrorf("state outputs are missing")
 	}
 
 	return &state, nil
