@@ -4,7 +4,6 @@ import RepoActionView from '../components/RepoActionView.vue';
 export function initRepositoryActionView() {
   const el = document.querySelector('#repo-action-view');
   if (!el) return;
-  const runId = parseInt(el.getAttribute('data-run-id')!);
   const jobId = parseInt(el.getAttribute('data-job-id')!);
 
   // TODO: the parent element's full height doesn't work well now,
@@ -13,15 +12,16 @@ export function initRepositoryActionView() {
   if (parentFullHeight) parentFullHeight.classList.add('tw-pb-0');
 
   const view = createApp(RepoActionView, {
-    runId,
     jobId,
-    actionsUrl: el.getAttribute('data-actions-url'),
+    viewUrl: el.getAttribute('data-view-url'),
     locale: {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
       rerun_all: el.getAttribute('data-locale-rerun-all'),
       rerun_failed: el.getAttribute('data-locale-rerun-failed'),
+      latestAttempt: el.getAttribute('data-locale-latest-attempt'),
+      attempt: el.getAttribute('data-locale-attempt'),
       scheduled: el.getAttribute('data-locale-runs-scheduled'),
       commit: el.getAttribute('data-locale-runs-commit'),
       pushedBy: el.getAttribute('data-locale-runs-pushed-by'),

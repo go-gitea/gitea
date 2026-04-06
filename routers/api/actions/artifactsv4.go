@@ -266,9 +266,9 @@ func (r *artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*
 	return task, artifactName, true
 }
 
-func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID int64, name string) (*actions_model.ActionArtifact, error) {
+func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID, runAttemptID int64, name string) (*actions_model.ActionArtifact, error) {
 	var art actions_model.ActionArtifact
-	has, err := db.GetEngine(ctx).Where(builder.Eq{"run_id": runID, "artifact_name": name}, builder.Like{"content_encoding", "%/%"}).Get(&art)
+	has, err := db.GetEngine(ctx).Where(builder.Eq{"run_id": runID, "run_attempt_id": runAttemptID, "artifact_name": name}, builder.Like{"content_encoding", "%/%"}).Get(&art)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -388,7 +388,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 	switch comp {
 	case "block", "appendBlock":
 		// get artifact by name
-		artifact, err := r.getArtifactByName(ctx, task.Job.RunID, artifactName)
+		artifact, err := r.getArtifactByName(ctx, task.Job.RunID, task.Job.RunAttemptID, artifactName)
 		if err != nil {
 			log.Error("Error artifact not found: %v", err)
 			ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
@@ -475,7 +475,7 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 	}
 
 	// get artifact by name
-	artifact, err := r.getArtifactByName(ctx, runID, req.Name)
+	artifact, err := r.getArtifactByName(ctx, runID, ctx.ActionTask.Job.RunAttemptID, req.Name)
 	if err != nil {
 		log.Error("Error artifact not found: %v", err)
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
@@ -589,6 +589,7 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 
 	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
 		RunID:                runID,
+		RunAttemptID:         ctx.ActionTask.Job.RunAttemptID,
 		Status:               int(actions_model.ArtifactStatusUploadConfirmed),
 		FinalizedArtifactsV4: true,
 	})
@@ -642,7 +643,7 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 	artifactName := req.Name
 
 	// get artifact by name
-	artifact, err := r.getArtifactByName(ctx, runID, artifactName)
+	artifact, err := r.getArtifactByName(ctx, runID, ctx.ActionTask.Job.RunAttemptID, artifactName)
 	if err != nil {
 		log.Error("Error artifact not found: %v", err)
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
@@ -676,7 +677,7 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 	}
 
 	// get artifact by name
-	artifact, err := r.getArtifactByName(ctx, task.Job.RunID, artifactName)
+	artifact, err := r.getArtifactByName(ctx, task.Job.RunID, task.Job.RunAttemptID, artifactName)
 	if err != nil {
 		log.Error("Error artifact not found: %v", err)
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
@@ -707,14 +708,14 @@ func (r *artifactV4Routes) deleteArtifact(ctx *ArtifactContext) {
 	}
 
 	// get artifact by name
-	artifact, err := r.getArtifactByName(ctx, runID, req.Name)
+	artifact, err := r.getArtifactByName(ctx, runID, ctx.ActionTask.Job.RunAttemptID, req.Name)
 	if err != nil {
 		log.Error("Error artifact not found: %v", err)
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
 
-	err = actions_model.SetArtifactNeedDelete(ctx, runID, req.Name)
+	err = actions_model.SetArtifactNeedDeleteByRunAttempt(ctx, runID, ctx.ActionTask.Job.RunAttemptID, req.Name)
 	if err != nil {
 		log.Error("Error deleting artifacts: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, err.Error())

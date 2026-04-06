@@ -54,7 +54,7 @@ jobs:
 
 		// fetch and exec job1
 		job1Task := runner.fetchTask(t)
-		_, job1, run := getTaskAndJobAndRunByTaskID(t, job1Task.Id)
+		_, _, run := getTaskAndJobAndRunByTaskID(t, job1Task.Id)
 		runner.execTask(t, job1Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
@@ -63,7 +63,6 @@ jobs:
 		session.MakeRequest(t, req, http.StatusBadRequest)
 		// fetch and exec job2
 		job2Task := runner.fetchTask(t)
-		_, job2, _ := getTaskAndJobAndRunByTaskID(t, job2Task.Id)
 		runner.execTask(t, job2Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
@@ -83,6 +82,7 @@ jobs:
 		})
 
 		// RERUN-2: rerun job1
+		job1 := getLatestAttemptJobByJobID(t, run.ID, "job1")
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, run.ID, job1.ID))
 		session.MakeRequest(t, req, http.StatusOK)
 		// job2 needs job1, so rerunning job1 will also rerun job2
@@ -98,6 +98,7 @@ jobs:
 		})
 
 		// RERUN-3: rerun job2
+		job2 := getLatestAttemptJobByJobID(t, run.ID, "job2")
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, run.ID, job2.ID))
 		session.MakeRequest(t, req, http.StatusOK)
 		// only job2 will rerun

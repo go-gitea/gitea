@@ -78,7 +78,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 			return fmt.Errorf("findTaskNeeds: %w", err)
 		}
 
-		taskContext, err := generateTaskContext(t)
+		taskContext, err := generateTaskContext(ctx, t)
 		if err != nil {
 			return fmt.Errorf("generateTaskContext: %w", err)
 		}
@@ -112,13 +112,13 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	return task, true, nil
 }
 
-func generateTaskContext(t *actions_model.ActionTask) (*structpb.Struct, error) {
+func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*structpb.Struct, error) {
 	giteaRuntimeToken, err := CreateAuthorizationToken(t.ID, t.Job.RunID, t.JobID)
 	if err != nil {
 		return nil, err
 	}
 
-	gitCtx := GenerateGiteaContext(t.Job.Run, t.Job)
+	gitCtx := GenerateGiteaContext(ctx, t.Job.Run, nil, t.Job)
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
 

@@ -3755,6 +3755,8 @@
   "actions.runs.workflow_graph": "Workflow Graph",
   "actions.runs.summary": "Summary",
   "actions.runs.all_jobs": "All jobs",
+  "actions.runs.attempt": "Attempt",
+  "actions.runs.latest_attempt": "Latest attempt",
   "actions.runs.triggered_via": "Triggered via %s",
   "actions.runs.total_duration": "Total duration:",
   "actions.workflow.disable": "Disable Workflow",

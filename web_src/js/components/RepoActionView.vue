@@ -12,15 +12,22 @@ defineOptions({
 });
 
 const props = defineProps<{
-  runId: number;
   jobId: number;
-  actionsUrl: string;
+  viewUrl: string;
   locale: Record<string, any>;
 }>();
 
 const locale = props.locale;
-const store = createActionRunViewStore(props.actionsUrl, props.runId);
+const store = createActionRunViewStore(props.viewUrl);
 const {currentRun: run , runArtifacts: artifacts} = toRefs(store.viewData);
+
+function formatAttemptTitle(attempt: {attempt: number; latest: boolean}) {
+  return attempt.latest ? `${locale.latestAttempt} #${attempt.attempt}` : `${locale.attempt} #${attempt.attempt}`;
+}
+
+function getArtifactActionSuffix() {
+  return !run.value.isLatestAttempt && run.value.runAttempt > 0 ? `?attempt=${run.value.runAttempt}` : '';
+}
 
 function cancelRun() {
   POST(`${run.value.link}/cancel`);
@@ -32,7 +39,7 @@ function approveRun() {
 
 async function deleteArtifact(name: string) {
   if (!window.confirm(locale.confirmDeleteArtifact.replace('%s', name))) return;
-  await DELETE(`${run.value.link}/artifacts/${encodeURIComponent(name)}`);
+  await DELETE(`${run.value.link}/artifacts/${encodeURIComponent(name)}${getArtifactActionSuffix()}`);
   await store.forceReloadCurrentRun();
 }
 </script>
@@ -71,10 +78,50 @@ async function deleteArtifact(name: string) {
               {{ locale.rerun_all }}
             </button>
           </template>
+          <div v-if="run.attempts.length > 0" class="ui dropdown jump basic small compact button attempt-switcher">
+            <span class="text">{{ formatAttemptTitle(run.attempts.find((attempt) => attempt.current) || run.attempts[0]) }}</span>
+            <SvgIcon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
+            <div class="menu attempt-switcher-menu">
+              <a
+                v-for="attempt in run.attempts"
+                :key="attempt.attempt"
+                class="item attempt-switcher-item"
+                :class="attempt.current ? 'selected' : ''"
+                :href="attempt.link"
+              >
+                <div class="attempt-switcher-item-content">
+                  <div class="attempt-switcher-item-gutter">
+                    <SvgIcon v-if="attempt.current" name="octicon-check" :size="14" class="attempt-switcher-item-gutter-icon"/>
+                  </div>
+                  <div class="attempt-switcher-item-body">
+                    <div class="attempt-switcher-item-title">
+                      <span>{{ formatAttemptTitle(attempt) }}</span>
+                    </div>
+                    <div class="attempt-switcher-item-meta">
+                      <span class="attempt-switcher-item-status">
+                        <span class="attempt-switcher-item-status-icon">
+                          <ActionRunStatus :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14"/>
+                        </span>
+                        <span>{{ locale.status[attempt.status] }}</span>
+                      </span>
+                      <span class="attempt-switcher-item-summary">
+                        <relative-time :datetime="new Date(attempt.triggeredAt * 1000).toISOString()" prefix=""/>
+                        <template v-if="attempt.triggerUserName"> by {{ attempt.triggerUserName }}</template>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
         </div>
       </div>
       <div class="action-commit-summary">
-        <span><a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:</span>
+        <span>
+          <a v-if="run.workflowLink" class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>
+          <b v-else>{{ run.workflowID }}</b>
+          :
+        </span>
         <template v-if="run.isSchedule">
           {{ locale.scheduled }}
         </template>
@@ -93,7 +140,7 @@ async function deleteArtifact(name: string) {
     <div class="action-view-body">
       <div class="action-view-left">
         <!-- summary -->
-        <a class="job-brief-item silenced" :href="run.link" :class="!props.jobId ? 'selected' : ''">
+        <a class="job-brief-item silenced" :href="run.viewLink" :class="!props.jobId ? 'selected' : ''">
           <SvgIcon name="octicon-list-unordered"/>
           <span class="gt-ellipsis">{{ locale.summary }}</span>
         </a>
@@ -104,7 +151,7 @@ async function deleteArtifact(name: string) {
         <!-- unlike other lists, the items have paddings already -->
         <ul class="ui relaxed list flex-items-block tw-p-0">
           <li class="item job-brief-item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
-            <a class="tw-contents silenced" :href="run.link+'/jobs/'+job.id">
+            <a class="tw-contents silenced" :href="job.link">
               <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
               <span class="tw-flex-1 gt-ellipsis">{{ job.name }}</span>
               <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
@@ -120,7 +167,7 @@ async function deleteArtifact(name: string) {
           <ul class="ui relaxed list flex-items-block">
             <li class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
-                <a class="tw-flex-1 flex-text-block" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                <a class="tw-flex-1 flex-text-block" target="_blank" :href="`${run.link}/artifacts/${artifact.name}${getArtifactActionSuffix()}`">
                   <SvgIcon name="octicon-file" class="tw-text-text"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
@@ -160,9 +207,8 @@ async function deleteArtifact(name: string) {
           v-else
           :store="store"
           :locale="locale"
-          :run-id="props.runId"
+          :view-url="props.viewUrl"
           :job-id="props.jobId"
-          :actions-url="props.actionsUrl"
         />
       </div>
     </div>
@@ -209,12 +255,123 @@ async function deleteArtifact(name: string) {
   white-space: nowrap;
 }
 
+.action-info-summary > .flex-text-block {
+  gap: 8px;
+}
+
 .action-commit-summary {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 5px;
   margin-left: 28px;
+}
+
+.attempt-switcher {
+  position: relative;
+}
+
+.attempt-switcher .text {
+  margin-right: 6px;
+}
+
+.attempt-switcher.ui.dropdown > .menu.attempt-switcher-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px) !important;
+  margin-top: 0 !important;
+  min-width: 300px;
+  padding: 0;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  background: var(--color-box-body);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+  z-index: 10;
+}
+
+.attempt-switcher-menu > .attempt-switcher-item {
+  padding: 12px 14px;
+  margin: 0;
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.attempt-switcher-menu > .attempt-switcher-item:last-child {
+  border-bottom: 0;
+}
+
+.attempt-switcher-menu > .attempt-switcher-item:hover {
+  background: var(--color-hover);
+}
+
+.attempt-switcher-menu > .attempt-switcher-item.selected {
+  background: var(--color-active);
+  font-weight: var(--font-weight-semibold);
+}
+
+.attempt-switcher-item-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.attempt-switcher-item-gutter {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 16px;
+  flex-shrink: 0;
+  padding-top: 3px;
+}
+
+.attempt-switcher-item-gutter-icon {
+  flex-shrink: 0;
+}
+
+.attempt-switcher-item-body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attempt-switcher-item-title {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.attempt-switcher-item-meta {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+  color: var(--color-text-light-2);
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.attempt-switcher-item-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.attempt-switcher-item-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.attempt-switcher-item-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 767.98px) {

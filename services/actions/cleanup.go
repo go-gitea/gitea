@@ -179,7 +179,7 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 
 	repoID := run.RepoID
 
-	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+	jobs, err := actions_model.GetAllRunJobsByRunID(ctx, run.ID)
 	if err != nil {
 		return err
 	}
@@ -206,6 +206,10 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 	recordsToDelete = append(recordsToDelete, &actions_model.ActionRun{
 		RepoID: repoID,
 		ID:     run.ID,
+	})
+	recordsToDelete = append(recordsToDelete, &actions_model.RunAttempt{
+		RepoID: repoID,
+		RunID:  run.ID,
 	})
 	recordsToDelete = append(recordsToDelete, &actions_model.ActionRunJob{
 		RepoID: repoID,

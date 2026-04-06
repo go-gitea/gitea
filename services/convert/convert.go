@@ -252,12 +252,19 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 	if err != nil {
 		return nil, err
 	}
+	var runAttempt int64
+	if attempt, has, err := run.GetLatestAttempt(ctx); err != nil {
+		return nil, err
+	} else if has {
+		runAttempt = attempt.Attempt
+	}
 	status, conclusion := ToActionsStatus(run.Status)
 	return &api.ActionWorkflowRun{
 		ID:           run.ID,
 		URL:          fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
 		HTMLURL:      run.HTMLURL(),
 		RunNumber:    run.Index,
+		RunAttempt:   runAttempt,
 		StartedAt:    run.Started.AsLocalTime(),
 		CompletedAt:  run.Stopped.AsLocalTime(),
 		Event:        string(run.Event),
@@ -329,9 +336,9 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 	var runnerName string
 	var steps []*api.ActionWorkflowStep
 
-	if job.TaskID != 0 {
+	if effectiveTaskID := job.EffectiveTaskID(); effectiveTaskID != 0 {
 		if task == nil {
-			task, _, err = db.GetByID[actions_model.ActionTask](ctx, job.TaskID)
+			task, _, err = db.GetByID[actions_model.ActionTask](ctx, effectiveTaskID)
 			if err != nil {
 				return nil, err
 			}

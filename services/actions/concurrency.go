@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -16,16 +17,20 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-// EvaluateRunConcurrencyFillModel evaluates the expressions in a run-level (workflow) concurrency,
-// and fills the run's model fields with `concurrency.group` and `concurrency.cancel-in-progress`.
+// EvaluateRunConcurrencyFillModel evaluates the expressions in a run-level (workflow) concurrency
+// and fills the run attempt model with the evaluated `concurrency.group` and
+// `concurrency.cancel-in-progress` values.
 // Workflow-level concurrency doesn't depend on the job outputs, so it can always be evaluated if there is no syntax error.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency
-func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.ActionRun, wfRawConcurrency *act_model.RawConcurrency, vars map[string]string, inputs map[string]any) error {
+func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.RunAttempt, wfRawConcurrency *act_model.RawConcurrency, vars map[string]string, inputs map[string]any) error {
+	if attempt == nil {
+		return errors.New("run attempt is nil")
+	}
 	if err := run.LoadAttributes(ctx); err != nil {
 		return fmt.Errorf("run LoadAttributes: %w", err)
 	}
 
-	actionsRunCtx := GenerateGiteaContext(run, nil)
+	actionsRunCtx := GenerateGiteaContext(ctx, run, attempt, nil)
 	jobResults := map[string]*jobparser.JobResult{"": {}}
 	if inputs == nil {
 		var err error
@@ -35,12 +40,8 @@ func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 		}
 	}
 
-	rawConcurrency, err := yaml.Marshal(wfRawConcurrency)
-	if err != nil {
-		return fmt.Errorf("marshal raw concurrency: %w", err)
-	}
-	run.RawConcurrency = string(rawConcurrency)
-	run.ConcurrencyGroup, run.ConcurrencyCancel, err = jobparser.EvaluateConcurrency(wfRawConcurrency, "", nil, actionsRunCtx, jobResults, vars, inputs)
+	var err error
+	attempt.ConcurrencyGroup, attempt.ConcurrencyCancel, err = jobparser.EvaluateConcurrency(wfRawConcurrency, "", nil, actionsRunCtx, jobResults, vars, inputs)
 	if err != nil {
 		return fmt.Errorf("evaluate concurrency: %w", err)
 	}
@@ -81,7 +82,7 @@ func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 		return fmt.Errorf("unmarshal raw concurrency: %w", err)
 	}
 
-	actionsJobCtx := GenerateGiteaContext(run, actionRunJob)
+	actionsJobCtx := GenerateGiteaContext(ctx, run, nil, actionRunJob)
 
 	jobResults, err := findJobNeedsAndFillJobResults(ctx, actionRunJob)
 	if err != nil {

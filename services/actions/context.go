@@ -23,8 +23,12 @@ import (
 type GiteaContext map[string]any
 
 // GenerateGiteaContext generate the gitea context without token and gitea_runtime_token
-// job can be nil when generating a context for parsing workflow-level expressions
-func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.ActionRunJob) GiteaContext {
+// attempt and job can be nil when generating a context for parsing workflow-level expressions.
+// The run_attempt value is resolved with the following precedence:
+//  1. job.Attempt when a job context is available
+//  2. attempt.Attempt when an explicit attempt context is available
+//  3. the run's latest attempt as a fallback
+func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.RunAttempt, job *actions_model.ActionRunJob) GiteaContext {
 	event := map[string]any{}
 	_ = json.Unmarshal([]byte(run.EventPayload), &event)
 
@@ -73,7 +77,7 @@ func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.Actio
 		"repository_owner":  run.Repo.OwnerName,                       // string, The repository owner's name. For example, Codertocat.
 		"repositoryUrl":     run.Repo.HTMLURL(),                       // string, The Git URL to the repository. For example, git://github.com/codertocat/hello-world.git.
 		"retention_days":    "",                                       // string, The number of days that workflow run logs and artifacts are kept.
-		"run_id":            "",                                       // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
+		"run_id":            strconv.FormatInt(run.ID, 10),            // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
 		"run_number":        strconv.FormatInt(run.Index, 10),         // string, A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
 		"run_attempt":       "",                                       // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.
 		"secret_source":     "Actions",                                // string, The source of a secret used in a workflow. Possible values are None, Actions, Dependabot, or Codespaces.
@@ -89,8 +93,13 @@ func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.Actio
 
 	if job != nil {
 		gitContext["job"] = job.JobID
-		gitContext["run_id"] = strconv.FormatInt(job.RunID, 10)
 		gitContext["run_attempt"] = strconv.FormatInt(job.Attempt, 10)
+	} else if attempt != nil {
+		gitContext["run_attempt"] = strconv.FormatInt(attempt.Attempt, 10)
+	} else {
+		if attempt, has, err := run.GetLatestAttempt(ctx); err == nil && has {
+			gitContext["run_attempt"] = strconv.FormatInt(attempt.Attempt, 10)
+		}
 	}
 
 	return gitContext
@@ -108,7 +117,12 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 	}
 	needs := container.SetOf(job.Needs...)
 
-	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: job.RunID})
+	findOpts := actions_model.FindRunJobOptions{RunID: job.RunID}
+	if job.RunAttemptID > 0 {
+		findOpts = actions_model.FindRunJobOptions{RunAttemptID: job.RunAttemptID}
+	}
+
+	jobs, err := db.Find[actions_model.ActionRunJob](ctx, findOpts)
 	if err != nil {
 		return nil, fmt.Errorf("FindRunJobs: %w", err)
 	}
@@ -125,11 +139,12 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 		}
 		var jobOutputs map[string]string
 		for _, job := range jobsWithSameID {
-			if job.TaskID == 0 || !job.Status.IsDone() {
-				// it shouldn't happen, or the job has been rerun
+			taskID := job.EffectiveTaskID()
+			if taskID == 0 || !job.Status.IsDone() {
+				// it shouldn't happen
 				continue
 			}
-			got, err := actions_model.FindTaskOutputByTaskID(ctx, job.TaskID)
+			got, err := actions_model.FindTaskOutputByTaskID(ctx, taskID)
 			if err != nil {
 				return nil, fmt.Errorf("FindTaskOutputByTaskID: %w", err)
 			}

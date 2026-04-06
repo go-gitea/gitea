@@ -208,15 +208,18 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 		assert.Equal(t, actions_model.StatusWaiting, run.Status)
 		assert.Equal(t, timeutil.TimeStamp(0), run.Started)
 		assert.Equal(t, timeutil.TimeStamp(0), run.Stopped)
-
-		job198, err := actions_model.GetRunJobByRunAndID(t.Context(), 795, 198)
+		latestAttempt, hasLatestAttempt, err := run.GetLatestAttempt(t.Context())
 		require.NoError(t, err)
+		require.True(t, hasLatestAttempt)
+
+		job198 := getLatestAttemptJobByJobID(t, 795, "job_1")
 		assert.Equal(t, actions_model.StatusWaiting, job198.Status)
+		assert.Equal(t, latestAttempt.Attempt, job198.Attempt)
 		assert.Equal(t, int64(0), job198.TaskID)
 
-		job199, err := actions_model.GetRunJobByRunAndID(t.Context(), 795, 199)
-		require.NoError(t, err)
+		job199 := getLatestAttemptJobByJobID(t, 795, "job_2")
 		assert.Equal(t, actions_model.StatusWaiting, job199.Status)
+		assert.Equal(t, latestAttempt.Attempt, job199.Attempt)
 		assert.Equal(t, int64(0), job199.TaskID)
 	})
 
@@ -263,21 +266,26 @@ func TestAPIActionsRerunWorkflowJob(t *testing.T) {
 		err := json.Unmarshal(resp.Body.Bytes(), &rerunResp)
 		require.NoError(t, err)
 		assert.Equal(t, int64(199), rerunResp.ID)
-		assert.Equal(t, "queued", rerunResp.Status)
+		assert.Equal(t, "completed", rerunResp.Status)
 
 		run, err := actions_model.GetRunByRepoAndID(t.Context(), repo.ID, 795)
 		require.NoError(t, err)
 		assert.Equal(t, actions_model.StatusWaiting, run.Status)
-
-		job198, err := actions_model.GetRunJobByRunAndID(t.Context(), 795, 198)
+		latestAttempt, hasLatestAttempt, err := run.GetLatestAttempt(t.Context())
 		require.NoError(t, err)
+		require.True(t, hasLatestAttempt)
+
+		job198 := getLatestAttemptJobByJobID(t, 795, "job_1")
 		assert.Equal(t, actions_model.StatusSuccess, job198.Status)
-		assert.Equal(t, int64(53), job198.TaskID)
+		assert.Equal(t, latestAttempt.Attempt, job198.Attempt)
+		assert.Equal(t, int64(0), job198.TaskID)
+		assert.Equal(t, int64(53), job198.SourceTaskID)
 
-		job199, err := actions_model.GetRunJobByRunAndID(t.Context(), 795, 199)
-		require.NoError(t, err)
+		job199 := getLatestAttemptJobByJobID(t, 795, "job_2")
 		assert.Equal(t, actions_model.StatusWaiting, job199.Status)
+		assert.Equal(t, latestAttempt.Attempt, job199.Attempt)
 		assert.Equal(t, int64(0), job199.TaskID)
+		assert.Equal(t, int64(0), job199.SourceTaskID)
 	})
 
 	t.Run("ForbiddenWithoutWriteScope", func(t *testing.T) {

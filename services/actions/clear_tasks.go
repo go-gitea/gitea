@@ -83,61 +83,59 @@ func shouldBlockJobByConcurrency(ctx context.Context, job *actions_model.ActionR
 		return false, nil
 	}
 
-	runs, jobs, err := actions_model.GetConcurrentRunsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, []actions_model.Status{actions_model.StatusRunning})
+	attempts, jobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, []actions_model.Status{actions_model.StatusRunning})
 	if err != nil {
 		return false, fmt.Errorf("GetConcurrentRunsAndJobs: %w", err)
 	}
 
-	return len(runs) > 0 || len(jobs) > 0, nil
+	return len(attempts) > 0 || len(jobs) > 0, nil
 }
 
 // PrepareToStartJobWithConcurrency prepares a job to start by its evaluated concurrency group and cancelling previous jobs if necessary.
-// It returns the new status of the job (either StatusBlocked or StatusWaiting) and any error encountered during the process.
-func PrepareToStartJobWithConcurrency(ctx context.Context, job *actions_model.ActionRunJob) (actions_model.Status, error) {
+// It returns the new status of the job (either StatusBlocked or StatusWaiting), any cancelled jobs, and any error encountered during the process.
+func PrepareToStartJobWithConcurrency(ctx context.Context, job *actions_model.ActionRunJob) (actions_model.Status, []*actions_model.ActionRunJob, error) {
 	shouldBlock, err := shouldBlockJobByConcurrency(ctx, job)
 	if err != nil {
-		return actions_model.StatusBlocked, err
+		return actions_model.StatusBlocked, nil, err
 	}
 
 	// even if the current job is blocked, we still need to cancel previous "waiting/blocked" jobs in the same concurrency group
 	jobs, err := actions_model.CancelPreviousJobsByJobConcurrency(ctx, job)
 	if err != nil {
-		return actions_model.StatusBlocked, fmt.Errorf("CancelPreviousJobsByJobConcurrency: %w", err)
+		return actions_model.StatusBlocked, nil, fmt.Errorf("CancelPreviousJobsByJobConcurrency: %w", err)
 	}
-	notifyWorkflowJobStatusUpdate(ctx, jobs)
 
-	return util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting), nil
+	return util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting), jobs, nil
 }
 
-func shouldBlockRunByConcurrency(ctx context.Context, actionRun *actions_model.ActionRun) (bool, error) {
-	if actionRun.ConcurrencyGroup == "" || actionRun.ConcurrencyCancel {
+func shouldBlockRunByConcurrency(ctx context.Context, attempt *actions_model.RunAttempt) (bool, error) {
+	if attempt.ConcurrencyGroup == "" || attempt.ConcurrencyCancel {
 		return false, nil
 	}
 
-	runs, jobs, err := actions_model.GetConcurrentRunsAndJobs(ctx, actionRun.RepoID, actionRun.ConcurrencyGroup, []actions_model.Status{actions_model.StatusRunning})
+	attempts, jobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, attempt.RepoID, attempt.ConcurrencyGroup, []actions_model.Status{actions_model.StatusRunning})
 	if err != nil {
 		return false, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
 
-	return len(runs) > 0 || len(jobs) > 0, nil
+	return len(attempts) > 0 || len(jobs) > 0, nil
 }
 
-// PrepareToStartRunWithConcurrency prepares a run to start by its evaluated concurrency group and cancelling previous jobs if necessary.
-// It returns the new status of the run (either StatusBlocked or StatusWaiting) and any error encountered during the process.
-func PrepareToStartRunWithConcurrency(ctx context.Context, run *actions_model.ActionRun) (actions_model.Status, error) {
-	shouldBlock, err := shouldBlockRunByConcurrency(ctx, run)
+// PrepareToStartRunWithConcurrency prepares a run attempt to start by its evaluated concurrency group and cancelling previous jobs if necessary.
+// It returns the new status of the run attempt (either StatusBlocked or StatusWaiting), any cancelled jobs, and any error encountered during the process.
+func PrepareToStartRunWithConcurrency(ctx context.Context, attempt *actions_model.RunAttempt) (actions_model.Status, []*actions_model.ActionRunJob, error) {
+	shouldBlock, err := shouldBlockRunByConcurrency(ctx, attempt)
 	if err != nil {
-		return actions_model.StatusBlocked, err
+		return actions_model.StatusBlocked, nil, err
 	}
 
 	// even if the current run is blocked, we still need to cancel previous "waiting/blocked" jobs in the same concurrency group
-	jobs, err := actions_model.CancelPreviousJobsByRunConcurrency(ctx, run)
+	jobs, err := actions_model.CancelPreviousJobsByRunConcurrency(ctx, attempt)
 	if err != nil {
-		return actions_model.StatusBlocked, fmt.Errorf("CancelPreviousJobsByRunConcurrency: %w", err)
+		return actions_model.StatusBlocked, nil, fmt.Errorf("CancelPreviousJobsByRunConcurrency: %w", err)
 	}
-	notifyWorkflowJobStatusUpdate(ctx, jobs)
 
-	return util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting), nil
+	return util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting), jobs, nil
 }
 
 func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {

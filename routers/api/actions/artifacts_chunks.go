@@ -257,10 +257,11 @@ func listOrderedChunksForArtifact(st storage.ObjectStorage, runID, artifactID in
 	return emptyListAsError(chunks)
 }
 
-func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int64, artifactName string) error {
+func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID, runAttemptID int64, artifactName string) error {
 	// read all db artifacts by name
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
 		RunID:        runID,
+		RunAttemptID: runAttemptID,
 		ArtifactName: artifactName,
 	})
 	if err != nil {

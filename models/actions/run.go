@@ -49,13 +49,12 @@ type ActionRun struct {
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
+	LatestAttemptID   int64                        `xorm:"index NOT NULL DEFAULT 0"`
 	RawConcurrency    string                       // raw concurrency
-	ConcurrencyGroup  string                       `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"`
-	ConcurrencyCancel bool                         `xorm:"NOT NULL DEFAULT FALSE"`
 	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
-	// PreviousDuration is used for recording previous duration
+	// PreviousDuration is a cached duration of the attempt immediately preceding the latest attempt.
 	PreviousDuration time.Duration
 	Created          timeutil.TimeStamp `xorm:"created"`
 	Updated          timeutil.TimeStamp `xorm:"updated"`
@@ -154,6 +153,31 @@ func (run *ActionRun) LoadRepo(ctx context.Context) error {
 
 func (run *ActionRun) Duration() time.Duration {
 	return calculateDuration(run.Started, run.Stopped, run.Status) + run.PreviousDuration
+}
+
+func (run *ActionRun) GetLatestAttempt(ctx context.Context) (*RunAttempt, bool, error) {
+	if run.LatestAttemptID == 0 {
+		return nil, false, nil
+	}
+	attempt, err := GetRunAttemptByRepoAndID(ctx, run.RepoID, run.LatestAttemptID)
+	if errors.Is(err, util.ErrNotExist) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return attempt, true, nil
+}
+
+func (run *ActionRun) GetEffectiveConcurrency(ctx context.Context) (string, bool, error) {
+	attempt, has, err := run.GetLatestAttempt(ctx)
+	if err != nil {
+		return "", false, err
+	}
+	if has {
+		return attempt.ConcurrencyGroup, attempt.ConcurrencyCancel, nil
+	}
+	return "", false, nil
 }
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
@@ -402,14 +426,19 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 
 type ActionRunIndex db.ResourceIndex
 
-func GetConcurrentRunsAndJobs(ctx context.Context, repoID int64, concurrencyGroup string, status []Status) ([]*ActionRun, []*ActionRunJob, error) {
-	runs, err := db.Find[ActionRun](ctx, &FindRunOptions{
+// GetConcurrentRunAttemptsAndJobs returns run attempts and jobs in the same concurrency group
+// whose statuses match the requested non-done statuses.
+// Under the current data model, only the latest attempt of a run may remain in a non-done state,
+// so filtering by attempt status is sufficient and does not need an extra join back to action_run.
+func GetConcurrentRunAttemptsAndJobs(ctx context.Context, repoID int64, concurrencyGroup string, status []Status) ([]*RunAttempt, []*ActionRunJob, error) {
+	attempts, err := db.Find[RunAttempt](ctx, &FindRunAttemptOptions{
 		RepoID:           repoID,
+		Statuses:         status,
 		ConcurrencyGroup: concurrencyGroup,
-		Status:           status,
+		ListOptions:      db.ListOptionsAll,
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("find runs: %w", err)
+		return nil, nil, fmt.Errorf("find run attempts: %w", err)
 	}
 
 	jobs, err := db.Find[ActionRunJob](ctx, &FindRunJobOptions{
@@ -421,36 +450,34 @@ func GetConcurrentRunsAndJobs(ctx context.Context, repoID int64, concurrencyGrou
 		return nil, nil, fmt.Errorf("find jobs: %w", err)
 	}
 
-	return runs, jobs, nil
+	return attempts, jobs, nil
 }
 
-func CancelPreviousJobsByRunConcurrency(ctx context.Context, actionRun *ActionRun) ([]*ActionRunJob, error) {
-	if actionRun.ConcurrencyGroup == "" {
+func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *RunAttempt) ([]*ActionRunJob, error) {
+	if attempt.ConcurrencyGroup == "" {
 		return nil, nil
 	}
 
 	var jobsToCancel []*ActionRunJob
 
 	statusFindOption := []Status{StatusWaiting, StatusBlocked}
-	if actionRun.ConcurrencyCancel {
+	if attempt.ConcurrencyCancel {
 		statusFindOption = append(statusFindOption, StatusRunning)
 	}
-	runs, jobs, err := GetConcurrentRunsAndJobs(ctx, actionRun.RepoID, actionRun.ConcurrencyGroup, statusFindOption)
+	attempts, jobs, err := GetConcurrentRunAttemptsAndJobs(ctx, attempt.RepoID, attempt.ConcurrencyGroup, statusFindOption)
 	if err != nil {
 		return nil, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
 	jobsToCancel = append(jobsToCancel, jobs...)
 
 	// cancel runs in the same concurrency group
-	for _, run := range runs {
-		if run.ID == actionRun.ID {
+	for _, concurrentAttempt := range attempts {
+		if concurrentAttempt.RunID == attempt.RunID {
 			continue
 		}
-		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
-			RunID: run.ID,
-		})
+		jobs, err := GetRunJobsByRunAndAttemptID(ctx, concurrentAttempt.RunID, concurrentAttempt.ID)
 		if err != nil {
-			return nil, fmt.Errorf("find run %d jobs: %w", run.ID, err)
+			return nil, fmt.Errorf("find run %d attempt %d jobs: %w", concurrentAttempt.RunID, concurrentAttempt.ID, err)
 		}
 		jobsToCancel = append(jobsToCancel, jobs...)
 	}

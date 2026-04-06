@@ -27,6 +27,7 @@ const MaxJobNumPerRun = 256
 type ActionRunJob struct {
 	ID                int64
 	RunID             int64                  `xorm:"index"`
+	RunAttemptID      int64                  `xorm:"index NOT NULL DEFAULT 0"`
 	Run               *ActionRun             `xorm:"-"`
 	RepoID            int64                  `xorm:"index(repo_concurrency)"`
 	Repo              *repo_model.Repository `xorm:"-"`
@@ -34,7 +35,7 @@ type ActionRunJob struct {
 	CommitSHA         string                 `xorm:"index"`
 	IsForkPullRequest bool
 	Name              string `xorm:"VARCHAR(255)"`
-	Attempt           int64
+	Attempt           int64  // redundant attempt number copied from the owning RunAttempt for compatibility
 
 	// WorkflowPayload is act/jobparser.SingleWorkflow for act/jobparser.Parse
 	// it should contain exactly one job with global workflow fields for this model
@@ -43,8 +44,11 @@ type ActionRunJob struct {
 	JobID  string   `xorm:"VARCHAR(255)"` // job id in workflow, not job's id
 	Needs  []string `xorm:"JSON TEXT"`
 	RunsOn []string `xorm:"JSON TEXT"`
-	TaskID int64    // the latest task of the job
-	Status Status   `xorm:"index"`
+
+	TaskID       int64 // the latest task created by this job in its own attempt
+	SourceTaskID int64 `xorm:"NOT NULL DEFAULT 0"` // SourceTaskID points to a historical task when this job reuses an earlier attempt's result.
+
+	Status Status `xorm:"index"`
 
 	RawConcurrency string // raw concurrency from job YAML's "concurrency" section
 
@@ -73,6 +77,13 @@ func init() {
 
 func (job *ActionRunJob) Duration() time.Duration {
 	return calculateDuration(job.Started, job.Stopped, job.Status)
+}
+
+func (job *ActionRunJob) EffectiveTaskID() int64 {
+	if job.TaskID > 0 {
+		return job.TaskID
+	}
+	return job.SourceTaskID
 }
 
 func (job *ActionRunJob) LoadRun(ctx context.Context) error {
@@ -152,9 +163,42 @@ func GetRunJobByRunAndID(ctx context.Context, runID, jobID int64) (*ActionRunJob
 	return &job, nil
 }
 
+// GetRunJobsByRunID returns the current jobs for a run.
+// It prefers the latest attempt when one exists, and falls back to legacy jobs with run_attempt_id=0 for runs created before RunAttempt existed.
 func GetRunJobsByRunID(ctx context.Context, runID int64) (ActionJobList, error) {
+	if run, ok, err := db.GetByID[ActionRun](ctx, runID); err != nil {
+		return nil, err
+	} else if ok && run.LatestAttemptID > 0 {
+		jobs, err := GetRunJobsByRunAndAttemptID(ctx, runID, run.LatestAttemptID)
+		if err != nil {
+			return nil, err
+		}
+		if len(jobs) > 0 {
+			return jobs, nil
+		}
+	}
+
+	var jobs []*ActionRunJob
+	if err := db.GetEngine(ctx).Where("run_id=? AND run_attempt_id=0", runID).OrderBy("id").Find(&jobs); err != nil {
+		return nil, err
+	}
+	return jobs, nil
+}
+
+// GetAllRunJobsByRunID returns all jobs for a run across all attempts.
+func GetAllRunJobsByRunID(ctx context.Context, runID int64) (ActionJobList, error) {
 	var jobs []*ActionRunJob
 	if err := db.GetEngine(ctx).Where("run_id=?", runID).OrderBy("id").Find(&jobs); err != nil {
+		return nil, err
+	}
+	return jobs, nil
+}
+
+// GetRunJobsByRunAndAttemptID returns jobs for a run within a specific attempt.
+// runAttemptID may be 0 to address legacy jobs that were created before RunAttempt existed and therefore have no attempt association.
+func GetRunJobsByRunAndAttemptID(ctx context.Context, runID, runAttemptID int64) (ActionJobList, error) {
+	var jobs []*ActionRunJob
+	if err := db.GetEngine(ctx).Where("run_id=? AND run_attempt_id=?", runID, runAttemptID).OrderBy("id").Find(&jobs); err != nil {
 		return nil, err
 	}
 	return jobs, nil
@@ -196,25 +240,46 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 	}
 
 	{
-		// Other goroutines may aggregate the status of the run and update it too.
-		// So we need load the run and its jobs before updating the run.
-		run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
-		if err != nil {
-			return 0, err
-		}
-		jobs, err := GetRunJobsByRunID(ctx, job.RunID)
-		if err != nil {
-			return 0, err
-		}
-		run.Status = AggregateJobStatus(jobs)
-		if run.Started.IsZero() && run.Status.IsRunning() {
-			run.Started = timeutil.TimeStampNow()
-		}
-		if run.Stopped.IsZero() && run.Status.IsDone() {
-			run.Stopped = timeutil.TimeStampNow()
-		}
-		if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
-			return 0, fmt.Errorf("update run %d: %w", run.ID, err)
+		// Other goroutines may aggregate the status of the attempt/run and update it too.
+		// So we need to load the current jobs before updating the aggregate state.
+		if job.RunAttemptID > 0 {
+			attempt, err := GetRunAttemptByRepoAndID(ctx, job.RepoID, job.RunAttemptID)
+			if err != nil {
+				return 0, err
+			}
+			jobs, err := GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
+			if err != nil {
+				return 0, err
+			}
+			attempt.Status = AggregateJobStatus(jobs)
+			if attempt.Started.IsZero() && attempt.Status.IsRunning() {
+				attempt.Started = timeutil.TimeStampNow()
+			}
+			if attempt.Stopped.IsZero() && attempt.Status.IsDone() {
+				attempt.Stopped = timeutil.TimeStampNow()
+			}
+			if err := UpdateRunAttempt(ctx, attempt, "status", "started", "stopped"); err != nil {
+				return 0, fmt.Errorf("update run attempt %d: %w", attempt.ID, err)
+			}
+		} else {
+			run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
+			if err != nil {
+				return 0, err
+			}
+			jobs, err := GetRunJobsByRunID(ctx, job.RunID)
+			if err != nil {
+				return 0, err
+			}
+			run.Status = AggregateJobStatus(jobs)
+			if run.Started.IsZero() && run.Status.IsRunning() {
+				run.Started = timeutil.TimeStampNow()
+			}
+			if run.Stopped.IsZero() && run.Status.IsDone() {
+				run.Stopped = timeutil.TimeStampNow()
+			}
+			if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
+				return 0, fmt.Errorf("update run %d: %w", run.ID, err)
+			}
 		}
 	}
 
@@ -269,7 +334,7 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 	if job.ConcurrencyCancel {
 		statusFindOption = append(statusFindOption, StatusRunning)
 	}
-	runs, jobs, err := GetConcurrentRunsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, statusFindOption)
+	attempts, jobs, err := GetConcurrentRunAttemptsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, statusFindOption)
 	if err != nil {
 		return nil, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
@@ -277,12 +342,13 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 	jobsToCancel = append(jobsToCancel, jobs...)
 
 	// cancel runs in the same concurrency group
-	for _, run := range runs {
-		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
-			RunID: run.ID,
-		})
+	for _, attempt := range attempts {
+		if attempt.ID == job.RunAttemptID {
+			continue
+		}
+		jobs, err := GetRunJobsByRunAndAttemptID(ctx, attempt.RunID, attempt.ID)
 		if err != nil {
-			return nil, fmt.Errorf("find run %d jobs: %w", run.ID, err)
+			return nil, fmt.Errorf("find run %d attempt %d jobs: %w", attempt.RunID, attempt.ID, err)
 		}
 		jobsToCancel = append(jobsToCancel, jobs...)
 	}

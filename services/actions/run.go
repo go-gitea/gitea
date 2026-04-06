@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
+	act_model "github.com/nektos/act/pkg/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -35,13 +36,14 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 	}
 
 	if wfRawConcurrency != nil {
-		err = EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars, inputsWithDefaults)
+		rawConcurrency, err := yaml.Marshal(wfRawConcurrency)
 		if err != nil {
-			return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
+			return fmt.Errorf("marshal raw concurrency: %w", err)
 		}
+		run.RawConcurrency = string(rawConcurrency)
 	}
 
-	giteaCtx := GenerateGiteaContext(run, nil)
+	giteaCtx := GenerateGiteaContext(ctx, run, nil, nil)
 
 	jobs, err := jobparser.Parse(content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()), jobparser.WithInputs(inputsWithDefaults))
 	if err != nil {
@@ -52,7 +54,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		run.Title = jobs[0].RunName
 	}
 
-	if err = InsertRun(ctx, run, jobs, vars, inputsWithDefaults); err != nil {
+	if err = InsertRun(ctx, run, jobs, vars, inputsWithDefaults, wfRawConcurrency); err != nil {
 		return fmt.Errorf("InsertRun: %w", err)
 	}
 
@@ -74,8 +76,9 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
-func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any, wfRawConcurrency *act_model.RawConcurrency) error {
+	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
+	err := db.WithTx(ctx, func(ctx context.Context) error {
 		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
 			return err
@@ -83,13 +86,42 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		run.Index = index
 		run.Title = util.EllipsisDisplayString(run.Title, 255)
 
+		runAttempt := &actions_model.RunAttempt{
+			RepoID:        run.RepoID,
+			RunID:         run.ID,
+			Attempt:       1,
+			TriggerUserID: run.TriggerUserID,
+			Status:        actions_model.StatusWaiting,
+			Started:       0,
+			RunStartedAt:  0,
+			Stopped:       0,
+		}
+		var jobsToCancel []*actions_model.ActionRunJob
+		if wfRawConcurrency != nil {
+			if err := EvaluateRunConcurrencyFillModel(ctx, run, runAttempt, wfRawConcurrency, vars, inputs); err != nil {
+				return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
+			}
+		}
+
 		// check run (workflow-level) concurrency
-		run.Status, err = PrepareToStartRunWithConcurrency(ctx, run)
+		runAttempt.Status, jobsToCancel, err = PrepareToStartRunWithConcurrency(ctx, runAttempt)
 		if err != nil {
 			return err
 		}
+		cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
 
+		run.Status = runAttempt.Status
 		if err := db.Insert(ctx, run); err != nil {
+			return err
+		}
+
+		runAttempt.RunID = run.ID
+		if err := db.Insert(ctx, runAttempt); err != nil {
+			return err
+		}
+
+		run.LatestAttemptID = runAttempt.ID
+		if err := actions_model.UpdateRun(ctx, run, "latest_attempt_id"); err != nil {
 			return err
 		}
 
@@ -117,11 +149,13 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 			job.Name = util.EllipsisDisplayString(job.Name, 255)
 			runJob := &actions_model.ActionRunJob{
 				RunID:             run.ID,
+				RunAttemptID:      runAttempt.ID,
 				RepoID:            run.RepoID,
 				OwnerID:           run.OwnerID,
 				CommitSHA:         run.CommitSHA,
 				IsForkPullRequest: run.IsForkPullRequest,
 				Name:              job.Name,
+				Attempt:           runAttempt.Attempt,
 				WorkflowPayload:   payload,
 				JobID:             id,
 				Needs:             needs,
@@ -152,10 +186,11 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				// If a job needs other jobs ("needs" is not empty), its status is set to StatusBlocked at the entry of the loop
 				// No need to check job concurrency for a blocked job (it will be checked by job emitter later)
 				if runJob.Status == actions_model.StatusWaiting {
-					runJob.Status, err = PrepareToStartJobWithConcurrency(ctx, runJob)
+					runJob.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, runJob)
 					if err != nil {
 						return fmt.Errorf("prepare to start job with concurrency: %w", err)
 					}
+					cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
 				}
 			}
 
@@ -167,10 +202,11 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 			runJobs = append(runJobs, runJob)
 		}
 
-		run.Status = actions_model.AggregateJobStatus(runJobs)
-		if err := actions_model.UpdateRun(ctx, run, "status"); err != nil {
+		runAttempt.Status = actions_model.AggregateJobStatus(runJobs)
+		if err := actions_model.UpdateRunAttempt(ctx, runAttempt, "status"); err != nil {
 			return err
 		}
+		run.Status = runAttempt.Status
 
 		// if there is a job in the waiting status, increase tasks version.
 		if hasWaitingJobs {
@@ -181,4 +217,12 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
+	notifyWorkflowJobStatusUpdate(ctx, cancelledConcurrencyJobs)
+	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
+
+	return nil
 }
