@@ -1,18 +1,19 @@
 {{if eq .PackageDescriptor.Package.Type "terraform"}}
-	{{if .IsLatestVersion}}
+	{{$data := $.PackageVersionViewData}}
+	{{if $data.IsLatestVersion}}
 		<div class="divider"></div>
 		<div class="item tw-flex tw-flex-col tw-gap-2">
 			<div>
 				<strong>{{ctx.Locale.Tr "packages.terraform.lock_status"}}</strong>
 			</div>
 			<div>
-				{{if .TerraformLock}}
+				{{if $data.TerraformLock}}
 					<div class="tw-flex tw-items-center tw-gap-2">
 						{{svg "octicon-lock" 16 "tw-text-red"}}
-						<span>{{ctx.Locale.Tr "packages.terraform.locked_by" .TerraformLock.Who}}</span>
+						<span>{{ctx.Locale.Tr "packages.terraform.locked_by" $data.TerraformLock.Who}}</span>
 					</div>
 					<div class="tw-text-xs tw-ml-6 tw-break-anywhere">
-						{{DateUtils.TimeSince .TerraformLock.Created}} ({{.TerraformLock.Operation}})
+						{{DateUtils.TimeSince $data.TerraformLock.Created}} ({{$data.TerraformLock.Operation}})
 					</div>
 					{{if .CanWritePackages}}
 						<div class="tw-mt-2">

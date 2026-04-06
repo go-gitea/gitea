@@ -13,6 +13,10 @@ import (
 
 type nop struct{}
 
+func (n *nop) GetViewPackageVersionData(ctx context.Context, pd *packages_model.PackageDescriptor) (any, error) {
+	return nil, nil
+}
+
 func (n *nop) OnBeforeRemovePackageAll(ctx context.Context, doer *user_model.User, pkg *packages_model.Package, pds []*packages_model.PackageDescriptor) error {
 	return nil
 }

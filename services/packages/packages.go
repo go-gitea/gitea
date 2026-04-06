@@ -35,6 +35,7 @@ var (
 type Specialization interface {
 	OnBeforeRemovePackageAll(ctx context.Context, doer *user_model.User, pkg *packages_model.Package, pds []*packages_model.PackageDescriptor) error
 	OnBeforeRemovePackageVersion(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) error
+	GetViewPackageVersionData(ctx context.Context, pd *packages_model.PackageDescriptor) (any, error)
 }
 
 // PackageInfo describes a package

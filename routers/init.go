@@ -146,6 +146,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, oauth2.Init)
 	mustInitCtx(ctx, oauth2_provider.Init)
 	mustInit(release_service.Init)
+
 	mustInitCtx(ctx, models.Init)
 	mustInitCtx(ctx, authmodel.Init)
 	mustInitCtx(ctx, repo_service.Init)

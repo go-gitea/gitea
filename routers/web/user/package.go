@@ -318,29 +318,10 @@ func ViewPackageVersion(ctx *context.Context) {
 	}
 	ctx.Data["LatestVersions"] = pvs
 	ctx.Data["TotalVersionCount"] = pvsTotal
-
-	if pd.Package.Type == packages_model.TypeTerraformState {
-		latestPvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
-			PackageID:  pd.Package.ID,
-			IsInternal: optional.Some(false),
-		})
-		if err != nil {
-			ctx.ServerError("SearchLatestVersions", err)
-			return
-		}
-		isLatest := len(latestPvs) > 0 && latestPvs[0].ID == pd.Version.ID
-		ctx.Data["IsLatestVersion"] = isLatest
-
-		if isLatest {
-			lockInfo, err := terraform_module.GetLock(ctx, pd.Package.ID)
-			if err != nil {
-				ctx.ServerError("GetLock", err)
-				return
-			}
-			if lockInfo.IsLocked() {
-				ctx.Data["TerraformLock"] = lockInfo
-			}
-		}
+	ctx.Data["PackageVersionViewData"], err = packages_service.GetSpecManager().Get(pd.Package.Type).GetViewPackageVersionData(ctx, pd)
+	if err != nil {
+		ctx.ServerError("GetViewPackageVersionData", err)
+		return
 	}
 
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
