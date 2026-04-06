@@ -514,6 +514,7 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 		}
 		ctx.Flash.Error(errTr.Translate(ctx.Locale))
 		ctx.Redirect(pd.PackageSettingsLink())
+		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
