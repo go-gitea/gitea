@@ -52,7 +52,7 @@ func (s Specialization) OnBeforeRemovePackageAll(ctx context.Context, doer *user
 	}
 	if locked {
 		return util.ErrorWrapTranslatable(
-			util.ErrUnprocessableContent,
+			util.ErrorWrap(util.ErrUnprocessableContent, "terraform state is locked and cannot be deleted"),
 			"packages.terraform.delete.locked",
 		)
 	}
@@ -66,7 +66,7 @@ func (s Specialization) OnBeforeRemovePackageVersion(ctx context.Context, doer *
 	}
 	if locked {
 		return util.ErrorWrapTranslatable(
-			util.ErrUnprocessableContent,
+			util.ErrorWrap(util.ErrUnprocessableContent, "terraform state is locked and cannot be deleted"),
 			"packages.terraform.delete.locked",
 		)
 	}
@@ -77,7 +77,7 @@ func (s Specialization) OnBeforeRemovePackageVersion(ctx context.Context, doer *
 	}
 	if latest {
 		return util.ErrorWrapTranslatable(
-			util.ErrUnprocessableContent,
+			util.ErrorWrap(util.ErrUnprocessableContent, "the latest version of a Terraform state cannot be deleted"),
 			"packages.terraform.delete.latest",
 		)
 	}
