@@ -51,12 +51,12 @@ type ActionRun struct {
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	RawConcurrency    string                       // raw concurrency
 
-	// Started and Stopped are identical to the latest attempt after RunAttempt was introduced (see #37119).
+	// Started and Stopped are identical to the latest attempt after ActionRunAttempt was introduced (see #37119).
 	// When a rerun creates a new latest attempt, they are reset until the new attempt starts and stops.
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 
-	// PreviousDuration is kept only for legacy runs created before RunAttempt existed (see #37119).
+	// PreviousDuration is kept only for legacy runs created before ActionRunAttempt existed (see #37119).
 	// New runs and reruns no longer update this field and use attempt-scoped durations instead.
 	PreviousDuration time.Duration
 
@@ -177,7 +177,7 @@ func (run *ActionRun) GetLatestAttempt(ctx context.Context) (*ActionRunAttempt, 
 
 // GetLatestAttemptID returns
 //   - the latest attempt ID for attempt-based runs
-//   - 0 for legacy runs that were created before RunAttempt existed
+//   - 0 for legacy runs that were created before ActionRunAttempt existed
 func (run *ActionRun) GetLatestAttemptID(ctx context.Context) (int64, error) {
 	if run.LatestAttemptID == 0 {
 		return 0, nil

@@ -179,7 +179,7 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 
 	repoID := run.RepoID
 
-	jobs, err := actions_model.GetAllRunJobsByRunID(ctx, run.ID)
+	jobs, err := actions_model.GetAllRunJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 	if err != nil {
 		return err
 	}

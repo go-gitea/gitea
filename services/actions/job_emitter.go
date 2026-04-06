@@ -210,7 +210,7 @@ func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (job
 	}
 
 	// check job concurrency
-	runJobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+	runJobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("find run %d jobs: %w", run.ID, err)
 	}

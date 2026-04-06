@@ -166,7 +166,7 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 			return nil
 		}
 		if run != nil {
-			jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+			jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 			if err != nil {
 				ctx.ServerError("GetRunJobsByRunID", err)
 				return nil
@@ -899,7 +899,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 	case selectedJob != nil && selectedJob.RunAttemptID == 0:
 		jobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, 0)
 	default:
-		jobs, err = actions_model.GetRunJobsByRunID(ctx, run.ID)
+		jobs, err = actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 	}
 	if err != nil {
 		ctx.ServerError("get current jobs", err)

@@ -60,7 +60,7 @@ func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actio
 	if hasTemplateAttempt {
 		templateJobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, templateAttempt.ID)
 	} else {
-		templateJobs, err = actions_model.GetRunJobsByRunID(ctx, run.ID)
+		templateJobs, err = actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("load template jobs: %w", err)

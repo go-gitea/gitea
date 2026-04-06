@@ -28,7 +28,7 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
 				return err
 			}
-			jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID) // GetRunJobsByRunID returns the latest attempt's jobs here
+			jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID) // GetLatestAttemptJobsByRepoAndRunID returns the latest attempt's jobs here
 			if err != nil {
 				return err
 			}

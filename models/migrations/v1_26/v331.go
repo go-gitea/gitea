@@ -55,8 +55,8 @@ func (actionArtifact) TableName() string {
 	return "action_artifact"
 }
 
-// AddRunAttemptModel adds the ActionRunAttempt table and the supporting ActionRun/ActionRunJob fields.
-func AddRunAttemptModel(x *xorm.Engine) error {
+// AddActionRunAttemptModel adds the ActionRunAttempt table and the supporting ActionRun/ActionRunJob fields.
+func AddActionRunAttemptModel(x *xorm.Engine) error {
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
 	}, new(actionRunAttempt)); err != nil {

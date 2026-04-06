@@ -81,7 +81,7 @@ func fixUnfinishedRunStatus(ctx context.Context, logger log.Logger, autofix bool
 		func(ctx context.Context, run *actions_model.ActionRun) error {
 			total++
 
-			jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+			jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 			if err != nil {
 				return fmt.Errorf("GetRunJobsByRunID: %w", err)
 			}

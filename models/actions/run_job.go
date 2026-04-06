@@ -35,7 +35,10 @@ type ActionRunJob struct {
 	CommitSHA         string                 `xorm:"index"`
 	IsForkPullRequest bool
 	Name              string `xorm:"VARCHAR(255)"`
-	Attempt           int64  // redundant attempt number copied from the owning RunAttempt for compatibility
+
+	// for legacy jobs, this counts how many times the job has run;
+	// otherwise it matches the Attempt of the ActionRunAttempt identified by job.RunAttemptID
+	Attempt int64
 
 	// WorkflowPayload is act/jobparser.SingleWorkflow for act/jobparser.Parse
 	// it should contain exactly one job with global workflow fields for this model
@@ -163,12 +166,14 @@ func GetRunJobByRunAndID(ctx context.Context, runID, jobID int64) (*ActionRunJob
 	return &job, nil
 }
 
-// GetRunJobsByRunID returns the current jobs for a run.
-// It prefers the latest attempt when one exists, and falls back to legacy jobs with run_attempt_id=0 for runs created before RunAttempt existed.
-func GetRunJobsByRunID(ctx context.Context, runID int64) (ActionJobList, error) {
-	if run, ok, err := db.GetByID[ActionRun](ctx, runID); err != nil {
+// GetLatestAttemptJobsByRepoAndRunID returns the jobs of the latest attempt for a run.
+// It prefers the latest attempt when one exists, and falls back to legacy jobs with run_attempt_id=0 for runs created before ActionRunAttempt existed.
+func GetLatestAttemptJobsByRepoAndRunID(ctx context.Context, repoID, runID int64) (ActionJobList, error) {
+	run, err := GetRunByRepoAndID(ctx, repoID, runID)
+	if err != nil {
 		return nil, err
-	} else if ok && run.LatestAttemptID > 0 {
+	}
+	if run.LatestAttemptID > 0 {
 		jobs, err := GetRunJobsByRunAndAttemptID(ctx, runID, run.LatestAttemptID)
 		if err != nil {
 			return nil, err
@@ -179,23 +184,23 @@ func GetRunJobsByRunID(ctx context.Context, runID int64) (ActionJobList, error) 
 	}
 
 	var jobs []*ActionRunJob
-	if err := db.GetEngine(ctx).Where("run_id=? AND run_attempt_id=0", runID).OrderBy("id").Find(&jobs); err != nil {
+	if err := db.GetEngine(ctx).Where("repo_id=? AND run_id=? AND run_attempt_id=0", repoID, runID).OrderBy("id").Find(&jobs); err != nil {
 		return nil, err
 	}
 	return jobs, nil
 }
 
-// GetAllRunJobsByRunID returns all jobs for a run across all attempts.
-func GetAllRunJobsByRunID(ctx context.Context, runID int64) (ActionJobList, error) {
+// GetAllRunJobsByRepoAndRunID returns all jobs for a run across all attempts.
+func GetAllRunJobsByRepoAndRunID(ctx context.Context, repoID, runID int64) (ActionJobList, error) {
 	var jobs []*ActionRunJob
-	if err := db.GetEngine(ctx).Where("run_id=?", runID).OrderBy("id").Find(&jobs); err != nil {
+	if err := db.GetEngine(ctx).Where("repo_id=? AND run_id=?", repoID, runID).OrderBy("id").Find(&jobs); err != nil {
 		return nil, err
 	}
 	return jobs, nil
 }
 
 // GetRunJobsByRunAndAttemptID returns jobs for a run within a specific attempt.
-// runAttemptID may be 0 to address legacy jobs that were created before RunAttempt existed and therefore have no attempt association.
+// runAttemptID may be 0 to address legacy jobs that were created before ActionRunAttempt existed and therefore have no attempt association.
 func GetRunJobsByRunAndAttemptID(ctx context.Context, runID, runAttemptID int64) (ActionJobList, error) {
 	var jobs []*ActionRunJob
 	if err := db.GetEngine(ctx).Where("run_id=? AND run_attempt_id=?", runID, runAttemptID).OrderBy("id").Find(&jobs); err != nil {
@@ -266,7 +271,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 			if err != nil {
 				return 0, err
 			}
-			jobs, err := GetRunJobsByRunID(ctx, job.RunID)
+			jobs, err := GetLatestAttemptJobsByRepoAndRunID(ctx, job.RepoID, job.RunID)
 			if err != nil {
 				return 0, err
 			}
