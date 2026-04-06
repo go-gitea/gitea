@@ -169,6 +169,23 @@ func (run *ActionRun) GetLatestAttempt(ctx context.Context) (*RunAttempt, bool, 
 	return attempt, true, nil
 }
 
+// GetCurrentAttemptID returns
+//   - the latest attempt ID for attempt-based runs
+//   - 0 for legacy runs that were created before RunAttempt existed
+func (run *ActionRun) GetCurrentAttemptID(ctx context.Context) (int64, error) {
+	if run.LatestAttemptID == 0 {
+		return 0, nil
+	}
+	attempt, _, err := run.GetLatestAttempt(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("get latest run attempt: %w", err)
+	}
+	if attempt != nil {
+		return attempt.ID, nil
+	}
+	return 0, fmt.Errorf("run %d has no valid latest attempt", run.ID)
+}
+
 func (run *ActionRun) GetEffectiveConcurrency(ctx context.Context) (string, bool, error) {
 	attempt, has, err := run.GetLatestAttempt(ctx)
 	if err != nil {
