@@ -1712,6 +1712,7 @@ func getLatestAttemptJobByTemplateJobID(t *testing.T, runID, templateJobID int64
 	assert.NoError(t, err)
 	jobIdx := slices.IndexFunc(legacyJobs, func(job *actions_model.ActionRunJob) bool { return job.ID == templateJobID })
 	newAttemptJobs, err := actions_model.GetRunJobsByRunAndAttemptID(t.Context(), run.ID, run.LatestAttemptID)
+	assert.NoError(t, err)
 	if jobIdx < len(newAttemptJobs) {
 		return newAttemptJobs[jobIdx]
 	}
