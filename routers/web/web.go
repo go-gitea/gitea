@@ -1073,6 +1073,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Get("", user.ViewPackageVersion)
 						m.Post("", reqPackageAccess(perm.AccessModeWrite), user.PackageVersionDelete)
 						m.Get("/{version_sub}", user.ViewPackageVersion)
+						m.Group("/terraform", func() {
+							m.Post("/lock", user.ActionPackageTerraformLock)
+							m.Post("/unlock", user.ActionPackageTerraformUnlock)
+						}, reqPackageAccess(perm.AccessModeWrite))
 						m.Get("/files/{fileid}", user.DownloadPackageFile)
 					})
 				})

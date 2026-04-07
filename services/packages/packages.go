@@ -32,6 +32,12 @@ var (
 	ErrQuotaTotalCount = errors.New("maximum allowed package count exceeded")
 )
 
+type Specialization interface {
+	OnBeforeRemovePackageAll(ctx context.Context, doer *user_model.User, pkg *packages_model.Package, pds []*packages_model.PackageDescriptor) error
+	OnBeforeRemovePackageVersion(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) error
+	GetViewPackageVersionData(ctx context.Context, pd *packages_model.PackageDescriptor) (any, error)
+}
+
 // PackageInfo describes a package
 type PackageInfo struct {
 	Owner       *user_model.User
@@ -394,6 +400,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizeRubyGems
 	case packages_model.TypeSwift:
 		typeSpecificSize = setting.Packages.LimitSizeSwift
+	case packages_model.TypeTerraformState:
+		typeSpecificSize = setting.Packages.LimitSizeTerraformState
 	case packages_model.TypeVagrant:
 		typeSpecificSize = setting.Packages.LimitSizeVagrant
 	}
@@ -471,6 +479,9 @@ func RemovePackageVersionByNameAndVersion(ctx context.Context, doer *user_model.
 func RemovePackageVersion(ctx context.Context, doer *user_model.User, pv *packages_model.PackageVersion) error {
 	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
+		return err
+	}
+	if err := GetSpecManager().Get(pd.Package.Type).OnBeforeRemovePackageVersion(ctx, doer, pd); err != nil {
 		return err
 	}
 	// HINT: PACKAGE-DEFER-STORAGE-DELETE: Blobs are not deleted immediately, instead they are deleted by the cleanup_packages cron task.
@@ -631,6 +642,10 @@ func RemovePackage(ctx context.Context, doer *user_model.User, p *packages_model
 	if err != nil {
 		return err
 	}
+	if err := GetSpecManager().Get(p.Type).OnBeforeRemovePackageAll(ctx, doer, p, pds); err != nil {
+		return err
+	}
+
 	// HINT: PACKAGE-DEFER-STORAGE-DELETE: Blobs are not deleted immediately, instead they are deleted by cleanup_packages cron task.
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		err := packages_model.DeletePropertiesByPackageID(ctx, packages_model.PropertyTypePackage, p.ID)
