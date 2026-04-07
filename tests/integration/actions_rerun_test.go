@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -55,7 +54,7 @@ jobs:
 
 		// fetch and exec job1
 		job1Task := runner.fetchTask(t)
-		_, _, run := getTaskAndJobAndRunByTaskID(t, job1Task.Id)
+		_, job1, run := getTaskAndJobAndRunByTaskID(t, job1Task.Id)
 		runner.execTask(t, job1Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
@@ -64,6 +63,7 @@ jobs:
 		session.MakeRequest(t, req, http.StatusBadRequest)
 		// fetch and exec job2
 		job2Task := runner.fetchTask(t)
+		_, job2, _ := getTaskAndJobAndRunByTaskID(t, job2Task.Id)
 		runner.execTask(t, job2Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
@@ -83,8 +83,7 @@ jobs:
 		})
 
 		// RERUN-2: rerun job1
-		job1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "job1"})
-		job1 = getLatestAttemptJobByTemplateJob(t, run.ID, job1)
+		job1 = getLatestAttemptJobByTemplateJobID(t, run.ID, job1.ID)
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, run.ID, job1.ID))
 		session.MakeRequest(t, req, http.StatusOK)
 		// job2 needs job1, so rerunning job1 will also rerun job2
@@ -100,8 +99,7 @@ jobs:
 		})
 
 		// RERUN-3: rerun job2
-		job2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "job2"})
-		job2 = getLatestAttemptJobByTemplateJob(t, run.ID, job2)
+		job2 = getLatestAttemptJobByTemplateJobID(t, run.ID, job2.ID)
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, run.ID, job2.ID))
 		session.MakeRequest(t, req, http.StatusOK)
 		// only job2 will rerun
