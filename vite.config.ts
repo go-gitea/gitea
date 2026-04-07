@@ -42,7 +42,7 @@ function licensesPlugin(): Plugin {
   const separator = '-'.repeat(80);
   return {
     name: 'licenses-plugin',
-    generateBundle(_, bundle) {
+    generateBundle(_opts, bundle) {
       const packages = new Map<string, string>();
       for (const chunk of Object.values(bundle)) {
         if (chunk.type !== 'chunk') continue;
