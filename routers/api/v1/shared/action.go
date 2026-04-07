@@ -27,9 +27,9 @@ import (
 // ownerID != 0 and repoID != 0 undefined behavior
 // runID == 0 means all jobs
 // runID is used as an additional filter together with ownerID and repoID to only return jobs for the given run
-// onlyLatestAttempt limits the result to the latest attempt jobs of the specified run. It only takes effect when runID > 0.
+// runAttemptID > 0 additionally limits the result to jobs of the specified run attempt. runAttemptID only takes effect when runID > 0.
 // Access rights are checked at the API route level
-func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, onlyLatestAttempt bool) {
+func ListJobs(ctx *context.APIContext, ownerID, repoID, runID, runAttemptID int64) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
@@ -40,18 +40,8 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, onlyLatestA
 		RunID:       runID,
 		ListOptions: listOptions,
 	}
-	if runID > 0 && onlyLatestAttempt {
-		run, err := actions_model.GetRunByRepoAndID(ctx, repoID, runID)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		latestAttemptID, err := run.GetLatestAttemptID(ctx)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		opts.RunAttemptID = latestAttemptID
+	if runID > 0 && runAttemptID > 0 {
+		opts.RunAttemptID = runAttemptID
 	}
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
@@ -192,7 +182,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 			}
 		}
 
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, repository, runs[i])
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, repository, runs[i], nil)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

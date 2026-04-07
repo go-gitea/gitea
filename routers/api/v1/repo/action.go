@@ -717,7 +717,7 @@ func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 
 	repoID := ctx.Repo.Repository.ID
 
-	shared.ListJobs(ctx, 0, repoID, 0, false)
+	shared.ListJobs(ctx, 0, repoID, 0, 0)
 }
 
 // ListWorkflowRuns Lists all runs for a repository run.
@@ -1171,6 +1171,24 @@ func getCurrentRepoActionRunJobsByID(ctx *context.APIContext) (*actions_model.Ac
 	return run, jobs
 }
 
+func getCurrentRepoActionRunAttemptByNumber(ctx *context.APIContext) (*actions_model.ActionRun, *actions_model.ActionRunAttempt) {
+	run := getCurrentRepoActionRunByID(ctx)
+	if ctx.Written() {
+		return nil, nil
+	}
+
+	attemptNum := ctx.PathParamInt64("attempt")
+	attempt, err := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.APIErrorNotFound(err)
+		return nil, nil
+	} else if err != nil {
+		ctx.APIErrorInternal(err)
+		return nil, nil
+	}
+	return run, attempt
+}
+
 // GetWorkflowRun Gets a specific workflow run.
 func GetWorkflowRun(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run} repository GetWorkflowRun
@@ -1207,7 +1225,56 @@ func GetWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, nil)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedRun)
+}
+
+// GetWorkflowRunAttempt Gets a specific workflow run attempt.
+func GetWorkflowRunAttempt(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/attempts/{attempt} repository getWorkflowRunAttempt
+	// ---
+	// summary: Gets a specific workflow run attempt
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: id of the run
+	//   type: integer
+	//   required: true
+	// - name: attempt
+	//   in: path
+	//   description: logical attempt number of the run
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRun"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	run, attempt := getCurrentRepoActionRunAttemptByNumber(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, attempt)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1260,7 +1327,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, nil)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1468,9 +1535,72 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 		return
 	}
 
+	run, err := actions_model.GetRunByRepoAndID(ctx, repoID, runID)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+	latestAttemptID, err := run.GetLatestAttemptID(ctx)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
 	// runID is used as an additional filter next to repoID to ensure that we only list jobs for the specified repoID and runID.
 	// no additional checks for runID are needed here
-	shared.ListJobs(ctx, 0, repoID, runID, true)
+	shared.ListJobs(ctx, 0, repoID, runID, latestAttemptID)
+}
+
+// ListWorkflowRunAttemptJobs Lists all jobs for a workflow run attempt.
+func ListWorkflowRunAttemptJobs(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/attempts/{attempt}/jobs repository listWorkflowRunAttemptJobs
+	// ---
+	// summary: Lists all jobs for a workflow run attempt
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: id of the workflow run
+	//   type: integer
+	//   required: true
+	// - name: attempt
+	//   in: path
+	//   description: logical attempt number of the run
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowJobsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	run, attempt := getCurrentRepoActionRunAttemptByNumber(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	shared.ListJobs(ctx, 0, run.RepoID, run.ID, attempt.ID)
 }
 
 // GetWorkflowJob Gets a specific workflow job for a workflow run.

@@ -247,26 +247,44 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	}, nil
 }
 
-func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
-	err := run.LoadAttributes(ctx)
-	if err != nil {
+func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (*api.ActionWorkflowRun, error) {
+	if err := run.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
-	var runAttempt int64
-	if attempt, has, err := run.GetLatestAttempt(ctx); err != nil {
-		return nil, err
-	} else if has {
-		runAttempt = attempt.Attempt
+
+	if attempt == nil {
+		if latestAttempt, has, err := run.GetLatestAttempt(ctx); err != nil {
+			return nil, err
+		} else if has {
+			attempt = latestAttempt
+		}
 	}
+
+	runAttempt := int64(0)
 	status, conclusion := ToActionsStatus(run.Status)
+	startedAt := run.Started.AsLocalTime()
+	completedAt := run.Stopped.AsLocalTime()
+	triggerUser := run.TriggerUser
+
+	if attempt != nil {
+		if err := attempt.LoadAttributes(ctx); err != nil {
+			return nil, err
+		}
+		runAttempt = attempt.Attempt
+		status, conclusion = ToActionsStatus(attempt.Status)
+		startedAt = attempt.Started.AsLocalTime()
+		completedAt = attempt.Stopped.AsLocalTime()
+		triggerUser = attempt.TriggerUser
+	}
+
 	return &api.ActionWorkflowRun{
 		ID:           run.ID,
 		URL:          fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
 		HTMLURL:      run.HTMLURL(),
 		RunNumber:    run.Index,
 		RunAttempt:   runAttempt,
-		StartedAt:    run.Started.AsLocalTime(),
-		CompletedAt:  run.Stopped.AsLocalTime(),
+		StartedAt:    startedAt,
+		CompletedAt:  completedAt,
 		Event:        string(run.Event),
 		DisplayTitle: run.Title,
 		HeadBranch:   git.RefName(run.Ref).BranchName(),
@@ -275,9 +293,9 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		Conclusion:   conclusion,
 		Path:         fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
 		Repository:   ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
-		TriggerActor: ToUser(ctx, run.TriggerUser, nil),
-		// We do not have a way to get a different User for the actor than the trigger user
-		Actor: ToUser(ctx, run.TriggerUser, nil),
+		TriggerActor: ToUser(ctx, triggerUser, nil),
+		// We do not have a way to get a different User for the actor than the trigger user.
+		Actor: ToUser(ctx, triggerUser, nil),
 	}, nil
 }
 

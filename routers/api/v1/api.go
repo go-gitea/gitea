@@ -1255,6 +1255,10 @@ func Routes() *web.Router {
 					m.Group("/runs", func() {
 						m.Group("/{run}", func() {
 							m.Get("", repo.GetWorkflowRun)
+							m.Group("/attempts/{attempt}", func() {
+								m.Get("", repo.GetWorkflowRunAttempt)
+								m.Get("/jobs", repo.ListWorkflowRunAttemptJobs)
+							})
 							m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
 							m.Post("/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowRun)
 							m.Post("/rerun-failed-jobs", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunFailedWorkflowRun)
