@@ -38,6 +38,9 @@ const webComponents = new Set([
   'text-expander',
 ]);
 
+// matches Go regex `licenseRe` in build/generate-go-licenses.go
+const licenseFileRe = /^((UN)?LICEN(S|C)E|COPYING).*$/i;
+
 function licensesPlugin(): Plugin {
   const separator = '-'.repeat(80);
   return {
@@ -61,7 +64,7 @@ function licensesPlugin(): Plugin {
           if (!pkgJson?.name) continue;
           const key = `${pkgJson.name}@${pkgJson.version}`;
           if (packages.has(key)) continue;
-          const licenseFile = readdirSync(dir).find((f) => /^licen[sc]e/i.test(f));
+          const licenseFile = readdirSync(dir).find((f) => licenseFileRe.test(f));
           const licenseText = licenseFile ? readFileSync(join(dir, licenseFile), 'utf8') : '';
           packages.set(key, wrapAnsi(licenseText, 80).trim());
         }
