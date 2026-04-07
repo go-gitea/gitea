@@ -48,7 +48,7 @@ function licensesPlugin(): Plugin {
         if (chunk.type !== 'chunk') continue;
         for (const moduleId of Object.keys(chunk.modules)) {
           const fsPath = moduleId.split('?')[0];
-          if (!fsPath.includes('node_modules') || moduleId.startsWith('\0')) continue;
+          if (!fsPath.includes('node_modules')) continue;
           let dir = path.dirname(fsPath);
           let pkgJson: {name?: string, version?: string} | null = null;
           while (dir.length > 1 && dir.includes('node_modules')) {
