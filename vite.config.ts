@@ -64,8 +64,11 @@ function licensesPlugin(): Plugin {
           if (!pkgJson?.name) continue;
           const key = `${pkgJson.name}@${pkgJson.version}`;
           if (packages.has(key)) continue;
-          const licenseFile = readdirSync(dir).find((f) => licenseFileRe.test(f));
-          const licenseText = licenseFile ? readFileSync(join(dir, licenseFile), 'utf8') : '';
+          let licenseText = '';
+          try {
+            const licenseFile = readdirSync(dir).find((f) => licenseFileRe.test(f));
+            if (licenseFile) licenseText = readFileSync(join(dir, licenseFile), 'utf8');
+          } catch {}
           packages.set(key, wrapAnsi(licenseText, 80).trim());
         }
       }
@@ -79,7 +82,7 @@ function licensesPlugin(): Plugin {
       const allLicenses = {...goLicenses, ...Object.fromEntries(packages)};
       const entries = Object.entries(allLicenses).sort(([a], [b]) => a.localeCompare(b));
       const content = entries.map(([title, body]) => `${separator}\n${title}\n${separator}\n${body}`).join('\n');
-      writeFileSync(join(import.meta.dirname, 'public/assets/licenses.txt'), content);
+      writeFileSync(join(outDir, 'licenses.txt'), content);
     },
   };
 }
