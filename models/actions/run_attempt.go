@@ -47,7 +47,7 @@ func init() {
 }
 
 func (attempt *ActionRunAttempt) Duration() time.Duration {
-	return calculateDuration(attempt.Started, attempt.Stopped, attempt.Status)
+	return calculateDuration(attempt.Started, attempt.Stopped, attempt.Status, attempt.Updated)
 }
 
 func GetRunAttemptByRepoAndID(ctx context.Context, repoID, attemptID int64) (*ActionRunAttempt, error) {
