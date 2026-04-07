@@ -16,6 +16,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
@@ -276,4 +277,25 @@ func (ut *RenderUtils) RenderThemeItem(info *webtheme.ThemeMetaInfo, iconSize in
 	icon := svg.RenderHTML(svgName, iconSize)
 	extraIcon := svg.RenderHTML(info.GetExtraIconName(), iconSize)
 	return htmlutil.HTMLFormat(`<div class="theme-menu-item" data-tooltip-content="%s">%s %s %s</div>`, info.GetDescription(), icon, info.DisplayName, extraIcon)
+}
+
+func (ut *RenderUtils) RenderUnicodeEscapeToggleButton(escapeStatus *charset.EscapeStatus) template.HTML {
+	if escapeStatus == nil || !escapeStatus.Escaped {
+		return ""
+	}
+	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	var title template.HTML
+	if escapeStatus.HasAmbiguous {
+		title += locale.Tr("repo.ambiguous_runes_line")
+	} else if escapeStatus.HasInvisible {
+		title += locale.Tr("repo.invisible_runes_line")
+	}
+	return htmlutil.HTMLFormat(`<button type="button" class="toggle-escape-button btn interact-bg" title="%s"></button>`, title)
+}
+
+func (ut *RenderUtils) RenderUnicodeEscapeToggleTd(combined, escapeStatus *charset.EscapeStatus) template.HTML {
+	if combined == nil || !combined.Escaped {
+		return ""
+	}
+	return `<td class="lines-escape">` + ut.RenderUnicodeEscapeToggleButton(escapeStatus) + `</td>`
 }
