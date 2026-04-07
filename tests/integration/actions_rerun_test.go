@@ -9,12 +9,14 @@ import (
 	"net/url"
 	"testing"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestActionsRerun(t *testing.T) {
@@ -54,6 +56,7 @@ jobs:
 
 		// fetch and exec job1
 		job1Task := runner.fetchTask(t)
+		assert.Equal(t, "1", job1Task.Context.GetFields()["run_attempt"].GetStringValue())
 		_, job1, run := getTaskAndJobAndRunByTaskID(t, job1Task.Id)
 		runner.execTask(t, job1Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
@@ -67,20 +70,24 @@ jobs:
 		runner.execTask(t, job2Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
+		assert.EqualValues(t, 1, getRunLatestAttemptNum(t, run.ID))
 
 		// RERUN-1: rerun the run
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, run.ID))
 		session.MakeRequest(t, req, http.StatusOK)
 		// fetch and exec job1
 		job1TaskR1 := runner.fetchTask(t)
+		assert.Equal(t, "2", job1TaskR1.Context.GetFields()["run_attempt"].GetStringValue())
 		runner.execTask(t, job1TaskR1, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
 		// fetch and exec job2
 		job2TaskR1 := runner.fetchTask(t)
+		assert.Equal(t, "2", job2TaskR1.Context.GetFields()["run_attempt"].GetStringValue())
 		runner.execTask(t, job2TaskR1, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
+		assert.EqualValues(t, 2, getRunLatestAttemptNum(t, run.ID))
 
 		// RERUN-2: rerun job1
 		job1 = getLatestAttemptJobByTemplateJobID(t, run.ID, job1.ID)
@@ -89,14 +96,17 @@ jobs:
 		// job2 needs job1, so rerunning job1 will also rerun job2
 		// fetch and exec job1
 		job1TaskR2 := runner.fetchTask(t)
+		assert.Equal(t, "3", job1TaskR2.Context.GetFields()["run_attempt"].GetStringValue())
 		runner.execTask(t, job1TaskR2, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
 		// fetch and exec job2
 		job2TaskR2 := runner.fetchTask(t)
+		assert.Equal(t, "3", job2TaskR2.Context.GetFields()["run_attempt"].GetStringValue())
 		runner.execTask(t, job2TaskR2, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
+		assert.EqualValues(t, 3, getRunLatestAttemptNum(t, run.ID))
 
 		// RERUN-3: rerun job2
 		job2 = getLatestAttemptJobByTemplateJobID(t, run.ID, job2.ID)
@@ -105,9 +115,23 @@ jobs:
 		// only job2 will rerun
 		// fetch and exec job2
 		job2TaskR3 := runner.fetchTask(t)
+		assert.Equal(t, "4", job2TaskR3.Context.GetFields()["run_attempt"].GetStringValue())
 		runner.execTask(t, job2TaskR3, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
 		runner.fetchNoTask(t)
+		assert.EqualValues(t, 4, getRunLatestAttemptNum(t, run.ID))
+
+		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+		job2 = getLatestAttemptJobByTemplateJobID(t, run.ID, job2.ID)
+		assert.Equal(t, run.LatestAttemptID, job2.RunAttemptID)
 	})
+}
+
+func getRunLatestAttemptNum(t *testing.T, runID int64) int64 {
+	t.Helper()
+
+	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
+	attempt := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{ID: run.LatestAttemptID})
+	return attempt.Attempt
 }
