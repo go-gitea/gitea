@@ -341,7 +341,7 @@ func Rename(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	if !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin) {
+	if !ctx.Doer.IsAdmin && setting.IsOrgFeatureDisabled(setting.OrgFeatureDangerZone) {
 		ctx.APIError(http.StatusForbidden, "Organization danger zone actions are restricted to site administrators")
 		return
 	}
@@ -387,7 +387,7 @@ func Edit(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditOrgOption)
 	visibility := optional.FromMapLookup(api.VisibilityModes, optional.FromPtr(form.Visibility).Value())
-	if visibility.Has() && visibility.Value() != ctx.Org.Organization.Visibility && !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin) {
+	if visibility.Has() && visibility.Value() != ctx.Org.Organization.Visibility && (!ctx.Doer.IsAdmin && setting.IsOrgFeatureDisabled(setting.OrgFeatureDangerZone)) {
 		ctx.APIError(http.StatusForbidden, "Organization danger zone actions are restricted to site administrators")
 		return
 	}
@@ -436,7 +436,7 @@ func Delete(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin) {
+	if setting.IsOrgFeatureDisabled(setting.OrgFeatureDangerZone) && !ctx.Doer.IsAdmin {
 		ctx.APIError(http.StatusForbidden, "Organization danger zone actions are restricted to site administrators")
 		return
 	}

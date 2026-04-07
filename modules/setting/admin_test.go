@@ -21,9 +21,7 @@ ORG_DISABLED_FEATURES = danger_zone
 	assert.NoError(t, err)
 	loadAdminFrom(cfg)
 
-	assert.True(t, Admin.OrgDisabledFeatures.Contains(OrgFeatureDangerZone))
-	assert.False(t, CanManageOrgDangerZone(false))
-	assert.True(t, CanManageOrgDangerZone(true))
+	assert.True(t, IsOrgFeatureDisabled(OrgFeatureDangerZone))
 }
 
 func TestLoadAdminOrgDisabledFeaturesDefault(t *testing.T) {
@@ -35,6 +33,5 @@ func TestLoadAdminOrgDisabledFeaturesDefault(t *testing.T) {
 	assert.NoError(t, err)
 	loadAdminFrom(cfg)
 
-	assert.False(t, Admin.OrgDisabledFeatures.Contains(OrgFeatureDangerZone))
-	assert.True(t, CanManageOrgDangerZone(false))
+	assert.False(t, IsOrgFeatureDisabled(OrgFeatureDangerZone))
 }

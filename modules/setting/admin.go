@@ -31,8 +31,8 @@ var validOrgFeatures = container.SetOf(
 	OrgFeatureDangerZone,
 )
 
-func CanManageOrgDangerZone(isAdmin bool) bool {
-	return isAdmin || !Admin.OrgDisabledFeatures.Contains(OrgFeatureDangerZone)
+func IsOrgFeatureDisabled(feature string) bool {
+	return Admin.OrgDisabledFeatures.Contains(feature)
 }
 
 func loadAdminFrom(rootCfg ConfigProvider) {

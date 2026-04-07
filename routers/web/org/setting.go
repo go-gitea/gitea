@@ -39,6 +39,19 @@ const (
 	tplSettingsLabels templates.TplName = "org/settings/labels"
 )
 
+func CanManageOrgDangerZone(ctx *context.Context) bool {
+	if ctx.Doer == nil {
+		return false
+	}
+	if ctx.Doer.IsAdmin {
+		return true
+	}
+	if ctx.Org.IsOwner || ctx.Org.IsTeamAdmin {
+		return !setting.IsOrgFeatureDisabled(setting.OrgFeatureDangerZone)
+	}
+	return false
+}
+
 // Settings render the main settings page
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
@@ -47,7 +60,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
-	ctx.Data["CanManageOrgDangerZone"] = setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin)
+	ctx.Data["CanManageOrgDangerZone"] = CanManageOrgDangerZone(ctx)
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
@@ -64,7 +77,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
-	ctx.Data["CanManageOrgDangerZone"] = setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin)
+	ctx.Data["CanManageOrgDangerZone"] = CanManageOrgDangerZone(ctx)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSettingsOptions)
@@ -127,7 +140,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 
 // SettingsDeleteOrgPost response for deleting an organization
 func SettingsDeleteOrgPost(ctx *context.Context) {
-	if !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin) {
+	if !CanManageOrgDangerZone(ctx) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
@@ -205,7 +218,7 @@ func Labels(ctx *context.Context) {
 
 // SettingsRenamePost response for renaming organization
 func SettingsRenamePost(ctx *context.Context) {
-	if !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin) {
+	if !CanManageOrgDangerZone(ctx) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
@@ -247,6 +260,11 @@ func SettingsRenamePost(ctx *context.Context) {
 
 // SettingsChangeVisibilityPost response for change organization visibility
 func SettingsChangeVisibilityPost(ctx *context.Context) {
+	if !CanManageOrgDangerZone(ctx) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
 	visibility, ok := structs.VisibilityModes[ctx.FormString("visibility")]
 	if !ok {
 		ctx.Flash.Error(ctx.Tr("invalid_data", visibility))
@@ -257,11 +275,6 @@ func SettingsChangeVisibilityPost(ctx *context.Context) {
 	if ctx.Org.Organization.Visibility == visibility {
 		ctx.Flash.Info(ctx.Tr("nothing_has_been_changed"))
 		ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(ctx.Org.Organization.Name) + "/settings")
-		return
-	}
-
-	if !setting.CanManageOrgDangerZone(ctx.Doer.IsAdmin) {
-		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
