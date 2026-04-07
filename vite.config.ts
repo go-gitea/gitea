@@ -67,12 +67,14 @@ function licensesPlugin(): Plugin {
         }
       }
 
+      const goLicensesJson = JSON.parse(readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8'));
       const goLicenses: Record<string, string> = {};
-      for (const {name, licenseText} of JSON.parse(readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8'))) {
+      for (const {name, licenseText} of goLicensesJson) {
         goLicenses[name] = wrapAnsi(licenseText || '', 80).trim();
       }
 
-      const entries = Object.entries({...goLicenses, ...Object.fromEntries(packages)}).sort(([a], [b]) => a.localeCompare(b));
+      const allLicenses = {...goLicenses, ...Object.fromEntries(packages)};
+      const entries = Object.entries(allLicenses).sort(([a], [b]) => a.localeCompare(b));
       const content = entries.map(([title, body]) => `${separator}\n${title}\n${separator}\n${body}`).join('\n');
       writeFileSync(join(import.meta.dirname, 'public/assets/licenses.txt'), content);
     },
