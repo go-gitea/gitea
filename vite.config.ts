@@ -1,12 +1,12 @@
 import {build, defineConfig} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
-import {readFileSync, readdirSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
+import {licensePlugin, wrap} from 'rolldown-license-plugin';
+import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
 import path, {basename, join, parse} from 'node:path';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
-import wrapAnsi from 'wrap-ansi';
 import type {InlineConfig, Plugin, Rolldown} from 'vite';
 import {camelize} from 'vue';
 
@@ -37,55 +37,6 @@ const webComponents = new Set([
   'markdown-toolbar',
   'text-expander',
 ]);
-
-// also defined in build/generate-go-licenses.go
-const licenseRe = /^((UN)?LICEN(S|C)E|COPYING).*$/i;
-
-function licensesPlugin(): Plugin {
-  const separator = '-'.repeat(80);
-  return {
-    name: 'licenses-plugin',
-    generateBundle(_opts, bundle) {
-      const packages = new Map<string, string>();
-      for (const chunk of Object.values(bundle)) {
-        if (chunk.type !== 'chunk') continue;
-        for (const moduleId of Object.keys(chunk.modules)) {
-          const fsPath = moduleId.split('?')[0];
-          if (!fsPath.includes('node_modules')) continue;
-          let dir = path.dirname(fsPath);
-          let pkgJson: {name?: string, version?: string} | null = null;
-          while (dir.length > 1 && dir.includes('node_modules')) {
-            try {
-              pkgJson = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
-              if (pkgJson?.name) break;
-            } catch {}
-            dir = path.dirname(dir);
-          }
-          if (!pkgJson?.name) continue;
-          const key = `${pkgJson.name}@${pkgJson.version}`;
-          if (packages.has(key)) continue;
-          let licenseText = '';
-          try {
-            const licenseFile = readdirSync(dir).find((f) => licenseRe.test(f));
-            if (licenseFile) licenseText = readFileSync(join(dir, licenseFile), 'utf8');
-          } catch {}
-          packages.set(key, wrapAnsi(licenseText, 80).trim());
-        }
-      }
-
-      const goLicensesJson = JSON.parse(readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8'));
-      const goLicenses: Record<string, string> = {};
-      for (const {name, licenseText} of goLicensesJson) {
-        goLicenses[name] = wrapAnsi(licenseText || '', 80).trim();
-      }
-
-      const allLicenses = {...goLicenses, ...Object.fromEntries(packages)};
-      const entries = Object.entries(allLicenses).sort(([a], [b]) => a.localeCompare(b));
-      const content = entries.map(([title, body]) => `${separator}\n${title}\n${separator}\n${body}`).join('\n');
-      writeFileSync(join(outDir, 'licenses.txt'), content);
-    },
-  };
-}
 
 const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
@@ -357,6 +308,23 @@ export default defineConfig(commonViteOpts({
         },
       },
     }),
-    licensesPlugin(),
+    licensePlugin({
+      wrapText: 80,
+      onDone(licenses) {
+        const line = '-'.repeat(80);
+        const goLicenses = JSON.parse(readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8'));
+        const combined: Record<string, string> = {};
+        for (const {name, licenseText} of goLicenses) {
+          combined[name] = wrap(licenseText || '', 80).trim();
+        }
+        for (const {name, version, licenseText} of licenses) {
+          combined[`${name}@${version}`] = licenseText;
+        }
+        const content = Object.entries(combined)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([title, body]) => `${line}\n${title}\n${line}\n${body}`).join('\n');
+        writeFileSync(join(outDir, 'licenses.txt'), content);
+      },
+    }),
   ],
 }));
