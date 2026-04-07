@@ -5440,6 +5440,112 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runs/{run}/attempts/{attempt}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets a specific workflow run attempt",
+        "operationId": "getWorkflowRunAttempt",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "logical attempt number of the run",
+            "name": "attempt",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/attempts/{attempt}/jobs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Lists all jobs for a workflow run attempt",
+        "operationId": "listWorkflowRunAttemptJobs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the workflow run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "logical attempt number of the run",
+            "name": "attempt",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowJobsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/runs/{run}/jobs": {
       "get": {
         "produces": [
