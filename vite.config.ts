@@ -38,8 +38,8 @@ const webComponents = new Set([
   'text-expander',
 ]);
 
-// matches Go regex `licenseRe` in build/generate-go-licenses.go
-const licenseFileRe = /^((UN)?LICEN(S|C)E|COPYING).*$/i;
+// also defined in build/generate-go-licenses.go
+const licenseRe = /^((UN)?LICEN(S|C)E|COPYING).*$/i;
 
 function licensesPlugin(): Plugin {
   const separator = '-'.repeat(80);
@@ -66,7 +66,7 @@ function licensesPlugin(): Plugin {
           if (packages.has(key)) continue;
           let licenseText = '';
           try {
-            const licenseFile = readdirSync(dir).find((f) => licenseFileRe.test(f));
+            const licenseFile = readdirSync(dir).find((f) => licenseRe.test(f));
             if (licenseFile) licenseText = readFileSync(join(dir, licenseFile), 'utf8');
           } catch {}
           packages.set(key, wrapAnsi(licenseText, 80).trim());
