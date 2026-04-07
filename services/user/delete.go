@@ -117,7 +117,7 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 			}
 
 			for _, comment := range comments {
-				if err = issues_model.DeleteComment(ctx, comment); err != nil {
+				if _, err = issues_model.DeleteComment(ctx, comment); err != nil {
 					return err
 				}
 			}

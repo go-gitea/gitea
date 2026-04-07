@@ -102,3 +102,21 @@
   review_id: 22
   assignee_id: 5
   created_unix: 946684817
+
+-
+  id: 12
+  type: 22 # review comment
+  poster_id: 1
+  issue_id: 3
+  content: ""
+  review_id: 5
+  created_unix: 946684810
+
+-
+  id: 13
+  type: 21 # code comment
+  poster_id: 1
+  issue_id: 3
+  content: "Some codes need to be changed"
+  review_id: 5
+  created_unix: 946684810
