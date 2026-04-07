@@ -212,12 +212,14 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, hasLatestAttempt)
 
-		job198 := getLatestAttemptJobByJobID(t, 795, "job_1")
+		templateJob198 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 198})
+		job198 := getLatestAttemptJobByTemplateJob(t, 795, templateJob198)
 		assert.Equal(t, actions_model.StatusWaiting, job198.Status)
 		assert.Equal(t, latestAttempt.Attempt, job198.Attempt)
 		assert.Equal(t, int64(0), job198.TaskID)
 
-		job199 := getLatestAttemptJobByJobID(t, 795, "job_2")
+		templateJob199 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 199})
+		job199 := getLatestAttemptJobByTemplateJob(t, 795, templateJob199)
 		assert.Equal(t, actions_model.StatusWaiting, job199.Status)
 		assert.Equal(t, latestAttempt.Attempt, job199.Attempt)
 		assert.Equal(t, int64(0), job199.TaskID)
@@ -266,7 +268,7 @@ func TestAPIActionsRerunWorkflowJob(t *testing.T) {
 		err := json.Unmarshal(resp.Body.Bytes(), &rerunResp)
 		require.NoError(t, err)
 		assert.Equal(t, int64(199), rerunResp.ID)
-		assert.Equal(t, "completed", rerunResp.Status)
+		assert.Equal(t, "queued", rerunResp.Status)
 
 		run, err := actions_model.GetRunByRepoAndID(t.Context(), repo.ID, 795)
 		require.NoError(t, err)
@@ -275,13 +277,15 @@ func TestAPIActionsRerunWorkflowJob(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, hasLatestAttempt)
 
-		job198 := getLatestAttemptJobByJobID(t, 795, "job_1")
+		templateJob198 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 198})
+		job198 := getLatestAttemptJobByTemplateJob(t, 795, templateJob198)
 		assert.Equal(t, actions_model.StatusSuccess, job198.Status)
 		assert.Equal(t, latestAttempt.Attempt, job198.Attempt)
 		assert.Equal(t, int64(0), job198.TaskID)
 		assert.Equal(t, int64(53), job198.SourceTaskID)
 
-		job199 := getLatestAttemptJobByJobID(t, 795, "job_2")
+		templateJob199 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 199})
+		job199 := getLatestAttemptJobByTemplateJob(t, 795, templateJob199)
 		assert.Equal(t, actions_model.StatusWaiting, job199.Status)
 		assert.Equal(t, latestAttempt.Attempt, job199.Attempt)
 		assert.Equal(t, int64(0), job199.TaskID)

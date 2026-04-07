@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"testing"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -82,7 +83,8 @@ jobs:
 		})
 
 		// RERUN-2: rerun job1
-		job1 := getLatestAttemptJobByJobID(t, run.ID, "job1")
+		job1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "job1"})
+		job1 = getLatestAttemptJobByTemplateJob(t, run.ID, job1)
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, run.ID, job1.ID))
 		session.MakeRequest(t, req, http.StatusOK)
 		// job2 needs job1, so rerunning job1 will also rerun job2
@@ -98,7 +100,8 @@ jobs:
 		})
 
 		// RERUN-3: rerun job2
-		job2 := getLatestAttemptJobByJobID(t, run.ID, "job2")
+		job2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "job2"})
+		job2 = getLatestAttemptJobByTemplateJob(t, run.ID, job2)
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, run.ID, job2.ID))
 		session.MakeRequest(t, req, http.StatusOK)
 		// only job2 will rerun

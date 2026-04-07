@@ -643,7 +643,7 @@ jobs:
 		assert.Equal(t, "job-main-v1.24.0", wf2Job2Rerun1Job.ConcurrencyGroup)
 
 		// rerun wf2-job2
-		wf2Job2ActionJob = getLatestAttemptJobByJobID(t, wf2Run.ID, wf2Job2ActionJob.JobID)
+		wf2Job2ActionJob = getLatestAttemptJobByTemplateJob(t, wf2Run.ID, wf2Job2ActionJob)
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, wf2Run.ID, wf2Job2ActionJob.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 		// (rerun2) fetch and exec wf2-job2
@@ -1075,11 +1075,13 @@ jobs:
 		})
 
 		// rerun cancel true scenario
-		job2 := getLatestAttemptJobByJobID(t, run2.ID, "job")
+		job2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run2.ID, JobID: "job"})
+		job2 = getLatestAttemptJobByTemplateJob(t, run2.ID, job2)
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.ID, job2.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
-		job4 := getLatestAttemptJobByJobID(t, run4.ID, "job")
+		job4 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run4.ID, JobID: "job"})
+		job4 = getLatestAttemptJobByTemplateJob(t, run4.ID, job4)
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run4.ID, job4.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
@@ -1096,14 +1098,14 @@ jobs:
 
 		// rerun cancel false scenario
 
-		job2 = getLatestAttemptJobByJobID(t, run2.ID, "job")
+		job2 = getLatestAttemptJobByTemplateJob(t, run2.ID, job2)
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.ID, job2.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		run2_2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
 		assert.Equal(t, actions_model.StatusWaiting, run2_2.Status)
 
-		job3 = getLatestAttemptJobByJobID(t, run3.ID, "job")
+		job3 = getLatestAttemptJobByTemplateJob(t, run3.ID, job3)
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run3.ID, job3.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
@@ -1695,17 +1697,22 @@ func getRunConcurrencyCancel(t *testing.T, run *actions_model.ActionRun) bool {
 	return cc
 }
 
-func getLatestAttemptJobByJobID(t *testing.T, runID int64, targetJobID string) *actions_model.ActionRunJob {
+func getLatestAttemptJobByTemplateJob(t *testing.T, runID int64, templateJob *actions_model.ActionRunJob) *actions_model.ActionRunJob {
 	t.Helper()
 
 	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
+	if templateJob.AttemptJobID > 0 {
+		job, err := actions_model.GetRunJobByAttemptJobID(t.Context(), run.ID, run.LatestAttemptID, templateJob.AttemptJobID)
+		assert.NoError(t, err)
+		return job
+	}
 	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(t.Context(), run.ID, run.LatestAttemptID)
 	assert.NoError(t, err)
 	for _, job := range jobs {
-		if job.JobID == targetJobID {
+		if job.JobID == templateJob.JobID {
 			return job
 		}
 	}
-	assert.Failf(t, "latest attempt job not found", "run %d latest attempt %d does not contain job %q", run.ID, run.LatestAttemptID, targetJobID)
+	assert.Failf(t, "latest attempt job not found", "run %d latest attempt %d does not contain job %q", run.ID, run.LatestAttemptID, templateJob.JobID)
 	return nil
 }
