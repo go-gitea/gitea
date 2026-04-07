@@ -27,7 +27,6 @@ const MaxJobNumPerRun = 256
 type ActionRunJob struct {
 	ID                int64
 	RunID             int64                  `xorm:"index"`
-	RunAttemptID      int64                  `xorm:"index NOT NULL DEFAULT 0"`
 	Run               *ActionRun             `xorm:"-"`
 	RepoID            int64                  `xorm:"index(repo_concurrency)"`
 	Repo              *repo_model.Repository `xorm:"-"`
@@ -48,7 +47,7 @@ type ActionRunJob struct {
 	Needs  []string `xorm:"JSON TEXT"`
 	RunsOn []string `xorm:"JSON TEXT"`
 
-	TaskID       int64 // the latest task created by this job in its own attempt
+	TaskID       int64 // the task created by this job in its own attempt
 	SourceTaskID int64 `xorm:"NOT NULL DEFAULT 0"` // SourceTaskID points to a historical task when this job reuses an earlier attempt's result.
 
 	Status Status `xorm:"index"`
@@ -67,6 +66,14 @@ type ActionRunJob struct {
 	// Org/repo clamps are enforced when the token is used at runtime.
 	// It is JSON-encoded repo_model.ActionsTokenPermissions and may be empty if not specified.
 	TokenPermissions *repo_model.ActionsTokenPermissions `xorm:"JSON TEXT"`
+
+	// RunAttemptID identifies the ActionRunAttempt this job belongs to.
+	// A value of 0 indicates a legacy job created before ActionRunAttempt existed.
+	RunAttemptID int64 `xorm:"index NOT NULL DEFAULT 0"`
+	// AttemptJobID is unique within a single attempt.
+	// For jobs created after ActionRunAttempt was introduced, the same logical job is expected to keep the same AttemptJobID across attempts.
+	// A value of 0 indicates a legacy job created before ActionRunAttempt existed.
+	AttemptJobID int64 `xorm:"index NOT NULL DEFAULT 0"`
 
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
@@ -166,6 +173,18 @@ func GetRunJobByRunAndID(ctx context.Context, runID, jobID int64) (*ActionRunJob
 	return &job, nil
 }
 
+func GetRunJobByAttemptJobID(ctx context.Context, runID, attemptID, attemptJobID int64) (*ActionRunJob, error) {
+	var job ActionRunJob
+	has, err := db.GetEngine(ctx).Where("run_id=? AND run_attempt_id=? AND attempt_job_id=?", runID, attemptID, attemptJobID).Get(&job)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, fmt.Errorf("run job with attempt_job_id %d in run %d attempt %d: %w", attemptJobID, runID, attemptID, util.ErrNotExist)
+	}
+
+	return &job, nil
+}
+
 // GetLatestAttemptJobsByRepoAndRunID returns the jobs of the latest attempt for a run.
 // It prefers the latest attempt when one exists, and falls back to legacy jobs with run_attempt_id=0 for runs created before ActionRunAttempt existed.
 func GetLatestAttemptJobsByRepoAndRunID(ctx context.Context, repoID, runID int64) (ActionJobList, error) {
@@ -174,13 +193,7 @@ func GetLatestAttemptJobsByRepoAndRunID(ctx context.Context, repoID, runID int64
 		return nil, err
 	}
 	if run.LatestAttemptID > 0 {
-		jobs, err := GetRunJobsByRunAndAttemptID(ctx, runID, run.LatestAttemptID)
-		if err != nil {
-			return nil, err
-		}
-		if len(jobs) > 0 {
-			return jobs, nil
-		}
+		return GetRunJobsByRunAndAttemptID(ctx, runID, run.LatestAttemptID)
 	}
 
 	var jobs []*ActionRunJob

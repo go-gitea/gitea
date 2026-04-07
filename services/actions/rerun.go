@@ -26,10 +26,10 @@ func GetFailedRerunJobs(allJobs []*actions_model.ActionRunJob) []*actions_model.
 // RerunWorkflowRunJobs reruns the given jobs of a workflow run.
 // An empty jobsToRerun means rerunning the whole run. Otherwise jobsToRerun contains only the user-requested target jobs;
 // downstream dependent jobs are expanded internally while building the rerun plan.
-func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, jobsToRerun []*actions_model.ActionRunJob) error {
+func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, jobsToRerun []*actions_model.ActionRunJob) (*actions_model.ActionRunAttempt, error) {
 	plan, err := buildRerunPlan(ctx, repo, run, jobsToRerun)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	return execRerunPlan(ctx, plan)
 }

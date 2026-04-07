@@ -1255,7 +1255,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs); err != nil {
+	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs); err != nil {
 		handleWorkflowRerunError(ctx, err)
 		return
 	}
@@ -1306,7 +1306,7 @@ func RerunFailedWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, actions_service.GetFailedRerunJobs(jobs)); err != nil {
+	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, actions_service.GetFailedRerunJobs(jobs)); err != nil {
 		handleWorkflowRerunError(ctx, err)
 		return
 	}
@@ -1367,12 +1367,37 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 	}
 
 	targetJob := jobs[jobIdx]
-	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, []*actions_model.ActionRunJob{targetJob}); err != nil {
+	newAttempt, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, []*actions_model.ActionRunJob{targetJob})
+	if err != nil {
 		handleWorkflowRerunError(ctx, err)
 		return
 	}
 
-	convertedJob, err := convert.ToActionWorkflowJob(ctx, ctx.Repo.Repository, nil, targetJob)
+	var rerunJob *actions_model.ActionRunJob
+	if targetJob.AttemptJobID > 0 {
+		// Newer jobs carry AttemptJobID, which lets us locate the corresponding job created in the new attempt directly.
+		rerunJob, err = actions_model.GetRunJobByAttemptJobID(ctx, run.ID, newAttempt.ID, targetJob.AttemptJobID)
+		if err != nil {
+			handleWorkflowRerunError(ctx, err)
+			return
+		}
+	} else {
+		// Legacy jobs have AttemptJobID == 0, so fall back to best-effort matching by the same job position within the attempt.
+		newAttemptJobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, newAttempt.ID)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if jobIdx < len(newAttemptJobs) {
+			rerunJob = newAttemptJobs[jobIdx]
+		}
+	}
+	if rerunJob == nil {
+		ctx.APIErrorNotFound(util.NewNotExistErrorf("rerun for job %d", jobID))
+		return
+	}
+
+	convertedJob, err := convert.ToActionWorkflowJob(ctx, ctx.Repo.Repository, nil, rerunJob)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1383,6 +1408,9 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 func handleWorkflowRerunError(ctx *context.APIContext, err error) {
 	if errors.Is(err, util.ErrInvalidArgument) {
 		ctx.APIError(http.StatusBadRequest, err)
+		return
+	} else if errors.Is(err, util.ErrNotExist) {
+		ctx.APIError(http.StatusNotFound, err)
 		return
 	}
 	ctx.APIErrorInternal(err)

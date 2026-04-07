@@ -74,6 +74,7 @@ func AddActionRunAttemptModel(x *xorm.Engine) error {
 
 	type ActionRunJob struct {
 		RunAttemptID int64 `xorm:"index NOT NULL DEFAULT 0"`
+		AttemptJobID int64 `xorm:"index NOT NULL DEFAULT 0"`
 		SourceTaskID int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{

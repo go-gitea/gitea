@@ -60,7 +60,7 @@ func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actio
 	if hasTemplateAttempt {
 		templateJobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, templateAttempt.ID)
 	} else {
-		templateJobs, err = actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
+		templateJobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, 0)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("load template jobs: %w", err)
@@ -108,9 +108,9 @@ func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actio
 	return plan, nil
 }
 
-func execRerunPlan(ctx context.Context, plan *rerunPlan) error {
+func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionRunAttempt, error) {
 	if len(plan.templateJobs) == 0 {
-		return nil
+		return nil, nil //nolint:nilnil // a rerun plan with no template jobs is a valid no-op and creates no new attempt
 	}
 
 	var newJobs actions_model.ActionJobList
@@ -131,8 +131,13 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) error {
 
 		hasWaitingJobs := false
 		newJobs = make(actions_model.ActionJobList, 0, len(plan.templateJobs))
-		for _, templateJob := range plan.templateJobs {
+		for i, templateJob := range plan.templateJobs {
 			newJob := cloneRunJobForAttempt(templateJob, plan.newAttempt)
+			// Legacy template jobs have no attempt association and therefore no AttemptJobID.
+			// When rerun creates a new attempt for them, assign a stable non-zero AttemptJobID using the same parsed job order as initial run creation.
+			if templateJob.RunAttemptID == 0 && newJob.RunAttemptID != 0 && newJob.AttemptJobID == 0 {
+				newJob.AttemptJobID = int64(i + 1)
+			}
 			if plan.rerunJobIDs.Contains(templateJob.JobID) {
 				shouldBlockJob := shouldBlock || plan.hasRerunDependency(templateJob)
 
@@ -191,11 +196,11 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) error {
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := plan.run.LoadAttributes(ctx); err != nil {
-		return err
+		return nil, err
 	}
 	for _, job := range newJobs {
 		job.Run = plan.run
@@ -210,7 +215,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) error {
 		notify_service.WorkflowJobStatusUpdate(ctx, plan.run.Repo, plan.run.TriggerUser, job, nil)
 	}
 
-	return nil
+	return plan.newAttempt, nil
 }
 
 func (p *rerunPlan) expandRerunJobIDs(jobsToRerun []*actions_model.ActionRunJob) error {
@@ -276,6 +281,7 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 		Attempt:                attempt.Attempt,
 		WorkflowPayload:        slices.Clone(templateJob.WorkflowPayload),
 		JobID:                  templateJob.JobID,
+		AttemptJobID:           templateJob.AttemptJobID,
 		Needs:                  slices.Clone(templateJob.Needs),
 		RunsOn:                 slices.Clone(templateJob.RunsOn),
 		Status:                 templateJob.Status,

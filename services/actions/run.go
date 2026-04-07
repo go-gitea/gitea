@@ -135,7 +135,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
 
-		for _, v := range jobs {
+		for i, v := range jobs {
 			id, job := v.Job()
 			needs := job.Needs()
 			if err := v.SetJob(id, job.EraseNeeds()); err != nil {
@@ -157,6 +157,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				Attempt:           runAttempt.Attempt,
 				WorkflowPayload:   payload,
 				JobID:             id,
+				AttemptJobID:      int64(i + 1),
 				Needs:             needs,
 				RunsOn:            job.RunsOn(),
 				Status:            util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),

@@ -86,7 +86,7 @@ func TestRerunValidation(t *testing.T) {
 		jobs := []*actions_model.ActionRunJob{
 			{ID: 1, JobID: "job1"},
 		}
-		err := RerunWorkflowRunJobs(context.Background(), nil, runningRun, jobs)
+		_, err := RerunWorkflowRunJobs(context.Background(), nil, runningRun, jobs)
 		require.Error(t, err)
 		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
@@ -95,7 +95,7 @@ func TestRerunValidation(t *testing.T) {
 		jobs := []*actions_model.ActionRunJob{
 			{ID: 1, JobID: "job1", Status: actions_model.StatusFailure},
 		}
-		err := RerunWorkflowRunJobs(context.Background(), nil, runningRun, GetFailedRerunJobs(jobs))
+		_, err := RerunWorkflowRunJobs(context.Background(), nil, runningRun, GetFailedRerunJobs(jobs))
 		require.Error(t, err)
 		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
