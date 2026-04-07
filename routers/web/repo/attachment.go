@@ -23,16 +23,16 @@ import (
 
 // UploadIssueAttachment response for Issue/PR attachments
 func UploadIssueAttachment(ctx *context.Context) {
-	uploadAttachment(ctx, ctx.Repo.Repository.ID, setting.Attachment.AllowedTypes)
+	uploadAttachmentOrReleaseAttachment(ctx, ctx.Repo.Repository.ID, false)
 }
 
 // UploadReleaseAttachment response for uploading release attachments
 func UploadReleaseAttachment(ctx *context.Context) {
-	uploadAttachment(ctx, ctx.Repo.Repository.ID, setting.Repository.Release.AllowedTypes)
+	uploadAttachmentOrReleaseAttachment(ctx, ctx.Repo.Repository.ID, true)
 }
 
-// UploadAttachment response for uploading attachments
-func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
+// uploadAttachmentOrReleaseAttachment response for uploading attachments
+func uploadAttachmentOrReleaseAttachment(ctx *context.Context, repoID int64, isRelease bool) {
 	if !setting.Attachment.Enabled {
 		ctx.HTTPError(http.StatusNotFound, "attachment is not enabled")
 		return
@@ -46,11 +46,11 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	defer file.Close()
 
 	uploaderFile := attachment.NewLimitedUploaderKnownSize(file, header.Size)
-	attach, err := attachment.UploadAttachmentReleaseSizeLimit(ctx, uploaderFile, allowedTypes, &repo_model.Attachment{
+	attach, err := attachment.UploadAttachmentOrReleaseAttachment(ctx, uploaderFile, &repo_model.Attachment{
 		Name:       header.Filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     repoID,
-	})
+	}, isRelease)
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
