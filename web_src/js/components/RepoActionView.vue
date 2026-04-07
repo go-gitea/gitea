@@ -25,6 +25,10 @@ function formatAttemptTitle(attempt: {attempt: number; latest: boolean}) {
   return attempt.latest ? `${locale.latestAttempt} #${attempt.attempt}` : `${locale.attempt} #${attempt.attempt}`;
 }
 
+function formatCurrentAttemptTitle(attempt: {attempt: number; latest: boolean}) {
+  return attempt.latest ? `${locale.latest} #${attempt.attempt}` : formatAttemptTitle(attempt);
+}
+
 function getArtifactActionSuffix() {
   return !run.value.isLatestAttempt && run.value.runAttempt > 0 ? `?attempt=${run.value.runAttempt}` : '';
 }
@@ -54,32 +58,8 @@ async function deleteArtifact(name: string) {
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
         <div class="flex-text-block tw-shrink-0 tw-flex-wrap">
-          <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
-            {{ locale.approve }}
-          </button>
-          <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
-            {{ locale.cancel }}
-          </button>
-          <template v-else-if="run.canRerun">
-            <div v-if="run.canRerunFailed" class="ui small compact buttons">
-              <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun-failed`">
-                {{ locale.rerun_failed }}
-              </button>
-              <div class="ui basic small compact dropdown icon button">
-                <SvgIcon name="octicon-triangle-down" :size="14"/>
-                <div class="menu">
-                  <div class="item link-action" :data-url="`${run.link}/rerun`">
-                    {{ locale.rerun_all }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <button v-else class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`">
-              {{ locale.rerun_all }}
-            </button>
-          </template>
-          <div v-if="run.attempts.length > 0" class="ui dropdown jump basic small compact button attempt-switcher">
-            <span class="text">{{ formatAttemptTitle(run.attempts.find((attempt) => attempt.current) || run.attempts[0]) }}</span>
+          <div v-if="run.attempts.length > 1" class="ui dropdown jump basic small compact button attempt-switcher">
+            <span class="text">{{ formatCurrentAttemptTitle(run.attempts.find((attempt) => attempt.current) || run.attempts[0]) }}</span>
             <SvgIcon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
             <div class="menu attempt-switcher-menu">
               <a
@@ -114,6 +94,30 @@ async function deleteArtifact(name: string) {
               </a>
             </div>
           </div>
+          <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
+            {{ locale.approve }}
+          </button>
+          <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
+            {{ locale.cancel }}
+          </button>
+          <template v-if="run.canRerun">
+            <div v-if="run.canRerunFailed" class="ui small compact buttons">
+              <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun-failed`">
+                {{ locale.rerun_failed }}
+              </button>
+              <div class="ui basic small compact dropdown icon button">
+                <SvgIcon name="octicon-triangle-down" :size="14"/>
+                <div class="menu">
+                  <div class="item link-action" :data-url="`${run.link}/rerun`">
+                    {{ locale.rerun_all }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button v-else class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`">
+              {{ locale.rerun_all }}
+            </button>
+          </template>
         </div>
       </div>
       <div class="action-commit-summary">
