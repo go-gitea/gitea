@@ -1,13 +1,12 @@
 import {build, defineConfig} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
-import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
+import {readFileSync, readdirSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
 import path, {basename, join, parse} from 'node:path';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
 import wrapAnsi from 'wrap-ansi';
-import licensePlugin from 'rollup-plugin-license';
 import type {InlineConfig, Plugin, Rolldown} from 'vite';
 import {camelize} from 'vue';
 
@@ -39,8 +38,45 @@ const webComponents = new Set([
   'text-expander',
 ]);
 
-function formatLicenseText(licenseText: string) {
-  return wrapAnsi(licenseText || '', 80).trim();
+function licensesPlugin(): Plugin {
+  const separator = '-'.repeat(80);
+  return {
+    name: 'licenses-plugin',
+    generateBundle(_, bundle) {
+      const packages = new Map<string, string>();
+      for (const chunk of Object.values(bundle)) {
+        if (chunk.type !== 'chunk') continue;
+        for (const moduleId of Object.keys(chunk.modules)) {
+          const fsPath = moduleId.split('?')[0];
+          if (!fsPath.includes('node_modules') || moduleId.startsWith('\0')) continue;
+          let dir = path.dirname(fsPath);
+          let pkgJson: {name?: string, version?: string} | null = null;
+          while (dir.length > 1 && dir.includes('node_modules')) {
+            try {
+              pkgJson = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
+              if (pkgJson?.name) break;
+            } catch {}
+            dir = path.dirname(dir);
+          }
+          if (!pkgJson?.name) continue;
+          const key = `${pkgJson.name}@${pkgJson.version}`;
+          if (packages.has(key)) continue;
+          const licenseFile = readdirSync(dir).find((f) => /^licen[sc]e/i.test(f));
+          const licenseText = licenseFile ? readFileSync(join(dir, licenseFile), 'utf8') : '';
+          packages.set(key, wrapAnsi(licenseText, 80).trim());
+        }
+      }
+
+      const goLicenses: Record<string, string> = {};
+      for (const {name, licenseText} of JSON.parse(readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8'))) {
+        goLicenses[name] = wrapAnsi(licenseText || '', 80).trim();
+      }
+
+      const entries = Object.entries({...goLicenses, ...Object.fromEntries(packages)}).sort(([a], [b]) => a.localeCompare(b));
+      const content = entries.map(([title, body]) => `${separator}\n${title}\n${separator}\n${body}`).join('\n');
+      writeFileSync(join(import.meta.dirname, 'public/assets/licenses.txt'), content);
+    },
+  };
 }
 
 const commonRolldownOptions: Rolldown.RolldownOptions = {
@@ -313,36 +349,6 @@ export default defineConfig(commonViteOpts({
         },
       },
     }),
-    isProduction ? licensePlugin({
-      thirdParty: {
-        output: {
-          file: join(import.meta.dirname, 'public/assets/licenses.txt'),
-          template(deps) {
-            const line = '-'.repeat(80);
-            const goJson = readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8');
-            const goModules = JSON.parse(goJson).map(({name, licenseText}: {name: string, licenseText: string}) => {
-              return {name, body: formatLicenseText(licenseText)};
-            });
-            const jsModules = deps.map((dep) => {
-              return {name: dep.name, version: dep.version, body: formatLicenseText(dep.licenseText ?? '')};
-            });
-            const modules = [...goModules, ...jsModules].sort((a, b) => a.name.localeCompare(b.name));
-            return modules.map(({name, version, body}: {name: string, version?: string, body: string}) => {
-              const title = version ? `${name}@${version}` : name;
-              return `${line}\n${title}\n${line}\n${body}`;
-            }).join('\n');
-          },
-        },
-        allow(dependency) {
-          if (dependency.name === 'khroma') return true; // MIT: https://github.com/fabiospampinato/khroma/pull/33
-          return /(Apache-2\.0|0BSD|BSD-2-Clause|BSD-3-Clause|MIT|ISC|CPAL-1\.0|Unlicense|EPL-1\.0|EPL-2\.0)/.test(dependency.license ?? '');
-        },
-      },
-    }) : {
-      name: 'dev-licenses-stub',
-      closeBundle() {
-        writeFileSync(join(outDir, 'licenses.txt'), 'Licenses are disabled during development');
-      },
-    },
+    licensesPlugin(),
   ],
 }));
