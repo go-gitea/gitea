@@ -309,7 +309,6 @@ export default defineConfig(commonViteOpts({
       },
     }),
     licensePlugin({
-      wrapText: 80,
       onDone(licenses) {
         const line = '-'.repeat(80);
         const goLicenses = JSON.parse(readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8'));
@@ -318,12 +317,16 @@ export default defineConfig(commonViteOpts({
           combined[name] = wrap(licenseText || '', 80).trim();
         }
         for (const {name, version, licenseText} of licenses) {
-          combined[`${name}@${version}`] = licenseText;
+          combined[`${name}@${version}`] = wrap(licenseText, 80).trim();
         }
         const content = Object.entries(combined)
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([title, body]) => `${line}\n${title}\n${line}\n${body}`).join('\n');
         writeFileSync(join(outDir, 'licenses.txt'), content);
+      },
+      allow(dep) {
+        if (dep.name === 'khroma') return true; // MIT: https://github.com/fabiospampinato/khroma/pull/33
+        return /(Apache-2\.0|0BSD|BSD-2-Clause|BSD-3-Clause|MIT|ISC|CPAL-1\.0|Unlicense|EPL-1\.0|EPL-2\.0)/.test(dep.license);
       },
     }),
   ],
