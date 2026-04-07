@@ -285,7 +285,7 @@ async function deleteArtifact(name: string) {
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
   background: var(--color-box-body);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+  box-shadow: 0 8px 24px var(--color-shadow);
   z-index: 10;
 }
 
