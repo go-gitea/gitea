@@ -208,7 +208,7 @@ export function isVideoFile({name, type}: {name?: string, type?: string}): boole
   return Boolean(/\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/'));
 }
 
-export function toggleFullScreen(fullscreenElementsSelector: string, isFullScreen: boolean, sourceParentSelector?: string): void {
+export function toggleFullScreen(fullScreenEl: HTMLElement, isFullScreen: boolean, sourceParentSelector?: string): void {
   // hide other elements
   const headerEl = document.querySelector('#navbar')!;
   const contentEl = document.querySelector('.page-content')!;
@@ -218,9 +218,8 @@ export function toggleFullScreen(fullscreenElementsSelector: string, isFullScree
   toggleElem(footerEl, !isFullScreen);
 
   const sourceParentEl = sourceParentSelector ? document.querySelector(sourceParentSelector)! : contentEl;
-  const fullScreenEl = document.querySelector(fullscreenElementsSelector)!;
   const outerEl = document.querySelector('.full.height')!;
-  toggleElemClass(fullscreenElementsSelector, 'fullscreen', isFullScreen);
+  toggleElemClass(fullScreenEl, 'fullscreen', isFullScreen);
   if (isFullScreen) {
     outerEl.append(fullScreenEl);
   } else {

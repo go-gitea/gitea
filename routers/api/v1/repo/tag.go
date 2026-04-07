@@ -107,15 +107,18 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 		return
 	}
 
-	if tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(sha); err != nil {
+	tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(sha)
+	if err != nil {
 		ctx.APIError(http.StatusBadRequest, err)
-	} else {
-		commit, err := ctx.Repo.GitRepo.GetTagCommit(tag.Name)
-		if err != nil {
-			ctx.APIError(http.StatusBadRequest, err)
-		}
-		ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx, ctx.Repo.Repository, tag, commit))
+		return
 	}
+
+	commit, err := ctx.Repo.GitRepo.GetTagCommit(tag.Name)
+	if err != nil {
+		ctx.APIError(http.StatusBadRequest, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx, ctx.Repo.Repository, tag, commit))
 }
 
 // GetTag get the tag of a repository

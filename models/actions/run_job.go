@@ -72,7 +72,7 @@ func init() {
 }
 
 func (job *ActionRunJob) Duration() time.Duration {
-	return calculateDuration(job.Started, job.Stopped, job.Status)
+	return calculateDuration(job.Started, job.Stopped, job.Status, job.Updated)
 }
 
 func (job *ActionRunJob) LoadRun(ctx context.Context) error {

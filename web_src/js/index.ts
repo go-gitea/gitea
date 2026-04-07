@@ -9,7 +9,7 @@ import {initRepoGraphGit} from './features/repo-graph.ts';
 import {initHeatmap} from './features/heatmap.ts';
 import {initImageDiff} from './features/imagediff.ts';
 import {initRepoMigration} from './features/repo-migration.ts';
-import {initRepoProject} from './features/repo-projects.ts';
+import {initRepoProjectsView} from './features/repo-projects.ts';
 import {initTableSort} from './features/tablesort.ts';
 import {initAdminUserListSearchForm} from './features/admin/users.ts';
 import {initAdminConfigs} from './features/admin/config.ts';
@@ -67,6 +67,7 @@ import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
+import {initDevtest} from './modules/devtest.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -132,7 +133,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoIssueFilterItemLabel,
   initRepoMigration,
   initRepoMigrationStatusChecker,
-  initRepoProject,
+  initRepoProjectsView,
   initRepoPullRequestReview,
   initRepoReleaseNew,
   initRepoTopicBar,
@@ -160,6 +161,8 @@ const initPerformanceTracer = callInitFunctions([
 
   initRepoFileView,
   initActionsPermissionsForm,
+
+  initDevtest,
 ]);
 
 // it must be the last one, then the "querySelectorAll" only needs to be executed once for global init functions.
