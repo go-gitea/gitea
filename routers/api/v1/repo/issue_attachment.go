@@ -186,12 +186,12 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	}
 
 	uploaderFile := attachment_service.NewLimitedUploaderKnownSize(file, header.Size)
-	attachment, err := attachment_service.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, setting.Attachment.AllowedTypes, &repo_model.Attachment{
+	attachment, err := attachment_service.UploadAttachmentOrReleaseAttachmentSizeLimit(ctx, uploaderFile, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
 		IssueID:    issue.ID,
-	})
+	}, false)
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)

@@ -98,10 +98,12 @@ var (
 		} `ini:"repository.issue"`
 
 		Release struct {
-			AllowedTypes     string
-			DefaultPagingNum int
-			FileMaxSize      int64
-			MaxFiles         int64
+			AllowedTypes      string
+			DefaultPagingNum  int
+			FileMaxSize       int64
+			MaxFiles          int64
+			EnableAttachment  bool
+			AttachmentStorage *Storage `ini:"-"`
 		} `ini:"repository.release"`
 
 		Signing struct {
@@ -241,15 +243,18 @@ var (
 		},
 
 		Release: struct {
-			AllowedTypes     string
-			DefaultPagingNum int
-			FileMaxSize      int64
-			MaxFiles         int64
+			AllowedTypes      string
+			DefaultPagingNum  int
+			FileMaxSize       int64
+			MaxFiles          int64
+			EnableAttachment  bool
+			AttachmentStorage *Storage `ini:"-"`
 		}{
 			AllowedTypes:     "",
 			DefaultPagingNum: 10,
 			FileMaxSize:      2048,
 			MaxFiles:         5,
+			EnableAttachment: true,
 		},
 
 		// Signing settings
@@ -369,4 +374,24 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	if err := loadRepoArchiveFrom(rootCfg); err != nil {
 		log.Fatal("loadRepoArchiveFrom: %v", err)
 	}
+
+	if err := loadReleaseAttachmentsStorageFrom(rootCfg); err != nil {
+		log.Fatal("loadReleaseStorageFrom: %v", err)
+	}
+}
+
+func loadReleaseAttachmentsStorageFrom(rootCfg ConfigProvider) (err error) {
+	if !Repository.Release.EnableAttachment {
+		return nil
+	}
+
+	sec, _ := rootCfg.GetSection("repository.release.attachment")
+	if sec == nil {
+		Repository.Release.EnableAttachment = Attachment.Enabled
+		Repository.Release.AttachmentStorage = Attachment.Storage
+		return err
+	}
+
+	Repository.Release.AttachmentStorage, err = getStorage(rootCfg, "release_attachments", "", sec)
+	return err
 }

@@ -31,11 +31,11 @@ func TestUploadAttachment(t *testing.T) {
 	assert.NoError(t, err)
 	defer f.Close()
 
-	attach, err := NewAttachment(t.Context(), &repo_model.Attachment{
+	attach, err := NewAttachmentOrReleaseAttachment(t.Context(), &repo_model.Attachment{
 		RepoID:     1,
 		UploaderID: user.ID,
 		Name:       filepath.Base(fPath),
-	}, f, -1)
+	}, f, -1, false)
 	assert.NoError(t, err)
 
 	attachment, err := repo_model.GetAttachmentByUUID(t.Context(), attach.UUID)

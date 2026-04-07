@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -83,18 +82,13 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	attachID := ctx.PathParamInt64("attachment_id")
-	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
+	attach, err := repo_model.GetReleaseAttachmentByID(ctx, releaseID, attachID)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.APIErrorNotFound()
 			return
 		}
 		ctx.APIErrorInternal(err)
-		return
-	}
-	if attach.ReleaseID != releaseID {
-		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", releaseID, attachID)
-		ctx.APIErrorNotFound()
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
@@ -204,8 +198,8 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	// Check if attachments are enabled
-	if !setting.Attachment.Enabled {
-		ctx.APIErrorNotFound("Attachment is not enabled")
+	if !setting.Repository.Release.EnableAttachment {
+		ctx.APIErrorNotFound("Release attachment is not enabled")
 		return
 	}
 
@@ -242,12 +236,12 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment_service.UploadAttachmentReleaseSizeLimit(ctx, uploaderFile, setting.Repository.Release.AllowedTypes, &repo_model.Attachment{
+	attach, err := attachment_service.UploadAttachmentOrReleaseAttachmentSizeLimit(ctx, uploaderFile, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
 		ReleaseID:  releaseID,
-	})
+	}, true)
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
 			ctx.APIError(http.StatusBadRequest, err)
@@ -319,7 +313,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	attachID := ctx.PathParamInt64("attachment_id")
-	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
+	attach, err := repo_model.GetReleaseAttachmentByID(ctx, releaseID, attachID)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.APIErrorNotFound()
@@ -328,12 +322,9 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	if attach.ReleaseID != releaseID {
-		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", releaseID, attachID)
-		ctx.APIErrorNotFound()
-		return
-	}
+
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
+
 	if form.Name != "" {
 		attach.Name = form.Name
 	}
@@ -392,18 +383,13 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	attachID := ctx.PathParamInt64("attachment_id")
-	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
+	attach, err := repo_model.GetReleaseAttachmentByID(ctx, releaseID, attachID)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.APIErrorNotFound()
 			return
 		}
 		ctx.APIErrorInternal(err)
-		return
-	}
-	if attach.ReleaseID != releaseID {
-		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", releaseID, attachID)
-		ctx.APIErrorNotFound()
 		return
 	}
 

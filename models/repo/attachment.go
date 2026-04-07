@@ -99,6 +99,18 @@ func GetAttachmentByID(ctx context.Context, id int64) (*Attachment, error) {
 	return attach, nil
 }
 
+func GetReleaseAttachmentByID(ctx context.Context, releaseID, id int64) (*Attachment, error) {
+	attach := &Attachment{}
+
+	if has, err := db.GetEngine(ctx).Where("`id` = ? AND `release_id` = ?", id, releaseID).Get(&attach); err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrAttachmentNotExist{ID: id, UUID: ""}
+	}
+
+	return attach, nil
+}
+
 // GetAttachmentByUUID returns attachment by given UUID.
 func GetAttachmentByUUID(ctx context.Context, uuid string) (*Attachment, error) {
 	attach := &Attachment{}
@@ -179,12 +191,44 @@ func DeleteAttachment(ctx context.Context, a *Attachment, remove bool) error {
 
 // DeleteAttachments deletes the given attachments and optionally the associated files.
 func DeleteAttachments(ctx context.Context, attachments []*Attachment, remove bool) (int, error) {
+	return db.WithTx2(ctx, func(ctx context.Context) (int, error) {
+		return deleteAttachmentsOrReleaseAttachments(ctx, attachments, 0, remove)
+	})
+}
+
+func DeleteAttachmentOrReleaseAttachment(ctx context.Context, a *Attachment, remove bool) (err error) {
+	if a.ReleaseID > 0 {
+		_, err = db.WithTx2(ctx, func(ctx context.Context) (int, error) {
+			return deleteAttachmentsOrReleaseAttachments(ctx, []*Attachment{a}, a.ReleaseID, remove)
+		})
+	} else {
+		_, err = db.WithTx2(ctx, func(ctx context.Context) (int, error) {
+			return deleteAttachmentsOrReleaseAttachments(ctx, []*Attachment{a}, 0, remove)
+		})
+	}
+
+	return err
+}
+
+// DeleteReleaseAttachments
+func DeleteReleaseAttachments(ctx context.Context, assets []*Attachment, releaseID int64, remove bool) (int, error) {
+	return db.WithTx2(ctx, func(ctx context.Context) (int, error) {
+		return deleteAttachmentsOrReleaseAttachments(ctx, assets, releaseID, remove)
+	})
+}
+
+// deleteAttachmentsOrReleaseAttachments deletes the given attachments and optionally the associated files.
+func deleteAttachmentsOrReleaseAttachments(ctx context.Context, attachments []*Attachment, releaseID int64, remove bool) (int, error) {
 	if len(attachments) == 0 {
 		return 0, nil
 	}
 
 	ids := make([]int64, 0, len(attachments))
 	for _, a := range attachments {
+		if a.ReleaseID != releaseID {
+			return 0, ErrAttachmentNotExist{0, a.UUID}
+		}
+
 		ids = append(ids, a.ID)
 	}
 
@@ -195,7 +239,15 @@ func DeleteAttachments(ctx context.Context, attachments []*Attachment, remove bo
 
 	if remove {
 		for i, a := range attachments {
-			if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
+			var storageChoice storage.ObjectStorage
+
+			if a.ReleaseID > 0 {
+				storageChoice = storage.ReleaseAttachments
+			} else {
+				storageChoice = storage.Attachments
+			}
+
+			if err := storageChoice.Delete(a.RelativePath()); err != nil {
 				if !errors.Is(err, os.ErrNotExist) {
 					return i, err
 				}
