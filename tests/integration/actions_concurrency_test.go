@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"testing"
 	"time"
 
@@ -1699,21 +1700,22 @@ func getLatestAttemptJobByTemplateJobID(t *testing.T, runID, templateJobID int64
 	t.Helper()
 
 	templateJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: templateJobID, RunID: runID})
-
 	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
+
 	if templateJob.AttemptJobID > 0 {
 		job, err := actions_model.GetRunJobByAttemptJobID(t.Context(), run.ID, run.LatestAttemptID, templateJob.AttemptJobID)
 		assert.NoError(t, err)
 		return job
 	}
 
-	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(t.Context(), run.ID, run.LatestAttemptID)
+	legacyJobs, err := actions_model.GetRunJobsByRunAndAttemptID(t.Context(), run.ID, 0)
 	assert.NoError(t, err)
-	for _, job := range jobs {
-		if job.JobID == templateJob.JobID {
-			return job
-		}
+	jobIdx := slices.IndexFunc(legacyJobs, func(job *actions_model.ActionRunJob) bool { return job.ID == templateJobID })
+	newAttemptJobs, err := actions_model.GetRunJobsByRunAndAttemptID(t.Context(), run.ID, run.LatestAttemptID)
+	if jobIdx < len(newAttemptJobs) {
+		return newAttemptJobs[jobIdx]
 	}
+
 	assert.Failf(t, "latest attempt job not found", "run %d latest attempt %d does not contain job %q", run.ID, run.LatestAttemptID, templateJob.JobID)
 	return nil
 }
