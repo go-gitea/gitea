@@ -94,10 +94,17 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	if job != nil {
 		gitContext["job"] = job.JobID
 		gitContext["run_attempt"] = strconv.FormatInt(job.Attempt, 10)
-	} else if attempt != nil {
-		gitContext["run_attempt"] = strconv.FormatInt(attempt.Attempt, 10)
-	} else {
-		if attempt, has, err := run.GetLatestAttempt(ctx); err == nil && has {
+	}
+
+	if attempt == nil {
+		if latestAttempt, has, err := run.GetLatestAttempt(ctx); err == nil && has {
+			attempt = latestAttempt
+		}
+	}
+
+	if attempt != nil {
+		if err := attempt.LoadAttributes(ctx); err == nil {
+			gitContext["actor"] = attempt.TriggerUser.Name
 			gitContext["run_attempt"] = strconv.FormatInt(attempt.Attempt, 10)
 		}
 	}

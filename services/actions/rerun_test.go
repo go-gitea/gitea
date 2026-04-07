@@ -4,17 +4,17 @@
 package actions
 
 import (
-	"context"
 	"testing"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetFailedRerunJobs(t *testing.T) {
+func TestGetFailedJobsForRerun(t *testing.T) {
 	makeJob := func(id int64, jobID string, status actions_model.Status, needs ...string) *actions_model.ActionRunJob {
 		return &actions_model.ActionRunJob{ID: id, JobID: jobID, Status: status, Needs: needs}
 	}
@@ -24,7 +24,7 @@ func TestGetFailedRerunJobs(t *testing.T) {
 			makeJob(1, "job1", actions_model.StatusSuccess),
 			makeJob(2, "job2", actions_model.StatusSkipped, "job1"),
 		}
-		assert.Empty(t, GetFailedRerunJobs(jobs))
+		assert.Empty(t, GetFailedJobsForRerun(jobs))
 	})
 
 	t.Run("single failed job with no dependents", func(t *testing.T) {
@@ -32,7 +32,7 @@ func TestGetFailedRerunJobs(t *testing.T) {
 		job2 := makeJob(2, "job2", actions_model.StatusSuccess)
 		jobs := []*actions_model.ActionRunJob{job1, job2}
 
-		result := GetFailedRerunJobs(jobs)
+		result := GetFailedJobsForRerun(jobs)
 		assert.ElementsMatch(t, []*actions_model.ActionRunJob{job1}, result)
 	})
 
@@ -43,7 +43,7 @@ func TestGetFailedRerunJobs(t *testing.T) {
 		job4 := makeJob(4, "job4", actions_model.StatusSuccess) // unrelated, must not appear
 		jobs := []*actions_model.ActionRunJob{job1, job2, job3, job4}
 
-		result := GetFailedRerunJobs(jobs)
+		result := GetFailedJobsForRerun(jobs)
 		assert.ElementsMatch(t, []*actions_model.ActionRunJob{job1}, result)
 	})
 
@@ -54,7 +54,7 @@ func TestGetFailedRerunJobs(t *testing.T) {
 		job4 := makeJob(4, "job4", actions_model.StatusSkipped, "job2")
 		jobs := []*actions_model.ActionRunJob{job1, job2, job3, job4}
 
-		result := GetFailedRerunJobs(jobs)
+		result := GetFailedJobsForRerun(jobs)
 		assert.ElementsMatch(t, []*actions_model.ActionRunJob{job1, job2}, result)
 	})
 
@@ -64,7 +64,7 @@ func TestGetFailedRerunJobs(t *testing.T) {
 		job3 := makeJob(3, "job3", actions_model.StatusSkipped, "job1", "job2")
 		jobs := []*actions_model.ActionRunJob{job1, job2, job3}
 
-		result := GetFailedRerunJobs(jobs)
+		result := GetFailedJobsForRerun(jobs)
 		assert.ElementsMatch(t, []*actions_model.ActionRunJob{job1, job2}, result)
 		assert.Len(t, result, 2)
 	})
@@ -74,7 +74,7 @@ func TestGetFailedRerunJobs(t *testing.T) {
 		job2 := makeJob(2, "job2", actions_model.StatusSuccess, "job1")
 		jobs := []*actions_model.ActionRunJob{job1, job2}
 
-		result := GetFailedRerunJobs(jobs)
+		result := GetFailedJobsForRerun(jobs)
 		assert.ElementsMatch(t, []*actions_model.ActionRunJob{job1}, result)
 	})
 }
@@ -86,7 +86,7 @@ func TestRerunValidation(t *testing.T) {
 		jobs := []*actions_model.ActionRunJob{
 			{ID: 1, JobID: "job1"},
 		}
-		_, err := RerunWorkflowRunJobs(context.Background(), nil, runningRun, jobs)
+		_, err := RerunWorkflowRunJobs(t.Context(), nil, runningRun, &user_model.User{ID: 1}, jobs)
 		require.Error(t, err)
 		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
@@ -95,7 +95,7 @@ func TestRerunValidation(t *testing.T) {
 		jobs := []*actions_model.ActionRunJob{
 			{ID: 1, JobID: "job1", Status: actions_model.StatusFailure},
 		}
-		_, err := RerunWorkflowRunJobs(context.Background(), nil, runningRun, GetFailedRerunJobs(jobs))
+		_, err := RerunWorkflowRunJobs(t.Context(), nil, runningRun, &user_model.User{ID: 1}, GetFailedJobsForRerun(jobs))
 		require.Error(t, err)
 		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
