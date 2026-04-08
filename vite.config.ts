@@ -327,7 +327,7 @@ export default defineConfig(commonViteOpts({
       match: /^((UN)?LICEN(S|C)E|COPYING).*$/i, // also defined in build/generate-go-licenses.go
       allow(dep) {
         if (dep.name === 'khroma') return true; // MIT: https://github.com/fabiospampinato/khroma/pull/33
-        return /^(Apache-2\.0|0BSD|BSD-2-Clause|BSD-3-Clause|MIT|ISC|CPAL-1\.0|Unlicense|EPL-1\.0|EPL-2\.0)$/.test(dep.license);
+        return /(Apache-2\.0|0BSD|BSD-2-Clause|BSD-3-Clause|MIT|ISC|CPAL-1\.0|Unlicense|EPL-1\.0|EPL-2\.0)/.test(dep.license);
       },
     }) : {
       name: 'dev-licenses-stub',
