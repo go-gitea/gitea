@@ -57,22 +57,26 @@ func NewComment(ctx *context.Context) {
 		return
 	}
 
+	redirect := fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, issueType, issue.Index)
 	attachments := util.Iif(setting.Attachment.Enabled, form.Files, nil)
 
-	// Can allow empty comments if there are attachments or a status change  (close, reopen, approve, reject)
-	// So, only stop if there is no content, no attachments, and no status change.
-	if form.Content == "" && len(attachments) == 0 && form.Status == "" {
-		ctx.JSONError(ctx.Tr("repo.issues.comment_no_content"))
-		return
-	}
-
-	comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Content, attachments)
-	if err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
-		} else {
-			ctx.ServerError("CreateIssueComment", err)
+	// allow empty content if there are attachments
+	if form.Content != "" || len(attachments) > 0 {
+		comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Content, attachments)
+		if err != nil {
+			if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
+			} else {
+				ctx.ServerError("CreateIssueComment", err)
+			}
+			return
 		}
+		// redirect to the comment's hashtag
+		redirect += "#" + comment.HashTag()
+	} else if form.Status == "" {
+		// if no status change (close, reopen), it is a plain comment, and content is required
+		// "approve/reject" are handled differently in SubmitReview
+		ctx.JSONError(ctx.Tr("repo.issues.comment_no_content"))
 		return
 	}
 
@@ -86,6 +90,7 @@ func NewComment(ctx *context.Context) {
 		!(issue.IsPull && issue.PullRequest.HasMerged) {
 		// Duplication and conflict check should apply to reopen pull request.
 		var branchOtherUnmergedPR *issues_model.PullRequest
+		var err error
 		if form.Status == "reopen" && issue.IsPull {
 			pull := issue.PullRequest
 			branchOtherUnmergedPR, err = issues_model.GetUnmergedPullRequest(ctx, pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch, pull.Flow)
@@ -179,11 +184,6 @@ func NewComment(ctx *context.Context) {
 		}
 	} // end if: handle close or reopen
 
-	// Redirect to the comment, add hashtag if it exists
-	redirect := fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, issueType, issue.Index)
-	if comment != nil {
-		redirect += "#" + comment.HashTag()
-	}
 	ctx.JSONRedirect(redirect)
 }
 
