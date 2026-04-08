@@ -309,14 +309,14 @@ export default defineConfig(commonViteOpts({
       },
     }),
     licensePlugin({
-      done(licenses) {
+      done(deps) {
         const line = '-'.repeat(80);
         const goLicenses = JSON.parse(readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8'));
         const combined: Record<string, string> = {};
         for (const {name, licenseText} of goLicenses) {
           combined[name] = wrap(licenseText || '', 80).trim();
         }
-        for (const {name, version, licenseText} of licenses) {
+        for (const {name, version, licenseText} of deps) {
           combined[`${name}@${version}`] = wrap(licenseText, 80).trim();
         }
         const content = Object.entries(combined)
