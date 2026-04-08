@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
 type actionRunAttempt struct {
@@ -57,21 +58,14 @@ func (actionArtifact) TableName() string {
 
 // AddActionRunAttemptModel adds the ActionRunAttempt table and the supporting ActionRun/ActionRunJob fields.
 func AddActionRunAttemptModel(x *xorm.Engine) error {
+	// add "action_run_attempt"
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
 	}, new(actionRunAttempt)); err != nil {
 		return err
 	}
 
-	type ActionRun struct {
-		LatestAttemptID int64 `xorm:"index NOT NULL DEFAULT 0"`
-	}
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-	}, new(ActionRun)); err != nil {
-		return err
-	}
-
+	// update "action_run_job"
 	type ActionRunJob struct {
 		RunAttemptID int64 `xorm:"index NOT NULL DEFAULT 0"`
 		AttemptJobID int64 `xorm:"index NOT NULL DEFAULT 0"`
@@ -83,16 +77,40 @@ func AddActionRunAttemptModel(x *xorm.Engine) error {
 		return err
 	}
 
+	// update "action_artifact"
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(actionArtifact)); err != nil {
+		return err
+	}
+	indexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action_artifact")
+	if err != nil {
+		return err
+	}
+	for _, index := range indexes {
+		if index.Type == schemas.UniqueType && len(index.Cols) == 3 &&
+			index.Cols[0] == "run_id" && index.Cols[1] == "artifact_path" && index.Cols[2] == "artifact_name" {
+			if _, err := x.Exec(x.Dialect().DropIndexSQL("action_artifact", index)); err != nil {
+				return err
+			}
+			break
+		}
+	}
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
 	}, new(actionArtifact)); err != nil {
 		return err
 	}
 
-	if err := base.RecreateTables(new(actionArtifact))(x); err != nil {
+	// update "action_run"
+	type ActionRun struct {
+		LatestAttemptID int64 `xorm:"index NOT NULL DEFAULT 0"`
+	}
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(ActionRun)); err != nil {
 		return err
 	}
-
 	concurrencyColumns := make([]string, 0, 2)
 	for _, col := range []string{"concurrency_group", "concurrency_cancel"} {
 		exist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "action_run", col)
@@ -106,8 +124,13 @@ func AddActionRunAttemptModel(x *xorm.Engine) error {
 	if len(concurrencyColumns) == 0 {
 		return nil
 	}
-
 	sess := x.NewSession()
 	defer sess.Close()
-	return base.DropTableColumns(sess, "action_run", concurrencyColumns...)
+	if err := base.DropTableColumns(sess, "action_run", concurrencyColumns...); err != nil {
+		return err
+	}
+	_, err = x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(ActionRun))
+	return err
 }
