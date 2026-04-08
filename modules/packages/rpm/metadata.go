@@ -46,10 +46,11 @@ type Package struct {
 }
 
 type VersionMetadata struct {
-	License     string `json:"license,omitempty"`
-	ProjectURL  string `json:"project_url,omitempty"`
-	Summary     string `json:"summary,omitempty"`
-	Description string `json:"description,omitempty"`
+	License     string    `json:"license,omitempty"`
+	ProjectURL  string    `json:"project_url,omitempty"`
+	Summary     string    `json:"summary,omitempty"`
+	Description string    `json:"description,omitempty"`
+	Updates     []*Update `json:"updates,omitempty"`
 }
 
 type FileMetadata struct {
@@ -295,4 +296,44 @@ func getChangelogs(h *rpmutils.RpmHeader) []*Changelog {
 		})
 	}
 	return changelogs
+}
+
+type DateAttr struct {
+	Date string `xml:"date,attr" json:"date"`
+}
+
+type Update struct {
+	From        string        `xml:"from,attr" json:"from"`
+	Status      string        `xml:"status,attr" json:"status"`
+	Type        string        `xml:"type,attr" json:"type"`
+	Version     string        `xml:"version,attr" json:"version"`
+	ID          string        `xml:"id" json:"id"`
+	Title       string        `xml:"title" json:"title"`
+	Severity    string        `xml:"severity" json:"severity"`
+	Description string        `xml:"description" json:"description"`
+	Issued      *DateAttr     `xml:"issued" json:"issued"`
+	Updated     *DateAttr     `xml:"updated" json:"updated"`
+	References  []*Reference  `xml:"references>reference" json:"references"`
+	PkgList     []*Collection `xml:"pkglist>collection" json:"pkg_list"`
+}
+
+type Reference struct {
+	Href  string `xml:"href,attr" json:"href"`
+	ID    string `xml:"id,attr" json:"id"`
+	Title string `xml:"title,attr" json:"title"`
+	Type  string `xml:"type,attr" json:"type"`
+}
+
+type Collection struct {
+	Short    string           `xml:"short,attr" json:"short"`
+	Packages []*UpdatePackage `xml:"package" json:"packages"`
+}
+
+type UpdatePackage struct {
+	Arch     string `xml:"arch,attr" json:"arch"`
+	Name     string `xml:"name,attr" json:"name"`
+	Release  string `xml:"release,attr" json:"release"`
+	Src      string `xml:"src,attr" json:"src"`
+	Version  string `xml:"version,attr" json:"version"`
+	Filename string `xml:"filename" json:"filename"`
 }
