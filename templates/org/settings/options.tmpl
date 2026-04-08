@@ -8,7 +8,7 @@
 		<form class="ui form" action="{{.Link}}" method="post">
 			<div class="field {{if .Err_FullName}}error{{end}}">
 				<label for="full_name">{{ctx.Locale.Tr "org.org_full_name_holder"}}</label>
-				<input id="full_name" name="full_name" value="{{.Org.FullName}}" maxlength="100">
+				<input id="full_name" name="full_name" value="{{.Org.FullName}}" maxlength="100" placeholder="John Doe">
 			</div>
 			<div class="field {{if .Err_Email}}error{{end}}">
 				<label for="email">{{ctx.Locale.Tr "org.settings.email"}}</label>

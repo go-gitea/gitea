@@ -4,7 +4,7 @@
 		{{template "base/disable_form_autofill"}}
 		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
 			<label for="payload_url">{{ctx.Locale.Tr "repo.settings.payload_url"}}</label>
-			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>
+			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required placeholder="https://example.com/webhook">
 		</div>
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.settings.content_type"}}</label>
