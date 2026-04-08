@@ -6,6 +6,8 @@ test('isGiteaError', () => {
   expect(isGiteaError('safari-extension://abc/content.js', '')).toBe(false);
   expect(isGiteaError('safari-web-extension://abc/content.js', '')).toBe(false);
   expect(isGiteaError('chrome-extension://abc/content.js', '')).toBe(false);
+  expect(isGiteaError('https://other-site.com/script.js', '')).toBe(false);
+  expect(isGiteaError('http://localhost:3000/some/page', '')).toBe(true);
   expect(isGiteaError('http://localhost:3000/assets/js/index.abc123.js', '')).toBe(true);
   expect(isGiteaError('', `Error\n    at chrome-extension://abc/content.js:1:1`)).toBe(false);
   expect(isGiteaError('', `Error\n    at https://other-site.com/script.js:1:1`)).toBe(false);
