@@ -252,7 +252,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 
 	var jobs []*ActionRunJob
-	if err := e.Where("task_id=? AND status=?", 0, StatusWaiting).And(jobCond).Asc("updated", "id").Find(&jobs); err != nil {
+	if err := e.Where("status=?", StatusWaiting).And(jobCond).Asc("updated", "id").Find(&jobs); err != nil {
 		return nil, false, err
 	}
 
@@ -260,6 +260,10 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	var job *ActionRunJob
 	log.Trace("runner labels: %v", runner.AgentLabels)
 	for _, v := range jobs {
+		if v.TaskID != 0 {
+			// This should not happen
+			continue
+		}
 		if runner.CanMatchLabels(v.RunsOn) {
 			job = v
 			break
