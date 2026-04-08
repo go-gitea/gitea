@@ -716,7 +716,7 @@ func Rerun(ctx *context_module.Context) {
 	}
 
 	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, jobsToRerun); err != nil {
-		ctx.ServerError("RerunWorkflowRunJobs", err)
+		handleWorkflowRerunError(ctx, err)
 		return
 	}
 
@@ -737,11 +737,19 @@ func RerunFailed(ctx *context_module.Context) {
 	}
 
 	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, actions_service.GetFailedJobsForRerun(jobs)); err != nil {
-		ctx.ServerError("RerunWorkflowRunJobs", err)
+		handleWorkflowRerunError(ctx, err)
 		return
 	}
 
 	ctx.JSONRedirect(run.Link())
+}
+
+func handleWorkflowRerunError(ctx *context_module.Context, err error) {
+	if errors.Is(err, util.ErrAlreadyExist) {
+		ctx.JSON(http.StatusConflict, map[string]any{"message": err.Error()})
+		return
+	}
+	ctx.ServerError("RerunWorkflowRunJobs", err)
 }
 
 func Logs(ctx *context_module.Context) {

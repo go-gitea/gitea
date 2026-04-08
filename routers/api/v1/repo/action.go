@@ -1476,6 +1476,9 @@ func handleWorkflowRerunError(ctx *context.APIContext, err error) {
 	if errors.Is(err, util.ErrInvalidArgument) {
 		ctx.APIError(http.StatusBadRequest, err)
 		return
+	} else if errors.Is(err, util.ErrAlreadyExist) {
+		ctx.APIError(http.StatusConflict, err)
+		return
 	} else if errors.Is(err, util.ErrNotExist) {
 		ctx.APIError(http.StatusNotFound, err)
 		return

@@ -153,6 +153,9 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 		shouldBlock := newAttemptStatus == actions_model.StatusBlocked
 
 		if err := db.Insert(ctx, plan.newAttempt); err != nil {
+			if _, getErr := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, plan.run.ID, plan.newAttempt.Attempt); getErr == nil {
+				return util.NewAlreadyExistErrorf("workflow run attempt %d for run %d already exists", plan.newAttempt.Attempt, plan.run.ID)
+			}
 			return err
 		}
 
