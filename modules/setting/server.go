@@ -72,9 +72,6 @@ var (
 	// It maps to ini:"LOCAL_ROOT_URL" in [server]
 	LocalURL string
 
-	// AssetVersion holds an opaque value that is used for cache-busting assets
-	AssetVersion string
-
 	// appTempPathInternal is the temporary path for the app, it is only an internal variable
 	// DO NOT use it directly, always use AppDataTempDir
 	appTempPathInternal string
@@ -286,7 +283,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
-	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLLegacy)
+	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLAuto)
 	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy && PublicURLDetection != PublicURLNever {
 		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLDetection)
 	}
@@ -317,8 +314,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	}
 
 	AbsoluteAssetURL = MakeAbsoluteAssetURL(appURL, StaticURLPrefix)
-	AssetVersion = strings.ReplaceAll(AppVer, "+", "~") // make sure the version string is clear (no real escaping is needed)
-
 	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
 	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
 

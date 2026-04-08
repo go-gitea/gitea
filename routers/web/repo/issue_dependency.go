@@ -55,9 +55,9 @@ func AddDependency(ctx *context.Context) {
 			return
 		}
 		// Can ctx.Doer read issues in the dep repo?
-		depRepoPerm, err := access_model.GetUserRepoPermission(ctx, dep.Repo, ctx.Doer)
+		depRepoPerm, err := access_model.GetDoerRepoPermission(ctx, dep.Repo, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
+			ctx.ServerError("GetDoerRepoPermission", err)
 			return
 		}
 		if !depRepoPerm.CanReadIssuesOrPulls(dep.IsPull) {

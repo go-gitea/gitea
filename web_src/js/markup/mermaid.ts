@@ -72,8 +72,8 @@ export function sourceNeedsElk(source: string) {
 }
 
 async function loadMermaid(needElkRender: boolean) {
-  const mermaidPromise = import(/* webpackChunkName: "mermaid" */'mermaid');
-  const elkPromise = needElkRender ? import(/* webpackChunkName: "mermaid-layout-elk" */'@mermaid-js/layout-elk') : null;
+  const mermaidPromise = import('mermaid');
+  const elkPromise = needElkRender ? import('@mermaid-js/layout-elk') : null;
   const results = await Promise.all([mermaidPromise, elkPromise]);
   return {
     mermaid: results[0].default,

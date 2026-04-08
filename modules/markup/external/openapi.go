@@ -9,6 +9,7 @@ import (
 	"io"
 
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -46,34 +47,38 @@ func (p *openAPIRenderer) SanitizerRules() []setting.MarkupSanitizerRule {
 func (p *openAPIRenderer) GetExternalRendererOptions() (ret markup.ExternalRendererOptions) {
 	ret.SanitizerDisabled = true
 	ret.DisplayInIframe = true
-	ret.ContentSandbox = ""
+	ret.ContentSandbox = "allow-scripts allow-forms allow-modals allow-popups allow-downloads"
 	return ret
 }
 
 func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	if ctx.RenderOptions.StandalonePageOptions == nil {
+		opts := p.GetExternalRendererOptions()
+		return markup.RenderIFrame(ctx, &opts, output)
+	}
+
 	content, err := util.ReadWithLimit(input, int(setting.UI.MaxDisplayFileSize))
 	if err != nil {
 		return err
 	}
-	// TODO: can extract this to a tmpl file later
+
+	// HINT: SWAGGER-OPENAPI-VIEWER: another place "templates/swagger/openapi-viewer.tmpl"
 	_, err = io.WriteString(output, fmt.Sprintf(
 		`<!DOCTYPE html>
 <html>
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" href="%s/assets/css/swagger.css?v=%s">
+	<link rel="stylesheet" href="%s">
 </head>
 <body>
 	<div id="swagger-ui"><textarea class="swagger-spec-content" data-spec-filename="%s">%s</textarea></div>
-	<script src="%s/assets/js/swagger.js?v=%s"></script>
+	<script type="module" src="%s"></script>
 </body>
 </html>`,
-		setting.StaticURLPrefix,
-		setting.AssetVersion,
+		public.AssetURI("css/swagger.css"),
 		html.EscapeString(ctx.RenderOptions.RelativePath),
 		html.EscapeString(util.UnsafeBytesToString(content)),
-		setting.StaticURLPrefix,
-		setting.AssetVersion,
+		public.AssetURI("js/swagger.js"),
 	))
 	return err
 }

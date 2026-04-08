@@ -22,8 +22,8 @@ interface Window {
   config: {
     appUrl: string,
     appSubUrl: string,
-    assetVersionEncoded: string,
     assetUrlPrefix: string,
+    sharedWorkerUri: string,
     runModeIsProd: boolean,
     customEmojis: Record<string, string>,
     pageData: Record<string, any> & {
@@ -61,7 +61,6 @@ interface Window {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
-  codeEditors: any[], // export editor for customization
   localUserSettings: typeof import('./modules/user-settings.ts').localUserSettings,
 
   // various captcha plugins
@@ -70,4 +69,9 @@ interface Window {
   hcaptcha: any,
 
   // do not add more properties here unless it is a must
+}
+
+declare module '*?worker' {
+  const workerConstructor: new () => Worker;
+  export default workerConstructor;
 }

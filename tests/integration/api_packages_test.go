@@ -85,6 +85,50 @@ func TestPackageAPI(t *testing.T) {
 		assert.Equal(t, user.Name, p.Creator.UserName)
 	})
 
+	t.Run("DeleteEntirePackage", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		packageName := "test-package-entire-delete"
+		for _, version := range []string{"1.0.1", "1.0.2"} {
+			url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/file.bin", user.Name, packageName, version)
+			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+		}
+
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s", user.Name, packageName)).
+			AddTokenAuth(tokenWritePackage)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s", user.Name, packageName)).
+			AddTokenAuth(tokenReadPackage)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("DeletePackageVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		packageName := "test-package-version-delete"
+		for _, version := range []string{"1.0.1", "1.0.2"} {
+			url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/file.bin", user.Name, packageName, version)
+			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1})).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+		}
+
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/1.0.1", user.Name, packageName)).
+			AddTokenAuth(tokenWritePackage)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/1.0.1", user.Name, packageName)).
+			AddTokenAuth(tokenReadPackage)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/1.0.2", user.Name, packageName)).
+			AddTokenAuth(tokenReadPackage)
+		MakeRequest(t, req, http.StatusOK)
+	})
+
 	t.Run("ListPackageVersions", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
