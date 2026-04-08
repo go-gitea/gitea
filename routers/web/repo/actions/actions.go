@@ -320,6 +320,10 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 			if !job.Status.IsWaiting() {
 				continue
 			}
+			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
+				runErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
+				break
+			}
 			hasOnlineRunner := false
 			for _, runner := range runners {
 				if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
