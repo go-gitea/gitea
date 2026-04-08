@@ -43,7 +43,7 @@ type ActionRunJob struct {
 	JobID  string   `xorm:"VARCHAR(255)"` // job id in workflow, not job's id
 	Needs  []string `xorm:"JSON TEXT"`
 	RunsOn []string `xorm:"JSON TEXT"`
-	TaskID int64    // the latest task of the job
+	TaskID int64    `xorm:"index"` // the latest task of the job
 	Status Status   `xorm:"index"`
 
 	RawConcurrency string // raw concurrency from job YAML's "concurrency" section
