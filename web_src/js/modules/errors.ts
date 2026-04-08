@@ -40,8 +40,8 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
 
   // Filter out errors from browser extensions. Extension scripts use these URL schemes which
   // can appear in `filename` or the error's stack trace.
-  const extensionPattern = /(chrome|moz|safari(-web)?)-extension:\/\//;
-  if (extensionPattern.test(filename ?? '') || extensionPattern.test(err?.stack ?? '')) return;
+  const extensionRe = /(chrome|moz|safari(-web)?)-extension:\/\//;
+  if (extensionRe.test(filename ?? '') || extensionRe.test(err?.stack ?? '')) return;
 
   // If the error stack trace does not include the base URL of our script assets, it likely came
   // from a browser extension or inline script. Do not show such errors in production.
