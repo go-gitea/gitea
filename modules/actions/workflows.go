@@ -103,6 +103,9 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := ValidateWorkflowContent(content); err != nil {
+		return nil, err
+	}
 
 	return events, nil
 }
@@ -136,9 +139,6 @@ func DetectWorkflows(
 
 		// one workflow may have multiple events
 		events, err := GetEventsFromContent(content)
-		if err == nil {
-			err = ValidateWorkflowContent(content)
-		}
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
 			continue
@@ -183,9 +183,6 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 
 		// one workflow may have multiple events
 		events, err := GetEventsFromContent(content)
-		if err == nil {
-			err = ValidateWorkflowContent(content)
-		}
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
 			continue

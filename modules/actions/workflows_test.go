@@ -14,6 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func fullWorkflowContent(yamlOn string) []byte {
+	return []byte("name: test\n" + yamlOn + "\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hello\n")
+}
+
 func TestIsWorkflow(t *testing.T) {
 	oldDirs := setting.Actions.WorkflowDirs
 	defer func() {
@@ -218,7 +222,7 @@ func TestDetectMatched(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			evts, err := GetEventsFromContent([]byte(tc.yamlOn))
+			evts, err := GetEventsFromContent(fullWorkflowContent(tc.yamlOn))
 			assert.NoError(t, err)
 			assert.Len(t, evts, 1)
 			assert.Equal(t, tc.expected, detectMatched(nil, tc.commit, tc.triggedEvent, tc.payload, evts[0]))
@@ -373,7 +377,7 @@ func TestMatchIssuesEvent(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			evts, err := GetEventsFromContent([]byte(tc.yamlOn))
+			evts, err := GetEventsFromContent(fullWorkflowContent(tc.yamlOn))
 			assert.NoError(t, err)
 			assert.Len(t, evts, 1)
 
