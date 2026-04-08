@@ -59,8 +59,8 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 		return err
 	}
 
-	notifyWorkflowJobStatusUpdate(ctx, updatedJobs)
-	notifyWorkflowJobStatusUpdate(ctx, cancelledConcurrencyJobs)
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, updatedJobs)
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, cancelledConcurrencyJobs)
 
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
 

@@ -54,6 +54,18 @@ func (attempt *ActionRunAttempt) LoadAttributes(ctx context.Context) error {
 	if attempt == nil {
 		return nil
 	}
+
+	if attempt.Run == nil {
+		run, err := GetRunByRepoAndID(ctx, attempt.RepoID, attempt.RunID)
+		if err != nil {
+			return err
+		}
+		if err := run.LoadAttributes(ctx); err != nil {
+			return err
+		}
+		attempt.Run = run
+	}
+
 	if attempt.TriggerUser == nil {
 		u, err := user_model.GetPossibleUserByID(ctx, attempt.TriggerUserID)
 		if err != nil {
@@ -61,6 +73,7 @@ func (attempt *ActionRunAttempt) LoadAttributes(ctx context.Context) error {
 		}
 		attempt.TriggerUser = u
 	}
+
 	return nil
 }
 

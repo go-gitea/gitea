@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/util"
-	notify_service "code.gitea.io/gitea/services/notify"
 
 	act_model "github.com/nektos/act/pkg/model"
 	"go.yaml.in/yaml/v4"
@@ -66,10 +65,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 
 	CreateCommitStatusForRunJobs(ctx, run, allJobs...)
 
-	notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
-	for _, job := range allJobs {
-		notify_service.WorkflowJobStatusUpdate(ctx, run.Repo, run.TriggerUser, job, nil)
-	}
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, allJobs)
 
 	return nil
 }
@@ -221,7 +217,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		return err
 	}
 
-	notifyWorkflowJobStatusUpdate(ctx, cancelledConcurrencyJobs)
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, cancelledConcurrencyJobs)
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
 
 	return nil

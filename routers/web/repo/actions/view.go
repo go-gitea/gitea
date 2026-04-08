@@ -34,7 +34,6 @@ import (
 	"code.gitea.io/gitea/routers/common"
 	actions_service "code.gitea.io/gitea/services/actions"
 	context_module "code.gitea.io/gitea/services/context"
-	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/model"
 )
@@ -785,13 +784,9 @@ func Cancel(ctx *context_module.Context) {
 	actions_service.CreateCommitStatusForRunJobs(ctx, run, jobs...)
 	actions_service.EmitJobsIfReadyByJobs(updatedJobs)
 
-	for _, job := range updatedJobs {
-		_ = job.LoadAttributes(ctx)
-		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
-	}
+	actions_service.NotifyWorkflowJobsStatusUpdate(ctx, updatedJobs...)
 	if len(updatedJobs) > 0 {
-		job := updatedJobs[0]
-		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
+		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, run.RepoID, run.ID)
 	}
 	ctx.JSONOK()
 }

@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	notify_service "code.gitea.io/gitea/services/notify"
 
 	"xorm.io/builder"
 )
@@ -95,15 +94,12 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 	}); err != nil {
 		return err
 	}
-	notifyWorkflowJobStatusUpdate(ctx, cancelledJobs)
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, cancelledJobs)
 	EmitJobsIfReadyByJobs(cancelledJobs)
 	if err := createCommitStatusesForJobsByRun(ctx, jobs); err != nil {
 		return err
 	}
-	for _, job := range updatedJobs {
-		_ = job.LoadAttributes(ctx)
-		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
-	}
+	NotifyWorkflowJobsStatusUpdate(ctx, updatedJobs...)
 	runJobs := make(map[int64][]*actions_model.ActionRunJob)
 	for _, job := range jobs {
 		runJobs[job.RunID] = append(runJobs[job.RunID], job)
@@ -124,7 +120,7 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 			}
 		}
 		if runUpdated {
-			NotifyWorkflowRunStatusUpdateWithReload(ctx, js[0])
+			NotifyWorkflowRunStatusUpdateWithReload(ctx, js[0].RepoID, js[0].RunID)
 		}
 	}
 	return nil
@@ -273,15 +269,6 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 
 	return jobs, updatedJobs, resolver.cancelledJobs, nil
-}
-
-func NotifyWorkflowRunStatusUpdateWithReload(ctx context.Context, job *actions_model.ActionRunJob) {
-	job.Run = nil
-	if err := job.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
-		return
-	}
-	notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 }
 
 type jobStatusResolver struct {

@@ -264,7 +264,8 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 	status, conclusion := ToActionsStatus(run.Status)
 	startedAt := run.Started.AsLocalTime()
 	completedAt := run.Stopped.AsLocalTime()
-	triggerUser := run.TriggerUser
+	actor := run.TriggerUser       // The username of the user that triggered the initial workflow run.
+	triggerUser := run.TriggerUser // The username of the user that initiated the workflow run. If the workflow run is a re-run, this value may differ from actor.
 
 	if attempt != nil {
 		if err := attempt.LoadAttributes(ctx); err != nil {
@@ -294,8 +295,7 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		Path:         fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
 		Repository:   ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		TriggerActor: ToUser(ctx, triggerUser, nil),
-		// We do not have a way to get a different User for the actor than the trigger user.
-		Actor: ToUser(ctx, triggerUser, nil),
+		Actor:        ToUser(ctx, actor, nil),
 	}, nil
 }
 

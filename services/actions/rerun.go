@@ -15,7 +15,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/util"
-	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/model"
 	"go.yaml.in/yaml/v4"
@@ -234,14 +233,11 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 		job.Run = plan.run
 	}
 
-	notifyWorkflowJobStatusUpdate(ctx, cancelledConcurrencyJobs)
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, cancelledConcurrencyJobs)
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
 
 	CreateCommitStatusForRunJobs(ctx, plan.run, newJobs...)
-	notify_service.WorkflowRunStatusUpdate(ctx, plan.run.Repo, plan.run.TriggerUser, plan.run)
-	for _, job := range newJobs {
-		notify_service.WorkflowJobStatusUpdate(ctx, plan.run.Repo, plan.run.TriggerUser, job, nil)
-	}
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, newJobs)
 
 	return plan.newAttempt, nil
 }

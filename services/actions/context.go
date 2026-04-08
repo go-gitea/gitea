@@ -104,7 +104,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 
 	if attempt != nil {
 		if err := attempt.LoadAttributes(ctx); err == nil {
-			gitContext["actor"] = attempt.TriggerUser.Name
+			gitContext["triggering_actor"] = attempt.TriggerUser.Name
 			gitContext["run_attempt"] = strconv.FormatInt(attempt.Attempt, 10)
 		}
 	}

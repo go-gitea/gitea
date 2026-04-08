@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // StopZombieTasks stops the task which have running status, but haven't been updated for a long time
@@ -36,39 +35,16 @@ func StopEndlessTasks(ctx context.Context) error {
 	})
 }
 
-func notifyWorkflowJobStatusUpdate(ctx context.Context, jobs []*actions_model.ActionRunJob) {
-	if len(jobs) == 0 {
-		return
-	}
-	// The input jobs may belong to different runs, so track each affected run.
-	runs := make(map[int64]*actions_model.ActionRun, len(jobs))
-	for _, job := range jobs {
-		if err := job.LoadAttributes(ctx); err != nil {
-			log.Error("Failed to load job attributes: %v", err)
-			continue
-		}
-		CreateCommitStatusForRunJobs(ctx, job.Run, job)
-		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
-		if _, ok := runs[job.RunID]; !ok {
-			runs[job.RunID] = job.Run
-		}
-	}
-
-	for _, run := range runs {
-		notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
-	}
-}
-
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
 	jobs, err := actions_model.CancelPreviousJobs(ctx, repoID, ref, workflowID, event)
-	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, jobs)
 	EmitJobsIfReadyByJobs(jobs)
 	return err
 }
 
 func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) error {
 	jobs, err := actions_model.CleanRepoScheduleTasks(ctx, repo)
-	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, jobs)
 	EmitJobsIfReadyByJobs(jobs)
 	return err
 }
@@ -173,7 +149,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 		remove()
 	}
 
-	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, jobs)
 	EmitJobsIfReadyByJobs(jobs)
 
 	return nil
@@ -192,8 +168,6 @@ func CancelAbandonedJobs(ctx context.Context) error {
 
 	now := timeutil.TimeStampNow()
 
-	// Collect one job per run to send workflow run status update
-	updatedRuns := map[int64]*actions_model.ActionRunJob{}
 	updatedJobs := []*actions_model.ActionRunJob{}
 
 	for _, job := range jobs {
@@ -209,9 +183,6 @@ func CancelAbandonedJobs(ctx context.Context) error {
 				return err
 			}
 			updated = n > 0
-			if updated && job.Run.Status.IsDone() {
-				updatedRuns[job.RunID] = job
-			}
 			return nil
 		}); err != nil {
 			log.Warn("cancel abandoned job %v: %v", job.ID, err)
@@ -223,13 +194,10 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		CreateCommitStatusForRunJobs(ctx, job.Run, job)
 		if updated {
 			updatedJobs = append(updatedJobs, job)
-			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 		}
 	}
 
-	for _, job := range updatedRuns {
-		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
-	}
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, updatedJobs)
 	EmitJobsIfReadyByJobs(updatedJobs)
 
 	return nil

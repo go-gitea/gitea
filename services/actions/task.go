@@ -11,7 +11,6 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
-	notify_service "code.gitea.io/gitea/services/notify"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -102,11 +101,11 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	}
 
 	CreateCommitStatusForRunJobs(ctx, job.Run, job)
-	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, actionTask)
+	NotifyWorkflowJobStatusUpdateWithTask(ctx, job, actionTask)
 	// job.Run is loaded inside the transaction before UpdateRunJob sets run.Started,
 	// so Started is zero only on the very first pick-up of that run.
 	if job.Run.Started.IsZero() {
-		NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
+		NotifyWorkflowRunStatusUpdateWithReload(ctx, job.RepoID, job.RunID)
 	}
 
 	return task, true, nil

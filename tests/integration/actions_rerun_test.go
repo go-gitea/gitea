@@ -143,6 +143,7 @@ jobs:
 			assert.EqualValues(t, 2, apiAttempt.RunAttempt)
 			assert.Equal(t, "completed", apiAttempt.Status)
 			assert.Equal(t, "success", apiAttempt.Conclusion)
+			assert.Equal(t, user2.Name, apiAttempt.Actor.UserName)
 			assert.Equal(t, userAdmin.Name, apiAttempt.TriggerActor.UserName)
 
 			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/attempts/2/jobs", user2.Name, repo.Name, run.ID)).
