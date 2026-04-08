@@ -165,6 +165,50 @@ jobs:
 			},
 			want: nil, // checked by count below
 		},
+		// Cancel corner cases: a cancelled job frees its slot just like a successful/failed job.
+		{
+			name: "max-parallel=1: cancelled running job frees slot for one blocked job",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "build", Status: actions_model.StatusCancelled, Needs: []string{}, MaxParallel: 1},
+				{ID: 2, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1},
+				{ID: 3, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1},
+			},
+			want: nil, // exactly 1 promoted; checked by count below
+		},
+		{
+			name: "max-parallel=1: cancelled waiting job frees slot for one blocked job",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "build", Status: actions_model.StatusRunning, Needs: []string{}, MaxParallel: 2},
+				{ID: 2, JobID: "build", Status: actions_model.StatusCancelled, Needs: []string{}, MaxParallel: 2},
+				{ID: 3, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
+				{ID: 4, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
+			},
+			want: nil, // exactly 1 promoted (running=1 + new waiting=1 == max-parallel=2)
+		},
+		{
+			name: "max-parallel=2: two cancelled jobs free two slots for two blocked jobs",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "test", Status: actions_model.StatusCancelled, Needs: []string{}, MaxParallel: 2},
+				{ID: 2, JobID: "test", Status: actions_model.StatusCancelled, Needs: []string{}, MaxParallel: 2},
+				{ID: 3, JobID: "test", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
+				{ID: 4, JobID: "test", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
+			},
+			// Both slots are free, so both blocked jobs should be promoted.
+			want: map[int64]actions_model.Status{
+				3: actions_model.StatusWaiting,
+				4: actions_model.StatusWaiting,
+			},
+		},
+		{
+			name: "max-parallel=2: one running, one cancelled – only one slot free",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "test", Status: actions_model.StatusRunning, Needs: []string{}, MaxParallel: 2},
+				{ID: 2, JobID: "test", Status: actions_model.StatusCancelled, Needs: []string{}, MaxParallel: 2},
+				{ID: 3, JobID: "test", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
+				{ID: 4, JobID: "test", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
+			},
+			want: nil, // exactly 1 promoted (running=1 + new waiting=1 == max-parallel=2)
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -246,6 +290,7 @@ func Test_maxParallelWorkflowLifecycle(t *testing.T) {
 
 	// assertSlotInvariant verifies both slot constraints after every resolve cycle.
 	// It is a no-op when maxParallel=0 (unlimited).
+	// Cancelled jobs count as done: they free their slot just like successful jobs.
 	assertSlotInvariant := func(t *testing.T, jobs actions_model.ActionJobList, maxParallel int, label string) {
 		t.Helper()
 		if maxParallel == 0 {
@@ -253,8 +298,13 @@ func Test_maxParallelWorkflowLifecycle(t *testing.T) {
 		}
 		running := countStatus(jobs, actions_model.StatusRunning)
 		waiting := countStatus(jobs, actions_model.StatusWaiting)
-		success := countStatus(jobs, actions_model.StatusSuccess)
-		remaining := len(jobs) - success
+		done := 0
+		for _, j := range jobs {
+			if j.Status.IsDone() {
+				done++
+			}
+		}
+		remaining := len(jobs) - done
 		active := running + waiting
 
 		assert.LessOrEqual(t, active, maxParallel,
@@ -346,4 +396,224 @@ func Test_maxParallelWorkflowLifecycle(t *testing.T) {
 				"phase 5: no jobs may remain RUNNING")
 		})
 	}
+}
+
+// Test_maxParallel_CancelCornerCase verifies that a cancelled job frees its
+// max-parallel slot so that a blocked job is promoted to Waiting, matching
+// the behaviour of a normally-completed job.
+func Test_maxParallel_CancelCornerCase(t *testing.T) {
+	const jobID = "matrix"
+
+	countStatus := func(jobs actions_model.ActionJobList, s actions_model.Status) int {
+		n := 0
+		for _, j := range jobs {
+			if j.Status == s {
+				n++
+			}
+		}
+		return n
+	}
+
+	applyUpdates := func(jobs actions_model.ActionJobList, updates map[int64]actions_model.Status) {
+		for _, j := range jobs {
+			if s, ok := updates[j.ID]; ok {
+				j.Status = s
+			}
+		}
+	}
+
+	pickUpAll := func(jobs actions_model.ActionJobList) {
+		for _, j := range jobs {
+			if j.Status == actions_model.StatusWaiting {
+				j.Status = actions_model.StatusRunning
+			}
+		}
+	}
+
+	// cancelOne marks the first RUNNING job as Cancelled, simulating a runner
+	// reporting RESULT_CANCELLED or an admin cancelling via the UI.
+	cancelOne := func(jobs actions_model.ActionJobList) {
+		for _, j := range jobs {
+			if j.Status == actions_model.StatusRunning {
+				j.Status = actions_model.StatusCancelled
+				return
+			}
+		}
+	}
+
+	// cancelWaiting marks the first WAITING job as Cancelled, simulating an
+	// admin cancelling a queued-but-not-yet-picked-up job.
+	cancelWaiting := func(jobs actions_model.ActionJobList) {
+		for _, j := range jobs {
+			if j.Status == actions_model.StatusWaiting {
+				j.Status = actions_model.StatusCancelled
+				return
+			}
+		}
+	}
+
+	runResolve := func(t *testing.T, jobs actions_model.ActionJobList) map[int64]actions_model.Status {
+		t.Helper()
+		return newJobStatusResolver(jobs, nil).Resolve(t.Context())
+	}
+
+	assertActive := func(t *testing.T, jobs actions_model.ActionJobList, maxParallel int, label string) {
+		t.Helper()
+		running := countStatus(jobs, actions_model.StatusRunning)
+		waiting := countStatus(jobs, actions_model.StatusWaiting)
+		done := 0
+		for _, j := range jobs {
+			if j.Status.IsDone() {
+				done++
+			}
+		}
+		remaining := len(jobs) - done
+		active := running + waiting
+		assert.LessOrEqual(t, active, maxParallel,
+			"%s: active(%d) must not exceed max-parallel(%d)", label, active, maxParallel)
+		assert.Equal(t, min(remaining, maxParallel), active,
+			"%s: active(%d) should equal min(remaining=%d, max-parallel=%d)", label, active, remaining, maxParallel)
+	}
+
+	t.Run("cancelled running job frees slot (max-parallel=1)", func(t *testing.T) {
+		// 4 matrix jobs, max-parallel=1: only one runs at a time.
+		jobs := make(actions_model.ActionJobList, 4)
+		for i := range jobs {
+			jobs[i] = &actions_model.ActionRunJob{
+				ID: int64(i + 1), JobID: jobID,
+				Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1,
+			}
+		}
+
+		// Phase 1: initial resolve promotes exactly 1 job.
+		applyUpdates(jobs, runResolve(t, jobs))
+		assert.Equal(t, 1, countStatus(jobs, actions_model.StatusWaiting))
+		assert.Equal(t, 3, countStatus(jobs, actions_model.StatusBlocked))
+
+		// Phase 2: runner picks up the waiting job.
+		pickUpAll(jobs)
+		assert.Equal(t, 1, countStatus(jobs, actions_model.StatusRunning))
+
+		// Phase 3 (corner case): the running job is cancelled.
+		// EmitJobsIfReadyByJobs is triggered, which calls checkJobsOfRun → resolve().
+		cancelOne(jobs)
+		assert.Equal(t, 1, countStatus(jobs, actions_model.StatusCancelled))
+
+		applyUpdates(jobs, runResolve(t, jobs))
+		assertActive(t, jobs, 1, "after cancel + resolve")
+
+		// Phase 4: pick up and complete all remaining jobs normally.
+		pickUpAll(jobs)
+		for countStatus(jobs, actions_model.StatusRunning) > 0 {
+			for _, j := range jobs {
+				if j.Status == actions_model.StatusRunning {
+					j.Status = actions_model.StatusSuccess
+				}
+			}
+			applyUpdates(jobs, runResolve(t, jobs))
+			pickUpAll(jobs)
+		}
+
+		assert.Equal(t, 1, countStatus(jobs, actions_model.StatusCancelled))
+		assert.Equal(t, 3, countStatus(jobs, actions_model.StatusSuccess))
+		assert.Equal(t, 0, countStatus(jobs, actions_model.StatusBlocked))
+		assert.Equal(t, 0, countStatus(jobs, actions_model.StatusWaiting))
+	})
+
+	t.Run("cancelled waiting job frees slot (max-parallel=2)", func(t *testing.T) {
+		// 5 matrix jobs, max-parallel=2.
+		jobs := make(actions_model.ActionJobList, 5)
+		for i := range jobs {
+			jobs[i] = &actions_model.ActionRunJob{
+				ID: int64(i + 1), JobID: jobID,
+				Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2,
+			}
+		}
+
+		// Phase 1: resolve promotes 2 jobs.
+		applyUpdates(jobs, runResolve(t, jobs))
+		assert.Equal(t, 2, countStatus(jobs, actions_model.StatusWaiting))
+
+		// Phase 2: one runner picks up one of the two waiting jobs; the other stays waiting.
+		// Use the first actually-Waiting job to avoid non-determinism from map iteration.
+		for _, j := range jobs {
+			if j.Status == actions_model.StatusWaiting {
+				j.Status = actions_model.StatusRunning
+				break
+			}
+		}
+		assert.Equal(t, 1, countStatus(jobs, actions_model.StatusRunning))
+		assert.Equal(t, 1, countStatus(jobs, actions_model.StatusWaiting))
+
+		// Phase 3 (corner case): admin cancels the still-waiting job before any runner picks it.
+		cancelWaiting(jobs)
+		assert.Equal(t, 1, countStatus(jobs, actions_model.StatusCancelled))
+
+		// resolve() must refill the freed slot from the blocked queue.
+		applyUpdates(jobs, runResolve(t, jobs))
+		assertActive(t, jobs, 2, "after waiting-job cancel + resolve")
+
+		// Phase 4: run to completion.
+		pickUpAll(jobs)
+		for countStatus(jobs, actions_model.StatusRunning) > 0 {
+			for _, j := range jobs {
+				if j.Status == actions_model.StatusRunning {
+					j.Status = actions_model.StatusSuccess
+				}
+			}
+			applyUpdates(jobs, runResolve(t, jobs))
+			pickUpAll(jobs)
+		}
+
+		assert.Equal(t, 1, countStatus(jobs, actions_model.StatusCancelled))
+		assert.Equal(t, 4, countStatus(jobs, actions_model.StatusSuccess))
+		assert.Equal(t, 0, countStatus(jobs, actions_model.StatusBlocked))
+		assert.Equal(t, 0, countStatus(jobs, actions_model.StatusWaiting))
+	})
+
+	t.Run("multiple cancels stay within max-parallel (max-parallel=2)", func(t *testing.T) {
+		// 6 jobs, max-parallel=2. Cancel two running jobs back-to-back and verify
+		// that each cancel correctly replenishes one slot from the blocked queue.
+		jobs := make(actions_model.ActionJobList, 6)
+		for i := range jobs {
+			jobs[i] = &actions_model.ActionRunJob{
+				ID: int64(i + 1), JobID: jobID,
+				Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2,
+			}
+		}
+
+		applyUpdates(jobs, runResolve(t, jobs))
+		assert.Equal(t, 2, countStatus(jobs, actions_model.StatusWaiting))
+
+		pickUpAll(jobs)
+		assert.Equal(t, 2, countStatus(jobs, actions_model.StatusRunning))
+
+		// Cancel first running job → one blocked job should be promoted.
+		cancelOne(jobs)
+		applyUpdates(jobs, runResolve(t, jobs))
+		assertActive(t, jobs, 2, "after first cancel")
+		pickUpAll(jobs)
+
+		// Cancel second running job → another blocked job should be promoted.
+		cancelOne(jobs)
+		applyUpdates(jobs, runResolve(t, jobs))
+		assertActive(t, jobs, 2, "after second cancel")
+		pickUpAll(jobs)
+
+		// Complete all remaining running jobs.
+		for countStatus(jobs, actions_model.StatusRunning) > 0 {
+			for _, j := range jobs {
+				if j.Status == actions_model.StatusRunning {
+					j.Status = actions_model.StatusSuccess
+				}
+			}
+			applyUpdates(jobs, runResolve(t, jobs))
+			pickUpAll(jobs)
+		}
+
+		assert.Equal(t, 2, countStatus(jobs, actions_model.StatusCancelled))
+		assert.Equal(t, 4, countStatus(jobs, actions_model.StatusSuccess))
+		assert.Equal(t, 0, countStatus(jobs, actions_model.StatusBlocked))
+		assert.Equal(t, 0, countStatus(jobs, actions_model.StatusWaiting))
+	})
 }

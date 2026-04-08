@@ -173,7 +173,7 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 
 	i18nKey := "admin.dashboard." + name
 	if value := translation.NewLocale("en-US").TrString(i18nKey); value == i18nKey {
-		return fmt.Errorf("translation is missing for task %q, please add translation for %q", name, i18nKey)
+		log.Warn("translation is missing for task %q, please add translation for %q", name, i18nKey)
 	}
 
 	_, err := setting.GetCronSettings(name, config)
