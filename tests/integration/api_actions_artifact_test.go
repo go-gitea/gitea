@@ -446,6 +446,10 @@ jobs:
 		t.Run("testActionRunAttemptArtifactV3", func(t *testing.T) {
 			testActionRunAttemptArtifactV3(t, repo, session, runner)
 		})
+
+		t.Run("testActionRunAttemptArtifactV4", func(t *testing.T) {
+			testActionRunAttemptArtifactV4(t, repo, session, runner)
+		})
 	})
 }
 
@@ -478,7 +482,7 @@ func testActionRunAttemptArtifactV3(t *testing.T, repo *repo_model.Repository, s
 	assert.ElementsMatch(t, []string{"artifact-attempt-2", "artifact-shared"}, attempt2Names)
 	assert.NotContains(t, attempt2Names, "artifact-attempt-1")
 
-	// "artifact-attempt-1" belongs to the first run, so the token for the rerun task cannot access it
+	// "artifact-attempt-1" belongs to the first attempt, so the rerun token cannot access it
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/artifacts/%x/download_url?itemPath=artifact-attempt-1", run.ID, md5.Sum([]byte("artifact-attempt-1")))).
 		AddTokenAuth(taskToken2)
 	MakeRequest(t, req, http.StatusNotFound)
