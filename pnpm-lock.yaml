@@ -186,8 +186,8 @@ importers:
         specifier: 8.5.8
         version: 8.5.8
       rolldown-license-plugin:
-        specifier: 2.0.0
-        version: 2.0.0
+        specifier: 2.1.0
+        version: 2.1.0
       sortablejs:
         specifier: 1.15.7
         version: 1.15.7
@@ -3550,8 +3550,8 @@ packages:
   robust-predicates@3.0.3:
     resolution: {integrity: sha512-NS3levdsRIUOmiJ8FZWCP7LG3QpJyrs/TE0Zpf1yvZu8cAJJ6QMW92H1c7kWpdIHo8RvmLxN/o2JXTKHp74lUA==}
 
-  rolldown-license-plugin@2.0.0:
-    resolution: {integrity: sha512-5FDMBvWPmxb0xlfgYb242K4ohpzHOCW5QS6tHtxMLYF77FTBQwtn9Nr7y/Dsue8d3RdXFhhAlBxim2mvgrS3Mg==}
+  rolldown-license-plugin@2.1.0:
+    resolution: {integrity: sha512-vtw1USysgdwYWN18bbqGFVa6ZTZXlWn6F67zYCg0V6zdXC6/1p4wzQEprtMov4z4tQ6gCy8n65piyP1zJWAscg==}
 
   rolldown@1.0.0-rc.12:
     resolution: {integrity: sha512-yP4USLIMYrwpPHEFB5JGH1uxhcslv6/hL0OyvTuY+3qlOSJvZ7ntYnoWpehBxufkgN0cvXxppuTu5hHa/zPh+A==}
@@ -7543,7 +7543,7 @@ snapshots:
 
   robust-predicates@3.0.3: {}
 
-  rolldown-license-plugin@2.0.0: {}
+  rolldown-license-plugin@2.1.0: {}
 
   rolldown@1.0.0-rc.12(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1):
     dependencies:

@@ -308,8 +308,8 @@ export default defineConfig(commonViteOpts({
         },
       },
     }),
-    licensePlugin({
-      done(deps) {
+    isProduction ? licensePlugin({
+      done(deps, context) {
         const line = '-'.repeat(80);
         const goLicenses = JSON.parse(readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8'));
         const combined: Record<string, string> = {};
@@ -322,12 +322,17 @@ export default defineConfig(commonViteOpts({
         const content = Object.entries(combined)
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([title, body]) => `${line}\n${title}\n${line}\n${body}`).join('\n');
-        writeFileSync(join(outDir, 'licenses.txt'), content);
+        context.emitFile({type: 'asset', fileName: 'licenses.txt', source: content});
       },
       allow(dep) {
         if (dep.name === 'khroma') return true; // MIT: https://github.com/fabiospampinato/khroma/pull/33
         return /(Apache-2\.0|0BSD|BSD-2-Clause|BSD-3-Clause|MIT|ISC|CPAL-1\.0|Unlicense|EPL-1\.0|EPL-2\.0)/.test(dep.license);
       },
-    }),
+    }) : {
+      name: 'dev-licenses-stub',
+      configureServer() {
+        writeFileSync(join(outDir, 'licenses.txt'), 'Licenses are disabled during development');
+      },
+    },
   ],
 }));
