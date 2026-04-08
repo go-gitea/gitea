@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -143,6 +144,8 @@ jobs:
 			assert.EqualValues(t, 2, apiAttempt.RunAttempt)
 			assert.Equal(t, "completed", apiAttempt.Status)
 			assert.Equal(t, "success", apiAttempt.Conclusion)
+			assert.NotNil(t, apiAttempt.PreviousAttemptURL)
+			assert.True(t, strings.HasSuffix(*apiAttempt.PreviousAttemptURL, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/attempts/1", user2.Name, repo.Name, run.ID)))
 			assert.Equal(t, user2.Name, apiAttempt.Actor.UserName)
 			assert.Equal(t, userAdmin.Name, apiAttempt.TriggerActor.UserName)
 

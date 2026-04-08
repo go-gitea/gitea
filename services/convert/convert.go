@@ -266,6 +266,7 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 	completedAt := run.Stopped.AsLocalTime()
 	actor := run.TriggerUser       // The username of the user that triggered the initial workflow run.
 	triggerUser := run.TriggerUser // The username of the user that initiated the workflow run. If the workflow run is a re-run, this value may differ from actor.
+	var previousAttemptURL *string
 
 	if attempt != nil {
 		if err := attempt.LoadAttributes(ctx); err != nil {
@@ -276,26 +277,31 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		startedAt = attempt.Started.AsLocalTime()
 		completedAt = attempt.Stopped.AsLocalTime()
 		triggerUser = attempt.TriggerUser
+		if attempt.Attempt > 1 {
+			url := fmt.Sprintf("%s/actions/runs/%d/attempts/%d", repo.APIURL(), run.ID, attempt.Attempt-1)
+			previousAttemptURL = &url
+		}
 	}
 
 	return &api.ActionWorkflowRun{
-		ID:           run.ID,
-		URL:          fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
-		HTMLURL:      run.HTMLURL(),
-		RunNumber:    run.Index,
-		RunAttempt:   runAttempt,
-		StartedAt:    startedAt,
-		CompletedAt:  completedAt,
-		Event:        string(run.Event),
-		DisplayTitle: run.Title,
-		HeadBranch:   git.RefName(run.Ref).BranchName(),
-		HeadSha:      run.CommitSHA,
-		Status:       status,
-		Conclusion:   conclusion,
-		Path:         fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
-		Repository:   ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
-		TriggerActor: ToUser(ctx, triggerUser, nil),
-		Actor:        ToUser(ctx, actor, nil),
+		ID:                 run.ID,
+		URL:                fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
+		PreviousAttemptURL: previousAttemptURL,
+		HTMLURL:            run.HTMLURL(),
+		RunNumber:          run.Index,
+		RunAttempt:         runAttempt,
+		StartedAt:          startedAt,
+		CompletedAt:        completedAt,
+		Event:              string(run.Event),
+		DisplayTitle:       run.Title,
+		HeadBranch:         git.RefName(run.Ref).BranchName(),
+		HeadSha:            run.CommitSHA,
+		Status:             status,
+		Conclusion:         conclusion,
+		Path:               fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
+		Repository:         ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		TriggerActor:       ToUser(ctx, triggerUser, nil),
+		Actor:              ToUser(ctx, actor, nil),
 	}, nil
 }
 
