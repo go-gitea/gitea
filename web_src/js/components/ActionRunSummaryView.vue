@@ -13,11 +13,29 @@ const props = defineProps<{
   locale: Record<string, any>;
 }>();
 
+const locale = props.locale;
 const {currentRun: run} = toRefs(props.store.viewData);
 
 const runTriggeredAtIso = computed(() => {
   const t = props.store.viewData.currentRun.triggeredAt;
   return t ? new Date(t * 1000).toISOString() : '';
+});
+
+const currentAttempt = computed(() => {
+  return run.value.attempts.find((attempt) => attempt.current);
+});
+
+const triggerUser = computed(() => {
+  if (currentAttempt.value) {
+    return {
+      name: currentAttempt.value.triggerUserName,
+      link: currentAttempt.value.triggerUserLink,
+    };
+  }
+  return {
+    name: run.value.commit.pusher.displayName,
+    link: run.value.commit.pusher.link,
+  };
 });
 
 onMounted(async () => {
@@ -32,7 +50,15 @@ onBeforeUnmount(() => {
   <div class="action-run-summary-view">
     <div class="action-run-summary-block">
       <div class="flex-text-block">
-        {{ locale.triggeredVia.replace('%s', run.triggerEvent) }} • <relative-time :datetime="runTriggeredAtIso" prefix=""/>
+        <template v-if="run.runAttempt > 1">
+          {{ locale.rerunTriggeredBy }}
+          <a class="muted" :href="triggerUser.link">{{ triggerUser.name }}</a>
+        </template>
+        <template v-else>
+          {{ locale.triggeredViaBy.replace('%s', run.triggerEvent) }}
+          <a class="muted" :href="triggerUser.link">{{ triggerUser.name }}</a>
+        </template>
+        • <relative-time :datetime="runTriggeredAtIso" prefix=""/>
       </div>
       <div class="flex-text-block">
         <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="16"/>
