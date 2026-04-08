@@ -9,23 +9,19 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
-	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-const dismissApprovalOnReRequestMessage = "Review request re-submitted, approval review dismissed automatically according to repository settings"
+const dismissReviewOnReRequestMessage = "Review request re-submitted, review dismissed automatically according to repository settings"
 
-// reviewRequestApprovalDismisser keeps per-request caches for re-request dismissal.
-type reviewRequestApprovalDismisser struct {
-	issue                 *issues_model.Issue
-	isConfigured          bool
-	isEnabled             bool
-	hasApprovalCache      bool
-	reviewsByReviewerID   map[int64][]*issues_model.Review
-	teamMemberIDsByTeamID map[int64][]int64
-	dismissNotifications  []*dismissReviewNotification
+type reviewRequestDismisser struct {
+	issue                     *issues_model.Issue
+	dismissOnReRequestLoaded  bool
+	dismissOnReRequestEnabled bool
+	reviewsLoaded             bool
+	reviewsByReviewerID       map[int64][]*issues_model.Review
+	dismissNotifications      []*dismissReviewNotification
 }
 
 type dismissReviewNotification struct {
@@ -34,47 +30,7 @@ type dismissReviewNotification struct {
 	comment *issues_model.Comment
 }
 
-func newReviewRequestApprovalDismisser(issue *issues_model.Issue) *reviewRequestApprovalDismisser {
-	return &reviewRequestApprovalDismisser{
-		issue:                 issue,
-		reviewsByReviewerID:   make(map[int64][]*issues_model.Review),
-		teamMemberIDsByTeamID: make(map[int64][]int64),
-	}
-}
-
-// dismissForUser applies the cached dismissal logic to a single reviewer.
-func (d *reviewRequestApprovalDismisser) dismissForUser(ctx context.Context, doer, reviewer *user_model.User) error {
-	if reviewer == nil {
-		return nil
-	}
-	return d.dismissForReviewerIDs(ctx, doer, []int64{reviewer.ID})
-}
-
-// dismissForTeam applies the cached dismissal logic to all members of a team.
-func (d *reviewRequestApprovalDismisser) dismissForTeam(ctx context.Context, doer *user_model.User, reviewerTeam *organization.Team) error {
-	if reviewerTeam == nil {
-		return nil
-	}
-
-	reviewerIDs, ok := d.teamMemberIDsByTeamID[reviewerTeam.ID]
-	if !ok {
-		members, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{TeamID: reviewerTeam.ID})
-		if err != nil {
-			return err
-		}
-
-		reviewerIDs = make([]int64, 0, len(members))
-		for _, member := range members {
-			reviewerIDs = append(reviewerIDs, member.ID)
-		}
-		d.teamMemberIDsByTeamID[reviewerTeam.ID] = reviewerIDs
-	}
-
-	return d.dismissForReviewerIDs(ctx, doer, reviewerIDs)
-}
-
-// dismissForReviewerIDs dismisses prior approvals for the given reviewers when enabled.
-func (d *reviewRequestApprovalDismisser) dismissForReviewerIDs(ctx context.Context, doer *user_model.User, reviewerIDs []int64) error {
+func (d *reviewRequestDismisser) dismissReviewsForReviewerIDs(ctx context.Context, doer *user_model.User, reviewerIDs []int64) error {
 	reviewerIDSet := make(map[int64]struct{}, len(reviewerIDs))
 	for _, reviewerID := range reviewerIDs {
 		if reviewerID > 0 {
@@ -85,7 +41,7 @@ func (d *reviewRequestApprovalDismisser) dismissForReviewerIDs(ctx context.Conte
 		return nil
 	}
 
-	enabled, err := d.ensureConfigured(ctx)
+	enabled, err := d.loadDismissOnReRequestEnabled(ctx)
 	if err != nil {
 		return err
 	}
@@ -93,7 +49,7 @@ func (d *reviewRequestApprovalDismisser) dismissForReviewerIDs(ctx context.Conte
 		return nil
 	}
 
-	if err := d.ensureApprovalCache(ctx); err != nil {
+	if err := d.loadDismissibleReviewsByReviewerID(ctx); err != nil {
 		return err
 	}
 
@@ -110,7 +66,7 @@ func (d *reviewRequestApprovalDismisser) dismissForReviewerIDs(ctx context.Conte
 
 			comment, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 				Doer:     doer,
-				Content:  dismissApprovalOnReRequestMessage,
+				Content:  dismissReviewOnReRequestMessage,
 				Type:     issues_model.CommentTypeDismissReview,
 				ReviewID: review.ID,
 				Issue:    review.Issue,
@@ -136,26 +92,14 @@ func (d *reviewRequestApprovalDismisser) dismissForReviewerIDs(ctx context.Conte
 	return nil
 }
 
-// notify emits queued dismissal notifications after the write path has completed.
-func (d *reviewRequestApprovalDismisser) notify(ctx context.Context) {
-	if engine, ok := db.GetEngine(ctx).(interface{ IsInTx() bool }); ok && engine.IsInTx() {
-		return
+func (d *reviewRequestDismisser) loadDismissOnReRequestEnabled(ctx context.Context) (bool, error) {
+	if d.dismissOnReRequestLoaded {
+		return d.dismissOnReRequestEnabled, nil
 	}
-
-	for _, dismissNotification := range d.dismissNotifications {
-		notify_service.PullReviewDismiss(ctx, dismissNotification.doer, dismissNotification.review, dismissNotification.comment)
-	}
-}
-
-// ensureConfigured loads and caches the branch protection flag for the current issue.
-func (d *reviewRequestApprovalDismisser) ensureConfigured(ctx context.Context) (bool, error) {
-	if d.isConfigured {
-		return d.isEnabled, nil
-	}
-	d.isConfigured = true
+	d.dismissOnReRequestLoaded = true
 
 	if d.issue == nil || !d.issue.IsPull {
-		d.isEnabled = false
+		d.dismissOnReRequestEnabled = false
 		return false, nil
 	}
 
@@ -170,22 +114,24 @@ func (d *reviewRequestApprovalDismisser) ensureConfigured(ctx context.Context) (
 		return false, err
 	}
 
-	d.isEnabled = pb != nil && pb.DismissApprovalsOnReRequest
-	return d.isEnabled, nil
+	d.dismissOnReRequestEnabled = pb != nil && pb.DismissApprovalsOnReRequest
+	return d.dismissOnReRequestEnabled, nil
 }
 
-// ensureApprovalCache loads open approvals once and groups them by reviewer ID.
-func (d *reviewRequestApprovalDismisser) ensureApprovalCache(ctx context.Context) error {
-	if d.hasApprovalCache {
+func (d *reviewRequestDismisser) loadDismissibleReviewsByReviewerID(ctx context.Context) error {
+	if d.reviewsLoaded {
 		return nil
 	}
-	d.hasApprovalCache = true
+	d.reviewsLoaded = true
 
 	reviews, err := issues_model.FindReviews(ctx, issues_model.FindReviewOptions{
 		ListOptions: db.ListOptionsAll,
 		IssueID:     d.issue.ID,
-		Types:       []issues_model.ReviewType{issues_model.ReviewTypeApprove},
-		Dismissed:   optional.Some(false),
+		Types: []issues_model.ReviewType{
+			issues_model.ReviewTypeApprove,
+			issues_model.ReviewTypeReject,
+		},
+		Dismissed: optional.Some(false),
 	})
 	if err != nil {
 		return err

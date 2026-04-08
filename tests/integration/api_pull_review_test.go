@@ -489,7 +489,7 @@ func testAPIPullReviewReRequestDismissesPreviousApprovalByProtection(t *testing.
 		require.Len(t, dismissCommentsAfter, len(dismissCommentsBefore)+1)
 		dismissComment := dismissCommentsAfter[len(dismissCommentsAfter)-1]
 		assert.Equal(t, approvedReview.ID, dismissComment.ReviewID)
-		assert.Equal(t, "Review request re-submitted, approval review dismissed automatically according to repository settings", dismissComment.Content)
+		assert.Equal(t, "Review request re-submitted, review dismissed automatically according to repository settings", dismissComment.Content)
 	} else {
 		require.Len(t, dismissCommentsAfter, len(dismissCommentsBefore))
 	}
@@ -595,7 +595,7 @@ func testAPIPullReviewReRequestTeamDismissesPreviousApprovalByProtection(t *test
 		require.Len(t, dismissCommentsAfter, len(dismissCommentsBefore)+1)
 		dismissComment := dismissCommentsAfter[len(dismissCommentsAfter)-1]
 		assert.Equal(t, approvedReviewModel.ID, dismissComment.ReviewID)
-		assert.Equal(t, "Review request re-submitted, approval review dismissed automatically according to repository settings", dismissComment.Content)
+		assert.Equal(t, "Review request re-submitted, review dismissed automatically according to repository settings", dismissComment.Content)
 	} else {
 		require.Len(t, dismissCommentsAfter, len(dismissCommentsBefore))
 	}

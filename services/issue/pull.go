@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 type ReviewRequestNotifier struct {
@@ -128,7 +129,10 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		return false
 	}
 
-	dismisser := newReviewRequestApprovalDismisser(issue)
+	dismisser := &reviewRequestDismisser{
+		issue:               issue,
+		reviewsByReviewerID: make(map[int64][]*issues_model.Review),
+	}
 
 	notifiers, err := db.WithTx2(ctx, func(ctx context.Context) ([]*ReviewRequestNotifier, error) {
 		notifiers := make([]*ReviewRequestNotifier, 0, len(uniqUsers)+len(uniqTeams))
@@ -143,7 +147,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 				if comment == nil { // comment maybe nil if review type is ReviewTypeRequest
 					continue
 				}
-				if err := dismisser.dismissForUser(ctx, issue.Poster, u); err != nil {
+				if err := dismisser.dismissReviewsForReviewerIDs(ctx, issue.Poster, []int64{u.ID}); err != nil {
 					log.Warn("Failed dismissing prior approvals for user review request: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
 					return nil, err
 				}
@@ -164,7 +168,16 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 			if comment == nil { // comment maybe nil if review type is ReviewTypeRequest
 				continue
 			}
-			if err := dismisser.dismissForTeam(ctx, issue.Poster, t); err != nil {
+			members, err := org_model.GetTeamMembers(ctx, &org_model.SearchMembersOptions{TeamID: t.ID})
+			if err != nil {
+				log.Warn("Failed dismissing prior approvals for team review request: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
+				return nil, err
+			}
+			reviewerIDs := make([]int64, 0, len(members))
+			for _, m := range members {
+				reviewerIDs = append(reviewerIDs, m.ID)
+			}
+			if err := dismisser.dismissReviewsForReviewerIDs(ctx, issue.Poster, reviewerIDs); err != nil {
 				log.Warn("Failed dismissing prior approvals for team review request: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
 				return nil, err
 			}
@@ -181,7 +194,13 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		return nil, err
 	}
 
-	dismisser.notify(ctx)
+	if engine, ok := db.GetEngine(ctx).(interface{ IsInTx() bool }); ok && engine.IsInTx() {
+		// still in transaction: skip sending notifications
+	} else {
+		for _, dismissNotification := range dismisser.dismissNotifications {
+			notify_service.PullReviewDismiss(ctx, dismissNotification.doer, dismissNotification.review, dismissNotification.comment)
+		}
+	}
 
 	return notifiers, nil
 }
