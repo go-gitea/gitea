@@ -4,6 +4,7 @@
 package devtest
 
 import (
+	"fmt"
 	mathRand "math/rand/v2"
 	"net/http"
 	"slices"
@@ -12,7 +13,9 @@ import (
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/repo/actions"
@@ -61,26 +64,22 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 func MockActionsView(ctx *context.Context) {
 	ctx.Data["RunID"] = ctx.PathParamInt64("run")
 	ctx.Data["JobID"] = ctx.PathParamInt64("job")
+	ctx.Data["AttemptID"] = ctx.PathParamInt64("attempt")
+	ctx.Data["ViewURL"] = ctx.Req.URL.Path
 	ctx.HTML(http.StatusOK, "devtest/repo-action-view")
 }
 
 func MockActionsRunsJobs(ctx *context.Context) {
 	runID := ctx.PathParamInt64("run")
+	attemptID := ctx.PathParamInt64("attempt")
 
 	resp := &actions.ViewResponse{}
 	resp.State.Run.RepoID = 12345
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
 	resp.State.Run.Link = setting.AppSubURL + "/devtest/repo-action-view/runs/" + strconv.FormatInt(runID, 10)
-	resp.State.Run.Status = actions_model.StatusRunning.String()
-	resp.State.Run.CanCancel = runID == 10
-	resp.State.Run.CanApprove = runID == 20
-	resp.State.Run.CanRerun = runID == 30
-	resp.State.Run.CanRerunFailed = runID == 30
 	resp.State.Run.CanDeleteArtifact = true
 	resp.State.Run.WorkflowID = "workflow-id"
 	resp.State.Run.WorkflowLink = "./workflow-link"
-	resp.State.Run.Duration = "1h 23m 45s"
-	resp.State.Run.TriggeredAt = time.Now().Add(-time.Hour).Unix()
 	resp.State.Run.TriggerEvent = "push"
 	resp.State.Run.Commit = actions.ViewCommit{
 		ShortSha: "ccccdddd",
@@ -95,6 +94,94 @@ func MockActionsRunsJobs(ctx *context.Context) {
 			IsDeleted: false,
 		},
 	}
+	now := time.Now()
+	currentAttemptNum := int64(1)
+	if attemptID > 0 {
+		currentAttemptNum = attemptID
+	}
+	user2 := &user_model.User{Name: "user2"}
+	admin := &user_model.User{Name: "admin"}
+	attempts := []*actions_model.ActionRunAttempt{{
+		Attempt:       1,
+		Status:        actions_model.StatusSuccess,
+		Created:       timeutil.TimeStamp(now.Add(-time.Hour).Unix()),
+		TriggerUserID: 2,
+		TriggerUser:   user2,
+	}}
+	if runID == 10 {
+		attempts[0].Status = actions_model.StatusRunning
+	}
+	if runID == 20 {
+		attempts[0].Status = actions_model.StatusBlocked
+	}
+	if runID == 30 {
+		attempts = []*actions_model.ActionRunAttempt{
+			{
+				Attempt:       3,
+				Status:        actions_model.StatusSuccess,
+				Created:       timeutil.TimeStamp(now.Add(-time.Hour).Unix()),
+				TriggerUserID: 2,
+				TriggerUser:   user2,
+			},
+			{
+				Attempt:       2,
+				Status:        actions_model.StatusSuccess,
+				Created:       timeutil.TimeStamp(now.Add(-2 * time.Hour).Unix()),
+				TriggerUserID: 1,
+				TriggerUser:   admin,
+			},
+			{
+				Attempt:       1,
+				Status:        actions_model.StatusSuccess,
+				Created:       timeutil.TimeStamp(now.Add(-3 * time.Hour).Unix()),
+				TriggerUserID: 2,
+				TriggerUser:   user2,
+			},
+		}
+		if attemptID == 0 {
+			currentAttemptNum = 3
+		}
+	}
+	latestAttempt := attempts[0]
+	resp.State.Run.RunAttempt = currentAttemptNum
+	resp.State.Run.IsLatestAttempt = currentAttemptNum == latestAttempt.Attempt
+	resp.State.Run.ReadOnlyAttemptView = attemptID > 0 && !resp.State.Run.IsLatestAttempt
+	resp.State.Run.Done = latestAttempt.Status.IsDone()
+	resp.State.Run.Status = latestAttempt.Status.String()
+	resp.State.Run.Duration = "1h 23m 45s"
+	resp.State.Run.TriggeredAt = latestAttempt.Created.AsTime().Unix()
+	resp.State.Run.ViewLink = resp.State.Run.Link
+	for _, attempt := range attempts {
+		link := resp.State.Run.Link
+		if attempt.Attempt != latestAttempt.Attempt {
+			link = fmt.Sprintf("%s/attempts/%d", resp.State.Run.Link, attempt.Attempt)
+		}
+		current := attempt.Attempt == currentAttemptNum
+		if current {
+			resp.State.Run.Status = attempt.Status.String()
+			resp.State.Run.Done = attempt.Status.IsDone()
+			resp.State.Run.TriggeredAt = attempt.Created.AsTime().Unix()
+			if attempt.Attempt != latestAttempt.Attempt {
+				resp.State.Run.ViewLink = link
+			}
+		}
+		resp.State.Run.Attempts = append(resp.State.Run.Attempts, &actions.ViewRunAttempt{
+			Attempt:         attempt.Attempt,
+			Status:          attempt.Status.String(),
+			Done:            attempt.Status.IsDone(),
+			Link:            link,
+			Current:         current,
+			Latest:          attempt.Attempt == latestAttempt.Attempt,
+			TriggeredAt:     attempt.Created.AsTime().Unix(),
+			TriggerUserName: attempt.TriggerUser.GetDisplayName(),
+			TriggerUserLink: attempt.TriggerUser.HomeLink(),
+		})
+	}
+	resp.State.Run.CanCancel = runID == 10 && resp.State.Run.IsLatestAttempt
+	resp.State.Run.CanApprove = runID == 20 && resp.State.Run.IsLatestAttempt
+	resp.State.Run.CanRerun = runID == 30 && resp.State.Run.IsLatestAttempt
+	resp.State.Run.CanRerunFailed = runID == 30 && resp.State.Run.IsLatestAttempt
+
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:   "artifact-a",
 		Size:   100 * 1024,
