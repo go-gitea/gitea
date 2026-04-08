@@ -4,7 +4,7 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.26.0](https://github.com/go-gitea/gitea/releases/tag/1.26.0) - 2026-04-07
+## [1.26.0-rc0](https://github.com/go-gitea/gitea/releases/tag/v1.26.0-rc0) - 2026-04-07
 
 * BREAKING
   * Correct swagger annotations for enums, status codes, and notification state (#37030)
