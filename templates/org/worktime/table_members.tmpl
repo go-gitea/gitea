@@ -11,6 +11,8 @@
 			<td>{{svg "octicon-person"}} <a href="{{AppSubUrl}}/{{PathEscape .UserName}}">{{.UserName}}</a></td>
 			<td>{{svg "octicon-clock"}} {{.SumTime | Sec2Hour}}</td>
 		</tr>
+		{{else}}
+			{{template "org/worktime/empty_placeholder" dict "Colspan" 2}}
 		{{end}}
 	</tbody>
 </table>

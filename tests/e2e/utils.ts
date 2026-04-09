@@ -1,7 +1,16 @@
-import {randomBytes} from 'node:crypto';
 import {env} from 'node:process';
 import {expect} from '@playwright/test';
-import type {APIRequestContext, Locator, Page} from '@playwright/test';
+import type {APIRequestContext, Page} from '@playwright/test';
+
+/** Generate a random alphanumeric string. */
+export function randomString(length: number): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let index = 0; index < length; index++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
 
 export const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
 
@@ -51,6 +60,13 @@ export async function apiStartStopwatch(requestContext: APIRequestContext, owner
   }), 'apiStartStopwatch');
 }
 
+export async function apiCreateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
+    headers: apiHeaders(),
+    data: {content: globalThis.btoa(content)},
+  }), 'apiCreateFile');
+}
+
 export async function apiDeleteRepo(requestContext: APIRequestContext, owner: string, name: string) {
   await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/repos/${owner}/${name}`, {
     headers: apiHeaders(),
@@ -63,14 +79,8 @@ export async function apiDeleteOrg(requestContext: APIRequestContext, name: stri
   }), 'apiDeleteOrg');
 }
 
-/** Generate a random password that satisfies the complexity requirements. */
-function generatePassword() {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  return `${Array.from(randomBytes(12), (b) => chars[b % chars.length]).join('')}!aA1`;
-}
-
-/** Random password shared by all test users — used for both API user creation and browser login. */
-const testUserPassword = generatePassword();
+/** Password shared by all test users — used for both API user creation and browser login. */
+const testUserPassword = 'e2e-password!aA1';
 
 export function apiUserHeaders(username: string) {
   return apiAuthHeader(username, testUserPassword);
@@ -87,11 +97,6 @@ export async function apiDeleteUser(requestContext: APIRequestContext, username:
   await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/admin/users/${username}?purge=true`, {
     headers: apiHeaders(),
   }), 'apiDeleteUser');
-}
-
-export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {
-  await trigger.click();
-  await page.getByText(itemText).click();
 }
 
 export async function loginUser(page: Page, username: string) {

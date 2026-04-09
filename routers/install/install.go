@@ -371,12 +371,11 @@ func SubmitInstall(ctx *context.Context) {
 	if form.LFSRootPath != "" {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("lfs").Key("PATH").SetValue(form.LFSRootPath)
-		var lfsJwtSecret string
-		if _, lfsJwtSecret, err = generate.NewJwtSecretWithBase64(); err != nil {
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
-			return
+
+		if !cfg.Section("server").HasKey("LFS_JWT_SECRET_URI") {
+			_, lfsJwtSecret := generate.NewJwtSecretWithBase64()
+			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(lfsJwtSecret)
 		}
-		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(lfsJwtSecret)
 	} else {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
@@ -437,11 +436,7 @@ func SubmitInstall(ctx *context.Context) {
 	// FIXME: at the moment, no matter oauth2 is enabled or not, it must generate a "oauth2 JWT_SECRET"
 	// see the "loadOAuth2From" in "setting/oauth2.go"
 	if !cfg.Section("oauth2").HasKey("JWT_SECRET") && !cfg.Section("oauth2").HasKey("JWT_SECRET_URI") {
-		_, jwtSecretBase64, err := generate.NewJwtSecretWithBase64()
-		if err != nil {
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
-			return
-		}
+		_, jwtSecretBase64 := generate.NewJwtSecretWithBase64()
 		cfg.Section("oauth2").Key("JWT_SECRET").SetValue(jwtSecretBase64)
 	}
 

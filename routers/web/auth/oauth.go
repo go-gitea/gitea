@@ -482,7 +482,7 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 		LoginSource: authSource.ID,
 	}
 
-	hasUser, err := user_model.GetUser(ctx, user)
+	hasUser, err := user_model.GetIndividualUser(ctx, user)
 	if err != nil {
 		return nil, goth.User{}, err
 	}

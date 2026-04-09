@@ -108,7 +108,7 @@ func TestExternalMarkupRenderer(t *testing.T) {
 				// default sandbox in sub page response
 				assert.Equal(t, "frame-src 'self'; sandbox allow-scripts allow-popups", respSub.Header().Get("Content-Security-Policy"))
 				// FIXME: actually here is a bug (legacy design problem), the "PostProcess" will escape "<script>" tag, but it indeed is the sanitizer's job
-				assert.Equal(t, `<script type="module" src="`+public.AssetURI("js/external-render-iframe.js")+`"></script><link rel="stylesheet" href="`+public.AssetURI("css/external-render-iframe.css")+`"><div><any attr="val">&lt;script&gt;&lt;/script&gt;</any></div>`, respSub.Body.String())
+				assert.Equal(t, `<script crossorigin src="`+public.AssetURI("js/external-render-helper.js")+`"></script><link rel="stylesheet" href="`+public.AssetURI("css/theme-gitea-auto.css")+`"><div><any attr="val">&lt;script&gt;&lt;/script&gt;</any></div>`, respSub.Body.String())
 			})
 		})
 
@@ -131,7 +131,7 @@ func TestExternalMarkupRenderer(t *testing.T) {
 			t.Run("HTMLContentWithExternalRenderIframeHelper", func(t *testing.T) {
 				req := NewRequest(t, "GET", "/user2/repo1/render/branch/master/html.no-sanitizer")
 				respSub := MakeRequest(t, req, http.StatusOK)
-				assert.Equal(t, `<script type="module" src="`+public.AssetURI("js/external-render-iframe.js")+`"></script><link rel="stylesheet" href="`+public.AssetURI("css/external-render-iframe.css")+`"><script>foo("raw")</script>`, respSub.Body.String())
+				assert.Equal(t, `<script crossorigin src="`+public.AssetURI("js/external-render-helper.js")+`"></script><link rel="stylesheet" href="`+public.AssetURI("css/theme-gitea-auto.css")+`"><script>foo("raw")</script>`, respSub.Body.String())
 				assert.Equal(t, "frame-src 'self'", respSub.Header().Get("Content-Security-Policy"))
 			})
 		})

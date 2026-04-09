@@ -11,10 +11,6 @@
 				<dd>{{AppVer}}{{.AppBuiltWith}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.custom_conf"}}</dt>
 				<dd>{{.CustomConf}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.app_url"}}</dt>
-				<dd>{{.AppUrl}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.domain"}}</dt>
-				<dd>{{.Domain}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.disable_router_log"}}</dt>
 				<dd>{{svg (Iif .DisableRouterLog "octicon-check" "octicon-x")}}</dd>
 

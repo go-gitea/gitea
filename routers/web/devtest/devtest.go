@@ -17,7 +17,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/badge"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
@@ -190,7 +192,31 @@ func prepareMockData(ctx *context.Context) {
 		prepareMockDataBadgeActionsSvg(ctx)
 	case "/devtest/relative-time":
 		prepareMockDataRelativeTime(ctx)
+	case "/devtest/unicode-escape":
+		prepareMockDataUnicodeEscape(ctx)
 	}
+}
+
+func prepareMockDataUnicodeEscape(ctx *context.Context) {
+	content := "// demo code\n"
+	content += "if accessLevel != \"user\u202E \u2066// Check if admin (invisible char)\u2069 \u2066\" { }\n"
+	content += "if O𝐾 { } // ambiguous char\n"
+	content += "if O𝐾 && accessLevel != \"user\u202E \u2066// ambiguous char + invisible char\u2069 \u2066\" { }\n"
+	content += "str := `\xef` // broken char\n"
+	content += "str := `\x00 \x19 \x7f` // control char\n"
+
+	lineNums := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
+
+	highlightLines := code.HighlightSearchResultCode("demo.go", "", lineNums, content)
+	escapeStatus := &charset.EscapeStatus{}
+	lineEscapeStatus := make([]*charset.EscapeStatus, len(highlightLines))
+	for i, hl := range highlightLines {
+		lineEscapeStatus[i], hl.FormattedContent = charset.EscapeControlHTML(hl.FormattedContent, ctx.Locale)
+		escapeStatus = escapeStatus.Or(lineEscapeStatus[i])
+	}
+	ctx.Data["HighlightLines"] = highlightLines
+	ctx.Data["EscapeStatus"] = escapeStatus
+	ctx.Data["LineEscapeStatus"] = lineEscapeStatus
 }
 
 func TmplCommon(ctx *context.Context) {
