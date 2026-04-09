@@ -137,6 +137,10 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		return nil, false, err
 	}
 
+	if err := job.Run.Repo.LoadOwner(ctx); err != nil {
+		log.Error("LoadOwner: %v", err)
+	}
+
 	CreateCommitStatusForRunJobs(ctx, job.Run, job)
 	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, actionTask)
 	// job.Run is loaded inside the transaction before UpdateRunJob sets run.Started,
