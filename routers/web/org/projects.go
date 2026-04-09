@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -467,6 +468,25 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 	ctx.Data["AssigneeID"] = assigneeID
 
+	// Load available repositories for this project
+	var availableRepos []*repo_model.Repository
+	if project.OwnerID > 0 {
+		allRepos, err := repo_model.GetOrgRepositories(ctx, project.OwnerID)
+		if err != nil {
+			ctx.ServerError("GetOrgRepositories", err)
+			return
+		}
+
+		// Filter repos - include all public repos
+		// For private repos, user needs explicit access
+		for _, repo := range allRepos {
+			if !repo.IsPrivate {
+				availableRepos = append(availableRepos, repo)
+			}
+		}
+	}
+	ctx.Data["AvailableRepos"] = availableRepos
+
 	project.RenderedContent = templates.NewRenderUtils(ctx).MarkdownToHtml(project.Description)
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 	ctx.Data["PageIsViewProjects"] = true
@@ -534,6 +554,134 @@ func AddColumnToProjectPost(ctx *context.Context) {
 	}
 
 	ctx.JSONOK()
+}
+
+// AddIssueToColumn adds an existing issue to a project column
+func AddIssueToColumn(ctx *context.Context) {
+	columnID := ctx.FormInt64("column_id")
+	repoID := ctx.FormInt64("repo")
+	issueNumber := ctx.FormInt64("issue_number")
+
+	// Get the column
+	column, err := project_model.GetColumn(ctx, columnID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetColumn", project_model.IsErrProjectColumnNotExist, err)
+		return
+	}
+
+	// Get the project
+	project, err := project_model.GetProjectByID(ctx, column.ProjectID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		return
+	}
+
+	// Check if user has permission to write to the project
+	if project.OwnerID != ctx.ContextUser.ID {
+		ctx.NotFound(errors.New("No permission to write to project"))
+		return
+	}
+
+	// Get the repository
+	repository, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetRepositoryByID", repo_model.IsErrRepoNotExist, err)
+		return
+	}
+
+	// Check if user has permission to read the repository issues
+	perm, err := access_model.GetDoerRepoPermission(ctx, repository, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("GetDoerRepoPermission", err)
+		return
+	}
+	if !perm.CanRead(unit.TypeIssues) {
+		ctx.NotFound(errors.New("No permission to read repository issues"))
+		return
+	}
+
+	// Get the issue
+	issue, err := issues_model.GetIssueByIndex(ctx, repository.ID, issueNumber)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
+		return
+	}
+
+	// Add issue to project column
+	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, project.ID, column.ID); err != nil {
+		ctx.ServerError("IssueAssignOrRemoveProject", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.projects.column.add_issue_success", issue.Index))
+	ctx.Redirect(project_model.ProjectLinkForOrg(ctx.ContextUser, project.ID))
+}
+
+// AddPullToColumn adds an existing pull request to a project column
+func AddPullToColumn(ctx *context.Context) {
+	columnID := ctx.FormInt64("column_id")
+	repoID := ctx.FormInt64("repo")
+	pullNumber := ctx.FormInt64("pull_number")
+
+	// Get the column
+	column, err := project_model.GetColumn(ctx, columnID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetColumn", project_model.IsErrProjectColumnNotExist, err)
+		return
+	}
+
+	// Get the project
+	project, err := project_model.GetProjectByID(ctx, column.ProjectID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		return
+	}
+
+	// Check if user has permission to write to the project
+	if project.OwnerID != ctx.ContextUser.ID {
+		ctx.NotFound(errors.New("No permission to write to project"))
+		return
+	}
+
+	// Get the repository
+	repository, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetRepositoryByID", repo_model.IsErrRepoNotExist, err)
+		return
+	}
+
+	// Check if user has permission to read the repository pull requests
+	// Note: In organization project context, ctx.Repo might be nil, so we need to check repository access differently
+	perm, err := access_model.GetDoerRepoPermission(ctx, repository, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("GetDoerRepoPermission", err)
+		return
+	}
+	if !perm.CanRead(unit.TypePullRequests) {
+		ctx.NotFound(errors.New("No permission to read repository pull requests"))
+		return
+	}
+
+	// Get the pull request (which is also an issue)
+	pull, err := issues_model.GetIssueByIndex(ctx, repository.ID, pullNumber)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
+		return
+	}
+
+	if !pull.IsPull {
+		ctx.NotFound(errors.New("Not a pull request"))
+		return
+	}
+
+	// Add pull to project column
+	if err := issues_model.IssueAssignOrRemoveProject(ctx, pull, ctx.Doer, project.ID, column.ID); err != nil {
+		ctx.ServerError("IssueAssignOrRemoveProject", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.projects.column.add_pull_success", pull.Index))
+	ctx.Redirect(project_model.ProjectLinkForOrg(ctx.ContextUser, project.ID))
 }
 
 // CheckProjectColumnChangePermissions check permission

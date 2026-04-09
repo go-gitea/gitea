@@ -101,6 +101,18 @@
 								>
 									{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.projects.column.edit"}}
 								</a>
+								<a class="item button show-modal show-add-issue-modal" data-modal="#add-issue-modal"
+									data-modal-header="{{ctx.Locale.Tr "repo.projects.column.add_issue"}}"
+									data-modal-column-id="{{.ID}}"
+								>
+									{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.projects.column.add_issue"}}
+								</a>
+								<a class="item button show-modal show-add-pull-modal" data-modal="#add-pull-modal"
+									data-modal-header="{{ctx.Locale.Tr "repo.projects.column.add_pull"}}"
+									data-modal-column-id="{{.ID}}"
+								>
+									{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.projects.column.add_pull"}}
+								</a>
 								{{if not .Default}}
 									<a class="item button link-action" data-url="{{$.Link}}/{{.ID}}/default"
 										data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.column.set_default"}}"
@@ -156,4 +168,188 @@
 		</form>
 	</div>
 </div>
+
+<div class="ui small modal" id="add-issue-modal">
+	<div class="header">{{ctx.Locale.Tr "repo.projects.column.add_issue"}}</div>
+	<div class="content">
+		<form class="ui form ignore-dirty" method="post" action="{{$.Link}}/add-issue">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="column_id" id="add-issue-column-id">
+			{{if .Repository}}
+				<input type="hidden" name="repo" id="issue-repo" value="{{.Repository.ID}}" data-owner="{{.Repository.OwnerName}}" data-name="{{.Repository.Name}}">
+			{{else}}
+				<div class="required field">
+					<label for="issue-repo">{{ctx.Locale.Tr "repo.issues.new.repo"}}</label>
+					<select name="repo" id="issue-repo" required class="tw-w-full tw-p-2">
+						<option value="">{{ctx.Locale.Tr "repo.issues.choose_repo"}}</option>
+						{{range .AvailableRepos}}
+							<option value="{{.ID}}" data-owner="{{.OwnerName}}" data-name="{{.Name}}">{{.Name}}</option>
+						{{end}}
+					</select>
+				</div>
+			{{end}}
+			<div class="required field">
+				<label for="issue-number">{{ctx.Locale.Tr "repo.issues.number"}}</label>
+				<select name="issue_number" id="issue-number" required {{if .Repository}}{{else}}disabled{{end}} class="tw-w-full tw-p-2">
+					<option value="">{{ctx.Locale.Tr "repo.issues.choose_issue"}}</option>
+				</select>
+			</div>
+			<div class="actions">
+				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.projects.column.add_issue"}}</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<div class="ui small modal" id="add-pull-modal">
+	<div class="header">{{ctx.Locale.Tr "repo.projects.column.add_pull"}}</div>
+	<div class="content">
+		<form class="ui form ignore-dirty" method="post" action="{{$.Link}}/add-pull">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="column_id" id="add-pull-column-id">
+			{{if .Repository}}
+				<input type="hidden" name="repo" id="pull-repo" value="{{.Repository.ID}}" data-owner="{{.Repository.OwnerName}}" data-name="{{.Repository.Name}}">
+			{{else}}
+				<div class="required field">
+					<label for="pull-repo">{{ctx.Locale.Tr "repo.pulls.new.repo"}}</label>
+					<select name="repo" id="pull-repo" required class="tw-w-full tw-p-2">
+						<option value="">{{ctx.Locale.Tr "repo.pulls.choose_repo"}}</option>
+						{{range .AvailableRepos}}
+							<option value="{{.ID}}" data-owner="{{.OwnerName}}" data-name="{{.Name}}">{{.Name}}</option>
+						{{end}}
+					</select>
+				</div>
+			{{end}}
+			<div class="required field">
+				<label for="pull-number">{{ctx.Locale.Tr "repo.pulls.number"}}</label>
+				<select name="pull_number" id="pull-number" required {{if .Repository}}{{else}}disabled{{end}} class="tw-w-full tw-p-2">
+					<option value="">{{ctx.Locale.Tr "repo.pulls.choose_pull"}}</option>
+				</select>
+			</div>
+			<div class="actions">
+				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.projects.column.add_pull"}}</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<script>
+// Handle opening the add issue modal and set the column_id
+document.querySelectorAll('.show-add-issue-modal').forEach(button => {
+	button.addEventListener('click', function(e) {
+		const columnId = this.getAttribute('data-modal-column-id');
+		document.getElementById('add-issue-column-id').value = columnId;
+
+		// For repository projects, auto-load issues
+		const issueRepoSelect = document.getElementById('issue-repo');
+		if (issueRepoSelect && issueRepoSelect.type === 'hidden') {
+			const changeEvent = new Event('change');
+			issueRepoSelect.dispatchEvent(changeEvent);
+		}
+	});
+});
+
+// Handle opening the add pull modal and set the column_id
+document.querySelectorAll('.show-add-pull-modal').forEach(button => {
+	button.addEventListener('click', function(e) {
+		const columnId = this.getAttribute('data-modal-column-id');
+		document.getElementById('add-pull-column-id').value = columnId;
+
+		// For repository projects, auto-load pull requests
+		const pullRepoSelect = document.getElementById('pull-repo');
+		if (pullRepoSelect && pullRepoSelect.type === 'hidden') {
+			const changeEvent = new Event('change');
+			pullRepoSelect.dispatchEvent(changeEvent);
+		}
+	});
+});
+
+// Load issues when repository is selected
+document.getElementById('issue-repo').addEventListener('change', async function() {
+	const issueSelect = document.getElementById('issue-number');
+
+	if (!this.value) {
+		issueSelect.disabled = true;
+		issueSelect.innerHTML = '<option value="">{{ctx.Locale.Tr "repo.issues.choose_issue"}}</option>';
+		return;
+	}
+
+	let owner, name;
+	if (this.type === 'hidden') {
+		// For repository projects, get owner and name from data attributes or current page
+		owner = this.getAttribute('data-owner') || '{{if .Repository}}{{.Repository.OwnerName}}{{end}}';
+		name = this.getAttribute('data-name') || '{{if .Repository}}{{.Repository.Name}}{{end}}';
+	} else {
+		// For organization projects, get from selected option
+		const selectedOption = this.options[this.selectedIndex];
+		owner = selectedOption.getAttribute('data-owner');
+		name = selectedOption.getAttribute('data-name');
+	}
+
+	issueSelect.disabled = true;
+	issueSelect.innerHTML = '<option value="">{{ctx.Locale.Tr "loading"}}</option>';
+
+	try {
+		const response = await fetch(`/api/v1/repos/${owner}/${name}/issues?state=open&type=issues`);
+		const issues = await response.json();
+
+		issueSelect.innerHTML = '<option value="">{{ctx.Locale.Tr "repo.issues.choose_issue"}}</option>';
+		issues.forEach(issue => {
+			const option = document.createElement('option');
+			option.value = issue.number;
+			option.textContent = `#${issue.number} - ${issue.title}`;
+			issueSelect.appendChild(option);
+		});
+		issueSelect.disabled = false;
+	} catch (error) {
+		console.error('Failed to load issues:', error);
+		issueSelect.innerHTML = '<option value="">{{ctx.Locale.Tr "error.occurred"}}</option>';
+	}
+});
+
+// Load pull requests when repository is selected
+document.getElementById('pull-repo').addEventListener('change', async function() {
+	const pullSelect = document.getElementById('pull-number');
+
+	if (!this.value) {
+		pullSelect.disabled = true;
+		pullSelect.innerHTML = '<option value="">{{ctx.Locale.Tr "repo.pulls.choose_pull"}}</option>';
+		return;
+	}
+
+	let owner, name;
+	if (this.type === 'hidden') {
+		// For repository projects, get owner and name from data attributes or current page
+		owner = this.getAttribute('data-owner') || '{{if .Repository}}{{.Repository.OwnerName}}{{end}}';
+		name = this.getAttribute('data-name') || '{{if .Repository}}{{.Repository.Name}}{{end}}';
+	} else {
+		// For organization projects, get from selected option
+		const selectedOption = this.options[this.selectedIndex];
+		owner = selectedOption.getAttribute('data-owner');
+		name = selectedOption.getAttribute('data-name');
+	}
+
+	pullSelect.disabled = true;
+	pullSelect.innerHTML = '<option value="">{{ctx.Locale.Tr "loading"}}</option>';
+
+	try {
+		const response = await fetch(`/api/v1/repos/${owner}/${name}/pulls?state=open`);
+		const pulls = await response.json();
+		
+		pullSelect.innerHTML = '<option value="">{{ctx.Locale.Tr "repo.pulls.choose_pull"}}</option>';
+		pulls.forEach(pull => {
+			const option = document.createElement('option');
+			option.value = pull.number;
+			option.textContent = `#${pull.number} - ${pull.title}`;
+			pullSelect.appendChild(option);
+		});
+		pullSelect.disabled = false;
+	} catch (error) {
+		console.error('Failed to load pull requests:', error);
+		pullSelect.innerHTML = '<option value="">{{ctx.Locale.Tr "error.occurred"}}</option>';
+	}
+});
+</script>
 {{end}}

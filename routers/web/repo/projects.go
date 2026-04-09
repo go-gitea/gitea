@@ -727,3 +727,82 @@ func MoveIssues(ctx *context.Context) {
 
 	ctx.JSONOK()
 }
+
+// AddIssueToColumn adds an existing issue to a project column
+func AddIssueToColumn(ctx *context.Context) {
+	columnID := ctx.FormInt64("column_id")
+	issueNumber := ctx.FormInt64("issue_number")
+
+	column, err := project_model.GetColumn(ctx, columnID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetColumn", project_model.IsErrProjectColumnNotExist, err)
+		return
+	}
+
+	project, err := project_model.GetProjectByID(ctx, column.ProjectID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		return
+	}
+
+	if project.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound(errors.New("project does not belong to this repository"))
+		return
+	}
+
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueNumber)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
+		return
+	}
+
+	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, project.ID, column.ID); err != nil {
+		ctx.ServerError("IssueAssignOrRemoveProject", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.projects.column.add_issue_success", issue.Index))
+	ctx.Redirect(project.Link(ctx))
+}
+
+// AddPullToColumn adds an existing pull request to a project column
+func AddPullToColumn(ctx *context.Context) {
+	columnID := ctx.FormInt64("column_id")
+	pullNumber := ctx.FormInt64("pull_number")
+
+	column, err := project_model.GetColumn(ctx, columnID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetColumn", project_model.IsErrProjectColumnNotExist, err)
+		return
+	}
+
+	project, err := project_model.GetProjectByID(ctx, column.ProjectID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		return
+	}
+
+	if project.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound(errors.New("project does not belong to this repository"))
+		return
+	}
+
+	pull, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, pullNumber)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
+		return
+	}
+
+	if !pull.IsPull {
+		ctx.NotFound(errors.New("not a pull request"))
+		return
+	}
+
+	if err := issues_model.IssueAssignOrRemoveProject(ctx, pull, ctx.Doer, project.ID, column.ID); err != nil {
+		ctx.ServerError("IssueAssignOrRemoveProject", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.projects.column.add_pull_success", pull.Index))
+	ctx.Redirect(project.Link(ctx))
+}
