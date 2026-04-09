@@ -26,14 +26,14 @@ func TestSyncGroupsToTeams_LastOwnerNotRemoved(t *testing.T) {
 	sourceUserGroups := container.SetOf("groupA")
 	sourceGroupTeamMapping := map[string]map[string][]string{
 		"groupA": {"org3": {"Owners"}},
-		"groupB": {"org3": {"Owners", "Developers"}},
+		"groupB": {"org3": {"Owners", "team1"}},
 	}
 
 	// Verify deduplication: Owners must not be in remove list when groupA grants it.
 	membershipsToAdd, membershipsToRemove := resolveMappedMemberships(sourceUserGroups, sourceGroupTeamMapping)
 	assert.Contains(t, membershipsToAdd["org3"], "Owners")
 	assert.NotContains(t, membershipsToRemove["org3"], "Owners")
-	assert.Contains(t, membershipsToRemove["org3"], "Developers")
+	assert.Contains(t, membershipsToRemove["org3"], "team1")
 
 	// End-to-end: sync must not fail with ErrLastOrgOwner.
 	err := SyncGroupsToTeams(t.Context(), user2, sourceUserGroups, sourceGroupTeamMapping, true)

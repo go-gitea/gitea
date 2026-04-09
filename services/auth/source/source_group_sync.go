@@ -75,7 +75,11 @@ func resolveMappedMemberships(sourceUserGroups container.Set[string], sourceGrou
 				filtered = append(filtered, team)
 			}
 		}
-		membershipsToRemove[org] = filtered
+		if len(filtered) > 0 {
+			membershipsToRemove[org] = filtered
+		} else {
+			delete(membershipsToRemove, org)
+		}
 	}
 
 	return membershipsToAdd, membershipsToRemove
