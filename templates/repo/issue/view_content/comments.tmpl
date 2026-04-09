@@ -692,6 +692,18 @@
 					{{end}}
 				</span>
 			</div>
+		{{else if or (eq .Type 39) (eq .Type 40) (eq .Type 41) (eq .Type 42)}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-repo-forked" 16}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="comment-text-line">
+					{{template "shared/user/authorlink" .Poster}}
+					{{if eq .Type 39}}{{ctx.Locale.Tr "repo.issues.move_issue_from_comment" .Content $createdStr}}
+					{{else if eq .Type 40}}{{ctx.Locale.Tr "repo.issues.move_issue_from_comment" .Content $createdStr}}
+					{{else if eq .Type 41}}{{ctx.Locale.Tr "repo.issues.copy_issue_to_comment" .Content $createdStr}}
+					{{else}}{{ctx.Locale.Tr "repo.issues.copy_issue_from_comment" .Content $createdStr}}{{end}}
+				</span>
+			</div>
 		{{end}}
 	{{end}}
 {{end}}

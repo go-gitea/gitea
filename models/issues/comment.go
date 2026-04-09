@@ -118,6 +118,11 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+
+	CommentTypeMoveIssueTo   // 39 issue moved to another repo (recorded on source/moved issue)
+	CommentTypeMoveIssueFrom // 40 issue moved from another repo (recorded on destination issue — unused for now, kept for symmetry)
+	CommentTypeCopyIssueTo   // 41 issue copied to another repo (recorded on source issue)
+	CommentTypeCopyIssueFrom // 42 issue copied from another repo (recorded on copied issue)
 )
 
 var commentStrings = []string{
@@ -160,6 +165,10 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"move_issue_to",
+	"move_issue_from",
+	"copy_issue_to",
+	"copy_issue_from",
 }
 
 func (t CommentType) String() string {

@@ -854,6 +854,16 @@ func MoveIssueToRepo(ctx *context.Context) {
 		return
 	}
 
+	// Record move activity on the moved issue
+	oldIssueRef := fmt.Sprintf("%s#%d", ctx.Repo.Repository.FullName(), oldIndex)
+	_, _ = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+		Type:    issues_model.CommentTypeMoveIssueFrom,
+		Doer:    ctx.Doer,
+		Repo:    newRepo,
+		Issue:   issue,
+		Content: oldIssueRef,
+	})
+
 	// Update search index for the moved issue
 	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
 
@@ -1125,6 +1135,24 @@ func CopyIssueToRepo(ctx *context.Context) {
 			}
 		}
 	}
+
+	// Record copy activity on both the original and copied issues
+	newIssueRef := fmt.Sprintf("%s#%d", newRepo.FullName(), newIssue.Index)
+	_, _ = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+		Type:    issues_model.CommentTypeCopyIssueTo,
+		Doer:    ctx.Doer,
+		Repo:    ctx.Repo.Repository,
+		Issue:   issue,
+		Content: newIssueRef,
+	})
+	origIssueRef := fmt.Sprintf("%s#%d", ctx.Repo.Repository.FullName(), issue.Index)
+	_, _ = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+		Type:    issues_model.CommentTypeCopyIssueFrom,
+		Doer:    ctx.Doer,
+		Repo:    newRepo,
+		Issue:   newIssue,
+		Content: origIssueRef,
+	})
 
 	log.Info("Issue [%d] copied to repo [%d] as issue [%d] by user [%d]", issue.ID, newRepo.ID, newIssue.ID, ctx.Doer.ID)
 
