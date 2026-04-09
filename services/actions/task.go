@@ -75,16 +75,16 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// create task from the job
-		now := timeutil.TimeStampNow()
-		t, err := actions_model.InsertActionTaskFromJob(ctx, job, runner, now)
+		job.Started = timeutil.TimeStampNow()
+		job.Status = actions_model.StatusRunning
+		job.Attempt++
+
+		t, err := actions_model.InsertActionTaskFromJob(ctx, job, runner)
 		if err != nil {
 			return err
 		}
 
 		// update job status
-		job.Attempt++
-		job.Started = now
-		job.Status = actions_model.StatusRunning
 		job.TaskID = t.ID
 		if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "attempt", "started", "status", "task_id"); err != nil {
 			return err

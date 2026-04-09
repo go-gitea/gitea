@@ -263,12 +263,12 @@ func GetWaitingRunJobsForRunner(ctx context.Context, runner *ActionRunner) ([]*A
 	return jobs, nil
 }
 
-func InsertActionTaskFromJob(ctx context.Context, job *ActionRunJob, runner *ActionRunner, now timeutil.TimeStamp) (*ActionTask, error) {
+func InsertActionTaskFromJob(ctx context.Context, job *ActionRunJob, runner *ActionRunner) (*ActionTask, error) {
 	task := &ActionTask{
 		JobID:             job.ID,
 		Attempt:           job.Attempt,
 		RunnerID:          runner.ID,
-		Started:           now,
+		Started:           job.Started,
 		Status:            StatusRunning,
 		RepoID:            job.RepoID,
 		OwnerID:           job.OwnerID,
