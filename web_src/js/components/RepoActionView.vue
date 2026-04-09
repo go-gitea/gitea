@@ -29,7 +29,7 @@ function initSidebarTooltip(el: HTMLElement | null, content: string | HTMLElemen
   if (el._tippy) {
     el._tippy.setContent(content);
   } else {
-    createTippy(el, {content, role: 'tooltip', theme: 'tooltip', placement: 'top-end', offset: [0, 4], arrow: false});
+    createTippy(el, {content, role: 'tooltip', theme: 'tooltip', placement: 'top-end', arrow: false, offset: [0, 2]});
   }
 }
 
@@ -269,6 +269,16 @@ async function deleteArtifact(name: string) {
 .action-view-left .ui.relaxed.list {
   margin: var(--gap-block) 0;
   padding-left: 10px;
+}
+
+.action-view-left .ui.relaxed.list > .item {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.action-view-left .ui.relaxed.list > .item > :first-child {
+  padding-top: 0.42857143em;
+  padding-bottom: 0.42857143em;
 }
 
 .job-brief-item {
