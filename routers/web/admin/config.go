@@ -161,7 +161,7 @@ func Config(ctx *context.Context) {
 			log.Error("Unable to unmarshall session config for virtual provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
 		}
 		sessionCfg.Provider = realSession.Provider
-		sessionCfg.ProviderConfig = realSession.ProviderConfig
+		sessionCfg.ProviderConfig = util.SensitiveURLString(realSession.ProviderConfig)
 		sessionCfg.CookieName = realSession.CookieName
 		sessionCfg.CookiePath = realSession.CookiePath
 		sessionCfg.Gclifetime = realSession.Gclifetime
@@ -169,7 +169,7 @@ func Config(ctx *context.Context) {
 		sessionCfg.Secure = realSession.Secure
 		sessionCfg.Domain = realSession.Domain
 	}
-	sessionCfg.ProviderConfig = shadowPassword(sessionCfg.Provider, sessionCfg.ProviderConfig)
+	sessionCfg.ProviderConfig = util.SensitiveURLString(shadowPassword(sessionCfg.Provider, sessionCfg.ProviderConfig.String()))
 	ctx.Data["SessionConfig"] = sessionCfg
 
 	ctx.Data["Git"] = setting.Git

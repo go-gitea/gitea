@@ -98,7 +98,7 @@ func InitIssueIndexer(syncReindex bool) {
 				log.Fatal("Unable to initialize Bleve Issue Indexer at path: %s Error: %v", setting.Indexer.IssuePath, err)
 			}
 		case "elasticsearch":
-			issueIndexer = elasticsearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
+			issueIndexer = elasticsearch.NewIndexer(setting.Indexer.IssueConnStr.String(), setting.Indexer.IssueIndexerName)
 			existed, err = issueIndexer.Init(ctx)
 			if err != nil {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", util.SanitizeCredentialURLs(setting.Indexer.IssueConnStr), err)
@@ -106,7 +106,7 @@ func InitIssueIndexer(syncReindex bool) {
 		case "db":
 			issueIndexer = db.GetIndexer()
 		case "meilisearch":
-			issueIndexer = meilisearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
+			issueIndexer = meilisearch.NewIndexer(setting.Indexer.IssueConnStr.String(), setting.Indexer.IssueConnAuth.String(), setting.Indexer.IssueIndexerName)
 			existed, err = issueIndexer.Init(ctx)
 			if err != nil {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", util.SanitizeCredentialURLs(setting.Indexer.IssueConnStr), err)

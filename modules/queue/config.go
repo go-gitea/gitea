@@ -5,13 +5,14 @@ package queue
 
 import (
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type BaseConfig struct {
 	ManagedName string
 	DataFullDir string // the caller must prepare an absolute path
 
-	ConnStr string
+	ConnStr util.SensitiveURLString
 	Length  int
 
 	QueueFullName, SetFullName string

@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 type Event struct {
@@ -202,6 +204,14 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 	}
 
 	var msg []byte
+
+	for i, v := range msgArgs {
+		if sensitiveURL, ok := v.(util.SensitiveURLString); ok {
+			msgArgs[i] = util.SanitizeCredentialURLs(string(sensitiveURL))
+		} else if _, ok := v.(util.SensitivePasswordString); ok {
+			msgArgs[i] = "********"
+		}
+	}
 
 	// if the log needs colorizing, do it
 	if mode.Colorize && len(msgArgs) > 0 {
