@@ -77,7 +77,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 
 		// update job status
 		job.TaskID = t.ID
-		if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "attempt", "started", "status", "task_id"); err != nil {
+		if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"task_id": 0, "status": actions_model.StatusWaiting}, "attempt", "started", "status", "task_id"); err != nil {
 			return err
 		} else if n != 1 {
 			// return nil will not roll back the transaction, so we need to return

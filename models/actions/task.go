@@ -233,7 +233,7 @@ func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 
 // PickWaitingRunJob picks a waiting job for the runner, and returns the job and whether there is a job that can be picked.
 func PickWaitingRunJob(ctx context.Context, runner *ActionRunner) (*ActionRunJob, bool, error) {
-	// TODO: we now need to filter task_id and runs_on labeles in the memory for efficiency.
+	// TODO: we now need to filter task_id and runs_on labels in the memory for efficiency.
 	// It can be optimized by adding more conditions in the SQL query once
 	// the database schema is ready
 	jobs, err := getWaitingRunJobsForRunner(ctx, runner)
