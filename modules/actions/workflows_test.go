@@ -9,20 +9,26 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func fullWorkflowContent(yamlOn string) []byte {
-	return []byte("name: test\n" + yamlOn + "\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hello\n")
+func fullWorkflowContent(part string) []byte {
+	return []byte(`
+name: test
+` + part + `
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hello
+`)
 }
 
 func TestIsWorkflow(t *testing.T) {
-	oldDirs := setting.Actions.WorkflowDirs
-	defer func() {
-		setting.Actions.WorkflowDirs = oldDirs
-	}()
+	defer test.MockVariableValue(&setting.Actions.WorkflowDirs)()
 
 	tests := []struct {
 		name     string
