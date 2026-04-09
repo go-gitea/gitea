@@ -1,9 +1,9 @@
 import {createElementFromAttrs} from '../utils/dom.ts';
-import {formatFileSize} from '../utils/size.ts';
+import {formatBytes} from '../utils.ts';
 import type {ActionsArtifact} from '../modules/gitea-actions.ts';
 
 export function createArtifactTooltipElement(artifact: ActionsArtifact, expiresAtLocale: string): HTMLElement {
-  const sizeText = formatFileSize(artifact.size);
+  const sizeText = formatBytes(artifact.size);
 
   if (artifact.expiresUnix <= 0) {
     return createElementFromAttrs('span', null, sizeText);
