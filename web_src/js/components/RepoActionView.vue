@@ -6,7 +6,8 @@ import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
 import {createActionRunViewStore} from './ActionRunView.ts';
-import {createArtifactTooltipContent, type ArtifactTooltipLocale} from './ActionRunArtifacts.ts';
+import {createArtifactTooltipElement} from './ActionRunArtifacts.ts';
+import {createTippy} from '../modules/tippy.ts';
 
 defineOptions({
   name: 'RepoActionView',
@@ -23,8 +24,13 @@ const locale = props.locale;
 const store = createActionRunViewStore(props.actionsUrl, props.runId);
 const {currentRun: run, runArtifacts: artifacts} = toRefs(store.viewData);
 
-function artifactTooltip(artifact: typeof artifacts.value[number]) {
-  return createArtifactTooltipContent(artifact, locale as ArtifactTooltipLocale);
+function initSidebarTooltip(el: HTMLElement | null, content: string | HTMLElement) {
+  if (!el) return;
+  if (el._tippy) {
+    el._tippy.setContent(content);
+  } else {
+    createTippy(el, {content, role: 'tooltip', theme: 'tooltip', placement: 'top-end', offset: [0, 4], arrow: false});
+  }
 }
 
 function cancelRun() {
@@ -123,20 +129,20 @@ async function deleteArtifact(name: string) {
           <div class="ui divider"/>
           <div class="left-list-header">{{ locale.artifactsTitle }} ({{ artifacts.length }})</div>
           <ul class="ui relaxed list flex-items-block">
-            <li class="item" v-for="artifact in artifacts" :key="artifact.name">
+            <li :ref="artifact.status !== 'expired' ? (el) => initSidebarTooltip(el as HTMLElement, createArtifactTooltipElement(artifact, locale.artifactExpiresAt)) : undefined" class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
-                <a class="tw-flex-1 flex-text-block" target="_blank" :href="run.link+'/artifacts/'+artifact.name" :data-tooltip-content="artifactTooltip(artifact)">
-                  <SvgIcon name="octicon-file" class="tw-text-text"/>
+                <a class="tw-flex-1 flex-text-block muted" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                  <SvgIcon name="octicon-file" class="tw-text-text-light"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
-                <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
-                  <SvgIcon name="octicon-trash" class="tw-text-text"/>
+                <a v-if="run.canDeleteArtifact" class="muted" @click="deleteArtifact(artifact.name)">
+                  <SvgIcon name="octicon-trash"/>
                 </a>
               </template>
-              <span v-else class="flex-text-block tw-flex-1 tw-text-grey-light" :data-tooltip-content="artifactTooltip(artifact)">
+              <span v-else class="flex-text-block tw-flex-1 tw-text-text-light-2">
                 <SvgIcon name="octicon-file"/>
                 <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
-                <span class="ui label tw-text-grey-light tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
+                <span class="ui label tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
               </span>
             </li>
           </ul>
@@ -256,6 +262,7 @@ async function deleteArtifact(name: string) {
 
 .left-list-header {
   font-size: 13px;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-light-2);
 }
 
