@@ -214,14 +214,11 @@ export function formatBytes(size: number): string {
   if (!Number.isFinite(size) || size < 0) return '0 B';
   let value = size;
   let unitIndex = 0;
-
   while (value >= 1024 && unitIndex < sizeUnits.length - 1) {
     value /= 1024;
     unitIndex++;
   }
-
-  const formattedValue = unitIndex === 0 ? String(Math.round(value)) : value.toFixed(value >= 10 ? 0 : 1);
-  return `${formattedValue} ${sizeUnits[unitIndex]}`;
+  return `${value.toFixed(unitIndex === 0 || value >= 10 ? 0 : 1)} ${sizeUnits[unitIndex]}`;
 }
 
 export function toggleFullScreen(fullScreenEl: HTMLElement, isFullScreen: boolean, sourceParentSelector?: string): void {
