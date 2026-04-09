@@ -165,6 +165,9 @@ func (s *Service) FetchTask(
 		// if the task version in request is not equal to the version in db,
 		// it means there may still be some tasks that haven't been assigned.
 		// try to pick a task for the runner that send the request.
+		// if a task is picked but assigned to another runner when processing by concurrent request,
+		// we will try to pick task again for another 2 times, so the runner has more
+		// chances to get a task without waiting for the next FetchTask request.
 		for range 3 {
 			t, ok, err := actions_service.PickTask(ctx, freshRunner)
 			if err != nil {
