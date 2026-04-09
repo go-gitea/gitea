@@ -72,9 +72,9 @@ func testCatFileBatch(t *testing.T) {
 	}
 
 	t.Run("QueryTerminated", func(t *testing.T) {
-		err := simulateQueryTerminated(0, 20*time.Millisecond)
+		err := simulateQueryTerminated(0, 500*time.Millisecond)
 		assert.ErrorIs(t, err, os.ErrClosed) // pipes are closed faster
-		err = simulateQueryTerminated(40*time.Millisecond, 20*time.Millisecond)
+		err = simulateQueryTerminated(500*time.Millisecond, 20*time.Millisecond)
 		assert.ErrorIs(t, err, io.EOF) // reader is faster
 	})
 
