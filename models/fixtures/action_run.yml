@@ -102,7 +102,7 @@
   id: 803
   title: "workflow run list for user"
   repo_id: 2
-  owner_id: 0
+  owner_id: 2
   workflow_id: "test.yaml"
   index: 192
   trigger_user_id: 1
