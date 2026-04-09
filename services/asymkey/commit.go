@@ -102,6 +102,7 @@ func parseCommitWithGPGSignature(ctx context.Context, c *git.Commit, committer *
 			return &asymkey_model.CommitVerification{
 				CommittingUser: committer,
 				Verified:       false,
+				// i18n-check: gpg.error.failed_retrieval_gpg_keys
 				Reason:         "gpg.error.failed_retrieval_gpg_keys",
 			}
 		}

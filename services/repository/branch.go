@@ -836,6 +836,7 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 	}
 	if pr.HeadRepo == nil {
 		// Forked repository has already been deleted
+		// i18n-check: ignore
 		return util.ErrorWrapTranslatable(util.ErrNotExist, "repo.branch.deletion_failed", "(deleted-repo):"+pr.HeadBranch)
 	}
 	if err = pr.HeadRepo.LoadOwner(ctx); err != nil {
@@ -848,6 +849,7 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 	}
 
 	errFailedToDelete := func(err error) error {
+		// i18n-check: ignore
 		return util.ErrorWrapTranslatable(err, "repo.branch.deletion_failed", fullBranchName)
 	}
 
@@ -896,6 +898,7 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 		return errFailedToDelete(err)
 	}
 	if headCommitID != branchCommitID {
+		// i18n-check: ignore
 		return util.ErrorWrapTranslatable(util.ErrUnprocessableContent, "repo.branch.delete_branch_has_new_commits", fullBranchName)
 	}
 

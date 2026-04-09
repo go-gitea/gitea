@@ -561,6 +561,7 @@
 					{{if .OldProject}}
 						{{$tooltip := ctx.Locale.Tr "projects.deleted.display_name"}}
 						{{if not .OldProject.IsGhost}}
+							<!-- i18n-check: projects.type-*.display_name -->
 							{{$tooltip = ctx.Locale.Tr (printf "projects.type-%d.display_name" .OldProject.Type)}}
 						{{end}}
 						{{$oldProjectDisplayHtml = HTMLFormat `<span data-tooltip-content="%s">%s</span>` $tooltip .OldProject.Title}}

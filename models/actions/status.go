@@ -43,6 +43,7 @@ func (s Status) String() string {
 
 // LocaleString returns the locale string name of the Status
 func (s Status) LocaleString(lang translation.Locale) string {
+	// i18n-check: actions.status.*
 	return lang.TrString("actions.status." + s.String())
 }
 
