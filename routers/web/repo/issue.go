@@ -25,12 +25,14 @@ import (
 	"code.gitea.io/gitea/modules/htmlutil"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"github.com/google/uuid"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -831,6 +833,19 @@ func MoveIssueToRepo(ctx *context.Context) {
 		return
 	}
 
+	// Move attachments (issue body + comments) to new repo
+	if _, err := db.GetEngine(dbCtx).Where("issue_id = ?", issue.ID).
+		Cols("repo_id").Update(&repo_model.Attachment{RepoID: newRepo.ID}); err != nil {
+		ctx.ServerError("UpdateAttachmentRepoID", err)
+		return
+	}
+
+	// Remove pin from source repo
+	if _, err := db.GetEngine(dbCtx).Where("issue_id = ?", issue.ID).Delete(&issues_model.IssuePin{}); err != nil {
+		ctx.ServerError("DeleteIssuePin", err)
+		return
+	}
+
 	// Decrement old repo issue count
 	if err := issues_model.DecrRepoIssueNumbers(dbCtx, oldRepoID, issue.IsPull, true, issue.IsClosed); err != nil {
 		ctx.ServerError("DecrRepoIssueNumbers", err)
@@ -871,6 +886,16 @@ func MoveIssueToRepo(ctx *context.Context) {
 	if newRepo.IsPrivate {
 		if err := issues_model.RemoveIssueWatchersWithoutRepoAccess(ctx, issue.ID, newRepo.ID, newRepo.OwnerID); err != nil {
 			log.Error("RemoveIssueWatchersWithoutRepoAccess issue[%d]: %v", issue.ID, err)
+		}
+	}
+
+	// Remove assignees who don't have read access to the new repo
+	if err := issue.LoadAssignees(ctx); err == nil {
+		for _, assignee := range issue.Assignees {
+			canRead, err := access_model.HasAccessUnit(ctx, assignee, newRepo, unit.TypeIssues, perm_model.AccessModeRead)
+			if err != nil || !canRead {
+				_, _ = db.GetEngine(ctx).Where("issue_id = ? AND assignee_id = ?", issue.ID, assignee.ID).Delete(&issues_model.IssueAssignees{})
+			}
 		}
 	}
 
@@ -1131,6 +1156,43 @@ func CopyIssueToRepo(ctx *context.Context) {
 							ProjectColumnID: defaultColumn.ID,
 						})
 					}
+				}
+			}
+		}
+	}
+
+	// Best-effort: copy attachments (issue body only, not comments)
+	if ctx.FormBool("copy_attachments") {
+		origAttachments, err := repo_model.GetAttachmentsByIssueID(ctx, issue.ID)
+		if err == nil {
+			for _, att := range origAttachments {
+				newUUID := uuid.New().String()
+				newAtt := &repo_model.Attachment{
+					UUID:       newUUID,
+					RepoID:     newRepo.ID,
+					IssueID:    newIssue.ID,
+					UploaderID: att.UploaderID,
+					Name:       att.Name,
+					Size:       att.Size,
+				}
+				if _, err := db.GetEngine(ctx).Insert(newAtt); err != nil {
+					continue
+				}
+				if _, err := storage.Copy(storage.Attachments, repo_model.AttachmentRelativePath(newUUID),
+					storage.Attachments, att.RelativePath()); err != nil {
+					_, _ = db.GetEngine(ctx).Delete(newAtt)
+				}
+			}
+		}
+	}
+
+	// Best-effort: copy assignees (only those with access to the new repo)
+	if ctx.FormBool("copy_assignees") {
+		if err := issue.LoadAssignees(ctx); err == nil {
+			for _, assignee := range issue.Assignees {
+				canRead, err := access_model.HasAccessUnit(ctx, assignee, newRepo, unit.TypeIssues, perm_model.AccessModeRead)
+				if err == nil && canRead {
+					_, _ = db.GetEngine(ctx).Insert(&issues_model.IssueAssignees{IssueID: newIssue.ID, AssigneeID: assignee.ID})
 				}
 			}
 		}
