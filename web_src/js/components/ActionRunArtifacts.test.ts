@@ -17,6 +17,7 @@ test('createArtifactTooltipElement for active artifact', () => {
   expect(rt.getAttribute('minute')).toBe('2-digit');
   expect(el.textContent).toContain('Expires at');
   expect(el.textContent).toContain('1.0 MiB');
+  expect(el.querySelector('.artifact-size')).not.toBeNull();
 });
 
 test('createArtifactTooltipElement with no expiry', () => {

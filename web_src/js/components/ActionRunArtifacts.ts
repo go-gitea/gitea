@@ -15,5 +15,6 @@ export function createArtifactTooltipElement(artifact: ActionsArtifact, expiresA
     datetime, threshold: 'P0Y', prefix: '', weekday: '',
     year: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
   });
-  return createElementFromAttrs('span', null, parts[0] ?? '', relativeTime, `${parts[1] ?? ''} | ${sizeText}`);
+  const sizeSpan = createElementFromAttrs('span', {class: 'artifact-size tw-border-l tw-border-current tw-ml-2 tw-pl-2'}, sizeText);
+  return createElementFromAttrs('span', null, parts[0] ?? '', relativeTime, parts[1] ?? '', sizeSpan);
 }
