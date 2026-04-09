@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions/jobparser"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -230,8 +231,35 @@ func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 	return util.EllipsisDisplayString(name, limit) // database column has a length limit
 }
 
-// GetWaitingRunJobsForRunner returns waiting jobs that can be picked by the runner, ordered by updated time and id.
-func GetWaitingRunJobsForRunner(ctx context.Context, runner *ActionRunner) ([]*ActionRunJob, error) {
+// PickWaitingRunJob picks a waiting job for the runner, and returns the job and whether there is a job that can be picked.
+func PickWaitingRunJob(ctx context.Context, runner *ActionRunner) (*ActionRunJob, bool, error) {
+	// TODO: we now need to filter task_id and runs_on labeles in the memory for efficiency.
+	// It can be optimized by adding more conditions in the SQL query once
+	// the database schema is ready
+	jobs, err := getWaitingRunJobsForRunner(ctx, runner)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(jobs) == 0 {
+		return nil, false, nil
+	}
+
+	var job *ActionRunJob
+	log.Trace("runner labels: %v", runner.AgentLabels)
+	for _, v := range jobs {
+		if v.TaskID == 0 && runner.CanMatchLabels(v.RunsOn) {
+			job = v
+			break
+		}
+	}
+	if job == nil {
+		return nil, false, nil
+	}
+	return job, true, nil
+}
+
+// getWaitingRunJobsForRunner returns waiting jobs that can be picked by the runner, ordered by updated time and id.
+func getWaitingRunJobsForRunner(ctx context.Context, runner *ActionRunner) ([]*ActionRunJob, error) {
 	var jobCond builder.Cond
 	if runner.RepoID != 0 {
 		exist, err := repo_model.IsRepoUnitExist(ctx, runner.RepoID, unit.TypeActions)

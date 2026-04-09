@@ -11,7 +11,6 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	notify_service "code.gitea.io/gitea/services/notify"
 
@@ -45,27 +44,19 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		}
 	}
 
-	// TODO: we now need to filter task_id and runs_on labeles in the memory for effeciency.
-	// It can be optimized by adding more conditions in the SQL query once
-	// the database schema is ready
-	jobs, err := actions_model.GetWaitingRunJobsForRunner(ctx, runner)
+	job, hasTask, err := actions_model.PickWaitingRunJob(ctx, runner)
 	if err != nil {
 		return nil, false, err
 	}
-	if len(jobs) == 0 {
+	if !hasTask {
 		return nil, false, nil
 	}
 
-	var job *actions_model.ActionRunJob
-	log.Trace("runner labels: %v", runner.AgentLabels)
-	for _, v := range jobs {
-		if v.TaskID == 0 && runner.CanMatchLabels(v.RunsOn) {
-			job = v
-			break
-		}
+	if err := job.LoadRun(ctx); err != nil {
+		return nil, false, fmt.Errorf("job LoadRun: %w", err)
 	}
-	if job == nil {
-		return nil, false, nil
+	if err := job.Run.LoadAttributes(ctx); err != nil {
+		return nil, false, fmt.Errorf("job Run LoadAttributes: %w", err)
 	}
 
 	var (
@@ -74,7 +65,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	)
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		// create task from the job
+		// create task from the job, below variable might be used inside InsertActionTaskFromJob
 		job.Started = timeutil.TimeStampNow()
 		job.Status = actions_model.StatusRunning
 		job.Attempt++
@@ -93,13 +84,6 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 			// an error here to roll back the transaction and let the runner retry,
 			// but we should not treat it as an actual error.
 			return actions_model.ErrTaskAssignedToOtherRunner
-		}
-
-		if err := job.LoadRun(ctx); err != nil {
-			return fmt.Errorf("job LoadRun: %w", err)
-		}
-		if err := job.Run.LoadTriggerUser(ctx); err != nil {
-			return fmt.Errorf("job Run LoadTriggerUser: %w", err)
 		}
 
 		secrets, err := secret_model.GetSecretsOfTask(ctx, t)
@@ -135,10 +119,6 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		return nil
 	}); err != nil {
 		return nil, false, err
-	}
-
-	if err := job.Run.Repo.LoadOwner(ctx); err != nil {
-		log.Error("LoadOwner: %v", err)
 	}
 
 	CreateCommitStatusForRunJobs(ctx, job.Run, job)
