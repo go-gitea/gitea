@@ -42,7 +42,7 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 	stdinWriter, stdoutReader, stdPipeClose := cmdCatFile.MakeStdinStdoutPipe()
 	pipeClose := func() {
 		if fn := catFileBatchDebugPipeClose.Load(); fn != nil {
-			(*fn)(stdPipeClose) // for testing purpose only
+			(*fn)(stdPipeClose)
 		} else {
 			stdPipeClose()
 		}
