@@ -59,7 +59,7 @@
     "pdfobject": "2.3.1",
     "perfect-debounce": "2.1.0",
     "postcss": "8.5.9",
-    "rollup-plugin-license": "3.7.0",
+    "rolldown-license-plugin": "2.2.0",
     "sortablejs": "1.15.7",
     "swagger-ui-dist": "5.32.2",
     "tailwindcss": "3.4.19",
@@ -73,8 +73,7 @@
     "vite-string-plugin": "2.0.2",
     "vue": "3.5.32",
     "vue-bar-graph": "2.2.0",
-    "vue-chartjs": "5.3.3",
-    "wrap-ansi": "10.0.0"
+    "vue-chartjs": "5.3.3"
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "4.7.1",
