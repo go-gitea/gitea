@@ -7,9 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/modules/test"
 
@@ -39,12 +37,10 @@ func testCatFileBatch(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	simulateQueryTerminated := func(pipeCloseDelay, pipeReadDelay time.Duration) (errRead error) {
-		catFileBatchDebugWaitClose.Store(int64(pipeCloseDelay))
-		defer catFileBatchDebugWaitClose.Store(0)
+	setupTerminatedBatch := func(t *testing.T) (*catFileBatchCommunicator, func()) {
+		t.Helper()
 		batch, err := NewBatch(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 		require.NoError(t, err)
-		defer batch.Close()
 		_, _ = batch.QueryInfo("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
 		var c *catFileBatchCommunicator
 		switch b := batch.(type) {
@@ -57,25 +53,38 @@ func testCatFileBatch(t *testing.T) {
 		default:
 			t.FailNow()
 		}
-
-		wg := sync.WaitGroup{}
-		wg.Go(func() {
-			time.Sleep(pipeReadDelay)
-			var n int
-			n, errRead = c.respReader.Read(make([]byte, 100))
-			assert.Zero(t, n)
-		})
-		time.Sleep(10 * time.Millisecond)
-		c.debugGitCmd.DebugKill()
-		wg.Wait()
-		return errRead
+		return c, func() { batch.Close() }
 	}
 
 	t.Run("QueryTerminated", func(t *testing.T) {
-		err := simulateQueryTerminated(0, 500*time.Millisecond)
-		assert.ErrorIs(t, err, os.ErrClosed) // pipes are closed faster
-		err = simulateQueryTerminated(500*time.Millisecond, 20*time.Millisecond)
-		assert.ErrorIs(t, err, io.EOF) // reader is faster
+		t.Run("PipeClosedBeforeRead", func(t *testing.T) {
+			closed := make(chan struct{})
+			hook := func(doClose func()) { doClose(); close(closed) }
+			c, cleanup := setupTerminatedBatch(t)
+			defer cleanup()
+			catFileBatchDebugPipeClose.Store(&hook)
+			defer catFileBatchDebugPipeClose.Store(nil)
+			c.debugGitCmd.DebugKill()
+			<-closed
+			n, err := c.respReader.Read(make([]byte, 100))
+			assert.Zero(t, n)
+			assert.ErrorIs(t, err, os.ErrClosed)
+		})
+		t.Run("ReadBeforePipeClose", func(t *testing.T) {
+			ready := make(chan struct{})
+			proceed := make(chan struct{})
+			hook := func(doClose func()) { close(ready); <-proceed; doClose() }
+			c, cleanup := setupTerminatedBatch(t)
+			defer cleanup()
+			catFileBatchDebugPipeClose.Store(&hook)
+			defer catFileBatchDebugPipeClose.Store(nil)
+			c.debugGitCmd.DebugKill()
+			<-ready
+			n, err := c.respReader.Read(make([]byte, 100))
+			assert.Zero(t, n)
+			assert.ErrorIs(t, err, io.EOF)
+			close(proceed)
+		})
 	})
 
 	batch, err := NewBatch(t.Context(), filepath.Join(testReposDir, "repo1_bare"))

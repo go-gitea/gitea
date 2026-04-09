@@ -13,13 +13,12 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
-	"time"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 )
 
-var catFileBatchDebugWaitClose atomic.Int64
+var catFileBatchDebugPipeClose atomic.Pointer[func(stdPipeClose func())]
 
 type catFileBatchCommunicator struct {
 	closeFunc   func(err error)
@@ -42,10 +41,11 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and subtrees as necessary.
 	stdinWriter, stdoutReader, stdPipeClose := cmdCatFile.MakeStdinStdoutPipe()
 	pipeClose := func() {
-		if delay := catFileBatchDebugWaitClose.Load(); delay > 0 {
-			time.Sleep(time.Duration(delay)) // for testing purpose only
+		if fn := catFileBatchDebugPipeClose.Load(); fn != nil {
+			(*fn)(stdPipeClose) // for testing purpose only
+		} else {
+			stdPipeClose()
 		}
-		stdPipeClose()
 	}
 	closeFunc := func(err error) {
 		ctxCancel(err)
