@@ -75,6 +75,19 @@
 				<div class="render-content markup">{{.RenderedContent}}</div>
 			{{end}}
 		</li>
+	{{else}}
+		{{if and (eq .OpenCount 0) (eq .ClosedCount 0)}}
+			<div class="empty-placeholder">
+				{{svg "octicon-project-symlink" 48}}
+				<h2>{{ctx.Locale.Tr "repo.projects.empty"}}</h2>
+				<p>{{ctx.Locale.Tr "repo.projects.empty_description"}}</p>
+			</div>
+		{{else}}
+			<div class="empty-placeholder">
+				{{svg "octicon-search" 48}}
+				<h2>{{ctx.Locale.Tr "repo.projects.no_results"}}</h2>
+			</div>
+		{{end}}
 	{{end}}
 
 	{{template "base/paginate" .}}

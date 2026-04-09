@@ -260,7 +260,7 @@ func Routes() *web.Router {
 	routes.BeforeRouting(chi_middleware.GetHead)
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
-	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", routing.MarkLogLevelTrace, optionsCorsHandler(), public.FileHandlerFunc())
+	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", routing.MarkLogLevelTrace, public.AssetsCors(), public.FileHandlerFunc())
 	routes.Methods("GET, HEAD", "/avatars/*", avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
@@ -1071,14 +1071,19 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Get("/versions", user.ListPackageVersions)
 					m.Group("/{version}", func() {
 						m.Get("", user.ViewPackageVersion)
+						m.Post("", reqPackageAccess(perm.AccessModeWrite), user.PackageVersionDelete)
 						m.Get("/{version_sub}", user.ViewPackageVersion)
-						m.Get("/files/{fileid}", user.DownloadPackageFile)
-						m.Group("/settings", func() {
-							m.Get("", user.PackageSettings)
-							m.Post("", web.Bind(forms.PackageSettingForm{}), user.PackageSettingsPost)
+						m.Group("/terraform", func() {
+							m.Post("/lock", user.ActionPackageTerraformLock)
+							m.Post("/unlock", user.ActionPackageTerraformUnlock)
 						}, reqPackageAccess(perm.AccessModeWrite))
+						m.Get("/files/{fileid}", user.DownloadPackageFile)
 					})
 				})
+				m.Group("/settings/{type}/{name}", func() {
+					m.Get("", user.PackageSettings)
+					m.Post("", web.Bind(forms.PackageSettingForm{}), user.PackageSettingsPost)
+				}, reqPackageAccess(perm.AccessModeWrite))
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 
