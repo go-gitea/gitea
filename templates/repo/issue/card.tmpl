@@ -20,6 +20,11 @@
 					{{svg "octicon-x" 16}}
 				</a>
 			{{end}}
+			{{if $.ShowUnbind}}
+				<a role="button" class="issue-card-unbind muted tw-flex tw-items-center" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.unbind"}}" data-card-type="issue" data-id="{{.ID}}" data-column-id="{{$.UnbindColumnID}}">
+					{{svg "octicon-x" 16}}
+				</a>
+			{{end}}
 		</div>
 		<div class="meta">
 			<span class="tw-text-grey-light muted-links">

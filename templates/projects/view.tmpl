@@ -79,6 +79,7 @@
 
 	<div id="project-board" class="board {{if $canWriteProject}}sortable{{end}}" data-project-board-writable="{{$canWriteProject}}" {{if $canWriteProject}}data-url="{{$.Link}}/move"{{end}}>
 		{{range .Columns}}
+			{{$column := .}}
 			<div class="project-column" {{if .Color}}style="background: {{.Color}} !important; color: {{ContrastColor .Color}} !important"{{end}} data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
 				<div class="project-column-header{{if $canWriteProject}} tw-cursor-grab{{end}}">
 					<div class="ui circular label project-column-issue-count">
@@ -135,7 +136,7 @@
 				<div class="ui cards" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 					{{range (index $.IssuesMap .ID)}}
 						<div class="issue-card tw-break-anywhere {{if $canWriteProject}}tw-cursor-grab{{end}}" data-issue="{{.ID}}">
-							{{template "repo/issue/card" (dict "Issue" . "Page" $)}}
+							{{template "repo/issue/card" (dict "Issue" . "Page" $ "ShowUnbind" $canWriteProject "UnbindColumnID" $column.ID)}}
 						</div>
 					{{end}}
 				</div>
@@ -337,7 +338,7 @@ document.getElementById('pull-repo').addEventListener('change', async function()
 	try {
 		const response = await fetch(`/api/v1/repos/${owner}/${name}/pulls?state=open`);
 		const pulls = await response.json();
-		
+
 		pullSelect.innerHTML = '<option value="">{{ctx.Locale.Tr "repo.pulls.choose_pull"}}</option>';
 		pulls.forEach(pull => {
 			const option = document.createElement('option');
@@ -350,6 +351,54 @@ document.getElementById('pull-repo').addEventListener('change', async function()
 		console.error('Failed to load pull requests:', error);
 		pullSelect.innerHTML = '<option value="">{{ctx.Locale.Tr "error.occurred"}}</option>';
 	}
+});
+
+// Handle unbind button click for all card types
+document.querySelectorAll('.issue-card-unbind').forEach(button => {
+	button.addEventListener('click', async function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+
+		const cardType = this.getAttribute('data-card-type');
+		const id = this.getAttribute('data-id');
+		const columnId = this.getAttribute('data-column-id');
+
+		if (!confirm('{{ctx.Locale.Tr "repo.projects.column.unbind_confirm"}}')) {
+			return;
+		}
+
+		// Get CSRF token
+		const csrfToken = window.config?.csrfToken || '';
+
+		try {
+			let response;
+			response = await fetch(`{{$.Link}}/${columnId}/unbind-issue`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+					'X-Csrf-Token': csrfToken,
+				},
+				body: `issue_id=${id}`
+			});
+
+			if (response.ok) {
+				// Remove the card from DOM
+				const card = this.closest('.issue-card');
+				card.remove();
+
+				// Update the card count
+				const column = document.querySelector(`.project-column[data-id="${columnId}"]`);
+				const countLabel = column.querySelector('.project-column-issue-count');
+				const currentCount = parseInt(countLabel.textContent);
+				countLabel.textContent = currentCount - 1;
+			} else {
+				alert('{{ctx.Locale.Tr "error.occurred"}}');
+			}
+		} catch (error) {
+			console.error('Failed to unbind card:', error);
+			alert('{{ctx.Locale.Tr "error.occurred"}}');
+		}
+	});
 });
 </script>
 {{end}}

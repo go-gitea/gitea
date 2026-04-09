@@ -817,3 +817,49 @@ func MoveIssues(ctx *context.Context) {
 
 	ctx.JSONOK()
 }
+
+// UnbindIssueFromColumn removes an issue from a project column
+func UnbindIssueFromColumn(ctx *context.Context) {
+	if ctx.Doer == nil {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only signed in users are allowed to perform this action.",
+		})
+		return
+	}
+
+	columnID := ctx.PathParamInt64("columnID")
+	issueID := ctx.FormInt64("issue_id")
+
+	column, err := project_model.GetColumn(ctx, columnID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetColumn", project_model.IsErrProjectColumnNotExist, err)
+		return
+	}
+
+	project, err := project_model.GetProjectByID(ctx, column.ProjectID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		return
+	}
+
+	if project.OwnerID != ctx.ContextUser.ID {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "No permission to write to project",
+		})
+		return
+	}
+
+	issue, err := issues_model.GetIssueByID(ctx, issueID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetIssueByID", issues_model.IsErrIssueNotExist, err)
+		return
+	}
+
+	// Remove issue from project by setting projectID to 0
+	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, 0, 0); err != nil {
+		ctx.ServerError("IssueAssignOrRemoveProject", err)
+		return
+	}
+
+	ctx.JSONOK()
+}

@@ -806,3 +806,55 @@ func AddPullToColumn(ctx *context.Context) {
 	ctx.Flash.Success(ctx.Tr("repo.projects.column.add_pull_success", pull.Index))
 	ctx.Redirect(project.Link(ctx))
 }
+
+// UnbindIssueFromColumn removes an issue from a project column
+func UnbindIssueFromColumn(ctx *context.Context) {
+	if ctx.Doer == nil {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only signed in users are allowed to perform this action.",
+		})
+		return
+	}
+
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "Only authorized users are allowed to perform this action.",
+		})
+		return
+	}
+
+	columnID := ctx.PathParamInt64("columnID")
+	issueID := ctx.FormInt64("issue_id")
+
+	column, err := project_model.GetColumn(ctx, columnID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetColumn", project_model.IsErrProjectColumnNotExist, err)
+		return
+	}
+
+	project, err := project_model.GetProjectByID(ctx, column.ProjectID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		return
+	}
+
+	if project.RepoID != ctx.Repo.Repository.ID {
+		ctx.JSON(http.StatusForbidden, map[string]string{
+			"message": "No permission to write to project",
+		})
+		return
+	}
+
+	issue, err := issues_model.GetIssueByID(ctx, issueID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetIssueByID", issues_model.IsErrIssueNotExist, err)
+		return
+	}
+
+	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, 0, 0); err != nil {
+		ctx.ServerError("IssueAssignOrRemoveProject", err)
+		return
+	}
+
+	ctx.JSONOK()
+}

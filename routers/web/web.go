@@ -1118,6 +1118,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Delete("", org.DeleteProjectColumn)
 						m.Post("/default", org.SetDefaultProjectColumn)
 						m.Post("/move", org.MoveIssues)
+						m.Post("/unbind-issue", org.UnbindIssueFromColumn)
 					})
 				})
 			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
@@ -1524,6 +1525,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Delete("", repo.DeleteProjectColumn)
 					m.Post("/default", repo.SetDefaultProjectColumn)
 					m.Post("/move", repo.MoveIssues)
+					m.Post("/unbind-issue", repo.UnbindIssueFromColumn)
 				})
 			})
 		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())

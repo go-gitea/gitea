@@ -1398,6 +1398,8 @@
   "repo.projects.column.add_pull": "Add Pull Request",
   "repo.projects.column.add_issue_success": "Issue #%d has been successfully added to project column",
   "repo.projects.column.add_pull_success": "Pull Request #%d has been successfully added to project column",
+  "repo.projects.column.unbind": "Unbind from column",
+  "repo.projects.column.unbind_confirm": "Are you sure you want to remove this card from the project column?",
   "repo.projects.card_type.desc": "Card Previews",
   "repo.projects.card_type.images_and_text": "Images and Text",
   "repo.projects.card_type.text_only": "Text Only",
