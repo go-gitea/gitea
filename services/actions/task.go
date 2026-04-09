@@ -49,11 +49,18 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
+		t, err := actions_model.CreateTaskForRunner(ctx, runner)
 		if err != nil {
+			if errors.Is(err, actions_model.ErrTaskAssignedToOtherRunner) {
+				// TODO: Let the runner retry the request, do not allow to proceed
+				// return nil will not roll back the transaction, so we need to return
+				// an error here to roll back the transaction and let the runner retry,
+				// but we should not treat it as an actual error, so we can define a special error for this case.
+				return err
+			}
 			return fmt.Errorf("CreateTaskForRunner: %w", err)
 		}
-		if !ok {
+		if t == nil { // no waiting job for the runner
 			return nil
 		}
 
