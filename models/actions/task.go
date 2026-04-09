@@ -253,6 +253,9 @@ func GetWaitingRunJobsForRunner(ctx context.Context, runner *ActionRunner) ([]*A
 		jobCond = builder.In("repo_id", reposWithActionsSupport)
 	}
 
+	// TODO: we cannot have a limitation here because the jobs needs to be filtered by labels and task id.
+	// So that it might take much time or a very long time to load all waiting jobs if there are a lot of them.
+
 	var jobs []*ActionRunJob
 	if err := db.GetEngine(ctx).Where("status=?", StatusWaiting).And(jobCond).Asc("updated", "id").Find(&jobs); err != nil {
 		return nil, err
