@@ -1407,7 +1407,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				// Because reader can "fork and edit"
 				canWriteToBranch := context.CanWriteToBranch()
 				m.Post("/_preview/*", repo.DiffPreviewPost) // read-only, fine with "code reader"
-				m.Post("/_fork/*", repo.ForkToEditPost)     // read-only, fork to own repo, fine with "code reader"
+				m.Post("/_rendered_preview/*", repo.RenderedDiffPreviewPost)
+				m.Post("/_fork/*", repo.ForkToEditPost) // read-only, fork to own repo, fine with "code reader"
 
 				// the path params are used in PrepareCommitFormOptions to construct the correct form action URL
 				m.Combo("/{editor_action:_edit}/*").

@@ -7,6 +7,7 @@ import (
 	gocontext "context"
 	"encoding/csv"
 	"errors"
+	"html/template"
 	"io"
 	"net/http"
 	"net/url"
@@ -31,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -86,6 +88,7 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 	setPathsCompareContext(ctx, before, head, headOwner, headName)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
+	setMarkdownCompareContext(ctx)
 }
 
 // SourceCommitURL creates a relative URL for a commit in the given repository
@@ -187,6 +190,60 @@ func setCsvCompareContext(ctx *context.Context) {
 			return CsvDiffResult{nil, errMessage}
 		}
 		return CsvDiffResult{sections, ""}
+	}
+}
+
+// setMarkdownCompareContext sets context data that is required by the Markdown compare template
+func setMarkdownCompareContext(ctx *context.Context) {
+	ctx.Data["IsMarkdownFile"] = func(diffFile *gitdiff.DiffFile) bool {
+		renderer := markup.DetectRendererTypeByFilename(diffFile.Name)
+		return renderer != nil && renderer.Name() == "markdown"
+	}
+
+	type MarkdownDiffResult struct {
+		Diff  template.HTML
+		Error string
+	}
+
+	renderMarkdownBlob := func(blob *git.Blob, name string) (template.HTML, error) {
+		if blob == nil {
+			return "", nil
+		}
+		reader, err := blob.DataAsync()
+		if err != nil {
+			return "", err
+		}
+		defer reader.Close()
+
+		rctx := markup.NewRenderContext(ctx).
+			WithRelativePath(name).
+			WithMetas(ctx.Repo.Repository.ComposeRepoFileMetas(ctx))
+
+		var buf strings.Builder
+		if err := markdown.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err != nil {
+			return "", err
+		}
+		return template.HTML(buf.String()), nil
+	}
+
+	ctx.Data["CreateMarkdownDiff"] = func(diffFile *gitdiff.DiffFile, baseBlob, headBlob *git.Blob) MarkdownDiffResult {
+		if diffFile == nil {
+			return MarkdownDiffResult{}
+		}
+
+		baseHTML, err := renderMarkdownBlob(baseBlob, diffFile.OldName)
+		if err != nil {
+			log.Error("error rendering base markdown %s: %v", diffFile.OldName, err)
+			return MarkdownDiffResult{Error: "unable to render base file"}
+		}
+
+		headHTML, err := renderMarkdownBlob(headBlob, diffFile.Name)
+		if err != nil {
+			log.Error("error rendering head markdown %s: %v", diffFile.Name, err)
+			return MarkdownDiffResult{Error: "unable to render head file"}
+		}
+
+		return MarkdownDiffResult{Diff: gitdiff.HTMLDiff(baseHTML, headHTML)}
 	}
 }
 

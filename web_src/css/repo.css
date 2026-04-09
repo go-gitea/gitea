@@ -816,6 +816,11 @@ td .commit-summary {
   border: 0;
 }
 
+.repository .markdown-diff {
+  padding: 16px;
+  overflow: auto;
+}
+
 .repository .diff-detail-box {
   display: flex;
   justify-content: space-between;
