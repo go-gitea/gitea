@@ -95,8 +95,11 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 			return actions_model.ErrTaskAssignedToOtherRunner
 		}
 
-		if err := t.LoadAttributes(ctx); err != nil {
-			return fmt.Errorf("task LoadAttributes: %w", err)
+		if err := job.LoadRun(ctx); err != nil {
+			return fmt.Errorf("job LoadRun: %w", err)
+		}
+		if err := job.Run.LoadTriggerUser(ctx); err != nil {
+			return fmt.Errorf("job Run LoadTriggerUser: %w", err)
 		}
 
 		secrets, err := secret_model.GetSecretsOfTask(ctx, t)
@@ -104,7 +107,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 			return fmt.Errorf("GetSecretsOfTask: %w", err)
 		}
 
-		vars, err := actions_model.GetVariablesOfRun(ctx, t.Job.Run)
+		vars, err := actions_model.GetVariablesOfRun(ctx, job.Run)
 		if err != nil {
 			return fmt.Errorf("GetVariablesOfRun: %w", err)
 		}

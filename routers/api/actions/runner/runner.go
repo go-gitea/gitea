@@ -166,16 +166,20 @@ func (s *Service) FetchTask(
 		// it means there may still be some tasks that haven't been assigned.
 		// try to pick a task for the runner that send the request.
 		for range 3 {
-			if t, ok, err := actions_service.PickTask(ctx, freshRunner); err != nil {
+			t, ok, err := actions_service.PickTask(ctx, freshRunner)
+			if err != nil {
 				if !errors.Is(err, actions_model.ErrTaskAssignedToOtherRunner) {
 					log.Error("pick task failed: %v", err)
 					return nil, status.Errorf(codes.Internal, "pick task: %v", err)
 				}
 				// retry to pick task again
-			} else if ok {
-				task = t
-				break
+				continue
 			}
+			// whatever get a task or not, break the loop
+			if ok {
+				task = t
+			}
+			break
 		}
 	}
 	res := connect.NewResponse(&runnerv1.FetchTaskResponse{

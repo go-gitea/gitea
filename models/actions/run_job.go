@@ -82,6 +82,7 @@ func (job *ActionRunJob) LoadRun(ctx context.Context) error {
 			return err
 		}
 		job.Run = run
+		job.Run.Repo = job.Repo
 	}
 	return nil
 }
