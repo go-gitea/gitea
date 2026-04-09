@@ -14,7 +14,7 @@ test('createArtifactTooltipElement for active artifact', () => {
   expect(rt.getAttribute('threshold')).toBe('P0Y');
   expect(rt.getAttribute('month')).toBe('short');
   expect(rt.getAttribute('hour')).toBe('numeric');
-  expect(rt.getAttribute('minute')).toBe('numeric');
+  expect(rt.getAttribute('minute')).toBe('2-digit');
   expect(el.textContent).toContain('Expires at');
   expect(el.textContent).toContain('1.0 MiB');
 });

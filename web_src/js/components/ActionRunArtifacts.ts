@@ -13,7 +13,7 @@ export function createArtifactTooltipElement(artifact: ActionsArtifact, expiresA
   const parts = expiresAtLocale.split('%s');
   const relativeTime = createElementFromAttrs('relative-time', {
     datetime, threshold: 'P0Y', prefix: '', weekday: '',
-    year: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric',
+    year: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
   });
   return createElementFromAttrs('span', null, parts[0] ?? '', relativeTime, `${parts[1] ?? ''} | ${sizeText}`);
 }

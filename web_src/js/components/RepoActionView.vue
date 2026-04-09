@@ -131,7 +131,7 @@ async function deleteArtifact(name: string) {
           <ul class="ui relaxed list flex-items-block">
             <li :ref="artifact.status !== 'expired' ? (el) => initSidebarTooltip(el as HTMLElement, createArtifactTooltipElement(artifact, locale.artifactExpiresAt)) : undefined" class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
-                <a class="tw-flex-1 flex-text-block muted" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                <a class="tw-flex-1 flex-text-block muted" target="_blank" :href="run.link+'/artifacts/'+encodeURIComponent(artifact.name)">
                   <SvgIcon name="octicon-file" class="tw-text-text-light"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
