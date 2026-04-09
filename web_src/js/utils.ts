@@ -208,17 +208,15 @@ export function isVideoFile({name, type}: {name?: string, type?: string}): boole
   return Boolean(/\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/'));
 }
 
-const sizeUnits = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB'];
+const binaryUnits = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei'];
 
-export function formatBytes(size: number): string {
-  if (!Number.isFinite(size) || size < 0) return '0 B';
-  let value = size;
-  let unitIndex = 0;
-  while (value >= 1024 && unitIndex < sizeUnits.length - 1) {
-    value /= 1024;
-    unitIndex++;
-  }
-  return `${value.toFixed(unitIndex === 0 || value >= 10 ? 0 : 1)} ${sizeUnits[unitIndex]}`;
+export function formatNumber(num: number, {suffix = 'B', precision = 2} = {}): string {
+  if (!Number.isFinite(num) || num < 0) return `0 ${suffix}`;
+  if (num < 1024) return `${num} ${suffix}`;
+  const exp = Math.min(Math.floor(Math.log2(num) / 10), binaryUnits.length - 1);
+  const value = num / (1024 ** exp);
+  const digits = Math.max(0, precision - 1 - Math.floor(Math.log10(value)));
+  return `${value.toFixed(digits)} ${binaryUnits[exp]}${suffix}`;
 }
 
 export function toggleFullScreen(fullScreenEl: HTMLElement, isFullScreen: boolean, sourceParentSelector?: string): void {
