@@ -13,8 +13,9 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -229,15 +230,28 @@ func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 	return util.EllipsisDisplayString(name, limit) // database column has a length limit
 }
 
-// getWaitingRunJobsForRunner returns waiting jobs that can be picked by the runner, ordered by updated time and id.
-func getWaitingRunJobsForRunner(ctx context.Context, runner *ActionRunner) ([]*ActionRunJob, error) {
-	jobCond := builder.NewCond()
+// GetWaitingRunJobsForRunner returns waiting jobs that can be picked by the runner, ordered by updated time and id.
+func GetWaitingRunJobsForRunner(ctx context.Context, runner *ActionRunner) ([]*ActionRunJob, error) {
+	var jobCond builder.Cond
 	if runner.RepoID != 0 {
+		exist, err := repo_model.IsRepoUnitExist(ctx, runner.RepoID, unit.TypeActions)
+		if err != nil {
+			return nil, err
+		}
+		if !exist {
+			return nil, nil
+		}
 		jobCond = builder.Eq{"repo_id": runner.RepoID}
 	} else if runner.OwnerID != 0 {
-		jobCond = builder.Eq{"owner_id": runner.OwnerID}
+		reposWithActionsSupport := builder.Select("`repository`.id").From("repository").
+			Join("INNER", "repo_unit", "`repository`.id = `repo_unit`.repo_id").
+			Where(builder.Eq{"`repository`.owner_id": runner.OwnerID, "`repo_unit`.type": unit.TypeActions})
+		jobCond = builder.In("repo_id", reposWithActionsSupport)
+	} else { // global runner
+		reposWithActionsSupport := builder.Select("repo_id").From("repo_unit").
+			Where(builder.Eq{"`repo_unit`.type": unit.TypeActions})
+		jobCond = builder.In("repo_id", reposWithActionsSupport)
 	}
-	// else it's a global runner
 
 	var jobs []*ActionRunJob
 	if err := db.GetEngine(ctx).Where("status=?", StatusWaiting).And(jobCond).Asc("updated", "id").Find(&jobs); err != nil {
@@ -246,7 +260,7 @@ func getWaitingRunJobsForRunner(ctx context.Context, runner *ActionRunner) ([]*A
 	return jobs, nil
 }
 
-func insertActionTaskFromJob(ctx context.Context, job *ActionRunJob, runner *ActionRunner, now timeutil.TimeStamp) (*ActionTask, error) {
+func InsertActionTaskFromJob(ctx context.Context, job *ActionRunJob, runner *ActionRunner, now timeutil.TimeStamp) (*ActionTask, error) {
 	task := &ActionTask{
 		JobID:             job.ID,
 		Attempt:           job.Attempt,
@@ -301,57 +315,6 @@ func insertActionTaskFromJob(ctx context.Context, job *ActionRunJob, runner *Act
 }
 
 var ErrTaskAssignedToOtherRunner = errors.New("task has been assigned to another runner")
-
-// CreateTaskForRunner finds a waiting job for the runner and creates a task for it.
-// It returns (nil, nil) if no waiting job is found for the runner, and returns an error if any database operation fails.
-// It uses optimistic locking to avoid multiple runners being assigned the same job, so it may return ErrTaskAssignedToOtherRunner if the job has been assigned to another runner in the meantime.
-// It will update the job's status to running and set the TaskID if a job is assigned.
-func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, error) {
-	return db.WithTx2(ctx, func(ctx context.Context) (*ActionTask, error) {
-		// TODO: we now need to filter task_id and runs_on labeles in the memory for effeciency.
-		// It can be optimized by adding more conditions in the SQL query once
-		// the database schema is ready
-		jobs, err := getWaitingRunJobsForRunner(ctx, runner)
-		if err != nil {
-			return nil, err
-		}
-		if len(jobs) == 0 {
-			return nil, nil
-		}
-
-		var job *ActionRunJob
-		log.Trace("runner labels: %v", runner.AgentLabels)
-		for _, v := range jobs {
-			if v.TaskID == 0 && runner.CanMatchLabels(v.RunsOn) {
-				job = v
-				break
-			}
-		}
-		if job == nil {
-			return nil, nil
-		}
-
-		// create task from the job
-		now := timeutil.TimeStampNow()
-		task, err := insertActionTaskFromJob(ctx, job, runner, now)
-		if err != nil {
-			return nil, err
-		}
-
-		// update job status
-		job.Attempt++
-		job.Started = now
-		job.Status = StatusRunning
-		job.TaskID = task.ID
-		if n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "attempt", "started", "status", "task_id"); err != nil {
-			return nil, err
-		} else if n != 1 {
-			return nil, ErrTaskAssignedToOtherRunner
-		}
-
-		return task, nil
-	})
-}
 
 func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 	sess := db.GetEngine(ctx).ID(task.ID)

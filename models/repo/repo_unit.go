@@ -329,3 +329,7 @@ func UpdateRepoUnitPublicAccess(ctx context.Context, unit *RepoUnit) error {
 		Cols("anonymous_access_mode", "everyone_access_mode").Update(unit)
 	return err
 }
+
+func IsRepoUnitExist(ctx context.Context, repoID int64, tp unit.Type) (bool, error) {
+	return db.GetEngine(ctx).Where("repo_id = ? AND `type` = ?", repoID, tp).Exist(&RepoUnit{})
+}
