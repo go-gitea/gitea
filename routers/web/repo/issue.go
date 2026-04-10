@@ -1303,7 +1303,9 @@ func ListAccessibleReposForIssueMove(ctx *context.Context) {
 		addRepo(r, true)
 	}
 
-	result := append(currentOwnerRepos, myOrgRepos...)
+	result := make([]repoInfo, 0, len(currentOwnerRepos)+len(myOrgRepos)+len(myRepos)+len(otherRepos))
+	result = append(result, currentOwnerRepos...)
+	result = append(result, myOrgRepos...)
 	result = append(result, myRepos...)
 	result = append(result, otherRepos...)
 	ctx.JSON(http.StatusOK, result)
