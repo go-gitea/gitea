@@ -1596,6 +1596,19 @@ func ListWorkflowRunAttemptJobs(ctx *context.APIContext) {
 	//   description: logical attempt number of the run
 	//   type: integer
 	//   required: true
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"
