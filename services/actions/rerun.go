@@ -92,13 +92,13 @@ func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actio
 	if err != nil {
 		return nil, fmt.Errorf("load template jobs: %w", err)
 	}
+	if len(templateJobs) == 0 {
+		return nil, util.NewNotExistErrorf("no template jobs")
+	}
 
 	plan := &rerunPlan{
 		run:          run,
 		templateJobs: templateJobs,
-	}
-	if len(templateJobs) == 0 {
-		return plan, nil
 	}
 
 	if err := plan.expandRerunJobIDs(jobsToRerun); err != nil {
