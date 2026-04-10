@@ -1260,39 +1260,51 @@ func ListAccessibleReposForIssueMove(ctx *context.Context) {
 		return
 	}
 
-	// Merge, deduplicate, and sort:
+	// Sort into four buckets:
 	//   1. current repo's org/owner repos
-	//   2. doer's own repos
-	//   3. other org repos
+	//   2. doer's other org repos (member, not current org)
+	//   3. doer's personal repos
+	//   4. other orgs (collaborator access only)
 	seen := make(map[int64]bool)
 	type repoInfo struct {
 		FullName string `json:"full_name"`
 		ID       int64  `json:"id"`
 	}
-	var currentOwnerRepos, myRepos, orgRepos []repoInfo
+	var currentOwnerRepos, myOrgRepos, myRepos, otherRepos []repoInfo
 	currentOwnerID := ctx.Repo.Repository.OwnerID
 	doerID := ctx.Doer.ID
 
-	for _, r := range append(repos, collabRepos...) {
+	addRepo := func(r *repo_model.Repository, isCollab bool) {
 		if seen[r.ID] {
-			continue
+			return
 		}
 		canWrite, err := access_model.HasAccessUnit(ctx, ctx.Doer, r, unit.TypeIssues, perm_model.AccessModeWrite)
 		if err != nil || !canWrite {
-			continue
+			return
 		}
 		seen[r.ID] = true
 		info := repoInfo{FullName: r.FullName(), ID: r.ID}
-		if r.OwnerID == currentOwnerID {
+		switch {
+		case r.OwnerID == currentOwnerID:
 			currentOwnerRepos = append(currentOwnerRepos, info)
-		} else if r.OwnerID == doerID {
+		case !isCollab && r.OwnerID != doerID:
+			myOrgRepos = append(myOrgRepos, info)
+		case r.OwnerID == doerID:
 			myRepos = append(myRepos, info)
-		} else {
-			orgRepos = append(orgRepos, info)
+		default:
+			otherRepos = append(otherRepos, info)
 		}
 	}
 
-	result := append(currentOwnerRepos, myRepos...)
-	result = append(result, orgRepos...)
+	for _, r := range repos {
+		addRepo(r, false)
+	}
+	for _, r := range collabRepos {
+		addRepo(r, true)
+	}
+
+	result := append(currentOwnerRepos, myOrgRepos...)
+	result = append(result, myRepos...)
+	result = append(result, otherRepos...)
 	ctx.JSON(http.StatusOK, result)
 }
