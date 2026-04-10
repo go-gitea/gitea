@@ -37,11 +37,21 @@ func testCatFileBatch(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	setupTerminatedBatch := func(t *testing.T) (*catFileBatchCommunicator, func()) {
-		t.Helper()
+	simulateQueryTerminated := func(t *testing.T, errBeforePipeClose, errAfterPipeClose error) {
+		readError := func(t *testing.T, r io.Reader, expectedErr error) {
+			if expectedErr == nil {
+				return // expectedErr == nil means this read should be skipped
+			}
+			n, err := r.Read(make([]byte, 100))
+			assert.Zero(t, n)
+			assert.ErrorIs(t, err, expectedErr)
+		}
+
 		batch, err := NewBatch(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 		require.NoError(t, err)
-		_, _ = batch.QueryInfo("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
+		_, err = batch.QueryInfo("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
+		require.NoError(t, err)
+
 		var c *catFileBatchCommunicator
 		switch b := batch.(type) {
 		case *catFileBatchLegacy:
@@ -53,38 +63,20 @@ func testCatFileBatch(t *testing.T) {
 		default:
 			t.FailNow()
 		}
-		return c, func() { batch.Close() }
-	}
+		defer c.Close()
 
+		require.True(t, (errBeforePipeClose != nil) != (errAfterPipeClose != nil), "must set exactly one of the expected errors")
+
+		inceptor := c.debugKill()
+		<-inceptor.beforeClose                         // wait for the command's Close to be called, the pipe is not closed yet
+		readError(t, c.respReader, errBeforePipeClose) // then caller will read on an open pipe which will be closed soon
+		close(inceptor.blockClose)                     // continue to close the pipe
+		<-inceptor.afterClose                          // wait for the pipe to be closed
+		readError(t, c.respReader, errAfterPipeClose)  // then caller will read on a closed pipe
+	}
 	t.Run("QueryTerminated", func(t *testing.T) {
-		t.Run("PipeClosedBeforeRead", func(t *testing.T) {
-			closed := make(chan struct{})
-			hook := func(doClose func()) { doClose(); close(closed) }
-			c, cleanup := setupTerminatedBatch(t)
-			defer cleanup()
-			catFileBatchDebugPipeClose.Store(&hook)
-			defer catFileBatchDebugPipeClose.Store(nil)
-			c.debugGitCmd.DebugKill()
-			<-closed
-			n, err := c.respReader.Read(make([]byte, 100))
-			assert.Zero(t, n)
-			assert.ErrorIs(t, err, os.ErrClosed)
-		})
-		t.Run("ReadBeforePipeClose", func(t *testing.T) {
-			ready := make(chan struct{})
-			proceed := make(chan struct{})
-			hook := func(doClose func()) { close(ready); <-proceed; doClose() }
-			c, cleanup := setupTerminatedBatch(t)
-			defer cleanup()
-			catFileBatchDebugPipeClose.Store(&hook)
-			defer catFileBatchDebugPipeClose.Store(nil)
-			c.debugGitCmd.DebugKill()
-			<-ready
-			n, err := c.respReader.Read(make([]byte, 100))
-			assert.Zero(t, n)
-			assert.ErrorIs(t, err, io.EOF)
-			close(proceed)
-		})
+		simulateQueryTerminated(t, io.EOF, nil)       // reader is faster
+		simulateQueryTerminated(t, nil, os.ErrClosed) // pipes are closed faster
 	})
 
 	batch, err := NewBatch(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
