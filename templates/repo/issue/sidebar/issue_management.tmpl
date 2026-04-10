@@ -89,6 +89,7 @@
 		data-i18n-copy="{{ctx.Locale.Tr "repo.issues.move_copy_copy"}}"
 		data-i18n-no-results="{{ctx.Locale.Tr "repo.issues.move_copy_no_results"}}"
 		data-i18n-warning="{{ctx.Locale.Tr "repo.issues.move_copy_warning"}}"
+		data-i18n-copy-info="{{ctx.Locale.Tr "repo.issues.move_copy_copy_info"}}"
 		data-i18n-same-repo-warning="{{ctx.Locale.Tr "repo.issues.move_copy_same_repo_warning"}}"
 		data-current-repo="{{.Repository.OwnerName}}/{{.Repository.Name}}">
 		<div class="header">
@@ -143,6 +144,18 @@
 							<label for="copy-project">{{ctx.Locale.Tr "repo.issues.move_copy_copy_project"}}</label>
 						</div>
 					</div>
+					<div class="field copy-only-option">
+						<div class="ui checkbox">
+							<input type="checkbox" name="copy_attachments" id="copy-attachments" value="true">
+							<label for="copy-attachments">{{ctx.Locale.Tr "repo.issues.move_copy_copy_attachments"}}</label>
+						</div>
+					</div>
+					<div class="field copy-only-option">
+						<div class="ui checkbox">
+							<input type="checkbox" name="copy_assignees" id="copy-assignees" value="true">
+							<label for="copy-assignees">{{ctx.Locale.Tr "repo.issues.move_copy_copy_assignees"}}</label>
+						</div>
+					</div>
 				</div>
 				<div id="dep-type-section" style="display:none;">
 					<div class="field">
@@ -187,26 +200,40 @@
 		const warningMsg = document.getElementById('move-copy-warning-msg');
 		const copyOptions = document.getElementById('copy-options');
 		const depTypeSection = document.getElementById('dep-type-section');
+		const copyOnlyOptions = document.querySelectorAll('.copy-only-option');
 		const baseLink = '{{.RepoLink}}/issues/accessible-repos';
 		const currentRepo = modal.dataset.currentRepo;
 		let debounceTimer;
 
 		if (!searchInput) return;
 
+		function isCopyMode() {
+			return document.querySelector('input[name="action_type"]:checked')?.value === 'copy';
+		}
+
 		function updateUI() {
 			var selectedRepo = hiddenInput.value;
 			var isSame = selectedRepo === currentRepo;
+			var copyMode = isCopyMode();
 			if (isSame) {
 				warningMsg.textContent = modal.dataset.i18nSameRepoWarning;
-				warningMsg.classList.remove('warning');
+				warningMsg.classList.remove('warning', 'info');
 				warningMsg.classList.add('info');
 				copyOptions.style.display = 'none';
+			} else if (copyMode) {
+				warningMsg.textContent = modal.dataset.i18nCopyInfo;
+				warningMsg.classList.remove('warning');
+				warningMsg.classList.add('info');
+				copyOptions.style.display = selectedRepo ? '' : 'none';
 			} else {
 				warningMsg.textContent = modal.dataset.i18nWarning;
 				warningMsg.classList.remove('info');
 				warningMsg.classList.add('warning');
 				copyOptions.style.display = selectedRepo ? '' : 'none';
 			}
+			copyOnlyOptions.forEach(function(el) {
+				el.style.display = (copyMode && !isSame) ? '' : 'none';
+			});
 		}
 
 		document.querySelectorAll('input[name="action_type"]').forEach(function(radio) {
@@ -220,6 +247,7 @@
 					submitBtn.textContent = modal.dataset.i18nMove;
 					depTypeSection.style.display = 'none';
 				}
+				updateUI();
 			});
 		});
 
