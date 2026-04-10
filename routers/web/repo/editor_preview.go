@@ -73,10 +73,9 @@ func RenderedDiffPreviewPost(ctx *context.Context) {
 	if err == nil && !entry.IsDir() {
 		reader, err := entry.Blob().DataAsync()
 		if err == nil {
+			defer reader.Close()
 			var buf strings.Builder
-			err = markdown.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf)
-			reader.Close()
-			if err == nil {
+			if err := markdown.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err == nil {
 				baseHTML = template.HTML(buf.String())
 			}
 		}
