@@ -1260,32 +1260,31 @@ func ListAccessibleReposForIssueMove(ctx *context.Context) {
 		return
 	}
 
-	// Merge and deduplicate
+	// Merge, deduplicate, and sort: current org/owner repos first, then others
 	seen := make(map[int64]bool)
 	type repoInfo struct {
 		FullName string `json:"full_name"`
 		ID       int64  `json:"id"`
 	}
-	var result []repoInfo
+	var sameOwner, others []repoInfo
+	currentOwnerID := ctx.Repo.Repository.OwnerID
 
 	for _, r := range append(repos, collabRepos...) {
 		if seen[r.ID] {
 			continue
 		}
-		// Check write permission for issues
 		canWrite, err := access_model.HasAccessUnit(ctx, ctx.Doer, r, unit.TypeIssues, perm_model.AccessModeWrite)
-		if err != nil {
-			continue
-		}
-		if !canWrite {
+		if err != nil || !canWrite {
 			continue
 		}
 		seen[r.ID] = true
-		result = append(result, repoInfo{
-			FullName: r.FullName(),
-			ID:       r.ID,
-		})
+		info := repoInfo{FullName: r.FullName(), ID: r.ID}
+		if r.OwnerID == currentOwnerID {
+			sameOwner = append(sameOwner, info)
+		} else {
+			others = append(others, info)
+		}
 	}
 
-	ctx.JSON(http.StatusOK, result)
+	ctx.JSON(http.StatusOK, append(sameOwner, others...))
 }
