@@ -248,6 +248,7 @@
 					depTypeSection.style.display = 'none';
 				}
 				updateUI();
+				fetchRepos(searchInput.value.trim());
 			});
 		});
 
@@ -263,7 +264,15 @@
 					}
 					var ul = document.createElement('ul');
 					ul.style.cssText = 'list-style:none;margin:0;padding:0;';
-					data.forEach(function(repo) {
+					if (!isCopyMode()) {
+							data = data.filter(function(repo) { return repo.full_name !== currentRepo; });
+						}
+						if (data.length === 0) {
+							resultsDiv.innerHTML = '<div style="padding:8px;color:#999;">' + modal.dataset.i18nNoResults + '</div>';
+							resultsDiv.style.display = 'block';
+							return;
+						}
+						data.forEach(function(repo) {
 						var li = document.createElement('li');
 						li.textContent = repo.full_name;
 						li.style.cssText = 'padding:8px 12px;cursor:pointer;';
