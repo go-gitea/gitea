@@ -103,6 +103,19 @@ func AddActionRunAttemptModel(x *xorm.Engine) error {
 	}
 
 	// update "action_run"
+	//
+	// This migration intentionally removes the legacy run-level concurrency columns after
+	// introducing attempt-level concurrency on action_run_attempt.
+	//
+	// Existing values from action_run.concurrency_group / action_run.concurrency_cancel are
+	// not backfilled into action_run_attempt:
+	//   - the old fields are only meaningful while a run is actively participating in
+	//     concurrency scheduling
+	//   - for completed legacy runs, keeping or backfilling those values has no practical
+	//     effect on future scheduling behavior
+	//   - scanning and backfilling old runs would add significant migration cost for little value
+	//
+	// This means the schema change is destructive for those two legacy columns by design.
 	type ActionRun struct {
 		LatestAttemptID int64 `xorm:"index NOT NULL DEFAULT 0"`
 	}
