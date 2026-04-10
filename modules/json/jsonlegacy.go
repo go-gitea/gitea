@@ -6,7 +6,7 @@
 package json
 
 import (
-	"encoding/json"
+	"encoding/json" //nolint:depguard // this package wraps it
 	"io"
 )
 
