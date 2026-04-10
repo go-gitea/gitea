@@ -1,0 +1,6 @@
+{{$result := call .root.CreateRichDiff .file .blobBase .blobHead}}
+{{if $result.Error}}
+	<div class="ui center">{{$result.Error}}</div>
+{{else}}
+	<div class="rich-diff markup">{{$result.Diff}}</div>
+{{end}}

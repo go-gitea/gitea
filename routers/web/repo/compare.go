@@ -33,7 +33,6 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -89,7 +88,7 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 	setPathsCompareContext(ctx, before, head, headOwner, headName)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
-	setMarkdownCompareContext(ctx, before, head)
+	setRichDiffCompareContext(ctx, before, head)
 }
 
 // SourceCommitURL creates a relative URL for a commit in the given repository
@@ -194,26 +193,27 @@ func setCsvCompareContext(ctx *context.Context) {
 	}
 }
 
-// setMarkdownCompareContext sets context data that is required by the Markdown compare template
-func setMarkdownCompareContext(ctx *context.Context, before, head *git.Commit) {
-	ctx.Data["IsMarkdownFile"] = func(diffFile *gitdiff.DiffFile) bool {
-		renderer := markup.DetectRendererTypeByFilename(diffFile.Name)
-		return renderer != nil && renderer.Name() == "markdown"
+// setRichDiffCompareContext sets context data that is required by the rich-diff compare template.
+// Any renderer that emits inline HTML (markdown, orgmode, ...) is eligible; csv and iframe-only
+// external renderers are excluded via markup.IsInlineHTMLRenderer.
+func setRichDiffCompareContext(ctx *context.Context, before, head *git.Commit) {
+	ctx.Data["IsRichDiffFile"] = func(diffFile *gitdiff.DiffFile) bool {
+		return markup.IsInlineHTMLRenderer(markup.DetectRendererTypeByFilename(diffFile.Name))
 	}
 
-	type MarkdownDiffResult struct {
+	type RichDiffResult struct {
 		Diff  template.HTML
 		Error string
 	}
 
-	renderMarkdownBlob := func(blob *git.Blob, name string, commit *git.Commit) (template.HTML, error) {
+	renderBlob := func(blob *git.Blob, name string, commit *git.Commit) (template.HTML, error) {
 		if blob == nil {
 			return "", nil
 		}
 		// Guard against pathological inputs: diffmatchpatch on the full rendered
-		// HTML of very large markdown files is slow before its internal timeout
-		// trips. Skip the rich diff for oversized blobs and fall back to the
-		// source diff (the same bound as the rest of the compare view).
+		// HTML of very large files is slow before its internal timeout trips.
+		// Skip the rich diff for oversized blobs, same bound as the rest of the
+		// compare view.
 		if setting.UI.MaxDisplayFileSize > 0 && blob.Size() > setting.UI.MaxDisplayFileSize {
 			return "", errRichDiffTooLarge
 		}
@@ -235,36 +235,36 @@ func setMarkdownCompareContext(ctx *context.Context, before, head *git.Commit) {
 		}).WithRelativePath(name)
 
 		var buf strings.Builder
-		if err := markdown.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err != nil {
+		if err := markup.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err != nil {
 			return "", err
 		}
 		return template.HTML(buf.String()), nil
 	}
 
-	ctx.Data["CreateMarkdownDiff"] = func(diffFile *gitdiff.DiffFile, baseBlob, headBlob *git.Blob) MarkdownDiffResult {
+	ctx.Data["CreateRichDiff"] = func(diffFile *gitdiff.DiffFile, baseBlob, headBlob *git.Blob) RichDiffResult {
 		if diffFile == nil {
-			return MarkdownDiffResult{}
+			return RichDiffResult{}
 		}
 
-		baseHTML, err := renderMarkdownBlob(baseBlob, diffFile.OldName, before)
+		baseHTML, err := renderBlob(baseBlob, diffFile.OldName, before)
 		if err != nil {
 			if errors.Is(err, errRichDiffTooLarge) {
-				return MarkdownDiffResult{Error: ctx.Locale.TrString("repo.diff.file_suppressed")}
+				return RichDiffResult{Error: ctx.Locale.TrString("repo.diff.file_suppressed")}
 			}
-			log.Error("error rendering base markdown %s: %v", diffFile.OldName, err)
-			return MarkdownDiffResult{Error: ctx.Locale.TrString("repo.diff.rich_diff_unable_to_render")}
+			log.Error("error rendering base rich diff %s: %v", diffFile.OldName, err)
+			return RichDiffResult{Error: ctx.Locale.TrString("repo.diff.rich_diff_unable_to_render")}
 		}
 
-		headHTML, err := renderMarkdownBlob(headBlob, diffFile.Name, head)
+		headHTML, err := renderBlob(headBlob, diffFile.Name, head)
 		if err != nil {
 			if errors.Is(err, errRichDiffTooLarge) {
-				return MarkdownDiffResult{Error: ctx.Locale.TrString("repo.diff.file_suppressed")}
+				return RichDiffResult{Error: ctx.Locale.TrString("repo.diff.file_suppressed")}
 			}
-			log.Error("error rendering head markdown %s: %v", diffFile.Name, err)
-			return MarkdownDiffResult{Error: ctx.Locale.TrString("repo.diff.rich_diff_unable_to_render")}
+			log.Error("error rendering head rich diff %s: %v", diffFile.Name, err)
+			return RichDiffResult{Error: ctx.Locale.TrString("repo.diff.rich_diff_unable_to_render")}
 		}
 
-		return MarkdownDiffResult{Diff: gitdiff.HTMLDiff(baseHTML, headHTML)}
+		return RichDiffResult{Diff: gitdiff.HTMLDiff(baseHTML, headHTML)}
 	}
 }
 

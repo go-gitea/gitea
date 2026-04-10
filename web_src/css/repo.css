@@ -816,7 +816,7 @@ td .commit-summary {
   border: 0;
 }
 
-.repository .markdown-diff {
+.repository .rich-diff {
   padding: 16px;
   overflow: auto;
 }

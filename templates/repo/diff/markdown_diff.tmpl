@@ -1,6 +1,0 @@
-{{$result := call .root.CreateMarkdownDiff .file .blobBase .blobHead}}
-{{if $result.Error}}
-	<div class="ui center">{{$result.Error}}</div>
-{{else}}
-	<div class="markdown-diff markup">{{$result.Diff}}</div>
-{{end}}

@@ -328,7 +328,7 @@ func EditFile(ctx *context.Context) {
 	}
 	ctx.Data["CodeEditorConfig"] = editorConfig
 	renderer := markup.DetectRendererTypeByFilename(ctx.Repo.TreePath)
-	ctx.Data["IsMarkdownFile"] = renderer != nil && renderer.Name() == "markdown"
+	ctx.Data["IsRichDiffFile"] = markup.IsInlineHTMLRenderer(renderer)
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
 

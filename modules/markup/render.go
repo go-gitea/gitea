@@ -243,6 +243,23 @@ func GetExternalRendererOptions(renderer Renderer) (ret ExternalRendererOptions,
 	return ret, false
 }
 
+// IsInlineHTMLRenderer reports whether the renderer emits inline HTML that can
+// be embedded in the current page (for example, to power a rich diff). It
+// excludes renderers that produce a standalone iframe, and csv which has its
+// own dedicated diff viewer.
+func IsInlineHTMLRenderer(renderer Renderer) bool {
+	if renderer == nil {
+		return false
+	}
+	if renderer.Name() == "csv" {
+		return false
+	}
+	if opts, ok := getExternalRendererOptions(renderer); ok && opts.DisplayInIframe {
+		return false
+	}
+	return true
+}
+
 func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
 	var extraHeadHTML template.HTML
 	if extOpts, ok := GetExternalRendererOptions(renderer); ok && extOpts.DisplayInIframe {

@@ -78,8 +78,8 @@
 					{{$sniffedTypeHead := call $.GetSniffedTypeForBlob $blobHead}}
 					{{$isImage:= or (call $.IsSniffedTypeAnImage $sniffedTypeBase) (call $.IsSniffedTypeAnImage $sniffedTypeHead)}}
 					{{$isCsv := (call $.IsCsvFile $file)}}
-					{{$isMarkdown := (call $.IsMarkdownFile $file)}}
-					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) (or $isCsv $isMarkdown))}}
+					{{$isRichDiff := (call $.IsRichDiffFile $file)}}
+					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) (or $isCsv $isRichDiff))}}
 					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
@@ -195,9 +195,9 @@
 								{{end}}
 							</div>
 							{{if $showFileViewToggle}}
-								{{if $isMarkdown}}
+								{{if $isRichDiff}}
 									<div id="diff-rendered-{{$file.NameHash}}" class="tw-overflow-x-scroll">
-										{{template "repo/diff/markdown_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead}}
+										{{template "repo/diff/rich_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead}}
 									</div>
 								{{else}}
 									{{/* for image or CSV, it can have a horizontal scroll bar, there won't be review comment context menu (position absolute) which would be clipped by "overflow" */}}

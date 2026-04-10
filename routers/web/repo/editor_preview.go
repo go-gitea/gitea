@@ -11,7 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -53,7 +53,8 @@ func DiffPreviewPost(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplEditDiffPreview)
 }
 
-// RenderedDiffPreviewPost renders a side-by-side rendered markdown diff for the editor
+// RenderedDiffPreviewPost renders a side-by-side rendered rich diff for the editor,
+// dispatching to whichever inline-HTML renderer matches the current file (markdown, orgmode, ...).
 func RenderedDiffPreviewPost(ctx *context.Context) {
 	newContent := ctx.FormString("content")
 	treePath := files_service.CleanGitTreePath(ctx.Repo.TreePath)
@@ -82,25 +83,25 @@ func RenderedDiffPreviewPost(ctx *context.Context) {
 			if err == nil {
 				defer reader.Close()
 				var buf strings.Builder
-				if err := markdown.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err == nil {
+				if err := markup.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err == nil {
 					baseHTML = template.HTML(buf.String())
 				}
 			}
 		}
 	}
 
-	if !tooLarge && int64(len(newContent)) > setting.UI.MaxDisplayFileSize && setting.UI.MaxDisplayFileSize > 0 {
+	if !tooLarge && setting.UI.MaxDisplayFileSize > 0 && int64(len(newContent)) > setting.UI.MaxDisplayFileSize {
 		tooLarge = true
 	}
 
 	if tooLarge {
-		ctx.Data["MarkdownDiffError"] = ctx.Locale.TrString("repo.diff.file_suppressed")
+		ctx.Data["RichDiffError"] = ctx.Locale.TrString("repo.diff.file_suppressed")
 	} else {
-		headHTML, err := markdown.RenderString(rctx, newContent)
+		headStr, err := markup.RenderString(rctx, newContent)
 		if err != nil {
-			headHTML = ""
+			headStr = ""
 		}
-		ctx.Data["MarkdownDiff"] = gitdiff.HTMLDiff(baseHTML, headHTML)
+		ctx.Data["RichDiff"] = gitdiff.HTMLDiff(baseHTML, template.HTML(headStr))
 	}
 
 	ctx.HTML(http.StatusOK, tplRenderedDiffPreview)
