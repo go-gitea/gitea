@@ -26,11 +26,13 @@ export function apiHeaders() {
   return apiAuthHeader(env.GITEA_TEST_E2E_USER, env.GITEA_TEST_E2E_PASSWORD);
 }
 
-async function apiRetry(fn: () => Promise<{ok: () => boolean; status: () => number; text: () => Promise<string>}>, label: string) {
+type ApiResponse = {ok: () => boolean; status: () => number; text: () => Promise<string>; json: () => Promise<any>};
+
+async function apiRetry<T extends ApiResponse>(fn: () => Promise<T>, label: string): Promise<T> {
   const maxAttempts = 5;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const response = await fn();
-    if (response.ok()) return;
+    if (response.ok()) return response;
     if ([500, 502, 503].includes(response.status()) && attempt < maxAttempts - 1) {
       const jitter = Math.random() * 500;
       await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1) + jitter));
@@ -38,6 +40,7 @@ async function apiRetry(fn: () => Promise<{ok: () => boolean; status: () => numb
     }
     throw new Error(`${label} failed: ${response.status()} ${await response.text()}`);
   }
+  throw new Error(`${label} failed after ${maxAttempts} attempts`);
 }
 
 export async function apiCreateRepo(requestContext: APIRequestContext, {name, autoInit = true, headers}: {name: string; autoInit?: boolean; headers?: Record<string, string>}) {
@@ -61,10 +64,25 @@ export async function apiStartStopwatch(requestContext: APIRequestContext, owner
 }
 
 export async function apiCreateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
+  const resp = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
     headers: apiHeaders(),
     data: {content: globalThis.btoa(content)},
   }), 'apiCreateFile');
+  return {sha: (await resp.json()).content.sha as string};
+}
+
+export async function apiUpdateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string, opts?: {sha?: string, newBranch?: string}) {
+  let fileSha = opts?.sha;
+  if (!fileSha) {
+    const resp = await requestContext.get(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
+      headers: apiHeaders(),
+    });
+    fileSha = (await resp.json()).sha;
+  }
+  await apiRetry(() => requestContext.put(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
+    headers: apiHeaders(),
+    data: {content: globalThis.btoa(content), sha: fileSha, ...(opts?.newBranch ? {new_branch: opts.newBranch} : {})},
+  }), 'apiUpdateFile');
 }
 
 export async function apiDeleteRepo(requestContext: APIRequestContext, owner: string, name: string) {
