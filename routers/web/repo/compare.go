@@ -242,13 +242,13 @@ func setMarkdownCompareContext(ctx *context.Context, before, head *git.Commit) {
 		baseHTML, err := renderMarkdownBlob(baseBlob, diffFile.OldName, before)
 		if err != nil {
 			log.Error("error rendering base markdown %s: %v", diffFile.OldName, err)
-			return MarkdownDiffResult{Error: "unable to render base file"}
+			return MarkdownDiffResult{Error: ctx.Locale.TrString("repo.diff.rich_diff_unable_to_render")}
 		}
 
 		headHTML, err := renderMarkdownBlob(headBlob, diffFile.Name, head)
 		if err != nil {
 			log.Error("error rendering head markdown %s: %v", diffFile.Name, err)
-			return MarkdownDiffResult{Error: "unable to render head file"}
+			return MarkdownDiffResult{Error: ctx.Locale.TrString("repo.diff.rich_diff_unable_to_render")}
 		}
 
 		return MarkdownDiffResult{Diff: gitdiff.HTMLDiff(baseHTML, headHTML)}
