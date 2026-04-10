@@ -19,6 +19,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/models/renderhelper"
+	org_model "code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -1227,13 +1228,10 @@ func ListAccessibleReposForIssueMove(ctx *context.Context) {
 	q := ctx.FormString("q")
 
 	repos, _, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 20,
-		},
-		Actor:              ctx.Doer,
+		ListOptions:        db.ListOptions{Page: 1, PageSize: 50},
+		OwnerID:            ctx.Doer.ID,
+		Private:            true,
 		Keyword:            q,
-		Collaborate:        optional.Some(false),
 		IncludeDescription: false,
 		Archived:           optional.Some(false),
 	})
@@ -1242,29 +1240,18 @@ func ListAccessibleReposForIssueMove(ctx *context.Context) {
 		return
 	}
 
-	// Also search collaborative repos
-	collabRepos, _, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 20,
-		},
-		Actor:              ctx.Doer,
-		Keyword:            q,
-		Collaborate:        optional.Some(true),
-		UnitType:           unit.TypeIssues,
-		IncludeDescription: false,
-		Archived:           optional.Some(false),
-	})
-	if err != nil {
-		ctx.ServerError("SearchRepository", err)
-		return
+	// Get org IDs where doer is a member, for bucket classification
+	userOrgs, _ := org_model.GetUserOrgsList(ctx, ctx.Doer)
+	orgIDSet := make(map[int64]bool, len(userOrgs))
+	for _, org := range userOrgs {
+		orgIDSet[org.ID] = true
 	}
 
 	// Sort into four buckets:
 	//   1. current repo's org/owner repos
 	//   2. doer's other org repos (member, not current org)
 	//   3. doer's personal repos
-	//   4. other orgs (collaborator access only)
+	//   4. collab repos (no org membership)
 	seen := make(map[int64]bool)
 	type repoInfo struct {
 		FullName string `json:"full_name"`
@@ -1274,33 +1261,26 @@ func ListAccessibleReposForIssueMove(ctx *context.Context) {
 	currentOwnerID := ctx.Repo.Owner.ID
 	doerID := ctx.Doer.ID
 
-	addRepo := func(r *repo_model.Repository, isCollab bool) {
+	for _, r := range repos {
 		if seen[r.ID] {
-			return
+			continue
 		}
 		canWrite, err := access_model.HasAccessUnit(ctx, ctx.Doer, r, unit.TypeIssues, perm_model.AccessModeWrite)
 		if err != nil || !canWrite {
-			return
+			continue
 		}
 		seen[r.ID] = true
 		info := repoInfo{FullName: r.FullName(), ID: r.ID}
 		switch {
 		case r.OwnerID == currentOwnerID:
 			currentOwnerRepos = append(currentOwnerRepos, info)
-		case !isCollab && r.OwnerID != doerID:
-			myOrgRepos = append(myOrgRepos, info)
 		case r.OwnerID == doerID:
 			myRepos = append(myRepos, info)
+		case orgIDSet[r.OwnerID]:
+			myOrgRepos = append(myOrgRepos, info)
 		default:
 			otherRepos = append(otherRepos, info)
 		}
-	}
-
-	for _, r := range repos {
-		addRepo(r, false)
-	}
-	for _, r := range collabRepos {
-		addRepo(r, true)
 	}
 
 	result := make([]repoInfo, 0, len(currentOwnerRepos)+len(myOrgRepos)+len(myRepos)+len(otherRepos))
