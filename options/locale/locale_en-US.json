@@ -1243,6 +1243,8 @@
   "repo.editor.upload_file": "Upload File",
   "repo.editor.edit_file": "Edit File",
   "repo.editor.preview_changes": "Preview Changes",
+  "repo.editor.text_diff": "Text Diff",
+  "repo.editor.rendered_diff": "Rendered Diff",
   "repo.editor.cannot_edit_lfs_files": "LFS files cannot be edited in the web interface.",
   "repo.editor.cannot_edit_too_large_file": "The file is too large to be edited.",
   "repo.editor.cannot_edit_non_text_files": "Binary files cannot be edited in the web interface.",
