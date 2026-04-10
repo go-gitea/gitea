@@ -1,0 +1,55 @@
+# This file defines example group data, including parent-child relationships for subgroups.
+# It serves as a fixture to illustrate the proposed data model change for subgroups.
+# The actual implementation of subgroup logic, API, and UI would involve Go code
+# and database migrations beyond this data structure definition.
+
+-
+  id: 1
+  name: ParentGroupA
+  lower_name: parentgroupa
+  description: "Top-level group A"
+  repo_admin_team_id: 1 # Assuming a default admin team
+  owner_id: 1 # Assuming owner is admin user
+  parent_id: null # Top-level group
+  created_unix: 1678886400
+  updated_unix: 1678886400
+-
+  id: 2
+  name: SubgroupA1
+  lower_name: subgroupa1
+  description: "A subgroup of ParentGroupA"
+  repo_admin_team_id: 2
+  owner_id: 1
+  parent_id: 1 # Subgroup under ParentGroupA
+  created_unix: 1678886401
+  updated_unix: 1678886401
+-
+  id: 3
+  name: SubgroupA2
+  lower_name: subgroupa2
+  description: "Another subgroup of ParentGroupA"
+  repo_admin_team_id: 3
+  owner_id: 1
+  parent_id: 1 # Subgroup under ParentGroupA
+  created_unix: 1678886402
+  updated_unix: 1678886402
+-
+  id: 4
+  name: SubSubgroupA1a
+  lower_name: subsubgroupa1a
+  description: "A sub-subgroup under SubgroupA1"
+  repo_admin_team_id: 4
+  owner_id: 1
+  parent_id: 2 # Sub-subgroup under SubgroupA1
+  created_unix: 1678886403
+  updated_unix: 1678886403
+-
+  id: 5
+  name: ParentGroupB
+  lower_name: parentgroupb
+  description: "Top-level group B"
+  repo_admin_team_id: 5
+  owner_id: 1
+  parent_id: null # Top-level group
+  created_unix: 1678886404
+  updated_unix: 1678886404
