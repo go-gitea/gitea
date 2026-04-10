@@ -1267,6 +1267,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.TreeViewNodes)
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeViewNodes)
 		})
+		m.Post("/_rich_diff_compare", repo.RichDiffComparePost)
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).

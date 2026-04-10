@@ -1,6 +1,12 @@
-{{$result := call .root.CreateRichDiff .file .blobBase .blobHead}}
-{{if $result.Error}}
-	<div class="ui center">{{$result.Error}}</div>
-{{else}}
-	<div class="rich-diff markup">{{$result.Diff}}</div>
-{{end}}
+{{$baseSha := ""}}
+{{if .root.BeforeCommit}}{{$baseSha = .root.BeforeCommit.ID.String}}{{end}}
+{{$headSha := ""}}
+{{if .root.HeadCommit}}{{$headSha = .root.HeadCommit.ID.String}}{{end}}
+{{$vals := dict "base" $baseSha "head" $headSha "old_name" .file.OldName "new_name" .file.Name}}
+<div class="rich-diff-lazy"
+	hx-post="{{.root.RepoLink}}/_rich_diff_compare"
+	hx-vals="{{JsonUtils.EncodeToString $vals}}"
+	hx-trigger="revealed once"
+	hx-swap="outerHTML">
+	<div class="ui center tw-p-4">{{ctx.Locale.Tr "loading"}}</div>
+</div>

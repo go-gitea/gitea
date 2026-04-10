@@ -88,7 +88,7 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 	setPathsCompareContext(ctx, before, head, headOwner, headName)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
-	setRichDiffCompareContext(ctx, before, head)
+	setRichDiffCompareContext(ctx)
 }
 
 // SourceCommitURL creates a relative URL for a commit in the given repository
@@ -195,82 +195,50 @@ func setCsvCompareContext(ctx *context.Context) {
 
 // setRichDiffCompareContext sets context data that is required by the rich-diff compare template.
 // Any renderer that emits inline HTML (markdown, orgmode, ...) is eligible; csv and iframe-only
-// external renderers are excluded via markup.IsInlineHTMLRenderer.
-func setRichDiffCompareContext(ctx *context.Context, before, head *git.Commit) {
+// external renderers are excluded via markup.IsInlineHTMLRenderer. The actual diff is loaded
+// lazily per file via RichDiffComparePost so a compare view with many files does not pay the
+// render cost during template execution.
+func setRichDiffCompareContext(ctx *context.Context) {
 	ctx.Data["IsRichDiffFile"] = func(diffFile *gitdiff.DiffFile) bool {
 		return markup.IsInlineHTMLRenderer(markup.DetectRendererTypeByFilename(diffFile.Name))
 	}
-
-	type RichDiffResult struct {
-		Diff  template.HTML
-		Error string
-	}
-
-	renderBlob := func(blob *git.Blob, name string, commit *git.Commit) (template.HTML, error) {
-		if blob == nil {
-			return "", nil
-		}
-		// Guard against pathological inputs: diffmatchpatch on the full rendered
-		// HTML of very large files is slow before its internal timeout trips.
-		// Skip the rich diff for oversized blobs, same bound as the rest of the
-		// compare view.
-		if setting.UI.MaxDisplayFileSize > 0 && blob.Size() > setting.UI.MaxDisplayFileSize {
-			return "", errRichDiffTooLarge
-		}
-		reader, err := blob.DataAsync()
-		if err != nil {
-			return "", err
-		}
-		defer reader.Close()
-
-		// Use the same repo-aware render context as the editor preview so relative
-		// links and images resolve against the commit being rendered.
-		var refPath string
-		if commit != nil {
-			refPath = "commit/" + commit.ID.String()
-		}
-		rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-			CurrentRefPath:  refPath,
-			CurrentTreePath: filepath.Dir(name),
-		}).WithRelativePath(name)
-
-		var buf strings.Builder
-		if err := markup.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err != nil {
-			return "", err
-		}
-		return template.HTML(buf.String()), nil
-	}
-
-	ctx.Data["CreateRichDiff"] = func(diffFile *gitdiff.DiffFile, baseBlob, headBlob *git.Blob) RichDiffResult {
-		if diffFile == nil {
-			return RichDiffResult{}
-		}
-
-		baseHTML, err := renderBlob(baseBlob, diffFile.OldName, before)
-		if err != nil {
-			if errors.Is(err, errRichDiffTooLarge) {
-				return RichDiffResult{Error: ctx.Locale.TrString("repo.diff.file_suppressed")}
-			}
-			log.Error("error rendering base rich diff %s: %v", diffFile.OldName, err)
-			return RichDiffResult{Error: ctx.Locale.TrString("repo.diff.rich_diff_unable_to_render")}
-		}
-
-		headHTML, err := renderBlob(headBlob, diffFile.Name, head)
-		if err != nil {
-			if errors.Is(err, errRichDiffTooLarge) {
-				return RichDiffResult{Error: ctx.Locale.TrString("repo.diff.file_suppressed")}
-			}
-			log.Error("error rendering head rich diff %s: %v", diffFile.Name, err)
-			return RichDiffResult{Error: ctx.Locale.TrString("repo.diff.rich_diff_unable_to_render")}
-		}
-
-		return RichDiffResult{Diff: gitdiff.HTMLDiff(baseHTML, headHTML)}
-	}
 }
 
-// errRichDiffTooLarge signals that a markdown blob exceeds the rich-diff size
+// errRichDiffTooLarge signals that a blob exceeds the rich-diff size
 // limit; the caller surfaces the "file suppressed" message and skips rendering.
-var errRichDiffTooLarge = errors.New("markdown blob too large for rich diff")
+var errRichDiffTooLarge = errors.New("blob too large for rich diff")
+
+// renderRichDiffBlob renders a single blob to inline HTML using the general
+// markup renderer, with a size guard and a repo-aware render context so
+// relative links resolve against the given commit.
+func renderRichDiffBlob(ctx *context.Context, blob *git.Blob, name string, commit *git.Commit) (template.HTML, error) {
+	if blob == nil {
+		return "", nil
+	}
+	if setting.UI.MaxDisplayFileSize > 0 && blob.Size() > setting.UI.MaxDisplayFileSize {
+		return "", errRichDiffTooLarge
+	}
+	reader, err := blob.DataAsync()
+	if err != nil {
+		return "", err
+	}
+	defer reader.Close()
+
+	var refPath string
+	if commit != nil {
+		refPath = "commit/" + commit.ID.String()
+	}
+	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
+		CurrentRefPath:  refPath,
+		CurrentTreePath: filepath.Dir(name),
+	}).WithRelativePath(name)
+
+	var buf strings.Builder
+	if err := markup.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err != nil {
+		return "", err
+	}
+	return template.HTML(buf.String()), nil
+}
 
 type comparePageInfoType struct {
 	compareInfo      *git_service.CompareInfo
