@@ -157,7 +157,7 @@
 						</div>
 					</div>
 				</div>
-				<div id="dep-type-section" style="display:none;">
+				<div id="dep-type-section" style="display:none; margin-top:1em;">
 					<div class="field">
 						<label>{{ctx.Locale.Tr "repo.issues.move_copy_dep_type"}}</label>
 						<div class="grouped fields">
@@ -251,43 +251,45 @@
 			});
 		});
 
+		function fetchRepos(q) {
+			fetch(baseLink + '?q=' + encodeURIComponent(q), {headers: {'Accept': 'application/json'}})
+				.then(function(r) { return r.json(); })
+				.then(function(data) {
+					resultsDiv.innerHTML = '';
+					if (!data || data.length === 0) {
+						resultsDiv.innerHTML = '<div style="padding:8px;color:#999;">' + modal.dataset.i18nNoResults + '</div>';
+						resultsDiv.style.display = 'block';
+						return;
+					}
+					var ul = document.createElement('ul');
+					ul.style.cssText = 'list-style:none;margin:0;padding:0;';
+					data.forEach(function(repo) {
+						var li = document.createElement('li');
+						li.textContent = repo.full_name;
+						li.style.cssText = 'padding:8px 12px;cursor:pointer;';
+						li.addEventListener('mouseenter', function() { this.style.background = '#f0f0f0'; });
+						li.addEventListener('mouseleave', function() { this.style.background = ''; });
+						li.addEventListener('click', function() {
+							searchInput.value = repo.full_name;
+							hiddenInput.value = repo.full_name;
+							resultsDiv.style.display = 'none';
+							updateUI();
+						});
+						ul.appendChild(li);
+					});
+					resultsDiv.appendChild(ul);
+					resultsDiv.style.display = 'block';
+				});
+		}
+
+		searchInput.addEventListener('focus', function() {
+			fetchRepos(this.value.trim());
+		});
+
 		searchInput.addEventListener('input', function() {
 			clearTimeout(debounceTimer);
 			const q = this.value.trim();
-			if (q.length < 1) {
-				resultsDiv.style.display = 'none';
-				return;
-			}
-			debounceTimer = setTimeout(function() {
-				fetch(baseLink + '?q=' + encodeURIComponent(q), {headers: {'Accept': 'application/json'}})
-					.then(function(r) { return r.json(); })
-					.then(function(data) {
-						resultsDiv.innerHTML = '';
-						if (!data || data.length === 0) {
-							resultsDiv.innerHTML = '<div style="padding:8px;color:#999;">' + modal.dataset.i18nNoResults + '</div>';
-							resultsDiv.style.display = 'block';
-							return;
-						}
-						var ul = document.createElement('ul');
-						ul.style.cssText = 'list-style:none;margin:0;padding:0;';
-						data.forEach(function(repo) {
-							var li = document.createElement('li');
-							li.textContent = repo.full_name;
-							li.style.cssText = 'padding:8px 12px;cursor:pointer;';
-							li.addEventListener('mouseenter', function() { this.style.background = '#f0f0f0'; });
-							li.addEventListener('mouseleave', function() { this.style.background = ''; });
-							li.addEventListener('click', function() {
-								searchInput.value = repo.full_name;
-								hiddenInput.value = repo.full_name;
-								resultsDiv.style.display = 'none';
-								updateUI();
-							});
-							ul.appendChild(li);
-						});
-						resultsDiv.appendChild(ul);
-						resultsDiv.style.display = 'block';
-					});
-			}, 300);
+			debounceTimer = setTimeout(function() { fetchRepos(q); }, 300);
 		});
 
 		document.addEventListener('click', function(e) {
