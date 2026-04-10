@@ -5,13 +5,9 @@
 package highlight
 
 import (
-	"bufio"
 	"bytes"
-	"fmt"
 	gohtml "html"
 	"html/template"
-	"io"
-	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/log"
@@ -19,11 +15,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/formatters/html"
+	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/styles"
 )
 
-// don't index files larger than this many bytes for performance purposes
+// don't highlight files larger than this many bytes for performance purposes
 const sizeLimit = 1024 * 1024
 
 type globalVarsType struct {
@@ -80,6 +76,10 @@ func UnsafeSplitHighlightedLines(code template.HTML) (ret [][]byte) {
 	}
 }
 
+func htmlEscape(code string) template.HTML {
+	return template.HTML(gohtml.EscapeString(code))
+}
+
 // RenderCodeSlowGuess tries to get a lexer by file name and language first,
 // if not found, it will try to guess the lexer by code content, which is slow (more than several hundreds of milliseconds).
 func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML, lexer chroma.Lexer, lexerDisplayName string) {
@@ -90,7 +90,7 @@ func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML,
 	}
 
 	if len(code) > sizeLimit {
-		return template.HTML(template.HTMLEscapeString(code)), nil, ""
+		return htmlEscape(code), nil, ""
 	}
 
 	lexer = detectChromaLexerWithAnalyze(fileName, language, util.UnsafeStringToBytes(code)) // it is also slow
@@ -99,91 +99,65 @@ func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML,
 
 // RenderCodeByLexer returns a HTML version of code string with chroma syntax highlighting classes
 func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
-	formatter := html.New(html.WithClasses(true),
-		html.WithLineNumbers(false),
-		html.PreventSurroundingPre(true),
+	formatter := chromahtml.New(chromahtml.WithClasses(true),
+		chromahtml.WithLineNumbers(false),
+		chromahtml.PreventSurroundingPre(true),
 	)
-
-	htmlbuf := bytes.Buffer{}
-	htmlw := bufio.NewWriter(&htmlbuf)
 
 	iterator, err := lexer.Tokenise(nil, code)
 	if err != nil {
 		log.Error("Can't tokenize code: %v", err)
-		return template.HTML(template.HTMLEscapeString(code))
-	}
-	// style not used for live site but need to pass something
-	err = formatter.Format(htmlw, globalVars().githubStyles, iterator)
-	if err != nil {
-		log.Error("Can't format code: %v", err)
-		return template.HTML(template.HTMLEscapeString(code))
+		return htmlEscape(code)
 	}
 
-	_ = htmlw.Flush()
-	// Chroma will add newlines for certain lexers in order to highlight them properly
-	// Once highlighted, strip them here, so they don't cause copy/paste trouble in HTML output
-	return template.HTML(strings.TrimSuffix(htmlbuf.String(), "\n"))
+	htmlBuf := &bytes.Buffer{}
+	// style not used for live site but need to pass something
+	err = formatter.Format(htmlBuf, globalVars().githubStyles, iterator)
+	if err != nil {
+		log.Error("Can't format code: %v", err)
+		return htmlEscape(code)
+	}
+	return template.HTML(util.UnsafeBytesToString(htmlBuf.Bytes()))
 }
 
 // RenderFullFile returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name
-func RenderFullFile(fileName, language string, code []byte) ([]template.HTML, string, error) {
-	if len(code) > sizeLimit {
-		return RenderPlainText(code), "", nil
+func RenderFullFile(fileName, language string, code []byte) ([]template.HTML, string) {
+	if language == LanguagePlaintext || len(code) > sizeLimit {
+		return renderPlainText(code), formatLexerName(LanguagePlaintext)
 	}
-
-	formatter := html.New(html.WithClasses(true),
-		html.WithLineNumbers(false),
-		html.PreventSurroundingPre(true),
-	)
-
 	lexer := detectChromaLexerWithAnalyze(fileName, language, code)
 	lexerName := formatLexerName(lexer.Config().Name)
-
-	iterator, err := lexer.Tokenise(nil, string(code))
-	if err != nil {
-		return nil, "", fmt.Errorf("can't tokenize code: %w", err)
+	rendered := RenderCodeByLexer(lexer, util.UnsafeBytesToString(code))
+	unsafeLines := UnsafeSplitHighlightedLines(rendered)
+	lines := make([]template.HTML, len(unsafeLines))
+	for idx, lineBytes := range unsafeLines {
+		lines[idx] = template.HTML(util.UnsafeBytesToString(lineBytes))
 	}
-
-	tokensLines := chroma.SplitTokensIntoLines(iterator.Tokens())
-	htmlBuf := &bytes.Buffer{}
-
-	lines := make([]template.HTML, 0, len(tokensLines))
-	for _, tokens := range tokensLines {
-		iterator = chroma.Literator(tokens...)
-		err = formatter.Format(htmlBuf, globalVars().githubStyles, iterator)
-		if err != nil {
-			return nil, "", fmt.Errorf("can't format code: %w", err)
-		}
-		lines = append(lines, template.HTML(htmlBuf.String()))
-		htmlBuf.Reset()
-	}
-
-	return lines, lexerName, nil
+	return lines, lexerName
 }
 
-// RenderPlainText returns non-highlighted HTML for code
-func RenderPlainText(code []byte) []template.HTML {
-	r := bufio.NewReader(bytes.NewReader(code))
-	m := make([]template.HTML, 0, bytes.Count(code, []byte{'\n'})+1)
-	for {
-		content, err := r.ReadString('\n')
-		if err != nil && err != io.EOF {
-			log.Error("failed to read string from buffer: %v", err)
-			break
+// renderPlainText returns non-highlighted HTML for code
+func renderPlainText(code []byte) []template.HTML {
+	lines := make([]template.HTML, 0, bytes.Count(code, []byte{'\n'})+1)
+	pos := 0
+	for pos < len(code) {
+		var content []byte
+		nextPos := bytes.IndexByte(code[pos:], '\n')
+		if nextPos == -1 {
+			content = code[pos:]
+			pos = len(code)
+		} else {
+			content = code[pos : pos+nextPos+1]
+			pos += nextPos + 1
 		}
-		if content == "" && err == io.EOF {
-			break
-		}
-		s := template.HTML(gohtml.EscapeString(content))
-		m = append(m, s)
+		lines = append(lines, htmlEscape(util.UnsafeBytesToString(content)))
 	}
-	return m
+	return lines
 }
 
 func formatLexerName(name string) string {
-	if name == "fallback" {
+	if name == LanguagePlaintext || name == chromaLexerFallback {
 		return "Plaintext"
 	}
-
 	return util.ToTitleCaseNoLower(name)
 }

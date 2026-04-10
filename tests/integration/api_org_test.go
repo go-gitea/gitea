@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -24,8 +26,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAPIOrgCreateRename(t *testing.T) {
+func TestAPIOrg(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("General", testAPIOrgGeneral)
+	t.Run("CreateAndRename", testAPIOrgCreateRename)
+	t.Run("DeleteOrgRepos", testAPIDeleteOrgRepos)
+}
+
+func testAPIOrgCreateRename(t *testing.T) {
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteOrganization)
 
 	org := api.CreateOrgOption{
@@ -110,8 +118,7 @@ func TestAPIOrgCreateRename(t *testing.T) {
 	})
 }
 
-func TestAPIOrgGeneral(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testAPIOrgGeneral(t *testing.T) {
 	user1Session := loginUser(t, "user1")
 	user1Token := getTokenForLoggedInUser(t, user1Session, auth_model.AccessTokenScopeWriteOrganization)
 
@@ -137,34 +144,45 @@ func TestAPIOrgGeneral(t *testing.T) {
 	})
 
 	t.Run("OrgEdit", func(t *testing.T) {
-		org := api.EditOrgOption{
-			FullName:    "Org3 organization new full name",
-			Description: "A new description",
-			Website:     "https://try.gitea.io/new",
-			Location:    "Beijing",
-			Visibility:  "private",
-		}
-		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org).AddTokenAuth(user1Token)
-		resp := MakeRequest(t, req, http.StatusOK)
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
+		assert.NotEqual(t, api.VisibleTypeLimited, org3.Visibility)
 
-		var apiOrg api.Organization
-		DecodeJSON(t, resp, &apiOrg)
+		org3Edit := api.EditOrgOption{
+			FullName:    new("new full name"),
+			Description: new("new description"),
+			Website:     new("https://org3-new-website.example.com"),
+			Location:    new("new location"),
+			Visibility:  new("limited"),
+			Email:       new("org3-new-email@example.com"),
+		}
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org3Edit).AddTokenAuth(user1Token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		apiOrg := DecodeJSON(t, resp, &api.Organization{})
 
 		assert.Equal(t, "org3", apiOrg.Name)
-		assert.Equal(t, org.FullName, apiOrg.FullName)
-		assert.Equal(t, org.Description, apiOrg.Description)
-		assert.Equal(t, org.Website, apiOrg.Website)
-		assert.Equal(t, org.Location, apiOrg.Location)
-		assert.Equal(t, org.Visibility, apiOrg.Visibility)
+		assert.Equal(t, *org3Edit.FullName, apiOrg.FullName)
+		assert.Equal(t, *org3Edit.Description, apiOrg.Description)
+		assert.Equal(t, *org3Edit.Website, apiOrg.Website)
+		assert.Equal(t, *org3Edit.Location, apiOrg.Location)
+		assert.Equal(t, *org3Edit.Visibility, apiOrg.Visibility)
+		assert.Equal(t, *org3Edit.Email, apiOrg.Email)
+		org3 = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
+		assert.Equal(t, api.VisibleTypeLimited, org3.Visibility)
+
+		// empty email can clear the email, nil fields won't change the settings
+		req = NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &api.EditOrgOption{
+			Email: new(""),
+		}).AddTokenAuth(user1Token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		apiOrg = DecodeJSON(t, resp, &api.Organization{})
+		assert.Equal(t, *org3Edit.FullName, apiOrg.FullName)
+		assert.Equal(t, *org3Edit.Visibility, apiOrg.Visibility)
+		assert.Empty(t, apiOrg.Email)
 	})
 
-	t.Run("OrgEditBadVisibility", func(t *testing.T) {
+	t.Run("OrgEditInvalidVisibility", func(t *testing.T) {
 		org := api.EditOrgOption{
-			FullName:    "Org3 organization new full name",
-			Description: "A new description",
-			Website:     "https://try.gitea.io/new",
-			Location:    "Beijing",
-			Visibility:  "badvisibility",
+			Visibility: new("invalid-visibility"),
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org).AddTokenAuth(user1Token)
 		MakeRequest(t, req, http.StatusUnprocessableEntity)
@@ -247,5 +265,35 @@ func TestAPIOrgGeneral(t *testing.T) {
 		MakeRequest(t, req, http.StatusForbidden)
 		req = NewRequest(t, "DELETE", "/api/v1/orgs/org3/public_members/user1").AddTokenAuth(user4Token)
 		MakeRequest(t, req, http.StatusForbidden)
+	})
+}
+
+func testAPIDeleteOrgRepos(t *testing.T) {
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
+	orgRepos, err := repo_model.GetOrgRepositories(t.Context(), org3.ID)
+	require.NoError(t, err)
+	assert.NotEmpty(t, orgRepos) // this org contains repositories, so we can test the deletion of all org repos
+
+	t.Run("NoPermission", func(t *testing.T) {
+		nonOwnerSession := loginUser(t, "user4")
+		nonOwnerToken := getTokenForLoggedInUser(t, nonOwnerSession, auth_model.AccessTokenScopeWriteOrganization)
+		req := NewRequest(t, "DELETE", "/api/v1/orgs/org3/repos").AddTokenAuth(nonOwnerToken)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
+
+	t.Run("DeleteAllOrgRepos", func(t *testing.T) {
+		session := loginUser(t, "user1")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", org3.Name)).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusAccepted)
+
+		assert.Eventually(t, func() bool {
+			repos, err := repo_model.GetOrgRepositories(t.Context(), org3.ID)
+			require.NoError(t, err)
+			return len(repos) == 0
+		}, 2*time.Second, 50*time.Millisecond)
+
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", org3.Name)).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent) // The org contains no repositories, so the API should return StatusNoContent
 	})
 }

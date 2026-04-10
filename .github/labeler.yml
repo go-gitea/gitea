@@ -43,7 +43,6 @@ modifies/internal:
           - ".editorconfig"
           - ".eslintrc.cjs"
           - ".golangci.yml"
-          - ".gitpod.yml"
           - ".markdownlint.yaml"
           - ".spectral.yaml"
           - "stylelint.config.*"

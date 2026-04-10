@@ -15,45 +15,52 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	// CmdGenerate represents the available generate sub-command.
-	CmdGenerate = &cli.Command{
+func newGenerateCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "generate",
 		Usage: "Generate Gitea's secrets/keys/tokens",
 		Commands: []*cli.Command{
-			subcmdSecret,
+			newGenerateSecretCommand(),
 		},
 	}
+}
 
-	subcmdSecret = &cli.Command{
+func newGenerateSecretCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "secret",
 		Usage: "Generate a secret token",
 		Commands: []*cli.Command{
-			microcmdGenerateInternalToken,
-			microcmdGenerateLfsJwtSecret,
-			microcmdGenerateSecretKey,
+			newGenerateInternalTokenCommand(),
+			newGenerateLfsJWTSecretCommand(),
+			newGenerateSecretKeyCommand(),
 		},
 	}
+}
 
-	microcmdGenerateInternalToken = &cli.Command{
+func newGenerateInternalTokenCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "INTERNAL_TOKEN",
 		Usage:  "Generate a new INTERNAL_TOKEN",
 		Action: runGenerateInternalToken,
 	}
+}
 
-	microcmdGenerateLfsJwtSecret = &cli.Command{
+func newGenerateLfsJWTSecretCommand() *cli.Command {
+	return &cli.Command{
 		Name:    "JWT_SECRET",
 		Aliases: []string{"LFS_JWT_SECRET"},
 		Usage:   "Generate a new JWT_SECRET",
 		Action:  runGenerateLfsJwtSecret,
 	}
+}
 
-	microcmdGenerateSecretKey = &cli.Command{
+func newGenerateSecretKeyCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "SECRET_KEY",
 		Usage:  "Generate a new SECRET_KEY",
 		Action: runGenerateSecretKey,
 	}
-)
+}
 
 func runGenerateInternalToken(_ context.Context, c *cli.Command) error {
 	internalToken, err := generate.NewInternalToken()
@@ -71,11 +78,7 @@ func runGenerateInternalToken(_ context.Context, c *cli.Command) error {
 }
 
 func runGenerateLfsJwtSecret(_ context.Context, c *cli.Command) error {
-	_, jwtSecretBase64, err := generate.NewJwtSecretWithBase64()
-	if err != nil {
-		return err
-	}
-
+	_, jwtSecretBase64 := generate.NewJwtSecretWithBase64()
 	fmt.Printf("%s", jwtSecretBase64)
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {

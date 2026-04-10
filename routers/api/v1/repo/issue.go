@@ -157,6 +157,10 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: Filter by repository owner
 	//   type: string
+	// - name: created_by
+	//   in: query
+	//   description: Only show items which were created by the given user
+	//   type: string
 	// - name: team
 	//   in: query
 	//   description: Filter by team (requires organization owner parameter)
@@ -257,6 +261,14 @@ func SearchIssues(ctx *context.APIContext) {
 		searchOpt.UpdatedBeforeUnix = optional.Some(before)
 	}
 
+	createdByID := getUserIDForFilter(ctx, "created_by")
+	if ctx.Written() {
+		return
+	}
+	if createdByID > 0 {
+		searchOpt.PosterID = strconv.FormatInt(createdByID, 10)
+	}
+
 	if ctx.IsSigned {
 		ctxUserID := ctx.Doer.ID
 		if ctx.FormBool("created") {
@@ -287,7 +299,7 @@ func SearchIssues(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetLinkHeader(int(total), limit)
+	ctx.SetLinkHeader(total, limit)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }
@@ -515,7 +527,7 @@ func ListIssues(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }
@@ -714,6 +726,9 @@ func EditIssue(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index} issue issueEditIssue
 	// ---
 	// summary: Edit an issue. If using deadline only the date will be taken into account, and time of day ignored.
+	// description: |
+	//   Pass `content_version` to enable optimistic locking on body edits.
+	//   If the version doesn't match the current value, the request fails with 409 Conflict.
 	// consumes:
 	// - application/json
 	// produces:
@@ -773,6 +788,15 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 
+	// Fail fast: if content_version is provided and already stale, reject
+	// before any mutations. The DB-level check in ChangeContent still
+	// handles concurrent requests.
+	// TODO: wrap all mutations in a transaction to fully prevent partial writes.
+	if form.ContentVersion != nil && *form.ContentVersion != issue.ContentVersion {
+		ctx.APIError(http.StatusConflict, issues_model.ErrIssueAlreadyChanged)
+		return
+	}
+
 	if len(form.Title) > 0 {
 		err = issue_service.ChangeTitle(ctx, issue, ctx.Doer, form.Title)
 		if err != nil {
@@ -781,10 +805,14 @@ func EditIssue(ctx *context.APIContext) {
 		}
 	}
 	if form.Body != nil {
-		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, issue.ContentVersion)
+		contentVersion := issue.ContentVersion
+		if form.ContentVersion != nil {
+			contentVersion = *form.ContentVersion
+		}
+		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, contentVersion)
 		if err != nil {
 			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
-				ctx.APIError(http.StatusBadRequest, err)
+				ctx.APIError(http.StatusConflict, err)
 				return
 			}
 

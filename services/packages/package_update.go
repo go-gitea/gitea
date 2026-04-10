@@ -24,7 +24,7 @@ func LinkToRepository(ctx context.Context, pkg *packages_model.Package, repo *re
 		return util.ErrInvalidArgument
 	}
 
-	perms, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+	perms, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
 	if err != nil {
 		return fmt.Errorf("error getting permissions for user %d on repository %d: %w", doer.ID, repo.ID, err)
 	}
@@ -48,7 +48,7 @@ func UnlinkFromRepository(ctx context.Context, pkg *packages_model.Package, doer
 		return fmt.Errorf("error getting repository %d: %w", pkg.RepoID, err)
 	}
 	if err == nil {
-		perms, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+		perms, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
 		if err != nil {
 			return fmt.Errorf("error getting permissions for user %d on repository %d: %w", doer.ID, repo.ID, err)
 		}

@@ -14,6 +14,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -21,7 +22,6 @@ import (
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	lru "github.com/hashicorp/golang-lru/v2"
-	"github.com/nektos/act/pkg/jobparser"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"
 )
@@ -77,7 +77,7 @@ func init() {
 }
 
 func (task *ActionTask) Duration() time.Duration {
-	return calculateDuration(task.Started, task.Stopped, task.Status)
+	return calculateDuration(task.Started, task.Stopped, task.Status, task.Updated)
 }
 
 func (task *ActionTask) IsStopped() bool {
@@ -114,7 +114,7 @@ func (task *ActionTask) GetRepoLink() string {
 
 func (task *ActionTask) LoadJob(ctx context.Context) error {
 	if task.Job == nil {
-		job, err := GetRunJobByID(ctx, task.JobID)
+		job, err := GetRunJobByRepoAndID(ctx, task.RepoID, task.JobID)
 		if err != nil {
 			return err
 		}
@@ -388,6 +388,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			}
 			if _, err := UpdateRunJob(ctx, &ActionRunJob{
 				ID:      task.JobID,
+				RepoID:  task.RepoID,
 				Status:  task.Status,
 				Stopped: task.Stopped,
 			}, nil); err != nil {
@@ -449,6 +450,7 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	task.Stopped = now
 	if _, err := UpdateRunJob(ctx, &ActionRunJob{
 		ID:      task.JobID,
+		RepoID:  task.RepoID,
 		Status:  task.Status,
 		Stopped: task.Stopped,
 	}, nil); err != nil {

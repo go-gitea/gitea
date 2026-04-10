@@ -24,73 +24,77 @@ import (
 	"xorm.io/xorm"
 )
 
-// CmdDoctor represents the available doctor sub-command.
-var CmdDoctor = &cli.Command{
-	Name:        "doctor",
-	Usage:       "Diagnose and optionally fix problems, convert or re-create database tables",
-	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
-
-	Commands: []*cli.Command{
-		cmdDoctorCheck,
-		cmdRecreateTable,
-		cmdDoctorConvert,
-	},
+func newDoctorCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "doctor",
+		Usage:       "Diagnose and optionally fix problems, convert or re-create database tables",
+		Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
+		Commands: []*cli.Command{
+			newDoctorCheckCommand(),
+			newRecreateTableCommand(),
+			newDoctorConvertCommand(),
+		},
+	}
 }
 
-var cmdDoctorCheck = &cli.Command{
-	Name:        "check",
-	Usage:       "Diagnose and optionally fix problems",
-	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
-	Action:      runDoctorCheck,
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name:  "list",
-			Usage: "List the available checks",
+func newDoctorCheckCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "check",
+		Usage:       "Diagnose and optionally fix problems",
+		Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
+		Action:      runDoctorCheck,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "list",
+				Usage: "List the available checks",
+			},
+			&cli.BoolFlag{
+				Name:  "default",
+				Usage: "Run the default checks (if neither --run or --all is set, this is the default behaviour)",
+			},
+			&cli.StringSliceFlag{
+				Name:  "run",
+				Usage: "Run the provided checks - (if --default is set, the default checks will also run)",
+			},
+			&cli.BoolFlag{
+				Name:  "all",
+				Usage: "Run all the available checks",
+			},
+			&cli.BoolFlag{
+				Name:  "fix",
+				Usage: "Automatically fix what we can",
+			},
+			&cli.StringFlag{
+				Name:  "log-file",
+				Usage: `Name of the log file (no verbose log output by default). Set to "-" to output to stdout`,
+			},
+			&cli.BoolFlag{
+				Name:    "color",
+				Aliases: []string{"H"},
+				Usage:   "Use color for outputted information",
+			},
 		},
-		&cli.BoolFlag{
-			Name:  "default",
-			Usage: "Run the default checks (if neither --run or --all is set, this is the default behaviour)",
-		},
-		&cli.StringSliceFlag{
-			Name:  "run",
-			Usage: "Run the provided checks - (if --default is set, the default checks will also run)",
-		},
-		&cli.BoolFlag{
-			Name:  "all",
-			Usage: "Run all the available checks",
-		},
-		&cli.BoolFlag{
-			Name:  "fix",
-			Usage: "Automatically fix what we can",
-		},
-		&cli.StringFlag{
-			Name:  "log-file",
-			Usage: `Name of the log file (no verbose log output by default). Set to "-" to output to stdout`,
-		},
-		&cli.BoolFlag{
-			Name:    "color",
-			Aliases: []string{"H"},
-			Usage:   "Use color for outputted information",
-		},
-	},
+	}
 }
 
-var cmdRecreateTable = &cli.Command{
-	Name:      "recreate-table",
-	Usage:     "Recreate tables from XORM definitions and copy the data.",
-	ArgsUsage: "[TABLE]... : (TABLEs to recreate - leave blank for all)",
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name:  "debug",
-			Usage: "Print SQL commands sent",
+func newRecreateTableCommand() *cli.Command {
+	return &cli.Command{
+		Name:      "recreate-table",
+		Usage:     "Recreate tables from XORM definitions and copy the data.",
+		ArgsUsage: "[TABLE]... : (TABLEs to recreate - leave blank for all)",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "debug",
+				Usage: "Print SQL commands sent",
+			},
 		},
-	},
-	Description: `The database definitions Gitea uses change across versions, sometimes changing default values and leaving old unused columns.
+		Description: `The database definitions Gitea uses change across versions, sometimes changing default values and leaving old unused columns.
 
 This command will cause Xorm to recreate tables, copying over the data and deleting the old table.
 
 You should back-up your database before doing this and ensure that your database is up-to-date first.`,
-	Action: runRecreateTable,
+		Action: runRecreateTable,
+	}
 }
 
 func runRecreateTable(ctx context.Context, cmd *cli.Command) error {

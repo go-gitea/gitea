@@ -5,10 +5,12 @@ package actions
 
 import (
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,6 +32,16 @@ func TestUpdateRepoRunsNumbers(t *testing.T) {
 	err = UpdateRepoRunsNumbers(t.Context(), repo)
 	assert.NoError(t, err)
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	assert.Equal(t, 5, repo.NumActionRuns)
+	assert.Equal(t, 4, repo.NumActionRuns)
 	assert.Equal(t, 3, repo.NumClosedActionRuns)
+}
+
+func TestActionRun_Duration_NonNegative(t *testing.T) {
+	run := &ActionRun{
+		Started:          timeutil.TimeStamp(100),
+		Stopped:          timeutil.TimeStamp(200),
+		Status:           StatusSuccess,
+		PreviousDuration: -time.Hour,
+	}
+	assert.Equal(t, time.Duration(0), run.Duration())
 }

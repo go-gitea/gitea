@@ -29,7 +29,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 
 	act_model "github.com/nektos/act/pkg/model"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 const (
@@ -147,6 +147,11 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 		}
 		wf, err := act_model.ReadWorkflow(bytes.NewReader(content))
 		if err != nil {
+			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
+			workflows = append(workflows, workflow)
+			continue
+		}
+		if err := actions.ValidateWorkflowContent(content); err != nil {
 			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 			workflows = append(workflows, workflow)
 			continue
@@ -315,9 +320,13 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 			if !job.Status.IsWaiting() {
 				continue
 			}
+			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
+				runErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
+				break
+			}
 			hasOnlineRunner := false
 			for _, runner := range runners {
-				if runner.CanMatchLabels(job.RunsOn) {
+				if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
 					hasOnlineRunner = true
 					break
 				}
@@ -341,7 +350,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx, ctx.Locale)
 
-	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0

@@ -67,7 +67,7 @@
 					{{else}}
 						<a class="link-action flex-text-inline" href data-url="{{.Link ctx}}/close">{{svg "octicon-skip" 14}}{{ctx.Locale.Tr "repo.projects.close"}}</a>
 					{{end}}
-					<a class="link-action flex-text-inline text red" href data-modal-confirm="#repo-project-delete-modal" data-url="{{.Link ctx}}/delete">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
+					<a class="link-action flex-text-inline tw-text-red" href data-modal-confirm="#repo-project-delete-modal" data-url="{{.Link ctx}}/delete">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
 				</div>
 				{{end}}
 			</div>
@@ -75,6 +75,19 @@
 				<div class="render-content markup">{{.RenderedContent}}</div>
 			{{end}}
 		</li>
+	{{else}}
+		{{if and (eq .OpenCount 0) (eq .ClosedCount 0)}}
+			<div class="empty-placeholder">
+				{{svg "octicon-project-symlink" 48}}
+				<h2>{{ctx.Locale.Tr "repo.projects.empty"}}</h2>
+				<p>{{ctx.Locale.Tr "repo.projects.empty_description"}}</p>
+			</div>
+		{{else}}
+			<div class="empty-placeholder">
+				{{svg "octicon-search" 48}}
+				<h2>{{ctx.Locale.Tr "repo.projects.no_results"}}</h2>
+			</div>
+		{{end}}
 	{{end}}
 
 	{{template "base/paginate" .}}

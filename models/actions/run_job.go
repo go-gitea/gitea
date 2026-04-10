@@ -11,12 +11,17 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/nektos/act/pkg/jobparser"
 	"xorm.io/builder"
 )
+
+// MaxJobNumPerRun is the maximum number of jobs in a single run.
+// https://docs.github.com/en/actions/reference/limits#existing-system-limits
+// TODO: check this limit when creating jobs
+const MaxJobNumPerRun = 256
 
 // ActionRunJob represents a job of a run
 type ActionRunJob struct {
@@ -51,6 +56,11 @@ type ActionRunJob struct {
 	ConcurrencyGroup  string `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"` // evaluated concurrency.group
 	ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`                      // evaluated concurrency.cancel-in-progress
 
+	// TokenPermissions stores the explicit permissions from workflow/job YAML (no org/repo clamps applied).
+	// Org/repo clamps are enforced when the token is used at runtime.
+	// It is JSON-encoded repo_model.ActionsTokenPermissions and may be empty if not specified.
+	TokenPermissions *repo_model.ActionsTokenPermissions `xorm:"JSON TEXT"`
+
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 	Created timeutil.TimeStamp `xorm:"created"`
@@ -62,7 +72,7 @@ func init() {
 }
 
 func (job *ActionRunJob) Duration() time.Duration {
-	return calculateDuration(job.Started, job.Stopped, job.Status)
+	return calculateDuration(job.Started, job.Stopped, job.Status, job.Updated)
 }
 
 func (job *ActionRunJob) LoadRun(ctx context.Context) error {
@@ -118,13 +128,25 @@ func (job *ActionRunJob) ParseJob() (*jobparser.Job, error) {
 	return workflowJob, nil
 }
 
-func GetRunJobByID(ctx context.Context, id int64) (*ActionRunJob, error) {
+func GetRunJobByRepoAndID(ctx context.Context, repoID, jobID int64) (*ActionRunJob, error) {
 	var job ActionRunJob
-	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&job)
+	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", jobID, repoID).Get(&job)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, fmt.Errorf("run job with id %d: %w", id, util.ErrNotExist)
+		return nil, fmt.Errorf("run job with id %d: %w", jobID, util.ErrNotExist)
+	}
+
+	return &job, nil
+}
+
+func GetRunJobByRunAndID(ctx context.Context, runID, jobID int64) (*ActionRunJob, error) {
+	var job ActionRunJob
+	has, err := db.GetEngine(ctx).Where("id=? AND run_id=?", jobID, runID).Get(&job)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, fmt.Errorf("run job with id %d: %w", jobID, util.ErrNotExist)
 	}
 
 	return &job, nil
@@ -168,7 +190,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 
 	if job.RunID == 0 {
 		var err error
-		if job, err = GetRunJobByID(ctx, job.ID); err != nil {
+		if job, err = GetRunJobByRepoAndID(ctx, job.RepoID, job.ID); err != nil {
 			return 0, err
 		}
 	}

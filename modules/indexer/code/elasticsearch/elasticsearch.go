@@ -393,7 +393,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 				elastic.NewHighlight().
 					Field("content").
 					Field("filename").
-					NumOfFragments(0). // return all highting content on fragments
+					NumOfFragments(0). // return all highlighting content on fragments
 					HighlighterType("fvh"),
 			).
 			Sort("_score", false).
@@ -426,7 +426,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 			elastic.NewHighlight().
 				Field("content").
 				Field("filename").
-				NumOfFragments(0). // return all highting content on fragments
+				NumOfFragments(0). // return all highlighting content on fragments
 				HighlighterType("fvh"),
 		).
 		Sort("_score", false).

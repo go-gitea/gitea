@@ -238,7 +238,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
 	}
 	if isRaw {
-		ctx.Redirect(util.URLJoin(ctx.Repo.RepoLink, "wiki/raw", string(pageName)))
+		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/raw/" + string(pageName))
 	}
 	if entry == nil || ctx.Written() {
 		return nil, nil
@@ -258,8 +258,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		defer markupWr.Close()
 		done := make(chan struct{})
 		go func() {
-			// We allow NBSP here this is rendered
-			escaped, _ = charset.EscapeControlReader(markupRd, buf, ctx.Locale, charset.RuneNBSP)
+			escaped, _ = charset.EscapeControlReader(markupRd, buf, ctx.Locale, charset.EscapeOptionsForView())
 			output = template.HTML(buf.String())
 			buf.Reset()
 			close(done)
@@ -371,7 +370,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		return nil, nil
 	}
 
-	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
+	pager := context.NewPagination(commitsCount, setting.Git.CommitsRangeSize, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
@@ -668,7 +667,7 @@ func NewWikiPost(ctx *context.Context) {
 	}
 
 	if util.IsEmptyString(form.Title) {
-		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplWikiNew, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.issues.new.title_empty"), tplWikiNew, form)
 		return
 	}
 
@@ -681,10 +680,10 @@ func NewWikiPost(ctx *context.Context) {
 	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
 		if repo_model.IsErrWikiReservedName(err) {
 			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.wiki.reserved_page", wikiName), tplWikiNew, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.wiki.reserved_page", wikiName), tplWikiNew, &form)
 		} else if repo_model.IsErrWikiAlreadyExist(err) {
 			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.wiki.page_already_exists"), tplWikiNew, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.wiki.page_already_exists"), tplWikiNew, &form)
 		} else {
 			ctx.ServerError("AddWikiPage", err)
 		}

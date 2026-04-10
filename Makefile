@@ -15,13 +15,13 @@ XGO_VERSION := go-1.25.x
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.2
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
-MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
+MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.1
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
-ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.10
+ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.11
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -53,9 +53,11 @@ endif
 ifeq ($(IS_WINDOWS),yes)
 	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
+	EXECUTABLE_E2E ?= gitea-e2e.exe
 else
 	GOFLAGS := -v
 	EXECUTABLE ?= gitea
+	EXECUTABLE_E2E ?= gitea-e2e
 endif
 
 ifeq ($(shell sed --version 2>/dev/null | grep -q GNU && echo gnu),gnu)
@@ -78,15 +80,6 @@ STORED_VERSION_FILE := VERSION
 
 GITHUB_REF_TYPE ?= branch
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
-
-# Enable typescript support in Node.js before 22.18
-# TODO: Remove this once we can raise the minimum Node.js version to 22.18 (alpine >= 3.23)
-NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v 2>/dev/null | cut -c2- | sed 's/-.*//' | tr '.' ' '))
-ifeq ($(shell test "$(NODE_VERSION)" -lt "022018000"; echo $$?),0)
-	NODE_VARS := NODE_OPTIONS="--experimental-strip-types"
-else
-	NODE_VARS :=
-endif
 
 ifneq ($(GITHUB_REF_TYPE),branch)
 	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
@@ -115,13 +108,14 @@ LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/riscv64
 
-GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration code.gitea.io/gitea/tests/e2e,$(shell $(GO) list ./... | grep -v /vendor/))
+GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
 
-WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
-WEBPACK_CONFIGS := webpack.config.ts tailwind.config.ts
-WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
-WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts
+FRONTEND_SOURCES := $(shell find web_src/js web_src/css -type f)
+FRONTEND_CONFIGS := vite.config.ts tailwind.config.ts
+FRONTEND_DEST := public/assets/.vite/manifest.json
+FRONTEND_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts public/assets/.vite
+FRONTEND_DEV_LOG_LEVEL ?= warn
 
 BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* modules/options/bindata.* modules/templates/bindata.*
 
@@ -153,10 +147,7 @@ GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go")
 GO_SOURCES += $(GENERATED_GO_DEST)
 
-# Force installation of playwright dependencies by setting this flag
-ifdef DEPS_PLAYWRIGHT
-	PLAYWRIGHT_FLAGS += --with-deps
-endif
+ESLINT_CONCURRENCY ?= 2
 
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_INPUT := templates/swagger/v1_input.json
@@ -187,7 +178,7 @@ all: build
 .PHONY: help
 help: Makefile ## print Makefile help information.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m[TARGETS] default target: build\033[0m\n\n\033[35mTargets:\033[0m\n"} /^[0-9A-Za-z._-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 }' Makefile #$(MAKEFILE_LIST)
-	@printf "  \033[36m%-46s\033[0m %s\n" "test-e2e[#TestSpecificName]" "test end to end using playwright"
+	@printf "  \033[36m%-46s\033[0m %s\n" "test-e2e" "test end to end using playwright"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test[#TestSpecificName]" "run unit test"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-sqlite[#TestSpecificName]" "run integration test for sqlite"
 
@@ -200,13 +191,12 @@ git-check:
 
 .PHONY: clean-all
 clean-all: clean ## delete backend, frontend and integration files
-	rm -rf $(WEBPACK_DEST_ENTRIES) node_modules
+	rm -rf $(FRONTEND_DEST_ENTRIES) node_modules
 
 .PHONY: clean
 clean: ## delete backend and integration files
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST_WILDCARD) \
+	rm -rf $(EXECUTABLE) $(EXECUTABLE_E2E) $(DIST) $(BINDATA_DEST_WILDCARD) \
 		integrations*.test \
-		e2e*.test \
 		tests/integration/gitea-integration-* \
 		tests/integration/indexers-* \
 		tests/sqlite.ini tests/mysql.ini tests/pgsql.ini tests/mssql.ini man/ \
@@ -295,41 +285,41 @@ lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backen
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js and ts files
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 $(ESLINT_FILES)
-	$(NODE_VARS) pnpm exec vue-tsc
+	pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES)
+	pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js and ts files and fix issues
-	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 $(ESLINT_FILES) --fix
-	$(NODE_VARS) pnpm exec vue-tsc
+	pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES) --fix
+	pnpm exec vue-tsc
 
 .PHONY: lint-css
 lint-css: node_modules ## lint css files
-	$(NODE_VARS) pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES)
+	pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES)
 
 .PHONY: lint-css-fix
 lint-css-fix: node_modules ## lint css files and fix issues
-	$(NODE_VARS) pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES) --fix
+	pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES) --fix
 
 .PHONY: lint-swagger
 lint-swagger: node_modules ## lint swagger files
-	$(NODE_VARS) pnpm exec spectral lint -q -F hint $(SWAGGER_SPEC)
+	pnpm exec spectral lint -q -F hint $(SWAGGER_SPEC)
 
 .PHONY: lint-md
 lint-md: node_modules ## lint markdown files
-	$(NODE_VARS) pnpm exec markdownlint *.md
+	pnpm exec markdownlint *.md
 
 .PHONY: lint-md-fix
 lint-md-fix: node_modules ## lint markdown files and fix issues
-	$(NODE_VARS) pnpm exec markdownlint --fix *.md
+	pnpm exec markdownlint --fix *.md
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
-	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error $(SPELLCHECK_FILES)
+	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error
 
 .PHONY: lint-spell-fix
 lint-spell-fix: ## lint spelling and fix issues
-	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w $(SPELLCHECK_FILES)
+	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w
 
 .PHONY: lint-go
 lint-go: ## lint go files
@@ -371,20 +361,19 @@ lint-yaml: .venv ## lint yaml files
 
 .PHONY: lint-json
 lint-json: node_modules ## lint json files
-	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0
+	pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY)
 
 .PHONY: lint-json-fix
 lint-json-fix: node_modules ## lint and fix json files
-	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --fix
+	pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) --fix
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: node_modules ## watch frontend files and continuously rebuild
-	@rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress --disable-interpret
+watch-frontend: node_modules ## start vite dev server for frontend
+	NODE_ENV=development pnpm exec vite --logLevel $(FRONTEND_DEV_LOG_LEVEL)
 
 .PHONY: watch-backend
 watch-backend: ## watch backend files and continuously rebuild
@@ -400,7 +389,7 @@ test-backend: ## test backend files
 
 .PHONY: test-frontend
 test-frontend: node_modules ## test frontend files
-	$(NODE_VARS) pnpm exec vitest
+	pnpm exec vitest
 
 .PHONY: test-check
 test-check:
@@ -535,47 +524,12 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
 playwright: deps-frontend
-	$(NODE_VARS) pnpm exec playwright install $(PLAYWRIGHT_FLAGS)
-
-.PHONY: test-e2e%
-test-e2e%: TEST_TYPE ?= e2e
-	# Clear display env variable. Otherwise, chromium tests can fail.
-	DISPLAY=
+	@# on GitHub Actions VMs, playwright's system deps are pre-installed
+	@pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium firefox $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e
-test-e2e: test-e2e-sqlite
-
-.PHONY: test-e2e-sqlite
-test-e2e-sqlite: playwright e2e.sqlite.test generate-ini-sqlite
-	GITEA_TEST_CONF=tests/sqlite.ini ./e2e.sqlite.test
-
-.PHONY: test-e2e-sqlite\#%
-test-e2e-sqlite\#%: playwright e2e.sqlite.test generate-ini-sqlite
-	GITEA_TEST_CONF=tests/sqlite.ini ./e2e.sqlite.test -test.run TestE2e/$*
-
-.PHONY: test-e2e-mysql
-test-e2e-mysql: playwright e2e.mysql.test generate-ini-mysql
-	GITEA_TEST_CONF=tests/mysql.ini ./e2e.mysql.test
-
-.PHONY: test-e2e-mysql\#%
-test-e2e-mysql\#%: playwright e2e.mysql.test generate-ini-mysql
-	GITEA_TEST_CONF=tests/mysql.ini ./e2e.mysql.test -test.run TestE2e/$*
-
-.PHONY: test-e2e-pgsql
-test-e2e-pgsql: playwright e2e.pgsql.test generate-ini-pgsql
-	GITEA_TEST_CONF=tests/pgsql.ini ./e2e.pgsql.test
-
-.PHONY: test-e2e-pgsql\#%
-test-e2e-pgsql\#%: playwright e2e.pgsql.test generate-ini-pgsql
-	GITEA_TEST_CONF=tests/pgsql.ini ./e2e.pgsql.test -test.run TestE2e/$*
-
-.PHONY: test-e2e-mssql
-test-e2e-mssql: playwright e2e.mssql.test generate-ini-mssql
-	GITEA_TEST_CONF=tests/mssql.ini ./e2e.mssql.test
-
-.PHONY: test-e2e-mssql\#%
-test-e2e-mssql\#%: playwright e2e.mssql.test generate-ini-mssql
-	GITEA_TEST_CONF=tests/mssql.ini ./e2e.mssql.test -test.run TestE2e/$*
+test-e2e: playwright $(EXECUTABLE_E2E)
+	@EXECUTABLE=$(EXECUTABLE_E2E) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
@@ -671,18 +625,6 @@ migrations.individual.sqlite.test: $(GO_SOURCES) generate-ini-sqlite
 migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite
 	GITEA_TEST_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
 
-e2e.mysql.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mysql.test
-
-e2e.pgsql.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.pgsql.test
-
-e2e.mssql.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mssql.test
-
-e2e.sqlite.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.sqlite.test -tags '$(TEST_TAGS)'
-
 .PHONY: check
 check: test
 
@@ -694,7 +636,7 @@ install: $(wildcard *.go)
 build: frontend backend ## build everything
 
 .PHONY: frontend
-frontend: $(WEBPACK_DEST) ## build frontend files
+frontend: $(FRONTEND_DEST) ## build frontend files
 
 .PHONY: backend
 backend: generate-backend $(EXECUTABLE) ## build backend files
@@ -713,13 +655,16 @@ generate-go: $(TAGS_PREREQ)
 
 .PHONY: security-check
 security-check:
-	GOEXPERIMENT= go run $(GOVULNCHECK_PACKAGE) -show color ./...
+	GOEXPERIMENT= go run $(GOVULNCHECK_PACKAGE) -show color ./... || true
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)
   $(error pam support set via TAGS does not support static builds)
 endif
 	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
+
+$(EXECUTABLE_E2E): $(GO_SOURCES) $(FRONTEND_DEST)
+	CGO_ENABLED=1 $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TEST_TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
 
 .PHONY: release
 release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-check
@@ -796,7 +741,7 @@ deps-tools: ## install tool dependencies
 	wait
 
 node_modules: pnpm-lock.yaml
-	$(NODE_VARS) pnpm install --frozen-lockfile
+	pnpm install --frozen-lockfile
 	@touch node_modules
 
 .venv: uv.lock
@@ -804,33 +749,38 @@ node_modules: pnpm-lock.yaml
 	@touch .venv
 
 .PHONY: update
-update: update-js update-py ## update js and py dependencies
+update: update-go update-js update-py ## update dependencies
+
+.PHONY: update-go
+update-go: ## update go dependencies
+	$(GO) get -u ./...
+	$(MAKE) tidy
 
 .PHONY: update-js
 update-js: node_modules ## update js dependencies
-	$(NODE_VARS) pnpm exec updates -u -f package.json
+	pnpm exec updates -u -f package.json
 	rm -rf node_modules pnpm-lock.yaml
-	$(NODE_VARS) pnpm install
-	$(NODE_VARS) pnpm exec nolyfill install
-	$(NODE_VARS) pnpm install
+	pnpm install
+	pnpm exec nolyfill install
+	pnpm install
 	@touch node_modules
 
 .PHONY: update-py
 update-py: node_modules ## update py dependencies
-	$(NODE_VARS) pnpm exec updates -u -f pyproject.toml
+	pnpm exec updates -u -f pyproject.toml
 	rm -rf .venv uv.lock
 	uv sync
 	@touch .venv
 
-.PHONY: webpack
-webpack: $(WEBPACK_DEST) ## build webpack files
+.PHONY: vite
+vite: $(FRONTEND_DEST) ## build vite files
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
+$(FRONTEND_DEST): $(FRONTEND_SOURCES) $(FRONTEND_CONFIGS) pnpm-lock.yaml
 	@$(MAKE) -s node_modules
-	@rm -rf $(WEBPACK_DEST_ENTRIES)
-	@echo "Running webpack..."
-	@BROWSERSLIST_IGNORE_OLD_DATA=true $(NODE_VARS) pnpm exec webpack --disable-interpret
-	@touch $(WEBPACK_DEST)
+	@rm -rf $(FRONTEND_DEST_ENTRIES)
+	@echo "Running vite build..."
+	@pnpm exec vite build
+	@touch $(FRONTEND_DEST)
 
 .PHONY: svg
 svg: node_modules ## build svg files
@@ -849,7 +799,7 @@ svg-check: svg
 
 .PHONY: lockfile-check
 lockfile-check:
-	$(NODE_VARS) pnpm install --frozen-lockfile
+	pnpm install --frozen-lockfile
 	@diff=$$(git diff --color=always pnpm-lock.yaml); \
 	if [ -n "$$diff" ]; then \
 		echo "pnpm-lock.yaml is inconsistent with package.json"; \

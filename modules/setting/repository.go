@@ -86,9 +86,9 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
-			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
+			DefaultDeleteBranchAfterMerge            bool
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -100,6 +100,8 @@ var (
 		Release struct {
 			AllowedTypes     string
 			DefaultPagingNum int
+			FileMaxSize      int64
+			MaxFiles         int64
 		} `ini:"repository.release"`
 
 		Signing struct {
@@ -208,9 +210,9 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
-			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
+			DefaultDeleteBranchAfterMerge            bool
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -241,9 +243,13 @@ var (
 		Release: struct {
 			AllowedTypes     string
 			DefaultPagingNum int
+			FileMaxSize      int64
+			MaxFiles         int64
 		}{
 			AllowedTypes:     "",
 			DefaultPagingNum: 10,
+			FileMaxSize:      2048,
+			MaxFiles:         5,
 		},
 
 		// Signing settings

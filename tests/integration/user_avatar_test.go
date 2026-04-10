@@ -17,72 +17,54 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUserAvatar(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of the repo3, is an org
-
-	seed := user2.Email
-	if len(seed) == 0 {
-		seed = user2.Name
-	}
-
-	img, err := avatar.RandomImage([]byte(seed))
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
-
 	session := loginUser(t, "user2")
 
-	imgData := &bytes.Buffer{}
+	img := avatar.RandomImageDefaultSize([]byte("any-random-image-seed"))
+	originAvatarData := &bytes.Buffer{}
+	require.NoError(t, png.Encode(originAvatarData, img))
 
+	// setup multipart form to upload avatar
 	body := &bytes.Buffer{}
-
-	// Setup multi-part
 	writer := multipart.NewWriter(body)
-	writer.WriteField("source", "local")
+	_ = writer.WriteField("source", "local")
 	part, err := writer.CreateFormFile("avatar", "avatar-for-testuseravatar.png")
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
+	require.NoError(t, err)
+	_, _ = io.Copy(part, bytes.NewReader(originAvatarData.Bytes()))
+	require.NoError(t, writer.Close())
 
-	if err := png.Encode(imgData, img); err != nil {
-		assert.NoError(t, err)
-		return
-	}
-
-	if _, err := io.Copy(part, imgData); err != nil {
-		assert.NoError(t, err)
-		return
-	}
-
-	if err := writer.Close(); err != nil {
-		assert.NoError(t, err)
-		return
-	}
-
+	// upload avatar
 	req := NewRequestWithBody(t, "POST", "/user/settings/avatar", body)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
-
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
-	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of the repo3, is an org
-
+	// check user2's avatar can be accessed
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	req = NewRequest(t, "GET", user2.AvatarLinkWithSize(t.Context(), 0))
 	_ = session.MakeRequest(t, req, http.StatusOK)
 
-	testGetAvatarRedirect(t, user2)
+	req = NewRequest(t, "GET", "/user2.png")
+	resp := MakeRequest(t, req, http.StatusSeeOther)
+	avatarRedirect := resp.Header().Get("Location")
+	assert.Equal(t, "/avatars/"+user2.Avatar, avatarRedirect)
 
-	// Can't test if the response matches because the image is re-generated on upload but checking that this at least doesn't give a 404 should be enough.
-}
+	// check the content of the avatar is correct
+	resp = MakeRequest(t, NewRequest(t, "GET", avatarRedirect), http.StatusOK)
+	assert.Equal(t, "image/png", resp.Header().Get("Content-Type"))
+	avatarData, _ := io.ReadAll(resp.Body)
+	assert.Equal(t, originAvatarData.Bytes(), avatarData)
 
-func testGetAvatarRedirect(t *testing.T, user *user_model.User) {
-	t.Run("getAvatarRedirect_"+user.Name, func(t *testing.T) {
-		req := NewRequestf(t, "GET", "/%s.png", user.Name)
-		resp := MakeRequest(t, req, http.StatusSeeOther)
-		assert.Equal(t, "/avatars/"+user.Avatar, resp.Header().Get("location"))
-	})
+	// for non-existing avatar, it should return a random one with proper cache control headers
+	resp = MakeRequest(t, NewRequest(t, "GET", "/avatars/no-such-avatar"), http.StatusOK)
+	assert.Equal(t, "image/png", resp.Header().Get("Content-Type"))
+	assert.NotEmpty(t, resp.Header().Get("ETag"))
+	assert.NotEmpty(t, resp.Header().Get("Last-Modified"))
+	assert.Contains(t, resp.Header().Get("Cache-Control"), "public")
+	avatarData, _ = io.ReadAll(resp.Body)
+	_, err = png.Decode(bytes.NewReader(avatarData))
+	require.NoError(t, err)
 }

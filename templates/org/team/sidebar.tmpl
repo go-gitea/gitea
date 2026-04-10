@@ -21,12 +21,13 @@
 			{{if .Team.Description}}
 				{{.Team.Description}}
 			{{else}}
-				<span class="text grey tw-italic">{{ctx.Locale.Tr "org.teams.no_desc"}}</span>
+				<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "org.teams.no_desc"}}</span>
 			{{end}}
 		</div>
 		{{if eq .Team.LowerName "owners"}}
 			<div class="item">
-				{{ctx.Locale.Tr "org.teams.owners_permission_desc"}}
+				<p>{{ctx.Locale.Tr "org.teams.owners_permission_desc"}}</p>
+				<p>{{ctx.Locale.Tr "org.teams.owners_permission_suggestion"}}</p>
 			</div>
 		{{else}}
 			<div class="item">

@@ -4,6 +4,7 @@
 
 - [Contribution Guidelines](#contribution-guidelines)
   - [Introduction](#introduction)
+  - [AI Contribution Policy](#ai-contribution-policy)
   - [Issues](#issues)
     - [How to report issues](#how-to-report-issues)
     - [Types of issues](#types-of-issues)
@@ -66,6 +67,21 @@ It assumes you have followed the [installation instructions](https://docs.gitea.
 Sensitive security-related issues should be reported to [security@gitea.io](mailto:security@gitea.io).
 
 For configuring IDEs for Gitea development, see the [contributed IDE configurations](contrib/ide/).
+
+## AI Contribution Policy
+
+Contributions made with the assistance of AI tools are welcome, but contributors must use them responsibly and disclose that use clearly.
+
+1. Review AI-generated code closely before marking a pull request ready for review.
+2. Manually test the changes and add appropriate automated tests where feasible.
+3. Only use AI to assist in contributions that you understand well enough to explain, defend, and revise yourself during review.
+4. Disclose AI-assisted content clearly.
+5. Do not use AI to reply to questions about your issue or pull request. The questions are for you, not an AI model.
+6. AI may be used to help draft issues and pull requests, but contributors remain responsible for the accuracy, completeness, and intent of what they submit.
+
+Maintainers reserve the right to close pull requests and issues that do not disclose AI assistance, that appear to be low-quality AI-generated content, or where the contributor cannot explain or defend the proposed changes themselves.
+
+We welcome new contributors, but cannot sustain the effort of supporting contributors who primarily defer to AI rather than engaging substantively with the review process.
 
 ## Issues
 
@@ -178,7 +194,15 @@ Here's how to run the test suite:
 | :------------------------------------------ | :------------------------------------------------------- | ------------------------------------------- |
 |``make test[\#SpecificTestName]``            |  run unit test(s)                                        |                                             |
 |``make test-sqlite[\#SpecificTestName]``     |  run [integration](tests/integration) test(s) for SQLite | [More details](tests/integration/README.md) |
-|``make test-e2e-sqlite[\#SpecificTestName]`` |  run [end-to-end](tests/e2e) test(s) for SQLite          | [More details](tests/e2e/README.md)         |
+|``make test-e2e``                            |  run [end-to-end](tests/e2e) test(s) using Playwright    |                                             |
+
+- E2E test environment variables
+
+| Variable                          | Description                                                 |
+| :-------------------------------- | :---------------------------------------------------------- |
+| ``GITEA_TEST_E2E_DEBUG``          | When set, show Gitea server output                          |
+| ``GITEA_TEST_E2E_FLAGS``          | Additional flags passed to Playwright, for example ``--ui`` |
+| ``GITEA_TEST_E2E_TIMEOUT_FACTOR`` | Timeout multiplier (default: 3 on CI, 1 locally)            |
 
 ## Translation
 

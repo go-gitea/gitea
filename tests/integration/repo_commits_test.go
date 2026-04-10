@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"strings"
 	"sync"
 	"testing"
 
@@ -37,7 +38,7 @@ func TestRepoCommits(t *testing.T) {
 		doc.doc.Find("#commits-table .commit-id-short").Each(func(i int, s *goquery.Selection) {
 			commits = append(commits, path.Base(s.AttrOr("href", "")))
 		})
-		doc.doc.Find("#commits-table .author-wrapper").Each(func(i int, s *goquery.Selection) {
+		doc.doc.Find("#commits-table .author-wrapper a").Each(func(i int, s *goquery.Selection) {
 			userHrefs = append(userHrefs, s.AttrOr("href", ""))
 		})
 		assert.Equal(t, []string{"69554a64c1e6030f051e5c3f94bfbd773cd6a324", "27566bd5738fc8b4e3fef3c5e72cce608537bd95", "5099b81332712fe655e34e8dd63574f503f61811"}, commits)
@@ -49,7 +50,7 @@ func TestRepoCommits(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
 		commitHref := doc.doc.Find(".latest-commit .commit-id-short").AttrOr("href", "")
-		authorHref := doc.doc.Find(".latest-commit .author-wrapper").AttrOr("href", "")
+		authorHref := doc.doc.Find(".latest-commit .author-wrapper a").AttrOr("href", "")
 		assert.Equal(t, "/user2/repo16/commit/69554a64c1e6030f051e5c3f94bfbd773cd6a324", commitHref)
 		assert.Equal(t, "/user2", authorHref)
 	})
@@ -65,8 +66,7 @@ func TestRepoCommits(t *testing.T) {
 		commitHref := doc.doc.Find("#commits-table tr:first-child .commit-id-short").AttrOr("href", "")
 		assert.Equal(t, "/user2/repo1/commit/985f0301dba5e7b34be866819cd15ad3d8f508ee", commitHref)
 		authorElem := doc.doc.Find("#commits-table tr:first-child .author-wrapper")
-		assert.Equal(t, "6543", authorElem.Text())
-		assert.Equal(t, "span", authorElem.Nodes[0].Data)
+		assert.Equal(t, "6543", strings.TrimSpace(authorElem.Text()))
 	})
 
 	t.Run("LastCommitNonExistingCommiter", func(t *testing.T) {
@@ -76,8 +76,7 @@ func TestRepoCommits(t *testing.T) {
 		commitHref := doc.doc.Find(".latest-commit .commit-id-short").AttrOr("href", "")
 		assert.Equal(t, "/user2/repo1/commit/985f0301dba5e7b34be866819cd15ad3d8f508ee", commitHref)
 		authorElem := doc.doc.Find(".latest-commit .author-wrapper")
-		assert.Equal(t, "6543", authorElem.Text())
-		assert.Equal(t, "span", authorElem.Nodes[0].Data)
+		assert.Equal(t, "6543", strings.TrimSpace(authorElem.Text()))
 	})
 }
 
@@ -145,11 +144,11 @@ func TestRepoCommitsWithStatus(t *testing.T) {
 		testRepoCommitsWithStatus(t, "/api/v1/repos/user2/repo1/commits/v1.1/statuses", "/api/v1/repos/user2/repo1/commits/v1.1/status", state)
 	}
 
-	t.Run("pending", func(t *testing.T) { testRefMaster(t, "pending", "octicon-dot-fill", "yellow") })
-	t.Run("success", func(t *testing.T) { testRefMaster(t, "success", "octicon-check", "green") })
-	t.Run("error", func(t *testing.T) { testRefMaster(t, "error", "gitea-exclamation", "red") })
-	t.Run("failure", func(t *testing.T) { testRefMaster(t, "failure", "octicon-x", "red") })
-	t.Run("warning", func(t *testing.T) { testRefMaster(t, "warning", "gitea-exclamation", "yellow") })
+	t.Run("pending", func(t *testing.T) { testRefMaster(t, "pending", "octicon-dot-fill", "tw-text-yellow") })
+	t.Run("success", func(t *testing.T) { testRefMaster(t, "success", "octicon-check", "tw-text-green") })
+	t.Run("error", func(t *testing.T) { testRefMaster(t, "error", "gitea-exclamation", "tw-text-red") })
+	t.Run("failure", func(t *testing.T) { testRefMaster(t, "failure", "octicon-x", "tw-text-red") })
+	t.Run("warning", func(t *testing.T) { testRefMaster(t, "warning", "gitea-exclamation", "tw-text-yellow") })
 	t.Run("BranchWithSlash", func(t *testing.T) {
 		_ = db.TruncateBeans(t.Context(), &git_model.CommitStatus{})
 

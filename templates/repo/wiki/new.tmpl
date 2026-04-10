@@ -23,8 +23,7 @@
 			{{end}}
 			{{template "shared/combomarkdowneditor" (dict
 				"CustomInit" true
-				"MarkdownPreviewInRepo" $.Repository
-				"MarkdownPreviewMode" "wiki"
+				"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorWiki $.Repository)
 				"TextareaName" "content"
 				"TextareaContent" $content
 				"TextareaPlaceholder" (ctx.Locale.Tr "repo.wiki.page_content")

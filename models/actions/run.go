@@ -70,14 +70,14 @@ func (run *ActionRun) HTMLURL() string {
 	if run.Repo == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.HTMLURL(), run.Index)
+	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.HTMLURL(), run.ID)
 }
 
 func (run *ActionRun) Link() string {
 	if run.Repo == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.Index)
+	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.ID)
 }
 
 func (run *ActionRun) WorkflowLink() string {
@@ -153,7 +153,11 @@ func (run *ActionRun) LoadRepo(ctx context.Context) error {
 }
 
 func (run *ActionRun) Duration() time.Duration {
-	return calculateDuration(run.Started, run.Stopped, run.Status) + run.PreviousDuration
+	d := calculateDuration(run.Started, run.Stopped, run.Status, run.Updated) + run.PreviousDuration
+	if d < 0 {
+		return 0
+	}
+	return d
 }
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
@@ -168,7 +172,7 @@ func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 }
 
 func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, error) {
-	if run.Event.IsPullRequest() {
+	if run.Event.IsPullRequest() || run.Event.IsPullRequestReview() {
 		var payload api.PullRequestPayload
 		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 			return nil, err
@@ -299,7 +303,7 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 		if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
 			return cancelledJobs, err
 		}
-		updatedJob, err := GetRunJobByID(ctx, job.ID)
+		updatedJob, err := GetRunJobByRunAndID(ctx, job.RunID, job.ID)
 		if err != nil {
 			return cancelledJobs, fmt.Errorf("get job: %w", err)
 		}
@@ -322,16 +326,16 @@ func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, er
 	return &run, nil
 }
 
-func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error) {
+func GetRunByRepoAndIndex(ctx context.Context, repoID, runIndex int64) (*ActionRun, error) {
 	run := &ActionRun{
 		RepoID: repoID,
-		Index:  index,
+		Index:  runIndex,
 	}
 	has, err := db.GetEngine(ctx).Get(run)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, fmt.Errorf("run with index %d %d: %w", repoID, index, util.ErrNotExist)
+		return nil, fmt.Errorf("run with repo_id %d and index %d: %w", repoID, runIndex, util.ErrNotExist)
 	}
 
 	return run, nil

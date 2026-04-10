@@ -26,7 +26,7 @@ export default {
   ],
   overrides: [
     {
-      files: ['**/chroma/*', '**/codemirror/*', '**/standalone/*', '**/console.css', 'font_i18n.css'],
+      files: ['**/chroma/*', '**/codemirror/*', '**/console.css', 'font_i18n.css'],
       rules: {
         'scale-unlimited/declaration-strict-value': null,
       },
@@ -125,7 +125,7 @@ export default {
     'csstools/value-no-unknown-custom-properties': [true, {importFrom: cssVarFiles}],
     'declaration-block-no-duplicate-properties': [true, {ignore: ['consecutive-duplicates-with-different-values']}],
     'declaration-block-no-redundant-longhand-properties': [true, {ignoreShorthands: ['flex-flow', 'overflow', 'grid-template']}],
-    'declaration-property-unit-disallowed-list': {'line-height': ['em']},
+    'declaration-property-unit-disallowed-list': null,
     'declaration-property-value-disallowed-list': {'word-break': ['break-word']},
     'font-family-name-quotes': 'always-where-recommended',
     'function-name-case': 'lower',

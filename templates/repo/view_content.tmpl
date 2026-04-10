@@ -59,7 +59,7 @@
 				data-tree-list-url="{{.RepoLink}}/tree-list/{{.RefTypeNameSubURL}}"
 				data-no-results-text="{{ctx.Locale.Tr "repo.find_file.no_matching"}}"
 				data-placeholder="{{ctx.Locale.Tr "repo.find_file.go_to_file"}}"
-		></div>
+		><div class="ui small input global-shortcut-wrapper"><input placeholder="{{ctx.Locale.Tr "repo.find_file.go_to_file"}}"><kbd>T</kbd></div></div>
 
 		{{if .RefFullName.IsBranch}}
 			{{$addFilePath := .TreePath}}
@@ -100,7 +100,7 @@
 						<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.zip?path={{PathEscapeSegments .TreePath}}" rel="nofollow">{{svg "octicon-file-zip"}}{{ctx.Locale.Tr "repo.download_directory_as" "ZIP"}}</a>
 						<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.tar.gz?path={{PathEscapeSegments .TreePath}}" rel="nofollow">{{svg "octicon-file-zip"}}{{ctx.Locale.Tr "repo.download_directory_as" "TAR.GZ"}}</a>
 					{{end}}
-					{{if and (.Repository.CanContentChange) (not $isTreePathRoot)}}
+					{{if and .Repository.CanContentChange (not $isTreePathRoot)}}
 						<div class="divider"></div>
 						<a class="item tw-text-danger" href="{{.RepoLink}}/_delete/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
 							{{svg "octicon-trash" 16}}{{ctx.Locale.Tr "repo.editor.delete_this_directory"}}
@@ -116,7 +116,7 @@
 		{{end}}
 		{{if and (not $isTreePathRoot) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
 			<a class="ui compact button" href="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
-				{{svg "octicon-history" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_history"}}
+				{{svg "octicon-history"}}{{ctx.Locale.Tr "repo.file_history"}}
 			</a>
 		{{end}}
 	</div>
