@@ -65,7 +65,9 @@ We will try to publish a new major version every three months:
 - v1.28.0 in September 2026
 - v1.29.0 in December 2026
 
-A feature freeze will be announced two weeks before the release date.
+#### How is the release handled?
+- The release manager will tag the release candidate (e.g. `v1.26.0-rc1`) and publish it for testing in the **first week of the release month**.
+- If there are no major issues, the release manager will tag the final release (e.g. `v1.26.0`) and publish it in the **one or two weeks following the release candidate**.
 
 ### Feature freeze
 
@@ -76,6 +78,11 @@ A feature freeze will be announced two weeks before the release date.
 ### Patch releases
 
 During a cycle we may ship patch releases for an older line. For example, if the latest release is v1.2, we can still publish v1.1.1 after v1.1.0.
+
+### End of life (EOL)
+
+We support per standard the last major release. For example, if the latest release is v1.26, we support v1.26 and v1.25, but not v1.24 anymore. We will only publish security fixes for the last major release, so if you are using an older release, please upgrade to a supported release as soon as possible.
+Also we always try to support the latest on main branch, so if you are using the latest on main, you should be fine.
 
 ## Versions
 
@@ -92,14 +99,14 @@ be reviewed by two maintainers and must pass the automatic tests.
 
 ## Releasing Gitea
 
-- Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers, $vpat should be rc1, rc2, 0, 1, ...... $vmaj.$vmin will be kept the same as milestones on github or gitea in future.
+- Let MAJOR, MINOR and PATCH be Major, Minor and Patch version numbers, PATCH should be rc1, rc2, 0, 1, ...... MAJOR.MINOR will be kept the same as milestones on github or gitea in future.
 - Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on Discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody is against it in about several hours.
 - If this is a big version first you have to create PR for changelog on branch `main` with PRs with label `changelog` and after it has been merged do following steps:
-  - Create `-dev` tag as `git tag -s -F release.notes v$vmaj.$vmin.0-dev` and push the tag as `git push origin v$vmaj.$vmin.0-dev`.
-  - When CI has finished building tag then you have to create a new branch named `release/v$vmaj.$vmin`
-- If it is bugfix version create PR for changelog on branch `release/v$vmaj.$vmin` and wait till it is reviewed and merged.
-- Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`.
-- And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically create a release and upload all the compiled binary. (But currently it doesn't add the release notes automatically. Maybe we should fix that.)
+  - Create `-dev` tag as `git tag -s -F release.notes vMAJOR.MINOR.0-dev` and push the tag as `git push origin vMAJOR.MINOR.0-dev`.
+  - When CI has finished building tag then you have to create a new branch named `release/vMAJOR.MINOR`
+- If it is bugfix version create PR for changelog on branch `release/vMAJOR.MINOR` and wait till it is reviewed and merged.
+- Add a tag as `git tag -s -F release.notes vMAJOR.MINOR.PATCH`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`.
+- And then push the tag as `git push origin vMAJOR.MINOR.$`. CI will automatically create a release and upload all the compiled binary. (But currently it doesn't add the release notes automatically. Maybe we should fix that.)
 - If needed send a frontport PR for the changelog to branch `main` and update the version in `docs/config.yaml` to refer to the new version.
 - Send PR to [blog repository](https://gitea.com/gitea/blog) announcing the release.
 - Verify all release assets were correctly published through CI on dl.gitea.com and GitHub releases. Once ACKed:

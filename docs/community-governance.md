@@ -7,7 +7,6 @@ This document describes maintainer expectations, project governance, and the det
 ### Milestone
 
 A PR should only be assigned to a milestone if it will likely be merged into the given version. \
-As a rule of thumb, assume that a PR will stay open for an additional month for every 100 added lines. \
 PRs without a milestone may not be merged.
 
 ### Labels
@@ -17,7 +16,7 @@ Almost all labels used inside Gitea can be classified as one of the following:
 - `modifies/…`: Determines which parts of the codebase are affected. These labels will be set through the CI.
 - `topic/…`:  Determines the conceptual component of Gitea that is affected, i.e. issues, projects, or authentication. At best, PRs should only target one component but there might be overlap. Must be set manually.
 - `type/…`: Determines the type of an issue or PR (feature, refactoring, docs, bug, …). If GitHub supported scoped labels, these labels would be exclusive, so you should set **exactly** one, not more or less (every PR should fall into one of the provided categories, and only one).
-- `issue/…` / `pr/…`: Labels that are specific to issues or PRs respectively and that are only necessary in a given context, i.e. `issue/not-a-bug` or `pr/need-2-approvals`
+- `issue/…` / `lgtm/…`: Labels that are specific to issues or PRs respectively and that are only necessary in a given context, i.e. `issue/not-a-bug` or `lgtm/need 2`
 
 Every PR should be labeled correctly with every label that applies.
 
