@@ -49,6 +49,7 @@ func testCatFileBatch(t *testing.T) {
 
 		batch, err := NewBatch(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 		require.NoError(t, err)
+		defer batch.Close()
 		_, err = batch.QueryInfo("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
 		require.NoError(t, err)
 
@@ -63,9 +64,8 @@ func testCatFileBatch(t *testing.T) {
 		default:
 			t.FailNow()
 		}
-		defer c.Close()
 
-		require.True(t, (errBeforePipeClose != nil) != (errAfterPipeClose != nil), "must set exactly one of the expected errors")
+		require.NotEqual(t, errBeforePipeClose == nil, errAfterPipeClose == nil, "must set exactly one of the expected errors")
 
 		inceptor := c.debugKill()
 		<-inceptor.beforeClose                         // wait for the command's Close to be called, the pipe is not closed yet

@@ -27,54 +27,24 @@ type catFileBatchCommunicator struct {
 }
 
 func (b *catFileBatchCommunicator) Close(err ...error) {
-	if fn := b.closeFunc.Load(); fn != nil {
+	if fn := b.closeFunc.Swap(nil); fn != nil {
 		(*fn)(util.OptionalArg(err))
-		b.closeFunc.Store(nil)
 	}
 }
 
-func (b *catFileBatchCommunicator) debugKill() (ret struct {
-	beforeClose chan struct{}
-	blockClose  chan struct{}
-	afterClose  chan struct{}
-}) {
-	ret.beforeClose = make(chan struct{})
-	ret.blockClose = make(chan struct{})
-	ret.afterClose = make(chan struct{})
-	oldCloseFunc := b.closeFunc.Load()
-	b.closeFunc.Store(new(func(err error) {
-		b.closeFunc.Store(oldCloseFunc)
-		close(ret.beforeClose)
-		<-ret.blockClose
-		(*oldCloseFunc)(err)
-		close(ret.afterClose)
-	}))
-	b.debugGitCmd.DebugKill()
-	return ret
-}
-
-// newCatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Command) (ret *catFileBatchCommunicator) {
+// newCatFileBatch opens git cat-file --batch/--batch-check/--batch-command command and prepares the stdin/stdout pipes for communication.
+func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Command) *catFileBatchCommunicator {
 	ctx, ctxCancel := context.WithCancelCause(ctx)
-
-	// We often want to feed the commits in order into cat-file --batch, followed by their trees and subtrees as necessary.
 	stdinWriter, stdoutReader, stdPipeClose := cmdCatFile.MakeStdinStdoutPipe()
-	closeFunc := func(err error) {
-		ctxCancel(err)
-		stdPipeClose()
-	}
-	return newCatFileBatchWithCloseFunc(ctx, repoPath, cmdCatFile, stdinWriter, stdoutReader, closeFunc)
-}
-
-func newCatFileBatchWithCloseFunc(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Command,
-	stdinWriter gitcmd.PipeWriter, stdoutReader gitcmd.PipeReader, closeFunc func(err error),
-) *catFileBatchCommunicator {
 	ret := &catFileBatchCommunicator{
 		debugGitCmd: cmdCatFile,
 		reqWriter:   stdinWriter,
 		respReader:  bufio.NewReaderSize(stdoutReader, 32*1024), // use a buffered reader for rich operations
 	}
-	ret.closeFunc.Store(&closeFunc)
+	ret.closeFunc.Store(new(func(err error) {
+		ctxCancel(err)
+		stdPipeClose()
+	}))
 
 	err := cmdCatFile.WithDir(repoPath).StartWithStderr(ctx)
 	if err != nil {
@@ -93,6 +63,27 @@ func newCatFileBatchWithCloseFunc(ctx context.Context, repoPath string, cmdCatFi
 		ret.Close(err)
 	}()
 
+	return ret
+}
+
+func (b *catFileBatchCommunicator) debugKill() (ret struct {
+	beforeClose chan struct{}
+	blockClose  chan struct{}
+	afterClose  chan struct{}
+},
+) {
+	ret.beforeClose = make(chan struct{})
+	ret.blockClose = make(chan struct{})
+	ret.afterClose = make(chan struct{})
+	oldCloseFunc := b.closeFunc.Load()
+	b.closeFunc.Store(new(func(err error) {
+		b.closeFunc.Store(nil)
+		close(ret.beforeClose)
+		<-ret.blockClose
+		(*oldCloseFunc)(err)
+		close(ret.afterClose)
+	}))
+	b.debugGitCmd.DebugKill()
 	return ret
 }
 
