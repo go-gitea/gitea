@@ -360,6 +360,13 @@ textarea:focus,
   font-size: 1em;
 }
 
+.ui.form .inline.field > input[readonly] {
+  border-color: transparent !important;
+  background: transparent !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 .ui.form .inline.fields .field > :first-child,
 .ui.form .inline.field > :first-child {
   margin: 0 0.85714286em 0 0;
