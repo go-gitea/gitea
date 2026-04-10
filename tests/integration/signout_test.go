@@ -17,31 +17,29 @@ import (
 func TestSignOut(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := loginUser(t, "user2")
+	t.Run("NormalLogout", func(t *testing.T) {
+		session := loginUser(t, "user2")
 
-	req := NewRequest(t, "GET", "/user/logout")
-	resp := session.MakeRequest(t, req, http.StatusSeeOther)
-	assert.Equal(t, "/", test.RedirectURL(resp))
+		req := NewRequest(t, "GET", "/user/logout")
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, "/", resp.Header().Get("Location"))
 
-	// try to view a private repo, should fail
-	req = NewRequest(t, "GET", "/user2/repo2")
-	session.MakeRequest(t, req, http.StatusNotFound)
-}
+		// logged out, try to view a private repo, should fail
+		req = NewRequest(t, "GET", "/user2/repo2")
+		session.MakeRequest(t, req, http.StatusNotFound)
+	})
 
-func TestSignOut_ReverseProxyLogoutRedirect(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	t.Run("ReverseProxyLogoutRedirect", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.EnableReverseProxyAuth, true)()
+		defer test.MockVariableValue(&setting.ReverseProxyLogoutRedirect, "/my-sso/logout?return_to=/my-sso/home")()
 
-	defer test.MockVariableValue(&setting.Service.EnableReverseProxyAuth, true)()
-	defer test.MockVariableValue(&setting.ReverseProxyLogoutRedirect, "/mellon/logout?ReturnTo=/")()
+		session := loginUser(t, "user2")
+		req := NewRequest(t, "GET", "/user/logout")
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, "/my-sso/logout?return_to=/my-sso/home", resp.Header().Get("Location"))
 
-	session := loginUser(t, "user2")
-
-	req := NewRequest(t, "GET", "/user/logout")
-	resp := session.MakeRequest(t, req, http.StatusSeeOther)
-
-	expected := "/mellon/logout?ReturnTo=/"
-	loc := resp.Header().Get("Location")
-	if loc != expected {
-		t.Fatalf("expected redirect to %q, got %q", expected, loc)
-	}
+		// logged out, try to view a private repo, should fail
+		req = NewRequest(t, "GET", "/user2/repo2")
+		session.MakeRequest(t, req, http.StatusNotFound)
+	})
 }
