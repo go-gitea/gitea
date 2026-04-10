@@ -1260,14 +1260,18 @@ func ListAccessibleReposForIssueMove(ctx *context.Context) {
 		return
 	}
 
-	// Merge, deduplicate, and sort: current org/owner repos first, then others
+	// Merge, deduplicate, and sort:
+	//   1. current repo's org/owner repos
+	//   2. doer's own repos
+	//   3. other org repos
 	seen := make(map[int64]bool)
 	type repoInfo struct {
 		FullName string `json:"full_name"`
 		ID       int64  `json:"id"`
 	}
-	var sameOwner, others []repoInfo
+	var currentOwnerRepos, myRepos, orgRepos []repoInfo
 	currentOwnerID := ctx.Repo.Repository.OwnerID
+	doerID := ctx.Doer.ID
 
 	for _, r := range append(repos, collabRepos...) {
 		if seen[r.ID] {
@@ -1280,11 +1284,15 @@ func ListAccessibleReposForIssueMove(ctx *context.Context) {
 		seen[r.ID] = true
 		info := repoInfo{FullName: r.FullName(), ID: r.ID}
 		if r.OwnerID == currentOwnerID {
-			sameOwner = append(sameOwner, info)
+			currentOwnerRepos = append(currentOwnerRepos, info)
+		} else if r.OwnerID == doerID {
+			myRepos = append(myRepos, info)
 		} else {
-			others = append(others, info)
+			orgRepos = append(orgRepos, info)
 		}
 	}
 
-	ctx.JSON(http.StatusOK, append(sameOwner, others...))
+	result := append(currentOwnerRepos, myRepos...)
+	result = append(result, orgRepos...)
+	ctx.JSON(http.StatusOK, result)
 }
