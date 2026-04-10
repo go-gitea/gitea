@@ -49,6 +49,8 @@ const (
 	tplCompare     templates.TplName = "repo/diff/compare"
 	tplBlobExcerpt templates.TplName = "repo/diff/blob_excerpt"
 	tplDiffBox     templates.TplName = "repo/diff/box"
+
+	maxBlobExcerptBatchSections = 100
 )
 
 // setCompareContext sets context data.
@@ -966,7 +968,7 @@ func parseBatchExcerptOptions(ctx *context.Context) ([]gitdiff.BlobExcerptOption
 	rightHunkSizes := ctx.FormStrings("right_hunk_size")
 
 	n := len(lastLefts)
-	if n == 0 || n > 100 {
+	if n == 0 || n > maxBlobExcerptBatchSections {
 		return nil, errors.New("invalid number of batch sections")
 	}
 	if len(lastRights) != n || len(lefts) != n || len(rights) != n || len(leftHunkSizes) != n || len(rightHunkSizes) != n {
