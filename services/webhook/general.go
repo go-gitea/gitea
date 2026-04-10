@@ -108,6 +108,9 @@ func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, with
 	case api.HookIssueClosed:
 		text = fmt.Sprintf("[%s] Issue closed: %s", repoLink, titleLink)
 		color = redColor
+	case api.HookIssueDeleted:
+		text = fmt.Sprintf("[%s] Issue deleted: %s", repoLink, titleLink)
+		color = redColor
 	case api.HookIssueReOpened:
 		text = fmt.Sprintf("[%s] Issue re-opened: %s", repoLink, titleLink)
 	case api.HookIssueEdited:
@@ -164,6 +167,9 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 			text = fmt.Sprintf("[%s] Pull request closed: %s", repoLink, titleLink)
 			color = redColor
 		}
+	case api.HookIssueDeleted:
+		text = fmt.Sprintf("[%s] Pull request deleted: %s", repoLink, titleLink)
+		color = redColor
 	case api.HookIssueReOpened:
 		text = fmt.Sprintf("[%s] Pull request re-opened: %s", repoLink, titleLink)
 	case api.HookIssueEdited:
