@@ -153,7 +153,11 @@ func (run *ActionRun) LoadRepo(ctx context.Context) error {
 }
 
 func (run *ActionRun) Duration() time.Duration {
-	return calculateDuration(run.Started, run.Stopped, run.Status) + run.PreviousDuration
+	d := calculateDuration(run.Started, run.Stopped, run.Status, run.Updated) + run.PreviousDuration
+	if d < 0 {
+		return 0
+	}
+	return d
 }
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {

@@ -66,13 +66,9 @@
 							<td class="lines-num">
 								<span id="L{{$row.RowNumber}}" data-line-number="{{$row.RowNumber}}"></span>
 							</td>
-							{{if $.EscapeStatus.Escaped}}
-								<td class="lines-escape">
-									{{if $row.EscapeStatus.Escaped}}
-										<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $row}}"></button>
-									{{end}}
-								</td>
-							{{end}}
+
+							{{ctx.RenderUtils.RenderUnicodeEscapeToggleTd $.EscapeStatus $row.EscapeStatus}}
+
 							<td rel="L{{$row.RowNumber}}" class="lines-code blame-code chroma">
 								<code class="code-inner tw-pl-2">{{$row.Code}}</code>
 							</td>
