@@ -278,17 +278,21 @@ async function fetchBlobExcerpt(btn: HTMLElement) {
   if (btn.classList.contains('is-loading')) return;
   const tr = btn.closest('tr')!;
   const diffBox = tr.closest<HTMLElement>('.diff-file-box')!;
+
   // save before loading class is added, so restored state is clean
   if (!expandAllSavedState.has(diffBox.id)) {
     const tbody = diffBox.querySelector<HTMLElement>('.code-diff tbody');
     if (tbody) expandAllSavedState.set(diffBox.id, tbody.innerHTML);
   }
+
   btn.classList.add('is-loading', 'loading-icon-2px');
   try {
     const response = await GET(btn.getAttribute('data-url')!);
     if (!response.ok) return;
+
     tr.insertAdjacentHTML('afterend', await response.json());
     tr.remove();
+
     const tbody = diffBox.querySelector('.code-diff tbody');
     if (tbody && !tbody.querySelector('.code-expander-button')) {
       const expandAllBtn = diffBox.querySelector<HTMLElement>('[data-global-click="onDiffExpandAll"]');
@@ -312,19 +316,22 @@ function initDiffExpand() {
     const diffBox = btn.closest('.diff-file-box')!;
     const boxId = diffBox.id;
     const tbody = diffBox.querySelector<HTMLElement>('.code-diff tbody');
+    if (!tbody) return;
+
     // collapse mode: restore saved state when fully expanded (no gaps remain)
-    if (tbody && expandAllSavedState.has(boxId) && !tbody.querySelector('.code-expander-button')) {
+    if (expandAllSavedState.has(boxId) && !tbody.querySelector('.code-expander-button')) {
       tbody.innerHTML = expandAllSavedState.get(boxId)!;
       expandAllSavedState.delete(boxId);
       btn.innerHTML = svg('octicon-unfold', 14);
       btn.setAttribute('data-tooltip-content', btn.getAttribute('data-tooltip-expand')!);
       return;
     }
-    if (!tbody) return;
+
     if (diffBox.getAttribute('data-folded') === 'true') {
       setFileFolding(diffBox, diffBox.querySelector<HTMLElement>('.fold-file')!, false);
     }
-    // collect unique TRs with expand buttons (dedup for updown gaps)
+
+    // collect unique TRs, dedupe because a single gap row can contain multiple expand buttons
     const expandTrs: HTMLTableRowElement[] = [];
     const seen = new Set<HTMLTableRowElement>();
     for (const expandBtn of tbody.querySelectorAll<HTMLElement>('.code-expander-button')) {
@@ -333,19 +340,24 @@ function initDiffExpand() {
       seen.add(tr);
       expandTrs.push(tr);
     }
+
     if (!expandTrs.length) return;
     if (!expandAllSavedState.has(boxId)) expandAllSavedState.set(boxId, tbody.innerHTML);
+
     const baseUrl = new URL(expandTrs[0].querySelector<HTMLElement>('.code-expander-button')!.getAttribute('data-url')!, window.location.origin);
     const batchUrl = new URL(baseUrl.pathname, window.location.origin);
     batchUrl.searchParams.set('expand_all', 'true');
+
     for (const param of ['style', 'path', 'filelang', 'pull_issue_index', 'show_outdated'] as const) {
-      const val = baseUrl.searchParams.get(param);
-      if (val) batchUrl.searchParams.set(param, val);
+      const value = baseUrl.searchParams.get(param);
+      if (value) batchUrl.searchParams.set(param, value);
     }
+
     for (const tr of expandTrs) {
-      const trUrl = new URL(tr.querySelector<HTMLElement>('.code-expander-button')!.getAttribute('data-url')!, window.location.origin);
-      for (const param of gapParams) batchUrl.searchParams.append(param, trUrl.searchParams.get(param)!);
+      const url = new URL(tr.querySelector<HTMLElement>('.code-expander-button')!.getAttribute('data-url')!, window.location.origin);
+      for (const param of gapParams) batchUrl.searchParams.append(param, url.searchParams.get(param)!);
     }
+
     btn.classList.add('is-loading', 'loading-icon-2px');
     try {
       const response = await GET(batchUrl.toString());
