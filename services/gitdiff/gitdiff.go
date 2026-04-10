@@ -217,19 +217,19 @@ const (
 	DiffStyleUnified = "unified"
 )
 
-func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
+func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData, locale translation.Locale) template.HTML {
 	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
 	anchor := fmt.Sprintf("diff-%sK%d", fileNameHash, d.SectionInfo.RightIdx)
 
-	makeButton := func(direction, svgName string) template.HTML {
+	makeButton := func(direction, svgName, ariaLabel string) template.HTML {
 		style := util.IfZero(data.DiffStyle, "unified")
 		link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&direction=%s&anchor=%s", url.QueryEscape(style), direction, url.QueryEscape(anchor)) + "&" + d.getBlobExcerptQuery()
 		if data.PullIssueIndex > 0 {
 			link += fmt.Sprintf("&pull_issue_index=%d", data.PullIssueIndex)
 		}
 		return htmlutil.HTMLFormat(
-			`<button class="code-expander-button" data-global-click="onExpanderButtonClick" data-url="%s" data-hidden-comment-ids=",%s,">%s</button>`,
-			link, dataHiddenCommentIDs, svg.RenderHTML(svgName),
+			`<button class="code-expander-button" data-global-click="onExpanderButtonClick" data-url="%s" data-hidden-comment-ids=",%s," aria-label="%s">%s</button>`,
+			link, dataHiddenCommentIDs, ariaLabel, svg.RenderHTML(svgName),
 		)
 	}
 	var content template.HTML
@@ -241,13 +241,13 @@ func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobE
 
 	expandDirection := d.GetExpandDirection()
 	if expandDirection == "updown" || expandDirection == "down" {
-		content += makeButton("down", "octicon-fold-down")
+		content += makeButton("down", "octicon-fold-down", locale.TrString("repo.diff.expand_file_down_from_line", d.SectionInfo.LastRightIdx+1))
 	}
 	if expandDirection == "up" || expandDirection == "updown" {
-		content += makeButton("up", "octicon-fold-up")
+		content += makeButton("up", "octicon-fold-up", locale.TrString("repo.diff.expand_file_up_from_line", d.SectionInfo.RightIdx))
 	}
 	if expandDirection == "single" {
-		content += makeButton("single", "octicon-fold")
+		content += makeButton("single", "octicon-fold", locale.TrString("repo.diff.expand_file_from_line_to_line", d.SectionInfo.LastRightIdx+1, d.SectionInfo.RightIdx-1))
 	}
 	return htmlutil.HTMLFormat(`<div class="code-expander-buttons" data-expand-direction="%s">%s</div>`, expandDirection, content)
 }

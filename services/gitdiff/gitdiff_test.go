@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -972,7 +973,7 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.line.RenderBlobExcerptButtons(tt.fileNameHash, tt.data)
+			result := tt.line.RenderBlobExcerptButtons(tt.fileNameHash, tt.data, translation.MockLocale{})
 			resultStr := string(result)
 
 			for _, expected := range tt.expectContains {

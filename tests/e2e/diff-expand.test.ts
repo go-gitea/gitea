@@ -22,8 +22,8 @@ test('diff section expand', async ({page, request}) => {
     const diffTable = diffBox.locator('.code-diff');
     await expect(diffTable.locator('[data-line-num="1"]')).toHaveCount(0);
     await expect(diffTable.locator('[data-line-num="40"]')).toHaveCount(0);
-    const expandAllBtn = diffBox.locator('[data-global-click="onDiffExpandAll"]');
-    const expandButtons = diffBox.locator('.code-expander-button');
+    const expandAllBtn = diffBox.getByRole('button', {name: 'Expand all lines'});
+    const expandButtons = diffBox.getByRole('button', {name: /^Expand file/});
     // expand all
     await expandAllBtn.click();
     await expect(expandButtons).toHaveCount(0);
