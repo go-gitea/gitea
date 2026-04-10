@@ -122,7 +122,7 @@
 					<div class="ui search" style="position: relative;">
 						<input type="text" id="repo-search" class="prompt" placeholder="{{ctx.Locale.Tr "repo.issues.move_copy_search"}}" autocomplete="off">
 						<input type="hidden" name="new_repo" id="repo-search-value" required>
-						<div id="repo-search-results" class="results" style="display:none; position:absolute; z-index:100; width:100%; max-height:200px; overflow-y:auto; background:#fff; border:1px solid #ddd; border-radius:4px;"></div>
+						<div id="repo-search-results" class="results" style="display:none; position:absolute; z-index:9999; width:100%; max-height:200px; overflow-y:auto; background:#fff; border:1px solid #ddd; border-radius:4px;"></div>
 					</div>
 				</div>
 				<div id="copy-options" style="display:none;">
@@ -282,7 +282,7 @@
 				});
 		}
 
-		searchInput.addEventListener('focus', function() {
+		searchInput.addEventListener('mousedown', function() {
 			fetchRepos(this.value.trim());
 		});
 
