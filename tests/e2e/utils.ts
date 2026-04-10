@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect} from '@playwright/test';
-import type {APIRequestContext, Page} from '@playwright/test';
+import type {APIRequestContext, APIResponse, Page} from '@playwright/test';
 
 /** Generate a random alphanumeric string. */
 export function randomString(length: number): string {
@@ -26,9 +26,7 @@ export function apiHeaders() {
   return apiAuthHeader(env.GITEA_TEST_E2E_USER, env.GITEA_TEST_E2E_PASSWORD);
 }
 
-type ApiResponse = {ok: () => boolean; status: () => number; text: () => Promise<string>; json: () => Promise<any>};
-
-async function apiRetry<T extends ApiResponse>(fn: () => Promise<T>, label: string): Promise<T> {
+async function apiRetry(fn: () => Promise<APIResponse>, label: string): Promise<APIResponse> {
   const maxAttempts = 5;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const response = await fn();
