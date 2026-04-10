@@ -259,6 +259,16 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 		}
 		w.Meta = string(meta)
 	}
+	if w.Type == webhook_module.GOOGLECHAT {
+		meta, err := json.Marshal(&webhook_service.GoogleChatMeta{
+			IconURL: form.Config["icon_url"],
+		})
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return nil, false
+		}
+		w.Meta = string(meta)
+	}
 
 	if err := w.UpdateEvent(); err != nil {
 		ctx.APIErrorInternal(err)
@@ -361,6 +371,18 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 					Username: form.Config["username"],
 					IconURL:  form.Config["icon_url"],
 					Color:    form.Config["color"],
+				})
+				if err != nil {
+					ctx.APIErrorInternal(err)
+					return false
+				}
+				w.Meta = string(meta)
+			}
+		}
+		if w.Type == webhook_module.GOOGLECHAT {
+			if _, ok := form.Config["icon_url"]; ok {
+				meta, err := json.Marshal(&webhook_service.GoogleChatMeta{
+					IconURL: form.Config["icon_url"],
 				})
 				if err != nil {
 					ctx.APIErrorInternal(err)

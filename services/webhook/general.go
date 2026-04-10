@@ -403,6 +403,10 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		config["icon_url"] = s.IconURL
 		config["color"] = s.Color
 	}
+	if w.Type == webhook_module.GOOGLECHAT {
+		s := GetGoogleChatHook(w)
+		config["icon_url"] = s.IconURL
+	}
 
 	authorizationHeader, err := w.HeaderAuthorization()
 	if err != nil {

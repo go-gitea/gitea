@@ -31,6 +31,10 @@
 		{{template "shared/webhook/icon" (dict "HookType" "msteams" "Size" $size)}}
 		{{ctx.Locale.Tr "repo.settings.web_hook_name_msteams"}}
 	</a>
+	<a class="item" href="{{.BaseLinkNew}}/googlechat/new">
+		{{template "shared/webhook/icon" (dict "HookType" "googlechat" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_googlechat"}}
+	</a>
 	<a class="item" href="{{.BaseLinkNew}}/feishu/new">
 		{{template "shared/webhook/icon" (dict "HookType" "feishu" "Size" $size)}}
 		{{ctx.Locale.Tr "repo.settings.web_hook_name_feishu_or_larksuite"}}

@@ -124,6 +124,7 @@ const (
 	DINGTALK   HookType = "dingtalk"
 	TELEGRAM   HookType = "telegram"
 	MSTEAMS    HookType = "msteams"
+	GOOGLECHAT HookType = "googlechat"
 	FEISHU     HookType = "feishu"
 	MATRIX     HookType = "matrix"
 	WECHATWORK HookType = "wechatwork"
