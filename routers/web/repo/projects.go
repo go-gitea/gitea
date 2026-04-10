@@ -756,6 +756,11 @@ func AddIssueToColumn(ctx *context.Context) {
 		return
 	}
 
+	if issue.IsPull {
+		ctx.NotFound(errors.New("pull requests cannot be added to project columns from this endpoint"))
+		return
+	}
+
 	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, project.ID, column.ID); err != nil {
 		ctx.ServerError("IssueAssignOrRemoveProject", err)
 		return

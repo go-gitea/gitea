@@ -1,8 +1,9 @@
 import {contrastColor} from '../utils/color.ts';
 import {createSortable} from '../modules/sortable.ts';
-import {POST, request} from '../modules/fetch.ts';
+import {POST, request, GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
+import {html} from '../utils/html.ts';
 import type {SortableEvent} from 'sortablejs';
 import {toggleFullScreen} from '../utils.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
@@ -182,5 +183,191 @@ export function initRepoProjectsView(): void {
 
     initRepoProjectSortable(); // no await
     initRepoProjectColumnEdit(writableProjectBoard);
+    initRepoProjectAddIssueModal();
+    initRepoProjectAddPullModal();
+    initRepoProjectUnbindButton();
+  });
+}
+
+function initRepoProjectAddIssueModal(): void {
+  queryElems(document, '.show-add-issue-modal', (el) => {
+    el.addEventListener('click', () => {
+      const columnId = el.getAttribute('data-modal-column-id');
+      const columnIdInput = document.querySelector<HTMLInputElement>('#add-issue-column-id');
+      if (columnId && columnIdInput) {
+        columnIdInput.value = columnId;
+      }
+
+      const issueRepoSelect = document.querySelector<HTMLElement>('#issue-repo');
+      if (issueRepoSelect && (issueRepoSelect as HTMLInputElement).type === 'hidden') {
+        issueRepoSelect.dispatchEvent(new Event('change'));
+      }
+    });
+  });
+
+  const issueRepoSelect = document.querySelector<HTMLElement>('#issue-repo');
+  if (issueRepoSelect) {
+    issueRepoSelect.addEventListener('change', async () => {
+      const issueSelect = document.querySelector<HTMLSelectElement>('#issue-number');
+      if (!issueSelect) return;
+
+      const repoSelect = issueRepoSelect as HTMLSelectElement;
+      const repoInput = issueRepoSelect as HTMLInputElement;
+
+      if (!repoSelect.value && !repoInput.value) {
+        issueSelect.disabled = true;
+        issueSelect.innerHTML = html`<option value="">Choose an issue</option>`;
+        return;
+      }
+
+      let owner: string;
+      let name: string;
+      if (repoInput.type === 'hidden') {
+        owner = repoInput.getAttribute('data-owner') || '';
+        name = repoInput.getAttribute('data-name') || '';
+      } else {
+        const selectedOption = repoSelect.options[repoSelect.selectedIndex];
+        owner = selectedOption.getAttribute('data-owner') || '';
+        name = selectedOption.getAttribute('data-name') || '';
+      }
+
+      issueSelect.disabled = true;
+      issueSelect.innerHTML = html`<option value="">Loading...</option>`;
+
+      try {
+        const appSubUrl = (window as any).config?.appSubUrl || '';
+        const response = await GET(`${appSubUrl}/api/v1/repos/${owner}/${name}/issues?state=open&type=issues`);
+        const issues = await response.json();
+
+        issueSelect.innerHTML = html`<option value="">Choose an issue</option>`;
+        for (const issue of issues) {
+          const option = document.createElement('option');
+          option.value = issue.number;
+          option.textContent = `#${issue.number} - ${issue.title}`;
+          issueSelect.append(option);
+        }
+        issueSelect.disabled = false;
+      } catch (error: any) {
+        console.error('Failed to load issues:', error);
+        // For 404 errors (e.g., empty repository), show normal select prompt
+        issueSelect.innerHTML = html`<option value="">Choose an issue</option>`;
+        issueSelect.disabled = false;
+      }
+    });
+  }
+}
+
+function initRepoProjectAddPullModal(): void {
+  queryElems(document, '.show-add-pull-modal', (el) => {
+    el.addEventListener('click', () => {
+      const columnId = el.getAttribute('data-modal-column-id');
+      const columnIdInput = document.querySelector<HTMLInputElement>('#add-pull-column-id');
+      if (columnId && columnIdInput) {
+        columnIdInput.value = columnId;
+      }
+
+      const pullRepoSelect = document.querySelector<HTMLElement>('#pull-repo');
+      if (pullRepoSelect && (pullRepoSelect as HTMLInputElement).type === 'hidden') {
+        pullRepoSelect.dispatchEvent(new Event('change'));
+      }
+    });
+  });
+
+  const pullRepoSelect = document.querySelector<HTMLElement>('#pull-repo');
+  if (pullRepoSelect) {
+    pullRepoSelect.addEventListener('change', async () => {
+      const pullSelect = document.querySelector<HTMLSelectElement>('#pull-number');
+      if (!pullSelect) return;
+
+      const repoSelect = pullRepoSelect as HTMLSelectElement;
+      const repoInput = pullRepoSelect as HTMLInputElement;
+
+      if (!repoSelect.value && !repoInput.value) {
+        pullSelect.disabled = true;
+        pullSelect.innerHTML = html`<option value="">Choose a pull request</option>`;
+        return;
+      }
+
+      let owner: string;
+      let name: string;
+      if (repoInput.type === 'hidden') {
+        owner = repoInput.getAttribute('data-owner') || '';
+        name = repoInput.getAttribute('data-name') || '';
+      } else {
+        const selectedOption = repoSelect.options[repoSelect.selectedIndex];
+        owner = selectedOption.getAttribute('data-owner') || '';
+        name = selectedOption.getAttribute('data-name') || '';
+      }
+
+      pullSelect.disabled = true;
+      pullSelect.innerHTML = html`<option value="">Loading...</option>`;
+
+      try {
+        const appSubUrl = (window as any).config?.appSubUrl || '';
+        const response = await GET(`${appSubUrl}/api/v1/repos/${owner}/${name}/pulls?state=open`);
+        const pulls = await response.json();
+
+        pullSelect.innerHTML = html`<option value="">Choose a pull request</option>`;
+        for (const pull of pulls) {
+          const option = document.createElement('option');
+          option.value = pull.number;
+          option.textContent = `#${pull.number} - ${pull.title}`;
+          pullSelect.append(option);
+        }
+        pullSelect.disabled = false;
+      } catch (error: any) {
+        console.error('Failed to load pull requests:', error);
+        // For 404 errors (e.g., empty repository), show normal select prompt
+        pullSelect.innerHTML = html`<option value="">Choose a pull request</option>`;
+        pullSelect.disabled = false;
+      }
+    });
+  }
+}
+
+function initRepoProjectUnbindButton(): void {
+  queryElems(document, '.issue-card-unbind', (el) => {
+    el.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const id = el.getAttribute('data-id');
+      const columnId = el.getAttribute('data-column-id');
+
+      if (!confirm('Are you sure you want to remove this issue from the project?')) {
+        return;
+      }
+
+      const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content') || '';
+
+      try {
+        const projectBoardUrl = document.querySelector('#project-board')?.getAttribute('data-url') || '';
+        const projectLink = projectBoardUrl.replace(/\/move$/, '');
+        const response = await POST(`${projectLink}/${columnId}/unbind-issue`, {
+          data: new URLSearchParams({issue_id: id!}),
+          headers: {'X-Csrf-Token': csrfToken},
+        });
+
+        if (response.ok) {
+          const card = el.closest('.issue-card');
+          const column = card?.closest('.project-column');
+
+          card?.remove();
+
+          if (column) {
+            const countLabel = column.querySelector('.project-column-issue-count');
+            if (countLabel) {
+              const currentCount = parseInt(countLabel.textContent || '0');
+              countLabel.textContent = String(currentCount - 1);
+            }
+          }
+        } else {
+          alert('An error occurred');
+        }
+      } catch (error) {
+        console.error('Failed to unbind card:', error);
+        alert('An error occurred');
+      }
+    });
   });
 }

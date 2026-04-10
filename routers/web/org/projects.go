@@ -471,18 +471,10 @@ func ViewProject(ctx *context.Context) {
 	// Load available repositories for this project
 	var availableRepos []*repo_model.Repository
 	if project.OwnerID > 0 {
-		allRepos, err := repo_model.GetOrgRepositories(ctx, project.OwnerID)
-		if err != nil {
-			ctx.ServerError("GetOrgRepositories", err)
+		cond := builder.Eq{"owner_id": project.OwnerID}.And(repo_model.AccessibleRepositoryCondition(ctx.Doer, unit.TypeIssues))
+		if err := db.GetEngine(ctx).Where(cond).Find(&availableRepos); err != nil {
+			ctx.ServerError("FindAvailableRepositories", err)
 			return
-		}
-
-		// Filter repos - include all public repos
-		// For private repos, user needs explicit access
-		for _, repo := range allRepos {
-			if !repo.IsPrivate {
-				availableRepos = append(availableRepos, repo)
-			}
 		}
 	}
 	ctx.Data["AvailableRepos"] = availableRepos
@@ -589,6 +581,11 @@ func AddIssueToColumn(ctx *context.Context) {
 		return
 	}
 
+	if repository.OwnerID != project.OwnerID {
+		ctx.NotFound(errors.New("Repository does not belong to project owner"))
+		return
+	}
+
 	// Check if user has permission to read the repository issues
 	perm, err := access_model.GetDoerRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
@@ -604,6 +601,11 @@ func AddIssueToColumn(ctx *context.Context) {
 	issue, err := issues_model.GetIssueByIndex(ctx, repository.ID, issueNumber)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
+		return
+	}
+
+	if issue.IsPull {
+		ctx.NotFound(errors.New("pull requests cannot be added with this endpoint"))
 		return
 	}
 
@@ -647,6 +649,13 @@ func AddPullToColumn(ctx *context.Context) {
 	repository, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetRepositoryByID", repo_model.IsErrRepoNotExist, err)
+		return
+	}
+
+	// Organization projects can only be used with repositories owned by the same owner.
+	// Reject cross-owner input here so it doesn't reach IssueAssignOrRemoveProject and become a 500.
+	if repository.OwnerID != project.OwnerID {
+		ctx.NotFound(errors.New("No permission to use repository with project"))
 		return
 	}
 
