@@ -1,1 +1,5 @@
-<div class="markdown-diff markup">{{.MarkdownDiff}}</div>
+{{if .MarkdownDiffError}}
+	<div class="ui center">{{.MarkdownDiffError}}</div>
+{{else}}
+	<div class="markdown-diff markup">{{.MarkdownDiff}}</div>
+{{end}}

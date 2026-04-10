@@ -69,24 +69,39 @@ func RenderedDiffPreviewPost(ctx *context.Context) {
 		WithMetas(ctx.Repo.Repository.ComposeRepoFileMetas(ctx))
 
 	var baseHTML template.HTML
+	tooLarge := false
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
 	if err == nil && !entry.IsDir() {
-		reader, err := entry.Blob().DataAsync()
-		if err == nil {
-			defer reader.Close()
-			var buf strings.Builder
-			if err := markdown.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err == nil {
-				baseHTML = template.HTML(buf.String())
+		blob := entry.Blob()
+		// Match the compare view: skip the rich diff for oversized blobs so we
+		// do not hand a multi-megabyte document to diffmatchpatch.
+		if setting.UI.MaxDisplayFileSize > 0 && blob.Size() > setting.UI.MaxDisplayFileSize {
+			tooLarge = true
+		} else {
+			reader, err := blob.DataAsync()
+			if err == nil {
+				defer reader.Close()
+				var buf strings.Builder
+				if err := markdown.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err == nil {
+					baseHTML = template.HTML(buf.String())
+				}
 			}
 		}
 	}
 
-	headHTML, err := markdown.RenderString(rctx, newContent)
-	if err != nil {
-		headHTML = ""
+	if !tooLarge && int64(len(newContent)) > setting.UI.MaxDisplayFileSize && setting.UI.MaxDisplayFileSize > 0 {
+		tooLarge = true
 	}
 
-	ctx.Data["MarkdownDiff"] = gitdiff.HTMLDiff(baseHTML, headHTML)
+	if tooLarge {
+		ctx.Data["MarkdownDiffError"] = ctx.Locale.TrString("repo.diff.file_suppressed")
+	} else {
+		headHTML, err := markdown.RenderString(rctx, newContent)
+		if err != nil {
+			headHTML = ""
+		}
+		ctx.Data["MarkdownDiff"] = gitdiff.HTMLDiff(baseHTML, headHTML)
+	}
 
 	ctx.HTML(http.StatusOK, tplRenderedDiffPreview)
 }
