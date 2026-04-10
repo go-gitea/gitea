@@ -21,6 +21,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -88,7 +89,7 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 	setPathsCompareContext(ctx, before, head, headOwner, headName)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
-	setMarkdownCompareContext(ctx)
+	setMarkdownCompareContext(ctx, before, head)
 }
 
 // SourceCommitURL creates a relative URL for a commit in the given repository
@@ -194,7 +195,7 @@ func setCsvCompareContext(ctx *context.Context) {
 }
 
 // setMarkdownCompareContext sets context data that is required by the Markdown compare template
-func setMarkdownCompareContext(ctx *context.Context) {
+func setMarkdownCompareContext(ctx *context.Context, before, head *git.Commit) {
 	ctx.Data["IsMarkdownFile"] = func(diffFile *gitdiff.DiffFile) bool {
 		renderer := markup.DetectRendererTypeByFilename(diffFile.Name)
 		return renderer != nil && renderer.Name() == "markdown"
@@ -205,7 +206,7 @@ func setMarkdownCompareContext(ctx *context.Context) {
 		Error string
 	}
 
-	renderMarkdownBlob := func(blob *git.Blob, name string) (template.HTML, error) {
+	renderMarkdownBlob := func(blob *git.Blob, name string, commit *git.Commit) (template.HTML, error) {
 		if blob == nil {
 			return "", nil
 		}
@@ -215,9 +216,16 @@ func setMarkdownCompareContext(ctx *context.Context) {
 		}
 		defer reader.Close()
 
-		rctx := markup.NewRenderContext(ctx).
-			WithRelativePath(name).
-			WithMetas(ctx.Repo.Repository.ComposeRepoFileMetas(ctx))
+		// Use the same repo-aware render context as the editor preview so relative
+		// links and images resolve against the commit being rendered.
+		var refPath string
+		if commit != nil {
+			refPath = "commit/" + commit.ID.String()
+		}
+		rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
+			CurrentRefPath:  refPath,
+			CurrentTreePath: filepath.Dir(name),
+		}).WithRelativePath(name)
 
 		var buf strings.Builder
 		if err := markdown.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err != nil {
@@ -231,13 +239,13 @@ func setMarkdownCompareContext(ctx *context.Context) {
 			return MarkdownDiffResult{}
 		}
 
-		baseHTML, err := renderMarkdownBlob(baseBlob, diffFile.OldName)
+		baseHTML, err := renderMarkdownBlob(baseBlob, diffFile.OldName, before)
 		if err != nil {
 			log.Error("error rendering base markdown %s: %v", diffFile.OldName, err)
 			return MarkdownDiffResult{Error: "unable to render base file"}
 		}
 
-		headHTML, err := renderMarkdownBlob(headBlob, diffFile.Name)
+		headHTML, err := renderMarkdownBlob(headBlob, diffFile.Name, head)
 		if err != nil {
 			log.Error("error rendering head markdown %s: %v", diffFile.Name, err)
 			return MarkdownDiffResult{Error: "unable to render head file"}
