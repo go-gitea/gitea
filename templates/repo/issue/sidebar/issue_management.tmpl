@@ -282,6 +282,10 @@
 				});
 		}
 
+		searchInput.addEventListener('focus', function() {
+			fetchRepos(this.value.trim());
+		});
+
 		searchInput.addEventListener('mousedown', function() {
 			fetchRepos(this.value.trim());
 		});
