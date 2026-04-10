@@ -69,13 +69,14 @@ func TestHTMLDiff(t *testing.T) {
 	t.Run("void element paired with a closer is not bundled", func(t *testing.T) {
 		// `<img></p>` must not be bundled as a single `<<img></p>>` unit — <img> is a void element
 		// and does not pair with <p>. Otherwise the diff output would contain crossed/duplicated tags.
+		// The block splitter serializes void elements in the XHTML self-closing form.
 		out := HTMLDiff(`<p><img src="/a.png" alt="a"></p>`, `<p><img src="/b.png" alt="b"></p>`)
-		assert.Equal(t, `<p><span class="removed-code"><img src="/a.png" alt="a"></span><span class="added-code"><img src="/b.png" alt="b"></span></p>`, string(out))
+		assert.Equal(t, `<p><span class="removed-code"><img src="/a.png" alt="a"/></span><span class="added-code"><img src="/b.png" alt="b"/></span></p>`, string(out))
 	})
 
 	t.Run("replace paragraph with image", func(t *testing.T) {
 		out := HTMLDiff(`<p>foo</p>`, `<img src="bar">`)
-		assert.Equal(t, `<span class="removed-code"><p>foo</p></span><span class="added-code"><img src="bar"></span>`, string(out))
+		assert.Equal(t, `<span class="removed-code"><p>foo</p></span><span class="added-code"><img src="bar"/></span>`, string(out))
 	})
 
 	// The cases below use the actual HTML shapes produced by the Markdown renderer for
@@ -113,6 +114,38 @@ func TestHTMLDiff(t *testing.T) {
 		newH := `<pre class="code-block is-loading"><code class="language-math display">a + c</code></pre>`
 		want := `<pre class="code-block is-loading"><code class="language-math display">a + <span class="removed-code">b</span><span class="added-code">c</span></code></pre>`
 		assert.Equal(t, want, string(HTMLDiff(template.HTML(oldH), template.HTML(newH))))
+	})
+
+	// The cases below exercise the block-level outer pass: structural changes
+	// that the single-pass word-level diff would render as a wall of red/green.
+
+	t.Run("unchanged blocks pass through", func(t *testing.T) {
+		// Only the second paragraph is edited; the heading and third paragraph must
+		// be emitted verbatim with no diff wrappers.
+		out := HTMLDiff(
+			`<h1>Title</h1><p>intro text</p><p>body content</p>`,
+			`<h1>Title</h1><p>intro text here</p><p>body content</p>`,
+		)
+		assert.Equal(t, `<h1>Title</h1><p>intro text<span class="added-code"> here</span></p><p>body content</p>`, string(out))
+	})
+
+	t.Run("reordered paragraphs", func(t *testing.T) {
+		// The two paragraphs are swapped; the block-level outer pass should match
+		// the unchanged "second paragraph" block in place and emit the other as a
+		// delete+insert pair rather than marking both as changed.
+		out := HTMLDiff(
+			`<p>first paragraph</p><p>second paragraph</p>`,
+			`<p>second paragraph</p><p>first paragraph</p>`,
+		)
+		assert.Equal(t, `<span class="removed-code"><p>first paragraph</p></span><p>second paragraph</p><span class="added-code"><p>first paragraph</p></span>`, string(out))
+	})
+
+	t.Run("paragraph replaced by list is a whole-block change", func(t *testing.T) {
+		// A <p>/<ul> pair has no sensible word-level diff — pairing them would
+		// produce broken nesting. The root-tag guard must fall back to whole-block
+		// delete+insert in this case.
+		out := HTMLDiff(`<p>item one and item two</p>`, `<ul><li>item one</li><li>item two</li></ul>`)
+		assert.Equal(t, `<span class="removed-code"><p>item one and item two</p></span><span class="added-code"><ul><li>item one</li><li>item two</li></ul></span>`, string(out))
 	})
 
 	t.Run("mermaid body change", func(t *testing.T) {
