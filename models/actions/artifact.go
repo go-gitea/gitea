@@ -232,16 +232,27 @@ func SetArtifactExpired(ctx context.Context, artifactID int64) error {
 	return err
 }
 
-// SetArtifactNeedDelete sets an artifact to need-delete, cron job will delete it
-func SetArtifactNeedDelete(ctx context.Context, runID int64, name string) error {
-	_, err := db.GetEngine(ctx).Where("run_id=? AND artifact_name=? AND status = ?", runID, name, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusPendingDeletion})
+// SetArtifactNeedDeleteByID sets an artifact to need-delete by ID, cron job will delete it.
+func SetArtifactNeedDeleteByID(ctx context.Context, artifactID int64) error {
+	_, err := db.GetEngine(ctx).Where("id=? AND status = ?", artifactID, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusPendingDeletion})
 	return err
 }
 
-// SetArtifactNeedDeleteByRunAttempt sets an artifact to need-delete in a run attempt, cron job will delete it
+// SetArtifactNeedDeleteByRunAttempt sets an artifact to need-delete in a run attempt, cron job will delete it.
+// runAttemptID may be 0 for legacy artifacts created before ActionRunAttempt existed.
 func SetArtifactNeedDeleteByRunAttempt(ctx context.Context, runID, runAttemptID int64, name string) error {
 	_, err := db.GetEngine(ctx).Where("run_id=? AND run_attempt_id=? AND artifact_name=? AND status = ?", runID, runAttemptID, name, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusPendingDeletion})
 	return err
+}
+
+// GetArtifactsByRunAttemptAndName returns all artifacts with the given name in the specified run attempt.
+// This supports both attempt-scoped data and legacy artifacts with run_attempt_id=0.
+func GetArtifactsByRunAttemptAndName(ctx context.Context, runID, runAttemptID int64, artifactName string) ([]*ActionArtifact, error) {
+	arts := make([]*ActionArtifact, 0)
+	return arts, db.GetEngine(ctx).
+		Where("run_id = ? AND run_attempt_id = ? AND artifact_name = ?", runID, runAttemptID, artifactName).
+		OrderBy("id").
+		Find(&arts)
 }
 
 // SetArtifactDeleted sets an artifact to deleted

@@ -1938,7 +1938,7 @@ func DeleteArtifact(ctx *context.APIContext) {
 	}
 
 	if actions.IsArtifactV4(art) {
-		if err := actions_model.SetArtifactNeedDelete(ctx, art.RunID, art.ArtifactName); err != nil {
+		if err := actions_model.SetArtifactNeedDeleteByID(ctx, art.ID); err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}

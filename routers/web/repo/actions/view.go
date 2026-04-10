@@ -919,10 +919,11 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 	return run, attempt, isLatestAttempt, jobs
 }
 
-// getArtifactAttemptByQuery resolves the artifact attempt from the request.
-// It returns the explicitly requested attempt when the `attempt` query parameter is present,
-// otherwise it falls back to the run's latest attempt for attempt-scoped artifact access.
-func getArtifactAttemptByQuery(ctx *context_module.Context, run *actions_model.ActionRun) (*actions_model.ActionRunAttempt, error) {
+// getArtifactAttemptByQueryWithoutFallback resolves the artifact attempt from the request.
+// It returns the explicitly requested attempt only when the `attempt` query parameter is present.
+// When the query parameter is absent, it DOES NOT fall back to the latest attempt;
+// callers should decide their own fallback behavior, such as using legacy run_attempt_id=0 handling.
+func getArtifactAttemptByQueryWithoutFallback(ctx *context_module.Context, run *actions_model.ActionRun) (*actions_model.ActionRunAttempt, error) {
 	if ctx.FormString("attempt") != "" {
 		attemptNum := ctx.FormInt64("attempt")
 		if attemptNum > 0 {
@@ -935,25 +936,7 @@ func getArtifactAttemptByQuery(ctx *context_module.Context, run *actions_model.A
 		return nil, util.ErrNotExist
 	}
 
-	if run.LatestAttemptID == 0 {
-		return nil, nil //nolint:nilnil // return nil to indicate that artifact access should fall back to legacy run-scoped data
-	}
-	attempt, err := actions_model.GetRunAttemptByRepoAndID(ctx, run.RepoID, run.LatestAttemptID)
-	if err != nil {
-		return nil, err
-	}
-	return attempt, nil
-}
-
-func getArtifactsByRunAndAttempt(ctx *context_module.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, artifactName string) ([]*actions_model.ActionArtifact, error) {
-	opts := actions_model.FindArtifactsOptions{
-		RunID:        run.ID,
-		ArtifactName: artifactName,
-	}
-	if attempt != nil {
-		opts.RunAttemptID = attempt.ID
-	}
-	return db.Find[actions_model.ActionArtifact](ctx, opts)
+	return nil, nil //nolint:nilnil // no explicit attempt requested; callers should fall back to legacy run_attempt_id=0 handling
 }
 
 func ArtifactsDeleteView(ctx *context_module.Context) {
@@ -961,9 +944,9 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 	if ctx.Written() {
 		return
 	}
-	attempt, err := getArtifactAttemptByQuery(ctx, run)
+	attempt, err := getArtifactAttemptByQueryWithoutFallback(ctx, run)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetRunAttemptByRunIDAndAttempt", func(err error) bool {
+		ctx.NotFoundOrServerError("getArtifactAttemptByQueryWithoutFallback", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
 		return
@@ -972,10 +955,10 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 	if attempt != nil {
 		err = actions_model.SetArtifactNeedDeleteByRunAttempt(ctx, run.ID, attempt.ID, artifactName)
 	} else {
-		err = actions_model.SetArtifactNeedDelete(ctx, run.ID, artifactName)
+		err = actions_model.SetArtifactNeedDeleteByRunAttempt(ctx, run.ID, 0, artifactName)
 	}
 	if err != nil {
-		ctx.ServerError("SetArtifactNeedDelete", err)
+		ctx.ServerError("SetArtifactNeedDeleteByRunAttempt", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, struct{}{})
@@ -986,18 +969,23 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	if ctx.Written() {
 		return
 	}
-	attempt, err := getArtifactAttemptByQuery(ctx, run)
+	attempt, err := getArtifactAttemptByQueryWithoutFallback(ctx, run)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetRunAttemptByRunIDAndAttempt", func(err error) bool {
+		ctx.NotFoundOrServerError("getArtifactAttemptByQueryWithoutFallback", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
 		return
 	}
 
 	artifactName := ctx.PathParam("artifact_name")
-	artifacts, err := getArtifactsByRunAndAttempt(ctx, run, attempt, artifactName)
+
+	runAttemptID := int64(0)
+	if attempt != nil {
+		runAttemptID = attempt.ID
+	}
+	artifacts, err := actions_model.GetArtifactsByRunAttemptAndName(ctx, run.ID, runAttemptID, artifactName)
 	if err != nil {
-		ctx.ServerError("FindArtifacts", err)
+		ctx.ServerError("GetArtifactsByRunAttemptAndName", err)
 		return
 	}
 	if len(artifacts) == 0 {

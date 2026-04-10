@@ -30,7 +30,7 @@ function formatCurrentAttemptTitle(attempt: {attempt: number; latest: boolean}) 
 }
 
 function getArtifactActionSuffix() {
-  return !run.value.isLatestAttempt && run.value.runAttempt > 0 ? `?attempt=${run.value.runAttempt}` : '';
+  return run.value.runAttempt > 0 ? `?attempt=${run.value.runAttempt}` : '';
 }
 
 function cancelRun() {
