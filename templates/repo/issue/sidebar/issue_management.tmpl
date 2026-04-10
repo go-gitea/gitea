@@ -286,10 +286,6 @@
 			fetchRepos(this.value.trim());
 		});
 
-		searchInput.addEventListener('mousedown', function() {
-			fetchRepos(this.value.trim());
-		});
-
 		searchInput.addEventListener('input', function() {
 			clearTimeout(debounceTimer);
 			const q = this.value.trim();

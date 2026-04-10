@@ -1271,7 +1271,7 @@ func ListAccessibleReposForIssueMove(ctx *context.Context) {
 		ID       int64  `json:"id"`
 	}
 	var currentOwnerRepos, myOrgRepos, myRepos, otherRepos []repoInfo
-	currentOwnerID := ctx.Repo.Repository.OwnerID
+	currentOwnerID := ctx.Repo.Owner.ID
 	doerID := ctx.Doer.ID
 
 	addRepo := func(r *repo_model.Repository, isCollab bool) {
