@@ -64,7 +64,7 @@ func TestGoogleChatPayload(t *testing.T) {
 			GoogleChatLinkFormatter(p.PullRequest.URL, fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)),
 			googleChatUserLink(p.Sender),
 		), widgets[0].TextParagraph.Text)
-		assert.Equal(t, p.PullRequest.Body, widgets[1].TextParagraph.Text)
+		assert.Equal(t, GoogleChatTextFormatter(p.PullRequest.Body), widgets[1].TextParagraph.Text)
 	})
 }
 
