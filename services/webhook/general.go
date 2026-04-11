@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html"
 	"net/url"
+	"strconv"
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -408,6 +409,29 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		config["username"] = s.Username
 		config["icon_url"] = s.IconURL
 		config["color"] = s.Color
+	}
+	if w.Type == webhook_module.DISCORD {
+		s := GetDiscordHook(w)
+		config["username"] = s.Username
+		config["icon_url"] = s.IconURL
+	}
+	if w.Type == webhook_module.TELEGRAM {
+		s := GetTelegramHook(w)
+		// Do not expose bot_token via the hooks API.
+		config["chat_id"] = s.ChatID
+		config["thread_id"] = s.ThreadID
+	}
+	if w.Type == webhook_module.MATRIX {
+		s := GetMatrixHook(w)
+		config["homeserver_url"] = s.HomeserverURL
+		config["room_id"] = s.Room
+		config["message_type"] = strconv.Itoa(s.MessageType)
+	}
+	if w.Type == webhook_module.PACKAGIST {
+		s := GetPackagistHook(w)
+		// Do not expose api_token via the hooks API.
+		config["username"] = s.Username
+		config["package_url"] = s.PackageURL
 	}
 	if w.Type == webhook_module.GOOGLECHAT {
 		s := GetGoogleChatHook(w)
