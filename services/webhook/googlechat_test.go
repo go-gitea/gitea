@@ -10,7 +10,9 @@ import (
 	"testing"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
@@ -20,6 +22,45 @@ import (
 func TestGoogleChatPayload(t *testing.T) {
 	iconURL := "gitea-notification-icon"
 	gc := googleChatConvertor{Name: "test", IconURL: iconURL}
+
+	t.Run("Create", func(t *testing.T) {
+		p := createTestPayload()
+		pl, err := gc.Create(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		repoLink := GoogleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
+		refLink := googleChatLinkToRef(p.Repo.HTMLURL, p.Ref)
+		exp := fmt.Sprintf("[%s:%s] %s created by %s", repoLink, refLink, p.RefType, googleChatUserLink(p.Sender))
+		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
+		assert.Equal(t, exp, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
+	})
+
+	t.Run("Delete", func(t *testing.T) {
+		p := deleteTestPayload()
+		pl, err := gc.Delete(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		refName := git.RefName(p.Ref).ShortName()
+		repoLink := GoogleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
+		exp := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, GoogleChatTextFormatter(refName), p.RefType, googleChatUserLink(p.Sender))
+		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
+		assert.Equal(t, exp, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
+	})
+
+	t.Run("Fork", func(t *testing.T) {
+		p := forkTestPayload()
+		pl, err := gc.Fork(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		baseLink := GoogleChatLinkFormatter(p.Forkee.HTMLURL, p.Forkee.FullName)
+		forkLink := GoogleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
+		exp := fmt.Sprintf("%s is forked to %s", baseLink, forkLink)
+		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
+		assert.Equal(t, exp, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
+	})
 
 	t.Run("Push", func(t *testing.T) {
 		p := pushTestPayload()
@@ -48,6 +89,46 @@ func TestGoogleChatPayload(t *testing.T) {
 		assert.Equal(t, fmt.Sprintf("%s\n%s", commitText, commitText), widgets[1].TextParagraph.Text)
 	})
 
+	t.Run("Issue", func(t *testing.T) {
+		p := issueTestPayload()
+		p.Action = api.HookIssueOpened
+		pl, err := gc.Issue(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		text, _, extraMarkdown, _ := getIssuesPayloadInfo(p, GoogleChatLinkFormatter, true)
+		widgets := pl.CardsV2[0].Card.Sections[0].Widgets
+		require.Len(t, widgets, 2)
+		assert.Equal(t, text, widgets[0].TextParagraph.Text)
+		assert.Equal(t, GoogleChatTextFormatter(extraMarkdown), widgets[1].TextParagraph.Text)
+	})
+
+	t.Run("IssueComment", func(t *testing.T) {
+		p := issueCommentTestPayload()
+		pl, err := gc.IssueComment(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		text, _, _ := getIssueCommentPayloadInfo(p, GoogleChatLinkFormatter, true)
+		widgets := pl.CardsV2[0].Card.Sections[0].Widgets
+		require.Len(t, widgets, 2)
+		assert.Equal(t, text, widgets[0].TextParagraph.Text)
+		assert.Equal(t, GoogleChatTextFormatter(p.Comment.Body), widgets[1].TextParagraph.Text)
+	})
+
+	t.Run("PullRequestComment", func(t *testing.T) {
+		p := pullRequestCommentTestPayload()
+		pl, err := gc.IssueComment(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		text, _, _ := getIssueCommentPayloadInfo(p, GoogleChatLinkFormatter, true)
+		widgets := pl.CardsV2[0].Card.Sections[0].Widgets
+		require.Len(t, widgets, 2)
+		assert.Equal(t, text, widgets[0].TextParagraph.Text)
+		assert.Equal(t, GoogleChatTextFormatter(p.Comment.Body), widgets[1].TextParagraph.Text)
+	})
+
 	t.Run("PullRequest", func(t *testing.T) {
 		p := pullRequestTestPayload()
 
@@ -57,14 +138,157 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.Len(t, pl.CardsV2, 1)
 		assert.Equal(t, "test", pl.CardsV2[0].Card.Header.Title)
 		assert.Equal(t, "Gitea Webhook", pl.CardsV2[0].Card.Header.Subtitle)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
 		widgets := pl.CardsV2[0].Card.Sections[0].Widgets
 		require.Len(t, widgets, 2)
-		assert.Equal(t, fmt.Sprintf("[%s] Pull request opened: %s by %s",
-			GoogleChatLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName),
-			GoogleChatLinkFormatter(p.PullRequest.URL, fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)),
-			googleChatUserLink(p.Sender),
-		), widgets[0].TextParagraph.Text)
-		assert.Equal(t, GoogleChatTextFormatter(p.PullRequest.Body), widgets[1].TextParagraph.Text)
+		text, _, extraMarkdown, _ := getPullRequestPayloadInfo(p, GoogleChatLinkFormatter, true)
+		assert.Equal(t, text, widgets[0].TextParagraph.Text)
+		assert.Equal(t, GoogleChatTextFormatter(extraMarkdown), widgets[1].TextParagraph.Text)
+	})
+
+	t.Run("Review", func(t *testing.T) {
+		p := pullRequestTestPayload()
+		p.Action = api.HookIssueReviewed
+		pl, err := gc.Review(p, webhook_module.HookEventPullRequestReviewApproved)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		repoLink := GoogleChatLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
+		titleLink := GoogleChatLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index), fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
+		exp := fmt.Sprintf("[%s] Pull request review %s: %s by %s", repoLink, "approved", titleLink, googleChatUserLink(p.Sender))
+		widgets := pl.CardsV2[0].Card.Sections[0].Widgets
+		require.Len(t, widgets, 2)
+		assert.Equal(t, exp, widgets[0].TextParagraph.Text)
+		assert.Equal(t, GoogleChatTextFormatter(p.Review.Content), widgets[1].TextParagraph.Text)
+	})
+
+	t.Run("Repository", func(t *testing.T) {
+		p := repositoryTestPayload()
+		pl, err := gc.Repository(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		repoLink := GoogleChatLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
+		exp := fmt.Sprintf("[%s] Repository created by %s", repoLink, googleChatUserLink(p.Sender))
+		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
+		assert.Equal(t, exp, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
+	})
+
+	t.Run("Wiki", func(t *testing.T) {
+		p := wikiTestPayload()
+		p.Action = api.HookWikiCreated
+		pl, err := gc.Wiki(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		text, _, _ := getWikiPayloadInfo(p, GoogleChatLinkFormatter, true)
+		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
+		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
+
+		p.Action = api.HookWikiEdited
+		pl, err = gc.Wiki(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
+		text, _, _ = getWikiPayloadInfo(p, GoogleChatLinkFormatter, true)
+		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
+
+		p.Action = api.HookWikiDeleted
+		pl, err = gc.Wiki(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
+		text, _, _ = getWikiPayloadInfo(p, GoogleChatLinkFormatter, true)
+		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
+	})
+
+	t.Run("Release", func(t *testing.T) {
+		p := pullReleaseTestPayload()
+		pl, err := gc.Release(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		text, _ := getReleasePayloadInfo(p, GoogleChatLinkFormatter, true)
+		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
+		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
+	})
+
+	t.Run("Package", func(t *testing.T) {
+		p := packageTestPayload()
+		pl, err := gc.Package(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		text, _ := getPackagePayloadInfo(p, GoogleChatLinkFormatter, true)
+		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
+		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
+	})
+
+	t.Run("Status", func(t *testing.T) {
+		p := &api.CommitStatusPayload{
+			Context:     "ci/build",
+			Description: "Build passed",
+			SHA:         "2020558fe2e34debb818a514715839cabd25e778",
+			TargetURL:   "http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778/status",
+			Sender: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
+		}
+		pl, err := gc.Status(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		text, _ := getStatusPayloadInfo(p, GoogleChatLinkFormatter, true)
+		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
+		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
+	})
+
+	t.Run("WorkflowRun", func(t *testing.T) {
+		p := &api.WorkflowRunPayload{
+			Action: "completed",
+			Sender: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
+			WorkflowRun: &api.ActionWorkflowRun{
+				ID:           99,
+				HTMLURL:      "http://localhost:3000/test/repo/actions/runs/99",
+				DisplayTitle: "Build",
+				HeadSha:      "2020558fe2e34debb818a514715839cabd25e778",
+				Conclusion:   "success",
+			},
+		}
+		pl, err := gc.WorkflowRun(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		text, _ := getWorkflowRunPayloadInfo(p, GoogleChatLinkFormatter, true)
+		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
+		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
+	})
+
+	t.Run("WorkflowJob", func(t *testing.T) {
+		p := &api.WorkflowJobPayload{
+			Action: "completed",
+			Sender: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
+			WorkflowJob: &api.ActionWorkflowJob{
+				ID:         7,
+				HTMLURL:    "http://localhost:3000/test/repo/actions/runs/99/jobs/7",
+				RunID:      99,
+				Name:       "lint",
+				HeadSha:    "2020558fe2e34debb818a514715839cabd25e778",
+				Conclusion: "failure",
+			},
+		}
+		pl, err := gc.WorkflowJob(p)
+		require.NoError(t, err)
+		require.Len(t, pl.CardsV2, 1)
+		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
+		text, _ := getWorkflowJobPayloadInfo(p, GoogleChatLinkFormatter, true)
+		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
+		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
 	})
 }
 
