@@ -13,63 +13,45 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
-	"time"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
-var catFileBatchDebugWaitClose atomic.Int64
-
 type catFileBatchCommunicator struct {
-	closeFunc   func(err error)
+	closeFunc   atomic.Pointer[func(err error)]
 	reqWriter   io.Writer
 	respReader  *bufio.Reader
 	debugGitCmd *gitcmd.Command
 }
 
-func (b *catFileBatchCommunicator) Close() {
-	if b.closeFunc != nil {
-		b.closeFunc(nil)
-		b.closeFunc = nil
+func (b *catFileBatchCommunicator) Close(err ...error) {
+	if fn := b.closeFunc.Swap(nil); fn != nil {
+		(*fn)(util.OptionalArg(err))
 	}
 }
 
-// newCatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Command) (ret *catFileBatchCommunicator) {
+// newCatFileBatch opens git cat-file --batch/--batch-check/--batch-command command and prepares the stdin/stdout pipes for communication.
+func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Command) *catFileBatchCommunicator {
 	ctx, ctxCancel := context.WithCancelCause(ctx)
-
-	// We often want to feed the commits in order into cat-file --batch, followed by their trees and subtrees as necessary.
 	stdinWriter, stdoutReader, stdPipeClose := cmdCatFile.MakeStdinStdoutPipe()
-	pipeClose := func() {
-		if delay := catFileBatchDebugWaitClose.Load(); delay > 0 {
-			time.Sleep(time.Duration(delay)) // for testing purpose only
-		}
-		stdPipeClose()
-	}
-	closeFunc := func(err error) {
-		ctxCancel(err)
-		pipeClose()
-	}
-	return newCatFileBatchWithCloseFunc(ctx, repoPath, cmdCatFile, stdinWriter, stdoutReader, closeFunc)
-}
-
-func newCatFileBatchWithCloseFunc(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Command,
-	stdinWriter gitcmd.PipeWriter, stdoutReader gitcmd.PipeReader, closeFunc func(err error),
-) *catFileBatchCommunicator {
 	ret := &catFileBatchCommunicator{
 		debugGitCmd: cmdCatFile,
-		closeFunc:   closeFunc,
 		reqWriter:   stdinWriter,
 		respReader:  bufio.NewReaderSize(stdoutReader, 32*1024), // use a buffered reader for rich operations
 	}
+	ret.closeFunc.Store(new(func(err error) {
+		ctxCancel(err)
+		stdPipeClose()
+	}))
 
 	err := cmdCatFile.WithDir(repoPath).StartWithStderr(ctx)
 	if err != nil {
 		log.Error("Unable to start git command %v: %v", cmdCatFile.LogString(), err)
 		// ideally here it should return the error, but it would require refactoring all callers
 		// so just return a dummy communicator that does nothing, almost the same behavior as before, not bad
-		closeFunc(err)
+		ret.Close(err)
 		return ret
 	}
 
@@ -78,9 +60,30 @@ func newCatFileBatchWithCloseFunc(ctx context.Context, repoPath string, cmdCatFi
 		if err != nil && !errors.Is(err, context.Canceled) {
 			log.Error("cat-file --batch command failed in repo %s, error: %v", repoPath, err)
 		}
-		closeFunc(err)
+		ret.Close(err)
 	}()
 
+	return ret
+}
+
+func (b *catFileBatchCommunicator) debugKill() (ret struct {
+	beforeClose chan struct{}
+	blockClose  chan struct{}
+	afterClose  chan struct{}
+},
+) {
+	ret.beforeClose = make(chan struct{})
+	ret.blockClose = make(chan struct{})
+	ret.afterClose = make(chan struct{})
+	oldCloseFunc := b.closeFunc.Load()
+	b.closeFunc.Store(new(func(err error) {
+		b.closeFunc.Store(nil)
+		close(ret.beforeClose)
+		<-ret.blockClose
+		(*oldCloseFunc)(err)
+		close(ret.afterClose)
+	}))
+	b.debugGitCmd.DebugKill()
 	return ret
 }
 
