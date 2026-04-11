@@ -280,11 +280,6 @@ func createGoogleChatPayload(name, iconURL, text string, details ...string) Goog
 			TextParagraph: &GoogleChatTextParagraph{Text: detail},
 		})
 	}
-	if len(widgets) == 0 {
-		widgets = append(widgets, GoogleChatWidget{
-			TextParagraph: &GoogleChatTextParagraph{Text: html.EscapeString(name)},
-		})
-	}
 
 	card := GoogleChatCard{
 		Header: GoogleChatCardHeader{
