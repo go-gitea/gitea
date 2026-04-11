@@ -112,6 +112,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
+
 		for _, v := range jobs {
 			id, job := v.Job()
 			needs := job.Needs()
@@ -135,6 +136,10 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				Needs:             needs,
 				RunsOn:            job.RunsOn(),
 				Status:            util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
+			}
+			// Parse workflow/job permissions (no clamping here)
+			if perms := ExtractJobPermissionsFromWorkflow(v, job); perms != nil {
+				runJob.TokenPermissions = perms
 			}
 
 			// Store raw strategy only if job has matrix that actually depends on job outputs (needs.*.outputs)

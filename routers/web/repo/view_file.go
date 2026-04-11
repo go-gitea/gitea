@@ -25,8 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
-
-	"github.com/nektos/act/pkg/model"
 )
 
 func prepareLatestCommitInfo(ctx *context.Context) bool {
@@ -119,12 +117,8 @@ func handleFileViewRenderSource(ctx *context.Context, attrs *attribute.Attribute
 	}
 
 	language := attrs.GetLanguage().Value()
-	fileContent, lexerName, err := highlight.RenderFullFile(filename, language, buf)
+	fileContent, lexerName := highlight.RenderFullFile(filename, language, buf)
 	ctx.Data["LexerName"] = lexerName
-	if err != nil {
-		log.Error("highlight.RenderFullFile failed, fallback to plain text: %v", err)
-		fileContent = highlight.RenderPlainText(buf)
-	}
 	status := &charset.EscapeStatus{}
 	statuses := make([]*charset.EscapeStatus, len(fileContent))
 	for i, line := range fileContent {
@@ -188,8 +182,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 		if err != nil {
 			log.Error("actions.GetContentFromEntry: %v", err)
 		}
-		_, workFlowErr := model.ReadWorkflow(bytes.NewReader(content))
-		if workFlowErr != nil {
+		if workFlowErr := actions.ValidateWorkflowContent(content); workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
 	} else if issue_service.IsCodeOwnerFile(ctx.Repo.TreePath) {

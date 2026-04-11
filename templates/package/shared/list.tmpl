@@ -44,7 +44,7 @@
 				{{svg "octicon-package" 48}}
 				<h2>{{ctx.Locale.Tr "packages.empty"}}</h2>
 				{{if and .Repository .CanWritePackages}}
-					{{$packagesUrl := URLJoin .Owner.HomeLink "-" "packages"}}
+					{{$packagesUrl := print .Owner.HomeLink "/-/packages"}}
 					<p>{{ctx.Locale.Tr "packages.empty.repo" $packagesUrl}}</p>
 				{{end}}
 				<p>{{ctx.Locale.Tr "packages.empty.documentation" "https://docs.gitea.com/usage/packages/overview/"}}</p>

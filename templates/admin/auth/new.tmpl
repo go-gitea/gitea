@@ -84,37 +84,66 @@
 			<h5>GMail Settings:</h5>
 			<p>Host: smtp.gmail.com, Port: 587, Enable TLS Encryption: true</p>
 
-			<h5 class="oauth2">{{ctx.Locale.Tr "admin.auths.tips.oauth2.general"}}:</h5>
-			<p class="oauth2">{{ctx.Locale.Tr "admin.auths.tips.oauth2.general.tip"}} <b id="oauth2-callback-url"></b></p>
-
-			<h5 class="ui top attached header">{{ctx.Locale.Tr "admin.auths.tip.oauth2_provider"}}</h5>
-			<div class="ui attached segment">
-				<li>Bitbucket</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.bitbucket" "https://bitbucket.org/account/user/{your-username}/oauth-consumers/new"}}</span>
-				<li>Dropbox</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.dropbox" "https://www.dropbox.com/developers/apps"}}</span>
-				<li>Facebook</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.facebook" "https://developers.facebook.com/apps"}}</span>
-				<li>GitHub</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.github" "https://github.com/settings/applications/new"}}</span>
-				<li>GitLab</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.gitlab_new" "https://gitlab.com/-/profile/applications"}}</span>
-				<li>Google</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.google_plus" "https://console.developers.google.com/"}}</span>
-				<li>OpenID Connect</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.openid_connect"}}</span>
-				<li>Twitter</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.twitter" "https://dev.twitter.com/apps"}}</span>
-				<li>Discord</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.discord" "https://discordapp.com/developers/applications/me"}}</span>
-				<li>Gitea</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.gitea" "https://docs.gitea.com/development/oauth2-provider"}}</span>
-				<li>Nextcloud</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.nextcloud"}}</span>
-				<li>Yandex</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.yandex" "https://oauth.yandex.com/client/new"}}</span>
-				<li>Mastodon</li>
-				<span>{{ctx.Locale.Tr "admin.auths.tip.mastodon"}}</span>
+			<div class="oauth2">
+				<h5>{{ctx.Locale.Tr "admin.auths.tips.oauth2.general"}}</h5>
+				<p>{{ctx.Locale.Tr "admin.auths.tips.oauth2.general.tip"}} <b id="oauth2-callback-url"></b></p>
+			</div>
+			<div class="oauth2 tw-mt-4">
+				<h5>{{ctx.Locale.Tr "admin.auths.tip.oauth2_provider"}}</h5>
+				<ul>
+					<li>
+						Bitbucket
+						<div>{{ctx.Locale.Tr "admin.auths.tip.bitbucket" "https://bitbucket.org/account/user/{your-username}/oauth-consumers/new"}}</div>
+					</li>
+					<li>
+						Dropbox
+						<div>{{ctx.Locale.Tr "admin.auths.tip.dropbox" "https://www.dropbox.com/developers/apps"}}</div>
+					</li>
+					<li>
+						Facebook
+						<div>{{ctx.Locale.Tr "admin.auths.tip.facebook" "https://developers.facebook.com/apps"}}</div>
+					</li>
+					<li>
+						GitHub
+						<div>{{ctx.Locale.Tr "admin.auths.tip.github" "https://github.com/settings/applications/new"}}</div>
+					</li>
+					<li>
+						GitLab
+						<div>{{ctx.Locale.Tr "admin.auths.tip.gitlab_new" "https://gitlab.com/-/profile/applications"}}</div>
+					</li>
+					<li>
+						Google
+						<div>{{ctx.Locale.Tr "admin.auths.tip.google_plus" "https://console.developers.google.com/"}}</div>
+					</li>
+					<li>
+						OpenID Connect
+						<div>{{ctx.Locale.Tr "admin.auths.tip.openid_connect"}}</div>
+					</li>
+					<li>
+						Twitter
+						<div>{{ctx.Locale.Tr "admin.auths.tip.twitter" "https://dev.twitter.com/apps"}}</div>
+					</li>
+					<li>
+						Discord
+						<div>{{ctx.Locale.Tr "admin.auths.tip.discord" "https://discordapp.com/developers/applications/me"}}</div>
+					</li>
+					<li>
+						Gitea
+						<div>{{ctx.Locale.Tr "admin.auths.tip.gitea" "https://docs.gitea.com/development/oauth2-provider"}}</div>
+					</li>
+					<li>
+						Nextcloud
+						<div>{{ctx.Locale.Tr "admin.auths.tip.nextcloud"}}</div>
+					</li>
+					<li>
+						Yandex
+						<div>{{ctx.Locale.Tr "admin.auths.tip.yandex" "https://oauth.yandex.com/client/new"}}</div>
+					</li>
+					<li>
+						Mastodon
+						<div>{{ctx.Locale.Tr "admin.auths.tip.mastodon"}}</div>
+					</li>
+				</ul>
 			</div>
 		</div>
 	</div>

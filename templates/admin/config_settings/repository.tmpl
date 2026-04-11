@@ -2,24 +2,23 @@
 	{{ctx.Locale.Tr "repository"}}
 </h4>
 <div class="ui attached segment">
-	<form class="ui form form-fetch-action" method="post" action="{{AppSubUrl}}/-/admin/config">
+	<form class="ui form system-config-form" method="post" action="{{AppSubUrl}}/-/admin/config">
+		{{$cfg := .SystemConfig.Repository.OpenWithEditorApps}}
 		<div class="field">
 			<details>
 				<summary>{{ctx.Locale.Tr "admin.config.open_with_editor_app_help"}}</summary>
-				<pre class="tw-px-4">{{.DefaultOpenWithEditorAppsString}}</pre>
+				<pre class="tw-px-4">{{$cfg.DefaultValue.ToTextareaString}}</pre>
 			</details>
 		</div>
 		<div class="field">
-			{{$cfg := .SystemConfig.Repository.OpenWithEditorApps}}
-			<input type="hidden" name="key" value="{{$cfg.DynKey}}">
-			<textarea name="value">{{($cfg.Value ctx).ToTextareaString}}</textarea>
+			{{/* TODO: OPEN-WITH-EDITOR-APP-JSON: use a simple textarea */}}
+			<textarea name="{{$cfg.DynKey}}">{{if $cfg.HasValue ctx}}{{($cfg.Value ctx).ToTextareaString}}{{end}}</textarea>
 		</div>
 
+		{{$cfg = .SystemConfig.Repository.GitGuideRemoteName}}
 		<div class="field">
 			<label>{{ctx.Locale.Tr "admin.config.git_guide_remote_name"}}</label>
-			{{$cfg = .SystemConfig.Repository.GitGuideRemoteName}}
-			<input type="hidden" name="key" value="{{$cfg.DynKey}}">
-			<input name="value" value="{{$cfg.Value ctx}}" placeholder="{{$cfg.DefaultValue}}" maxlength="100" dir="auto" required pattern="^[A-Za-z0-9][\-_A-Za-z0-9]*$">
+			<input name="{{$cfg.DynKey}}" value="{{$cfg.Value ctx}}" placeholder="{{$cfg.DefaultValue}}" maxlength="100" dir="auto" required pattern="^[A-Za-z0-9][\-_A-Za-z0-9]*$">
 		</div>
 		<div class="field">
 			<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>

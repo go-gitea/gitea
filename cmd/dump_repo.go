@@ -22,61 +22,62 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// CmdDumpRepository represents the available dump repository sub-command.
-var CmdDumpRepository = &cli.Command{
-	Name:        "dump-repo",
-	Usage:       "Dump the repository from git/github/gitea/gitlab",
-	Description: "This is a command for dumping the repository data.",
-	Action:      runDumpRepository,
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "git_service",
-			Value: "",
-			Usage: "Git service, git, github, gitea, gitlab. If clone_addr could be recognized, this could be ignored.",
-		},
-		&cli.StringFlag{
-			Name:    "repo_dir",
-			Aliases: []string{"r"},
-			Value:   "./data",
-			Usage:   "Repository dir path to store the data",
-		},
-		&cli.StringFlag{
-			Name:  "clone_addr",
-			Value: "",
-			Usage: "The URL will be clone, currently could be a git/github/gitea/gitlab http/https URL",
-		},
-		&cli.StringFlag{
-			Name:  "auth_username",
-			Value: "",
-			Usage: "The username to visit the clone_addr",
-		},
-		&cli.StringFlag{
-			Name:  "auth_password",
-			Value: "",
-			Usage: "The password to visit the clone_addr",
-		},
-		&cli.StringFlag{
-			Name:  "auth_token",
-			Value: "",
-			Usage: "The personal token to visit the clone_addr",
-		},
-		&cli.StringFlag{
-			Name:  "owner_name",
-			Value: "",
-			Usage: "The data will be stored on a directory with owner name if not empty",
-		},
-		&cli.StringFlag{
-			Name:  "repo_name",
-			Value: "",
-			Usage: "The data will be stored on a directory with repository name if not empty",
-		},
-		&cli.StringFlag{
-			Name:  "units",
-			Value: "",
-			Usage: `Which items will be migrated, one or more units should be separated as comma.
+func newDumpRepositoryCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "dump-repo",
+		Usage:       "Dump the repository from git/github/gitea/gitlab",
+		Description: "This is a command for dumping the repository data.",
+		Action:      runDumpRepository,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "git_service",
+				Value: "",
+				Usage: "Git service, git, github, gitea, gitlab. If clone_addr could be recognized, this could be ignored.",
+			},
+			&cli.StringFlag{
+				Name:    "repo_dir",
+				Aliases: []string{"r"},
+				Value:   "./data",
+				Usage:   "Repository dir path to store the data",
+			},
+			&cli.StringFlag{
+				Name:  "clone_addr",
+				Value: "",
+				Usage: "The URL will be clone, currently could be a git/github/gitea/gitlab http/https URL",
+			},
+			&cli.StringFlag{
+				Name:  "auth_username",
+				Value: "",
+				Usage: "The username to visit the clone_addr",
+			},
+			&cli.StringFlag{
+				Name:  "auth_password",
+				Value: "",
+				Usage: "The password to visit the clone_addr",
+			},
+			&cli.StringFlag{
+				Name:  "auth_token",
+				Value: "",
+				Usage: "The personal token to visit the clone_addr",
+			},
+			&cli.StringFlag{
+				Name:  "owner_name",
+				Value: "",
+				Usage: "The data will be stored on a directory with owner name if not empty",
+			},
+			&cli.StringFlag{
+				Name:  "repo_name",
+				Value: "",
+				Usage: "The data will be stored on a directory with repository name if not empty",
+			},
+			&cli.StringFlag{
+				Name:  "units",
+				Value: "",
+				Usage: `Which items will be migrated, one or more units should be separated as comma.
 wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments are allowed. Empty means all units.`,
+			},
 		},
-	},
+	}
 }
 
 func runDumpRepository(ctx context.Context, cmd *cli.Command) error {

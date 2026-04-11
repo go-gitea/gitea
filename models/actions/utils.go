@@ -13,6 +13,7 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -72,13 +73,25 @@ func (indexes *LogIndexes) ToDB() ([]byte, error) {
 
 var timeSince = time.Since
 
-func calculateDuration(started, stopped timeutil.TimeStamp, status Status) time.Duration {
+// calculateDuration computes wall time for a run, job, task, or step. When status is terminal
+// but stopped is missing or inconsistent with started, fallbackEnd (typically the row Updated
+// time) is used so duration still reflects approximate elapsed time instead of 0 or a negative.
+func calculateDuration(started, stopped timeutil.TimeStamp, status Status, fallbackEnd timeutil.TimeStamp) time.Duration {
 	if started == 0 {
 		return 0
 	}
 	s := started.AsTime()
 	if status.IsDone() {
-		return stopped.AsTime().Sub(s)
+		end := stopped
+		if stopped.IsZero() || stopped < started {
+			if !fallbackEnd.IsZero() && fallbackEnd >= started {
+				end = fallbackEnd
+			} else {
+				log.Trace("actions: invalid duration timestamps (started=%d, stopped=%d, fallbackEnd=%d, status=%s)", started, stopped, fallbackEnd, status)
+				return 0
+			}
+		}
+		return end.AsTime().Sub(s)
 	}
 	return timeSince(s).Truncate(time.Second)
 }

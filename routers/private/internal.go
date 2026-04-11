@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/binding"
@@ -53,12 +54,13 @@ func bind[T any](_ T) any {
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func Routes() *web.Router {
 	r := web.NewRouter()
-	r.Use(context.PrivateContexter())
-	r.Use(authInternal)
+	r.AfterRouting(context.PrivateContexter())
+	r.AfterRouting(authInternal)
 	// Log the real ip address of the request from SSH is really helpful for diagnosing sometimes.
 	// Since internal API will be sent only from Gitea sub commands and it's under control (checked by InternalToken), we can trust the headers.
-	r.Use(chi_middleware.RealIP)
+	r.AfterRouting(chi_middleware.RealIP)
 
+	r.Get("/dummy", misc.DummyOK)
 	r.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
 	r.Post("/ssh/{id}/update/{repoid}", UpdatePublicKeyInRepo)
 	r.Post("/ssh/log", bind(private.SSHLogOption{}), SSHLog)

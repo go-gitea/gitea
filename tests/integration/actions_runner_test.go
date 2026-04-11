@@ -84,7 +84,7 @@ func (r *mockRunner) doRegister(t *testing.T, name, token string, labels []strin
 func (r *mockRunner) registerAsRepoRunner(t *testing.T, ownerName, repoName, runnerName string, labels []string, ephemeral bool) {
 	session := loginUser(t, ownerName)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/registration-token", ownerName, repoName)).AddTokenAuth(token)
+	req := NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/registration-token", ownerName, repoName)).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var registrationToken struct {
 		Token string `json:"token"`
@@ -101,7 +101,7 @@ func (r *mockRunner) fetchTask(t *testing.T, timeout ...time.Duration) *runnerv1
 
 func (r *mockRunner) fetchNoTask(t *testing.T, timeout ...time.Duration) {
 	task := r.tryFetchTask(t, timeout...)
-	assert.Nil(t, task, "a task is fetched")
+	require.Nil(t, task, "a task is fetched")
 }
 
 const defaultFetchTaskTimeout = 1 * time.Second
@@ -114,18 +114,25 @@ func (r *mockRunner) tryFetchTask(t *testing.T, timeout ...time.Duration) *runne
 	ddl := time.Now().Add(fetchTimeout)
 	var task *runnerv1.Task
 	for time.Now().Before(ddl) {
-		resp, err := r.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
-			TasksVersion: 0,
-		}))
-		assert.NoError(t, err)
-		if resp.Msg.Task != nil {
-			task = resp.Msg.Task
+		task, _ = r.fetchTaskOnce(t, 0)
+		if task != nil {
 			break
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
 
 	return task
+}
+
+// fetchTaskOnce performs a single FetchTask request with the given TasksVersion
+// and returns the task (if any) and the TasksVersion from the response.
+// Used to verify the production path where the runner sends the current version.
+func (r *mockRunner) fetchTaskOnce(t *testing.T, tasksVersion int64) (*runnerv1.Task, int64) {
+	resp, err := r.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+		TasksVersion: tasksVersion,
+	}))
+	require.NoError(t, err)
+	return resp.Msg.Task, resp.Msg.TasksVersion
 }
 
 type mockTaskOutcome struct {

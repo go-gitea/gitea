@@ -60,7 +60,7 @@ func TestAPIGetContents(t *testing.T) {
 	})
 }
 
-func testAPIGetContents(t *testing.T, u *url.URL) {
+func testAPIGetContents(t *testing.T, _ *url.URL) {
 	/*** SETUP ***/
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3, is an org

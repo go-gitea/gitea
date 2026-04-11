@@ -27,9 +27,9 @@ type CreateRepoForm struct {
 	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
 	AutoInit      bool
 	Gitignores    string
-	IssueLabels   string
-	License       string
-	Readme        string
+	IssueLabels   string `binding:"MaxSize(255)"`
+	License       string `binding:"MaxSize(100)"`
+	Readme        string `binding:"MaxSize(255)"`
 	Template      bool
 
 	RepoTemplate    int64
@@ -41,7 +41,7 @@ type CreateRepoForm struct {
 	Labels          bool
 	ProtectedBranch bool
 
-	ForkSingleBranch string
+	ForkSingleBranch string `binding:"MaxSize(255)"`
 	ObjectFormatName string
 }
 
@@ -206,6 +206,7 @@ type ProtectBranchPriorityForm struct {
 
 // WebhookForm form for changing web hook
 type WebhookForm struct {
+	Name                     string `binding:"MaxSize(255)"`
 	Events                   string
 	Create                   bool
 	Delete                   bool
@@ -521,7 +522,7 @@ func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) 
 // swagger:model MergePullRequestOption
 type MergePullRequestForm struct {
 	// required: true
-	// enum: merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged
+	// enum: ["merge","rebase","rebase-merge","squash","fast-forward-only","manually-merged"]
 	Do                     string `binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
 	MergeTitleField        string
 	MergeMessageField      string

@@ -8,11 +8,13 @@ import (
 	"testing"
 	"unicode"
 
+	"code.gitea.io/gitea/modules/translation"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAmbiguousCharacters(t *testing.T) {
-	for locale, ambiguous := range AmbiguousCharacters {
+	for locale, ambiguous := range globalVars().ambiguousTableMap {
 		assert.Equal(t, locale, ambiguous.Locale)
 		assert.Len(t, ambiguous.With, len(ambiguous.Confusable))
 		assert.True(t, sort.SliceIsSorted(ambiguous.Confusable, func(i, j int) bool {
@@ -28,4 +30,8 @@ func TestAmbiguousCharacters(t *testing.T) {
 			assert.True(t, found, "%c is not in %d", confusable, i)
 		}
 	}
+
+	var confusableTo rune
+	ret := isAmbiguous('𝐾', &confusableTo, AmbiguousTablesForLocale(&translation.MockLocale{})...)
+	assert.True(t, ret)
 }
