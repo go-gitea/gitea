@@ -38,23 +38,25 @@ func RichDiffComparePost(ctx *context.Context) {
 		return
 	}
 
+	// An empty SHA means the file does not exist on that side (added or
+	// deleted file), so we skip the commit lookup and leave the commit nil.
 	gitRepo := ctx.Repo.GitRepo
-	resolveCommit := func(sha string) (*git.Commit, error) {
-		if sha == "" {
-			return nil, nil
+	var baseCommit, headCommit *git.Commit
+	if baseSHA != "" {
+		c, err := gitRepo.GetCommit(baseSHA)
+		if err != nil {
+			ctx.HTTPError(http.StatusBadRequest, "invalid base commit")
+			return
 		}
-		return gitRepo.GetCommit(sha)
+		baseCommit = c
 	}
-
-	baseCommit, err := resolveCommit(baseSHA)
-	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, "invalid base commit")
-		return
-	}
-	headCommit, err := resolveCommit(headSHA)
-	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, "invalid head commit")
-		return
+	if headSHA != "" {
+		c, err := gitRepo.GetCommit(headSHA)
+		if err != nil {
+			ctx.HTTPError(http.StatusBadRequest, "invalid head commit")
+			return
+		}
+		headCommit = c
 	}
 
 	getBlob := func(commit *git.Commit, path string) *git.Blob {
