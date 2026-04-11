@@ -518,11 +518,11 @@ func TestAPIIssueProjectMeta(t *testing.T) {
 		var apiIssue api.Issue
 		DecodeJSON(t, resp, &apiIssue)
 
-		assert.NotNil(t, apiIssue.Project)
-		assert.Equal(t, int64(1), apiIssue.Project.ID)
-		assert.Equal(t, "First project", apiIssue.Project.Title)
-		assert.Equal(t, int64(1), apiIssue.Project.ColumnID)
-		assert.Equal(t, "To Do", apiIssue.Project.Column)
+		require.Len(t, apiIssue.Projects, 1)
+		assert.Equal(t, int64(1), apiIssue.Projects[0].ID)
+		assert.Equal(t, "First project", apiIssue.Projects[0].Title)
+		assert.Equal(t, int64(1), apiIssue.Projects[0].ColumnID)
+		assert.Equal(t, "To Do", apiIssue.Projects[0].Column)
 	})
 
 	t.Run("IssueWithProjectNoColumn", func(t *testing.T) {
@@ -533,10 +533,10 @@ func TestAPIIssueProjectMeta(t *testing.T) {
 		var apiIssue api.Issue
 		DecodeJSON(t, resp, &apiIssue)
 
-		assert.NotNil(t, apiIssue.Project)
-		assert.Equal(t, int64(1), apiIssue.Project.ID)
-		assert.Equal(t, int64(0), apiIssue.Project.ColumnID)
-		assert.Empty(t, apiIssue.Project.Column)
+		require.Len(t, apiIssue.Projects, 1)
+		assert.Equal(t, int64(1), apiIssue.Projects[0].ID)
+		assert.Equal(t, int64(0), apiIssue.Projects[0].ColumnID)
+		assert.Empty(t, apiIssue.Projects[0].Column)
 	})
 
 	t.Run("IssueWithoutProject", func(t *testing.T) {
@@ -551,7 +551,7 @@ func TestAPIIssueProjectMeta(t *testing.T) {
 		var apiIssue api.Issue
 		DecodeJSON(t, resp, &apiIssue)
 
-		assert.Nil(t, apiIssue.Project)
+		assert.Empty(t, apiIssue.Projects)
 	})
 
 	t.Run("PublicOrgProjectVisibleToNonMember", func(t *testing.T) {
@@ -578,8 +578,8 @@ func TestAPIIssueProjectMeta(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 		var apiIssue api.Issue
 		DecodeJSON(t, resp, &apiIssue)
-		assert.NotNil(t, apiIssue.Project, "public org project should be visible to non-members")
-		assert.Equal(t, orgProject.ID, apiIssue.Project.ID)
+		require.Len(t, apiIssue.Projects, 1, "public org project should be visible to non-members")
+		assert.Equal(t, orgProject.ID, apiIssue.Projects[0].ID)
 	})
 }
 
@@ -613,8 +613,8 @@ func TestAPIIssuePrivateOrgProjectHidden(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 		var apiIssue api.Issue
 		DecodeJSON(t, resp, &apiIssue)
-		require.NotNil(t, apiIssue.Project, "admin should see private org project")
-		assert.Equal(t, orgProject.ID, apiIssue.Project.ID)
+		require.Len(t, apiIssue.Projects, 1, "admin should see private org project")
+		assert.Equal(t, orgProject.ID, apiIssue.Projects[0].ID)
 	})
 
 	t.Run("MemberWithoutProjectsAccess", func(t *testing.T) {
@@ -625,6 +625,6 @@ func TestAPIIssuePrivateOrgProjectHidden(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 		var apiIssue api.Issue
 		DecodeJSON(t, resp, &apiIssue)
-		assert.Nil(t, apiIssue.Project, "org member without projects unit access should not see project")
+		assert.Empty(t, apiIssue.Projects, "org member without projects unit access should not see project")
 	})
 }

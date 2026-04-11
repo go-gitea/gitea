@@ -99,7 +99,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		return &api.Issue{}
 	}
 	if issue.Project != nil && canDoerSeeProject(ctx, permCache, doer, issue.Project) {
-		apiIssue.Project = ToAPIProject(issue.Project, issue.ProjectBoardID, issue.ProjectBoardTitle)
+		apiIssue.Projects = []*api.ProjectMeta{ToAPIProject(issue.Project, issue.ProjectBoardID, issue.ProjectBoardTitle)}
 	}
 
 	if err := issue.LoadAssignees(ctx); err != nil {

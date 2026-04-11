@@ -26381,8 +26381,12 @@
           "format": "int64",
           "x-go-name": "PinOrder"
         },
-        "project": {
-          "$ref": "#/definitions/ProjectMeta"
+        "projects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProjectMeta"
+          },
+          "x-go-name": "Projects"
         },
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
@@ -27994,8 +27998,12 @@
           "format": "int64",
           "x-go-name": "PinOrder"
         },
-        "project": {
-          "$ref": "#/definitions/ProjectMeta"
+        "projects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProjectMeta"
+          },
+          "x-go-name": "Projects"
         },
         "requested_reviewers": {
           "description": "The users requested to review the pull request",
