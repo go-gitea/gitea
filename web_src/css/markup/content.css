@@ -154,12 +154,6 @@ In markup content, we always use bottom margin for all elements */
   padding-inline-start: 2em;
 }
 
-.markup ul.no-list,
-.markup ol.no-list {
-  padding: 0;
-  list-style-type: none;
-}
-
 .markup .task-list-item {
   list-style-type: none;
 }
@@ -355,69 +349,6 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   padding: 5px 0 0;
   clear: both;
   color: var(--color-text);
-}
-
-.markup span.align-center {
-  display: block;
-  overflow: hidden;
-  clear: both;
-}
-
-.markup span.align-center > span {
-  display: block;
-  margin: 13px auto 0;
-  overflow: hidden;
-  text-align: center;
-}
-
-.markup span.align-center span img,
-.markup span.align-center span video {
-  margin: 0 auto;
-  text-align: center;
-}
-
-.markup span.align-right {
-  display: block;
-  overflow: hidden;
-  clear: both;
-}
-
-.markup span.align-right > span {
-  display: block;
-  margin: 13px 0 0;
-  overflow: hidden;
-  text-align: right;
-}
-
-.markup span.align-right span img,
-.markup span.align-right span video {
-  margin: 0;
-  text-align: right;
-}
-
-.markup span.float-left {
-  display: block;
-  float: left;
-  margin-inline-end: 13px;
-  overflow: hidden;
-}
-
-.markup span.float-left span {
-  margin: 13px 0 0;
-}
-
-.markup span.float-right {
-  display: block;
-  float: right;
-  margin-inline-start: 13px;
-  overflow: hidden;
-}
-
-.markup span.float-right > span {
-  display: block;
-  margin: 13px auto 0;
-  overflow: hidden;
-  text-align: right;
 }
 
 .markup code,

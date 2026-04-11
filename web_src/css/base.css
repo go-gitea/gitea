@@ -643,10 +643,6 @@ overflow-menu .ui.label {
   color: var(--color-primary-contrast);
 }
 
-.archived-icon {
-  color: var(--color-secondary-dark-2) !important;
-}
-
 .oauth2-authorize-application-box {
   margin-top: 3em !important;
 }
@@ -668,10 +664,6 @@ overflow-menu .ui.label {
 
 .code-diff .lines-num {
   min-width: 50px;
-}
-
-.lines-num span.bottom-line::after {
-  border-bottom: 1px solid var(--color-secondary);
 }
 
 .lines-num span::after {
@@ -781,11 +773,6 @@ tr.top-line-blame {
 
 tr.top-line-blame:first-of-type {
   border-top: none; /* merge code lines belonging to the same commit into one block */
-}
-
-.lines-code .bottom-line,
-.lines-commit .bottom-line {
-  border-bottom: 1px solid var(--color-secondary);
 }
 
 .migrate .svg.gitea-git {
