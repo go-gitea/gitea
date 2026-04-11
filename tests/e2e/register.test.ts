@@ -28,7 +28,7 @@ test('register with mismatched passwords shows error', async ({page}) => {
   await page.getByLabel('Password', {exact: true}).fill('password123!');
   await page.getByLabel('Confirm Password').fill('different123!');
   await page.getByRole('button', {name: 'Register Account'}).click();
-  await expect(page.locator('.ui.negative.message')).toBeVisible();
+  await expect(page.locator('.ui.error.message')).toBeVisible();
 });
 
 test('register then login', async ({page}) => {
@@ -59,7 +59,7 @@ test('register with existing username shows error', async ({page}) => {
   await page.getByLabel('Password', {exact: true}).fill('password123!');
   await page.getByLabel('Confirm Password').fill('password123!');
   await page.getByRole('button', {name: 'Register Account'}).click();
-  await expect(page.locator('.ui.negative.message')).toBeVisible();
+  await expect(page.locator('.ui.error.message')).toBeVisible();
 });
 
 test('sign in link exists', async ({page}) => {

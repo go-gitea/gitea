@@ -34,7 +34,7 @@ func TestSanitizeFlashErrorString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := SanitizeFlashErrorString(tt.arg)
+			got := EscapeFlashErrorString(tt.arg)
 			assert.Equal(t, tt.want, got)
 		})
 	}
