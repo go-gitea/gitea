@@ -81,12 +81,10 @@ type googleChatConvertor struct {
 	IconURL string
 }
 
-// googleChatTextFormatter replaces HTML special characters.
 func googleChatTextFormatter(s string) string {
 	return html.EscapeString(s)
 }
 
-// googleChatLinkFormatter creates a link compatible with Google Chat cards.
 func googleChatLinkFormatter(url, text string) string {
 	return fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(url), googleChatTextFormatter(text))
 }
