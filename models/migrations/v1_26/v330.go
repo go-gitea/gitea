@@ -7,12 +7,10 @@ import (
 	"xorm.io/xorm"
 )
 
-// AddIndexIssueDependencyDependencyID adds an index on issue_dependency.dependency_id
-// to speed up reverse lookups (finding issues blocked by a given issue).
-func AddIndexIssueDependencyDependencyID(x *xorm.Engine) error {
-	type IssueDependency struct {
-		DependencyID int64 `xorm:"INDEX"`
+func AddNameToWebhook(x *xorm.Engine) error {
+	type Webhook struct {
+		Name string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	}
-	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(IssueDependency))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(Webhook))
 	return err
 }

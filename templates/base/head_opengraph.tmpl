@@ -16,7 +16,7 @@
 		{{end}}
 	{{else if or .PageIsDiff .IsViewFile}}
 		<meta property="og:title" content="{{.Title}}">
-		<meta property="og:url" content="{{AppUrl}}{{.Link}}">
+		<meta property="og:url" content="{{ctx.AppFullLink $.Link}}">
 		{{if and .PageIsDiff .Commit}}
 			{{- $commitMessageParts := StringUtils.Cut .Commit.Message "\n" -}}
 			{{- $commitMessageBody := index $commitMessageParts 1 -}}
@@ -41,7 +41,7 @@
 	<meta property="og:title" content="{{AppName}}">
 	<meta property="og:type" content="website">
 	<meta property="og:image" content="{{AssetUrlPrefix}}/img/logo.png">
-	<meta property="og:url" content="{{AppUrl}}">
+	<meta property="og:url" content="{{ctx.AppFullLink}}">
 	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}
 <meta property="og:site_name" content="{{AppName}}">

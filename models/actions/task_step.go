@@ -28,7 +28,7 @@ type ActionTaskStep struct {
 }
 
 func (step *ActionTaskStep) Duration() time.Duration {
-	return calculateDuration(step.Started, step.Stopped, step.Status)
+	return calculateDuration(step.Started, step.Stopped, step.Status, step.Updated)
 }
 
 func init() {

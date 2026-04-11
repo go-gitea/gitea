@@ -29,6 +29,7 @@ import octiconDotFill from '../../public/assets/img/svg/octicon-dot-fill.svg';
 import octiconDownload from '../../public/assets/img/svg/octicon-download.svg';
 import octiconEye from '../../public/assets/img/svg/octicon-eye.svg';
 import octiconFile from '../../public/assets/img/svg/octicon-file.svg';
+import octiconFileCode from '../../public/assets/img/svg/octicon-file-code.svg';
 import octiconFileDirectoryFill from '../../public/assets/img/svg/octicon-file-directory-fill.svg';
 import octiconFileDirectoryOpenFill from '../../public/assets/img/svg/octicon-file-directory-open-fill.svg';
 import octiconFileSubmodule from '../../public/assets/img/svg/octicon-file-submodule.svg';
@@ -112,6 +113,7 @@ const svgs = {
   'octicon-download': octiconDownload,
   'octicon-eye': octiconEye,
   'octicon-file': octiconFile,
+  'octicon-file-code': octiconFileCode,
   'octicon-file-directory-fill': octiconFileDirectoryFill,
   'octicon-file-directory-open-fill': octiconFileDirectoryOpenFill,
   'octicon-file-submodule': octiconFileSubmodule,

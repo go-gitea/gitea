@@ -218,18 +218,50 @@ func performAutoLogin(ctx *context.Context) bool {
 	return false
 }
 
-func prepareSignInPageData(ctx *context.Context) {
+func performAutoLoginOAuth2(ctx *context.Context, data *preparedSignInData) bool {
+	// If only 1 OAuth provider is present and other login methods are disabled, redirect to the OAuth provider.
+	onlySingleOAuth2 := len(data.oauth2Providers) == 1 &&
+		!setting.Service.EnablePasswordSignInForm &&
+		!setting.Service.EnableOpenIDSignIn &&
+		!setting.Service.EnablePasskeyAuth &&
+		!data.enableSSPI
+
+	if !onlySingleOAuth2 {
+		return false
+	}
+
+	skipToOAuthURL := setting.AppSubURL + "/user/oauth2/" + url.QueryEscape(data.oauth2Providers[0].DisplayName())
+	if redirectTo := ctx.FormString("redirect_to"); redirectTo != "" {
+		skipToOAuthURL += "?redirect_to=" + url.QueryEscape(redirectTo)
+	}
+	ctx.Redirect(skipToOAuthURL)
+	return true
+}
+
+type preparedSignInData struct {
+	oauth2Providers []oauth2.Provider
+	enableSSPI      bool
+}
+
+func prepareSignInPageData(ctx *context.Context) (ret preparedSignInData) {
+	var err error
+	ret.enableSSPI = auth.IsSSPIEnabled(ctx)
+	ret.oauth2Providers, err = oauth2.GetOAuth2Providers(ctx, optional.Some(true))
+	if err != nil {
+		log.Error("Failed to get OAuth2 providers: %v", err)
+	}
 	ctx.Data["Title"] = ctx.Tr("sign_in")
-	ctx.Data["OAuth2Providers"], _ = oauth2.GetOAuth2Providers(ctx, optional.Some(true))
+	ctx.Data["OAuth2Providers"] = ret.oauth2Providers
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
-	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
+	ctx.Data["EnableSSPI"] = ret.enableSSPI
 
 	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin,
 	})
+	return ret
 }
 
 // SignIn render sign in page
@@ -241,7 +273,10 @@ func SignIn(ctx *context.Context) {
 		redirectAfterAuth(ctx)
 		return
 	}
-	prepareSignInPageData(ctx)
+	data := prepareSignInPageData(ctx)
+	if performAutoLoginOAuth2(ctx, &data) {
+		return
+	}
 	ctx.HTML(http.StatusOK, tplSignIn)
 }
 
@@ -458,11 +493,16 @@ func SignOut(ctx *context.Context) {
 }
 
 func buildSignOutRedirectURL(ctx *context.Context) string {
-	// TODO: can also support REVERSE_PROXY_AUTHENTICATION logout URL in the future
 	if ctx.Doer != nil && ctx.Doer.LoginType == auth.OAuth2 {
 		if s := buildOIDCEndSessionURL(ctx, ctx.Doer); s != "" {
 			return s
 		}
+	}
+
+	// The assumption is: if reverse proxy auth is enabled, then the users should only sign-in via reverse proxy auth.
+	// TODO: in the future, if we need to distinguish different sign-in methods, we need to save the sign-in method in session and check here
+	if setting.Service.EnableReverseProxyAuth && setting.ReverseProxyLogoutRedirect != "" {
+		return setting.ReverseProxyLogoutRedirect
 	}
 	return setting.AppSubURL + "/"
 }
@@ -471,6 +511,7 @@ func prepareSignUpPageData(ctx *context.Context) bool {
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 	ctx.Data["PageIsSignUp"] = true
+	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
 
 	hasUsers, err := user_model.HasUsers(ctx)
 	if err != nil {
@@ -597,16 +638,15 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 			case setting.OAuth2AccountLinkingAuto:
 				var user *user_model.User
 				user = &user_model.User{Name: u.Name}
-				hasUser, err := user_model.GetUser(ctx, user)
+				hasUser, err := user_model.GetIndividualUser(ctx, user)
 				if !hasUser || err != nil {
 					user = &user_model.User{Email: u.Email}
-					hasUser, err = user_model.GetUser(ctx, user)
+					hasUser, err = user_model.GetIndividualUser(ctx, user)
 					if !hasUser || err != nil {
 						ctx.ServerError("UserLinkAccount", err)
 						return false
 					}
 				}
-
 				// TODO: probably we should respect 'remember' user's choice...
 				oauth2LinkAccount(ctx, user, possibleLinkAccountData, true)
 				return false // user is already created here, all redirects are handled

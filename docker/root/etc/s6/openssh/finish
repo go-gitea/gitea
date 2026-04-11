@@ -1,2 +1,8 @@
 #!/bin/bash
+# $1 = exit code of the run script, $2 = signal
+if [ "$1" -ne 0 ]; then
+  # avoid immediately restarting the sshd service, which may cause CPU 100% if the error (permission, configuration) is not fixed
+  echo "openssh failed with exit code $1 - waiting a short delay before attempting a restart"
+  sleep 3
+fi
 exit 0

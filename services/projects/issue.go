@@ -87,7 +87,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 }
 
 // LoadIssuesFromProject load issues assigned to each project column inside the given project
-func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (map[int64]issues_model.IssueList, error) {
+func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (results map[int64]issues_model.IssueList, _ error) {
 	issueList, err := issues_model.Issues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
 		o.ProjectID = project.ID
 		o.SortType = "project-column-sorting"
@@ -95,7 +95,10 @@ func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, 
 	if err != nil {
 		return nil, err
 	}
-
+	if len(issueList) == 0 {
+		// if no issue, return directly, then no need to create a default column for an empty project
+		return results, nil
+	}
 	if err := issueList.LoadComments(ctx); err != nil {
 		return nil, err
 	}
@@ -110,7 +113,7 @@ func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, 
 		return nil, err
 	}
 
-	results := make(map[int64]issues_model.IssueList)
+	results = make(map[int64]issues_model.IssueList)
 	for _, issue := range issueList {
 		projectColumnID, ok := issueColumnMap[issue.ID]
 		if !ok {

@@ -28,9 +28,13 @@ func Test_FixCommitStatusTargetURLToUseRunAndJobID(t *testing.T) {
 	}
 
 	type ActionRun struct {
-		ID     int64 `xorm:"pk autoincr"`
-		RepoID int64 `xorm:"index"`
-		Index  int64
+		ID           int64 `xorm:"pk autoincr"`
+		RepoID       int64 `xorm:"index"`
+		Index        int64
+		CommitSHA    string `xorm:"commit_sha"`
+		Event        string
+		TriggerEvent string
+		EventPayload string `xorm:"LONGTEXT"`
 	}
 
 	type ActionRunJob struct {
@@ -41,6 +45,7 @@ func Test_FixCommitStatusTargetURLToUseRunAndJobID(t *testing.T) {
 	type CommitStatus struct {
 		ID        int64 `xorm:"pk autoincr"`
 		RepoID    int64 `xorm:"index"`
+		SHA       string
 		TargetURL string
 	}
 
@@ -61,14 +66,6 @@ func Test_FixCommitStatusTargetURLToUseRunAndJobID(t *testing.T) {
 	)
 	defer deferable()
 
-	newURL1 := "/testuser/repo1/actions/runs/106/jobs/530"
-	newURL2 := "/testuser/repo1/actions/runs/106/jobs/531"
-
-	invalidWrongRepo := "/otheruser/badrepo/actions/runs/7/jobs/0"
-	invalidNonexistentRun := "/testuser/repo1/actions/runs/10/jobs/0"
-	invalidNonexistentJob := "/testuser/repo1/actions/runs/7/jobs/3"
-	externalTargetURL := "https://ci.example.com/build/123"
-
 	require.NoError(t, FixCommitStatusTargetURLToUseRunAndJobID(x))
 
 	cases := []struct {
@@ -76,14 +73,26 @@ func Test_FixCommitStatusTargetURLToUseRunAndJobID(t *testing.T) {
 		id    int64
 		want  string
 	}{
-		{table: "commit_status", id: 10, want: newURL1},
-		{table: "commit_status", id: 11, want: newURL2},
-		{table: "commit_status", id: 12, want: invalidWrongRepo},
-		{table: "commit_status", id: 13, want: invalidNonexistentRun},
-		{table: "commit_status", id: 14, want: invalidNonexistentJob},
-		{table: "commit_status", id: 15, want: externalTargetURL},
-		{table: "commit_status_summary", id: 20, want: newURL1},
-		{table: "commit_status_summary", id: 21, want: externalTargetURL},
+		// Legacy URLs for runs whose resolved run IDs are below the threshold should be rewritten.
+		{table: "commit_status", id: 10010, want: "/testuser/repo1/actions/runs/990/jobs/997"},
+		{table: "commit_status", id: 10011, want: "/testuser/repo1/actions/runs/990/jobs/998"},
+		{table: "commit_status", id: 10012, want: "/testuser/repo1/actions/runs/991/jobs/1997"},
+
+		// Runs whose resolved IDs are above the threshold are intentionally left unchanged.
+		{table: "commit_status", id: 10013, want: "/testuser/repo1/actions/runs/9/jobs/0"},
+
+		// URLs that do not resolve cleanly as legacy Actions URLs should remain untouched.
+		{table: "commit_status", id: 10014, want: "/otheruser/badrepo/actions/runs/7/jobs/0"},
+		{table: "commit_status", id: 10015, want: "/testuser/repo1/actions/runs/10/jobs/0"},
+		{table: "commit_status", id: 10016, want: "/testuser/repo1/actions/runs/7/jobs/3"},
+		{table: "commit_status", id: 10017, want: "https://ci.example.com/build/123"},
+
+		// Already ID-based URLs are valid inputs and should not be rewritten again.
+		{table: "commit_status", id: 10018, want: "/testuser/repo1/actions/runs/990/jobs/997"},
+
+		// The same rewrite rules apply to commit_status_summary rows.
+		{table: "commit_status_summary", id: 10020, want: "/testuser/repo1/actions/runs/990/jobs/997"},
+		{table: "commit_status_summary", id: 10021, want: "/testuser/repo1/actions/runs/9/jobs/0"},
 	}
 
 	for _, tc := range cases {

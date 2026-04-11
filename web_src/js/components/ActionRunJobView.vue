@@ -381,7 +381,7 @@ function toggleTimeDisplay(type: 'seconds' | 'stamp') {
 
 function toggleFullScreenMode() {
   isFullScreen.value = !isFullScreen.value;
-  toggleFullScreen('.action-view-right', isFullScreen.value, '.action-view-body');
+  toggleFullScreen(document.querySelector('.action-view-right')!, isFullScreen.value, '.action-view-body');
 }
 
 async function hashChangeListener() {

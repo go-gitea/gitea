@@ -23,24 +23,19 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error') {
   msgContainer.prepend(msgDiv);
 }
 
-export function shouldIgnoreError(err: Error) {
-  const ignorePatterns: Array<RegExp> = [
-    // https://github.com/go-gitea/gitea/issues/30861
-    // https://github.com/microsoft/monaco-editor/issues/4496
-    // https://github.com/microsoft/monaco-editor/issues/4679
-    /\/assets\/js\/.*(monaco|editor\.(api|worker))/,
-  ];
-  for (const pattern of ignorePatterns) {
-    if (pattern.test(err.stack ?? '')) return true;
-  }
-  return false;
+// Detect whether an error originated from Gitea's own scripts, not from
+// browser extensions or other external scripts.
+const extensionRe = /(chrome|moz|safari(-web)?)-extension:\/\//;
+export function isGiteaError(filename: string, stack: string): boolean {
+  if (extensionRe.test(filename) || extensionRe.test(stack)) return false;
+  const assetBaseUrl = new URL(`${window.config.assetUrlPrefix}/`, window.location.origin).href;
+  if (filename && !filename.startsWith(assetBaseUrl) && !filename.startsWith(window.location.origin)) return false;
+  if (stack && !stack.includes(assetBaseUrl)) return false;
+  return true;
 }
 
 export function processWindowErrorEvent({error, reason, message, type, filename, lineno, colno}: ErrorEvent & PromiseRejectionEvent) {
   const err = error ?? reason;
-  const assetBaseUrl = String(new URL(`${window.config?.assetUrlPrefix ?? '/assets'}/`, window.location.origin));
-  const {runModeIsProd} = window.config ?? {};
-
   // `error` and `reason` are not guaranteed to be errors. If the value is falsy, it is likely a
   // non-critical event from the browser. We log them but don't show them to users. Examples:
   // - https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver#observation_errors
@@ -48,16 +43,11 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
   // - https://github.com/go-gitea/gitea/issues/20240
   if (!err) {
     if (message) console.error(new Error(message));
-    if (runModeIsProd) return;
+    if (window.config.runModeIsProd) return;
   }
 
-  if (err instanceof Error) {
-    // If the error stack trace does not include the base URL of our script assets, it likely came
-    // from a browser extension or inline script. Do not show such errors in production.
-    if (!err.stack?.includes(assetBaseUrl) && runModeIsProd) return;
-    // Ignore some known errors that are unable to fix
-    if (shouldIgnoreError(err)) return;
-  }
+  // Filter out errors from browser extensions or other non-Gitea scripts.
+  if (!isGiteaError(filename ?? '', err?.stack ?? '')) return;
 
   let msg = err?.message ?? message;
   if (lineno) msg += ` (${filename} @ ${lineno}:${colno})`;

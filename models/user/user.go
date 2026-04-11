@@ -1323,9 +1323,12 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	return nil, ErrUserNotExist{Name: email}
 }
 
-// GetUser checks if a user already exists
-func GetUser(ctx context.Context, user *User) (bool, error) {
-	return db.GetEngine(ctx).Get(user)
+func GetIndividualUser(ctx context.Context, user *User) (bool, error) {
+	has, err := db.GetEngine(ctx).Get(user)
+	if has && user.Type != UserTypeIndividual {
+		has = false
+	}
+	return has, err
 }
 
 // GetUserByOpenID returns the user object by given OpenID if exists.
@@ -1457,16 +1460,6 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 		return true
 	}
 	return false
-}
-
-// CountWrongUserType count OrgUser who have wrong type
-func CountWrongUserType(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(User))
-}
-
-// FixWrongUserType fix OrgUser who have wrong type
-func FixWrongUserType(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
 }
 
 func GetOrderByName() string {

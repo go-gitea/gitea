@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Gitea API</title>
+		{{/* HINT: SWAGGER-OPENAPI-VIEWER: another place is "modules/markup/external/openapi.go" */}}
+		<link rel="stylesheet" href="{{ctx.CurrentWebTheme.PublicAssetURI}}">
+		<link rel="stylesheet" href="{{AssetURI "css/swagger.css"}}">
+	</head>
+	<body>
+		{{/* TODO: add Help & Glossary to help users understand the API, and explain some concepts like "Owner" */}}
+		<a class="swagger-back-link" href="{{AppSubUrl}}/">{{svg "octicon-reply"}}{{ctx.Locale.Tr "return_to_gitea"}}</a>
+		<div id="swagger-ui" data-source="{{AppSubUrl}}/swagger.v1.json"></div>
+		<footer class="page-footer"></footer>
+		{{ScriptImport "js/swagger.js" "module"}}
+	</body>
+</html>
