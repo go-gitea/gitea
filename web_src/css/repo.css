@@ -287,10 +287,6 @@ td .commit-summary {
   min-width: 100px;
 }
 
-.repository.view.issue .instruct-toggle {
-  display: inline-block;
-}
-
 /* issue title & meta & edit */
 .issue-title-header {
   width: 100%;
@@ -1461,11 +1457,6 @@ tbody.commit-list {
   tr.commit-list {
     width: 1127px;
   }
-}
-
-.commit-list .commit-status-link {
-  display: inline-block;
-  vertical-align: middle;
 }
 
 .commit-body {

@@ -269,7 +269,7 @@
   "install.lfs_path": "Git LFS Root Path",
   "install.lfs_path_helper": "Files tracked by Git LFS will be stored in this directory. Leave empty to disable.",
   "install.run_user": "Run As Username",
-  "install.run_user_helper": "The operating system username that Gitea runs as. Note that this user must have access to the repository root path.",
+  "install.run_user_helper": "The operating system username that Gitea runs as, it must have write access to the data paths. This value is auto-detected and cannot be changed here. To use a different user, restart Gitea under that account.",
   "install.domain": "Server Domain",
   "install.domain_helper": "Domain or host address for the server.",
   "install.ssh_port": "SSH Server Port",
