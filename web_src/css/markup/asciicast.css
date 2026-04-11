@@ -3,7 +3,6 @@
   height: auto;
 }
 
-/* class name from asciinema-player, may change across versions */
 .ap-term {
   overflow: hidden !important;
 }
