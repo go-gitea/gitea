@@ -40,8 +40,8 @@ type issueSidebarProjectCardData struct {
 }
 
 type issueSidebarProjectsData struct {
-	SelectedProjectIDs []int64 // TODO: support multiple projects in the future
-	ProjectCards       []*issueSidebarProjectCardData
+	SelectedProjectID int64
+	ProjectCards      []*issueSidebarProjectCardData
 
 	OpenProjects   []*project_model.Project
 	ClosedProjects []*project_model.Project
@@ -175,7 +175,6 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 	if d.Issue == nil || d.Issue.Project == nil {
 		return
 	}
-	d.ProjectsData.SelectedProjectIDs = []int64{d.Issue.Project.ID}
 	columns, err := d.Issue.Project.GetColumns(ctx)
 	if err != nil {
 		ctx.ServerError("GetProjectColumns", err)
@@ -185,9 +184,6 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("ProjectColumnID", err)
 		return
-	}
-	if columnID == 0 && len(columns) > 0 {
-		columnID = columns[0].ID
 	}
 	d.ProjectsData.ProjectCards = []*issueSidebarProjectCardData{
 		{
@@ -199,9 +195,6 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 }
 
 func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {
-	if d.Issue != nil && d.Issue.Project != nil {
-		d.ProjectsData.SelectedProjectIDs = []int64{d.Issue.Project.ID}
-	}
 	d.ProjectsData.OpenProjects, d.ProjectsData.ClosedProjects = retrieveProjectsInternal(ctx, ctx.Repo.Repository)
 }
 

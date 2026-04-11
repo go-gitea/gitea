@@ -121,8 +121,9 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	pageMetaData.MilestonesData.SelectedMilestoneID = ctx.FormInt64("milestone")
-	pageMetaData.ProjectsData.SelectedProjectIDs, _ = base.StringsToInt64s(strings.Split(ctx.FormString("project"), ","))
-	if len(pageMetaData.ProjectsData.SelectedProjectIDs) == 1 {
+	projectIDs, _ := base.StringsToInt64s(strings.Split(ctx.FormString("project"), ","))
+	if len(projectIDs) == 1 {
+		pageMetaData.ProjectsData.SelectedProjectID = projectIDs[0]
 		ctx.Data["redirect_after_creation"] = "project"
 	}
 
@@ -271,7 +272,7 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 		ctx.NotFound(nil)
 		return ret
 	}
-	pageMetaData.ProjectsData.SelectedProjectIDs = util.Iif(form.ProjectID > 0, []int64{form.ProjectID}, nil)
+	pageMetaData.ProjectsData.SelectedProjectID = util.Iif(form.ProjectID > 0, form.ProjectID, int64(0))
 
 	// prepare assignees
 	candidateAssignees := toSet(pageMetaData.AssigneesData.CandidateAssignees, func(user *user_model.User) int64 { return user.ID })
