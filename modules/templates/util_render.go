@@ -287,6 +287,15 @@ func (ut *RenderUtils) RenderFlashMessage(typ, msg string) template.HTML {
 		return ""
 	}
 
+	cls := typ
+	// legacy logic: "negative" for error, "positive" for success
+	switch cls {
+	case "error":
+		cls = "negative"
+	case "success":
+		cls = "positive"
+	}
+
 	var msgContent template.HTML
 	if strings.Contains(msg, "</pre>") || strings.Contains(msg, "</details>") || strings.Contains(msg, "</ul>") || strings.Contains(msg, "</div>") {
 		// If the message contains some known "block" elements, no need to do more alignment or line-break processing, just sanitize it directly.
@@ -298,7 +307,7 @@ func (ut *RenderUtils) RenderFlashMessage(typ, msg string) template.HTML {
 		// For a multi-line message, preserve line breaks, and left-align it.
 		msgContent = htmlutil.HTMLFormat(`%s`, sanitizeHTML(strings.ReplaceAll(msg, "\n", "<br>")))
 	}
-	return htmlutil.HTMLFormat(`<div class="ui %s message flash-message flash-%s">%s</div>`, typ, typ, msgContent)
+	return htmlutil.HTMLFormat(`<div class="ui %s message flash-message flash-%s">%s</div>`, cls, typ, msgContent)
 }
 
 func (ut *RenderUtils) RenderUnicodeEscapeToggleButton(escapeStatus *charset.EscapeStatus) template.HTML {

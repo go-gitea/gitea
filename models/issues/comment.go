@@ -544,7 +544,7 @@ func (c *Comment) EventTag() string {
 	return fmt.Sprintf("event-%d", c.ID)
 }
 
-func (c *Comment) GetSanitizeContentHTML() template.HTML {
+func (c *Comment) GetSanitizedContentHTML() template.HTML {
 	// mainly for type=4 CommentTypeCommitRef
 	// the content is a link like <a href="{RepoLink}/commit/{CommitID}">message title</a> (from CreateRefComment)
 	return markup.Sanitize(c.Content)
