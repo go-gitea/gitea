@@ -99,6 +99,13 @@ textarea:focus,
   color: var(--color-input-text);
 }
 
+.ui.form input:not([type="checkbox"], [type="radio"])[readonly],
+.ui.form textarea[readonly],
+.ui.form select[readonly],
+.ui.form .ui.selection.dropdown[readonly] {
+  background: var(--color-secondary-bg);
+}
+
 .ui.input {
   color: var(--color-input-text);
 }
@@ -358,13 +365,6 @@ textarea:focus,
   margin-bottom: 0;
   vertical-align: middle;
   font-size: 1em;
-}
-
-.ui.form .inline.field > input[readonly] {
-  border-color: transparent !important;
-  background: transparent !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
 }
 
 .ui.form .inline.fields .field > :first-child,
