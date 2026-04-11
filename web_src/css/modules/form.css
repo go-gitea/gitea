@@ -205,7 +205,6 @@ textarea:focus,
   background-color: var(--color-error-bg);
   border-color: var(--color-error-border);
   color: var(--color-error-text);
-  border-radius: 0;
 }
 .ui.form .field.error textarea:focus,
 .ui.form .field.error select:focus,
