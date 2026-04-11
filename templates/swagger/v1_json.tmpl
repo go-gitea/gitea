@@ -27759,7 +27759,13 @@
           "x-go-name": "ID"
         },
         "state": {
-          "$ref": "#/definitions/StateType"
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-name": "State"
         },
         "title": {
           "type": "string",
