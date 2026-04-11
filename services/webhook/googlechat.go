@@ -81,19 +81,19 @@ type googleChatConvertor struct {
 	IconURL string
 }
 
-// GoogleChatTextFormatter replaces HTML special characters.
-func GoogleChatTextFormatter(s string) string {
+// googleChatTextFormatter replaces HTML special characters.
+func googleChatTextFormatter(s string) string {
 	return html.EscapeString(s)
 }
 
-// GoogleChatLinkFormatter creates a link compatible with Google Chat cards.
-func GoogleChatLinkFormatter(url, text string) string {
-	return fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(url), GoogleChatTextFormatter(text))
+// googleChatLinkFormatter creates a link compatible with Google Chat cards.
+func googleChatLinkFormatter(url, text string) string {
+	return fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(url), googleChatTextFormatter(text))
 }
 
 func googleChatLinkToRef(repoURL, ref string) string {
 	refName := git.RefName(ref)
-	return GoogleChatLinkFormatter(repoURL+"/src/"+refName.RefWebLinkPath(), refName.ShortName())
+	return googleChatLinkFormatter(repoURL+"/src/"+refName.RefWebLinkPath(), refName.ShortName())
 }
 
 func googleChatUserLink(s *api.User) string {
@@ -104,12 +104,12 @@ func googleChatUserLink(s *api.User) string {
 	if userURL == "" {
 		userURL = setting.AppURL + url.PathEscape(s.UserName)
 	}
-	return GoogleChatLinkFormatter(userURL, s.UserName)
+	return googleChatLinkFormatter(userURL, s.UserName)
 }
 
 // Create implements payloadConvertor Create method.
 func (g googleChatConvertor) Create(p *api.CreatePayload) (GoogleChatPayload, error) {
-	repoLink := GoogleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
+	repoLink := googleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	refLink := googleChatLinkToRef(p.Repo.HTMLURL, p.Ref)
 	text := fmt.Sprintf("[%s:%s] %s created by %s", repoLink, refLink, p.RefType, googleChatUserLink(p.Sender))
 
@@ -119,16 +119,16 @@ func (g googleChatConvertor) Create(p *api.CreatePayload) (GoogleChatPayload, er
 // Delete implements payloadConvertor Delete method.
 func (g googleChatConvertor) Delete(p *api.DeletePayload) (GoogleChatPayload, error) {
 	refName := git.RefName(p.Ref).ShortName()
-	repoLink := GoogleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
-	text := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, GoogleChatTextFormatter(refName), p.RefType, googleChatUserLink(p.Sender))
+	repoLink := googleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
+	text := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, googleChatTextFormatter(refName), p.RefType, googleChatUserLink(p.Sender))
 
 	return g.createPayload(text), nil
 }
 
 // Fork implements payloadConvertor Fork method.
 func (g googleChatConvertor) Fork(p *api.ForkPayload) (GoogleChatPayload, error) {
-	baseLink := GoogleChatLinkFormatter(p.Forkee.HTMLURL, p.Forkee.FullName)
-	forkLink := GoogleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
+	baseLink := googleChatLinkFormatter(p.Forkee.HTMLURL, p.Forkee.FullName)
+	forkLink := googleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("%s is forked to %s", baseLink, forkLink)
 
 	return g.createPayload(text), nil
@@ -144,19 +144,19 @@ func (g googleChatConvertor) Push(p *api.PushPayload) (GoogleChatPayload, error)
 	}
 	commitString := commitDesc
 	if p.CompareURL != "" {
-		commitString = GoogleChatLinkFormatter(p.CompareURL, commitDesc)
+		commitString = googleChatLinkFormatter(p.CompareURL, commitDesc)
 	}
 
-	repoLink := GoogleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
-	branchLink := GoogleChatLinkFormatter(p.Repo.HTMLURL+"/src/"+refName.RefWebLinkPath(), branchName)
+	repoLink := googleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
+	branchLink := googleChatLinkFormatter(p.Repo.HTMLURL+"/src/"+refName.RefWebLinkPath(), branchName)
 	text := fmt.Sprintf("[%s:%s] %s pushed by %s", repoLink, branchLink, commitString, googleChatUserLink(p.Pusher))
 
 	var commitText strings.Builder
 	for i, commit := range p.Commits {
 		fmt.Fprintf(&commitText, "%s: %s - %s",
-			GoogleChatLinkFormatter(commit.URL, commit.ID[:7]),
-			GoogleChatTextFormatter(strings.TrimRight(strings.SplitN(commit.Message, "\n", 2)[0], "\r")),
-			GoogleChatTextFormatter(commit.Author.Name),
+			googleChatLinkFormatter(commit.URL, commit.ID[:7]),
+			googleChatTextFormatter(strings.TrimRight(strings.SplitN(commit.Message, "\n", 2)[0], "\r")),
+			googleChatTextFormatter(commit.Author.Name),
 		)
 		if i < len(p.Commits)-1 {
 			commitText.WriteString("\n")
@@ -168,23 +168,23 @@ func (g googleChatConvertor) Push(p *api.PushPayload) (GoogleChatPayload, error)
 
 // Issue implements payloadConvertor Issue method.
 func (g googleChatConvertor) Issue(p *api.IssuePayload) (GoogleChatPayload, error) {
-	text, _, extraMarkdown, _ := getIssuesPayloadInfo(p, GoogleChatLinkFormatter, true)
+	text, _, extraMarkdown, _ := getIssuesPayloadInfo(p, googleChatLinkFormatter, true)
 
-	return g.createPayload(text, GoogleChatTextFormatter(extraMarkdown)), nil
+	return g.createPayload(text, googleChatTextFormatter(extraMarkdown)), nil
 }
 
 // IssueComment implements payloadConvertor IssueComment method.
 func (g googleChatConvertor) IssueComment(p *api.IssueCommentPayload) (GoogleChatPayload, error) {
-	text, _, _ := getIssueCommentPayloadInfo(p, GoogleChatLinkFormatter, true)
+	text, _, _ := getIssueCommentPayloadInfo(p, googleChatLinkFormatter, true)
 
-	return g.createPayload(text, GoogleChatTextFormatter(p.Comment.Body)), nil
+	return g.createPayload(text, googleChatTextFormatter(p.Comment.Body)), nil
 }
 
 // PullRequest implements payloadConvertor PullRequest method.
 func (g googleChatConvertor) PullRequest(p *api.PullRequestPayload) (GoogleChatPayload, error) {
-	text, _, extraMarkdown, _ := getPullRequestPayloadInfo(p, GoogleChatLinkFormatter, true)
+	text, _, extraMarkdown, _ := getPullRequestPayloadInfo(p, googleChatLinkFormatter, true)
 
-	return g.createPayload(text, GoogleChatTextFormatter(extraMarkdown)), nil
+	return g.createPayload(text, googleChatTextFormatter(extraMarkdown)), nil
 }
 
 // Review implements payloadConvertor Review method.
@@ -196,18 +196,18 @@ func (g googleChatConvertor) Review(p *api.PullRequestPayload, event webhook_mod
 		if err != nil {
 			return GoogleChatPayload{}, err
 		}
-		repoLink := GoogleChatLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-		titleLink := GoogleChatLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index), fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
+		repoLink := googleChatLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
+		titleLink := googleChatLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index), fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
 		text = fmt.Sprintf("[%s] Pull request review %s: %s by %s", repoLink, action, titleLink, googleChatUserLink(p.Sender))
 	}
 
-	return g.createPayload(text, GoogleChatTextFormatter(p.Review.Content)), nil
+	return g.createPayload(text, googleChatTextFormatter(p.Review.Content)), nil
 }
 
 // Repository implements payloadConvertor Repository method.
 func (g googleChatConvertor) Repository(p *api.RepositoryPayload) (GoogleChatPayload, error) {
 	senderLink := googleChatUserLink(p.Sender)
-	repoLink := GoogleChatLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
+	repoLink := googleChatLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text string
 	switch p.Action {
 	case api.HookRepoCreated:
@@ -221,38 +221,38 @@ func (g googleChatConvertor) Repository(p *api.RepositoryPayload) (GoogleChatPay
 
 // Wiki implements payloadConvertor Wiki method.
 func (g googleChatConvertor) Wiki(p *api.WikiPayload) (GoogleChatPayload, error) {
-	text, _, _ := getWikiPayloadInfo(p, GoogleChatLinkFormatter, true)
+	text, _, _ := getWikiPayloadInfo(p, googleChatLinkFormatter, true)
 
 	return g.createPayload(text), nil
 }
 
 // Release implements payloadConvertor Release method.
 func (g googleChatConvertor) Release(p *api.ReleasePayload) (GoogleChatPayload, error) {
-	text, _ := getReleasePayloadInfo(p, GoogleChatLinkFormatter, true)
+	text, _ := getReleasePayloadInfo(p, googleChatLinkFormatter, true)
 
 	return g.createPayload(text), nil
 }
 
 func (g googleChatConvertor) Package(p *api.PackagePayload) (GoogleChatPayload, error) {
-	text, _ := getPackagePayloadInfo(p, GoogleChatLinkFormatter, true)
+	text, _ := getPackagePayloadInfo(p, googleChatLinkFormatter, true)
 
 	return g.createPayload(text), nil
 }
 
 func (g googleChatConvertor) Status(p *api.CommitStatusPayload) (GoogleChatPayload, error) {
-	text, _ := getStatusPayloadInfo(p, GoogleChatLinkFormatter, true)
+	text, _ := getStatusPayloadInfo(p, googleChatLinkFormatter, true)
 
 	return g.createPayload(text), nil
 }
 
 func (g googleChatConvertor) WorkflowRun(p *api.WorkflowRunPayload) (GoogleChatPayload, error) {
-	text, _ := getWorkflowRunPayloadInfo(p, GoogleChatLinkFormatter, true)
+	text, _ := getWorkflowRunPayloadInfo(p, googleChatLinkFormatter, true)
 
 	return g.createPayload(text), nil
 }
 
 func (g googleChatConvertor) WorkflowJob(p *api.WorkflowJobPayload) (GoogleChatPayload, error) {
-	text, _ := getWorkflowJobPayloadInfo(p, GoogleChatLinkFormatter, true)
+	text, _ := getWorkflowJobPayloadInfo(p, googleChatLinkFormatter, true)
 
 	return g.createPayload(text), nil
 }

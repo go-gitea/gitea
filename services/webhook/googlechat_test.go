@@ -29,7 +29,7 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
-		repoLink := GoogleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
+		repoLink := googleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 		refLink := googleChatLinkToRef(p.Repo.HTMLURL, p.Ref)
 		exp := fmt.Sprintf("[%s:%s] %s created by %s", repoLink, refLink, p.RefType, googleChatUserLink(p.Sender))
 		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
@@ -43,8 +43,8 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
 		refName := git.RefName(p.Ref).ShortName()
-		repoLink := GoogleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
-		exp := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, GoogleChatTextFormatter(refName), p.RefType, googleChatUserLink(p.Sender))
+		repoLink := googleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
+		exp := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, googleChatTextFormatter(refName), p.RefType, googleChatUserLink(p.Sender))
 		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
 		assert.Equal(t, exp, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
 	})
@@ -55,8 +55,8 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
-		baseLink := GoogleChatLinkFormatter(p.Forkee.HTMLURL, p.Forkee.FullName)
-		forkLink := GoogleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
+		baseLink := googleChatLinkFormatter(p.Forkee.HTMLURL, p.Forkee.FullName)
+		forkLink := googleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 		exp := fmt.Sprintf("%s is forked to %s", baseLink, forkLink)
 		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
 		assert.Equal(t, exp, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
@@ -78,14 +78,14 @@ func TestGoogleChatPayload(t *testing.T) {
 		widgets := pl.CardsV2[0].Card.Sections[0].Widgets
 		require.Len(t, widgets, 2)
 		assert.Equal(t, fmt.Sprintf("[%s:%s] 2 new commits pushed by %s",
-			GoogleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName),
+			googleChatLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName),
 			googleChatLinkToRef(p.Repo.HTMLURL, p.Ref),
 			googleChatUserLink(p.Pusher),
 		), widgets[0].TextParagraph.Text)
 		commit := p.Commits[0]
-		commitLink := GoogleChatLinkFormatter(commit.URL, commit.ID[:7])
-		commitMessage := GoogleChatTextFormatter(strings.TrimRight(strings.SplitN(commit.Message, "\n", 2)[0], "\r"))
-		commitText := fmt.Sprintf("%s: %s - %s", commitLink, commitMessage, GoogleChatTextFormatter(commit.Author.Name))
+		commitLink := googleChatLinkFormatter(commit.URL, commit.ID[:7])
+		commitMessage := googleChatTextFormatter(strings.TrimRight(strings.SplitN(commit.Message, "\n", 2)[0], "\r"))
+		commitText := fmt.Sprintf("%s: %s - %s", commitLink, commitMessage, googleChatTextFormatter(commit.Author.Name))
 		assert.Equal(t, fmt.Sprintf("%s\n%s", commitText, commitText), widgets[1].TextParagraph.Text)
 	})
 
@@ -96,11 +96,11 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
-		text, _, extraMarkdown, _ := getIssuesPayloadInfo(p, GoogleChatLinkFormatter, true)
+		text, _, extraMarkdown, _ := getIssuesPayloadInfo(p, googleChatLinkFormatter, true)
 		widgets := pl.CardsV2[0].Card.Sections[0].Widgets
 		require.Len(t, widgets, 2)
 		assert.Equal(t, text, widgets[0].TextParagraph.Text)
-		assert.Equal(t, GoogleChatTextFormatter(extraMarkdown), widgets[1].TextParagraph.Text)
+		assert.Equal(t, googleChatTextFormatter(extraMarkdown), widgets[1].TextParagraph.Text)
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
@@ -109,11 +109,11 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
-		text, _, _ := getIssueCommentPayloadInfo(p, GoogleChatLinkFormatter, true)
+		text, _, _ := getIssueCommentPayloadInfo(p, googleChatLinkFormatter, true)
 		widgets := pl.CardsV2[0].Card.Sections[0].Widgets
 		require.Len(t, widgets, 2)
 		assert.Equal(t, text, widgets[0].TextParagraph.Text)
-		assert.Equal(t, GoogleChatTextFormatter(p.Comment.Body), widgets[1].TextParagraph.Text)
+		assert.Equal(t, googleChatTextFormatter(p.Comment.Body), widgets[1].TextParagraph.Text)
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {
@@ -122,11 +122,11 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
-		text, _, _ := getIssueCommentPayloadInfo(p, GoogleChatLinkFormatter, true)
+		text, _, _ := getIssueCommentPayloadInfo(p, googleChatLinkFormatter, true)
 		widgets := pl.CardsV2[0].Card.Sections[0].Widgets
 		require.Len(t, widgets, 2)
 		assert.Equal(t, text, widgets[0].TextParagraph.Text)
-		assert.Equal(t, GoogleChatTextFormatter(p.Comment.Body), widgets[1].TextParagraph.Text)
+		assert.Equal(t, googleChatTextFormatter(p.Comment.Body), widgets[1].TextParagraph.Text)
 	})
 
 	t.Run("PullRequest", func(t *testing.T) {
@@ -141,9 +141,9 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
 		widgets := pl.CardsV2[0].Card.Sections[0].Widgets
 		require.Len(t, widgets, 2)
-		text, _, extraMarkdown, _ := getPullRequestPayloadInfo(p, GoogleChatLinkFormatter, true)
+		text, _, extraMarkdown, _ := getPullRequestPayloadInfo(p, googleChatLinkFormatter, true)
 		assert.Equal(t, text, widgets[0].TextParagraph.Text)
-		assert.Equal(t, GoogleChatTextFormatter(extraMarkdown), widgets[1].TextParagraph.Text)
+		assert.Equal(t, googleChatTextFormatter(extraMarkdown), widgets[1].TextParagraph.Text)
 	})
 
 	t.Run("Review", func(t *testing.T) {
@@ -153,13 +153,13 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
-		repoLink := GoogleChatLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-		titleLink := GoogleChatLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index), fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
+		repoLink := googleChatLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
+		titleLink := googleChatLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index), fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
 		exp := fmt.Sprintf("[%s] Pull request review %s: %s by %s", repoLink, "approved", titleLink, googleChatUserLink(p.Sender))
 		widgets := pl.CardsV2[0].Card.Sections[0].Widgets
 		require.Len(t, widgets, 2)
 		assert.Equal(t, exp, widgets[0].TextParagraph.Text)
-		assert.Equal(t, GoogleChatTextFormatter(p.Review.Content), widgets[1].TextParagraph.Text)
+		assert.Equal(t, googleChatTextFormatter(p.Review.Content), widgets[1].TextParagraph.Text)
 	})
 
 	t.Run("Repository", func(t *testing.T) {
@@ -168,7 +168,7 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
-		repoLink := GoogleChatLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
+		repoLink := googleChatLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 		exp := fmt.Sprintf("[%s] Repository created by %s", repoLink, googleChatUserLink(p.Sender))
 		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
 		assert.Equal(t, exp, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
@@ -181,7 +181,7 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
-		text, _, _ := getWikiPayloadInfo(p, GoogleChatLinkFormatter, true)
+		text, _, _ := getWikiPayloadInfo(p, googleChatLinkFormatter, true)
 		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
 		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
 
@@ -189,14 +189,14 @@ func TestGoogleChatPayload(t *testing.T) {
 		pl, err = gc.Wiki(p)
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
-		text, _, _ = getWikiPayloadInfo(p, GoogleChatLinkFormatter, true)
+		text, _, _ = getWikiPayloadInfo(p, googleChatLinkFormatter, true)
 		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
 
 		p.Action = api.HookWikiDeleted
 		pl, err = gc.Wiki(p)
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
-		text, _, _ = getWikiPayloadInfo(p, GoogleChatLinkFormatter, true)
+		text, _, _ = getWikiPayloadInfo(p, googleChatLinkFormatter, true)
 		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
 	})
 
@@ -206,7 +206,7 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
-		text, _ := getReleasePayloadInfo(p, GoogleChatLinkFormatter, true)
+		text, _ := getReleasePayloadInfo(p, googleChatLinkFormatter, true)
 		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
 		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
 	})
@@ -217,7 +217,7 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
-		text, _ := getPackagePayloadInfo(p, GoogleChatLinkFormatter, true)
+		text, _ := getPackagePayloadInfo(p, googleChatLinkFormatter, true)
 		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
 		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
 	})
@@ -237,7 +237,7 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
-		text, _ := getStatusPayloadInfo(p, GoogleChatLinkFormatter, true)
+		text, _ := getStatusPayloadInfo(p, googleChatLinkFormatter, true)
 		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
 		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
 	})
@@ -261,7 +261,7 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
-		text, _ := getWorkflowRunPayloadInfo(p, GoogleChatLinkFormatter, true)
+		text, _ := getWorkflowRunPayloadInfo(p, googleChatLinkFormatter, true)
 		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
 		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
 	})
@@ -286,7 +286,7 @@ func TestGoogleChatPayload(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, pl.CardsV2, 1)
 		require.Len(t, pl.CardsV2[0].Card.Sections, 1)
-		text, _ := getWorkflowJobPayloadInfo(p, GoogleChatLinkFormatter, true)
+		text, _ := getWorkflowJobPayloadInfo(p, googleChatLinkFormatter, true)
 		require.Len(t, pl.CardsV2[0].Card.Sections[0].Widgets, 1)
 		assert.Equal(t, text, pl.CardsV2[0].Card.Sections[0].Widgets[0].TextParagraph.Text)
 	})
