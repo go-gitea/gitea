@@ -259,7 +259,7 @@ swagger-validate: ## check if the swagger spec is valid
 .PHONY: generate-openapi3
 generate-openapi3: $(OPENAPI3_SPEC) ## generate the OpenAPI 3.0 spec from the Swagger 2.0 spec
 
-$(OPENAPI3_SPEC): $(SWAGGER_SPEC)
+$(OPENAPI3_SPEC): $(SWAGGER_SPEC) build/generate-openapi.go
 	$(GO) run build/generate-openapi.go
 
 .PHONY: openapi3-check

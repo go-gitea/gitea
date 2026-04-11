@@ -1,6 +1,17 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+// generate-openapi converts Gitea's Swagger 2.0 spec into an OpenAPI 3.0 spec.
+//
+// Gitea generates a Swagger 2.0 spec from code annotations (make generate-swagger).
+// This tool converts it to OAS3 so that SDK generators and tools that require
+// OAS3 (e.g. progenitor for Rust) can consume it directly. The conversion also
+// deduplicates inline enum definitions into named schema components, producing
+// cleaner SDK output with proper enum types instead of anonymous strings.
+//
+// Usage: go run build/generate-openapi.go
+// Output: templates/swagger/v1_openapi3_json.tmpl
+
 //go:build ignore
 
 package main
@@ -272,8 +283,6 @@ func extractSharedEnums(doc *openapi3.T) {
 				}
 			}
 		}
-
-		_ = key
 	}
 }
 
@@ -286,6 +295,15 @@ func enumKey(values []any) string {
 	return strings.Join(strs, "|")
 }
 
+// knownEnumTypes maps constant-name prefixes to their Go type names.
+// SDK generators (e.g. progenitor for Rust) need named enum types to produce
+// good code — without them you get duplicate anonymous string types on every
+// field instead of a shared enum like StateType.
+//
+// deriveEnumName extracts a prefix by stripping the enum value from the
+// constant name (e.g. "StateClosed" minus "closed" = "State"), but that
+// prefix doesn't always match the Go type (State → StateType,
+// CommitStatus → CommitStatusState). This map bridges the gap.
 var knownEnumTypes = map[string]string{
 	"CommitStatus":     "CommitStatusState",
 	"State":            "StateType",
