@@ -22,7 +22,10 @@ import (
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
+	project_model "code.gitea.io/gitea/models/project"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIIssue(t *testing.T) {
@@ -550,5 +553,79 @@ func TestAPIIssueProjectMeta(t *testing.T) {
 		DecodeJSON(t, resp, &apiIssue)
 
 		assert.Nil(t, apiIssue.Project)
+	})
+
+	t.Run("PublicOrgProjectVisibleToNonMember", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		// org3 (public) has repo32 (public) with issue 16
+		// user2 is in org3, user8 is not
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+		orgRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
+		issue16 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 16})
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		orgProject := project_model.Project{
+			Title:   "public org project",
+			OwnerID: org3.ID,
+			Type:    project_model.TypeOrganization,
+		}
+		require.NoError(t, project_model.NewProject(t.Context(), &orgProject))
+		require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user2, orgProject.ID, 0))
+
+		// user8 (not in org3) should still see the project because org3 is public
+		token8 := getTokenForLoggedInUser(t, loginUser(t, "user8"), auth_model.AccessTokenScopeReadIssue)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", orgRepo.OwnerName, orgRepo.Name, issue16.Index)).AddTokenAuth(token8)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+		assert.NotNil(t, apiIssue.Project, "public org project should be visible to non-members")
+		assert.Equal(t, orgProject.ID, apiIssue.Project.ID)
+	})
+}
+
+func TestAPIIssuePrivateOrgProjectHidden(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// privated_org (id=23, visibility=private) has public repo (id=40)
+	// user5 is in privated_org, user2 is not
+	privateOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
+	publicRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 40})
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	issue := &issues_model.Issue{
+		RepoID:   publicRepo.ID,
+		Title:    "test for private org project",
+		PosterID: user1.ID,
+	}
+	require.NoError(t, issues_model.NewIssue(t.Context(), publicRepo, issue, nil, nil))
+
+	orgProject := project_model.Project{
+		Title:   "private org project",
+		OwnerID: privateOrg.ID,
+		Type:    project_model.TypeOrganization,
+	}
+	require.NoError(t, project_model.NewProject(t.Context(), &orgProject))
+	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue, user1, orgProject.ID, 0))
+
+	t.Run("AdminCanSee", func(t *testing.T) {
+		token1 := getTokenForLoggedInUser(t, loginUser(t, "user1"), auth_model.AccessTokenScopeReadIssue)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", publicRepo.OwnerName, publicRepo.Name, issue.Index)).AddTokenAuth(token1)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+		require.NotNil(t, apiIssue.Project, "admin should see private org project")
+		assert.Equal(t, orgProject.ID, apiIssue.Project.ID)
+	})
+
+	t.Run("MemberWithoutProjectsAccess", func(t *testing.T) {
+		// user5 is in org23 (team17) but team17 only has Actions (type=9) access,
+		// not Projects (type=8). So user5 can access the repo but not org projects.
+		token5 := getTokenForLoggedInUser(t, loginUser(t, "user5"), auth_model.AccessTokenScopeReadIssue)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", publicRepo.OwnerName, publicRepo.Name, issue.Index)).AddTokenAuth(token5)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+		assert.Nil(t, apiIssue.Project, "org member without projects unit access should not see project")
 	})
 }
