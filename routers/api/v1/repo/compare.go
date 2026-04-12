@@ -63,25 +63,19 @@ func CompareDiff(ctx *context.APIContext) {
 	apiCommits := make([]*api.Commit, 0, len(compareInfo.Commits))
 	userCache := make(map[string]*user_model.User)
 
-	// decide which git repo to use
-	gitRepo := ctx.Repo.GitRepo
-	if compareInfo.HeadGitRepo != nil {
-		gitRepo = compareInfo.HeadGitRepo
-	}
-
-	// decide which repository metadata to use
-	repo := ctx.Repo.Repository
-	if compareInfo.HeadRepo != nil {
-		repo = compareInfo.HeadRepo
-	}
-
 	for i := 0; i < len(compareInfo.Commits); i++ {
-		apiCommit, err := convert.ToCommit(ctx, repo, gitRepo, compareInfo.Commits[i], userCache,
+		apiCommit, err := convert.ToCommit(
+			ctx,
+			compareInfo.HeadRepo,
+			compareInfo.HeadGitRepo,
+			compareInfo.Commits[i],
+			userCache,
 			convert.ToCommitOptions{
 				Stat:         true,
 				Verification: verification,
 				Files:        files,
-			})
+			},
+		)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
