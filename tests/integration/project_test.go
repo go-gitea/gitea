@@ -120,7 +120,6 @@ func TestUpdateIssueProjectColumn(t *testing.T) {
 	})
 
 	t.Run("WrongRepo", func(t *testing.T) {
-		// Issue 6 belongs to repo 3, not repo 1
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects/column", map[string]string{
 			"issue_id": "6",
 			"id":       "3",

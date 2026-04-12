@@ -39,9 +39,10 @@ test('assign issue to project and change column', async ({page}) => {
   await page.goto(`/${user}/${repoName}/issues/${issue.number}`);
   await page.locator('.sidebar-project-combo .ui.dropdown').click();
   await Promise.all([
-    page.waitForURL(new RegExp(`issues/${issue.number}`), {waitUntil: 'load'}),
+    page.waitForResponse((resp) => resp.url().includes('/issues/projects') && resp.status() === 200),
     page.locator('.sidebar-project-combo .menu .item', {hasText: 'Kanban Board'}).click(),
   ]);
+  await page.waitForLoadState('load');
 
   // Verify the project card appears with a column dropdown
   await expect(page.locator('.sidebar-project-card')).toBeVisible();
@@ -58,9 +59,10 @@ test('assign issue to project and change column', async ({page}) => {
 
   // Select "In Progress" column
   await Promise.all([
-    page.waitForURL(new RegExp(`issues/${issue.number}`), {waitUntil: 'load'}),
+    page.waitForResponse((resp) => resp.url().includes('/issues/projects/column') && resp.status() === 200),
     columnCombo.locator('.menu .item', {hasText: 'In Progress'}).click(),
   ]);
+  await page.waitForLoadState('load');
 
   // Verify the column changed
   await expect(page.locator('.sidebar-project-column-combo .sidebar-project-column-text')).toContainText('In Progress');

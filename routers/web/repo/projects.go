@@ -499,6 +499,7 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 		return
 	}
 
+	// sortedIssueIDs maps sorting position to issue ID; 0 inserts at the top
 	if err := project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, map[int64]int64{0: issueID}); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectColumn", err)
 		return

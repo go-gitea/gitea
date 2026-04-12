@@ -1406,6 +1406,7 @@
   "repo.issues.new.projects": "Projects",
   "repo.issues.new.clear_projects": "Clear projects",
   "repo.issues.new.no_projects": "No project",
+  "repo.issues.new.no_column": "No column",
   "repo.issues.new.open_projects": "Open Projects",
   "repo.issues.new.closed_projects": "Closed Projects",
   "repo.issues.new.no_items": "No items",

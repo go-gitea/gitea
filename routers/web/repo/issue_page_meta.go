@@ -40,7 +40,7 @@ type issueSidebarProjectCardData struct {
 }
 
 type issueSidebarProjectsData struct {
-	SelectedProjectID int64
+	SelectedProjectIDs []int64 // TODO: support multiple projects in the future
 	ProjectCards      []*issueSidebarProjectCardData
 
 	OpenProjects   []*project_model.Project
