@@ -12,9 +12,9 @@ import (
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/log"
 
-	"code.gitea.io/gitea/modules/actions/jobparser"
 	"go.yaml.in/yaml/v4"
 )
 

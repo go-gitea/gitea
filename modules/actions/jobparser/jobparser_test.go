@@ -11,7 +11,6 @@ import (
 	"github.com/nektos/act/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"go.yaml.in/yaml/v4"
 )
 
@@ -127,7 +126,7 @@ func TestDeepCopyYamlNode(t *testing.T) {
 		// Verify values are equal
 		assert.Equal(t, original.Kind, copied.Kind)
 		assert.Equal(t, original.Tag, copied.Tag)
-		assert.Equal(t, len(original.Content), len(copied.Content))
+		assert.Len(t, original.Content, len(copied.Content))
 
 		// Verify content pointers are different (isolation)
 		for i, node := range original.Content {
@@ -272,7 +271,7 @@ jobs:
 		// Should not error on parse
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
-		assert.Greater(t, len(result), 0)
+		assert.NotEmpty(t, result)
 	})
 
 	t.Run("empty_job_outputs_map", func(t *testing.T) {
@@ -303,7 +302,7 @@ jobs:
 		assert.NotNil(t, result)
 
 		// Should still parse successfully
-		assert.Greater(t, len(result), 0)
+		assert.NotEmpty(t, result)
 	})
 }
 
@@ -338,7 +337,7 @@ jobs:
 		// Should not error on parse
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
-		assert.Greater(t, len(result), 0)
+		assert.NotEmpty(t, result)
 	})
 
 	t.Run("needs_reference_with_partial_outputs", func(t *testing.T) {
@@ -376,7 +375,7 @@ jobs:
 		assert.NotNil(t, result)
 
 		// Should parse successfully
-		assert.Greater(t, len(result), 0)
+		assert.NotEmpty(t, result)
 	})
 }
 
@@ -418,7 +417,7 @@ jobs:
 		assert.NotNil(t, result)
 
 		// Verify we have workflows
-		assert.Greater(t, len(result), 0)
+		assert.NotEmpty(t, result)
 
 		// Check that all three matrix dimensions are present
 		hasAllDimensions := false
@@ -476,7 +475,7 @@ jobs:
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
-		assert.Greater(t, len(result), 0)
+		assert.NotEmpty(t, result)
 	})
 
 	t.Run("all_static_arrays_no_dynamic", func(t *testing.T) {
@@ -503,7 +502,7 @@ jobs:
 
 		// Should expand correctly
 		// 2 os * 3 versions * 2 node = 12 combinations
-		assert.Greater(t, len(result), 0)
+		assert.NotEmpty(t, result)
 
 		// Verify matrix structure
 		for _, workflow := range result {
