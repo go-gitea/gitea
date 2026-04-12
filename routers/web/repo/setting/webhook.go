@@ -454,8 +454,13 @@ func matrixHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewMatrixHookForm)
 
 	return webhookParams{
-		Type:        webhook_module.MATRIX,
-		URL:         fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, strings.ReplaceAll(url.PathEscape(form.RoomID), "%21", "!")),
+		Type: webhook_module.MATRIX,
+		// Matrix room IDs are of the form "!localpart:server", where "!" and ":" are
+		// valid unencoded path segment characters per RFC 3986, but url.PathEscape
+		// encodes them. Restore them so Matrix homeservers can recognise the room ID.
+		// See https://spec.matrix.org/latest/appendices/#room-ids
+		URL: fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL,
+			strings.NewReplacer("%21", "!", "%3A", ":").Replace(url.PathEscape(form.RoomID))),
 		ContentType: webhook.ContentTypeJSON,
 		HTTPMethod:  http.MethodPut,
 		WebhookForm: form.WebhookForm,
