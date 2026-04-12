@@ -32,13 +32,12 @@ func newFuncMapWebPage() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// html/template related functions
-		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
-		"Iif":          iif,
-		"Eval":         evalTokens,
-		"HTMLFormat":   htmlFormat,
-		"QueryEscape":  queryEscape,
-		"QueryBuild":   QueryBuild,
-		"SanitizeHTML": SanitizeHTML,
+		"dict":        dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
+		"Iif":         iif,
+		"Eval":        evalTokens,
+		"HTMLFormat":  htmlFormat,
+		"QueryEscape": queryEscape,
+		"QueryBuild":  QueryBuild,
 
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,
@@ -146,9 +145,8 @@ func newFuncMapWebPage() template.FuncMap {
 	}
 }
 
-// SanitizeHTML sanitizes the input by default sanitization rules.
-func SanitizeHTML(s string) template.HTML {
-	return markup.Sanitize(s)
+func sanitizeHTML(msg string) template.HTML {
+	return markup.Sanitize(msg)
 }
 
 func htmlFormat(s any, args ...any) template.HTML {
