@@ -47,4 +47,24 @@ func TestAPICompareBranches(t *testing.T) {
 		assert.Equal(t, 1, apiResp.TotalCommits)
 		assert.Len(t, apiResp.Commits, 1)
 	})
+	t.Run("CompareForkOnlyCommit", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		user1Sess := loginUser(t, "user1")
+		user1Token := getTokenForLoggedInUser(t, user1Sess, auth_model.AccessTokenScopeWriteRepository)
+
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{}).
+			AddTokenAuth(user1Token)
+		MakeRequest(t, req, http.StatusAccepted)
+
+		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/compare/master...user1:master").
+			AddTokenAuth(user1Token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var apiResp *api.Compare
+		DecodeJSON(t, resp, &apiResp)
+
+		assert.NotNil(t, apiResp)
+		assert.GreaterOrEqual(t, apiResp.TotalCommits, 0)
+	})
 }
