@@ -125,9 +125,6 @@ func (task *ActionTask) LoadJob(ctx context.Context) error {
 
 // LoadJobAttributes loads Job and its attributes (Run, Repo) but not Steps
 func (task *ActionTask) LoadJobAttributes(ctx context.Context) error {
-	if task == nil {
-		return nil
-	}
 	if err := task.LoadJob(ctx); err != nil {
 		return err
 	}
@@ -136,9 +133,6 @@ func (task *ActionTask) LoadJobAttributes(ctx context.Context) error {
 
 // LoadAttributes load Job Steps if not loaded
 func (task *ActionTask) LoadAttributes(ctx context.Context) error {
-	if task == nil {
-		return nil
-	}
 	if err := task.LoadJob(ctx); err != nil {
 		return err
 	}
