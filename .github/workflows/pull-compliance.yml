@@ -41,10 +41,12 @@ jobs:
       - uses: astral-sh/setup-uv@v8.0.0
       - run: uv python install 3.14
       - uses: pnpm/action-setup@v6
+        with:
+          cache: true
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: true
+          cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - run: make deps-py
       - run: make deps-frontend
@@ -72,10 +74,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
+        with:
+          cache: true
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: true
+          cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - run: make deps-frontend
       - run: make lint-json
@@ -89,10 +93,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
+        with:
+          cache: true
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: true
+          cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - run: make deps-frontend
       - run: make lint-swagger
@@ -171,10 +177,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
+        with:
+          cache: true
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: true
+          cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - run: make deps-frontend
       - run: make lint-frontend
@@ -225,10 +233,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
+        with:
+          cache: true
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: true
+          cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - run: make deps-frontend
       - run: make lint-md
