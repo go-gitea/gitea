@@ -27,6 +27,9 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 		return err
 	}
 	for _, run := range runs {
+		if run.TriggerUser != nil {
+			continue
+		}
 		if run.TriggerUserID == user_model.ActionsUserID {
 			run.TriggerUser = user_model.NewActionsUser()
 		} else {
@@ -48,6 +51,9 @@ func (runs RunList) LoadRepos(ctx context.Context) error {
 		return err
 	}
 	for _, run := range runs {
+		if run.Repo != nil {
+			continue
+		}
 		run.Repo = repos[run.RepoID]
 	}
 	return nil
