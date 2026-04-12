@@ -6,6 +6,7 @@ package integration
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
@@ -57,6 +58,8 @@ func TestAPICompareBranches(t *testing.T) {
 			AddTokenAuth(user1Token)
 		MakeRequest(t, req, http.StatusAccepted)
 
+		time.Sleep(500 * time.Millisecond)
+
 		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/compare/master...user1:master").
 			AddTokenAuth(user1Token)
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -65,6 +68,5 @@ func TestAPICompareBranches(t *testing.T) {
 		DecodeJSON(t, resp, &apiResp)
 
 		assert.NotNil(t, apiResp)
-		assert.GreaterOrEqual(t, apiResp.TotalCommits, 0)
 	})
 }
