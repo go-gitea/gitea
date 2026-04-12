@@ -21,38 +21,32 @@ import (
 
 func TestAPICompareBranches(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
-
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		// Login as User2.
-		session := loginUser(t, user.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		session2 := loginUser(t, "user2")
+		token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteRepository)
 
 		t.Run("CompareBranches", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b").AddTokenAuth(token)
+
+			req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b").AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusOK)
-
-			var apiResp *api.Compare
-			DecodeJSON(t, resp, &apiResp)
-
+			apiResp := DecodeJSON(t, resp, &api.Compare{})
 			assert.Equal(t, 2, apiResp.TotalCommits)
 			assert.Len(t, apiResp.Commits, 2)
 		})
 
 		t.Run("CompareCommits", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/808038d2f71b0ab02099...c8e31bc7688741a5287f").AddTokenAuth(token)
+
+			req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/808038d2f71b0ab02099...c8e31bc7688741a5287f").AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusOK)
-
-			var apiResp *api.Compare
-			DecodeJSON(t, resp, &apiResp)
-
+			apiResp := DecodeJSON(t, resp, &api.Compare{})
 			assert.Equal(t, 1, apiResp.TotalCommits)
 			assert.Len(t, apiResp.Commits, 1)
 		})
 
 		t.Run("CompareForkOnlyCommit", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
+
 			user13 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13})
 			repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
 			user13Sess := loginUser(t, "user13")
@@ -61,7 +55,10 @@ func TestAPICompareBranches(t *testing.T) {
 			_, err := createFileInBranch(user13, repo11, createFileInBranchOptions{OldBranch: "master", NewBranch: "new-branch"}, map[string]string{"file.txt": "content"})
 			require.NoError(t, err)
 			req := NewRequestf(t, "GET", "/api/v1/repos/user12/repo10/compare/master...user13:new-branch").AddTokenAuth(user13Token)
-			MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
+			apiResp := DecodeJSON(t, resp, &api.Compare{})
+			assert.Equal(t, 1, apiResp.TotalCommits)
+			assert.Len(t, apiResp.Commits, 1)
 		})
 	})
 }
