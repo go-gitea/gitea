@@ -66,7 +66,7 @@ We will try to publish a new major version every three months:
 - v1.29.0 in December 2026
 
 #### How is the release handled?
-- The release manager will tag the release candidate (e.g. `v1.26.0-rc1`) and publish it for testing in the **first week of the release month**.
+- The release manager will tag the release candidate (e.g. `v1.26.0-rc0`) and publish it for testing in the **first week of the release month**.
 - If there are no major issues, the release manager will check with the other maintainers and then tag the final release (e.g. `v1.26.0`) in the **one or two weeks following the release candidate**.
 
 ### Feature freeze
