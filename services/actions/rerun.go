@@ -233,9 +233,6 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 	if err := plan.run.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
-	for _, job := range newJobs {
-		job.Run = plan.run
-	}
 
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, cancelledConcurrencyJobs)
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
