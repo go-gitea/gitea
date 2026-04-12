@@ -165,6 +165,11 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 			return err
 		}
 
+		plan.run.LatestAttemptID = plan.newAttempt.ID
+		if err := actions_model.UpdateRun(ctx, plan.run, "latest_attempt_id"); err != nil {
+			return err
+		}
+
 		hasWaitingJobs := false
 		newJobs = make(actions_model.ActionJobList, 0, len(plan.templateJobs))
 		newJobsToRerun = make(actions_model.ActionJobList, 0, len(plan.rerunJobIDs))
@@ -210,14 +215,6 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 
 		plan.newAttempt.Status = actions_model.AggregateJobStatus(newJobsToRerun)
 		if err := actions_model.UpdateRunAttempt(ctx, plan.newAttempt, "status"); err != nil {
-			return err
-		}
-
-		plan.run.Started = 0
-		plan.run.Stopped = 0
-		plan.run.Status = plan.newAttempt.Status
-		plan.run.LatestAttemptID = plan.newAttempt.ID
-		if err := actions_model.UpdateRun(ctx, plan.run, "started", "stopped", "status", "latest_attempt_id"); err != nil {
 			return err
 		}
 
@@ -328,6 +325,14 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 // so the original execution becomes attempt-aware before the rerun plan is built and all subsequent logic can use real attempts.
 func createOriginalAttemptForLegacyRun(ctx context.Context, run *actions_model.ActionRun) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, 0)
+		if err != nil {
+			return fmt.Errorf("load legacy run jobs: %w", err)
+		}
+		if len(jobs) == 0 {
+			return fmt.Errorf("run %d has no jobs", run.ID)
+		}
+
 		originalAttempt := &actions_model.ActionRunAttempt{
 			RepoID:        run.RepoID,
 			RunID:         run.ID,
@@ -350,39 +355,18 @@ func createOriginalAttemptForLegacyRun(ctx context.Context, run *actions_model.A
 		}
 
 		// Backfill Created to the original run's trigger time.
-		// xorm's "created" tag always overwrites with the current time on insert,
-		// so we fix it here within the same transaction.
-		originalAttempt.Created = run.Created
-		if _, err := db.GetEngine(ctx).ID(originalAttempt.ID).Cols("created").NoAutoTime().
-			Update(originalAttempt); err != nil {
+		// xorm's "created" tag always overwrites with the current time on insert, so we fix it here within the same transaction.
+		if _, err := db.Exec(ctx, "UPDATE action_run_attempt SET created = ? WHERE id = ?", run.Created, originalAttempt.ID); err != nil {
 			return fmt.Errorf("backfill original attempt created time: %w", err)
 		}
 
-		jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, 0)
-		if err != nil {
-			return fmt.Errorf("load legacy run jobs: %w", err)
-		}
-		jobIDs := make([]int64, 0, len(jobs))
-
 		// backfill attempt related fields for jobs
 		for i, job := range jobs {
-			jobIDs = append(jobIDs, job.ID)
-
 			job.RunAttemptID = originalAttempt.ID
 			job.Attempt = originalAttempt.Attempt
 			job.AttemptJobID = int64(i + 1)
 			if _, err := db.GetEngine(ctx).ID(job.ID).Cols("run_attempt_id", "attempt", "attempt_job_id").Update(job); err != nil {
 				return fmt.Errorf("backfill legacy run jobs: %w", err)
-			}
-		}
-
-		// backfill "attempt" field for tasks
-		if len(jobIDs) > 0 {
-			if _, err := db.GetEngine(ctx).
-				In("job_id", jobIDs).
-				Cols("attempt").
-				Update(&actions_model.ActionTask{Attempt: originalAttempt.Attempt}); err != nil {
-				return fmt.Errorf("backfill legacy tasks: %w", err)
 			}
 		}
 
