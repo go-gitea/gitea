@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/common"
@@ -87,15 +86,7 @@ func Install(ctx *context.Context) {
 	form.AppName = setting.AppName
 	form.RepoRootPath = setting.RepoRootPath
 	form.LFSRootPath = setting.LFS.Storage.Path
-
-	// Note(unknown): it's hard for Windows users change a running user,
-	// 	so just use current one if config says default.
-	if setting.IsWindows && setting.RunUser == "git" {
-		form.RunUser = user.CurrentUsername()
-	} else {
-		form.RunUser = setting.RunUser
-	}
-
+	form.RunUser = setting.RunUser
 	form.Domain = setting.Domain
 	form.SSHPort = setting.SSH.Port
 	form.HTTPPort = setting.HTTPPort
@@ -269,13 +260,6 @@ func SubmitInstall(ctx *context.Context) {
 	if err = os.MkdirAll(form.LogRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_LogRootPath"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_log_root_path", err), tplInstall, &form)
-		return
-	}
-
-	currentUser, match := setting.IsRunUserMatchCurrentUser(form.RunUser)
-	if !match {
-		ctx.Data["Err_RunUser"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("install.run_user_not_match", form.RunUser, currentUser), tplInstall, &form)
 		return
 	}
 
