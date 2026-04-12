@@ -37,11 +37,42 @@ func GetFailedJobsForRerun(allJobs []*actions_model.ActionRunJob) []*actions_mod
 // An empty jobsToRerun means rerunning the whole run. Otherwise jobsToRerun contains only the user-requested target jobs;
 // downstream dependent jobs are expanded internally while building the rerun plan.
 func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, triggerUser *user_model.User, jobsToRerun []*actions_model.ActionRunJob) (*actions_model.ActionRunAttempt, error) {
+	if err := validateRerun(run, repo, triggerUser, jobsToRerun); err != nil {
+		return nil, err
+	}
+
+	if run.LatestAttemptID == 0 {
+		if err := createOriginalAttemptForLegacyRun(ctx, run); err != nil {
+			return nil, fmt.Errorf("create attempt for legacy run: %w", err)
+		}
+	}
+
 	plan, err := buildRerunPlan(ctx, repo, run, triggerUser, jobsToRerun)
 	if err != nil {
 		return nil, err
 	}
 	return execRerunPlan(ctx, plan)
+}
+
+func validateRerun(run *actions_model.ActionRun, repo *repo_model.Repository, triggerUser *user_model.User, jobsToRerun []*actions_model.ActionRunJob) error {
+	if !run.Status.IsDone() {
+		return util.NewInvalidArgumentErrorf("this workflow run is not done")
+	}
+	if repo == nil {
+		return util.NewInvalidArgumentErrorf("repo is required")
+	}
+	if run.RepoID != repo.ID {
+		return util.NewInvalidArgumentErrorf("run %d does not belong to repo %d", run.ID, repo.ID)
+	}
+	for _, job := range jobsToRerun {
+		if job.RunID != run.ID {
+			return util.NewInvalidArgumentErrorf("job %d does not belong to workflow run %d", job.ID, run.ID)
+		}
+	}
+	if triggerUser == nil {
+		return util.NewInvalidArgumentErrorf("trigger user is required")
+	}
+	return nil
 }
 
 type rerunPlan struct {
@@ -53,21 +84,6 @@ type rerunPlan struct {
 }
 
 func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, triggerUser *user_model.User, jobsToRerun []*actions_model.ActionRunJob) (*rerunPlan, error) {
-	if !run.Status.IsDone() {
-		return nil, util.NewInvalidArgumentErrorf("this workflow run is not done")
-	}
-	if run.RepoID != repo.ID {
-		return nil, util.NewInvalidArgumentErrorf("run %d does not belong to repo %d", run.ID, repo.ID)
-	}
-	for _, job := range jobsToRerun {
-		if job.RunID != run.ID {
-			return nil, util.NewInvalidArgumentErrorf("job %d does not belong to workflow run %d", job.ID, run.ID)
-		}
-	}
-	if triggerUser == nil {
-		return nil, util.NewInvalidArgumentErrorf("trigger user is required")
-	}
-
 	if err := run.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
@@ -82,13 +98,11 @@ func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actio
 	if err != nil {
 		return nil, err
 	}
-
-	var templateJobs actions_model.ActionJobList
-	if hasTemplateAttempt {
-		templateJobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, templateAttempt.ID)
-	} else {
-		templateJobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, 0)
+	if !hasTemplateAttempt {
+		return nil, util.NewNotExistErrorf("latest attempt not found")
 	}
+
+	templateJobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, templateAttempt.ID)
 	if err != nil {
 		return nil, fmt.Errorf("load template jobs: %w", err)
 	}
@@ -110,14 +124,10 @@ func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actio
 		return nil, fmt.Errorf("get run %d variables: %w", run.ID, err)
 	}
 
-	attemptNum := int64(1)
-	if hasTemplateAttempt {
-		attemptNum = templateAttempt.Attempt + 1
-	}
 	plan.newAttempt = &actions_model.ActionRunAttempt{
 		RepoID:        run.RepoID,
 		RunID:         run.ID,
-		Attempt:       attemptNum,
+		Attempt:       templateAttempt.Attempt + 1,
 		TriggerUserID: triggerUser.ID,
 		Status:        actions_model.StatusWaiting,
 	}
@@ -136,11 +146,7 @@ func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actio
 }
 
 func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionRunAttempt, error) {
-	if len(plan.templateJobs) == 0 {
-		return nil, nil //nolint:nilnil // a rerun plan with no template jobs is a valid no-op and creates no new attempt
-	}
-
-	var newJobs actions_model.ActionJobList
+	var newJobs, newJobsToRerun actions_model.ActionJobList
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
 
 	err := db.WithTx(ctx, func(ctx context.Context) error {
@@ -161,13 +167,9 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 
 		hasWaitingJobs := false
 		newJobs = make(actions_model.ActionJobList, 0, len(plan.templateJobs))
-		for i, templateJob := range plan.templateJobs {
+		newJobsToRerun = make(actions_model.ActionJobList, 0, len(plan.rerunJobIDs))
+		for _, templateJob := range plan.templateJobs {
 			newJob := cloneRunJobForAttempt(templateJob, plan.newAttempt)
-			// Legacy template jobs have no attempt association and therefore no AttemptJobID.
-			// When rerun creates a new attempt for them, assign a stable non-zero AttemptJobID using the same parsed job order as initial run creation.
-			if templateJob.RunAttemptID == 0 && newJob.RunAttemptID != 0 && newJob.AttemptJobID == 0 {
-				newJob.AttemptJobID = int64(i + 1)
-			}
 			if plan.rerunJobIDs.Contains(templateJob.JobID) {
 				shouldBlockJob := shouldBlock || plan.hasRerunDependency(templateJob)
 
@@ -190,6 +192,8 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 					}
 					cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
 				}
+
+				newJobsToRerun = append(newJobsToRerun, newJob)
 			} else {
 				newJob.TaskID = 0
 				newJob.SourceTaskID = templateJob.EffectiveTaskID()
@@ -204,7 +208,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 			newJobs = append(newJobs, newJob)
 		}
 
-		plan.newAttempt.Status = actions_model.AggregateJobStatus(newJobs)
+		plan.newAttempt.Status = actions_model.AggregateJobStatus(newJobsToRerun)
 		if err := actions_model.UpdateRunAttempt(ctx, plan.newAttempt, "status"); err != nil {
 			return err
 		}
@@ -240,7 +244,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
 
 	CreateCommitStatusForRunJobs(ctx, plan.run, newJobs...)
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, newJobs)
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, newJobsToRerun)
 
 	return plan.newAttempt, nil
 }
@@ -318,4 +322,80 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 		ConcurrencyCancel:      templateJob.ConcurrencyCancel,
 		TokenPermissions:       templateJob.TokenPermissions,
 	}
+}
+
+// createOriginalAttemptForLegacyRun creates a real attempt=1 for a legacy run and updates the existing legacy jobs, artifacts, and tasks in place
+// so the original execution becomes attempt-aware before the rerun plan is built and all subsequent logic can use real attempts.
+func createOriginalAttemptForLegacyRun(ctx context.Context, run *actions_model.ActionRun) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		originalAttempt := &actions_model.ActionRunAttempt{
+			RepoID:        run.RepoID,
+			RunID:         run.ID,
+			Attempt:       1,
+			TriggerUserID: run.TriggerUserID,
+
+			// Legacy concurrency fields on ActionRun are intentionally NOT backfilled onto this original attempt.
+			// They only matter while a run is actively being scheduled, and backfilling them for completed legacy runs
+			// would add migration/runtime cost without changing any future concurrency behavior.
+
+			Status:  run.Status,
+			Started: run.Started,
+			Stopped: run.Stopped,
+		}
+		if err := db.Insert(ctx, originalAttempt); err != nil {
+			if _, getErr := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, originalAttempt.Attempt); getErr == nil {
+				return util.NewAlreadyExistErrorf("workflow run attempt %d for run %d already exists", originalAttempt.Attempt, run.ID)
+			}
+			return err
+		}
+
+		// Backfill Created to the original run's trigger time.
+		// xorm's "created" tag always overwrites with the current time on insert,
+		// so we fix it here within the same transaction.
+		originalAttempt.Created = run.Created
+		if _, err := db.GetEngine(ctx).ID(originalAttempt.ID).Cols("created").NoAutoTime().
+			Update(originalAttempt); err != nil {
+			return fmt.Errorf("backfill original attempt created time: %w", err)
+		}
+
+		jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, 0)
+		if err != nil {
+			return fmt.Errorf("load legacy run jobs: %w", err)
+		}
+		jobIDs := make([]int64, 0, len(jobs))
+
+		// backfill attempt related fields for jobs
+		for i, job := range jobs {
+			jobIDs = append(jobIDs, job.ID)
+
+			job.RunAttemptID = originalAttempt.ID
+			job.Attempt = originalAttempt.Attempt
+			job.AttemptJobID = int64(i + 1)
+			if _, err := db.GetEngine(ctx).ID(job.ID).Cols("run_attempt_id", "attempt", "attempt_job_id").Update(job); err != nil {
+				return fmt.Errorf("backfill legacy run jobs: %w", err)
+			}
+		}
+
+		// backfill "attempt" field for tasks
+		if len(jobIDs) > 0 {
+			if _, err := db.GetEngine(ctx).
+				In("job_id", jobIDs).
+				Cols("attempt").
+				Update(&actions_model.ActionTask{Attempt: originalAttempt.Attempt}); err != nil {
+				return fmt.Errorf("backfill legacy tasks: %w", err)
+			}
+		}
+
+		// backfill "run_attempt_id" field for artifacts
+		if _, err := db.GetEngine(ctx).
+			Where("run_id=? AND run_attempt_id=0", run.ID).
+			Cols("run_attempt_id").
+			Update(&actions_model.ActionArtifact{RunAttemptID: originalAttempt.ID}); err != nil {
+			return fmt.Errorf("backfill legacy artifacts: %w", err)
+		}
+
+		// update "latest_attempt_id" for the run
+		run.LatestAttemptID = originalAttempt.ID
+		return actions_model.UpdateRun(ctx, run, "latest_attempt_id")
+	})
 }
