@@ -431,8 +431,9 @@ img.ui.avatar,
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
-.ui .message.flash-message {
-  text-align: center;
+.ui.message.flash-message pre {
+  white-space: pre-line;
+  margin: 0;
 }
 
 .ui .header > i + .content {
@@ -863,6 +864,13 @@ table th[data-sortt-desc] .svg {
 .ui.ui.labeled.button {
   gap: 0;
   align-items: stretch;
+}
+
+/* can be used to replace "ui relaxed list" or "tw-flex tw-flex-col tw-gap-xxx" when we need more flexible layout */
+.flex-relaxed-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-block);
 }
 
 .ui.list.flex-items-block > .item,

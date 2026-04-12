@@ -316,7 +316,6 @@
   "install.invalid_db_table": "The database table \"%s\" is invalid: %v",
   "install.invalid_repo_path": "The repository root path is invalid: %v",
   "install.invalid_app_data_path": "The app data path is invalid: %v",
-  "install.run_user_not_match": "The 'run as' username is not the current username: %s -> %s",
   "install.internal_token_failed": "Failed to generate internal token: %v",
   "install.secret_key_failed": "Failed to generate secret key: %v",
   "install.save_config_failed": "Failed to save configuration: %v",

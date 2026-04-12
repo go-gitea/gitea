@@ -45,8 +45,8 @@ func List(ctx *context.Context) {
 
 func FetchActionTest(ctx *context.Context) {
 	_ = ctx.Req.ParseForm()
-	ctx.Flash.Info("fetch-action: " + ctx.Req.Method + " " + ctx.Req.RequestURI + "<br>" +
-		"Form: " + ctx.Req.Form.Encode() + "<br>" +
+	ctx.Flash.Info("fetch-action: " + ctx.Req.Method + " " + ctx.Req.RequestURI + "\n" +
+		"Form: " + ctx.Req.Form.Encode() + "\n" +
 		"PostForm: " + ctx.Req.PostForm.Encode(),
 	)
 	time.Sleep(2 * time.Second)
@@ -192,9 +192,29 @@ func prepareMockData(ctx *context.Context) {
 		prepareMockDataBadgeActionsSvg(ctx)
 	case "/devtest/relative-time":
 		prepareMockDataRelativeTime(ctx)
+	case "/devtest/toast-and-message":
+		prepareMockDataToastAndMessage(ctx)
 	case "/devtest/unicode-escape":
 		prepareMockDataUnicodeEscape(ctx)
 	}
+}
+
+func prepareMockDataToastAndMessage(ctx *context.Context) {
+	msgWithDetails, _ := ctx.RenderToHTML("base/alert_details", map[string]any{
+		"Message": "message with details <script>escape xss</script>",
+		"Summary": "summary with details",
+		"Details": "details line 1\n details line 2\n details line 3",
+	})
+	msgWithSummary, _ := ctx.RenderToHTML("base/alert_details", map[string]any{
+		"Message": "message with summary <script>escape xss</script>",
+		"Summary": "summary only",
+	})
+
+	ctx.Flash.ErrorMsg = string(msgWithDetails)
+	ctx.Flash.WarningMsg = string(msgWithSummary)
+	ctx.Flash.InfoMsg = "a long message with line break\nthe second line <script>removed xss</script>"
+	ctx.Flash.SuccessMsg = "single line message <script>removed xss</script>"
+	ctx.Data["Flash"] = ctx.Flash
 }
 
 func prepareMockDataUnicodeEscape(ctx *context.Context) {
@@ -223,8 +243,8 @@ func TmplCommon(ctx *context.Context) {
 	prepareMockData(ctx)
 	if ctx.Req.Method == http.MethodPost {
 		_ = ctx.Req.ParseForm()
-		ctx.Flash.Info("form: "+ctx.Req.Method+" "+ctx.Req.RequestURI+"<br>"+
-			"Form: "+ctx.Req.Form.Encode()+"<br>"+
+		ctx.Flash.Info("form: "+ctx.Req.Method+" "+ctx.Req.RequestURI+"\n"+
+			"Form: "+ctx.Req.Form.Encode()+"\n"+
 			"PostForm: "+ctx.Req.PostForm.Encode(),
 			true,
 		)
