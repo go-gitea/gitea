@@ -44,7 +44,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
+          cache: true
           cache-dependency-path: pnpm-lock.yaml
       - run: make deps-py
       - run: make deps-frontend
@@ -75,6 +75,8 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+          cache: true
+          cache-dependency-path: pnpm-lock.yaml
       - run: make deps-frontend
       - run: make lint-json
 
@@ -90,7 +92,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
+          cache: true
           cache-dependency-path: pnpm-lock.yaml
       - run: make deps-frontend
       - run: make lint-swagger
@@ -172,7 +174,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
+          cache: true
           cache-dependency-path: pnpm-lock.yaml
       - run: make deps-frontend
       - run: make lint-frontend
@@ -226,7 +228,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
+          cache: true
           cache-dependency-path: pnpm-lock.yaml
       - run: make deps-frontend
       - run: make lint-md
