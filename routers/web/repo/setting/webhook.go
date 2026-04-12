@@ -450,16 +450,20 @@ func MatrixHooksEditPost(ctx *context.Context) {
 	editWebhook(ctx, matrixHookParams(ctx))
 }
 
+func matrixRoomIDEncode(roomID string) string {
+	// See https://spec.matrix.org/latest/appendices/#room-ids
+	// Demo links: https://spec.matrix.org/latest/appendices/#matrixto-navigation
+	// API spec: https://spec.matrix.org/v1.18/client-server-api/#sending-events-to-a-room
+	// But some of their examples also shows links like: "PUT /rooms/!roomid:domain/state/m.example.event"
+	return strings.NewReplacer("%21", "!", "%3A", ":").Replace(url.PathEscape(roomID))
+}
+
 func matrixHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewMatrixHookForm)
 
 	return webhookParams{
-		Type: webhook_module.MATRIX,
-		// See https://spec.matrix.org/latest/appendices/#room-ids
-		// Demo links: https://spec.matrix.org/latest/appendices/#matrixto-navigation
-		// It seems that only `!` needs to be kept
-		URL: fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL,
-			strings.NewReplacer("%21", "!").Replace(url.PathEscape(form.RoomID))),
+		Type:        webhook_module.MATRIX,
+		URL:         fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, matrixRoomIDEncode(form.RoomID)),
 		ContentType: webhook.ContentTypeJSON,
 		HTTPMethod:  http.MethodPut,
 		WebhookForm: form.WebhookForm,
