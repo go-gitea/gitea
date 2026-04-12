@@ -461,6 +461,7 @@ func matrixRoomIDEncode(roomID string) string {
 func matrixHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewMatrixHookForm)
 
+	// TODO: need to migrate to the latest (v3) API: https://spec.matrix.org/v1.18/client-server-api/
 	return webhookParams{
 		Type:        webhook_module.MATRIX,
 		URL:         fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, matrixRoomIDEncode(form.RoomID)),
