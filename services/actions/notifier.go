@@ -810,8 +810,7 @@ func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *rep
 		log.Error("GetActionWorkflow: %v", err)
 		return
 	}
-	run.Repo = repo
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, repo, run)
 	if err != nil {
 		log.Error("ToActionWorkflowRun: %v", err)
 		return
