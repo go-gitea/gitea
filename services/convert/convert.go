@@ -248,10 +248,9 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 }
 
 func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
-	if run.TriggerUser == nil {
-		if err := run.LoadAttributes(ctx); err != nil {
-			return nil, err
-		}
+	run.Repo = repo
+	if err := run.LoadAttributes(ctx); err != nil {
+		return nil, err
 	}
 	status, conclusion := ToActionsStatus(run.Status)
 	return &api.ActionWorkflowRun{
