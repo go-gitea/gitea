@@ -3985,6 +3985,11 @@
             "type": "array",
             "x-go-name": "Events"
           },
+          "name": {
+            "description": "Optional human-readable name for the webhook",
+            "type": "string",
+            "x-go-name": "Name"
+          },
           "type": {
             "enum": [
               "dingtalk",
@@ -5229,6 +5234,11 @@
             },
             "type": "array",
             "x-go-name": "Events"
+          },
+          "name": {
+            "description": "Optional human-readable name",
+            "type": "string",
+            "x-go-name": "Name"
           }
         },
         "type": "object",
@@ -5267,6 +5277,12 @@
           "body": {
             "type": "string",
             "x-go-name": "Body"
+          },
+          "content_version": {
+            "description": "The current version of the issue content to detect conflicts during editing",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ContentVersion"
           },
           "due_date": {
             "format": "date-time",
@@ -5436,6 +5452,12 @@
             "description": "The new description body for the pull request",
             "type": "string",
             "x-go-name": "Body"
+          },
+          "content_version": {
+            "description": "The current version of the pull request content to detect conflicts during editing",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ContentVersion"
           },
           "due_date": {
             "format": "date-time",
@@ -6637,6 +6659,11 @@
             "type": "integer",
             "x-go-name": "ID"
           },
+          "name": {
+            "description": "Optional human-readable name for the webhook",
+            "type": "string",
+            "x-go-name": "Name"
+          },
           "type": {
             "description": "The type of the webhook (e.g., gitea, slack, discord)",
             "type": "string",
@@ -6723,6 +6750,12 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "Comments"
+          },
+          "content_version": {
+            "description": "The version of the issue content for optimistic locking",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ContentVersion"
           },
           "created_at": {
             "format": "date-time",
@@ -8251,6 +8284,12 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "Comments"
+          },
+          "content_version": {
+            "description": "The version of the pull request content for optimistic locking",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ContentVersion"
           },
           "created_at": {
             "format": "date-time",
@@ -14026,6 +14065,38 @@
       }
     },
     "/orgs/{org}/repos": {
+      "delete": {
+        "operationId": "orgDeleteRepos",
+        "parameters": [
+          {
+            "description": "name of the organization",
+            "in": "path",
+            "name": "org",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/empty"
+          },
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Delete all repositories in an organization",
+        "tags": [
+          "organization"
+        ]
+      },
       "get": {
         "operationId": "orgListRepos",
         "parameters": [
@@ -14327,6 +14398,7 @@
                 "rpm",
                 "rubygems",
                 "swift",
+                "terraform",
                 "vagrant"
               ],
               "type": "string"
@@ -14356,6 +14428,50 @@
       }
     },
     "/packages/{owner}/{type}/{name}": {
+      "delete": {
+        "operationId": "deletePackage",
+        "parameters": [
+          {
+            "description": "owner of the package",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "type of the package",
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the package",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Delete a package",
+        "tags": [
+          "package"
+        ]
+      },
       "get": {
         "operationId": "listPackageVersions",
         "parameters": [
@@ -14566,7 +14682,7 @@
     },
     "/packages/{owner}/{type}/{name}/{version}": {
       "delete": {
-        "operationId": "deletePackage",
+        "operationId": "deletePackageVersion",
         "parameters": [
           {
             "description": "owner of the package",
@@ -14613,7 +14729,7 @@
             "$ref": "#/components/responses/notFound"
           }
         },
-        "summary": "Delete a package",
+        "summary": "Delete a package version",
         "tags": [
           "package"
         ]
@@ -21439,6 +21555,7 @@
         ]
       },
       "patch": {
+        "description": "Pass `content_version` to enable optimistic locking on body edits.\nIf the version doesn't match the current value, the request fails with 409 Conflict.\n",
         "operationId": "issueEditIssue",
         "parameters": [
           {

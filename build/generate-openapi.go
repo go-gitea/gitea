@@ -235,7 +235,7 @@ func extractSharedEnums(doc *openapi3.T) {
 		}
 	}
 
-	for key, usages := range enumGroups {
+	for _, usages := range enumGroups {
 		if len(usages) < 2 {
 			continue
 		}
