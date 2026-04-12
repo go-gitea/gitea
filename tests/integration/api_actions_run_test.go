@@ -34,11 +34,11 @@ func TestAPIActionsWorkflowRun(t *testing.T) {
 	t.Run("DeleteRunGeneral", testAPIActionsDeleteRunGeneral)
 
 	t.Run("RerunWorkflowRun", func(t *testing.T) {
-		tests.PrepareTestEnv(t)
+		defer tests.PrepareTestEnv(t)()
 		testAPIActionsRerunWorkflowRun(t)
 	})
 	t.Run("RerunWorkflowJob", func(t *testing.T) {
-		tests.PrepareTestEnv(t)
+		defer tests.PrepareTestEnv(t)()
 		testAPIActionsRerunWorkflowJob(t)
 	})
 }
