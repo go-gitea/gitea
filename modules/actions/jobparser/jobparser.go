@@ -14,6 +14,23 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
+// deepCopyYamlNode creates a deep copy of a yaml.Node to prevent mutations
+// from affecting the original. This is important because yaml.Node.Content
+// is a slice of pointers, and a shallow copy would share the same child nodes.
+func deepCopyYamlNode(node *yaml.Node) *yaml.Node {
+	if node == nil {
+		return nil
+	}
+	nodeCopy := *node
+	if node.Content != nil {
+		nodeCopy.Content = make([]*yaml.Node, len(node.Content))
+		for i, child := range node.Content {
+			nodeCopy.Content[i] = deepCopyYamlNode(child)
+		}
+	}
+	return &nodeCopy
+}
+
 func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	origin, err := model.ReadWorkflow(bytes.NewReader(content))
 	if err != nil {
@@ -31,10 +48,11 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	}
 	results := map[string]*JobResult{}
 	for id, job := range origin.Jobs {
+		outputs := pc.jobOutputs[id]
 		results[id] = &JobResult{
 			Needs:   job.Needs(),
 			Result:  pc.jobResults[id],
-			Outputs: nil, // not supported yet
+			Outputs: outputs,
 		}
 	}
 
@@ -49,7 +67,32 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 
 	for i, id := range ids {
 		job := jobs[i]
-		matricxes, err := getMatrixes(origin.GetJob(id))
+		originJob := origin.GetJob(id)
+
+		if originJob == nil {
+			return nil, fmt.Errorf("job %s not found in origin workflow", id)
+		}
+
+		// Clone the origin job to avoid modifying the shared object
+		evaluatedJob := *originJob
+		if originJob.Strategy != nil {
+			stratCopy := *originJob.Strategy
+			// Deep copy the RawMatrix yaml.Node to prevent mutations from affecting the original
+			stratCopy.RawMatrix = *deepCopyYamlNode(&originJob.Strategy.RawMatrix)
+			evaluatedJob.Strategy = &stratCopy
+		}
+
+		// Create an evaluator with access to needs/outputs for matrix evaluation
+		matrixEvaluator := NewExpressionEvaluator(NewInterpeter(id, &evaluatedJob, nil, pc.gitContext, results, pc.vars, pc.inputs))
+
+		// Evaluate the matrix before expanding it
+		if evaluatedJob.Strategy != nil && evaluatedJob.Strategy.RawMatrix.Kind != 0 {
+			if err := matrixEvaluator.EvaluateYamlNode(&evaluatedJob.Strategy.RawMatrix); err != nil {
+				return nil, fmt.Errorf("error evaluating matrix for job %s: %w", id, err)
+			}
+		}
+
+		matricxes, err := getMatrixes(&evaluatedJob)
 		if err != nil {
 			return nil, fmt.Errorf("getMatrixes: %w", err)
 		}
@@ -59,9 +102,9 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 				job.Name = id
 			}
 			job.Strategy.RawMatrix = encodeMatrix(matrix)
-			evaluator := NewExpressionEvaluator(NewInterpeter(id, origin.GetJob(id), matrix, pc.gitContext, results, pc.vars, pc.inputs))
+			evaluator := NewExpressionEvaluator(NewInterpeter(id, &evaluatedJob, matrix, pc.gitContext, results, pc.vars, pc.inputs))
 			job.Name = nameWithMatrix(job.Name, matrix, evaluator)
-			runsOn := origin.GetJob(id).RunsOn()
+			runsOn := evaluatedJob.RunsOn()
 			for i, v := range runsOn {
 				runsOn[i] = evaluator.Interpolate(v)
 			}
@@ -89,6 +132,12 @@ func WithJobResults(results map[string]string) ParseOption {
 	}
 }
 
+func WithJobOutputs(outputs map[string]map[string]string) ParseOption {
+	return func(c *parseContext) {
+		c.jobOutputs = outputs
+	}
+}
+
 func WithGitContext(context *model.GithubContext) ParseOption {
 	return func(c *parseContext) {
 		c.gitContext = context
@@ -109,6 +158,7 @@ func WithInputs(inputs map[string]any) ParseOption {
 
 type parseContext struct {
 	jobResults map[string]string
+	jobOutputs map[string]map[string]string
 	gitContext *model.GithubContext
 	vars       map[string]string
 	inputs     map[string]any

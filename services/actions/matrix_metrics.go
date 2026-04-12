@@ -34,6 +34,7 @@ var (
 	matrixMetricsInstance *MatrixMetrics
 	metricsOnce           sync.Once
 )
+
 // GetMatrixMetrics returns the global matrix metrics instance
 func GetMatrixMetrics() *MatrixMetrics {
 	metricsOnce.Do(func() {

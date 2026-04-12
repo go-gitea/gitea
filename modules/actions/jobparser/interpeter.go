@@ -33,6 +33,10 @@ func NewInterpeter(
 		},
 		JobID: jobID,
 	}
+
+	// Add the current job to the workflow so run.Job() doesn't return nil
+	run.Workflow.Jobs[jobID] = job
+
 	for id, result := range results {
 		need := yaml.Node{}
 		_ = need.Encode(result.Needs)
