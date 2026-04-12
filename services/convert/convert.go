@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -222,13 +223,12 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 	}
 }
 
-// ToActionTask convert a actions_model.ActionTask to an api.ActionTask
+// ToActionTask convert an actions_model.ActionTask to an api.ActionTask
 func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.ActionTask, error) {
+	// don't need Steps here, only need to load Job attributes
 	if err := t.LoadJobAttributes(ctx); err != nil {
 		return nil, err
 	}
-
-	url := strings.TrimSuffix(setting.AppURL, "/") + t.GetRunLink()
 
 	return &api.ActionTask{
 		ID:           t.ID,
@@ -240,23 +240,25 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 		DisplayTitle: t.Job.Run.Title,
 		Status:       t.Status.String(),
 		WorkflowID:   t.Job.Run.WorkflowID,
-		URL:          url,
+		URL:          httplib.MakeAbsoluteURL(ctx, t.GetRunLink()),
 		CreatedAt:    t.Created.AsLocalTime(),
 		UpdatedAt:    t.Updated.AsLocalTime(),
 		RunStartedAt: t.Started.AsLocalTime(),
 	}, nil
 }
 
-func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
-	run.Repo = repo
-	if err := run.LoadAttributes(ctx); err != nil {
-		return nil, err
+func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
+	if run.Repo == nil || run.TriggerUser == nil {
+		if err := run.LoadAttributes(ctx); err != nil {
+			return nil, err
+		}
 	}
+
 	status, conclusion := ToActionsStatus(run.Status)
 	return &api.ActionWorkflowRun{
 		ID:           run.ID,
-		URL:          fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
-		HTMLURL:      run.HTMLURL(),
+		URL:          fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID),
+		HTMLURL:      run.HTMLURL(ctx),
 		RunNumber:    run.Index,
 		StartedAt:    run.Started.AsLocalTime(),
 		CompletedAt:  run.Stopped.AsLocalTime(),
@@ -267,7 +269,7 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		Status:       status,
 		Conclusion:   conclusion,
 		Path:         fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
-		Repository:   ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Repository:   ToRepo(ctx, run.Repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		TriggerActor: ToUser(ctx, run.TriggerUser, nil),
 		// We do not have a way to get a different User for the actor than the trigger user
 		Actor: ToUser(ctx, run.TriggerUser, nil),

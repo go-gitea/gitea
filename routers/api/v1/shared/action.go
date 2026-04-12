@@ -73,7 +73,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 			repository = ctx.Repo.Repository
 		} else {
 			if jobs[i].Run == nil || jobs[i].Run.Repo == nil {
-				ctx.APIErrorInternal(fmt.Errorf("job %d has no associated run or repository", jobs[i].ID))
+				ctx.APIErrorNotFound(fmt.Sprintf("job %d has no associated run or repository", jobs[i].ID))
 				return
 			}
 			repository = jobs[i].Run.Repo
@@ -176,33 +176,29 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+
+	isRepoLevel := repoID != 0 && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repoID
+	if isRepoLevel {
+		for i := range runs {
+			runs[i].Repo = ctx.Repo.Repository
+		}
+	}
 	if err := runList.LoadRepos(ctx); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
+
 	repos := repo_model.RepositoryList(container.FilterSlice(runs, func(r *actions_model.ActionRun) (*repo_model.Repository, bool) {
 		return r.Repo, r.Repo != nil
 	}))
-	if err := repos.LoadAttributes(ctx); err != nil {
+	if err := repos.LoadOwners(ctx); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
 	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
-	isRepoLevel := repoID != 0 && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repoID
 	for i := range runs {
-		var repository *repo_model.Repository
-		if isRepoLevel {
-			repository = ctx.Repo.Repository
-		} else {
-			if runs[i].Repo == nil {
-				ctx.APIErrorInternal(fmt.Errorf("run %d has no associated repository", runs[i].ID))
-				return
-			}
-			repository = runs[i].Repo
-		}
-
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, repository, runs[i])
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i])
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
