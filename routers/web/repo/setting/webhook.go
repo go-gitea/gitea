@@ -455,7 +455,7 @@ func matrixHookParams(ctx *context.Context) webhookParams {
 
 	return webhookParams{
 		Type:        webhook_module.MATRIX,
-		URL:         fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, url.PathEscape(form.RoomID)),
+		URL:         fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, strings.ReplaceAll(url.PathEscape(form.RoomID), "%21", "!")),
 		ContentType: webhook.ContentTypeJSON,
 		HTTPMethod:  http.MethodPut,
 		WebhookForm: form.WebhookForm,
