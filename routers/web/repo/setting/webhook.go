@@ -456,6 +456,8 @@ func matrixHookParams(ctx *context.Context) webhookParams {
 	return webhookParams{
 		Type: webhook_module.MATRIX,
 		// See https://spec.matrix.org/latest/appendices/#room-ids
+		// Demo links: https://spec.matrix.org/latest/appendices/#matrixto-navigation
+		// It seems that only `!` needs to be kept
 		URL: fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL,
 			strings.NewReplacer("%21", "!").Replace(url.PathEscape(form.RoomID))),
 		ContentType: webhook.ContentTypeJSON,
