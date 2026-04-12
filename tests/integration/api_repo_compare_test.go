@@ -5,68 +5,63 @@ package integration
 
 import (
 	"net/http"
+	"net/url"
 	"testing"
-	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPICompareBranches(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	// Login as User2.
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		// Login as User2.
+		session := loginUser(t, user.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	t.Run("CompareBranches", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b").AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
+		t.Run("CompareBranches", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b").AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiResp *api.Compare
-		DecodeJSON(t, resp, &apiResp)
+			var apiResp *api.Compare
+			DecodeJSON(t, resp, &apiResp)
 
-		assert.Equal(t, 2, apiResp.TotalCommits)
-		assert.Len(t, apiResp.Commits, 2)
-	})
+			assert.Equal(t, 2, apiResp.TotalCommits)
+			assert.Len(t, apiResp.Commits, 2)
+		})
 
-	t.Run("CompareCommits", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/808038d2f71b0ab02099...c8e31bc7688741a5287f").AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
+		t.Run("CompareCommits", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/808038d2f71b0ab02099...c8e31bc7688741a5287f").AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiResp *api.Compare
-		DecodeJSON(t, resp, &apiResp)
+			var apiResp *api.Compare
+			DecodeJSON(t, resp, &apiResp)
 
-		assert.Equal(t, 1, apiResp.TotalCommits)
-		assert.Len(t, apiResp.Commits, 1)
-	})
-	t.Run("CompareForkOnlyCommit", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+			assert.Equal(t, 1, apiResp.TotalCommits)
+			assert.Len(t, apiResp.Commits, 1)
+		})
 
-		user1Sess := loginUser(t, "user1")
-		user1Token := getTokenForLoggedInUser(t, user1Sess, auth_model.AccessTokenScopeWriteRepository)
+		t.Run("CompareForkOnlyCommit", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			user13 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13})
+			repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
+			user13Sess := loginUser(t, "user13")
+			user13Token := getTokenForLoggedInUser(t, user13Sess, auth_model.AccessTokenScopeWriteRepository)
 
-		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{}).
-			AddTokenAuth(user1Token)
-		MakeRequest(t, req, http.StatusAccepted)
-
-		time.Sleep(500 * time.Millisecond)
-
-		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/compare/master...user1:master").
-			AddTokenAuth(user1Token)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		var apiResp *api.Compare
-		DecodeJSON(t, resp, &apiResp)
-
-		assert.NotNil(t, apiResp)
+			_, err := createFileInBranch(user13, repo11, createFileInBranchOptions{OldBranch: "master", NewBranch: "new-branch"}, map[string]string{"file.txt": "content"})
+			require.NoError(t, err)
+			req := NewRequestf(t, "GET", "/api/v1/repos/user12/repo10/compare/master...user13:new-branch").AddTokenAuth(user13Token)
+			MakeRequest(t, req, http.StatusOK)
+		})
 	})
 }
