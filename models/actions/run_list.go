@@ -18,21 +18,10 @@ import (
 
 type RunList []*ActionRun
 
-// GetUserIDs returns a slice of user's id
-func (runs RunList) GetUserIDs() []int64 {
-	return container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
-		return run.TriggerUserID, true
-	})
-}
-
-func (runs RunList) GetRepoIDs() []int64 {
-	return container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
-		return run.RepoID, true
-	})
-}
-
 func (runs RunList) LoadTriggerUser(ctx context.Context) error {
-	userIDs := runs.GetUserIDs()
+	userIDs := container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.TriggerUserID, run.TriggerUser == nil
+	})
 	users := make(map[int64]*user_model.User, len(userIDs))
 	if err := db.GetEngine(ctx).In("id", userIDs).Find(&users); err != nil {
 		return err
@@ -51,7 +40,9 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 }
 
 func (runs RunList) LoadRepos(ctx context.Context) error {
-	repoIDs := runs.GetRepoIDs()
+	repoIDs := container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.RepoID, run.Repo == nil
+	})
 	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
 	if err != nil {
 		return err

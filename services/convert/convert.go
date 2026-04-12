@@ -247,17 +247,18 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	}, nil
 }
 
-func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
-	if run.TriggerUser == nil {
+func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
+	if run.Repo == nil || run.TriggerUser == nil {
 		if err := run.LoadAttributes(ctx); err != nil {
 			return nil, err
 		}
 	}
+
 	status, conclusion := ToActionsStatus(run.Status)
 	return &api.ActionWorkflowRun{
 		ID:           run.ID,
-		URL:          fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
-		HTMLURL:      run.HTMLURL(),
+		URL:          fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID),
+		HTMLURL:      run.HTMLURL(ctx),
 		RunNumber:    run.Index,
 		StartedAt:    run.Started.AsLocalTime(),
 		CompletedAt:  run.Stopped.AsLocalTime(),
@@ -268,7 +269,7 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		Status:       status,
 		Conclusion:   conclusion,
 		Path:         fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
-		Repository:   ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Repository:   ToRepo(ctx, run.Repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		TriggerActor: ToUser(ctx, run.TriggerUser, nil),
 		// We do not have a way to get a different User for the actor than the trigger user
 		Actor: ToUser(ctx, run.TriggerUser, nil),
