@@ -121,11 +121,9 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	pageMetaData.MilestonesData.SelectedMilestoneID = ctx.FormInt64("milestone")
-	pageMetaData.ProjectsData.SelectedProjectID = ctx.FormInt64("project")
-	if pageMetaData.ProjectsData.SelectedProjectID > 0 {
-		if len(ctx.Req.URL.Query().Get("project")) > 0 {
-			ctx.Data["redirect_after_creation"] = "project"
-		}
+	pageMetaData.ProjectsData.SelectedProjectIDs, _ = base.StringsToInt64s(strings.Split(ctx.FormString("project"), ","))
+	if len(pageMetaData.ProjectsData.SelectedProjectIDs) == 1 {
+		ctx.Data["redirect_after_creation"] = "project"
 	}
 
 	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
@@ -172,7 +170,7 @@ func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) templat
 	flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 		"Message": ctx.Tr("repo.issues.choose.ignore_invalid_templates"),
 		"Summary": ctx.Tr("repo.issues.choose.invalid_templates", len(errs)),
-		"Details": utils.SanitizeFlashErrorString(strings.Join(lines, "\n")),
+		"Details": utils.EscapeFlashErrorString(strings.Join(lines, "\n")),
 	})
 	if err != nil {
 		log.Debug("render flash error: %v", err)
@@ -273,7 +271,7 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 		ctx.NotFound(nil)
 		return ret
 	}
-	pageMetaData.ProjectsData.SelectedProjectID = form.ProjectID
+	pageMetaData.ProjectsData.SelectedProjectIDs = util.Iif(form.ProjectID > 0, []int64{form.ProjectID}, nil)
 
 	// prepare assignees
 	candidateAssignees := toSet(pageMetaData.AssigneesData.CandidateAssignees, func(user *user_model.User) int64 { return user.ID })

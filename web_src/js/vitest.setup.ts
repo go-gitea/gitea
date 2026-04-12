@@ -13,7 +13,7 @@ await import('./globals.ts');
 window.config = {
   appUrl: 'http://localhost:3000/',
   appSubUrl: '',
-  assetUrlPrefix: '',
+  assetUrlPrefix: '/assets',
   sharedWorkerUri: '',
   runModeIsProd: true,
   customEmojis: {},

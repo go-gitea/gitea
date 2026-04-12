@@ -6,14 +6,6 @@
   overflow-x: auto;
 }
 
-.runner-container .runner-new-text {
-  color: var(--color-white);
-}
-
-.runner-container #runner-new:hover .runner-new-text {
-  color: var(--color-white) !important;
-}
-
 .runner-container .task-status-success {
   background-color: var(--color-green);
   color: var(--color-white);

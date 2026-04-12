@@ -215,6 +215,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 	w := &webhook.Webhook{
 		OwnerID:         ownerID,
 		RepoID:          repoID,
+		Name:            strings.TrimSpace(form.Name),
 		URL:             form.Config["url"],
 		ContentType:     webhook.ToHookContentType(form.Config["content_type"]),
 		Secret:          form.Config["secret"],
@@ -390,6 +391,10 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 
 	if form.Active != nil {
 		w.IsActive = *form.Active
+	}
+
+	if form.Name != nil {
+		w.Name = strings.TrimSpace(*form.Name)
 	}
 
 	if err := webhook.UpdateWebhook(ctx, w); err != nil {

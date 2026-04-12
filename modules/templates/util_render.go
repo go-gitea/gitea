@@ -16,6 +16,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
@@ -39,7 +40,7 @@ func NewRenderUtils(ctx reqctx.RequestContext) *RenderUtils {
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
 func (ut *RenderUtils) RenderCommitMessage(msg string, repo *repo.Repository) template.HTML {
-	cleanMsg := template.HTMLEscapeString(msg)
+	cleanMsg := template.HTML(template.HTMLEscapeString(msg))
 	// we can safely assume that it will not return any error, since there shouldn't be any special HTML.
 	// "repo" can be nil when rendering commit messages for deleted repositories in a user's dashboard feed.
 	fullMessage, err := markup.PostProcessCommitMessage(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), cleanMsg)
@@ -47,7 +48,7 @@ func (ut *RenderUtils) RenderCommitMessage(msg string, repo *repo.Repository) te
 		log.Error("PostProcessCommitMessage: %v", err)
 		return ""
 	}
-	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
+	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
 	if len(msgLines) == 0 {
 		return ""
 	}
@@ -90,12 +91,14 @@ func (ut *RenderUtils) RenderCommitBody(msg string, repo *repo.Repository) templ
 		return ""
 	}
 
-	renderedMessage, err := markup.PostProcessCommitMessage(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), template.HTMLEscapeString(msgLine))
+	rctx := renderhelper.NewRenderContextRepoComment(ut.ctx, repo)
+	htmlContent := template.HTML(template.HTMLEscapeString(msgLine))
+	renderedMessage, err := markup.PostProcessCommitMessage(rctx, htmlContent)
 	if err != nil {
 		log.Error("PostProcessCommitMessage: %v", err)
 		return ""
 	}
-	return template.HTML(renderedMessage)
+	return renderedMessage
 }
 
 // Match text that is between back ticks.
@@ -276,4 +279,54 @@ func (ut *RenderUtils) RenderThemeItem(info *webtheme.ThemeMetaInfo, iconSize in
 	icon := svg.RenderHTML(svgName, iconSize)
 	extraIcon := svg.RenderHTML(info.GetExtraIconName(), iconSize)
 	return htmlutil.HTMLFormat(`<div class="theme-menu-item" data-tooltip-content="%s">%s %s %s</div>`, info.GetDescription(), icon, info.DisplayName, extraIcon)
+}
+
+func (ut *RenderUtils) RenderFlashMessage(typ, msg string) template.HTML {
+	msg = strings.TrimSpace(msg)
+	if msg == "" {
+		return ""
+	}
+
+	cls := typ
+	// legacy logic: "negative" for error, "positive" for success
+	switch cls {
+	case "error":
+		cls = "negative"
+	case "success":
+		cls = "positive"
+	}
+
+	var msgContent template.HTML
+	if strings.Contains(msg, "</pre>") || strings.Contains(msg, "</details>") || strings.Contains(msg, "</ul>") || strings.Contains(msg, "</div>") {
+		// If the message contains some known "block" elements, no need to do more alignment or line-break processing, just sanitize it directly.
+		msgContent = sanitizeHTML(msg)
+	} else if !strings.Contains(msg, "\n") {
+		// If the message is a single line, center-align it by wrapping it
+		msgContent = htmlutil.HTMLFormat(`<div class="tw-text-center">%s</div>`, sanitizeHTML(msg))
+	} else {
+		// For a multi-line message, preserve line breaks, and left-align it.
+		msgContent = htmlutil.HTMLFormat(`%s`, sanitizeHTML(strings.ReplaceAll(msg, "\n", "<br>")))
+	}
+	return htmlutil.HTMLFormat(`<div class="ui %s message flash-message flash-%s">%s</div>`, cls, typ, msgContent)
+}
+
+func (ut *RenderUtils) RenderUnicodeEscapeToggleButton(escapeStatus *charset.EscapeStatus) template.HTML {
+	if escapeStatus == nil || !escapeStatus.Escaped {
+		return ""
+	}
+	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	var title template.HTML
+	if escapeStatus.HasAmbiguous {
+		title += locale.Tr("repo.ambiguous_runes_line")
+	} else if escapeStatus.HasInvisible {
+		title += locale.Tr("repo.invisible_runes_line")
+	}
+	return htmlutil.HTMLFormat(`<button type="button" class="toggle-escape-button btn interact-bg" title="%s"></button>`, title)
+}
+
+func (ut *RenderUtils) RenderUnicodeEscapeToggleTd(combined, escapeStatus *charset.EscapeStatus) template.HTML {
+	if combined == nil || !combined.Escaped {
+		return ""
+	}
+	return `<td class="lines-escape">` + ut.RenderUnicodeEscapeToggleButton(escapeStatus) + `</td>`
 }

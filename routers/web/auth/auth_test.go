@@ -96,6 +96,37 @@ func TestWebAuthOAuth2(t *testing.T) {
 		assert.Contains(t, ctx.Flash.ErrorMsg, "auth.oauth.signin.error.general")
 	})
 
+	t.Run("RedirectSingleProvider", func(t *testing.T) {
+		enablePassword := &setting.Service.EnablePasswordSignInForm
+		enableOpenID := &setting.Service.EnableOpenIDSignIn
+		enablePasskey := &setting.Service.EnablePasskeyAuth
+		defer test.MockVariableValue(enablePassword, false)()
+		defer test.MockVariableValue(enableOpenID, false)()
+		defer test.MockVariableValue(enablePasskey, false)()
+
+		testSignIn := func(t *testing.T, link string, expectedCode int, expectedRedirect string) {
+			ctx, resp := contexttest.MockContext(t, link)
+			SignIn(ctx)
+			assert.Equal(t, expectedCode, resp.Code)
+			if expectedCode == http.StatusSeeOther {
+				assert.Equal(t, expectedRedirect, test.RedirectURL(resp))
+			}
+		}
+		testSignIn(t, "/user/login", http.StatusSeeOther, "/user/oauth2/dummy-auth-source")
+		testSignIn(t, "/user/login?redirect_to=/", http.StatusSeeOther, "/user/oauth2/dummy-auth-source?redirect_to=%2F")
+
+		*enablePassword, *enableOpenID, *enablePasskey = true, false, false
+		testSignIn(t, "/user/login", http.StatusOK, "")
+		*enablePassword, *enableOpenID, *enablePasskey = false, true, false
+		testSignIn(t, "/user/login", http.StatusOK, "")
+		*enablePassword, *enableOpenID, *enablePasskey = false, false, true
+		testSignIn(t, "/user/login", http.StatusOK, "")
+
+		*enablePassword, *enableOpenID, *enablePasskey = false, false, false
+		addOAuth2Source(t, "dummy-auth-source-2", oauth2.Source{})
+		testSignIn(t, "/user/login", http.StatusOK, "")
+	})
+
 	t.Run("OIDCLogout", func(t *testing.T) {
 		var mockServer *httptest.Server
 		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

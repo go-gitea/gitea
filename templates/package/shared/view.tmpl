@@ -33,6 +33,7 @@
 		{{template "package/content/rpm" .}}
 		{{template "package/content/rubygems" .}}
 		{{template "package/content/swift" .}}
+		{{template "package/content/terraform" .}}
 		{{template "package/content/vagrant" .}}
 	</div>
 	<div class="ui segment packages-content-right">
@@ -64,6 +65,7 @@
 			{{template "package/metadata/rpm" .}}
 			{{template "package/metadata/rubygems" .}}
 			{{template "package/metadata/swift" .}}
+			{{template "package/metadata/terraform" .}}
 			{{template "package/metadata/vagrant" .}}
 			{{if not (and (eq .PackageDescriptor.Package.Type "container") .PackageDescriptor.Metadata.Manifests)}}
 			<div class="item">{{svg "octicon-database"}} {{FileSize .PackageDescriptor.CalculateBlobSize}}</div>
@@ -99,7 +101,24 @@
 			<div class="item">{{svg "octicon-issue-opened"}} <a href="{{.PackageDescriptor.Repository.Link}}/issues">{{ctx.Locale.Tr "repo.issues"}}</a></div>
 			{{end}}
 			{{if .CanWritePackages}}
-			<div class="item">{{svg "octicon-tools"}} <a href="{{$packageVersionLink}}/settings">{{ctx.Locale.Tr "repo.settings"}}</a></div>
+			<div class="item">{{svg "octicon-tools"}} <a href="{{.PackageDescriptor.PackageSettingsLink}}">{{ctx.Locale.Tr "repo.settings"}}</a></div>
+			<div class="item">
+				{{svg "octicon-trash"}}
+				<a class="show-modal" href data-modal="#delete-package-version-modal">{{ctx.Locale.Tr "packages.settings.delete.version"}}</a>
+				<div class="ui tiny modal" id="delete-package-version-modal">
+					<div class="header">
+						{{ctx.Locale.Tr "packages.settings.delete.version"}}
+					</div>
+					<div class="content">
+						<div class="ui warning message tw-break-anywhere">
+							{{ctx.Locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
+						</div>
+						<form class="ui form" action="{{$packageVersionLink}}" method="post">
+							{{template "base/modal_actions_confirm" .}}
+						</form>
+					</div>
+				</div>
+			</div>
 			{{end}}
 		</div>
 		{{end}}

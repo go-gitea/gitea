@@ -9,7 +9,7 @@ import {initRepoGraphGit} from './features/repo-graph.ts';
 import {initHeatmap} from './features/heatmap.ts';
 import {initImageDiff} from './features/imagediff.ts';
 import {initRepoMigration} from './features/repo-migration.ts';
-import {initRepoProject} from './features/repo-projects.ts';
+import {initRepoProjectsView} from './features/repo-projects.ts';
 import {initTableSort} from './features/tablesort.ts';
 import {initAdminUserListSearchForm} from './features/admin/users.ts';
 import {initAdminConfigs} from './features/admin/config.ts';
@@ -20,8 +20,8 @@ import {initStopwatch} from './features/stopwatch.ts';
 import {initRepoFileSearch} from './features/repo-findfile.ts';
 import {initMarkupContent} from './markup/content.ts';
 import {initRepoFileView} from './features/file-view.ts';
-import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
-import {initRepoPullRequestAllowMaintainerEdit, initRepoPullRequestReview, initRepoIssueSidebarDependency, initRepoIssueFilterItemLabel} from './features/repo-issue.ts';
+import {initUserExternalLogins, initUserCheckAppUrl} from './features/user-auth.ts';
+import {initRepoPullRequestReview, initRepoIssueFilterItemLabel} from './features/repo-issue.ts';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
 import {initAdminCommon} from './features/admin/common.ts';
@@ -67,6 +67,7 @@ import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
+import {initDevtest} from './modules/devtest.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -130,11 +131,9 @@ const initPerformanceTracer = callInitFunctions([
   initRepoIssueContentHistory,
   initRepoIssueList,
   initRepoIssueFilterItemLabel,
-  initRepoIssueSidebarDependency,
   initRepoMigration,
   initRepoMigrationStatusChecker,
-  initRepoProject,
-  initRepoPullRequestAllowMaintainerEdit,
+  initRepoProjectsView,
   initRepoPullRequestReview,
   initRepoReleaseNew,
   initRepoTopicBar,
@@ -151,7 +150,7 @@ const initPerformanceTracer = callInitFunctions([
   initCaptcha,
 
   initUserCheckAppUrl,
-  initUserAuthOauth2,
+  initUserExternalLogins,
   initUserAuthWebAuthn,
   initUserAuthWebAuthnRegister,
   initUserSettings,
@@ -162,6 +161,8 @@ const initPerformanceTracer = callInitFunctions([
 
   initRepoFileView,
   initActionsPermissionsForm,
+
+  initDevtest,
 ]);
 
 // it must be the last one, then the "querySelectorAll" only needs to be executed once for global init functions.

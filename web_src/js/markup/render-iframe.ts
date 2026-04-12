@@ -29,6 +29,18 @@ export function navigateToIframeLink(unsafeLink: any, target: any) {
   window.location.assign(linkHref);
 }
 
+function getRealBackgroundColor(el: HTMLElement) {
+  for (let n = el; n; n = n.parentElement!) {
+    const style = window.getComputedStyle(n);
+    const bgColor = style.backgroundColor;
+    // 'rgba(0, 0, 0, 0)' is how most browsers represent transparent
+    if (bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
+      return bgColor;
+    }
+  }
+  return '';
+}
+
 async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
   const iframeSrcUrl = iframe.getAttribute('data-src')!;
   if (!iframe.id) iframe.id = generateElemId('gitea-iframe-');
@@ -49,6 +61,7 @@ async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
   const u = new URL(iframeSrcUrl, window.location.origin);
   u.searchParams.set('gitea-is-dark-theme', String(isDarkTheme()));
   u.searchParams.set('gitea-iframe-id', iframe.id);
+  u.searchParams.set('gitea-iframe-bgcolor', getRealBackgroundColor(iframe));
   iframe.src = u.href;
 }
 

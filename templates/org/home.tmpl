@@ -9,8 +9,16 @@
 					<div id="readme_profile" class="render-content markup" data-profile-view-as-member="{{.IsViewingOrgAsMember}}">{{.ProfileReadmeContent}}</div>
 				{{end}}
 				{{template "shared/repo/search" .}}
-				{{template "shared/repo/list" .}}
-				{{template "base/paginate" .}}
+				{{if not .Repos}}
+					<div class="empty-placeholder">
+						{{svg "octicon-repo" 48}}
+						<h2>{{ctx.Locale.Tr "org.repos.empty"}}</h2>
+						<p>{{ctx.Locale.Tr "org.repos.empty_description"}}</p>
+					</div>
+				{{else}}
+					{{template "shared/repo/list" .}}
+					{{template "base/paginate" .}}
+				{{end}}
 			</div>
 
 			{{if .ShowMemberAndTeamTab}}

@@ -7,9 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/modules/test"
 
@@ -39,13 +37,22 @@ func testCatFileBatch(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	simulateQueryTerminated := func(pipeCloseDelay, pipeReadDelay time.Duration) (errRead error) {
-		catFileBatchDebugWaitClose.Store(int64(pipeCloseDelay))
-		defer catFileBatchDebugWaitClose.Store(0)
+	simulateQueryTerminated := func(t *testing.T, errBeforePipeClose, errAfterPipeClose error) {
+		readError := func(t *testing.T, r io.Reader, expectedErr error) {
+			if expectedErr == nil {
+				return // expectedErr == nil means this read should be skipped
+			}
+			n, err := r.Read(make([]byte, 100))
+			assert.Zero(t, n)
+			assert.ErrorIs(t, err, expectedErr)
+		}
+
 		batch, err := NewBatch(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 		require.NoError(t, err)
 		defer batch.Close()
-		_, _ = batch.QueryInfo("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
+		_, err = batch.QueryInfo("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
+		require.NoError(t, err)
+
 		var c *catFileBatchCommunicator
 		switch b := batch.(type) {
 		case *catFileBatchLegacy:
@@ -58,24 +65,18 @@ func testCatFileBatch(t *testing.T) {
 			t.FailNow()
 		}
 
-		wg := sync.WaitGroup{}
-		wg.Go(func() {
-			time.Sleep(pipeReadDelay)
-			var n int
-			n, errRead = c.respReader.Read(make([]byte, 100))
-			assert.Zero(t, n)
-		})
-		time.Sleep(10 * time.Millisecond)
-		c.debugGitCmd.DebugKill()
-		wg.Wait()
-		return errRead
-	}
+		require.NotEqual(t, errBeforePipeClose == nil, errAfterPipeClose == nil, "must set exactly one of the expected errors")
 
+		inceptor := c.debugKill()
+		<-inceptor.beforeClose                         // wait for the command's Close to be called, the pipe is not closed yet
+		readError(t, c.respReader, errBeforePipeClose) // then caller will read on an open pipe which will be closed soon
+		close(inceptor.blockClose)                     // continue to close the pipe
+		<-inceptor.afterClose                          // wait for the pipe to be closed
+		readError(t, c.respReader, errAfterPipeClose)  // then caller will read on a closed pipe
+	}
 	t.Run("QueryTerminated", func(t *testing.T) {
-		err := simulateQueryTerminated(0, 20*time.Millisecond)
-		assert.ErrorIs(t, err, os.ErrClosed) // pipes are closed faster
-		err = simulateQueryTerminated(40*time.Millisecond, 20*time.Millisecond)
-		assert.ErrorIs(t, err, io.EOF) // reader is faster
+		simulateQueryTerminated(t, io.EOF, nil)       // reader is faster
+		simulateQueryTerminated(t, nil, os.ErrClosed) // pipes are closed faster
 	})
 
 	batch, err := NewBatch(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
