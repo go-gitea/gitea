@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -222,13 +223,12 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 	}
 }
 
-// ToActionTask convert a actions_model.ActionTask to an api.ActionTask
+// ToActionTask convert an actions_model.ActionTask to an api.ActionTask
 func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.ActionTask, error) {
+	// don't need Steps here, only need to load Job attributes
 	if err := t.LoadJobAttributes(ctx); err != nil {
 		return nil, err
 	}
-
-	url := strings.TrimSuffix(setting.AppURL, "/") + t.GetRunLink()
 
 	return &api.ActionTask{
 		ID:           t.ID,
@@ -240,7 +240,7 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 		DisplayTitle: t.Job.Run.Title,
 		Status:       t.Status.String(),
 		WorkflowID:   t.Job.Run.WorkflowID,
-		URL:          url,
+		URL:          httplib.MakeAbsoluteURL(ctx, t.GetRunLink()),
 		CreatedAt:    t.Created.AsLocalTime(),
 		UpdatedAt:    t.Updated.AsLocalTime(),
 		RunStartedAt: t.Started.AsLocalTime(),

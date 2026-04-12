@@ -73,7 +73,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 			repository = ctx.Repo.Repository
 		} else {
 			if jobs[i].Run == nil || jobs[i].Run.Repo == nil {
-				ctx.APIErrorInternal(fmt.Errorf("job %d has no associated run or repository", jobs[i].ID))
+				ctx.APIErrorNotFound(fmt.Sprintf("job %d has no associated run or repository", jobs[i].ID))
 				return
 			}
 			repository = jobs[i].Run.Repo
@@ -196,7 +196,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 			repository = ctx.Repo.Repository
 		} else {
 			if runs[i].Repo == nil {
-				ctx.APIErrorInternal(fmt.Errorf("run %d has no associated repository", runs[i].ID))
+				ctx.APIErrorNotFound(fmt.Sprintf("run %d has no associated repository", runs[i].ID))
 				return
 			}
 			repository = runs[i].Repo
