@@ -18,14 +18,32 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestAPIActionsGetWorkflowRun(t *testing.T) {
+func TestAPIActionsWorkflowRun(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
+	t.Run("GetWorkflowRun", testAPIActionsGetWorkflowRun)
+	t.Run("GetWorkflowJob", testAPIActionsGetWorkflowJob)
+	t.Run("ListUserWorkflows", testAPIActionsListUserWorkflows)
+	t.Run("DeleteRunCheckPermission", testAPIActionsDeleteRunCheckPermission)
+	t.Run("DeleteRunRunning", testAPIActionsDeleteRunRunning)
+	t.Run("DeleteRunGeneral", testAPIActionsDeleteRunGeneral)
 
+	t.Run("RerunWorkflowRun", func(t *testing.T) {
+		tests.PrepareTestEnv(t)
+		testAPIActionsRerunWorkflowRun(t)
+	})
+	t.Run("RerunWorkflowJob", func(t *testing.T) {
+		tests.PrepareTestEnv(t)
+		testAPIActionsRerunWorkflowJob(t)
+	})
+}
+
+func testAPIActionsGetWorkflowRun(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, user.Name)
@@ -72,9 +90,7 @@ func TestAPIActionsGetWorkflowRun(t *testing.T) {
 	})
 }
 
-func TestAPIActionsGetWorkflowJob(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsGetWorkflowJob(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, user.Name)
@@ -91,9 +107,7 @@ func TestAPIActionsGetWorkflowJob(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestAPIActionsDeleteRunCheckPermission(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsDeleteRunCheckPermission(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, user.Name)
@@ -101,9 +115,7 @@ func TestAPIActionsDeleteRunCheckPermission(t *testing.T) {
 	testAPIActionsDeleteRun(t, repo, token, http.StatusNotFound)
 }
 
-func TestAPIActionsDeleteRun(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsDeleteRunGeneral(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, user.Name)
@@ -118,9 +130,7 @@ func TestAPIActionsDeleteRun(t *testing.T) {
 	testAPIActionsDeleteRun(t, repo, token, http.StatusNotFound)
 }
 
-func TestAPIActionsDeleteRunRunning(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsDeleteRunRunning(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, user.Name)
@@ -170,9 +180,7 @@ func testAPIActionsDeleteRunListTasks(t *testing.T, repo *repo_model.Repository,
 	assert.Equal(t, expected, findTask2)
 }
 
-func TestAPIActionsRerunWorkflowRun(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsRerunWorkflowRun(t *testing.T) {
 	t.Run("NotDone", func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -233,9 +241,7 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 	})
 }
 
-func TestAPIActionsRerunWorkflowJob(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsRerunWorkflowJob(t *testing.T) {
 	t.Run("NotDone", func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -293,9 +299,7 @@ func TestAPIActionsRerunWorkflowJob(t *testing.T) {
 	})
 }
 
-func TestAPIActionsListUserWorkflows(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsListUserWorkflows(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
