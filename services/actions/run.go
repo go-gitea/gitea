@@ -53,7 +53,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		run.Title = jobs[0].RunName
 	}
 
-	if err = InsertRun(ctx, run, jobs, vars, inputsWithDefaults); err != nil {
+	if err = InsertRun(ctx, run, content, jobs, vars, inputsWithDefaults); err != nil {
 		return fmt.Errorf("InsertRun: %w", err)
 	}
 
@@ -75,7 +75,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
-func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any) error {
+func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte, jobs []*jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
@@ -103,7 +103,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		}
 
 		// Extract raw strategies from the original workflow before parsing
-		rawStrategies, err := ExtractRawStrategies(workflowContent)
+		rawStrategies, err := ExtractRawStrategies(content)
 		if err != nil {
 			log.Warn("Failed to extract raw strategies from workflow: %v", err)
 			// Continue without raw strategies - jobs will work but dynamic matrix won't be supported
