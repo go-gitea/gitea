@@ -144,8 +144,6 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	}
 	latestAttempt := attempts[0]
 	resp.State.Run.RunAttempt = currentAttemptNum
-	resp.State.Run.IsLatestAttempt = currentAttemptNum == latestAttempt.Attempt
-	resp.State.Run.ReadOnlyAttemptView = attemptID > 0 && !resp.State.Run.IsLatestAttempt
 	resp.State.Run.Done = latestAttempt.Status.IsDone()
 	resp.State.Run.Status = latestAttempt.Status.String()
 	resp.State.Run.Duration = "1h 23m 45s"
@@ -177,10 +175,11 @@ func MockActionsRunsJobs(ctx *context.Context) {
 			TriggerUserLink: attempt.TriggerUser.HomeLink(),
 		})
 	}
-	resp.State.Run.CanCancel = runID == 10 && resp.State.Run.IsLatestAttempt
-	resp.State.Run.CanApprove = runID == 20 && resp.State.Run.IsLatestAttempt
-	resp.State.Run.CanRerun = runID == 30 && resp.State.Run.IsLatestAttempt
-	resp.State.Run.CanRerunFailed = runID == 30 && resp.State.Run.IsLatestAttempt
+	isLatestAttempt := currentAttemptNum == latestAttempt.Attempt
+	resp.State.Run.CanCancel = runID == 10 && isLatestAttempt
+	resp.State.Run.CanApprove = runID == 20 && isLatestAttempt
+	resp.State.Run.CanRerun = runID == 30 && isLatestAttempt
+	resp.State.Run.CanRerunFailed = runID == 30 && isLatestAttempt
 
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:   "artifact-a",

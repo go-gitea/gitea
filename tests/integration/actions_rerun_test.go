@@ -318,8 +318,32 @@ jobs:
 
 		// Done preparing legacy data
 
+		// assert the web view for the legacy run before rerun
+		req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo.Name, legacyRun.ID))
+		legacyResp := session.MakeRequest(t, req, http.StatusOK)
+		legacyView := DecodeJSON(t, legacyResp, &actions_web.ViewResponse{})
+		// legacy run has no attempt records, so RunAttempt is 0 and Attempts list is empty
+		assert.EqualValues(t, 0, legacyView.State.Run.RunAttempt)
+		assert.Empty(t, legacyView.State.Run.Attempts)
+		assert.Equal(t, "success", legacyView.State.Run.Status)
+		assert.True(t, legacyView.State.Run.Done)
+		// isLatestAttempt=true, done=true: can rerun but not cancel
+		assert.False(t, legacyView.State.Run.CanCancel)
+		assert.False(t, legacyView.State.Run.CanApprove)
+		assert.True(t, legacyView.State.Run.CanRerun)
+		assert.False(t, legacyView.State.Run.CanRerunFailed) // all jobs succeeded
+		assert.True(t, legacyView.State.Run.CanDeleteArtifact)
+		if assert.Len(t, legacyView.State.Run.Jobs, 2) {
+			assert.Equal(t, legacyJob1.ID, legacyView.State.Run.Jobs[0].ID)
+			assert.Equal(t, legacyJob2.ID, legacyView.State.Run.Jobs[1].ID)
+		}
+		if assert.Len(t, legacyView.Artifacts, 1) {
+			assert.Equal(t, legacyArtifact.ArtifactName, legacyView.Artifacts[0].Name)
+			assert.Equal(t, "completed", legacyView.Artifacts[0].Status)
+		}
+
 		// rerun the legacy run
-		req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, legacyRun.ID))
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, legacyRun.ID))
 		session.MakeRequest(t, req, http.StatusOK)
 		runAfterRerun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: legacyRun.ID})
 		assert.EqualValues(t, 2, getRunLatestAttemptNum(t, legacyRun.ID))
@@ -397,8 +421,19 @@ jobs:
 		attempt1Resp := session.MakeRequest(t, req, http.StatusOK)
 		attempt1View := DecodeJSON(t, attempt1Resp, &actions_web.ViewResponse{})
 		assert.EqualValues(t, 1, attempt1View.State.Run.RunAttempt)
-		assert.False(t, attempt1View.State.Run.IsLatestAttempt)
-		assert.True(t, attempt1View.State.Run.ReadOnlyAttemptView)
+		if assert.Len(t, attempt1View.State.Run.Attempts, 2) {
+			// attempts ordered by attempt DESC: index 0 = attempt #2 (latest), index 1 = attempt #1 (current)
+			assert.False(t, attempt1View.State.Run.Attempts[0].Current)
+			assert.True(t, attempt1View.State.Run.Attempts[0].Latest)
+			assert.True(t, attempt1View.State.Run.Attempts[1].Current)
+			assert.False(t, attempt1View.State.Run.Attempts[1].Latest)
+		}
+		// isLatestAttempt=false: all write operations disabled
+		assert.False(t, attempt1View.State.Run.CanCancel)
+		assert.False(t, attempt1View.State.Run.CanApprove)
+		assert.False(t, attempt1View.State.Run.CanRerun)
+		assert.False(t, attempt1View.State.Run.CanRerunFailed)
+		assert.True(t, attempt1View.State.Run.CanDeleteArtifact)
 		assert.Equal(t, legacyJob1.ID, attempt1View.State.Run.Jobs[0].ID)
 		assert.Equal(t, legacyJob2.ID, attempt1View.State.Run.Jobs[1].ID)
 		if assert.Len(t, attempt1View.Artifacts, 1) {
@@ -410,8 +445,19 @@ jobs:
 		attempt2Resp := session.MakeRequest(t, req, http.StatusOK)
 		attempt2View := DecodeJSON(t, attempt2Resp, &actions_web.ViewResponse{})
 		assert.EqualValues(t, 2, attempt2View.State.Run.RunAttempt)
-		assert.True(t, attempt2View.State.Run.IsLatestAttempt)
-		assert.False(t, attempt2View.State.Run.ReadOnlyAttemptView)
+		if assert.Len(t, attempt2View.State.Run.Attempts, 2) {
+			// attempts ordered by attempt DESC: index 0 = attempt #2 (latest, current), index 1 = attempt #1
+			assert.True(t, attempt2View.State.Run.Attempts[0].Current)
+			assert.True(t, attempt2View.State.Run.Attempts[0].Latest)
+			assert.False(t, attempt2View.State.Run.Attempts[1].Current)
+			assert.False(t, attempt2View.State.Run.Attempts[1].Latest)
+		}
+		// isLatestAttempt=true, done=true: can rerun but not cancel
+		assert.False(t, attempt2View.State.Run.CanCancel)
+		assert.False(t, attempt2View.State.Run.CanApprove)
+		assert.True(t, attempt2View.State.Run.CanRerun)
+		assert.False(t, attempt2View.State.Run.CanRerunFailed) // all jobs succeeded
+		assert.True(t, attempt2View.State.Run.CanDeleteArtifact)
 		assert.Equal(t, rerunJob1.ID, attempt2View.State.Run.Jobs[0].ID)
 		assert.Equal(t, rerunJob2.ID, attempt2View.State.Run.Jobs[1].ID)
 		assert.Empty(t, attempt2View.Artifacts)

@@ -105,8 +105,6 @@ export function createEmptyActionsRun(): ActionsRun {
     workflowLink: '',
     isSchedule: false,
     runAttempt: 0,
-    isLatestAttempt: true,
-    readOnlyAttemptView: false,
     attempts: [],
     duration: '',
     triggeredAt: 0,

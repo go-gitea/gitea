@@ -18,8 +18,6 @@ export type ActionsRun = {
   workflowLink: string,
   isSchedule: boolean,
   runAttempt: number,
-  isLatestAttempt: boolean,
-  readOnlyAttemptView: boolean,
   attempts: Array<ActionsRunAttempt>,
   duration: string,
   triggeredAt: number,

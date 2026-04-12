@@ -276,27 +276,25 @@ type ViewResponse struct {
 
 	State struct {
 		Run struct {
-			RepoID              int64             `json:"repoId"`
-			Link                string            `json:"link"`
-			ViewLink            string            `json:"viewLink"`
-			Title               string            `json:"title"`
-			TitleHTML           template.HTML     `json:"titleHTML"`
-			Status              string            `json:"status"`
-			CanCancel           bool              `json:"canCancel"`
-			CanApprove          bool              `json:"canApprove"` // the run needs an approval and the doer has permission to approve
-			CanRerun            bool              `json:"canRerun"`
-			CanRerunFailed      bool              `json:"canRerunFailed"`
-			CanDeleteArtifact   bool              `json:"canDeleteArtifact"`
-			Done                bool              `json:"done"`
-			WorkflowID          string            `json:"workflowID"`
-			WorkflowLink        string            `json:"workflowLink"`
-			IsSchedule          bool              `json:"isSchedule"`
-			RunAttempt          int64             `json:"runAttempt"`
-			IsLatestAttempt     bool              `json:"isLatestAttempt"`
-			ReadOnlyAttemptView bool              `json:"readOnlyAttemptView"`
-			Attempts            []*ViewRunAttempt `json:"attempts"`
-			Jobs                []*ViewJob        `json:"jobs"`
-			Commit              ViewCommit        `json:"commit"`
+			RepoID            int64             `json:"repoId"`
+			Link              string            `json:"link"`
+			ViewLink          string            `json:"viewLink"`
+			Title             string            `json:"title"`
+			TitleHTML         template.HTML     `json:"titleHTML"`
+			Status            string            `json:"status"`
+			CanCancel         bool              `json:"canCancel"`
+			CanApprove        bool              `json:"canApprove"` // the run needs an approval and the doer has permission to approve
+			CanRerun          bool              `json:"canRerun"`
+			CanRerunFailed    bool              `json:"canRerunFailed"`
+			CanDeleteArtifact bool              `json:"canDeleteArtifact"`
+			Done              bool              `json:"done"`
+			WorkflowID        string            `json:"workflowID"`
+			WorkflowLink      string            `json:"workflowLink"`
+			IsSchedule        bool              `json:"isSchedule"`
+			RunAttempt        int64             `json:"runAttempt"`
+			Attempts          []*ViewRunAttempt `json:"attempts"`
+			Jobs              []*ViewJob        `json:"jobs"`
+			Commit            ViewCommit        `json:"commit"`
 			// Summary view: run duration and trigger time/event
 			Duration     string `json:"duration"`
 			TriggeredAt  int64  `json:"triggeredAt"`  // unix seconds for relative time
@@ -435,8 +433,6 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	if attempt != nil {
 		resp.State.Run.RunAttempt = attempt.Attempt
 	}
-	resp.State.Run.IsLatestAttempt = isLatestAttempt
-	resp.State.Run.ReadOnlyAttemptView = attempt != nil && !isLatestAttempt
 	resp.State.Run.Attempts = make([]*ViewRunAttempt, 0)
 	if attempt != nil {
 		resp.State.Run.Status = attempt.Status.String()
