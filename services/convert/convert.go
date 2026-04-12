@@ -224,10 +224,8 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 
 // ToActionTask convert a actions_model.ActionTask to an api.ActionTask
 func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.ActionTask, error) {
-	if t.Job == nil {
-		if err := t.LoadAttributes(ctx); err != nil {
-			return nil, err
-		}
+	if err := t.LoadJobAttributes(ctx); err != nil {
+		return nil, err
 	}
 
 	url := strings.TrimSuffix(setting.AppURL, "/") + t.GetRunLink()
