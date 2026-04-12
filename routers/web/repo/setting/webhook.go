@@ -452,9 +452,9 @@ func MatrixHooksEditPost(ctx *context.Context) {
 
 func matrixRoomIDEncode(roomID string) string {
 	// See https://spec.matrix.org/latest/appendices/#room-ids
-	// Demo links: https://spec.matrix.org/latest/appendices/#matrixto-navigation
+	// Some (unrelated) demo links: https://spec.matrix.org/latest/appendices/#matrixto-navigation
 	// API spec: https://spec.matrix.org/v1.18/client-server-api/#sending-events-to-a-room
-	// But some of their examples also shows links like: "PUT /rooms/!roomid:domain/state/m.example.event"
+	// Some of their examples show links like: "PUT /rooms/!roomid:domain/state/m.example.event"
 	return strings.NewReplacer("%21", "!", "%3A", ":").Replace(url.PathEscape(roomID))
 }
 
