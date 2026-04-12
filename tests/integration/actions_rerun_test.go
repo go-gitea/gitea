@@ -225,8 +225,11 @@ jobs:
 			Updated:       stopped,
 		}
 		require.NoError(t, db.Insert(t.Context(), legacyRun))
-		_, err := db.GetEngine(t.Context()).ID(legacyRun.ID).Cols("created", "updated").NoAutoTime().Update(legacyRun)
+		// xorm does not update "created"-tagged fields via ORM methods; use raw SQL to backfill historical timestamps.
+		_, err := db.GetEngine(t.Context()).Exec("UPDATE action_run SET created=?, updated=? WHERE id=?", int64(started-5), int64(stopped), legacyRun.ID)
 		require.NoError(t, err)
+		legacyRun.Created = started - 5
+		legacyRun.Updated = stopped
 
 		legacyJob1 := &actions_model.ActionRunJob{
 			RunID:             legacyRun.ID,
@@ -384,7 +387,7 @@ jobs:
 		attempt2, err := actions_model.GetRunAttemptByRunIDAndAttemptNum(t.Context(), legacyRun.ID, 2)
 		require.NoError(t, err)
 		assert.Equal(t, attempt2.ID, runAfterRerun.LatestAttemptID)
-		assert.Equal(t, runAfterRerun.Created, attempt2.Created)
+		assert.Equal(t, runAfterRerun.Created, attempt1.Created)
 		assert.Equal(t, runAfterRerun.Started, attempt2.Started)
 		assert.Equal(t, runAfterRerun.Stopped, attempt2.Stopped)
 

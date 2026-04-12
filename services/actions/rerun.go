@@ -341,20 +341,17 @@ func createOriginalAttemptForLegacyRun(ctx context.Context, run *actions_model.A
 			// would add migration/runtime cost without changing any future concurrency behavior.
 
 			Status:  run.Status,
+			Created: run.Created,
 			Started: run.Started,
 			Stopped: run.Stopped,
 		}
-		if err := db.Insert(ctx, originalAttempt); err != nil {
+
+		// Use NoAutoTime so xorm does not overwrite Created with the current time on insert.
+		if _, err := db.GetEngine(ctx).NoAutoTime().Insert(originalAttempt); err != nil {
 			if _, getErr := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, originalAttempt.Attempt); getErr == nil {
 				return util.NewAlreadyExistErrorf("workflow run attempt %d for run %d already exists", originalAttempt.Attempt, run.ID)
 			}
 			return err
-		}
-
-		// Backfill Created to the original run's trigger time.
-		// xorm's "created" tag always overwrites with the current time on insert, so we fix it here within the same transaction.
-		if _, err := db.Exec(ctx, "UPDATE action_run_attempt SET created = ? WHERE id = ?", run.Created, originalAttempt.ID); err != nil {
-			return fmt.Errorf("backfill original attempt created time: %w", err)
 		}
 
 		// backfill attempt related fields for jobs
