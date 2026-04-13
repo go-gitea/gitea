@@ -29,6 +29,39 @@ func TestAPIWorkflowRun(t *testing.T) {
 	t.Run("RepoRuns", func(t *testing.T) {
 		testAPIWorkflowRunBasic(t, "/api/v1/repos/org3/repo5/actions", "User2", 802, auth_model.AccessTokenScopeReadRepository)
 	})
+	t.Run("RepoWorkflowRuns", func(t *testing.T) {
+		testAPIWorkflowRunsByWorkflowID(t, "org3", "repo5", "test.yaml", "User2", 802, auth_model.AccessTokenScopeReadRepository)
+	})
+}
+
+func testAPIWorkflowRunsByWorkflowID(t *testing.T, owner, repo, workflowID, userUsername string, expectedRunID int64, scope ...auth_model.AccessTokenScope) {
+	defer tests.PrepareTestEnv(t)()
+	token := getUserToken(t, userUsername, scope...)
+
+	workflowRunsURL := fmt.Sprintf("/api/v1/repos/%s/%s/actions/workflows/%s/runs", owner, repo, workflowID)
+
+	req := NewRequest(t, "GET", workflowRunsURL).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	runList := api.ActionWorkflowRunsResponse{}
+	DecodeJSON(t, resp, &runList)
+
+	found := false
+	for _, run := range runList.Entries {
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, workflowRunsURL, token, run.ID, "", run.Status, "", "", "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, workflowRunsURL, token, run.ID, "", "", "", run.HeadBranch, "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, workflowRunsURL, token, run.ID, "", "", run.Event, "", "", "")
+		if run.ID == expectedRunID {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "expected to find run with ID %d in workflow %s runs", expectedRunID, workflowID)
+
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/workflows/nonexistent.yaml/runs", owner, repo)).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	emptyList := api.ActionWorkflowRunsResponse{}
+	DecodeJSON(t, resp, &emptyList)
+	assert.Empty(t, emptyList.Entries, "nonexistent workflow should return no runs")
 }
 
 func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runID int64, scope ...auth_model.AccessTokenScope) {
