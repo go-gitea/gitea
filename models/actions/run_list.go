@@ -64,16 +64,17 @@ func (runs RunList) LoadRepos(ctx context.Context) error {
 
 type FindRunOptions struct {
 	db.ListOptions
-	RepoID           int64
-	OwnerID          int64
-	WorkflowID       string
-	Ref              string // the commit/tag/… that caused this workflow
-	TriggerUserID    int64
-	TriggerEvent     webhook_module.HookEventType
-	Approved         bool // not util.OptionalBool, it works only when it's true
-	Status           []Status
-	ConcurrencyGroup string
-	CommitSHA        string
+	RepoID              int64
+	OwnerID             int64
+	WorkflowID          string
+	Ref                 string // the commit/tag/… that caused this workflow
+	TriggerUserID       int64
+	TriggerEvent        webhook_module.HookEventType
+	Approved            bool // not util.OptionalBool, it works only when it's true
+	Status              []Status
+	ConcurrencyGroup    string
+	CommitSHA           string
+	ExcludePullRequests bool
 }
 
 func (opts FindRunOptions) ToConds() builder.Cond {
@@ -101,6 +102,9 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	}
 	if opts.CommitSHA != "" {
 		cond = cond.And(builder.Eq{"`action_run`.commit_sha": opts.CommitSHA})
+	}
+	if opts.ExcludePullRequests {
+		cond = cond.And(builder.Neq{"`action_run`.trigger_event": "pull_request"})
 	}
 	if len(opts.ConcurrencyGroup) > 0 {
 		if opts.RepoID == 0 {

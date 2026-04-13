@@ -763,6 +763,11 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 	//   description: triggering sha of the workflow run
 	//   type: string
 	//   required: false
+	// - name: exclude_pull_requests
+	//   in: query
+	//   description: if true, pull request events are omitted from the results
+	//   type: boolean
+	//   required: false
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -971,7 +976,7 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	//   required: true
 	// - name: workflow_id
 	//   in: path
-	//   description: id of the workflow
+	//   description: id of the workflow, must be the workflow file name (e.g. `build.yml`)
 	//   type: string
 	//   required: true
 	// - name: event
@@ -999,6 +1004,11 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	//   description: triggering sha of the workflow run
 	//   type: string
 	//   required: false
+	// - name: exclude_pull_requests
+	//   in: query
+	//   description: if true, pull request events are omitted from the results
+	//   type: boolean
+	//   required: false
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -1018,6 +1028,15 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	workflowID := ctx.PathParam("workflow_id")
+	if _, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID); err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIError(http.StatusNotFound, err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
 	repoID := ctx.Repo.Repository.ID
 
 	shared.ListRuns(ctx, 0, repoID, workflowID)

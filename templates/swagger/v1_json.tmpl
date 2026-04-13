@@ -5306,6 +5306,12 @@
             "in": "query"
           },
           {
+            "type": "boolean",
+            "description": "if true, pull request events are omitted from the results",
+            "name": "exclude_pull_requests",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -6471,7 +6477,7 @@
           },
           {
             "type": "string",
-            "description": "id of the workflow",
+            "description": "id of the workflow, must be the workflow file name (e.g. `build.yml`)",
             "name": "workflow_id",
             "in": "path",
             "required": true
@@ -6504,6 +6510,12 @@
             "type": "string",
             "description": "triggering sha of the workflow run",
             "name": "head_sha",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "if true, pull request events are omitted from the results",
+            "name": "exclude_pull_requests",
             "in": "query"
           },
           {
