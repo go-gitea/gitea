@@ -1,6 +1,6 @@
 import {
   dirname, basename, extname, isObject, stripTags, parseIssueHref,
-  parseUrl, translateMonth, translateDay, blobToDataURI,
+  translateMonth, translateDay, blobToDataURI,
   toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseRepoOwnerPathInfo,
   urlQueryEscape,
 } from './utils.ts';
@@ -66,18 +66,6 @@ test('parseRepoOwnerPathInfo', () => {
   expect(parseRepoOwnerPathInfo('/sub/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo'});
   expect(parseRepoOwnerPathInfo('/sub/owner/repo/compare/feature/branch-1...fix/branch-2')).toEqual({ownerName: 'owner', repoName: 'repo'});
   window.config.appSubUrl = '';
-});
-
-test('parseUrl', () => {
-  expect(parseUrl('').pathname).toEqual('/');
-  expect(parseUrl('/path').pathname).toEqual('/path');
-  expect(parseUrl('/path?search').pathname).toEqual('/path');
-  expect(parseUrl('/path?search').search).toEqual('?search');
-  expect(parseUrl('/path?search#hash').hash).toEqual('#hash');
-  expect(parseUrl('https://localhost/path').pathname).toEqual('/path');
-  expect(parseUrl('https://localhost/path?search').pathname).toEqual('/path');
-  expect(parseUrl('https://localhost/path?search').search).toEqual('?search');
-  expect(parseUrl('https://localhost/path?search#hash').hash).toEqual('#hash');
 });
 
 test('translateMonth', () => {

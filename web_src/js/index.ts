@@ -185,5 +185,3 @@ document.body.addEventListener('htmx:responseError', (event) => {
   // TODO: add translations
   showErrorToast(`Error ${(event as HtmxEvent).detail.xhr.status} when calling ${(event as HtmxEvent).detail.requestConfig.path}`);
 });
-
-document.dispatchEvent(new CustomEvent('gitea:index-ready'));
