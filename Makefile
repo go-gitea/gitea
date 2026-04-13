@@ -277,10 +277,10 @@ lint-frontend: lint-js lint-css ## lint frontend files
 lint-frontend-fix: lint-js-fix lint-css-fix ## lint frontend files and fix issues
 
 .PHONY: lint-backend
-lint-backend: lint-go lint-go-gitea-vet lint-editorconfig ## lint backend files
+lint-backend: lint-go lint-editorconfig ## lint backend files
 
 .PHONY: lint-backend-fix
-lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backend files and fix issues
+lint-backend-fix: lint-go-fix lint-editorconfig ## lint backend files and fix issues
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js and ts files
@@ -334,11 +334,6 @@ lint-go-fix: ## lint go files and fix issues
 lint-go-windows:
 	@GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
 	golangci-lint run
-
-.PHONY: lint-go-gitea-vet
-lint-go-gitea-vet: ## lint go files with gitea-vet
-	@echo "Running gitea-vet..."
-	@$(GO) vet -vettool="$(shell GOOS= GOARCH= go tool -n gitea-vet)" ./...
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
