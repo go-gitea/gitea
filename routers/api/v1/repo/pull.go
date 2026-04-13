@@ -22,6 +22,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -1426,20 +1427,16 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 
 	if pr.HasMerged {
 		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), false, false)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
 	} else {
 		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefNameFromBranch(pr.BaseBranch), git.RefName(pr.GetGitHeadRefName()), false, false)
-		if err != nil {
-			if strings.Contains(err.Error(), "bad revision") {
-				ctx.APIError(http.StatusNotFound, "invalid base branch or revision")
-				return
-			}
-			ctx.APIErrorInternal(err)
-			return
-		}
+	}
+
+	if gitcmd.StderrHasPrefix(err, "fatal: bad revision") {
+		ctx.APIError(http.StatusNotFound, "invalid base branch or revision")
+		return
+	} else if err != nil {
+		ctx.APIErrorInternal(err)
+		return
 	}
 
 	listOptions := utils.GetListOptions(ctx)
