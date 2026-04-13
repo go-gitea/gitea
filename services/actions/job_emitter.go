@@ -313,6 +313,15 @@ func (r *jobStatusResolver) resolveJobHasIfCondition(actionRunJob *actions_model
 
 func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model.Status {
 	ret := map[int64]actions_model.Status{}
+
+	// Pre-calculate the number of running-or-waiting jobs per JobID
+	runningOrWaiting := make(map[string]int)
+	for id, status := range r.statuses {
+		if status == actions_model.StatusRunning || status == actions_model.StatusWaiting {
+			runningOrWaiting[r.jobMap[id].JobID]++
+		}
+	}
+
 	for id, status := range r.statuses {
 		actionRunJob := r.jobMap[id]
 		if status != actions_model.StatusBlocked {
@@ -337,7 +346,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 		shouldStartJob := true
 		if !allSucceed {
 			// Not all dependent jobs completed successfully:
-			// * if the job has "if" condition, it can be started, then the act_runner will evaluate the "if" condition.
+			// * if the job has an "if" condition, it can be started; then the act_runner will evaluate the "if" condition.
 			// * otherwise, the job should be skipped.
 			shouldStartJob = r.resolveJobHasIfCondition(actionRunJob)
 		}
@@ -348,6 +357,15 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			if err != nil {
 				log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
 			}
+		}
+
+		// Enforce max-parallel: if the number of running-or-waiting jobs of the same
+		// JobID already fills the limit, leave this job blocked.
+		if newStatus == actions_model.StatusWaiting && actionRunJob.MaxParallel > 0 {
+			if runningOrWaiting[actionRunJob.JobID] >= actionRunJob.MaxParallel {
+				continue // no free slot; leave blocked
+			}
+			runningOrWaiting[actionRunJob.JobID]++
 		}
 
 		if newStatus != actions_model.StatusBlocked {
