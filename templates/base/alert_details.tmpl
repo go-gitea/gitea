@@ -2,10 +2,8 @@
 {{if .Details}}
 <details>
 	<summary>{{.Summary}}</summary>
-	{{.Details | SanitizeHTML}}
+	<pre>{{.Details}}</pre>
 </details>
 {{else}}
-<div>
-	{{.Summary}}
-</div>
+<div>{{.Summary}}</div>
 {{end}}
