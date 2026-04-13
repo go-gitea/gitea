@@ -15,6 +15,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v84/github"
 	"github.com/urfave/cli/v3"
@@ -434,7 +435,10 @@ func determineSHAforPR(ctx context.Context, prStr, accessToken string) (string, 
 		return "", err
 	}
 
-	client := github.NewClient(http.DefaultClient)
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	client := github.NewClient(httpClient)
 	if accessToken != "" {
 		client = client.WithAuthToken(accessToken)
 	}
