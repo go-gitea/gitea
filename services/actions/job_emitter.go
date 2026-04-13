@@ -177,7 +177,7 @@ func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (job
 		if !job.Status.IsDone() {
 			continue
 		}
-		if job.ConcurrencyGroup == "" && checkedConcurrencyGroup.Contains(job.ConcurrencyGroup) {
+		if job.ConcurrencyGroup == "" || checkedConcurrencyGroup.Contains(job.ConcurrencyGroup) {
 			continue
 		}
 		concurrentRun, err := findBlockedRunByConcurrency(ctx, job.RepoID, job.ConcurrencyGroup)
