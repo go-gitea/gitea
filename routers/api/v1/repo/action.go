@@ -1553,19 +1553,9 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 		}
 		return
 	}
-	latestAttemptID, err := run.GetLatestAttemptID(ctx)
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return
-	}
-
 	// runID is used as an additional filter next to repoID to ensure that we only list jobs for the specified repoID and runID.
 	// no additional checks for runID are needed here
-	shared.ListJobs(ctx, 0, repoID, runID, latestAttemptID)
+	shared.ListJobs(ctx, 0, repoID, runID, run.LatestAttemptID)
 }
 
 // ListWorkflowRunAttemptJobs Lists all jobs for a workflow run attempt.

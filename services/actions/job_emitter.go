@@ -69,14 +69,10 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 	if err != nil {
 		return fmt.Errorf("get action run: %w", err)
 	}
-	attemptID, err := run.GetLatestAttemptID(ctx)
-	if err != nil {
-		return err
-	}
 	var jobs, updatedJobs, cancelledJobs []*actions_model.ActionRunJob
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// check jobs of the current run
-		if js, ujs, cjs, err := checkJobsOfCurrentRunAttempt(ctx, run, attemptID); err != nil {
+		if js, ujs, cjs, err := checkJobsOfCurrentRunAttempt(ctx, run, run.LatestAttemptID); err != nil {
 			return err
 		} else {
 			jobs = append(jobs, js...)
@@ -171,12 +167,7 @@ func checkBlockedConcurrentRun(ctx context.Context, repoID, runID int64) (jobs, 
 		return nil, nil, nil, nil
 	}
 
-	attemptID, err := concurrentRun.GetLatestAttemptID(ctx)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return checkJobsOfCurrentRunAttempt(ctx, concurrentRun, attemptID)
+	return checkJobsOfCurrentRunAttempt(ctx, concurrentRun, concurrentRun.LatestAttemptID)
 }
 
 // checkRunConcurrency rechecks runs blocked by concurrency that may become unblocked after the current run releases a workflow-level or job-level concurrency group.
