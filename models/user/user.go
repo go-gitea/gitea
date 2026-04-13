@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"html/template"
-	_ "image/jpeg" // Needed for jpeg support
 	"mime"
 	"net/mail"
 	"net/url"
@@ -37,6 +36,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
+
+	_ "image/jpeg" // Needed for jpeg support
 
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"

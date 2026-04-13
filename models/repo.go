@@ -6,7 +6,6 @@ package models
 
 import (
 	"context"
-	_ "image/jpeg" // Needed for jpeg support
 	"strconv"
 	"strings"
 
@@ -16,6 +15,8 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+
+	_ "image/jpeg" // Needed for jpeg support
 
 	"xorm.io/builder"
 )

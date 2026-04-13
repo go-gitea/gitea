@@ -9,9 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
-	_ "image/png"  // for processing png images
 	"io"
 	"net/http"
 	"net/url"
@@ -45,6 +42,9 @@ import (
 
 	_ "golang.org/x/image/bmp"  // for processing bmp images
 	_ "golang.org/x/image/webp" // for processing webp images
+	_ "image/gif"               // for processing gif images
+	_ "image/jpeg"              // for processing jpeg images
+	_ "image/png"               // for processing png images
 )
 
 const (

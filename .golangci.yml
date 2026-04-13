@@ -166,6 +166,7 @@ formatters:
       sections:
         - standard
         - prefix(code.gitea.io/gitea)
+        - blank
         - default
     gofumpt:
       extra-rules: true

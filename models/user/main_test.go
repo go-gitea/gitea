@@ -6,10 +6,11 @@ package user_test
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
+
 	_ "code.gitea.io/gitea/models"
 	_ "code.gitea.io/gitea/models/actions"
 	_ "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/unittest"
 	_ "code.gitea.io/gitea/models/user"
 )
 

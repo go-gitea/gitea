@@ -6,7 +6,6 @@ package user
 import (
 	"context"
 	"fmt"
-	_ "image/jpeg" // Needed for jpeg support
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -22,6 +21,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+
+	_ "image/jpeg" // Needed for jpeg support
 
 	"xorm.io/builder"
 )

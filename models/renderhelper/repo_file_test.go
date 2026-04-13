@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
 
 	"github.com/stretchr/testify/assert"

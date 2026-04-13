@@ -12,11 +12,12 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/auth/source/smtp"
+
 	_ "code.gitea.io/gitea/services/auth/source/db"   // register the sources (and below)
 	_ "code.gitea.io/gitea/services/auth/source/ldap" // register the ldap source
-	"code.gitea.io/gitea/services/auth/source/oauth2"
-	_ "code.gitea.io/gitea/services/auth/source/pam" // register the pam source
-	"code.gitea.io/gitea/services/auth/source/smtp"
+	_ "code.gitea.io/gitea/services/auth/source/pam"  // register the pam source
 	_ "code.gitea.io/gitea/services/auth/source/sspi" // register the sspi source
 )
 
