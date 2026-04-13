@@ -159,6 +159,7 @@ issues:
 formatters:
   enable:
     - gci
+    - gofmt
     - gofumpt
   settings:
     gci:
@@ -168,6 +169,10 @@ formatters:
         - prefix(code.gitea.io/gitea)
         - blank
         - default
+    gofmt:
+      rewrite-rules:
+        - pattern: 'interface{}'
+          replacement: 'any'
     gofumpt:
       extra-rules: true
   exclusions:
