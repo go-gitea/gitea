@@ -83,6 +83,11 @@ type rerunPlan struct {
 	newAttempt   *actions_model.ActionRunAttempt
 }
 
+// buildRerunPlan constructs a rerunPlan for the given workflow run without writing to the database.
+// It loads the latest attempt as a template, expands jobsToRerun to include all transitive downstream
+// dependents, resolves run variables, and prepares a new ActionRunAttempt (not yet inserted).
+// Run-level concurrency is evaluated here; job-level concurrency is deferred to execRerunPlan.
+// An empty jobsToRerun means the entire run should be rerun.
 func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, triggerUser *user_model.User, jobsToRerun []*actions_model.ActionRunJob) (*rerunPlan, error) {
 	if err := run.LoadAttributes(ctx); err != nil {
 		return nil, err
@@ -145,6 +150,13 @@ func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actio
 	return plan, nil
 }
 
+// execRerunPlan executes the rerun plan built by buildRerunPlan.
+// Inside a single database transaction it inserts the new ActionRunAttempt, clones all template jobs,
+// evaluates job-level concurrency for rerun jobs, and updates the run's latest_attempt_id.
+// Jobs not in the rerun set are cloned as pass-through: their status is preserved and SourceTaskID
+// points to the original task so the UI can still display their results.
+// The attempt's final status is derived only from the rerun jobs, not the pass-through jobs.
+// Notifications and commit statuses are sent after the transaction commits.
 func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionRunAttempt, error) {
 	var newJobs, newJobsToRerun actions_model.ActionJobList
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
