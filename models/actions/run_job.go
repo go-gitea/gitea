@@ -280,6 +280,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 				return 0, fmt.Errorf("update run attempt %d: %w", attempt.ID, err)
 			}
 		} else {
+			// TODO: This logic is for compatibility with jobs created BEFORE Migration 331 but completed AFTER it. Do we need to keep this logic?
 			run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
 			if err != nil {
 				return 0, err
