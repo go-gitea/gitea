@@ -6,10 +6,9 @@ package models
 
 import (
 	"context"
+	_ "image/jpeg" // Needed for jpeg support
 	"strconv"
 	"strings"
-
-	_ "image/jpeg" // Needed for jpeg support
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"

@@ -6,13 +6,12 @@ package v1_26
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-
 	_ "code.gitea.io/gitea/models/actions"
 	_ "code.gitea.io/gitea/models/git"
+	"code.gitea.io/gitea/models/migrations/base"
 	_ "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/require"
 	"xorm.io/xorm"

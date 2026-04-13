@@ -88,14 +88,13 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/packages"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
+	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
-
-	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 
 	"gitea.com/go-chi/binding"
 	"github.com/go-chi/cors"

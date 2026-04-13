@@ -14,7 +14,6 @@ XGO_VERSION := go-1.25.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.2
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0
@@ -206,7 +205,7 @@ clean: ## delete backend and integration files
 
 .PHONY: fmt
 fmt: ## format the Go and template code
-	@GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run tools/code-batch-process.go gitea-fmt -w '{file-list}'
+	$(GO) run $(GOLANGCI_LINT_PACKAGE) fmt
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
 	@# whitespace before it
@@ -730,7 +729,6 @@ deps-backend: ## install backend dependencies
 deps-tools: ## install tool dependencies
 	$(GO) install $(AIR_PACKAGE) & \
 	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE) & \
-	$(GO) install $(GOFUMPT_PACKAGE) & \
 	$(GO) install $(GOLANGCI_LINT_PACKAGE) & \
 	$(GO) install $(GXZ_PACKAGE) & \
 	$(GO) install $(MISSPELL_PACKAGE) & \

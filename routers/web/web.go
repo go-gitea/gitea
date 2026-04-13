@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/reqctx"
+	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
@@ -44,8 +45,6 @@ import (
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
-
-	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
 	"gitea.com/go-chi/captcha"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"

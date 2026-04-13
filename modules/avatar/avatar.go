@@ -9,16 +9,14 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
-
 	_ "image/gif"  // for processing gif images
 	_ "image/jpeg" // for processing jpeg images
+	"image/png"
 
 	"code.gitea.io/gitea/modules/avatar/identicon"
 	"code.gitea.io/gitea/modules/setting"
 
 	"golang.org/x/image/draw"
-
 	_ "golang.org/x/image/webp" // for processing webp images
 )
 

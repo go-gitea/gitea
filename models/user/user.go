@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"html/template"
+	_ "image/jpeg" // Needed for jpeg support
 	"mime"
 	"net/mail"
 	"net/url"
@@ -19,8 +20,6 @@ import (
 	"sync"
 	"time"
 	"unicode"
-
-	_ "image/jpeg" // Needed for jpeg support
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"

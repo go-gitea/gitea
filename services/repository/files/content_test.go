@@ -6,11 +6,10 @@ package files
 import (
 	"testing"
 
+	_ "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/contexttest"
-
-	_ "code.gitea.io/gitea/models/actions"
 
 	"github.com/stretchr/testify/assert"
 )

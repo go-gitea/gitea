@@ -158,9 +158,15 @@ issues:
   max-same-issues: 0
 formatters:
   enable:
-    - gofmt
+    - gci
     - gofumpt
   settings:
+    gci:
+      custom-order: true
+      sections:
+        - standard
+        - prefix(code.gitea.io/gitea)
+        - default
     gofumpt:
       extra-rules: true
   exclusions:
@@ -173,6 +179,8 @@ formatters:
       - third_party$
       - builtin$
       - examples$
+      - bindata\.go$
+      - tests/integration/migration-test
 
 run:
   timeout: 10m

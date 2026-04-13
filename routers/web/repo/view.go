@@ -9,16 +9,15 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	_ "image/gif"  // for processing gif images
+	_ "image/jpeg" // for processing jpeg images
+	_ "image/png"  // for processing png images
 	"io"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 	"time"
-
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
-	_ "image/png"  // for processing png images
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
