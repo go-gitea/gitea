@@ -575,7 +575,6 @@ export default defineConfig([
       'no-restricted-imports': [2, {paths: [
         {name: 'jquery', message: 'Use the global $ instead', allowTypeImports: true},
         {name: 'htmx.org', message: 'Use the global htmx instead', allowTypeImports: true},
-        {name: 'idiomorph/htmx', message: 'Loaded in globals.ts', allowTypeImports: true},
       ]}],
       'no-restricted-syntax': [2, 'WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression'],
       'no-return-assign': [0],

@@ -1,6 +1,5 @@
 import jquery from 'jquery'; // eslint-disable-line no-restricted-imports
 import htmx from 'htmx.org'; // eslint-disable-line no-restricted-imports
-import 'idiomorph/htmx'; // eslint-disable-line no-restricted-imports
 
 // Some users still use inline scripts and expect jQuery to be available globally.
 // To avoid breaking existing users and custom plugins, import jQuery globally without ES module.
