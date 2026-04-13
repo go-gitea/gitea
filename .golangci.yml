@@ -180,7 +180,6 @@ formatters:
       - third_party$
       - builtin$
       - examples$
-      - bindata\.go$
 
 run:
   timeout: 10m
