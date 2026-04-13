@@ -285,6 +285,6 @@ function initAdminNotice() {
       }
     }
     await POST(this.getAttribute('data-link')!, {data});
-    window.location.href = this.getAttribute('data-redirect')!;
+    window.location.reload();
   });
 }
