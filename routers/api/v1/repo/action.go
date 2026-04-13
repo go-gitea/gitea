@@ -781,7 +781,7 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 
 	repoID := ctx.Repo.Repository.ID
 
-	shared.ListRuns(ctx, 0, repoID)
+	shared.ListRuns(ctx, 0, repoID, "")
 }
 
 var _ actions_service.API = new(Action)
@@ -950,6 +950,77 @@ func ActionsGetWorkflow(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, workflow)
+}
+
+func ActionsListWorkflowRuns(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs repository ActionsListWorkflowRuns
+	// ---
+	// summary: List runs for a workflow
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: workflow_id
+	//   in: path
+	//   description: id of the workflow
+	//   type: string
+	//   required: true
+	// - name: event
+	//   in: query
+	//   description: workflow event name
+	//   type: string
+	//   required: false
+	// - name: branch
+	//   in: query
+	//   description: workflow branch
+	//   type: string
+	//   required: false
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   type: string
+	//   required: false
+	// - name: actor
+	//   in: query
+	//   description: triggered by user
+	//   type: string
+	//   required: false
+	// - name: head_sha
+	//   in: query
+	//   description: triggering sha of the workflow run
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRunsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	workflowID := ctx.PathParam("workflow_id")
+	repoID := ctx.Repo.Repository.ID
+
+	shared.ListRuns(ctx, 0, repoID, workflowID)
 }
 
 func ActionsDisableWorkflow(ctx *context.APIContext) {

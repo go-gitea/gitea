@@ -117,8 +117,9 @@ func convertToInternal(s string) ([]actions_model.Status, error) {
 // ownerID == 0 and repoID != 0 means all runs for the given repo
 // ownerID != 0 and repoID == 0 means all runs for the given user/org
 // ownerID != 0 and repoID != 0 undefined behavior
+// workflowID filters runs by workflow file name (e.g. "build.yml"), empty means no filter
 // Access rights are checked at the API route level
-func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
+func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
@@ -126,6 +127,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	opts := actions_model.FindRunOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
+		WorkflowID:  workflowID,
 		ListOptions: listOptions,
 	}
 
