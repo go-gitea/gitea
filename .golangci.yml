@@ -177,9 +177,6 @@ formatters:
       - .venv
       - public
       - web_src
-      - third_party$
-      - builtin$
-      - examples$
 
 run:
   timeout: 10m
