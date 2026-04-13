@@ -3781,6 +3781,7 @@
   "actions.runs.triggered_via": "Triggered via %s",
   "actions.runs.triggered_via_by": "Triggered via %s by",
   "actions.runs.rerun_triggered_by": "Re-run triggered by",
+  "actions.runs.attempt_triggered_by": "by",
   "actions.runs.total_duration": "Total duration:",
   "actions.workflow.disable": "Disable Workflow",
   "actions.workflow.disable_success": "Workflow '%s' disabled successfully.",
