@@ -181,7 +181,6 @@ formatters:
       - builtin$
       - examples$
       - bindata\.go$
-      - tests/integration/migration-test
 
 run:
   timeout: 10m
