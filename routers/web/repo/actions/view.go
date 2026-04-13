@@ -448,7 +448,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.CanApprove = isLatestAttempt && run.NeedApproval && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.CanRerun = isLatestAttempt && resp.State.Run.Done && ctx.Repo.CanWrite(unit.TypeActions)
-	resp.State.Run.CanDeleteArtifact = ctx.Repo.CanWrite(unit.TypeActions)
+	resp.State.Run.CanDeleteArtifact = resp.State.Run.Done && ctx.Repo.CanWrite(unit.TypeActions)
 	if resp.State.Run.CanRerun {
 		for _, job := range jobs {
 			if job.Status == actions_model.StatusFailure || job.Status == actions_model.StatusCancelled {
@@ -858,11 +858,15 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		}
 	}
 
+	// Resolve the attempt to display.
+	// Priority: explicit path param (/attempts/:num) > job's attempt (when navigating to a specific job) > latest attempt.
+	// attempt may be nil for legacy runs that pre-date ActionRunAttempt; callers must handle that case.
 	attemptNum := ctx.PathParamInt64("attempt")
 	var attempt *actions_model.ActionRunAttempt
 	var isLatestAttempt bool
 	switch {
 	case attemptNum > 0:
+		// Explicit attempt number in the URL — user is viewing a historical attempt.
 		attempt, err = actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
 		if err != nil {
 			ctx.NotFoundOrServerError("GetRunAttemptByRunIDAndAttempt", func(err error) bool {
@@ -870,8 +874,9 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 			}, err)
 			return nil, nil, false, nil
 		}
-		isLatestAttempt = run.LatestAttemptID > 0 && run.LatestAttemptID == attempt.ID
+		isLatestAttempt = run.LatestAttemptID == attempt.ID
 	case selectedJob != nil && selectedJob.RunAttemptID > 0:
+		// No explicit attempt in the URL, but the requested job belongs to a known attempt — resolve via the job.
 		attempt, err = actions_model.GetRunAttemptByRepoAndID(ctx, selectedJob.RepoID, selectedJob.RunAttemptID)
 		if err != nil {
 			ctx.NotFoundOrServerError("GetRunAttemptByRepoAndID", func(err error) bool {
@@ -879,8 +884,9 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 			}, err)
 			return nil, nil, false, nil
 		}
-		isLatestAttempt = run.LatestAttemptID > 0 && run.LatestAttemptID == attempt.ID
+		isLatestAttempt = run.LatestAttemptID == attempt.ID
 	default:
+		// No attempt context at all — show the latest attempt (nil for legacy runs).
 		attempt, _, err = run.GetLatestAttempt(ctx)
 		if err != nil {
 			ctx.NotFoundOrServerError("GetLatestAttempt", func(err error) bool {
@@ -891,15 +897,13 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		isLatestAttempt = true
 	}
 
-	var jobs []*actions_model.ActionRunJob
-	switch {
-	case attempt != nil:
-		jobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, attempt.ID)
-	case selectedJob != nil && selectedJob.RunAttemptID == 0:
-		jobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, 0)
-	default:
-		jobs, err = actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
+	// Resolve the jobs for the resolved attempt.
+	// When attempt is nil (legacy run or legacy job), jobs are stored with run_attempt_id=0.
+	var resolvedAttemptID int64
+	if attempt != nil {
+		resolvedAttemptID = attempt.ID
 	}
+	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, resolvedAttemptID)
 	if err != nil {
 		ctx.ServerError("get current jobs", err)
 		return nil, nil, false, nil
@@ -917,22 +921,22 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 
 // getArtifactAttemptByQueryWithoutFallback resolves the artifact attempt from the request.
 // It returns the explicitly requested attempt only when the `attempt` query parameter is present.
-// When the query parameter is absent, it DOES NOT fall back to the latest attempt;
-// callers should decide their own fallback behavior, such as using legacy run_attempt_id=0 handling.
-func getArtifactAttemptByQueryWithoutFallback(ctx *context_module.Context, run *actions_model.ActionRun) (*actions_model.ActionRunAttempt, error) {
+// When the query parameter is absent, ok is false and callers should decide their own fallback
+// behavior, such as using legacy run_attempt_id=0 handling.
+func getArtifactAttemptByQueryWithoutFallback(ctx *context_module.Context, run *actions_model.ActionRun) (*actions_model.ActionRunAttempt, bool, error) {
 	if ctx.FormString("attempt") != "" {
 		attemptNum := ctx.FormInt64("attempt")
 		if attemptNum > 0 {
 			attempt, err := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
-			return attempt, nil
+			return attempt, true, nil
 		}
-		return nil, util.ErrNotExist
+		return nil, false, util.ErrNotExist
 	}
 
-	return nil, nil //nolint:nilnil // no explicit attempt requested; callers should fall back to legacy run_attempt_id=0 handling
+	return nil, false, nil
 }
 
 func ArtifactsDeleteView(ctx *context_module.Context) {
@@ -940,7 +944,7 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 	if ctx.Written() {
 		return
 	}
-	attempt, err := getArtifactAttemptByQueryWithoutFallback(ctx, run)
+	attempt, hasAttempt, err := getArtifactAttemptByQueryWithoutFallback(ctx, run)
 	if err != nil {
 		ctx.NotFoundOrServerError("getArtifactAttemptByQueryWithoutFallback", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
@@ -948,7 +952,7 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 		return
 	}
 	artifactName := ctx.PathParam("artifact_name")
-	if attempt != nil {
+	if hasAttempt {
 		err = actions_model.SetArtifactNeedDeleteByRunAttempt(ctx, run.ID, attempt.ID, artifactName)
 	} else {
 		err = actions_model.SetArtifactNeedDeleteByRunAttempt(ctx, run.ID, 0, artifactName)
@@ -965,7 +969,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	if ctx.Written() {
 		return
 	}
-	attempt, err := getArtifactAttemptByQueryWithoutFallback(ctx, run)
+	attempt, hasAttempt, err := getArtifactAttemptByQueryWithoutFallback(ctx, run)
 	if err != nil {
 		ctx.NotFoundOrServerError("getArtifactAttemptByQueryWithoutFallback", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
@@ -976,7 +980,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	artifactName := ctx.PathParam("artifact_name")
 
 	runAttemptID := int64(0)
-	if attempt != nil {
+	if hasAttempt {
 		runAttemptID = attempt.ID
 	}
 	artifacts, err := actions_model.GetArtifactsByRunAttemptAndName(ctx, run.ID, runAttemptID, artifactName)
