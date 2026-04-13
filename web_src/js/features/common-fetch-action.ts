@@ -214,7 +214,7 @@ async function performLinkFetchAction(el: HTMLElement) {
   });
 }
 
-type FetchActionTriggerType = 'click' | 'change' | `every` | 'load' | 'fetch-reload';
+type FetchActionTriggerType = 'click' | 'change' | 'every' | 'load' | 'fetch-reload';
 
 async function performFetchActionTriggerRequest(el: HTMLElement, triggerType: FetchActionTriggerType) {
   const isUserInitiated = triggerType === 'click' || triggerType === 'change';
@@ -240,7 +240,7 @@ async function handleFetchActionSuccessSync(el: HTMLElement, successSync: string
       target = document.body;
     } else if (cmd === '$innerHTML') {
       replaceInner = true;
-    } else if (cmd === '$idiomorph') {
+    } else if (cmd === '$morph') {
       useMorph = true;
     } else if (cmd.startsWith('$closest(') && cmd.endsWith(')')) {
       const selector = cmd.substring('$closest('.length, cmd.length - 1);
@@ -352,6 +352,7 @@ export function initGlobalFetchAction() {
   //   "$" prefix means it is our private command (for special logic)
   //   * "" (empty string): replace the current element with the response
   //   * "$innerHTML": replace innerHTML of the current element with the response, instead of replacing the whole element (outerHTML)
+  //   * "$morph": use morph algorithm to update the target element
   //   * "$body #the-id .the-class": query the selector one by one from body
   //   * "$closest(tr) td": pseudo command can help to find the target element in a more flexible way
   //
