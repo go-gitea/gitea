@@ -41,6 +41,13 @@ declare module 'htmx.org/dist/htmx.esm.js' {
   export default value;
 }
 
+declare module 'idiomorph' {
+  interface Idiomorph {
+    morph(existing: Node | string, replacement: Node | string, options?: {morphStyle: 'innerHTML' | 'outerHTML'}): void;
+  }
+  export const Idiomorph: Idiomorph;
+}
+
 declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
   const value = await import('swagger-ui-dist');
   export default value.SwaggerUIBundle;

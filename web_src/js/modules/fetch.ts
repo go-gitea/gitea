@@ -2,7 +2,7 @@ import {isObject} from '../utils.ts';
 import type {RequestOpts} from '../types.ts';
 
 // fetch wrapper, use below method name functions and the `data` option to pass in data
-// which will automatically set an appropriate headers. For json content, only object
+// which will automatically set an appropriate headers. For JSON content, only object
 // and array types are currently supported.
 export function request(url: string, {method = 'GET', data, headers = {}, ...other}: RequestOpts = {}): Promise<Response> {
   let body: string | FormData | URLSearchParams | undefined;
@@ -14,17 +14,13 @@ export function request(url: string, {method = 'GET', data, headers = {}, ...oth
     body = JSON.stringify(data);
   }
 
-  const headersMerged = new Headers({
-    ...(contentType && {'content-type': contentType}),
-  });
-
-  for (const [name, value] of Object.entries(headers)) {
-    headersMerged.set(name, value);
+  headers = new Headers(headers);
+  if (!headers.has('content-type') && contentType) {
+    headers.set('content-type', contentType);
   }
-
   return fetch(url, { // eslint-disable-line no-restricted-globals
     method,
-    headers: headersMerged,
+    headers,
     ...other,
     ...(body && {body}),
   });
