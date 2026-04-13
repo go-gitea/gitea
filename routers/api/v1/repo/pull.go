@@ -1427,12 +1427,26 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	if pr.HasMerged {
 		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), false, false)
 	} else {
+		branchExist, err := git_model.IsBranchExist(ctx, pr.BaseRepo.ID, pr.BaseBranch)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !branchExist {
+			ctx.APIError(http.StatusNotFound, fmt.Errorf("base branch '%s' does not exist", pr.BaseBranch))
+			return
+		}
 		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefNameFromBranch(pr.BaseBranch), git.RefName(pr.GetGitHeadRefName()), false, false)
+		if err != nil {
+			if strings.Contains(err.Error(), "bad revision") {
+				ctx.APIError(http.StatusNotFound, "invalid base branch or revision")
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
 	}
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
+	
 
 	listOptions := utils.GetListOptions(ctx)
 
