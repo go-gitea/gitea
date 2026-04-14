@@ -53,8 +53,8 @@
 							{{DateUtils.TimeSince $one.UpdatedUnix}}
 						{{end}}
 					</div>
-					<form class="notifications-buttons" action="{{AppSubUrl}}/notifications/status?type={{$.PageType}}&page={{$.Page.Paginater.Current}}&perPage={{$.Page.Paginater.PagingNum}}" method="post"
-								hx-boost="true" hx-target="#notification_div" hx-swap="outerHTML"
+					<form class="notifications-buttons form-fetch-action" action="{{AppSubUrl}}/notifications/status?type={{$.PageType}}&page={{$.Page.Paginater.Current}}&perPage={{$.Page.Paginater.PagingNum}}" method="post"
+								data-fetch-sync="$body #notification_div"
 					>
 						<input type="hidden" name="notification_id" value="{{$one.ID}}">
 						{{if ne $one.Status $statusPinned}}

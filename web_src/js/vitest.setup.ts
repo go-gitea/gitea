@@ -24,4 +24,6 @@ window.config = {
   i18n: {},
 };
 
+window.testModules = {};
+
 export {}; // mark as module for top-level await
