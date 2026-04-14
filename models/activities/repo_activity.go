@@ -14,7 +14,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -68,15 +67,9 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 		return nil, fmt.Errorf("FillUnresolvedIssues: %w", err)
 	}
 	if code {
-		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+		code, err := getCodeActivityStats(ctx, repo, timeFrom)
 		if err != nil {
-			return nil, fmt.Errorf("OpenRepository: %w", err)
-		}
-		defer closer.Close()
-
-		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
-		if err != nil {
-			return nil, fmt.Errorf("FillFromGit: %w", err)
+			return nil, err
 		}
 		stats.Code = code
 	}
@@ -85,54 +78,69 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 
 // GetActivityStatsTopAuthors returns top author stats for git commits for all branches
 func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	stats, err := getContributorActivity(ctx, repo, timeFrom)
 	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %w", err)
+		return nil, err
 	}
-	defer closer.Close()
-
-	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
-	if err != nil {
-		return nil, fmt.Errorf("FillFromGit: %w", err)
-	}
-	if code.Authors == nil {
+	if len(stats) == 0 {
 		return nil, nil
 	}
-	users := make(map[int64]*ActivityAuthorData)
-	var unknownUserID int64
+
 	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
-	for _, v := range code.Authors {
-		if len(v.Email) == 0 {
-			continue
-		}
-		u, err := user_model.GetUserByEmail(ctx, v.Email)
-		if u == nil || user_model.IsErrUserNotExist(err) {
-			unknownUserID--
-			users[unknownUserID] = &ActivityAuthorData{
-				Name:       v.Name,
-				AvatarLink: unknownUserAvatarLink,
-				Commits:    v.Commits,
-			}
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-		if user, ok := users[u.ID]; !ok {
-			users[u.ID] = &ActivityAuthorData{
-				Name:       u.DisplayName(),
-				Login:      u.LowerName,
-				AvatarLink: u.AvatarLink(ctx),
-				HomeLink:   u.HomeLink(),
-				Commits:    v.Commits,
-			}
-		} else {
-			user.Commits += v.Commits
+	userIDs := make(map[int64]struct{})
+	for _, stat := range stats {
+		if stat.UserID > 0 {
+			userIDs[stat.UserID] = struct{}{}
 		}
 	}
-	v := make([]*ActivityAuthorData, 0, len(users))
-	for _, u := range users {
-		v = append(v, u)
+	ids := make([]int64, 0, len(userIDs))
+	for id := range userIDs {
+		ids = append(ids, id)
+	}
+	users, err := user_model.GetUsersByIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	userMap := make(map[int64]*user_model.User, len(users))
+	for _, user := range users {
+		userMap[user.ID] = user
+	}
+
+	authors := make(map[string]*ActivityAuthorData)
+	for _, stat := range stats {
+		email := stat.Email
+		user := userMap[stat.UserID]
+		key := email
+		if user != nil {
+			key = user.LowerName
+		}
+		if key == "" {
+			continue
+		}
+		if author, ok := authors[key]; ok {
+			author.Commits += stat.Commits
+			continue
+		}
+		if user == nil {
+			authors[key] = &ActivityAuthorData{
+				Name:       stat.AuthorName,
+				AvatarLink: unknownUserAvatarLink,
+				Commits:    stat.Commits,
+			}
+			continue
+		}
+		authors[key] = &ActivityAuthorData{
+			Name:       user.DisplayName(),
+			Login:      user.LowerName,
+			AvatarLink: user.AvatarLink(ctx),
+			HomeLink:   user.HomeLink(),
+			Commits:    stat.Commits,
+		}
+	}
+
+	v := make([]*ActivityAuthorData, 0, len(authors))
+	for _, author := range authors {
+		v = append(v, author)
 	}
 
 	sort.Slice(v, func(i, j int) bool {
@@ -142,6 +150,52 @@ func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository
 	cnt := min(count, len(v))
 
 	return v[:cnt], nil
+}
+
+type contributorActivityRow struct {
+	UserID     int64
+	Email      string
+	AuthorName string
+	Additions  int64
+	Deletions  int64
+	Commits    int64
+}
+
+func getCodeActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time) (*git.CodeActivityStats, error) {
+	rows, err := getContributorActivity(ctx, repo, timeFrom)
+	if err != nil {
+		return nil, err
+	}
+	stats := &git.CodeActivityStats{}
+	if len(rows) == 0 {
+		return stats, nil
+	}
+	for _, row := range rows {
+		stats.Additions += row.Additions
+		stats.Deletions += row.Deletions
+		stats.CommitCount += row.Commits
+	}
+	stats.CommitCountInAllBranches = stats.CommitCount
+	stats.AuthorCount = int64(len(rows))
+	return stats, nil
+}
+
+func getContributorActivity(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time) ([]*contributorActivityRow, error) {
+	start := repo_model.NewContributorDayStart(timeFrom.UTC())
+	rows := make([]*contributorActivityRow, 0, 64)
+	err := db.GetEngine(ctx).
+		Table("repo_contributor_daily").
+		Select("user_id, email, author_name, sum(additions) as additions, sum(deletions) as deletions, sum(commits) as commits").
+		Where("repo_id = ? AND day_start >= ?", repo.ID, start).
+		GroupBy("user_id, email, author_name").
+		Find(&rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return []*contributorActivityRow{}, nil
+	}
+	return rows, nil
 }
 
 // ActivePRCount returns total active pull request count

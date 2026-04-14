@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -162,6 +163,85 @@ func prepareHomeSidebarLanguageStats(ctx *context.Context) {
 	}
 
 	ctx.Data["LanguageStats"] = langs
+}
+
+type sidebarContributor struct {
+	Name       string
+	AvatarLink string
+	HomeLink   string
+	Commits    int64
+}
+
+func prepareHomeSidebarContributors(ctx *context.Context) {
+	if ctx.Repo.Repository.IsEmpty {
+		return
+	}
+	const contributorLimit = 12
+	summaries, total, err := repo_model.GetRepoTopContributors(ctx, ctx.Repo.Repository.ID, contributorLimit)
+	if err != nil {
+		log.Error("GetRepoTopContributors: %v", err)
+		return
+	}
+	if total == 0 {
+		if err := repo_service.RequestContributorStatsRebuild(ctx, ctx.Repo.Repository.ID); err != nil && !errors.Is(err, repo_service.ErrAwaitGeneration) {
+			log.Error("RequestContributorStatsRebuild %s/%s failed: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, err)
+		}
+		return
+	}
+
+	userIDs := make(map[int64]struct{})
+	for _, summary := range summaries {
+		if summary.UserID > 0 {
+			userIDs[summary.UserID] = struct{}{}
+		}
+	}
+	ids := make([]int64, 0, len(userIDs))
+	for id := range userIDs {
+		ids = append(ids, id)
+	}
+	users, err := user_model.GetUsersByIDs(ctx, ids)
+	if err != nil {
+		log.Error("GetUsersByIDs: %v", err)
+		return
+	}
+	userMap := make(map[int64]*user_model.User, len(users))
+	for _, user := range users {
+		userMap[user.ID] = user
+	}
+
+	contributors := make([]*sidebarContributor, 0, len(summaries))
+	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLinkWithSize(ctx, 36)
+	for _, summary := range summaries {
+		name := summary.AuthorName
+		avatarLink := ""
+		homeLink := ""
+		user := userMap[summary.UserID]
+		if user != nil {
+			name = user.DisplayName()
+			avatarLink = user.AvatarLinkWithSize(ctx, 36)
+			homeLink = user.HomeLink()
+		} else if summary.Email != "" {
+			avatarLink = avatars.GenerateEmailAvatarFastLink(ctx, summary.Email, 36)
+			if avatarLink == "" {
+				avatarLink = unknownUserAvatarLink
+			}
+		}
+		if name == "" {
+			name = summary.Email
+		}
+		if avatarLink == "" {
+			avatarLink = unknownUserAvatarLink
+		}
+		contributors = append(contributors, &sidebarContributor{
+			Name:       name,
+			AvatarLink: avatarLink,
+			HomeLink:   homeLink,
+			Commits:    summary.Commits,
+		})
+	}
+
+	ctx.Data["RepoTopContributors"] = contributors
+	ctx.Data["RepoContributorCount"] = total
 }
 
 func prepareHomeSidebarLatestRelease(ctx *context.Context) {
@@ -444,6 +524,7 @@ func Home(ctx *context.Context) {
 			prepareHomeSidebarLicenses,
 			prepareHomeSidebarCitationFile(entry),
 			prepareHomeSidebarLanguageStats,
+			prepareHomeSidebarContributors,
 			prepareHomeSidebarLatestRelease,
 		)
 	}
