@@ -18,9 +18,10 @@ func FetchRedirectDelegate(resp http.ResponseWriter, req *http.Request) {
 	// then frontend needs this delegate to redirect to the new location with hash correctly.
 	redirect := req.FormValue("redirect")
 	if req.Method != http.MethodPost || !httplib.IsCurrentGiteaSiteURL(req.Context(), redirect) {
-		resp.WriteHeader(http.StatusBadRequest)
+		http.Error(resp, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	resp.Header().Add("Location", redirect)
+	// no OpenRedirect, the "redirect" is validated by "IsCurrentGiteaSiteURL" above
+	resp.Header().Set("Location", redirect)
 	resp.WriteHeader(http.StatusSeeOther)
 }
