@@ -13,9 +13,10 @@ import (
 
 func TestRenderHTMLCache(t *testing.T) {
 	const svgRealContent = "RealContent"
-	svgIcons = map[string]svgIconItem{
-		"test": {html: `<svg class="svg test" width="16" height="16">` + svgRealContent + `</svg>`},
-	}
+	svgIcons.Store("test", svgIconItem{
+		html: `<svg class="svg test" width="16" height="16">` + svgRealContent + `</svg>`,
+	})
+	defer svgIcons.Delete("test")
 
 	// default params: no cache entry
 	_, usingCache := renderHTML("test")

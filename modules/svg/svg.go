@@ -6,12 +6,10 @@ package svg
 import (
 	"fmt"
 	"html/template"
-	"path"
 	"strings"
 	"sync"
 
 	gitea_html "code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 )
 
@@ -27,7 +25,7 @@ type svgCacheKey struct {
 }
 
 var (
-	svgIcons map[string]svgIconItem
+	svgIcons sync.Map // icon name -> svgIconItem; empty html means negative cache
 
 	svgCacheMu    sync.Mutex
 	svgCache      sync.Map
@@ -35,45 +33,44 @@ var (
 	svgCacheLimit = 10000
 )
 
-const defaultSize = 16
+const (
+	defaultSize   = 16
+	svgAssetsPath = "assets/img/svg"
+)
 
-// Init discovers SVG icons and populates the `svgIcons` variable
+// Init is a no-op kept for compatibility. SVG icons are loaded lazily on first
+// render so the backend can start before the SVG assets have been generated
+// (e.g. during `make watch` or when running the binary directly from an IDE).
 func Init() error {
-	const svgAssetsPath = "assets/img/svg"
-	files, err := public.AssetFS().ListFiles(svgAssetsPath)
-	if err != nil {
-		return err
-	}
-
-	svgIcons = make(map[string]svgIconItem, len(files))
-	for _, file := range files {
-		if path.Ext(file) != ".svg" {
-			continue
-		}
-		bs, err := public.AssetFS().ReadFile(svgAssetsPath, file)
-		if err != nil {
-			log.Error("Failed to read SVG file %s: %v", file, err)
-		} else {
-			svgIcons[file[:len(file)-4]] = svgIconItem{html: string(Normalize(bs, defaultSize))}
-		}
-	}
 	return nil
 }
 
-func MockIcon(icon string) func() {
-	if svgIcons == nil {
-		svgIcons = make(map[string]svgIconItem)
+func loadIcon(icon string) svgIconItem {
+	if v, ok := svgIcons.Load(icon); ok {
+		return v.(svgIconItem)
 	}
-	orig, exist := svgIcons[icon]
-	svgIcons[icon] = svgIconItem{
+	bs, err := public.AssetFS().ReadFile(svgAssetsPath, icon+".svg")
+	if err != nil {
+		// cache the miss so repeated lookups don't keep hitting the filesystem
+		svgIcons.Store(icon, svgIconItem{})
+		return svgIconItem{}
+	}
+	item := svgIconItem{html: string(Normalize(bs, defaultSize))}
+	svgIcons.Store(icon, item)
+	return item
+}
+
+func MockIcon(icon string) func() {
+	orig, existed := svgIcons.Load(icon)
+	svgIcons.Store(icon, svgIconItem{
 		html:    fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d"></svg>`, icon, defaultSize, defaultSize),
 		mocking: true,
-	}
+	})
 	return func() {
-		if exist {
-			svgIcons[icon] = orig
+		if existed {
+			svgIcons.Store(icon, orig)
 		} else {
-			delete(svgIcons, icon)
+			svgIcons.Delete(icon)
 		}
 	}
 }
@@ -89,7 +86,7 @@ func renderHTML(icon string, others ...any) (_ template.HTML, usingCache bool) {
 		return "", false
 	}
 	size, class := gitea_html.ParseSizeAndClass(defaultSize, "", others...)
-	if svgItem, ok := svgIcons[icon]; ok {
+	if svgItem := loadIcon(icon); svgItem.html != "" {
 		svgStr := svgItem.html
 		// fast path for default size and no classes
 		if size == defaultSize && class == "" {
