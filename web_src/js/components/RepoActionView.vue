@@ -86,7 +86,7 @@ async function deleteArtifact(name: string) {
                       </span>
                       <span class="attempt-switcher-item-summary">
                         <relative-time :datetime="new Date(attempt.triggeredAt * 1000).toISOString()" prefix=""/>
-                        <template v-if="attempt.triggerUserName"> {{ locale.attemptTriggeredBy }} {{ attempt.triggerUserName }}</template>
+                        {{ locale.attemptTriggeredBy.replace('%s', attempt.triggerUserName) }}
                       </span>
                     </div>
                   </div>
