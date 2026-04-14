@@ -13,7 +13,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -26,6 +25,24 @@ type ActivityAuthorData struct {
 	AvatarLink string `json:"avatar_link"`
 	HomeLink   string `json:"home_link"`
 	Commits    int64  `json:"commits"`
+}
+
+// CodeActivityStats represents git statistics data
+type CodeActivityStats struct {
+	AuthorCount              int64
+	CommitCount              int64
+	ChangedFiles             int64
+	Additions                int64
+	Deletions                int64
+	CommitCountInAllBranches int64
+	Authors                  []*CodeActivityAuthor
+}
+
+// CodeActivityAuthor represents git statistics data for commit authors
+type CodeActivityAuthor struct {
+	Name    string
+	Email   string
+	Commits int64
 }
 
 // ActivityStats represents issue and pull request information.
@@ -42,12 +59,12 @@ type ActivityStats struct {
 	UnresolvedIssues            issues_model.IssueList
 	PublishedReleases           []*repo_model.Release
 	PublishedReleaseAuthorCount int64
-	Code                        *git.CodeActivityStats
+	Code                        *CodeActivityStats
 }
 
 // GetActivityStats return stats for repository at given time range
 func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
-	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
+	stats := &ActivityStats{Code: &CodeActivityStats{}}
 	if releases {
 		if err := stats.FillReleases(ctx, repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillReleases: %w", err)
@@ -67,11 +84,11 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 		return nil, fmt.Errorf("FillUnresolvedIssues: %w", err)
 	}
 	if code {
-		code, err := getCodeActivityStats(ctx, repo, timeFrom)
+		codeStats, err := getCodeActivityStats(ctx, repo, timeFrom)
 		if err != nil {
 			return nil, err
 		}
-		stats.Code = code
+		stats.Code = codeStats
 	}
 	return stats, nil
 }
@@ -83,7 +100,7 @@ func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository
 		return nil, err
 	}
 	if len(stats) == 0 {
-		return nil, nil
+		return []*ActivityAuthorData{}, nil
 	}
 
 	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
@@ -161,12 +178,12 @@ type contributorActivityRow struct {
 	Commits    int64
 }
 
-func getCodeActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time) (*git.CodeActivityStats, error) {
+func getCodeActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time) (*CodeActivityStats, error) {
 	rows, err := getContributorActivity(ctx, repo, timeFrom)
 	if err != nil {
 		return nil, err
 	}
-	stats := &git.CodeActivityStats{}
+	stats := &CodeActivityStats{}
 	if len(rows) == 0 {
 		return stats, nil
 	}
