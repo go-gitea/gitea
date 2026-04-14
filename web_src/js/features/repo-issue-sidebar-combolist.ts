@@ -28,12 +28,10 @@ export function syncIssueMainContentTimelineItems(oldMainContent: Element, newMa
         // for event item (e.g.: "add & remove labels"), we want to replace the existing one if exists
         // because the label operations can be merged into one event item, so the new item might be different from the old one
         oldItem.replaceWith(newItem);
-        window.htmx.process(newItem);
       }
       continue;
     }
     timelineEnd.insertAdjacentElement('beforebegin', newItem);
-    window.htmx.process(newItem);
   }
 }
 
@@ -92,7 +90,6 @@ export class IssueSidebarComboList {
     // we can safely replace the whole right part (sidebar) because there are only some dropdowns and lists
     const newSidebar = doc.querySelector('.issue-content-right')!;
     this.elIssueSidebar.replaceWith(newSidebar);
-    window.htmx.process(newSidebar);
 
     // for the main content (left side), at the moment we only support handling known timeline items
     const newMainContent = doc.querySelector('.issue-content-left')!;
