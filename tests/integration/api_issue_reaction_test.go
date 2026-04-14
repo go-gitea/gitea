@@ -145,7 +145,10 @@ func TestAPICommentReactions(t *testing.T) {
 	DecodeJSON(t, resp, &apiNewReaction)
 
 	// Add existing reaction
-	MakeRequest(t, req, http.StatusForbidden)
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+		Reaction: "+1",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Get end result of reaction list of issue #1
 	req = NewRequest(t, "GET", urlStr).
