@@ -213,7 +213,7 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 	case actions_model.StatusSkipped:
 		description = "Has been skipped"
 	case actions_model.StatusRunning:
-		description = "Has started running"
+		description = "In progress"
 	case actions_model.StatusWaiting:
 		description = "Waiting to run"
 	case actions_model.StatusBlocked:

@@ -225,7 +225,7 @@ func (status *CommitStatus) GetDescription() string {
 	case actions_model.StatusWaiting:
 		return "Waiting to run"
 	case actions_model.StatusRunning:
-		return "Has started running"
+		return "In progress"
 	case actions_model.StatusBlocked:
 		return "Blocked by required conditions"
 	}
