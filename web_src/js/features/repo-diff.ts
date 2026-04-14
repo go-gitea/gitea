@@ -8,9 +8,10 @@ import {showErrorToast} from '../modules/toast.ts';
 import {submitEventSubmitter, queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
-import {invertFileFolding} from './file-fold.ts';
-import {parseDom, sleep} from '../utils.ts';
-import {registerGlobalSelectorFunc} from '../modules/observer.ts';
+import {invertFileFolding, setFileFolding} from './file-fold.ts';
+import {parseDom} from '../utils.ts';
+import {registerGlobalEventFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
+import {svg} from '../svg.ts';
 
 function initRepoDiffFileBox(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -172,7 +173,6 @@ async function loadMoreFiles(btn: Element): Promise<boolean> {
     // * append the newly loaded file list items to the existing list
     const respFileBoxesChildren = Array.from(respFileBoxes.children); // "children:HTMLCollection" will be empty after replaceWith
     document.querySelector('#diff-incomplete')!.replaceWith(...respFileBoxesChildren);
-    for (const el of respFileBoxesChildren) window.htmx.process(el);
     onShowMoreFiles();
     return true;
   } catch (error) {
@@ -204,7 +204,6 @@ function initRepoDiffShowMore() {
       const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body')!;
       const respFileBodyChildren = Array.from(respFileBody.children); // "children:HTMLCollection" will be empty after replaceWith
       el.parentElement!.replaceWith(...respFileBodyChildren);
-      for (const el of respFileBodyChildren) window.htmx.process(el);
       // FIXME: calling onShowMoreFiles is not quite right here.
       // But since onShowMoreFiles mixes "init diff box" and "init diff body" together,
       // so it still needs to call it to make the "ImageDiff" and something similar work.
@@ -247,12 +246,11 @@ async function onLocationHashChange() {
       const commentId = currentHash.substring(issueCommentPrefix.length);
       const expandButton = document.querySelector<HTMLElement>(`.code-expander-button[data-hidden-comment-ids*=",${commentId},"]`);
       if (expandButton) {
-        // avoid infinite loop, do not re-click the button if already clicked
+        // avoid infinite loop, do not re-expand the same button
         const attrAutoLoadClicked = 'data-auto-load-clicked';
         if (expandButton.hasAttribute(attrAutoLoadClicked)) return;
         expandButton.setAttribute(attrAutoLoadClicked, 'true');
-        expandButton.click();
-        await sleep(500); // Wait for HTMX to load the content. FIXME: need to drop htmx in the future
+        await fetchBlobExcerpt(expandButton);
         continue; // Try again to find the element
       }
     }
@@ -274,6 +272,112 @@ function initRepoDiffHashChangeListener() {
   onLocationHashChange();
 }
 
+const expandAllSavedState = new Map<string, string>();
+
+async function fetchBlobExcerpt(btn: HTMLElement) {
+  if (btn.classList.contains('is-loading')) return;
+  const tr = btn.closest('tr')!;
+  const diffBox = tr.closest<HTMLElement>('.diff-file-box')!;
+
+  // save before loading class is added, so restored state is clean
+  if (!expandAllSavedState.has(diffBox.id)) {
+    const tbody = diffBox.querySelector<HTMLElement>('.code-diff tbody');
+    if (tbody) expandAllSavedState.set(diffBox.id, tbody.innerHTML);
+  }
+
+  btn.classList.add('is-loading', 'loading-icon-2px');
+  try {
+    const response = await GET(btn.getAttribute('data-url')!);
+    if (!response.ok) return;
+
+    tr.insertAdjacentHTML('afterend', await response.json());
+    tr.remove();
+
+    const tbody = diffBox.querySelector('.code-diff tbody');
+    if (tbody && !tbody.querySelector('.code-expander-button')) {
+      const expandAllBtn = diffBox.querySelector<HTMLElement>('[data-global-click="onDiffExpandAll"]');
+      if (expandAllBtn) {
+        expandAllBtn.innerHTML = svg('octicon-fold', 14);
+        expandAllBtn.setAttribute('data-tooltip-content', expandAllBtn.getAttribute('data-tooltip-collapse')!);
+      }
+    }
+  } finally {
+    btn.classList.remove('is-loading', 'loading-icon-2px');
+  }
+}
+
+function initDiffExpand() {
+  const gapParams = ['last_left', 'last_right', 'left', 'right', 'left_hunk_size', 'right_hunk_size'] as const;
+
+  registerGlobalEventFunc('click', 'onExpanderButtonClick', (btn: HTMLElement) => fetchBlobExcerpt(btn));
+
+  registerGlobalEventFunc('click', 'onDiffExpandAll', async (btn: HTMLElement) => {
+    if (btn.classList.contains('is-loading')) return;
+    const diffBox = btn.closest('.diff-file-box')!;
+    const boxId = diffBox.id;
+    const tbody = diffBox.querySelector<HTMLElement>('.code-diff tbody');
+    if (!tbody) return;
+
+    // collapse mode: restore saved state when fully expanded (no gaps remain)
+    if (expandAllSavedState.has(boxId) && !tbody.querySelector('.code-expander-button')) {
+      tbody.innerHTML = expandAllSavedState.get(boxId)!;
+      expandAllSavedState.delete(boxId);
+      btn.innerHTML = svg('octicon-unfold', 14);
+      btn.setAttribute('data-tooltip-content', btn.getAttribute('data-tooltip-expand')!);
+      return;
+    }
+
+    if (diffBox.getAttribute('data-folded') === 'true') {
+      setFileFolding(diffBox, diffBox.querySelector<HTMLElement>('.fold-file')!, false);
+    }
+
+    // collect unique TRs, dedupe because a single gap row can contain multiple expand buttons
+    const expandTrs: HTMLTableRowElement[] = [];
+    const seen = new Set<HTMLTableRowElement>();
+    for (const expandBtn of tbody.querySelectorAll<HTMLElement>('.code-expander-button')) {
+      const tr = expandBtn.closest('tr')!;
+      if (seen.has(tr)) continue;
+      seen.add(tr);
+      expandTrs.push(tr);
+    }
+
+    if (!expandTrs.length) return;
+    if (!expandAllSavedState.has(boxId)) expandAllSavedState.set(boxId, tbody.innerHTML);
+
+    const baseUrl = new URL(expandTrs[0].querySelector<HTMLElement>('.code-expander-button')!.getAttribute('data-url')!, window.location.origin);
+    const batchUrl = new URL(baseUrl.pathname, window.location.origin);
+    batchUrl.searchParams.set('expand_all', 'true');
+
+    for (const param of ['style', 'path', 'filelang', 'pull_issue_index', 'show_outdated'] as const) {
+      const value = baseUrl.searchParams.get(param);
+      if (value) batchUrl.searchParams.set(param, value);
+    }
+
+    for (const tr of expandTrs) {
+      const url = new URL(tr.querySelector<HTMLElement>('.code-expander-button')!.getAttribute('data-url')!, window.location.origin);
+      for (const param of gapParams) batchUrl.searchParams.append(param, url.searchParams.get(param)!);
+    }
+
+    btn.classList.add('is-loading', 'loading-icon-2px');
+    try {
+      const response = await GET(batchUrl.toString());
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const htmlStrings: string[] = await response.json();
+      for (let idx = 0; idx < expandTrs.length && idx < htmlStrings.length; idx++) {
+        expandTrs[idx].insertAdjacentHTML('afterend', htmlStrings[idx]);
+        expandTrs[idx].remove();
+      }
+      btn.innerHTML = svg('octicon-fold', 14);
+      btn.setAttribute('data-tooltip-content', btn.getAttribute('data-tooltip-collapse')!);
+    } catch {
+      expandAllSavedState.delete(boxId);
+      showErrorToast('Failed to expand all sections');
+    } finally {
+      btn.classList.remove('is-loading', 'loading-icon-2px');
+    }
+  });
+}
+
 export function initRepoDiffView() {
   initRepoDiffConversationForm(); // such form appears on the "conversation" page and "diff" page
 
@@ -286,6 +390,7 @@ export function initRepoDiffView() {
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
   initRepoDiffHashChangeListener();
+  initDiffExpand();
 
   registerGlobalSelectorFunc('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
   addDelegatedEventListener(document, 'click', '.fold-file', (el) => {

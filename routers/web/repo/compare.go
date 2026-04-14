@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -48,6 +49,8 @@ const (
 	tplCompare     templates.TplName = "repo/diff/compare"
 	tplBlobExcerpt templates.TplName = "repo/diff/blob_excerpt"
 	tplDiffBox     templates.TplName = "repo/diff/box"
+
+	maxBlobExcerptBatchSections = 100
 )
 
 // setCompareContext sets context data.
@@ -748,6 +751,11 @@ func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64
 
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
+	if ctx.FormBool("expand_all") {
+		excerptBlobExpandAll(ctx)
+		return
+	}
+
 	commitID := ctx.PathParam("sha")
 	opts := gitdiff.BlobExcerptOptions{
 		LastLeft:      ctx.FormInt("last_left"),
@@ -837,5 +845,154 @@ func ExcerptBlob(ctx *context.Context) {
 	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
-	ctx.HTML(http.StatusOK, tplBlobExcerpt)
+	renderedHTML, err := ctx.RenderToHTML(tplBlobExcerpt, ctx.Data)
+	if err != nil {
+		ctx.ServerError("RenderToHTML", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, string(renderedHTML))
+}
+
+// excerptBlobExpandAll expands all collapsed sections in a file in one request.
+// It reads the blob once, highlights once, and returns a JSON array of HTML strings.
+func excerptBlobExpandAll(ctx *context.Context) {
+	commitID := ctx.PathParam("sha")
+	filePath := ctx.FormString("path")
+	gitRepo := ctx.Repo.GitRepo
+
+	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
+		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
+		DiffStyle:     GetDiffViewStyle(ctx),
+		AfterCommitID: commitID,
+	}
+
+	if ctx.Data["PageIsWiki"] == true {
+		var err error
+		gitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
+		if err != nil {
+			ctx.ServerError("OpenRepository", err)
+			return
+		}
+		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
+	}
+
+	commit, err := gitRepo.GetCommit(commitID)
+	if err != nil {
+		ctx.ServerError("GetCommit", err)
+		return
+	}
+	blob, err := commit.Tree.GetBlobByPath(filePath)
+	if err != nil {
+		ctx.ServerError("GetBlobByPath", err)
+		return
+	}
+	if blob.Size() > setting.UI.MaxDisplayFileSize {
+		ctx.HTTPError(http.StatusRequestEntityTooLarge, "file too large for full expansion")
+		return
+	}
+
+	reader, err := blob.DataAsync()
+	if err != nil {
+		ctx.ServerError("DataAsync", err)
+		return
+	}
+	content, err := io.ReadAll(reader)
+	reader.Close()
+	if err != nil {
+		ctx.ServerError("ReadAll", err)
+		return
+	}
+
+	optsList, err := parseBatchExcerptOptions(ctx)
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	sections, err := gitdiff.BuildBlobExcerptDiffSectionsFull(filePath, content, optsList)
+	if err != nil {
+		ctx.ServerError("BuildBlobExcerptDiffSectionsFull", err)
+		return
+	}
+
+	diffBlobExcerptData.PullIssueIndex = ctx.FormInt64("pull_issue_index")
+	if diffBlobExcerptData.PullIssueIndex > 0 {
+		if !ctx.Repo.CanRead(unit.TypePullRequests) {
+			ctx.NotFound(nil)
+			return
+		}
+		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, diffBlobExcerptData.PullIssueIndex)
+		if err != nil {
+			log.Error("GetIssueByIndex error: %v", err)
+		} else if issue.IsPull {
+			ctx.Data["Issue"] = issue
+			ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+				return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+			}
+			ctx.Data["PageIsPullFiles"] = true
+			ctx.Data["AfterCommitID"] = diffBlobExcerptData.AfterCommitID
+
+			allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated"))
+			if err != nil {
+				log.Error("FetchCodeComments error: %v", err)
+			} else if lineComments, ok := allComments[filePath]; ok {
+				for _, section := range sections {
+					attachCommentsToLines(section, lineComments)
+				}
+			}
+		}
+	}
+
+	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
+	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
+	htmlResults := make([]string, len(sections))
+	for idx, section := range sections {
+		ctx.Data["section"] = section
+		renderedHTML, err := ctx.RenderToHTML(tplBlobExcerpt, ctx.Data)
+		if err != nil {
+			ctx.ServerError("RenderToHTML", err)
+			return
+		}
+		htmlResults[idx] = string(renderedHTML)
+	}
+	ctx.JSON(http.StatusOK, htmlResults)
+}
+
+// parseBatchExcerptOptions parses repeated per-gap query parameters for batch expansion.
+func parseBatchExcerptOptions(ctx *context.Context) ([]gitdiff.BlobExcerptOptions, error) {
+	lastLefts := ctx.FormStrings("last_left")
+	lastRights := ctx.FormStrings("last_right")
+	lefts := ctx.FormStrings("left")
+	rights := ctx.FormStrings("right")
+	leftHunkSizes := ctx.FormStrings("left_hunk_size")
+	rightHunkSizes := ctx.FormStrings("right_hunk_size")
+
+	n := len(lastLefts)
+	if n == 0 || n > maxBlobExcerptBatchSections {
+		return nil, errors.New("invalid number of batch sections")
+	}
+	if len(lastRights) != n || len(lefts) != n || len(rights) != n || len(leftHunkSizes) != n || len(rightHunkSizes) != n {
+		return nil, errors.New("mismatched batch parameter array lengths")
+	}
+
+	language := ctx.FormString("filelang")
+	optsList := make([]gitdiff.BlobExcerptOptions, n)
+	for idx := range n {
+		parsed := [6]string{lastLefts[idx], lastRights[idx], lefts[idx], rights[idx], leftHunkSizes[idx], rightHunkSizes[idx]}
+		vals := [6]int{}
+		for paramIdx := range 6 {
+			v, err := strconv.Atoi(strings.TrimSpace(parsed[paramIdx]))
+			if err != nil {
+				return nil, err
+			}
+			vals[paramIdx] = v
+		}
+		optsList[idx] = gitdiff.BlobExcerptOptions{
+			LastLeft: vals[0], LastRight: vals[1],
+			LeftIndex: vals[2], RightIndex: vals[3],
+			LeftHunkSize: vals[4], RightHunkSize: vals[5],
+			Language: language,
+		}
+	}
+	return optsList, nil
 }

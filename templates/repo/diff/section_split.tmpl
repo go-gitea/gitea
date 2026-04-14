@@ -17,7 +17,7 @@
 			<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
 				{{if eq .GetType 4}}
 					{{$inlineDiff := $section.GetComputedInlineDiffFor $line ctx.Locale}}
-					<td class="lines-num lines-num-old">{{$line.RenderBlobExcerptButtons $file.NameHash $diffBlobExcerptData}}</td>
+					<td class="lines-num lines-num-old">{{$line.RenderBlobExcerptButtons $file.NameHash $diffBlobExcerptData ctx.Locale}}</td>
 					<td class="lines-escape lines-escape-old">{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}</td>
 					<td colspan="6" class="lines-code lines-code-old">{{template "repo/diff/section_code" dict "diff" $inlineDiff}}</td>
 				{{else if and (eq .GetType 3) $hasmatch}}{{/* DEL */}}
