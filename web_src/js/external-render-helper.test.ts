@@ -6,6 +6,7 @@ test('isValidCssColor', async () => {
   expect(isValidCssColor('')).toBe(false);
 
   expect(isValidCssColor('#123')).toBe(true);
+  expect(isValidCssColor('#1234')).toBe(true);
   expect(isValidCssColor('#abcabc')).toBe(true);
   expect(isValidCssColor('#abcabc12')).toBe(true);
 
