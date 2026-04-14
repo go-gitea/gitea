@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
@@ -72,6 +73,7 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
 func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository) ([]*git_model.SignCommitWithStatuses, error) {
 	newCommits := make([]*git_model.SignCommitWithStatuses, 0, len(oldCommits))
+	var flatStatuses []*git_model.CommitStatus
 
 	for _, c := range oldCommits {
 		commit := &git_model.SignCommitWithStatuses{
@@ -85,6 +87,8 @@ func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.Sig
 		commit.Statuses = statuses
 		commit.Status = git_model.CalcCommitStatus(statuses)
 		newCommits = append(newCommits, commit)
+		flatStatuses = append(flatStatuses, statuses...)
 	}
+	actions_service.LoadActionStatuses(ctx, flatStatuses)
 	return newCommits, nil
 }

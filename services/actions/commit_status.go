@@ -80,6 +80,47 @@ func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.Commit
 	return runs, nil
 }
 
+// LoadActionStatuses sets CommitStatus.ActionStatus from the matching ActionRunJob.
+func LoadActionStatuses(ctx context.Context, statuses []*git_model.CommitStatus) {
+	if len(statuses) == 0 {
+		return
+	}
+	statusByJobID := make(map[int64]*git_model.CommitStatus, len(statuses))
+	// Cache repo per RepoID across ParseGiteaActionsTargetURL lazy-loads,
+	// same as CommitStatusesHideActionsURL.
+	repoCache := make(map[int64]*repo_model.Repository)
+	for _, status := range statuses {
+		if status == nil {
+			continue
+		}
+		if status.Repo == nil {
+			status.Repo = repoCache[status.RepoID]
+		}
+		_, jobID, ok := status.ParseGiteaActionsTargetURL(ctx)
+		repoCache[status.RepoID] = status.Repo
+		if ok {
+			statusByJobID[jobID] = status
+		}
+	}
+	if len(statusByJobID) == 0 {
+		return
+	}
+	jobIDs := make([]int64, 0, len(statusByJobID))
+	for id := range statusByJobID {
+		jobIDs = append(jobIDs, id)
+	}
+	jobs := make(map[int64]*actions_model.ActionRunJob, len(jobIDs))
+	if err := db.GetEngine(ctx).In("id", jobIDs).Cols("id", "status").Find(&jobs); err != nil {
+		log.Error("LoadActionStatuses: find action run jobs: %v", err)
+		return
+	}
+	for jobID, status := range statusByJobID {
+		if job, ok := jobs[jobID]; ok {
+			status.ActionStatus = job.Status
+		}
+	}
+}
+
 func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {
 	switch run.Event {
 	case webhook_module.HookEventPush:

@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
+	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -73,6 +74,11 @@ func Branches(ctx *context.Context) {
 			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
 		}
 	}
+	var flatStatuses []*git_model.CommitStatus
+	for _, cs := range commitStatuses {
+		flatStatuses = append(flatStatuses, cs...)
+	}
+	actions_service.LoadActionStatuses(ctx, flatStatuses)
 
 	commitStatus := make(map[string]*git_model.CommitStatus)
 	for commitID, cs := range commitStatuses {

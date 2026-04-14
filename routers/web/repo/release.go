@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/feed"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
@@ -102,6 +103,7 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 	canReadActions := ctx.Repo.CanRead(unit.TypeActions)
 
 	releaseInfos := make([]*ReleaseInfo, 0, len(releases))
+	var flatStatuses []*git_model.CommitStatus
 	for _, r := range releases {
 		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
 			r.Publisher, err = user_model.GetPossibleUserByID(ctx, r.PublisherID)
@@ -141,10 +143,12 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 
 			info.CommitStatus = git_model.CalcCommitStatus(statuses)
 			info.CommitStatuses = statuses
+			flatStatuses = append(flatStatuses, statuses...)
 		}
 
 		releaseInfos = append(releaseInfos, info)
 	}
+	actions_service.LoadActionStatuses(ctx, flatStatuses)
 
 	return releaseInfos, nil
 }

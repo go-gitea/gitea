@@ -1,4 +1,4 @@
-<!-- This vue should be kept the same as templates/repo/actions/status.tmpl
+<!-- This vue should be kept the same as templates/repo/icons/action_status.tmpl
     Please also update the template file above if this vue is modified.
     action status accepted: success, skipped, waiting, blocked, running, failure, cancelled, unknown
 -->

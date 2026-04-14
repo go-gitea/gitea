@@ -306,7 +306,7 @@ func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 		if !ctx.Repo.CanRead(unit.TypeActions) {
 			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
 		}
-
+		actions_service.LoadActionStatuses(ctx, commitStatuses)
 		if len(commitStatuses) != 0 {
 			ctx.Data["LatestCommitStatuses"] = commitStatuses
 			ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
@@ -432,7 +432,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		if !ctx.Repo.CanRead(unit.TypeActions) {
 			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
 		}
-
+		actions_service.LoadActionStatuses(ctx, commitStatuses)
 		statusCheckData.LatestCommitStatus = git_model.CalcCommitStatus(commitStatuses)
 		if len(commitStatuses) > 0 {
 			ctx.Data["LatestCommitStatuses"] = commitStatuses
@@ -508,7 +508,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 	if !ctx.Repo.CanRead(unit.TypeActions) {
 		git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
 	}
-
+	actions_service.LoadActionStatuses(ctx, commitStatuses)
 	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
 	if err != nil {
 		ctx.ServerError("GetRunsFromCommitStatuses", err)

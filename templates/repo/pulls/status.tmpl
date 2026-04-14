@@ -39,8 +39,12 @@
 	<div class="commit-status-list">
 		{{range .CommitStatuses}}
 			<div class="commit-status-item">
-				{{template "repo/commit_status" .}}
-				<div class="status-context gt-ellipsis">{{.Context}} <span class="tw-text-text-light-2">{{.Description}}</span></div>
+				{{if .ActionStatus.IsUnknown}}
+					{{template "repo/commit_status" .}}
+				{{else}}
+					{{template "repo/icons/action_status" (dict "status" .ActionStatus.String "size" 18 "className" "commit-status icon")}}
+				{{end}}
+				<div class="status-context gt-ellipsis">{{.Context}} <span class="tw-text-text-light-2">{{.GetDescription}}</span></div>
 				<div class="ui status-details">
 					{{if and $statusCheckData $statusCheckData.IsContextRequired}}
 						{{if (call $statusCheckData.IsContextRequired .Context)}}<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}

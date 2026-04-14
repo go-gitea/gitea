@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	actions_service "code.gitea.io/gitea/services/actions"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
@@ -1804,5 +1805,52 @@ jobs:
 		req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/pulls/%d/update?style=rebase", "user2", repoName, apiPull.Index))
 		session.MakeRequest(t, req, http.StatusSeeOther)
 		runner.fetchNoTask(t)
+	})
+}
+
+// Verify LoadActionStatuses surfaces the live ActionRunJob.Status after a
+// Waiting→Running transition (the dedup on State keeps the initial row).
+func TestActionsCommitStatusRunning(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
+			Name: "repo-cs-running", AutoInit: true, Readme: "Default", DefaultBranch: "main",
+		})
+		require.NoError(t, err)
+
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+		commit, err := gitRepo.GetBranchCommit("main")
+		require.NoError(t, err)
+		sha := commit.ID.String()
+
+		payload, err := json.Marshal(&api.PushPayload{HeadCommit: &api.PayloadCommit{ID: sha}})
+		require.NoError(t, err)
+		run := &actions_model.ActionRun{
+			RepoID: repo.ID, OwnerID: user2.ID, WorkflowID: "test.yml",
+			CommitSHA: sha, Event: webhook_module.HookEventPush, TriggerEvent: "push",
+			EventPayload: string(payload),
+		}
+		require.NoError(t, db.Insert(t.Context(), run))
+		job := &actions_model.ActionRunJob{
+			RunID: run.ID, RepoID: repo.ID, OwnerID: user2.ID, Name: "test",
+			Status: actions_model.StatusWaiting,
+		}
+		require.NoError(t, db.Insert(t.Context(), job))
+
+		actions_service.CreateCommitStatusForRunJobs(t.Context(), run, job)
+		job.Status = actions_model.StatusRunning
+		actions_service.CreateCommitStatusForRunJobs(t.Context(), run, job)
+
+		statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
+		require.NoError(t, err)
+		require.Len(t, statuses, 1)
+		assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
+		// Dedup on State only → stored Description stays at the Waiting text.
+		assert.Equal(t, "Waiting to run", statuses[0].Description)
+
+		actions_service.LoadActionStatuses(t.Context(), statuses)
+		assert.Equal(t, actions_model.StatusRunning, statuses[0].ActionStatus)
 	})
 }
