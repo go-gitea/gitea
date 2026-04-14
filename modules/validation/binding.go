@@ -5,12 +5,14 @@ package validation
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/glob"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/binding"
@@ -31,8 +33,23 @@ const (
 	ErrInvalidBadgeSlug = "InvalidBadgeSlug"
 )
 
+type jsonProvider struct{}
+
+func (j jsonProvider) Marshal(v any) ([]byte, error) { return json.Marshal(v) }
+
+func (j jsonProvider) Unmarshal(data []byte, v any) error { return json.Unmarshal(data, v) }
+
+func (j jsonProvider) NewDecoder(reader io.Reader) binding.JSONDecoder {
+	return json.NewDecoder(reader)
+}
+
+func (j jsonProvider) NewEncoder(writer io.Writer) binding.JSONEncoder {
+	return json.NewEncoder(writer)
+}
+
 // AddBindingRules adds additional binding rules
 func AddBindingRules() {
+	binding.JSONProvider = jsonProvider{}
 	addGitRefNameBindingRule()
 	addValidURLListBindingRule()
 	addValidURLBindingRule()
