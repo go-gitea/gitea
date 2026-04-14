@@ -15,6 +15,17 @@ RENDER_COMMAND = `echo '<div style="width: 100%; height: 2000px; border: 10px so
 
 */
 
+// Check whether the user-provided color value is a valid CSS color format to avoid CSS injection.
+// Don't extract this function to a common module, because this file is an IIFE module for external render
+// and should not have any dependency to avoid potential conflicts.
+function isValidCssColor(s: string | null): boolean {
+  if (!s) return false;
+  // it should only be in format "#hex" or "rgb(...)", because it comes from a computed style's color value
+  const reHex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+  const reRgb = /^rgb\([^{}'";:]+\)$/;
+  return reHex.test(s) || reRgb.test(s);
+}
+
 const url = new URL(window.location.href);
 
 const isDarkTheme = url.searchParams.get('gitea-is-dark-theme') === 'true';
@@ -23,7 +34,7 @@ if (isDarkTheme) {
 }
 
 const backgroundColor = url.searchParams.get('gitea-iframe-bgcolor');
-if (backgroundColor) {
+if (isValidCssColor(backgroundColor)) {
   // create a style element to set background color, then it can be overridden by the content page's own style if needed
   const style = document.createElement('style');
   style.textContent = `
@@ -74,4 +85,8 @@ if (iframeId) {
       openIframeLink(href, forceTarget ?? el.getAttribute('target'));
     }
   });
+}
+
+if (window.testModules) {
+  window.testModules.externalRenderHelper = {isValidCssColor};
 }
