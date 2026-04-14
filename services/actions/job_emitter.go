@@ -138,8 +138,8 @@ func createCommitStatusesForJobsByRun(ctx context.Context, jobs []*actions_model
 	return nil
 }
 
-// findBlockedRunByConcurrency finds a blocked concurrent run in a repo and returns 0 when there is no blocked run.
-func findBlockedRunByConcurrency(ctx context.Context, repoID int64, concurrencyGroup string) (int64, error) {
+// findBlockedRunIDByConcurrency finds a blocked concurrent run in a repo and returns 0 when there is no blocked run.
+func findBlockedRunIDByConcurrency(ctx context.Context, repoID int64, concurrencyGroup string) (int64, error) {
 	if concurrencyGroup == "" {
 		return 0, nil
 	}
@@ -221,7 +221,6 @@ func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (job
 	}
 	return jobs, updatedJobs, cancelledJobs, nil
 }
-
 
 func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.ActionRun, attemptID int64) (jobs, updatedJobs, cancelledJobs []*actions_model.ActionRunJob, err error) {
 	jobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, attemptID)
