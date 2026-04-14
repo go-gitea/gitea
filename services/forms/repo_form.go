@@ -535,7 +535,7 @@ type MergePullRequestForm struct {
 	DeleteBranchAfterMerge *bool  `json:"delete_branch_after_merge,omitempty"`
 }
 
-func (m *MergePullRequestForm) UnmarshalJSON(b []byte) error {
+func (f *MergePullRequestForm) UnmarshalJSON(b []byte) error {
 	// This is for backward compatibility, to support both field names like "do" and "Do",
 	// because old code doesn't have "json" tag for these fields
 	type aux struct {
@@ -557,14 +557,14 @@ func (m *MergePullRequestForm) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &a); err != nil {
 		return err
 	}
-	m.Do = util.IfZero(a.Do1, a.Do2)
-	m.MergeTitleField = util.IfZero(a.MergeTitleField1, a.MergeTitleField2)
-	m.MergeMessageField = util.IfZero(a.MergeMessageField1, a.MergeMessageField2)
-	m.MergeCommitID = util.IfZero(a.MergeCommitID1, a.MergeCommitID2)
-	m.HeadCommitID = a.HeadCommitID
-	m.ForceMerge = a.ForceMerge
-	m.MergeWhenChecksSucceed = a.MergeWhenChecksSucceed
-	m.DeleteBranchAfterMerge = a.DeleteBranchAfterMerge
+	f.Do = util.IfZero(a.Do1, a.Do2)
+	f.MergeTitleField = util.IfZero(a.MergeTitleField1, a.MergeTitleField2)
+	f.MergeMessageField = util.IfZero(a.MergeMessageField1, a.MergeMessageField2)
+	f.MergeCommitID = util.IfZero(a.MergeCommitID1, a.MergeCommitID2)
+	f.HeadCommitID = a.HeadCommitID
+	f.ForceMerge = a.ForceMerge
+	f.MergeWhenChecksSucceed = a.MergeWhenChecksSucceed
+	f.DeleteBranchAfterMerge = a.DeleteBranchAfterMerge
 	return nil
 }
 
