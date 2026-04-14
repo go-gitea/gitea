@@ -1028,13 +1028,22 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	workflowID := ctx.PathParam("workflow_id")
-	if _, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID); err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	runExists, err := db.GetEngine(ctx).
+		Where("repo_id = ? AND workflow_id = ?", ctx.Repo.Repository.ID, workflowID).
+		Exist(&actions_model.ActionRun{})
+	if err != nil {
+		ctx.APIErrorInternal(err)
 		return
+	}
+	if !runExists {
+		if _, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID); err != nil {
+			if errors.Is(err, util.ErrNotExist) {
+				ctx.APIError(http.StatusNotFound, err)
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
+		}
 	}
 
 	repoID := ctx.Repo.Repository.ID
