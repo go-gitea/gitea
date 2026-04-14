@@ -33,7 +33,7 @@ func TestGetRepoTopContributors(t *testing.T) {
 		{
 			RepoID:      repoID,
 			DayStart:    dayStart,
-			UserID:      0,
+			UserID:      2,
 			Email:       "bob@example.com",
 			AuthorName:  "Bob",
 			Commits:     5,
@@ -106,7 +106,7 @@ func TestGetRepoTopContributorsLimit(t *testing.T) {
 		{
 			RepoID:      repoID,
 			DayStart:    dayStart,
-			UserID:      0,
+			UserID:      20,
 			Email:       "alpha@example.com",
 			AuthorName:  "Alpha",
 			Commits:     10,
@@ -115,7 +115,7 @@ func TestGetRepoTopContributorsLimit(t *testing.T) {
 		{
 			RepoID:      repoID,
 			DayStart:    dayStart,
-			UserID:      0,
+			UserID:      21,
 			Email:       "beta@example.com",
 			AuthorName:  "Beta",
 			Commits:     2,
