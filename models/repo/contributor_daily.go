@@ -102,27 +102,41 @@ func IterateRepoIDsWithoutContributorDaily(ctx context.Context, batchSize int, h
 
 // GetRepoTopContributors returns the top contributors and total contributor count.
 func GetRepoTopContributors(ctx context.Context, repoID int64, limit int) ([]*ContributorSummary, int64, error) {
-	contributors := make([]*ContributorSummary, 0, limit)
-	if limit <= 0 {
-		return contributors, 0, nil
+	listOpts := db.ListOptions{PageSize: limit, Page: 1}
+	return GetRepoContributors(ctx, repoID, false, listOpts)
+}
+
+// GetRepoContributors returns contributors for a repository with pagination.
+func GetRepoContributors(ctx context.Context, repoID int64, includeAnonymous bool, listOpts db.ListOptions) ([]*ContributorSummary, int64, error) {
+	contributors := make([]*ContributorSummary, 0, listOpts.PageSize)
+	if listOpts.PageSize <= 0 {
+		listOpts.PageSize = 20
 	}
-	if err := db.GetEngine(ctx).
+
+	sess := db.GetEngine(ctx).
 		Table("repo_contributor_daily").
 		Select("user_id, email, max(author_name) as author_name, sum(commits) as commits").
-		Where("repo_id = ?", repoID).
+		Where("repo_id = ?", repoID)
+	if !includeAnonymous {
+		sess = sess.And("user_id > 0")
+	}
+	if err := db.SetSessionPagination(sess, &listOpts).
 		GroupBy("user_id, email").
 		Desc("commits").
-		Limit(limit).
 		Find(&contributors); err != nil {
 		return nil, 0, err
 	}
 
+	where := "repo_id = ?"
+	args := []any{repoID}
+	if !includeAnonymous {
+		where += " AND user_id > 0"
+	}
 	var count struct {
 		Total int64 `xorm:"total"`
 	}
-	_, err := db.GetEngine(ctx).
-		SQL("SELECT COUNT(*) AS total FROM (SELECT user_id, email FROM repo_contributor_daily WHERE repo_id=? GROUP BY user_id, email) temp", repoID).
-		Get(&count)
+	query := "SELECT COUNT(*) AS total FROM (SELECT user_id, email FROM repo_contributor_daily WHERE " + where + " GROUP BY user_id, email) temp"
+	_, err := db.GetEngine(ctx).SQL(query, args...).Get(&count)
 	if err != nil {
 		return contributors, 0, err
 	}

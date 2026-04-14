@@ -132,3 +132,42 @@ func TestGetRepoTopContributorsLimit(t *testing.T) {
 		assert.Equal(t, int64(10), contributors[0].Commits)
 	}
 }
+
+func TestGetRepoContributorsIncludeAnonymous(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repoID := int64(3)
+	dayStart := repo_model.NewContributorDayStart(time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC))
+	_, err := db.GetEngine(t.Context()).Insert([]*repo_model.ContributorDaily{
+		{
+			RepoID:      repoID,
+			DayStart:    dayStart,
+			UserID:      10,
+			Email:       "known@example.com",
+			AuthorName:  "Known",
+			Commits:     4,
+			UpdatedUnix: timeutil.TimeStampNow(),
+		},
+		{
+			RepoID:      repoID,
+			DayStart:    dayStart,
+			UserID:      0,
+			Email:       "anon@example.com",
+			AuthorName:  "Anon",
+			Commits:     3,
+			UpdatedUnix: timeutil.TimeStampNow(),
+		},
+	})
+	assert.NoError(t, err)
+
+	contributors, total, err := repo_model.GetRepoContributors(t.Context(), repoID, false, db.ListOptions{PageSize: 10, Page: 1})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	assert.Len(t, contributors, 1)
+	assert.Equal(t, int64(10), contributors[0].UserID)
+
+	contributors, total, err = repo_model.GetRepoContributors(t.Context(), repoID, true, db.ListOptions{PageSize: 10, Page: 1})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), total)
+	assert.Len(t, contributors, 2)
+}

@@ -1203,6 +1203,7 @@ func Routes() *web.Router {
 						m.Get("/permission", repo.GetRepoPermissions)
 					})
 				}, reqToken())
+				m.Get("/contributors", reqAnyRepoReader(), repo.ListContributors)
 				m.Get("/assignees", reqToken(), reqAnyRepoReader(), repo.GetAssignees)
 				m.Get("/reviewers", reqToken(), reqAnyRepoReader(), repo.GetReviewers)
 				m.Group("/teams", func() {

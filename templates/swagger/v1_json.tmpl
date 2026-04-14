@@ -8208,6 +8208,60 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/contributors": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List repository contributors",
+        "operationId": "repoListContributors",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "include anonymous contributors",
+            "name": "anon",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ContributorList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/diffpatch": {
       "post": {
         "consumes": [
@@ -23156,6 +23210,138 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "Contributor": {
+      "type": "object",
+      "title": "Contributor represents a repository contributor.",
+      "properties": {
+        "active": {
+          "description": "Is user active",
+          "type": "boolean",
+          "x-go-name": "IsActive"
+        },
+        "avatar_url": {
+          "description": "URL to the user's avatar",
+          "type": "string",
+          "x-go-name": "AvatarURL"
+        },
+        "contributions": {
+          "description": "Contributions is the number of commits made by the contributor",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Contributions"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "description": {
+          "description": "the user's description",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "email": {
+          "description": "Email of the contributor, used for anonymous contributors",
+          "type": "string",
+          "x-go-name": "Email"
+        },
+        "followers_count": {
+          "description": "user counts",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Followers"
+        },
+        "following_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Following"
+        },
+        "full_name": {
+          "description": "the user's full name",
+          "type": "string",
+          "x-go-name": "FullName"
+        },
+        "html_url": {
+          "description": "URL to the user's gitea page",
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "id": {
+          "description": "the user's id",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "is_admin": {
+          "description": "Is the user an administrator",
+          "type": "boolean",
+          "x-go-name": "IsAdmin"
+        },
+        "language": {
+          "description": "User locale",
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "last_login": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "LastLogin"
+        },
+        "location": {
+          "description": "the user's location",
+          "type": "string",
+          "x-go-name": "Location"
+        },
+        "login": {
+          "description": "login of the user, same as `username`",
+          "type": "string",
+          "x-go-name": "UserName"
+        },
+        "login_name": {
+          "description": "identifier of the user, provided by the external authenticator (if configured)",
+          "type": "string",
+          "default": "empty",
+          "x-go-name": "LoginName"
+        },
+        "name": {
+          "description": "Name of the contributor, used for anonymous contributors",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "prohibit_login": {
+          "description": "Is user login prohibited",
+          "type": "boolean",
+          "x-go-name": "ProhibitLogin"
+        },
+        "restricted": {
+          "description": "Is user restricted",
+          "type": "boolean",
+          "x-go-name": "Restricted"
+        },
+        "source_id": {
+          "description": "The ID of the user's Authentication Source",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SourceID"
+        },
+        "starred_repos_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "StarredRepos"
+        },
+        "visibility": {
+          "description": "User visibility level option: public, limited, private",
+          "type": "string",
+          "x-go-name": "Visibility"
+        },
+        "website": {
+          "description": "the user's website",
+          "type": "string",
+          "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateAccessTokenOption": {
       "description": "CreateAccessTokenOption options when create access token",
       "type": "object",
@@ -30152,6 +30338,15 @@
       "description": "ContentsResponse",
       "schema": {
         "$ref": "#/definitions/ContentsResponse"
+      }
+    },
+    "ContributorList": {
+      "description": "ContributorList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Contributor"
+        }
       }
     },
     "CronList": {
