@@ -36,7 +36,7 @@ func TestGetRepoTopContributors(t *testing.T) {
 			UserID:      2,
 			Email:       "bob@example.com",
 			AuthorName:  "Bob",
-			Commits:     5,
+			Commits:     6,
 			UpdatedUnix: timeutil.TimeStampNow(),
 		},
 		{
@@ -57,7 +57,7 @@ func TestGetRepoTopContributors(t *testing.T) {
 	assert.Equal(t, int64(2), total)
 	if assert.Len(t, contributors, 2) {
 		assert.Equal(t, "bob@example.com", contributors[0].Email)
-		assert.Equal(t, int64(5), contributors[0].Commits)
+		assert.Equal(t, int64(6), contributors[0].Commits)
 		assert.Equal(t, "alice@example.com", contributors[1].Email)
 		assert.Equal(t, int64(5), contributors[1].Commits)
 	}
