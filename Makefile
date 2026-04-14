@@ -122,6 +122,9 @@ BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* mo
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
 SVG_DEST_DIR := public/assets/img/svg
+SVG_SOURCES := $(shell find web_src/svg -type f -name '*.svg' 2>/dev/null)
+MATERIAL_ICON_RULES := options/fileicon/material-icon-rules.json
+MATERIAL_ICON_SVGS := options/fileicon/material-icon-svgs.json
 
 AIR_TMP_DIR := .air
 
@@ -196,6 +199,7 @@ clean-all: clean ## delete backend, frontend and integration files
 .PHONY: clean
 clean: ## delete backend and integration files
 	rm -rf $(EXECUTABLE) $(EXECUTABLE_E2E) $(DIST) $(BINDATA_DEST_WILDCARD) \
+		$(SVG_DEST_DIR) $(MATERIAL_ICON_RULES) $(MATERIAL_ICON_SVGS) $(GO_LICENSE_FILE) \
 		integrations*.test \
 		tests/integration/gitea-integration-* \
 		tests/integration/indexers-* \
@@ -260,7 +264,7 @@ swagger-validate: ## check if the swagger spec is valid
 checks: checks-frontend checks-backend ## run various consistency checks
 
 .PHONY: checks-frontend
-checks-frontend: lockfile-check svg-check ## check frontend files
+checks-frontend: lockfile-check ## check frontend files
 
 .PHONY: checks-backend
 checks-backend: tidy-check swagger-check fmt-check swagger-validate security-check ## check backend files
@@ -372,7 +376,7 @@ watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: node_modules ## start vite dev server for frontend
+watch-frontend: node_modules $(MATERIAL_ICON_RULES) ## start vite dev server for frontend
 	NODE_ENV=development pnpm exec vite --logLevel $(FRONTEND_DEV_LOG_LEVEL)
 
 .PHONY: watch-backend
@@ -775,7 +779,7 @@ update-py: node_modules ## update py dependencies
 .PHONY: vite
 vite: $(FRONTEND_DEST) ## build vite files
 
-$(FRONTEND_DEST): $(FRONTEND_SOURCES) $(FRONTEND_CONFIGS) pnpm-lock.yaml
+$(FRONTEND_DEST): $(FRONTEND_SOURCES) $(FRONTEND_CONFIGS) pnpm-lock.yaml $(MATERIAL_ICON_RULES) $(GO_LICENSE_FILE)
 	@$(MAKE) -s node_modules
 	@rm -rf $(FRONTEND_DEST_ENTRIES)
 	@echo "Running vite build..."
@@ -783,19 +787,11 @@ $(FRONTEND_DEST): $(FRONTEND_SOURCES) $(FRONTEND_CONFIGS) pnpm-lock.yaml
 	@touch $(FRONTEND_DEST)
 
 .PHONY: svg
-svg: node_modules ## build svg files
-	rm -rf $(SVG_DEST_DIR)
-	node tools/generate-svg.ts
+svg: $(MATERIAL_ICON_RULES) ## generate svg and material-icon assets
 
-.PHONY: svg-check
-svg-check: svg
-	@git add $(SVG_DEST_DIR)
-	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR)); \
-	if [ -n "$$diff" ]; then \
-		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
-		printf "%s" "$${diff}"; \
-		exit 1; \
-	fi
+$(MATERIAL_ICON_RULES): $(SVG_SOURCES) tools/generate-svg.ts tools/generate-svg-vscode-extensions.json pnpm-lock.yaml | node_modules
+	rm -rf $(SVG_DEST_DIR) $(MATERIAL_ICON_RULES) $(MATERIAL_ICON_SVGS)
+	node tools/generate-svg.ts
 
 .PHONY: lockfile-check
 lockfile-check:
