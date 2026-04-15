@@ -97,17 +97,24 @@ func CryptoRandomBytes(length int64) ([]byte, error) {
 	return buf, nil
 }
 
-var chaCha8Rand = sync.OnceValue(func() *rand2.ChaCha8 {
-	var buf [32]byte
-	_, _ = rand.Read(buf[:])
-	return rand2.NewChaCha8(buf)
+var chaCha8RandPool = sync.OnceValue(func() *sync.Pool {
+	return &sync.Pool{
+		New: func() any {
+			var buf [32]byte
+			_, _ = rand.Read(buf[:])
+			return rand2.NewChaCha8(buf)
+		},
+	}
 })
 
 func FastCryptoRandomBytes(length int) []byte {
 	// ChaCha8 is about 20x times faster than system's crypto/rand.
 	// It is suitable for UUIDs, session IDs, etc
+	pool := chaCha8RandPool()
+	chaCha8Rand := pool.Get().(*rand2.ChaCha8)
+	defer pool.Put(chaCha8Rand)
 	buf := make([]byte, length)
-	_, _ = chaCha8Rand().Read(buf)
+	_, _ = chaCha8Rand.Read(buf)
 	return buf
 }
 
