@@ -129,8 +129,15 @@ func (c TemplateContext) CspScriptNonce() (ret string) {
 
 func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
 	return template.HTML(`<meta http-equiv="Content-Security-Policy" content="` +
-		`default-src *` + // allow all by default (the same as old releases with no CSP)
+		// allow all by default (the same as old releases with no CSP)
+		// "data:" is used to load the manifest in head (maybe also need to be refactored in the future)
+		// maybe some images are also loaded by "data:", need to investigate
+		`default-src * data:;` +
+
+		// enforce nonce for all scripts, disallow inline scripts
 		`script-src * 'nonce-` + c.CspScriptNonce() + `';` +
-		`style-src * 'unsafe-inline';` + // it seems that Vue needs it, need to investigate
+
+		// it seems that Vue needs the unsafe-inline, need to investigate
+		`style-src * 'unsafe-inline';` +
 		`">`)
 }

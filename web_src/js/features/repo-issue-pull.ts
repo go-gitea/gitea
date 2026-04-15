@@ -69,7 +69,8 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
 }
 
 function executeScripts(elem: HTMLElement) {
-  const scriptNonce = document.querySelector('head script[nonce]')!.getAttribute('nonce')!;
+  // find any existing nonce value from the current page and apply it to the new script
+  const scriptNonce = document.querySelector('script[nonce]')!.getAttribute('nonce')!;
   for (const oldScript of elem.querySelectorAll('script')) {
     // TODO: that's the only way to load the data for the merge form. In the future
     //  we need to completely decouple the page data and embedded script
