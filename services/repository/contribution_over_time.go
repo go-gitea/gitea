@@ -5,7 +5,7 @@ package repository
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -30,10 +30,10 @@ func WeekSlice2Map(rows []*repo_model.WeekData) map[int64]*repo_model.WeekData {
 // GetContributionsOverTime returns weekly contribution totals for the default branch.
 func GetContributionsOverTime(ctx context.Context, repo *repo_model.Repository, start, end *time.Time, statTypes ...repo_model.RepoStatType) (map[int64]*repo_model.WeekData, error) {
 	if len(statTypes) == 0 {
-		return nil, fmt.Errorf("no contribution types provided")
+		return nil, errors.New("no contribution types provided")
 	}
 	if start != nil && end != nil && !start.Before(*end) {
-		return nil, fmt.Errorf("invalid contribution range")
+		return nil, errors.New("invalid contribution range")
 	}
 
 	var startDay *repo_model.ContributorDayStart

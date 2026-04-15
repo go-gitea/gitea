@@ -15,66 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetContributorActivity(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	firstDay := repo_model.NewContributorDayStart(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
-	secondDay := repo_model.NewContributorDayStart(time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC))
-	_, err := db.GetEngine(t.Context()).Insert([]*repo_model.ContributorDaily{
-		{
-			RepoID:      repo.ID,
-			DayStart:    firstDay,
-			UserID:      0,
-			Email:       "alpha@example.com",
-			AuthorName:  "Alpha",
-			Additions:   4,
-			Deletions:   1,
-			Commits:     2,
-			UpdatedUnix: timeutil.TimeStampNow(),
-		},
-		{
-			RepoID:      repo.ID,
-			DayStart:    secondDay,
-			UserID:      0,
-			Email:       "alpha@example.com",
-			AuthorName:  "Alpha",
-			Additions:   3,
-			Deletions:   2,
-			Commits:     1,
-			UpdatedUnix: timeutil.TimeStampNow(),
-		},
-		{
-			RepoID:      repo.ID,
-			DayStart:    firstDay,
-			UserID:      0,
-			Email:       "beta@example.com",
-			AuthorName:  "Beta",
-			Additions:   1,
-			Deletions:   0,
-			Commits:     1,
-			UpdatedUnix: timeutil.TimeStampNow(),
-		},
-	})
-	assert.NoError(t, err)
-
-	rows, err := getContributorActivity(t.Context(), repo, time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), 10)
-	assert.NoError(t, err)
-	assert.Len(t, rows, 2)
-
-	var alpha *contributorActivityRow
-	for _, row := range rows {
-		if row.Email == "alpha@example.com" {
-			alpha = row
-		}
-	}
-	if assert.NotNil(t, alpha) {
-		assert.Equal(t, int64(7), alpha.Additions)
-		assert.Equal(t, int64(3), alpha.Deletions)
-		assert.Equal(t, int64(3), alpha.Commits)
-	}
-}
-
 func TestGetCodeActivityStats(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

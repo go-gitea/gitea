@@ -21,12 +21,12 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 	assert.NoError(t, repo_model.DeleteRepoContributorDailyStats(t.Context(), repo.ID))
 
 	var data map[string]*ContributorData
-	_, err := GetContributorStats(t.Context(), nil, repo, 0, nil, nil)
+	_, err := GetContributorStats(t.Context(), repo, 0, nil, nil)
 	assert.ErrorIs(t, err, ErrAwaitGeneration)
 
 	assert.NoError(t, processContributorStatsRebuild(t.Context(), &ContributorStatsRebuildOptions{RepoID: repo.ID}))
 
-	data, err = GetContributorStats(t.Context(), nil, repo, 0, nil, nil)
+	data, err = GetContributorStats(t.Context(), repo, 0, nil, nil)
 	assert.NoError(t, err)
 	var keys []string
 	for k := range data {

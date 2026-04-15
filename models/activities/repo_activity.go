@@ -85,6 +85,19 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 	return stats, nil
 }
 
+// GetActivityStatsTopAuthors returns top author stats for git commits for all branches
+func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
+	stats, err := repo_model.GetContributorActivity(ctx, repo, timeFrom, count)
+	if err != nil {
+		return nil, err
+	}
+	if len(stats) == 0 {
+		return []*ActivityAuthorData{}, nil
+	}
+
+	return ActivityStats2AuthorData(ctx, stats, 24)
+}
+
 func ActivityStats2AuthorData(ctx context.Context, stats []*repo_model.ContributorSummary, avatarSize int) ([]*ActivityAuthorData, error) {
 	userIDs := container.Set[int64]{}
 	for _, stat := range stats {
@@ -124,19 +137,6 @@ func ActivityStats2AuthorData(ctx context.Context, stats []*repo_model.Contribut
 	}
 
 	return contributors, nil
-}
-
-// GetActivityStatsTopAuthors returns top author stats for git commits for all branches
-func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
-	stats, err := repo_model.GetContributorActivity(ctx, repo, timeFrom, count)
-	if err != nil {
-		return nil, err
-	}
-	if len(stats) == 0 {
-		return []*ActivityAuthorData{}, nil
-	}
-
-	return ActivityStats2AuthorData(ctx, stats, 24)
 }
 
 func getCodeActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time) (*CodeActivityStats, error) {

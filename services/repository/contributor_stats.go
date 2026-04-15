@@ -20,11 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-const (
-	contributorDayMillis  = int64(24 * time.Hour / time.Millisecond)
-	contributorWeekMillis = 7 * contributorDayMillis
-)
-
 type ContributorStatsUpdateOptions struct {
 	RepoID      int64
 	OldCommitID string
@@ -345,8 +340,4 @@ func weekStartUnixMilliFromDayStart(dayStart repo_model.ContributorDayStart) int
 	day := time.UnixMilli(dayStart.UnixMilli()).UTC()
 	daysToSubtract := int(day.Weekday())
 	return day.AddDate(0, 0, -daysToSubtract).UnixMilli()
-}
-
-func weekStartUnixMilliFromTime(t time.Time) int64 {
-	return weekStartUnixMilliFromDayStart(dayStartUnixMilli(t))
 }

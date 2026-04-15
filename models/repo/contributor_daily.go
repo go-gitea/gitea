@@ -1,10 +1,11 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -76,7 +77,7 @@ type WeekData struct {
 }
 
 // RepoStatType describes which weekly stats to aggregate.
-type RepoStatType uint8
+type RepoStatType uint8 // nolint:revive
 
 const (
 	RepoStatAdditions RepoStatType = iota
@@ -224,7 +225,7 @@ func repoContributorWeekExpr() string {
 func GetRepoWeeklyStats(ctx context.Context, repoID int64, opts StatsOptions) ([]*WeekData, error) {
 	rows := make([]*WeekData, 0, 128)
 	if len(opts.StatTypes) == 0 {
-		return rows, fmt.Errorf("no weekly stat types provided")
+		return rows, errors.New("no weekly stat types provided")
 	}
 
 	selectParts := make([]string, 0, 3)
