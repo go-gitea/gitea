@@ -38,7 +38,6 @@ func (p *viewer3dRenderer) FileNamePatterns() []string {
 	// If there would be more frontend renders in the future, we need to implement the "frontend" approach:
 	// 1. Make parent window collect the supported extensions of frontend renders
 	// 2. If the current file matches any extension, start the general iframe embedded render
-	//   * pass the file name & data via postMessage (iframe can't read the file due to different origin)
 	// 3. The iframe window calls the frontend renders one by one, and report the render result to parent by postMessage
 	return []string{
 		"*.3dm", "*.3ds", "*.3mf", "*.amf", "*.bim", "*.brep",
