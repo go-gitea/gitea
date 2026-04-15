@@ -23,7 +23,7 @@ export function newRenderPlugin3DViewer(): FileRenderPlugin {
     // so the 3D library runs isolated from the parent. The parent fetches the file because the
     // iframe can't read same-origin URLs, and ships bytes+bgcolor over postMessage.
     async render(container: HTMLElement, fileUrl: string): Promise<void> {
-      const viewerUrl = container.getAttribute('data-viewer-3d-url')!;
+      const viewerUrl = container.getAttribute('data-viewer3d-url')!;
       const bgcolor = getRealBackgroundColor(container);
       const primary = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim();
 

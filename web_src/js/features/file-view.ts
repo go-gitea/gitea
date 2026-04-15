@@ -1,5 +1,5 @@
 import type {FileRenderPlugin} from '../render/plugin.ts';
-import {newRenderPlugin3DViewer} from '../render/plugins/viewer-3d.ts';
+import {newRenderPlugin3DViewer} from '../render/plugins/viewer3d.ts';
 import {newRenderPluginPdfViewer} from '../render/plugins/pdf-viewer.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {createElementFromHTML, showElem, toggleElemClass} from '../utils/dom.ts';
