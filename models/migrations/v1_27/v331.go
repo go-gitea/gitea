@@ -148,5 +148,11 @@ func AddActionRunAttemptModel(x *xorm.Engine) error {
 	}
 	sess := x.NewSession()
 	defer sess.Close()
-	return base.DropTableColumns(sess, "action_run", concurrencyColumns...)
+	if err := base.DropTableColumns(sess, "action_run", concurrencyColumns...); err != nil {
+		return err
+	}
+	_, err = x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(ActionRun))
+	return err
 }
