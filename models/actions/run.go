@@ -30,7 +30,7 @@ import (
 type ActionRun struct {
 	ID                int64
 	Title             string
-	RepoID            int64                  `xorm:"unique(repo_index) index(repo_concurrency)"`
+	RepoID            int64                  `xorm:"unique(repo_index)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
 	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
@@ -438,12 +438,7 @@ type ActionRunIndex db.ResourceIndex
 
 // GetConcurrentRunAttemptsAndJobs returns run attempts and jobs in the same concurrency group by statuses.
 func GetConcurrentRunAttemptsAndJobs(ctx context.Context, repoID int64, concurrencyGroup string, status []Status) ([]*ActionRunAttempt, []*ActionRunJob, error) {
-	attempts, err := db.Find[ActionRunAttempt](ctx, &FindRunAttemptOptions{
-		RepoID:           repoID,
-		Statuses:         status,
-		ConcurrencyGroup: concurrencyGroup,
-		ListOptions:      db.ListOptionsAll,
-	})
+	attempts, err := FindConcurrentRunAttempts(ctx, repoID, concurrencyGroup, status)
 	if err != nil {
 		return nil, nil, fmt.Errorf("find run attempts: %w", err)
 	}

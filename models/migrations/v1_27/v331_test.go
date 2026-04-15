@@ -91,13 +91,12 @@ func Test_AddActionRunAttemptModel(t *testing.T) {
 	attemptIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action_run_attempt")
 	require.NoError(t, err)
 	assert.True(t, hasIndexWithColumns(attemptIndexes, []string{"run_id", "attempt"}, true))
-	assert.True(t, hasIndexWithColumns(attemptIndexes, []string{"repo_id"}, false))
-	assert.True(t, hasIndexWithColumns(attemptIndexes, []string{"trigger_user_id"}, false))
-	assert.True(t, hasIndexWithColumns(attemptIndexes, []string{"status"}, false))
+	assert.True(t, hasIndexWithColumns(attemptIndexes, []string{"repo_id", "concurrency_group", "status"}, false))
 
 	runIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action_run")
 	require.NoError(t, err)
 	assert.True(t, hasIndexWithColumns(runIndexes, []string{"latest_attempt_id"}, false))
+	assert.False(t, hasIndexWithColumns(runIndexes, []string{"repo_id", "concurrency_group"}, false))
 
 	jobIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action_run_job")
 	require.NoError(t, err)

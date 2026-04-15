@@ -9,8 +9,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-
-	"xorm.io/builder"
 )
 
 type ActionRunAttemptList []*ActionRunAttempt
@@ -41,35 +39,8 @@ func (attempts ActionRunAttemptList) LoadTriggerUser(ctx context.Context) error 
 	return nil
 }
 
-type FindRunAttemptOptions struct {
-	db.ListOptions
-	RepoID           int64
-	RunID            int64
-	Attempt          int64
-	Statuses         []Status
-	ConcurrencyGroup string
-}
-
-func (opts FindRunAttemptOptions) ToConds() builder.Cond {
-	cond := builder.NewCond()
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"`action_run_attempt`.repo_id": opts.RepoID})
-	}
-	if opts.RunID > 0 {
-		cond = cond.And(builder.Eq{"`action_run_attempt`.run_id": opts.RunID})
-	}
-	if opts.Attempt > 0 {
-		cond = cond.And(builder.Eq{"`action_run_attempt`.attempt": opts.Attempt})
-	}
-	if len(opts.Statuses) > 0 {
-		cond = cond.And(builder.In("`action_run_attempt`.status", opts.Statuses))
-	}
-	if opts.ConcurrencyGroup != "" {
-		cond = cond.And(builder.Eq{"`action_run_attempt`.concurrency_group": opts.ConcurrencyGroup})
-	}
-	return cond
-}
-
-func (opts FindRunAttemptOptions) ToOrders() string {
-	return "`action_run_attempt`.`attempt` DESC"
+// ListRunAttemptsByRunID returns all attempts of a run, ordered by attempt number DESC (newest first).
+func ListRunAttemptsByRunID(ctx context.Context, runID int64) (ActionRunAttemptList, error) {
+	var attempts ActionRunAttemptList
+	return attempts, db.GetEngine(ctx).Where("run_id=?", runID).OrderBy("attempt DESC").Find(&attempts)
 }

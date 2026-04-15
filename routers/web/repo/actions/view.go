@@ -481,7 +481,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		ctx.ServerError("ListRunAttemptsByRunID", err)
 		return
 	}
-	if err := actions_model.ActionRunAttemptList(attempts).LoadTriggerUser(ctx); err != nil {
+	if err := attempts.LoadTriggerUser(ctx); err != nil {
 		ctx.ServerError("LoadTriggerUser", err)
 		return
 	}
@@ -926,14 +926,14 @@ func resolveArtifactAttemptIDFromQuery(ctx *context_module.Context, run *actions
 	if ctx.FormString("attempt") == "" {
 		return run.LatestAttemptID, nil
 	}
-		attemptNum := ctx.FormInt64("attempt")
+	attemptNum := ctx.FormInt64("attempt")
 	if attemptNum <= 0 {
 		return 0, util.ErrNotExist
 	}
-			attempt, err := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
-			if err != nil {
+	attempt, err := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
+	if err != nil {
 		return 0, err
-			}
+	}
 	return attempt.ID, nil
 }
 

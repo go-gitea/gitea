@@ -15,15 +15,15 @@ import (
 
 type actionRunAttempt struct {
 	ID                int64
-	RepoID            int64 `xorm:"index"`
-	RunID             int64 `xorm:"index UNIQUE(run_attempt)"`
+	RepoID            int64 `xorm:"index(repo_concurrency_status)"`
+	RunID             int64 `xorm:"UNIQUE(run_attempt)"`
 	Attempt           int64 `xorm:"UNIQUE(run_attempt)"`
-	TriggerUserID     int64 `xorm:"index"`
-	Status            int   `xorm:"index"`
+	TriggerUserID     int64
+	ConcurrencyGroup  string `xorm:"index(repo_concurrency_status) NOT NULL DEFAULT ''"`
+	ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`
+	Status            int    `xorm:"index(repo_concurrency_status)"`
 	Started           timeutil.TimeStamp
 	Stopped           timeutil.TimeStamp
-	ConcurrencyGroup  string
-	ConcurrencyCancel bool               `xorm:"NOT NULL DEFAULT FALSE"`
 	Created           timeutil.TimeStamp `xorm:"created"`
 	Updated           timeutil.TimeStamp `xorm:"updated"`
 }
@@ -96,11 +96,6 @@ func AddActionRunAttemptModel(x *xorm.Engine) error {
 			break
 		}
 	}
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-	}, new(actionArtifact)); err != nil {
-		return err
-	}
 
 	// update "action_run"
 	//
@@ -137,13 +132,21 @@ func AddActionRunAttemptModel(x *xorm.Engine) error {
 	if len(concurrencyColumns) == 0 {
 		return nil
 	}
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := base.DropTableColumns(sess, "action_run", concurrencyColumns...); err != nil {
+	// Drop the composite index (repo_id, concurrency_group) before dropping the column
+	// so MySQL does not retain a dangling single-column index on repo_id.
+	runIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action_run")
+	if err != nil {
 		return err
 	}
-	_, err = x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-	}, new(ActionRun))
-	return err
+	for _, index := range runIndexes {
+		if len(index.Cols) == 2 && index.Cols[0] == "repo_id" && index.Cols[1] == "concurrency_group" {
+			if _, err := x.Exec(x.Dialect().DropIndexSQL("action_run", index)); err != nil {
+				return err
+			}
+			break
+		}
+	}
+	sess := x.NewSession()
+	defer sess.Close()
+	return base.DropTableColumns(sess, "action_run", concurrencyColumns...)
 }

@@ -19,18 +19,18 @@ import (
 // ActionRunAttempt represents a single execution attempt of an ActionRun.
 type ActionRunAttempt struct {
 	ID      int64
-	RepoID  int64      `xorm:"index"`
-	RunID   int64      `xorm:"index UNIQUE(run_attempt)"`
+	RepoID  int64      `xorm:"index(repo_concurrency_status)"`
+	RunID   int64      `xorm:"UNIQUE(run_attempt)"`
 	Run     *ActionRun `xorm:"-"`
 	Attempt int64      `xorm:"UNIQUE(run_attempt)"`
 
-	TriggerUserID int64            `xorm:"index"`
+	TriggerUserID int64
 	TriggerUser   *user_model.User `xorm:"-"`
 
-	ConcurrencyGroup  string
-	ConcurrencyCancel bool `xorm:"NOT NULL DEFAULT FALSE"`
+	ConcurrencyGroup  string `xorm:"index(repo_concurrency_status) NOT NULL DEFAULT ''"`
+	ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`
 
-	Status  Status `xorm:"index"`
+	Status  Status `xorm:"index(repo_concurrency_status)"`
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 
@@ -99,11 +99,15 @@ func GetRunAttemptByRunIDAndAttemptNum(ctx context.Context, runID, attemptNum in
 	return &attempt, nil
 }
 
-func ListRunAttemptsByRunID(ctx context.Context, runID int64) ([]*ActionRunAttempt, error) {
-	return db.Find[ActionRunAttempt](ctx, &FindRunAttemptOptions{
-		RunID:       runID,
-		ListOptions: db.ListOptionsAll,
-	})
+// FindConcurrentRunAttempts returns attempts in the given concurrency group and status set.
+// Results are unordered; callers must not depend on any particular row order.
+func FindConcurrentRunAttempts(ctx context.Context, repoID int64, concurrencyGroup string, statuses []Status) ([]*ActionRunAttempt, error) {
+	attempts := make([]*ActionRunAttempt, 0)
+	sess := db.GetEngine(ctx).Where("repo_id=? AND concurrency_group=?", repoID, concurrencyGroup)
+	if len(statuses) > 0 {
+		sess = sess.In("status", statuses)
+	}
+	return attempts, sess.Find(&attempts)
 }
 
 func UpdateRunAttempt(ctx context.Context, attempt *ActionRunAttempt, cols ...string) error {
