@@ -364,7 +364,7 @@ export function initGlobalFetchAction() {
   // The "fetch-action" framework is a general approach for elements to trigger fetch requests:
   // show confirm dialog (if any), show loading indicators, send fetch request, and redirect or update UI after success.
   //
-  // If you need to fine-grained control more details, sometimes it's clearer to write the logic in JavaScript, instead of using this generic framework.
+  // If you need more fine-grained control more details, sometimes it's clearer to write the logic in JavaScript, instead of using this generic framework.
   //
   // Attributes:
   //
