@@ -21,12 +21,12 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 	assert.NoError(t, repo_model.DeleteRepoContributorDailyStats(t.Context(), repo.ID))
 
 	var data map[string]*ContributorData
-	_, err := GetContributorStats(t.Context(), nil, repo, "master")
+	_, err := GetContributorStats(t.Context(), nil, repo, 0, nil, nil)
 	assert.ErrorIs(t, err, ErrAwaitGeneration)
 
 	assert.NoError(t, processContributorStatsRebuild(t.Context(), &ContributorStatsRebuildOptions{RepoID: repo.ID}))
 
-	data, err = GetContributorStats(t.Context(), nil, repo, "master")
+	data, err = GetContributorStats(t.Context(), nil, repo, 0, nil, nil)
 	assert.NoError(t, err)
 	var keys []string
 	for k := range data {
@@ -44,7 +44,7 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 		Name:         "Ethan Koenig",
 		AvatarLink:   "/assets/img/avatar_default.png",
 		TotalCommits: 1,
-		Weeks: map[int64]*WeekData{
+		Weeks: map[int64]*repo_model.WeekData{
 			1511654400000: {
 				Week:      1511654400000, // sunday 2017-11-26
 				Additions: 3,
@@ -57,7 +57,7 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 		Name:         "Total",
 		AvatarLink:   "",
 		TotalCommits: 3,
-		Weeks: map[int64]*WeekData{
+		Weeks: map[int64]*repo_model.WeekData{
 			1511654400000: {
 				Week:      1511654400000, // sunday 2017-11-26 (2017-11-26 20:31:18 -0800)
 				Additions: 3,

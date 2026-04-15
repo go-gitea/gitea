@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetContributorActivityFromDB(t *testing.T) {
+func TestGetContributorActivity(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -58,7 +58,7 @@ func TestGetContributorActivityFromDB(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	rows, err := getContributorActivity(t.Context(), repo, time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+	rows, err := getContributorActivity(t.Context(), repo, time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), 10)
 	assert.NoError(t, err)
 	assert.Len(t, rows, 2)
 
@@ -75,7 +75,7 @@ func TestGetContributorActivityFromDB(t *testing.T) {
 	}
 }
 
-func TestGetCodeActivityStatsFromDB(t *testing.T) {
+func TestGetCodeActivityStats(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
@@ -111,6 +111,5 @@ func TestGetCodeActivityStatsFromDB(t *testing.T) {
 	assert.Equal(t, int64(6), stats.Additions)
 	assert.Equal(t, int64(3), stats.Deletions)
 	assert.Equal(t, int64(5), stats.CommitCount)
-	assert.Equal(t, int64(5), stats.CommitCountInAllBranches)
 	assert.Equal(t, int64(2), stats.AuthorCount)
 }

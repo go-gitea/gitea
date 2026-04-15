@@ -8,6 +8,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
@@ -57,29 +58,21 @@ func ListContributors(ctx *context.APIContext) {
 		return
 	}
 
-	userIDs := make(map[int64]struct{})
+	userIDs := container.Set[int64]{}
 	for _, contributor := range contributors {
 		if contributor.UserID > 0 {
-			userIDs[contributor.UserID] = struct{}{}
+			userIDs.Add(contributor.UserID)
 		}
 	}
-	ids := make([]int64, 0, len(userIDs))
-	for id := range userIDs {
-		ids = append(ids, id)
-	}
-	users, err := user_model.GetUsersByIDs(ctx, ids)
+	usersMap, err := user_model.GetUsersMapByIDs(ctx, userIDs.Values())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	userMap := make(map[int64]*user_model.User, len(users))
-	for _, user := range users {
-		userMap[user.ID] = user
-	}
 
 	result := make([]*api.Contributor, 0, len(contributors))
 	for _, contributor := range contributors {
-		if user := userMap[contributor.UserID]; user != nil {
+		if user := usersMap[contributor.UserID]; user != nil {
 			result = append(result, &api.Contributor{
 				User:          convert.ToUser(ctx, user, ctx.Doer),
 				Contributions: contributor.Commits,

@@ -293,29 +293,27 @@ func buildContributorDailyUpdates(ctx context.Context, repo *repo_model.Reposito
 		}
 		dayStart := dayStartUnixMilli(authorTime)
 
-		user := userCache[email]
-		if user == nil {
+		user, ok := userCache[email]
+		if !ok {
 			user, _ = user_model.GetUserByEmail(ctx, email)
 			userCache[email] = user
 		}
 
-		userID := int64(0)
-		if user != nil {
-			userID = user.ID
-			email = strings.ToLower(user.GetEmail())
-		}
-
 		key := contributorDailyKey{
 			dayStart: dayStart,
-			userID:   userID,
 			email:    email,
 		}
+		if user != nil {
+			key.userID = user.ID
+			key.email = ""
+		}
+
 		update := updates[key]
 		if update == nil {
 			update = &repo_model.ContributorDailyUpdate{
 				RepoID:     repo.ID,
 				DayStart:   dayStart,
-				UserID:     userID,
+				UserID:     key.userID,
 				Email:      email,
 				AuthorName: stat.Author.Name,
 			}

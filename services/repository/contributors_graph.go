@@ -8,13 +8,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/avatars"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
@@ -23,21 +24,14 @@ import (
 
 var ErrAwaitGeneration = errors.New("contributor stats generation in progress")
 
-type WeekData struct {
-	Week      int64 `json:"week"`      // Starting day of the week as Unix timestamp
-	Additions int   `json:"additions"` // Number of additions in that week
-	Deletions int   `json:"deletions"` // Number of deletions in that week
-	Commits   int   `json:"commits"`   // Number of commits in that week
-}
-
 // ContributorData represents statistical git commit count data
 type ContributorData struct {
-	Name         string              `json:"name"`  // Display name of the contributor
-	Login        string              `json:"login"` // Login name of the contributor in case it exists
-	AvatarLink   string              `json:"avatar_link"`
-	HomeLink     string              `json:"home_link"`
-	TotalCommits int64               `json:"total_commits"`
-	Weeks        map[int64]*WeekData `json:"weeks"`
+	Name         string                         `json:"name"`  // Display name of the contributor
+	Login        string                         `json:"login"` // Login name of the contributor in case it exists
+	AvatarLink   string                         `json:"avatar_link"`
+	HomeLink     string                         `json:"home_link"`
+	TotalCommits int64                          `json:"total_commits"`
+	Weeks        map[int64]*repo_model.WeekData `json:"weeks"`
 }
 
 // ExtendedCommitStats contains information for commit stats with author data
@@ -46,20 +40,30 @@ type ExtendedCommitStats struct {
 	Stats  *api.CommitStats `json:"stats"`
 }
 
-// GetContributorStats returns contributors stats for git commits for given revision or default branch
-func GetContributorStats(ctx context.Context, _ cache.StringCache, repo *repo_model.Repository, revision string) (map[string]*ContributorData, error) {
-	if repo == nil {
-		return map[string]*ContributorData{}, nil
+// GetContributorStats returns contributors stats for git commits for given revision or default branch.
+func GetContributorStats(ctx context.Context, repo *repo_model.Repository, limit int, start, end *time.Time) (map[string]*ContributorData, error) {
+	var startDay, endDay *repo_model.ContributorDayStart
+	if start != nil {
+		value := repo_model.NewContributorDayStart(start.UTC())
+		startDay = &value
 	}
-	if revision != "" && revision != repo.DefaultBranch {
-		log.Debug("Contributor stats ignore revision %s for %s", revision, repo.FullName())
+	if end != nil {
+		value := repo_model.NewContributorDayStart(end.UTC())
+		endDay = &value
 	}
-
-	stats, err := repo_model.GetRepoContributorDailyStats(ctx, repo.ID)
+	stats, err := repo_model.GetRepoContributorDailyStatsRange(ctx, repo.ID, startDay, endDay)
 	if err != nil {
 		return nil, err
 	}
-	if len(stats) == 0 {
+	hasStats := len(stats) > 0
+	if !hasStats && (startDay != nil || endDay != nil) {
+		hasStats, err = repo_model.HasRepoContributorDailyStats(ctx, repo.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !hasStats {
 		if err := RequestContributorStatsRebuild(ctx, repo.ID); err != nil && !errors.Is(err, ErrAwaitGeneration) {
 			return nil, err
 		}
@@ -69,10 +73,8 @@ func GetContributorStats(ctx context.Context, _ cache.StringCache, repo *repo_mo
 	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLinkWithSize(ctx, 0)
 	contributorsCommitStats := make(map[string]*ContributorData)
 	contributorsCommitStats["total"] = &ContributorData{
-		Name:  "Total",
-		Weeks: make(map[int64]*WeekData),
+		Name: "Total",
 	}
-	total := contributorsCommitStats["total"]
 
 	userIDs := make(map[int64]struct{})
 	for _, stat := range stats {
@@ -119,7 +121,7 @@ func GetContributorStats(ctx context.Context, _ cache.StringCache, repo *repo_mo
 				contributorsCommitStats[email] = &ContributorData{
 					Name:       name,
 					AvatarLink: avatarLink,
-					Weeks:      make(map[int64]*WeekData),
+					Weeks:      make(map[int64]*repo_model.WeekData),
 				}
 			} else {
 				contributorsCommitStats[email] = &ContributorData{
@@ -127,7 +129,7 @@ func GetContributorStats(ctx context.Context, _ cache.StringCache, repo *repo_mo
 					Login:      user.LowerName,
 					AvatarLink: user.AvatarLinkWithSize(ctx, 0),
 					HomeLink:   user.HomeLink(),
-					Weeks:      make(map[int64]*WeekData),
+					Weeks:      make(map[int64]*repo_model.WeekData),
 				}
 			}
 		}
@@ -135,28 +137,86 @@ func GetContributorStats(ctx context.Context, _ cache.StringCache, repo *repo_mo
 		week := weekStartUnixMilliFromDayStart(stat.DayStart)
 
 		if userStats.Weeks[week] == nil {
-			userStats.Weeks[week] = &WeekData{
+			userStats.Weeks[week] = &repo_model.WeekData{
 				Week: week,
 			}
 		}
-		if total.Weeks[week] == nil {
-			total.Weeks[week] = &WeekData{
-				Week: week,
-			}
-		}
-
-		userStats.Weeks[week].Additions += int(stat.Additions)
-		userStats.Weeks[week].Deletions += int(stat.Deletions)
-		userStats.Weeks[week].Commits += int(stat.Commits)
+		userStats.Weeks[week].Additions += stat.Additions
+		userStats.Weeks[week].Deletions += stat.Deletions
+		userStats.Weeks[week].Commits += stat.Commits
 		userStats.TotalCommits += stat.Commits
-
-		total.Weeks[week].Additions += int(stat.Additions)
-		total.Weeks[week].Deletions += int(stat.Deletions)
-		total.Weeks[week].Commits += int(stat.Commits)
-		total.TotalCommits += stat.Commits
 	}
 
-	return contributorsCommitStats, nil
+	totalWeeks, err := GetContributionsOverTime(ctx,
+		repo, start, end,
+		repo_model.RepoStatCommits,
+		repo_model.RepoStatAdditions,
+		repo_model.RepoStatDeletions,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var totalCommits int64
+	for _, stat := range totalWeeks {
+		totalCommits += stat.Commits
+	}
+
+	contributorsCommitStats["total"].Weeks = totalWeeks
+	contributorsCommitStats["total"].TotalCommits = totalCommits
+
+	return limitContributorStats(contributorsCommitStats, limit), nil
+}
+
+func limitContributorStats(contributors map[string]*ContributorData, limit int) map[string]*ContributorData {
+	if limit <= 0 {
+		return contributors
+	}
+
+	total := contributors["total"]
+
+	ordered := make([]struct {
+		key  string
+		data *ContributorData
+	}, 0, len(contributors))
+	for key, data := range contributors {
+		if key == "total" {
+			continue
+		}
+		ordered = append(ordered, struct {
+			key  string
+			data *ContributorData
+		}{
+			key:  key,
+			data: data,
+		})
+	}
+
+	slices.SortFunc(ordered, func(a, b struct {
+		key  string
+		data *ContributorData
+	},
+	) int {
+		if a.data.TotalCommits != b.data.TotalCommits {
+			if a.data.TotalCommits > b.data.TotalCommits {
+				return -1
+			}
+			return 1
+		}
+		return strings.Compare(a.key, b.key)
+	})
+
+	if limit > len(ordered) {
+		limit = len(ordered)
+	}
+
+	filtered := make(map[string]*ContributorData, limit+1)
+	filtered["total"] = total
+	for _, entry := range ordered[:limit] {
+		filtered[entry.key] = entry.data
+	}
+
+	return filtered
 }
 
 // getExtendedCommitStats return the list of *ExtendedCommitStats for the given revision

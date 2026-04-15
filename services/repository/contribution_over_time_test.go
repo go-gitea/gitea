@@ -15,11 +15,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetCommitsOverTime(t *testing.T) {
+func TestGetContributionsOverTime(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	start := repo_model.NewContributorDayStart(time.Now().UTC())
+	weekStart := time.Date(2024, 4, 7, 0, 0, 0, 0, time.UTC)
+	start := repo_model.NewContributorDayStart(weekStart.Add(24 * time.Hour))
 	_, err := db.GetEngine(t.Context()).Insert([]*repo_model.ContributorDaily{
 		{
 			RepoID:      repo.ID,
@@ -27,6 +28,8 @@ func TestGetCommitsOverTime(t *testing.T) {
 			UserID:      1,
 			Email:       "alpha@example.com",
 			AuthorName:  "Alpha",
+			Additions:   4,
+			Deletions:   1,
 			Commits:     2,
 			UpdatedUnix: timeutil.TimeStampNow(),
 		},
@@ -36,16 +39,25 @@ func TestGetCommitsOverTime(t *testing.T) {
 			UserID:      2,
 			Email:       "beta@example.com",
 			AuthorName:  "Beta",
+			Additions:   3,
+			Deletions:   2,
 			Commits:     3,
 			UpdatedUnix: timeutil.TimeStampNow(),
 		},
 	})
 	assert.NoError(t, err)
 
-	weekly, err := GetCommitsOverTime(t.Context(), repo)
+	weekDatas, err := GetContributionsOverTime(
+		t.Context(),
+		repo,
+		nil,
+		nil,
+		repo_model.RepoStatCommits,
+		repo_model.RepoStatAdditions,
+		repo_model.RepoStatDeletions,
+	)
 	assert.NoError(t, err)
-	if assert.Len(t, weekly, 1) {
-		assert.Equal(t, weekStartUnixMilliFromDayStart(start), weekly[0].Week)
-		assert.Equal(t, int64(5), weekly[0].Commits)
-	}
+	assert.Equal(t, int64(5), weekDatas[weekStart.UnixMilli()].Commits)
+	assert.Equal(t, int64(7), weekDatas[weekStart.UnixMilli()].Additions)
+	assert.Equal(t, int64(3), weekDatas[weekStart.UnixMilli()].Deletions)
 }

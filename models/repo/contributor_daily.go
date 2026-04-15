@@ -5,10 +5,12 @@ package repo
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -61,8 +63,26 @@ type ContributorSummary struct {
 	UserID     int64
 	Email      string
 	AuthorName string
+	Additions  int64
+	Deletions  int64
 	Commits    int64
 }
+
+type WeekData struct {
+	Week      int64 `json:"week"`      // Starting day of the week as Unix timestamp
+	Additions int64 `json:"additions"` // Number of additions in that week
+	Deletions int64 `json:"deletions"` // Number of deletions in that week
+	Commits   int64 `json:"commits"`   // Number of commits in that week
+}
+
+// RepoStatType describes which weekly stats to aggregate.
+type RepoStatType uint8
+
+const (
+	RepoStatAdditions RepoStatType = iota
+	RepoStatDeletions
+	RepoStatCommits
+)
 
 func init() {
 	db.RegisterModel(new(ContributorDaily))
@@ -70,11 +90,28 @@ func init() {
 
 // GetRepoContributorDailyStats returns all daily stats for a repository.
 func GetRepoContributorDailyStats(ctx context.Context, repoID int64) ([]*ContributorDaily, error) {
+	return GetRepoContributorDailyStatsRange(ctx, repoID, nil, nil)
+}
+
+// GetRepoContributorDailyStatsRange returns daily stats for a repository in the given day range.
+func GetRepoContributorDailyStatsRange(ctx context.Context, repoID int64, start, end *ContributorDayStart) ([]*ContributorDaily, error) {
 	stats := make([]*ContributorDaily, 0, 512)
-	return stats, db.GetEngine(ctx).
+	sess := db.GetEngine(ctx).
+		Where("repo_id = ?", repoID)
+	if start != nil {
+		sess = sess.And("day_start >= ?", int64(*start))
+	}
+	if end != nil {
+		sess = sess.And("day_start < ?", int64(*end))
+	}
+	return stats, sess.Asc("day_start").Find(&stats)
+}
+
+// HasRepoContributorDailyStats reports whether the repository has any contributor stats.
+func HasRepoContributorDailyStats(ctx context.Context, repoID int64) (bool, error) {
+	return db.GetEngine(ctx).
 		Where("repo_id = ?", repoID).
-		Asc("day_start").
-		Find(&stats)
+		Exist(new(ContributorDaily))
 }
 
 // IterateRepoIDsWithoutContributorDaily iterates repo IDs without contributor daily stats.
@@ -103,7 +140,7 @@ func IterateRepoIDsWithoutContributorDaily(ctx context.Context, batchSize int, h
 // GetRepoTopContributors returns the top contributors and total contributor count.
 func GetRepoTopContributors(ctx context.Context, repoID int64, limit int) ([]*ContributorSummary, int64, error) {
 	listOpts := db.ListOptions{PageSize: limit, Page: 1}
-	return GetRepoContributors(ctx, repoID, false, listOpts)
+	return GetRepoContributors(ctx, repoID, true, listOpts)
 }
 
 // GetRepoContributors returns contributors for a repository with pagination.
@@ -141,6 +178,89 @@ func GetRepoContributors(ctx context.Context, repoID int64, includeAnonymous boo
 		return contributors, 0, err
 	}
 	return contributors, count.Total, nil
+}
+
+func GetContributorActivity(ctx context.Context, repo *Repository, timeFrom time.Time, count int) ([]*ContributorSummary, error) {
+	if count <= 0 {
+		return []*ContributorSummary{}, nil
+	}
+	start := NewContributorDayStart(timeFrom.UTC())
+	rows := make([]*ContributorSummary, 0, count)
+	if err := db.GetEngine(ctx).
+		Table("repo_contributor_daily").
+		Select("user_id, email, author_name, sum(additions) as additions, sum(deletions) as deletions, sum(commits) as commits").
+		Where("repo_id = ? AND day_start >= ?", repo.ID, start).
+		GroupBy("user_id, email, author_name").
+		OrderBy("commits DESC").
+		Limit(count).
+		Find(&rows); err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return []*ContributorSummary{}, nil
+	}
+	return rows, nil
+}
+
+type StatsOptions struct {
+	Start     *ContributorDayStart
+	End       *ContributorDayStart
+	UserID    int64
+	Email     string
+	StatTypes []RepoStatType
+}
+
+func repoContributorWeekExpr() string {
+	dayNumExpr := "CAST(day_start / 86400000 AS INTEGER)"
+	if setting.Database.Type.IsMySQL() {
+		dayNumExpr = "day_start DIV 86400000"
+	} else if setting.Database.Type.IsMSSQL() {
+		dayNumExpr = "day_start / 86400000"
+	}
+	return fmt.Sprintf("((%s - ((%s + 4) %% 7)) * 86400000)", dayNumExpr, dayNumExpr)
+}
+
+// GetRepoWeeklyStats returns aggregated stats per week.
+func GetRepoWeeklyStats(ctx context.Context, repoID int64, opts StatsOptions) ([]*WeekData, error) {
+	rows := make([]*WeekData, 0, 128)
+	if len(opts.StatTypes) == 0 {
+		return rows, fmt.Errorf("no weekly stat types provided")
+	}
+
+	selectParts := make([]string, 0, 3)
+	for _, statType := range opts.StatTypes {
+		switch statType {
+		case RepoStatAdditions:
+			selectParts = append(selectParts, "SUM(additions) AS additions")
+		case RepoStatDeletions:
+			selectParts = append(selectParts, "SUM(deletions) AS deletions")
+		case RepoStatCommits:
+			selectParts = append(selectParts, "SUM(commits) AS commits")
+		}
+	}
+
+	weekExpr := repoContributorWeekExpr()
+	query := fmt.Sprintf("SELECT %s AS week, %s FROM repo_contributor_daily WHERE repo_id=?", weekExpr, strings.Join(selectParts, ", "))
+	args := []any{repoID}
+	if opts.Start != nil {
+		query += " AND day_start >= ?"
+		args = append(args, int64(*opts.Start))
+	}
+	if opts.End != nil {
+		query += " AND day_start < ?"
+		args = append(args, int64(*opts.End))
+	}
+
+	if opts.UserID > 0 {
+		query += " AND user_id=?"
+		args = append(args, opts.UserID)
+	} else if opts.Email != "" {
+		query += " AND email=?"
+		args = append(args, opts.Email)
+	}
+
+	query += " GROUP BY week ORDER BY week"
+	return rows, db.GetEngine(ctx).SQL(query, args...).Find(&rows)
 }
 
 // DeleteRepoContributorDailyStats removes all daily stats for a repository.
@@ -181,16 +301,24 @@ func ApplyRepoContributorDailyUpdates(ctx context.Context, updates []*Contributo
 				continue
 			}
 			update.Email = strings.ToLower(update.Email)
-			updated, err := db.GetEngine(ctx).
-				Where("repo_id = ? AND day_start = ? AND user_id = ? AND email = ?", update.RepoID, update.DayStart, update.UserID, update.Email).
-				Incr("additions", update.Additions).
+			sess := db.GetEngine(ctx).Incr("additions", update.Additions).
 				Incr("deletions", update.Deletions).
-				Incr("commits", update.Commits).
-				Cols("updated_unix", "author_name").
-				Update(&ContributorDaily{
-					UpdatedUnix: now,
-					AuthorName:  update.AuthorName,
-				})
+				Incr("commits", update.Commits)
+
+			// if it's a registered user, we just use user_id to identify
+			if update.UserID > 0 {
+				sess = sess.Where("repo_id = ? AND day_start = ? AND user_id = ?", update.RepoID, update.DayStart, update.UserID).
+					Cols("updated_unix", "author_name", "email")
+			} else { // otherwise, we use email to identify, and user_id is always 0
+				sess = sess.Where("repo_id = ? AND day_start = ? AND email = ?", update.RepoID, update.DayStart, update.Email).
+					Cols("updated_unix", "author_name")
+			}
+
+			updated, err := sess.Update(&ContributorDaily{
+				UpdatedUnix: now,
+				AuthorName:  update.AuthorName,
+				Email:       update.Email,
+			})
 			if err != nil {
 				return err
 			}

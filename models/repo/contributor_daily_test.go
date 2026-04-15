@@ -171,3 +171,102 @@ func TestGetRepoContributorsIncludeAnonymous(t *testing.T) {
 	assert.Equal(t, int64(2), total)
 	assert.Len(t, contributors, 2)
 }
+
+func TestGetRepoWeeklyStatsCodeFrequency(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repoID := int64(4)
+	weekStart := time.Date(2024, 3, 3, 0, 0, 0, 0, time.UTC) // Sunday
+	otherWeek := time.Date(2024, 3, 10, 0, 0, 0, 0, time.UTC)
+	_, err := db.GetEngine(t.Context()).Insert([]*repo_model.ContributorDaily{
+		{
+			RepoID:      repoID,
+			DayStart:    repo_model.NewContributorDayStart(weekStart.Add(24 * time.Hour)),
+			UserID:      1,
+			Email:       "alpha@example.com",
+			AuthorName:  "Alpha",
+			Additions:   5,
+			Deletions:   2,
+			UpdatedUnix: timeutil.TimeStampNow(),
+		},
+		{
+			RepoID:      repoID,
+			DayStart:    repo_model.NewContributorDayStart(weekStart.Add(48 * time.Hour)),
+			UserID:      2,
+			Email:       "beta@example.com",
+			AuthorName:  "Beta",
+			Additions:   3,
+			Deletions:   1,
+			UpdatedUnix: timeutil.TimeStampNow(),
+		},
+		{
+			RepoID:      repoID,
+			DayStart:    repo_model.NewContributorDayStart(otherWeek),
+			UserID:      3,
+			Email:       "gamma@example.com",
+			AuthorName:  "Gamma",
+			Additions:   2,
+			Deletions:   0,
+			UpdatedUnix: timeutil.TimeStampNow(),
+		},
+	})
+	assert.NoError(t, err)
+
+	rows, err := repo_model.GetRepoWeeklyStats(t.Context(), repoID, nil, nil, repo_model.WeeklyRepoStatAdditions, repo_model.WeeklyRepoStatDeletions)
+	assert.NoError(t, err)
+	if assert.Len(t, rows, 2) {
+		assert.Equal(t, weekStart.UnixMilli(), rows[0].Week)
+		assert.Equal(t, int64(8), rows[0].Additions)
+		assert.Equal(t, int64(3), rows[0].Deletions)
+		assert.Equal(t, otherWeek.UnixMilli(), rows[1].Week)
+		assert.Equal(t, int64(2), rows[1].Additions)
+		assert.Equal(t, int64(0), rows[1].Deletions)
+	}
+}
+
+func TestGetRepoWeeklyStatsCommitCounts(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repoID := int64(5)
+	weekStart := time.Date(2024, 5, 5, 0, 0, 0, 0, time.UTC)
+	otherWeek := time.Date(2024, 5, 12, 0, 0, 0, 0, time.UTC)
+	_, err := db.GetEngine(t.Context()).Insert([]*repo_model.ContributorDaily{
+		{
+			RepoID:      repoID,
+			DayStart:    repo_model.NewContributorDayStart(weekStart.Add(24 * time.Hour)),
+			UserID:      1,
+			Email:       "alpha@example.com",
+			AuthorName:  "Alpha",
+			Commits:     2,
+			UpdatedUnix: timeutil.TimeStampNow(),
+		},
+		{
+			RepoID:      repoID,
+			DayStart:    repo_model.NewContributorDayStart(weekStart.Add(48 * time.Hour)),
+			UserID:      2,
+			Email:       "beta@example.com",
+			AuthorName:  "Beta",
+			Commits:     3,
+			UpdatedUnix: timeutil.TimeStampNow(),
+		},
+		{
+			RepoID:      repoID,
+			DayStart:    repo_model.NewContributorDayStart(otherWeek),
+			UserID:      3,
+			Email:       "gamma@example.com",
+			AuthorName:  "Gamma",
+			Commits:     4,
+			UpdatedUnix: timeutil.TimeStampNow(),
+		},
+	})
+	assert.NoError(t, err)
+
+	rows, err := repo_model.GetRepoWeeklyStats(t.Context(), repoID, nil, nil, repo_model.WeeklyRepoStatCommits)
+	assert.NoError(t, err)
+	if assert.Len(t, rows, 2) {
+		assert.Equal(t, weekStart.UnixMilli(), rows[0].Week)
+		assert.Equal(t, int64(5), rows[0].Commits)
+		assert.Equal(t, otherWeek.UnixMilli(), rows[1].Week)
+		assert.Equal(t, int64(4), rows[1].Commits)
+	}
+}
