@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -124,11 +125,10 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 	}
 	needs := container.SetOf(job.Needs...)
 
-	// By default, for legacy jobs, query by RunID only.
-	findOpts := actions_model.FindRunJobOptions{RunID: job.RunID}
-	if job.RunAttemptID > 0 {
-		// Query jobs in the same attempt when available.
-		findOpts.RunAttemptID = job.RunAttemptID
+	// Scope to the same attempt. For legacy jobs RunAttemptID==0, which matches all other legacy jobs in the same run.
+	findOpts := actions_model.FindRunJobOptions{
+		RunID:        job.RunID,
+		RunAttemptID: optional.Some(job.RunAttemptID),
 	}
 
 	jobs, err := db.Find[actions_model.ActionRunJob](ctx, findOpts)

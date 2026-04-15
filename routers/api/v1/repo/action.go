@@ -23,6 +23,7 @@ import (
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -676,7 +677,7 @@ func (Action) UpdateRunner(ctx *context.APIContext) {
 	shared.UpdateRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
 }
 
-// GetWorkflowRunJobs Lists all jobs for a workflow run.
+// ListWorkflowJobs Lists all jobs for a repository.
 func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/jobs repository listWorkflowJobs
 	// ---
@@ -717,7 +718,7 @@ func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 
 	repoID := ctx.Repo.Repository.ID
 
-	shared.ListJobs(ctx, 0, repoID, 0, 0)
+	shared.ListJobs(ctx, 0, repoID, 0, nil)
 }
 
 // ListWorkflowRuns Lists all runs for a repository run.
@@ -1555,7 +1556,7 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 	}
 	// runID is used as an additional filter next to repoID to ensure that we only list jobs for the specified repoID and runID.
 	// no additional checks for runID are needed here
-	shared.ListJobs(ctx, 0, repoID, runID, run.LatestAttemptID)
+	shared.ListJobs(ctx, 0, repoID, runID, optional.Some(run.LatestAttemptID))
 }
 
 // ListWorkflowRunAttemptJobs Lists all jobs for a workflow run attempt.
@@ -1612,7 +1613,7 @@ func ListWorkflowRunAttemptJobs(ctx *context.APIContext) {
 		return
 	}
 
-	shared.ListJobs(ctx, 0, run.RepoID, run.ID, attempt.ID)
+	shared.ListJobs(ctx, 0, run.RepoID, run.ID, optional.Some(attempt.ID))
 }
 
 // GetWorkflowJob Gets a specific workflow job for a workflow run.
