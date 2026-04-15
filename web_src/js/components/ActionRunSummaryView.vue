@@ -38,6 +38,12 @@ const triggerUser = computed(() => {
   };
 });
 
+const triggerPrefix = computed(() => {
+  return run.value.runAttempt > 1
+    ? locale.rerunTriggeredBy
+    : locale.triggeredViaBy.replace('%s', run.value.triggerEvent);
+});
+
 onMounted(async () => {
   await props.store.startPollingCurrentRun();
 });
@@ -50,14 +56,9 @@ onBeforeUnmount(() => {
   <div class="action-run-summary-view">
     <div class="action-run-summary-block">
       <div class="flex-text-block">
-        <template v-if="run.runAttempt > 1">
-          {{ locale.rerunTriggeredBy }}
-          <a class="muted" :href="triggerUser.link">{{ triggerUser.name }}</a>
-        </template>
-        <template v-else>
-          {{ locale.triggeredViaBy.replace('%s', run.triggerEvent) }}
-          <a class="muted" :href="triggerUser.link">{{ triggerUser.name }}</a>
-        </template>
+        {{ triggerPrefix }}
+        <a v-if="triggerUser.link" class="muted" :href="triggerUser.link">{{ triggerUser.name }}</a>
+        <span v-else class="muted">{{ triggerUser.name }}</span>
         • <relative-time :datetime="runTriggeredAtIso" prefix=""/>
       </div>
       <div class="flex-text-block">

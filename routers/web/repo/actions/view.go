@@ -276,8 +276,13 @@ type ViewResponse struct {
 
 	State struct {
 		Run struct {
-			RepoID            int64             `json:"repoId"`
-			Link              string            `json:"link"`
+			RepoID int64 `json:"repoId"`
+			// Link is the canonical HTML URL of the run, e.g. "/owner/repo/actions/runs/123".
+			// Used as the base for composing sub-resource URLs (cancel, rerun, artifacts, jobs) that are not attempt-scoped.
+			Link string `json:"link"`
+			// ViewLink is the attempt-aware URL for navigation, e.g. "/owner/repo/actions/runs/123" for the latest attempt
+			// or "/owner/repo/actions/runs/123/attempts/2" for a historical attempt.
+			// Use this when the target should reflect the currently-viewed attempt.
 			ViewLink          string            `json:"viewLink"`
 			Title             string            `json:"title"`
 			TitleHTML         template.HTML     `json:"titleHTML"`

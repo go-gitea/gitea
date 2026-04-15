@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
-import {toRefs} from 'vue';
+import {computed, toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
 import {createActionRunViewStore} from "./ActionRunView.ts";
+import type {ActionsRunAttempt} from '../modules/gitea-actions.ts';
 
 defineOptions({
   name: 'RepoActionView',
@@ -21,17 +22,15 @@ const locale = props.locale;
 const store = createActionRunViewStore(props.viewUrl);
 const {currentRun: run , runArtifacts: artifacts} = toRefs(store.viewData);
 
-function formatAttemptTitle(attempt: {attempt: number; latest: boolean}) {
+function formatAttemptTitle(attempt: ActionsRunAttempt) {
   return attempt.latest ? `${locale.latestAttempt} #${attempt.attempt}` : `${locale.attempt} #${attempt.attempt}`;
 }
 
-function formatCurrentAttemptTitle(attempt: {attempt: number; latest: boolean}) {
+function formatCurrentAttemptTitle(attempt: ActionsRunAttempt) {
   return attempt.latest ? `${locale.latest} #${attempt.attempt}` : formatAttemptTitle(attempt);
 }
 
-function getArtifactActionSuffix() {
-  return run.value.runAttempt > 0 ? `?attempt=${run.value.runAttempt}` : '';
-}
+const artifactActionSuffix = computed(() => run.value.runAttempt > 0 ? `?attempt=${run.value.runAttempt}` : '');
 
 function cancelRun() {
   POST(`${run.value.link}/cancel`);
@@ -43,7 +42,7 @@ function approveRun() {
 
 async function deleteArtifact(name: string) {
   if (!window.confirm(locale.confirmDeleteArtifact.replace('%s', name))) return;
-  await DELETE(`${run.value.link}/artifacts/${encodeURIComponent(name)}${getArtifactActionSuffix()}`);
+  await DELETE(`${run.value.link}/artifacts/${encodeURIComponent(name)}${artifactActionSuffix.value}`);
   await store.forceReloadCurrentRun();
 }
 </script>
@@ -59,7 +58,7 @@ async function deleteArtifact(name: string) {
         </div>
         <div class="flex-text-block tw-shrink-0 tw-flex-wrap">
           <div v-if="run.attempts.length > 1" class="ui dropdown jump basic small compact button attempt-switcher">
-            <span class="text">{{ formatCurrentAttemptTitle(run.attempts.find((attempt) => attempt.current) || run.attempts[0]) }}</span>
+            <span class="text">{{ formatCurrentAttemptTitle(run.attempts.find((attempt) => attempt.current)!) }}</span>
             <SvgIcon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
             <div class="menu attempt-switcher-menu">
               <a
@@ -69,22 +68,20 @@ async function deleteArtifact(name: string) {
                 :class="attempt.current ? 'selected' : ''"
                 :href="attempt.link"
               >
-                <div class="attempt-switcher-item-content">
-                  <div class="attempt-switcher-item-gutter">
-                    <SvgIcon v-if="attempt.current" name="octicon-check" :size="14" class="attempt-switcher-item-gutter-icon"/>
+                <div class="tw-flex tw-items-start tw-gap-3">
+                  <div class="tw-flex tw-justify-center tw-w-4 tw-flex-shrink-0 tw-pt-[3px]">
+                    <SvgIcon v-if="attempt.current" name="octicon-check" :size="14"/>
                   </div>
-                  <div class="attempt-switcher-item-body">
+                  <div class="tw-flex tw-flex-col tw-flex-1 tw-min-w-0 tw-gap-1">
                     <div class="attempt-switcher-item-title">
                       <span>{{ formatAttemptTitle(attempt) }}</span>
                     </div>
                     <div class="attempt-switcher-item-meta">
-                      <span class="attempt-switcher-item-status">
-                        <span class="attempt-switcher-item-status-icon">
-                          <ActionRunStatus :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14"/>
-                        </span>
+                      <span class="tw-inline-flex tw-items-center tw-gap-1 tw-flex-shrink-0">
+                        <ActionRunStatus :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14"/>
                         <span>{{ locale.status[attempt.status] }}</span>
                       </span>
-                      <span class="attempt-switcher-item-summary">
+                      <span class="tw-min-w-0 gt-ellipsis">
                         <relative-time :datetime="new Date(attempt.triggeredAt * 1000).toISOString()" prefix=""/>
                         {{ locale.attemptTriggeredBy.replace('%s', attempt.triggerUserName) }}
                       </span>
@@ -171,7 +168,7 @@ async function deleteArtifact(name: string) {
           <ul class="ui relaxed list flex-items-block">
             <li class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
-                <a class="tw-flex-1 flex-text-block" target="_blank" :href="`${run.link}/artifacts/${artifact.name}${getArtifactActionSuffix()}`">
+                <a class="tw-flex-1 flex-text-block" target="_blank" :href="`${run.link}/artifacts/${artifact.name}${artifactActionSuffix}`">
                   <SvgIcon name="octicon-file" class="tw-text-text"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
@@ -282,8 +279,8 @@ async function deleteArtifact(name: string) {
 .attempt-switcher.ui.dropdown > .menu.attempt-switcher-menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 10px) !important;
-  margin-top: 0 !important;
+  top: calc(100% + 10px);
+  margin-top: 0;
   min-width: 300px;
   padding: 0;
   border: 1px solid var(--color-secondary);
@@ -312,33 +309,6 @@ async function deleteArtifact(name: string) {
   font-weight: var(--font-weight-semibold);
 }
 
-.attempt-switcher-item-content {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.attempt-switcher-item-gutter {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  width: 16px;
-  flex-shrink: 0;
-  padding-top: 3px;
-}
-
-.attempt-switcher-item-gutter-icon {
-  flex-shrink: 0;
-}
-
-.attempt-switcher-item-body {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .attempt-switcher-item-title {
   display: flex;
   align-items: center;
@@ -356,26 +326,6 @@ async function deleteArtifact(name: string) {
   font-size: 13px;
   line-height: 1.4;
   white-space: nowrap;
-}
-
-.attempt-switcher-item-status-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.attempt-switcher-item-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.attempt-switcher-item-summary {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 @media (max-width: 767.98px) {
