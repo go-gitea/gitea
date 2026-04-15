@@ -5,7 +5,7 @@
 			<a class="item muted" href="{{.RepoLink}}/activity/contributors">
 				{{ctx.Locale.Tr "repo.activity.navbar.contributors"}}
 			</a>
-			<span class="ui small label">{{.RepoContributorCount}}</span>
+			<span class="ui small label">{{ctx.Locale.PrettyNumber .RepoContributorCount}}</span>
 		</div>
 		<div class="flex-item-body">
 			<div class="tw-flex tw-flex-wrap tw-gap-2 tw-w-full">

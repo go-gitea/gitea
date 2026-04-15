@@ -289,12 +289,13 @@ export default defineComponent({
     },
 
     toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
+      const hasSinglePoint = data.length <= 1;
       return {
         datasets: [
           {
             data: data.map((i) => ({x: i.week, y: this.getWeekContribution(i)})),
-            pointRadius: 0,
-            pointHitRadius: 0,
+            pointRadius: hasSinglePoint ? 3 : 0,
+            pointHitRadius: hasSinglePoint ? 3 : 0,
             fill: 'start',
             backgroundColor: chartJsColors[this.type],
             borderWidth: 0,
