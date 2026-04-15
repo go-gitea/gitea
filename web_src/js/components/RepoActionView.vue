@@ -57,8 +57,8 @@ async function deleteArtifact(name: string) {
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
         <div class="flex-text-block tw-shrink-0 tw-flex-wrap">
-          <div v-if="run.attempts.length > 1" class="ui dropdown jump basic small compact button attempt-switcher">
-            <span class="text">{{ formatCurrentAttemptTitle(run.attempts.find((attempt) => attempt.current)!) }}</span>
+          <div v-if="run.attempts.length > 1" class="ui dropdown jump basic small compact button attempt-switcher tw-relative">
+            <span class="text tw-mr-1.5">{{ formatCurrentAttemptTitle(run.attempts.find((attempt) => attempt.current)!) }}</span>
             <SvgIcon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
             <div class="menu attempt-switcher-menu">
               <a
@@ -73,7 +73,7 @@ async function deleteArtifact(name: string) {
                     <SvgIcon v-if="attempt.current" name="octicon-check" :size="14"/>
                   </div>
                   <div class="tw-flex tw-flex-col tw-flex-1 tw-min-w-0 tw-gap-1">
-                    <div class="attempt-switcher-item-title">
+                    <div class="tw-whitespace-nowrap tw-text-sm tw-font-semibold">
                       <span>{{ formatAttemptTitle(attempt) }}</span>
                     </div>
                     <div class="attempt-switcher-item-meta">
@@ -268,14 +268,6 @@ async function deleteArtifact(name: string) {
   margin-left: 28px;
 }
 
-.attempt-switcher {
-  position: relative;
-}
-
-.attempt-switcher .text {
-  margin-right: 6px;
-}
-
 .attempt-switcher.ui.dropdown > .menu.attempt-switcher-menu {
   position: absolute;
   right: 0;
@@ -293,11 +285,10 @@ async function deleteArtifact(name: string) {
 .attempt-switcher-menu > .attempt-switcher-item {
   padding: 12px 14px;
   margin: 0;
-  border-bottom: 1px solid var(--color-secondary);
 }
 
-.attempt-switcher-menu > .attempt-switcher-item:last-child {
-  border-bottom: 0;
+.attempt-switcher-menu > .attempt-switcher-item:not(:last-child) {
+  border-bottom: 1px solid var(--color-secondary);
 }
 
 .attempt-switcher-menu > .attempt-switcher-item:hover {
@@ -306,14 +297,6 @@ async function deleteArtifact(name: string) {
 
 .attempt-switcher-menu > .attempt-switcher-item.selected {
   background: var(--color-active);
-  font-weight: var(--font-weight-semibold);
-}
-
-.attempt-switcher-item-title {
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-  font-size: 14px;
   font-weight: var(--font-weight-semibold);
 }
 
