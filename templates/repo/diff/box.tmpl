@@ -8,7 +8,7 @@
 					{{svg "octicon-sidebar-collapse" 20 "icon tw-hidden"}}
 					{{svg "octicon-sidebar-expand" 20 "icon tw-hidden"}}
 				</button>
-				<script>
+				<script nonce="{{ctx.CspScriptNonce}}">
 					// Default to true if unset
 					const diffTreeVisible = window.localUserSettings.getBoolean('diff_file_tree_visible', true);
 					const diffTreeBtn = document.querySelector('.diff-toggle-file-tree-button');
@@ -62,7 +62,7 @@
 		{{if $showFileTree}}
 			{{$.FileIconPoolHTML}}
 			<div id="diff-file-tree" class="tw-hidden not-mobile"></div>
-			<script>
+			<script nonce="{{ctx.CspScriptNonce}}">
 				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('tw-hidden');
 			</script>
 		{{end}}
