@@ -254,6 +254,7 @@ export default defineConfig(commonViteOpts({
       input: {
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
         swagger: join(import.meta.dirname, 'web_src/js/swagger.ts'),
+        'viewer-3d': join(import.meta.dirname, 'web_src/js/viewer-3d.ts'),
         'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/eventsource.sharedworker.ts'),
         devtest: join(import.meta.dirname, 'web_src/css/devtest.css'),
         ...themes,
