@@ -260,7 +260,7 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		}
 	}
 
-	runAttempt := int64(0)
+	runAttempt := int64(1) // legacy runs have no attempt record; virtualize as attempt 1 to match GitHub's 1-based semantics
 	status, conclusion := ToActionsStatus(run.Status)
 	startedAt := run.Started.AsLocalTime()
 	completedAt := run.Stopped.AsLocalTime()
