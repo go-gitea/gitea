@@ -19,13 +19,11 @@
 						<div class="field">
 							<div class="ui top attached header">
 								<div class="flex-text-block tw-justify-between tw-flex-wrap">
-									<div class="ui compact small menu small-menu-items repo-editor-menu tw-self-start">
+									<div class="ui compact small menu small-menu-items repo-editor-menu" data-repo-link="{{.RepoLink}}" data-ref-sub-url="{{.RefTypeNameSubURL}}" data-branch-name="{{.BranchName}}">
 										<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
-										<a class="item{{if not .CodeEditorConfig.Previewable}} tw-hidden{{end}}" data-tab="preview" data-preview-url="{{.Repository.Link}}/markup" data-preview-context-ref="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
+										<a class="item {{if not .CodeEditorConfig.Previewable}}tw-hidden{{end}}" data-tab="preview">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
 										{{if not .IsNewFile}}
-										{{/*FIXME: the related logic is totally a mess, need to completely rewrite, that's also the root reason for
-												why the "migrate to CodeMirror" PR  took very long time on the legacy code and introduced "#file-name (filenameInput)" regressions many times*/}}
-										<a class="item" data-tab="diff" hx-params="context,content" hx-vals='{"context":"{{.BranchLink}}"}' hx-include="#edit_area" hx-swap="innerHTML" hx-target=".tab[data-tab='diff']" hx-indicator=".tab[data-tab='diff']" hx-post="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
+										<a class="item" data-tab="diff">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
 										{{end}}
 									</div>
 									{{template "repo/editor/options" dict "CodeEditorConfig" $.CodeEditorConfig}}
@@ -39,10 +37,10 @@
 									<div class="editor-loading is-loading"></div>
 								</div>
 								<div class="ui tab tw-px-4 tw-py-3" data-tab="preview">
-									{{ctx.Locale.Tr "loading"}}
+									<div class="editor-loading is-loading"></div>
 								</div>
 								<div class="ui tab" data-tab="diff">
-									<div class="tw-p-16"></div>
+									<div class="editor-loading is-loading"></div>
 								</div>
 							</div>
 						</div>

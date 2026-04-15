@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
+		{{ctx.HeadMetaContentSecurityPolicy}}
 		<title>Gitea API</title>
 		{{/* HINT: SWAGGER-OPENAPI-VIEWER: another place is "modules/markup/external/openapi.go" */}}
 		<link rel="stylesheet" href="{{ctx.CurrentWebTheme.PublicAssetURI}}">
@@ -11,6 +12,6 @@
 		<a class="swagger-back-link" href="{{AppSubUrl}}/">{{svg "octicon-reply"}}{{ctx.Locale.Tr "return_to_gitea"}}</a>
 		<div id="swagger-ui" data-source="{{AppSubUrl}}/swagger.v1.json"></div>
 		<footer class="page-footer"></footer>
-		{{ScriptImport "js/swagger.js" "module"}}
+		{{ctx.ScriptImport "js/swagger.js" "module"}}
 	</body>
 </html>
