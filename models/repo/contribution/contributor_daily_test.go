@@ -1,7 +1,7 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repo_test
+package contribution
 
 import (
 	"testing"
@@ -19,8 +19,8 @@ func TestGetRepoTopContributors(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repoID := int64(1)
-	dayStart := repo_model.NewContributorDayStart(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
-	stats := []*repo_model.ContributorDaily{
+	dayStart := NewContributorDayStart(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+	stats := []*ContributorDaily{
 		{
 			RepoID:      repoID,
 			DayStart:    dayStart,
@@ -41,7 +41,7 @@ func TestGetRepoTopContributors(t *testing.T) {
 		},
 		{
 			RepoID:      repoID,
-			DayStart:    repo_model.NewContributorDayStart(time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC)),
+			DayStart:    NewContributorDayStart(time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC)),
 			UserID:      1,
 			Email:       "alice@example.com",
 			AuthorName:  "Alice",
@@ -52,7 +52,7 @@ func TestGetRepoTopContributors(t *testing.T) {
 	_, err := db.GetEngine(t.Context()).Insert(stats)
 	assert.NoError(t, err)
 
-	contributors, total, err := repo_model.GetRepoTopContributors(t.Context(), repoID, 10)
+	contributors, total, err := GetRepoTopContributors(t.Context(), repoID, 10)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), total)
 	if assert.Len(t, contributors, 2) {
@@ -67,9 +67,9 @@ func TestIterateRepoIDsWithoutContributorDaily(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repoWithStats := int64(1)
-	_, err := db.GetEngine(t.Context()).Insert(&repo_model.ContributorDaily{
+	_, err := db.GetEngine(t.Context()).Insert(&ContributorDaily{
 		RepoID:      repoWithStats,
-		DayStart:    repo_model.NewContributorDayStart(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
+		DayStart:    NewContributorDayStart(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
 		UserID:      1,
 		Email:       "alice@example.com",
 		AuthorName:  "Alice",
@@ -79,7 +79,7 @@ func TestIterateRepoIDsWithoutContributorDaily(t *testing.T) {
 	assert.NoError(t, err)
 
 	collected := make(map[int64]struct{})
-	iterateErr := repo_model.IterateRepoIDsWithoutContributorDaily(t.Context(), 1, func(repoIDs []int64) error {
+	iterateErr := IterateRepoIDsWithoutContributorDaily(t.Context(), 1, func(repoIDs []int64) error {
 		for _, repoID := range repoIDs {
 			collected[repoID] = struct{}{}
 		}
@@ -92,7 +92,7 @@ func TestIterateRepoIDsWithoutContributorDaily(t *testing.T) {
 }
 
 func TestContributorDayStart(t *testing.T) {
-	stamp := repo_model.NewContributorDayStart(time.Date(2024, 1, 2, 1, 0, 0, 0, time.FixedZone("UTC+8", 8*3600)))
+	stamp := NewContributorDayStart(time.Date(2024, 1, 2, 1, 0, 0, 0, time.FixedZone("UTC+8", 8*3600)))
 	expected := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC).UnixMilli()
 	assert.Equal(t, expected, stamp.UnixMilli())
 }
@@ -101,8 +101,8 @@ func TestGetRepoTopContributorsLimit(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repoID := int64(2)
-	dayStart := repo_model.NewContributorDayStart(time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC))
-	_, err := db.GetEngine(t.Context()).Insert([]*repo_model.ContributorDaily{
+	dayStart := NewContributorDayStart(time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC))
+	_, err := db.GetEngine(t.Context()).Insert([]*ContributorDaily{
 		{
 			RepoID:      repoID,
 			DayStart:    dayStart,
@@ -124,7 +124,7 @@ func TestGetRepoTopContributorsLimit(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	contributors, total, err := repo_model.GetRepoTopContributors(t.Context(), repoID, 1)
+	contributors, total, err := GetRepoTopContributors(t.Context(), repoID, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), total)
 	if assert.Len(t, contributors, 1) {
@@ -137,8 +137,8 @@ func TestGetRepoContributorsIncludeAnonymous(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repoID := int64(3)
-	dayStart := repo_model.NewContributorDayStart(time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC))
-	_, err := db.GetEngine(t.Context()).Insert([]*repo_model.ContributorDaily{
+	dayStart := NewContributorDayStart(time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC))
+	_, err := db.GetEngine(t.Context()).Insert([]*ContributorDaily{
 		{
 			RepoID:      repoID,
 			DayStart:    dayStart,
@@ -160,13 +160,13 @@ func TestGetRepoContributorsIncludeAnonymous(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	contributors, total, err := repo_model.GetRepoContributors(t.Context(), repoID, false, db.ListOptions{PageSize: 10, Page: 1})
+	contributors, total, err := GetRepoContributors(t.Context(), repoID, false, db.ListOptions{PageSize: 10, Page: 1})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), total)
 	assert.Len(t, contributors, 1)
 	assert.Equal(t, int64(10), contributors[0].UserID)
 
-	contributors, total, err = repo_model.GetRepoContributors(t.Context(), repoID, true, db.ListOptions{PageSize: 10, Page: 1})
+	contributors, total, err = GetRepoContributors(t.Context(), repoID, true, db.ListOptions{PageSize: 10, Page: 1})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), total)
 	assert.Len(t, contributors, 2)
@@ -178,10 +178,10 @@ func TestGetRepoWeeklyStatsCodeFrequency(t *testing.T) {
 	repoID := int64(4)
 	weekStart := time.Date(2024, 3, 3, 0, 0, 0, 0, time.UTC) // Sunday
 	otherWeek := time.Date(2024, 3, 10, 0, 0, 0, 0, time.UTC)
-	_, err := db.GetEngine(t.Context()).Insert([]*repo_model.ContributorDaily{
+	_, err := db.GetEngine(t.Context()).Insert([]*ContributorDaily{
 		{
 			RepoID:      repoID,
-			DayStart:    repo_model.NewContributorDayStart(weekStart.Add(24 * time.Hour)),
+			DayStart:    NewContributorDayStart(weekStart.Add(24 * time.Hour)),
 			UserID:      1,
 			Email:       "alpha@example.com",
 			AuthorName:  "Alpha",
@@ -191,7 +191,7 @@ func TestGetRepoWeeklyStatsCodeFrequency(t *testing.T) {
 		},
 		{
 			RepoID:      repoID,
-			DayStart:    repo_model.NewContributorDayStart(weekStart.Add(48 * time.Hour)),
+			DayStart:    NewContributorDayStart(weekStart.Add(48 * time.Hour)),
 			UserID:      2,
 			Email:       "beta@example.com",
 			AuthorName:  "Beta",
@@ -201,7 +201,7 @@ func TestGetRepoWeeklyStatsCodeFrequency(t *testing.T) {
 		},
 		{
 			RepoID:      repoID,
-			DayStart:    repo_model.NewContributorDayStart(otherWeek),
+			DayStart:    NewContributorDayStart(otherWeek),
 			UserID:      3,
 			Email:       "gamma@example.com",
 			AuthorName:  "Gamma",
@@ -212,8 +212,8 @@ func TestGetRepoWeeklyStatsCodeFrequency(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	rows, err := repo_model.GetRepoWeeklyStats(t.Context(), repoID, repo_model.StatsOptions{
-		StatTypes: []repo_model.RepoStatType{repo_model.RepoStatAdditions, repo_model.RepoStatDeletions},
+	rows, err := GetRepoWeeklyStats(t.Context(), repoID, StatsOptions{
+		StatTypes: []RepoStatType{RepoStatAdditions, RepoStatDeletions},
 	})
 	assert.NoError(t, err)
 	if assert.Len(t, rows, 2) {
@@ -232,10 +232,10 @@ func TestGetRepoWeeklyStatsCommitCounts(t *testing.T) {
 	repoID := int64(5)
 	weekStart := time.Date(2024, 5, 5, 0, 0, 0, 0, time.UTC)
 	otherWeek := time.Date(2024, 5, 12, 0, 0, 0, 0, time.UTC)
-	_, err := db.GetEngine(t.Context()).Insert([]*repo_model.ContributorDaily{
+	_, err := db.GetEngine(t.Context()).Insert([]*ContributorDaily{
 		{
 			RepoID:      repoID,
-			DayStart:    repo_model.NewContributorDayStart(weekStart.Add(24 * time.Hour)),
+			DayStart:    NewContributorDayStart(weekStart.Add(24 * time.Hour)),
 			UserID:      1,
 			Email:       "alpha@example.com",
 			AuthorName:  "Alpha",
@@ -244,7 +244,7 @@ func TestGetRepoWeeklyStatsCommitCounts(t *testing.T) {
 		},
 		{
 			RepoID:      repoID,
-			DayStart:    repo_model.NewContributorDayStart(weekStart.Add(48 * time.Hour)),
+			DayStart:    NewContributorDayStart(weekStart.Add(48 * time.Hour)),
 			UserID:      2,
 			Email:       "beta@example.com",
 			AuthorName:  "Beta",
@@ -253,7 +253,7 @@ func TestGetRepoWeeklyStatsCommitCounts(t *testing.T) {
 		},
 		{
 			RepoID:      repoID,
-			DayStart:    repo_model.NewContributorDayStart(otherWeek),
+			DayStart:    NewContributorDayStart(otherWeek),
 			UserID:      3,
 			Email:       "gamma@example.com",
 			AuthorName:  "Gamma",
@@ -263,8 +263,8 @@ func TestGetRepoWeeklyStatsCommitCounts(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	rows, err := repo_model.GetRepoWeeklyStats(t.Context(), repoID, repo_model.StatsOptions{
-		StatTypes: []repo_model.RepoStatType{repo_model.RepoStatCommits},
+	rows, err := GetRepoWeeklyStats(t.Context(), repoID, StatsOptions{
+		StatTypes: []RepoStatType{RepoStatCommits},
 	})
 	assert.NoError(t, err)
 	if assert.Len(t, rows, 2) {
@@ -279,9 +279,9 @@ func TestGetContributorActivity(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	firstDay := repo_model.NewContributorDayStart(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
-	secondDay := repo_model.NewContributorDayStart(time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC))
-	_, err := db.GetEngine(t.Context()).Insert([]*repo_model.ContributorDaily{
+	firstDay := NewContributorDayStart(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+	secondDay := NewContributorDayStart(time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC))
+	_, err := db.GetEngine(t.Context()).Insert([]*ContributorDaily{
 		{
 			RepoID:      repo.ID,
 			DayStart:    firstDay,
@@ -318,11 +318,11 @@ func TestGetContributorActivity(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	rows, err := repo_model.GetContributorActivity(t.Context(), repo, time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), 10)
+	rows, err := GetContributorActivity(t.Context(), repo, time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), 10)
 	assert.NoError(t, err)
 	assert.Len(t, rows, 2)
 
-	var alpha *repo_model.ContributorSummary
+	var alpha *ContributorSummary
 	for _, row := range rows {
 		if row.Email == "alpha@example.com" {
 			alpha = row

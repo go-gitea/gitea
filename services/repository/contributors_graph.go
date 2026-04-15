@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models/avatars"
 	repo_model "code.gitea.io/gitea/models/repo"
+	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -26,12 +27,12 @@ var ErrAwaitGeneration = errors.New("contributor stats generation in progress")
 
 // ContributorData represents statistical git commit count data
 type ContributorData struct {
-	Name         string                         `json:"name"`  // Display name of the contributor
-	Login        string                         `json:"login"` // Login name of the contributor in case it exists
-	AvatarLink   string                         `json:"avatar_link"`
-	HomeLink     string                         `json:"home_link"`
-	TotalCommits int64                          `json:"total_commits"`
-	Weeks        map[int64]*repo_model.WeekData `json:"weeks"`
+	Name         string                                 `json:"name"`  // Display name of the contributor
+	Login        string                                 `json:"login"` // Login name of the contributor in case it exists
+	AvatarLink   string                                 `json:"avatar_link"`
+	HomeLink     string                                 `json:"home_link"`
+	TotalCommits int64                                  `json:"total_commits"`
+	Weeks        map[int64]*contribution_model.WeekData `json:"weeks"`
 }
 
 // ExtendedCommitStats contains information for commit stats with author data
@@ -42,22 +43,22 @@ type ExtendedCommitStats struct {
 
 // GetContributorStats returns contributors stats for git commits for given revision or default branch.
 func GetContributorStats(ctx context.Context, repo *repo_model.Repository, limit int, start, end *time.Time) (map[string]*ContributorData, error) {
-	var startDay, endDay *repo_model.ContributorDayStart
+	var startDay, endDay *contribution_model.ContributorDayStart
 	if start != nil {
-		value := repo_model.NewContributorDayStart(start.UTC())
+		value := contribution_model.NewContributorDayStart(start.UTC())
 		startDay = &value
 	}
 	if end != nil {
-		value := repo_model.NewContributorDayStart(end.UTC())
+		value := contribution_model.NewContributorDayStart(end.UTC())
 		endDay = &value
 	}
-	stats, err := repo_model.GetRepoContributorDailyStatsRange(ctx, repo.ID, startDay, endDay)
+	stats, err := contribution_model.GetRepoContributorDailyStatsRange(ctx, repo.ID, startDay, endDay)
 	if err != nil {
 		return nil, err
 	}
 	hasStats := len(stats) > 0
 	if !hasStats && (startDay != nil || endDay != nil) {
-		hasStats, err = repo_model.HasRepoContributorDailyStats(ctx, repo.ID)
+		hasStats, err = contribution_model.HasRepoContributorDailyStats(ctx, repo.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +122,7 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, limit
 				contributorsCommitStats[email] = &ContributorData{
 					Name:       name,
 					AvatarLink: avatarLink,
-					Weeks:      make(map[int64]*repo_model.WeekData),
+					Weeks:      make(map[int64]*contribution_model.WeekData),
 				}
 			} else {
 				contributorsCommitStats[email] = &ContributorData{
@@ -129,7 +130,7 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, limit
 					Login:      user.LowerName,
 					AvatarLink: user.AvatarLinkWithSize(ctx, 0),
 					HomeLink:   user.HomeLink(),
-					Weeks:      make(map[int64]*repo_model.WeekData),
+					Weeks:      make(map[int64]*contribution_model.WeekData),
 				}
 			}
 		}
@@ -137,7 +138,7 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, limit
 		week := weekStartUnixMilliFromDayStart(stat.DayStart)
 
 		if userStats.Weeks[week] == nil {
-			userStats.Weeks[week] = &repo_model.WeekData{
+			userStats.Weeks[week] = &contribution_model.WeekData{
 				Week: week,
 			}
 		}
@@ -149,9 +150,9 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, limit
 
 	totalWeeks, err := GetContributionsOverTime(ctx,
 		repo, start, end,
-		repo_model.RepoStatCommits,
-		repo_model.RepoStatAdditions,
-		repo_model.RepoStatDeletions,
+		contribution_model.RepoStatCommits,
+		contribution_model.RepoStatAdditions,
+		contribution_model.RepoStatDeletions,
 	)
 	if err != nil {
 		return nil, err

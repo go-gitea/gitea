@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -170,7 +171,7 @@ func prepareHomeSidebarContributors(ctx *context.Context) {
 		return
 	}
 	const contributorLimit = 12
-	summaries, total, err := repo_model.GetRepoTopContributors(ctx, ctx.Repo.Repository.ID, contributorLimit)
+	summaries, total, err := contribution_model.GetRepoTopContributors(ctx, ctx.Repo.Repository.ID, contributorLimit)
 	if err != nil {
 		log.Error("GetRepoTopContributors: %v", err)
 		return

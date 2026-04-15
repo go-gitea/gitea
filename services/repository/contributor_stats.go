@@ -11,6 +11,7 @@ import (
 	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -103,14 +104,14 @@ func enqueueContributorStatsRebuild(repoID int64) error {
 }
 
 func markRepoContributorStatsDirty(ctx context.Context, repoID int64) error {
-	meta, err := repo_model.EnsureRepoContributorMeta(ctx, repoID)
+	meta, err := contribution_model.EnsureRepoContributorMeta(ctx, repoID)
 	if err != nil {
 		return err
 	}
 	meta.Dirty = true
 	meta.LastProcessedCommitID = ""
 	meta.UpdatedUnix = timeutil.TimeStampNow()
-	return repo_model.UpdateRepoContributorMeta(ctx, meta, "dirty", "last_processed_commit_id", "updated_unix")
+	return contribution_model.UpdateRepoContributorMeta(ctx, meta, "dirty", "last_processed_commit_id", "updated_unix")
 }
 
 // RequestContributorStatsRebuild triggers a rebuild of contributor statistics.
@@ -124,7 +125,7 @@ func RequestContributorStatsRebuild(ctx context.Context, repoID int64) error {
 // RebuildMissingContributorStats enqueues rebuild tasks for repositories missing stats.
 func RebuildMissingContributorStats(ctx context.Context) error {
 	var errs []error
-	if err := repo_model.IterateRepoIDsWithoutContributorDaily(ctx, 200, func(repoIDs []int64) error {
+	if err := contribution_model.IterateRepoIDsWithoutContributorDaily(ctx, 200, func(repoIDs []int64) error {
 		for _, repoID := range repoIDs {
 			if err := RequestContributorStatsRebuild(ctx, repoID); err != nil && !errors.Is(err, ErrAwaitGeneration) {
 				errs = append(errs, fmt.Errorf("rebuild contributor stats failed for repo %d: %w", repoID, err))
@@ -150,7 +151,7 @@ func processContributorStatsUpdate(ctx context.Context, opts *ContributorStatsUp
 		return nil
 	}
 
-	meta, err := repo_model.EnsureRepoContributorMeta(ctx, repo.ID)
+	meta, err := contribution_model.EnsureRepoContributorMeta(ctx, repo.ID)
 	if err != nil {
 		return err
 	}
@@ -188,14 +189,14 @@ func processContributorStatsUpdate(ctx context.Context, opts *ContributorStatsUp
 	if err != nil {
 		return err
 	}
-	if err := repo_model.ApplyRepoContributorDailyUpdates(ctx, updates); err != nil {
+	if err := contribution_model.ApplyRepoContributorDailyUpdates(ctx, updates); err != nil {
 		return err
 	}
 
 	meta.LastProcessedCommitID = opts.NewCommitID
 	meta.Dirty = false
 	meta.UpdatedUnix = timeutil.TimeStampNow()
-	return repo_model.UpdateRepoContributorMeta(ctx, meta, "last_processed_commit_id", "dirty", "updated_unix")
+	return contribution_model.UpdateRepoContributorMeta(ctx, meta, "last_processed_commit_id", "dirty", "updated_unix")
 }
 
 func processContributorStatsRebuild(ctx context.Context, opts *ContributorStatsRebuildOptions) error {
@@ -227,10 +228,10 @@ func processContributorStatsRebuild(ctx context.Context, opts *ContributorStatsR
 	if err != nil {
 		return err
 	}
-	dailyStats := make([]*repo_model.ContributorDaily, 0, len(updates))
+	dailyStats := make([]*contribution_model.ContributorDaily, 0, len(updates))
 	now := timeutil.TimeStampNow()
 	for _, update := range updates {
-		dailyStats = append(dailyStats, &repo_model.ContributorDaily{
+		dailyStats = append(dailyStats, &contribution_model.ContributorDaily{
 			RepoID:      update.RepoID,
 			DayStart:    update.DayStart,
 			UserID:      update.UserID,
@@ -243,21 +244,21 @@ func processContributorStatsRebuild(ctx context.Context, opts *ContributorStatsR
 		})
 	}
 
-	if err := repo_model.ReplaceRepoContributorDailyStats(ctx, repo.ID, dailyStats); err != nil {
+	if err := contribution_model.ReplaceRepoContributorDailyStats(ctx, repo.ID, dailyStats); err != nil {
 		return err
 	}
 
-	meta, err := repo_model.EnsureRepoContributorMeta(ctx, repo.ID)
+	meta, err := contribution_model.EnsureRepoContributorMeta(ctx, repo.ID)
 	if err != nil {
 		return err
 	}
 	meta.LastProcessedCommitID = headCommit.ID.String()
 	meta.Dirty = false
 	meta.UpdatedUnix = timeutil.TimeStampNow()
-	return repo_model.UpdateRepoContributorMeta(ctx, meta, "last_processed_commit_id", "dirty", "updated_unix")
+	return contribution_model.UpdateRepoContributorMeta(ctx, meta, "last_processed_commit_id", "dirty", "updated_unix")
 }
 
-func collectContributorDailyUpdates(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, startCommitID, endCommitID string) ([]*repo_model.ContributorDailyUpdate, error) {
+func collectContributorDailyUpdates(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, startCommitID, endCommitID string) ([]*contribution_model.ContributorDailyUpdate, error) {
 	stats, err := getExtendedCommitStatsRange(gitRepo, startCommitID, endCommitID)
 	if err != nil {
 		return nil, err
@@ -265,12 +266,12 @@ func collectContributorDailyUpdates(ctx context.Context, repo *repo_model.Reposi
 	return buildContributorDailyUpdates(ctx, repo, stats)
 }
 
-func buildContributorDailyUpdates(ctx context.Context, repo *repo_model.Repository, stats []*ExtendedCommitStats) ([]*repo_model.ContributorDailyUpdate, error) {
+func buildContributorDailyUpdates(ctx context.Context, repo *repo_model.Repository, stats []*ExtendedCommitStats) ([]*contribution_model.ContributorDailyUpdate, error) {
 	if len(stats) == 0 {
 		return nil, nil
 	}
 
-	updates := make(map[contributorDailyKey]*repo_model.ContributorDailyUpdate)
+	updates := make(map[contributorDailyKey]*contribution_model.ContributorDailyUpdate)
 	userCache := make(map[string]*user_model.User)
 
 	for _, stat := range stats {
@@ -286,7 +287,7 @@ func buildContributorDailyUpdates(ctx context.Context, repo *repo_model.Reposito
 		if err != nil {
 			return nil, err
 		}
-		dayStart := dayStartUnixMilli(authorTime)
+		dayStart := contribution_model.NewContributorDayStart(authorTime)
 
 		user, ok := userCache[email]
 		if !ok {
@@ -305,7 +306,7 @@ func buildContributorDailyUpdates(ctx context.Context, repo *repo_model.Reposito
 
 		update := updates[key]
 		if update == nil {
-			update = &repo_model.ContributorDailyUpdate{
+			update = &contribution_model.ContributorDailyUpdate{
 				RepoID:     repo.ID,
 				DayStart:   dayStart,
 				UserID:     key.userID,
@@ -319,7 +320,7 @@ func buildContributorDailyUpdates(ctx context.Context, repo *repo_model.Reposito
 		update.Commits++
 	}
 
-	res := make([]*repo_model.ContributorDailyUpdate, 0, len(updates))
+	res := make([]*contribution_model.ContributorDailyUpdate, 0, len(updates))
 	for _, update := range updates {
 		res = append(res, update)
 	}
@@ -327,16 +328,12 @@ func buildContributorDailyUpdates(ctx context.Context, repo *repo_model.Reposito
 }
 
 type contributorDailyKey struct {
-	dayStart repo_model.ContributorDayStart
+	dayStart contribution_model.ContributorDayStart
 	userID   int64
 	email    string
 }
 
-func dayStartUnixMilli(t time.Time) repo_model.ContributorDayStart {
-	return repo_model.NewContributorDayStart(t)
-}
-
-func weekStartUnixMilliFromDayStart(dayStart repo_model.ContributorDayStart) int64 {
+func weekStartUnixMilliFromDayStart(dayStart contribution_model.ContributorDayStart) int64 {
 	day := time.UnixMilli(dayStart.UnixMilli()).UTC()
 	daysToSubtract := int(day.Weekday())
 	return day.AddDate(0, 0, -daysToSubtract).UnixMilli()

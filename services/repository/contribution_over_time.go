@@ -9,14 +9,15 @@ import (
 	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 )
 
-func WeekSlice2Map(rows []*repo_model.WeekData) map[int64]*repo_model.WeekData {
-	weeks := make(map[int64]*repo_model.WeekData, len(rows))
+func WeekSlice2Map(rows []*contribution_model.WeekData) map[int64]*contribution_model.WeekData {
+	weeks := make(map[int64]*contribution_model.WeekData, len(rows))
 	for _, row := range rows {
 		week := row.Week
 		if weeks[week] == nil {
-			weeks[week] = &repo_model.WeekData{
+			weeks[week] = &contribution_model.WeekData{
 				Week: week,
 			}
 		}
@@ -28,7 +29,7 @@ func WeekSlice2Map(rows []*repo_model.WeekData) map[int64]*repo_model.WeekData {
 }
 
 // GetContributionsOverTime returns weekly contribution totals for the default branch.
-func GetContributionsOverTime(ctx context.Context, repo *repo_model.Repository, start, end *time.Time, statTypes ...repo_model.RepoStatType) (map[int64]*repo_model.WeekData, error) {
+func GetContributionsOverTime(ctx context.Context, repo *repo_model.Repository, start, end *time.Time, statTypes ...contribution_model.RepoStatType) (map[int64]*contribution_model.WeekData, error) {
 	if len(statTypes) == 0 {
 		return nil, errors.New("no contribution types provided")
 	}
@@ -36,18 +37,18 @@ func GetContributionsOverTime(ctx context.Context, repo *repo_model.Repository, 
 		return nil, errors.New("invalid contribution range")
 	}
 
-	var startDay *repo_model.ContributorDayStart
-	var endDay *repo_model.ContributorDayStart
+	var startDay *contribution_model.ContributorDayStart
+	var endDay *contribution_model.ContributorDayStart
 	if start != nil {
-		value := repo_model.NewContributorDayStart(start.UTC())
+		value := contribution_model.NewContributorDayStart(start.UTC())
 		startDay = &value
 	}
 	if end != nil {
-		value := repo_model.NewContributorDayStart(end.UTC())
+		value := contribution_model.NewContributorDayStart(end.UTC())
 		endDay = &value
 	}
 
-	weeklyStats, err := repo_model.GetRepoWeeklyStats(ctx, repo.ID, repo_model.StatsOptions{
+	weeklyStats, err := contribution_model.GetRepoWeeklyStats(ctx, repo.ID, contribution_model.StatsOptions{
 		Start:     startDay,
 		End:       endDay,
 		StatTypes: statTypes,
@@ -56,7 +57,7 @@ func GetContributionsOverTime(ctx context.Context, repo *repo_model.Repository, 
 		return nil, err
 	}
 	if len(weeklyStats) == 0 {
-		hasStats, err := repo_model.HasRepoContributorDailyStats(ctx, repo.ID)
+		hasStats, err := contribution_model.HasRepoContributorDailyStats(ctx, repo.ID)
 		if err != nil {
 			return nil, err
 		}

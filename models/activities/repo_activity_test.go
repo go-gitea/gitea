@@ -1,4 +1,4 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package activities
@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -19,8 +20,8 @@ func TestGetCodeActivityStats(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	dayStart := repo_model.NewContributorDayStart(time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC))
-	_, err := db.GetEngine(t.Context()).Insert([]*repo_model.ContributorDaily{
+	dayStart := contribution_model.NewContributorDayStart(time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC))
+	_, err := db.GetEngine(t.Context()).Insert([]*contribution_model.ContributorDaily{
 		{
 			RepoID:      repo.ID,
 			DayStart:    dayStart,

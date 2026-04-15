@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	assert.NoError(t, repo.LoadOwner(t.Context()))
-	assert.NoError(t, repo_model.DeleteRepoContributorDailyStats(t.Context(), repo.ID))
+	assert.NoError(t, contribution_model.DeleteRepoContributorDailyStats(t.Context(), repo.ID))
 
 	var data map[string]*ContributorData
 	_, err := GetContributorStats(t.Context(), repo, 0, nil, nil)
@@ -44,7 +45,7 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 		Name:         "Ethan Koenig",
 		AvatarLink:   "/assets/img/avatar_default.png",
 		TotalCommits: 1,
-		Weeks: map[int64]*repo_model.WeekData{
+		Weeks: map[int64]*contribution_model.WeekData{
 			1511654400000: {
 				Week:      1511654400000, // sunday 2017-11-26
 				Additions: 3,
@@ -57,7 +58,7 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 		Name:         "Total",
 		AvatarLink:   "",
 		TotalCommits: 3,
-		Weeks: map[int64]*repo_model.WeekData{
+		Weeks: map[int64]*contribution_model.WeekData{
 			1511654400000: {
 				Week:      1511654400000, // sunday 2017-11-26 (2017-11-26 20:31:18 -0800)
 				Additions: 3,

@@ -23,6 +23,7 @@ type RepoContributorMeta struct {
 	RepoID                int64  `xorm:"pk"`
 	LastProcessedCommitID string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
 	Dirty                 bool   `xorm:"NOT NULL DEFAULT false"`
+	UpdatedUnix           int64  `xorm:"INDEX updated"`
 }
 
 // AddRepoContributorDailyAndMeta creates tables for contributor daily stats.

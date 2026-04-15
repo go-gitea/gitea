@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 
@@ -87,7 +88,7 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 
 // GetActivityStatsTopAuthors returns top author stats for git commits for all branches
 func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
-	stats, err := repo_model.GetContributorActivity(ctx, repo, timeFrom, count)
+	stats, err := contribution_model.GetContributorActivity(ctx, repo, timeFrom, count)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +99,7 @@ func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository
 	return ActivityStats2AuthorData(ctx, stats, 24)
 }
 
-func ActivityStats2AuthorData(ctx context.Context, stats []*repo_model.ContributorSummary, avatarSize int) ([]*ActivityAuthorData, error) {
+func ActivityStats2AuthorData(ctx context.Context, stats []*contribution_model.ContributorSummary, avatarSize int) ([]*ActivityAuthorData, error) {
 	userIDs := container.Set[int64]{}
 	for _, stat := range stats {
 		if stat.UserID > 0 {
@@ -140,7 +141,7 @@ func ActivityStats2AuthorData(ctx context.Context, stats []*repo_model.Contribut
 }
 
 func getCodeActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time) (*CodeActivityStats, error) {
-	start := repo_model.NewContributorDayStart(timeFrom.UTC())
+	start := contribution_model.NewContributorDayStart(timeFrom.UTC())
 
 	var res CodeActivityStats
 	_, err := db.GetEngine(ctx).

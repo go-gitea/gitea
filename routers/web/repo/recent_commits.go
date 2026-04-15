@@ -7,7 +7,7 @@ import (
 	"errors"
 	"net/http"
 
-	repo_model "code.gitea.io/gitea/models/repo"
+	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -30,7 +30,7 @@ func RecentCommits(ctx *context.Context) {
 
 // RecentCommitsData returns JSON of commits over time data.
 func RecentCommitsData(ctx *context.Context) {
-	data, err := repo_service.GetContributionsOverTime(ctx, ctx.Repo.Repository, nil, nil, repo_model.RepoStatCommits)
+	data, err := repo_service.GetContributionsOverTime(ctx, ctx.Repo.Repository, nil, nil, contribution_model.RepoStatCommits)
 	if err != nil {
 		if errors.Is(err, repo_service.ErrAwaitGeneration) {
 			ctx.Status(http.StatusAccepted)

@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -20,8 +21,8 @@ func TestGetContributionsOverTime(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	weekStart := time.Date(2024, 4, 7, 0, 0, 0, 0, time.UTC)
-	start := repo_model.NewContributorDayStart(weekStart.Add(24 * time.Hour))
-	_, err := db.GetEngine(t.Context()).Insert([]*repo_model.ContributorDaily{
+	start := contribution_model.NewContributorDayStart(weekStart.Add(24 * time.Hour))
+	_, err := db.GetEngine(t.Context()).Insert([]*contribution_model.ContributorDaily{
 		{
 			RepoID:      repo.ID,
 			DayStart:    start,
@@ -52,9 +53,9 @@ func TestGetContributionsOverTime(t *testing.T) {
 		repo,
 		nil,
 		nil,
-		repo_model.RepoStatCommits,
-		repo_model.RepoStatAdditions,
-		repo_model.RepoStatDeletions,
+		contribution_model.RepoStatCommits,
+		contribution_model.RepoStatAdditions,
+		contribution_model.RepoStatDeletions,
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(5), weekDatas[weekStart.UnixMilli()].Commits)

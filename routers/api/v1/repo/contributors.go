@@ -6,7 +6,7 @@ package repo
 import (
 	"net/http"
 
-	repo_model "code.gitea.io/gitea/models/repo"
+	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	api "code.gitea.io/gitea/modules/structs"
@@ -52,7 +52,7 @@ func ListContributors(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	includeAnonymous := ctx.FormBool("anon")
-	contributors, total, err := repo_model.GetRepoContributors(ctx, ctx.Repo.Repository.ID, includeAnonymous, utils.GetListOptions(ctx))
+	contributors, total, err := contribution_model.GetRepoContributors(ctx, ctx.Repo.Repository.ID, includeAnonymous, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

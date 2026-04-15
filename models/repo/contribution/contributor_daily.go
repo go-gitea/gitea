@@ -1,7 +1,7 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repo
+package contribution
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -77,7 +78,7 @@ type WeekData struct {
 }
 
 // RepoStatType describes which weekly stats to aggregate.
-type RepoStatType uint8 // nolint:revive
+type RepoStatType uint8
 
 const (
 	RepoStatAdditions RepoStatType = iota
@@ -181,7 +182,7 @@ func GetRepoContributors(ctx context.Context, repoID int64, includeAnonymous boo
 	return contributors, count.Total, nil
 }
 
-func GetContributorActivity(ctx context.Context, repo *Repository, timeFrom time.Time, count int) ([]*ContributorSummary, error) {
+func GetContributorActivity(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ContributorSummary, error) {
 	if count <= 0 {
 		return []*ContributorSummary{}, nil
 	}
