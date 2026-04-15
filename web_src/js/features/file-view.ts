@@ -1,4 +1,5 @@
 import type {FileRenderPlugin} from '../render/plugin.ts';
+import {newRenderPlugin3DViewer} from '../render/plugins/viewer-3d.ts';
 import {newRenderPluginPdfViewer} from '../render/plugins/pdf-viewer.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {createElementFromHTML, showElem, toggleElemClass} from '../utils/dom.ts';
@@ -9,7 +10,7 @@ const plugins: FileRenderPlugin[] = [];
 
 function initPluginsOnce(): void {
   if (plugins.length) return;
-  plugins.push(newRenderPluginPdfViewer());
+  plugins.push(newRenderPlugin3DViewer(), newRenderPluginPdfViewer());
 }
 
 function findFileRenderPlugin(filename: string, mimeType: string): FileRenderPlugin | null {
@@ -64,10 +65,13 @@ export function initRepoFileView(): void {
     const rawFileLink = elFileView.getAttribute('data-raw-file-link')!;
     const mimeType = elFileView.getAttribute('data-mime-type') || ''; // not used yet
     // TODO: we should also provide the prefetched file head bytes to let the plugin decide whether to render or not
-    const plugin = findFileRenderPlugin(basename(rawFileLink), mimeType);
-    if (!plugin) return;
-
     const renderContainer = elFileView.querySelector<HTMLElement>('.file-view-render-container');
+    const plugin = findFileRenderPlugin(basename(rawFileLink), mimeType);
+    if (!plugin) {
+      renderContainer?.classList.remove('is-loading');
+      return;
+    }
+
     showRenderRawFileButton(elFileView, renderContainer);
     // maybe in the future multiple plugins can render the same file, so we should not assume only one plugin will render it
     if (renderContainer) await renderRawFileToContainer(renderContainer, rawFileLink, mimeType);

@@ -128,7 +128,7 @@
 							<strong>{{ctx.Locale.Tr "repo.audio_not_supported_in_browser"}}</strong>
 						</audio>
 					{{else}}
-						<div class="file-view-render-container">
+						<div class="file-view-render-container is-loading" data-viewer-3d-url="{{AssetURI "js/external-render-viewer3d.js"}}">
 							<div class="file-view-raw-prompt tw-p-4">
 								<a href="{{$.RawFileLink}}" rel="nofollow">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
 							</div>

@@ -29,7 +29,7 @@ export function navigateToIframeLink(unsafeLink: any, target: any) {
   window.location.assign(linkHref);
 }
 
-function getRealBackgroundColor(el: HTMLElement) {
+export function getRealBackgroundColor(el: HTMLElement) {
   for (let n = el; n; n = n.parentElement!) {
     const style = window.getComputedStyle(n);
     const bgColor = style.backgroundColor;
