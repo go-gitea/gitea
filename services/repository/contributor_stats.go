@@ -147,7 +147,7 @@ func processContributorStatsUpdate(ctx context.Context, opts *ContributorStatsUp
 	if err != nil {
 		return err
 	}
-	if repo.IsEmpty || repo.DefaultBranch == "" {
+	if repo.IsEmpty {
 		return nil
 	}
 
