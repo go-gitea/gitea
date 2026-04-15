@@ -37,7 +37,7 @@ func GetFailedJobsForRerun(allJobs []*actions_model.ActionRunJob) []*actions_mod
 // An empty jobsToRerun means rerunning the whole run. Otherwise jobsToRerun contains only the user-requested target jobs;
 // downstream dependent jobs are expanded internally while building the rerun plan.
 func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, triggerUser *user_model.User, jobsToRerun []*actions_model.ActionRunJob) (*actions_model.ActionRunAttempt, error) {
-	if err := validateRerun(run, repo, triggerUser, jobsToRerun); err != nil {
+	if err := validateRerun(ctx, run, repo, triggerUser, jobsToRerun); err != nil {
 		return nil, err
 	}
 
@@ -47,14 +47,14 @@ func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run 
 		}
 	}
 
-	plan, err := buildRerunPlan(ctx, repo, run, triggerUser, jobsToRerun)
+	plan, err := buildRerunPlan(ctx, run, triggerUser, jobsToRerun)
 	if err != nil {
 		return nil, err
 	}
 	return execRerunPlan(ctx, plan)
 }
 
-func validateRerun(run *actions_model.ActionRun, repo *repo_model.Repository, triggerUser *user_model.User, jobsToRerun []*actions_model.ActionRunJob) error {
+func validateRerun(ctx context.Context, run *actions_model.ActionRun, repo *repo_model.Repository, triggerUser *user_model.User, jobsToRerun []*actions_model.ActionRunJob) error {
 	if !run.Status.IsDone() {
 		return util.NewInvalidArgumentErrorf("this workflow run is not done")
 	}
@@ -72,6 +72,11 @@ func validateRerun(run *actions_model.ActionRun, repo *repo_model.Repository, tr
 	if triggerUser == nil {
 		return util.NewInvalidArgumentErrorf("trigger user is required")
 	}
+	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
+	cfg := cfgUnit.ActionsConfig()
+	if cfg.IsWorkflowDisabled(run.WorkflowID) {
+		return util.NewInvalidArgumentErrorf("workflow %s is disabled", run.WorkflowID)
+	}
 	return nil
 }
 
@@ -88,15 +93,9 @@ type rerunPlan struct {
 // dependents, resolves run variables, and prepares a new ActionRunAttempt (not yet inserted).
 // Run-level concurrency is evaluated here; job-level concurrency is deferred to execRerunPlan.
 // An empty jobsToRerun means the entire run should be rerun.
-func buildRerunPlan(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, triggerUser *user_model.User, jobsToRerun []*actions_model.ActionRunJob) (*rerunPlan, error) {
+func buildRerunPlan(ctx context.Context, run *actions_model.ActionRun, triggerUser *user_model.User, jobsToRerun []*actions_model.ActionRunJob) (*rerunPlan, error) {
 	if err := run.LoadAttributes(ctx); err != nil {
 		return nil, err
-	}
-
-	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
-	cfg := cfgUnit.ActionsConfig()
-	if cfg.IsWorkflowDisabled(run.WorkflowID) {
-		return nil, util.NewInvalidArgumentErrorf("workflow %s is disabled", run.WorkflowID)
 	}
 
 	templateAttempt, hasTemplateAttempt, err := run.GetLatestAttempt(ctx)
