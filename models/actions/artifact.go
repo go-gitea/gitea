@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -146,7 +147,7 @@ type FindArtifactsOptions struct {
 	db.ListOptions
 	RepoID               int64
 	RunID                int64
-	RunAttemptID         int64
+	RunAttemptID         optional.Option[int64] // use optional to allow filtering by zero (legacy artifacts have run_attempt_id=0)
 	ArtifactName         string
 	Status               int
 	FinalizedArtifactsV4 bool
@@ -166,8 +167,8 @@ func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	if opts.RunID > 0 {
 		cond = cond.And(builder.Eq{"run_id": opts.RunID})
 	}
-	if opts.RunAttemptID > 0 {
-		cond = cond.And(builder.Eq{"run_attempt_id": opts.RunAttemptID})
+	if opts.RunAttemptID.Has() {
+		cond = cond.And(builder.Eq{"run_attempt_id": opts.RunAttemptID.Value()})
 	}
 	if opts.ArtifactName != "" {
 		cond = cond.And(builder.Eq{"artifact_name": opts.ArtifactName})

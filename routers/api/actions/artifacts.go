@@ -74,6 +74,7 @@ import (
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -339,7 +340,7 @@ func (ar artifactRoutes) listArtifacts(ctx *ArtifactContext) {
 
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
 		RunID:        runID,
-		RunAttemptID: ctx.ActionTask.Job.RunAttemptID,
+		RunAttemptID: optional.Some(ctx.ActionTask.Job.RunAttemptID),
 		Status:       int(actions.ArtifactStatusUploadConfirmed),
 	})
 	if err != nil {
@@ -405,7 +406,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
 		RunID:        runID,
-		RunAttemptID: ctx.ActionTask.Job.RunAttemptID,
+		RunAttemptID: optional.Some(ctx.ActionTask.Job.RunAttemptID),
 		ArtifactName: itemPath,
 		Status:       int(actions.ArtifactStatusUploadConfirmed),
 	})

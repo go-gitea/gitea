@@ -107,6 +107,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -589,7 +590,7 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 
 	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
 		RunID:                runID,
-		RunAttemptID:         ctx.ActionTask.Job.RunAttemptID,
+		RunAttemptID:         optional.Some(ctx.ActionTask.Job.RunAttemptID),
 		Status:               int(actions_model.ArtifactStatusUploadConfirmed),
 		FinalizedArtifactsV4: true,
 	})
