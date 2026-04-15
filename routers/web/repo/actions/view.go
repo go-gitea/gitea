@@ -952,11 +952,11 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 		return
 	}
 	artifactName := ctx.PathParam("artifact_name")
+	resolvedAttemptID := run.LatestAttemptID // 0 for legacy runs
 	if hasAttempt {
-		err = actions_model.SetArtifactNeedDeleteByRunAttempt(ctx, run.ID, attempt.ID, artifactName)
-	} else {
-		err = actions_model.SetArtifactNeedDeleteByRunAttempt(ctx, run.ID, 0, artifactName)
+		resolvedAttemptID = attempt.ID
 	}
+	err = actions_model.SetArtifactNeedDeleteByRunAttempt(ctx, run.ID, resolvedAttemptID, artifactName)
 	if err != nil {
 		ctx.ServerError("SetArtifactNeedDeleteByRunAttempt", err)
 		return
@@ -976,14 +976,12 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		}, err)
 		return
 	}
-
 	artifactName := ctx.PathParam("artifact_name")
-
-	runAttemptID := int64(0)
+	resolvedAttemptID := run.LatestAttemptID // 0 for legacy runs
 	if hasAttempt {
-		runAttemptID = attempt.ID
+		resolvedAttemptID = attempt.ID
 	}
-	artifacts, err := actions_model.GetArtifactsByRunAttemptAndName(ctx, run.ID, runAttemptID, artifactName)
+	artifacts, err := actions_model.GetArtifactsByRunAttemptAndName(ctx, run.ID, resolvedAttemptID, artifactName)
 	if err != nil {
 		ctx.ServerError("GetArtifactsByRunAttemptAndName", err)
 		return
