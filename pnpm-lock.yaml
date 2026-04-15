@@ -157,9 +157,6 @@ importers:
       esbuild:
         specifier: 0.28.0
         version: 0.28.0
-      htmx.org:
-        specifier: 2.0.8
-        version: 2.0.8
       idiomorph:
         specifier: 0.7.4
         version: 0.7.4
@@ -2767,9 +2764,6 @@ packages:
 
   htmlparser2@8.0.2:
     resolution: {integrity: sha512-GYdjWKDkbRLkZ5geuHs5NY1puJ+PXwP7+fHPRz06Eirsb9ugf6d8kkXav6ADhcODhFFPMIXyxkxSuMf3D6NCFA==}
-
-  htmx.org@2.0.8:
-    resolution: {integrity: sha512-fm297iru0iWsNJlBrjvtN7V9zjaxd+69Oqjh4F/Vq9Wwi2kFisLcrLCiv5oBX0KLfOX/zG8AUo9ROMU5XUB44Q==}
 
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
@@ -6788,8 +6782,6 @@ snapshots:
       domhandler: 5.0.3
       domutils: 3.2.2
       entities: 4.5.0
-
-  htmx.org@2.0.8: {}
 
   iconv-lite@0.6.3:
     dependencies:

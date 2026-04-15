@@ -3,7 +3,7 @@
 	{{if .HasFilesWithoutLatestCommit}}
 		data-fetch-url="{{.LastCommitLoaderURL}}"
 		data-fetch-trigger="load" data-fetch-sync="$morph"
-		data-fetch-indicator="#repo-files-table .repo-file-cell.notready.message"
+		data-fetch-indicator=".repo-file-cell.notready.message"
 	{{end}}
 >
 	<div class="repo-file-line repo-file-last-commit">

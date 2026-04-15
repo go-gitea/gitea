@@ -8,7 +8,7 @@ import {Idiomorph} from 'idiomorph';
 import {parseDom} from '../utils.ts';
 import {html} from '../utils/html.ts';
 
-const {appSubUrl} = window.config;
+const {appSubUrl, runModeIsProd} = window.config;
 
 type FetchActionOpts = {
   method: string;
@@ -20,15 +20,24 @@ type FetchActionOpts = {
   // e.g.: "$this", "$innerHTML", "$closest(tr) td .the-class", "$body #the-id"
   successSync: string;
 
-  // null: no indicator
-  // empty string: the current element
-  // '.css-selector': find the element by selector
-  loadingIndicator: string | null;
+  // the loading indicator element selector, it uses the same syntax as "data-fetch-sync" to find the element(s)
+  // empty means no loading indicator, "$this" means the element itself
+  loadingIndicator: string;
 };
 
 // fetchActionDoRedirect does real redirection to bypass the browser's limitations of "location"
 // more details are in the backend's fetch-redirect handler
 function fetchActionDoRedirect(redirect: string) {
+  // In production, if the link can be directly navigated by browser, we just do normal redirection, which is faster.
+  // Otherwise, need to use backend to do redirection:
+  // * Also do so in development, to make sure the redirection logic is always tested by real users
+  const needBackendHelp = redirect.includes('#');
+  if (runModeIsProd && !needBackendHelp) {
+    window.location.href = redirect;
+    return;
+  }
+
+  // use backend to do redirection, which can bypass the browser's limitations of "location"
   const form = createElementFromHTML<HTMLFormElement>(html`<form method="post"></form>`);
   form.action = `${appSubUrl}/-/fetch-redirect?redirect=${encodeURIComponent(redirect)}`;
   document.body.append(form);
@@ -36,9 +45,10 @@ function fetchActionDoRedirect(redirect: string) {
 }
 
 function toggleLoadingIndicator(el: HTMLElement, opt: FetchActionOpts, isLoading: boolean) {
-  const loadingIndicatorElems = opt.loadingIndicator === null ? [] : (opt.loadingIndicator === '' ? [el] : document.querySelectorAll(opt.loadingIndicator));
+  const loadingIndicatorElems = opt.loadingIndicator ? execPseudoSelectorCommands(el, opt.loadingIndicator).targets : [];
   for (const indicatorEl of loadingIndicatorElems) {
     if (isLoading) {
+      // for button or input element, we can directly disable it, it looks better than adding a loading spinner
       if ('disabled' in indicatorEl) {
         indicatorEl.disabled = true;
       } else {
@@ -57,7 +67,7 @@ function toggleLoadingIndicator(el: HTMLElement, opt: FetchActionOpts, isLoading
 
 async function handleFetchActionSuccessJson(el: HTMLElement, respJson: any) {
   ignoreAreYouSure(el); // ignore the areYouSure check before reloading
-  if (respJson?.redirect) {
+  if (typeof respJson?.redirect === 'string') {
     fetchActionDoRedirect(respJson.redirect);
   } else {
     window.location.reload();
@@ -168,7 +178,7 @@ function prepareFormFetchActionOpts(formEl: HTMLFormElement, opts: SubmitFormFet
     method: formMethodUpper,
     url: reqUrl,
     body: reqBody,
-    loadingIndicator: '', // for form submit, by default, the loading indicator is the whole form
+    loadingIndicator: '$this', // for form submit, by default, the loading indicator is the whole form
     successSync: formEl.getAttribute('data-fetch-sync') ?? '', // by default, no fetch sync for form submit
   };
 }
@@ -209,17 +219,17 @@ async function performLinkFetchAction(el: HTMLElement) {
   await performActionRequest(el, {
     method: el.getAttribute('data-fetch-method') || 'POST', // by default, the method is POST for link-action
     url: el.getAttribute('data-url')!,
-    loadingIndicator: el.getAttribute('data-fetch-indicator') || '', // by default, the link-action itself is the loading indicator
+    loadingIndicator: el.getAttribute('data-fetch-indicator') ?? '$this', // by default, the link-action itself is the loading indicator
     successSync: el.getAttribute('data-fetch-sync') ?? '', // by default, no fetch sync for link-action
   });
 }
 
 type FetchActionTriggerType = 'click' | 'change' | 'every' | 'load' | 'fetch-reload';
 
-async function performFetchActionTriggerRequest(el: HTMLElement, triggerType: FetchActionTriggerType) {
+export async function performFetchActionTrigger(el: HTMLElement, triggerType: FetchActionTriggerType) {
   const isUserInitiated = triggerType === 'click' || triggerType === 'change';
   // for user initiated action, by default, the loading indicator is the element itself, otherwise no loading indicator
-  const defaultLoadingIndicator = isUserInitiated ? '' : null;
+  const defaultLoadingIndicator = isUserInitiated ? '$this' : '';
 
   if (isUserInitiated) hideToastsAll();
   await performActionRequest(el, {
@@ -230,28 +240,51 @@ async function performFetchActionTriggerRequest(el: HTMLElement, triggerType: Fe
   });
 }
 
-async function handleFetchActionSuccessSync(el: HTMLElement, successSync: string, respText: string) {
-  const cmds = successSync.split(' ').map((s) => s.trim()).filter(Boolean) || [];
-  let target = el, replaceInner = false, useMorph = false;
+type PseudoSelectorCommandResult = {
+  targets: Element[];
+  cmdInnerHTML: boolean;
+  cmdMorph: boolean;
+};
+
+export function execPseudoSelectorCommands(el: Element, fullCommand: string): PseudoSelectorCommandResult {
+  const cmds = fullCommand.split(' ').map((s) => s.trim()).filter(Boolean) || [];
+  let targets = [el], cmdInnerHTML = false, cmdMorph = false;
   for (const cmd of cmds) {
     if (cmd === '$this') {
-      target = el;
+      targets = [el];
     } else if (cmd === '$body') {
-      target = document.body;
+      targets = [document.body];
     } else if (cmd === '$innerHTML') {
-      replaceInner = true;
+      cmdInnerHTML = true;
     } else if (cmd === '$morph') {
-      useMorph = true;
+      cmdMorph = true;
     } else if (cmd.startsWith('$closest(') && cmd.endsWith(')')) {
       const selector = cmd.substring('$closest('.length, cmd.length - 1);
-      target = target.closest(selector) as HTMLElement;
+      const newTargets: Element[] = [];
+      for (const target of targets) {
+        const closest = target.closest(selector);
+        if (closest) newTargets.push(closest);
+      }
+      targets = newTargets;
     } else {
-      target = target.querySelector(cmd) as HTMLElement;
+      const newTargets: Element[] = [];
+      for (const target of targets) {
+        newTargets.push(...target.querySelectorAll(cmd));
+      }
+      targets = newTargets;
     }
   }
-  if (useMorph) {
-    Idiomorph.morph(target, respText, {morphStyle: replaceInner ? 'innerHTML' : 'outerHTML'});
-  } else if (replaceInner) {
+  return {targets, cmdInnerHTML, cmdMorph};
+}
+
+async function handleFetchActionSuccessSync(el: Element, successSync: string, respText: string) {
+  const res = execPseudoSelectorCommands(el, successSync);
+  if (!res.targets.length) throw new Error(`Fetch-sync command "${successSync}" did not find any target element to update`);
+  if (res.targets.length > 1) throw new Error(`Fetch-sync command "${successSync}" found multiple target elements, which is not supported`);
+  const target = res.targets[0];
+  if (res.cmdMorph) {
+    Idiomorph.morph(target, respText, {morphStyle: res.cmdInnerHTML ? 'innerHTML' : 'outerHTML'});
+  } else if (res.cmdInnerHTML) {
     target.innerHTML = respText;
   } else {
     target.outerHTML = respText;
@@ -294,7 +327,7 @@ function initFetchActionTriggerEvery(el: HTMLElement, trigger: string) {
   const intervalMs = unit === 's' ? num * 1000 : num;
   const fn = async () => {
     try {
-      await performFetchActionTriggerRequest(el, 'every');
+      await performFetchActionTrigger(el, 'every');
     } finally {
       // only continue if the element is still in the document
       if (document.contains(el)) {
@@ -312,15 +345,15 @@ function initFetchActionTrigger(el: HTMLElement) {
   if (trigger === 'fetch-reload') return;
 
   if (trigger === 'load') {
-    performFetchActionTriggerRequest(el, trigger);
+    performFetchActionTrigger(el, trigger);
   } else if (trigger === 'change') {
-    el.addEventListener('change', () => performFetchActionTriggerRequest(el, trigger));
+    el.addEventListener('change', () => performFetchActionTrigger(el, trigger));
   } else if (trigger?.startsWith('every ')) {
     initFetchActionTriggerEvery(el, trigger);
   } else if (!trigger || trigger === 'click') {
     el.addEventListener('click', (e) => {
       e.preventDefault();
-      performFetchActionTriggerRequest(el, 'click');
+      performFetchActionTrigger(el, 'click');
     });
   } else {
     throw new Error(`Unsupported fetch trigger: ${trigger}`);
@@ -328,8 +361,10 @@ function initFetchActionTrigger(el: HTMLElement) {
 }
 
 export function initGlobalFetchAction() {
-  // "fetch-action" is a general approach for elements to trigger fetch requests:
+  // The "fetch-action" framework is a general approach for elements to trigger fetch requests:
   // show confirm dialog (if any), show loading indicators, send fetch request, and redirect or update UI after success.
+  //
+  // If you need more fine-grained control more details, sometimes it's clearer to write the logic in JavaScript, instead of using this generic framework.
   //
   // Attributes:
   //
@@ -345,12 +380,12 @@ export function initGlobalFetchAction() {
   //   * "every 5s" (also support "ms" unit)
   //   * "fetch-reload" (only triggered by fetch sync success to reload outdated content)
   //
-  // * data-fetch-indicator: the loading indicator element selector
+  // * data-fetch-indicator: the loading indicator element selector, it uses the same syntax as "data-fetch-sync" to find the element(s)
   //
   // * data-fetch-sync: when the response is text (html), the pseudo selectors/commands defined in "data-fetch-sync"
   //   will be used to update the content in the current page. It only supports some simple syntaxes that we need.
-  //   "$" prefix means it is our private command (for special logic)
-  //   * "" (empty string): replace the current element with the response
+  //   "$" prefix means it is our private command (for special logic), the selectors are run one by one from current element.
+  //   * "$this": replace the current element with the response
   //   * "$innerHTML": replace innerHTML of the current element with the response, instead of replacing the whole element (outerHTML)
   //   * "$morph": use morph algorithm to update the target element
   //   * "$body #the-id .the-class": query the selector one by one from body
@@ -358,7 +393,7 @@ export function initGlobalFetchAction() {
   //
   // * data-modal-confirm: a "confirm modal dialog" will be shown before taking action.
   //   * it can be a string for the content of the modal dialog
-  //   * it has "-header" and "-content" variants to set the header and content of the confirm modal
+  //   * it has "-header" and "-content" variants to set the header and content of the "confirm modal"
   //   * it can refer an existing modal element by "#the-modal-id"
 
   addDelegatedEventListener(document, 'submit', '.form-fetch-action', async (el: HTMLFormElement, e) => {
@@ -369,7 +404,7 @@ export function initGlobalFetchAction() {
 
   addDelegatedEventListener(document, 'click', '.link-action', async (el, e) => {
     // `<a class="link-action" data-url="...">` is a shorthand for
-    // `<a data-fetch-trigger="click" data-fetch-method="post" data-fetch-url="..." data-fetch-indicator="">`
+    // `<a data-fetch-trigger="click" data-fetch-method="post" data-fetch-url="..." data-fetch-indicator="$this">`
     e.preventDefault();
     await performLinkFetchAction(el);
   });
