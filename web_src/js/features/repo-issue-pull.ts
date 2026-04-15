@@ -69,6 +69,7 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
 }
 
 function executeScripts(elem: HTMLElement) {
+  const scriptNonce = document.querySelector('head script[nonce]')!.getAttribute('nonce')!;
   for (const oldScript of elem.querySelectorAll('script')) {
     // TODO: that's the only way to load the data for the merge form. In the future
     //  we need to completely decouple the page data and embedded script
@@ -78,6 +79,7 @@ function executeScripts(elem: HTMLElement) {
       if (attr.name === 'type' && attr.value === 'module') continue;
       newScript.setAttribute(attr.name, attr.value);
     }
+    newScript.setAttribute('nonce', scriptNonce);
     newScript.text = oldScript.text;
     document.body.append(newScript);
   }

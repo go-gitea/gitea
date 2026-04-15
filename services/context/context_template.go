@@ -5,17 +5,24 @@ package context
 
 import (
 	"context"
+	"fmt"
+	"html"
 	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/webtheme"
 )
+
+type TemplateContext map[string]any
 
 var _ context.Context = TemplateContext(nil)
 
@@ -82,4 +89,48 @@ func (c TemplateContext) AppFullLink(link ...string) template.URL {
 		return template.URL(s)
 	}
 	return template.URL(s + strings.TrimPrefix(link[0], "/"))
+}
+
+var globalVars = sync.OnceValue(func() (ret struct {
+	scriptImportRemainingPart string
+},
+) {
+	// add onerror handler to alert users when the script fails to load:
+	// * for end users: there were many users reporting that "UI doesn't work", actually they made mistakes in their config
+	// * for developers: help them to remember to run "make watch-frontend" to build frontend assets
+	// the message will be directly put in the onerror JS code's string
+	onScriptErrorPrompt := `Please make sure the asset files can be accessed.`
+	if !setting.IsProd {
+		onScriptErrorPrompt += `\n\nFor development, run: make watch-frontend.`
+	}
+	onScriptErrorJS := fmt.Sprintf(`alert('Failed to load asset file from ' + this.src + '. %s')`, onScriptErrorPrompt)
+	ret.scriptImportRemainingPart = `onerror="` + html.EscapeString(onScriptErrorJS) + `"></script>`
+	return ret
+})
+
+func (c TemplateContext) ScriptImport(path string, typ ...string) template.HTML {
+	if len(typ) > 0 {
+		if typ[0] == "module" {
+			return template.HTML(`<script nonce="` + c.CspScriptNonce() + `" type="module" src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
+		}
+		panic("unsupported script type: " + typ[0])
+	}
+	return template.HTML(`<script nonce="` + c.CspScriptNonce() + `" src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
+}
+
+func (c TemplateContext) CspScriptNonce() (ret string) {
+	ret, _ = c["_cspScriptNonce"].(string)
+	if ret == "" {
+		ret = util.FastCryptoRandomHex(32) // 16 bytes / 128 bits entropy
+		c["_cspScriptNonce"] = ret
+	}
+	return ret
+}
+
+func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
+	return template.HTML(`<meta http-equiv="Content-Security-Policy" content="` +
+		`default-src *` + // allow all by default (the same as old releases with no CSP)
+		`script-src * 'nonce-` + c.CspScriptNonce() + `';` +
+		`style-src * 'unsafe-inline';` + // it seems that Vue needs it, need to investigate
+		`">`)
 }
