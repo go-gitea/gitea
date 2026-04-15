@@ -40,11 +40,7 @@ const defaultSize = 16
 // Init discovers SVG icons and populates the `svgIcons` variable
 func Init() error {
 	const svgAssetsPath = "assets/img/svg"
-	files, err := public.AssetFS().ListFiles(svgAssetsPath)
-	if err != nil {
-		return err
-	}
-
+	files, _ := public.AssetFS().ListFiles(svgAssetsPath)
 	svgIcons = make(map[string]svgIconItem, len(files))
 	for _, file := range files {
 		if path.Ext(file) != ".svg" {

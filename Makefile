@@ -121,7 +121,9 @@ BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* mo
 
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
-SVG_DEST_DIR := public/assets/img/svg
+SVG_SOURCES := $(wildcard web_src/svg/*.svg) tools/generate-svg.ts tools/generate-svg-vscode-extensions.json public/assets/img/gitea.svg
+SVG_DEST := public/assets/img/svg
+SVG_DEST_ENTRIES := public/assets/img/svg options/fileicon/material-icon-rules.json options/fileicon/material-icon-svgs.json
 
 AIR_TMP_DIR := .air
 
@@ -196,6 +198,7 @@ clean-all: clean ## delete backend, frontend and integration files
 .PHONY: clean
 clean: ## delete backend and integration files
 	rm -rf $(EXECUTABLE) $(EXECUTABLE_E2E) $(DIST) $(BINDATA_DEST_WILDCARD) \
+		$(SVG_DEST_ENTRIES) $(GO_LICENSE_FILE) \
 		integrations*.test \
 		tests/integration/gitea-integration-* \
 		tests/integration/indexers-* \
@@ -260,7 +263,7 @@ swagger-validate: ## check if the swagger spec is valid
 checks: checks-frontend checks-backend ## run various consistency checks
 
 .PHONY: checks-frontend
-checks-frontend: lockfile-check svg-check ## check frontend files
+checks-frontend: lockfile-check ## check frontend files
 
 .PHONY: checks-backend
 checks-backend: tidy-check swagger-check fmt-check swagger-validate security-check ## check backend files
@@ -284,12 +287,12 @@ lint-backend: lint-go lint-go-gitea-vet lint-editorconfig ## lint backend files
 lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backend files and fix issues
 
 .PHONY: lint-js
-lint-js: node_modules ## lint js and ts files
+lint-js: node_modules $(SVG_DEST) ## lint js and ts files
 	pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES)
 	pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
-lint-js-fix: node_modules ## lint js and ts files and fix issues
+lint-js-fix: node_modules $(SVG_DEST) ## lint js and ts files and fix issues
 	pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES) --fix
 	pnpm exec vue-tsc
 
@@ -351,7 +354,7 @@ lint-actions: ## lint action workflow files
 	$(GO) run $(ACTIONLINT_PACKAGE)
 
 .PHONY: lint-templates
-lint-templates: .venv node_modules ## lint template files
+lint-templates: .venv node_modules $(SVG_DEST) ## lint template files
 	@node tools/lint-templates-svg.ts
 	@uv run --frozen djlint $(shell find templates -type f -iname '*.tmpl')
 
@@ -372,7 +375,7 @@ watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: node_modules ## start vite dev server for frontend
+watch-frontend: node_modules $(SVG_DEST) ## start vite dev server for frontend
 	NODE_ENV=development pnpm exec vite --logLevel $(FRONTEND_DEV_LOG_LEVEL)
 
 .PHONY: watch-backend
@@ -423,7 +426,6 @@ unit-test-coverage:
 tidy: ## run go mod tidy
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
-	@$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
 
 vendor: go.mod go.sum
 	$(GO) mod vendor
@@ -431,7 +433,7 @@ vendor: go.mod go.sum
 
 .PHONY: tidy-check
 tidy-check: tidy
-	@diff=$$(git diff --color=always go.mod go.sum $(GO_LICENSE_FILE)); \
+	@diff=$$(git diff --color=always go.mod go.sum); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make tidy' and commit the result:"; \
 		printf "%s" "$${diff}"; \
@@ -775,7 +777,7 @@ update-py: node_modules ## update py dependencies
 .PHONY: vite
 vite: $(FRONTEND_DEST) ## build vite files
 
-$(FRONTEND_DEST): $(FRONTEND_SOURCES) $(FRONTEND_CONFIGS) pnpm-lock.yaml
+$(FRONTEND_DEST): $(FRONTEND_SOURCES) $(FRONTEND_CONFIGS) pnpm-lock.yaml $(SVG_DEST) $(GO_LICENSE_FILE)
 	@$(MAKE) -s node_modules
 	@rm -rf $(FRONTEND_DEST_ENTRIES)
 	@echo "Running vite build..."
@@ -783,19 +785,12 @@ $(FRONTEND_DEST): $(FRONTEND_SOURCES) $(FRONTEND_CONFIGS) pnpm-lock.yaml
 	@touch $(FRONTEND_DEST)
 
 .PHONY: svg
-svg: node_modules ## build svg files
-	rm -rf $(SVG_DEST_DIR)
-	node tools/generate-svg.ts
+svg: $(SVG_DEST) ## generate svg and material-icon assets
 
-.PHONY: svg-check
-svg-check: svg
-	@git add $(SVG_DEST_DIR)
-	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR)); \
-	if [ -n "$$diff" ]; then \
-		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
-		printf "%s" "$${diff}"; \
-		exit 1; \
-	fi
+$(SVG_DEST): $(SVG_SOURCES) pnpm-lock.yaml | node_modules
+	rm -rf $(SVG_DEST_ENTRIES)
+	node tools/generate-svg.ts
+	@touch $(SVG_DEST)
 
 .PHONY: lockfile-check
 lockfile-check:

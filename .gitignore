@@ -83,7 +83,11 @@ cpu.out
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
+/public/assets/img/svg
 /public/assets/licenses.txt
+/options/fileicon/material-icon-rules.json
+/options/fileicon/material-icon-svgs.json
+/assets/go-licenses.json
 /vendor
 /VERSION
 /.air

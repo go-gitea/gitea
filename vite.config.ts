@@ -311,7 +311,12 @@ export default defineConfig(commonViteOpts({
     isProduction ? licensePlugin({
       done(deps, context) {
         const line = '-'.repeat(80);
-        const goLicenses = JSON.parse(readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8'));
+        let goLicenses: {name: string, licenseText?: string}[] = [];
+        try {
+          goLicenses = JSON.parse(readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8'));
+        } catch {
+          console.warn('assets/go-licenses.json missing, omitting Go licenses. Run "make go-licenses" first, or "make frontend".');
+        }
         const combined: Record<string, string> = {};
         for (const {name, licenseText} of goLicenses) {
           combined[name] = wrap(licenseText || '', 80).trim();
