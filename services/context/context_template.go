@@ -119,6 +119,12 @@ func (c TemplateContext) ScriptImport(path string, typ ...string) template.HTML 
 }
 
 func (c TemplateContext) CspScriptNonce() (ret string) {
+	// Generate a random nonce for each request and cache it in the context to make it usable during the whole rendering process.
+	//
+	// Some "<script>" tags are not in the CSP context, so they don't need nonce,
+	// these tags are written as "<script nonce>" to help developers to know that "no script nonce attribute is missing"
+	// (e.g.: when they grep the codebase for "script" tags)
+
 	ret, _ = c["_cspScriptNonce"].(string)
 	if ret == "" {
 		ret = util.FastCryptoRandomHex(32) // 16 bytes / 128 bits entropy
