@@ -9,6 +9,7 @@ window.addEventListener('message', (event: MessageEvent) => {
   const viewer = new OV.EmbeddedViewer(document.querySelector<HTMLElement>('#viewer')!, {
     backgroundColor: new OV.RGBAColor(bgColor.r, bgColor.g, bgColor.b, 255),
     defaultColor: new OV.RGBColor(primaryColor.r, primaryColor.g, primaryColor.b),
+    edgeSettings: new OV.EdgeSettings(false, new OV.RGBColor(0, 0, 0), 1),
   });
   viewer.LoadModelFromFileList([new File([bytes], filename)]);
 });
