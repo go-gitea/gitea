@@ -36,6 +36,17 @@ func GetFailedJobsForRerun(allJobs []*actions_model.ActionRunJob) []*actions_mod
 // RerunWorkflowRunJobs reruns the given jobs of a workflow run.
 // An empty jobsToRerun means rerunning the whole run. Otherwise jobsToRerun contains only the user-requested target jobs;
 // downstream dependent jobs are expanded internally while building the rerun plan.
+//
+// The three stages below (legacy backfill, plan build, plan exec) deliberately run in separate DB transactions
+// rather than one big outer transaction:
+//   - buildRerunPlan performs slow work (loading variables, YAML unmarshal, concurrency expression evaluation).
+//     Holding a transaction across these might cause long-lived row locks.
+//   - The legacy backfill is idempotent-friendly: if it succeeds but a later stage fails, a subsequent rerun
+//     will observe run.LatestAttemptID != 0 and skip the backfill, continuing naturally. No data corruption
+//     or stuck state results from partial progress.
+//
+// Fast validations that can catch failures early (workflow disabled, run not done, etc.) are therefore
+// pushed into validateRerun so we rarely enter createOriginalAttemptForLegacyRun only to fail afterwards.
 func RerunWorkflowRunJobs(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, triggerUser *user_model.User, jobsToRerun []*actions_model.ActionRunJob) (*actions_model.ActionRunAttempt, error) {
 	if err := validateRerun(ctx, run, repo, triggerUser, jobsToRerun); err != nil {
 		return nil, err
@@ -329,8 +340,9 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 	}
 }
 
-// createOriginalAttemptForLegacyRun creates a real attempt=1 for a legacy run and updates the existing legacy jobs, artifacts, and tasks in place
+// createOriginalAttemptForLegacyRun creates a real attempt=1 for a legacy run and updates the existing legacy jobs and artifacts in place
 // so the original execution becomes attempt-aware before the rerun plan is built and all subsequent logic can use real attempts.
+// Tasks are not modified: they reference jobs by JobID, so updating jobs implicitly carries the new attempt linkage.
 func createOriginalAttemptForLegacyRun(ctx context.Context, run *actions_model.ActionRun) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, 0)
