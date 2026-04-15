@@ -166,6 +166,7 @@ function reducedSourcemapPlugin(): Plugin {
     'js/index.',
     'js/iife.',
     'js/swagger.',
+    'js/external-render-viewer3d.',
     'js/external-render-helper.',
     'js/eventsource.sharedworker.',
   ];

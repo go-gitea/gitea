@@ -88,15 +88,6 @@
   width: 100%;
 }
 
-.file-view-render-container.is-loading,
-.file-view-render-container[data-render-name] {
-  height: calc(100vh - 100px);
-}
-
-.file-view-render-container.is-loading .file-view-raw-prompt {
-  display: none;
-}
-
 .file-view-render-container :last-child {
   border-radius: 0 0 var(--border-radius) var(--border-radius); /* to match the "ui segment" bottom radius */
 }

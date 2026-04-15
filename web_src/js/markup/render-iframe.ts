@@ -42,6 +42,7 @@ function getRealBackgroundColor(el: HTMLElement) {
 }
 
 async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
+  const iframeSrcUrl = iframe.getAttribute('data-src')!;
   if (!iframe.id) iframe.id = generateElemId('gitea-iframe-');
 
   window.addEventListener('message', (e) => {
@@ -57,25 +58,11 @@ async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
     }
   });
 
-  const iframeSrcUrl = iframe.getAttribute('data-src');
-  if (iframeSrcUrl) {
-    const u = new URL(iframeSrcUrl, window.location.origin);
-    u.searchParams.set('gitea-is-dark-theme', String(isDarkTheme()));
-    u.searchParams.set('gitea-iframe-id', iframe.id);
-    u.searchParams.set('gitea-iframe-bgcolor', getRealBackgroundColor(iframe));
-    iframe.src = u.href;
-  } else {
-    // srcdoc iframes (frontend-rendered plugins) are null-origin — they can't read URL params,
-    // so pass theme/bgcolor/id via postMessage once the iframe's helper script is ready.
-    iframe.addEventListener('load', () => {
-      iframe.contentWindow!.postMessage({
-        giteaIframeCmd: 'init',
-        giteaIframeId: iframe.id,
-        isDarkTheme: isDarkTheme(),
-        backgroundColor: getRealBackgroundColor(iframe),
-      }, '*');
-    }, {once: true});
-  }
+  const u = new URL(iframeSrcUrl, window.location.origin);
+  u.searchParams.set('gitea-is-dark-theme', String(isDarkTheme()));
+  u.searchParams.set('gitea-iframe-id', iframe.id);
+  u.searchParams.set('gitea-iframe-bgcolor', getRealBackgroundColor(iframe));
+  iframe.src = u.href;
 }
 
 export function initMarkupRenderIframe(el: HTMLElement) {

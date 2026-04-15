@@ -26,25 +26,28 @@ function isValidCssColor(s: string | null): boolean {
   return reHex.test(s) || reRgb.test(s);
 }
 
-function setup(params: {isDarkTheme: boolean, backgroundColor: string | null, iframeId: string | null}) {
-  if (params.isDarkTheme) {
-    document.documentElement.setAttribute('data-gitea-theme-dark', 'true');
-  }
+const url = new URL(window.location.href);
 
-  if (isValidCssColor(params.backgroundColor)) {
-    // create a style element to set background color, then it can be overridden by the content page's own style if needed
-    const style = document.createElement('style');
-    style.textContent = `
-:root {
-  --gitea-iframe-bgcolor: ${params.backgroundColor};
+const isDarkTheme = url.searchParams.get('gitea-is-dark-theme') === 'true';
+if (isDarkTheme) {
+  document.documentElement.setAttribute('data-gitea-theme-dark', String(isDarkTheme));
 }
-body { background: ${params.backgroundColor}; }
-`;
-    document.head.append(style);
-  }
 
-  if (!params.iframeId) return;
-  const iframeId = params.iframeId;
+const backgroundColor = url.searchParams.get('gitea-iframe-bgcolor');
+if (isValidCssColor(backgroundColor)) {
+  // create a style element to set background color, then it can be overridden by the content page's own style if needed
+  const style = document.createElement('style');
+  style.textContent = `
+:root {
+  --gitea-iframe-bgcolor: ${backgroundColor};
+}
+body { background: ${backgroundColor}; }
+`;
+  document.head.append(style);
+}
+
+const iframeId = url.searchParams.get('gitea-iframe-id');
+if (iframeId) {
   // iframe is in different origin, so we need to use postMessage to communicate
   const postIframeMsg = (cmd: string, data: Record<string, any> = {}) => {
     window.parent.postMessage({giteaIframeCmd: cmd, giteaIframeId: iframeId, ...data}, '*');
@@ -82,27 +85,6 @@ body { background: ${params.backgroundColor}; }
       openIframeLink(href, forceTarget ?? el.getAttribute('target'));
     }
   });
-}
-
-const url = new URL(window.location.href);
-if (url.searchParams.has('gitea-iframe-id')) {
-  // backend-rendered iframe: params are on the iframe URL (iframe is cross-origin but same-site)
-  setup({
-    isDarkTheme: url.searchParams.get('gitea-is-dark-theme') === 'true',
-    backgroundColor: url.searchParams.get('gitea-iframe-bgcolor'),
-    iframeId: url.searchParams.get('gitea-iframe-id'),
-  });
-} else {
-  // srcdoc iframe (frontend-rendered plugin): null-origin, so params arrive via postMessage init
-  window.addEventListener('message', (e) => {
-    if (e.source !== window.parent) return;
-    if (e.data?.giteaIframeCmd !== 'init') return;
-    setup({
-      isDarkTheme: Boolean(e.data.isDarkTheme),
-      backgroundColor: e.data.backgroundColor ?? null,
-      iframeId: e.data.giteaIframeId ?? null,
-    });
-  }, {once: true});
 }
 
 if (window.testModules) {

@@ -22,6 +22,7 @@ import (
 // RegisterRenderers registers all supported third part renderers according settings
 func RegisterRenderers() {
 	markup.RegisterRenderer(&openAPIRenderer{})
+	markup.RegisterRenderer(&viewer3dRenderer{})
 	for _, renderer := range setting.ExternalMarkupRenderers {
 		markup.RegisterRenderer(&Renderer{renderer})
 	}
