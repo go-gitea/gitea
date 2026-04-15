@@ -134,6 +134,18 @@ func (c TemplateContext) CspScriptNonce() (ret string) {
 }
 
 func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
+	// The CSP problem is more complicated than it looks.
+	// Gitea was designed to support various "customizations", including:
+	// * custom themes (custom CSS and JS)
+	// * custom assets URL (CDN)
+	// * custom plugins and external renders (e.g.: PlantUML render, and the renders might also load some JS/CSS assets)
+	// There is no easy way for end users to make the CSP "source" completely right.
+	//
+	// There can be 2 approaches in the future:
+	// A. Let end users to configure their reverse proxy to add CSP header
+	//    * Browsers will merge and use the stricter rules between Gitea and reverse proxy
+	// B. Introduce some config options in "app.ini"
+	//    * Maybe this approach should be avoided, don't make the config system too complex, just let users use A
 	return template.HTML(`<meta http-equiv="Content-Security-Policy" content="` +
 		// allow all by default (the same as old releases with no CSP)
 		// "data:" is used to load the manifest in head (maybe also need to be refactored in the future)
