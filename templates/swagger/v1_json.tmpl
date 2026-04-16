@@ -22039,6 +22039,7 @@
           "x-go-name": "RepositoryID"
         },
         "run_attempt": {
+          "description": "RunAttempt is 1-based for runs created after ActionRunAttempt was introduced.\nA value of 0 is a legacy-only sentinel for runs created before attempts existed\nand indicates no corresponding /attempts/{n} resource is available.",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RunAttempt"
