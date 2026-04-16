@@ -258,6 +258,7 @@ export default defineConfig(commonViteOpts({
     manifest: true,
     rolldownOptions: {
       input: {
+        // FIXME: INCORRECT-VITE-MANIFEST-PARSER: the "css importing" logic in backend is wrong
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
         swagger: join(import.meta.dirname, 'web_src/js/swagger.ts'),
         'external-render-frontend': join(import.meta.dirname, 'web_src/js/external-render-frontend.ts'),
