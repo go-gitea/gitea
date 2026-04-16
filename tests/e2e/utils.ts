@@ -67,6 +67,13 @@ export async function apiCreateFile(requestContext: APIRequestContext, owner: st
   }), 'apiCreateFile');
 }
 
+export async function apiCreateBranch(requestContext: APIRequestContext, owner: string, repo: string, newBranch: string) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branches`, {
+    headers: apiHeaders(),
+    data: {new_branch_name: newBranch},
+  }), 'apiCreateBranch');
+}
+
 export async function apiDeleteRepo(requestContext: APIRequestContext, owner: string, name: string) {
   await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/repos/${owner}/${name}`, {
     headers: apiHeaders(),
