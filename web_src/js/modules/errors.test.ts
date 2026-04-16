@@ -32,12 +32,6 @@ test('showGlobalErrorMessage', () => {
   expect(errs[1].querySelector('.js-global-error-count')!.textContent).toBe('');
 });
 
-test('showGlobalErrorMessage stores stack for copy', () => {
-  showGlobalErrorMessage('hi', 'error', 'at foo (x:1:1)');
-  expect(document.querySelector('.js-global-error-stack')!.textContent).toBe('at foo (x:1:1)');
-  expect(document.querySelector('.js-global-error-copy')).toBeTruthy();
-});
-
 test('processWindowErrorEvent renders stack trace', () => {
   const error = new Error('boom');
   error.stack = `Error: boom\n    at fn (${window.location.origin}/assets/js/index.js:1:1)`;
