@@ -18,7 +18,7 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', s
       <div class="ui container js-global-error tw-my-[--page-spacing]">
         <div class="ui ${msgType} message tw-flex tw-justify-center tw-items-center">
           <span class="js-global-error-msg"></span><span class="js-global-error-count"></span>
-          <button type="button" class="js-global-error-copy interact-bg tw-text-inherit tw-p-2 tw-rounded" aria-label="${window.config.i18n.copy}"></button>
+          <button type="button" class="js-global-error-copy interact-bg tw-text-inherit tw-p-2 tw-rounded tw-ml-1" aria-label="${window.config.i18n.copy}"></button>
           <pre class="js-global-error-stack tw-hidden"></pre>
         </div>
       </div>
@@ -32,7 +32,11 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', s
       try {
         await navigator.clipboard?.writeText([msgText, stackText].filter(Boolean).join('\n'));
         copyBtn.innerHTML = octiconCheck;
-        setTimeout(() => { copyBtn.innerHTML = octiconCopy }, 1500);
+        copyBtn.classList.replace('tw-text-inherit', 'tw-text-green');
+        setTimeout(() => {
+          copyBtn.innerHTML = octiconCopy;
+          copyBtn.classList.replace('tw-text-green', 'tw-text-inherit');
+        }, 1500);
       } catch {} // swallow clipboard failures so they don't trigger the global error handler
     });
   }
