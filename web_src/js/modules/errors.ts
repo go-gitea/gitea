@@ -41,9 +41,10 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', s
       }, 1500);
     });
   }
-  const msgCount = Number(msgDiv.getAttribute('data-global-error-msg-count')) + 1;
-  msgDiv.setAttribute('data-global-error-msg-compact', msgCompact);
-  msgDiv.setAttribute('data-global-error-msg-count', String(msgCount));
+  // merge duplicated messages into "the message (count)" format
+  const msgCount = Number(msgDiv.getAttribute(`data-global-error-msg-count`)) + 1;
+  msgDiv.setAttribute(`data-global-error-msg-compact`, msgCompact);
+  msgDiv.setAttribute(`data-global-error-msg-count`, String(msgCount));
   msgDiv.querySelector('.js-global-error-msg')!.textContent = msg;
   msgDiv.querySelector('.js-global-error-count')!.textContent = msgCount > 1 ? ` (${msgCount})` : '';
   msgDiv.querySelector('.js-global-error-stack')!.textContent = stack ?? '';
@@ -73,6 +74,7 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
     if (window.config.runModeIsProd) return;
   }
 
+  // Filter out errors from browser extensions or other non-Gitea scripts.
   if (!isGiteaError(filename ?? '', err?.stack ?? '')) return;
 
   const renderedType = type === 'unhandledrejection' ? 'promise rejection' : type;

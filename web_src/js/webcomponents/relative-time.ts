@@ -258,7 +258,6 @@ class RelativeTime extends HTMLElement {
   }
 
   get #lang(): string {
-    // navigator.language can be `undefined` or the string `"undefined"` in headless browsers
     for (const candidate of [this.closest('[lang]')?.getAttribute('lang'), navigator.language]) {
       if (!candidate) continue;
       try {
