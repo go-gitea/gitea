@@ -40,7 +40,9 @@
 				{{if .IsRepresentableAsText}}
 				<a href="?display=source" class="ui mini basic button file-view-toggle-source {{if .IsDisplayingSource}}active{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code" 15}}</a>
 				{{end}}
+				{{if .HasSourceRenderedToggle}}
 				<a href="?display=rendered" class="ui mini basic button file-view-toggle-rendered {{if not .IsDisplayingSource}}active{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file" 15}}</a>
+				{{end}}
 			</div>
 			{{if not .ReadmeInList}}
 				<div class="ui buttons tw-mr-1">

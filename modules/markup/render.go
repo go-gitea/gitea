@@ -6,6 +6,7 @@ package markup
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -206,10 +207,16 @@ func RenderString(ctx *RenderContext, content string) (string, error) {
 }
 
 func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.Writer) error {
+	ownerName, repoName := ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"]
+	refSubURL := ctx.RenderOptions.Metas["RefTypeNameSubURL"]
+	if ownerName == "" || repoName == "" || refSubURL == "" {
+		setting.PanicInDevOrTesting("RenderIFrame requires user, repo and RefTypeNameSubURL metas")
+		return errors.New("RenderIFrame requires user, repo and RefTypeNameSubURL metas")
+	}
 	src := fmt.Sprintf("%s/%s/%s/render/%s/%s", setting.AppSubURL,
-		url.PathEscape(ctx.RenderOptions.Metas["user"]),
-		url.PathEscape(ctx.RenderOptions.Metas["repo"]),
-		util.PathEscapeSegments(ctx.RenderOptions.Metas["RefTypeNameSubURL"]),
+		url.PathEscape(ownerName),
+		url.PathEscape(repoName),
+		ctx.RenderOptions.Metas["RefTypeNameSubURL"],
 		util.PathEscapeSegments(ctx.RenderOptions.RelativePath),
 	)
 	var extraAttrs template.HTML

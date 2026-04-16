@@ -1,6 +1,6 @@
-import type {FileRenderPlugin} from '../plugin.ts';
+import type {InplaceRenderPlugin} from '../plugin.ts';
 
-export function newRenderPluginPdfViewer(): FileRenderPlugin {
+export function newInplacePluginPdfViewer(): InplaceRenderPlugin {
   return {
     name: 'pdf-viewer',
 

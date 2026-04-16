@@ -12,7 +12,7 @@ test('3d model file', async ({page, request}) => {
     await page.goto(`/${owner}/${repoName}/src/branch/main/test.stl?display=rendered`);
     const iframe = page.locator('iframe.external-render-iframe');
     await expect(iframe).toBeVisible();
-    await expect(page.frameLocator('iframe.external-render-iframe').locator('#viewer canvas')).toBeVisible();
+    await expect(page.frameLocator('iframe.external-render-iframe').locator('#frontend-render-viewer canvas')).toBeVisible();
     await assertNoJsError(page);
   } finally {
     await apiDeleteRepo(request, owner, repoName);

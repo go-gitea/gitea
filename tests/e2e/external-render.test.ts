@@ -37,7 +37,7 @@ test('openapi file', async ({page, request}) => {
     const iframe = page.locator('iframe.external-render-iframe');
     await expect(iframe).toBeVisible();
     const frame = page.frameLocator('iframe.external-render-iframe');
-    await expect(frame.locator('#swagger-ui .swagger-ui')).toBeVisible();
+    await expect(frame.locator('#frontend-render-viewer .swagger-ui')).toBeVisible();
     await assertNoJsError(page);
   } finally {
     await apiDeleteRepo(request, owner, repoName);
