@@ -35,7 +35,7 @@ func TestInitToken(t *testing.T) {
 	})
 
 	t.Run("EnvToken", func(t *testing.T) {
-		tokenValue, _ := util.CryptoRandomString(32)
+		tokenValue := util.CryptoRandomString(32)
 		t.Setenv("GITEA_RUNNER_REGISTRATION_TOKEN", tokenValue)
 		t.Setenv("GITEA_RUNNER_REGISTRATION_TOKEN_FILE", "")
 		err := initGlobalRunnerToken(t.Context())
@@ -52,7 +52,7 @@ func TestInitToken(t *testing.T) {
 	})
 
 	t.Run("EnvFileToken", func(t *testing.T) {
-		tokenValue, _ := util.CryptoRandomString(32)
+		tokenValue := util.CryptoRandomString(32)
 		f := t.TempDir() + "/token"
 		_ = os.WriteFile(f, []byte(tokenValue), 0o644)
 		t.Setenv("GITEA_RUNNER_REGISTRATION_TOKEN", "")
