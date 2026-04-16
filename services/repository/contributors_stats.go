@@ -13,7 +13,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -185,7 +184,7 @@ func processContributorStatsUpdate(ctx context.Context, opts *ContributorStatsUp
 		return RequestContributorStatsRebuild(ctx, repo.ID)
 	}
 
-	updates, err := collectContributorDailyUpdates(ctx, repo, gitRepo, startCommitID, opts.NewCommitID)
+	updates, err := collectContributorDailyUpdates(ctx, repo, startCommitID, opts.NewCommitID)
 	if err != nil {
 		return err
 	}
@@ -219,7 +218,7 @@ func processContributorStatsRebuild(ctx context.Context, opts *ContributorStatsR
 		return err
 	}
 
-	stats, err := getExtendedCommitStats(gitRepo, repo.DefaultBranch)
+	stats, err := getExtendedCommitStats(ctx, repo, repo.DefaultBranch)
 	if err != nil {
 		return err
 	}
@@ -232,15 +231,16 @@ func processContributorStatsRebuild(ctx context.Context, opts *ContributorStatsR
 	now := timeutil.TimeStampNow()
 	for _, update := range updates {
 		dailyStats = append(dailyStats, &contribution_model.ContributorDaily{
-			RepoID:      update.RepoID,
-			DayStart:    update.DayStart,
-			UserID:      update.UserID,
-			Email:       update.Email,
-			AuthorName:  update.AuthorName,
-			Additions:   update.Additions,
-			Deletions:   update.Deletions,
-			Commits:     update.Commits,
-			UpdatedUnix: now,
+			RepoID:       update.RepoID,
+			DayStart:     update.DayStart,
+			UserID:       update.UserID,
+			Email:        update.Email,
+			AuthorName:   update.AuthorName,
+			Additions:    update.Additions,
+			Deletions:    update.Deletions,
+			Commits:      update.Commits,
+			ChangedFiles: update.ChangedFiles,
+			UpdatedUnix:  now,
 		})
 	}
 
@@ -258,8 +258,8 @@ func processContributorStatsRebuild(ctx context.Context, opts *ContributorStatsR
 	return contribution_model.UpdateRepoContributorMeta(ctx, meta, "last_processed_commit_id", "dirty", "updated_unix")
 }
 
-func collectContributorDailyUpdates(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, startCommitID, endCommitID string) ([]*contribution_model.ContributorDailyUpdate, error) {
-	stats, err := getExtendedCommitStatsRange(gitRepo, startCommitID, endCommitID)
+func collectContributorDailyUpdates(ctx context.Context, repo *repo_model.Repository, startCommitID, endCommitID string) ([]*contribution_model.ContributorDailyUpdate, error) {
+	stats, err := getExtendedCommitStats(ctx, repo, startCommitID+".."+endCommitID)
 	if err != nil {
 		return nil, err
 	}
@@ -317,6 +317,7 @@ func buildContributorDailyUpdates(ctx context.Context, repo *repo_model.Reposito
 		}
 		update.Additions += int64(stat.Stats.Additions)
 		update.Deletions += int64(stat.Stats.Deletions)
+		update.ChangedFiles += int64(stat.Stats.ChangedFiles)
 		update.Commits++
 	}
 

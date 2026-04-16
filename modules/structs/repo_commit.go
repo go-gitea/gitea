@@ -55,6 +55,8 @@ type RepoCommit struct {
 type CommitStats struct {
 	// Total is the total number of lines changed
 	Total int `json:"total"`
+	// ChangedFiles is the number of files changed
+	ChangedFiles int `json:"changed_files"`
 	// Additions is the number of lines added
 	Additions int `json:"additions"`
 	// Deletions is the number of lines deleted

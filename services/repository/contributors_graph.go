@@ -17,9 +17,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -145,6 +144,7 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, limit
 		userStats.Weeks[week].Additions += stat.Additions
 		userStats.Weeks[week].Deletions += stat.Deletions
 		userStats.Weeks[week].Commits += stat.Commits
+		userStats.Weeks[week].ChangedFiles += stat.ChangedFiles
 		userStats.TotalCommits += stat.Commits
 	}
 
@@ -153,6 +153,7 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, limit
 		contribution_model.RepoStatCommits,
 		contribution_model.RepoStatAdditions,
 		contribution_model.RepoStatDeletions,
+		contribution_model.RepoStatChangedFiles,
 	)
 	if err != nil {
 		return nil, err
@@ -220,162 +221,137 @@ func limitContributorStats(contributors map[string]*ContributorData, limit int) 
 	return filtered
 }
 
-// getExtendedCommitStats return the list of *ExtendedCommitStats for the given revision
-func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int */) ([]*ExtendedCommitStats, error) {
-	baseCommit, err := repo.GetCommit(revision)
-	if err != nil {
-		return nil, err
+/*
+---
+82bfde2a37
+author_name
+abc@example.com
+2026-04-16 04:07:57 +0800
+
+1       1       modules/markup/external/openapi.go
+1       1       modules/markup/render.go
+1       31      modules/templates/helper.go
+34      2       modules/util/util.go
+0       2       services/context/context.go
+76      0       services/context/context_template.go
+1       1       templates/base/footer.tmpl
+1       0       templates/base/head.tmpl
+2       2       templates/base/head_script.tmpl
+2       2       templates/repo/diff/box.tmpl
+1       1       templates/repo/issue/view_content/pull_merge_box.tmpl
+1       1       templates/shared/combomarkdowneditor.tmpl
+2       1       templates/status/500.tmpl
+2       1       templates/swagger/openapi-viewer.tmpl
+3       3       templates/user/auth/captcha.tmpl
+1       1       templates/user/dashboard/repolist.tmpl
+2       2       tests/integration/markup_external_test.go
+3       0       web_src/js/features/repo-issue-pull.ts
+
+---
+2644bb8490
+author_name2
+abcd@example.com
+*/
+
+var errEndOfGitLogOutput = errors.New("end of git log output")
+var errUnexpectedGitLogOutput = errors.New("unexpected git log output")
+
+func scanOneStat(scanner *bufio.Scanner) (commitID, authorName, email string, date *time.Time, additions, deletions, changedFiles int64, err error) {
+	var l string
+	for scanner.Scan() {
+		l = strings.TrimSpace(scanner.Text())
+		if l == "---" {
+			break
+		}
 	}
 
-	gitCmd := gitcmd.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%aI", "--reverse")
-	// AddOptionFormat("--max-count=%d", limit)
-	gitCmd.AddDynamicArguments(baseCommit.ID.String())
-
-	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
-	defer stdoutReaderClose()
-
-	var extendedCommitStats []*ExtendedCommitStats
-	err = gitCmd.WithDir(repo.Path).
-		WithPipelineFunc(func(ctx gitcmd.Context) error {
-			scanner := bufio.NewScanner(stdoutReader)
-
-			for scanner.Scan() {
-				line := strings.TrimSpace(scanner.Text())
-				if line != "---" {
-					continue
-				}
-				scanner.Scan()
-				authorName := strings.TrimSpace(scanner.Text())
-				scanner.Scan()
-				authorEmail := strings.TrimSpace(scanner.Text())
-				scanner.Scan()
-				date := strings.TrimSpace(scanner.Text())
-				scanner.Scan()
-				stats := strings.TrimSpace(scanner.Text())
-				if authorName == "" || authorEmail == "" || date == "" || stats == "" {
-					// FIXME: find a better way to parse the output so that we will handle this properly
-					log.Warn("Something is wrong with git log output, skipping...")
-					log.Warn("authorName: %s,  authorEmail: %s,  date: %s,  stats: %s", authorName, authorEmail, date, stats)
-					continue
-				}
-				//  1 file changed, 1 insertion(+), 1 deletion(-)
-				fields := strings.Split(stats, ",")
-
-				commitStats := api.CommitStats{}
-				for _, field := range fields[1:] {
-					parts := strings.Split(strings.TrimSpace(field), " ")
-					value, contributionType := parts[0], parts[1]
-					amount, _ := strconv.Atoi(value)
-
-					if strings.HasPrefix(contributionType, "insertion") {
-						commitStats.Additions = amount
-					} else {
-						commitStats.Deletions = amount
-					}
-				}
-				commitStats.Total = commitStats.Additions + commitStats.Deletions
-				scanner.Text() // empty line at the end
-
-				res := &ExtendedCommitStats{
-					Author: &api.CommitUser{
-						Identity: api.Identity{
-							Name:  authorName,
-							Email: authorEmail,
-						},
-						Date: date,
-					},
-					Stats: &commitStats,
-				}
-				extendedCommitStats = append(extendedCommitStats, res)
-			}
-			return nil
-		}).
-		RunWithStderr(repo.Ctx)
-	if err != nil {
-		return nil, fmt.Errorf("ContributorsCommitStats: %w", err)
+	if l != "---" {
+		err = errEndOfGitLogOutput
+		return
 	}
 
-	return extendedCommitStats, nil
+	scanner.Scan()
+	commitID = strings.TrimSpace(scanner.Text())
+	scanner.Scan()
+	authorName = strings.TrimSpace(scanner.Text())
+	scanner.Scan()
+	email = strings.TrimSpace(scanner.Text())
+	scanner.Scan()
+	dateStr := strings.TrimSpace(scanner.Text())
+	parsedDate, err := time.Parse(time.RFC3339, dateStr)
+	if err != nil {
+		err = fmt.Errorf("parsing date %q: %w", dateStr, err)
+		return
+	}
+	date = &parsedDate
+	scanner.Scan() // blank line
+
+	for scanner.Scan() {
+		l = strings.TrimSpace(scanner.Text())
+		if l == "" {
+			break
+		}
+
+		parts := strings.Fields(l)
+		if len(parts) < 3 {
+			err = errUnexpectedGitLogOutput
+			return
+		}
+
+		fileAddition, _ := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64)
+		fileDeletion, _ := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 64)
+		additions += fileAddition
+		deletions += fileDeletion
+		changedFiles++
+	}
+	return
 }
 
-// getExtendedCommitStatsRange returns stats for commits between start and end.
-func getExtendedCommitStatsRange(repo *git.Repository, startCommitID, endCommitID string) ([]*ExtendedCommitStats, error) {
-	if endCommitID == "" {
+// getExtendedCommitStats returns stats for commits between start and end.
+func getExtendedCommitStats(ctx context.Context, repo *repo_model.Repository, reversionRange string) ([]*ExtendedCommitStats, error) {
+	if reversionRange == "" {
 		return nil, nil
 	}
-	objectFormat, err := repo.GetObjectFormat()
-	if err != nil {
-		return nil, err
-	}
-	commitRange := endCommitID
-	if startCommitID != "" && startCommitID != objectFormat.EmptyObjectID().String() {
-		commitRange = fmt.Sprintf("%s..%s", startCommitID, endCommitID)
-	}
 
-	gitCmd := gitcmd.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%aI", "--reverse")
-	gitCmd.AddDynamicArguments(commitRange)
+	gitCmd := gitcmd.NewCommand("log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n%aI%n").
+		AddDynamicArguments(reversionRange)
 
 	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
 
-	var extendedCommitStats []*ExtendedCommitStats
-	if err := gitCmd.WithDir(repo.Path).
+	var stats []*ExtendedCommitStats
+	if err := gitrepo.RunCmdWithStderr(ctx, repo, gitCmd.
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
-			for scanner.Scan() {
-				line := strings.TrimSpace(scanner.Text())
-				if line != "---" {
-					continue
+			scanner.Split(bufio.ScanLines)
+
+			for {
+				_, authorName, email, commitDate, additions, deletions, changedFiles, err := scanOneStat(scanner)
+				if err != nil {
+					if errors.Is(err, errEndOfGitLogOutput) {
+						break
+					}
+					return fmt.Errorf("getExtendedCommitStats scan: %w", err)
 				}
-				scanner.Scan()
-				authorName := strings.TrimSpace(scanner.Text())
-				scanner.Scan()
-				authorEmail := strings.TrimSpace(scanner.Text())
-				scanner.Scan()
-				date := strings.TrimSpace(scanner.Text())
-				scanner.Scan()
-				stats := strings.TrimSpace(scanner.Text())
-				if authorName == "" || authorEmail == "" || date == "" || stats == "" {
-					log.Warn("Something is wrong with git log output, skipping...")
-					log.Warn("authorName: %s,  authorEmail: %s,  date: %s,  stats: %s", authorName, authorEmail, date, stats)
-					continue
+				if err = scanner.Err(); err != nil {
+					return fmt.Errorf("getExtendedCommitStats scan: %w", err)
 				}
 
-				fields := strings.Split(stats, ",")
-				commitStats := api.CommitStats{}
-				for _, field := range fields[1:] {
-					parts := strings.Split(strings.TrimSpace(field), " ")
-					if len(parts) < 2 {
-						continue
-					}
-					value, contributionType := parts[0], parts[1]
-					amount, _ := strconv.Atoi(value)
-					if strings.HasPrefix(contributionType, "insertion") {
-						commitStats.Additions = amount
-					} else {
-						commitStats.Deletions = amount
-					}
-				}
-				commitStats.Total = commitStats.Additions + commitStats.Deletions
-				scanner.Text()
-
-				res := &ExtendedCommitStats{
+				stats = append(stats, &ExtendedCommitStats{
 					Author: &api.CommitUser{
 						Identity: api.Identity{
 							Name:  authorName,
-							Email: authorEmail,
+							Email: email,
 						},
-						Date: date,
+						Date: commitDate.Format(time.RFC3339),
 					},
-					Stats: &commitStats,
-				}
-				extendedCommitStats = append(extendedCommitStats, res)
+					Stats: &api.CommitStats{Additions: int(additions), Deletions: int(deletions), ChangedFiles: int(changedFiles)},
+				})
 			}
 			return nil
-		}).
-		RunWithStderr(repo.Ctx); err != nil {
-		return nil, fmt.Errorf("ContributorsCommitStatsRange: %w", err)
+		})); err != nil {
+		return nil, fmt.Errorf("getExtendedCommitStats: %w", err)
 	}
 
-	return extendedCommitStats, nil
+	return stats, nil
 }

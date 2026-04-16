@@ -32,16 +32,17 @@ func (d ContributorDayStart) UnixMilli() int64 {
 
 // ContributorDaily stores per-day contributor stats for a repository.
 type ContributorDaily struct {
-	ID          int64               `xorm:"pk autoincr"`
-	RepoID      int64               `xorm:"UNIQUE(repo_user_day) INDEX NOT NULL"`
-	DayStart    ContributorDayStart `xorm:"UNIQUE(repo_user_day) INDEX NOT NULL"`
-	UserID      int64               `xorm:"UNIQUE(repo_user_day) INDEX NOT NULL DEFAULT 0"`
-	Email       string              `xorm:"UNIQUE(repo_user_day) INDEX VARCHAR(255) NOT NULL DEFAULT ''"`
-	AuthorName  string              `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
-	Additions   int64               `xorm:"NOT NULL DEFAULT 0"`
-	Deletions   int64               `xorm:"NOT NULL DEFAULT 0"`
-	Commits     int64               `xorm:"NOT NULL DEFAULT 0"`
-	UpdatedUnix timeutil.TimeStamp  `xorm:"INDEX updated"`
+	ID           int64               `xorm:"pk autoincr"`
+	RepoID       int64               `xorm:"UNIQUE(repo_user_day) INDEX NOT NULL"`
+	DayStart     ContributorDayStart `xorm:"UNIQUE(repo_user_day) INDEX NOT NULL"`
+	UserID       int64               `xorm:"UNIQUE(repo_user_day) INDEX NOT NULL DEFAULT 0"`
+	Email        string              `xorm:"UNIQUE(repo_user_day) INDEX VARCHAR(255) NOT NULL DEFAULT ''"`
+	AuthorName   string              `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+	Additions    int64               `xorm:"NOT NULL DEFAULT 0"`
+	Deletions    int64               `xorm:"NOT NULL DEFAULT 0"`
+	Commits      int64               `xorm:"NOT NULL DEFAULT 0"`
+	ChangedFiles int64               `xorm:"NOT NULL DEFAULT 0"`
+	UpdatedUnix  timeutil.TimeStamp  `xorm:"INDEX updated"`
 }
 
 func (ContributorDaily) TableName() string {
@@ -50,31 +51,34 @@ func (ContributorDaily) TableName() string {
 
 // ContributorDailyUpdate is an increment applied to ContributorDaily.
 type ContributorDailyUpdate struct {
-	RepoID     int64
-	DayStart   ContributorDayStart
-	UserID     int64
-	Email      string
-	AuthorName string
-	Additions  int64
-	Deletions  int64
-	Commits    int64
+	RepoID       int64
+	DayStart     ContributorDayStart
+	UserID       int64
+	Email        string
+	AuthorName   string
+	Additions    int64
+	Deletions    int64
+	Commits      int64
+	ChangedFiles int64
 }
 
 // ContributorSummary represents total commit counts per contributor.
 type ContributorSummary struct {
-	UserID     int64
-	Email      string
-	AuthorName string
-	Additions  int64
-	Deletions  int64
-	Commits    int64
+	UserID       int64
+	Email        string
+	AuthorName   string
+	Additions    int64
+	Deletions    int64
+	Commits      int64
+	ChangedFiles int64
 }
 
 type WeekData struct {
-	Week      int64 `json:"week"`      // Starting day of the week as Unix timestamp
-	Additions int64 `json:"additions"` // Number of additions in that week
-	Deletions int64 `json:"deletions"` // Number of deletions in that week
-	Commits   int64 `json:"commits"`   // Number of commits in that week
+	Week         int64 `json:"week"`          // Starting day of the week as Unix timestamp
+	Additions    int64 `json:"additions"`     // Number of additions in that week
+	Deletions    int64 `json:"deletions"`     // Number of deletions in that week
+	Commits      int64 `json:"commits"`       // Number of commits in that week
+	ChangedFiles int64 `json:"changed_files"` // Number of changed files in that week
 }
 
 // RepoStatType describes which weekly stats to aggregate.
@@ -84,6 +88,7 @@ const (
 	RepoStatAdditions RepoStatType = iota
 	RepoStatDeletions
 	RepoStatCommits
+	RepoStatChangedFiles
 )
 
 func init() {
@@ -190,7 +195,7 @@ func GetContributorActivity(ctx context.Context, repo *repo_model.Repository, ti
 	rows := make([]*ContributorSummary, 0, count)
 	if err := db.GetEngine(ctx).
 		Table("repo_contributor_daily").
-		Select("user_id, email, author_name, sum(additions) as additions, sum(deletions) as deletions, sum(commits) as commits").
+		Select("user_id, email, author_name, sum(additions) as additions, sum(deletions) as deletions, sum(commits) as commits, sum(changed_files) as changed_files").
 		Where("repo_id = ? AND day_start >= ?", repo.ID, start).
 		GroupBy("user_id, email, author_name").
 		OrderBy("commits DESC").
@@ -229,7 +234,7 @@ func GetRepoWeeklyStats(ctx context.Context, repoID int64, opts StatsOptions) ([
 		return rows, errors.New("no weekly stat types provided")
 	}
 
-	selectParts := make([]string, 0, 3)
+	selectParts := make([]string, 0, 4)
 	for _, statType := range opts.StatTypes {
 		switch statType {
 		case RepoStatAdditions:
@@ -238,6 +243,8 @@ func GetRepoWeeklyStats(ctx context.Context, repoID int64, opts StatsOptions) ([
 			selectParts = append(selectParts, "SUM(deletions) AS deletions")
 		case RepoStatCommits:
 			selectParts = append(selectParts, "SUM(commits) AS commits")
+		case RepoStatChangedFiles:
+			selectParts = append(selectParts, "SUM(changed_files) AS changed_files")
 		}
 	}
 
@@ -305,7 +312,8 @@ func ApplyRepoContributorDailyUpdates(ctx context.Context, updates []*Contributo
 			update.Email = strings.ToLower(update.Email)
 			sess := db.GetEngine(ctx).Incr("additions", update.Additions).
 				Incr("deletions", update.Deletions).
-				Incr("commits", update.Commits)
+				Incr("commits", update.Commits).
+				Incr("changed_files", update.ChangedFiles)
 
 			// if it's a registered user, we just use user_id to identify
 			if update.UserID > 0 {
@@ -329,15 +337,16 @@ func ApplyRepoContributorDailyUpdates(ctx context.Context, updates []*Contributo
 			}
 
 			record := &ContributorDaily{
-				RepoID:      update.RepoID,
-				DayStart:    update.DayStart,
-				UserID:      update.UserID,
-				Email:       update.Email,
-				AuthorName:  update.AuthorName,
-				Additions:   update.Additions,
-				Deletions:   update.Deletions,
-				Commits:     update.Commits,
-				UpdatedUnix: now,
+				RepoID:       update.RepoID,
+				DayStart:     update.DayStart,
+				UserID:       update.UserID,
+				Email:        update.Email,
+				AuthorName:   update.AuthorName,
+				Additions:    update.Additions,
+				Deletions:    update.Deletions,
+				Commits:      update.Commits,
+				ChangedFiles: update.ChangedFiles,
+				UpdatedUnix:  now,
 			}
 			if _, err := db.GetEngine(ctx).Insert(record); err != nil {
 				return err

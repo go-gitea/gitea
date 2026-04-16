@@ -32,4 +32,5 @@ export const chartJsColors = resolveColors({
   additions: '--color-green',
   deletions: '--color-red',
   additions_deletions: '--color-orange',
+  changed_files: '--color-blue',
 });

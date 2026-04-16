@@ -24,6 +24,7 @@ func WeekSlice2Map(rows []*contribution_model.WeekData) map[int64]*contribution_
 		weeks[week].Commits += row.Commits
 		weeks[week].Additions += row.Additions
 		weeks[week].Deletions += row.Deletions
+		weeks[week].ChangedFiles += row.ChangedFiles
 	}
 	return weeks
 }
