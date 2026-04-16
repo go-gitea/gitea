@@ -31,13 +31,15 @@ test('openapi file', async ({page, request}) => {
     login(page),
   ]);
   try {
-    const spec = 'openapi: "3.0.0"\ninfo:\n  title: Test API\n  version: "1.0"\npaths: {}\n';
+    const title = 'Test <API> & "quoted"';
+    const spec = `openapi: "3.0.0"\ninfo:\n  title: '${title}'\n  version: "1.0"\npaths: {}\n`;
     await apiCreateFile(request, owner, repoName, 'openapi.yaml', spec);
     await page.goto(`/${owner}/${repoName}/src/branch/main/openapi.yaml`);
     const iframe = page.locator('iframe.external-render-iframe');
     await expect(iframe).toBeVisible();
     const frame = page.frameLocator('iframe.external-render-iframe');
     await expect(frame.locator('#frontend-render-viewer .swagger-ui')).toBeVisible();
+    await expect(frame.locator('#frontend-render-viewer .info .title')).toContainText(title);
     await assertNoJsError(page);
   } finally {
     await apiDeleteRepo(request, owner, repoName);

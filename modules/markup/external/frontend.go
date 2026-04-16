@@ -84,7 +84,7 @@ func (p *frontendRenderer) Render(ctx *markup.RenderContext, input io.Reader, ou
 </head>
 <body>
 	<div id="frontend-render-viewer" data-frontend-renders="%s" data-file-tree-path="%s"></div>
-	<script id="frontend-render-data" type="application/octet-stream" data-content-encoding="%s">%s</script>
+	<textarea id="frontend-render-data" data-content-encoding="%s" hidden>%s</textarea>
 	<script nonce type="module" src="%s"></script>
 </body>
 </html>`,

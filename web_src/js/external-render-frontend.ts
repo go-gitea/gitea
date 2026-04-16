@@ -42,10 +42,10 @@ async function initFrontendExternalRender() {
   const renderNames = viewerContainer.getAttribute('data-frontend-renders')!.split(' ');
   const fileTreePath = viewerContainer.getAttribute('data-file-tree-path')!;
 
-  const fileDataScript = document.querySelector<HTMLElement>('#frontend-render-data')!;
-  fileDataScript.remove();
-  const fileDataContent = fileDataScript.textContent || '';
-  const fileDataEncoding = fileDataScript.getAttribute('data-content-encoding') || 'text';
+  const fileDataElem = document.querySelector<HTMLTextAreaElement>('#frontend-render-data')!;
+  fileDataElem.remove();
+  const fileDataContent = fileDataElem.value;
+  const fileDataEncoding = fileDataElem.getAttribute('data-content-encoding')!;
   const opts = new Options(viewerContainer, fileTreePath, fileDataEncoding, fileDataContent);
 
   let found = false;

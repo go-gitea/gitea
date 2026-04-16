@@ -70,8 +70,8 @@ func NewRenderContextRepoFile(ctx context.Context, repo *repo_model.Repository, 
 			"repo": helper.opts.DeprecatedRepoName,
 		})
 	}
-	// external render's iframe needs this to generate correct links
-	rctx.RenderOptions.Metas["RefTypeNameSubURL"] = util.PathEscapeSegments(helper.opts.CurrentRefPath)
+	// CurrentRefPath is already path-escaped by callers
+	rctx.RenderOptions.Metas["RefTypeNameSubURL"] = helper.opts.CurrentRefPath
 	rctx = rctx.WithHelper(helper).WithEnableHeadingIDGeneration(true)
 	return rctx
 }
