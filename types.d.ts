@@ -36,11 +36,6 @@ declare module '*.vue' {
   export function initRepositoryActionView(): void;
 }
 
-declare module 'htmx.org/dist/htmx.esm.js' {
-  const value = await import('htmx.org');
-  export default value;
-}
-
 declare module 'idiomorph' {
   interface Idiomorph {
     morph(existing: Node | string, replacement: Node | string, options?: {morphStyle: 'innerHTML' | 'outerHTML'}): void;

@@ -63,8 +63,6 @@ type Context struct {
 	Package *Package
 }
 
-type TemplateContext map[string]any
-
 func init() {
 	web.RegisterResponseStatusProvider[*Base](func(req *http.Request) web_types.ResponseStatusProvider {
 		return req.Context().Value(BaseContextKey).(*Base)

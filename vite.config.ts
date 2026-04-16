@@ -40,7 +40,6 @@ const webComponents = new Set([
 
 const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
-    eval: false, // htmx needs eval
     pluginTimings: false,
   },
 };
