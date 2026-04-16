@@ -253,8 +253,10 @@ author_name2
 abcd@example.com
 */
 
-var errEndOfGitLogOutput = errors.New("end of git log output")
-var errUnexpectedGitLogOutput = errors.New("unexpected git log output")
+var (
+	errEndOfGitLogOutput      = errors.New("end of git log output")
+	errUnexpectedGitLogOutput = errors.New("unexpected git log output")
+)
 
 func scanOneStat(scanner *bufio.Scanner) (commitID, authorName, email string, date *time.Time, additions, deletions, changedFiles int64, err error) {
 	var l string
@@ -267,7 +269,7 @@ func scanOneStat(scanner *bufio.Scanner) (commitID, authorName, email string, da
 
 	if l != "---" {
 		err = errEndOfGitLogOutput
-		return
+		return commitID, authorName, email, date, additions, deletions, changedFiles, err
 	}
 
 	scanner.Scan()
@@ -281,7 +283,7 @@ func scanOneStat(scanner *bufio.Scanner) (commitID, authorName, email string, da
 	parsedDate, err := time.Parse(time.RFC3339, dateStr)
 	if err != nil {
 		err = fmt.Errorf("parsing date %q: %w", dateStr, err)
-		return
+		return commitID, authorName, email, date, additions, deletions, changedFiles, err
 	}
 	date = &parsedDate
 	scanner.Scan() // blank line
@@ -295,7 +297,7 @@ func scanOneStat(scanner *bufio.Scanner) (commitID, authorName, email string, da
 		parts := strings.Fields(l)
 		if len(parts) < 3 {
 			err = errUnexpectedGitLogOutput
-			return
+			return commitID, authorName, email, date, additions, deletions, changedFiles, err
 		}
 
 		fileAddition, _ := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64)
@@ -304,7 +306,7 @@ func scanOneStat(scanner *bufio.Scanner) (commitID, authorName, email string, da
 		deletions += fileDeletion
 		changedFiles++
 	}
-	return
+	return commitID, authorName, email, date, additions, deletions, changedFiles, err
 }
 
 // getExtendedCommitStats returns stats for commits between start and end.

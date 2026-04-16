@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	repo_model "code.gitea.io/gitea/models/repo"
+	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -50,10 +50,10 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 		TotalCommits: 1,
 		Weeks: map[int64]*contribution_model.WeekData{
 			1511654400000: {
-				Week:      1511654400000, // sunday 2017-11-26
-				Additions: 3,
-				Deletions: 0,
-				Commits:   1,
+				Week:         1511654400000, // sunday 2017-11-26
+				Additions:    3,
+				Deletions:    0,
+				Commits:      1,
 				ChangedFiles: 1,
 			},
 		},
@@ -64,24 +64,24 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 		TotalCommits: 3,
 		Weeks: map[int64]*contribution_model.WeekData{
 			1511654400000: {
-				Week:      1511654400000, // sunday 2017-11-26 (2017-11-26 20:31:18 -0800)
-				Additions: 3,
-				Deletions: 0,
-				Commits:   1,
+				Week:         1511654400000, // sunday 2017-11-26 (2017-11-26 20:31:18 -0800)
+				Additions:    3,
+				Deletions:    0,
+				Commits:      1,
 				ChangedFiles: 1,
 			},
 			1607817600000: {
-				Week:      1607817600000, // sunday 2020-12-13 (2020-12-15 15:23:11 -0500)
-				Additions: 10,
-				Deletions: 0,
-				Commits:   1,
+				Week:         1607817600000, // sunday 2020-12-13 (2020-12-15 15:23:11 -0500)
+				Additions:    10,
+				Deletions:    0,
+				Commits:      1,
 				ChangedFiles: 1,
 			},
 			1624752000000: {
-				Week:      1624752000000, // sunday 2021-06-27 (2021-06-29 21:54:09 +0200)
-				Additions: 2,
-				Deletions: 0,
-				Commits:   1,
+				Week:         1624752000000, // sunday 2021-06-27 (2021-06-29 21:54:09 +0200)
+				Additions:    2,
+				Deletions:    0,
+				Commits:      1,
 				ChangedFiles: 1,
 			},
 		},
