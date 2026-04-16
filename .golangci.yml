@@ -54,7 +54,7 @@ linters:
               desc: use builtin errors package instead
         migrations:
           files:
-            - '**/models/migrations/*.go'
+            - '**/models/migrations/**/*.go'
           deny:
             - pkg: code.gitea.io/gitea/models$
               desc: migrations must not depend on the models package
