@@ -280,7 +280,7 @@ jobs:
 			CommitSHA:         legacyRun.CommitSHA,
 			IsForkPullRequest: false,
 		}
-		require.NoError(t, legacyTask1.GenerateToken())
+		legacyTask1.GenerateAndFillToken()
 		legacyTask2 := &actions_model.ActionTask{
 			JobID:             legacyJob2.ID,
 			Attempt:           1,
@@ -292,7 +292,7 @@ jobs:
 			CommitSHA:         legacyRun.CommitSHA,
 			IsForkPullRequest: false,
 		}
-		require.NoError(t, legacyTask2.GenerateToken())
+		legacyTask2.GenerateAndFillToken()
 		require.NoError(t, db.Insert(t.Context(), legacyTask1, legacyTask2))
 
 		legacyJob1.TaskID = legacyTask1.ID
