@@ -1,8 +1,10 @@
 // keep this file lightweight, it's imported into IIFE chunk in bootstrap
 import {html} from '../utils/html.ts';
+import octiconCheck from '../../../public/assets/img/svg/octicon-check.svg';
+import octiconCopy from '../../../public/assets/img/svg/octicon-copy.svg';
 import type {Intent} from '../types.ts';
 
-export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error') {
+export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', stack?: string) {
   const msgContainer = document.querySelector('.page-content') ?? document.body;
   if (!msgContainer) {
     alert(`${msgType}: ${msg}`);
@@ -12,14 +14,34 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error') {
   let msgDiv = msgContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
   if (!msgDiv) {
     const el = document.createElement('div');
-    el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><div class="ui ${msgType} message tw-text-center tw-whitespace-pre-line"></div></div>`;
-    msgDiv = el.childNodes[0] as HTMLDivElement;
+    el.innerHTML = html`
+      <div class="ui container js-global-error tw-my-[--page-spacing]">
+        <div class="ui ${msgType} message tw-flex tw-justify-center tw-items-center">
+          <span class="js-global-error-msg"></span><span class="js-global-error-count"></span>
+          <button type="button" class="js-global-error-copy interact-bg tw-text-inherit tw-p-2 tw-rounded" aria-label="${window.config.i18n.copy}"></button>
+          <pre class="js-global-error-stack tw-hidden"></pre>
+        </div>
+      </div>
+    `;
+    msgDiv = el.firstElementChild as HTMLDivElement;
+    const copyBtn = msgDiv.querySelector<HTMLButtonElement>('.js-global-error-copy')!;
+    copyBtn.innerHTML = octiconCopy;
+    copyBtn.addEventListener('click', async () => {
+      const msgText = msgDiv!.querySelector('.js-global-error-msg')!.textContent;
+      const stackText = msgDiv!.querySelector('.js-global-error-stack')!.textContent;
+      try {
+        await navigator.clipboard?.writeText([msgText, stackText].filter(Boolean).join('\n'));
+        copyBtn.innerHTML = octiconCheck;
+        setTimeout(() => { copyBtn.innerHTML = octiconCopy }, 1500);
+      } catch {} // swallow clipboard failures so they don't trigger the global error handler
+    });
   }
-  // merge duplicated messages into "the message (count)" format
-  const msgCount = Number(msgDiv.getAttribute(`data-global-error-msg-count`)) + 1;
-  msgDiv.setAttribute(`data-global-error-msg-compact`, msgCompact);
-  msgDiv.setAttribute(`data-global-error-msg-count`, msgCount.toString());
-  msgDiv.querySelector('.ui.message')!.textContent = msg + (msgCount > 1 ? ` (${msgCount})` : '');
+  const msgCount = Number(msgDiv.getAttribute('data-global-error-msg-count')) + 1;
+  msgDiv.setAttribute('data-global-error-msg-compact', msgCompact);
+  msgDiv.setAttribute('data-global-error-msg-count', String(msgCount));
+  msgDiv.querySelector('.js-global-error-msg')!.textContent = msg;
+  msgDiv.querySelector('.js-global-error-count')!.textContent = msgCount > 1 ? ` (${msgCount})` : '';
+  if (stack) msgDiv.querySelector('.js-global-error-stack')!.textContent = stack;
   msgContainer.prepend(msgDiv);
 }
 
@@ -49,9 +71,8 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
   // Filter out errors from browser extensions or other non-Gitea scripts.
   if (!isGiteaError(filename ?? '', err?.stack ?? '')) return;
 
-  let msg = err?.message ?? message;
-  if (lineno) msg += ` (${filename} @ ${lineno}:${colno})`;
-  const dot = msg.endsWith('.') ? '' : '.';
   const renderedType = type === 'unhandledrejection' ? 'promise rejection' : type;
-  showGlobalErrorMessage(`JavaScript ${renderedType}: ${msg}${dot} Open browser console to see more details.`);
+  let msg = err?.message ?? message;
+  if (!err?.stack && lineno) msg += ` (${filename} @ ${lineno}:${colno})`;
+  showGlobalErrorMessage(`JavaScript ${renderedType}: ${msg}`, 'error', err?.stack);
 }
