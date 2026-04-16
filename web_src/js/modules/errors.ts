@@ -1,10 +1,20 @@
 // keep this file lightweight, it's imported into IIFE chunk in bootstrap
+import {clippie} from 'clippie';
 import {html} from '../utils/html.ts';
 import octiconCheck from '../../../public/assets/img/svg/octicon-check.svg';
 import octiconCopy from '../../../public/assets/img/svg/octicon-copy.svg';
 import type {Intent} from '../types.ts';
 
-export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', stack?: string) {
+type ShowGlobalErrorOpts = {
+  msgType?: Intent,
+  type?: 'error' | 'unhandledrejection',
+  noStack?: boolean,
+};
+
+export function showGlobalError(err: Error, {msgType = 'error', type = 'error', noStack = false}: ShowGlobalErrorOpts = {}) {
+  const kind = type === 'unhandledrejection' ? 'promise rejection' : 'error';
+  const msg = msgType === 'error' ? `JavaScript ${kind}: ${err.message}` : err.message;
+  const stack = noStack ? undefined : err.stack;
   const msgContainer = document.querySelector('.page-content') ?? document.body;
   if (!msgContainer) {
     alert(`${msgType}: ${msg}`);
@@ -26,18 +36,18 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', s
     msgDiv = el.firstElementChild as HTMLDivElement;
     const copyBtn = msgDiv.querySelector<HTMLButtonElement>('.js-global-error-copy')!;
     copyBtn.innerHTML = octiconCopy;
+    let resetTimeout: ReturnType<typeof setTimeout> | undefined;
     copyBtn.addEventListener('click', async () => {
       const msgText = msgDiv!.querySelector('.js-global-error-msg')!.textContent;
       const stackText = msgDiv!.querySelector('.js-global-error-stack')!.textContent;
-      try {
-        await navigator.clipboard?.writeText([msgText, stackText].filter(Boolean).join('\n'));
-        copyBtn.innerHTML = octiconCheck;
-        copyBtn.classList.replace('tw-text-inherit', 'tw-text-green');
-        setTimeout(() => {
-          copyBtn.innerHTML = octiconCopy;
-          copyBtn.classList.replace('tw-text-green', 'tw-text-inherit');
-        }, 1500);
-      } catch {} // swallow clipboard failures so they don't trigger the global error handler
+      if (!await clippie([msgText, stackText].filter(Boolean).join('\n'))) return;
+      copyBtn.innerHTML = octiconCheck;
+      copyBtn.classList.replace('tw-text-inherit', 'tw-text-green');
+      clearTimeout(resetTimeout);
+      resetTimeout = setTimeout(() => {
+        copyBtn.innerHTML = octiconCopy;
+        copyBtn.classList.replace('tw-text-green', 'tw-text-inherit');
+      }, 1500);
     });
   }
   const msgCount = Number(msgDiv.getAttribute('data-global-error-msg-count')) + 1;
@@ -72,11 +82,16 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
     if (window.config.runModeIsProd) return;
   }
 
-  // Filter out errors from browser extensions or other non-Gitea scripts.
   if (!isGiteaError(filename ?? '', err?.stack ?? '')) return;
 
-  const renderedType = type === 'unhandledrejection' ? 'promise rejection' : type;
+  const eventType = type === 'unhandledrejection' ? 'unhandledrejection' : 'error';
+  if (err instanceof Error && err.stack) {
+    showGlobalError(err, {type: eventType});
+    return;
+  }
   let msg = err?.message ?? message;
-  if (!err?.stack && lineno) msg += ` (${filename} @ ${lineno}:${colno})`;
-  showGlobalErrorMessage(`JavaScript ${renderedType}: ${msg}`, 'error', err?.stack);
+  if (lineno) msg += ` (${filename} @ ${lineno}:${colno})`;
+  const wrapped = new Error(msg);
+  wrapped.stack = err?.stack;
+  showGlobalError(wrapped, {type: eventType});
 }
