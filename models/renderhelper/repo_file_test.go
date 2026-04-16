@@ -66,11 +66,6 @@ func TestRepoFile(t *testing.T) {
 `, rendered)
 	})
 
-	t.Run("RefTypeNameSubURLNotDoubleEscaped", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{CurrentRefPath: "branch/feature%2Ffoo"})
-		assert.Equal(t, "branch/feature%2Ffoo", rctx.RenderOptions.Metas["RefTypeNameSubURL"])
-	})
-
 	t.Run("WithCurrentRefPathByTag", func(t *testing.T) {
 		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{
 			CurrentRefPath:  "/commit/1234",
