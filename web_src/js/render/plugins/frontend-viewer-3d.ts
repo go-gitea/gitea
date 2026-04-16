@@ -28,7 +28,8 @@ export const frontendRender: FrontendRenderFunc = async (opts): Promise<boolean>
     const file = new File([blob], basename(opts.treePath));
     viewer.LoadModelFromFileList([file]);
     return true;
-  } catch {
+  } catch (error) {
+    console.error(error);
     return false;
   }
 };

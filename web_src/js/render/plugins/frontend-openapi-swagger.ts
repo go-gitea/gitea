@@ -8,7 +8,8 @@ export const frontendRender: FrontendRenderFunc = async (opts): Promise<boolean>
   try {
     await initSwaggerUI(opts.container, {specText: opts.contentString()});
     return true;
-  } catch {
+  } catch (error) {
+    console.error(error);
     return false;
   }
 };
