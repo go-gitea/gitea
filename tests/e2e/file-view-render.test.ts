@@ -19,7 +19,7 @@ test('3d model file', async ({page, request}) => {
   }
 });
 
-test('asciicast readme on non-ASCII branch', async ({page, request}) => {
+test('asciicast file', async ({page, request}) => {
   // regression for repo_file.go's RefTypeNameSubURL double-escape: readme.cast on a non-ASCII branch
   // is rendered via view_readme.go (no metas override), exposing the bug as a broken player URL
   const repoName = `e2e-asciicast-render-${randomString(8)}`;
