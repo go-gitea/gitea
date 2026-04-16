@@ -1,8 +1,10 @@
 import type {FrontendRenderFunc, FrontendRenderOptions} from './render/plugin.ts';
 
-const frontendPlugins: Record<string, Promise<{frontendRender: FrontendRenderFunc}>> = {
-  'viewer-3d': import('./render/plugins/frontend-viewer-3d.ts'),
-  'openapi-swagger': import('./render/plugins/frontend-openapi-swagger.ts'),
+type LazyLoadFunc = () => Promise<{frontendRender: FrontendRenderFunc}>;
+
+const frontendPlugins: Record<string, LazyLoadFunc> = {
+  'viewer-3d': () => { return import('./render/plugins/frontend-viewer-3d.ts') },
+  'openapi-swagger': () => { return import('./render/plugins/frontend-openapi-swagger.ts') },
 };
 
 class Options implements FrontendRenderOptions {
@@ -50,7 +52,7 @@ async function initFrontendExternalRender() {
   for (const name of renderNames) {
     const hasPlugin = name in frontendPlugins;
     if (!hasPlugin) continue;
-    const plugin = await frontendPlugins[name];
+    const plugin = await frontendPlugins[name]();
     found = true;
     if (await plugin.frontendRender(opts)) {
       break;

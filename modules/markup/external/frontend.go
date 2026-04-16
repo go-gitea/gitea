@@ -40,9 +40,10 @@ func (p *frontendRenderer) FileNamePatterns() []string {
 	// B. Let frontend renders to try render one by one
 	//
 	// If there would be more frontend renders in the future, we need to implement the "frontend" approach:
-	// 1. Make backend or parent window collect the supported extensions of frontend renders (done: backend)
+	// 1. Make backend or parent window collect the supported extensions of frontend renders (done: backend external render framework)
 	// 2. If the current file matches any extension, start the general iframe embedded render (done: this renderer)
-	// 3. The iframe window calls the frontend renders one by one, and report the render result to parent by postMessage (TODO: when needed)
+	// 3. The iframe window calls the frontend renders one by one (done: frontend external render)
+	// 4. Report the render result to parent by postMessage (TODO: when needed)
 	return p.patterns
 }
 
