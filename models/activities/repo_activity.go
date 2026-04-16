@@ -145,7 +145,7 @@ func getCodeActivityStats(ctx context.Context, repo *repo_model.Repository, time
 
 	var res CodeActivityStats
 	_, err := db.GetEngine(ctx).
-		SQL("SELECT COALESCE(SUM(additions), 0) AS additions, COALESCE(SUM(deletions), 0) AS deletions, COALESCE(SUM(commits), 0) AS commit_count FROM repo_contributor_daily WHERE repo_id=? AND day_start >= ?", repo.ID, start).
+		SQL("SELECT COALESCE(SUM(additions), 0) AS additions, COALESCE(SUM(deletions), 0) AS deletions, COALESCE(SUM(commits), 0) AS commit_count, COALESCE(SUM(changed_files), 0) AS changed_files FROM repo_contributor_daily WHERE repo_id=? AND day_start >= ?", repo.ID, start).
 		Get(&res)
 	if err != nil {
 		return nil, err
