@@ -3180,6 +3180,8 @@
   "admin.auths.oauth2_required_claim_name_helper": "Set this name to restrict login from this source to users with a claim with this name",
   "admin.auths.oauth2_required_claim_value": "Required Claim Value",
   "admin.auths.oauth2_required_claim_value_helper": "Set this value to restrict login from this source to users with a claim with this name and value",
+  "admin.auths.open_id_connect_external_id_claim": "External ID Claim Name (Optional)",
+  "admin.auths.open_id_connect_external_id_claim_helper": "Claim name to use as the user's external identity. Defaults to \"sub\". For Azure AD / Entra ID, set this to \"oid\" to maintain continuity when migrating from the Azure AD V2 provider. Note: the \"oid\" claim requires the \"profile\" scope to be included in the Scopes field above.",
   "admin.auths.oauth2_group_claim_name": "Claim name providing group names for this source. (Optional)",
   "admin.auths.oauth2_full_name_claim_name": "Full Name Claim Name. (Optional — if set, the user's full name will always be synchronized with this claim)",
   "admin.auths.oauth2_ssh_public_key_claim_name": "SSH Public Key Claim Name",

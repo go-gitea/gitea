@@ -562,7 +562,7 @@ func TestPackageCleanup(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		// Upload and delete a generic package and upload a container blob
-		data, _ := util.CryptoRandomBytes(5)
+		data := util.CryptoRandomBytes(5)
 		url := fmt.Sprintf("/api/packages/%s/generic/cleanup-test/1.1.1/file.bin", user.Name)
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(data)).
 			AddBasicAuth(user.Name)
@@ -572,7 +572,7 @@ func TestPackageCleanup(t *testing.T) {
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		data, _ = util.CryptoRandomBytes(5)
+		data = util.CryptoRandomBytes(5)
 		url = fmt.Sprintf("/v2/%s/cleanup-test/blobs/uploads?digest=sha256:%x", user.Name, sha256.Sum256(data))
 		req = NewRequestWithBody(t, "POST", url, bytes.NewReader(data)).
 			AddBasicAuth(user.Name)
