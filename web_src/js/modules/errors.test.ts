@@ -1,4 +1,4 @@
-import {isGiteaError, processWindowErrorEvent, showGlobalError} from './errors.ts';
+import {isGiteaError, processWindowErrorEvent, showGlobalErrorMessage} from './errors.ts';
 
 test('isGiteaError', () => {
   expect(isGiteaError('', '')).toBe(true);
@@ -15,39 +15,28 @@ test('isGiteaError', () => {
   expect(isGiteaError('http://localhost:3000/assets/js/index.js', `Error\n    at chrome-extension://abc/content.js:1:1`)).toBe(false);
 });
 
-test('showGlobalError', () => {
+test('showGlobalErrorMessage', () => {
   document.body.innerHTML = '<div class="page-content"></div>';
-  showGlobalError(new Error('test msg 1'), {noStack: true});
-  showGlobalError(new Error('test msg 2'), {noStack: true});
-  showGlobalError(new Error('test msg 1'), {noStack: true}); // duplicated
+  showGlobalErrorMessage('test msg 1');
+  showGlobalErrorMessage('test msg 2');
+  showGlobalErrorMessage('test msg 1'); // duplicated
 
   const errs = document.querySelectorAll('.js-global-error');
   expect(errs.length).toEqual(2);
-  expect(errs[0].querySelector('.js-global-error-msg')!.textContent).toBe('JavaScript error: test msg 1');
+  expect(errs[0].querySelector('.js-global-error-msg')!.textContent).toBe('test msg 1');
   expect(errs[0].querySelector('.js-global-error-count')!.textContent).toBe(' (2)');
-  expect(errs[1].querySelector('.js-global-error-msg')!.textContent).toBe('JavaScript error: test msg 2');
+  expect(errs[1].querySelector('.js-global-error-msg')!.textContent).toBe('test msg 2');
   expect(errs[1].querySelector('.js-global-error-count')!.textContent).toBe('');
 });
 
-test('showGlobalError stores stack hidden for copy', () => {
+test('showGlobalErrorMessage stores stack hidden for copy', () => {
   document.body.innerHTML = '<div class="page-content"></div>';
-  const err = new Error('hi');
-  err.stack = 'at foo (x:1:1)\nat bar (y:2:2)';
-  showGlobalError(err);
+  showGlobalErrorMessage('hi', 'error', 'at foo (x:1:1)\nat bar (y:2:2)');
   const stackEl = document.querySelector<HTMLElement>('.js-global-error-stack')!;
   expect(stackEl.tagName).toBe('PRE');
   expect(stackEl.classList.contains('tw-hidden')).toBe(true);
   expect(stackEl.textContent).toBe('at foo (x:1:1)\nat bar (y:2:2)');
   expect(document.querySelector('.js-global-error-copy')).toBeTruthy();
-});
-
-test('showGlobalError noStack hides stack', () => {
-  document.body.innerHTML = '<div class="page-content"></div>';
-  const err = new Error('warning');
-  err.stack = 'stack content';
-  showGlobalError(err, {msgType: 'warning', noStack: true});
-  expect(document.querySelector('.js-global-error-msg')!.textContent).toBe('warning');
-  expect(document.querySelector('.js-global-error-stack')!.textContent).toBe('');
 });
 
 test('processWindowErrorEvent renders stack trace', () => {

@@ -5,16 +5,7 @@ import octiconCheck from '../../../public/assets/img/svg/octicon-check.svg';
 import octiconCopy from '../../../public/assets/img/svg/octicon-copy.svg';
 import type {Intent} from '../types.ts';
 
-type ShowGlobalErrorOpts = {
-  msgType?: Intent,
-  type?: 'error' | 'unhandledrejection',
-  noStack?: boolean,
-};
-
-export function showGlobalError(err: Error, {msgType = 'error', type = 'error', noStack = false}: ShowGlobalErrorOpts = {}) {
-  const kind = type === 'unhandledrejection' ? 'promise rejection' : 'error';
-  const msg = msgType === 'error' ? `JavaScript ${kind}: ${err.message}` : err.message;
-  const stack = noStack ? undefined : err.stack;
+export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', stack?: string) {
   const msgContainer = document.querySelector('.page-content') ?? document.body;
   if (!msgContainer) {
     alert(`${msgType}: ${msg}`);
@@ -84,14 +75,8 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
 
   if (!isGiteaError(filename ?? '', err?.stack ?? '')) return;
 
-  const eventType = type === 'unhandledrejection' ? 'unhandledrejection' : 'error';
-  if (err instanceof Error && err.stack) {
-    showGlobalError(err, {type: eventType});
-    return;
-  }
+  const renderedType = type === 'unhandledrejection' ? 'promise rejection' : type;
   let msg = err?.message ?? message;
-  if (lineno) msg += ` (${filename} @ ${lineno}:${colno})`;
-  const wrapped = new Error(msg);
-  wrapped.stack = err?.stack;
-  showGlobalError(wrapped, {type: eventType});
+  if (!err?.stack && lineno) msg += ` (${filename} @ ${lineno}:${colno})`;
+  showGlobalErrorMessage(`JavaScript ${renderedType}: ${msg}`, 'error', err?.stack);
 }
