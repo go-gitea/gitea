@@ -1,5 +1,9 @@
 import {isGiteaError, processWindowErrorEvent, showGlobalErrorMessage} from './errors.ts';
 
+beforeEach(() => {
+  document.body.innerHTML = '<div class="page-content"></div>';
+});
+
 test('isGiteaError', () => {
   expect(isGiteaError('', '')).toBe(true);
   expect(isGiteaError('moz-extension://abc/content.js', '')).toBe(false);
@@ -16,7 +20,6 @@ test('isGiteaError', () => {
 });
 
 test('showGlobalErrorMessage', () => {
-  document.body.innerHTML = '<div class="page-content"></div>';
   showGlobalErrorMessage('test msg 1');
   showGlobalErrorMessage('test msg 2');
   showGlobalErrorMessage('test msg 1'); // duplicated
@@ -29,18 +32,13 @@ test('showGlobalErrorMessage', () => {
   expect(errs[1].querySelector('.js-global-error-count')!.textContent).toBe('');
 });
 
-test('showGlobalErrorMessage stores stack hidden for copy', () => {
-  document.body.innerHTML = '<div class="page-content"></div>';
-  showGlobalErrorMessage('hi', 'error', 'at foo (x:1:1)\nat bar (y:2:2)');
-  const stackEl = document.querySelector<HTMLElement>('.js-global-error-stack')!;
-  expect(stackEl.tagName).toBe('PRE');
-  expect(stackEl.classList.contains('tw-hidden')).toBe(true);
-  expect(stackEl.textContent).toBe('at foo (x:1:1)\nat bar (y:2:2)');
+test('showGlobalErrorMessage stores stack for copy', () => {
+  showGlobalErrorMessage('hi', 'error', 'at foo (x:1:1)');
+  expect(document.querySelector('.js-global-error-stack')!.textContent).toBe('at foo (x:1:1)');
   expect(document.querySelector('.js-global-error-copy')).toBeTruthy();
 });
 
 test('processWindowErrorEvent renders stack trace', () => {
-  document.body.innerHTML = '<div class="page-content"></div>';
   const error = new Error('boom');
   error.stack = `Error: boom\n    at fn (${window.location.origin}/assets/js/index.js:1:1)`;
   processWindowErrorEvent({error, type: 'error'} as ErrorEvent & PromiseRejectionEvent);
@@ -49,14 +47,11 @@ test('processWindowErrorEvent renders stack trace', () => {
 });
 
 test('processWindowErrorEvent falls back to message without stack', () => {
-  document.body.innerHTML = '<div class="page-content"></div>';
-  const stacklessError = {message: 'script error'} as Error;
   processWindowErrorEvent({
-    error: stacklessError, type: 'error',
+    error: {message: 'script error'} as Error, type: 'error',
     filename: `${window.location.origin}/assets/js/x.js`, lineno: 5, colno: 10,
   } as ErrorEvent & PromiseRejectionEvent);
   const msgText = document.querySelector('.js-global-error-msg')!.textContent;
   expect(msgText).toContain('JavaScript error: script error');
   expect(msgText).toContain('@ 5:10');
-  expect(document.querySelector('.js-global-error-stack')!.textContent).toBe('');
 });

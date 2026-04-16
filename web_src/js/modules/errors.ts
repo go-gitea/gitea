@@ -18,8 +18,8 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', s
     el.innerHTML = html`
       <div class="ui container js-global-error tw-my-[--page-spacing]">
         <div class="ui ${msgType} message tw-flex tw-justify-center tw-items-center">
-          <span class="js-global-error-msg"></span><span class="js-global-error-count"></span>
-          <button type="button" class="js-global-error-copy interact-bg tw-text-inherit tw-p-2 tw-rounded tw-ml-1" aria-label="${window.config.i18n.copy}"></button>
+          <span class="js-global-error-msg tw-whitespace-pre-line"></span><span class="js-global-error-count"></span>
+          <button type="button" class="js-global-error-copy interact-bg tw-text-inherit tw-p-2 tw-rounded tw-ml-1"></button>
           <pre class="js-global-error-stack tw-hidden"></pre>
         </div>
       </div>
@@ -46,7 +46,7 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', s
   msgDiv.setAttribute('data-global-error-msg-count', String(msgCount));
   msgDiv.querySelector('.js-global-error-msg')!.textContent = msg;
   msgDiv.querySelector('.js-global-error-count')!.textContent = msgCount > 1 ? ` (${msgCount})` : '';
-  if (stack) msgDiv.querySelector('.js-global-error-stack')!.textContent = stack;
+  msgDiv.querySelector('.js-global-error-stack')!.textContent = stack ?? '';
   msgContainer.prepend(msgDiv);
 }
 
