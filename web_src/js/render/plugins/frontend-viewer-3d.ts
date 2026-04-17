@@ -17,6 +17,7 @@ endsolid SimpleTriangle
 
 export const frontendRender: FrontendRenderFunc = async (opts): Promise<boolean> => {
   try {
+    opts.container.style.height = `${window.innerHeight}px`;
     const bgColor = colord(getComputedStyle(document.body).backgroundColor).toRgb();
     const primaryColor = colord(getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim()).toRgb();
     const viewer = new OV.EmbeddedViewer(opts.container, {

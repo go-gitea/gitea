@@ -12,8 +12,26 @@ test('3d model file', async ({page, request}) => {
     await page.goto(`/${owner}/${repoName}/src/branch/main/test.stl?display=rendered`);
     const iframe = page.locator('iframe.external-render-iframe');
     await expect(iframe).toBeVisible();
-    await expect(page.frameLocator('iframe.external-render-iframe').locator('#frontend-render-viewer canvas')).toBeVisible();
+    const viewer = page.frameLocator('iframe.external-render-iframe').locator('#frontend-render-viewer');
+    await expect(viewer.locator('canvas')).toBeVisible();
+    expect((await viewer.boundingBox())!.height).toBeGreaterThan(300);
     await assertNoJsError(page);
+  } finally {
+    await apiDeleteRepo(request, owner, repoName);
+  }
+});
+
+test('pdf file', async ({page, request}) => {
+  // headless playwright cannot render PDFs (PDFObject.embed returns false), so this is a limited test
+  const repoName = `e2e-pdf-render-${randomString(8)}`;
+  const owner = env.GITEA_TEST_E2E_USER;
+  await apiCreateRepo(request, {name: repoName});
+  try {
+    await apiCreateFile(request, owner, repoName, 'test.pdf', '%PDF-1.0\n%%EOF\n');
+    await page.goto(`/${owner}/${repoName}/src/branch/main/test.pdf`);
+    const container = page.locator('.file-view-render-container');
+    await expect(container).toHaveAttribute('data-render-name', 'pdf-viewer');
+    expect((await container.boundingBox())!.height).toBeGreaterThan(300);
   } finally {
     await apiDeleteRepo(request, owner, repoName);
   }
