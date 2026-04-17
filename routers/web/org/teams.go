@@ -56,7 +56,7 @@ func Teams(ctx *context.Context) {
 
 	keyword := ctx.FormTrim("q")
 
-	var teams = ctx.Org.Teams
+	teams := ctx.Org.Teams
 
 	if keyword != "" {
 		opts := &org_model.SearchTeamOptions{

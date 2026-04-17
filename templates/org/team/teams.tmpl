@@ -41,11 +41,6 @@
 							{{end}}
 						</div>
 					</div>
-					{{if .Description}}
-						<div class="ui attached segment">
-							<p class="tw-text-sm tw-text-secondary tw-my-0">{{.Description}}</p>
-						</div>
-					{{end}}
 					<div class="ui attached segment members">
 						{{range .Members}}
 							{{template "shared/user/avatarlink" dict "user" .}}
