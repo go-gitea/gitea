@@ -63,7 +63,7 @@
 						{{$isMember := .IsOrganizationMember}}
 						{{range .Members}}
 							{{if or $isMember (call $.IsPublicMember .ID)}}
-								<a href="{{.HomeLink}}" title="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
+								{{template "shared/user/avatarlink" dict "user" . "size" 32}}
 							{{end}}
 						{{end}}
 					</div>
