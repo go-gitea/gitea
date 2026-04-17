@@ -873,6 +873,25 @@ table th[data-sortt-desc] .svg {
   gap: var(--gap-block);
 }
 
+/* TODO: use this to replace all existing "flex + justify-between" (there are quite a lot) */
+.flex-left-right {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--gap-block);
+  min-width: 0;
+}
+
+/* TODO: use this to replace all existing "flex + wrap" and (there are quite a lot of) */
+.flex-center-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-block);
+  min-width: 0;
+}
+
 .ui.list.flex-items-block > .item,
 .ui.vertical.menu.flex-items-block > .item,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
