@@ -438,12 +438,12 @@ export default defineComponent({
             <div :class="['item', {'selected': type === 'additions'}]" data-value="additions">
               {{ locale.contributionType.additions }}
             </div>
-          <div :class="['item', {'selected': type === 'deletions'}]" data-value="deletions">
-            {{ locale.contributionType.deletions }}
-          </div>
-          <div :class="['item', {'selected': type === 'additions_deletions'}]" data-value="additions_deletions">
-            {{ getContributionTypeLabel('additions_deletions') }}
-          </div>
+            <div :class="['item', {'selected': type === 'deletions'}]" data-value="deletions">
+              {{ locale.contributionType.deletions }}
+            </div>
+            <div :class="['item', {'selected': type === 'additions_deletions'}]" data-value="additions_deletions">
+              {{ getContributionTypeLabel('additions_deletions') }}
+            </div>
           </div>
         </div>
         <div class="ui floating dropdown jump tw-ml-2" id="repo-contributors-time-range">

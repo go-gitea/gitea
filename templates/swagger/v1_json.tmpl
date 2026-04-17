@@ -22970,6 +22970,12 @@
           "format": "int64",
           "x-go-name": "Additions"
         },
+        "changed_files": {
+          "description": "ChangedFiles is the number of files changed",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ChangedFiles"
+        },
         "deletions": {
           "description": "Deletions is the number of lines deleted",
           "type": "integer",
@@ -23219,28 +23225,16 @@
           "type": "boolean",
           "x-go-name": "IsActive"
         },
-        "avatar_url": {
-          "description": "URL to the user's avatar",
-          "type": "string",
-          "x-go-name": "AvatarURL"
-        },
-        "contributions": {
-          "description": "Contributions is the number of commits made by the contributor",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Contributions"
-        },
         "additions": {
           "description": "Additions is the number of lines added by the contributor",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Additions"
         },
-        "deletions": {
-          "description": "Deletions is the number of lines deleted by the contributor",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Deletions"
+        "avatar_url": {
+          "description": "URL to the user's avatar",
+          "type": "string",
+          "x-go-name": "AvatarURL"
         },
         "commits": {
           "description": "Commits is the number of commits made by the contributor",
@@ -23248,16 +23242,22 @@
           "format": "int64",
           "x-go-name": "Commits"
         },
-        "fileschanged": {
-          "description": "FilesChanged is the number of files changed by the contributor",
+        "contributions": {
+          "description": "Contributions is the number of commits made by the contributor for Github API compatibility",
           "type": "integer",
           "format": "int64",
-          "x-go-name": "FilesChanged"
+          "x-go-name": "Contributions"
         },
         "created": {
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
+        },
+        "deletions": {
+          "description": "Deletions is the number of lines deleted by the contributor",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Deletions"
         },
         "description": {
           "description": "the user's description",
@@ -23268,6 +23268,12 @@
           "description": "Email of the contributor, used for anonymous contributors",
           "type": "string",
           "x-go-name": "Email"
+        },
+        "fileschanged": {
+          "description": "FilesChanged is the number of files changed by the contributor",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "FilesChanged"
         },
         "followers_count": {
           "description": "user counts",
