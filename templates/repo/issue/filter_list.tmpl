@@ -30,8 +30,8 @@
 				{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
 			</div>
 			{{range .OpenProjects}}
-				<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item tw-flex" href="{{QueryBuild $queryLink "project" .ID}}">
-					{{svg .IconName 18 "tw-mr-2 tw-shrink-0"}}<span class="gt-ellipsis">{{.Title}}</span>
+				<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item flex" href="{{QueryBuild $queryLink "project" .ID}}">
+					{{svg .IconName 18 "mr-2 shrink-0"}}<span class="gt-ellipsis">{{.Title}}</span>
 				</a>
 			{{end}}
 		{{end}}
@@ -42,7 +42,7 @@
 			</div>
 			{{range .ClosedProjects}}
 				<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{QueryBuild $queryLink "project" .ID}}">
-					{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
+					{{svg .IconName 18 "mr-2"}}{{.Title}}
 				</a>
 			{{end}}
 		{{end}}

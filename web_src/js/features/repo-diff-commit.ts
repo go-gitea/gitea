@@ -35,11 +35,11 @@ function addBranches(area: Element, branches: Array<Record<string, any>>, defaul
 
 function addLink(parent: Element, href: string, text: string, tooltip: string | null = null) {
   const link = document.createElement('a');
-  link.classList.add('muted', 'tw-px-1');
+  link.classList.add('muted', 'px-1');
   link.href = href;
   link.textContent = text;
   if (tooltip) {
-    link.classList.add('tw-border', 'tw-border-secondary', 'tw-rounded');
+    link.classList.add('border', 'border-secondary', 'rounded');
     link.setAttribute('data-tooltip-content', tooltip);
   }
   parent.append(link);

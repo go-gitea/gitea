@@ -64,7 +64,7 @@
 	<div class="ui attached segment">
 		<div class="flex-list">
 			{{range .CollaborativeOwners}}
-			<div class="flex-item tw-items-center">
+			<div class="flex-item items-center">
 				<div class="flex-item-leading">
 					<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 				</div>
@@ -87,7 +87,7 @@
 	{{end}}
 	<div class="ui bottom attached segment">
 		<form class="ui form form-fetch-action" action="{{.Link}}/collaborative_owner/add" method="post">
-			<div id="search-user-box" class="ui search input tw-align-middle" data-include-orgs="true">
+			<div id="search-user-box" class="ui search input align-middle" data-include-orgs="true">
 				<input class="prompt" name="collaborative_owner" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" autofocus required>
 			</div>
 			<button class="ui primary button">{{ctx.Locale.Tr "actions.general.add_collaborative_owner"}}</button>

@@ -74,7 +74,7 @@ export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
           if (String(issue.id) === currIssueId) continue;
           filteredResponse.results.push({
             value: issue.id,
-            name: html`<div class="gt-ellipsis">#${issue.number} ${issue.title}</div><div class="text small tw-break-anywhere">${issue.repository.full_name}</div>`,
+            name: html`<div class="gt-ellipsis">#${issue.number} ${issue.title}</div><div class="text small break-anywhere">${issue.repository.full_name}</div>`,
           });
         }
         return filteredResponse;

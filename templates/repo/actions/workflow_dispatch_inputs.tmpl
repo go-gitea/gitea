@@ -1,6 +1,6 @@
 <div id="runWorkflowDispatchModalInputs">
 {{if not .WorkflowDispatchConfig}}
-	<div class="ui error message tw-block">{{/* using "ui message" in "ui form" needs to force to display */}}
+	<div class="ui error message block">{{/* using "ui message" in "ui form" needs to force to display */}}
 		{{if not .CurWorkflowExists}}
 			{{ctx.Locale.Tr "actions.workflow.not_found" $.CurWorkflow}}
 		{{else}}
@@ -18,7 +18,7 @@
 					{{end}}
 				</select>
 			{{else if eq .Type "boolean"}}
-				<label class="tw-flex flex-text-inline">
+				<label class="flex flex-text-inline">
 					<input type="checkbox" name="{{.Name}}" {{if eq .Default "true"}}checked{{end}}>
 					{{or .Description .Name}}
 				</label>
@@ -39,7 +39,7 @@
 {{range .workflows}}
 	{{if and .ErrMsg (eq .Entry.Name $.CurWorkflow)}}
 		<div class="ui field">
-			<div>{{svg "octicon-alert" 16 "tw-text-red"}} {{.ErrMsg}}</div>
+			<div>{{svg "octicon-alert" 16 "text-red"}} {{.ErrMsg}}</div>
 		</div>
 	{{end}}
 {{end}}

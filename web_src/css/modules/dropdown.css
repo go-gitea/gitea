@@ -922,7 +922,7 @@ select.ui.dropdown {
 
 /* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content
 the "!important" is necessary to override Fomantic UI menu item styles, meanwhile we should keep the "hidden" items still hidden */
-.ui.dropdown .menu.flex-items-menu > .item:not(.fm-hidden, .filtered, .tw-hidden) {
+.ui.dropdown .menu.flex-items-menu > .item:not(.fm-hidden, .filtered, .gt-hidden) {
   display: flex !important;
   align-items: center;
   gap: var(--gap-block);

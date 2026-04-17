@@ -59,7 +59,7 @@ const onItemClick = (e: MouseEvent) => {
     </div>
     <div class="item-content">
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="tw-contents" v-html="(!collapsed && item.entryIconOpen) ? item.entryIconOpen : item.entryIcon"/>
+      <span class="contents" v-html="(!collapsed && item.entryIconOpen) ? item.entryIconOpen : item.entryIcon"/>
       <span class="gt-ellipsis">{{ item.entryName }}</span>
     </div>
   </a>

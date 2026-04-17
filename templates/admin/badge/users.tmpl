@@ -5,7 +5,7 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
-				<div id="search-user-box" class="ui search input tw-align-middle">
+				<div id="search-user-box" class="ui search input align-middle">
 					<input class="prompt" name="user" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" autofocus required>
 				</div>
 				<button class="ui primary button">{{ctx.Locale.Tr "admin.badges.add_user"}}</button>
@@ -15,7 +15,7 @@
 		<div class="ui attached segment">
 			<div class="flex-list">
 				{{range .Users}}
-					<div class="flex-item tw-items-center">
+					<div class="flex-item items-center">
 						<div class="flex-item-leading">
 							<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 						</div>

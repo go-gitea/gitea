@@ -103,7 +103,7 @@ samp {
 pre,
 code,
 samp,
-.tw-font-mono {
+.font-mono {
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 
@@ -409,7 +409,7 @@ img.ui.avatar,
 
 .status-page-error-title {
   font-size: 48px;
-  margin-bottom: 14px; /* some elements below may use tw-my-4 or tw-my-8, so use 14px as a minimal margin */
+  margin-bottom: 14px; /* some elements below may use my-4 or my-8, so use 14px as a minimal margin */
   line-height: initial;
   text-align: center;
   font-weight: var(--font-weight-bold);
@@ -866,7 +866,7 @@ table th[data-sortt-desc] .svg {
   align-items: stretch;
 }
 
-/* can be used to replace "ui relaxed list" or "tw-flex tw-flex-col tw-gap-xxx" when we need more flexible layout */
+/* can be used to replace "ui relaxed list" or "flex flex-col gap-xxx" when we need more flexible layout */
 .flex-relaxed-list {
   display: flex;
   flex-direction: column;

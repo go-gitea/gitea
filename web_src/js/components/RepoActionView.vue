@@ -46,7 +46,7 @@ async function deleteArtifact(name: string) {
           <!-- eslint-disable-next-line vue/no-v-html -->
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
-        <div class="flex-text-block tw-shrink-0 tw-flex-wrap">
+        <div class="flex-text-block shrink-0 flex-wrap">
           <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
             {{ locale.approve }}
           </button>
@@ -84,8 +84,8 @@ async function deleteArtifact(name: string) {
           {{ locale.pushedBy }}
           <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
         </template>
-        <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
-          <span v-if="run.commit.branch.isDeleted" class="gt-ellipsis tw-line-through" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</span>
+        <span class="ui label max-w-full" v-if="run.commit.shortSHA">
+          <span v-if="run.commit.branch.isDeleted" class="gt-ellipsis line-through" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</span>
           <a v-else class="gt-ellipsis" :href="run.commit.branch.link" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</a>
         </span>
       </div>
@@ -102,12 +102,12 @@ async function deleteArtifact(name: string) {
         <div class="ui divider"/>
         <div class="left-list-header">{{ locale.allJobs }}</div>
         <!-- unlike other lists, the items have paddings already -->
-        <ul class="ui relaxed list flex-items-block tw-p-0">
+        <ul class="ui relaxed list flex-items-block p-0">
           <li class="item job-brief-item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
-            <a class="tw-contents silenced" :href="run.link+'/jobs/'+job.id">
+            <a class="contents silenced" :href="run.link+'/jobs/'+job.id">
               <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
-              <span class="tw-flex-1 gt-ellipsis">{{ job.name }}</span>
-              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
+              <span class="flex-1 gt-ellipsis">{{ job.name }}</span>
+              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
               <span>{{ job.duration }}</span>
             </a>
           </li>
@@ -120,18 +120,18 @@ async function deleteArtifact(name: string) {
           <ul class="ui relaxed list flex-items-block">
             <li class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
-                <a class="tw-flex-1 flex-text-block" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
-                  <SvgIcon name="octicon-file" class="tw-text-text"/>
-                  <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
+                <a class="flex-1 flex-text-block" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                  <SvgIcon name="octicon-file" class="text-text"/>
+                  <span class="flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
                 <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
-                  <SvgIcon name="octicon-trash" class="tw-text-text"/>
+                  <SvgIcon name="octicon-trash" class="text-text"/>
                 </a>
               </template>
-              <span v-else class="flex-text-block tw-flex-1 tw-text-grey-light">
+              <span v-else class="flex-text-block flex-1 text-grey-light">
                 <SvgIcon name="octicon-file"/>
-                <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
-                <span class="ui label tw-text-grey-light tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
+                <span class="flex-1 gt-ellipsis">{{ artifact.name }}</span>
+                <span class="ui label text-grey-light flex-shrink-0">{{ locale.artifactExpired }}</span>
               </span>
             </li>
           </ul>
@@ -143,7 +143,7 @@ async function deleteArtifact(name: string) {
         <ul class="ui relaxed list">
           <li class="item">
             <a class="flex-text-block" :href="`${run.link}/workflow`">
-              <SvgIcon name="octicon-file-code" class="tw-text-text"/>
+              <SvgIcon name="octicon-file-code" class="text-text"/>
               <span class="gt-ellipsis">{{ locale.workflowFile }}</span>
             </a>
           </li>

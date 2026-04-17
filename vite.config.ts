@@ -5,8 +5,7 @@ import {licensePlugin, wrap} from 'rolldown-license-plugin';
 import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
 import path, {basename, join, parse} from 'node:path';
 import {env} from 'node:process';
-import tailwindcss from 'tailwindcss';
-import tailwindConfig from './tailwind.config.ts';
+import tailwindcss from '@tailwindcss/vite';
 import type {InlineConfig, Plugin, Rolldown} from 'vite';
 import {camelize} from 'vue';
 
@@ -280,14 +279,6 @@ export default defineConfig(commonViteOpts({
       },
     },
   },
-  css: {
-    transformer: 'postcss',
-    postcss: {
-      plugins: [
-        tailwindcss(tailwindConfig),
-      ],
-    },
-  },
   define: {
     __VUE_OPTIONS_API__: true,
     __VUE_PROD_DEVTOOLS__: false,
@@ -299,6 +290,7 @@ export default defineConfig(commonViteOpts({
     viteDevServerPortPlugin(),
     reducedSourcemapPlugin(),
     filterCssUrlPlugin(),
+    tailwindcss(),
     stringPlugin(),
     vuePlugin({
       template: {

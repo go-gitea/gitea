@@ -8,7 +8,7 @@
 			{{template "base/alert" .}}
 			{{template "repo/create_helper" .}}
 			<form class="ui form left-right-form new-repo-form" action="{{.Link}}" method="post">
-				<div id="create-repo-error-message" class="ui negative message tw-text-center tw-hidden"></div>
+				<div id="create-repo-error-message" class="ui negative message text-center gt-hidden"></div>
 				<div class="fm-inline required field {{if .Err_Owner}}error{{end}}">
 					<label>{{ctx.Locale.Tr "repo.owner"}}</label>
 					<div class="ui selection dropdown ellipsis-text-items" id="repo_owner_dropdown">
@@ -39,8 +39,8 @@
 					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
 					<input id="repo_name" name="repo_name" value="{{.repo_name}}" autofocus required maxlength="100">
 					<span class="help" data-help-for-repo-name>{{ctx.Locale.Tr "repo.repo_name_helper"}}</span>
-					<span class="help tw-hidden" data-help-for-repo-name=".profile">{{ctx.Locale.Tr "repo.repo_name_profile_public_hint"}}</span>
-					<span class="help tw-hidden" data-help-for-repo-name=".profile-private">{{ctx.Locale.Tr "repo.repo_name_profile_private_hint"}}</span>
+					<span class="help gt-hidden" data-help-for-repo-name=".profile">{{ctx.Locale.Tr "repo.repo_name_profile_public_hint"}}</span>
+					<span class="help gt-hidden" data-help-for-repo-name=".profile-private">{{ctx.Locale.Tr "repo.repo_name_profile_private_hint"}}</span>
 				</div>
 
 				<div class="fm-inline field">
@@ -70,7 +70,7 @@
 					</div>
 				</div>
 
-				<div id="template_units" class="tw-hidden">
+				<div id="template_units" class="gt-hidden">
 					<div class="fm-inline field">
 						<label>{{ctx.Locale.Tr "repo.template.items"}}</label>
 						<div class="ui checkbox">

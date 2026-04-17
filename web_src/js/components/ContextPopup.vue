@@ -45,16 +45,16 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="tw-p-4">
-    <div v-if="loading" class="tw-h-12 tw-w-12 is-loading"/>
-    <div v-else-if="issue" class="tw-flex tw-flex-col tw-gap-2">
-      <div class="tw-text-12">
+  <div class="p-4">
+    <div v-if="loading" class="h-12 w-12 is-loading"/>
+    <div v-else-if="issue" class="flex flex-col gap-2">
+      <div class="text-12">
         <a :href="repoLink" class="muted">{{ issue.repository.full_name }}</a>
         on {{ createdAt }}
       </div>
       <div class="flex-text-block">
         <svg-icon :name="getIssueIcon(issue)" :class="getIssueColorClass(issue)"/>
-        <span class="issue-title tw-font-semibold tw-break-anywhere">
+        <span class="issue-title font-semibold break-anywhere">
           {{ issue.title }}
           <span class="index">#{{ issue.number }}</span>
         </span>

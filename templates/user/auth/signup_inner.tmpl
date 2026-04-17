@@ -40,7 +40,7 @@
 				{{template "user/auth/captcha" .}}
 
 				<div class="fm-inline field">
-					<button class="ui primary button tw-w-full">
+					<button class="ui primary button w-full">
 						{{if .LinkAccountMode}}
 							{{ctx.Locale.Tr "auth.oauth_signup_submit"}}
 						{{else}}
@@ -60,7 +60,7 @@
 
 <div class="ui fm-container fluid">
 	{{if not .LinkAccountMode}}
-	<div class="ui attached segment header top tw-flex tw-flex-col tw-items-center">
+	<div class="ui attached segment header top flex flex-col items-center">
 		<div class="field">
 			<span>{{ctx.Locale.Tr "auth.already_have_account"}}</span>
 			<a href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "auth.sign_in_now"}}</a>

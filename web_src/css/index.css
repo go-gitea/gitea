@@ -88,4 +88,9 @@
 
 @import "./helpers.css";
 
-@tailwind utilities;
+/* stylelint-disable at-rule-no-unknown, no-invalid-position-at-import-rule */
+@config "../../tailwind.config.ts";
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) important;
+/* stylelint-enable at-rule-no-unknown, no-invalid-position-at-import-rule */

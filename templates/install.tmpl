@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content install">
 	<div class="ui fm-grid install-config-container">
-		<div class="sixteen wide tw-text-center centered column">
+		<div class="sixteen wide text-center centered column">
 			<h3 class="ui top attached header">
 				{{ctx.Locale.Tr "install.title"}}
 			</h3>
@@ -28,7 +28,7 @@
 						</div>
 					</div>
 
-					<div class="tw-mt-4 tw-hidden" data-db-setting-for="common-host">
+					<div class="mt-4 gt-hidden" data-db-setting-for="common-host">
 						<div class="fm-inline required field {{if .Err_DbSetting}}error{{end}}">
 							<label for="db_host">{{ctx.Locale.Tr "install.host"}}</label>
 							<input id="db_host" name="db_host" value="{{.db_host}}">
@@ -47,7 +47,7 @@
 						</div>
 					</div>
 
-					<div class="tw-mt-4 tw-hidden" data-db-setting-for="postgres">
+					<div class="mt-4 gt-hidden" data-db-setting-for="postgres">
 						<div class="fm-inline required field">
 							<label>{{ctx.Locale.Tr "install.ssl_mode"}}</label>
 							<div class="ui selection database type dropdown">
@@ -68,7 +68,7 @@
 						</div>
 					</div>
 
-					<div class="tw-mt-4 tw-hidden" data-db-setting-for="sqlite3">
+					<div class="mt-4 gt-hidden" data-db-setting-for="sqlite3">
 						<div class="fm-inline required field {{if or .Err_DbPath .Err_DbSetting}}error{{end}}">
 							<label for="db_path">{{ctx.Locale.Tr "install.path"}}</label>
 							<input id="db_path" name="db_path" value="{{.db_path}}">
@@ -160,7 +160,7 @@
 					<div>
 						<!-- Email -->
 						<details class="optional field">
-							<summary class="right-content tw-py-2{{if .Err_SMTP}} tw-text-red{{end}}">
+							<summary class="right-content py-2{{if .Err_SMTP}} text-red{{end}}">
 								{{ctx.Locale.Tr "install.email_title"}}
 							</summary>
 							<div class="fm-inline field">
@@ -200,7 +200,7 @@
 
 						<!-- Server and other services -->
 						<details class="optional field">
-							<summary class="right-content tw-py-2{{if .Err_Services}} tw-text-red{{end}}">
+							<summary class="right-content py-2{{if .Err_Services}} text-red{{end}}">
 								{{ctx.Locale.Tr "install.server_service_title"}}
 							</summary>
 							<div class="fm-inline field">
@@ -280,7 +280,7 @@
 
 						<!-- Admin -->
 						<details class="optional field">
-							<summary class="right-content tw-py-2{{if .Err_Admin}} tw-text-red{{end}}">
+							<summary class="right-content py-2{{if .Err_Admin}} text-red{{end}}">
 								{{ctx.Locale.Tr "install.admin_title"}}
 							</summary>
 							<p class="center">{{ctx.Locale.Tr "install.admin_setting_desc"}}</p>
@@ -312,7 +312,7 @@
 						<div class="right-content">
 							{{ctx.Locale.Tr "install.env_config_keys_prompt"}}
 						</div>
-						<div class="right-content tw-mt-2">
+						<div class="right-content mt-2">
 							{{range .EnvConfigKeys}}<span class="ui label">{{.}}</span>{{end}}
 						</div>
 					</div>
@@ -324,7 +324,7 @@
 							{{$filePath := HTMLFormat `<span class="ui label">%s</span> <button class="btn interact-fg" data-clipboard-text="%s">%s</button>` .CustomConfFile .CustomConfFile $copyBtn}}
 							{{ctx.Locale.Tr "install.config_write_file_prompt" $filePath}}
 						</div>
-						<div class="tw-mt-4 tw-mb-2 tw-text-center">
+						<div class="mt-4 mb-2 text-center">
 							<button class="ui primary button">{{ctx.Locale.Tr "install.install_btn_confirm"}}</button>
 						</div>
 					</div>

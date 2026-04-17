@@ -75,7 +75,7 @@
 						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
 						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString ctx.Locale}}</span></td>
 						<td>
-							<span class="flex-text-inline tw-flex-wrap">{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}</span>
+							<span class="flex-text-inline flex-wrap">{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}</span>
 						</td>
 						<td>{{if .LastOnline}}{{DateUtils.TimeSince .LastOnline}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
 						<td>
@@ -86,7 +86,7 @@
 					</tr>
 				{{else}}
 					<tr>
-						<td class="tw-text-center" colspan="8">{{ctx.Locale.Tr "actions.runners.none"}}</td>
+						<td class="text-center" colspan="8">{{ctx.Locale.Tr "actions.runners.none"}}</td>
 					</tr>
 				{{end}}
 			</tbody>

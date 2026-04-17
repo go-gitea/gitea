@@ -12,13 +12,13 @@ const collapsed = shallowRef(props.item.IsViewed);
 
 function getIconForDiffStatus(pType: DiffStatus) {
   const diffTypes: Record<DiffStatus, { name: SvgName, classes: Array<string> }> = {
-    '': {name: 'octicon-blocked', classes: ['tw-text-red']}, // unknown case
-    'added': {name: 'octicon-diff-added', classes: ['tw-text-green']},
-    'modified': {name: 'octicon-diff-modified', classes: ['tw-text-yellow']},
-    'deleted': {name: 'octicon-diff-removed', classes: ['tw-text-red']},
-    'renamed': {name: 'octicon-diff-renamed', classes: ['tw-text-teal']},
-    'copied': {name: 'octicon-diff-renamed', classes: ['tw-text-green']},
-    'typechange': {name: 'octicon-diff-modified', classes: ['tw-text-green']}, // there is no octicon for copied, so renamed should be ok
+    '': {name: 'octicon-blocked', classes: ['text-red']}, // unknown case
+    'added': {name: 'octicon-diff-added', classes: ['text-green']},
+    'modified': {name: 'octicon-diff-modified', classes: ['text-yellow']},
+    'deleted': {name: 'octicon-diff-removed', classes: ['text-red']},
+    'renamed': {name: 'octicon-diff-renamed', classes: ['text-teal']},
+    'copied': {name: 'octicon-diff-renamed', classes: ['text-green']},
+    'typechange': {name: 'octicon-diff-modified', classes: ['text-green']}, // there is no octicon for copied, so renamed should be ok
   };
   return diffTypes[pType] ?? diffTypes[''];
 }
@@ -30,7 +30,7 @@ function getIconForDiffStatus(pType: DiffStatus) {
       <!-- directory -->
       <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="tw-contents" v-html="collapsed ? store.folderIcon : store.folderOpenIcon"/>
+      <span class="contents" v-html="collapsed ? store.folderIcon : store.folderOpenIcon"/>
       <span class="gt-ellipsis">{{ item.DisplayName }}</span>
     </div>
 
@@ -45,8 +45,8 @@ function getIconForDiffStatus(pType: DiffStatus) {
   >
     <!-- file -->
     <!-- eslint-disable-next-line vue/no-v-html -->
-    <span class="tw-contents" v-html="item.FileIcon"/>
-    <span class="gt-ellipsis tw-flex-1">{{ item.DisplayName }}</span>
+    <span class="contents" v-html="item.FileIcon"/>
+    <span class="gt-ellipsis flex-1">{{ item.DisplayName }}</span>
     <SvgIcon
       :name="getIconForDiffStatus(item.DiffStatus).name"
       :class="getIconForDiffStatus(item.DiffStatus).classes"
