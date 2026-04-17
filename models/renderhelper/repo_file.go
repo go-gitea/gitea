@@ -50,8 +50,8 @@ type RepoFileOptions struct {
 	DeprecatedRepoName  string // it is only a patch for the non-standard "markup" api
 	DeprecatedOwnerName string // it is only a patch for the non-standard "markup" api
 
-	CurrentRefPath  string // eg: "branch/main"
-	CurrentTreePath string // eg: "path/to/file" in the repo
+	CurrentRefPath  string // eg: "branch/main", it is a sub URL path escaped by callers, TODO: rename to CurrentRefSubURL
+	CurrentTreePath string // eg: "path/to/file" in the repo, it is the tree path without URL path escaping
 }
 
 func NewRenderContextRepoFile(ctx context.Context, repo *repo_model.Repository, opts ...RepoFileOptions) *markup.RenderContext {
