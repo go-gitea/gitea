@@ -223,7 +223,7 @@ func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.W
 	if opts.ContentSandbox != "" {
 		extraAttrs = htmlutil.HTMLFormat(` sandbox="%s"`, opts.ContentSandbox)
 	}
-	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" class="external-render-iframe"%s></iframe>`, src, extraAttrs)
+	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" data-global-init="initExternalRenderIframe" class="external-render-iframe"%s></iframe>`, src, extraAttrs)
 	return err
 }
 
@@ -235,7 +235,7 @@ func pipes() (io.ReadCloser, io.WriteCloser, func()) {
 	}
 }
 
-func getExternalRendererOptions(renderer Renderer) (ret ExternalRendererOptions, _ bool) {
+func GetExternalRendererOptions(renderer Renderer) (ret ExternalRendererOptions, _ bool) {
 	if externalRender, ok := renderer.(ExternalRenderer); ok {
 		return externalRender.GetExternalRendererOptions(), true
 	}
@@ -244,7 +244,7 @@ func getExternalRendererOptions(renderer Renderer) (ret ExternalRendererOptions,
 
 func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
 	var extraHeadHTML template.HTML
-	if extOpts, ok := getExternalRendererOptions(renderer); ok && extOpts.DisplayInIframe {
+	if extOpts, ok := GetExternalRendererOptions(renderer); ok && extOpts.DisplayInIframe {
 		if ctx.RenderOptions.StandalonePageOptions == nil {
 			// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
 			// otherwise, a <iframe> should be outputted to embed the external rendered page

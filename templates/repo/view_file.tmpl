@@ -92,15 +92,15 @@
 	</h4>
 
 	<div class="ui bottom attached table unstackable segment">
-		{{if not .IsMarkup}}
+		{{if not .RenderAsMarkup}}
 			{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus}}
 		{{end}}
-		<div class="file-view {{if .IsMarkup}}markup {{.MarkupType}}{{else if .IsPlainText}}plain-text{{else if .IsDisplayingSource}}code-view{{end}}">
+		<div class="file-view {{if eq .RenderAsMarkup "markup-inplace"}}markup {{.MarkupType}}{{else if .IsPlainText}}plain-text{{else if .IsDisplayingSource}}code-view{{end}}">
 			{{if .IsFileTooLarge}}
 				{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
 			{{else if not .FileSize}}
 				{{template "shared/fileisempty"}}
-			{{else if .IsMarkup}}
+			{{else if .RenderAsMarkup}}
 				{{.FileContent}}
 			{{else if .IsPlainText}}
 				<pre>{{if .FileContent}}{{.FileContent}}{{end}}</pre>

@@ -1,4 +1,4 @@
-import {generateElemId, queryElemChildren} from '../utils/dom.ts';
+import {generateElemId} from '../utils/dom.ts';
 import {isDarkTheme} from '../utils.ts';
 
 function safeRenderIframeLink(link: any): string | null {
@@ -41,7 +41,7 @@ function getRealBackgroundColor(el: HTMLElement) {
   return '';
 }
 
-async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
+export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
   const iframeSrcUrl = iframe.getAttribute('data-src')!;
   if (!iframe.id) iframe.id = generateElemId('gitea-iframe-');
 
@@ -63,8 +63,4 @@ async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
   u.searchParams.set('gitea-iframe-id', iframe.id);
   u.searchParams.set('gitea-iframe-bgcolor', getRealBackgroundColor(iframe));
   iframe.src = u.href;
-}
-
-export function initMarkupRenderIframe(el: HTMLElement) {
-  queryElemChildren(el, 'iframe.external-render-iframe', loadRenderIframeContent);
 }
