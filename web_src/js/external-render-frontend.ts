@@ -3,8 +3,8 @@ import type {FrontendRenderFunc, FrontendRenderOptions} from './render/plugin.ts
 type LazyLoadFunc = () => Promise<{frontendRender: FrontendRenderFunc}>;
 
 const frontendPlugins: Record<string, LazyLoadFunc> = {
-  'viewer-3d': () => import('./render/plugins/frontend-viewer-3d.ts'),
-  'openapi-swagger': () => import('./render/plugins/frontend-openapi-swagger.ts'),
+  'viewer-3d': () => { return import('./render/plugins/frontend-viewer-3d.ts') },
+  'openapi-swagger': () => { return import('./render/plugins/frontend-openapi-swagger.ts') },
 };
 
 class Options implements FrontendRenderOptions {
