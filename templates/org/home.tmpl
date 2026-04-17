@@ -62,7 +62,7 @@
 					<div class="ui attached segment members">
 						{{range $memberUser := .OrgOverviewMembers}}
 							{{if or $.IsOrganizationMember (call $.IsPublicMember $memberUser.ID)}}
-								{{template "shared/user/avatarlink" dict "user" $memberUser "size" 32}}
+								{{template "shared/user/avatarlink" dict "user" $memberUser "size" 32 "tooltip" true}}
 							{{end}}
 						{{end}}
 					</div>
