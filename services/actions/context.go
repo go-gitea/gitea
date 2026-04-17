@@ -82,9 +82,9 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"repository_owner":  run.Repo.OwnerName,                       // string, The repository owner's name. For example, Codertocat.
 		"repositoryUrl":     run.Repo.HTMLURL(),                       // string, The Git URL to the repository. For example, git://github.com/codertocat/hello-world.git.
 		"retention_days":    "",                                       // string, The number of days that workflow run logs and artifacts are kept.
-		"run_id":            "",                                       // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run. Populated below once run.ID is known.
+		"run_id":            "",                                       // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
 		"run_number":        strconv.FormatInt(run.Index, 10),         // string, A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
-		"run_attempt":       "",                                       // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run. Populated below from job/attempt context, with a "1" fallback for first-run callers that have no attempt yet.
+		"run_attempt":       "",                                       // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.
 		"secret_source":     "Actions",                                // string, The source of a secret used in a workflow. Possible values are None, Actions, Dependabot, or Codespaces.
 		"server_url":        setting.AppURL,                           // string, The URL of the GitHub server. For example: https://github.com.
 		"sha":               sha,                                      // string, The commit SHA that triggered the workflow. The value of this commit SHA depends on the event that triggered the workflow. For more information, see "Events that trigger workflows." For example, ffac537e6cbbf934b08745a378932722df287a53.
@@ -114,9 +114,6 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	}
 
 	if attempt != nil {
-		// attempt.Attempt is always valid (populated in memory before insert); only LoadAttributes
-		// may fail when the run/attempt hasn't been persisted yet, in which case triggering_actor
-		// stays empty but run_attempt is still correct.
 		gitContext["run_attempt"] = strconv.FormatInt(attempt.Attempt, 10)
 		if err := attempt.LoadAttributes(ctx); err == nil {
 			gitContext["triggering_actor"] = attempt.TriggerUser.Name
