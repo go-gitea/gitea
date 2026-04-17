@@ -60,6 +60,22 @@ func prepareDashboardContextUserOrgTeams(ctx *context.Context) *user_model.User 
 	orgName := ctx.PathParam("org")
 	if len(orgName) > 0 {
 		ctxUser = ctx.Org.Organization.AsUser()
+		if ctx.Org.IsMember && ctx.Org.Teams == nil {
+			shouldSeeAllTeams, err := ctx.Org.Organization.CanUserSeeAllTeams(ctx, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("CanUserSeeAllTeams", err)
+				return nil
+			}
+			if shouldSeeAllTeams {
+				ctx.Org.Teams, err = ctx.Org.Organization.LoadTeams(ctx)
+			} else {
+				ctx.Org.Teams, err = ctx.Org.Organization.GetUserTeams(ctx, ctx.Doer.ID)
+			}
+			if err != nil {
+				ctx.ServerError("LoadTeams", err)
+				return nil
+			}
+		}
 		ctx.Data["Teams"] = ctx.Org.Teams
 	}
 	ctx.Data["ContextUser"] = ctxUser

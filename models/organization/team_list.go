@@ -96,6 +96,19 @@ func SearchTeam(ctx context.Context, opts *SearchTeamOptions) (TeamList, int64, 
 	return teams, count, nil
 }
 
+// CountTeam counts teams matching the given options without loading full team objects.
+func CountTeam(ctx context.Context, opts *SearchTeamOptions) (int64, error) {
+	sess := db.GetEngine(ctx)
+
+	cond := opts.toCond()
+
+	if opts.UserID > 0 {
+		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
+	}
+
+	return sess.Where(cond).Count(new(Team))
+}
+
 // GetRepoTeams gets the list of teams that has access to the repository
 func GetRepoTeams(ctx context.Context, orgID, repoID int64) (teams TeamList, err error) {
 	return teams, db.GetEngine(ctx).
