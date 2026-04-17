@@ -462,6 +462,7 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   width: 100%;
   height: max(300px, 80vh);
   border: none;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .markup-content-iframe {
