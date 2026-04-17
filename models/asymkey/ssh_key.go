@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -64,7 +65,12 @@ func (key *PublicKey) AfterLoad() {
 
 // OmitEmail returns content of public key without email address.
 func (key *PublicKey) OmitEmail() string {
-	return strings.Join(strings.Split(key.Content, " ")[:2], " ")
+	fields := strings.Split(key.Content, " ") // format: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... comment
+	if len(fields) < 2 {
+		setting.PanicInDevOrTesting("invalid public key %d content: %s", key.ID, key.Content)
+		return "" // not a valid public key, it shouldn't really happen, the value is managed internally
+	}
+	return strings.Join(fields[:2], " ")
 }
 
 func addKey(ctx context.Context, key *PublicKey) (err error) {
