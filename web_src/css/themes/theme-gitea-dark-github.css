@@ -1,0 +1,84 @@
+/* --- GitHub-like darker overrides --- */
+:root {
+  /* deeper base backgrounds */
+  --color-body: #0d1117;
+  --color-box-header: #161b22;
+  --color-box-body: #0d1117;
+  --color-box-body-highlight: #161b22;
+
+  /* cards / panels */
+  --color-card: #0d1117;
+  --color-menu: #161b22;
+  --color-code-bg: #0d1117;
+
+  /* navigation */
+  --color-nav-bg: #010409;
+  --color-secondary-nav-bg: #0d1117;
+  --color-nav-hover-bg: #161b22;
+
+  /* inputs */
+  --color-input-background: #0d1117;
+  --color-input-border: #30363d;
+  --color-input-toggle-background: #21262d;
+
+  /* borders & separators */
+  --color-secondary: #21262d;
+  --color-secondary-bg: #161b22;
+  --color-secondary-light-1: #161b22;
+  --color-secondary-light-2: #0d1117;
+
+  /* hover / active */
+  --color-hover: #30363d33;
+  --color-hover-opaque: #161b22;
+  --color-active: #30363d55;
+
+  /* text — GitHub-like */
+  --color-text-dark: #f0f6fc;
+  --color-text: #c9d1d9;
+  --color-text-light: #8b949e;
+  --color-text-light-1: #6e7681;
+  --color-text-light-2: #6e7681;
+  --color-text-light-3: #484f58;
+
+  /* buttons */
+  --color-button: #21262d;
+  --color-expand-button: #21262d;
+
+  /* subtle UI */
+  --color-timeline: #30363d;
+  --color-placeholder-text: #6e7681;
+  --color-label-bg: #30363d;
+  --color-label-hover-bg: #484f58;
+  --color-label-active-bg: #6e7681;
+
+  /* shadows (flatter modern look) */
+  --color-shadow: #00000055;
+  --color-shadow-opaque: #000000;
+
+  /* markup / tables */
+  --color-markup-table-row: #161b22;
+  --color-markup-code-block: #161b22;
+  --color-markup-code-inline: #21262d;
+
+  /* console */
+  --color-console-bg: #0d1117;
+  --color-console-border: #30363d;
+  --color-console-hover-bg: #161b22;
+  --color-console-active-bg: #21262d;
+
+  /* diff colors (GitHub-like) */
+  --color-diff-added-row-bg: #0f2a1d;
+  --color-diff-added-row-border: #1f6f4a;
+  --color-diff-removed-row-bg: #2d0f12;
+  --color-diff-removed-row-border: #8b2a2f;
+
+  /* accent remains your blue */
+  --color-accent: #4183c4;
+  --color-small-accent: #254f77;
+
+  /* tooltip */
+  --color-tooltip-bg: #010409f0;
+
+  /* overlays */
+  --color-overlay-backdrop: #000000cc;
+}
