@@ -157,8 +157,7 @@ func TestRepushTag(t *testing.T) {
 		// query the release by API and it should be a draft
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0")).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var respRelease *api.Release
-		DecodeJSON(t, resp, &respRelease)
+		respRelease := DecodeJSON(t, resp, &api.Release{})
 		assert.True(t, respRelease.IsDraft)
 
 		// re-push the tag

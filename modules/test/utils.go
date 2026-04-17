@@ -5,6 +5,7 @@ package test
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"io"
@@ -95,6 +96,17 @@ func ReadAllTarGzContent(r io.Reader) (map[string]string, error) {
 
 func WriteTarArchive(files map[string]string) *bytes.Buffer {
 	return WriteTarCompression(func(w io.Writer) io.WriteCloser { return util.NopCloser{Writer: w} }, files)
+}
+
+func WriteZipArchive(files map[string]string) *bytes.Buffer {
+	buf := &bytes.Buffer{}
+	zw := zip.NewWriter(buf)
+	for name, content := range files {
+		w, _ := zw.Create(name)
+		_, _ = w.Write([]byte(content))
+	}
+	_ = zw.Close()
+	return buf
 }
 
 func WriteTarCompression[F func(io.Writer) io.WriteCloser | func(io.Writer) (io.WriteCloser, error)](compression F, files map[string]string) *bytes.Buffer {
