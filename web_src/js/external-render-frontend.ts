@@ -2,9 +2,12 @@ import type {FrontendRenderFunc, FrontendRenderOptions} from './render/plugin.ts
 
 type LazyLoadFunc = () => Promise<{frontendRender: FrontendRenderFunc}>;
 
+// It must use a wrapper function to avoid the "import" statement being treated
+// as static import and cause the all plugins being loaded together,
+// We only need to load the plugins we need.
 const frontendPlugins: Record<string, LazyLoadFunc> = {
-  'viewer-3d': () => { return import('./render/plugins/frontend-viewer-3d.ts') },
-  'openapi-swagger': () => { return import('./render/plugins/frontend-openapi-swagger.ts') },
+  'viewer-3d': () => import('./render/plugins/frontend-viewer-3d.ts'),
+  'openapi-swagger': () => import('./render/plugins/frontend-openapi-swagger.ts'),
 };
 
 class Options implements FrontendRenderOptions {
