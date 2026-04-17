@@ -1,5 +1,6 @@
 import {generateElemId} from '../utils/dom.ts';
 import {isDarkTheme} from '../utils.ts';
+import {GET} from "../modules/fetch.ts";
 
 function safeRenderIframeLink(link: any): string | null {
   try {
@@ -62,5 +63,10 @@ export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
   u.searchParams.set('gitea-is-dark-theme', String(isDarkTheme()));
   u.searchParams.set('gitea-iframe-id', iframe.id);
   u.searchParams.set('gitea-iframe-bgcolor', getRealBackgroundColor(iframe));
-  iframe.src = u.href;
+
+  // It must use "srcdoc" here, because our backend always sends CSP sandbox directive for the rendered content
+  // (to protect from XSS risks), so we can't use "src" to load the content directly, otherwise there will be console errors like:
+  // Unsafe attempt to load URL http://localhost:3000/test from frame with URL http://localhost:3000/test
+  const resp = await GET(u.href);
+  iframe.srcdoc = await resp.text();
 }
