@@ -1,6 +1,6 @@
 import {generateElemId} from '../utils/dom.ts';
 import {isDarkTheme} from '../utils.ts';
-import {GET} from "../modules/fetch.ts";
+import {GET} from '../modules/fetch.ts';
 
 function safeRenderIframeLink(link: any): string | null {
   try {
