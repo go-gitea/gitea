@@ -809,10 +809,6 @@ generate-gitignore: ## update gitignore files
 generate-images: | node_modules ## generate images
 	cd tools && node generate-images.ts $(TAGS)
 
-.PHONY: tailwind-collision-audit
-tailwind-collision-audit: | node_modules ## report bare class collisions that block prefix-less Tailwind migration
-	node tools/tailwind-collision-audit.ts
-
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage
 	@[ -f gitea ] || make backend
