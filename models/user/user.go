@@ -20,8 +20,6 @@ import (
 	"time"
 	"unicode"
 
-	_ "image/jpeg" // Needed for jpeg support
-
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/auth/openid"
@@ -38,6 +36,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
+
+	_ "image/jpeg" // Needed for jpeg support
 
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
