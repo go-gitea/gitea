@@ -37,9 +37,11 @@ test('openapi file', async ({page, request}) => {
     await page.goto(`/${owner}/${repoName}/src/branch/main/openapi.yaml`);
     const iframe = page.locator('iframe.external-render-iframe');
     await expect(iframe).toBeVisible();
-    const frame = page.frameLocator('iframe.external-render-iframe');
-    await expect(frame.locator('#frontend-render-viewer .swagger-ui')).toBeVisible();
-    await expect(frame.locator('#frontend-render-viewer .info .title')).toContainText(title);
+    const viewer = page.frameLocator('iframe.external-render-iframe').locator('#frontend-render-viewer');
+    await expect(viewer.locator('.swagger-ui')).toBeVisible();
+    await expect(viewer.locator('.info .title')).toContainText(title);
+    // poll: postMessage resize may not have settled yet when the visibility checks pass
+    await expect.poll(async () => (await iframe.boundingBox())!.height).toBeGreaterThan(300);
     await assertNoJsError(page);
   } finally {
     await apiDeleteRepo(request, owner, repoName);

@@ -50,8 +50,10 @@ test('asciicast file', async ({page, request}) => {
     await apiCreateFile(request, owner, repoName, 'readme.cast', cast);
     await apiCreateBranch(request, owner, repoName, branch);
     await page.goto(`/${owner}/${repoName}/src/branch/${branchEnc}`);
-    await expect(page.locator('.asciinema-player-container')).toHaveAttribute('data-asciinema-player-src', `/${owner}/${repoName}/raw/branch/${branchEnc}/readme.cast`);
-    await expect(page.locator('.asciinema-player-container .ap-wrapper')).toBeVisible();
+    const container = page.locator('.asciinema-player-container');
+    await expect(container).toHaveAttribute('data-asciinema-player-src', `/${owner}/${repoName}/raw/branch/${branchEnc}/readme.cast`);
+    await expect(container.locator('.ap-wrapper')).toBeVisible();
+    expect((await container.boundingBox())!.height).toBeGreaterThan(300);
   } finally {
     await apiDeleteRepo(request, owner, repoName);
   }
