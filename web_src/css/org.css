@@ -18,8 +18,16 @@
   margin-bottom: 10px;
 }
 
-.page-content.organization .team-item-box > .ui.header {
+.page-content.organization .team-item-box > .team-item-header {
   min-height: 50px; /* the header sometimes contains a mini button, sometimes not, so we set a min-height to make sure the layout is consistent */
+}
+
+.page-content.organization .team-item-box .team-item-description {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .organization.invite #invite-box {
