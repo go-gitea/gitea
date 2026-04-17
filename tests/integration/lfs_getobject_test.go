@@ -159,7 +159,6 @@ func testGetLFSZip(t *testing.T) {
 }
 
 func testGetLFSRangeNo(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
 	content := "123456789\n"
 	resp := storeAndGetLfs(t, content, nil, http.StatusOK)
 	assert.Equal(t, content, resp.Body.String())
