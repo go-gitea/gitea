@@ -11,7 +11,7 @@
 		{{end}}
 
 		<div class="ui secondary filter menu tw-mx-0">
-			<form class="ui form ignore-dirty tw-flex-1" method="get">
+			<form class="ui form ignore-dirty tw-flex-1" method="get" action="{{$.Link}}">
 				<div class="ui fluid action input">
 					<input type="search" name="q" value="{{$.Keyword}}" placeholder="{{ctx.Locale.Tr "search.team_kind"}}" maxlength="255" spellcheck="false">
 					<button class="ui button" type="submit">{{svg "octicon-search"}}</button>
