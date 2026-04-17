@@ -55,7 +55,7 @@ func Teams(ctx *context.Context) {
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 
-	keyword := strings.TrimSpace(ctx.FormTrim("q"))
+	keyword := ctx.FormTrim("q")
 	page := max(ctx.FormInt("page"), 1)
 	pagingNum := setting.UI.MembersPagingNum
 
