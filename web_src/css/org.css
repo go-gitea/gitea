@@ -28,6 +28,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--color-text-light-3);
 }
 
 .organization.invite #invite-box {
