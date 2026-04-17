@@ -99,7 +99,11 @@ func home(ctx *context.Context, viewRepositories bool) {
 		return
 	}
 	ctx.Data["Members"] = members
-	ctx.Data["Teams"] = ctx.Org.Teams
+	if len(ctx.Org.Teams) > 5 {
+		ctx.Data["Teams"] = ctx.Org.Teams[0:5]
+	} else {
+		ctx.Data["Teams"] = ctx.Org.Teams
+	}
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
