@@ -67,13 +67,7 @@ func Teams(ctx *context.Context) {
 		},
 	}
 
-
-	canSeeAllTeams, err := ctx.Org.Organization.CanUserSeeAllTeams(ctx, ctx.Doer.ID)
-	if err != nil {
-		ctx.ServerError("CanUserSeeAllTeams", err)
-		return
-	}
-	if !canSeeAllTeams {
+	if !ctx.Org.IsOwner {
 		opts.UserID = ctx.Doer.ID
 	}
 

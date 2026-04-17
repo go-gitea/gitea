@@ -173,15 +173,24 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			return
 		}
 
-
 		// Team.
 		if ctx.Org.IsMember {
-			shouldSeeAllTeams, err := org.CanUserSeeAllTeams(ctx, ctx.Doer.ID)
-			if err != nil {
-				ctx.ServerError("CanUserSeeAllTeams", err)
-				return
+			shouldSeeAllTeams := false
+			if ctx.Org.IsOwner {
+				shouldSeeAllTeams = true
+			} else {
+				teams, err := org.GetUserTeams(ctx, ctx.Doer.ID)
+				if err != nil {
+					ctx.ServerError("GetUserTeams", err)
+					return
+				}
+				for _, team := range teams {
+					if team.IncludesAllRepositories && team.HasAdminAccess() {
+						shouldSeeAllTeams = true
+						break
+					}
+				}
 			}
-
 			if shouldSeeAllTeams {
 				ctx.Org.Teams, err = org.LoadTeams(ctx)
 				if err != nil {
