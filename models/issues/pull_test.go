@@ -142,7 +142,6 @@ func testPullRequests_Closed_RecentSortType(t *testing.T) {
 }
 
 func testLoadRequestedReviewers(t *testing.T) {
-
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.NoError(t, pull.LoadIssue(t.Context()))
 	issue := pull.Issue
@@ -196,7 +195,6 @@ func testGetUnmergedPullRequest(t *testing.T) {
 }
 
 func testHasUnmergedPullRequestsByHeadInfo(t *testing.T) {
-
 	exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(t.Context(), 1, "branch2")
 	assert.NoError(t, err)
 	assert.True(t, exist)
@@ -279,7 +277,6 @@ func testPullRequest_UpdateCols(t *testing.T) {
 // TODO TestAddTestPullRequestTask
 
 func testPullRequest_IsWorkInProgress(t *testing.T) {
-
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	pr.LoadIssue(t.Context())
 
@@ -293,7 +290,6 @@ func testPullRequest_IsWorkInProgress(t *testing.T) {
 }
 
 func testPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
-
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	pr.LoadIssue(t.Context())
 
@@ -308,7 +304,6 @@ func testPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
 }
 
 func testDeleteOrphanedObjects(t *testing.T) {
-
 	countBefore, err := db.GetEngine(t.Context()).Count(&issues_model.PullRequest{})
 	assert.NoError(t, err)
 
@@ -352,7 +347,6 @@ func testParseCodeOwnersLine(t *testing.T) {
 }
 
 func testCodeOwnerAbsolutePathPatterns(t *testing.T) {
-
 	type testCase struct {
 		content  string
 		file     string
