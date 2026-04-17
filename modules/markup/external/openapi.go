@@ -72,7 +72,7 @@ func (p *openAPIRenderer) Render(ctx *markup.RenderContext, input io.Reader, out
 </head>
 <body>
 	<div id="swagger-ui"><textarea class="swagger-spec-content" data-spec-filename="%s">%s</textarea></div>
-	<script type="module" src="%s"></script>
+	<script nonce type="module" src="%s"></script>
 </body>
 </html>`,
 		public.AssetURI("css/swagger.css"),
