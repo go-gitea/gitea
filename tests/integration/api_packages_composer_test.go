@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"archive/zip"
 	"bytes"
 	"fmt"
 	"net/http"
@@ -17,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	composer_module "code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/tests"
 
@@ -38,10 +38,8 @@ func TestPackageComposer(t *testing.T) {
 	packageLicense := "MIT"
 	packageBin := "./bin/script"
 
-	var buf bytes.Buffer
-	archive := zip.NewWriter(&buf)
-	w, _ := archive.Create("composer.json")
-	w.Write([]byte(`{
+	content := test.WriteZipArchive(map[string]string{
+		"composer.json": `{
 		"name": "` + packageName + `",
 		"description": "` + packageDescription + `",
 		"type": "` + packageType + `",
@@ -54,9 +52,8 @@ func TestPackageComposer(t *testing.T) {
 		"bin": [
 			"` + packageBin + `"
 		]
-	}`))
-	archive.Close()
-	content := buf.Bytes()
+	}`,
+	}).Bytes()
 
 	url := fmt.Sprintf("%sapi/packages/%s/composer", setting.AppURL, user.Name)
 
