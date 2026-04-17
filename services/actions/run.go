@@ -10,6 +10,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/actions/jobparser"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
@@ -52,7 +53,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		run.Title = jobs[0].RunName
 	}
 
-	if err = InsertRun(ctx, run, jobs, vars, inputsWithDefaults); err != nil {
+	if err = InsertRun(ctx, run, content, jobs, vars, inputsWithDefaults); err != nil {
 		return fmt.Errorf("InsertRun: %w", err)
 	}
 
@@ -74,7 +75,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
-func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any) error {
+func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte, jobs []*jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
@@ -99,6 +100,14 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 
 		if err := actions_model.UpdateRepoRunsNumbers(ctx, run.Repo); err != nil {
 			return err
+		}
+
+		// Extract raw strategies from the original workflow before parsing
+		rawStrategies, err := ExtractRawStrategies(content)
+		if err != nil {
+			log.Warn("Failed to extract raw strategies from workflow: %v", err)
+			// Continue without raw strategies - jobs will work but dynamic matrix won't be supported
+			rawStrategies = nil
 		}
 
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
@@ -131,6 +140,13 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 			// Parse workflow/job permissions (no clamping here)
 			if perms := ExtractJobPermissionsFromWorkflow(v, job); perms != nil {
 				runJob.TokenPermissions = perms
+			}
+
+			// Store raw strategy only if job has matrix that actually depends on job outputs (needs.*.outputs)
+			// This avoids unnecessary DB storage and later re-evaluation checks for purely static matrices
+			if rawStrategy, exists := rawStrategies[id]; exists && len(needs) > 0 && HasMatrixWithNeeds(rawStrategy) {
+				runJob.RawStrategy = rawStrategy
+				runJob.IsMatrixEvaluated = false
 			}
 
 			// check job concurrency
