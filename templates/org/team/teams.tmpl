@@ -10,26 +10,22 @@
 			</div>
 		{{end}}
 
-		<div class="ui secondary filter menu tw-mx-0">
-			<form class="ui form ignore-dirty tw-flex-1" method="get" action="{{$.Link}}">
-				<div class="ui fluid action input">
-					<input type="search" name="q" value="{{$.Keyword}}" placeholder="{{ctx.Locale.Tr "search.team_kind"}}" maxlength="255" spellcheck="false">
-					<button class="ui button" type="submit">{{svg "octicon-search"}}</button>
-				</div>
-			</form>
-		</div>
-
-		<div class="divider"></div>
+		<form class="ui form ignore-dirty tw-my-4" method="get" action="{{$.Link}}">
+			<div class="ui fluid action input">
+				<input type="search" name="q" value="{{$.Keyword}}" placeholder="{{ctx.Locale.Tr "search.team_kind"}}" maxlength="255" spellcheck="false">
+				<button class="ui button" type="submit">{{svg "octicon-search"}}</button>
+			</div>
+		</form>
 
 		<div class="ui two column stackable grid">
 			{{range .OrgListTeams}}
-				<div class="column">
+				<div class="column team-item-box">
 					<div class="ui top attached header muted-links flex-left-right">
 						<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
 						<div class="flex-center-wrap">
-							<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}">{{.NumMembers}} {{ctx.Locale.Tr "org.lower_members"}}</a>
+							<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}">{{.NumMembers}} {{ctx.Locale.Tr "org.lower_members"}}</a>
 							·
-							<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories">{{.NumRepos}} {{ctx.Locale.Tr "org.lower_repositories"}}</a>
+							<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories">{{.NumRepos}} {{ctx.Locale.Tr "org.lower_repositories"}}</a>
 							{{if .IsMember ctx $.SignedUser.ID}}
 								<button class="ui red mini compact button show-modal" data-modal="#org-member-leave-team"
 									data-modal-form.action="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/action/leave?uid={{$.SignedUser.ID}}"
@@ -38,9 +34,11 @@
 							{{end}}
 						</div>
 					</div>
-					<div class="ui attached segment members">
+					<div class="ui attached segment flex-center-wrap">
 						{{range .Members}}
 							{{template "shared/user/avatarlink" dict "user" . "size" 32 "tooltip" true}}
+						{{else}}
+							<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}">{{ctx.Locale.Tr "org.teams.add_team_member"}}</a>
 						{{end}}
 					</div>
 				</div>

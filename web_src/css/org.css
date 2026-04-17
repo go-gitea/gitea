@@ -18,24 +18,12 @@
   margin-bottom: 10px;
 }
 
-.page-content.organization #org-info .meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+.page-content.organization .team-item-box > .ui.header {
+  min-height: 50px; /* the header sometimes contains a mini button, sometimes not, so we set a min-height to make sure the layout is consistent */
 }
 
-.page-content.organization .ui.top.header .ui.right {
-  margin-top: 0;
-}
-
-.page-content.organization .teams .item {
-  padding: 10px 15px;
-}
-
-.page-content.organization .members .ui.avatar {
-  margin-right: 5px;
-  margin-bottom: 5px;
+.page-content.organization .team-item-box > .ui.segment {
+  min-height: 61px; /* the segment contains the member avatars, sometimes it is empty */
 }
 
 .organization.invite #invite-box {
