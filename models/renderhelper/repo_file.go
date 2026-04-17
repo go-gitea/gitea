@@ -70,6 +70,8 @@ func NewRenderContextRepoFile(ctx context.Context, repo *repo_model.Repository, 
 			"repo": helper.opts.DeprecatedRepoName,
 		})
 	}
+	// External render's iframe needs this to generate correct links
+	// TODO: maybe need to make it access "CurrentRefPath" directly (but impossible at the moment due to cycle-import)
 	// CurrentRefPath is already path-escaped by callers
 	rctx.RenderOptions.Metas["RefTypeNameSubURL"] = helper.opts.CurrentRefPath
 	rctx = rctx.WithHelper(helper).WithEnableHeadingIDGeneration(true)
