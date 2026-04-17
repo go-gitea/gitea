@@ -368,17 +368,11 @@ func testCodeOwnerAbsolutePathPatterns(t *testing.T) {
 
 	for _, c := range cases {
 		rules, _ := issues_model.GetCodeOwnersFromContent(t.Context(), c.content)
-		if len(rules) == 0 {
-			if c.expected {
-				t.Errorf("expected rules for content %q but got none", c.content)
-			}
-			continue
-		}
+		require.NotEmpty(t, rules)
 		rule := rules[0]
-		shouldMatch := !rule.Negative
-		matched, _ := rule.Rule.MatchString(c.file)
-		got := matched == shouldMatch
-		assert.Equal(t, c.expected, got, "pattern %q against file %q", c.content, c.file)
+		regexpMatched, _ := rule.Rule.MatchString(c.file)
+		ruleMatched := regexpMatched == !rule.Negative
+		assert.Equal(t, c.expected, ruleMatched, "pattern %q against file %q", c.content, c.file)
 	}
 }
 
