@@ -524,10 +524,7 @@ const SaltByteLength = 16
 
 // GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
-	rBytes, err := util.CryptoRandomBytes(SaltByteLength)
-	if err != nil {
-		return "", err
-	}
+	rBytes := util.CryptoRandomBytes(SaltByteLength)
 	// Returns a 32-byte long string.
 	return hex.EncodeToString(rBytes), nil
 }
