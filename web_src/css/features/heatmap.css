@@ -46,6 +46,10 @@
   justify-content: right;
 }
 
+#user-heatmap .vch__external-legend-wrapper {
+  margin-right: -12px;
+}
+
 #user-heatmap .vch__legend .vch__legend div:first-child,
 #user-heatmap .vch__legend .vch__legend div:last-child {
   display: inline-block;
