@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect} from '@playwright/test';
-import type {APIRequestContext, Page} from '@playwright/test';
+import type {APIRequestContext, Locator, Page} from '@playwright/test';
 
 /** Generate a random alphanumeric string. */
 export function randomString(length: number): string {
@@ -120,6 +120,14 @@ export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, pass
 
 export async function assertNoJsError(page: Page) {
   await expect(page.locator('.js-global-error')).toHaveCount(0);
+}
+
+/* asserts the child has no horizontal inset from its parent — catches padding/border anywhere
+ * in between regardless of which element declares it */
+export async function assertFlushWithParent(child: Locator, parent: Locator) {
+  const [childBox, parentBox] = await Promise.all([child.boundingBox(), parent.boundingBox()]);
+  expect(childBox!.x).toBe(parentBox!.x);
+  expect(childBox!.width).toBe(parentBox!.width);
 }
 
 export async function logout(page: Page) {

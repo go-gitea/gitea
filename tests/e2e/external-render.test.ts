@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
-import {login, apiCreateRepo, apiCreateFile, apiDeleteRepo, assertNoJsError, randomString} from './utils.ts';
+import {login, apiCreateRepo, apiCreateFile, apiDeleteRepo, assertFlushWithParent, assertNoJsError, randomString} from './utils.ts';
 
 test('external file', async ({page, request}) => {
   const repoName = `e2e-external-render-${randomString(8)}`;
@@ -17,6 +17,7 @@ test('external file', async ({page, request}) => {
     await expect(iframe).toHaveAttribute('data-src', new RegExp(`/${owner}/${repoName}/render/branch/main/test\\.external`));
     const frame = page.frameLocator('iframe.external-render-iframe');
     await expect(frame.locator('p')).toContainText('rendered content');
+    await assertFlushWithParent(iframe, page.locator('.file-view'));
     await assertNoJsError(page);
   } finally {
     await apiDeleteRepo(request, owner, repoName);
@@ -52,6 +53,7 @@ test('openapi file', async ({page, request}) => {
     await expect(viewer.getByText('Could not resolve reference')).toHaveCount(0);
     // poll: postMessage resize may not have settled yet when the visibility checks pass
     await expect.poll(async () => (await iframe.boundingBox())!.height).toBeGreaterThan(300);
+    await assertFlushWithParent(iframe, page.locator('.file-view'));
     await assertNoJsError(page);
   } finally {
     await apiDeleteRepo(request, owner, repoName);

@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
-import {apiCreateBranch, apiCreateRepo, apiCreateFile, apiDeleteRepo, assertNoJsError, login, randomString} from './utils.ts';
+import {apiCreateBranch, apiCreateRepo, apiCreateFile, apiDeleteRepo, assertFlushWithParent, assertNoJsError, login, randomString} from './utils.ts';
 
 test('3d model file', async ({page, request}) => {
   const repoName = `e2e-3d-render-${randomString(8)}`;
@@ -12,9 +12,17 @@ test('3d model file', async ({page, request}) => {
     await page.goto(`/${owner}/${repoName}/src/branch/main/test.stl?display=rendered`);
     const iframe = page.locator('iframe.external-render-iframe');
     await expect(iframe).toBeVisible();
-    const viewer = page.frameLocator('iframe.external-render-iframe').locator('#frontend-render-viewer');
+    const frame = page.frameLocator('iframe.external-render-iframe');
+    const viewer = frame.locator('#frontend-render-viewer');
     await expect(viewer.locator('canvas')).toBeVisible();
     expect((await viewer.boundingBox())!.height).toBeGreaterThan(300);
+    await assertFlushWithParent(iframe, page.locator('.file-view'));
+    // bgcolor passed via gitea-iframe-bgcolor; 3D viewer reads it from body bgcolor — must match parent
+    const [parentBg, iframeBg] = await Promise.all([
+      page.evaluate(() => getComputedStyle(document.body).backgroundColor),
+      frame.locator('body').evaluate((el) => getComputedStyle(el).backgroundColor),
+    ]);
+    expect(iframeBg).toBe(parentBg);
     await assertNoJsError(page);
   } finally {
     await apiDeleteRepo(request, owner, repoName);
@@ -32,6 +40,7 @@ test('pdf file', async ({page, request}) => {
     const container = page.locator('.file-view-render-container');
     await expect(container).toHaveAttribute('data-render-name', 'pdf-viewer');
     expect((await container.boundingBox())!.height).toBeGreaterThan(300);
+    await assertFlushWithParent(container, page.locator('.file-view'));
   } finally {
     await apiDeleteRepo(request, owner, repoName);
   }
