@@ -331,11 +331,51 @@ func TestParseCodeOwnersLine(t *testing.T) {
 		{Line: `docs/(aws|google|azure)/[^/]*\\.(md|txt) @org3 @org2/team2`, Tokens: []string{`docs/(aws|google|azure)/[^/]*\.(md|txt)`, "@org3", "@org2/team2"}},
 		{Line: `\#path @org3`, Tokens: []string{`#path`, "@org3"}},
 		{Line: `path\ with\ spaces/ @org3`, Tokens: []string{`path with spaces/`, "@org3"}},
+		{Line: `/docs/.*\\.md @user1`, Tokens: []string{`/docs/.*\.md`, "@user1"}},
+		{Line: `!/assets/.*\\.(bin|exe|msi) @user1`, Tokens: []string{`!/assets/.*\.(bin|exe|msi)`, "@user1"}},
 	}
 
 	for _, g := range given {
 		tokens := issues_model.TokenizeCodeOwnersLine(g.Line)
 		assert.Equal(t, g.Tokens, tokens, "Codeowners tokenizer failed")
+	}
+}
+
+func TestCodeOwnerAbsolutePathPatterns(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	type testCase struct {
+		content  string
+		file     string
+		expected bool
+	}
+
+	cases := []testCase{
+		// Absolute path pattern should match (leading "/" stripped)
+		{content: "/README.md @user5\n", file: "README.md", expected: true},
+		// Absolute path pattern in subdirectory
+		{content: "/docs/.* @user5\n", file: "docs/foo.md", expected: true},
+		// Absolute path should not match nested paths it shouldn't
+		{content: "/docs/.* @user5\n", file: "other/docs/foo.md", expected: false},
+		// Relative path still works
+		{content: "README.md @user5\n", file: "README.md", expected: true},
+		// Negated absolute path pattern
+		{content: "!/.* @user5\n", file: "README.md", expected: false},
+	}
+
+	for _, c := range cases {
+		rules, _ := issues_model.GetCodeOwnersFromContent(t.Context(), c.content)
+		if len(rules) == 0 {
+			if c.expected {
+				t.Errorf("expected rules for content %q but got none", c.content)
+			}
+			continue
+		}
+		rule := rules[0]
+		shouldMatch := !rule.Negative
+		matched, _ := rule.Rule.MatchString(c.file)
+		got := matched == shouldMatch
+		assert.Equal(t, c.expected, got, "pattern %q against file %q", c.content, c.file)
 	}
 }
 
