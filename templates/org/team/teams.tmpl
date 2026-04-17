@@ -44,7 +44,7 @@
 							{{range .Members}}
 								{{template "shared/user/avatarlink" dict "user" . "size" 32 "tooltip" true}}
 							{{else}}
-								<a href="{{$.OrgLink}}/teams/{{$team.LowerName | PathEscape}}">{{ctx.Locale.Tr "org.teams.add_team_member"}}</a>
+								<a class="flex-text-inline tw-h-[32px]" href="{{$.OrgLink}}/teams/{{$team.LowerName | PathEscape}}">{{ctx.Locale.Tr "org.teams.add_team_member"}}</a>
 							{{end}}
 						</div>
 					</div>
