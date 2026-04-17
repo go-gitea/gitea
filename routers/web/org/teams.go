@@ -54,42 +54,13 @@ func Teams(ctx *context.Context) {
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 
-	page := max(ctx.FormInt("page"), 1)
-	keyword := ctx.FormTrim("q")
-
-	opts := &org_model.SearchTeamOptions{
-		Keyword:     keyword,
-		OrgID:       org.ID,
-		IncludeDesc: true,
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: setting.UI.MembersPagingNum,
-		},
-	}
-
-	if !ctx.Org.IsOwner {
-		opts.UserID = ctx.Doer.ID
-	}
-
-	teams, count, err := org_model.SearchTeam(ctx, opts)
-	if err != nil {
-		ctx.ServerError("SearchTeam", err)
-		return
-	}
-
-	for _, t := range teams {
+	for _, t := range ctx.Org.Teams {
 		if err := t.LoadMembers(ctx); err != nil {
 			ctx.ServerError("GetMembers", err)
 			return
 		}
 	}
-
-	pager := context.NewPagination(int(count), setting.UI.MembersPagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
-	ctx.Data["Page"] = pager
-	ctx.Data["Teams"] = teams
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["Total"] = count
+	ctx.Data["Teams"] = ctx.Org.Teams
 
 	ctx.HTML(http.StatusOK, tplTeams)
 }
