@@ -44,6 +44,10 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 
 	giteaCtx := GenerateGiteaContext(ctx, run, nil, nil)
 
+	// FIXME: this Parse happens before InsertRun, so the context above has run.ID=0 and no attempt,
+	// which means expressions referencing gitea.run_id / gitea.triggering_actor / gitea.run_attempt at parse-time positions (run-name, jobs.*.if, matrix names) see stub values.
+	// The only output consumed from this Parse is jobs[0].RunName to seed run.Title.
+	// The "real" job parsing should happen inside InsertRun, after run+attempt are inserted.
 	jobs, err := jobparser.Parse(content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()), jobparser.WithInputs(inputsWithDefaults))
 	if err != nil {
 		return fmt.Errorf("parse workflow: %w", err)

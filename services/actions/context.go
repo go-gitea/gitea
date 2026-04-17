@@ -23,12 +23,16 @@ import (
 
 type GiteaContext map[string]any
 
-// GenerateGiteaContext generate the gitea context without token and gitea_runtime_token
+// GenerateGiteaContext generate the gitea context without token and gitea_runtime_token.
 // attempt and job can be nil when generating a context for parsing workflow-level expressions.
-// The run_attempt value is resolved with the following precedence:
-//  1. job.Attempt when a job context is available
-//  2. attempt.Attempt when an explicit attempt context is available
-//  3. the run's latest attempt as a fallback
+//
+// run_id is populated only after the run has been persisted (run.ID > 0); otherwise it stays empty
+// so expressions like gitea.run_id don't see "0" during parse time or pre-insert concurrency eval.
+//
+// The run_attempt value is resolved with the following precedence (higher wins):
+//  1. attempt.Attempt - the explicit attempt argument, or run.GetLatestAttempt() as a fallback
+//  2. job.Attempt - only used when neither an explicit nor latest attempt is available
+//  3. "1" - when none of the above apply (first-run parse time, before the first attempt exists)
 func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob) GiteaContext {
 	event := map[string]any{}
 	_ = json.Unmarshal([]byte(run.EventPayload), &event)
@@ -78,9 +82,9 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"repository_owner":  run.Repo.OwnerName,                       // string, The repository owner's name. For example, Codertocat.
 		"repositoryUrl":     run.Repo.HTMLURL(),                       // string, The Git URL to the repository. For example, git://github.com/codertocat/hello-world.git.
 		"retention_days":    "",                                       // string, The number of days that workflow run logs and artifacts are kept.
-		"run_id":            strconv.FormatInt(run.ID, 10),            // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
+		"run_id":            "",                                       // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run. Populated below once run.ID is known.
 		"run_number":        strconv.FormatInt(run.Index, 10),         // string, A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
-		"run_attempt":       "",                                       // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.
+		"run_attempt":       "",                                       // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run. Populated below from job/attempt context, with a "1" fallback for first-run callers that have no attempt yet.
 		"secret_source":     "Actions",                                // string, The source of a secret used in a workflow. Possible values are None, Actions, Dependabot, or Codespaces.
 		"server_url":        setting.AppURL,                           // string, The URL of the GitHub server. For example: https://github.com.
 		"sha":               sha,                                      // string, The commit SHA that triggered the workflow. The value of this commit SHA depends on the event that triggered the workflow. For more information, see "Events that trigger workflows." For example, ffac537e6cbbf934b08745a378932722df287a53.
@@ -90,6 +94,12 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 
 		// additional contexts
 		"gitea_default_actions_url": setting.Actions.DefaultActionsURL.URL(),
+	}
+
+	if run.ID > 0 {
+		// Before insert (parse time, run-level concurrency evaluation) run.ID is 0.
+		// Only populate when the run has been persisted.
+		gitContext["run_id"] = strconv.FormatInt(run.ID, 10)
 	}
 
 	if job != nil {
@@ -104,10 +114,19 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	}
 
 	if attempt != nil {
+		// attempt.Attempt is always valid (populated in memory before insert); only LoadAttributes
+		// may fail when the run/attempt hasn't been persisted yet, in which case triggering_actor
+		// stays empty but run_attempt is still correct.
+		gitContext["run_attempt"] = strconv.FormatInt(attempt.Attempt, 10)
 		if err := attempt.LoadAttributes(ctx); err == nil {
 			gitContext["triggering_actor"] = attempt.TriggerUser.Name
-			gitContext["run_attempt"] = strconv.FormatInt(attempt.Attempt, 10)
 		}
+	}
+
+	// Fallback for first-run parse time: no job, no attempt (LatestAttemptID==0). github.run_attempt
+	// is 1-based per the documented contract, so emit "1" rather than leaving it empty.
+	if gitContext["run_attempt"] == "" {
+		gitContext["run_attempt"] = "1"
 	}
 
 	return gitContext
