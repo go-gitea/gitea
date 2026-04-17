@@ -220,20 +220,20 @@ func (r *Review) HTMLTypeColorClass() string {
 	switch r.Type {
 	case ReviewTypeApprove:
 		if !r.Official {
-			return "text-text-light"
+			return "tw:text-text-light"
 		}
 		if r.Stale {
-			return "text-yellow"
+			return "tw:text-yellow"
 		}
-		return "text-green"
+		return "tw:text-green"
 	case ReviewTypeComment:
-		return "text-text-light"
+		return "tw:text-text-light"
 	case ReviewTypeReject:
-		return "text-red"
+		return "tw:text-red"
 	case ReviewTypeRequest:
-		return "text-yellow"
+		return "tw:text-yellow"
 	}
-	return "text-text-light"
+	return "tw:text-text-light"
 }
 
 // TooltipContent returns the locale string describing the review type

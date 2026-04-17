@@ -230,7 +230,7 @@ export const SvgIcon = defineComponent({
 
     const classes = Array.from(svgOuter.classList);
     if (this.symbolId) {
-      classes.push('gt-hidden', 'svg-symbol-container');
+      classes.push('tw:hidden', 'svg-symbol-container');
       svgInnerHtml = html`<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${htmlRaw(svgInnerHtml)}</symbol>`;
     }
     // create VNode

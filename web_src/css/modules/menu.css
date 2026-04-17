@@ -83,8 +83,8 @@
   font-size: 1em;
 }
 
-.ui.menu > .fm-grid,
-.ui.menu > .fm-container {
+.ui.menu > .grid,
+.ui.menu > .container {
   display: flex;
   align-items: inherit;
   flex-direction: inherit;

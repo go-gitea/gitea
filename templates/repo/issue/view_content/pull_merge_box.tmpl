@@ -10,23 +10,23 @@
 >
 	{{$statusCheckData := .StatusCheckData}}
 	{{$requiredStatusCheckState := $statusCheckData.RequiredChecksState}}
-	<div class="timeline-avatar {{if .Issue.PullRequest.HasMerged}}text-purple
-	{{- else if .Issue.IsClosed}}text-text-light
-	{{- else if .IsPullWorkInProgress}}text-text-light
-	{{- else if .IsFilesConflicted}}text-text-light
-	{{- else if .IsPullRequestBroken}}text-red
-	{{- else if .IsBlockedByApprovals}}text-red
-	{{- else if .IsBlockedByRejection}}text-red
-	{{- else if .IsBlockedByOfficialReviewRequests}}text-red
-	{{- else if .IsBlockedByOutdatedBranch}}text-red
-	{{- else if .IsBlockedByChangedProtectedFiles}}text-red
-	{{- else if and .EnableStatusCheck (or $requiredStatusCheckState.IsFailure $requiredStatusCheckState.IsError)}}text-red
-	{{- else if and .EnableStatusCheck (or (not $.LatestCommitStatus) $requiredStatusCheckState.IsPending $requiredStatusCheckState.IsWarning)}}text-yellow
-	{{- else if and .AllowMerge .RequireSigned (not .WillSign)}}text-red
-	{{- else if .Issue.PullRequest.IsChecking}}text-yellow
-	{{- else if .Issue.PullRequest.IsEmpty}}text-text-light
-	{{- else if .Issue.PullRequest.CanAutoMerge}}text-green
-	{{- else}}text-red{{end}}">{{svg "octicon-git-merge" 40}}</div>
+	<div class="timeline-avatar {{if tw:.Issue.PullRequest.HasMerged}}text-purple
+	{{- else if tw:.Issue.IsClosed}}text-text-light
+	{{- else if tw:.IsPullWorkInProgress}}text-text-light
+	{{- else if tw:.IsFilesConflicted}}text-text-light
+	{{- else if tw:.IsPullRequestBroken}}text-red
+	{{- else if tw:.IsBlockedByApprovals}}text-red
+	{{- else if tw:.IsBlockedByRejection}}text-red
+	{{- else if tw:.IsBlockedByOfficialReviewRequests}}text-red
+	{{- else if tw:.IsBlockedByOutdatedBranch}}text-red
+	{{- else if tw:.IsBlockedByChangedProtectedFiles}}text-red
+	{{- else if and .EnableStatusCheck (or $requiredStatusCheckState.IsFailure tw:$requiredStatusCheckState.IsError)}}text-red
+	{{- else if and .EnableStatusCheck (or (not $.LatestCommitStatus) $requiredStatusCheckState.IsPending tw:$requiredStatusCheckState.IsWarning)}}text-yellow
+	{{- else if and .AllowMerge .RequireSigned (not tw:.WillSign)}}text-red
+	{{- else if tw:.Issue.PullRequest.IsChecking}}text-yellow
+	{{- else if tw:.Issue.PullRequest.IsEmpty}}text-text-light
+	{{- else if tw:.Issue.PullRequest.CanAutoMerge}}text-green
+	{{- tw:else}}text-red{{end}}">{{svg "octicon-git-merge" 40}}</div>
 	<div class="content">
 		{{if .LatestCommitStatus}}
 		<div class="ui attached segment fitted">
@@ -42,9 +42,9 @@
 		<div class="ui attached segment merge-section {{if not $.LatestCommitStatus}}avatar-content-left-arrow{{end}} flex-items-block">
 			{{if .Issue.PullRequest.HasMerged}}
 				{{if .IsPullBranchDeletable}}
-					<div class="item item-section text flex-1">
+					<div class="item item-section text tw:flex-1">
 						<div class="item-section-left">
-							<h3 class="mb-2">
+							<h3 class="tw:mb-2">
 								{{ctx.Locale.Tr "repo.pulls.merged_success"}}
 							</h3>
 							<div class="merge-section-info">
@@ -57,9 +57,9 @@
 					</div>
 				{{end}}
 			{{else if .Issue.IsClosed}}
-				<div class="item item-section text flex-1">
+				<div class="item item-section text tw:flex-1">
 					<div class="item-section-left">
-						<h3 class="mb-2">{{ctx.Locale.Tr "repo.pulls.closed"}}</h3>
+						<h3 class="tw:mb-2">{{ctx.Locale.Tr "repo.pulls.closed"}}</h3>
 						<div class="merge-section-info">
 							{{if .IsPullRequestBroken}}
 								{{ctx.Locale.Tr "repo.pulls.cant_reopen_deleted_branch"}}
@@ -93,7 +93,7 @@
 				</div>
 			{{else if .IsPullWorkInProgress}}
 				<div class="item">
-					<div class="item-section-left flex-text-inline flex-1">
+					<div class="item-section-left flex-text-inline tw:flex-1">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
 					</div>
@@ -190,7 +190,7 @@
 					{{end}}
 					{{if .WillSign}}
 						<div class="item">
-							{{svg "octicon-lock" 16 "text-green"}}
+							{{svg "octicon-lock" 16 "tw:text-green"}}
 							{{ctx.Locale.Tr "repo.signing.will_sign" .SigningKeyMergeDisplay}}
 						</div>
 					{{else if .IsSigned}}
@@ -305,11 +305,11 @@
 
 						{{$showGeneralMergeForm = true}}
 						{{/* The merge form is a Vue component. After mounted, it has a button for choosing merge style, so make it have min-height to avoid layout shifting */}}
-						<div id="pull-request-merge-form" class="min-h-[40px]"></div>
+						<div id="pull-request-merge-form" class="tw:min-h-[40px]"></div>
 					{{else}}
 						{{/* no merge style was set in repo setting: not or ($prUnit.PullRequestsConfig.AllowMerge ...) */}}
 						<div class="divider"></div>
-						<div class="item text-red">
+						<div class="item tw:text-red">
 							{{svg "octicon-x"}}
 							{{ctx.Locale.Tr "repo.pulls.no_merge_desc"}}
 						</div>
@@ -329,27 +329,27 @@
 			{{else}}
 				{{/* Merge conflict without specific file. Suggest manual merge, only if all reviews and status checks OK. */}}
 				{{if .IsBlockedByApprovals}}
-					<div class="item text-red">
+					<div class="item tw:text-red">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
 					</div>
 				{{else if .IsBlockedByRejection}}
-					<div class="item text-red">
+					<div class="item tw:text-red">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.blocked_by_rejection"}}
 					</div>
 				{{else if .IsBlockedByOfficialReviewRequests}}
-					<div class="item text-red">
+					<div class="item tw:text-red">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.blocked_by_official_review_requests"}}
 					</div>
 				{{else if .IsBlockedByOutdatedBranch}}
-					<div class="item text-red">
+					<div class="item tw:text-red">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.blocked_by_outdated_branch"}}
 					</div>
 				{{else if .IsBlockedByChangedProtectedFiles}}
-					<div class="item text-red">
+					<div class="item tw:text-red">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n"}}
 					</div>
@@ -359,17 +359,17 @@
 						{{end}}
 					</ul>
 				{{else if and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess)}}
-					<div class="item text-red">
+					<div class="item tw:text-red">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.required_status_check_failed"}}
 					</div>
 				{{else if and .RequireSigned (not .WillSign)}}
-					<div class="item text-red">
+					<div class="item tw:text-red">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
 				{{else}}
-					<div class="item text-red">
+					<div class="item tw:text-red">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.cannot_auto_merge_desc"}}
 					</div>

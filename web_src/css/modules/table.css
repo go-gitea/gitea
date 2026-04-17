@@ -185,14 +185,14 @@
   border-top: none;
 }
 
-.ui[class*="bottom attached"].fm-table {
+.ui[class*="bottom attached"].table {
   bottom: 0;
   margin-top: 0;
   top: 0;
   margin-bottom: 1em;
   border-radius: 0 0 0.28571429rem 0.28571429rem;
 }
-.ui[class*="bottom attached"].fm-table:last-child {
+.ui[class*="bottom attached"].table:last-child {
   margin-bottom: 0;
 }
 
@@ -287,7 +287,7 @@
   background: transparent;
 }
 
-.ui[class*="very basic"].fm-table {
+.ui[class*="very basic"].table {
   border: none;
 }
 

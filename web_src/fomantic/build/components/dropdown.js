@@ -4069,7 +4069,7 @@ $.fn.dropdown.settings = {
     addition     : '.addition',
     divider      : '.divider, .header',
     dropdown     : '.ui.dropdown',
-    hidden       : '.fm-hidden',
+    hidden       : '.hidden',
     icon         : '> .dropdown.icon',
     input        : '> input[type="hidden"], > select',
     item         : '.item',
@@ -4082,7 +4082,7 @@ $.fn.dropdown.settings = {
     search       : 'input.search, .menu > .search > input, .menu input.search',
     sizer        : '> span.sizer',
     text         : '> .text:not(.icon)',
-    unselectable : '.disabled, .filtered, .gt-hidden', // GITEA-PATCH: gt-hidden hides the item so it is also unselectable
+    unselectable : '.disabled, .filtered, .tw\:hidden', // GITEA-PATCH: tw:hidden hides the item so it is also unselectable
     clearIcon    : '> .remove.icon'
   },
 
@@ -4094,7 +4094,7 @@ $.fn.dropdown.settings = {
     empty       : 'empty',
     dropdown    : 'ui dropdown',
     filtered    : 'filtered',
-    hidden      : 'fm-hidden transition',
+    hidden      : 'hidden transition',
     icon        : 'icon',
     image       : 'image',
     item        : 'item',

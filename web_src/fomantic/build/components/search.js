@@ -1334,7 +1334,7 @@ $.fn.search.settings = {
     active    : 'active',
     empty     : 'empty',
     focus     : 'focus',
-    hidden    : 'fm-hidden',
+    hidden    : 'hidden',
     loading   : 'loading',
     results   : 'results',
     pressed   : 'down'

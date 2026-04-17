@@ -103,7 +103,7 @@ samp {
 pre,
 code,
 samp,
-.font-mono {
+.tw\:font-mono {
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 
@@ -376,7 +376,7 @@ a.label,
 }
 
 /* styles from removed fomantic transition module */
-.fm-hidden.transition {
+.hidden.transition {
   visibility: hidden;
   display: none;
 }
@@ -425,9 +425,9 @@ img.ui.avatar,
 .page-content > :first-child:not(.secondary-nav) {
   margin-top: var(--page-spacing);
 }
-/* if .ui.fm-grid is the first child the first grid-column has 'padding-top: 1rem' which we need
+/* if .ui.grid is the first child the first grid-column has 'padding-top: 1rem' which we need
    to compensate here */
-.page-content > :first-child.ui.fm-grid {
+.page-content > :first-child.ui.grid {
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 

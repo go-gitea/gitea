@@ -414,7 +414,7 @@ async function hashChangeListener() {
     </div>
     <div class="job-info-header-right">
       <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-        <button class="ui button px-3">
+        <button class="ui button tw:px-3">
           <SvgIcon name="octicon-gear" :size="18"/>
         </button>
         <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
@@ -462,14 +462,14 @@ async function hashChangeListener() {
         <SvgIcon
           v-if="isDone(run.status) && currentJobStepsStates[stepIdx].expanded && currentJobStepsStates[stepIdx].cursor === null"
           name="gitea-running"
-          class="mr-2 rotate-clockwise"
+          class="tw:mr-2 rotate-clockwise"
         />
         <SvgIcon
           v-else
           :name="currentJobStepsStates[stepIdx].expanded ? 'octicon-chevron-down' : 'octicon-chevron-right'"
-          :class="['mr-2', !isExpandable(jobStep.status) && 'invisible']"
+          :class="['tw:mr-2', !isExpandable(jobStep.status) && 'tw:invisible']"
         />
-        <ActionRunStatus :status="jobStep.status" class="mr-2"/>
+        <ActionRunStatus :status="jobStep.status" class="tw:mr-2"/>
         <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
         <span class="step-summary-duration">{{ jobStep.duration }}</span>
       </div>

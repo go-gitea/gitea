@@ -10,12 +10,12 @@ export async function createSortable(el: HTMLElement, opts: {handle?: string} & 
     ghostClass: 'card-ghost',
     onChoose: (e: SortableEvent) => {
       const handle = opts.handle ? e.item.querySelector(opts.handle)! : e.item;
-      handle.classList.add('cursor-grabbing');
+      handle.classList.add('tw:cursor-grabbing');
       opts.onChoose?.(e);
     },
     onUnchoose: (e: SortableEvent) => {
       const handle = opts.handle ? e.item.querySelector(opts.handle)! : e.item;
-      handle.classList.remove('cursor-grabbing');
+      handle.classList.remove('tw:cursor-grabbing');
       opts.onUnchoose?.(e);
     },
     ...opts,
