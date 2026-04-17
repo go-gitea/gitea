@@ -57,30 +57,25 @@ func Teams(ctx *context.Context) {
 	keyword := ctx.FormTrim("q")
 	page := max(ctx.FormInt("page"), 1)
 
-	teams := ctx.Org.Teams
-	count := int64(len(teams))
-
+	opts := &org_model.SearchTeamOptions{
+		OrgID: org.ID,
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.MembersPagingNum,
+		},
+	}
+	if !ctx.Org.IsOwner {
+		opts.UserID = ctx.Doer.ID
+	}
 	if keyword != "" {
-		opts := &org_model.SearchTeamOptions{
-			Keyword:     keyword,
-			OrgID:       org.ID,
-			IncludeDesc: true,
-			ListOptions: db.ListOptions{
-				Page:     page,
-				PageSize: setting.UI.MembersPagingNum,
-			},
-		}
-		if !ctx.Org.IsOwner {
-			opts.UserID = ctx.Doer.ID
-		}
+		opts.Keyword = keyword
+		opts.IncludeDesc = true
+	}
 
-		res, resCount, err := org_model.SearchTeam(ctx, opts)
-		if err != nil {
-			ctx.ServerError("SearchTeam", err)
-			return
-		}
-		teams = res
-		count = resCount
+	teams, count, err := org_model.SearchTeam(ctx, opts)
+	if err != nil {
+		ctx.ServerError("SearchTeam", err)
+		return
 	}
 
 	for _, t := range teams {
