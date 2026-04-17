@@ -22,10 +22,6 @@
   min-height: 50px; /* the header sometimes contains a mini button, sometimes not, so we set a min-height to make sure the layout is consistent */
 }
 
-.page-content.organization .team-item-box > .ui.segment {
-  min-height: 61px; /* the segment contains the member avatars, sometimes it is empty */
-}
-
 .organization.invite #invite-box {
   margin: 50px auto auto;
   width: 500px !important;

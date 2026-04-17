@@ -18,7 +18,7 @@
 		</form>
 
 		<div class="ui two column stackable grid">
-			{{range .OrgListTeams}}
+			{{range $team := $.OrgListTeams}}
 				<div class="column team-item-box">
 					<div class="ui top attached header muted-links flex-left-right">
 						<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
@@ -34,12 +34,17 @@
 							{{end}}
 						</div>
 					</div>
-					<div class="ui attached segment flex-center-wrap">
-						{{range .Members}}
-							{{template "shared/user/avatarlink" dict "user" . "size" 32 "tooltip" true}}
-						{{else}}
-							<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}">{{ctx.Locale.Tr "org.teams.add_team_member"}}</a>
+					<div class="ui attached segment">
+						{{if $team.Description}}
+							<div class="tw-mb-2 tw-text-text-light-3">{{$team.Description}}</div>
 						{{end}}
+						<div class="flex-center-wrap">
+							{{range .Members}}
+								{{template "shared/user/avatarlink" dict "user" . "size" 32 "tooltip" true}}
+							{{else}}
+								<a href="{{$.OrgLink}}/teams/{{$team.LowerName | PathEscape}}">{{ctx.Locale.Tr "org.teams.add_team_member"}}</a>
+							{{end}}
+						</div>
 					</div>
 				</div>
 			{{end}}
