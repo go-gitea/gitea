@@ -1,11 +1,8 @@
 // keep this file lightweight, it's imported into IIFE chunk in bootstrap
-import {clippie} from 'clippie';
 import {html} from '../utils/html.ts';
-import octiconCheck from '../../../public/assets/img/svg/octicon-check.svg';
-import octiconCopy from '../../../public/assets/img/svg/octicon-copy.svg';
 import type {Intent} from '../types.ts';
 
-export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', stack?: string) {
+export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', details?: string) {
   const msgContainer = document.querySelector('.page-content') ?? document.body;
   if (!msgContainer) {
     alert(`${msgType}: ${msg}`);
@@ -15,39 +12,29 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', s
   let msgDiv = msgContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
   if (!msgDiv) {
     const el = document.createElement('div');
-    el.innerHTML = html`
-      <div class="ui container js-global-error tw-my-[--page-spacing]">
-        <div class="ui ${msgType} message tw-flex tw-justify-center tw-items-center">
-          <span class="js-global-error-msg tw-whitespace-pre-line"></span><span class="js-global-error-count"></span>
-          <button type="button" class="js-global-error-copy interact-bg tw-text-inherit tw-p-2 tw-rounded tw-ml-1"></button>
-          <pre class="js-global-error-stack tw-hidden"></pre>
-        </div>
-      </div>
-    `;
-    msgDiv = el.firstElementChild as HTMLDivElement;
-    const copyBtn = msgDiv.querySelector<HTMLButtonElement>('.js-global-error-copy')!;
-    copyBtn.innerHTML = octiconCopy;
-    let resetTimeout: ReturnType<typeof setTimeout> | undefined;
-    copyBtn.addEventListener('click', async () => {
-      const msgText = msgDiv!.querySelector('.js-global-error-msg')!.textContent;
-      const stackText = msgDiv!.querySelector('.js-global-error-stack')!.textContent;
-      if (!await clippie([msgText, stackText].filter(Boolean).join('\n'))) return;
-      copyBtn.innerHTML = octiconCheck;
-      copyBtn.classList.replace('tw-text-inherit', 'tw-text-green');
-      clearTimeout(resetTimeout);
-      resetTimeout = setTimeout(() => {
-        copyBtn.innerHTML = octiconCopy;
-        copyBtn.classList.replace('tw-text-green', 'tw-text-inherit');
-      }, 1500);
-    });
+    el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><div class="ui ${msgType} message tw-text-center tw-whitespace-pre-line"></div></div>`;
+    msgDiv = el.childNodes[0] as HTMLDivElement;
   }
   // merge duplicated messages into "the message (count)" format
   const msgCount = Number(msgDiv.getAttribute(`data-global-error-msg-count`)) + 1;
   msgDiv.setAttribute(`data-global-error-msg-compact`, msgCompact);
-  msgDiv.setAttribute(`data-global-error-msg-count`, String(msgCount));
-  msgDiv.querySelector('.js-global-error-msg')!.textContent = msg;
-  msgDiv.querySelector('.js-global-error-count')!.textContent = msgCount > 1 ? ` (${msgCount})` : '';
-  msgDiv.querySelector('.js-global-error-stack')!.textContent = stack ?? '';
+  msgDiv.setAttribute(`data-global-error-msg-count`, msgCount.toString());
+  const msgEl = msgDiv.querySelector('.ui.message')!;
+  const text = msg + (msgCount > 1 ? ` (${msgCount})` : '');
+  if (details) {
+    if (!msgEl.querySelector('details')) {
+      msgEl.classList.add('tw-cursor-pointer');
+      msgEl.innerHTML = html`<details><summary></summary><pre class="tw-w-fit tw-mx-auto tw-mt-2 tw-mb-0 tw-whitespace-pre-wrap tw-text-left tw-cursor-text"><code class="tw-bg-transparent"></code></pre></details>`;
+      const detailsEl = msgEl.querySelector('details')!;
+      msgEl.addEventListener('click', (e) => {
+        if (!(e.target as HTMLElement).closest('summary, pre')) detailsEl.open = !detailsEl.open;
+      });
+    }
+    msgEl.querySelector('summary')!.textContent = text;
+    msgEl.querySelector('pre code')!.textContent = details;
+  } else {
+    msgEl.textContent = text;
+  }
   msgContainer.prepend(msgDiv);
 }
 

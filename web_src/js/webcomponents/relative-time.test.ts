@@ -111,11 +111,14 @@ test('respects lang from parent element', async () => {
 
 test('falls back when navigator.language is invalid', async () => {
   vi.spyOn(navigator, 'language', 'get').mockReturnValue('undefined');
-  const el = document.createElement('relative-time');
-  el.setAttribute('datetime', new Date(Date.now() - 3 * 60 * 1000).toISOString());
-  await Promise.resolve();
-  expect(getText(el)).toBe('3 minutes ago');
-  vi.restoreAllMocks();
+  try {
+    const el = document.createElement('relative-time');
+    el.setAttribute('datetime', new Date(Date.now() - 3 * 60 * 1000).toISOString());
+    await Promise.resolve();
+    expect(getText(el)).toBe('3 minutes ago');
+  } finally {
+    vi.restoreAllMocks();
+  }
 });
 
 test('switches to datetime with P1D threshold', async () => {

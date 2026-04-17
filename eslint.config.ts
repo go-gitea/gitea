@@ -927,7 +927,6 @@ export default defineConfig([
     rules: {
       ...playwright.configs['flat/recommended'].rules,
       'playwright/expect-expect': [0],
-      'playwright/no-networkidle': [0],
     },
   },
   {
