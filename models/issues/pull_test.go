@@ -20,10 +20,10 @@ import (
 func TestPullRequest(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	t.Run("LoadAttributes", testPullRequest_LoadAttributes)
-	t.Run("LoadIssue", testPullRequest_LoadIssue)
-	t.Run("LoadBaseRepo", testPullRequest_LoadBaseRepo)
-	t.Run("LoadHeadRepo", testPullRequest_LoadHeadRepo)
+	t.Run("LoadAttributes", testPullRequestLoadAttributes)
+	t.Run("LoadIssue", testPullRequestLoadIssue)
+	t.Run("LoadBaseRepo", testPullRequestLoadBaseRepo)
+	t.Run("LoadHeadRepo", testPullRequestLoadHeadRepo)
 	t.Run("PullRequestsNewest", testPullRequestsNewest)
 	t.Run("PullRequestsOldest", testPullRequestsOldest)
 	t.Run("GetUnmergedPullRequest", testGetUnmergedPullRequest)
@@ -33,27 +33,27 @@ func TestPullRequest(t *testing.T) {
 	t.Run("GetPullRequestByIndex", testGetPullRequestByIndex)
 	t.Run("GetPullRequestByID", testGetPullRequestByID)
 	t.Run("GetPullRequestByIssueID", testGetPullRequestByIssueID)
-	t.Run("PullRequest_UpdateCols", testPullRequest_UpdateCols)
-	t.Run("PullRequest_IsWorkInProgress", testPullRequest_IsWorkInProgress)
-	t.Run("PullRequest_GetWorkInProgressPrefixWorkInProgress", testPullRequest_GetWorkInProgressPrefixWorkInProgress)
+	t.Run("PullRequest_UpdateCols", testPullRequestUpdateCols)
+	t.Run("PullRequest_IsWorkInProgress", testPullRequestIsWorkInProgress)
+	t.Run("PullRequest_GetWorkInProgressPrefixWorkInProgress", testPullRequestGetWorkInProgressPrefixWorkInProgress)
 	t.Run("DeleteOrphanedObjects", testDeleteOrphanedObjects)
 	t.Run("ParseCodeOwnersLine", testParseCodeOwnersLine)
 	t.Run("CodeOwnerAbsolutePathPatterns", testCodeOwnerAbsolutePathPatterns)
 	t.Run("GetApprovers", testGetApprovers)
 	t.Run("GetPullRequestByMergedCommit", testGetPullRequestByMergedCommit)
-	t.Run("Migrate_InsertPullRequests", testMigrate_InsertPullRequests)
-	t.Run("PullRequestsClosedRecentSortType", testPullRequests_Closed_RecentSortType)
+	t.Run("Migrate_InsertPullRequests", testMigrateInsertPullRequests)
+	t.Run("PullRequestsClosedRecentSortType", testPullRequestsClosedRecentSortType)
 	t.Run("LoadRequestedReviewers", testLoadRequestedReviewers)
 }
 
-func testPullRequest_LoadAttributes(t *testing.T) {
+func testPullRequestLoadAttributes(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadAttributes(t.Context()))
 	assert.NotNil(t, pr.Merger)
 	assert.Equal(t, pr.MergerID, pr.Merger.ID)
 }
 
-func testPullRequest_LoadIssue(t *testing.T) {
+func testPullRequestLoadIssue(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadIssue(t.Context()))
 	assert.NotNil(t, pr.Issue)
@@ -63,7 +63,7 @@ func testPullRequest_LoadIssue(t *testing.T) {
 	assert.Equal(t, int64(2), pr.Issue.ID)
 }
 
-func testPullRequest_LoadBaseRepo(t *testing.T) {
+func testPullRequestLoadBaseRepo(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 	assert.NotNil(t, pr.BaseRepo)
@@ -73,7 +73,7 @@ func testPullRequest_LoadBaseRepo(t *testing.T) {
 	assert.Equal(t, pr.BaseRepoID, pr.BaseRepo.ID)
 }
 
-func testPullRequest_LoadHeadRepo(t *testing.T) {
+func testPullRequestLoadHeadRepo(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadHeadRepo(t.Context()))
 	assert.NotNil(t, pr.HeadRepo)
@@ -101,7 +101,7 @@ func testPullRequestsNewest(t *testing.T) {
 	}
 }
 
-func testPullRequests_Closed_RecentSortType(t *testing.T) {
+func testPullRequestsClosedRecentSortType(t *testing.T) {
 	// Issue ID | Closed At.  | Updated At
 	//    2     | 1707270001  | 1707270001
 	//    3     | 1707271000  | 1707279999
@@ -260,7 +260,7 @@ func testGetPullRequestByIssueID(t *testing.T) {
 	assert.True(t, issues_model.IsErrPullRequestNotExist(err))
 }
 
-func testPullRequest_UpdateCols(t *testing.T) {
+func testPullRequestUpdateCols(t *testing.T) {
 	pr := &issues_model.PullRequest{
 		ID:         1,
 		BaseBranch: "baseBranch",
@@ -276,7 +276,7 @@ func testPullRequest_UpdateCols(t *testing.T) {
 
 // TODO TestAddTestPullRequestTask
 
-func testPullRequest_IsWorkInProgress(t *testing.T) {
+func testPullRequestIsWorkInProgress(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	pr.LoadIssue(t.Context())
 
@@ -289,7 +289,7 @@ func testPullRequest_IsWorkInProgress(t *testing.T) {
 	assert.True(t, pr.IsWorkInProgress(t.Context()))
 }
 
-func testPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
+func testPullRequestGetWorkInProgressPrefixWorkInProgress(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	pr.LoadIssue(t.Context())
 
@@ -403,7 +403,7 @@ func testGetPullRequestByMergedCommit(t *testing.T) {
 	assert.ErrorAs(t, err, &issues_model.ErrPullRequestNotExist{})
 }
 
-func testMigrate_InsertPullRequests(t *testing.T) {
+func testMigrateInsertPullRequests(t *testing.T) {
 	reponame := "repo1"
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
