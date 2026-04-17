@@ -555,8 +555,7 @@ func TestOAuth_GrantScopesReadUserFailRepos(t *testing.T) {
 		AddBasicAuth(user.Name)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var app *api.OAuth2Application
-	DecodeJSON(t, resp, &app)
+	app := DecodeJSON(t, resp, &api.OAuth2Application{})
 
 	grant := &auth_model.OAuth2Grant{
 		ApplicationID: app.ID,
@@ -636,8 +635,7 @@ func TestOAuth_GrantScopesReadRepositoryFailOrganization(t *testing.T) {
 		AddBasicAuth(user.Name)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var app *api.OAuth2Application
-	DecodeJSON(t, resp, &app)
+	app := DecodeJSON(t, resp, &api.OAuth2Application{})
 
 	grant := &auth_model.OAuth2Grant{
 		ApplicationID: app.ID,
@@ -776,8 +774,7 @@ func TestOAuth_GrantScopesClaimPublicOnlyGroups(t *testing.T) {
 		AddBasicAuth(user.Name)
 	appResp := MakeRequest(t, appReq, http.StatusCreated)
 
-	var app *api.OAuth2Application
-	DecodeJSON(t, appResp, &app)
+	app := DecodeJSON(t, appResp, &api.OAuth2Application{})
 
 	grant := &auth_model.OAuth2Grant{
 		ApplicationID: app.ID,
@@ -877,8 +874,7 @@ func TestOAuth_GrantScopesClaimAllGroups(t *testing.T) {
 		AddBasicAuth(user.Name)
 	appResp := MakeRequest(t, appReq, http.StatusCreated)
 
-	var app *api.OAuth2Application
-	DecodeJSON(t, appResp, &app)
+	app := DecodeJSON(t, appResp, &api.OAuth2Application{})
 
 	grant := &auth_model.OAuth2Grant{
 		ApplicationID: app.ID,

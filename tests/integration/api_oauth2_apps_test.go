@@ -40,8 +40,7 @@ func testAPICreateOAuth2Application(t *testing.T) {
 		AddBasicAuth(user.Name)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var createdApp *api.OAuth2Application
-	DecodeJSON(t, resp, &createdApp)
+	createdApp := DecodeJSON(t, resp, &api.OAuth2Application{})
 
 	assert.Equal(t, appBody.Name, createdApp.Name)
 	assert.Len(t, createdApp.ClientSecret, 56)

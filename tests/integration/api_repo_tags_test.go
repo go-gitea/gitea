@@ -59,8 +59,7 @@ func TestAPIRepoTags(t *testing.T) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/tags/%s", user.Name, repoName, newTag.Name).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	var tag *api.Tag
-	DecodeJSON(t, resp, &tag)
+	tag := DecodeJSON(t, resp, &api.Tag{})
 	assert.Equal(t, newTag, tag)
 
 	// delete tag
