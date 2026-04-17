@@ -67,7 +67,7 @@ func Teams(ctx *context.Context) {
 		},
 	}
 
-	canSeeAllTeams, err := ctx.Org.Organization.CanUserSeeAllTeams(ctx, ctx.Doer)
+	canSeeAllTeams, err := ctx.Org.Organization.CanUserSeeAllTeams(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("CanUserSeeAllTeams", err)
 		return

@@ -598,11 +598,8 @@ func getUserTeamIDsQueryBuilder(orgID, userID int64) *builder.Builder {
 }
 
 // CanUserSeeAllTeams returns true if user can see all teams in organization
-func (org *Organization) CanUserSeeAllTeams(ctx context.Context, user *user_model.User) (bool, error) {
-	if user.IsAdmin {
-		return true, nil
-	}
-	isOwner, err := org.IsOwnedBy(ctx, user.ID)
+func (org *Organization) CanUserSeeAllTeams(ctx context.Context, userID int64) (bool, error) {
+	isOwner, err := org.IsOwnedBy(ctx, userID)
 	if err != nil {
 		return false, err
 	}
@@ -610,7 +607,7 @@ func (org *Organization) CanUserSeeAllTeams(ctx context.Context, user *user_mode
 		return true, nil
 	}
 
-	teams, err := org.GetUserTeams(ctx, user.ID)
+	teams, err := org.GetUserTeams(ctx, userID)
 	if err != nil {
 		return false, err
 	}
