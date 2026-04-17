@@ -459,11 +459,7 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 		return
 	}
 
-	remoteSuffix, err := util.CryptoRandomString(10)
-	if err != nil {
-		ctx.ServerError("RandomString", err)
-		return
-	}
+	remoteSuffix := util.CryptoRandomString(10)
 
 	remoteAddress, err := util.SanitizeURL(form.PushMirrorAddress)
 	if err != nil {

@@ -40,7 +40,9 @@
 				{{if .IsRepresentableAsText}}
 				<a href="?display=source" class="ui mini basic button file-view-toggle-source {{if .IsDisplayingSource}}active{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code" 15}}</a>
 				{{end}}
+				{{if .HasSourceRenderedToggle}}
 				<a href="?display=rendered" class="ui mini basic button file-view-toggle-rendered {{if not .IsDisplayingSource}}active{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file" 15}}</a>
+				{{end}}
 			</div>
 			{{if not .ReadmeInList}}
 				<div class="ui buttons tw-mr-1">
@@ -90,15 +92,15 @@
 	</h4>
 
 	<div class="ui bottom attached table unstackable segment">
-		{{if not .IsMarkup}}
+		{{if not .RenderAsMarkup}}
 			{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus}}
 		{{end}}
-		<div class="file-view {{if .IsMarkup}}markup {{.MarkupType}}{{else if .IsPlainText}}plain-text{{else if .IsDisplayingSource}}code-view{{end}}">
+		<div class="file-view {{if eq .RenderAsMarkup "markup-inplace"}}markup {{.MarkupType}}{{else if .IsPlainText}}plain-text{{else if .IsDisplayingSource}}code-view{{end}}">
 			{{if .IsFileTooLarge}}
 				{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
 			{{else if not .FileSize}}
 				{{template "shared/fileisempty"}}
-			{{else if .IsMarkup}}
+			{{else if .RenderAsMarkup}}
 				{{.FileContent}}
 			{{else if .IsPlainText}}
 				<pre>{{if .FileContent}}{{.FileContent}}{{end}}</pre>

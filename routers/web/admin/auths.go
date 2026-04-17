@@ -205,6 +205,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 
 		SSHPublicKeyClaimName: form.Oauth2SSHPublicKeyClaimName,
 		FullNameClaimName:     form.Oauth2FullNameClaimName,
+		ExternalIDClaim:       form.OpenIDConnectExternalIDClaim,
 	}
 }
 

@@ -88,6 +88,7 @@ type AuthenticationForm struct {
 	Oauth2GroupTeamMapRemoval     bool
 	Oauth2SSHPublicKeyClaimName   string
 	Oauth2FullNameClaimName       string
+	OpenIDConnectExternalIDClaim  string
 
 	// SSPI
 	SSPIAutoCreateUsers      bool

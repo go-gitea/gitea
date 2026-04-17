@@ -97,10 +97,7 @@ func NewRunnerTokenWithValue(ctx context.Context, ownerID, repoID int64, token s
 }
 
 func NewRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRunnerToken, error) {
-	token, err := util.CryptoRandomString(40)
-	if err != nil {
-		return nil, err
-	}
+	token := util.CryptoRandomString(40)
 	return NewRunnerTokenWithValue(ctx, ownerID, repoID, token)
 }
 

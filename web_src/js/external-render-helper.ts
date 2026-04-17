@@ -26,14 +26,16 @@ function isValidCssColor(s: string | null): boolean {
   return reHex.test(s) || reRgb.test(s);
 }
 
-const url = new URL(window.location.href);
+const thisScriptElem = document.querySelector('script#gitea-external-render-helper');
+const queryString = thisScriptElem?.getAttribute('data-render-query-string') ?? window.location.search.substring(1);
+const queryParams = new URLSearchParams(queryString);
 
-const isDarkTheme = url.searchParams.get('gitea-is-dark-theme') === 'true';
+const isDarkTheme = queryParams.get('gitea-is-dark-theme') === 'true';
 if (isDarkTheme) {
   document.documentElement.setAttribute('data-gitea-theme-dark', String(isDarkTheme));
 }
 
-const backgroundColor = url.searchParams.get('gitea-iframe-bgcolor');
+const backgroundColor = queryParams.get('gitea-iframe-bgcolor');
 if (isValidCssColor(backgroundColor)) {
   // create a style element to set background color, then it can be overridden by the content page's own style if needed
   const style = document.createElement('style');
@@ -41,12 +43,13 @@ if (isValidCssColor(backgroundColor)) {
 :root {
   --gitea-iframe-bgcolor: ${backgroundColor};
 }
+html, body { margin: 0; padding: 0 }
 body { background: ${backgroundColor}; }
 `;
   document.head.append(style);
 }
 
-const iframeId = url.searchParams.get('gitea-iframe-id');
+const iframeId = queryParams.get('gitea-iframe-id');
 if (iframeId) {
   // iframe is in different origin, so we need to use postMessage to communicate
   const postIframeMsg = (cmd: string, data: Record<string, any> = {}) => {
