@@ -60,10 +60,9 @@
 						<a class="tw-text-text-light flex-text-inline" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
 					</h4>
 					<div class="ui attached segment members">
-						{{$isMember := .IsOrganizationMember}}
-						{{range .OrgOverviewMembers}}
-							{{if or $isMember (call $.IsPublicMember .ID)}}
-								<a href="{{.HomeLink}}" data-tooltip-content="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">{{ctx.AvatarUtils.Avatar . 24}}</a>
+						{{range $memberUser := .OrgOverviewMembers}}
+							{{if or $.IsOrganizationMember (call $.IsPublicMember $memberUser.ID)}}
+								{{template "shared/user/avatarlink" dict "user" $memberUser "size" 32}}
 							{{end}}
 						{{end}}
 					</div>

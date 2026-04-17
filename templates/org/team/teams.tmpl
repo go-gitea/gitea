@@ -40,7 +40,7 @@
 					</div>
 					<div class="ui attached segment members">
 						{{range .Members}}
-							{{template "shared/user/avatarlink" dict "user" .}}
+							{{template "shared/user/avatarlink" dict "user" . "size" 32}}
 						{{end}}
 					</div>
 				</div>
