@@ -7,7 +7,7 @@
 			</div>
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui secondary filter menu tw-items-center tw-mx-0">
+			<div class="ui secondary fm-filter menu tw-items-center tw-mx-0">
 				<form class="ui form ignore-dirty tw-flex-1">
 					{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.org_kind")}}
 				</form>
@@ -28,8 +28,8 @@
 				</div>
 			</div>
 		</div>
-		<div class="ui attached table segment">
-			<table class="ui very basic table unstackable">
+		<div class="ui attached fm-table segment">
+			<table class="ui very basic fm-table unstackable">
 				<thead>
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>

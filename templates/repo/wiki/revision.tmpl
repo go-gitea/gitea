@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository wiki revisions">
 	{{template "repo/header" .}}
 	{{$title := .title}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		<div class="ui dividing header flex-text-block tw-flex-wrap tw-justify-between">
 			<div class="flex-text-block">
 				<a class="ui basic button tw-px-3" title="{{ctx.Locale.Tr "repo.wiki.back_to_wiki"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}">{{svg "octicon-home"}}</a>
@@ -21,7 +21,7 @@
 		<h2 class="ui top header">{{ctx.Locale.Tr "repo.wiki.wiki_page_revisions"}}</h2>
 		<div class="tw-mt-4">
 			<h4 class="ui top attached header">
-				<div class="ui stackable grid">
+				<div class="ui stackable fm-grid">
 					<div class="sixteen wide column">
 						{{.CommitCount}} {{ctx.Locale.Tr "repo.commits.commits"}}
 					</div>

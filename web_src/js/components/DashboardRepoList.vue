@@ -474,7 +474,7 @@ export default defineComponent({
           </div>
         </overflow-menu>
       </div>
-      <div v-if="repos.length" class="ui attached table segment tw-rounded-b">
+      <div v-if="repos.length" class="ui attached fm-table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="tw-flex tw-items-center tw-py-2" v-for="(repo, index) in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
@@ -538,7 +538,7 @@ export default defineComponent({
           <p>{{ textNoOrg }}</p>
         </div>
       </div>
-      <div v-else class="ui attached table segment tw-rounded-b">
+      <div v-else class="ui attached fm-table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">

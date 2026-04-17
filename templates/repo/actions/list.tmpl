@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div class="page-content repository actions">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{template "base/alert" .}}
 
 		{{if .HasWorkflowsOrRuns}}
@@ -27,7 +27,7 @@
 			<div class="flex-container-main">
 				<div class="ui top attached header flex-text-block tw-flex-wrap tw-justify-between">
 					<strong>{{ctx.Locale.TrN .Page.Paginater.Total "actions.runs.workflow_run_count_1" "actions.runs.workflow_run_count_n" .Page.Paginater.Total}}</strong>
-					<div class="ui secondary filter menu flex-text-block tw-m-0">
+					<div class="ui secondary fm-filter menu flex-text-block tw-m-0">
 						<!-- Actor -->
 						<div class="ui{{if not .Actors}} disabled{{end}} dropdown jump item">
 							<span class="text">{{ctx.Locale.Tr "actions.runs.actor"}}</span>

@@ -2,7 +2,7 @@
 {{$commitLinkBase := print $.RepoLink (Iif $.PageIsWiki "/wiki" "") "/commit"}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository diff">
 	{{template "repo/header" .}}
-	<div class="ui container fluid padded">
+	<div class="ui fm-container fluid padded">
 		<div class="ui top attached header clearing segment tw-relative commit-header">
 			<div class="tw-flex tw-mb-4 tw-gap-1">
 				<h3 class="tw-mb-0 tw-flex-1"><span class="commit-summary" title="{{.Commit.Summary}}">{{ctx.RenderUtils.RenderCommitMessage .Commit.Message $.Repository}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses "AdditionalClasses" "tw-inline"}}</h3>

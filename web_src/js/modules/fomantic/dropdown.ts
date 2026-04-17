@@ -296,9 +296,9 @@ export function hideScopedEmptyDividers(container: Element) {
   let curScope: string = '', lastVisibleScope: string = '';
   const isDivider = (item: Element) => item.classList.contains('divider');
   const isScopedDivider = (item: Element) => isDivider(item) && item.hasAttribute('data-scope');
-  const hideDivider = (item: Element) => item.classList.add('hidden', 'transition'); // dropdown has its own classes to hide items
-  const showDivider = (item: Element) => item.classList.remove('hidden', 'transition');
-  const isHidden = (item: Element) => item.classList.contains('hidden') || item.classList.contains('filtered') || item.classList.contains('tw-hidden');
+  const hideDivider = (item: Element) => item.classList.add('fm-hidden', 'transition'); // dropdown has its own classes to hide items
+  const showDivider = (item: Element) => item.classList.remove('fm-hidden', 'transition');
+  const isHidden = (item: Element) => item.classList.contains('fm-hidden') || item.classList.contains('filtered') || item.classList.contains('tw-hidden');
   const handleScopeSwitch = (itemScope: string) => {
     if (curScopeVisibleItems.length === 1 && isScopedDivider(curScopeVisibleItems[0])) {
       hideDivider(curScopeVisibleItems[0]);

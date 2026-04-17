@@ -3,7 +3,7 @@
   margin: auto;
 }
 
-.page-content.install form.ui.form .inline.field > label {
+.page-content.install form.ui.form .fm-inline.field > label {
   text-align: right;
   width: 30%;
   padding-right: 10px;

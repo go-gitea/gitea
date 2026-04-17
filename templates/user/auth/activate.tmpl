@@ -1,6 +1,6 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user activate">
-	<div class="ui middle very relaxed page grid">
+	<div class="ui middle very relaxed page fm-grid">
 		<div class="column">
 			<form class="ui form ignore-dirty tw-max-w-2xl tw-m-auto" action="{{AppSubUrl}}/user/activate" method="post">
 				<h2 class="ui top attached header">
@@ -13,7 +13,7 @@
 							<label for="verify-password">{{ctx.Locale.Tr "password"}}</label>
 							<input id="verify-password" name="password" type="password" autocomplete="off" required>
 						</div>
-						<div class="inline field">
+						<div class="fm-inline field">
 							<button class="ui primary button">{{ctx.Locale.Tr "install.confirm_password"}}</button>
 						</div>
 						<input name="code" type="hidden" value="{{.ActivationCode}}">

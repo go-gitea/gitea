@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content {{if .IsRepo}}repository{{end}}">
 	{{if .IsRepo}}{{template "repo/header" .}}{{end}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{template "base/alert" .}}
 		<div class="status-page-error">
 			<div class="status-page-error-title">404 Not Found</div>

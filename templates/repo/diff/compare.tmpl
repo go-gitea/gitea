@@ -4,7 +4,7 @@
 
 	{{$compareSeparator := $.CompareInfo.CompareSeparator}}
 	{{$compareSeparatorSwitch := Iif $.CompareInfo.DirectComparison "..." ".."}}
-	<div class="ui container fluid padded">
+	<div class="ui fm-container fluid padded">
 		<h2 class="ui header">
 			{{if and $.PageIsComparePull $.IsSigned (not .Repository.IsArchived)}}
 				{{ctx.Locale.Tr "repo.compare.title"}}
@@ -37,7 +37,7 @@
 						<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
 					</div>
 					<div class="header">
-						<div class="ui grid">
+						<div class="ui fm-grid">
 							<div class="two column row">
 								<a class="reference column" href="#" data-target=".base-branch-list">
 									<span class="tw-text-text">
@@ -108,7 +108,7 @@
 						<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
 					</div>
 					<div class="header">
-						<div class="ui grid">
+						<div class="ui fm-grid">
 							<div class="two column row">
 								<a class="reference column" href="#" data-target=".head-branch-list">
 									<span class="tw-text-text">
@@ -217,7 +217,7 @@
 	</div>
 
 	{{if $showDiffBox}}
-		<div class="ui container fluid padded tw-my-4">
+		<div class="ui fm-container fluid padded tw-my-4">
 			{{template "repo/commits_table" .}}
 			{{template "repo/diff/box" .}}
 		</div>

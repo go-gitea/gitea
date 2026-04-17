@@ -1,6 +1,6 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository new migrate">
-	<div class="ui container medium-width">
+	<div class="ui fm-container medium-width">
 		<h3 class="ui top attached header">
 			{{ctx.Locale.Tr "repo.migrate.migrate" .service.Title}}
 		</h3>
@@ -11,18 +11,18 @@
 
 				<input id="service_type" type="hidden" name="service" value="{{.service}}">
 
-				<div class="inline required field {{if .Err_CloneAddr}}error{{end}}">
+				<div class="fm-inline required field {{if .Err_CloneAddr}}error{{end}}">
 					<label for="clone_addr">{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
 					<input id="clone_addr" name="clone_addr" value="{{.clone_addr}}" autofocus required>
 					<span class="help">
 					{{ctx.Locale.Tr "repo.migrate.clone_address_desc"}}{{if .ContextUser.CanImportLocal}} {{ctx.Locale.Tr "repo.migrate.clone_local_path"}}{{end}}
 					</span>
 				</div>
-				<div class="inline field {{if .Err_Auth}}error{{end}}">
+				<div class="fm-inline field {{if .Err_Auth}}error{{end}}">
 					<label for="auth_username">{{ctx.Locale.Tr "username"}}</label>
 					<input id="auth_username" name="auth_username" value="{{.auth_username}}" {{if not .auth_username}}data-need-clear="true"{{end}}>
 				</div>
-				<div class="inline field {{if .Err_Auth}}error{{end}}">
+				<div class="fm-inline field {{if .Err_Auth}}error{{end}}">
 					<label for="auth_password">{{ctx.Locale.Tr "password"}}</label>
 					<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
 				</div>
@@ -31,7 +31,7 @@
 
 				<div class="divider"></div>
 
-				<div class="inline required field {{if .Err_Owner}}error{{end}}">
+				<div class="fm-inline required field {{if .Err_Owner}}error{{end}}">
 					<label>{{ctx.Locale.Tr "repo.owner"}}</label>
 					<div class="ui selection owner dropdown ellipsis-text-items">
 						<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
@@ -55,11 +55,11 @@
 					</div>
 				</div>
 
-				<div class="inline required field {{if .Err_RepoName}}error{{end}}">
+				<div class="fm-inline required field {{if .Err_RepoName}}error{{end}}">
 					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
 					<input id="repo_name" name="repo_name" value="{{.repo_name}}" required maxlength="100">
 				</div>
-				<div class="inline field">
+				<div class="fm-inline field">
 					<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
 					<div class="ui checkbox">
 						{{if .IsForcedPrivate}}
@@ -71,12 +71,12 @@
 						{{end}}
 					</div>
 				</div>
-				<div class="inline field {{if .Err_Description}}error{{end}}">
+				<div class="fm-inline field {{if .Err_Description}}error{{end}}">
 					<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
 					<textarea id="description" name="description" maxlength="2048">{{.description}}</textarea>
 				</div>
 
-				<div class="inline field">
+				<div class="fm-inline field">
 					<label></label>
 					<button class="ui primary button">
 						{{ctx.Locale.Tr "repo.migrate_repo"}}

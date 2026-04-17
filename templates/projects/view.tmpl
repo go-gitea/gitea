@@ -1,7 +1,7 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
-<div class="ui container fluid padded projects-view" data-global-init="initRepoProjectsView">
-	<div class="ui container flex-text-block project-header">
+<div class="ui fm-container fluid padded projects-view" data-global-init="initRepoProjectsView">
+	<div class="ui fm-container flex-text-block project-header">
 		<h2>{{.Project.Title}}</h2>
 		<div class="tw-flex-1"></div>
 		<div class="list-header-filters ui secondary menu tw-m-0">
@@ -70,7 +70,7 @@
 		{{end}}
 	</div>
 
-	<div class="ui container project-description">
+	<div class="ui fm-container project-description">
 		<div class="render-content markup">
 			{{$.Project.RenderedContent}}
 		</div>

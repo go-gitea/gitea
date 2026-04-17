@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content ui repository branches">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{template "base/alert" .}}
 		{{template "repo/sub_menu" .}}
 		{{if .DefaultBranchBranch}}
@@ -14,8 +14,8 @@
 				{{end}}
 			</h4>
 
-			<div class="ui attached table segment">
-				<table class="ui very basic fixed table single line">
+			<div class="ui attached fm-table segment">
+				<table class="ui very basic fm-fixed fm-table single line">
 					<tbody>
 						<tr>
 							<td>
@@ -82,8 +82,8 @@
 			</form>
 		</div>
 
-		<div class="ui attached table segment">
-			<table class="ui very basic fixed table single line">
+		<div class="ui attached fm-table segment">
+			<table class="ui very basic fm-fixed fm-table single line">
 				<tbody>
 					{{range .Branches}}
 						<tr>

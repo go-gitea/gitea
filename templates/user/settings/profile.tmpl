@@ -48,8 +48,8 @@
 					<label><strong>{{ctx.Locale.Tr "settings.privacy"}}</strong></label>
 				</div>
 
-				<div class="inline field {{if .Err_Visibility}}error{{end}}">
-					<span class="inline required field"><label>{{ctx.Locale.Tr "settings.visibility"}}</label></span>
+				<div class="fm-inline field {{if .Err_Visibility}}error{{end}}">
+					<span class="fm-inline required field"><label>{{ctx.Locale.Tr "settings.visibility"}}</label></span>
 					<div class="ui selection type dropdown">
 						{{if .SignedUser.Visibility.IsPublic}}<input type="hidden" id="visibility" name="visibility" value="0">{{end}}
 						{{if .SignedUser.Visibility.IsLimited}}<input type="hidden" id="visibility" name="visibility" value="1">{{end}}
@@ -102,7 +102,7 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 				{{if not .DisableGravatar}}
-				<div class="inline field">
+				<div class="fm-inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="lookup" type="radio" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "settings.lookup_avatar_by_mail"}}</label>
@@ -114,14 +114,14 @@
 				</div>
 				{{end}}
 
-				<div class="inline field">
+				<div class="fm-inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="local" type="radio" {{if .SignedUser.UseCustomAvatar}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "settings.enable_custom_avatar"}}</label>
 					</div>
 				</div>
 
-				<div class="inline field tw-pl-4">
+				<div class="fm-inline field tw-pl-4">
 					{{template "shared/avatar_upload_crop" dict "LabelText" (ctx.Locale.Tr "settings.choose_new_avatar")}}
 				</div>
 

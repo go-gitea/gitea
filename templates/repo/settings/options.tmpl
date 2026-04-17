@@ -11,11 +11,11 @@
 					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
 					<input name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" required>
 				</div>
-				<div class="inline field">
+				<div class="fm-inline field">
 					<label>{{ctx.Locale.Tr "repo.repo_size"}}</label>
 					<span {{if not (eq .Repository.Size 0)}} data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>{{FileSize .Repository.Size}}</span>
 				</div>
-				<div class="inline field">
+				<div class="fm-inline field">
 					<label>{{ctx.Locale.Tr "repo.template"}}</label>
 					<div class="ui checkbox">
 						<input name="template" type="checkbox" {{if .Repository.IsTemplate}}checked{{end}}>
@@ -37,7 +37,7 @@
 
 			<div class="divider"></div>
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
-				<div class="inline field">
+				<div class="fm-inline field">
 					{{template "shared/avatar_upload_crop" dict "LabelText" (ctx.Locale.Tr "settings.choose_new_avatar")}}
 				</div>
 				<div class="field">
@@ -91,7 +91,7 @@
 					{{end}}
 
 					{{if .Repository.IsMirror}}
-					<table class="ui table">
+					<table class="ui fm-table">
 						<thead>
 							<tr>
 								<th class="tw-w-2/5">{{ctx.Locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
@@ -118,7 +118,7 @@
 								<td class="tw-text-right">
 									<form method="post" class="tw-inline-block">
 										<input type="hidden" name="action" value="mirror-sync">
-										<button class="ui primary tiny button inline">{{ctx.Locale.Tr "repo.settings.sync_mirror"}}</button>
+										<button class="ui primary tiny button fm-inline">{{ctx.Locale.Tr "repo.settings.sync_mirror"}}</button>
 									</form>
 								</td>
 							</tr>
@@ -127,14 +127,14 @@
 									<form class="ui form" method="post">
 										{{template "base/disable_form_autofill"}}
 										<input type="hidden" name="action" value="mirror">
-										<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
+										<div class="fm-inline field {{if .Err_EnablePrune}}error{{end}}">
 											<label>{{ctx.Locale.Tr "repo.mirror_prune"}}</label>
 											<div class="ui checkbox">
 										<input id="enable_prune" name="enable_prune" type="checkbox" {{if .PullMirror.EnablePrune}}checked{{end}}>
 										<label>{{ctx.Locale.Tr "repo.mirror_prune_desc"}}</label>
 											</div>
 										</div>
-										<div class="inline field {{if .Err_Interval}}error{{end}}">
+										<div class="fm-inline field {{if .Err_Interval}}error{{end}}">
 											<label for="interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
 											<input id="interval" name="interval" value="{{.PullMirror.Interval}}">
 										</div>
@@ -149,11 +149,11 @@
 												{{ctx.Locale.Tr "repo.need_auth"}}
 											</summary>
 											<div class="tw-p-1">
-												<div class="inline field {{if .Err_Auth}}error{{end}}">
+												<div class="fm-inline field {{if .Err_Auth}}error{{end}}">
 													<label for="mirror_username">{{ctx.Locale.Tr "username"}}</label>
 													<input id="mirror_username" name="mirror_username" value="{{$address.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
 												</div>
-												<div class="inline field {{if .Err_Auth}}error{{end}}">
+												<div class="fm-inline field {{if .Err_Auth}}error{{end}}">
 													<label for="mirror_password">{{ctx.Locale.Tr "password"}}</label>
 													<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if $address.Password}}{{ctx.Locale.Tr "repo.mirror_password_placeholder"}}{{else}}{{ctx.Locale.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value="" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
 												</div>
@@ -162,7 +162,7 @@
 										</details>
 
 										{{if .LFSStartServer}}
-										<div class="inline field">
+										<div class="fm-inline field">
 											<label>{{ctx.Locale.Tr "repo.mirror_lfs"}}</label>
 											<div class="ui checkbox">
 												<input id="mirror_lfs" name="mirror_lfs" type="checkbox" {{if .PullMirror.LFS}}checked{{end}}>
@@ -186,7 +186,7 @@
 					</table>
 					{{end}}{{/* end if .Repository.IsMirror */}}
 
-					<table class="ui table">
+					<table class="ui fm-table">
 						<thead>
 							<tr>
 								<th class="tw-w-2/5">{{ctx.Locale.Tr "repo.settings.mirror_settings.pushed_repository"}}</th>
@@ -254,11 +254,11 @@
 													{{ctx.Locale.Tr "repo.need_auth"}}
 												</summary>
 												<div class="tw-p-1">
-													<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
+													<div class="fm-inline field {{if .Err_PushMirrorAuth}}error{{end}}">
 														<label for="push_mirror_username">{{ctx.Locale.Tr "username"}}</label>
 														<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
 													</div>
-													<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
+													<div class="fm-inline field {{if .Err_PushMirrorAuth}}error{{end}}">
 														<label for="push_mirror_password">{{ctx.Locale.Tr "password"}}</label>
 														<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
 													</div>
@@ -270,7 +270,7 @@
 													<label for="push_mirror_sync_on_commit">{{ctx.Locale.Tr "repo.mirror_sync_on_commit"}}</label>
 												</div>
 											</div>
-											<div class="inline field {{if .Err_PushMirrorInterval}}error{{end}}">
+											<div class="fm-inline field {{if .Err_PushMirrorInterval}}error{{end}}">
 												<label for="push_mirror_interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
 												<input id="push_mirror_interval" name="push_mirror_interval" value="{{if .push_mirror_interval}}{{.push_mirror_interval}}{{else}}{{.DefaultMirrorInterval}}{{end}}">
 											</div>
@@ -297,7 +297,7 @@
 
 				{{$isCodeEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeCode}}
 				{{$isCodeGlobalDisabled := ctx.Consts.RepoUnitTypeCode.UnitGlobalDisabled}}
-				<div class="inline field">
+				<div class="fm-inline field">
 					<label>{{ctx.Locale.Tr "repo.code"}}</label>
 					<div class="ui checkbox{{if $isCodeGlobalDisabled}} disabled{{end}}"{{if $isCodeGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_code" type="checkbox"{{if $isCodeEnabled}} checked{{end}}>
@@ -311,7 +311,7 @@
 				{{$isWikiGlobalDisabled := ctx.Consts.RepoUnitTypeWiki.UnitGlobalDisabled}}
 				{{$isExternalWikiGlobalDisabled := ctx.Consts.RepoUnitTypeExternalWiki.UnitGlobalDisabled}}
 				{{$isBothWikiGlobalDisabled := and $isWikiGlobalDisabled $isExternalWikiGlobalDisabled}}
-				<div class="inline field">
+				<div class="fm-inline field">
 					<label>{{ctx.Locale.Tr "repo.wiki"}}</label>
 					<div class="ui checkbox{{if $isBothWikiGlobalDisabled}} disabled{{end}}"{{if $isBothWikiGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_wiki" type="checkbox" data-target="#wiki_box" {{if $isWikiEnabled}}checked{{end}}>
@@ -326,7 +326,7 @@
 						</div>
 					</div>
 					<div id="internal_wiki_box" class="field tw-pl-4 {{if not $isInternalWikiEnabled}}disabled{{end}}">
-						<div class="inline field">
+						<div class="fm-inline field">
 							<label>{{ctx.Locale.Tr "repo.settings.default_wiki_branch_name"}}</label>
 							<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
 						</div>
@@ -350,7 +350,7 @@
 				{{$isIssuesGlobalDisabled := ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
 				{{$isExternalTrackerGlobalDisabled := ctx.Consts.RepoUnitTypeExternalTracker.UnitGlobalDisabled}}
 				{{$isIssuesAndExternalGlobalDisabled := and $isIssuesGlobalDisabled $isExternalTrackerGlobalDisabled}}
-				<div class="inline field">
+				<div class="fm-inline field">
 					<label>{{ctx.Locale.Tr "repo.issues"}}</label>
 					<div class="ui checkbox{{if $isIssuesAndExternalGlobalDisabled}} disabled{{end}}"{{if $isIssuesAndExternalGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_issues" type="checkbox" data-target="#issue_box" {{if $isIssuesEnabled}}checked{{end}}>
@@ -407,7 +407,7 @@
 							<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerFormat}}" placeholder="https://github.com/{user}/{repo}/issues/{index}">
 							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_url_format_desc"}}</p>
 						</div>
-						<div class="inline fields">
+						<div class="fm-inline fields">
 							<label for="issue_style">{{ctx.Locale.Tr "repo.settings.tracker_issue_style"}}</label>
 							<div class="field">
 								<div class="ui radio checkbox">
@@ -443,7 +443,7 @@
 				{{$isProjectsEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeProjects}}
 				{{$isProjectsGlobalDisabled := ctx.Consts.RepoUnitTypeProjects.UnitGlobalDisabled}}
 				{{$projectsUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeProjects}}
-				<div class="inline field">
+				<div class="fm-inline field">
 					<label>{{ctx.Locale.Tr "repo.projects"}}</label>
 					<div class="ui checkbox{{if $isProjectsGlobalDisabled}} disabled{{end}}"{{if $isProjectsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_projects" type="checkbox" data-target="#projects_box" {{if $isProjectsEnabled}}checked{{end}}>
@@ -484,7 +484,7 @@
 
 				{{$isReleasesEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeReleases}}
 				{{$isReleasesGlobalDisabled := ctx.Consts.RepoUnitTypeReleases.UnitGlobalDisabled}}
-				<div class="inline field">
+				<div class="fm-inline field">
 					<label>{{ctx.Locale.Tr "repo.releases"}}</label>
 					<div class="ui checkbox{{if $isReleasesGlobalDisabled}} disabled{{end}}"{{if $isReleasesGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_releases" type="checkbox" {{if $isReleasesEnabled}}checked{{end}}>
@@ -494,7 +494,7 @@
 
 				{{$isPackagesEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypePackages}}
 				{{$isPackagesGlobalDisabled := ctx.Consts.RepoUnitTypePackages.UnitGlobalDisabled}}
-				<div class="inline field">
+				<div class="fm-inline field">
 					<label>{{ctx.Locale.Tr "repo.packages"}}</label>
 					<div class="ui checkbox{{if $isPackagesGlobalDisabled}} disabled{{end}}"{{if $isPackagesGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_packages" type="checkbox" {{if $isPackagesEnabled}}checked{{end}}>
@@ -507,7 +507,7 @@
 					{{$pullRequestEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypePullRequests}}
 					{{$pullRequestGlobalDisabled := ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled}}
 					{{$prUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypePullRequests}}
-					<div class="inline field">
+					<div class="fm-inline field">
 						<label>{{ctx.Locale.Tr "repo.pulls"}}</label>
 						<div class="ui checkbox{{if $pullRequestGlobalDisabled}} disabled{{end}}"{{if $pullRequestGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system" name="enable_pulls" type="checkbox" data-target="#pull_box" {{if $pullRequestEnabled}}checked{{end}}>
@@ -718,7 +718,7 @@
 				<input type="hidden" name="action" value="admin_index">
 				{{if .IsRepoIndexerEnabled}}
 					<h4 class="ui header">{{ctx.Locale.Tr "repo.settings.admin_code_indexer"}}</h4>
-					<div class="inline fields">
+					<div class="fm-inline fields">
 						<label>{{ctx.Locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
 						<span class="field">
 							{{if .CodeIndexerStatus}}
@@ -735,7 +735,7 @@
 					</div>
 				{{end}}
 				<h4 class="ui header">{{ctx.Locale.Tr "repo.settings.admin_stats_indexer"}}</h4>
-				<div class="inline fields">
+				<div class="fm-inline fields">
 					{{if and .StatsIndexerStatus .StatsIndexerStatus.CommitSha}}
 						<label>{{ctx.Locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
 					{{end}}

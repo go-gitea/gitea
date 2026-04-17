@@ -1,5 +1,5 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-sequence-number="{{.SequenceNumber}}">
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{$statusUnread := 1}}{{$statusRead := 2}}{{$statusPinned := 3}}
 		{{$notificationUnreadCount := call .PageGlobalData.GetNotificationUnreadCount}}
 		{{$pageTypeIsRead := eq $.PageType "read"}}

@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository new issue">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{template "base/alert" .}}
 		<div class="issue-navbar">
 			{{template "repo/issue/navbar" .}}
@@ -9,7 +9,7 @@
 		<div class="divider"></div>
 		{{range .IssueTemplates}}
 			<div class="ui attached segment">
-				<div class="ui two column grid">
+				<div class="ui two column fm-grid">
 					<div class="column">
 						<strong>{{.Name}}</strong>
 						<br>{{.About}}
@@ -22,7 +22,7 @@
 		{{end}}
 		{{range .IssueConfig.ContactLinks}}
 			<div class="ui attached segment">
-				<div class="ui two column grid">
+				<div class="ui two column fm-grid">
 					<div class="column">
 						<strong>{{.Name}}</strong>
 						<br>{{.About}}
@@ -35,7 +35,7 @@
 		{{end}}
 		{{if .IssueConfig.BlankIssuesEnabled}}
 			<div class="ui attached segment">
-				<div class="ui two column grid">
+				<div class="ui two column fm-grid">
 					<div class="column">
 						<strong>{{ctx.Locale.Tr "repo.issues.choose.blank"}}</strong>
 						<br/>{{ctx.Locale.Tr "repo.issues.choose.blank_about"}}

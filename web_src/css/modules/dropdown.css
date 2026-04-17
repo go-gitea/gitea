@@ -263,7 +263,7 @@ select.ui.dropdown {
   border-radius: 0;
 }
 
-.ui.selection.dropdown .menu > .hidden.addition.item {
+.ui.selection.dropdown .menu > .fm-hidden.addition.item {
   display: none;
 }
 
@@ -749,7 +749,7 @@ select.ui.dropdown {
   border-radius: 0.28571429rem;
 }
 
-.ui.pointing.dropdown > .menu:not(.hidden)::after {
+.ui.pointing.dropdown > .menu:not(.fm-hidden)::after {
   display: block;
   position: absolute;
   pointer-events: none;
@@ -922,7 +922,7 @@ select.ui.dropdown {
 
 /* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content
 the "!important" is necessary to override Fomantic UI menu item styles, meanwhile we should keep the "hidden" items still hidden */
-.ui.dropdown .menu.flex-items-menu > .item:not(.hidden, .filtered, .tw-hidden) {
+.ui.dropdown .menu.flex-items-menu > .item:not(.fm-hidden, .filtered, .tw-hidden) {
   display: flex !important;
   align-items: center;
   gap: var(--gap-block);

@@ -1,8 +1,8 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content organization new team">
 	{{template "org/header" .}}
-	<div class="ui container">
-		<div class="ui grid">
+	<div class="ui fm-container">
+		<div class="ui fm-grid">
 			<div class="column">
 				<form class="ui form" action="{{if .PageIsOrgTeamsNew}}{{.OrgLink}}/teams/new{{else}}{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/edit{{end}}" data-delete-url="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/delete" method="post">
 					<h3 class="ui top attached header">
@@ -72,7 +72,7 @@
 
 							<div class="team-units required grouped field {{if eq .Team.AccessMode 3}}tw-hidden{{end}}">
 								<label>{{ctx.Locale.Tr "org.team_unit_desc"}}</label>
-								<table class="ui celled table">
+								<table class="ui celled fm-table">
 									<thead>
 										<tr>
 											<th>{{ctx.Locale.Tr "units.unit"}}</th>

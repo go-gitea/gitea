@@ -8,11 +8,11 @@
 <div id="runWorkflowDispatchModal" class="ui tiny modal">
 	<div class="content">
 		<form id="runWorkflowDispatchForm" class="ui form ignore-dirty" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}" method="post">
-			<div class="ui inline field required tw-flex tw-items-center">
-				<span class="ui inline required field">
+			<div class="ui fm-inline field required tw-flex tw-items-center">
+				<span class="ui fm-inline required field">
 					<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}}:</label>
 				</span>
-				<div class="ui inline field dropdown button select-branch branch-selector-dropdown ellipsis-text-items">
+				<div class="ui fm-inline field dropdown button select-branch branch-selector-dropdown ellipsis-text-items">
 					<input type="hidden" name="ref" value="refs/heads/{{index .Branches 0}}"
 								data-fetch-trigger="change" data-fetch-sync="$body #runWorkflowDispatchModalInputs"
 								data-fetch-url="{{$.Link}}/workflow-dispatch-inputs?workflow={{$.CurWorkflow}}"

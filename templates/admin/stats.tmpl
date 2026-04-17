@@ -3,8 +3,8 @@
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "admin.dashboard.statistic"}}
 	</h4>
-	<div class="ui attached table segment">
-		<table class="ui very basic table unstackable">
+	<div class="ui attached fm-table segment">
+		<table class="ui very basic fm-table unstackable">
 			{{range $statsKey := .StatsKeys}}
 			<tr>
 				<td width="200">{{$statsKey}}</td>

@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user signup">
 	{{template "user/auth/signup_openid_navbar" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 				{{template "base/alert" .}}
 				<h4 class="ui top attached header">
 					{{ctx.Locale.Tr "auth.openid_register_title"}}
@@ -26,7 +26,7 @@
 						<label for="openid">OpenID URI</label>
 						<input id="openid" value="{{.OpenID}}" readonly>
 					</div>
-					<div class="inline field">
+					<div class="fm-inline field">
 						<button class="ui primary button">{{ctx.Locale.Tr "auth.create_new_account"}}</button>
 					</div>
 					</form>

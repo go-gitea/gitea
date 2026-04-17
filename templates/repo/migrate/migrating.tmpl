@@ -1,12 +1,12 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository">
 	{{template "repo/header" .}}
-	<div class="ui container">
-		<div class="ui grid">
+	<div class="ui fm-container">
+		<div class="ui fm-grid">
 			<div class="sixteen wide column content">
 				{{template "base/alert" .}}
 				<div class="home">
-					<div class="ui stackable middle very relaxed page grid">
+					<div class="ui stackable middle very relaxed page fm-grid">
 						<div id="repo_migrating" class="sixteen wide tw-text-center centered column" data-migrating-repo-link="{{.Link}}">
 							<div>
 								<img alt src="{{AssetUrlPrefix}}/img/loading.png">
@@ -18,7 +18,7 @@
 							</div>
 						</div>
 					</div>
-					<div class="ui stackable middle very relaxed page grid">
+					<div class="ui stackable middle very relaxed page fm-grid">
 						<div class="sixteen wide tw-text-center centered column">
 							<div id="repo_migrating_progress">
 								<p>{{ctx.Locale.Tr "repo.migrate.migrating" .CloneAddr}}</p>

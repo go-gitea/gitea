@@ -7,7 +7,7 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
 				<!-- Types and name -->
-				<div class="inline required field {{if .Err_Type}}error{{end}}">
+				<div class="fm-inline required field {{if .Err_Type}}error{{end}}">
 					<label>{{ctx.Locale.Tr "admin.auths.auth_type"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="auth_type" name="type" value="{{.type}}">
@@ -20,7 +20,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="required inline field {{if .Err_Name}}error{{end}}">
+				<div class="required fm-inline field {{if .Err_Name}}error{{end}}">
 					<label for="auth_name">{{ctx.Locale.Tr "admin.auths.auth_name"}}</label>
 					<input id="auth_name" name="name" value="{{.name}}" autofocus required>
 				</div>
@@ -58,13 +58,13 @@
 						<input name="attributes_in_bind" type="checkbox" {{if .attributes_in_bind}}checked{{end}}>
 					</div>
 				</div>
-				<div class="oauth2 ldap inline field {{if not (or (eq .type 2) (eq .type 6))}}tw-hidden{{end}}">
+				<div class="oauth2 ldap fm-inline field {{if not (or (eq .type 2) (eq .type 6))}}tw-hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.auths.syncenabled"}}</strong></label>
 						<input name="is_sync_enabled" type="checkbox" {{if .is_sync_enabled}}checked{{end}}>
 					</div>
 				</div>
-				<div class="inline field">
+				<div class="fm-inline field">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.auths.activated"}}</strong></label>
 						<input name="is_active" type="checkbox" {{if .is_active}}checked{{end}}>

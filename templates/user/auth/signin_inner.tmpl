@@ -1,4 +1,4 @@
-<div class="ui container fluid">
+<div class="ui fm-container fluid">
 	{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn)}}
 	{{template "base/alert" .}}
 	{{end}}
@@ -26,7 +26,7 @@
 			</div>
 			{{end}}
 			{{if not .LinkAccountMode}}
-			<div class="inline field">
+			<div class="fm-inline field">
 				<div class="ui checkbox">
 					<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
 					<input name="remember" type="checkbox" tabindex="5">
@@ -58,7 +58,7 @@
 </div>
 
 {{if or .EnablePasskeyAuth .ShowRegistrationButton}}
-<div class="ui container fluid">
+<div class="ui fm-container fluid">
 	<div class="ui attached segment header top tw-max-w-2xl tw-m-auto tw-flex tw-flex-col tw-items-center">
 		{{if .EnablePasskeyAuth}}
 			{{template "user/auth/webauthn_error" .}}

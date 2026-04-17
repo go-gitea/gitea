@@ -26,7 +26,7 @@
 	{{if or .PackageDescriptor.Metadata.Imports .PackageDescriptor.Metadata.Depends .PackageDescriptor.Metadata.LinkingTo .PackageDescriptor.Metadata.Suggests}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.dependencies"}}</h4>
 		<div class="ui attached segment">
-			<table class="ui single line very basic table">
+			<table class="ui single line very basic fm-table">
 				<tbody>
 					{{if .PackageDescriptor.Metadata.Imports}}
 						<tr>

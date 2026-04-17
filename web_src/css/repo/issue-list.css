@@ -12,7 +12,7 @@
   align-items: center;
 }
 
-.issue-list-toolbar-right .filter.menu {
+.issue-list-toolbar-right .fm-filter.menu {
   flex-direction: row;
   flex-wrap: wrap;
 }

@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content organization teams">
 	{{template "org/header" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{template "base/alert" .}}
 		{{if .IsOrganizationOwner}}
 			<div class="flex-text-block">
@@ -17,7 +17,7 @@
 			</div>
 		</form>
 
-		<div class="ui two column stackable grid">
+		<div class="ui two column stackable fm-grid">
 			{{range $team := $.OrgListTeams}}
 				<div class="column team-item-box">
 					<div class="ui top attached header muted-links flex-left-right team-item-header">

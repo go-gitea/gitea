@@ -20,7 +20,7 @@
 
 {{if (or (.Permission.CanRead ctx.Consts.RepoUnitTypeIssues) (.Permission.CanRead ctx.Consts.RepoUnitTypePullRequests))}}
 <h4 class="ui top attached header">{{ctx.Locale.Tr "repo.activity.overview"}}</h4>
-<div class="ui attached segment two column grid">
+<div class="ui attached segment two column fm-grid">
 	{{if .Permission.CanRead ctx.Consts.RepoUnitTypePullRequests}}
 		<div class="column">
 			{{if gt .Activity.ActivePRCount 0}}

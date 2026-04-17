@@ -1,5 +1,5 @@
 <div class="ldap dldap field {{if not (or (eq .type 2) (eq .type 5))}}tw-hidden{{end}}">
-	<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
+	<div class="fm-inline required field {{if .Err_SecurityProtocol}}error{{end}}">
 		<label>{{ctx.Locale.Tr "admin.auths.security_protocol"}}</label>
 		<div class="ui selection security-protocol dropdown">
 			<input type="hidden" id="security_protocol" name="security_protocol" value="{{.security_protocol}}">
@@ -20,7 +20,7 @@
 		<label for="port">{{ctx.Locale.Tr "admin.auths.port"}}</label>
 		<input id="port" name="port" value="{{.port}}"  placeholder="636">
 	</div>
-	<div class="has-tls inline field {{if not .HasTLS}}tw-hidden{{end}}">
+	<div class="has-tls fm-inline field {{if not .HasTLS}}tw-hidden{{end}}">
 		<div class="ui checkbox">
 			<label><strong>{{ctx.Locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 			<input name="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
@@ -80,14 +80,14 @@
 		<input id="attribute_avatar" name="attribute_avatar" value="{{.attribute_avatar}}" placeholder="jpegPhoto">
 	</div>
 
-	<div class="inline field">
+	<div class="fm-inline field">
 		<div class="ui checkbox">
 			<label for="ssh_keys_are_verified"><strong>{{ctx.Locale.Tr "admin.auths.ssh_keys_are_verified"}}</strong></label>
 			<input id="ssh_keys_are_verified" name="ssh_keys_are_verified" type="checkbox" {{if .ssh_keys_are_verified}}checked{{end}}>
 		</div>
 	</div>
 	<!-- ldap group begin -->
-	<div class="inline field">
+	<div class="fm-inline field">
 		<div class="ui checkbox">
 			<label><strong>{{ctx.Locale.Tr "admin.auths.enable_ldap_groups"}}</strong></label>
 			<input type="checkbox" name="groups_enabled" class="js-ldap-group-toggle" {{if .groups_enabled}}checked{{end}}>
@@ -121,7 +121,7 @@
 	</div>
 	<!-- ldap group end -->
 
-	<div class="ldap inline field {{if not (eq .type 2)}}tw-hidden{{end}}">
+	<div class="ldap fm-inline field {{if not (eq .type 2)}}tw-hidden{{end}}">
 		<div class="ui checkbox">
 			<label for="use_paged_search"><strong>{{ctx.Locale.Tr "admin.auths.use_paged_search"}}</strong></label>
 			<input id="use_paged_search" name="use_paged_search" class="use-paged-search" type="checkbox" {{if .use_paged_search}}checked{{end}}>
@@ -138,7 +138,7 @@
 			<p class="help">{{ctx.Locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 		</div>
 	</div>
-	<div class="inline field">
+	<div class="fm-inline field">
 		<div class="ui checkbox">
 			<label for="allow_deactivate_all"><strong>{{ctx.Locale.Tr "admin.auths.allow_deactivate_all"}}</strong></label>
 			<input id="allow_deactivate_all" name="allow_deactivate_all" type="checkbox" {{if .allow_deactivate_all}}checked{{end}}>

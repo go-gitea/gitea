@@ -44,7 +44,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 		{{$diff := (CommentMustAsDiff ctx $comment)}}
 		{{if $diff}}
 			{{$file := (index $diff.Files 0)}}
-			<div id="code-preview-{{$comment.ID}}" class="ui table segment{{if $resolved}} tw-hidden{{end}}">
+			<div id="code-preview-{{$comment.ID}}" class="ui fm-table segment{{if $resolved}} tw-hidden{{end}}">
 				<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
 					<div class="file-body file-code code-view code-diff code-diff-unified unicode-escaped">
 						<table>

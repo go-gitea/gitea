@@ -1,6 +1,6 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user notification">
-	<div class="ui container">
+	<div class="ui fm-container">
 		<div class="ui compact small menu small-menu-items">
 			<a href="{{AppSubUrl}}/notifications/subscriptions" class="{{if eq .Status 1}}active {{end}}item">
 				{{ctx.Locale.Tr "notification.subscriptions"}}
@@ -28,7 +28,7 @@
 						</div>
 					</div>
 					<div class="tw-flex tw-justify-between">
-						<div class="ui secondary filter menu labels">
+						<div class="ui secondary fm-filter menu labels">
 							<!-- Type -->
 								<div class="ui dropdown type jump item">
 									<span class="text">

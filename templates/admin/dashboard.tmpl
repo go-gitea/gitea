@@ -8,9 +8,9 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.dashboard.maintenance_operations"}}
 		</h4>
-		<div class="ui attached table segment">
+		<div class="ui attached fm-table segment">
 			<form method="post" action="{{AppSubUrl}}/-/admin">
-				<table class="ui very basic table tw-mt-0 tw-px-4">
+				<table class="ui very basic fm-table tw-mt-0 tw-px-4">
 					<tbody>
 						<tr>
 							<td>{{ctx.Locale.Tr "admin.dashboard.delete_inactive_accounts"}}</td>
@@ -75,7 +75,7 @@
 			{{ctx.Locale.Tr "admin.dashboard.system_status"}}
 		</h4>
 		{{/* TODO: make these stats work in multi-server deployments, likely needs per-server stats in DB */}}
-		<div class="ui attached table segment">
+		<div class="ui attached fm-table segment">
 			{{template "admin/system_status" .}}
 		</div>
 	</div>

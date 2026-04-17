@@ -376,7 +376,7 @@ a.label,
 }
 
 /* styles from removed fomantic transition module */
-.hidden.transition {
+.fm-hidden.transition {
   visibility: hidden;
   display: none;
 }
@@ -425,9 +425,9 @@ img.ui.avatar,
 .page-content > :first-child:not(.secondary-nav) {
   margin-top: var(--page-spacing);
 }
-/* if .ui.grid is the first child the first grid-column has 'padding-top: 1rem' which we need
+/* if .ui.fm-grid is the first child the first grid-column has 'padding-top: 1rem' which we need
    to compensate here */
-.page-content > :first-child.ui.grid {
+.page-content > :first-child.ui.fm-grid {
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 

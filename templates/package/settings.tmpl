@@ -5,7 +5,7 @@
 	{{else}}
 		{{template "shared/user/org_profile_avatar" .}}
 	{{end}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{if not .ContextUser.IsOrganization}}
 			{{template "user/overview/header" .}}
 		{{end}}

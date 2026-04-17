@@ -2,8 +2,8 @@
 <div role="main" aria-label="{{.Title}}" class="page-content organization profile">
 	{{template "org/header" .}}
 
-	<div class="ui container">
-		<div class="ui mobile reversed stackable grid">
+	<div class="ui fm-container">
+		<div class="ui mobile reversed stackable fm-grid">
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
 				{{if .ProfileReadmeContent}}
 					<div id="readme_profile" class="render-content markup" data-profile-view-as-member="{{.IsViewingOrgAsMember}}">{{.ProfileReadmeContent}}</div>
@@ -72,7 +72,7 @@
 						<strong class="tw-flex-1">{{ctx.Locale.Tr "org.teams"}}</strong>
 						<a class="tw-text-text-light flex-text-inline" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 					</div>
-					<div class="ui attached table segment teams">
+					<div class="ui attached fm-table segment teams">
 						{{range .OrgOverviewTeams}}
 							<div class="item">
 								<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong class="team-name">{{.Name}}</strong></a>
