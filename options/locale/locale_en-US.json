@@ -2826,7 +2826,7 @@
   "org.teams.manage_team_member_prompt": "Members are managed through teams. Add users to a team to invite them to this organization.",
   "org.teams.update_settings": "Update Settings",
   "org.teams.delete_team": "Delete Team",
-  "org.teams.add_team_member": "Add Team Member",
+  "org.teams.add_team_member": "Add team member",
   "org.teams.invite_team_member": "Invite to %s",
   "org.teams.invite_team_member.list": "Pending Invitations",
   "org.teams.delete_team_title": "Delete Team",

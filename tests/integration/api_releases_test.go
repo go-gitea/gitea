@@ -313,8 +313,7 @@ func testAPIGetLatestRelease(t *testing.T) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/latest", owner.Name, repo.Name))
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var release *api.Release
-	DecodeJSON(t, resp, &release)
+	release := DecodeJSON(t, resp, &api.Release{})
 
 	assert.Equal(t, "testing-release", release.Title)
 }
@@ -328,8 +327,7 @@ func testAPIGetReleaseByTag(t *testing.T) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag))
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var release *api.Release
-	DecodeJSON(t, resp, &release)
+	release := DecodeJSON(t, resp, &api.Release{})
 
 	assert.Equal(t, "testing-release", release.Title)
 
@@ -338,8 +336,7 @@ func testAPIGetReleaseByTag(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, nonexistingtag))
 	resp = MakeRequest(t, req, http.StatusNotFound)
 
-	var err *api.APIError
-	DecodeJSON(t, resp, &err)
+	err := DecodeJSON(t, resp, &api.APIError{})
 	assert.NotEmpty(t, err.Message)
 }
 
