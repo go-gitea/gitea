@@ -61,7 +61,7 @@
 					</h4>
 					<div class="ui attached segment members">
 						{{$isMember := .IsOrganizationMember}}
-						{{range .OrgSidebarMembers}}
+						{{range .OrgOverviewMembers}}
 							{{if or $isMember (call $.IsPublicMember .ID)}}
 								<a href="{{.HomeLink}}" data-tooltip-content="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">{{ctx.AvatarUtils.Avatar . 24}}</a>
 							{{end}}
@@ -74,7 +74,7 @@
 						<a class="tw-text-text-light flex-text-inline" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 					</div>
 					<div class="ui attached table segment teams">
-						{{range .OrgSidebarTeams}}
+						{{range .OrgOverviewTeams}}
 							<div class="item">
 								<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong class="team-name">{{.Name}}</strong></a>
 								<p class="tw-text-text-light">

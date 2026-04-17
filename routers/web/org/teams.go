@@ -92,7 +92,7 @@ func Teams(ctx *context.Context) {
 			return
 		}
 	}
-	ctx.Data["Teams"] = teams
+	ctx.Data["OrgListTeams"] = teams
 	ctx.Data["Keyword"] = keyword
 	pager := context.NewPagination(count, setting.UI.MembersPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
@@ -249,7 +249,7 @@ func checkIsOrgMemberAndRedirect(ctx *context.Context, defaultRedirect string) {
 	if isOrgMember, err := org_model.IsOrganizationMember(ctx, ctx.Org.Organization.ID, ctx.Doer.ID); err != nil {
 		ctx.ServerError("IsOrganizationMember", err)
 		return
-	} else if !isOrgMember {
+	} else if !isOrgMember && !ctx.Doer.IsAdmin {
 		if ctx.Org.Organization.Visibility.IsPrivate() {
 			defaultRedirect = setting.AppSubURL + "/"
 		} else {
