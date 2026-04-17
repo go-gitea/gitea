@@ -64,9 +64,18 @@ func Teams(ctx *context.Context) {
 			PageSize: setting.UI.MembersPagingNum,
 		},
 	}
-	if !ctx.Org.IsOwner {
+
+	shouldSeeAllTeams := false
+	if res, err := context.UserShouldSeeAllOrgTeams(ctx); err != nil {
+		ctx.ServerError("UserShouldSeeAllOrgTeams", err)
+		return
+	} else {
+		shouldSeeAllTeams = res
+	}
+	if !shouldSeeAllTeams {
 		opts.UserID = ctx.Doer.ID
 	}
+
 	if keyword != "" {
 		opts.Keyword = keyword
 		opts.IncludeDesc = true
