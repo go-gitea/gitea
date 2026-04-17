@@ -256,7 +256,7 @@ func testTeamSearch(t *testing.T) {
 }
 
 func testTeamsPage(t *testing.T) {
-	// org 17 has three teams in fixtures: Owners (id 5), test_team (id 8), review_team (id 9).
+	// org17 has three teams in fixtures: Owners (id 5), test_team (id 8), review_team (id 9).
 	// user15 is in Owners; user20 is in review_team only; user5 is not a member.
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
@@ -283,9 +283,30 @@ func testTeamsPage(t *testing.T) {
 	memberSession := loginUser(t, "user20")
 	assert.Equal(t, []string{"review_team"}, listTeams(t, memberSession, ""))
 
+	// Edit review_team so user20 gets full list
+	reviewTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 9})
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/org/%s/teams/%s/edit", org.Name, reviewTeam.Name), map[string]string{
+		"team_name":   reviewTeam.Name,
+		"description": reviewTeam.Description,
+		"repo_access": "all",
+		"permission":  "admin",
+		"unit_1":      "1",
+		"unit_2":      "1",
+		"unit_3":      "1",
+		"unit_4":      "1",
+		"unit_5":      "1",
+		"unit_6":      "1",
+		"unit_7":      "1",
+		"unit_8":      "1",
+		"unit_9":      "1",
+		"unit_10":     "1",
+	})
+	ownerSession.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, []string{"Owners", "review_team", "test_team"}, listTeams(t, memberSession, ""))
+
 	// Non-member is denied
 	nonMemberSession := loginUser(t, "user5")
-	req := NewRequestf(t, "GET", "/org/%s/teams", org.Name)
+	req = NewRequestf(t, "GET", "/org/%s/teams", org.Name)
 	nonMemberSession.MakeRequest(t, req, http.StatusNotFound)
 
 	t.Run("Pagination", func(t *testing.T) {
