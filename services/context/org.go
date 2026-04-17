@@ -173,6 +173,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			return
 		}
 
+
 		// Team.
 		if ctx.Org.IsMember {
 			shouldSeeAllTeams, err := org.CanUserSeeAllTeams(ctx, ctx.Doer.ID)
