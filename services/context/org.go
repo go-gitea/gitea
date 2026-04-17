@@ -246,25 +246,23 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 }
 
 // UserShouldSeeAllOrgTeams tells if a user has permission to view all teams in the org.
-// The caller decides what to do with error.
 func UserShouldSeeAllOrgTeams(ctx *Context) (bool, error) {
 	if !ctx.Org.IsMember {
 		return false, nil
 	}
-	shouldSeeAllTeams := false
+
 	if ctx.Org.IsOwner {
-		shouldSeeAllTeams = true
-	} else {
-		teams, err := ctx.Org.Organization.GetUserTeams(ctx, ctx.Doer.ID)
-		if err != nil {
-			return false, err
-		}
-		for _, team := range teams {
-			if team.IncludesAllRepositories && team.HasAdminAccess() {
-				shouldSeeAllTeams = true
-				break
-			}
+		return true, nil
+	}
+
+	teams, err := ctx.Org.Organization.GetUserTeams(ctx, ctx.Doer.ID)
+	if err != nil {
+		return false, err
+	}
+	for _, team := range teams {
+		if team.IncludesAllRepositories && team.HasAdminAccess() {
+			return true, nil
 		}
 	}
-	return shouldSeeAllTeams, nil
+	return false, nil
 }
