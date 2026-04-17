@@ -126,8 +126,9 @@ export async function assertNoJsError(page: Page) {
  * in between regardless of which element declares it */
 export async function assertFlushWithParent(child: Locator, parent: Locator) {
   const [childBox, parentBox] = await Promise.all([child.boundingBox(), parent.boundingBox()]);
-  expect(childBox!.x).toBe(parentBox!.x);
-  expect(childBox!.width).toBe(parentBox!.width);
+  if (!childBox || !parentBox) throw new Error('boundingBox returned null');
+  expect(childBox.x).toBe(parentBox.x);
+  expect(childBox.width).toBe(parentBox.width);
 }
 
 export async function logout(page: Page) {
