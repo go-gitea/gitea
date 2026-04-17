@@ -41,6 +41,7 @@ if (isValidCssColor(backgroundColor)) {
 :root {
   --gitea-iframe-bgcolor: ${backgroundColor};
 }
+html, body { margin: 0; padding: 0 }
 body { background: ${backgroundColor}; }
 `;
   document.head.append(style);
