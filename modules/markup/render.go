@@ -44,7 +44,8 @@ type WebThemeInterface interface {
 }
 
 type StandalonePageOptions struct {
-	CurrentWebTheme WebThemeInterface
+	CurrentWebTheme   WebThemeInterface
+	RenderQueryString string
 }
 
 type RenderOptions struct {
@@ -255,7 +256,12 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 		extraLinkHref := ctx.RenderOptions.StandalonePageOptions.CurrentWebTheme.PublicAssetURI()
 		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
 		// DO NOT use "type=module", the script must run as early as possible, to set up the environment in the iframe
-		extraHeadHTML = htmlutil.HTMLFormat(`<script nonce crossorigin src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraLinkHref)
+		extraHeadHTML = htmlutil.HTMLFormat(
+			`<script nonce crossorigin src="%s" id="gitea-external-render-helper" data-render-query-string="%s"></script>`+
+				`<link rel="stylesheet" href="%s">`,
+			extraScriptSrc, ctx.RenderOptions.StandalonePageOptions.RenderQueryString,
+			extraLinkHref,
+		)
 	}
 
 	ctx.usedByRender = true
