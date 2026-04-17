@@ -159,7 +159,7 @@ func GetRepoContributors(ctx context.Context, repoID int64, includeAnonymous boo
 
 	sess := db.GetEngine(ctx).
 		Table("repo_contributor_daily").
-		Select("user_id, email, max(author_name) as author_name, sum(commits) as commits").
+		Select("user_id, email, max(author_name) as author_name, sum(additions) as additions, sum(deletions) as deletions, sum(commits) as commits, sum(changed_files) as changed_files").
 		Where("repo_id = ?", repoID)
 	if !includeAnonymous {
 		sess = sess.And("user_id > 0")

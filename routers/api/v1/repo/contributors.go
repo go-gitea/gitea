@@ -76,6 +76,10 @@ func ListContributors(ctx *context.APIContext) {
 			result = append(result, &api.Contributor{
 				User:          convert.ToUser(ctx, user, ctx.Doer),
 				Contributions: contributor.Commits,
+				Additions:     contributor.Additions,
+				Deletions:     contributor.Deletions,
+				Commits:       contributor.Commits,
+				FilesChanged:  contributor.ChangedFiles,
 			})
 			continue
 		}
@@ -83,6 +87,10 @@ func ListContributors(ctx *context.APIContext) {
 			Name:          contributor.AuthorName,
 			Email:         contributor.Email,
 			Contributions: contributor.Commits,
+			Additions:     contributor.Additions,
+			Deletions:     contributor.Deletions,
+			Commits:       contributor.Commits,
+			FilesChanged:  contributor.ChangedFiles,
 		})
 	}
 
