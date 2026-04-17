@@ -73,6 +73,9 @@ importers:
       '@codemirror/view':
         specifier: 6.41.0
         version: 6.41.0
+      '@deltablot/dropzone':
+        specifier: 7.4.3
+        version: 7.4.3
       '@github/markdown-toolbar-element':
         specifier: 2.2.3
         version: 2.2.3
@@ -148,9 +151,6 @@ importers:
       dayjs:
         specifier: 1.11.20
         version: 1.11.20
-      dropzone:
-        specifier: 6.0.0-beta.2
-        version: 6.0.0-beta.2
       easymde:
         specifier: 2.20.0
         version: 2.20.0
@@ -248,9 +248,6 @@ importers:
       '@types/codemirror':
         specifier: 5.60.17
         version: 5.60.17
-      '@types/dropzone':
-        specifier: 5.7.9
-        version: 5.7.9
       '@types/jquery':
         specifier: 4.0.0
         version: 4.0.0
@@ -620,6 +617,9 @@ packages:
     engines: {node: '>=20.19.0'}
     peerDependencies:
       postcss-selector-parser: ^7.1.1
+
+  '@deltablot/dropzone@7.4.3':
+    resolution: {integrity: sha512-qTj4KEalPcYrocazuKYfhAS3hfgAu17KXw0DkpUj71Aw9E1/x5vTSNK5hvIJLkbpt/pBECU18JkjA3yguONcPA==}
 
   '@emnapi/core@1.9.2':
     resolution: {integrity: sha512-UC+ZhH3XtczQYfOlu3lNEkdW/p4dsJ1r/bP7H8+rhao3TTTMO1ATq/4DdIi23XuGoFY+Cz0JmCbdVl0hz9jZcA==}
@@ -1293,8 +1293,8 @@ packages:
     peerDependencies:
       stylelint: ^17.6.0
 
-  '@swc/helpers@0.2.14':
-    resolution: {integrity: sha512-wpCQMhf5p5GhNg2MmGKXzUNwxe7zRiCsmqYsamez2beP7mKPCSiu+BjZcdN95yYSzO857kr0VfQewmGpS77nqA==}
+  '@swc/helpers@0.5.21':
+    resolution: {integrity: sha512-jI/VAmtdjB/RnI8GTnokyX7Ug8c+g+ffD6QRLa6XQewtnGyukKkKSk3wLTM3b5cjt1jNh9x0jfVlagdN2gDKQg==}
 
   '@tybys/wasm-util@0.10.1':
     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}
@@ -1403,9 +1403,6 @@ packages:
 
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
-
-  '@types/dropzone@5.7.9':
-    resolution: {integrity: sha512-c6IlUz+DeQ4gANzJKn8fdP5rO6UyDNOyWLjfPbDRUHCNsXaAVKQOpuOv6LWEyvaK7pLqmoIpvSIlvBgGsk1vGw==}
 
   '@types/esrecurse@4.3.1':
     resolution: {integrity: sha512-xJBAbDifo5hpffDBuHl0Y8ywswbiAp/Wi7Y/GtAgSlZyIABppyurxVueOPE8LUQOxdlgi6Zqce7uoEpqNTeiUw==}
@@ -2286,9 +2283,6 @@ packages:
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
 
-  dropzone@6.0.0-beta.2:
-    resolution: {integrity: sha512-k44yLuFFhRk53M8zP71FaaNzJYIzr99SKmpbO/oZKNslDjNXQsBTdfLs+iONd0U0L94zzlFzRnFdqbLcs7h9fQ==}
-
   easymde@2.20.0:
     resolution: {integrity: sha512-V1Z5f92TfR42Na852OWnIZMbM7zotWQYTddNaLYZFVKj7APBbyZ3FYJ27gBw2grMW3R6Qdv9J8n5Ij7XRSIgXQ==}
 
@@ -2940,9 +2934,6 @@ packages:
   jsx-ast-utils@3.3.5:
     resolution: {integrity: sha512-ZZow9HBI5O6EPgSJLUb8n2NKgmVWTwCvHGwFuJlMjvLFqlGG6pjirPhtdsseaLZjSibD8eegzmYpUZwoIlj2cQ==}
     engines: {node: '>=4.0'}
-
-  just-extend@5.1.1:
-    resolution: {integrity: sha512-b+z6yF1d4EOyDgylzQo5IminlUmzSeqR1hs/bzjBNjuGras4FXq/6TrzjxfN0j+TmI0ltJzTNlqXUMCniciwKQ==}
 
   katex@0.16.45:
     resolution: {integrity: sha512-pQpZbdBu7wCTmQUh7ufPmLr0pFoObnGUoL/yhtwJDgmmQpbkg/0HSVti25Fu4rmd1oCR6NGWe9vqTWuWv3GcNA==}
@@ -4521,6 +4512,10 @@ snapshots:
     dependencies:
       postcss-selector-parser: 7.1.1
 
+  '@deltablot/dropzone@7.4.3':
+    dependencies:
+      '@swc/helpers': 0.5.21
+
   '@emnapi/core@1.9.2':
     dependencies:
       '@emnapi/wasi-threads': 1.2.1
@@ -5105,7 +5100,9 @@ snapshots:
       style-search: 0.1.0
       stylelint: 17.7.0(typescript@6.0.2)
 
-  '@swc/helpers@0.2.14': {}
+  '@swc/helpers@0.5.21':
+    dependencies:
+      tslib: 2.8.1
 
   '@tybys/wasm-util@0.10.1':
     dependencies:
@@ -5243,10 +5240,6 @@ snapshots:
       '@types/ms': 2.1.0
 
   '@types/deep-eql@4.0.2': {}
-
-  '@types/dropzone@5.7.9':
-    dependencies:
-      '@types/jquery': 4.0.0
 
   '@types/esrecurse@4.3.1': {}
 
@@ -6204,11 +6197,6 @@ snapshots:
       domelementtype: 2.3.0
       domhandler: 5.0.3
 
-  dropzone@6.0.0-beta.2:
-    dependencies:
-      '@swc/helpers': 0.2.14
-      just-extend: 5.1.1
-
   easymde@2.20.0:
     dependencies:
       '@types/codemirror': 5.60.17
@@ -6909,8 +6897,6 @@ snapshots:
       array.prototype.flat: '@nolyfill/array.prototype.flat@1.0.44'
       object.assign: '@nolyfill/object.assign@1.0.44'
       object.values: '@nolyfill/object.values@1.0.44'
-
-  just-extend@5.1.1: {}
 
   katex@0.16.45:
     dependencies:
@@ -7945,8 +7931,7 @@ snapshots:
       minimist: 1.2.8
       strip-bom: 3.0.0
 
-  tslib@2.8.1:
-    optional: true
+  tslib@2.8.1: {}
 
   type-check@0.4.0:
     dependencies:
