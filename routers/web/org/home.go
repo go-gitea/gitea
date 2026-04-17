@@ -24,6 +24,8 @@ import (
 
 const tplOrgHome templates.TplName = "org/home"
 
+const numOfTeamsAtMostInOverview = 5
+
 // Home show organization home page
 func Home(ctx *context.Context) {
 	uname := ctx.PathParam("username")
@@ -99,11 +101,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 		return
 	}
 	ctx.Data["Members"] = members
-	if len(ctx.Org.Teams) > 5 {
-		ctx.Data["Teams"] = ctx.Org.Teams[0:5]
-	} else {
-		ctx.Data["Teams"] = ctx.Org.Teams
-	}
+	ctx.Data["Teams"] = ctx.Org.Teams[:min(len(ctx.Org.Teams), numOfTeamsAtMostInOverview)]
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
