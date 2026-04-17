@@ -41,7 +41,7 @@ export async function initSwaggerUI(container: HTMLElement, opts: {specText: str
   SwaggerUI({
     spec,
     domNode: container,
-    deepLinking: true,
+    deepLinking: window.location.protocol !== 'about:', // pushState fails inside about:srcdoc iframes
     docExpansion: 'none',
     defaultModelRendering: 'model', // don't show examples by default, because they may be incomplete
     presets: [
