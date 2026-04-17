@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -197,19 +198,13 @@ func TestLDAPAuthChange(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	te.addAuthSource(t)
 
+	authSource := unittest.AssertExistsAndLoadBean(t, &auth_model.Source{Name: "ldap"})
+	href := fmt.Sprintf("/-/admin/auths/%d", authSource.ID)
+
 	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/-/admin/auths")
+	req := NewRequest(t, "GET", href)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
-	href, exists := doc.Find("table.table td a").Attr("href")
-	if !exists {
-		assert.True(t, exists, "No authentication source found")
-		return
-	}
-
-	req = NewRequest(t, "GET", href)
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	doc = NewHTMLParser(t, resp.Body)
 	host, _ := doc.Find(`input[name="host"]`).Attr("value")
 	assert.Equal(t, te.serverHost, host)
 	binddn, _ := doc.Find(`input[name="bind_dn"]`).Attr("value")
