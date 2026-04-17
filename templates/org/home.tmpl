@@ -63,7 +63,7 @@
 						{{$isMember := .IsOrganizationMember}}
 						{{range .Members}}
 							{{if or $isMember (call $.IsPublicMember .ID)}}
-								{{template "shared/user/avatarlink" dict "user" . "size" 32}}
+								{{template "shared/user/avatarlink" dict "user" . "size" 32 "tooltip" true}}
 							{{end}}
 						{{end}}
 					</div>
