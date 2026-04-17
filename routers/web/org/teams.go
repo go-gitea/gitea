@@ -65,13 +65,14 @@ func Teams(ctx *context.Context) {
 		},
 	}
 
-	if res, err := context.UserShouldSeeAllOrgTeams(ctx); err == nil {
-		if !res {
-			opts.UserID = ctx.Doer.ID
-		}
-	} else {
+	shouldSeeAllOrgTeams, err := context.UserShouldSeeAllOrgTeams(ctx)
+	if err != nil {
 		ctx.ServerError("UserShouldSeeAllOrgTeams", err)
 		return
+	}
+
+	if !shouldSeeAllOrgTeams {
+		opts.UserID = ctx.Doer.ID
 	}
 
 	if keyword != "" {
