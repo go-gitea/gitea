@@ -54,13 +54,36 @@ func Teams(ctx *context.Context) {
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 
-	for _, t := range ctx.Org.Teams {
+	keyword := ctx.FormTrim("q")
+
+	var teams = ctx.Org.Teams
+
+	if keyword != "" {
+		opts := &org_model.SearchTeamOptions{
+			Keyword:     keyword,
+			OrgID:       org.ID,
+			IncludeDesc: true,
+		}
+		if !ctx.Org.IsOwner {
+			opts.UserID = ctx.Doer.ID
+		}
+
+		res, _, err := org_model.SearchTeam(ctx, opts)
+		if err != nil {
+			ctx.ServerError("SearchTeam", err)
+			return
+		}
+		teams = res
+	}
+
+	for _, t := range teams {
 		if err := t.LoadMembers(ctx); err != nil {
 			ctx.ServerError("GetMembers", err)
 			return
 		}
 	}
-	ctx.Data["Teams"] = ctx.Org.Teams
+	ctx.Data["Teams"] = teams
+	ctx.Data["Keyword"] = keyword
 
 	ctx.HTML(http.StatusOK, tplTeams)
 }
