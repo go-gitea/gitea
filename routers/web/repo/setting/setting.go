@@ -755,7 +755,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
 	if !ctx.Repo.IsOwner() {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.JSONErrorNotFound()
 		return
 	}
 	if err := repo.LoadOwner(ctx); err != nil {
@@ -763,12 +763,12 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
 
 	if !repo.IsFork {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.JSONErrorNotFound()
 		return
 	}
 
@@ -776,7 +776,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 		maxCreationLimit := ctx.Repo.Owner.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
 		ctx.Flash.Error(msg)
-		ctx.Redirect(repo.Link() + "/settings")
+		ctx.JSONRedirect(repo.Link() + "/settings")
 		return
 	}
 
@@ -788,7 +788,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 
 	log.Trace("Repository converted from fork to regular: %s", repo.FullName())
 	ctx.Flash.Success(ctx.Tr("repo.settings.convert_fork_succeed"))
-	ctx.Redirect(repo.Link())
+	ctx.JSONRedirect(repo.Link())
 }
 
 func handleSettingsPostTransfer(ctx *context.Context) {

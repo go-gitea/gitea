@@ -902,7 +902,7 @@
 				<div class="ui warning message">
 					{{ctx.Locale.Tr "repo.settings.convert_fork_notices_1"}}
 				</div>
-				<form class="ui form" action="{{.Link}}" method="post">
+				<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 					<input type="hidden" name="action" value="convert_fork">
 					{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
 					{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.convert_fork_confirm"))}}
