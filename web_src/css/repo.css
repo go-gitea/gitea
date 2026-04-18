@@ -92,15 +92,6 @@
   vertical-align: middle;
 }
 
-.issue-sidebar-combo.sidebar-project-column-combo .ui.dropdown > .menu {
-  padding: 4px;
-}
-
-.issue-sidebar-combo.sidebar-project-column-combo .ui.dropdown > .menu > .item.checked {
-  background: var(--color-secondary-bg);
-  border-radius: var(--border-radius);
-}
-
 .issue-content-right .ui.list.labels-list {
   display: flex;
   gap: var(--gap-inline);
