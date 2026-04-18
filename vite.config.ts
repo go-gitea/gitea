@@ -143,8 +143,6 @@ function iifePlugin(sourceFileName: string): Plugin {
         }
       });
     },
-    // use writeBundle (runs only on successful main build) instead of closeBundle
-    // (runs in Vite's finally block, so throwing here masks the real compile error)
     async writeBundle() {
       for (const file of globSync(`js/${sourceBaseName}.*.js*`, {cwd: outDir})) unlinkSync(join(outDir, file));
 
