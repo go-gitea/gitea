@@ -1,6 +1,6 @@
 // FIXME: INCORRECT-VITE-MANIFEST-PARSER: it just happens to work for current dependencies
 // If this module depends on another one and that one imports "swagger.css", then {{AssetURI "css/swagger.css"}} won't work
-import '../css/swagger.css';
+import '../css/swagger-standalone.css';
 import {initSwaggerUI} from './render/swagger.ts';
 
 async function initGiteaAPIViewer() {
