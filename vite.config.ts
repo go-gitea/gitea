@@ -55,7 +55,7 @@ function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
       outDir,
       emptyOutDir: false,
       sourcemap: enableSourcemap !== 'false',
-      target: 'es2020',
+      target: 'es2022',
       minify: isProduction ? 'oxc' : false,
       cssMinify: isProduction ? 'esbuild' : false,
       chunkSizeWarningLimit: Infinity,
