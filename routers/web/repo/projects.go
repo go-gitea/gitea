@@ -475,7 +475,11 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 
 	issue, err := issues_model.GetIssueByID(ctx, issueID)
 	if err != nil {
-		ctx.ServerError("GetIssueByID", err)
+		if issues_model.IsErrIssueNotExist(err) {
+			ctx.NotFound(nil)
+		} else {
+			ctx.ServerError("GetIssueByID", err)
+		}
 		return
 	}
 	if issue.RepoID != ctx.Repo.Repository.ID {
@@ -490,7 +494,11 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 
 	column, err := project_model.GetColumn(ctx, columnID)
 	if err != nil {
-		ctx.ServerError("GetColumn", err)
+		if project_model.IsErrProjectColumnNotExist(err) {
+			ctx.NotFound(nil)
+		} else {
+			ctx.ServerError("GetColumn", err)
+		}
 		return
 	}
 
@@ -499,8 +507,21 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	// sortedIssueIDs maps sorting position to issue ID; 0 inserts at the top
-	if err := project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, map[int64]int64{0: issueID}); err != nil {
+	// append to the end of the target column so we don't collide with existing sorting values
+	colStats := struct {
+		MaxSorting int64
+		IssueCount int64
+	}{}
+	if _, err := db.GetEngine(ctx).Select("max(sorting) AS max_sorting, count(*) AS issue_count").
+		Table("project_issue").
+		Where("project_id=?", column.ProjectID).And("project_board_id=?", column.ID).
+		Get(&colStats); err != nil {
+		ctx.ServerError("query column sorting", err)
+		return
+	}
+	newSorting := util.Iif(colStats.IssueCount > 0, colStats.MaxSorting+1, int64(0))
+
+	if err := project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, map[int64]int64{newSorting: issueID}); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectColumn", err)
 		return
 	}

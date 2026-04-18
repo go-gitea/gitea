@@ -1,6 +1,5 @@
 {{$pageMeta := .}}
 {{$data := .ProjectsData}}
-{{$issueProject := NIL}}{{if and $pageMeta.Issue $pageMeta.Issue.Project}}{{$issueProject = $pageMeta.Issue.Project}}{{end}}
 <div class="divider"></div>
 <div class="issue-sidebar-combo sidebar-project-combo" data-selection-mode="single" data-update-algo="all"
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/projects?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
