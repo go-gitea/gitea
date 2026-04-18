@@ -1,7 +1,5 @@
 import '../fomantic/build/fomantic.js';
 import '../css/index.css';
-import type {HtmxResponseInfo} from 'htmx.org';
-import {showErrorToast} from './modules/toast.ts';
 
 import {initDashboardRepoList} from './features/dashboard.ts';
 import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
@@ -47,7 +45,6 @@ import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActionView} from './features/repo-actions.ts';
 import {initGlobalTooltips} from './modules/tippy.ts';
 import {initGiteaFomantic} from './modules/fomantic.ts';
-import {initSubmitEventPolyfill} from './utils/dom.ts';
 import {initRepoIssueList} from './features/repo-issue-list.ts';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.ts';
 import {initRepoContributors} from './features/contributors.ts';
@@ -71,7 +68,6 @@ import {initDevtest} from './modules/devtest.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
-  initSubmitEventPolyfill,
   initGiteaFomantic,
 
   initGlobalComponent,
@@ -173,17 +169,3 @@ const initDur = performance.now() - initStartTime;
 if (initDur > 500) {
   console.error(`slow init functions took ${initDur.toFixed(3)}ms`);
 }
-
-// https://htmx.org/events/#htmx:sendError
-type HtmxEvent = Event & {detail: HtmxResponseInfo};
-document.body.addEventListener('htmx:sendError', (event) => {
-  // TODO: add translations
-  showErrorToast(`Network error when calling ${(event as HtmxEvent).detail.requestConfig.path}`);
-});
-// https://htmx.org/events/#htmx:responseError
-document.body.addEventListener('htmx:responseError', (event) => {
-  // TODO: add translations
-  showErrorToast(`Error ${(event as HtmxEvent).detail.xhr.status} when calling ${(event as HtmxEvent).detail.requestConfig.path}`);
-});
-
-document.dispatchEvent(new CustomEvent('gitea:index-ready'));

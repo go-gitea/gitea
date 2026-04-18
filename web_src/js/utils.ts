@@ -84,11 +84,6 @@ export function parseIssuePageInfo(): IssuePageInfo {
   };
 }
 
-/** parse a URL, either relative '/path' or absolute 'https://localhost/path' */
-export function parseUrl(str: string): URL {
-  return new URL(str, str.startsWith('http') ? undefined : window.location.origin);
-}
-
 /** return current locale chosen by user */
 export function getCurrentLocale(): string {
   return document.documentElement.lang;

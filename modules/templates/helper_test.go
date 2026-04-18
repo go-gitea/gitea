@@ -58,7 +58,7 @@ func TestSubjectBodySeparator(t *testing.T) {
 }
 
 func TestSanitizeHTML(t *testing.T) {
-	assert.Equal(t, template.HTML(`<a href="/" rel="nofollow">link</a> xss <div>inline</div>`), SanitizeHTML(`<a href="/">link</a> <a href="javascript:">xss</a> <div style="dangerous">inline</div>`))
+	assert.Equal(t, template.HTML(`<a href="/" rel="nofollow">link</a> xss <div>inline</div>`), sanitizeHTML(`<a href="/">link</a> <a href="javascript:">xss</a> <div style="dangerous">inline</div>`))
 }
 
 func TestTemplateIif(t *testing.T) {

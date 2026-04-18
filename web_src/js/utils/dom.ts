@@ -257,28 +257,6 @@ export function loadElem(el: LoadableElement, src: string) {
   });
 }
 
-// some browsers like PaleMoon don't have "SubmitEvent" support, so polyfill it by a tricky method: use the last clicked button as submitter
-// it can't use other transparent polyfill patches because PaleMoon also doesn't support "addEventListener(capture)"
-const needSubmitEventPolyfill = typeof SubmitEvent === 'undefined';
-
-export function submitEventSubmitter(e: any) {
-  e = e.originalEvent ?? e; // if the event is wrapped by jQuery, use "originalEvent", otherwise, use the event itself
-  return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
-}
-
-function submitEventPolyfillListener(e: Event) {
-  const form = (e.target as HTMLElement).closest('form');
-  if (!form) return;
-  form._submitter = (e.target as HTMLElement).closest('button:not([type]), button[type="submit"], input[type="submit"]');
-}
-
-export function initSubmitEventPolyfill() {
-  if (!needSubmitEventPolyfill) return;
-  console.warn(`This browser doesn't have "SubmitEvent" support, use a tricky method to polyfill`);
-  document.body.addEventListener('click', submitEventPolyfillListener);
-  document.body.addEventListener('focus', submitEventPolyfillListener);
-}
-
 export function isElemVisible(el: HTMLElement): boolean {
   // Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
   // This function DOESN'T account for all possible visibility scenarios, its behavior is covered by the tests of "querySingleVisibleElem"

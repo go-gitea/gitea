@@ -45,7 +45,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 
-	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
+	_ "code.gitea.io/gitea/modules/session" // to register all internal adapters
 
 	"gitea.com/go-chi/captcha"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
@@ -1710,7 +1710,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Get("/forks", repo.Forks)
 		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, repo.RawDiff)
-		m.Post("/lastcommit/*", context.RepoRefByType(git.RefTypeCommit), repo.LastCommit)
+		m.Get("/lastcommit/*", context.RepoRefByType(git.RefTypeCommit), repo.LastCommit)
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{reponame}": repo code
 
