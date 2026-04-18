@@ -6,11 +6,13 @@
 		<a href="/devtest/repo-action-view/runs/30">Run:CanRerunLatest</a>
 		<a href="/devtest/repo-action-view/runs/30/attempts/2">Run:PreviousAttempt</a>
 	</div>
+	{{$runID := or .RunID 10}}
+	{{$viewURL := .ViewURL}}
+	{{if not $viewURL}}{{$viewURL = print AppSubUrl "/devtest/repo-action-view/runs/" $runID}}{{end}}
 	{{template "repo/actions/view_component" (dict
-		"RunID" (or .RunID 10)
+		"RunID" $runID
 		"JobID" (or .JobID 0)
-		"ViewURL" .ViewURL
-		"ActionsURL" (print AppSubUrl "/devtest/repo-action-view")
+		"ViewURL" $viewURL
 	)}}
 </div>
 {{template "base/footer" .}}
