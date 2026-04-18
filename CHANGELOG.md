@@ -307,6 +307,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add e2e reaction test, improve accessibility, enable parallel testing (#37081)
   * Increase e2e test timeouts on CI to fix flaky tests (#37053)
 * BUILD
+  * Upgrade go-git to v5.18.0 (#37269)
   * Replace rollup-plugin-license with rolldown-license-plugin (#37130) (#37158)
   * Bump min go version to 1.26.2 (#37139) (#37143)
   * Convert locale files from ini to json format (#35489)
