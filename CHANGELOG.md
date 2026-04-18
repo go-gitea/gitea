@@ -395,7 +395,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Minor punctuation improvement in CONTRIBUTING.md (#36291)
   * Add documentation for markdown anchor post-processing (#36443)
 * MISC
-  * Add missing //nolint:depguard (#37162) (#37170)
   * Correct spelling (#36783)
   * Update Nix flake (#37110)
   * Update Nix flake (#37024)
