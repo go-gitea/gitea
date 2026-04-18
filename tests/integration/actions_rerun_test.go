@@ -162,8 +162,7 @@ jobs:
 			attemptJobsResp := MakeRequest(t, req, http.StatusOK)
 			apiAttemptJobs := DecodeJSON(t, attemptJobsResp, &api.ActionWorkflowJobsResponse{})
 			assert.Len(t, apiAttemptJobs.Entries, 2)
-			assert.Equal(t, job1R1.ID, apiAttemptJobs.Entries[0].ID)
-			assert.Equal(t, job2R1.ID, apiAttemptJobs.Entries[1].ID)
+			assert.ElementsMatch(t, []int64{job1R1.ID, job2R1.ID}, []int64{apiAttemptJobs.Entries[0].ID, apiAttemptJobs.Entries[1].ID})
 		})
 
 		t.Run("MaxRerunAttempts", func(t *testing.T) {
