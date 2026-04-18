@@ -39,17 +39,17 @@
 			</div>
 			{{if not (or .IsBeingCreated .IsBroken)}}
 				<div class="flex-text-block tw-flex-wrap">
-					{{if $.RepoTransfer}}
+					{{if $.CanUserAcceptOrRejectTransfer}}
 						<form method="post" action="{{$.RepoLink}}/action/accept_transfer">
-							<div class="flex-text-inline" data-tooltip-content="{{if $.CanUserAcceptOrRejectTransfer}}{{ctx.Locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
-								<button type="submit" class="ui compact small basic button {{if $.CanUserAcceptOrRejectTransfer}}primary {{end}} ok small"{{if not $.CanUserAcceptOrRejectTransfer}} disabled{{end}}>
+							<div class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}">
+								<button type="submit" class="ui compact small basic button primary ok small">
 									{{ctx.Locale.Tr "repo.transfer.accept"}}
 								</button>
 							</div>
 						</form>
 						<form method="post" action="{{$.RepoLink}}/action/reject_transfer">
-							<div class="flex-text-inline" data-tooltip-content="{{if $.CanUserAcceptOrRejectTransfer}}{{ctx.Locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
-								<button type="submit" class="ui compact small basic button {{if $.CanUserAcceptOrRejectTransfer}}red {{end}}ok small"{{if not $.CanUserAcceptOrRejectTransfer}} disabled{{end}}>
+							<div class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}">
+								<button type="submit" class="ui compact small basic button red ok small">
 									{{ctx.Locale.Tr "repo.transfer.reject"}}
 								</button>
 							</div>

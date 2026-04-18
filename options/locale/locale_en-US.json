@@ -1065,8 +1065,6 @@
   "repo.transfer.accept_desc": "Transfer to \"%s\"",
   "repo.transfer.reject": "Reject Transfer",
   "repo.transfer.reject_desc": "Cancel transfer to \"%s\"",
-  "repo.transfer.no_permission_to_accept": "You do not have permission to accept this transfer.",
-  "repo.transfer.no_permission_to_reject": "You do not have permission to reject this transfer.",
   "repo.desc.private": "Private",
   "repo.desc.public": "Public",
   "repo.desc.public_access": "Public Access",
