@@ -725,16 +725,16 @@ func handleSettingsPostConvert(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
 	if !ctx.Repo.IsOwner() {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.JSONErrorNotFound()
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
 
 	if !repo.IsMirror {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.JSONErrorNotFound()
 		return
 	}
 	repo.IsMirror = false
@@ -748,7 +748,7 @@ func handleSettingsPostConvert(ctx *context.Context) {
 	}
 	log.Trace("Repository converted from mirror to regular: %s", repo.FullName())
 	ctx.Flash.Success(ctx.Tr("repo.settings.convert_succeed"))
-	ctx.Redirect(repo.Link())
+	ctx.JSONRedirect(repo.Link())
 }
 
 func handleSettingsPostConvertFork(ctx *context.Context) {
