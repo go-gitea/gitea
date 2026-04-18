@@ -41,7 +41,7 @@ type issueSidebarProjectCardData struct {
 
 type issueSidebarProjectsData struct {
 	SelectedProjectIDs []int64 // TODO: support multiple projects in the future
-	ProjectCards      []*issueSidebarProjectCardData
+	ProjectCards       []*issueSidebarProjectCardData
 
 	OpenProjects   []*project_model.Project
 	ClosedProjects []*project_model.Project

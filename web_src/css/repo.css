@@ -65,37 +65,37 @@
 .sidebar-project-card {
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
-  padding: 0.5em;
-  margin-top: 0.35em;
+  padding: 7px;
+  margin-top: 5px;
 }
 
 .sidebar-project-card-header {
   display: flex;
   align-items: center;
-  gap: 0.25em;
+  gap: 4px;
 }
 
 .sidebar-project-card-header a {
   display: flex;
   align-items: center;
-  gap: 0.25em;
+  gap: 4px;
   font-weight: var(--font-weight-semibold);
 }
 
 .sidebar-project-column-combo {
-  margin-top: 0.25em;
-  padding-left: 1.25em;
+  margin-top: 4px;
+  padding-left: 18px;
 }
 
 .sidebar-project-column-text {
   display: flex;
   align-items: center;
-  font-size: 0.9em;
+  font-size: 13px;
 }
 
 .sidebar-project-card > .sidebar-project-column-text {
-  margin-top: 0.25em;
-  padding-left: 1.25em;
+  margin-top: 4px;
+  padding-left: 18px;
 }
 
 .sidebar-column-dot {
