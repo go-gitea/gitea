@@ -20,6 +20,10 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
+// maxRerunAttempts caps how many attempts a single run can have, matching GitHub's 50-rerun limit.
+// See https://github.blog/changelog/2026-04-10-actions-workflows-are-limited-to-50-reruns/.
+const maxRerunAttempts = 50
+
 // GetFailedJobsForRerun returns the failed or cancelled jobs in a run.
 func GetFailedJobsForRerun(allJobs []*actions_model.ActionRunJob) []*actions_model.ActionRunJob {
 	var jobsToRerun []*actions_model.ActionRunJob
@@ -88,6 +92,17 @@ func validateRerun(ctx context.Context, run *actions_model.ActionRun, repo *repo
 	if cfg.IsWorkflowDisabled(run.WorkflowID) {
 		return util.NewInvalidArgumentErrorf("workflow %s is disabled", run.WorkflowID)
 	}
+
+	if run.LatestAttemptID > 0 {
+		latestAttempt, has, err := run.GetLatestAttempt(ctx)
+		if err != nil {
+			return fmt.Errorf("GetLatestAttempt: %w", err)
+		}
+		if has && latestAttempt.Attempt >= maxRerunAttempts {
+			return util.NewInvalidArgumentErrorf("workflow run has reached the maximum of %d attempts", maxRerunAttempts)
+		}
+	}
+
 	return nil
 }
 
