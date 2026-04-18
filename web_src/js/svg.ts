@@ -44,6 +44,7 @@ import octiconGitPullRequestClosed from '../../public/assets/img/svg/octicon-git
 import octiconGitPullRequestDraft from '../../public/assets/img/svg/octicon-git-pull-request-draft.svg';
 import octiconGrabber from '../../public/assets/img/svg/octicon-grabber.svg';
 import octiconHeading from '../../public/assets/img/svg/octicon-heading.svg';
+import octiconHistory from '../../public/assets/img/svg/octicon-history.svg';
 import octiconHorizontalRule from '../../public/assets/img/svg/octicon-horizontal-rule.svg';
 import octiconImage from '../../public/assets/img/svg/octicon-image.svg';
 import octiconIssueClosed from '../../public/assets/img/svg/octicon-issue-closed.svg';
@@ -128,6 +129,7 @@ const svgs = {
   'octicon-git-pull-request-draft': octiconGitPullRequestDraft,
   'octicon-grabber': octiconGrabber,
   'octicon-heading': octiconHeading,
+  'octicon-history': octiconHistory,
   'octicon-horizontal-rule': octiconHorizontalRule,
   'octicon-image': octiconImage,
   'octicon-issue-closed': octiconIssueClosed,
