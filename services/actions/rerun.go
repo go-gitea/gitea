@@ -40,8 +40,8 @@ func GetFailedJobsForRerun(allJobs []*actions_model.ActionRunJob) []*actions_mod
 //
 // The three stages below (legacy backfill, plan build, plan exec) deliberately run in separate DB transactions
 // rather than one big outer transaction:
-//   - buildRerunPlan performs slow work (loading variables, YAML unmarshal, concurrency expression evaluation).
-//     Holding a transaction across these might cause long-lived row locks.
+//   - execRerunPlan performs slow work (loading variables, YAML unmarshal, concurrency expression evaluation)
+//     before opening its own transaction, so the tx stays focused on inserts/updates.
 //   - The legacy backfill is idempotent-friendly: if it succeeds but a later stage fails, a subsequent rerun
 //     will observe run.LatestAttemptID != 0 and skip the backfill, continuing naturally. No data corruption
 //     or stuck state results from partial progress.
@@ -105,19 +105,21 @@ func validateRerun(ctx context.Context, run *actions_model.ActionRun, repo *repo
 	return nil
 }
 
+// rerunPlan is a read-only snapshot of the inputs needed to execute a rerun.
+// It holds no to-be-persisted entities and no intermediate evaluation results;
+// execRerunPlan constructs and evaluates the new ActionRunAttempt itself.
 type rerunPlan struct {
-	run          *actions_model.ActionRun
-	templateJobs actions_model.ActionJobList
-	rerunJobIDs  container.Set[string]
-	vars         map[string]string
-	newAttempt   *actions_model.ActionRunAttempt
+	run             *actions_model.ActionRun
+	templateAttempt *actions_model.ActionRunAttempt
+	templateJobs    actions_model.ActionJobList
+	rerunJobIDs     container.Set[string]
+	triggerUser     *user_model.User
 }
 
 // buildRerunPlan constructs a rerunPlan for the given workflow run without writing to the database.
-// It loads the latest attempt as a template, expands jobsToRerun to include all transitive downstream
-// dependents, resolves run variables, and prepares a new ActionRunAttempt (not yet inserted).
-// Run-level concurrency is evaluated here; job-level concurrency is deferred to execRerunPlan.
-// An empty jobsToRerun means the entire run should be rerun.
+// jobsToRerun contains only the user-requested target jobs. An empty jobsToRerun means the entire run should be rerun.
+// It loads the latest attempt as a template and expands jobsToRerun to include all transitive downstream dependents.
+// The construction of new-attempt and concurrency evaluation are deferred to execRerunPlan so that the plan remains a pure input snapshot.
 func buildRerunPlan(ctx context.Context, run *actions_model.ActionRun, triggerUser *user_model.User, jobsToRerun []*actions_model.ActionRunJob) (*rerunPlan, error) {
 	if err := run.LoadAttributes(ctx); err != nil {
 		return nil, err
@@ -140,68 +142,70 @@ func buildRerunPlan(ctx context.Context, run *actions_model.ActionRun, triggerUs
 	}
 
 	plan := &rerunPlan{
-		run:          run,
-		templateJobs: templateJobs,
+		run:             run,
+		templateAttempt: templateAttempt,
+		templateJobs:    templateJobs,
+		triggerUser:     triggerUser,
 	}
 
 	if err := plan.expandRerunJobIDs(jobsToRerun); err != nil {
 		return nil, err
 	}
 
-	plan.vars, err = actions_model.GetVariablesOfRun(ctx, run)
-	if err != nil {
-		return nil, fmt.Errorf("get run %d variables: %w", run.ID, err)
-	}
-
-	plan.newAttempt = &actions_model.ActionRunAttempt{
-		RepoID:        run.RepoID,
-		RunID:         run.ID,
-		Attempt:       templateAttempt.Attempt + 1,
-		TriggerUserID: triggerUser.ID,
-		Status:        actions_model.StatusWaiting,
-	}
-
-	if run.RawConcurrency != "" {
-		var rawConcurrency model.RawConcurrency
-		if err := yaml.Unmarshal([]byte(run.RawConcurrency), &rawConcurrency); err != nil {
-			return nil, fmt.Errorf("unmarshal raw concurrency: %w", err)
-		}
-		if err := EvaluateRunConcurrencyFillModel(ctx, run, plan.newAttempt, &rawConcurrency, plan.vars, nil); err != nil {
-			return nil, err
-		}
-	}
-
 	return plan, nil
 }
 
 // execRerunPlan executes the rerun plan built by buildRerunPlan.
-// Inside a single database transaction it inserts the new ActionRunAttempt, clones all template jobs,
-// evaluates job-level concurrency for rerun jobs, and updates the run's latest_attempt_id.
-// Jobs not in the rerun set are cloned as pass-through: their status is preserved and SourceTaskID
-// points to the original task so the UI can still display their results.
+// It loads run variables, constructs the new ActionRunAttempt and evaluates run-level concurrency (all outside the transaction to keep the tx short).
+// Inside a single database transaction it then inserts the new attempt, clones all template jobs, evaluates job-level concurrency for rerun jobs,
+// and updates the run's latest_attempt_id.
+// Jobs not in the rerun set are cloned as pass-through: their status is preserved and SourceTaskID points to the original task so the UI can still display their results.
 // The attempt's final status is derived only from the rerun jobs, not the pass-through jobs.
 // Notifications and commit statuses are sent after the transaction commits.
 func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionRunAttempt, error) {
+	vars, err := actions_model.GetVariablesOfRun(ctx, plan.run)
+	if err != nil {
+		return nil, fmt.Errorf("get run %d variables: %w", plan.run.ID, err)
+	}
+
+	newAttempt := &actions_model.ActionRunAttempt{
+		RepoID:        plan.run.RepoID,
+		RunID:         plan.run.ID,
+		Attempt:       plan.templateAttempt.Attempt + 1,
+		TriggerUserID: plan.triggerUser.ID,
+		Status:        actions_model.StatusWaiting,
+	}
+
+	if plan.run.RawConcurrency != "" {
+		var rawConcurrency model.RawConcurrency
+		if err := yaml.Unmarshal([]byte(plan.run.RawConcurrency), &rawConcurrency); err != nil {
+			return nil, fmt.Errorf("unmarshal raw concurrency: %w", err)
+		}
+		if err := EvaluateRunConcurrencyFillModel(ctx, plan.run, newAttempt, &rawConcurrency, vars, nil); err != nil {
+			return nil, err
+		}
+	}
+
 	var newJobs, newJobsToRerun actions_model.ActionJobList
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
 
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		newAttemptStatus, jobsToCancel, err := PrepareToStartRunWithConcurrency(ctx, plan.newAttempt)
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		newAttemptStatus, jobsToCancel, err := PrepareToStartRunWithConcurrency(ctx, newAttempt)
 		if err != nil {
 			return err
 		}
 		cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
-		plan.newAttempt.Status = newAttemptStatus
+		newAttempt.Status = newAttemptStatus
 		shouldBlock := newAttemptStatus == actions_model.StatusBlocked
 
-		if err := db.Insert(ctx, plan.newAttempt); err != nil {
-			if _, getErr := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, plan.run.ID, plan.newAttempt.Attempt); getErr == nil {
-				return util.NewAlreadyExistErrorf("workflow run attempt %d for run %d already exists", plan.newAttempt.Attempt, plan.run.ID)
+		if err := db.Insert(ctx, newAttempt); err != nil {
+			if _, getErr := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, plan.run.ID, newAttempt.Attempt); getErr == nil {
+				return util.NewAlreadyExistErrorf("workflow run attempt %d for run %d already exists", newAttempt.Attempt, plan.run.ID)
 			}
 			return err
 		}
 
-		plan.run.LatestAttemptID = plan.newAttempt.ID
+		plan.run.LatestAttemptID = newAttempt.ID
 		if err := actions_model.UpdateRun(ctx, plan.run, "latest_attempt_id"); err != nil {
 			return err
 		}
@@ -210,7 +214,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 		newJobs = make(actions_model.ActionJobList, 0, len(plan.templateJobs))
 		newJobsToRerun = make(actions_model.ActionJobList, 0, len(plan.rerunJobIDs))
 		for _, templateJob := range plan.templateJobs {
-			newJob := cloneRunJobForAttempt(templateJob, plan.newAttempt)
+			newJob := cloneRunJobForAttempt(templateJob, newAttempt)
 			if plan.rerunJobIDs.Contains(templateJob.JobID) {
 				shouldBlockJob := shouldBlock || plan.hasRerunDependency(templateJob)
 
@@ -224,7 +228,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				newJob.IsConcurrencyEvaluated = false
 
 				if newJob.RawConcurrency != "" && !shouldBlockJob {
-					if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newJob, plan.vars, nil); err != nil {
+					if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newJob, vars, nil); err != nil {
 						return fmt.Errorf("evaluate job concurrency: %w", err)
 					}
 					newJob.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, newJob)
@@ -249,8 +253,8 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 			newJobs = append(newJobs, newJob)
 		}
 
-		plan.newAttempt.Status = actions_model.AggregateJobStatus(newJobsToRerun)
-		if err := actions_model.UpdateRunAttempt(ctx, plan.newAttempt, "status"); err != nil {
+		newAttempt.Status = actions_model.AggregateJobStatus(newJobsToRerun)
+		if err := actions_model.UpdateRunAttempt(ctx, newAttempt, "status"); err != nil {
 			return err
 		}
 
@@ -276,7 +280,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 	CreateCommitStatusForRunJobs(ctx, plan.run, newJobs...)
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, newJobsToRerun)
 
-	return plan.newAttempt, nil
+	return newAttempt, nil
 }
 
 func (p *rerunPlan) expandRerunJobIDs(jobsToRerun []*actions_model.ActionRunJob) error {
