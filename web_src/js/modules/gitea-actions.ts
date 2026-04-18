@@ -1,5 +1,6 @@
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
 export type ActionsRunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+export type ActionsArtifactStatus = 'expired' | 'completed';
 
 export type ActionsRun = {
   repoId: number,
@@ -50,6 +51,6 @@ export type ActionsJob = {
 export type ActionsArtifact = {
   name: string;
   size: number;
-  status: string;
+  status: ActionsArtifactStatus;
   expiresUnix: number;
 };

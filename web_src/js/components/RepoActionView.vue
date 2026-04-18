@@ -6,8 +6,7 @@ import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
 import {createActionRunViewStore} from './ActionRunView.ts';
-import {createArtifactTooltipElement} from './ActionRunArtifacts.ts';
-import {createTippy} from '../modules/tippy.ts';
+import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 
 defineOptions({
   name: 'RepoActionView',
@@ -23,15 +22,6 @@ const props = defineProps<{
 const locale = props.locale;
 const store = createActionRunViewStore(props.actionsUrl, props.runId);
 const {currentRun: run, runArtifacts: artifacts} = toRefs(store.viewData);
-
-function initSidebarTooltip(el: HTMLElement | null, content: string | HTMLElement) {
-  if (!el) return;
-  if (el._tippy) {
-    el._tippy.setContent(content);
-  } else {
-    createTippy(el, {content, role: 'tooltip', theme: 'tooltip', placement: 'top-end', arrow: false, offset: [0, 2]});
-  }
-}
 
 function cancelRun() {
   POST(`${run.value.link}/cancel`);
@@ -129,9 +119,15 @@ async function deleteArtifact(name: string) {
           <div class="ui divider"/>
           <div class="left-list-header">{{ locale.artifactsTitle }} ({{ artifacts.length }})</div>
           <ul class="ui relaxed list flex-items-block">
-            <li :ref="artifact.status !== 'expired' ? (el) => initSidebarTooltip(el as HTMLElement, createArtifactTooltipElement(artifact, locale.artifactExpiresAt)) : undefined" class="item" v-for="artifact in artifacts" :key="artifact.name">
+            <li class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
-                <a class="tw-flex-1 flex-text-block muted" target="_blank" :href="run.link+'/artifacts/'+encodeURIComponent(artifact.name)">
+                <a
+                  class="tw-flex-1 flex-text-block muted" target="_blank"
+                  :href="run.link+'/artifacts/'+encodeURIComponent(artifact.name)"
+                  :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
+                  data-tooltip-render-html="true"
+                  data-tooltip-placement="top-end"
+                >
                   <SvgIcon name="octicon-file" class="tw-text-text-light"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
@@ -269,16 +265,6 @@ async function deleteArtifact(name: string) {
 .action-view-left .ui.relaxed.list {
   margin: var(--gap-block) 0;
   padding-left: 10px;
-}
-
-.action-view-left .ui.relaxed.list > .item {
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.action-view-left .ui.relaxed.list > .item > :first-child {
-  padding-top: 0.42857143em;
-  padding-bottom: 0.42857143em;
 }
 
 .job-brief-item {

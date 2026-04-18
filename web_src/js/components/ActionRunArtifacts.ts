@@ -1,20 +1,15 @@
-import {createElementFromAttrs} from '../utils/dom.ts';
+import {html, htmlEscape} from '../utils/html.ts';
 import {formatBytes} from '../utils.ts';
 import type {ActionsArtifact} from '../modules/gitea-actions.ts';
 
-export function createArtifactTooltipElement(artifact: ActionsArtifact, expiresAtLocale: string): HTMLElement {
+export function buildArtifactTooltipHtml(artifact: ActionsArtifact, expiresAtLocale: string): string {
   const sizeText = formatBytes(artifact.size);
-
-  if (artifact.expiresUnix <= 0) {
-    return createElementFromAttrs('span', null, sizeText);
-  }
+  if (artifact.expiresUnix <= 0) return htmlEscape(sizeText);
 
   const datetime = new Date(artifact.expiresUnix * 1000).toISOString();
-  const parts = expiresAtLocale.split('%s');
-  const relativeTime = createElementFromAttrs('relative-time', {
-    datetime, threshold: 'P0Y', prefix: '', weekday: '',
-    year: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
-  });
-  const sizeSpan = createElementFromAttrs('span', {class: 'artifact-size tw-border-l tw-border-current tw-ml-2 tw-pl-2'}, sizeText);
-  return createElementFromAttrs('span', null, parts[0] ?? '', relativeTime, parts[1] ?? '', sizeSpan);
+  // split so the <relative-time> element can be interleaved, e.g. "Expires at %s" -> ["Expires at ", ""]
+  const [prefix, suffix = ''] = expiresAtLocale.split('%s');
+  const relativeTime = html`<relative-time datetime="${datetime}" threshold="P0Y" prefix="" weekday="" year="numeric" month="short" hour="numeric" minute="2-digit"></relative-time>`;
+  const sizeSpan = html`<span class="artifact-size tw-border-l tw-border-current tw-ml-2 tw-pl-2">${sizeText}</span>`;
+  return htmlEscape(prefix) + relativeTime + htmlEscape(suffix) + sizeSpan;
 }

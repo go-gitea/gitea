@@ -1,33 +1,31 @@
-import {createArtifactTooltipElement} from './ActionRunArtifacts.ts';
+import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 
-test('createArtifactTooltipElement for active artifact', () => {
-  const el = createArtifactTooltipElement({
+test('buildArtifactTooltipHtml for active artifact', () => {
+  const result = buildArtifactTooltipHtml({
     name: 'artifact.zip',
     size: 1024 * 1024,
     status: 'completed',
     expiresUnix: Date.UTC(2026, 2, 20, 12, 0, 0) / 1000,
   }, 'Expires at %s');
 
-  const rt = el.querySelector('relative-time')!;
-  expect(rt).not.toBeNull();
-  expect(rt.getAttribute('datetime')).toBe('2026-03-20T12:00:00.000Z');
-  expect(rt.getAttribute('threshold')).toBe('P0Y');
-  expect(rt.getAttribute('month')).toBe('short');
-  expect(rt.getAttribute('hour')).toBe('numeric');
-  expect(rt.getAttribute('minute')).toBe('2-digit');
-  expect(el.textContent).toContain('Expires at');
-  expect(el.textContent).toContain('1.0 MiB');
-  expect(el.querySelector('.artifact-size')).not.toBeNull();
+  expect(result).toContain('<relative-time datetime="2026-03-20T12:00:00.000Z"');
+  expect(result).toContain('threshold="P0Y"');
+  expect(result).toContain('month="short"');
+  expect(result).toContain('hour="numeric"');
+  expect(result).toContain('minute="2-digit"');
+  expect(result).toContain('Expires at');
+  expect(result).toContain('1.0 MiB');
+  expect(result).toContain('class="artifact-size');
 });
 
-test('createArtifactTooltipElement with no expiry', () => {
-  const el = createArtifactTooltipElement({
+test('buildArtifactTooltipHtml with no expiry', () => {
+  const result = buildArtifactTooltipHtml({
     name: 'artifact.zip',
     size: 512,
     status: 'completed',
     expiresUnix: 0,
   }, 'Expires at %s');
 
-  expect(el.querySelector('relative-time')).toBeNull();
-  expect(el.textContent).toBe('512 B');
+  expect(result).not.toContain('<relative-time');
+  expect(result).toBe('512 B');
 });

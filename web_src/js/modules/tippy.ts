@@ -85,6 +85,7 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
     role: 'tooltip',
     theme: 'tooltip',
     hideOnClick,
+    allowHTML: target.getAttribute('data-tooltip-render-html') === 'true',
     placement: target.getAttribute('data-tooltip-placement') as Placement || 'top-start',
     followCursor: target.getAttribute('data-tooltip-follow-cursor') as Props['followCursor'] || false,
     ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
@@ -124,7 +125,8 @@ function attachLazyTooltip(el: HTMLElement): void {
   el.addEventListener('mouseover', lazyTooltipOnMouseHover, {capture: true});
 
   // meanwhile, if the element has no aria-label, use the tooltip content as aria-label
-  if (!el.hasAttribute('aria-label')) {
+  // skip when the content is HTML, as a raw markup string is not a meaningful accessible name
+  if (!el.hasAttribute('aria-label') && el.getAttribute('data-tooltip-render-html') !== 'true') {
     const content = el.getAttribute('data-tooltip-content');
     if (content) {
       el.setAttribute('aria-label', content);
