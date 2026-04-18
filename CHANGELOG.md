@@ -30,7 +30,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add summary to action runs view (#36883)
   * Add user badges (#36752)
   * Add configurable permissions for Actions automatic tokens (#36173)
-  * Add per-runner “Disable/Pause”  (#36776)
+  * Add per-runner "Disable/Pause"  (#36776)
+  * Feature non-zipped actions artifacts (action v7 / nodejs / npm v6.2.0) (#36786)
 * PERFORMANCE
   * WorkflowDispatch API optionally return runid (#36706)
   * Add render cache for SVG icons (#36863)
@@ -50,7 +51,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Allow configuring default PR base branch (fixes #36412) (#36425)
   * Add support for RPM Errata (updateinfo.xml) (#37125)
   * Require additional user confirmation for making repo private (#36959)
-  * Feature non-zipped actions artifacts (action v7 / nodejs / npm v6.2.0) (#36786)
   * Add `actions.WORKFLOW_DIRS` setting (#36619)
   * Avoid opening new tab when downloading actions logs (#36740)
   * Implements OIDC RP-Initiated Logout (#36724)
