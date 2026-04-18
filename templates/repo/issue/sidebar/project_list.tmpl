@@ -58,9 +58,11 @@
 			<div class="issue-sidebar-combo sidebar-project-column-combo" data-selection-mode="single" data-update-algo="all"
 				data-update-url="{{$pageMeta.RepoLink}}/issues/projects/column?issue_id={{$pageMeta.Issue.ID}}">
 				<input class="combo-value" name="column_id" type="hidden" value="{{$card.SelectedColumnID}}">
-				<button type="button" class="ui dropdown btn interact-bg full-width sidebar-project-column-text tw-p-2">
-					{{with $card.SelectedColumn}}{{if .Color}}<span class="sidebar-column-dot" style="background-color: {{.Color}}"></span>{{end}}{{.Title}}{{end}}
-					{{svg "octicon-triangle-down" 14}}
+				<div class="ui dropdown full-width">
+					<a class="sidebar-project-column-text silenced interact-bg flex-text-inline tw-p-2 tw-rounded">
+						{{with $card.SelectedColumn}}{{if .Color}}<span class="sidebar-column-dot" style="background-color: {{.Color}}"></span>{{end}}{{.Title}}{{end}}
+						{{svg "octicon-triangle-down" 14}}
+					</a>
 					<div class="menu">
 						{{range $card.Columns}}
 							<a class="item muted tw-flex tw-items-center tw-gap-1{{if eq .ID $card.SelectedColumnID}} checked{{end}}" data-value="{{.ID}}">
@@ -69,7 +71,7 @@
 							</a>
 						{{end}}
 					</div>
-				</button>
+				</div>
 				<div class="ui list tw-hidden">
 					<span class="item empty-list">{{ctx.Locale.Tr "repo.issues.new.no_column"}}</span>
 				</div>
