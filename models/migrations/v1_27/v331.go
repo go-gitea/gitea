@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
-	"xorm.io/xorm/schemas"
 )
 
 type actionRunAttempt struct {
@@ -77,24 +76,9 @@ func AddActionRunAttemptModel(x *xorm.Engine) error {
 		return err
 	}
 
-	// update "action_artifact"
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-	}, new(actionArtifact)); err != nil {
+	// update "action_artifact": let xorm sync add the new 4-column unique index (runid_attempt_name_path) and drop the old 3-column unique (runid_name_path)
+	if err := x.Sync(new(actionArtifact)); err != nil {
 		return err
-	}
-	indexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action_artifact")
-	if err != nil {
-		return err
-	}
-	for _, index := range indexes {
-		if index.Type == schemas.UniqueType && len(index.Cols) == 3 &&
-			index.Cols[0] == "run_id" && index.Cols[1] == "artifact_path" && index.Cols[2] == "artifact_name" {
-			if _, err := x.Exec(x.Dialect().DropIndexSQL("action_artifact", index)); err != nil {
-				return err
-			}
-			break
-		}
 	}
 
 	// update "action_run"
