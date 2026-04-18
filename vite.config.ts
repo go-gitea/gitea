@@ -42,6 +42,11 @@ const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
     pluginTimings: false,
   },
+  ...(env.CI ? {
+    onwarn(warning: Rolldown.RolldownLog) {
+      throw new Error(`[rolldown] ${warning.code}: ${warning.message}`);
+    },
+  } : {}),
 };
 
 function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
