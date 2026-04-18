@@ -921,7 +921,7 @@
 				{{ctx.Locale.Tr "repo.settings.transfer_notices_3"}} <br>
 				{{ctx.Locale.Tr "repo.settings.transfer_notices_4"}}
 			</div>
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 				<input type="hidden" name="action" value="transfer">
 				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
 				<div class="required field">
