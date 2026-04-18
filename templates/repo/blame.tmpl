@@ -45,10 +45,8 @@
 										<div class="blame-avatar">
 											{{$row.Avatar}}
 										</div>
-										<div class="blame-message">
-											<a class="suppressed tw-text-text" href="{{$row.CommitURL}}" title="{{$row.CommitMessage}}">
-												{{$row.CommitMessage}}
-											</a>
+										<div class="blame-message muted-links" title="{{$row.CommitMessage}}">
+											{{ctx.RenderUtils.RenderCommitMessageLinkSubject $row.CommitMessage $row.CommitURL $.Repository}}
 										</div>
 										<div class="blame-time not-mobile">
 											{{$row.CommitSince}}
@@ -66,13 +64,9 @@
 							<td class="lines-num">
 								<span id="L{{$row.RowNumber}}" data-line-number="{{$row.RowNumber}}"></span>
 							</td>
-							{{if $.EscapeStatus.Escaped}}
-								<td class="lines-escape">
-									{{if $row.EscapeStatus.Escaped}}
-										<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $row}}"></button>
-									{{end}}
-								</td>
-							{{end}}
+
+							{{ctx.RenderUtils.RenderUnicodeEscapeToggleTd $.EscapeStatus $row.EscapeStatus}}
+
 							<td rel="L{{$row.RowNumber}}" class="lines-code blame-code chroma">
 								<code class="code-inner tw-pl-2">{{$row.Code}}</code>
 							</td>

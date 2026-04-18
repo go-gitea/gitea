@@ -17,6 +17,9 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '##[endgroup]': 'endgroup',
 
   '##[error]': 'error',
+  '##[warning]': 'warning',
+  '##[notice]': 'notice',
+  '##[debug]': 'debug',
   '[command]': 'command',
 
   // https://github.com/actions/toolkit/blob/master/docs/commands.md
@@ -26,13 +29,16 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '::remove-matcher': 'hidden', // it has arguments
 };
 
+// Pattern for ::cmd:: and ::cmd args:: format (args are stripped for display)
+const LogLineCmdPattern = /^::(error|warning|notice|debug)(?:\s[^:]*)?::/;
+
 export type LogLine = {
   index: number;
   timestamp: number;
   message: string;
 };
 
-export type LogLineCommandName = 'group' | 'endgroup' | 'command' | 'error' | 'hidden';
+export type LogLineCommandName = 'group' | 'endgroup' | 'command' | 'error' | 'warning' | 'notice' | 'debug' | 'hidden';
 export type LogLineCommand = {
   name: LogLineCommandName,
   prefix: string,
@@ -45,24 +51,45 @@ export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
       return {name: LogLinePrefixCommandMap[prefix], prefix};
     }
   }
+  // Handle ::cmd:: and ::cmd args:: format (runner may pass these through raw)
+  const match = LogLineCmdPattern.exec(line.message);
+  if (match) {
+    return {name: match[1] as LogLineCommandName, prefix: match[0]};
+  }
   return null;
 }
 
+const LogLineLabelMap: Partial<Record<LogLineCommandName, string>> = {
+  'error': 'Error',
+  'warning': 'Warning',
+  'notice': 'Notice',
+  'debug': 'Debug',
+};
+
 export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) {
   const logMsgAttrs = {class: 'log-msg'};
-  if (cmd?.name) logMsgAttrs.class += ` log-cmd-${cmd?.name}`; // make it easier to add styles to some commands like "error"
+  if (cmd?.name) logMsgAttrs.class += ` log-cmd-${cmd.name}`; // make it easier to add styles to some commands like "error"
 
   // TODO: for some commands (::group::), the "prefix removal" works well, for some commands with "arguments" (::remove-matcher ...::),
   // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
   const msgContent = cmd ? line.message.substring(cmd.prefix.length) : line.message;
 
   const logMsg = createElementFromAttrs('span', logMsgAttrs);
-  logMsg.innerHTML = renderAnsi(msgContent);
+  const label = cmd ? LogLineLabelMap[cmd.name] : null;
+  if (label) {
+    logMsg.append(createElementFromAttrs('span', {class: 'log-msg-label'}, `${label}:`));
+    const msgSpan = document.createElement('span');
+    msgSpan.innerHTML = ` ${renderAnsi(msgContent.trimStart())}`;
+    logMsg.append(msgSpan);
+  } else {
+    logMsg.innerHTML = renderAnsi(msgContent);
+  }
   return logMsg;
 }
 
 export function createEmptyActionsRun(): ActionsRun {
   return {
+    repoId: 0,
     link: '',
     title: '',
     titleHTML: '',

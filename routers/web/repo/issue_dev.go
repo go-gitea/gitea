@@ -48,9 +48,9 @@ func CreateBranchFromIssue(ctx *context.Context) {
 		}
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	perm, err := access_model.GetIndividualUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
+		ctx.ServerError("GetIndividualUserRepoPermission", err)
 		return
 	}
 
@@ -77,7 +77,7 @@ func CreateBranchFromIssue(ctx *context.Context) {
 				flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
-					"Details": utils.SanitizeFlashErrorString(e.Message),
+					"Details": utils.EscapeFlashErrorString(e.Message),
 				})
 				if err != nil {
 					ctx.ServerError("UpdatePullRequest.HTMLString", err)

@@ -100,8 +100,7 @@ echo "TestGitHookScript"
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var apiGitHook *api.GitHook
-		DecodeJSON(t, resp, &apiGitHook)
+		apiGitHook := DecodeJSON(t, resp, &api.GitHook{})
 		assert.True(t, apiGitHook.IsActive)
 		assert.Equal(t, testHookContent, apiGitHook.Content)
 	})
@@ -134,16 +133,14 @@ echo "TestGitHookScript"
 			Content: testHookContent,
 		}).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var apiGitHook *api.GitHook
-		DecodeJSON(t, resp, &apiGitHook)
+		apiGitHook := DecodeJSON(t, resp, &api.GitHook{})
 		assert.True(t, apiGitHook.IsActive)
 		assert.Equal(t, testHookContent, apiGitHook.Content)
 
 		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
 			AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusOK)
-		var apiGitHook2 *api.GitHook
-		DecodeJSON(t, resp, &apiGitHook2)
+		apiGitHook2 := DecodeJSON(t, resp, &api.GitHook{})
 		assert.True(t, apiGitHook2.IsActive)
 		assert.Equal(t, testHookContent, apiGitHook2.Content)
 	})
@@ -180,8 +177,7 @@ echo "TestGitHookScript"
 		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var apiGitHook2 *api.GitHook
-		DecodeJSON(t, resp, &apiGitHook2)
+		apiGitHook2 := DecodeJSON(t, resp, &api.GitHook{})
 		assert.False(t, apiGitHook2.IsActive)
 		assert.Empty(t, apiGitHook2.Content)
 	})

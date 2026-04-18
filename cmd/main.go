@@ -112,35 +112,36 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 			Usage:     "Set custom path (defaults to '{WorkPath}/custom')",
 		},
 	}
+	webCmd := newWebCommand()
 	// these sub-commands need to use a config file
 	subCmdWithConfig := []*cli.Command{
-		CmdWeb,
-		CmdServ,
-		CmdHook,
-		CmdKeys,
-		CmdDump,
-		CmdAdmin,
-		CmdMigrate,
-		CmdDoctor,
-		CmdManager,
-		CmdEmbedded,
-		CmdMigrateStorage,
-		CmdDumpRepository,
-		CmdRestoreRepository,
-		CmdActions,
+		webCmd,
+		newServCommand(),
+		newHookCommand(),
+		NewKeysCommand(),
+		newDumpCommand(),
+		newAdminCommand(),
+		newMigrateCommand(),
+		newDoctorCommand(),
+		newManagerCommand(),
+		newEmbeddedCommand(),
+		newMigrateStorageCommand(),
+		newDumpRepositoryCommand(),
+		newRestoreRepositoryCommand(),
+		newActionsCommand(),
 	}
 
 	// these sub-commands do not need the config file, and they do not depend on any path or environment variable.
 	subCmdStandalone := []*cli.Command{
 		cmdConfig(),
 		cmdCert(),
-		CmdGenerate,
-		CmdDocs,
+		newGenerateCommand(),
+		newDocsCommand(),
 	}
 
 	// TODO: we should eventually drop the default command,
 	// but not sure whether it would break Windows users who used to double-click the EXE to run.
-	app.DefaultCommand = CmdWeb.Name
+	app.DefaultCommand = webCmd.Name
 
 	app.Before = PrepareConsoleLoggerLevel(log.INFO)
 	for i := range subCmdWithConfig {

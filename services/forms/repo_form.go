@@ -10,7 +10,9 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/webhook"
@@ -206,6 +208,7 @@ type ProtectBranchPriorityForm struct {
 
 // WebhookForm form for changing web hook
 type WebhookForm struct {
+	Name                     string `binding:"MaxSize(255)"`
 	Events                   string
 	Create                   bool
 	Delete                   bool
@@ -521,15 +524,48 @@ func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) 
 // swagger:model MergePullRequestOption
 type MergePullRequestForm struct {
 	// required: true
-	// enum: merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged
-	Do                     string `binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
-	MergeTitleField        string
-	MergeMessageField      string
-	MergeCommitID          string // only used for manually-merged
+	// enum: ["merge","rebase","rebase-merge","squash","fast-forward-only","manually-merged"]
+	Do                     string `json:"do" binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
+	MergeTitleField        string `json:"merge_title_field,omitempty"`
+	MergeMessageField      string `json:"merge_message_field,omitempty"`
+	MergeCommitID          string `json:"merge_commit_id,omitempty"` // only used for manually-merged
 	HeadCommitID           string `json:"head_commit_id,omitempty"`
 	ForceMerge             bool   `json:"force_merge,omitempty"`
 	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
 	DeleteBranchAfterMerge *bool  `json:"delete_branch_after_merge,omitempty"`
+}
+
+func (f *MergePullRequestForm) UnmarshalJSON(b []byte) error {
+	// This is for backward compatibility, to support both field names like "do" and "Do",
+	// because old code doesn't have "json" tag for these fields
+	type aux struct {
+		Do1                string `json:"do"`
+		Do2                string `json:"Do"`
+		MergeTitleField1   string `json:"merge_title_field"`
+		MergeTitleField2   string `json:"MergeTitleField"`
+		MergeMessageField1 string `json:"merge_message_field"`
+		MergeMessageField2 string `json:"MergeMessageField"`
+		MergeCommitID1     string `json:"merge_commit_id"`
+		MergeCommitID2     string `json:"MergeCommitID"`
+
+		HeadCommitID           string `json:"head_commit_id"`
+		ForceMerge             bool   `json:"force_merge"`
+		MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed"`
+		DeleteBranchAfterMerge *bool  `json:"delete_branch_after_merge"`
+	}
+	var a aux
+	if err := json.Unmarshal(b, &a); err != nil {
+		return err
+	}
+	f.Do = util.IfZero(a.Do1, a.Do2)
+	f.MergeTitleField = util.IfZero(a.MergeTitleField1, a.MergeTitleField2)
+	f.MergeMessageField = util.IfZero(a.MergeMessageField1, a.MergeMessageField2)
+	f.MergeCommitID = util.IfZero(a.MergeCommitID1, a.MergeCommitID2)
+	f.HeadCommitID = a.HeadCommitID
+	f.ForceMerge = a.ForceMerge
+	f.MergeWhenChecksSucceed = a.MergeWhenChecksSucceed
+	f.DeleteBranchAfterMerge = a.DeleteBranchAfterMerge
+	return nil
 }
 
 // Validate validates the fields

@@ -18,7 +18,14 @@ import (
 // GetOrgRepositories get repos belonging to the given organization
 func GetOrgRepositories(ctx context.Context, orgID int64) (RepositoryList, error) {
 	var orgRepos []*Repository
-	return orgRepos, db.GetEngine(ctx).Where("owner_id = ?", orgID).Find(&orgRepos)
+	err := db.GetEngine(ctx).Where("owner_id = ?", orgID).Find(&orgRepos)
+	return orgRepos, err
+}
+
+// GetOrgRepositoryIDs get repo IDs belonging to the given organization
+func GetOrgRepositoryIDs(ctx context.Context, orgID int64) (repoIDs []int64, _ error) {
+	err := db.GetEngine(ctx).Table("repository").Where("owner_id = ?", orgID).Cols("id").Find(&repoIDs)
+	return repoIDs, err
 }
 
 type SearchTeamRepoOptions struct {
@@ -26,7 +33,7 @@ type SearchTeamRepoOptions struct {
 	TeamID int64
 }
 
-// GetRepositories returns paginated repositories in team of organization.
+// GetTeamRepositories returns paginated repositories in team of organization.
 func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) (RepositoryList, error) {
 	sess := db.GetEngine(ctx)
 	if opts.TeamID > 0 {

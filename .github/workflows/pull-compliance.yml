@@ -38,7 +38,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v8.0.0
       - run: uv python install 3.14
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
@@ -58,7 +58,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v8.0.0
       - run: uv python install 3.14
       - run: make deps-py
       - run: make lint-yaml
@@ -122,7 +122,7 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
-      - run: make lint-go-windows lint-go-gitea-vet
+      - run: make lint-go-windows
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
           GOOS: windows

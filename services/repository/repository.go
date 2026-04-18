@@ -122,9 +122,9 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	})
 }
 
-func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error) {
+func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository, private bool) (err error) {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		repo.IsPrivate = false
+		repo.IsPrivate = private
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
 			return err
 		}
@@ -144,15 +144,33 @@ func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error
 			return err
 		}
 
-		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
-		if err != nil {
-			return fmt.Errorf("getRepositoriesByForkID: %w", err)
+		// If repo has become private, we need to set its actions to private, and clear stars and watches.
+		if private {
+			_, err = db.GetEngine(ctx).
+				Where("repo_id = ?", repo.ID).Cols("is_private").Update(&activities_model.Action{IsPrivate: true})
+			if err != nil {
+				return err
+			}
+			if err = repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
+				return err
+			}
+			if err = repo_model.ClearRepoWatches(ctx, repo.ID); err != nil {
+				return err
+			}
 		}
 
-		if repo.Owner.Visibility != structs.VisibleTypePrivate {
-			for i := range forkRepos {
-				if err = MakeRepoPublic(ctx, forkRepos[i]); err != nil {
-					return fmt.Errorf("MakeRepoPublic[%d]: %w", forkRepos[i].ID, err)
+		shouldUpdateForks := private
+		if !private && repo.Owner.Visibility != structs.VisibleTypePrivate {
+			shouldUpdateForks = true
+		}
+		if shouldUpdateForks {
+			forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
+			if err != nil {
+				return fmt.Errorf("getRepositoriesByForkID: %w", err)
+			}
+			for _, forkRepo := range forkRepos {
+				if err = MakeRepoPrivate(ctx, forkRepo, private); err != nil {
+					return fmt.Errorf("MakeRepoPrivate[%d]: %w", forkRepo.ID, err)
 				}
 			}
 		}
@@ -160,63 +178,6 @@ func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error
 		// If visibility is changed, we need to update the issue indexer.
 		// Since the data in the issue indexer have field to indicate if the repo is public or not.
 		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
-
-		return nil
-	})
-}
-
-func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err error) {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		repo.IsPrivate = true
-		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
-			return err
-		}
-
-		if err = repo.LoadOwner(ctx); err != nil {
-			return fmt.Errorf("LoadOwner: %w", err)
-		}
-		if repo.Owner.IsOrganization() {
-			// Organization repository need to recalculate access table when visibility is changed.
-			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
-				return fmt.Errorf("recalculateTeamAccesses: %w", err)
-			}
-		}
-
-		// If repo has become private, we need to set its actions to private.
-		_, err = db.GetEngine(ctx).Where("repo_id = ?", repo.ID).Cols("is_private").Update(&activities_model.Action{
-			IsPrivate: true,
-		})
-		if err != nil {
-			return err
-		}
-
-		if err = repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
-			return err
-		}
-
-		if err = repo_model.ClearRepoWatches(ctx, repo.ID); err != nil {
-			return err
-		}
-
-		// Create/Remove git-daemon-export-ok for git-daemon...
-		if err := CheckDaemonExportOK(ctx, repo); err != nil {
-			return err
-		}
-
-		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
-		if err != nil {
-			return fmt.Errorf("getRepositoriesByForkID: %w", err)
-		}
-		for i := range forkRepos {
-			if err = MakeRepoPrivate(ctx, forkRepos[i]); err != nil {
-				return fmt.Errorf("MakeRepoPrivate[%d]: %w", forkRepos[i].ID, err)
-			}
-		}
-
-		// If visibility is changed, we need to update the issue indexer.
-		// Since the data in the issue indexer have field to indicate if the repo is public or not.
-		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
-
 		return nil
 	})
 }

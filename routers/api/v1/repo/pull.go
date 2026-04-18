@@ -22,6 +22,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -657,6 +658,15 @@ func EditPullRequest(ctx *context.APIContext) {
 		return
 	}
 
+	// Fail fast: if content_version is provided and already stale, reject
+	// before any mutations. The DB-level check in ChangeContent still
+	// handles concurrent requests.
+	// TODO: wrap all mutations in a transaction to fully prevent partial writes.
+	if form.ContentVersion != nil && *form.ContentVersion != issue.ContentVersion {
+		ctx.APIError(http.StatusConflict, issues_model.ErrIssueAlreadyChanged)
+		return
+	}
+
 	if len(form.Title) > 0 {
 		err = issue_service.ChangeTitle(ctx, issue, ctx.Doer, form.Title)
 		if err != nil {
@@ -665,10 +675,14 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 	}
 	if form.Body != nil {
-		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, issue.ContentVersion)
+		contentVersion := issue.ContentVersion
+		if form.ContentVersion != nil {
+			contentVersion = *form.ContentVersion
+		}
+		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, contentVersion)
 		if err != nil {
 			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
-				ctx.APIError(http.StatusBadRequest, err)
+				ctx.APIError(http.StatusConflict, err)
 				return
 			}
 
@@ -898,6 +912,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "405":
@@ -1113,7 +1129,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	}()
 
 	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
-	permBase, err := access_model.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
+	permBase, err := access_model.GetDoerRepoPermission(ctx, baseRepo, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
@@ -1127,7 +1143,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 
 	// user should have permission to read headRepo's codes
 	// TODO: could the logic be simplified if the headRepo is the same as the baseRepo? Need to think more about it.
-	permHead, err := access_model.GetUserRepoPermission(ctx, headRepo, ctx.Doer)
+	permHead, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
@@ -1414,7 +1430,11 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	} else {
 		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefNameFromBranch(pr.BaseBranch), git.RefName(pr.GetGitHeadRefName()), false, false)
 	}
-	if err != nil {
+
+	if gitcmd.StderrHasPrefix(err, "fatal: bad revision") {
+		ctx.APIError(http.StatusNotFound, "invalid base branch or revision")
+		return
+	} else if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

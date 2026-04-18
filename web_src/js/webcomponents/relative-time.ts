@@ -259,12 +259,12 @@ class RelativeTime extends HTMLElement {
 
   get #lang(): string {
     const lang = this.closest('[lang]')?.getAttribute('lang');
-    if (!lang) return navigator.language;
-    try {
-      return new Intl.Locale(lang).toString();
-    } catch {
-      return navigator.language;
+    if (lang) {
+      try {
+        return new Intl.Locale(lang).toString();
+      } catch { /* invalid locale, fall through */ }
     }
+    return navigator.language ?? 'en';
   }
 
   get second(): 'numeric' | '2-digit' | undefined {

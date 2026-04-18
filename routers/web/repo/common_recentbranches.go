@@ -33,9 +33,9 @@ func prepareRecentlyPushedNewBranches(ctx *context.Context) {
 		opts.BaseRepo = ctx.Repo.Repository.BaseRepo
 	}
 
-	baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, opts.BaseRepo, ctx.Doer)
+	baseRepoPerm, err := access_model.GetDoerRepoPermission(ctx, opts.BaseRepo, ctx.Doer)
 	if err != nil {
-		log.Error("GetUserRepoPermission: %v", err)
+		log.Error("GetDoerRepoPermission: %v", err)
 		return
 	}
 	if !opts.Repo.CanContentChange() || !opts.BaseRepo.CanContentChange() {

@@ -102,7 +102,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 			perm = existPerm
 		} else {
 			var err error
-			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
+			perm, err = access_model.GetDoerRepoPermission(ctx, &blocker.Repository, ctx.Doer)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -351,7 +351,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 			perm = existPerm
 		} else {
 			var err error
-			perm, err = access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
+			perm, err = access_model.GetDoerRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -537,7 +537,7 @@ func getPermissionForRepo(ctx *context.APIContext, repo *repo_model.Repository) 
 		return &ctx.Repo.Permission
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil

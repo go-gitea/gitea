@@ -42,7 +42,10 @@ func RenderFile(ctx *context.Context) {
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
 		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
 		CurrentTreePath: path.Dir(ctx.Repo.TreePath),
-	}).WithRelativePath(ctx.Repo.TreePath).WithInStandalonePage(true)
+	}).WithRelativePath(ctx.Repo.TreePath).WithStandalonePage(markup.StandalonePageOptions{
+		CurrentWebTheme:   ctx.TemplateContext.CurrentWebTheme(),
+		RenderQueryString: ctx.Req.URL.RawQuery,
+	})
 	renderer, rendererInput, err := rctx.DetectMarkupRendererByReader(blobReader)
 	if err != nil {
 		http.Error(ctx.Resp, "Unable to find renderer", http.StatusBadRequest)

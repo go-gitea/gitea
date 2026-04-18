@@ -1,6 +1,6 @@
 import {
   dirname, basename, extname, isObject, stripTags, parseIssueHref,
-  parseUrl, translateMonth, translateDay, blobToDataURI,
+  translateMonth, translateDay, blobToDataURI,
   toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseRepoOwnerPathInfo,
   urlQueryEscape,
 } from './utils.ts';
@@ -68,18 +68,6 @@ test('parseRepoOwnerPathInfo', () => {
   window.config.appSubUrl = '';
 });
 
-test('parseUrl', () => {
-  expect(parseUrl('').pathname).toEqual('/');
-  expect(parseUrl('/path').pathname).toEqual('/path');
-  expect(parseUrl('/path?search').pathname).toEqual('/path');
-  expect(parseUrl('/path?search').search).toEqual('?search');
-  expect(parseUrl('/path?search#hash').hash).toEqual('#hash');
-  expect(parseUrl('https://localhost/path').pathname).toEqual('/path');
-  expect(parseUrl('https://localhost/path?search').pathname).toEqual('/path');
-  expect(parseUrl('https://localhost/path?search').search).toEqual('?search');
-  expect(parseUrl('https://localhost/path?search#hash').hash).toEqual('#hash');
-});
-
 test('translateMonth', () => {
   const originalLang = document.documentElement.lang;
   document.documentElement.lang = 'en-US';
@@ -114,7 +102,7 @@ test('toAbsoluteUrl', () => {
   expect(toAbsoluteUrl('')).toEqual('http://localhost:3000');
   expect(toAbsoluteUrl('/user/repo')).toEqual('http://localhost:3000/user/repo');
 
-  expect(() => toAbsoluteUrl('path')).toThrowError('unsupported');
+  expect(() => toAbsoluteUrl('path')).toThrow('unsupported');
 });
 
 test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {

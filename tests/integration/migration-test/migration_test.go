@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"xorm.io/xorm"

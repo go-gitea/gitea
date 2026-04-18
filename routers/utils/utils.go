@@ -5,10 +5,11 @@ package utils
 
 import (
 	"html"
-	"strings"
+	"html/template"
 )
 
-// SanitizeFlashErrorString will sanitize a flash error string
-func SanitizeFlashErrorString(x string) string {
-	return strings.ReplaceAll(html.EscapeString(x), "\n", "<br>")
+// EscapeFlashErrorString will escape the flash error string
+// Maybe do more sanitization in the future, e.g.: hide sensitive information, etc.
+func EscapeFlashErrorString(x string) template.HTML {
+	return template.HTML(html.EscapeString(x))
 }

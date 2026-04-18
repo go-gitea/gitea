@@ -6,21 +6,21 @@ import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createElementFromHTML, createElementFromAttrs} from '../utils/dom.ts';
 import {isImageFile, isVideoFile} from '../utils.ts';
-import type {DropzoneFile, DropzoneOptions} from 'dropzone/index.js';
+import type Dropzone from '@deltablot/dropzone';
 
 const {i18n} = window.config;
 
-type CustomDropzoneFile = DropzoneFile & {uuid: string};
+type CustomDropzoneFile = Dropzone.DropzoneFile & {uuid: string};
 
 // dropzone has its owner event dispatcher (emitter)
 export const DropzoneCustomEventReloadFiles = 'dropzone-custom-reload-files';
 export const DropzoneCustomEventRemovedFile = 'dropzone-custom-removed-file';
 export const DropzoneCustomEventUploadDone = 'dropzone-custom-upload-done';
 
-async function createDropzone(el: HTMLElement, opts: DropzoneOptions) {
+async function createDropzone(el: HTMLElement, opts: Dropzone.DropzoneOptions) {
   const [{default: Dropzone}] = await Promise.all([
-    import(/* webpackChunkName: "dropzone" */'dropzone'),
-    import(/* webpackChunkName: "dropzone" */'dropzone/dist/dropzone.css'),
+    import('@deltablot/dropzone'),
+    import('@deltablot/dropzone/dist/dropzone.css'),
   ]);
   return new Dropzone(el, opts);
 }

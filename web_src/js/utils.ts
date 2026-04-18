@@ -27,6 +27,14 @@ export function isObject<T = Record<string, any>>(obj: any): obj is T {
   return Object.prototype.toString.call(obj) === '[object Object]';
 }
 
+/** Whether the current platform is macOS or iOS. */
+export const isMac = /Mac/i.test(navigator.userAgent);
+
+/** Platform-aware display symbols for keyboard modifier and special keys. */
+export const keySymbols: Record<string, string> = isMac ?
+  {Mod: '⌘', Alt: '⌥', Shift: '⇧', Ctrl: '⌃', Up: '↑', Down: '↓', Enter: '⏎'} :
+  {Mod: 'Ctrl', Shift: 'Shift', Alt: 'Alt', Up: '↑', Down: '↓', Enter: '⏎'};
+
 /** returns whether a dark theme is enabled */
 export function isDarkTheme(): boolean {
   const style = window.getComputedStyle(document.documentElement);
@@ -74,11 +82,6 @@ export function parseIssuePageInfo(): IssuePageInfo {
     repoId: parseInt(el?.getAttribute('data-issue-repo-id') || ''),
     repoLink: el?.getAttribute('data-issue-repo-link') || '',
   };
-}
-
-/** parse a URL, either relative '/path' or absolute 'https://localhost/path' */
-export function parseUrl(str: string): URL {
-  return new URL(str, str.startsWith('http') ? undefined : window.location.origin);
 }
 
 /** return current locale chosen by user */
@@ -200,7 +203,7 @@ export function isVideoFile({name, type}: {name?: string, type?: string}): boole
   return Boolean(/\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/'));
 }
 
-export function toggleFullScreen(fullscreenElementsSelector: string, isFullScreen: boolean, sourceParentSelector?: string): void {
+export function toggleFullScreen(fullScreenEl: HTMLElement, isFullScreen: boolean, sourceParentSelector?: string): void {
   // hide other elements
   const headerEl = document.querySelector('#navbar')!;
   const contentEl = document.querySelector('.page-content')!;
@@ -210,9 +213,8 @@ export function toggleFullScreen(fullscreenElementsSelector: string, isFullScree
   toggleElem(footerEl, !isFullScreen);
 
   const sourceParentEl = sourceParentSelector ? document.querySelector(sourceParentSelector)! : contentEl;
-  const fullScreenEl = document.querySelector(fullscreenElementsSelector)!;
   const outerEl = document.querySelector('.full.height')!;
-  toggleElemClass(fullscreenElementsSelector, 'fullscreen', isFullScreen);
+  toggleElemClass(fullScreenEl, 'fullscreen', isFullScreen);
   if (isFullScreen) {
     outerEl.append(fullScreenEl);
   } else {

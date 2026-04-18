@@ -8,14 +8,15 @@
 package migration
 
 import (
-	"io"
 	"io/fs"
 	"path"
 	"sync"
 
+	"code.gitea.io/gitea/modules/assetfs"
+
 	_ "embed"
 
-	"code.gitea.io/gitea/modules/assetfs"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 //go:embed bindata.dat
@@ -25,6 +26,11 @@ var BuiltinAssets = sync.OnceValue(func() fs.FS {
 	return assetfs.NewEmbeddedFS(bindata)
 })
 
-func openSchema(filename string) (io.ReadCloser, error) {
-	return BuiltinAssets().Open(path.Base(filename))
+func openSchema(filename string) (any, error) {
+	f, err := BuiltinAssets().Open(path.Base(filename))
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return jsonschema.UnmarshalJSON(f)
 }

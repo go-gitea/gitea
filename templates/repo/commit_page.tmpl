@@ -195,7 +195,7 @@
 				<span class="tw-text-text-light">{{DateUtils.TimeSince .NoteCommit.Author.When}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
-				<pre class="commit-body">{{.NoteRendered | SanitizeHTML}}</pre>
+				<pre class="commit-body">{{.NoteRendered}}</pre>
 			</div>
 		{{end}}
 

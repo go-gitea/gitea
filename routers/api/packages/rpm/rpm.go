@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -57,7 +58,7 @@ func GetRepositoryKey(ctx *context.Context) {
 		return
 	}
 
-	ctx.ServeContent(strings.NewReader(pub), &context.ServeHeaderOptions{
+	ctx.ServeContent(strings.NewReader(pub), context.ServeHeaderOptions{
 		ContentType: "application/pgp-keys",
 		Filename:    "repository.key",
 	})
@@ -80,7 +81,7 @@ func CheckRepositoryFileExistence(ctx *context.Context) {
 		return
 	}
 
-	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+	ctx.SetServeHeaders(context.ServeHeaderOptions{
 		Filename:     pf.Name,
 		LastModified: pf.CreatedUnix.AsLocalTime(),
 	})
@@ -315,4 +316,147 @@ func DeletePackageFile(webctx *context.Context) {
 	}
 
 	webctx.Status(http.StatusNoContent)
+}
+
+// UploadErrata handles uploading errata information for a package version
+func UploadErrata(ctx *context.Context) {
+	name := ctx.PathParam("name")
+	version := ctx.PathParam("version")
+	group := ctx.PathParam("group")
+
+	var updates []*rpm_module.Update
+	if err := json.NewDecoder(ctx.Req.Body).Decode(&updates); err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx,
+		ctx.Package.Owner.ID,
+		packages_model.TypeRpm,
+		name,
+		version,
+	)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			apiError(ctx, http.StatusNotFound, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	var vm *rpm_module.VersionMetadata
+	if pv.MetadataJSON != "" {
+		if err := json.Unmarshal([]byte(pv.MetadataJSON), &vm); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	} else {
+		vm = &rpm_module.VersionMetadata{}
+	}
+
+	now := time.Now().Format("2006-01-02 15:04:05")
+	for _, u := range updates {
+		if u == nil {
+			continue
+		}
+
+		// Sanitize to remove nil elements from JSON payload
+		var cleanPkgList []*rpm_module.Collection
+		for _, coll := range u.PkgList {
+			if coll == nil {
+				continue
+			}
+			var cleanPackages []*rpm_module.UpdatePackage
+			for _, pkg := range coll.Packages {
+				if pkg == nil {
+					continue
+				}
+				cleanPackages = append(cleanPackages, pkg)
+			}
+			coll.Packages = cleanPackages
+			cleanPkgList = append(cleanPkgList, coll)
+		}
+		u.PkgList = cleanPkgList
+
+		found := false
+		for i, existing := range vm.Updates {
+			if existing.ID == u.ID {
+				// Merge PkgList with deduplication
+				for _, newColl := range u.PkgList {
+					if newColl == nil {
+						continue
+					}
+					collFound := false
+					for j, existingColl := range existing.PkgList {
+						if existingColl.Short == newColl.Short {
+							// Merge packages
+							for _, newPkg := range newColl.Packages {
+								if newPkg == nil {
+									continue
+								}
+								pkgFound := false
+								for _, existingPkg := range existingColl.Packages {
+									if existingPkg.Name == newPkg.Name &&
+										existingPkg.Version == newPkg.Version &&
+										existingPkg.Release == newPkg.Release &&
+										existingPkg.Arch == newPkg.Arch {
+										pkgFound = true
+										break
+									}
+								}
+								if !pkgFound {
+									vm.Updates[i].PkgList[j].Packages = append(vm.Updates[i].PkgList[j].Packages, newPkg)
+								}
+							}
+							collFound = true
+							break
+						}
+					}
+					if !collFound {
+						vm.Updates[i].PkgList = append(vm.Updates[i].PkgList, newColl)
+					}
+				}
+				vm.Updates[i].From = u.From
+				vm.Updates[i].Status = u.Status
+				vm.Updates[i].Type = u.Type
+				vm.Updates[i].Version = u.Version
+				vm.Updates[i].Title = u.Title
+				vm.Updates[i].Severity = u.Severity
+				vm.Updates[i].Description = u.Description
+				vm.Updates[i].References = u.References
+				vm.Updates[i].Updated = &rpm_module.DateAttr{Date: now}
+				found = true
+				break
+			}
+		}
+		if !found {
+			if u.Issued == nil {
+				u.Issued = &rpm_module.DateAttr{Date: now}
+			}
+			if u.Updated == nil {
+				u.Updated = &rpm_module.DateAttr{Date: now}
+			}
+			vm.Updates = append(vm.Updates, u)
+		}
+	}
+
+	vmBytes, err := json.Marshal(vm)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	pv.MetadataJSON = string(vmBytes)
+	if err := packages_model.UpdateVersion(ctx, pv); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := rpm_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, group); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
