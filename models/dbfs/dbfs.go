@@ -85,10 +85,6 @@ func Open(ctx context.Context, name string) (File, error) {
 	return OpenFile(ctx, name, os.O_RDONLY)
 }
 
-func Create(ctx context.Context, name string) (File, error) {
-	return OpenFile(ctx, name, os.O_RDWR|os.O_CREATE|os.O_TRUNC)
-}
-
 func Rename(ctx context.Context, oldPath, newPath string) error {
 	f, err := newDbFile(ctx, oldPath)
 	if err != nil {

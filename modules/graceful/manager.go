@@ -235,22 +235,7 @@ func (g *Manager) InformCleanup() {
 	g.createServerCond.Signal()
 }
 
-// Done allows the manager to be viewed as a context.Context, it returns a channel that is closed when the server is finished terminating
+// Done returns a channel that is closed when the server is finished terminating
 func (g *Manager) Done() <-chan struct{} {
 	return g.managerCtx.Done()
-}
-
-// Err allows the manager to be viewed as a context.Context done at Terminate
-func (g *Manager) Err() error {
-	return g.managerCtx.Err()
-}
-
-// Value allows the manager to be viewed as a context.Context done at Terminate
-func (g *Manager) Value(key any) any {
-	return g.managerCtx.Value(key)
-}
-
-// Deadline returns nil as there is no fixed Deadline for the manager, it allows the manager to be viewed as a context.Context
-func (g *Manager) Deadline() (deadline time.Time, ok bool) {
-	return g.managerCtx.Deadline()
 }
