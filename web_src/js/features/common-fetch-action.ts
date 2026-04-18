@@ -1,6 +1,6 @@
 import {GET, request} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
-import {addDelegatedEventListener, createElementFromHTML, submitEventSubmitter} from '../utils/dom.ts';
+import {addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
 import {confirmModal, createConfirmModal} from './comp/ConfirmModal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
@@ -146,7 +146,7 @@ async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
 }
 
 type SubmitFormFetchActionOpts = {
-  formSubmitter?: HTMLElement;
+  formSubmitter?: HTMLElement | null;
   formData?: FormData;
 };
 
@@ -396,10 +396,10 @@ export function initGlobalFetchAction() {
   //   * it has "-header" and "-content" variants to set the header and content of the "confirm modal"
   //   * it can refer an existing modal element by "#the-modal-id"
 
-  addDelegatedEventListener(document, 'submit', '.form-fetch-action', async (el: HTMLFormElement, e) => {
+  addDelegatedEventListener<HTMLFormElement, SubmitEvent>(document, 'submit', '.form-fetch-action', async (el, e) => {
     // "fetch-action" will use the form's data to send the request
     e.preventDefault();
-    await submitFormFetchAction(el, {formSubmitter: submitEventSubmitter(e)});
+    await submitFormFetchAction(el, {formSubmitter: e.submitter});
   });
 
   addDelegatedEventListener(document, 'click', '.link-action', async (el, e) => {
