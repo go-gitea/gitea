@@ -680,6 +680,24 @@ func RepoAssignment(ctx *Context) {
 		return
 	}
 
+	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
+		repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
+		if err != nil {
+			ctx.ServerError("GetPendingRepositoryTransfer", err)
+			return
+		}
+
+		if err := repoTransfer.LoadAttributes(ctx); err != nil {
+			ctx.ServerError("LoadRecipient", err)
+			return
+		}
+
+		ctx.Data["RepoTransfer"] = repoTransfer
+		if ctx.Doer != nil {
+			ctx.Data["CanUserAcceptOrRejectTransfer"] = repoTransfer.CanUserAcceptOrRejectTransfer(ctx, ctx.Doer)
+		}
+	}
+
 	// Stop at this point when the repo is empty.
 	if ctx.Repo.Repository.IsEmpty {
 		return
@@ -716,24 +734,6 @@ func RepoAssignment(ctx *Context) {
 		// Or, this is repository accepts pull requests between branches.
 		ctx.Data["BaseRepo"] = repo
 		InitRepoPullRequestCtx(ctx, repo, repo)
-	}
-
-	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
-		repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
-		if err != nil {
-			ctx.ServerError("GetPendingRepositoryTransfer", err)
-			return
-		}
-
-		if err := repoTransfer.LoadAttributes(ctx); err != nil {
-			ctx.ServerError("LoadRecipient", err)
-			return
-		}
-
-		ctx.Data["RepoTransfer"] = repoTransfer
-		if ctx.Doer != nil {
-			ctx.Data["CanUserAcceptOrRejectTransfer"] = repoTransfer.CanUserAcceptOrRejectTransfer(ctx, ctx.Doer)
-		}
 	}
 
 	if ctx.FormString("go-get") == "1" {
