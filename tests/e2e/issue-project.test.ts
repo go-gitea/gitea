@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateRepo, apiCreateIssue, apiDeleteRepo, apiHeaders, baseUrl, randomString} from './utils.ts';
+import {login, apiCreateRepo, apiCreateIssue, apiDeleteRepo, createProjectColumn, randomString} from './utils.ts';
 
 test('assign issue to project and change column', async ({page}) => {
   const repoName = `e2e-issue-project-${randomString(8)}`;
@@ -18,10 +18,7 @@ test('assign issue to project and change column', async ({page}) => {
 
   // columns created via POST because the web UI uses modals that are hard to drive
   await Promise.all(['Backlog', 'In Progress', 'Done'].map((title) =>
-    page.request.post(`${baseUrl()}/${user}/${repoName}/projects/${projectID}/columns/new`, {
-      headers: apiHeaders(),
-      form: {title},
-    }),
+    createProjectColumn(page.request, user, repoName, projectID!, title),
   ));
 
   await apiCreateIssue(page.request, user, repoName, {title: 'Column picker test'});
