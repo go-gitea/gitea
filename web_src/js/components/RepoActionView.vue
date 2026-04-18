@@ -60,7 +60,7 @@ async function deleteArtifact(name: string) {
           <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
             {{ locale.approve }}
           </button>
-          <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
+          <button class="ui small compact button tw-text-red" @click="cancelRun()" v-else-if="run.canCancel">
             {{ locale.cancel }}
           </button>
           <template v-if="run.canRerun">
