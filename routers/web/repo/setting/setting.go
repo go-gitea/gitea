@@ -914,11 +914,11 @@ func handleSettingsPostDeleteWiki(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
 	if !ctx.Repo.IsOwner() {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.JSONErrorNotFound()
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
 
@@ -929,7 +929,7 @@ func handleSettingsPostDeleteWiki(ctx *context.Context) {
 	log.Trace("Repository wiki deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
 }
 
 func handleSettingsPostArchive(ctx *context.Context) {
