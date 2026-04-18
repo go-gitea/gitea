@@ -172,7 +172,7 @@ jobs:
 
 			req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, run.ID))
 			resp := session.MakeRequest(t, req, http.StatusBadRequest)
-			assert.Contains(t, "workflow run has reached the maximum", resp.Body.String())
+			assert.Contains(t, resp.Body.String(), "workflow run has reached the maximum")
 			assert.EqualValues(t, 4, getRunLatestAttemptNum(t, run.ID))
 
 			// Raising the cap lets rerun proceed again.
