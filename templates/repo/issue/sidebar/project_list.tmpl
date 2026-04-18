@@ -63,7 +63,7 @@
 					{{svg "octicon-triangle-down" 14}}
 					<div class="menu">
 						{{range $card.Columns}}
-							<a class="item muted tw-flex tw-items-center tw-gap-2{{if eq .ID $card.SelectedColumnID}} checked{{end}}" data-value="{{.ID}}">
+							<a class="item muted tw-flex tw-items-center tw-gap-1{{if eq .ID $card.SelectedColumnID}} checked{{end}}" data-value="{{.ID}}">
 								<span class="item-check-mark">{{svg "octicon-check"}}</span>
 								{{if .Color}}<span class="sidebar-column-dot" style="background-color: {{.Color}}"></span>{{end}}{{.Title}}
 							</a>
