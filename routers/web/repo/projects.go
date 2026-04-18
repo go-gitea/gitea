@@ -500,18 +500,11 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 	}
 
 	// append to the end of the target column so we don't collide with existing sorting values
-	colStats := struct {
-		MaxSorting int64
-		IssueCount int64
-	}{}
-	if _, err := db.GetEngine(ctx).Select("max(sorting) AS max_sorting, count(*) AS issue_count").
-		Table("project_issue").
-		Where("project_id=?", column.ProjectID).And("project_board_id=?", column.ID).
-		Get(&colStats); err != nil {
-		ctx.ServerError("query column sorting", err)
+	newSorting, err := column.NextSorting(ctx)
+	if err != nil {
+		ctx.ServerError("column.NextSorting", err)
 		return
 	}
-	newSorting := util.Iif(colStats.IssueCount > 0, colStats.MaxSorting+1, int64(0))
 
 	if err := project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, map[int64]int64{newSorting: issueID}); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectColumn", err)

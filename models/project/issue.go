@@ -33,6 +33,22 @@ func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error 
 	return err
 }
 
+// NextSorting returns the sorting value to append an issue at the end of the column.
+func (c *Column) NextSorting(ctx context.Context) (int64, error) {
+	res := struct {
+		MaxSorting int64
+		IssueCount int64
+	}{}
+	if _, err := db.GetEngine(ctx).Select("max(sorting) AS max_sorting, count(*) AS issue_count").
+		Table("project_issue").
+		Where("project_id=?", c.ProjectID).
+		And("project_board_id=?", c.ID).
+		Get(&res); err != nil {
+		return 0, err
+	}
+	return util.Iif(res.IssueCount > 0, res.MaxSorting+1, int64(0)), nil
+}
+
 func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Column) error {
 	if c.ProjectID != newColumn.ProjectID {
 		return errors.New("columns have to be in the same project")
