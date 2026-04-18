@@ -5,10 +5,11 @@ package structs
 
 import "code.gitea.io/gitea/modules/json"
 
-type contributorUser User
+// ContributorUser mirrors User for Contributor payloads.
+type ContributorUser User
 
 type contributorPayload struct {
-	*contributorUser
+	*ContributorUser
 	CompatUserName string `json:"username"`
 	Name           string `json:"name,omitempty"`
 	Email          string `json:"email,omitempty"`
@@ -41,16 +42,16 @@ type Contributor struct {
 
 // MarshalJSON implements the json.Marshaler interface for Contributor.
 func (c Contributor) MarshalJSON() ([]byte, error) {
-	var user *contributorUser
+	var user *ContributorUser
 	username := ""
 	if c.User != nil {
-		tmp := contributorUser(*c.User)
+		tmp := ContributorUser(*c.User)
 		user = &tmp
 		username = c.User.UserName
 	}
 
 	return json.Marshal(contributorPayload{
-		contributorUser: user,
+		ContributorUser: user,
 		CompatUserName:  username,
 		Name:            c.Name,
 		Email:           c.Email,
@@ -70,10 +71,10 @@ func (c *Contributor) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	if parsed.contributorUser != nil {
-		c.User = parseContributorUser(*parsed.contributorUser, parsed.CompatUserName)
+	if parsed.ContributorUser != nil {
+		c.User = parseContributorUser(*parsed.ContributorUser, parsed.CompatUserName)
 	} else {
-		c.User = parseContributorUser(contributorUser{}, parsed.CompatUserName)
+		c.User = parseContributorUser(ContributorUser{}, parsed.CompatUserName)
 	}
 	c.Name = parsed.Name
 	c.Email = parsed.Email
@@ -86,8 +87,8 @@ func (c *Contributor) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func parseContributorUser(user contributorUser, compatUserName string) *User {
-	if user == (contributorUser{}) && compatUserName == "" {
+func parseContributorUser(user ContributorUser, compatUserName string) *User {
+	if user == (ContributorUser{}) && compatUserName == "" {
 		return nil
 	}
 	if user.UserName == "" {
