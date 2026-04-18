@@ -404,7 +404,7 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	if err != nil {
 		return // probably a non-HTML response
 	}
-	errMsg := htmlDoc.Find(".ui.negative.message").Text()
+	errMsg := htmlDoc.Find(".ui.negative.message:not(.tw-hidden)").Text()
 	if len(errMsg) > 0 {
 		t.Log("A flash error message was found:", errMsg)
 	}
