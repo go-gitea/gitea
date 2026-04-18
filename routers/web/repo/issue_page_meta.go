@@ -36,6 +36,7 @@ type issueSidebarAssigneesData struct {
 type issueSidebarProjectCardData struct {
 	Project          *project_model.Project
 	Columns          []*project_model.Column
+	SelectedColumn   *project_model.Column
 	SelectedColumnID int64
 }
 
@@ -185,12 +186,24 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 		ctx.ServerError("ProjectColumnID", err)
 		return
 	}
+	var selectedColumn *project_model.Column
+	for _, col := range columns {
+		if col.ID == columnID {
+			selectedColumn = col
+			break
+		}
+	}
 	d.ProjectsData.ProjectCards = []*issueSidebarProjectCardData{
 		{
 			Project:          d.Issue.Project,
 			Columns:          columns,
+			SelectedColumn:   selectedColumn,
 			SelectedColumnID: columnID,
 		},
+	}
+	d.ProjectsData.SelectedProjectIDs = make([]int64, 0, len(d.ProjectsData.ProjectCards))
+	for _, card := range d.ProjectsData.ProjectCards {
+		d.ProjectsData.SelectedProjectIDs = append(d.ProjectsData.SelectedProjectIDs, card.Project.ID)
 	}
 }
 

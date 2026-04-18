@@ -7,5 +7,6 @@
 - Never force-push, amend, or squash unless asked. Use new commits and normal push for pull request updates
 - Preserve existing code comments, do not remove or rewrite comments that are still relevant
 - In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
+- For CSS layout with spacing between elements, prefer existing flex+gap helpers (`flex-text-inline`, `flex-text-block`, `flex-items-block`, `flex-relaxed-list`, `flex-left-right`, `flex-center-wrap`) over per-child `tw-ml-*` / `tw-mr-*` margins. Before using a helper inside Fomantic widgets (`.ui.dropdown .menu > .item`, `.ui.list > .item`, etc.), check that its specificity actually wins — Fomantic often uses `!important` or higher-specificity selectors, in which case `tw-*` utilities (which carry `!important`) are the right tool
 - Include authorship attribution in issue and pull request comments
 - Add `Co-Authored-By` lines to all commits, indicating name and model used

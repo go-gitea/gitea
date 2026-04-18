@@ -475,11 +475,7 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 
 	issue, err := issues_model.GetIssueByID(ctx, issueID)
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetIssueByID", err)
-		}
+		ctx.NotFoundOrServerError("GetIssueByID", issues_model.IsErrIssueNotExist, err)
 		return
 	}
 	if issue.RepoID != ctx.Repo.Repository.ID {
@@ -494,11 +490,7 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 
 	column, err := project_model.GetColumn(ctx, columnID)
 	if err != nil {
-		if project_model.IsErrProjectColumnNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetColumn", err)
-		}
+		ctx.NotFoundOrServerError("GetColumn", project_model.IsErrProjectColumnNotExist, err)
 		return
 	}
 

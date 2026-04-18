@@ -4,7 +4,7 @@
 <div class="issue-sidebar-combo sidebar-project-combo" data-selection-mode="single" data-update-algo="all"
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/projects?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
-	<input class="combo-value" name="project_id" type="hidden" value="{{if $pageMeta.CanModifyIssueOrPull}}{{if $data.ProjectCards}}{{(index $data.ProjectCards 0).Project.ID}}{{else if $data.SelectedProjectIDs}}{{index $data.SelectedProjectIDs 0}}{{end}}{{end}}">
+	<input class="combo-value" name="project_id" type="hidden" value="{{if and $pageMeta.CanModifyIssueOrPull $data.SelectedProjectIDs}}{{index $data.SelectedProjectIDs 0}}{{end}}">
 	<div class="ui dropdown full-width {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
 		<a class="fixed-text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.new.projects"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
@@ -49,8 +49,8 @@
 {{end}}
 {{range $card := $data.ProjectCards}}
 	<div class="sidebar-project-card">
-		<div class="sidebar-project-card-header">
-			<a class="suppressed" href="{{$card.Project.Link ctx}}">
+		<div class="sidebar-project-card-header flex-text-block">
+			<a class="suppressed flex-text-block" href="{{$card.Project.Link ctx}}">
 				{{svg $card.Project.IconName 16 "tw-shrink-0"}}<span class="tw-flex-1 tw-break-anywhere">{{$card.Project.Title}}</span>
 			</a>
 		</div>
@@ -59,12 +59,12 @@
 				data-update-url="{{$pageMeta.RepoLink}}/issues/projects/column?issue_id={{$pageMeta.Issue.ID}}">
 				<input class="combo-value" name="column_id" type="hidden" value="{{$card.SelectedColumnID}}">
 				<button type="button" class="ui dropdown btn interact-bg full-width sidebar-project-column-text tw-p-2">
-					{{range $card.Columns}}{{if eq .ID $card.SelectedColumnID}}{{if .Color}}<span class="sidebar-column-dot" style="background-color: {{.Color}}"></span>{{end}}{{.Title}}{{end}}{{end}}
-					{{svg "octicon-triangle-down" 14 "tw-ml-1"}}
+					{{with $card.SelectedColumn}}{{if .Color}}<span class="sidebar-column-dot" style="background-color: {{.Color}}"></span>{{end}}{{.Title}}{{end}}
+					{{svg "octicon-triangle-down" 14}}
 					<div class="menu">
 						{{range $card.Columns}}
-							<div class="item{{if eq .ID $card.SelectedColumnID}} checked{{end}}" data-value="{{.ID}}">
-								<span class="item-check-mark tw-mr-2">{{svg "octicon-check"}}</span>
+							<div class="item tw-flex tw-items-center tw-gap-2{{if eq .ID $card.SelectedColumnID}} checked{{end}}" data-value="{{.ID}}">
+								<span class="item-check-mark">{{svg "octicon-check"}}</span>
 								{{if .Color}}<span class="sidebar-column-dot" style="background-color: {{.Color}}"></span>{{end}}{{.Title}}
 							</div>
 						{{end}}
@@ -75,12 +75,10 @@
 				</div>
 			</div>
 		{{else}}
-			{{range $card.Columns}}
-				{{if eq .ID $card.SelectedColumnID}}
-					<div class="sidebar-project-column-text muted">
-						{{if .Color}}<span class="sidebar-column-dot" style="background-color: {{.Color}}"></span>{{end}}{{.Title}}
-					</div>
-				{{end}}
+			{{with $card.SelectedColumn}}
+				<div class="sidebar-project-column-text muted flex-text-inline">
+					{{if .Color}}<span class="sidebar-column-dot" style="background-color: {{.Color}}"></span>{{end}}{{.Title}}
+				</div>
 			{{end}}
 		{{end}}
 	</div>

@@ -92,21 +92,19 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 func TestUpdateIssueProjectColumn(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// Issue 3 is in project 1 (repo user2/repo1), column "In Progress" (id=2)
+	// fixture: issue 3 is in project 1 of repo user2/repo1, column "In Progress" (id=2)
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
 	assert.EqualValues(t, 1, issue.RepoID)
 
 	sess := loginUser(t, "user2")
 
 	t.Run("MoveColumn", func(t *testing.T) {
-		// Move issue 3 to "Done" column (id=3)
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects/column", map[string]string{
 			"issue_id": "3",
 			"id":       "3",
 		})
 		sess.MakeRequest(t, req, http.StatusOK)
 
-		// Verify the issue moved
 		pi := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 3})
 		assert.EqualValues(t, 3, pi.ProjectColumnID)
 	})
@@ -154,39 +152,32 @@ func TestUpdateIssueProjectColumn(t *testing.T) {
 func TestIssueSidebarProjectColumn(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// Issue 5 (index=4) is in project 1, column "Done" (id=3)
+	// fixture: issue 5 (index=4) is in project 1 of repo user2/repo1, column "Done" (id=3)
 	sess := loginUser(t, "user2")
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues/4")
 	resp := sess.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	// Should have a project card
 	cards := htmlDoc.Find(".sidebar-project-card")
 	assert.Equal(t, 1, cards.Length())
 
-	// Card should contain project name
 	header := cards.Find(".sidebar-project-card-header")
 	assert.Contains(t, header.Text(), "First project")
 
-	// Should have column dropdown (project has 3 columns, >1 so dropdown shown)
 	columnCombo := cards.Find(".sidebar-project-column-combo")
 	assert.Equal(t, 1, columnCombo.Length())
 
-	// Default "To Do" column should be shown in dropdown
 	defaultItem := columnCombo.Find(`.menu .item[data-value="1"]`)
 	assert.Equal(t, 1, defaultItem.Length())
 
-	// Should contain "In Progress" and "Done"
 	inProgressItem := columnCombo.Find(`.menu .item[data-value="2"]`)
 	assert.Equal(t, 1, inProgressItem.Length())
 	doneItem := columnCombo.Find(`.menu .item[data-value="3"]`)
 	assert.Equal(t, 1, doneItem.Length())
 
-	// "Done" should be checked (issue 5 is in column 3)
 	assert.True(t, doneItem.HasClass("checked"))
 
-	// Remove project from issue via sidebar and verify card disappears
 	req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=5", map[string]string{
 		"id": "0",
 	})
