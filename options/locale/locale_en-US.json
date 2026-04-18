@@ -1406,7 +1406,7 @@
   "repo.issues.new": "New Issue",
   "repo.issues.new.title_empty": "Title cannot be empty",
   "repo.issues.new.labels": "Labels",
-  "repo.issues.new.no_labels": "No Labels",
+  "repo.issues.new.no_labels": "No labels",
   "repo.issues.new.clear_labels": "Clear labels",
   "repo.issues.new.projects": "Projects",
   "repo.issues.new.clear_projects": "Clear projects",
