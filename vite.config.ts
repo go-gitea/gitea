@@ -153,9 +153,15 @@ function iifePlugin(sourceFileName: string): Plugin {
       if (!entry) throw new Error('IIFE build produced no output');
 
       const manifestPath = join(outDir, '.vite', 'manifest.json');
-      const manifestData = JSON.parse(readFileSync(manifestPath, 'utf8'));
-      manifestData[`web_src/js/${sourceFileName}`] = {file: entry.fileName, name: sourceBaseName, isEntry: true};
-      writeFileSync(manifestPath, JSON.stringify(manifestData, null, 2));
+      try {
+        const manifestData = JSON.parse(readFileSync(manifestPath, 'utf8'));
+        manifestData[`web_src/js/${sourceFileName}`] = {file: entry.fileName, name: sourceBaseName, isEntry: true};
+        writeFileSync(manifestPath, JSON.stringify(manifestData, null, 2));
+      } catch {
+        // FIXME: if it throws error here, the real Vite compilation error will be hidden, and makes the debug very difficult
+        // Need to find a correct way to handle errors.
+        console.error(`Failed to update manifest for ${sourceFileName}`);
+      }
     },
   };
 }
@@ -166,6 +172,7 @@ function reducedSourcemapPlugin(): Plugin {
     'js/index.',
     'js/iife.',
     'js/swagger.',
+    'js/external-render-frontend.',
     'js/external-render-helper.',
     'js/eventsource.sharedworker.',
   ];
@@ -252,8 +259,10 @@ export default defineConfig(commonViteOpts({
     manifest: true,
     rolldownOptions: {
       input: {
+        // FIXME: INCORRECT-VITE-MANIFEST-PARSER: the "css importing" logic in backend is wrong
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
         swagger: join(import.meta.dirname, 'web_src/js/swagger.ts'),
+        'external-render-frontend': join(import.meta.dirname, 'web_src/js/external-render-frontend.ts'),
         'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/eventsource.sharedworker.ts'),
         devtest: join(import.meta.dirname, 'web_src/css/devtest.css'),
         ...themes,

@@ -458,9 +458,11 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
 }
 
 .external-render-iframe {
+  display: block; /* removes the inline baseline gap below the iframe */
   width: 100%;
   height: max(300px, 80vh);
   border: none;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .markup-content-iframe {
