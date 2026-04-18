@@ -308,9 +308,12 @@ func handleActionError(ctx *context.Context, err error) {
 		ctx.Flash.Error(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit))
 	case errors.Is(err, util.ErrPermissionDenied):
 		ctx.HTTPError(http.StatusNotFound)
+		return
 	default:
 		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
+		return
 	}
+	ctx.Redirect(ctx.Repo.Repository.Link())
 }
 
 // RedirectDownload return a file based on the following infos:
