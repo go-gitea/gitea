@@ -10,7 +10,6 @@
 	{{$viewURL := .ViewURL}}
 	{{if not $viewURL}}{{$viewURL = print AppSubUrl "/devtest/repo-action-view/runs/" $runID}}{{end}}
 	{{template "repo/actions/view_component" (dict
-		"RunID" $runID
 		"JobID" (or .JobID 0)
 		"ViewURL" $viewURL
 	)}}
