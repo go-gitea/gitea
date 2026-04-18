@@ -220,7 +220,8 @@
 							{{$hasPendingPullRequestMergeTip = ctx.Locale.Tr "repo.pulls.auto_merge_has_pending_schedule" .PendingPullRequestMerge.Doer.Name $createdPRMergeStr}}
 						{{end}}
 						<div class="divider"></div>
-						<script type="module">
+						<script nonce="{{ctx.CspScriptNonce}}" type="module">
+						(() => {
 							const defaultMergeTitle = {{.DefaultMergeMessage}};
 							const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
 							const defaultMergeMessage = {{.DefaultMergeBody}};
@@ -299,6 +300,7 @@
 								}
 							];
 							window.config.pageData.pullRequestMergeForm = mergeForm;
+						})();
 						</script>
 
 						{{$showGeneralMergeForm = true}}

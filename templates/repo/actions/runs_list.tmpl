@@ -11,9 +11,13 @@
 				{{template "repo/actions/status" (dict "status" $run.Status.String)}}
 			</div>
 			<div class="flex-item-main">
-				<a class="flex-item-title" title="{{$run.Title}}" href="{{$run.Link}}">
-					{{or $run.Title (ctx.Locale.Tr "actions.runs.empty_commit_message")}}
-				</a>
+				<span class="flex-item-title" title="{{$run.Title}}">
+					{{if $run.Title}}
+						{{ctx.RenderUtils.RenderCommitMessageLinkSubject $run.Title $run.Link $.Repository}}
+					{{else}}
+						<a href="{{$run.Link}}">{{ctx.Locale.Tr "actions.runs.empty_commit_message"}}</a>
+					{{end}}
+				</span>
 				<div class="flex-item-body">
 					<span><b>{{if not $.CurWorkflow}}{{$run.WorkflowID}} {{end}}#{{$run.Index}}</b>:</span>
 

@@ -8,26 +8,6 @@
   min-width: 40% !important;
 }
 
-.repository .unicode-escaped .escaped-code-point[data-escaped]::before {
-  visibility: visible;
-  content: attr(data-escaped);
-  font-family: var(--fonts-monospace);
-  color: var(--color-red);
-}
-
-.repository .unicode-escaped .escaped-code-point .char {
-  display: none;
-}
-
-.repository .broken-code-point {
-  font-family: var(--fonts-monospace);
-  color: var(--color-blue);
-}
-
-.repository .unicode-escaped .ambiguous-code-point {
-  border: 1px var(--color-yellow) solid;
-}
-
 .issue-content {
   display: flex;
   align-items: flex-start;
@@ -269,10 +249,6 @@ td .commit-summary {
   padding: 0 !important;
 }
 
-.repo-editor-menu {
-  min-height: auto !important;
-}
-
 .repo-editor-header {
   display: flex;
   margin: 1rem 0;
@@ -367,10 +343,6 @@ td .commit-summary {
 .repository.options #interval {
   width: 100px !important;
   min-width: 100px;
-}
-
-.repository.view.issue .instruct-toggle {
-  display: inline-block;
 }
 
 /* issue title & meta & edit */
@@ -1543,11 +1515,6 @@ tbody.commit-list {
   tr.commit-list {
     width: 1127px;
   }
-}
-
-.commit-list .commit-status-link {
-  display: inline-block;
-  vertical-align: middle;
 }
 
 .commit-body {

@@ -1,14 +1,14 @@
 import {build, defineConfig} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
+import {licensePlugin, wrap} from 'rolldown-license-plugin';
 import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
-import path, {join, parse} from 'node:path';
+import path, {basename, join, parse} from 'node:path';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
-import wrapAnsi from 'wrap-ansi';
-import licensePlugin from 'rollup-plugin-license';
 import type {InlineConfig, Plugin, Rolldown} from 'vite';
+import {camelize} from 'vue';
 
 const isProduction = env.NODE_ENV !== 'development';
 
@@ -32,20 +32,14 @@ for (const path of globSync('web_src/css/themes/*.css', {cwd: import.meta.dirnam
 const webComponents = new Set([
   // our own, in web_src/js/webcomponents
   'overflow-menu',
-  'origin-url',
   'relative-time',
   // from dependencies
   'markdown-toolbar',
   'text-expander',
 ]);
 
-function formatLicenseText(licenseText: string) {
-  return wrapAnsi(licenseText || '', 80).trim();
-}
-
 const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
-    eval: false, // htmx needs eval
     pluginTimings: false,
   },
 };
@@ -77,13 +71,14 @@ function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
   };
 }
 
-const iifeEntry = join(import.meta.dirname, 'web_src/js/iife.ts');
-
-function iifeBuildOpts({entryFileNames, write}: {entryFileNames: string, write?: boolean}) {
+function iifeBuildOpts({sourceFileName, write}: {sourceFileName: string, write?: boolean}) {
+  const sourceBaseName = basename(sourceFileName, '.ts');
+  // HINT: VITE-OUTPUT-DIR: all outputted JS files are in "js" directory
+  const entryFileName = `js/${sourceBaseName}.[hash:8].js`;
   return commonViteOpts({
     build: {
-      lib: {entry: iifeEntry, formats: ['iife'], name: 'iife'},
-      rolldownOptions: {output: {entryFileNames}},
+      lib: {entry: join(import.meta.dirname, 'web_src/js', sourceFileName), name: camelize(sourceBaseName), formats: ['iife']},
+      rolldownOptions: {output: {entryFileNames: entryFileName}},
       ...(write === false && {write: false}),
     },
     plugins: [stringPlugin()],
@@ -92,19 +87,20 @@ function iifeBuildOpts({entryFileNames, write}: {entryFileNames: string, write?:
 
 // Build iife.js as a blocking IIFE bundle. In dev mode, serves it from memory
 // and rebuilds on file changes. In prod mode, writes to disk during closeBundle.
-function iifePlugin(): Plugin {
-  let iifeCode = '';
-  let iifeMap = '';
+function iifePlugin(sourceFileName: string): Plugin {
+  let iifeCode = '', iifeMap = '';
   const iifeModules = new Set<string>();
   let isBuilding = false;
+
+  const sourceBaseName = path.basename(sourceFileName, '.ts');
   return {
-    name: 'iife',
+    name: `iife:${sourceFileName}`, // plugin name
     async configureServer(server) {
       const buildAndCache = async () => {
-        const result = await build(iifeBuildOpts({entryFileNames: 'js/iife.js', write: false}));
+        const result = await build(iifeBuildOpts({sourceFileName, write: false}));
         const output = (Array.isArray(result) ? result[0] : result) as Rolldown.RolldownOutput;
         const chunk = output.output[0];
-        iifeCode = chunk.code.replace(/\/\/# sourceMappingURL=.*/, '//# sourceMappingURL=__vite_iife.js.map');
+        iifeCode = chunk.code.replace(/\/\/# sourceMappingURL=.*/, `//# sourceMappingURL=${sourceBaseName}.js.map`);
         const mapAsset = output.output.find((o) => o.fileName.endsWith('.map'));
         iifeMap = mapAsset && 'source' in mapAsset ? String(mapAsset.source) : '';
         iifeModules.clear();
@@ -130,15 +126,15 @@ function iifePlugin(): Plugin {
       });
 
       server.middlewares.use((req, res, next) => {
-        // "__vite_iife" is a virtual file in memory, serve it directly
+        // on the dev server, an "iife" file is a virtual file in memory, serve it directly
         const pathname = req.url!.split('?')[0];
         if (pathname === '/web_src/js/__vite_dev_server_check') {
           res.end('ok');
-        } else if (pathname === '/web_src/js/__vite_iife.js') {
+        } else if (pathname === `/web_src/js/${sourceFileName}`) {
           res.setHeader('Content-Type', 'application/javascript');
           res.setHeader('Cache-Control', 'no-store');
           res.end(iifeCode);
-        } else if (pathname === '/web_src/js/__vite_iife.js.map') {
+        } else if (pathname === `/web_src/js/${sourceBaseName}.js.map`) {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Cache-Control', 'no-store');
           res.end(iifeMap);
@@ -148,29 +144,45 @@ function iifePlugin(): Plugin {
       });
     },
     async closeBundle() {
-      for (const file of globSync('js/iife.*.js*', {cwd: outDir})) unlinkSync(join(outDir, file));
-      const result = await build(iifeBuildOpts({entryFileNames: 'js/iife.[hash:8].js'}));
+      for (const file of globSync(`js/${sourceBaseName}.*.js*`, {cwd: outDir})) unlinkSync(join(outDir, file));
+
+      const result = await build(iifeBuildOpts({sourceFileName}));
       const buildOutput = (Array.isArray(result) ? result[0] : result) as Rolldown.RolldownOutput;
-      const entry = buildOutput.output.find((o) => o.fileName.startsWith('js/iife.'));
+      const entry = buildOutput.output.find((o) => o.fileName.startsWith(`js/${sourceBaseName}.`));
       if (!entry) throw new Error('IIFE build produced no output');
+
       const manifestPath = join(outDir, '.vite', 'manifest.json');
-      writeFileSync(manifestPath, JSON.stringify({
-        ...JSON.parse(readFileSync(manifestPath, 'utf8')),
-        'web_src/js/iife.ts': {file: entry.fileName, name: 'iife', isEntry: true},
-      }, null, 2));
+      try {
+        const manifestData = JSON.parse(readFileSync(manifestPath, 'utf8'));
+        manifestData[`web_src/js/${sourceFileName}`] = {file: entry.fileName, name: sourceBaseName, isEntry: true};
+        writeFileSync(manifestPath, JSON.stringify(manifestData, null, 2));
+      } catch {
+        // FIXME: if it throws error here, the real Vite compilation error will be hidden, and makes the debug very difficult
+        // Need to find a correct way to handle errors.
+        console.error(`Failed to update manifest for ${sourceFileName}`);
+      }
     },
   };
 }
 
 // In reduced sourcemap mode, only keep sourcemaps for main files
 function reducedSourcemapPlugin(): Plugin {
+  const standalonePrefixes = [
+    'js/index.',
+    'js/iife.',
+    'js/swagger.',
+    'js/external-render-frontend.',
+    'js/external-render-helper.',
+    'js/eventsource.sharedworker.',
+  ];
   return {
     name: 'reduced-sourcemap',
     apply: 'build',
     closeBundle() {
       if (enableSourcemap !== 'reduced') return;
       for (const file of globSync('{js,css}/*.map', {cwd: outDir})) {
-        if (!file.startsWith('js/index.') && !file.startsWith('js/iife.')) unlinkSync(join(outDir, file));
+        if (standalonePrefixes.some((prefix) => file.startsWith(prefix))) continue;
+        unlinkSync(join(outDir, file));
       }
     },
   };
@@ -216,6 +228,7 @@ export default defineConfig(commonViteOpts({
     open: false,
     host: '0.0.0.0',
     strictPort: false,
+    cors: true,
     fs: {
       // VITE-DEV-SERVER-SECURITY: the dev server will be exposed to public by Gitea's web server, so we need to strictly limit the access
       // Otherwise `/@fs/*` will be able to access any file (including app.ini which contains INTERNAL_TOKEN)
@@ -245,16 +258,18 @@ export default defineConfig(commonViteOpts({
     manifest: true,
     rolldownOptions: {
       input: {
+        // FIXME: INCORRECT-VITE-MANIFEST-PARSER: the "css importing" logic in backend is wrong
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
-        swagger: join(import.meta.dirname, 'web_src/js/standalone/swagger.ts'),
-        'external-render-iframe': join(import.meta.dirname, 'web_src/js/standalone/external-render-iframe.ts'),
-        'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/features/eventsource.sharedworker.ts'),
-        ...(!isProduction && {
-          devtest: join(import.meta.dirname, 'web_src/js/standalone/devtest.ts'),
-        }),
+        swagger: join(import.meta.dirname, 'web_src/js/swagger.ts'),
+        'external-render-frontend': join(import.meta.dirname, 'web_src/js/external-render-frontend.ts'),
+        'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/eventsource.sharedworker.ts'),
+        devtest: join(import.meta.dirname, 'web_src/css/devtest.css'),
         ...themes,
       },
       output: {
+        // HINT: VITE-OUTPUT-DIR: all outputted JS files are in "js" directory
+        // So standalone/iife source files should also be in "js" directory,
+        // to keep consistent between production and dev server, avoid unexpected behaviors.
         entryFileNames: 'js/[name].[hash:8].js',
         chunkFileNames: 'js/[name].[hash:8].js',
         assetFileNames: ({names}) => {
@@ -288,7 +303,8 @@ export default defineConfig(commonViteOpts({
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
   },
   plugins: [
-    iifePlugin(),
+    iifePlugin('iife.ts'),
+    iifePlugin('external-render-helper.ts'),
     viteDevServerPortPlugin(),
     reducedSourcemapPlugin(),
     filterCssUrlPlugin(),
@@ -301,33 +317,29 @@ export default defineConfig(commonViteOpts({
       },
     }),
     isProduction ? licensePlugin({
-      thirdParty: {
-        output: {
-          file: join(import.meta.dirname, 'public/assets/licenses.txt'),
-          template(deps) {
-            const line = '-'.repeat(80);
-            const goJson = readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8');
-            const goModules = JSON.parse(goJson).map(({name, licenseText}: {name: string, licenseText: string}) => {
-              return {name, body: formatLicenseText(licenseText)};
-            });
-            const jsModules = deps.map((dep) => {
-              return {name: dep.name, version: dep.version, body: formatLicenseText(dep.licenseText ?? '')};
-            });
-            const modules = [...goModules, ...jsModules].sort((a, b) => a.name.localeCompare(b.name));
-            return modules.map(({name, version, body}: {name: string, version?: string, body: string}) => {
-              const title = version ? `${name}@${version}` : name;
-              return `${line}\n${title}\n${line}\n${body}`;
-            }).join('\n');
-          },
-        },
-        allow(dependency) {
-          if (dependency.name === 'khroma') return true; // MIT: https://github.com/fabiospampinato/khroma/pull/33
-          return /(Apache-2\.0|0BSD|BSD-2-Clause|BSD-3-Clause|MIT|ISC|CPAL-1\.0|Unlicense|EPL-1\.0|EPL-2\.0)/.test(dependency.license ?? '');
-        },
+      done(deps, context) {
+        const line = '-'.repeat(80);
+        const goLicenses = JSON.parse(readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8'));
+        const combined: Record<string, string> = {};
+        for (const {name, licenseText} of goLicenses) {
+          combined[name] = wrap(licenseText || '', 80).trim();
+        }
+        for (const {name, version, licenseText} of deps) {
+          combined[`${name}@${version}`] = wrap(licenseText, 80).trim();
+        }
+        const content = Object.entries(combined)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([title, body]) => `${line}\n${title}\n${line}\n${body}`).join('\n');
+        context.emitFile({type: 'asset', fileName: 'licenses.txt', source: content});
+      },
+      match: /^((UN)?LICEN(S|C)E|COPYING).*$/i, // also defined in build/generate-go-licenses.go
+      allow(dep) {
+        if (dep.name === 'khroma') return true; // MIT: https://github.com/fabiospampinato/khroma/pull/33
+        return /(Apache-2\.0|0BSD|BSD-2-Clause|BSD-3-Clause|MIT|ISC|CPAL-1\.0|Unlicense|EPL-1\.0|EPL-2\.0)/.test(dep.license);
       },
     }) : {
       name: 'dev-licenses-stub',
-      closeBundle() {
+      configureServer() {
         writeFileSync(join(outDir, 'licenses.txt'), 'Licenses are disabled during development');
       },
     },

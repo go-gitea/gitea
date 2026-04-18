@@ -195,16 +195,16 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	}).WithRelativePath(readmeFullPath)
 	renderer := rctx.DetectMarkupRenderer(buf)
 	if renderer != nil {
-		ctx.Data["IsMarkup"] = true
+		ctx.Data["RenderAsMarkup"] = "markup-inplace"
 		ctx.Data["MarkupType"] = rctx.RenderOptions.MarkupType
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRenderToHTML(ctx, rctx, renderer, rd)
 		if err != nil {
 			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name(), ctx.Repo.Repository, err)
-			delete(ctx.Data, "IsMarkup")
+			delete(ctx.Data, "RenderAsMarkup")
 		}
 	}
 
-	if ctx.Data["IsMarkup"] != true {
+	if ctx.Data["RenderAsMarkup"] == nil {
 		ctx.Data["IsPlainText"] = true
 		content, err := io.ReadAll(rd)
 		if err != nil {

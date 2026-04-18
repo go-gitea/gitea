@@ -98,8 +98,10 @@ func home(ctx *context.Context, viewRepositories bool) {
 		ctx.ServerError("FindOrgMembers", err)
 		return
 	}
-	ctx.Data["Members"] = members
-	ctx.Data["Teams"] = ctx.Org.Teams
+
+	const orgOverviewTeamsLimit = 5
+	ctx.Data["OrgOverviewMembers"] = members
+	ctx.Data["OrgOverviewTeams"] = ctx.Org.Teams[:min(len(ctx.Org.Teams), orgOverviewTeamsLimit)]
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 

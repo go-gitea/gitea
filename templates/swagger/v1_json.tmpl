@@ -3633,6 +3633,39 @@
             "$ref": "#/responses/notFound"
           }
         }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete all repositories in an organization",
+        "operationId": "orgDeleteRepos",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "$ref": "#/responses/empty"
+          },
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       }
     },
     "/orgs/{org}/teams": {
@@ -3835,6 +3868,7 @@
               "rpm",
               "rubygems",
               "swift",
+              "terraform",
               "vagrant"
             ],
             "type": "string",
@@ -3907,6 +3941,44 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PackageList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "package"
+        ],
+        "summary": "Delete a package",
+        "operationId": "deletePackage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the package",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "type of the package",
+            "name": "type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the package",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -4097,8 +4169,8 @@
         "tags": [
           "package"
         ],
-        "summary": "Delete a package",
-        "operationId": "deletePackage",
+        "summary": "Delete a package version",
+        "operationId": "deletePackageVersion",
         "parameters": [
           {
             "type": "string",
@@ -23463,6 +23535,11 @@
           },
           "x-go-name": "Events"
         },
+        "name": {
+          "description": "Optional human-readable name for the webhook",
+          "type": "string",
+          "x-go-name": "Name"
+        },
         "type": {
           "type": "string",
           "enum": [
@@ -24729,6 +24806,11 @@
             "type": "string"
           },
           "x-go-name": "Events"
+        },
+        "name": {
+          "description": "Optional human-readable name",
+          "type": "string",
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -26149,6 +26231,11 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "name": {
+          "description": "Optional human-readable name for the webhook",
+          "type": "string",
+          "x-go-name": "Name"
+        },
         "type": {
           "description": "The type of the webhook (e.g., gitea, slack, discord)",
           "type": "string",
@@ -26717,10 +26804,14 @@
       "description": "MergePullRequestForm form for merging Pull Request",
       "type": "object",
       "required": [
-        "Do"
+        "do"
       ],
       "properties": {
-        "Do": {
+        "delete_branch_after_merge": {
+          "type": "boolean",
+          "x-go-name": "DeleteBranchAfterMerge"
+        },
+        "do": {
           "type": "string",
           "enum": [
             "merge",
@@ -26729,20 +26820,8 @@
             "squash",
             "fast-forward-only",
             "manually-merged"
-          ]
-        },
-        "MergeCommitID": {
-          "type": "string"
-        },
-        "MergeMessageField": {
-          "type": "string"
-        },
-        "MergeTitleField": {
-          "type": "string"
-        },
-        "delete_branch_after_merge": {
-          "type": "boolean",
-          "x-go-name": "DeleteBranchAfterMerge"
+          ],
+          "x-go-name": "Do"
         },
         "force_merge": {
           "type": "boolean",
@@ -26751,6 +26830,18 @@
         "head_commit_id": {
           "type": "string",
           "x-go-name": "HeadCommitID"
+        },
+        "merge_commit_id": {
+          "type": "string",
+          "x-go-name": "MergeCommitID"
+        },
+        "merge_message_field": {
+          "type": "string",
+          "x-go-name": "MergeMessageField"
+        },
+        "merge_title_field": {
+          "type": "string",
+          "x-go-name": "MergeTitleField"
         },
         "merge_when_checks_succeed": {
           "type": "boolean",
