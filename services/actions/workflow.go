@@ -27,7 +27,7 @@ import (
 )
 
 func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnable bool) error {
-	workflow, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID)
+	workflow, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID, "")
 	if err != nil {
 		return err
 	}

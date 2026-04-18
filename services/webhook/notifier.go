@@ -1032,7 +1032,7 @@ func (*webhookNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_
 	}
 	defer gitRepo.Close()
 
-	convertedWorkflow, err := convert.GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID)
+	convertedWorkflow, err := convert.GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID, run.Ref)
 	if err != nil {
 		log.Error("GetActionWorkflow: %v", err)
 		return

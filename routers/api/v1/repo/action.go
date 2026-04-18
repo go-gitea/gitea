@@ -939,7 +939,7 @@ func ActionsGetWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	workflowID := ctx.PathParam("workflow_id")
-	workflow, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID)
+	workflow, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID, "")
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)

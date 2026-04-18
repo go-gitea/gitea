@@ -805,7 +805,7 @@ func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *rep
 	}
 	defer gitRepo.Close()
 
-	convertedWorkflow, err := convert.GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID)
+	convertedWorkflow, err := convert.GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID, run.Ref)
 	if err != nil {
 		log.Error("GetActionWorkflow: %v", err)
 		return

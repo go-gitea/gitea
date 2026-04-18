@@ -463,20 +463,26 @@ func ListActionWorkflows(ctx context.Context, gitrepo *git.Repository, repo *rep
 	return workflows, nil
 }
 
-func GetActionWorkflow(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository, workflowID string) (*api.ActionWorkflow, error) {
-	defaultBranchCommit, err := gitrepo.GetBranchCommit(repo.DefaultBranch)
+func GetActionWorkflow(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository, workflowID, ref string) (*api.ActionWorkflow, error) {
+	if ref == "" {
+		ref = repo.DefaultBranch
+	} else if branchName := git.RefName(ref).BranchName(); branchName != "" {
+		ref = branchName
+	}
+
+	commit, err := gitrepo.GetBranchCommit(ref)
 	if err != nil {
 		return nil, err
 	}
 
-	folder, entries, err := actions.ListWorkflows(defaultBranchCommit)
+	folder, entries, err := actions.ListWorkflows(commit)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, entry := range entries {
 		if entry.Name() == workflowID {
-			return getActionWorkflowEntry(ctx, repo, defaultBranchCommit, repo.DefaultBranch, folder, entry), nil
+			return getActionWorkflowEntry(ctx, repo, commit, ref, folder, entry), nil
 		}
 	}
 
