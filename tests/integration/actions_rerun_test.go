@@ -18,7 +18,9 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions/jobparser"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/timeutil"
 	actions_web "code.gitea.io/gitea/routers/web/repo/actions"
 
@@ -162,6 +164,34 @@ jobs:
 			assert.Len(t, apiAttemptJobs.Entries, 2)
 			assert.Equal(t, job1R1.ID, apiAttemptJobs.Entries[0].ID)
 			assert.Equal(t, job2R1.ID, apiAttemptJobs.Entries[1].ID)
+		})
+
+		t.Run("MaxRerunAttempts", func(t *testing.T) {
+			// The run has 4 attempts after the previous reruns. Lower the cap to 4 to hit the limit.
+			defer test.MockVariableValue(&setting.Actions.MaxRerunAttempts, int64(4))()
+
+			req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, run.ID))
+			resp := session.MakeRequest(t, req, http.StatusBadRequest)
+			assert.Contains(t, "workflow run has reached the maximum", resp.Body.String())
+			assert.EqualValues(t, 4, getRunLatestAttemptNum(t, run.ID))
+
+			// Raising the cap lets rerun proceed again.
+			defer test.MockVariableValue(&setting.Actions.MaxRerunAttempts, int64(5))()
+
+			req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, run.ID))
+			session.MakeRequest(t, req, http.StatusOK)
+			// fetch and exec job1
+			job1TaskR4 := runner.fetchTask(t)
+			assert.Equal(t, "5", job1TaskR4.Context.GetFields()["run_attempt"].GetStringValue())
+			runner.execTask(t, job1TaskR4, &mockTaskOutcome{
+				result: runnerv1.Result_RESULT_SUCCESS,
+			})
+			job2TaskR4 := runner.fetchTask(t)
+			assert.Equal(t, "5", job2TaskR4.Context.GetFields()["run_attempt"].GetStringValue())
+			runner.execTask(t, job2TaskR4, &mockTaskOutcome{
+				result: runnerv1.Result_RESULT_SUCCESS,
+			})
+			assert.EqualValues(t, 5, getRunLatestAttemptNum(t, run.ID))
 		})
 	})
 }

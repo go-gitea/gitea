@@ -750,6 +750,10 @@ func handleWorkflowRerunError(ctx *context_module.Context, err error) {
 		ctx.JSON(http.StatusConflict, map[string]any{"message": err.Error()})
 		return
 	}
+	if errors.Is(err, util.ErrInvalidArgument) {
+		ctx.JSON(http.StatusBadRequest, map[string]any{"message": err.Error()})
+		return
+	}
 	ctx.ServerError("RerunWorkflowRunJobs", err)
 }
 

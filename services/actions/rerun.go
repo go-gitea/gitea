@@ -14,15 +14,12 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/nektos/act/pkg/model"
 	"go.yaml.in/yaml/v4"
 )
-
-// maxRerunAttempts caps how many attempts a single run can have, matching GitHub's 50-rerun limit.
-// See https://github.blog/changelog/2026-04-10-actions-workflows-are-limited-to-50-reruns/.
-const maxRerunAttempts = 50
 
 // GetFailedJobsForRerun returns the failed or cancelled jobs in a run.
 func GetFailedJobsForRerun(allJobs []*actions_model.ActionRunJob) []*actions_model.ActionRunJob {
@@ -93,13 +90,15 @@ func validateRerun(ctx context.Context, run *actions_model.ActionRun, repo *repo
 		return util.NewInvalidArgumentErrorf("workflow %s is disabled", run.WorkflowID)
 	}
 
+	// Legacy runs (LatestAttemptID == 0) conceptually have only attempt 1, so they can never be at the cap.
+	// For non-legacy runs, look up the latest attempt and reject when its number is already at the configured cap.
 	if run.LatestAttemptID > 0 {
 		latestAttempt, has, err := run.GetLatestAttempt(ctx)
 		if err != nil {
 			return fmt.Errorf("GetLatestAttempt: %w", err)
 		}
-		if has && latestAttempt.Attempt >= maxRerunAttempts {
-			return util.NewInvalidArgumentErrorf("workflow run has reached the maximum of %d attempts", maxRerunAttempts)
+		if has && latestAttempt.Attempt >= setting.Actions.MaxRerunAttempts {
+			return util.NewInvalidArgumentErrorf("workflow run has reached the maximum of %d attempts", setting.Actions.MaxRerunAttempts)
 		}
 	}
 
