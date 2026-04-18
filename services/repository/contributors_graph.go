@@ -310,13 +310,13 @@ func scanOneStat(scanner *bufio.Scanner) (commitID, authorName, email string, da
 }
 
 // getExtendedCommitStats returns stats for commits between start and end.
-func getExtendedCommitStats(ctx context.Context, repo *repo_model.Repository, reversionRange string) ([]*ExtendedCommitStats, error) {
-	if reversionRange == "" {
+func getExtendedCommitStats(ctx context.Context, repo *repo_model.Repository, revisionRange string) ([]*ExtendedCommitStats, error) {
+	if revisionRange == "" {
 		return nil, nil
 	}
 
 	gitCmd := gitcmd.NewCommand("log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n%aI%n").
-		AddDynamicArguments(reversionRange)
+		AddDynamicArguments(revisionRange)
 
 	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
