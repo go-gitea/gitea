@@ -3,39 +3,35 @@ import {html} from '../utils/html.ts';
 import type {Intent} from '../types.ts';
 
 export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', details?: string) {
-  const msgContainer = document.querySelector('.page-content') ?? document.body;
-  if (!msgContainer) {
+  const parentContainer = document.querySelector('.page-content') ?? document.body;
+  if (!parentContainer) {
     alert(`${msgType}: ${msg}`);
     return;
   }
-  const msgCompact = msg.replace(/\W/g, '').trim(); // compact the message to a data attribute to avoid too many duplicated messages
-  let msgDiv = msgContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
-  if (!msgDiv) {
+  // compact the message to a data attribute to avoid too many duplicated messages
+  const msgCompact = `${msgType}-${msg.trim()}`.replace(/[^-\w\u{80}-\u{10FFFF}]+/gu, '');
+  let msgContainer = parentContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
+  if (!msgContainer) {
     const el = document.createElement('div');
-    el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><div class="ui ${msgType} message tw-text-center tw-whitespace-pre-line"></div></div>`;
-    msgDiv = el.childNodes[0] as HTMLDivElement;
+    el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><details class="ui ${msgType} message"><summary></summary></details></div>`;
+    msgContainer = el.childNodes[0] as HTMLDivElement;
   }
+
   // merge duplicated messages into "the message (count)" format
-  const msgCount = Number(msgDiv.getAttribute(`data-global-error-msg-count`)) + 1;
-  msgDiv.setAttribute(`data-global-error-msg-compact`, msgCompact);
-  msgDiv.setAttribute(`data-global-error-msg-count`, msgCount.toString());
-  const msgEl = msgDiv.querySelector('.ui.message')!;
-  const text = msg + (msgCount > 1 ? ` (${msgCount})` : '');
+  const msgCount = Number(msgContainer.getAttribute(`data-global-error-msg-count`)) + 1;
+  msgContainer.setAttribute(`data-global-error-msg-compact`, msgCompact);
+  msgContainer.setAttribute(`data-global-error-msg-count`, msgCount.toString());
+
+  const msgElem = msgContainer.querySelector('details')!;
+  const msgSummary = msgElem.querySelector('summary')!;
+  msgSummary.textContent = msg + (msgCount > 1 ? ` (${msgCount})` : '');
   if (details) {
-    if (!msgEl.querySelector('details')) {
-      msgEl.classList.add('tw-cursor-pointer');
-      msgEl.innerHTML = html`<details><summary></summary><pre class="tw-w-fit tw-mx-auto tw-mt-2 tw-mb-0 tw-whitespace-pre-wrap tw-text-left tw-cursor-text"><code class="tw-bg-transparent"></code></pre></details>`;
-      const detailsEl = msgEl.querySelector('details')!;
-      msgEl.addEventListener('click', (e) => {
-        if (!(e.target as HTMLElement).closest('summary, pre')) detailsEl.open = !detailsEl.open;
-      });
-    }
-    msgEl.querySelector('summary')!.textContent = text;
-    msgEl.querySelector('pre code')!.textContent = details;
-  } else {
-    msgEl.textContent = text;
+    let msgDetailsPre = msgElem.querySelector('pre');
+    if (!msgDetailsPre) msgDetailsPre = document.createElement('pre');
+    msgDetailsPre.textContent = details;
+    msgElem.append(msgDetailsPre);
   }
-  msgContainer.prepend(msgDiv);
+  parentContainer.prepend(msgContainer);
 }
 
 // Detect whether an error originated from Gitea's own scripts, not from
