@@ -140,6 +140,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Expose content_version for optimistic locking on issue and PR edits (#37035)
   * Pass ServeHeaderOptions by value instead of pointer, fine tune httplib tests (#36982)
 * BUGFIXES
+  * Frontend iframe renderer framework: 3D models, OpenAPI (#37233) (#37273)
   * Fix CODEOWNERS absolute path matching. (#37244) (#37264)
   * Swift registry metadata: preserve more JSON fields and accept empty metadata (#37254) (#37261)
   * Fix user ssh key exporting and tests (#37256) (#37258)
