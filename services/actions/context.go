@@ -26,10 +26,7 @@ type GiteaContext map[string]any
 // GenerateGiteaContext generate the gitea context without token and gitea_runtime_token.
 // attempt and job can be nil when generating a context for parsing workflow-level expressions.
 //
-// run_id is populated only after the run has been persisted (run.ID > 0); otherwise it stays empty
-// so expressions like gitea.run_id don't see "0" during parse time or pre-insert concurrency eval.
-//
-// The run_attempt value is resolved with the following precedence (higher wins):
+// The run_attempt value is resolved with the following precedence:
 //  1. attempt.Attempt - the explicit attempt argument, or run.GetLatestAttempt() as a fallback
 //  2. job.Attempt - only used when neither an explicit nor latest attempt is available
 //  3. "1" - when none of the above apply (first-run parse time, before the first attempt exists)

@@ -86,14 +86,12 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		run.Index = index
 		run.Title = util.EllipsisDisplayString(run.Title, 255)
 
+		// RunID is assigned after run insert (see below); Started/Stopped default to zero.
 		runAttempt := &actions_model.ActionRunAttempt{
 			RepoID:        run.RepoID,
-			RunID:         run.ID,
 			Attempt:       1,
 			TriggerUserID: run.TriggerUserID,
 			Status:        actions_model.StatusWaiting,
-			Started:       0,
-			Stopped:       0,
 		}
 		var jobsToCancel []*actions_model.ActionRunJob
 		if wfRawConcurrency != nil {
