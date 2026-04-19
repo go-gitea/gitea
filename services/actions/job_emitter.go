@@ -384,12 +384,16 @@ func updateConcurrencyEvaluationForJobWithNeeds(ctx context.Context, actionRunJo
 		return nil // for testing purpose only, no repo, no evaluation
 	}
 
-	attempt, err := actions_model.GetRunAttemptByRepoAndID(ctx, actionRunJob.RepoID, actionRunJob.RunAttemptID)
-	if err != nil {
-		return fmt.Errorf("GetRunAttemptByRepoAndID: %w", err)
+	// Legacy jobs (created before migration v331) have RunAttemptID=0 and no attempt record.
+	var attempt *actions_model.ActionRunAttempt
+	if actionRunJob.RunAttemptID > 0 {
+		var err error
+		attempt, err = actions_model.GetRunAttemptByRepoAndID(ctx, actionRunJob.RepoID, actionRunJob.RunAttemptID)
+		if err != nil {
+			return fmt.Errorf("GetRunAttemptByRepoAndID: %w", err)
+		}
 	}
-	err = EvaluateJobConcurrencyFillModel(ctx, actionRunJob.Run, attempt, actionRunJob, vars, nil)
-	if err != nil {
+	if err := EvaluateJobConcurrencyFillModel(ctx, actionRunJob.Run, attempt, actionRunJob, vars, nil); err != nil {
 		return fmt.Errorf("evaluate job concurrency: %w", err)
 	}
 
