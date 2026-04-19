@@ -47,7 +47,7 @@ function failOnWarningsPlugin(): Rolldown.Plugin {
     },
     buildEnd() {
       if (!warningCount) return;
-      throw new Error(`${warningCount} warnings treated as errors`);
+      throw new Error(`${warningCount} warnings present`);
     },
   };
 }
