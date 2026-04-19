@@ -122,6 +122,7 @@
   "unpin": "Unpin",
   "artifacts": "Artifacts",
   "expired": "Expired",
+  "artifact_expires_at": "Expires at %s",
   "confirm_delete_artifact": "Are you sure you want to delete the artifact '%s'?",
   "archived": "Archived",
   "concept_system_global": "Global",
