@@ -40,7 +40,7 @@ export async function initMarkupCodeMath(elMarkup: HTMLElement): Promise<void> {
         displayMode: displayAsBlock, // katex: true for display (block) mode, false for inline mode
       });
       target.replaceWith(tempEl);
-    } catch (error) {
+    } catch (error: any) {
       displayError(target, error);
     }
   });

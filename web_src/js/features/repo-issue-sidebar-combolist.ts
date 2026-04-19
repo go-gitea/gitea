@@ -42,7 +42,7 @@ export class IssueSidebarComboList {
   elDropdown: HTMLElement;
   elList: HTMLElement | null;
   elComboValue: HTMLInputElement;
-  initialValues: string[];
+  initialValues: string[] = [];
   container: HTMLElement;
 
   elIssueMainContent: HTMLElement;
@@ -127,7 +127,7 @@ export class IssueSidebarComboList {
         return;
       }
       await this.reloadPagePartially();
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to update to backend', e);
       showErrorToast(`Failed to update to backend: ${e}`);
     } finally {

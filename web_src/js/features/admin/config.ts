@@ -25,7 +25,7 @@ function initSystemConfigAutoCheckbox(el: HTMLInputElement) {
       const resp = await POST(`${appSubUrl}/-/admin/config`, {data});
       const json: Record<string, any> = await resp.json();
       if (json.errorMessage) throw new Error(json.errorMessage);
-    } catch (ex) {
+    } catch (ex: any) {
       showTemporaryTooltip(el, ex.toString());
       el.checked = !el.checked;
     }

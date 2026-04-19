@@ -134,7 +134,7 @@ async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
       return;
     }
     await handleFetchActionError(resp);
-  } catch (e) {
+  } catch (e: any) {
     if (e.name !== 'AbortError') {
       console.error(`Fetch action request error:`, e);
       showErrorToast(`Error: ${e.message ?? e}`);

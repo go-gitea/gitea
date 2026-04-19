@@ -146,7 +146,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
       if (!dropzoneEl.querySelector('.dz-preview')) {
         dropzoneEl.classList.remove('dz-started');
       }
-    } catch (error) {
+    } catch (error: any) {
       // TODO: if listing the existing attachments failed, it should stop from operating the content or attachments,
       //  otherwise the attachments might be lost.
       showErrorToast(`Failed to load attachments: ${error}`);

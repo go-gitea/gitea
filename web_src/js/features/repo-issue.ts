@@ -423,7 +423,7 @@ export function initRepoIssueTitleEdit() {
       }
       ignoreAreYouSure(issueTitleEditor);
       window.location.reload();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       showErrorToast(error.message);
     }

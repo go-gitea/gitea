@@ -29,7 +29,7 @@ async function renderRawFileToContainer(container: HTMLElement, rawFileLink: str
       await plugin.render(container, rawFileLink);
       rendered = true;
     }
-  } catch (e) {
+  } catch (e: any) {
     errorMsg = `${e}`;
   } finally {
     container.classList.remove('is-loading');
