@@ -71,8 +71,8 @@ export class ComboMarkdownEditor {
 
   options: ComboMarkdownEditorOptions;
 
-  tabEditor!: HTMLElement;
-  tabPreviewer!: HTMLElement;
+  tabEditor?: HTMLElement;
+  tabPreviewer?: HTMLElement;
 
   supportEasyMDE!: boolean;
   easyMDE: any;
@@ -291,7 +291,7 @@ export class ComboMarkdownEditor {
   }
 
   switchTabToEditor() {
-    this.tabEditor.click();
+    this.tabEditor?.click();
   }
 
   prepareEasyMDEToolbarActions() {
