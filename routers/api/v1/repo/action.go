@@ -1447,27 +1447,18 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 		return
 	}
 
-	var rerunJob *actions_model.ActionRunJob
-	if targetJob.AttemptJobID > 0 {
-		// Newer jobs carry AttemptJobID, which lets us locate the corresponding job created in the new attempt directly.
-		rerunJob, err = actions_model.GetRunJobByAttemptJobID(ctx, run.ID, newAttempt.ID, targetJob.AttemptJobID)
-		if err != nil {
-			handleWorkflowRerunError(ctx, err)
-			return
-		}
-	} else {
-		// Legacy jobs have AttemptJobID == 0, so fall back to best-effort matching by the same job position within the attempt.
-		newAttemptJobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, newAttempt.ID)
+	// Legacy jobs had AttemptJobID=0 before the rerun; createOriginalAttemptForLegacyRun inside
+	// RerunWorkflowRunJobs has since backfilled it in the DB, so reload only in that case.
+	if targetJob.AttemptJobID == 0 {
+		targetJob, err = actions_model.GetRunJobByRepoAndID(ctx, run.RepoID, targetJob.ID)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		if jobIdx < len(newAttemptJobs) {
-			rerunJob = newAttemptJobs[jobIdx]
-		}
 	}
-	if rerunJob == nil {
-		ctx.APIErrorNotFound(util.NewNotExistErrorf("rerun for job %d", jobID))
+	rerunJob, err := actions_model.GetRunJobByAttemptJobID(ctx, run.ID, newAttempt.ID, targetJob.AttemptJobID)
+	if err != nil {
+		handleWorkflowRerunError(ctx, err)
 		return
 	}
 

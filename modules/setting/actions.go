@@ -12,6 +12,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+const defaultMaxRerunAttempts = 50
+
 // Actions settings
 var (
 	Actions = struct {
@@ -33,7 +35,7 @@ var (
 		DefaultActionsURL:   defaultActionsURLGitHub,
 		SkipWorkflowStrings: []string{"[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"},
 		WorkflowDirs:        []string{".gitea/workflows", ".github/workflows"},
-		MaxRerunAttempts:    50,
+		MaxRerunAttempts:    defaultMaxRerunAttempts,
 	}
 )
 
@@ -121,7 +123,7 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	Actions.AbandonedJobTimeout = sec.Key("ABANDONED_JOB_TIMEOUT").MustDuration(24 * time.Hour)
 
 	if Actions.MaxRerunAttempts <= 0 {
-		Actions.MaxRerunAttempts = 50
+		Actions.MaxRerunAttempts = defaultMaxRerunAttempts
 	}
 
 	if !Actions.LogCompression.IsValid() {
