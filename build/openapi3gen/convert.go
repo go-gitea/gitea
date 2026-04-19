@@ -5,6 +5,7 @@ package openapi3gen
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/json"
@@ -13,6 +14,12 @@ import (
 	"github.com/getkin/kin-openapi/openapi2conv"
 	"github.com/getkin/kin-openapi/openapi3"
 )
+
+// rxDeprecated matches "deprecated" as a word at the start of a description
+// or preceded by whitespace/punctuation that indicates a leading marker (e.g.
+// "Deprecated: true", "deprecated (use X instead)"). Rejects negated phrases
+// like "not deprecated" or "previously deprecated, now supported".
+var rxDeprecated = regexp.MustCompile(`(?i)(?:^|[\n.;])\s*deprecated\b`)
 
 // Convert parses a Swagger 2.0 spec and returns an OAS3 spec, applying
 // Gitea-specific post-processing: file-schema fixups, URI formats,
@@ -115,7 +122,8 @@ func isURLProperty(name string) bool {
 }
 
 // addDeprecatedFlags sets deprecated: true on schema properties whose
-// description contains "deprecated".
+// description starts with a "deprecated" marker (e.g. "Deprecated: true"
+// or "deprecated (use X instead)"). Does not match negated phrases.
 func addDeprecatedFlags(doc *openapi3.T) {
 	if doc.Components == nil {
 		return
@@ -128,8 +136,7 @@ func addDeprecatedFlags(doc *openapi3.T) {
 			if propRef == nil || propRef.Value == nil || propRef.Ref != "" {
 				continue
 			}
-			desc := strings.ToLower(propRef.Value.Description)
-			if strings.Contains(desc, "deprecated") {
+			if rxDeprecated.MatchString(propRef.Value.Description) {
 				propRef.Value.Deprecated = true
 			}
 		}
