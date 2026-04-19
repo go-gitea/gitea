@@ -5,7 +5,10 @@ package unittest
 
 import (
 	"context"
+	"fmt"
 	"math"
+	"os"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 
@@ -148,4 +151,40 @@ func GetCountByCond(t TestingT, tableName string, cond builder.Cond) int64 {
 func AssertCountByCond(t TestingT, tableName string, cond builder.Cond, expected int) bool {
 	return assert.EqualValues(t, expected, GetCountByCond(t, tableName, cond),
 		"Failed consistency test, the counted bean (of table %s) was %+v", tableName, cond)
+}
+
+// DumpQueryResult dumps the result of a query for debugging purpose
+func DumpQueryResult(t require.TestingT, sqlOrBean any, sqlArgs ...any) {
+	x := GetXORMEngine()
+	goDB := x.DB().DB
+	sql, ok := sqlOrBean.(string)
+	if !ok {
+		sql = "SELECT * FROM " + x.TableName(sqlOrBean)
+	} else if !strings.Contains(sql, " ") {
+		sql = "SELECT * FROM " + sql
+	}
+	rows, err := goDB.Query(sql, sqlArgs...)
+	require.NoError(t, err)
+	defer rows.Close()
+	columns, err := rows.Columns()
+	require.NoError(t, err)
+
+	_, _ = fmt.Fprintf(os.Stdout, "====== DumpQueryResult: %s ======\n", sql)
+	idx := 0
+	for rows.Next() {
+		row := make([]any, len(columns))
+		rowPointers := make([]any, len(columns))
+		for i := range row {
+			rowPointers[i] = &row[i]
+		}
+		require.NoError(t, rows.Scan(rowPointers...))
+		_, _ = fmt.Fprintf(os.Stdout, "- # row[%d]\n", idx)
+		for i, col := range columns {
+			_, _ = fmt.Fprintf(os.Stdout, "  %s: %v\n", col, row[i])
+		}
+		idx++
+	}
+	if idx == 0 {
+		_, _ = fmt.Fprintf(os.Stdout, "(no result, columns: %s)\n", strings.Join(columns, ", "))
+	}
 }

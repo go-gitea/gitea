@@ -61,6 +61,10 @@ func (m *Manager) GetTraceRecorder() MsgRecorder {
 	return m.traceRecorder
 }
 
+func (m *Manager) GetLogRecorder() MsgRecorder {
+	return m.logRecorder
+}
+
 var GetManager = sync.OnceValue(func() *Manager {
 	return &Manager{
 		traceRecorder: NewMsgRecorder(100),

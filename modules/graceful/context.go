@@ -27,3 +27,10 @@ func (g *Manager) ShutdownContext() context.Context {
 func (g *Manager) HammerContext() context.Context {
 	return g.hammerCtx
 }
+
+// TerminateContext returns a context.Context that is Done at terminate
+// Callers using this context should ensure that they are registered as a terminating server
+// in order that they are waited for.
+func (g *Manager) TerminateContext() context.Context {
+	return g.terminateCtx
+}
