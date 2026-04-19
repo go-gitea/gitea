@@ -83,12 +83,8 @@ func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.Commit
 }
 
 // CommitStatusActionInfo maps CommitStatus.ID to the live ActionRunJob status
-// for pending CommitStatus rows backed by Gitea Actions. Built by
-// GetCommitStatusActionInfo and stored as a separate template value, never on
-// the CommitStatus model itself: non-pending CommitStatus state already
-// reflects the underlying job result, statuses can also originate from
-// external CIs (e.g. Woodpecker) or be set via API independently of any job,
-// and CommitStatus must keep its meaning regardless of any Actions run.
+// for pending Gitea Actions rows. Kept off the CommitStatus model since rows
+// can also come from external CIs or the API and must keep their stored meaning.
 type CommitStatusActionInfo map[int64]actions_model.Status
 
 // IconStatus returns the action status name to render the icon for the given
@@ -100,11 +96,9 @@ func (m CommitStatusActionInfo) IconStatus(s *git_model.CommitStatus) string {
 	return ""
 }
 
-// Description returns a description matching the live ActionRunJob status when
-// available, falling back to s.Description otherwise. The createCommitStatus
-// dedup is keyed only on State, so a Pending row's stored Description freezes
-// at whichever of waiting/blocked/running was written first — this surfaces
-// the live one (e.g. "In progress" after a Waiting→Running transition).
+// Description returns the live waiting/blocked/running text or s.Description.
+// createCommitStatus dedup is keyed only on State, so a Pending row's stored
+// Description freezes at whichever of the three was written first.
 func (m CommitStatusActionInfo) Description(s *git_model.CommitStatus) string {
 	switch m[s.ID] {
 	case actions_model.StatusWaiting:
