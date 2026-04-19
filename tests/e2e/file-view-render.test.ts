@@ -30,7 +30,7 @@ test('3d model file', async ({page, request}) => {
 });
 
 test('pdf file', async ({page, request}) => {
-  // headless playwright cannot render PDFs (PDFObject.embed returns false), so ttests is a limited test
+  // headless playwright cannot render PDFs (PDFObject.embed returns false), so this is a limited test
   const repoName = `e2e-pdf-render-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName});
@@ -47,11 +47,6 @@ test('pdf file', async ({page, request}) => {
 });
 
 test('asciicast file', async ({page, request}) => {
-  // regression for #37257: the asciinema player uses WebAssembly, blocked by the main site CSP
-  // (srcdoc iframes inherit the parent CSP). Fix: the asciicast renderer opts into
-  // SrcMethod="src" so the iframe gets its own response CSP with 'wasm-unsafe-eval'. The
-  // cast's rendered "test" text only appears if WASM actually loaded and processed the recording —
-  // that's what this test asserts.
   const repoName = `e2e-asciicast-render-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await Promise.all([apiCreateRepo(request, {name: repoName}), login(page)]);

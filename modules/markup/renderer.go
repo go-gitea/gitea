@@ -30,13 +30,8 @@ type ExternalRendererOptions struct {
 	DisplayInIframe   bool
 	ContentSandbox    string
 
-	// SrcMethod controls how the parent page loads the iframe content:
-	//   "" or "srcdoc" — default, fetched by JS then set via iframe.srcdoc. The iframe
-	//                    document inherits the parent page's CSP per CSP3 §4.2.3.6.
-	//   "src"          — set iframe.src to the render URL. The iframe document uses the
-	//                    response's own CSP (no inheritance). Required for renderers that
-	//                    need permissions the main CSP denies (e.g. asciinema-player needs
-	//                    WebAssembly). Isolation still comes from the iframe sandbox attr.
+	// SrcMethod: "src" gives the iframe its own response CSP; "srcdoc" (default) inherits
+	// the parent page's CSP per CSP3 §4.2.3.6.
 	SrcMethod string
 }
 

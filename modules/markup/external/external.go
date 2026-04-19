@@ -48,13 +48,10 @@ func RegisterRenderers() {
 		},
 	})
 
-	// Asciicast (terminal recording) files are rendered in an iframe because the player uses WebAssembly.
-	// srcMethod="src" gives the iframe its own response CSP (which allows wasm-unsafe-eval)
-	// instead of inheriting the main site's stricter one. See https://github.com/go-gitea/gitea/issues/37257
 	markup.RegisterRenderer(&frontendRenderer{
 		name:      "asciicast",
 		patterns:  []string{"*.cast"},
-		srcMethod: "src",
+		srcMethod: "src", // asciinema-player uses WebAssembly, needs its own iframe CSP
 	})
 
 	for _, renderer := range setting.ExternalMarkupRenderers {
