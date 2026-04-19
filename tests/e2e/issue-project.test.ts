@@ -23,25 +23,26 @@ test('assign issue to project and change column', async ({page}) => {
 
   await apiCreateIssue(page.request, user, repoName, {title: 'Column picker test'});
 
-  const responseTimeout = 30_000 * timeoutFactor;
+  // Same ceiling as tests/e2e/events.test.ts; Playwright defaults are 5000*factor (see playwright.config.ts).
+  const slowTimeout = 15_000 * timeoutFactor;
 
   await page.goto(`/${user}/${repoName}/issues/1`);
   await page.locator('.sidebar-project-combo .ui.dropdown').click();
   await Promise.all([
     page.waitForResponse(
       (resp) => resp.url().includes('/issues/projects') && resp.status() === 200,
-      {timeout: responseTimeout},
+      {timeout: slowTimeout},
     ),
     page.locator('.sidebar-project-combo .menu .item', {hasText: 'Kanban Board'}).click(),
   ]);
 
   const columnCombo = page.locator('.sidebar-project-column-combo');
-  await expect(columnCombo).toBeVisible({timeout: responseTimeout});
+  await expect(columnCombo).toBeVisible({timeout: slowTimeout});
   await columnCombo.locator('.ui.dropdown').click();
-  await columnCombo.locator('.menu').waitFor({state: 'visible', timeout: responseTimeout});
+  await columnCombo.locator('.menu').waitFor({state: 'visible', timeout: slowTimeout});
 
   const inProgressItem = columnCombo.locator('a.item', {hasText: 'In Progress'});
-  await expect(inProgressItem).toBeVisible({timeout: responseTimeout});
+  await expect(inProgressItem).toBeVisible({timeout: slowTimeout});
   await inProgressItem.scrollIntoViewIfNeeded();
 
   await Promise.all([
@@ -50,16 +51,16 @@ test('assign issue to project and change column', async ({page}) => {
         resp.request().method() === 'POST' &&
         resp.url().includes('/issues/projects/column') &&
         resp.ok(),
-      {timeout: responseTimeout},
+      {timeout: slowTimeout},
     ),
     inProgressItem.click(),
   ]);
 
   await expect(columnCombo.getByTestId('sidebar-project-column-text')).toContainText('In Progress', {
-    timeout: responseTimeout,
+    timeout: slowTimeout,
   });
   await expect(page.locator('.timeline-item', {hasText: 'moved this to In Progress'})).toBeVisible({
-    timeout: responseTimeout,
+    timeout: slowTimeout,
   });
 
   await apiDeleteRepo(page.request, user, repoName);
