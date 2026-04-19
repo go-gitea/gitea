@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -87,6 +88,110 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	assert.Equal(t, columns[0].ID, columnsAfter[2].ID)
 
 	assert.NoError(t, project_model.DeleteProjectByID(t.Context(), project1.ID))
+}
+
+func TestUpdateIssueProjectColumn(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// fixture: issue 3 is in project 1 of repo user2/repo1, column "In Progress" (id=2)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	assert.EqualValues(t, 1, issue.RepoID)
+
+	sess := loginUser(t, "user2")
+
+	t.Run("MoveColumn", func(t *testing.T) {
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects/column", map[string]string{
+			"issue_id": "3",
+			"id":       "3",
+		})
+		sess.MakeRequest(t, req, http.StatusOK)
+
+		pi := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 3})
+		assert.EqualValues(t, 3, pi.ProjectColumnID)
+	})
+
+	t.Run("InvalidIssueID", func(t *testing.T) {
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects/column", map[string]string{
+			"issue_id": "0",
+			"id":       "3",
+		})
+		sess.MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("WrongRepo", func(t *testing.T) {
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects/column", map[string]string{
+			"issue_id": "6",
+			"id":       "3",
+		})
+		sess.MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("WrongProject", func(t *testing.T) {
+		project2 := project_model.Project{
+			Title:        "second project on repo1",
+			RepoID:       1,
+			Type:         project_model.TypeRepository,
+			TemplateType: project_model.TemplateTypeNone,
+		}
+		require.NoError(t, project_model.NewProject(t.Context(), &project2))
+		require.NoError(t, project_model.NewColumn(t.Context(), &project_model.Column{
+			Title:     "other column",
+			ProjectID: project2.ID,
+		}))
+		columns, err := project2.GetColumns(t.Context())
+		require.NoError(t, err)
+		require.NotEmpty(t, columns)
+
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects/column", map[string]string{
+			"issue_id": "1",
+			"id":       strconv.FormatInt(columns[0].ID, 10),
+		})
+		sess.MakeRequest(t, req, http.StatusNotFound)
+	})
+}
+
+func TestIssueSidebarProjectColumn(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// fixture: issue 5 (index=4) is in project 1 of repo user2/repo1, column "Done" (id=3)
+	sess := loginUser(t, "user2")
+
+	req := NewRequest(t, "GET", "/user2/repo1/issues/4")
+	resp := sess.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	cards := htmlDoc.Find(".sidebar-project-card")
+	assert.Equal(t, 1, cards.Length())
+
+	title := cards.Find(".sidebar-project-card a.suppressed .gt-ellipsis")
+	assert.Contains(t, strings.TrimSpace(title.Text()), "First project")
+
+	columnCombo := cards.Find(".sidebar-project-column-combo")
+	assert.Equal(t, 1, columnCombo.Length())
+
+	defaultItem := columnCombo.Find(`.menu .item[data-value="1"]`)
+	assert.Equal(t, 1, defaultItem.Length())
+
+	inProgressItem := columnCombo.Find(`.menu .item[data-value="2"]`)
+	assert.Equal(t, 1, inProgressItem.Length())
+	doneItem := columnCombo.Find(`.menu .item[data-value="3"]`)
+	assert.Equal(t, 1, doneItem.Length())
+
+	comboVal, exists := columnCombo.Find("input.combo-value").Attr("value")
+	assert.True(t, exists)
+	assert.Equal(t, "3", comboVal)
+
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=5", map[string]string{
+		"id": "0",
+	})
+	sess.MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequest(t, "GET", "/user2/repo1/issues/4")
+	resp = sess.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+
+	cards = htmlDoc.Find(".sidebar-project-card")
+	assert.Equal(t, 0, cards.Length())
 }
 
 // getProjectIssueIDs returns the set of issue IDs rendered as cards on the project board page.

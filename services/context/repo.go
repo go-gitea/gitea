@@ -411,8 +411,9 @@ func RedirectToRepo(ctx *Base, redirectRepoID int64) {
 	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusMovedPermanently)
 }
 
-func repoAssignment(ctx *Context, repo *repo_model.Repository) {
+func repoAssignmentLegacy(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 	var err error
+	repo := data.repo
 	if err = repo.LoadOwner(ctx); err != nil {
 		ctx.ServerError("LoadOwner", err)
 		return
@@ -459,13 +460,25 @@ func InitRepoPullRequestCtx(ctx *Context, base, head *repo_model.Repository) {
 	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequestCtx
 }
 
-// RepoAssignment returns a middleware to handle repository assignment
-func RepoAssignment(ctx *Context) {
+type repoAssignmentPrepareDataStruct struct {
+	ownerName string
+	repoName  string
+	repo      *repo_model.Repository
+}
+
+func repoAssignmentPreCheck(ctx *Context) {
 	if ctx.Data["Repository"] != nil {
 		setting.PanicInDevOrTesting("RepoAssignment should not be executed twice")
 	}
+	if ctx.Repo.GitRepo != nil {
+		setting.PanicInDevOrTesting("RepoAssignment: GitRepo should be nil")
+		_ = ctx.Repo.GitRepo.Close()
+		ctx.Repo.GitRepo = nil
+	}
+}
 
-	var err error
+func repoAssignmentPrepareData(ctx *Context) *repoAssignmentPrepareDataStruct {
+	// HINT: here it doesn't handle ".wiki" extension, it is handled in repoAssignmentAutoRedirectWiki, need to be refactored in the future
 	userName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
 	repoName = strings.TrimSuffix(repoName, ".git")
@@ -474,7 +487,12 @@ func RepoAssignment(ctx *Context) {
 		repoName = strings.TrimSuffix(repoName, ".rss")
 		repoName = strings.TrimSuffix(repoName, ".atom")
 	}
+	return &repoAssignmentPrepareDataStruct{ownerName: userName, repoName: repoName}
+}
 
+func repoAssignmentPrepareOwner(ctx *Context, data *repoAssignmentPrepareDataStruct) {
+	var err error
+	userName := data.ownerName
 	// Check if the user is the same as the repository owner
 	if ctx.IsSigned && strings.EqualFold(ctx.Doer.LowerName, userName) {
 		ctx.Repo.Owner = ctx.Doer
@@ -504,7 +522,10 @@ func RepoAssignment(ctx *Context) {
 	}
 	ctx.ContextUser = ctx.Repo.Owner
 	ctx.Data["ContextUser"] = ctx.ContextUser
+}
 
+func repoAssignmentAutoRedirectWiki(ctx *Context, data *repoAssignmentPrepareDataStruct) {
+	userName, repoName := data.ownerName, data.repoName
 	// redirect link to wiki
 	if strings.HasSuffix(repoName, ".wiki") {
 		// ctx.Req.URL.Path does not have the preceding appSubURL - any redirect must have this added
@@ -524,7 +545,10 @@ func RepoAssignment(ctx *Context) {
 		ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
 		return
 	}
+}
 
+func repoAssignmentPrepareRepo(ctx *Context, data *repoAssignmentPrepareDataStruct) {
+	repoName := data.repoName
 	// Get repository.
 	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Repo.Owner.ID, repoName)
 	if err != nil {
@@ -547,12 +571,11 @@ func RepoAssignment(ctx *Context) {
 		return
 	}
 	repo.Owner = ctx.Repo.Owner
+	data.repo = repo
+}
 
-	repoAssignment(ctx, repo)
-	if ctx.Written() {
-		return
-	}
-
+func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepareDataStruct) {
+	repo := data.repo
 	ctx.Repo.RepoLink = repo.Link()
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 	ctx.Data["FeedURL"] = ctx.Repo.RepoLink
@@ -645,33 +668,35 @@ func RepoAssignment(ctx *Context) {
 			return
 		}
 	}
+}
 
-	isHomeOrSettings := ctx.Link == ctx.Repo.RepoLink ||
-		ctx.Link == ctx.Repo.RepoLink+"/settings" ||
-		strings.HasPrefix(ctx.Link, ctx.Repo.RepoLink+"/settings/") ||
-		ctx.Link == ctx.Repo.RepoLink+"/-/migrate/status"
+func repoAssignmentIsHomeOrSettings(ctx *Context, data *repoAssignmentPrepareDataStruct) bool {
+	repoLink := data.repo.Link()
+	return ctx.Link == repoLink ||
+		strings.HasPrefix(ctx.Link+"/", repoLink+"/settings/") ||
+		ctx.Link == repoLink+"/-/migrate/status"
+}
 
+func repoAssignmentAutoRedirectNotReady(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 	// Disable everything when the repo is being created
 	if ctx.Repo.Repository.IsBeingCreated() || ctx.Repo.Repository.IsBroken() {
-		if !isHomeOrSettings {
+		if !repoAssignmentIsHomeOrSettings(ctx, data) {
 			ctx.Redirect(ctx.Repo.RepoLink)
 		}
 		return
 	}
+}
 
-	if ctx.Repo.GitRepo != nil {
-		setting.PanicInDevOrTesting("RepoAssignment: GitRepo should be nil")
-		_ = ctx.Repo.GitRepo.Close()
-		ctx.Repo.GitRepo = nil
-	}
-
+func repoAssignmentPrepareGitRepo(ctx *Context, data *repoAssignmentPrepareDataStruct) {
+	var err error
+	repo := data.repo
 	ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
 			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RelativePath(), err)
 			ctx.Repo.Repository.MarkAsBrokenEmpty()
 			// Only allow access to base of repo or settings
-			if !isHomeOrSettings {
+			if !repoAssignmentIsHomeOrSettings(ctx, data) {
 				ctx.Redirect(ctx.Repo.RepoLink)
 			}
 			return
@@ -679,12 +704,12 @@ func RepoAssignment(ctx *Context) {
 		ctx.ServerError("RepoAssignment Invalid repo "+repo.FullName(), err)
 		return
 	}
+}
 
-	// Stop at this point when the repo is empty.
-	if ctx.Repo.Repository.IsEmpty {
+func repoAssignmentPrepareBranches(ctx *Context, data *repoAssignmentPrepareDataStruct) {
+	if data.repo.IsEmpty {
 		return
 	}
-
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
 		IsDeletedBranch: optional.Some(false),
@@ -706,7 +731,13 @@ func RepoAssignment(ctx *Context) {
 	}
 
 	ctx.Data["BranchesCount"] = branchesTotal
+}
 
+func repoAssignmentPreparePullRequests(ctx *Context, data *repoAssignmentPrepareDataStruct) {
+	repo := data.repo
+	if repo.IsEmpty {
+		return
+	}
 	// Pull request is allowed if this is a fork repository, and base repository accepts pull requests.
 	if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls(ctx) {
 		// TODO: this (and below) "BaseRepo" var is not clear and should be removed in the future
@@ -717,7 +748,9 @@ func RepoAssignment(ctx *Context) {
 		ctx.Data["BaseRepo"] = repo
 		InitRepoPullRequestCtx(ctx, repo, repo)
 	}
+}
 
+func repoAssignmentPrepareRepoTransfer(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
 		repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 		if err != nil {
@@ -726,21 +759,48 @@ func RepoAssignment(ctx *Context) {
 		}
 
 		if err := repoTransfer.LoadAttributes(ctx); err != nil {
-			ctx.ServerError("LoadRecipient", err)
+			ctx.ServerError("LoadAttributes", err)
 			return
 		}
 
 		ctx.Data["RepoTransfer"] = repoTransfer
-		if ctx.Doer != nil {
-			ctx.Data["CanUserAcceptOrRejectTransfer"] = repoTransfer.CanUserAcceptOrRejectTransfer(ctx, ctx.Doer)
-		}
+		ctx.Data["CanUserAcceptOrRejectTransfer"] = ctx.Doer != nil && repoTransfer.CanUserAcceptOrRejectTransfer(ctx, ctx.Doer)
 	}
+}
 
+func repoAssignmentHandleGoGet(ctx *Context, data *repoAssignmentPrepareDataStruct) {
+	repo := data.repo
 	if ctx.FormString("go-get") == "1" {
 		ctx.Data["GoGetImport"] = ComposeGoGetImport(ctx, repo.Owner.Name, repo.Name)
 		fullURLPrefix := repo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
 		ctx.Data["GoDocDirectory"] = fullURLPrefix + "{/dir}"
 		ctx.Data["GoDocFile"] = fullURLPrefix + "{/dir}/{file}#L{line}"
+	}
+}
+
+// RepoAssignment returns a middleware to handle repository assignment
+func RepoAssignment(ctx *Context) {
+	repoAssignmentPreCheck(ctx)
+
+	prepareData := repoAssignmentPrepareData(ctx)
+	funcs := []func(ctx *Context, data *repoAssignmentPrepareDataStruct){
+		repoAssignmentPrepareOwner,
+		repoAssignmentAutoRedirectWiki,
+		repoAssignmentPrepareRepo,
+		repoAssignmentLegacy,
+		repoAssignmentPrepareTemplateData,
+		repoAssignmentAutoRedirectNotReady,
+		repoAssignmentPrepareGitRepo,
+		repoAssignmentPrepareRepoTransfer,
+		repoAssignmentPrepareBranches,
+		repoAssignmentPreparePullRequests,
+		repoAssignmentHandleGoGet,
+	}
+	for _, f := range funcs {
+		f(ctx, prepareData)
+		if ctx.Written() {
+			return
+		}
 	}
 }
 

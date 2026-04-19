@@ -3,7 +3,7 @@
 		{{$statusUnread := 1}}{{$statusRead := 2}}{{$statusPinned := 3}}
 		{{$notificationUnreadCount := call .PageGlobalData.GetNotificationUnreadCount}}
 		{{$pageTypeIsRead := eq $.PageType "read"}}
-		<div class="flex-text-block tw-justify-between tw-mb-[--page-spacing]">
+		<div class="flex-left-right tw-mb-[--page-spacing]">
 			<div class="small-menu-items ui compact tiny menu">
 				<a class="{{if not $pageTypeIsRead}}active{{end}} item" href="{{AppSubUrl}}/notifications?type=unread">
 					{{ctx.Locale.Tr "notification.unread"}}
