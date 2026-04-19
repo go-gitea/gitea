@@ -125,7 +125,7 @@ async function deleteArtifact(name: string) {
                   class="tw-flex-1 flex-text-block muted" target="_blank"
                   :href="run.link+'/artifacts/'+encodeURIComponent(artifact.name)"
                   :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
-                  data-tooltip-render-html="true"
+                  data-tooltip-render="html"
                   data-tooltip-placement="top-end"
                 >
                   <SvgIcon name="octicon-file" class="tw-text-text-light"/>
