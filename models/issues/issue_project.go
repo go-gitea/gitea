@@ -64,36 +64,6 @@ func LoadProjectIssueColumnMap(ctx context.Context, projectID, defaultColumnID i
 	return result, nil
 }
 
-// LoadIssuesFromColumn load issues assigned to this column
-func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *IssuesOptions) (IssueList, error) {
-	issueList, err := Issues(ctx, opts.Copy(func(o *IssuesOptions) {
-		o.ProjectColumnID = b.ID
-		o.ProjectID = b.ProjectID
-		o.SortType = "project-column-sorting"
-	}))
-	if err != nil {
-		return nil, err
-	}
-
-	if b.Default {
-		issues, err := Issues(ctx, opts.Copy(func(o *IssuesOptions) {
-			o.ProjectColumnID = db.NoConditionID
-			o.ProjectID = b.ProjectID
-			o.SortType = "project-column-sorting"
-		}))
-		if err != nil {
-			return nil, err
-		}
-		issueList = append(issueList, issues...)
-	}
-
-	if err := issueList.LoadComments(ctx); err != nil {
-		return nil, err
-	}
-
-	return issueList, nil
-}
-
 // IssueAssignOrRemoveProject changes the project associated with an issue
 // If newProjectID is 0, the issue is removed from the project
 func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID, newColumnID int64) error {
@@ -145,17 +115,10 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			panic("newColumnID must not be zero") // shouldn't happen
 		}
 
-		res := struct {
-			MaxSorting int64
-			IssueCount int64
-		}{}
-		if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").Table("project_issue").
-			Where("project_id=?", newProjectID).
-			And("project_board_id=?", newColumnID).
-			Get(&res); err != nil {
+		newSorting, err := project_model.GetColumnIssueNextSorting(ctx, newProjectID, newColumnID)
+		if err != nil {
 			return err
 		}
-		newSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
 		return db.Insert(ctx, &project_model.ProjectIssue{
 			IssueID:         issue.ID,
 			ProjectID:       newProjectID,

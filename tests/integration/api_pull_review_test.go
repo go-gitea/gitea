@@ -498,7 +498,7 @@ func TestAPIPullReviewStayDismissed(t *testing.T) {
 		pullIssue.ID, user8.ID, 1, 1, 2, false)
 
 	// user8 dismiss review
-	permUser8, err := access_model.GetUserRepoPermission(t.Context(), pullIssue.Repo, user8)
+	permUser8, err := access_model.GetIndividualUserRepoPermission(t.Context(), pullIssue.Repo, user8)
 	assert.NoError(t, err)
 	_, err = issue_service.ReviewRequest(t.Context(), pullIssue, user8, &permUser8, user8, false)
 	assert.NoError(t, err)

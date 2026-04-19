@@ -1,3 +1,4 @@
 {{template "base/head" ctx.RootData}}
-<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
-{{template "base/alert" .}}
+<link rel="stylesheet" href="{{AssetURI "css/devtest.css"}}">
+<div class="tw-hidden" data-global-init="initDevtestPage"></div>
+<div class="ui container tw-mt-4">{{template "base/alert" ctx.RootData}}</div>

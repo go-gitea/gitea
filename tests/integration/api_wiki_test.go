@@ -25,8 +25,7 @@ func TestAPIGetWikiPage(t *testing.T) {
 
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var page *api.WikiPage
-	DecodeJSON(t, resp, &page)
+	page := DecodeJSON(t, resp, &api.WikiPage{})
 
 	assert.Equal(t, &api.WikiPage{
 		WikiPageMetaData: &api.WikiPageMetaData{
@@ -222,8 +221,7 @@ func TestAPIListPageRevisions(t *testing.T) {
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var revisions *api.WikiCommitList
-	DecodeJSON(t, resp, &revisions)
+	revisions := DecodeJSON(t, resp, &api.WikiCommitList{})
 
 	dummyrevisions := &api.WikiCommitList{
 		WikiCommits: []*api.WikiCommit{

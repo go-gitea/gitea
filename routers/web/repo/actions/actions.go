@@ -151,6 +151,11 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			workflows = append(workflows, workflow)
 			continue
 		}
+		if err := actions.ValidateWorkflowContent(content); err != nil {
+			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
+			workflows = append(workflows, workflow)
+			continue
+		}
 		workflow.Workflow = wf
 		// The workflow must contain at least one job without "needs". Otherwise, a deadlock will occur and no jobs will be able to run.
 		hasJobWithoutNeeds := false
@@ -315,9 +320,13 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 			if !job.Status.IsWaiting() {
 				continue
 			}
+			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
+				runErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
+				break
+			}
 			hasOnlineRunner := false
 			for _, runner := range runners {
-				if runner.CanMatchLabels(job.RunsOn) {
+				if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
 					hasOnlineRunner = true
 					break
 				}

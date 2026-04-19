@@ -49,7 +49,7 @@ defineProps<{
 
 const isLoading = shallowRef(false);
 const errorText = shallowRef('');
-const repoLink = pageData.repoLink;
+const repoLink = pageData.repoLink!;
 const data = shallowRef<DayData[]>([]);
 
 onMounted(() => {
@@ -144,7 +144,7 @@ const options: ChartOptions<'line'> = {
 
 <template>
   <div>
-    <div class="ui header tw-flex tw-items-center tw-justify-between">
+    <div class="ui header">
       {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: `Code frequency over the history of ${repoLink.slice(1)}` }}
     </div>
     <div class="tw-flex ui segment main-graph">

@@ -20,7 +20,7 @@ function showMarkupRefIssuePopup(e: MouseEvent | FocusEvent) {
 
   const el = document.createElement('div');
   const onShowAsync = async () => {
-    const {default: ContextPopup} = await import(/* webpackChunkName: "ContextPopup" */ '../components/ContextPopup.vue');
+    const {default: ContextPopup} = await import('../components/ContextPopup.vue');
     const view = createApp(ContextPopup, {
       // backend: GetIssueInfo
       loadIssueInfoUrl: `${window.config.appSubUrl}/${issuePathInfo.ownerName}/${issuePathInfo.repoName}/issues/${issuePathInfo.indexString}/info`,

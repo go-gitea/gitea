@@ -43,7 +43,7 @@
   height: 1.21428571em;
 }
 
-.ui.form input,
+.ui.form input:not([type="checkbox"], [type="radio"]),
 .ui.search > .prompt {
   font-family: var(--fonts-regular);
   margin: 0;
@@ -74,10 +74,10 @@
   max-height: 24em;
 }
 
-input,
+input:not([type="checkbox"], [type="radio"]),
 textarea,
 .ui.input > input,
-.ui.form input,
+.ui.form input:not([type="checkbox"], [type="radio"]),
 .ui.form select,
 .ui.form textarea,
 .ui.selection.dropdown,
@@ -87,28 +87,23 @@ textarea,
   color: var(--color-input-text);
 }
 
-input:hover,
-textarea:hover,
-.ui.input input:hover,
-.ui.form input:hover,
-.ui.form select:hover,
-.ui.form textarea:hover,
-.ui.search > .prompt:hover {
-  background: var(--color-input-background);
-  border: 1px solid var(--color-input-border-hover);
-  color: var(--color-input-text);
-}
-
-input:focus,
+input:not([type="checkbox"], [type="radio"]):focus,
 textarea:focus,
 .ui.input input:focus,
-.ui.form input:focus,
+.ui.form input:not([type="checkbox"], [type="radio"]):focus,
 .ui.form select:focus,
 .ui.form textarea:focus,
 .ui.search > .prompt:focus {
   background: var(--color-input-background);
   border-color: var(--color-primary);
   color: var(--color-input-text);
+}
+
+.ui.form input:not([type="checkbox"], [type="radio"])[readonly],
+.ui.form textarea[readonly],
+.ui.form select[readonly],
+.ui.form .ui.selection.dropdown[readonly] {
+  background: var(--color-secondary-bg);
 }
 
 .ui.input {
@@ -210,7 +205,6 @@ textarea:focus,
   background-color: var(--color-error-bg);
   border-color: var(--color-error-border);
   color: var(--color-error-text);
-  border-radius: 0;
 }
 .ui.form .field.error textarea:focus,
 .ui.form .field.error select:focus,

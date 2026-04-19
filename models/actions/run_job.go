@@ -18,6 +18,11 @@ import (
 	"xorm.io/builder"
 )
 
+// MaxJobNumPerRun is the maximum number of jobs in a single run.
+// https://docs.github.com/en/actions/reference/limits#existing-system-limits
+// TODO: check this limit when creating jobs
+const MaxJobNumPerRun = 256
+
 // ActionRunJob represents a job of a run
 type ActionRunJob struct {
 	ID                int64
@@ -51,6 +56,11 @@ type ActionRunJob struct {
 	ConcurrencyGroup  string `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"` // evaluated concurrency.group
 	ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`                      // evaluated concurrency.cancel-in-progress
 
+	// TokenPermissions stores the explicit permissions from workflow/job YAML (no org/repo clamps applied).
+	// Org/repo clamps are enforced when the token is used at runtime.
+	// It is JSON-encoded repo_model.ActionsTokenPermissions and may be empty if not specified.
+	TokenPermissions *repo_model.ActionsTokenPermissions `xorm:"JSON TEXT"`
+
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 	Created timeutil.TimeStamp `xorm:"created"`
@@ -62,7 +72,7 @@ func init() {
 }
 
 func (job *ActionRunJob) Duration() time.Duration {
-	return calculateDuration(job.Started, job.Stopped, job.Status)
+	return calculateDuration(job.Started, job.Stopped, job.Status, job.Updated)
 }
 
 func (job *ActionRunJob) LoadRun(ctx context.Context) error {

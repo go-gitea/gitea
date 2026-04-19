@@ -221,7 +221,7 @@ func Search(ctx *context.APIContext) {
 			})
 			return
 		}
-		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
@@ -498,30 +498,10 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	opt := web.GetForm(ctx).(*api.CreateRepoOption)
-	org, err := organization.GetOrgByName(ctx, ctx.PathParam("org"))
-	if err != nil {
-		if organization.IsErrOrgNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	orgName := ctx.PathParam("org")
+	org := prepareDoerCreateRepoInOrg(ctx, orgName)
+	if ctx.Written() {
 		return
-	}
-
-	if !organization.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer) {
-		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
-		return
-	}
-
-	if !ctx.Doer.IsAdmin {
-		canCreate, err := org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		} else if !canCreate {
-			ctx.APIError(http.StatusForbidden, "Given user is not allowed to create repository in organization.")
-			return
-		}
 	}
 	CreateUserRepo(ctx, org.AsUser(), *opt)
 }
@@ -588,7 +568,7 @@ func GetByID(ctx *context.APIContext) {
 		return
 	}
 
-	permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

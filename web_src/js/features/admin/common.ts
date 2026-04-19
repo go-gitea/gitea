@@ -78,7 +78,7 @@ function initAdminAuthentication() {
   }
 
   function onOAuth2Change(applyDefaultValues: boolean) {
-    hideElem('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url');
+    hideElem('.open_id_connect_auto_discovery_url, .open_id_connect_external_id_claim, .oauth2_use_custom_url');
     for (const input of document.querySelectorAll<HTMLInputElement>('.open_id_connect_auto_discovery_url input[required]')) {
       input.removeAttribute('required');
     }
@@ -88,6 +88,7 @@ function initAdminAuthentication() {
       case 'openidConnect':
         document.querySelector<HTMLInputElement>('.open_id_connect_auto_discovery_url input')!.setAttribute('required', 'required');
         showElem('.open_id_connect_auto_discovery_url');
+        showElem('.open_id_connect_external_id_claim');
         break;
       default: {
         const elProviderCustomUrlSettings = document.querySelector<HTMLInputElement>(`#${provider}_customURLSettings`);
@@ -285,6 +286,6 @@ function initAdminNotice() {
       }
     }
     await POST(this.getAttribute('data-link')!, {data});
-    window.location.href = this.getAttribute('data-redirect')!;
+    window.location.reload();
   });
 }

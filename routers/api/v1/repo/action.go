@@ -554,9 +554,14 @@ func (Action) ListRunners(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: disabled
+	//   in: query
+	//   description: filter by disabled status (true or false)
+	//   type: boolean
+	//   required: false
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/ActionRunnersResponse"
+	//     "$ref": "#/responses/RunnerList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -564,11 +569,11 @@ func (Action) ListRunners(ctx *context.APIContext) {
 	shared.ListRunners(ctx, 0, ctx.Repo.Repository.ID)
 }
 
-// GetRunner get an repo-level runner
+// GetRunner get a repo-level runner
 func (Action) GetRunner(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/runners/{runner_id} repository getRepoRunner
 	// ---
-	// summary: Get an repo-level runner
+	// summary: Get a repo-level runner
 	// produces:
 	// - application/json
 	// parameters:
@@ -589,7 +594,7 @@ func (Action) GetRunner(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/ActionRunner"
+	//     "$ref": "#/responses/Runner"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -597,11 +602,11 @@ func (Action) GetRunner(ctx *context.APIContext) {
 	shared.GetRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
 }
 
-// DeleteRunner delete an repo-level runner
+// DeleteRunner delete a repo-level runner
 func (Action) DeleteRunner(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/actions/runners/{runner_id} repository deleteRepoRunner
 	// ---
-	// summary: Delete an repo-level runner
+	// summary: Delete a repo-level runner
 	// produces:
 	// - application/json
 	// parameters:
@@ -628,6 +633,47 @@ func (Action) DeleteRunner(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
+}
+
+// UpdateRunner update a repo-level runner
+func (Action) UpdateRunner(ctx *context.APIContext) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/actions/runners/{runner_id} repository updateRepoRunner
+	// ---
+	// summary: Update a repo-level runner
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditActionRunnerOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Runner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	shared.UpdateRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
 }
 
 // GetWorkflowRunJobs Lists all jobs for a workflow run.
@@ -1146,7 +1192,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 	// - name: run
 	//   in: path
 	//   description: id of the run
-	//   type: string
+	//   type: integer
 	//   required: true
 	// responses:
 	//   "200":
@@ -1209,7 +1255,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs, nil); err != nil {
+	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs); err != nil {
 		handleWorkflowRerunError(ctx, err)
 		return
 	}
@@ -1220,6 +1266,52 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, convertedRun)
+}
+
+// RerunFailedWorkflowRun Reruns all failed jobs in a workflow run.
+func RerunFailedWorkflowRun(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runs/{run}/rerun-failed-jobs repository rerunFailedWorkflowRun
+	// ---
+	// summary: Reruns all failed jobs in a workflow run
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: id of the run
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, actions_service.GetFailedRerunJobs(jobs)); err != nil {
+		handleWorkflowRerunError(ctx, err)
+		return
+	}
+
+	ctx.Status(http.StatusCreated)
 }
 
 // RerunWorkflowJob Reruns a specific workflow job in a run.
@@ -1275,7 +1367,7 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 	}
 
 	targetJob := jobs[jobIdx]
-	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, jobs, targetJob); err != nil {
+	if err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, actions_service.GetAllRerunJobs(targetJob, jobs)); err != nil {
 		handleWorkflowRerunError(ctx, err)
 		return
 	}
@@ -1692,7 +1784,7 @@ func buildDownloadRawEndpoint(repo *repo_model.Repository, artifactID int64) str
 func buildSigURL(ctx go_context.Context, endPoint string, artifactID int64) string {
 	// endPoint is a path like "api/v1/repos/owner/repo/actions/artifacts/1/zip/raw"
 	expires := time.Now().Add(60 * time.Minute).Unix()
-	uploadURL := httplib.GuessCurrentAppURL(ctx) + endPoint + "?sig=" + base64.URLEncoding.EncodeToString(buildSignature(endPoint, expires, artifactID)) + "&expires=" + strconv.FormatInt(expires, 10)
+	uploadURL := httplib.GuessCurrentAppURL(ctx) + endPoint + "?sig=" + base64.RawURLEncoding.EncodeToString(buildSignature(endPoint, expires, artifactID)) + "&expires=" + strconv.FormatInt(expires, 10)
 	return uploadURL
 }
 
@@ -1737,18 +1829,16 @@ func DownloadArtifact(ctx *context.APIContext) {
 		ctx.APIError(http.StatusNotFound, "Artifact has expired")
 		return
 	}
-	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
 
 	if actions.IsArtifactV4(art) {
-		ok, err := actions.DownloadArtifactV4ServeDirectOnly(ctx.Base, art)
-		if ok {
-			return
-		}
-		if err != nil {
-			ctx.APIErrorInternal(err)
+		// @actions/toolkit asserts that downloaded artifacts of a different runid return 302
+		// https://github.com/actions/toolkit/blob/44d43b5490b02998bd09b0c4ff369a4cc67876c2/packages/artifact/src/internal/download/download-artifact.ts#L203-L210
+		if actions.DownloadArtifactV4ServeDirect(ctx.Base, art) {
 			return
 		}
 
+		// @actions/toolkit asserts a 302 for the artifact download, so we have to build a signed URL and redirect to it
+		// TODO: a perma link to the code for reference
 		redirectURL := buildSigURL(ctx, buildDownloadRawEndpoint(ctx.Repo.Repository, art.ID), art.ID)
 		ctx.Redirect(redirectURL, http.StatusFound)
 		return
@@ -1776,7 +1866,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 
 	sigStr := ctx.Req.URL.Query().Get("sig")
 	expiresStr := ctx.Req.URL.Query().Get("expires")
-	sigBytes, _ := base64.URLEncoding.DecodeString(sigStr)
+	sigBytes, _ := base64.RawURLEncoding.DecodeString(sigStr)
 	expires, _ := strconv.ParseInt(expiresStr, 10, 64)
 
 	expectedSig := buildSignature(buildDownloadRawEndpoint(repo, art.ID), expires, art.ID)
@@ -1795,8 +1885,6 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 		ctx.APIError(http.StatusNotFound, "Artifact has expired")
 		return
 	}
-	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
-
 	if actions.IsArtifactV4(art) {
 		err := actions.DownloadArtifactV4(ctx.Base, art)
 		if err != nil {

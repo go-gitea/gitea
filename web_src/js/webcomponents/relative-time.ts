@@ -259,12 +259,12 @@ class RelativeTime extends HTMLElement {
 
   get #lang(): string {
     const lang = this.closest('[lang]')?.getAttribute('lang');
-    if (!lang) return navigator.language;
-    try {
-      return new Intl.Locale(lang).toString();
-    } catch {
-      return navigator.language;
+    if (lang) {
+      try {
+        return new Intl.Locale(lang).toString();
+      } catch { /* invalid locale, fall through */ }
     }
+    return navigator.language ?? 'en';
   }
 
   get second(): 'numeric' | '2-digit' | undefined {
@@ -322,6 +322,10 @@ class RelativeTime extends HTMLElement {
     return this.getAttribute('prefix') ?? (this.format === 'datetime' ? '' : 'on');
   }
 
+  set prefix(v: string) {
+    this.setAttribute('prefix', v);
+  }
+
   get #thresholdMs(): number {
     const ms = parseDurationMs(this.getAttribute('threshold') ?? '');
     return ms >= 0 ? ms : 30 * 86400000;
@@ -353,6 +357,10 @@ class RelativeTime extends HTMLElement {
 
   get datetime(): string {
     return this.getAttribute('datetime') || '';
+  }
+
+  set datetime(v: string) {
+    this.setAttribute('datetime', v);
   }
 
   get date(): Date | null {

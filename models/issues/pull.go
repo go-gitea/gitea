@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -24,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/dlclark/regexp2"
 	"xorm.io/builder"
 )
 
@@ -861,7 +861,7 @@ func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRul
 }
 
 type CodeOwnerRule struct {
-	Rule     *regexp.Regexp
+	Rule     *regexp2.Regexp // it supports negative lookahead, does better for end users
 	Negative bool
 	Users    []*user_model.User
 	Teams    []*org_model.Team
@@ -877,7 +877,13 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 
 	warnings := make([]string, 0)
 
-	rule.Rule, err = regexp.Compile(fmt.Sprintf("^%s$", strings.TrimPrefix(tokens[0], "!")))
+	// Strip leading "!" for negative rules, then strip leading "/" since
+	// git returns relative paths (e.g. "docs/foo.md" not "/docs/foo.md")
+	// and the regex is already anchored with ^...$, so the "/" is redundant.
+	pattern := strings.TrimPrefix(tokens[0], "!")
+	pattern = strings.TrimPrefix(pattern, "/")
+	expr := fmt.Sprintf("^%s$", pattern)
+	rule.Rule, err = regexp2.Compile(expr, regexp2.None)
 	if err != nil {
 		warnings = append(warnings, fmt.Sprintf("incorrect codeowner regexp: %s", err))
 		return nil, warnings

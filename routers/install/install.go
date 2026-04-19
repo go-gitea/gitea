@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/common"
@@ -87,15 +86,7 @@ func Install(ctx *context.Context) {
 	form.AppName = setting.AppName
 	form.RepoRootPath = setting.RepoRootPath
 	form.LFSRootPath = setting.LFS.Storage.Path
-
-	// Note(unknown): it's hard for Windows users change a running user,
-	// 	so just use current one if config says default.
-	if setting.IsWindows && setting.RunUser == "git" {
-		form.RunUser = user.CurrentUsername()
-	} else {
-		form.RunUser = setting.RunUser
-	}
-
+	form.RunUser = setting.RunUser
 	form.Domain = setting.Domain
 	form.SSHPort = setting.SSH.Port
 	form.HTTPPort = setting.HTTPPort
@@ -272,13 +263,6 @@ func SubmitInstall(ctx *context.Context) {
 		return
 	}
 
-	currentUser, match := setting.IsRunUserMatchCurrentUser(form.RunUser)
-	if !match {
-		ctx.Data["Err_RunUser"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("install.run_user_not_match", form.RunUser, currentUser), tplInstall, &form)
-		return
-	}
-
 	// Check logic loophole between disable self-registration and no admin account.
 	if form.DisableRegistration && len(form.AdminName) == 0 {
 		ctx.Data["Err_Services"] = true
@@ -371,12 +355,11 @@ func SubmitInstall(ctx *context.Context) {
 	if form.LFSRootPath != "" {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("lfs").Key("PATH").SetValue(form.LFSRootPath)
-		var lfsJwtSecret string
-		if _, lfsJwtSecret, err = generate.NewJwtSecretWithBase64(); err != nil {
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
-			return
+
+		if !cfg.Section("server").HasKey("LFS_JWT_SECRET_URI") {
+			_, lfsJwtSecret := generate.NewJwtSecretWithBase64()
+			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(lfsJwtSecret)
 		}
-		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(lfsJwtSecret)
 	} else {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
@@ -437,11 +420,7 @@ func SubmitInstall(ctx *context.Context) {
 	// FIXME: at the moment, no matter oauth2 is enabled or not, it must generate a "oauth2 JWT_SECRET"
 	// see the "loadOAuth2From" in "setting/oauth2.go"
 	if !cfg.Section("oauth2").HasKey("JWT_SECRET") && !cfg.Section("oauth2").HasKey("JWT_SECRET_URI") {
-		_, jwtSecretBase64, err := generate.NewJwtSecretWithBase64()
-		if err != nil {
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
-			return
-		}
+		_, jwtSecretBase64 := generate.NewJwtSecretWithBase64()
 		cfg.Section("oauth2").Key("JWT_SECRET").SetValue(jwtSecretBase64)
 	}
 

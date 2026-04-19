@@ -41,9 +41,9 @@
   margin-bottom: 1em;
 }
 
-.ui.info.message .header,
-.ui.blue.message .header {
-  color: var(--color-blue);
+.ui.message .header {
+  color: inherit;
+  font-weight: var(--font-weight-semibold);
 }
 
 .ui.info.message,
@@ -55,12 +55,6 @@
   border-color: var(--color-info-border);
 }
 
-.ui.success.message .header,
-.ui.positive.message .header,
-.ui.green.message .header {
-  color: var(--color-green);
-}
-
 .ui.success.message,
 .ui.attached.success.message,
 .ui.positive.message,
@@ -68,12 +62,6 @@
   background: var(--color-success-bg);
   color: var(--color-success-text);
   border-color: var(--color-success-border);
-}
-
-.ui.error.message .header,
-.ui.negative.message .header,
-.ui.red.message .header {
-  color: var(--color-red);
 }
 
 .ui.error.message,
@@ -87,11 +75,6 @@
   border-color: var(--color-error-border);
 }
 
-.ui.warning.message .header,
-.ui.yellow.message .header {
-  color: var(--color-yellow);
-}
-
 .ui.warning.message,
 .ui.attached.warning.message,
 .ui.yellow.message,
@@ -99,15 +82,6 @@
   background: var(--color-warning-bg);
   color: var(--color-warning-text);
   border-color: var(--color-warning-border);
-}
-
-/* use opaque colors for buttons inside colored messages */
-.ui.message .ui.button:hover {
-  background: var(--color-secondary);
-}
-
-.ui.message .ui.button:active {
-  background: var(--color-secondary-hover);
 }
 
 .ui.message > .close.icon {

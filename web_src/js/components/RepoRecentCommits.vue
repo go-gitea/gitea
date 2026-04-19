@@ -46,7 +46,7 @@ defineProps<{
 
 const isLoading = shallowRef(false);
 const errorText = shallowRef('');
-const repoLink = pageData.repoLink;
+const repoLink = pageData.repoLink!;
 const data = ref<DayData[]>([]);
 
 onMounted(() => {
@@ -122,7 +122,7 @@ const options: ChartOptions<'bar'> = {
 
 <template>
   <div>
-    <div class="ui header tw-flex tw-items-center tw-justify-between">
+    <div class="ui header">
       {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "Number of commits in the past year" }}
     </div>
     <div class="tw-flex ui segment main-graph">

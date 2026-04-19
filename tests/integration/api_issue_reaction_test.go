@@ -44,7 +44,7 @@ func TestAPIIssuesReactions(t *testing.T) {
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "zzz",
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusNoContent)
 
 	// Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
@@ -55,7 +55,10 @@ func TestAPIIssuesReactions(t *testing.T) {
 	DecodeJSON(t, resp, &apiNewReaction)
 
 	// Add existing reaction
-	MakeRequest(t, req, http.StatusForbidden)
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+		Reaction: "rocket",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Blocked user can't react to comment
 	user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
@@ -111,7 +114,7 @@ func TestAPICommentReactions(t *testing.T) {
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "eyes",
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusNoContent)
 
 	t.Run("UnrelatedCommentID", func(t *testing.T) {
 		// Using the ID of a comment that does not belong to the repository must fail
@@ -142,7 +145,10 @@ func TestAPICommentReactions(t *testing.T) {
 	DecodeJSON(t, resp, &apiNewReaction)
 
 	// Add existing reaction
-	MakeRequest(t, req, http.StatusForbidden)
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+		Reaction: "+1",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Get end result of reaction list of issue #1
 	req = NewRequest(t, "GET", urlStr).

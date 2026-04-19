@@ -89,10 +89,12 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"path"
@@ -100,8 +102,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -113,12 +116,10 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"xorm.io/builder"
 )
 
-const (
-	ArtifactV4RouteBase       = "/twirp/github.actions.results.api.v1.ArtifactService"
-	ArtifactV4ContentEncoding = "application/zip"
-)
+const ArtifactV4RouteBase = "/twirp/github.actions.results.api.v1.ArtifactService"
 
 type artifactV4Routes struct {
 	prefix string
@@ -219,7 +220,7 @@ func parseChunkFileItemV4(st storage.ObjectStorage, artifactID int64, fpath stri
 	return &item, nil
 }
 
-func (r *artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*actions.ActionTask, string, bool) {
+func (r *artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*actions_model.ActionTask, string, bool) {
 	rawTaskID := ctx.Req.URL.Query().Get("taskID")
 	rawArtifactID := ctx.Req.URL.Query().Get("artifactID")
 	sig := ctx.Req.URL.Query().Get("sig")
@@ -246,13 +247,13 @@ func (r *artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*
 		ctx.HTTPError(http.StatusUnauthorized, "Error link expired")
 		return nil, "", false
 	}
-	task, err := actions.GetTaskByID(ctx, taskID)
+	task, err := actions_model.GetTaskByID(ctx, taskID)
 	if err != nil {
 		log.Error("Error runner api getting task by ID: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task by ID")
 		return nil, "", false
 	}
-	if task.Status != actions.StatusRunning {
+	if task.Status != actions_model.StatusRunning {
 		log.Error("Error runner api getting task: task is not running")
 		ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task: task is not running")
 		return nil, "", false
@@ -265,9 +266,9 @@ func (r *artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*
 	return task, artifactName, true
 }
 
-func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID int64, name string) (*actions.ActionArtifact, error) {
-	var art actions.ActionArtifact
-	has, err := db.GetEngine(ctx).Where("run_id = ? AND artifact_name = ? AND artifact_path = ? AND content_encoding = ?", runID, name, name+".zip", ArtifactV4ContentEncoding).Get(&art)
+func (r *artifactV4Routes) getArtifactByName(ctx *ArtifactContext, runID int64, name string) (*actions_model.ActionArtifact, error) {
+	var art actions_model.ActionArtifact
+	has, err := db.GetEngine(ctx).Where(builder.Eq{"run_id": runID, "artifact_name": name}, builder.Like{"content_encoding", "%/%"}).Get(&art)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -321,26 +322,59 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 	if req.ExpiresAt != nil {
 		retentionDays = int64(time.Until(req.ExpiresAt.AsTime()).Hours() / 24)
 	}
+	encoding := req.GetMimeType().GetValue()
+	// Validate media type
+	if encoding != "" {
+		encoding, _, _ = mime.ParseMediaType(encoding)
+	}
+	fileName := artifactName
+	if !strings.Contains(encoding, "/") || strings.EqualFold(encoding, actions_model.ContentTypeZip) && !strings.HasSuffix(fileName, ".zip") {
+		encoding = actions_model.ContentTypeZip
+		fileName = artifactName + ".zip"
+	}
 	// create or get artifact with name and path
-	artifact, err := actions.CreateArtifact(ctx, ctx.ActionTask, artifactName, artifactName+".zip", retentionDays)
+	artifact, err := actions_model.CreateArtifact(ctx, ctx.ActionTask, artifactName, fileName, retentionDays)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error create or get artifact")
 		return
 	}
-	artifact.ContentEncoding = ArtifactV4ContentEncoding
+	artifact.ContentEncodingOrType = encoding
 	artifact.FileSize = 0
 	artifact.FileCompressedSize = 0
-	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+
+	var respData CreateArtifactResponse
+
+	if setting.Actions.ArtifactStorage.ServeDirect() && setting.Actions.ArtifactStorage.Type == setting.AzureBlobStorageType {
+		storagePath := generateArtifactStoragePath(artifact)
+		if artifact.StoragePath != "" {
+			_ = storage.ActionsArtifacts.Delete(artifact.StoragePath)
+		}
+		artifact.StoragePath = storagePath
+		artifact.Status = actions_model.ArtifactStatusUploadPending
+		u, err := storage.ActionsArtifacts.ServeDirectURL(artifact.StoragePath, artifact.ArtifactPath, http.MethodPut, nil)
+		if err != nil {
+			log.Error("Error ServeDirectURL: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "Error ServeDirectURL")
+			return
+		}
+		respData = CreateArtifactResponse{
+			Ok:              true,
+			SignedUploadUrl: u.String(),
+		}
+	} else {
+		respData = CreateArtifactResponse{
+			Ok:              true,
+			SignedUploadUrl: r.buildArtifactURL(ctx, "UploadArtifact", artifactName, ctx.ActionTask.ID, artifact.ID),
+		}
+	}
+
+	if err := actions_model.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 		log.Error("Error UpdateArtifactByID: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
 		return
 	}
 
-	respData := CreateArtifactResponse{
-		Ok:              true,
-		SignedUploadUrl: r.buildArtifactURL(ctx, "UploadArtifact", artifactName, ctx.ActionTask.ID, artifact.ID),
-	}
 	r.sendProtobufBody(ctx, &respData)
 }
 
@@ -370,7 +404,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 			}
 			artifact.FileCompressedSize += uploadedLength
 			artifact.FileSize += uploadedLength
-			if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+			if err := actions_model.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 				log.Error("Error UpdateArtifactByID: %v", err)
 				ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
 				return
@@ -448,9 +482,27 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	var chunks []*chunkFileItem
+	if setting.Actions.ArtifactStorage.ServeDirect() && setting.Actions.ArtifactStorage.Type == setting.AzureBlobStorageType {
+		r.finalizeAzureServeDirect(ctx, &req, artifact)
+	} else {
+		r.finalizeDefaultArtifact(ctx, &req, artifact, runID)
+	}
+
+	// Return on finalize error
+	if ctx.Written() {
+		return
+	}
+
+	respData := FinalizeArtifactResponse{
+		Ok:         true,
+		ArtifactId: artifact.ID,
+	}
+	r.sendProtobufBody(ctx, &respData)
+}
+
+func (r *artifactV4Routes) finalizeDefaultArtifact(ctx *ArtifactContext, req *FinalizeArtifactRequest, artifact *actions_model.ActionArtifact, runID int64) {
 	blockList, blockListErr := r.readBlockList(runID, artifact.ID)
-	chunks, err = listOrderedChunksForArtifact(r.fs, runID, artifact.ID, blockList)
+	chunks, err := listOrderedChunksForArtifact(r.fs, runID, artifact.ID, blockList)
 	if err != nil {
 		log.Error("Error list chunks: %v", errors.Join(blockListErr, err))
 		ctx.HTTPError(http.StatusInternalServerError, "Error list chunks")
@@ -465,21 +517,63 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	checksum := ""
-	if req.Hash != nil {
-		checksum = req.Hash.Value
-	}
-	if err := mergeChunksForArtifact(ctx, chunks, r.fs, artifact, checksum); err != nil {
+	if err := mergeChunksForArtifact(ctx, chunks, r.fs, artifact, req.GetHash().GetValue()); err != nil {
 		log.Error("Error merge chunks: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
 		return
 	}
+}
 
-	respData := FinalizeArtifactResponse{
-		Ok:         true,
-		ArtifactId: artifact.ID,
+func (r *artifactV4Routes) finalizeAzureServeDirect(ctx *ArtifactContext, req *FinalizeArtifactRequest, artifact *actions_model.ActionArtifact) {
+	checksumValue, hasSha256Checksum := strings.CutPrefix(req.GetHash().GetValue(), "sha256:")
+	var actualLength int64
+	if hasSha256Checksum {
+		hashSha256 := sha256.New()
+		obj, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
+		if err != nil {
+			log.Error("Error read block: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "Error read block")
+			return
+		}
+		defer obj.Close()
+		actualLength, err = io.Copy(hashSha256, obj)
+		if err != nil {
+			log.Error("Error read block: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "Error read block")
+			return
+		}
+		rawChecksum := hashSha256.Sum(nil)
+		actualChecksum := hex.EncodeToString(rawChecksum)
+		if checksumValue != actualChecksum {
+			log.Error("Error merge chunks: checksum mismatch")
+			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks: checksum mismatch")
+			return
+		}
+	} else {
+		fi, err := storage.ActionsArtifacts.Stat(artifact.StoragePath)
+		if err != nil {
+			log.Error("Error stat block: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "Error stat block")
+			return
+		}
+		actualLength = fi.Size()
 	}
-	r.sendProtobufBody(ctx, &respData)
+
+	if req.Size != actualLength {
+		log.Error("Error merge chunks: length mismatch")
+		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks: length mismatch")
+		return
+	}
+
+	// Update artifact metadata and status now that the upload is confirmed.
+	artifact.FileSize = actualLength
+	artifact.FileCompressedSize = actualLength
+	artifact.Status = actions_model.ArtifactStatusUploadConfirmed
+	if err := actions_model.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+		log.Error("Error UpdateArtifactByID: %v", err)
+		ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
+		return
+	}
 }
 
 func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
@@ -493,9 +587,10 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
-		RunID:  runID,
-		Status: int(actions.ArtifactStatusUploadConfirmed),
+	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
+		RunID:                runID,
+		Status:               int(actions_model.ArtifactStatusUploadConfirmed),
+		FinalizedArtifactsV4: true,
 	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
@@ -507,7 +602,7 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 
 	table := map[string]*ListArtifactsResponse_MonolithArtifact{}
 	for _, artifact := range artifacts {
-		if _, ok := table[artifact.ArtifactName]; ok || req.IdFilter != nil && artifact.ID != req.IdFilter.Value || req.NameFilter != nil && artifact.ArtifactName != req.NameFilter.Value || artifact.ArtifactName+".zip" != artifact.ArtifactPath || artifact.ContentEncoding != ArtifactV4ContentEncoding {
+		if _, ok := table[artifact.ArtifactName]; ok || req.IdFilter != nil && artifact.ID != req.IdFilter.Value || req.NameFilter != nil && artifact.ArtifactName != req.NameFilter.Value {
 			table[artifact.ArtifactName] = nil
 			continue
 		}
@@ -553,7 +648,7 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
-	if artifact.Status != actions.ArtifactStatusUploadConfirmed {
+	if artifact.Status != actions_model.ArtifactStatusUploadConfirmed {
 		log.Error("Error artifact not found: %s", artifact.Status.ToString())
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
@@ -562,9 +657,10 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 	respData := GetSignedArtifactURLResponse{}
 
 	if setting.Actions.ArtifactStorage.ServeDirect() {
-		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath, ctx.Req.Method, nil)
-		if u != nil && err == nil {
-			respData.SignedUrl = u.String()
+		// DO NOT USE the http POST method coming from the getSignedArtifactURL endpoint
+		u, err := actions.GetArtifactV4ServeDirectURL(artifact, http.MethodGet)
+		if err == nil {
+			respData.SignedUrl = u
 		}
 	}
 	if respData.SignedUrl == "" {
@@ -586,15 +682,17 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
-	if artifact.Status != actions.ArtifactStatusUploadConfirmed {
+	if artifact.Status != actions_model.ArtifactStatusUploadConfirmed {
 		log.Error("Error artifact not found: %s", artifact.Status.ToString())
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
 
-	file, _ := r.fs.Open(artifact.StoragePath)
-
-	_, _ = io.Copy(ctx.Resp, file)
+	err = actions.DownloadArtifactV4ReadStorage(ctx.Base, artifact)
+	if err != nil {
+		log.Error("Error serve artifact: %v", err)
+		ctx.HTTPError(http.StatusInternalServerError, "failed to download artifact")
+	}
 }
 
 func (r *artifactV4Routes) deleteArtifact(ctx *ArtifactContext) {
@@ -616,7 +714,7 @@ func (r *artifactV4Routes) deleteArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	err = actions.SetArtifactNeedDelete(ctx, runID, req.Name)
+	err = actions_model.SetArtifactNeedDelete(ctx, runID, req.Name)
 	if err != nil {
 		log.Error("Error deleting artifacts: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, err.Error())

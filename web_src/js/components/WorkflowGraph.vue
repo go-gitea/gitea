@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
-import {localUserSettings} from "../modules/user-settings.ts";
-import {debounce} from "throttle-debounce";
+import ActionRunStatus from './ActionRunStatus.vue';
+import {localUserSettings} from '../modules/user-settings.ts';
+import {isPlainClick} from '../utils/dom.ts';
+import {debounce} from 'throttle-debounce';
 import type {ActionsJob, ActionsRunStatus} from '../modules/gitea-actions.ts';
+import type {ActionRunViewStore} from './ActionRunView.ts';
 
 interface JobNode {
   id: number;
   name: string;
   status: ActionsRunStatus;
-  needs: string[];
   duration: string;
-
-  index: number;
 
   x: number;
   y: number;
@@ -20,12 +20,12 @@ interface JobNode {
 }
 
 interface Edge {
-  from: string;
-  to: string;
+  fromId: number;
+  toId: number;
   key: string;
 }
 
-interface BezierEdge extends Edge {
+interface RoutedEdge extends Edge {
   path: string;
   fromNode: JobNode;
   toNode: JobNode;
@@ -39,8 +39,8 @@ interface StoredState {
 }
 
 const props = defineProps<{
+  store: ActionRunViewStore;
   jobs: ActionsJob[];
-  currentJobId: number;
   runLink: string;
   workflowId: string;
 }>()
@@ -52,25 +52,24 @@ const scale = ref(1);
 const translateX = ref(0);
 const translateY = ref(0);
 const isDragging = ref(false);
-const dragStart = ref({ x: 0, y: 0 });
-const lastMousePos = ref({ x: 0, y: 0 });
+const lastMousePos = ref({x: 0, y: 0});
 const graphContainer = ref<HTMLElement | null>(null);
 const hoveredJobId = ref<number | null>(null);
 
+const stateKey = () => `${props.store.viewData.currentRun.repoId}-${props.workflowId}`;
+
 const loadSavedState = () => {
   const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKeyStates, {});
-  const saved = allStates[props.workflowId];
+  const saved = allStates[stateKey()];
   if (!saved) return;
-  scale.value = saved.scale ?? scale.value;
+  scale.value = clampScale(saved.scale ?? scale.value);
   translateX.value = saved.translateX ?? translateX.value;
   translateY.value = saved.translateY ?? translateY.value;
-}
+};
 
 const saveState = () => {
-  // TODO: different repos might have the same workflowId, but at the moment, we don't have repo id
-  // If overwritten occurs, acceptable, not too bad
   const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKeyStates, {});
-  allStates[props.workflowId] = {
+  allStates[stateKey()] = {
     scale: scale.value,
     translateX: translateX.value,
     translateY: translateY.value,
@@ -81,21 +80,15 @@ const saveState = () => {
     .sort(([, a], [, b]) => b.timestamp - a.timestamp)
     .slice(0, maxStoredStates);
 
-  const limitedStates = Object.fromEntries(sortedStates);
-  localUserSettings.setJsonObject(settingKeyStates, limitedStates);
+  localUserSettings.setJsonObject(settingKeyStates, Object.fromEntries(sortedStates));
 };
-
-loadSavedState();
-watch([translateX, translateY, scale], () => {
-  debounce(500, saveState);
-})
 
 const nodeWidth = computed(() => {
   const maxNameLength = Math.max(...props.jobs.map(j => j.name.length));
   return Math.min(Math.max(140, maxNameLength * 8), 180);
 });
 
-const horizontalSpacing = computed(() => nodeWidth.value + 20);
+const horizontalSpacing = computed(() => nodeWidth.value + 84);
 const graphWidth = computed(() => {
   if (jobsWithLayout.value.length === 0) return 800;
   const maxX = Math.max(...jobsWithLayout.value.map(j => j.x + nodeWidth.value));
@@ -107,6 +100,7 @@ const graphHeight = computed(() => {
   const maxY = Math.max(...jobsWithLayout.value.map(j => j.y + nodeHeight));
   return maxY + margin * 2;
 });
+
 
 const jobsWithLayout = computed<JobNode[]>(() => {
   try {
@@ -135,21 +129,17 @@ const jobsWithLayout = computed<JobNode[]>(() => {
         return;
       }
 
-      const levelWidth = (levelJobs.length - 1) * currentHorizontalSpacing;
-      const startX = margin + (maxJobsPerLevel * currentHorizontalSpacing - levelWidth) / 2;
+      const startY = margin;
 
       levelJobs.forEach((job, jobIndex) => {
         result.push({
           id: job.id,
           name: job.name,
           status: job.status,
-          needs: job.needs || [],
           duration: job.duration,
 
-          index: props.jobs.findIndex(j => j.id === job.id),
-
-          x: startX + jobIndex * currentHorizontalSpacing,
-          y: margin + levelIndex * verticalSpacing,
+          x: margin + levelIndex * currentHorizontalSpacing,
+          y: startY + jobIndex * verticalSpacing,
           level: levelIndex,
         });
       });
@@ -161,22 +151,73 @@ const jobsWithLayout = computed<JobNode[]>(() => {
       id: job.id,
       name: job.name,
       status: job.status,
-      needs: job.needs || [],
       duration: job.duration,
 
-      index: index,
-
-      x: margin + index * (nodeWidth.value + 40),
+      x: margin + index * horizontalSpacing.value,
       y: margin,
       level: 0,
     }));
   }
 });
 
+function buildDirectNeedsMap(jobs: ActionsJob[]): Map<string, string[]> {
+  const directNeedsByJobId = new Map<string, string[]>();
+  const dependentsByJobId = new Map<string, Set<string>>();
+
+  for (const job of jobs) {
+    const needs = job.needs || [];
+    directNeedsByJobId.set(job.jobId, needs);
+
+    for (const need of needs) {
+      if (!dependentsByJobId.has(need)) {
+        dependentsByJobId.set(need, new Set());
+      }
+      dependentsByJobId.get(need)!.add(job.jobId);
+    }
+  }
+
+  const reachabilityCache = new Map<string, boolean>();
+
+  function canReach(fromJobId: string, toJobId: string): boolean {
+    const cacheKey = `${fromJobId}->${toJobId}`;
+    if (reachabilityCache.has(cacheKey)) {
+      return reachabilityCache.get(cacheKey)!;
+    }
+
+    const visited = new Set<string>();
+    const stack = [...(dependentsByJobId.get(fromJobId) || [])];
+
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      if (current === toJobId) {
+        reachabilityCache.set(cacheKey, true);
+        return true;
+      }
+      if (visited.has(current)) continue;
+      visited.add(current);
+      stack.push(...(dependentsByJobId.get(current) || []));
+    }
+
+    reachabilityCache.set(cacheKey, false);
+    return false;
+  }
+
+  const reducedNeedsByJobId = new Map<string, string[]>();
+  for (const [jobId, needs] of directNeedsByJobId.entries()) {
+    reducedNeedsByJobId.set(jobId, needs.filter((need) => {
+      return !needs.some((otherNeed) => otherNeed !== need && canReach(need, otherNeed));
+    }));
+  }
+
+  return reducedNeedsByJobId;
+}
+
+const directNeedsByJobId = computed(() => buildDirectNeedsMap(props.jobs));
+
 const edges = computed<Edge[]>(() => {
   const edgesList: Edge[] = [];
-
   const jobsByJobId = new Map<string, ActionsJob[]>();
+
   for (const job of props.jobs) {
     if (!jobsByJobId.has(job.jobId)) {
       jobsByJobId.set(job.jobId, []);
@@ -185,13 +226,13 @@ const edges = computed<Edge[]>(() => {
   }
 
   for (const job of props.jobs) {
-    for (const need of job.needs || []) {
-      const targetJobs = jobsByJobId.get(need) || [];
-      for (const targetJob of targetJobs) {
+    for (const need of directNeedsByJobId.value.get(job.jobId) || []) {
+      const upstreamJobs = jobsByJobId.get(need) || [];
+      for (const upstreamJob of upstreamJobs) {
         edgesList.push({
-          from: targetJob.name,
-          to: job.name,
-          key: `${targetJob.id}-${job.id}`,
+          fromId: upstreamJob.id,
+          toId: job.id,
+          key: `${upstreamJob.id}-${job.id}`,
         });
       }
     }
@@ -200,41 +241,89 @@ const edges = computed<Edge[]>(() => {
   return edgesList;
 });
 
-const bezierEdges = computed<BezierEdge[]>(() => {
-  const bezierEdgesList: BezierEdge[] = [];
+function buildRoundedConnectorPath(startX: number, startY: number, endX: number, endY: number, turnX: number): string {
+  const deltaY = endY - startY;
+  if (Math.abs(deltaY) < 1) {
+    return `M ${startX} ${startY} H ${endX}`;
+  }
 
-  edges.value.forEach(edge => {
-    const fromNode = jobsWithLayout.value.find(j => j.name === edge.from);
-    const toNode = jobsWithLayout.value.find(j => j.name === edge.to);
+  const direction = deltaY > 0 ? 1 : -1;
+  const elbowSize = Math.max(8, Math.min(24, Math.abs(deltaY) / 2, Math.abs(endX - startX) / 2));
+  const controlOffset = elbowSize / 2;
+  const clampedTurnX = Math.min(Math.max(turnX, startX + elbowSize), endX - elbowSize);
 
-    if (!fromNode || !toNode) {
-      return;
+  return [
+    `M ${startX} ${startY}`,
+    `H ${clampedTurnX - elbowSize}`,
+    `C ${clampedTurnX - controlOffset} ${startY} ${clampedTurnX} ${startY + direction * controlOffset} ${clampedTurnX} ${startY + direction * elbowSize}`,
+    `V ${endY - direction * elbowSize}`,
+    `C ${clampedTurnX} ${endY - direction * controlOffset} ${clampedTurnX + controlOffset} ${endY} ${clampedTurnX + elbowSize} ${endY}`,
+    `H ${endX}`,
+  ].join(' ');
+}
+
+const routedEdges = computed<RoutedEdge[]>(() => {
+  const nodesById = new Map(jobsWithLayout.value.map((job) => [job.id, job]));
+  const outgoingEdges = new Map<number, Edge[]>();
+  const incomingEdges = new Map<number, Edge[]>();
+
+  for (const edge of edges.value) {
+    if (!outgoingEdges.has(edge.fromId)) {
+      outgoingEdges.set(edge.fromId, []);
+    }
+    outgoingEdges.get(edge.fromId)!.push(edge);
+
+    if (!incomingEdges.has(edge.toId)) {
+      incomingEdges.set(edge.toId, []);
+    }
+    incomingEdges.get(edge.toId)!.push(edge);
+  }
+
+  for (const sourceEdges of outgoingEdges.values()) {
+    sourceEdges.sort((a, b) => {
+      const targetA = nodesById.get(a.toId);
+      const targetB = nodesById.get(b.toId);
+      if (!targetA || !targetB) return 0;
+      return targetA.y - targetB.y || a.toId - b.toId;
+    });
+  }
+
+  const edgePaths: RoutedEdge[] = [];
+
+  for (const edge of edges.value) {
+    const fromNode = nodesById.get(edge.fromId);
+    const toNode = nodesById.get(edge.toId);
+    if (!fromNode || !toNode) continue;
+
+    const startX = fromNode.x + nodeWidth.value;
+    const startY = fromNode.y + nodeHeight / 2;
+    const endX = toNode.x;
+    const endY = toNode.y + nodeHeight / 2;
+    const sourceEdges = outgoingEdges.get(edge.fromId) || [];
+    const targetEdges = incomingEdges.get(edge.toId) || [];
+    const horizontalGap = endX - startX;
+    const turnOffset = Math.min(28, Math.max(16, horizontalGap * 0.14));
+    const sourceTurnX = startX + turnOffset;
+    const targetTurnX = endX - turnOffset;
+
+    let turnX = startX + horizontalGap / 2;
+    if (sourceEdges.length > 1) {
+      turnX = sourceTurnX;
+    } else if (targetEdges.length > 1) {
+      turnX = targetTurnX;
     }
 
-    const startX = fromNode.x + nodeWidth.value / 2;
-    const startY = fromNode.y + nodeHeight;
-    const endX = toNode.x + nodeWidth.value / 2;
-    const endY = toNode.y;
+    const path = buildRoundedConnectorPath(startX, startY, endX, endY, turnX);
 
-    const levelDiff = toNode.level - fromNode.level;
-    const curveStrength = 30 + Math.abs(levelDiff) * 15;
-
-    const controlX1 = startX;
-    const controlY1 = startY + curveStrength;
-    const controlX2 = endX;
-    const controlY2 = endY - curveStrength;
-
-    const path = `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
-
-    bezierEdgesList.push({
+    edgePaths.push({
       ...edge,
       path,
       fromNode,
       toNode,
     });
-  });
+  }
 
-  return bezierEdgesList;
+  return edgePaths;
 });
 
 const graphMetrics = computed(() => {
@@ -253,16 +342,29 @@ const graphMetrics = computed(() => {
   };
 })
 
-const nodeHeight = 50;
-const verticalSpacing = 120;
+const nodeHeight = 48;
+const verticalSpacing = 88;
 const margin = 40;
 
+const minScale = 0.3;
+const maxScale = 1;
+
+function clampScale(nextScale: number): number {
+  return Math.min(Math.max(Math.round(nextScale * 100) / 100, minScale), maxScale);
+}
+
+const canZoomIn = computed(() => scale.value < maxScale);
+
+function zoomTo(nextScale: number) {
+  scale.value = clampScale(nextScale);
+}
+
 function zoomIn() {
-  scale.value = Math.min(scale.value * 1.2, 3);
+  zoomTo(scale.value * 1.2);
 }
 
 function zoomOut() {
-  scale.value = Math.max(scale.value / 1.2, 0.5);
+  zoomTo(scale.value / 1.2);
 }
 
 function resetView() {
@@ -272,20 +374,17 @@ function resetView() {
 }
 
 function handleMouseDown(e: MouseEvent) {
-  if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return; // only left mouse button can drag
+  if (!isPlainClick(e)) return;
+
+  // don't start drag on interactive/text elements inside the SVG
   const target = e.target as Element;
-  // don't start the drag if the click is on an interactive element (e.g.: link, button) or text element
   const interactive = target.closest('div, p, a, span, button, input, text, .job-node-group');
   if (interactive?.closest('svg')) return;
 
   e.preventDefault();
 
   isDragging.value = true;
-  dragStart.value = {
-    x: e.clientX - translateX.value,
-    y: e.clientY - translateY.value,
-  };
-  lastMousePos.value = { x: e.clientX, y: e.clientY };
+  lastMousePos.value = {x: e.clientX, y: e.clientY};
   graphContainer.value!.style.cursor = 'grabbing';
 }
 
@@ -298,7 +397,7 @@ function handleMouseMoveOnDocument(event: MouseEvent) {
   translateX.value += dx;
   translateY.value += dy;
 
-  lastMousePos.value = { x: event.clientX, y: event.clientY };
+  lastMousePos.value = {x: event.clientX, y: event.clientY};
 }
 
 function handleMouseUpOnDocument() {
@@ -307,7 +406,21 @@ function handleMouseUpOnDocument() {
   graphContainer.value!.style.cursor = 'grab';
 }
 
+function handleWheel(event: WheelEvent) {
+  // Without a modifier, let the wheel scroll the page
+  if (!event.ctrlKey && !event.metaKey) {
+    return;
+  }
+  event.preventDefault();
+  const zoomFactor = Math.exp(-event.deltaY * 0.0015);
+  zoomTo(scale.value * zoomFactor);
+}
+
 onMounted(() => {
+  loadSavedState();
+  watch([translateX, translateY, scale], debounce(500, saveState));
+  watch([scale], debounce(100, saveState));
+
   document.addEventListener('mousemove', handleMouseMoveOnDocument);
   document.addEventListener('mouseup', handleMouseUpOnDocument);
 });
@@ -325,197 +438,25 @@ function handleNodeMouseLeave() {
   hoveredJobId.value = null;
 }
 
-function isEdgeHighlighted(edge: BezierEdge): boolean {
+function isEdgeHighlighted(edge: RoutedEdge): boolean {
   if (!hoveredJobId.value) {
     return false;
   }
-
-  const hoveredJob = jobsWithLayout.value.find(j => j.id === hoveredJobId.value);
-  if (!hoveredJob) {
-    return false;
-  }
-
-  return edge.from === hoveredJob.name || edge.to === hoveredJob.name;
+  return edge.fromId === hoveredJobId.value || edge.toId === hoveredJobId.value;
 }
 
-function getNodeColor(status: ActionsRunStatus): string {
-  if (status === 'success') {
-    return 'var(--color-green-dark-2)';
-  } else if (status === 'failure') {
-    return 'var(--color-red-dark-2)';
-  } else if (status === 'running') {
-    return 'var(--color-yellow-dark-2)';
-  } else if (status === 'blocked') {
-    return 'var(--color-purple)';
-  }
-  return 'var(--color-text-light-3)';
-}
+const nodesWithIncomingEdge = computed(() => {
+  const set = new Set<number>();
+  for (const edge of routedEdges.value) set.add(edge.toId);
+  return set;
+});
 
-function getStatusDotColor(status: ActionsRunStatus): string {
-  if (status === 'success') {
-    return 'var(--color-green)';
-  } else if (status === 'failure') {
-    return 'var(--color-red)';
-  } else if (status === 'running') {
-    return 'var(--color-yellow)';
-  }
-  return 'var(--color-text-light-2)';
-}
+const nodesWithOutgoingEdge = computed(() => {
+  const set = new Set<number>();
+  for (const edge of routedEdges.value) set.add(edge.fromId);
+  return set;
+});
 
-function getEdgeColor(edge: BezierEdge): string {
-  if (!edge.fromNode || !edge.toNode) {
-    return 'var(--color-secondary)';
-  }
-
-  const fromStatus = edge.fromNode.status;
-  const toStatus = edge.toNode.status;
-
-  if (fromStatus === 'failure' || toStatus === 'failure') {
-    return 'var(--color-red)';
-  }
-
-  if (fromStatus === 'running') {
-    return 'var(--color-yellow)';
-  }
-
-  if (toStatus === 'running' && fromStatus === 'success') {
-    return 'var(--color-primary)';
-  }
-
-  if (fromStatus === 'success' && toStatus === 'success') {
-    return 'var(--color-green)';
-  }
-
-  if (fromStatus === 'success' && (toStatus === 'waiting' || toStatus === 'blocked')) {
-    return 'var(--color-primary-light)';
-  }
-
-  if (fromStatus === 'waiting' || fromStatus === 'blocked') {
-    return 'var(--color-text-light-2)';
-  }
-
-  if (fromStatus === 'cancelled' || toStatus === 'cancelled') {
-    return 'var(--color-text-light-2)';
-  }
-
-  return 'var(--color-secondary)';
-}
-
-function getDisplayName(name: string): string {
-  const maxChars = 26;
-  if (name.length <= maxChars) {
-    return name;
-  }
-
-  return name.substring(0, maxChars - 3) + '...';
-}
-
-function formatStatus(status: ActionsRunStatus): string {
-  const statusMap: Record<ActionsRunStatus, string> = {
-    skipped: 'Skipped',
-    unknown: 'Unknown',
-    success: 'Success',
-    failure: 'Failed',
-    running: 'Running',
-    waiting: 'Waiting',
-    cancelled: 'Cancelled',
-    blocked: 'Blocked'
-  };
-  return statusMap[status] || status;
-}
-
-function getEdgeStyle(edge: BezierEdge) {
-  if (!edge.fromNode || !edge.toNode) {
-    return {
-      'stroke': 'var(--color-secondary)',
-      'stroke-width': '2',
-      'opacity': '0.7',
-    };
-  }
-
-  const fromStatus = edge.fromNode.status;
-  const toStatus = edge.toNode.status;
-  const isHighlighted = isEdgeHighlighted(edge);
-
-  return {
-    'stroke': getEdgeColor(edge),
-    'stroke-width': isHighlighted ? '3' : getStrokeWidth(fromStatus, toStatus),
-    'stroke-dasharray': getDashArray(fromStatus, toStatus),
-    'opacity': isHighlighted ? 1 : getEdgeOpacity(fromStatus, toStatus),
-    'transition': 'all 0.2s ease',
-  };
-}
-
-function getStrokeWidth(fromStatus: ActionsRunStatus, toStatus: ActionsRunStatus): string {
-  if (fromStatus === 'running' || toStatus === 'running') {
-    return '3';
-  }
-
-  if (fromStatus === 'failure' || toStatus === 'failure') {
-    return '2.5';
-  }
-
-  return '2';
-}
-
-function getDashArray(fromStatus: ActionsRunStatus, toStatus: ActionsRunStatus): string {
-  if (fromStatus === 'waiting' || toStatus === 'waiting') {
-    return '5,3';
-  }
-
-  if (fromStatus === 'blocked') {
-    return '8,4';
-  }
-
-  if (fromStatus === 'cancelled' || toStatus === 'cancelled') {
-    return '3,6';
-  }
-
-  return 'none';
-}
-
-function getEdgeOpacity(fromStatus: ActionsRunStatus, toStatus: ActionsRunStatus): number {
-  if (fromStatus === 'success' && toStatus === 'success') {
-    return 0.6;
-  }
-
-  if (fromStatus === 'failure' || toStatus === 'failure') {
-    return 1;
-  }
-
-  if (fromStatus === 'running' || toStatus === 'running') {
-    return 1;
-  }
-
-  return 0.8;
-}
-
-function getEdgeClass(edge: BezierEdge): string {
-  if (!edge.fromNode || !edge.toNode) return '';
-
-  const fromStatus = edge.fromNode.status;
-  const toStatus = edge.toNode.status;
-
-  const classes: string[] = ['node-edge'];
-
-  if (fromStatus === 'running' || toStatus === 'running') {
-    classes.push('running-edge');
-  }
-
-  if (fromStatus === 'success' && toStatus === 'success') {
-    classes.push('success-edge');
-  }
-
-  if (fromStatus === 'failure' || toStatus === 'failure') {
-    classes.push('failure-edge');
-  }
-
-  if (fromStatus === 'waiting' || toStatus === 'waiting') {
-    classes.push('waiting-edge');
-  }
-
-  return classes.join(' ');
-}
 
 function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
   const jobMap = new Map<string, ActionsJob>()
@@ -588,8 +529,6 @@ function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
 }
 
 function onNodeClick(job: JobNode, event: MouseEvent) {
-  if (job.id === props.currentJobId) return;
-
   const link = `${props.runLink}/jobs/${job.id}`;
   if (event.ctrlKey || event.metaKey) {
     window.open(link, '_blank');
@@ -605,18 +544,24 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
       <h4 class="graph-title">Workflow Dependencies</h4>
       <div class="graph-stats">
         {{ jobs.length }} jobs • {{ edges.length }} dependencies
-        <span v-if="graphMetrics" class="graph-metrics">
-          • {{ graphMetrics.successRate }} success
+        <span v-if="graphMetrics">
+          • <span class="graph-metrics">{{ graphMetrics.successRate }} success</span>
         </span>
       </div>
       <div class="flex-text-block">
-        <button @click="zoomIn" class="ui compact tiny icon button" title="Zoom in">
+        <button
+          type="button"
+          @click="zoomIn"
+          class="ui compact tiny icon button"
+          :disabled="!canZoomIn"
+          :title="canZoomIn ? 'Zoom in (Ctrl/Cmd + scroll on graph)' : 'Already at 100% zoom'"
+        >
           <SvgIcon name="octicon-zoom-in" :size="12"/>
         </button>
-        <button @click="resetView" class="ui compact tiny icon button" title="Reset view">
+        <button type="button" @click="resetView" class="ui compact tiny icon button" title="Reset view">
           <SvgIcon name="octicon-sync" :size="12"/>
         </button>
-        <button @click="zoomOut" class="ui compact tiny icon button" title="Zoom out">
+        <button type="button" @click="zoomOut" class="ui compact tiny icon button" title="Zoom out (Ctrl/Cmd + scroll on graph)">
           <SvgIcon name="octicon-zoom-out" :size="12"/>
         </button>
       </div>
@@ -626,7 +571,8 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
       class="graph-container"
       ref="graphContainer"
       @mousedown="handleMouseDown"
-      :class="{ 'dragging': isDragging }"
+      @wheel="handleWheel"
+      :class="{dragging: isDragging}"
     >
       <svg
         :width="graphWidth"
@@ -634,127 +580,85 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
         class="graph-svg"
         :style="{
           transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
-          transformOrigin: '0 0'
+          transformOrigin: '0 0',
         }"
       >
         <path
-          v-for="edge in bezierEdges"
+          v-for="edge in routedEdges"
           :key="edge.key"
           :d="edge.path"
           fill="none"
-          v-bind="getEdgeStyle(edge)"
-          :class="[
-            getEdgeClass(edge),
-            { 'highlighted-edge': isEdgeHighlighted(edge) }
-          ]"
+          stroke="var(--color-secondary-alpha-50)"
+          stroke-width="1.75"
+          :class="['node-edge', { 'highlighted-edge': isEdgeHighlighted(edge) }]"
         />
 
         <g
           v-for="job in jobsWithLayout"
           :key="job.id"
-          :class="{'current-job': job.id === currentJobId}"
           class="job-node-group"
           @click="onNodeClick(job, $event)"
           @mouseenter="handleNodeMouseEnter(job)"
           @mouseleave="handleNodeMouseLeave"
         >
+          <title>{{ job.name }}</title>
+
           <rect
             :x="job.x"
             :y="job.y"
             :width="nodeWidth"
             :height="nodeHeight"
-            rx="8"
-            :fill="getNodeColor(job.status)"
-            :stroke="job.id === currentJobId ? 'var(--color-primary)' : 'var(--color-card-border)'"
-            :stroke-width="job.id === currentJobId ? '3' : '2'"
+            rx="10"
+            fill="var(--color-button)"
+            stroke="var(--color-light-border)"
+            stroke-width="1.25"
             class="job-rect"
           />
 
-          <rect
-            v-if="job.status === 'running'"
-            :x="job.x"
-            :y="job.y"
-            :width="nodeWidth"
-            :height="nodeHeight"
-            rx="8"
-            fill="url(#running-gradient)"
-            opacity="0.3"
-            class="running-background"
+          <circle
+            v-if="nodesWithIncomingEdge.has(job.id)"
+            :cx="job.x"
+            :cy="job.y + nodeHeight / 2"
+            r="6"
+            class="node-port"
           />
-          <text
-            :x="job.x + 8"
-            :y="job.y + 18"
-            fill="white"
-            font-size="12"
-            text-anchor="start"
-            class="job-name"
-          >
-            {{ getDisplayName(job.name) }}
-          </text>
 
-          <text
-            v-if="job.duration || (job.status === 'success' || job.status === 'failure')"
-            :x="job.x + nodeWidth - 10"
-            :y="job.y + nodeHeight - 25"
-            fill="rgba(255,255,255,0.7)"
-            font-size="9"
-            text-anchor="end"
-            class="job-duration"
-          >
-            {{ job.duration }}
-          </text>
+          <circle
+            v-if="nodesWithOutgoingEdge.has(job.id)"
+            :cx="job.x + nodeWidth"
+            :cy="job.y + nodeHeight / 2"
+            r="6"
+            class="node-port"
+          />
 
-          <text
-            :x="job.x + nodeWidth - 10"
-            :y="job.y + nodeHeight - 8"
-            fill="rgba(255,255,255,0.9)"
-            font-size="10"
-            text-anchor="end"
-            class="job-status"
+          <foreignObject
+            :x="job.x + 10"
+            :y="job.y + 14"
+            width="20"
+            height="20"
+            class="job-status-fg-obj"
           >
-            {{ formatStatus(job.status) }}
-          </text>
+            <div class="job-status-icon-wrap">
+              <ActionRunStatus :status="job.status"/>
+            </div>
+          </foreignObject>
 
-          <rect
-            v-if="job.status === 'running'"
-            :x="job.x + 2"
-            :y="job.y + nodeHeight - 6"
-            :width="(nodeWidth - 4) * 0.5"
-            height="4"
-            rx="2"
-            :fill="getStatusDotColor('running')"
-            class="progress-bar"
+          <foreignObject
+            :x="job.x + 36"
+            :y="job.y"
+            :width="nodeWidth - 40"
+            :height="nodeHeight"
           >
-            <animate
-              attributeName="width"
-              values="0; 100"
-              dur="2s"
-              repeatCount="indefinite"
-              calcMode="spline"
-              keySplines="0.4, 0, 0.2, 1"
-            />
-          </rect>
+            <div class="job-text-wrap">
+              <span class="job-name">{{ job.name }}</span>
+              <span
+                v-if="job.duration || job.status === 'success' || job.status === 'failure'"
+                class="job-duration"
+              >{{ job.duration }}</span>
+            </div>
+          </foreignObject>
 
-          <text
-            v-if="job.needs?.length"
-            :x="job.x + nodeWidth / 2"
-            :y="job.y - 8"
-            fill="var(--color-text-light-2)"
-            font-size="10"
-            text-anchor="middle"
-            class="job-deps-label"
-          >
-            ← {{ job.needs.length }} deps
-          </text>
         </g>
-
-        <defs>
-          <linearGradient id="running-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" :stop-color="getStatusDotColor('running')" stop-opacity="0.2"/>
-            <stop offset="50%" :stop-color="getStatusDotColor('running')" stop-opacity="0.4"/>
-            <stop offset="100%" :stop-color="getStatusDotColor('running')" stop-opacity="0.2"/>
-          </linearGradient>
-        </defs>
       </svg>
     </div>
   </div>
@@ -762,17 +666,18 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
 <style scoped>
 .workflow-graph {
-  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
-
 .graph-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--color-secondary-alpha-20);
-  gap: 15px;
+  padding: 8px 14px;
+  background: var(--color-box-header);
+  border-bottom: 1px solid var(--color-secondary);
+  gap: var(--gap-block);
   flex-wrap: wrap;
 }
 
@@ -786,7 +691,10 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .graph-stats {
-  color: var(--color-text-light-2);
+  display: flex;
+  align-items: baseline;
+  column-gap: 8px;
+  color: var(--color-text-light-1);
   font-size: 13px;
   white-space: nowrap;
 }
@@ -796,20 +704,14 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   font-weight: var(--font-weight-medium);
 }
 
-.graph-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .graph-container {
-  overflow: auto;
-  padding: 12px;
-  border-radius: 8px;
+  flex: 1;
+  overflow: hidden;
+  padding: 12px 16px 20px;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
   cursor: grab;
-  min-height: 300px;
-  max-height: 600px;
   position: relative;
+  background: var(--color-box-body);
 }
 
 .graph-container.dragging {
@@ -823,149 +725,78 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
 .graph-svg path {
   transition: all 0.2s ease;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .highlighted-edge {
-  stroke-width: 3 !important;
-  opacity: 1 !important;
-  stroke: var(--color-primary) !important;
+  stroke-width: 2.25 !important;
+  stroke: var(--color-workflow-edge-hover) !important;
 }
 
 .job-node-group {
   cursor: pointer;
   transition: all 0.2s ease;
-  --node-width: v-bind(nodeWidth + "px");
 }
 
 .job-node-group:hover .job-rect {
-  filter: brightness(1.1);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 10;
+  /* due to SVG rendering limitation, only one of fill and drop-shadow can work */
+  fill: var(--color-hover);
+  /* filter: drop-shadow(0 1px 3px var(--color-shadow-opaque)); */
 }
 
-.job-node-group.current-job {
-  cursor: default;
-}
-
-.job-node-group.current-job .job-rect {
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 30%, transparent));
+.job-text-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding-right: 8px;
 }
 
 .job-name {
-  max-width: calc(var(--node-width, 150px) - 50px);
-  text-overflow: ellipsis;
+  flex: 1;
   overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
   user-select: none;
   pointer-events: none;
 }
 
-.job-status,
-.job-duration,
-.job-deps-label {
+.job-duration {
+  font-size: 11px;
+  color: var(--color-text-light-2);
+  white-space: nowrap;
+  flex-shrink: 0;
   user-select: none;
   pointer-events: none;
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: -200px 0;
-  }
-  100% {
-    background-position: calc(200px + 100%) 0;
-  }
+.job-status-fg-obj,
+.job-status-icon-wrap {
+  pointer-events: none;
 }
 
-.running-background {
-  animation: shimmer 2s infinite linear;
-  background-size: 200px 100%;
+.job-status-icon-wrap {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-@keyframes flowRunning {
-  0% {
-    stroke-dashoffset: 20;
-    stroke-opacity: 0.7;
-  }
-  50% {
-    stroke-opacity: 1;
-  }
-  100% {
-    stroke-dashoffset: 0;
-    stroke-opacity: 0.7;
-  }
+.node-port {
+  fill: var(--color-box-body);
+  stroke: var(--color-light-border);
+  stroke-width: 1.5;
+  pointer-events: none;
 }
 
-@keyframes pulseFailure {
-  0%, 100% {
-    stroke-width: 2.5;
-    opacity: 0.7;
-  }
-  50% {
-    stroke-width: 3;
-    opacity: 1;
-    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-red) 50%, transparent));
-  }
-}
-
-@keyframes shimmerEdge {
-  0% {
-    stroke-dashoffset: 20;
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-.node-edge.running-edge {
-  stroke-dasharray: 10, 5;
-  animation: flowRunning 1s linear infinite;
-}
-
-.node-edge.failure-edge {
-  animation: pulseFailure 0.8s ease-in-out infinite;
-}
-
-.node-edge.waiting-edge {
-  stroke-dasharray: 5, 3;
-  animation: shimmerEdge 2s linear infinite;
-}
-
-.node-edge.success-edge {
-  transition: stroke-width 0.3s ease, opacity 0.3s ease;
-}
-
-.node-edge.success-edge:hover {
-  stroke-width: 3;
-  opacity: 1;
-}
-
-.progress-bar {
-  animation: progressPulse 2s ease-in-out infinite;
-}
-
-@keyframes progressPulse {
-  0%, 100% {
-    opacity: 0.8;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@media (max-width: 768px) {
-  .graph-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .graph-stats {
-    font-size: 12px;
-  }
-
-  .workflow-graph {
-    padding: 15px;
-  }
+.node-edge {
+  transition: stroke-width 0.2s ease, opacity 0.2s ease;
 }
 </style>

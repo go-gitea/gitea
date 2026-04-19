@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="{{ctx.Locale.Lang}}" data-theme="{{ctx.CurrentWebTheme.InternalName}}">
 <head>
+	{{ctx.HeadMetaContentSecurityPolicy}}
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>{{if .Title}}{{.Title}} - {{end}}{{.PageTitleCommon}}</title>
 	{{if .ManifestData}}<link rel="manifest" href="data:{{.ManifestData}}">{{end}}
@@ -23,7 +24,7 @@
 	{{template "base/head_script" .}}
 	{{template "custom/header" .}}
 </head>
-<body hx-swap="outerHTML" hx-ext="morph" hx-push-url="false">
+<body>
 	{{template "custom/body_outer_pre" .}}
 
 	<div class="full height">

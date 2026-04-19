@@ -95,9 +95,9 @@ func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 		return nil
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
+		ctx.ServerError("GetDoerRepoPermission", err)
 		return nil
 	}
 
@@ -958,9 +958,9 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 		if pull.HeadRepo != nil {
 			if !pull.HasMerged && ctx.Doer != nil {
-				perm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
+				perm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
+					ctx.ServerError("GetDoerRepoPermission", err)
 					return
 				}
 
@@ -1042,7 +1042,7 @@ func UpdatePullRequest(ctx *context.Context) {
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.pulls.merge_conflict"),
 				"Summary": ctx.Tr("repo.pulls.merge_conflict_summary"),
-				"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
+				"Details": utils.EscapeFlashErrorString(conflictError.StdErr) + "\n" + utils.EscapeFlashErrorString(conflictError.StdOut),
 			})
 			if err != nil {
 				ctx.ServerError("UpdatePullRequest.HTMLString", err)
@@ -1054,9 +1054,9 @@ func UpdatePullRequest(ctx *context.Context) {
 		} else if pull_service.IsErrRebaseConflicts(err) {
 			conflictError := err.(pull_service.ErrRebaseConflicts)
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
-				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.SanitizeFlashErrorString(conflictError.CommitSHA)),
+				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.EscapeFlashErrorString(conflictError.CommitSHA)),
 				"Summary": ctx.Tr("repo.pulls.rebase_conflict_summary"),
-				"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
+				"Details": utils.EscapeFlashErrorString(conflictError.StdErr) + "\n" + utils.EscapeFlashErrorString(conflictError.StdOut),
 			})
 			if err != nil {
 				ctx.ServerError("UpdatePullRequest.HTMLString", err)
@@ -1191,7 +1191,7 @@ func MergePullRequest(ctx *context.Context) {
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.editor.merge_conflict"),
 				"Summary": ctx.Tr("repo.editor.merge_conflict_summary"),
-				"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
+				"Details": utils.EscapeFlashErrorString(conflictError.StdErr) + "\n" + utils.EscapeFlashErrorString(conflictError.StdOut),
 			})
 			if err != nil {
 				ctx.ServerError("MergePullRequest.HTMLString", err)
@@ -1202,9 +1202,9 @@ func MergePullRequest(ctx *context.Context) {
 		} else if pull_service.IsErrRebaseConflicts(err) {
 			conflictError := err.(pull_service.ErrRebaseConflicts)
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
-				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.SanitizeFlashErrorString(conflictError.CommitSHA)),
+				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.EscapeFlashErrorString(conflictError.CommitSHA)),
 				"Summary": ctx.Tr("repo.pulls.rebase_conflict_summary"),
-				"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
+				"Details": utils.EscapeFlashErrorString(conflictError.StdErr) + "\n" + utils.EscapeFlashErrorString(conflictError.StdOut),
 			})
 			if err != nil {
 				ctx.ServerError("MergePullRequest.HTMLString", err)
@@ -1234,7 +1234,7 @@ func MergePullRequest(ctx *context.Context) {
 				flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.pulls.push_rejected"),
 					"Summary": ctx.Tr("repo.pulls.push_rejected_summary"),
-					"Details": utils.SanitizeFlashErrorString(pushrejErr.Message),
+					"Details": utils.EscapeFlashErrorString(pushrejErr.Message),
 				})
 				if err != nil {
 					ctx.ServerError("MergePullRequest.HTMLString", err)
@@ -1454,7 +1454,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.pulls.push_rejected"),
 				"Summary": ctx.Tr("repo.pulls.push_rejected_summary"),
-				"Details": utils.SanitizeFlashErrorString(pushrejErr.Message),
+				"Details": utils.EscapeFlashErrorString(pushrejErr.Message),
 			})
 			if err != nil {
 				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
