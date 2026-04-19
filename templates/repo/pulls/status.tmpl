@@ -49,7 +49,7 @@
 				{{if $actionStatus}}
 					{{template "repo/icons/action_status" (dict "status" $actionStatus "size" 18 "className" "commit-status icon")}}
 				{{else}}
-					{{template "repo/commit_status" $cs}}
+					{{template "repo/icons/commit_status" $cs}}
 				{{end}}
 				<div class="status-context gt-ellipsis">{{$cs.Context}} <span class="tw-text-text-light-2">{{$description}}</span></div>
 				<div class="ui status-details">
