@@ -196,7 +196,7 @@ func testRenameReservedUsername(t *testing.T) {
 		// ".", "..", ".well-known", // The names are not only reserved but also invalid
 		"api",
 		"name.keys",
-		"openapi.v1.json",
+		"openapi3.v1.json",
 		"swagger.v1.json",
 	}
 
