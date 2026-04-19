@@ -670,7 +670,7 @@ func ToOrganization(ctx context.Context, org *organization.Organization) *api.Or
 		Description:               org.Description,
 		Website:                   org.Website,
 		Location:                  org.Location,
-		Visibility:                org.Visibility.String(),
+		Visibility:                api.UserVisibility(org.Visibility.String()),
 		RepoAdminChangeTeamAccess: org.RepoAdminChangeTeamAccess,
 	}
 }
