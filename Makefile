@@ -22,6 +22,7 @@ XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.11
 
+CONTAINER_RUNTIME ?= docker
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
 DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
@@ -521,7 +522,7 @@ playwright: deps-frontend
 	@pnpm exec playwright install --with-deps chromium firefox webkit $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e
-test-e2e: playwright $(EXECUTABLE_E2E)
+test-e2e: $(EXECUTABLE_E2E)
 	@EXECUTABLE=$(EXECUTABLE_E2E) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: bench-sqlite

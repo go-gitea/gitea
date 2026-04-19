@@ -1,6 +1,30 @@
 #!/bin/bash
 set -euo pipefail
 
+wait_for_container() {
+    local max_attempts=$1
+    local attempt=1
+    local wait_time=1
+    sleep 5 # give the container some time to start listening.
+
+    while [ $attempt -le $max_attempts ]; do
+        if $CONTAINER_RUNTIME logs gitea-e2e-runner 2>&1 | grep -q "Listening on"; then
+            echo "Container is ready."
+            return 0  # Success
+        fi
+
+        if [ $attempt -eq $max_attempts ]; then
+            echo "Error: Container did not become ready after $max_attempts attempts."
+            return 1  # Failure
+        fi
+
+        echo "Attempt $attempt: Container not ready, waiting $wait_time second(s)..."
+        sleep $wait_time
+        ((attempt++))
+        ((wait_time*=2))  # Exponential backoff
+    done
+}
+
 # Create isolated work directory
 WORK_DIR=$(mktemp -d)
 
@@ -8,6 +32,7 @@ WORK_DIR=$(mktemp -d)
 FREE_PORT=$(node -e "const s=require('net').createServer();s.listen(0,'127.0.0.1',()=>{process.stdout.write(String(s.address().port));s.close()})")
 
 cleanup() {
+  $CONTAINER_RUNTIME stop gitea-e2e-runner
   if [ -n "${SERVER_PID:-}" ]; then
     kill "$SERVER_PID" 2>/dev/null || true
     wait "$SERVER_PID" 2>/dev/null || true
@@ -15,6 +40,13 @@ cleanup() {
   rm -rf "$WORK_DIR"
 }
 trap cleanup EXIT
+# Start playwright worker
+$CONTAINER_RUNTIME run --network=host --name gitea-e2e-runner -d --rm --init -it --workdir /home/pwuser --user pwuser mcr.microsoft.com/playwright:v1.59.1-noble /bin/sh -c "npx -y playwright@1.59.1 run-server --port 4000 --host 0.0.0.0"
+
+if ! wait_for_container 5; then
+    exit 1
+fi
+
 
 # Write config file for isolated instance
 mkdir -p "$WORK_DIR/custom/conf"
@@ -112,4 +144,4 @@ export GITEA_TEST_E2E_PASSWORD
 export GITEA_TEST_E2E_EMAIL
 export GITEA_TEST_E2E_TIMEOUT_FACTOR
 
-pnpm exec playwright test "$@"
+PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:4000/ pnpm exec playwright test "$@"
