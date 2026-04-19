@@ -33,6 +33,10 @@ type ExternalRendererOptions struct {
 	// SrcMethod: "src" gives the iframe its own response CSP; "srcdoc" (default) inherits
 	// the parent page's CSP per CSP3 §4.2.3.6.
 	SrcMethod string
+
+	// AdditionalCSPSources appends source expressions to the iframe response's CSP directives
+	// (e.g. {"script-src": {"'wasm-unsafe-eval'"}}). Only applied when SrcMethod="src".
+	AdditionalCSPSources map[string][]string
 }
 
 // ExternalRenderer defines an interface for external renderers

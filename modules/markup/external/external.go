@@ -52,6 +52,9 @@ func RegisterRenderers() {
 		name:      "asciicast",
 		patterns:  []string{"*.cast"},
 		srcMethod: "src", // asciinema-player uses WebAssembly, needs its own iframe CSP
+		additionalCSPSources: map[string][]string{
+			"script-src": {"'wasm-unsafe-eval'"},
+		},
 	})
 
 	for _, renderer := range setting.ExternalMarkupRenderers {

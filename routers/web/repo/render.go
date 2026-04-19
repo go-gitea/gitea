@@ -6,6 +6,8 @@ package repo
 import (
 	"net/http"
 	"path"
+	"slices"
+	"strings"
 
 	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/modules/git"
@@ -13,6 +15,27 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/services/context"
 )
+
+// buildIframeCSP returns the CSP for an iframe response loaded via iframe.src. The baseline is
+// permissive (isolation is provided by the iframe sandbox attribute); renderer-specific sources
+// are appended to the named directive.
+func buildIframeCSP(additional map[string][]string) string {
+	directives := []struct {
+		name string
+		srcs []string
+	}{
+		{"frame-src", []string{"'self'"}},
+		{"script-src", []string{"*", "'unsafe-inline'"}},
+		{"style-src", []string{"*", "'unsafe-inline'"}},
+		{"default-src", []string{"*", "data:", "blob:"}},
+	}
+	parts := make([]string, 0, len(directives))
+	for _, d := range directives {
+		srcs := slices.Concat(d.srcs, additional[d.name])
+		parts = append(parts, d.name+" "+strings.Join(srcs, " "))
+	}
+	return strings.Join(parts, "; ")
+}
 
 // RenderFile renders a file by repos path
 func RenderFile(ctx *context.Context) {
@@ -62,10 +85,9 @@ func RenderFile(ctx *context.Context) {
 	if extRendererOpts.SrcMethod == "src" {
 		// Iframe is loaded via "src", so the response must NOT carry the CSP "sandbox" directive
 		// (Firefox refuses same-origin src loading of a sandboxed response). Isolation comes from
-		// the iframe's sandbox attribute. The script-src here grants WebAssembly for this response
-		// only, without widening the main site CSP.
-		ctx.Resp.Header().Add("Content-Security-Policy",
-			"frame-src 'self'; script-src * 'unsafe-inline' 'wasm-unsafe-eval'; style-src * 'unsafe-inline'; default-src * data: blob:")
+		// the iframe's sandbox attribute. Renderers can append additional sources (e.g.
+		// 'wasm-unsafe-eval' for asciinema-player) without widening the main site CSP.
+		ctx.Resp.Header().Add("Content-Security-Policy", buildIframeCSP(extRendererOpts.AdditionalCSPSources))
 	} else if extRendererOpts.ContentSandbox != "" {
 		ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox "+extRendererOpts.ContentSandbox)
 	} else {
