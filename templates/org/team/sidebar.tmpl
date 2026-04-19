@@ -1,7 +1,7 @@
 <div class="ui six wide column">
 	<h4 class="ui top attached header flex-left-right">
 		<strong>{{.Team.Name}}</strong>
-		<div class="flex-center-wrap">
+		<div class="flex-text-block">
 			{{if .Team.IsMember ctx $.SignedUser.ID}}
 				<button class="ui red mini compact button show-modal" data-modal="#org-member-leave-team"
 					data-modal-form.action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/leave?uid={{$.SignedUser.ID}}"

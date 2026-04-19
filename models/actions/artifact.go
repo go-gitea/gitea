@@ -183,6 +183,7 @@ type ActionArtifactMeta struct {
 	ArtifactName string
 	FileSize     int64
 	Status       ArtifactStatus
+	ExpiredUnix  timeutil.TimeStamp
 }
 
 // ListUploadedArtifactsMeta returns all uploaded artifacts meta of a run
@@ -191,7 +192,7 @@ func ListUploadedArtifactsMeta(ctx context.Context, repoID, runID int64) ([]*Act
 	return arts, db.GetEngine(ctx).Table("action_artifact").
 		Where("repo_id=? AND run_id=? AND (status=? OR status=?)", repoID, runID, ArtifactStatusUploadConfirmed, ArtifactStatusExpired).
 		GroupBy("artifact_name").
-		Select("artifact_name, sum(file_size) as file_size, max(status) as status").
+		Select("artifact_name, sum(file_size) as file_size, max(status) as status, max(expired_unix) as expired_unix").
 		Find(&arts)
 }
 

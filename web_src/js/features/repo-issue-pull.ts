@@ -68,7 +68,7 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
   view.mount(el);
 }
 
-function executeScripts(elem: HTMLElement) {
+function executeScripts(elem: Element) {
   // find any existing nonce value from the current page and apply it to the new script
   const scriptNonce = document.querySelector('script[nonce]')!.getAttribute('nonce')!;
   for (const oldScript of elem.querySelectorAll('script')) {
