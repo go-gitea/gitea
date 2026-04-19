@@ -207,8 +207,13 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		ExpiresUnix: 0,
 	})
 
+	jobLink := func(jobID int64) string {
+		return fmt.Sprintf("%s/jobs/%d", resp.State.Run.Link, jobID)
+	}
+
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID * 10,
+		Link:     jobLink(runID * 10),
 		JobID:    "job-100",
 		Name:     "job 100",
 		Status:   actions_model.StatusRunning.String(),
@@ -217,6 +222,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	})
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID*10 + 1,
+		Link:     jobLink(runID*10 + 1),
 		JobID:    "job-101",
 		Name:     "job 101",
 		Status:   actions_model.StatusWaiting.String(),
@@ -226,6 +232,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	})
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID*10 + 2,
+		Link:     jobLink(runID*10 + 2),
 		JobID:    "job-102",
 		Name:     "ULTRA LOOOOOOOOOOOONG job name 102 that exceeds the limit",
 		Status:   actions_model.StatusFailure.String(),
@@ -235,6 +242,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	})
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID*10 + 3,
+		Link:     jobLink(runID*10 + 3),
 		JobID:    "job-103",
 		Name:     "job 103",
 		Status:   actions_model.StatusCancelled.String(),
@@ -246,8 +254,10 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	// add more jobs to a run for UI testing
 	if resp.State.Run.CanCancel {
 		for i := range 10 {
+			jobID := runID*1000 + int64(i)
 			resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
-				ID:       runID*1000 + int64(i),
+				ID:       jobID,
+				Link:     jobLink(jobID),
 				JobID:    "job-dup-test-" + strconv.Itoa(i),
 				Name:     "job dup test " + strconv.Itoa(i),
 				Status:   actions_model.StatusSuccess.String(),
