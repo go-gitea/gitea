@@ -75,3 +75,67 @@ const (
 		t.Fatalf("error %q should mention the typo'd name Sttype", err.Error())
 	}
 }
+
+func TestScanSwaggerEnumTypes_collision(t *testing.T) {
+	dir := t.TempDir()
+	src := `package fixture
+
+// swagger:enum Alpha
+type Alpha string
+const (
+	AlphaX Alpha = "x"
+	AlphaY Alpha = "y"
+)
+
+// swagger:enum Beta
+type Beta string
+const (
+	BetaX Beta = "x"
+	BetaY Beta = "y"
+)
+`
+	if err := os.WriteFile(filepath.Join(dir, "dup.go"), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := ScanSwaggerEnumTypes([]string{dir})
+	if err == nil {
+		t.Fatal("expected collision error, got nil")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "Alpha") || !strings.Contains(msg, "Beta") {
+		t.Fatalf("error %q should mention both Alpha and Beta", msg)
+	}
+}
+
+func TestScanSwaggerEnumTypes_parseFailure(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "bad.go"), []byte("package fixture\nfunc Foo() {"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := ScanSwaggerEnumTypes([]string{dir})
+	if err == nil {
+		t.Fatal("expected parse error, got nil")
+	}
+}
+
+func TestScanSwaggerEnumTypes_annotationWithoutConsts(t *testing.T) {
+	dir := t.TempDir()
+	src := `package fixture
+
+// swagger:enum Lonely
+type Lonely string
+`
+	if err := os.WriteFile(filepath.Join(dir, "lonely.go"), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := ScanSwaggerEnumTypes([]string{dir})
+	if err == nil {
+		t.Fatal("expected error for annotation without consts")
+	}
+	if !strings.Contains(err.Error(), "Lonely") {
+		t.Fatalf("error %q should mention Lonely", err.Error())
+	}
+}
