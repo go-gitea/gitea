@@ -27,12 +27,11 @@ DOCKER_TAG ?= latest
 DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 ifeq ($(HAS_GO), yes)
-	CGO_EXTRA_CFLAGS := -DSQLITE_MAX_VARIABLE_NUMBER=32766
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
 endif
 
 CGO_ENABLED ?= 0
-ifneq (,$(findstring sqlite,$(TAGS))$(findstring pam,$(TAGS)))
+ifneq (,$(findstring pam,$(TAGS)))
 	CGO_ENABLED = 1
 endif
 
@@ -130,7 +129,7 @@ TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
-TEST_TAGS ?= $(TAGS_SPLIT) sqlite sqlite_unlock_notify
+TEST_TAGS ?= $(TAGS_SPLIT)
 
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR)
 
@@ -820,7 +819,7 @@ generate-manpage: ## generate manpage
 .PHONY: docker
 docker:
 	docker build --disable-content-trust=false -t $(DOCKER_REF) .
-# support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
+# support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata"  .
 
 # Disable parallel execution because it would break some targets that don't
 # specify exact dependencies like 'backend' which does currently not depend

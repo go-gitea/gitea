@@ -11,9 +11,10 @@ import (
 	"reflect"
 	"strings"
 
-	_ "github.com/go-sql-driver/mysql"  // Needed for the MySQL driver
-	_ "github.com/lib/pq"               // Needed for the Postgresql driver
-	_ "github.com/microsoft/go-mssqldb" // Needed for the MSSQL driver
+	_ "github.com/go-sql-driver/mysql"       // Needed for the MySQL driver
+	_ "github.com/lib/pq"                    // Needed for the Postgresql driver
+	_ "github.com/microsoft/go-mssqldb"      // Needed for the MSSQL driver
+	_ "github.com/ncruces/go-sqlite3/driver" // Needed for the SQLite3 driver
 
 	"xorm.io/xorm"
 )

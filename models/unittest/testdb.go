@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -23,6 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/tempdir"
 	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
+
+	_ "github.com/ncruces/go-sqlite3/vfs/memdb" // for testing: sqlite3 vfs=memdb
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
@@ -165,11 +166,8 @@ type FixturesOptions struct {
 
 // CreateTestEngine creates a memory database and loads the fixture data from fixturesDir
 func CreateTestEngine(opts FixturesOptions) error {
-	x, err := xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
+	x, err := xorm.NewEngine("sqlite3", "file:/data.db?vfs=memdb&_txlock=immediate")
 	if err != nil {
-		if strings.Contains(err.Error(), "unknown driver") {
-			return fmt.Errorf("sqlite3 requires: -tags sqlite,sqlite_unlock_notify\n%w", err)
-		}
 		return err
 	}
 	x.SetMapper(names.GonicMapper{})

@@ -6,7 +6,6 @@ package db
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -56,9 +55,6 @@ func newXORMEngine() (*xorm.Engine, error) {
 func InitEngine(ctx context.Context) error {
 	xe, err := newXORMEngine()
 	if err != nil {
-		if strings.Contains(err.Error(), "SQLite3 support") {
-			return fmt.Errorf("sqlite3 requires: -tags sqlite,sqlite_unlock_notify\n%w", err)
-		}
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 

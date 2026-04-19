@@ -19,7 +19,7 @@
       "type": "go",
       "request": "launch",
       "mode": "debug",
-      "buildFlags": "-tags='sqlite sqlite_unlock_notify'",
+      "buildFlags": "-tags=''",
       "program": "${workspaceRoot}/main.go",
       "env": {
         "GITEA_WORK_DIR": "${workspaceRoot}",

@@ -48,10 +48,6 @@ func SetupGiteaTestEnv() {
 		// Notice: when doing "ssh push", Gitea executes sub processes, debugger won't work for the sub processes.
 		giteaConf = "tests/sqlite.ini"
 		_, _ = fmt.Fprintf(os.Stderr, "Environment variable GITEA_TEST_CONF not set - defaulting to %s\n", giteaConf)
-		if !EnableSQLite3 {
-			_, _ = fmt.Fprintf(os.Stderr, "sqlite3 requires: -tags sqlite,sqlite_unlock_notify\n")
-			os.Exit(1)
-		}
 	}
 	// CustomConf must be absolute path to make tests pass,
 	CustomConf = filepath.Join(AppWorkPath, giteaConf)

@@ -28,7 +28,7 @@ jobs:
       - run: make deps-backend deps-tools
       - run: make lint-backend
         env:
-          TAGS: bindata sqlite sqlite_unlock_notify
+          TAGS: bindata
 
   lint-templates:
     if: needs.files-changed.outputs.templates == 'true'
@@ -124,7 +124,7 @@ jobs:
       - run: make deps-backend deps-tools
       - run: make lint-go-windows
         env:
-          TAGS: bindata sqlite sqlite_unlock_notify
+          TAGS: bindata
           GOOS: windows
           GOARCH: amd64
 
@@ -143,7 +143,7 @@ jobs:
       - run: make deps-backend deps-tools
       - run: make lint-go
         env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
+          TAGS: bindata gogit
 
   checks-backend:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'

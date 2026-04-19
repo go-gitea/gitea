@@ -77,13 +77,13 @@ require (
 	github.com/lib/pq v1.12.3
 	github.com/markbates/goth v1.82.0
 	github.com/mattn/go-isatty v0.0.21
-	github.com/mattn/go-sqlite3 v1.14.42
 	github.com/meilisearch/meilisearch-go v0.36.2
 	github.com/mholt/archives v0.1.5
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/microsoft/go-mssqldb v1.9.6
 	github.com/minio/minio-go/v7 v7.0.100
 	github.com/msteinert/pam/v2 v2.1.0
+	github.com/ncruces/go-sqlite3 v0.33.3
 	github.com/nektos/act v0.2.63
 	github.com/niklasfasching/go-org v1.9.1
 	github.com/olivere/elastic/v7 v7.0.32
@@ -235,6 +235,8 @@ require (
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/ncruces/go-sqlite3-wasm v1.1.1-0.20260409221933-87e4b35a38d0 // indirect
+	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/nwaples/rardecode/v2 v2.2.2 // indirect
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
 	github.com/olekukonko/errors v1.2.0 // indirect

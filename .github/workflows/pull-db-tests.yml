@@ -79,16 +79,16 @@ jobs:
       - run: make deps-backend
       - run: GOEXPERIMENT='' make backend
         env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
+          TAGS: bindata gogit
       - name: run migration tests
         run: make test-sqlite-migration
       - name: run tests
         run: GOEXPERIMENT='' make test-sqlite
         timeout-minutes: 50
         env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
+          TAGS: bindata gogit
           RACE_ENABLED: true
-          TEST_TAGS: gogit sqlite sqlite_unlock_notify
+          TEST_TAGS: gogit
 
   test-unit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
