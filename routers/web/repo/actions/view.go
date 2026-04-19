@@ -209,16 +209,10 @@ func View(ctx *context_module.Context) {
 
 	attemptNum := ctx.PathParamInt64("attempt")
 
+	// ViewURL is the endpoint the frontend POSTs to for run/attempt/job state.
 	switch {
 	case attemptNum > 0:
-		attempt, err := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
-		if err != nil {
-			ctx.NotFoundOrServerError("GetRunAttemptByRunIDAndAttempt", func(err error) bool {
-				return errors.Is(err, util.ErrNotExist)
-			}, err)
-			return
-		}
-		ctx.Data["ViewURL"] = getRunViewLink(run, attempt)
+		ctx.Data["ViewURL"] = fmt.Sprintf("%s/attempts/%d", run.Link(), attemptNum)
 	case jobID > 0:
 		ctx.Data["ViewURL"] = fmt.Sprintf("%s/jobs/%d", run.Link(), jobID)
 	default:
@@ -376,38 +370,8 @@ type ViewStepLogLine struct {
 	Timestamp float64 `json:"timestamp"`
 }
 
-func getActionsViewArtifacts(ctx context.Context, repoID, runID int64) (artifactsViewItems []*ArtifactsViewItem, err error) {
-	artifacts, err := actions_model.ListUploadedArtifactsMeta(ctx, repoID, runID)
-	if err != nil {
-		return nil, err
-	}
-	for _, art := range artifacts {
-		artifactsViewItems = append(artifactsViewItems, &ArtifactsViewItem{
-			Name:   art.ArtifactName,
-			Size:   art.FileSize,
-			Status: util.Iif(art.Status == actions_model.ArtifactStatusExpired, "expired", "completed"),
-		})
-	}
-	return artifactsViewItems, nil
-}
-
-func getActionsViewArtifactsByAttempt(ctx context.Context, repoID, runAttemptID int64) (artifactsViewItems []*ArtifactsViewItem, err error) {
-	artifacts, err := actions_model.ListUploadedArtifactsMetaByRunAttempt(ctx, repoID, runAttemptID)
-	if err != nil {
-		return nil, err
-	}
-	for _, art := range artifacts {
-		artifactsViewItems = append(artifactsViewItems, &ArtifactsViewItem{
-			Name:   art.ArtifactName,
-			Size:   art.FileSize,
-			Status: util.Iif(art.Status == actions_model.ArtifactStatusExpired, "expired", "completed"),
-		})
-	}
-	return artifactsViewItems, nil
-}
-
 func ViewPost(ctx *context_module.Context) {
-	run, attempt, isLatestAttempt, jobs := getCurrentRunJobsByPathParam(ctx)
+	run, attempt, _, jobs := getCurrentRunJobsByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -417,7 +381,7 @@ func ViewPost(ctx *context_module.Context) {
 	}
 
 	resp := &ViewResponse{}
-	fillViewRunResponseSummary(ctx, resp, run, attempt, isLatestAttempt, jobs)
+	fillViewRunResponseSummary(ctx, resp, run, attempt, jobs)
 	if ctx.Written() {
 		return
 	}
@@ -428,18 +392,19 @@ func ViewPost(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, isLatestAttempt bool, jobs []*actions_model.ActionRunJob) {
+func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, jobs []*actions_model.ActionRunJob) {
+	// Latest when the run has no attempts yet (legacy) or the viewed attempt is the run's latest.
+	isLatestAttempt := run.LatestAttemptID == 0 || (attempt != nil && attempt.ID == run.LatestAttemptID)
+
 	resp.State.Run.RepoID = ctx.Repo.Repository.ID
 	// the title for the "run" is from the commit message
 	resp.State.Run.Title = run.Title
 	resp.State.Run.TitleHTML = templates.NewRenderUtils(ctx).RenderCommitMessage(run.Title, ctx.Repo.Repository)
 	resp.State.Run.Link = run.Link()
 	resp.State.Run.ViewLink = getRunViewLink(run, attempt)
-	if attempt != nil {
-		resp.State.Run.RunAttempt = attempt.Attempt
-	}
 	resp.State.Run.Attempts = make([]*ViewRunAttempt, 0)
 	if attempt != nil {
+		resp.State.Run.RunAttempt = attempt.Attempt
 		resp.State.Run.Status = attempt.Status.String()
 		resp.State.Run.Done = attempt.Status.IsDone()
 		resp.State.Run.Duration = attempt.Duration().String()
@@ -530,15 +495,24 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	}
 	resp.State.Run.TriggerEvent = run.TriggerEvent
 
-	switch {
-	case attempt != nil:
-		resp.Artifacts, err = getActionsViewArtifactsByAttempt(ctx, ctx.Repo.Repository.ID, attempt.ID)
-	case run.LatestAttemptID == 0:
-		resp.Artifacts, err = getActionsViewArtifacts(ctx, ctx.Repo.Repository.ID, run.ID)
+	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts all share run_attempt_id=0,
+	// so passing 0 here scopes to this run's legacy artifacts only.
+	var runAttemptID int64
+	if attempt != nil {
+		runAttemptID = attempt.ID
 	}
+	arts, err := actions_model.ListUploadedArtifactsMetaByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
 	if err != nil {
 		ctx.ServerError("get view artifacts", err)
 		return
+	}
+	resp.Artifacts = make([]*ArtifactsViewItem, 0, len(arts))
+	for _, art := range arts {
+		resp.Artifacts = append(resp.Artifacts, &ArtifactsViewItem{
+			Name:   art.ArtifactName,
+			Size:   art.FileSize,
+			Status: util.Iif(art.Status == actions_model.ArtifactStatusExpired, "expired", "completed"),
+		})
 	}
 }
 
