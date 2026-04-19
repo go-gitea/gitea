@@ -592,6 +592,17 @@ func GetIssueByID(ctx context.Context, id int64) (*Issue, error) {
 	return issue, nil
 }
 
+func GetIssueByRepoID(ctx context.Context, repoID, issueID int64) (*Issue, error) {
+	issue := new(Issue)
+	has, err := db.GetEngine(ctx).ID(issueID).Where("repo_id=?", repoID).Get(issue)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrIssueNotExist{issueID, repoID, 0}
+	}
+	return issue, nil
+}
+
 // GetIssuesByIDs return issues with the given IDs.
 // If keepOrder is true, the order of the returned issues will be the same as the given IDs.
 func GetIssuesByIDs(ctx context.Context, issueIDs []int64, keepOrder ...bool) (IssueList, error) {

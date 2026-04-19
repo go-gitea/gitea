@@ -5,8 +5,9 @@ import {computed, toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
-import {createActionRunViewStore} from "./ActionRunView.ts";
 import type {ActionsRunAttempt} from '../modules/gitea-actions.ts';
+import {createActionRunViewStore} from './ActionRunView.ts';
+import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 
 defineOptions({
   name: 'RepoActionView',
@@ -20,7 +21,7 @@ const props = defineProps<{
 
 const locale = props.locale;
 const store = createActionRunViewStore(props.viewUrl);
-const {currentRun: run , runArtifacts: artifacts} = toRefs(store.viewData);
+const {currentRun: run, runArtifacts: artifacts} = toRefs(store.viewData);
 
 function formatAttemptTitle(attempt: ActionsRunAttempt) {
   return attempt.latest ? `${locale.latestAttempt} #${attempt.attempt}` : `${locale.attempt} #${attempt.attempt}`;
@@ -169,18 +170,24 @@ async function deleteArtifact(name: string) {
           <ul class="ui relaxed list flex-items-block">
             <li class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
-                <a class="tw-flex-1 flex-text-block" target="_blank" :href="`${run.link}/artifacts/${artifact.name}${artifactActionSuffix}`">
-                  <SvgIcon name="octicon-file" class="tw-text-text"/>
+                <a
+                  class="tw-flex-1 flex-text-block muted" target="_blank"
+                  :href="run.link+'/artifacts/'+encodeURIComponent(artifact.name)+artifactActionSuffix"
+                  :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
+                  data-tooltip-render="html"
+                  data-tooltip-placement="top-end"
+                >
+                  <SvgIcon name="octicon-file" class="tw-text-text-light"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
-                <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
-                  <SvgIcon name="octicon-trash" class="tw-text-text"/>
+                <a v-if="run.canDeleteArtifact" class="muted" @click="deleteArtifact(artifact.name)">
+                  <SvgIcon name="octicon-trash"/>
                 </a>
               </template>
-              <span v-else class="flex-text-block tw-flex-1 tw-text-grey-light">
+              <span v-else class="flex-text-block tw-flex-1 tw-text-text-light-2">
                 <SvgIcon name="octicon-file"/>
                 <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
-                <span class="ui label tw-text-grey-light tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
+                <span class="ui label tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
               </span>
             </li>
           </ul>
@@ -346,6 +353,7 @@ async function deleteArtifact(name: string) {
 
 .left-list-header {
   font-size: 13px;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-light-2);
 }
 

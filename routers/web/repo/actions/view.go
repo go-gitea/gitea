@@ -260,9 +260,10 @@ type ViewRequest struct {
 }
 
 type ArtifactsViewItem struct {
-	Name   string `json:"name"`
-	Size   int64  `json:"size"`
-	Status string `json:"status"`
+	Name        string `json:"name"`
+	Size        int64  `json:"size"`
+	Status      string `json:"status"`
+	ExpiresUnix int64  `json:"expiresUnix"`
 }
 
 type ViewResponse struct {
