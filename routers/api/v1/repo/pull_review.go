@@ -388,29 +388,6 @@ func DeletePullReview(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// resolveInReplyTo resolves an in_reply_to comment ID to the review ID it belongs to.
-// On error, it writes the response to ctx; caller should check ctx.Written().
-func resolveInReplyTo(ctx *context.APIContext, commentID int64, pr *issues_model.PullRequest) int64 {
-	comment, err := issues_model.GetCommentByID(ctx, commentID)
-	if err != nil {
-		if issues_model.IsErrCommentNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return 0
-	}
-	if comment.IssueID != pr.IssueID {
-		ctx.APIErrorNotFound()
-		return 0
-	}
-	if comment.Type != issues_model.CommentTypeCode || comment.ReviewID == 0 {
-		ctx.APIError(http.StatusUnprocessableEntity, "comment is not a review comment")
-		return 0
-	}
-	return comment.ReviewID
-}
-
 // CreatePullReview create a review to a pull request
 func CreatePullReview(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews repository repoCreatePullReview
@@ -496,21 +473,34 @@ func CreatePullReview(ctx *context.APIContext) {
 			hasNonReplyComment = true
 			continue
 		}
-		rid := resolveInReplyTo(ctx, c.InReplyToID, pr)
-		if ctx.Written() {
+		comment, err := issues_model.GetCommentByID(ctx, c.InReplyToID)
+		if err != nil {
+			if issues_model.IsErrCommentNotExist(err) {
+				ctx.APIErrorNotFound()
+			} else {
+				ctx.APIErrorInternal(err)
+			}
 			return
 		}
-		if replyReviewID != 0 && rid != replyReviewID {
+		if comment.IssueID != pr.IssueID {
+			ctx.APIErrorNotFound()
+			return
+		}
+		if comment.Type != issues_model.CommentTypeCode || comment.ReviewID == 0 {
+			ctx.APIError(http.StatusUnprocessableEntity, "comment is not a review comment")
+			return
+		}
+		if replyReviewID != 0 && comment.ReviewID != replyReviewID {
 			ctx.APIError(http.StatusUnprocessableEntity, "replies must be to comments in the same review")
 			return
 		}
-		replyReviewID = rid
+		replyReviewID = comment.ReviewID
 	}
 
-	// a reply-only request (all comments are replies, no body, no approve/reject)
-	// attaches to the target review and does not create a new one
-	isReplyOnly := replyReviewID != 0 && !hasNonReplyComment && strings.TrimSpace(opts.Body) == "" &&
-		reviewType != issues_model.ReviewTypeApprove && reviewType != issues_model.ReviewTypeReject
+	// a reply-only request attaches to the target review without creating a new one
+	noNewContent := !hasNonReplyComment && strings.TrimSpace(opts.Body) == ""
+	isDecisiveEvent := reviewType == issues_model.ReviewTypeApprove || reviewType == issues_model.ReviewTypeReject
+	isReplyOnly := replyReviewID != 0 && noNewContent && !isDecisiveEvent
 
 	// create review comments
 	for _, c := range opts.Comments {
