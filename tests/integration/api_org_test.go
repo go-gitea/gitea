@@ -131,7 +131,7 @@ func testAPIOrgGeneral(t *testing.T) {
 		DecodeJSON(t, resp, &apiOrgList)
 		assert.Len(t, apiOrgList, 13)
 		assert.Equal(t, "Limited Org 36", apiOrgList[1].FullName)
-		assert.Equal(t, "limited", apiOrgList[1].Visibility)
+		assert.Equal(t, api.UserVisibilityLimited, apiOrgList[1].Visibility)
 
 		// accessing without a token will return only public orgs
 		req = NewRequest(t, "GET", "/api/v1/orgs")
@@ -140,7 +140,7 @@ func testAPIOrgGeneral(t *testing.T) {
 		DecodeJSON(t, resp, &apiOrgList)
 		assert.Len(t, apiOrgList, 9)
 		assert.Equal(t, "org 17", apiOrgList[0].FullName)
-		assert.Equal(t, "public", apiOrgList[0].Visibility)
+		assert.Equal(t, api.UserVisibilityPublic, apiOrgList[0].Visibility)
 	})
 
 	t.Run("OrgEdit", func(t *testing.T) {
@@ -152,7 +152,7 @@ func testAPIOrgGeneral(t *testing.T) {
 			Description: new("new description"),
 			Website:     new("https://org3-new-website.example.com"),
 			Location:    new("new location"),
-			Visibility:  new("limited"),
+			Visibility:  func() *api.UserVisibility { v := api.UserVisibilityLimited; return &v }(),
 			Email:       new("org3-new-email@example.com"),
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org3Edit).AddTokenAuth(user1Token)
@@ -182,7 +182,7 @@ func testAPIOrgGeneral(t *testing.T) {
 
 	t.Run("OrgEditInvalidVisibility", func(t *testing.T) {
 		org := api.EditOrgOption{
-			Visibility: new("invalid-visibility"),
+			Visibility: func() *api.UserVisibility { v := api.UserVisibility("invalid-visibility"); return &v }(),
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org).AddTokenAuth(user1Token)
 		MakeRequest(t, req, http.StatusUnprocessableEntity)

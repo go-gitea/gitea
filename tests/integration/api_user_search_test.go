@@ -49,7 +49,7 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
 		assert.NotEmpty(t, user.Email)
-		assert.Equal(t, "public", user.Visibility)
+		assert.Equal(t, api.UserVisibilityPublic, user.Visibility)
 	}
 }
 
@@ -108,7 +108,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
 		assert.NotEmpty(t, user.Email)
-		assert.Equal(t, "private", user.Visibility)
+		assert.Equal(t, api.UserVisibilityPrivate, user.Visibility)
 	}
 }
 
