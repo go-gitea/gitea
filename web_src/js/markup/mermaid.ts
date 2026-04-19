@@ -180,6 +180,9 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     theme: isDarkTheme() ? 'dark' : 'neutral', // TODO: maybe it should use "darkMode" to adopt more user-specified theme instead of just "dark" or "neutral"
     securityLevel: 'strict',
     suppressErrorRendering: true,
+    // HTML labels embed foreignObject content (e.g. <br> for line breaks) that is not well-formed XML;
+    // we parse the SVG string with DOMParser as image/svg+xml before inserting it (see #37295, mermaid-js/mermaid#1766).
+    htmlLabels: false,
   });
 
   const iframeStyleText = getIframeCss();
