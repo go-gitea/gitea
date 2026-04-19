@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -91,7 +92,9 @@ func scanFile(fset *token.FileSet, path string, enumTypes map[string]string, enu
 		}
 		switch gd.Tok {
 		case token.TYPE:
-			collectEnumType(gd, enumTypes)
+			if err := collectEnumType(gd, enumTypes); err != nil {
+				return err
+			}
 		case token.CONST:
 			collectEnumValues(gd, enumTypes, enumValues)
 		}
@@ -99,13 +102,13 @@ func scanFile(fset *token.FileSet, path string, enumTypes map[string]string, enu
 	return nil
 }
 
-func collectEnumType(gd *ast.GenDecl, enumTypes map[string]string) {
+func collectEnumType(gd *ast.GenDecl, enumTypes map[string]string) error {
 	if gd.Doc == nil {
-		return
+		return nil
 	}
 	matches := rxSwaggerEnum.FindStringSubmatch(gd.Doc.Text())
 	if len(matches) < 2 {
-		return
+		return nil
 	}
 	annotated := matches[1]
 	for _, spec := range gd.Specs {
@@ -115,8 +118,10 @@ func collectEnumType(gd *ast.GenDecl, enumTypes map[string]string) {
 		}
 		if ts.Name.Name == annotated {
 			enumTypes[annotated] = ""
+			return nil
 		}
 	}
+	return fmt.Errorf("swagger:enum %s: no type declaration with that name in the same decl group; check for a typo", annotated)
 }
 
 func collectEnumValues(gd *ast.GenDecl, enumTypes map[string]string, enumValues map[string][]any) {
@@ -137,7 +142,10 @@ func collectEnumValues(gd *ast.GenDecl, enumTypes map[string]string, enumValues 
 			if !ok || lit.Kind != token.STRING {
 				continue
 			}
-			unquoted := strings.Trim(lit.Value, "\"")
+			unquoted, err := strconv.Unquote(lit.Value)
+			if err != nil {
+				continue
+			}
 			enumValues[ident.Name] = append(enumValues[ident.Name], unquoted)
 		}
 	}

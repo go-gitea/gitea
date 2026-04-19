@@ -6,6 +6,7 @@ package openapi3gen
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -48,5 +49,29 @@ const (
 	wantKey := EnumKey([]any{"red", "green", "blue"})
 	if got[wantKey] != "Color" {
 		t.Fatalf("map[%q] = %q, want %q", wantKey, got[wantKey], "Color")
+	}
+}
+
+func TestScanSwaggerEnumTypes_orphanAnnotation(t *testing.T) {
+	dir := t.TempDir()
+	src := `package fixture
+
+// swagger:enum Sttype
+type StateType string
+
+const (
+	StateOpen StateType = "open"
+)
+`
+	if err := os.WriteFile(filepath.Join(dir, "typo.go"), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := ScanSwaggerEnumTypes([]string{dir})
+	if err == nil {
+		t.Fatal("expected error for annotation referencing a non-matching type name")
+	}
+	if !strings.Contains(err.Error(), "Sttype") {
+		t.Fatalf("error %q should mention the typo'd name Sttype", err.Error())
 	}
 }
