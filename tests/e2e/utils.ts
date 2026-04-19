@@ -74,6 +74,13 @@ export async function apiCreateBranch(requestContext: APIRequestContext, owner: 
   }), 'apiCreateBranch');
 }
 
+export async function createProjectColumn(requestContext: APIRequestContext, owner: string, repo: string, projectID: string, title: string) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/${owner}/${repo}/projects/${projectID}/columns/new`, {
+    headers: apiHeaders(),
+    form: {title},
+  }), 'createProjectColumn');
+}
+
 export async function apiDeleteRepo(requestContext: APIRequestContext, owner: string, name: string) {
   await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/repos/${owner}/${name}`, {
     headers: apiHeaders(),
