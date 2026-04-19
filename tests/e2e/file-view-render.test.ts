@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
-import {apiCreateRepo, apiCreateFile, apiDeleteRepo, assertFlushWithParent, assertNoJsError, login, randomString} from './utils.ts';
+import {apiCreateBranch, apiCreateRepo, apiCreateFile, apiDeleteRepo, assertFlushWithParent, assertNoJsError, login, randomString} from './utils.ts';
 
 test('3d model file', async ({page, request}) => {
   const repoName = `e2e-3d-render-${randomString(8)}`;
@@ -47,15 +47,21 @@ test('pdf file', async ({page, request}) => {
 });
 
 test('asciicast file', async ({page, request}) => {
+  // Non-ASCII branch name guards the render-URL escaping path — the iframe's data-src and
+  // the eventual iframe.src must survive round-tripping through RefTypeNameSubURL.
   const repoName = `e2e-asciicast-render-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
+  const branch = '日本語-branch';
+  const branchEnc = encodeURIComponent(branch);
   await Promise.all([apiCreateRepo(request, {name: repoName}), login(page)]);
   try {
     const cast = '{"version": 2, "width": 80, "height": 24}\n[0.0, "o", "test"]\n';
     await apiCreateFile(request, owner, repoName, 'test.cast', cast);
-    await page.goto(`/${owner}/${repoName}/src/branch/main/test.cast`);
+    await apiCreateBranch(request, owner, repoName, branch);
+    await page.goto(`/${owner}/${repoName}/src/branch/${branchEnc}/test.cast`);
     const iframe = page.locator('iframe.external-render-iframe');
     await expect(iframe).toBeVisible();
+    await expect(iframe).toHaveAttribute('data-src', new RegExp(`/${owner}/${repoName}/render/branch/${branchEnc}/test\\.cast`));
     const frame = page.frameLocator('iframe.external-render-iframe');
     const wrapper = frame.locator('.ap-wrapper');
     await expect(wrapper).toBeVisible();
