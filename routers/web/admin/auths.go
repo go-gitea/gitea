@@ -440,7 +440,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	log.Trace("Authentication changed by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.update_success"))
-	ctx.Redirect(setting.AppSubURL + "/-/admin/auths/" + strconv.FormatInt(form.ID, 10))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/auths/" + strconv.FormatInt(source.ID, 10))
 }
 
 // DeleteAuthSource response for deleting an auth source
