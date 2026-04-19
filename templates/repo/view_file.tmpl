@@ -13,7 +13,7 @@
 	{{end}}
 
 	{{if not .ReadmeInList}}
-		<div id="repo-file-commit-box" class="ui segment list-header tw-mb-4 tw-flex tw-justify-between">
+		<div id="repo-file-commit-box" class="ui segment list-header tw-mb-4 flex-left-right">
 			{{template "repo/latest_commit" .}}
 			{{if .LatestCommit}}
 				{{if .LatestCommit.Committer}}
@@ -25,7 +25,7 @@
 		</div>
 	{{end}}
 
-	<h4 class="file-header ui top attached header tw-flex tw-items-center tw-justify-between tw-flex-wrap">
+	<h4 class="file-header ui top attached header flex-left-right">
 		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
 			{{if .ReadmeInList}}
 				{{svg "octicon-book" 16 "tw-mr-2"}}
@@ -40,7 +40,9 @@
 				{{if .IsRepresentableAsText}}
 				<a href="?display=source" class="ui mini basic button file-view-toggle-source {{if .IsDisplayingSource}}active{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code" 15}}</a>
 				{{end}}
+				{{if .HasSourceRenderedToggle}}
 				<a href="?display=rendered" class="ui mini basic button file-view-toggle-rendered {{if not .IsDisplayingSource}}active{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file" 15}}</a>
+				{{end}}
 			</div>
 			{{if not .ReadmeInList}}
 				<div class="ui buttons tw-mr-1">
@@ -90,15 +92,15 @@
 	</h4>
 
 	<div class="ui bottom attached table unstackable segment">
-		{{if not .IsMarkup}}
+		{{if not .RenderAsMarkup}}
 			{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus}}
 		{{end}}
-		<div class="file-view {{if .IsMarkup}}markup {{.MarkupType}}{{else if .IsPlainText}}plain-text{{else if .IsDisplayingSource}}code-view{{end}}">
+		<div class="file-view {{if eq .RenderAsMarkup "markup-inplace"}}markup {{.MarkupType}}{{else if .IsPlainText}}plain-text{{else if .IsDisplayingSource}}code-view{{end}}">
 			{{if .IsFileTooLarge}}
 				{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
 			{{else if not .FileSize}}
 				{{template "shared/fileisempty"}}
-			{{else if .IsMarkup}}
+			{{else if .RenderAsMarkup}}
 				{{.FileContent}}
 			{{else if .IsPlainText}}
 				<pre>{{if .FileContent}}{{.FileContent}}{{end}}</pre>

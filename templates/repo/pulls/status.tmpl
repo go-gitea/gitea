@@ -21,7 +21,7 @@
 	</div>
 
 	{{if and $statusCheckData $statusCheckData.RequireApprovalRunCount}}
-		<div class="ui attached segment flex-text-block tw-justify-between" id="approve-status-checks">
+		<div class="ui attached segment flex-left-right" id="approve-status-checks">
 			<div>
 				<strong>
 					{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals" $statusCheckData.RequireApprovalRunCount}}

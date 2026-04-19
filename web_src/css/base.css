@@ -873,20 +873,11 @@ table th[data-sortt-desc] .svg {
   gap: var(--gap-block);
 }
 
-/* TODO: use this to replace all existing "flex + justify-between" (there are quite a lot) */
+/* this is useful to make a left-right (e.g.: title .... operations) layout with default gap, and it wrap for small widths */
 .flex-left-right {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: center;
-  gap: var(--gap-block);
-  min-width: 0;
-}
-
-/* TODO: use this to replace all existing "flex + wrap" and (there are quite a lot of) */
-.flex-center-wrap {
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--gap-block);
   min-width: 0;
@@ -903,6 +894,7 @@ table th[data-sortt-desc] .svg {
   min-width: 0;
 }
 
+.flex-left-right > .ui.button,
 .flex-text-block > .ui.button,
 .flex-text-inline > .ui.button {
   margin: 0; /* fomantic buttons have default margin, when we use them in a flex container with gap, we do not need these margins */
