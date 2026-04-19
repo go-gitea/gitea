@@ -1,4 +1,4 @@
-import {isDarkTheme, parseDom} from '../utils.ts';
+import {isDarkTheme} from '../utils.ts';
 import {displayError} from './common.ts';
 import {createElementFromAttrs, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
@@ -180,9 +180,6 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     theme: isDarkTheme() ? 'dark' : 'neutral', // TODO: maybe it should use "darkMode" to adopt more user-specified theme instead of just "dark" or "neutral"
     securityLevel: 'strict',
     suppressErrorRendering: true,
-    // HTML labels embed foreignObject content (e.g. <br> for line breaks) that is not well-formed XML;
-    // we parse the SVG string with DOMParser as image/svg+xml before inserting it (see #37295, mermaid-js/mermaid#1766).
-    htmlLabels: false,
   });
 
   const iframeStyleText = getIframeCss();
@@ -204,8 +201,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     try {
       // render the mermaid diagram to svg text, and parse it to a DOM node
       const {svg: svgText, bindFunctions} = await mermaid.render('mermaid', source, parentContainer);
-      const svgDoc = parseDom(svgText, 'image/svg+xml');
-      const svgNode = (svgDoc.documentElement as unknown) as SVGSVGElement;
+      const svgNode = createElementFromHTML<SVGSVGElement>(svgText);
 
       const viewControllerHtml = html`
         <div class="view-controller auto-hide-control flex-text-block">
