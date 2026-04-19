@@ -5,6 +5,7 @@ package v1_27
 
 import (
 	"context"
+	"time"
 
 	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -55,6 +56,39 @@ func (actionArtifact) TableName() string {
 	return "action_artifact"
 }
 
+// actionRun mirrors the post-migration action_run schema.
+type actionRun struct {
+	ID                int64
+	Title             string
+	RepoID            int64  `xorm:"unique(repo_index)"`
+	OwnerID           int64  `xorm:"index"`
+	WorkflowID        string `xorm:"index"`
+	Index             int64  `xorm:"index unique(repo_index)"`
+	TriggerUserID     int64  `xorm:"index"`
+	ScheduleID        int64
+	Ref               string `xorm:"index"`
+	CommitSHA         string
+	IsForkPullRequest bool
+	NeedApproval      bool
+	ApprovedBy        int64 `xorm:"index"`
+	Event             string
+	EventPayload      string `xorm:"LONGTEXT"`
+	TriggerEvent      string
+	Status            int `xorm:"index"`
+	Version           int `xorm:"version default 0"`
+	RawConcurrency    string
+	Started           timeutil.TimeStamp
+	Stopped           timeutil.TimeStamp
+	PreviousDuration  time.Duration
+	LatestAttemptID   int64              `xorm:"index NOT NULL DEFAULT 0"`
+	Created           timeutil.TimeStamp `xorm:"created"`
+	Updated           timeutil.TimeStamp `xorm:"updated"`
+}
+
+func (actionRun) TableName() string {
+	return "action_run"
+}
+
 // AddActionRunAttemptModel adds the ActionRunAttempt table and the supporting ActionRun/ActionRunJob fields.
 func AddActionRunAttemptModel(x *xorm.Engine) error {
 	// add "action_run_attempt"
@@ -95,12 +129,9 @@ func AddActionRunAttemptModel(x *xorm.Engine) error {
 	//   - scanning and backfilling old runs would add significant migration cost for little value
 	//
 	// This means the schema change is destructive for those two legacy columns by design.
-	type ActionRun struct {
-		LatestAttemptID int64 `xorm:"index NOT NULL DEFAULT 0"`
-	}
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-	}, new(ActionRun)); err != nil {
+	//
+	// Let xorm sync add the latest_attempt_id column and drop the now-orphan (repo_id, concurrency_group) index.
+	if err := x.Sync(new(actionRun)); err != nil {
 		return err
 	}
 	concurrencyColumns := make([]string, 0, 2)
@@ -116,27 +147,12 @@ func AddActionRunAttemptModel(x *xorm.Engine) error {
 	if len(concurrencyColumns) == 0 {
 		return nil
 	}
-	// Drop the composite index (repo_id, concurrency_group) before dropping the column
-	// so MySQL does not retain a dangling single-column index on repo_id.
-	runIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action_run")
-	if err != nil {
-		return err
-	}
-	for _, index := range runIndexes {
-		if len(index.Cols) == 2 && index.Cols[0] == "repo_id" && index.Cols[1] == "concurrency_group" {
-			if _, err := x.Exec(x.Dialect().DropIndexSQL("action_run", index)); err != nil {
-				return err
-			}
-			break
-		}
-	}
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := base.DropTableColumns(sess, "action_run", concurrencyColumns...); err != nil {
 		return err
 	}
-	_, err = x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-	}, new(ActionRun))
-	return err
+	// DropTableColumns rebuilds the table on SQLite, which drops all existing indexes.
+	// Re-sync to restore the indexes defined on actionRun.
+	return x.Sync(new(actionRun))
 }
