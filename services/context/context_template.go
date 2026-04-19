@@ -153,9 +153,7 @@ func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
 		`default-src * data:;` +
 
 		// enforce nonce for all scripts, disallow inline scripts
-		// 'wasm-unsafe-eval' lets srcdoc iframe renderers (e.g. asciinema-player) load WebAssembly;
-		// srcdoc iframes inherit the parent CSP per CSP3 §4.2.3.6 and a child <meta> CSP only narrows, never widens.
-		`script-src * 'nonce-` + c.CspScriptNonce() + `' 'wasm-unsafe-eval';` +
+		`script-src * 'nonce-` + c.CspScriptNonce() + `';` +
 
 		// it seems that Vue needs the unsafe-inline, and our custom colors (e.g.: label) also need it
 		`style-src * 'unsafe-inline';` +

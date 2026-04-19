@@ -16,8 +16,9 @@ import (
 )
 
 type frontendRenderer struct {
-	name     string
-	patterns []string
+	name      string
+	patterns  []string
+	srcMethod string
 }
 
 var (
@@ -55,6 +56,7 @@ func (p *frontendRenderer) GetExternalRendererOptions() (ret markup.ExternalRend
 	ret.SanitizerDisabled = true
 	ret.DisplayInIframe = true
 	ret.ContentSandbox = "allow-scripts allow-forms allow-modals allow-popups allow-downloads"
+	ret.SrcMethod = p.srcMethod
 	return ret
 }
 

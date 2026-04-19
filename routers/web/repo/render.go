@@ -62,9 +62,18 @@ func RenderFile(ctx *context.Context) {
 	// Chrome blocks the PDF rendering when sandboxed, even if all "allow-*" are set.
 	// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
 	extRendererOpts := extRenderer.GetExternalRendererOptions()
-	if extRendererOpts.ContentSandbox != "" {
+	switch {
+	case extRendererOpts.SrcMethod == "src":
+		// The iframe is loaded via "src", so the response must NOT carry the CSP "sandbox"
+		// directive (Firefox refuses same-origin src loading of a sandboxed response with
+		// "Unsafe attempt to load URL ..."). Isolation is enforced by the iframe element's
+		// sandbox attribute instead. The script-src here is permissive enough to allow
+		// WebAssembly (asciinema-player), while the main site CSP stays untouched.
+		ctx.Resp.Header().Add("Content-Security-Policy",
+			"frame-src 'self'; script-src * 'unsafe-inline' 'wasm-unsafe-eval'; style-src * 'unsafe-inline'; default-src * data: blob:")
+	case extRendererOpts.ContentSandbox != "":
 		ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox "+extRendererOpts.ContentSandbox)
-	} else {
+	default:
 		ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
 	}
 
