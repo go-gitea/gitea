@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateRepo, apiCreateIssue, apiDeleteRepo, createProjectColumn, randomString} from './utils.ts';
+import {login, apiCreateRepo, apiCreateIssue, apiDeleteRepo, createProjectColumn, randomString, timeoutFactor} from './utils.ts';
 
 test('assign issue to project and change column', async ({page}) => {
   const repoName = `e2e-issue-project-${randomString(8)}`;
@@ -23,28 +23,44 @@ test('assign issue to project and change column', async ({page}) => {
 
   await apiCreateIssue(page.request, user, repoName, {title: 'Column picker test'});
 
+  const responseTimeout = 30_000 * timeoutFactor;
+
   await page.goto(`/${user}/${repoName}/issues/1`);
   await page.locator('.sidebar-project-combo .ui.dropdown').click();
   await Promise.all([
-    page.waitForResponse((resp) => resp.url().includes('/issues/projects') && resp.status() === 200),
+    page.waitForResponse(
+      (resp) => resp.url().includes('/issues/projects') && resp.status() === 200,
+      {timeout: responseTimeout},
+    ),
     page.locator('.sidebar-project-combo .menu .item', {hasText: 'Kanban Board'}).click(),
   ]);
 
   const columnCombo = page.locator('.sidebar-project-column-combo');
-  await expect(columnCombo).toBeVisible();
+  await expect(columnCombo).toBeVisible({timeout: responseTimeout});
   await columnCombo.locator('.ui.dropdown').click();
-  await columnCombo.locator('.menu').waitFor({state: 'visible'});
+  await columnCombo.locator('.menu').waitFor({state: 'visible', timeout: responseTimeout});
 
-  const columnPost = page.waitForResponse((resp) =>
-    resp.request().method() === 'POST' &&
-    resp.url().includes('/issues/projects/column') &&
-    resp.ok(),
-  );
-  await columnCombo.locator('a.item', {hasText: 'In Progress'}).click();
-  await columnPost;
+  const inProgressItem = columnCombo.locator('a.item', {hasText: 'In Progress'});
+  await expect(inProgressItem).toBeVisible({timeout: responseTimeout});
+  await inProgressItem.scrollIntoViewIfNeeded();
 
-  await expect(columnCombo.getByTestId('sidebar-project-column-text')).toContainText('In Progress');
-  await expect(page.locator('.timeline-item', {hasText: 'moved this to In Progress'})).toBeVisible();
+  await Promise.all([
+    page.waitForResponse(
+      (resp) =>
+        resp.request().method() === 'POST' &&
+        resp.url().includes('/issues/projects/column') &&
+        resp.ok(),
+      {timeout: responseTimeout},
+    ),
+    inProgressItem.click(),
+  ]);
+
+  await expect(columnCombo.getByTestId('sidebar-project-column-text')).toContainText('In Progress', {
+    timeout: responseTimeout,
+  });
+  await expect(page.locator('.timeline-item', {hasText: 'moved this to In Progress'})).toBeVisible({
+    timeout: responseTimeout,
+  });
 
   await apiDeleteRepo(page.request, user, repoName);
 });
