@@ -339,7 +339,7 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <div class="ui header tw-flex tw-items-center tw-justify-between">
+    <div class="ui header flex-left-right">
       <div>
         <relative-time
           v-if="xAxisMin && xAxisMin > 0"
