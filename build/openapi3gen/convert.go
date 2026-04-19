@@ -145,6 +145,10 @@ type enumUsage struct {
 // extractSharedEnums finds identical enum arrays used by multiple schema
 // properties, creates a standalone named schema for each, and replaces
 // the inline enums with $ref pointers.
+//
+// If the derived enum name collides with an existing component schema, or
+// no // swagger:enum annotation matches the value set, generation aborts
+// with an actionable error — there are no silent fallbacks.
 func extractSharedEnums(doc *openapi3.T, astEnumMap map[string]string) error {
 	if doc.Components == nil {
 		return nil
