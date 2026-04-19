@@ -1,31 +1,34 @@
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
+import {normalizeTestHtml} from '../utils/testhelper.ts';
 
-test('buildArtifactTooltipHtml for active artifact', () => {
-  const result = buildArtifactTooltipHtml({
-    name: 'artifact.zip',
-    size: 1024 * 1024,
-    status: 'completed',
-    expiresUnix: Date.UTC(2026, 2, 20, 12, 0, 0) / 1000,
-  }, 'Expires at %s');
+describe('buildArtifactTooltipHtml', () => {
+  test('active artifact', () => {
+    const result = buildArtifactTooltipHtml({
+      name: 'artifact.zip',
+      size: 1024 * 1024,
+      status: 'completed',
+      expiresUnix: Date.UTC(2026, 2, 20, 12, 0, 0) / 1000,
+    }, 'Expires at %s');
 
-  expect(result).toContain('<relative-time datetime="2026-03-20T12:00:00.000Z"');
-  expect(result).toContain('threshold="P0Y"');
-  expect(result).toContain('month="short"');
-  expect(result).toContain('hour="numeric"');
-  expect(result).toContain('minute="2-digit"');
-  expect(result).toContain('Expires at');
-  expect(result).toContain('1.0 MiB');
-  expect(result).toContain('class="artifact-size');
-});
+    expect(normalizeTestHtml(result)).toBe(normalizeTestHtml(`<span class="flex-text-inline">
+<span>Expires at </span>
+  <relative-time datetime="2026-03-20T12:00:00.000Z" threshold="P0Y" prefix="" weekday="" year="numeric" month="short" hour="numeric" minute="2-digit">
+    2026-03-20T12:00:00.000Z
+  </relative-time>
+  <span></span>
+  <span class="inline-divider">,</span>
+  <span>1.0 MiB</span>
+</span>
+`));
+  });
 
-test('buildArtifactTooltipHtml with no expiry', () => {
-  const result = buildArtifactTooltipHtml({
-    name: 'artifact.zip',
-    size: 512,
-    status: 'completed',
-    expiresUnix: 0,
-  }, 'Expires at %s');
-
-  expect(result).not.toContain('<relative-time');
-  expect(result).toBe('512 B');
+  test('no expiry', () => {
+    const result = buildArtifactTooltipHtml({
+      name: 'artifact.zip',
+      size: 512,
+      status: 'completed',
+      expiresUnix: 0,
+    }, 'Expires at %s');
+    expect(normalizeTestHtml(result)).toBe(`<span class="flex-text-inline">512 B</span>`);
+  });
 });
