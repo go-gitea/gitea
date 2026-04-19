@@ -38,15 +38,26 @@ const webComponents = new Set([
   'text-expander',
 ]);
 
+function failOnWarningsPlugin(): Rolldown.Plugin {
+  let warningCount = 0;
+  return {
+    name: 'fail-on-warnings',
+    onLog(level) {
+      if (level === 'warn') warningCount++;
+    },
+    buildEnd() {
+      if (!warningCount) return;
+      console.error(`\nerror: ${warningCount} warnings present`);
+      process.exit(1);
+    },
+  };
+}
+
 const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
     pluginTimings: false,
   },
-  ...(env.CI ? {
-    onwarn(warning: Rolldown.RolldownLog) {
-      throw new Error(`[rolldown] ${warning.code}: ${warning.message}`);
-    },
-  } : {}),
+  ...(env.CI ? {plugins: [failOnWarningsPlugin()]} : {}),
 };
 
 function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
