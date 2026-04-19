@@ -72,7 +72,7 @@ func TestAPIRepoContributorsIncludesStats(t *testing.T) {
 	if assert.NotEmpty(t, contributors) {
 		var found *api.Contributor
 		for _, contributor := range contributors {
-			if contributor != nil && contributor.User != nil && contributor.User.ID == user.ID {
+			if contributor != nil && contributor.ID == user.ID {
 				found = contributor
 				break
 			}

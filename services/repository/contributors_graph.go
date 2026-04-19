@@ -300,10 +300,15 @@ func scanOneStat(scanner *bufio.Scanner) (commitID, authorName, email string, da
 			return commitID, authorName, email, date, additions, deletions, changedFiles, err
 		}
 
-		fileAddition, _ := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64)
-		fileDeletion, _ := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 64)
-		additions += fileAddition
-		deletions += fileDeletion
+		// For binary file, it should be -, so fileAddition and fileDeletion will be 0
+		if strings.TrimSpace(parts[0]) != "-" {
+			fileAddition, _ := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64)
+			additions += fileAddition
+		}
+		if strings.TrimSpace(parts[1]) != "-" {
+			fileDeletion, _ := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 64)
+			deletions += fileDeletion
+		}
 		changedFiles++
 	}
 	return commitID, authorName, email, date, additions, deletions, changedFiles, err

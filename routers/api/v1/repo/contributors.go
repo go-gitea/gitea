@@ -12,7 +12,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
 )
 
 // ListContributors lists repository contributors.
@@ -72,18 +71,7 @@ func ListContributors(ctx *context.APIContext) {
 
 	result := make([]*api.Contributor, 0, len(contributors))
 	for _, contributor := range contributors {
-		if user := usersMap[contributor.UserID]; user != nil {
-			result = append(result, &api.Contributor{
-				User:          convert.ToUser(ctx, user, ctx.Doer),
-				Contributions: contributor.Commits,
-				Additions:     contributor.Additions,
-				Deletions:     contributor.Deletions,
-				Commits:       contributor.Commits,
-				FilesChanged:  contributor.ChangedFiles,
-			})
-			continue
-		}
-		result = append(result, &api.Contributor{
+		c := api.Contributor{
 			Name:          contributor.AuthorName,
 			Email:         contributor.Email,
 			Contributions: contributor.Commits,
@@ -91,7 +79,15 @@ func ListContributors(ctx *context.APIContext) {
 			Deletions:     contributor.Deletions,
 			Commits:       contributor.Commits,
 			FilesChanged:  contributor.ChangedFiles,
-		})
+		}
+		if user := usersMap[contributor.UserID]; user != nil {
+			c.Login = user.Name
+			c.ID = user.ID
+			c.AvatarURL = user.AvatarLink(ctx)
+			c.HTMLURL = user.HTMLURL(ctx)
+			c.Email = user.GetPlaceholderEmail()
+		}
+		result = append(result, &c)
 	}
 
 	ctx.SetTotalCountHeader(total)

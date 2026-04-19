@@ -310,7 +310,7 @@ func buildContributorDailyUpdates(ctx context.Context, repo *repo_model.Reposito
 				RepoID:     repo.ID,
 				DayStart:   dayStart,
 				UserID:     key.userID,
-				Email:      email,
+				Email:      key.email,
 				AuthorName: stat.Author.Name,
 			}
 			updates[key] = update
