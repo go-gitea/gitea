@@ -5,6 +5,7 @@ export const frontendRender: FrontendRenderFunc = async (opts): Promise<boolean>
     const [player] = await Promise.all([
       import('asciinema-player'),
       import('asciinema-player/dist/bundle/asciinema-player.css'),
+      import('./frontend-asciicast.css'),
     ]);
     player.create({data: opts.contentString()}, opts.container, {
       // poster (a preview frame) to display until the playback is started.
