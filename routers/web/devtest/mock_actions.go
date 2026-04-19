@@ -278,6 +278,14 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 		return
 	}
 
+	for _, job := range resp.State.Run.Jobs {
+		if job.ID == jobID {
+			resp.State.CurrentJob.Title = job.Name
+			resp.State.CurrentJob.Detail = job.Status
+			break
+		}
+	}
+
 	req := web.GetForm(ctx).(*actions.ViewRequest)
 	var mockLogOptions []generateMockStepsLogOptions
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
