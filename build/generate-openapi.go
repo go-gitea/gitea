@@ -3,13 +3,7 @@
 
 // generate-openapi converts Gitea's Swagger 2.0 spec into an OpenAPI 3.0 spec.
 //
-// Gitea generates a Swagger 2.0 spec from code annotations (make generate-swagger).
-// This tool converts it to OAS3 so that SDK generators and tools that require
-// OAS3 (e.g. progenitor for Rust) can consume it directly. The conversion also
-// deduplicates inline enum definitions into named schema components, producing
-// cleaner SDK output with proper enum types instead of anonymous strings.
-//
-// Usage: go run build/generate-openapi.go
+// Run: go run build/generate-openapi.go
 // Output: templates/swagger/v1_openapi3_json.tmpl
 
 //go:build ignore
@@ -25,8 +19,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi2"
-	"github.com/getkin/kin-openapi/openapi2conv"
+	"code.gitea.io/gitea/build/openapi3gen"
+
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
@@ -34,8 +28,6 @@ const (
 	swaggerSpecPath = "templates/swagger/v1_json.tmpl"
 	openapi3OutPath = "templates/swagger/v1_openapi3_json.tmpl"
 
-	// Go template variables in the Swagger spec that must be replaced
-	// with placeholders before parsing as JSON.
 	appSubUrlVar = "{{.SwaggerAppSubUrl}}"
 	appVerVar    = "{{.SwaggerAppVer}}"
 
@@ -46,48 +38,47 @@ const (
 var (
 	appSubUrlRe = regexp.MustCompile(regexp.QuoteMeta(appSubUrlVar))
 	appVerRe    = regexp.MustCompile(regexp.QuoteMeta(appVerVar))
+
+	enumScanDirs = []string{
+		"modules/structs",
+		"modules/commitstatus",
+	}
 )
 
 func main() {
+	astEnumMap, err := openapi3gen.ScanSwaggerEnumTypes(enumScanDirs)
+	if err != nil {
+		log.Fatalf("scanning swagger:enum annotations: %v", err)
+	}
+	names := make([]string, 0, len(astEnumMap))
+	for _, n := range astEnumMap {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	fmt.Fprintf(os.Stderr, "discovered %d swagger:enum types: %s\n", len(names), strings.Join(names, ", "))
+
 	data, err := os.ReadFile(swaggerSpecPath)
 	if err != nil {
 		log.Fatalf("reading swagger spec: %v", err)
 	}
 
-	// Replace Go template variables with safe placeholders for JSON parsing
 	cleaned := appSubUrlRe.ReplaceAll(data, []byte(appSubUrlPlaceholder))
 	cleaned = appVerRe.ReplaceAll(cleaned, []byte(appVerPlaceholder))
 
-	var swagger2 openapi2.T
-	if err := json.Unmarshal(cleaned, &swagger2); err != nil {
-		log.Fatalf("parsing swagger 2.0: %v", err)
-	}
-
-	oas3, err := openapi2conv.ToV3(&swagger2)
+	oas3, err := openapi3gen.Convert(cleaned, astEnumMap)
 	if err != nil {
 		log.Fatalf("converting to openapi 3.0: %v", err)
 	}
 
-	// Set server URL with the placeholder for AppSubUrl
 	oas3.Servers = openapi3.Servers{
 		{URL: appSubUrlPlaceholder + "/api/v1"},
 	}
-
-	// Fix "type: file" schemas left over from Swagger 2.0 conversion.
-	fixFileSchemas(oas3)
-
-	// OAS3 post-processing: enrich the spec with details that Swagger 2.0
-	// and go-swagger cannot express.
-	addURIFormats(oas3)
-	addDeprecatedFlags(oas3)
-	extractSharedEnums(oas3)
 
 	out, err := json.MarshalIndent(oas3, "", "  ")
 	if err != nil {
 		log.Fatalf("marshaling openapi 3.0: %v", err)
 	}
 
-	// Re-inject Go template variables
 	result := strings.ReplaceAll(string(out), appSubUrlPlaceholder, appSubUrlVar)
 	result = strings.ReplaceAll(result, appVerPlaceholder, appVerVar)
 
@@ -100,275 +91,4 @@ func main() {
 	}
 
 	fmt.Printf("Generated %s\n", openapi3OutPath)
-}
-
-func fixFileSchemas(doc *openapi3.T) {
-	for _, pathItem := range doc.Paths.Map() {
-		for _, op := range []*openapi3.Operation{
-			pathItem.Get, pathItem.Post, pathItem.Put, pathItem.Patch,
-			pathItem.Delete, pathItem.Head, pathItem.Options, pathItem.Trace,
-		} {
-			if op == nil {
-				continue
-			}
-			for _, resp := range op.Responses.Map() {
-				if resp.Value == nil {
-					continue
-				}
-				for _, mediaType := range resp.Value.Content {
-					fixSchema(mediaType.Schema)
-				}
-			}
-			if op.RequestBody != nil && op.RequestBody.Value != nil {
-				for _, mediaType := range op.RequestBody.Value.Content {
-					fixSchema(mediaType.Schema)
-				}
-			}
-		}
-	}
-}
-
-func fixSchema(ref *openapi3.SchemaRef) {
-	if ref == nil || ref.Value == nil {
-		return
-	}
-	if ref.Value.Type.Is("file") {
-		ref.Value.Type = &openapi3.Types{"string"}
-		ref.Value.Format = "binary"
-	}
-}
-
-// addURIFormats sets format: uri on string properties whose names indicate
-// they hold URLs. This information is lost in Swagger 2.0 but is valuable
-// for code generators.
-func addURIFormats(doc *openapi3.T) {
-	if doc.Components == nil {
-		return
-	}
-	for _, schemaRef := range doc.Components.Schemas {
-		if schemaRef.Value == nil {
-			continue
-		}
-		for propName, propRef := range schemaRef.Value.Properties {
-			if propRef == nil || propRef.Value == nil || propRef.Ref != "" {
-				continue
-			}
-			prop := propRef.Value
-			if !prop.Type.Is("string") || prop.Format != "" {
-				continue
-			}
-			if isURLProperty(propName) {
-				prop.Format = "uri"
-			}
-		}
-	}
-}
-
-func isURLProperty(name string) bool {
-	if strings.HasSuffix(name, "_url") {
-		return true
-	}
-	switch name {
-	case "url", "html_url", "clone_url":
-		return true
-	}
-	return false
-}
-
-// addDeprecatedFlags sets deprecated: true on schema properties whose
-// description contains "deprecated".
-func addDeprecatedFlags(doc *openapi3.T) {
-	if doc.Components == nil {
-		return
-	}
-	for _, schemaRef := range doc.Components.Schemas {
-		if schemaRef.Value == nil {
-			continue
-		}
-		for _, propRef := range schemaRef.Value.Properties {
-			if propRef == nil || propRef.Value == nil || propRef.Ref != "" {
-				continue
-			}
-			desc := strings.ToLower(propRef.Value.Description)
-			if strings.Contains(desc, "deprecated") {
-				propRef.Value.Deprecated = true
-			}
-		}
-	}
-}
-
-type enumUsage struct {
-	schemaName string
-	propName   string
-	propRef    *openapi3.SchemaRef
-	inItems    bool
-}
-
-// extractSharedEnums finds identical enum arrays used by multiple schema
-// properties, creates a standalone named schema for each, and replaces
-// the inline enums with $ref pointers.
-func extractSharedEnums(doc *openapi3.T) {
-	if doc.Components == nil {
-		return
-	}
-
-	enumGroups := map[string][]enumUsage{}
-
-	for schemaName, schemaRef := range doc.Components.Schemas {
-		if schemaRef.Value == nil {
-			continue
-		}
-		for propName, propRef := range schemaRef.Value.Properties {
-			if propRef == nil || propRef.Value == nil || propRef.Ref != "" {
-				continue
-			}
-			if len(propRef.Value.Enum) > 1 && propRef.Value.Type.Is("string") {
-				key := enumKey(propRef.Value.Enum)
-				enumGroups[key] = append(enumGroups[key], enumUsage{schemaName, propName, propRef, false})
-			}
-			if propRef.Value.Type.Is("array") && propRef.Value.Items != nil &&
-				propRef.Value.Items.Value != nil && propRef.Value.Items.Ref == "" &&
-				len(propRef.Value.Items.Value.Enum) > 1 && propRef.Value.Items.Value.Type.Is("string") {
-				key := enumKey(propRef.Value.Items.Value.Enum)
-				enumGroups[key] = append(enumGroups[key], enumUsage{schemaName, propName, propRef, true})
-			}
-		}
-	}
-
-	for _, usages := range enumGroups {
-		if len(usages) < 2 {
-			continue
-		}
-
-		enumName := deriveEnumName(usages)
-		if _, exists := doc.Components.Schemas[enumName]; exists {
-			enumName += "Type"
-		}
-		if _, exists := doc.Components.Schemas[enumName]; exists {
-			continue
-		}
-
-		var enumValues []any
-		if usages[0].inItems {
-			enumValues = usages[0].propRef.Value.Items.Value.Enum
-		} else {
-			enumValues = usages[0].propRef.Value.Enum
-		}
-
-		doc.Components.Schemas[enumName] = &openapi3.SchemaRef{
-			Value: &openapi3.Schema{
-				Type: &openapi3.Types{"string"},
-				Enum: enumValues,
-			},
-		}
-
-		ref := "#/components/schemas/" + enumName
-
-		for _, usage := range usages {
-			if usage.inItems {
-				usage.propRef.Value.Items = &openapi3.SchemaRef{Ref: ref}
-			} else {
-				old := usage.propRef.Value
-				if old.Description == "" && !old.Deprecated && old.Format == "" {
-					usage.propRef.Ref = ref
-					usage.propRef.Value = nil
-				} else {
-					usage.propRef.Value = &openapi3.Schema{
-						AllOf: openapi3.SchemaRefs{
-							{Ref: ref},
-						},
-						Description: old.Description,
-						Deprecated:  old.Deprecated,
-					}
-				}
-			}
-		}
-	}
-}
-
-func enumKey(values []any) string {
-	strs := make([]string, len(values))
-	for i, v := range values {
-		strs[i] = fmt.Sprintf("%v", v)
-	}
-	sort.Strings(strs)
-	return strings.Join(strs, "|")
-}
-
-// knownEnumTypes maps constant-name prefixes to their Go type names.
-// SDK generators (e.g. progenitor for Rust) need named enum types to produce
-// good code — without them you get duplicate anonymous string types on every
-// field instead of a shared enum like StateType.
-//
-// deriveEnumName extracts a prefix by stripping the enum value from the
-// constant name (e.g. "StateClosed" minus "closed" = "State"), but that
-// prefix doesn't always match the Go type (State → StateType,
-// CommitStatus → CommitStatusState). This map bridges the gap.
-var knownEnumTypes = map[string]string{
-	"CommitStatus":     "CommitStatusState",
-	"State":            "StateType",
-	"ReviewState":      "ReviewStateType",
-	"NotifySubject":    "NotifySubjectType",
-	"IssueFormField":   "IssueFormFieldType",
-	"ObjectFormatName": "ObjectFormatName",
-}
-
-func deriveEnumName(usages []enumUsage) string {
-	for _, u := range usages {
-		if u.propRef.Value == nil {
-			continue
-		}
-		desc, ok := u.propRef.Value.Extensions["x-go-enum-desc"]
-		if !ok {
-			continue
-		}
-		s, ok := desc.(string)
-		if !ok {
-			continue
-		}
-		parts := strings.Fields(s)
-		if len(parts) < 2 {
-			continue
-		}
-		constName := parts[1]
-
-		var vals []any
-		if u.inItems {
-			vals = u.propRef.Value.Items.Value.Enum
-		} else {
-			vals = u.propRef.Value.Enum
-		}
-		for _, v := range vals {
-			vs := fmt.Sprintf("%v", v)
-			lowerConst := strings.ToLower(constName)
-			lowerVal := strings.ToLower(vs)
-			if strings.HasSuffix(lowerConst, lowerVal) && len(lowerVal) < len(lowerConst) {
-				prefix := constName[:len(constName)-len(vs)]
-				if goType, ok := knownEnumTypes[prefix]; ok {
-					return goType
-				}
-				return prefix
-			}
-		}
-	}
-
-	nameCounts := map[string]int{}
-	for _, u := range usages {
-		nameCounts[u.propName]++
-	}
-	bestName := ""
-	bestCount := 0
-	for name, count := range nameCounts {
-		if count > bestCount || (count == bestCount && name < bestName) {
-			bestName = name
-			bestCount = count
-		}
-	}
-	result := ""
-	for _, p := range strings.Split(bestName, "_") {
-		if len(p) > 0 {
-			result += strings.ToUpper(p[:1]) + p[1:]
-		}
-	}
-	return result + "Enum"
 }
