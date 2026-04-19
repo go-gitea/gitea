@@ -4,9 +4,10 @@
 package openapi3gen
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"github.com/getkin/kin-openapi/openapi2"
 	"github.com/getkin/kin-openapi/openapi2conv"
