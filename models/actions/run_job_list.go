@@ -57,7 +57,9 @@ func (jobs ActionJobList) LoadRuns(ctx context.Context, withRepo bool) error {
 	for _, j := range jobs {
 		if j.RunID > 0 && j.Run == nil {
 			j.Run = runs[j.RunID]
-			j.Run.Repo = j.Repo
+			if j.Run != nil {
+				j.Run.Repo = j.Repo
+			}
 		}
 	}
 	return nil
