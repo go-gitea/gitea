@@ -104,7 +104,7 @@ func User2UserSettings(user *user_model.User) api.UserSettings {
 func ToUserAndPermission(ctx context.Context, user, doer *user_model.User, accessMode perm.AccessMode) api.RepoCollaboratorPermission {
 	return api.RepoCollaboratorPermission{
 		User:       ToUser(ctx, user, doer),
-		Permission: accessMode.ToString(),
+		Permission: api.AccessLevelName(accessMode.ToString()),
 		RoleName:   accessMode.ToString(),
 	}
 }

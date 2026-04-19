@@ -1759,6 +1759,16 @@
         "type": "object",
         "x-go-package": "code.gitea.io/gitea/modules/structs"
       },
+      "AccessLevelName": {
+        "enum": [
+          "none",
+          "read",
+          "write",
+          "admin",
+          "owner"
+        ],
+        "type": "string"
+      },
       "AccessToken": {
         "properties": {
           "created_at": {
@@ -2524,7 +2534,12 @@
         "description": "AddCollaboratorOption options when adding a user as a collaborator of a repository",
         "properties": {
           "permission": {
-            "$ref": "#/components/schemas/PermissionEnum"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepoWritePermission"
+              }
+            ],
+            "description": "Permission level to grant the collaborator\nread RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin"
           }
         },
         "type": "object",
@@ -4269,10 +4284,10 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/VisibilityEnum"
+                "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "possible values are `public` (default), `limited` or `private`"
+            "description": "possible values are `public` (default), `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
           },
           "website": {
             "description": "The website URL of the organization",
@@ -4538,10 +4553,10 @@
           "object_format_name": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/ObjectFormatNameEnum"
+                "$ref": "#/components/schemas/ObjectFormatName"
               }
             ],
-            "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)"
+            "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256"
           },
           "private": {
             "description": "Whether the repository is private",
@@ -4682,7 +4697,7 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "$ref": "#/components/schemas/PermissionEnum"
+            "$ref": "#/components/schemas/RepoWritePermission"
           },
           "units": {
             "example": [
@@ -4775,9 +4790,12 @@
             "x-go-name": "Username"
           },
           "visibility": {
-            "description": "User visibility level: public, limited, or private",
-            "type": "string",
-            "x-go-name": "Visibility"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserVisibility"
+              }
+            ],
+            "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
           }
         },
         "required": [
@@ -5408,10 +5426,10 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/VisibilityEnum"
+                "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "possible values are `public`, `limited` or `private`"
+            "description": "possible values are `public`, `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
           },
           "website": {
             "description": "The website URL of the organization",
@@ -5765,7 +5783,7 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "$ref": "#/components/schemas/PermissionEnum"
+            "$ref": "#/components/schemas/RepoWritePermission"
           },
           "units": {
             "example": [
@@ -5894,9 +5912,12 @@
             "x-go-name": "SourceID"
           },
           "visibility": {
-            "description": "User visibility level: public, limited, or private",
-            "type": "string",
-            "x-go-name": "Visibility"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserVisibility"
+              }
+            ],
+            "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
           },
           "website": {
             "description": "The user's personal website URL",
@@ -7234,7 +7255,11 @@
       "MergePullRequestOption": {
         "description": "MergePullRequestForm form for merging Pull Request",
         "properties": {
-          "Do": {
+          "delete_branch_after_merge": {
+            "type": "boolean",
+            "x-go-name": "DeleteBranchAfterMerge"
+          },
+          "do": {
             "enum": [
               "merge",
               "rebase",
@@ -7243,20 +7268,8 @@
               "fast-forward-only",
               "manually-merged"
             ],
-            "type": "string"
-          },
-          "MergeCommitID": {
-            "type": "string"
-          },
-          "MergeMessageField": {
-            "type": "string"
-          },
-          "MergeTitleField": {
-            "type": "string"
-          },
-          "delete_branch_after_merge": {
-            "type": "boolean",
-            "x-go-name": "DeleteBranchAfterMerge"
+            "type": "string",
+            "x-go-name": "Do"
           },
           "force_merge": {
             "type": "boolean",
@@ -7266,13 +7279,25 @@
             "type": "string",
             "x-go-name": "HeadCommitID"
           },
+          "merge_commit_id": {
+            "type": "string",
+            "x-go-name": "MergeCommitID"
+          },
+          "merge_message_field": {
+            "type": "string",
+            "x-go-name": "MergeMessageField"
+          },
+          "merge_title_field": {
+            "type": "string",
+            "x-go-name": "MergeTitleField"
+          },
           "merge_when_checks_succeed": {
             "type": "boolean",
             "x-go-name": "MergeWhenChecksSucceed"
           }
         },
         "required": [
-          "Do"
+          "do"
         ],
         "type": "object",
         "x-go-name": "MergePullRequestForm",
@@ -7810,7 +7835,7 @@
         "type": "object",
         "x-go-package": "code.gitea.io/gitea/modules/structs"
       },
-      "ObjectFormatNameEnum": {
+      "ObjectFormatName": {
         "enum": [
           "sha1",
           "sha256"
@@ -7869,9 +7894,12 @@
             "x-go-name": "UserName"
           },
           "visibility": {
-            "description": "The visibility level of the organization (public, limited, private)",
-            "type": "string",
-            "x-go-name": "Visibility"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserVisibility"
+              }
+            ],
+            "description": "The visibility level of the organization (public, limited, private)\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
           },
           "website": {
             "description": "The website URL of the organization",
@@ -8168,14 +8196,6 @@
         },
         "type": "object",
         "x-go-package": "code.gitea.io/gitea/modules/structs"
-      },
-      "PermissionEnum": {
-        "enum": [
-          "read",
-          "write",
-          "admin"
-        ],
-        "type": "string"
       },
       "PublicKey": {
         "description": "PublicKey publickey is a user key to push code to repository",
@@ -8869,9 +8889,12 @@
         "description": "RepoCollaboratorPermission to get repository permission for a collaborator",
         "properties": {
           "permission": {
-            "description": "Permission level of the collaborator",
-            "type": "string",
-            "x-go-name": "Permission"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AccessLevelName"
+              }
+            ],
+            "description": "Permission level of the collaborator\nnone AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner"
           },
           "role_name": {
             "description": "RoleName is the name of the permission role",
@@ -8949,6 +8972,14 @@
         },
         "type": "object",
         "x-go-package": "code.gitea.io/gitea/modules/structs"
+      },
+      "RepoWritePermission": {
+        "enum": [
+          "read",
+          "write",
+          "admin"
+        ],
+        "type": "string"
       },
       "Repository": {
         "description": "Repository represents a repository",
@@ -9154,10 +9185,10 @@
           "object_format_name": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/ObjectFormatNameEnum"
+                "$ref": "#/components/schemas/ObjectFormatName"
               }
             ],
-            "description": "ObjectFormatName of the underlying git repository"
+            "description": "ObjectFormatName of the underlying git repository\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256"
           },
           "open_issues_count": {
             "format": "int64",
@@ -9537,15 +9568,7 @@
             "$ref": "#/components/schemas/Organization"
           },
           "permission": {
-            "enum": [
-              "none",
-              "read",
-              "write",
-              "admin",
-              "owner"
-            ],
-            "type": "string",
-            "x-go-name": "Permission"
+            "$ref": "#/components/schemas/AccessLevelName"
           },
           "units": {
             "example": [
@@ -10098,9 +10121,12 @@
             "x-go-name": "StarredRepos"
           },
           "visibility": {
-            "description": "User visibility level option: public, limited, private",
-            "type": "string",
-            "x-go-name": "Visibility"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserVisibility"
+              }
+            ],
+            "description": "User visibility level option: public, limited, private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
           },
           "website": {
             "description": "the user's website",
@@ -10232,7 +10258,7 @@
         "type": "object",
         "x-go-package": "code.gitea.io/gitea/modules/structs"
       },
-      "VisibilityEnum": {
+      "UserVisibility": {
         "enum": [
           "public",
           "limited",
