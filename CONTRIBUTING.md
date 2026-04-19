@@ -151,7 +151,7 @@ Here's how to run the test suite:
 | :-------------------------------- | :---------------------------------------------------------- |
 | ``GITEA_TEST_E2E_DEBUG``          | When set, show Gitea server output                          |
 | ``GITEA_TEST_E2E_FLAGS``          | Additional flags passed to Playwright, for example ``--ui`` |
-| ``GITEA_TEST_E2E_TIMEOUT_FACTOR`` | Timeout multiplier (default: 3 on CI, 1 locally)            |
+| ``GITEA_TEST_E2E_TIMEOUT_FACTOR`` | Timeout multiplier (default: 4 on CI, 1 locally)            |
 
 ## Translation
 
