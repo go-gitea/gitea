@@ -153,6 +153,8 @@ Here's how to run the test suite:
 | ``GITEA_TEST_E2E_FLAGS``          | Additional flags passed to Playwright, for example ``--ui`` |
 | ``GITEA_TEST_E2E_TIMEOUT_FACTOR`` | Timeout multiplier (default: 3 on CI, 1 locally)            |
 
+See Playwright's [system requirements](https://playwright.dev/docs/intro#system-requirements) for supported operating systems and Linux distributions.
+
 ## Translation
 
 All translation work happens on [Crowdin](https://translate.gitea.com).
