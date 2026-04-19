@@ -76,7 +76,7 @@
 }
 
 .issue-content-right .empty-list {
-  font-size: var(--font-size-label);
+  font-size: 12px;
 }
 
 @media (max-width: 767.98px) {
