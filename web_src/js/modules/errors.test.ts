@@ -33,8 +33,8 @@ test('processWindowErrorEvent renders stack trace in details', () => {
   const error = new Error('boom');
   error.stack = `Error: boom\n    at fn (${window.location.origin}/assets/js/index.js:1:1)`;
   processWindowErrorEvent({error, type: 'error'} as ErrorEvent & PromiseRejectionEvent);
-  expect(document.querySelector('.js-global-error summary')!.textContent).toBe('JavaScript error: boom');
-  expect(document.querySelector('.js-global-error pre code')!.textContent).toContain('/assets/js/index.js:1:1');
+  expect(document.querySelector('.js-global-error summary')!.textContent).toContain('JavaScript error: boom');
+  expect(document.querySelector('.js-global-error pre')!.textContent).toContain('/assets/js/index.js:1:1');
 });
 
 test('processWindowErrorEvent falls back to message without stack', () => {

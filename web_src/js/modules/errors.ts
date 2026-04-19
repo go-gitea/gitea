@@ -13,7 +13,7 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', d
   let msgContainer = parentContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
   if (!msgContainer) {
     const el = document.createElement('div');
-    el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><details class="ui ${msgType} message"><summary></summary></details></div>`;
+    el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><details class="ui ${msgType} message tw-text-center tw-whitespace-pre-line"><summary></summary></details></div>`;
     msgContainer = el.childNodes[0] as HTMLDivElement;
   }
 
@@ -27,9 +27,13 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', d
   msgSummary.textContent = msg + (msgCount > 1 ? ` (${msgCount})` : '');
   if (details) {
     let msgDetailsPre = msgElem.querySelector('pre');
-    if (!msgDetailsPre) msgDetailsPre = document.createElement('pre');
+    if (!msgDetailsPre) {
+      msgDetailsPre = document.createElement('pre');
+      msgElem.append(msgDetailsPre);
+    }
     msgDetailsPre.textContent = details;
-    msgElem.append(msgDetailsPre);
+  } else {
+    msgElem.querySelector('pre')?.remove();
   }
   parentContainer.prepend(msgContainer);
 }
@@ -63,5 +67,6 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
   const renderedType = type === 'unhandledrejection' ? 'promise rejection' : type;
   let msg = err?.message ?? message;
   if (!err?.stack && lineno) msg += ` (${filename} @ ${lineno}:${colno})`;
-  showGlobalErrorMessage(`JavaScript ${renderedType}: ${msg}`, 'error', err?.stack);
+  const dot = msg.endsWith('.') ? '' : '.';
+  showGlobalErrorMessage(`JavaScript ${renderedType}: ${msg}${dot} Open browser console to see more details.`, 'error', err?.stack);
 }
