@@ -2,6 +2,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
+import {errorMessage} from '../utils/error.ts';
 import {parseDom} from '../utils.ts';
 
 export function syncIssueMainContentTimelineItems(oldMainContent: Element, newMainContent: Element) {
@@ -129,7 +130,7 @@ export class IssueSidebarComboList {
       await this.reloadPagePartially();
     } catch (e) {
       console.error('Failed to update to backend', e);
-      showErrorToast(`Failed to update to backend: ${String(e)}`);
+      showErrorToast(`Failed to update to backend: ${errorMessage(e)}`);
     } finally {
       this.elIssueSidebar.classList.remove('is-loading');
     }

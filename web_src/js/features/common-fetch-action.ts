@@ -1,6 +1,7 @@
 import {GET, request} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
+import {errorMessage} from '../utils/error.ts';
 import {confirmModal, createConfirmModal} from './comp/ConfirmModal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
@@ -135,10 +136,9 @@ async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
     }
     await handleFetchActionError(resp);
   } catch (err) {
-    const e = err as Error;
-    if (e.name !== 'AbortError') {
-      console.error(`Fetch action request error:`, e);
-      showErrorToast(`Error: ${e.message ?? String(e)}`);
+    if ((err as Error).name !== 'AbortError') {
+      console.error(`Fetch action request error:`, err);
+      showErrorToast(`Error: ${errorMessage(err)}`);
     }
   } finally {
     toggleLoadingIndicator(el, opt, false);
