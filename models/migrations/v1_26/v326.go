@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"xorm.io/xorm"
@@ -57,6 +56,29 @@ type migrationCommitStatus struct {
 	ID        int64
 	RepoID    int64
 	TargetURL string
+}
+
+// Frozen subsets of modules/structs payload types, decoded from stored
+// action_run.event_payload values. Inlined so the migration is insulated
+// from future field changes in modules/structs.
+type migrationPayloadCommit struct {
+	ID string `json:"id"`
+}
+
+type migrationPushPayload struct {
+	HeadCommit *migrationPayloadCommit `json:"head_commit"`
+}
+
+type migrationPRBranchInfo struct {
+	Sha string `json:"sha"`
+}
+
+type migrationPullRequest struct {
+	Head *migrationPRBranchInfo `json:"head"`
+}
+
+type migrationPullRequestPayload struct {
+	PullRequest *migrationPullRequest `json:"pull_request"`
 }
 
 type commitSHAAndRuns struct {
@@ -292,22 +314,22 @@ func getCommitStatusCommitID(run *migrationActionRun) (string, error) {
 	}
 }
 
-func getPushEventPayload(run *migrationActionRun) (*api.PushPayload, error) {
+func getPushEventPayload(run *migrationActionRun) (*migrationPushPayload, error) {
 	if run.Event != webhook_module.HookEventPush {
 		return nil, fmt.Errorf("event %s is not a push event", run.Event)
 	}
-	var payload api.PushPayload
+	var payload migrationPushPayload
 	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 		return nil, err
 	}
 	return &payload, nil
 }
 
-func getPullRequestEventPayload(run *migrationActionRun) (*api.PullRequestPayload, error) {
+func getPullRequestEventPayload(run *migrationActionRun) (*migrationPullRequestPayload, error) {
 	if !run.Event.IsPullRequest() && !run.Event.IsPullRequestReview() {
 		return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
 	}
-	var payload api.PullRequestPayload
+	var payload migrationPullRequestPayload
 	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 		return nil, err
 	}

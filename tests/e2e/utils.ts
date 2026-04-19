@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect} from '@playwright/test';
-import type {APIRequestContext, Page} from '@playwright/test';
+import type {APIRequestContext, Locator, Page} from '@playwright/test';
 
 /** Generate a random alphanumeric string. */
 export function randomString(length: number): string {
@@ -67,6 +67,20 @@ export async function apiCreateFile(requestContext: APIRequestContext, owner: st
   }), 'apiCreateFile');
 }
 
+export async function apiCreateBranch(requestContext: APIRequestContext, owner: string, repo: string, newBranch: string) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branches`, {
+    headers: apiHeaders(),
+    data: {new_branch_name: newBranch},
+  }), 'apiCreateBranch');
+}
+
+export async function createProjectColumn(requestContext: APIRequestContext, owner: string, repo: string, projectID: string, title: string) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/${owner}/${repo}/projects/${projectID}/columns/new`, {
+    headers: apiHeaders(),
+    form: {title},
+  }), 'createProjectColumn');
+}
+
 export async function apiDeleteRepo(requestContext: APIRequestContext, owner: string, name: string) {
   await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/repos/${owner}/${name}`, {
     headers: apiHeaders(),
@@ -113,6 +127,15 @@ export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, pass
 
 export async function assertNoJsError(page: Page) {
   await expect(page.locator('.js-global-error')).toHaveCount(0);
+}
+
+/* asserts the child has no horizontal inset from its parent — catches padding/border anywhere
+ * in between regardless of which element declares it */
+export async function assertFlushWithParent(child: Locator, parent: Locator) {
+  const [childBox, parentBox] = await Promise.all([child.boundingBox(), parent.boundingBox()]);
+  if (!childBox || !parentBox) throw new Error('boundingBox returned null');
+  expect(childBox.x).toBe(parentBox.x);
+  expect(childBox.width).toBe(parentBox.width);
 }
 
 export async function logout(page: Page) {

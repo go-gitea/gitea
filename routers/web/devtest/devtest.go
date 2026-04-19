@@ -45,7 +45,7 @@ func List(ctx *context.Context) {
 
 func FetchActionTest(ctx *context.Context) {
 	_ = ctx.Req.ParseForm()
-	ctx.Flash.Info("fetch-action: " + ctx.Req.Method + " " + ctx.Req.RequestURI + "\n" +
+	ctx.Flash.Info("fetch action: " + ctx.Req.Method + " " + ctx.Req.RequestURI + "\n" +
 		"Form: " + ctx.Req.Form.Encode() + "\n" +
 		"PostForm: " + ctx.Req.PostForm.Encode(),
 	)
@@ -241,9 +241,8 @@ func prepareMockDataUnicodeEscape(ctx *context.Context) {
 
 func TmplCommon(ctx *context.Context) {
 	prepareMockData(ctx)
-	if ctx.Req.Method == http.MethodPost {
-		_ = ctx.Req.ParseForm()
-		ctx.Flash.Info("form: "+ctx.Req.Method+" "+ctx.Req.RequestURI+"\n"+
+	if ctx.Req.Method == http.MethodPost && ctx.FormBool("mock_response_delay") {
+		ctx.Flash.Info("form submit: "+ctx.Req.Method+" "+ctx.Req.RequestURI+"\n"+
 			"Form: "+ctx.Req.Form.Encode()+"\n"+
 			"PostForm: "+ctx.Req.PostForm.Encode(),
 			true,
