@@ -81,7 +81,7 @@ async function loadMermaid(needElkRender: boolean) {
   };
 }
 
-function initMermaidViewController(viewController: HTMLElement, dragElement: SVGSVGElement) {
+function initMermaidViewController(viewController: Element, dragElement: SVGSVGElement) {
   let inited = false, isDragging = false;
   let currentScale = 1, initLeft = 0, lastLeft = 0, lastTop = 0, lastPageX = 0, lastPageY = 0;
 
