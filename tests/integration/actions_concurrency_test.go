@@ -13,6 +13,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -20,10 +21,12 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	actions_web "code.gitea.io/gitea/routers/web/repo/actions"
 	actions_service "code.gitea.io/gitea/services/actions"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWorkflowConcurrency(t *testing.T) {
@@ -1680,6 +1683,144 @@ jobs:
 		// run2 should be cancelled by run3
 		run2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
 		assert.Equal(t, actions_model.StatusCancelled, run2.Status)
+	})
+}
+
+// TestCancelLegacyRunBlockedByConcurrency simulates a workflow run created before migration v331:
+// it has no ActionRunAttempt record (LatestAttemptID == 0) and was blocked by workflow-level concurrency.
+// Migration v331 drops action_run.concurrency_group / concurrency_cancel, so the run ends up "stuck" with no way for the job emitter to naturally unblock it.
+// The test verifies the user can still:
+//  1. view the stuck legacy run correctly (web view renders)
+//  2. cancel it from the UI, which transitions the run and all its jobs to Cancelled
+//  3. rerun the (now cancelled) legacy run successfully
+func TestCancelLegacyRunBlockedByConcurrency(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		apiRepo := createActionsTestRepo(t, token, "actions-legacy-concurrency", false)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		defer doAPIDeleteRepository(httpContext)(t)
+
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+		// Manually insert a "legacy" run blocked by workflow-level concurrency: no ActionRunAttempt, LatestAttemptID=0.
+		// Its workflow-level concurrency info would have been stored on action_run.concurrency_group pre-v331;
+		// after the migration that column is gone, so we simply mark the run (and its jobs) as Blocked.
+		legacyWfContent := `name: legacy-blocked
+on:
+  workflow_dispatch:
+concurrency:
+  group: test-group
+jobs:
+  legacy-job1:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'legacy-job1'
+  legacy-job2:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'legacy-job2'
+`
+		payloads := mustParseSingleWorkflowPayloads(t, legacyWfContent)
+		now := timeutil.TimeStamp(time.Now().Unix())
+		legacyRun := &actions_model.ActionRun{
+			Title:         "legacy blocked run",
+			RepoID:        repo.ID,
+			OwnerID:       repo.OwnerID,
+			WorkflowID:    "legacy-blocked.yml",
+			Index:         1,
+			TriggerUserID: user2.ID,
+			Ref:           "refs/heads/" + repo.DefaultBranch,
+			CommitSHA:     "0000000000000000000000000000000000000000",
+			Event:         "workflow_dispatch",
+			TriggerEvent:  "workflow_dispatch",
+			EventPayload:  "{}",
+			Status:        actions_model.StatusBlocked,
+			Created:       now - 1,
+			Updated:       now - 1,
+		}
+		require.NoError(t, db.Insert(t.Context(), legacyRun))
+
+		legacyJob1 := &actions_model.ActionRunJob{
+			RunID:           legacyRun.ID,
+			RepoID:          repo.ID,
+			OwnerID:         repo.OwnerID,
+			CommitSHA:       legacyRun.CommitSHA,
+			Name:            payloads["legacy-job1"].name,
+			Attempt:         1,
+			WorkflowPayload: payloads["legacy-job1"].payload,
+			JobID:           "legacy-job1",
+			Needs:           payloads["legacy-job1"].needs,
+			RunsOn:          payloads["legacy-job1"].runsOn,
+			Status:          actions_model.StatusBlocked,
+			RunAttemptID:    0,
+			AttemptJobID:    0,
+		}
+		legacyJob2 := &actions_model.ActionRunJob{
+			RunID:           legacyRun.ID,
+			RepoID:          repo.ID,
+			OwnerID:         repo.OwnerID,
+			CommitSHA:       legacyRun.CommitSHA,
+			Name:            payloads["legacy-job2"].name,
+			Attempt:         1,
+			WorkflowPayload: payloads["legacy-job2"].payload,
+			JobID:           "legacy-job2",
+			Needs:           payloads["legacy-job2"].needs,
+			RunsOn:          payloads["legacy-job2"].runsOn,
+			Status:          actions_model.StatusBlocked,
+			RunAttemptID:    0,
+			AttemptJobID:    0,
+		}
+		require.NoError(t, db.Insert(t.Context(), legacyJob1, legacyJob2))
+
+		// 1) User visits the legacy run's web view - it renders without error.
+		req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo.Name, legacyRun.ID))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		viewResp := DecodeJSON(t, resp, &actions_web.ViewResponse{})
+		// Legacy run has no attempt record, so RunAttempt is 0 and Attempts is empty.
+		assert.EqualValues(t, 0, viewResp.State.Run.RunAttempt)
+		assert.Empty(t, viewResp.State.Run.Attempts)
+		assert.Equal(t, actions_model.StatusBlocked.String(), viewResp.State.Run.Status)
+		assert.False(t, viewResp.State.Run.Done)
+		// Legacy workflow-level concurrency info is gone (columns dropped by v331), so GetEffectiveConcurrency returns "": the run cannot self-unblock via job_emitter.
+		afterLoadRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: legacyRun.ID})
+		assert.Empty(t, getRunConcurrencyGroup(t, afterLoadRun))
+		// Still Blocked, not Done, but user should be able to cancel.
+		assert.True(t, viewResp.State.Run.CanCancel)
+		assert.False(t, viewResp.State.Run.CanRerun)
+		if assert.Len(t, viewResp.State.Run.Jobs, 2) {
+			assert.Equal(t, actions_model.StatusBlocked.String(), viewResp.State.Run.Jobs[0].Status)
+			assert.Equal(t, actions_model.StatusBlocked.String(), viewResp.State.Run.Jobs[1].Status)
+		}
+
+		// 2) User cancels the legacy run to clean it up.
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/cancel", user2.Name, repo.Name, legacyRun.ID))
+		session.MakeRequest(t, req, http.StatusOK)
+		// Run and all its jobs transition to Cancelled.
+		cancelledRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: legacyRun.ID})
+		assert.Equal(t, actions_model.StatusCancelled, cancelledRun.Status)
+		cancelledJob1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: legacyJob1.ID})
+		assert.Equal(t, actions_model.StatusCancelled, cancelledJob1.Status)
+		cancelledJob2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: legacyJob2.ID})
+		assert.Equal(t, actions_model.StatusCancelled, cancelledJob2.Status)
+
+		// 3) User reruns the now-cancelled legacy run.
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, legacyRun.ID))
+		session.MakeRequest(t, req, http.StatusOK)
+		rerunRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: legacyRun.ID})
+		assert.Positive(t, rerunRun.LatestAttemptID)
+		assert.EqualValues(t, 2, getRunLatestAttemptNum(t, legacyRun.ID))
+		// Both jobs run successfully on the registered runner.
+		for range 2 {
+			task := runner.fetchTask(t)
+			runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+		}
+		finalRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: legacyRun.ID})
+		assert.Equal(t, actions_model.StatusSuccess, finalRun.Status)
 	})
 }
 
