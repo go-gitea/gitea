@@ -259,7 +259,7 @@ swagger-validate: ## check if the swagger spec is valid
 .PHONY: generate-openapi3
 generate-openapi3: $(OPENAPI3_SPEC) ## generate the OpenAPI 3.0 spec from the Swagger 2.0 spec
 
-$(OPENAPI3_SPEC): $(SWAGGER_SPEC) build/generate-openapi.go
+$(OPENAPI3_SPEC): $(SWAGGER_SPEC) build/generate-openapi.go $(wildcard build/openapi3gen/*.go)
 	$(GO) run build/generate-openapi.go
 
 .PHONY: openapi3-check
@@ -270,6 +270,22 @@ openapi3-check: generate-openapi3
 		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
+
+.PHONY: openapi3-schema-check
+openapi3-schema-check: generate-openapi3 ## assert OAS3 spec has correctly-named enum schemas
+	@set -e; \
+	for name in CommitStatusState ObjectFormatName AccessLevelName RepoWritePermission ReviewStateType StateType UserVisibility; do \
+		if ! grep -q "\"$$name\": {" '$(OPENAPI3_SPEC)'; then \
+			echo "openapi3-schema-check: expected schema $$name missing from $(OPENAPI3_SPEC)"; \
+			exit 1; \
+		fi; \
+	done; \
+	if grep -Eq '"[A-Z][A-Za-z0-9]*Enum": \{' '$(OPENAPI3_SPEC)'; then \
+		echo "openapi3-schema-check: unexpected *Enum fallback name found in $(OPENAPI3_SPEC)"; \
+		grep -E '"[A-Z][A-Za-z0-9]*Enum": \{' '$(OPENAPI3_SPEC)'; \
+		exit 1; \
+	fi; \
+	echo "openapi3-schema-check: OK"
 
 .PHONY: checks
 checks: checks-frontend checks-backend ## run various consistency checks
