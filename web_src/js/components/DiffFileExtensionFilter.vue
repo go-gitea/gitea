@@ -1,7 +1,9 @@
 <script lang="ts" setup>
-import {ref, computed, onMounted, onUnmounted} from 'vue';
+import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue';
+import {throttle} from 'throttle-debounce';
 import {SvgIcon} from '../svg.ts';
 import {generateElemId} from '../utils/dom.ts';
+import {extname} from '../utils.ts';
 
 type Extension = {
   ext: string,
@@ -12,11 +14,10 @@ type Extension = {
 const el = document.querySelector<HTMLElement>('#diff-extension-filter')!;
 const menuVisible = ref(false);
 const extensions = ref<Array<Extension>>([]);
-const isFiltering = ref(false);
 const appliedExtensions = ref<Array<string> | null>(null);
 const searchQuery = ref('');
-const mutationObserver = ref<MutationObserver | null>(null);
 const uniqueIdMenu = generateElemId('diff-extension-filter-menu-');
+let mutationObserver: MutationObserver | null = null;
 const locale = {
   filter_by_file_extension: el.getAttribute('data-filter-by-file-extension'),
   select_all: el.getAttribute('data-select-all'),
@@ -25,6 +26,8 @@ const locale = {
   no_file_extension: el.getAttribute('data-no-file-extension'),
   no_file_extensions_found: el.getAttribute('data-no-file-extensions-found'),
 } as Record<string, string>;
+
+const isFiltering = computed(() => appliedExtensions.value !== null);
 
 // Subset of extensions shown in the dropdown while the user types in the search box.
 // Does not affect which extensions are checked or which files are hidden — only narrows
@@ -38,35 +41,23 @@ const filteredExtensions = computed(() => {
   return extensions.value.filter((ext) => ext.ext.toLowerCase().includes(query));
 });
 
-function getExtension(filename: string): string {
-  const basename = filename.substring(filename.lastIndexOf('/') + 1);
-  const lastDot = basename.lastIndexOf('.');
-  if (lastDot === -1) {
-    return locale.no_file_extension;
-  }
-  return basename.substring(lastDot);
+function fileBoxes(): NodeListOf<HTMLElement> {
+  return document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
+}
+
+function fileExt(box: HTMLElement): string {
+  return extname(box.getAttribute('data-new-filename') || '') || locale.no_file_extension;
 }
 
 function scanExtensions() {
   const extensionMap = new Map<string, {total: number, visible: number}>();
-  const fileBoxes = document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
-
-  let hiddenCount = 0;
-  fileBoxes.forEach((box) => {
-    const filename = box.getAttribute('data-new-filename') || '';
-    const ext = getExtension(filename);
-    const isHidden = box.classList.contains('tw-hidden');
-    if (!extensionMap.has(ext)) {
-      extensionMap.set(ext, {total: 0, visible: 0});
-    }
-    const stats = extensionMap.get(ext)!;
+  for (const box of fileBoxes()) {
+    const ext = fileExt(box);
+    const stats = extensionMap.get(ext) ?? {total: 0, visible: 0};
     stats.total += 1;
-    if (!isHidden) {
-      stats.visible += 1;
-    } else {
-      hiddenCount += 1;
-    }
-  });
+    if (!box.classList.contains('tw-hidden')) stats.visible += 1;
+    extensionMap.set(ext, stats);
+  }
 
   extensions.value = Array.from(extensionMap.entries())
     .map(([ext, stats]) => ({
@@ -75,39 +66,27 @@ function scanExtensions() {
       count: stats.total,
     }))
     .sort((a, b) => b.count - a.count);
-
-  isFiltering.value = hiddenCount > 0;
 }
 
 function applyFilterToFileBoxes(checkedExtensions: Set<string>) {
-  const fileBoxes = document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
   let hiddenCount = 0;
-
-  fileBoxes.forEach((box) => {
-    const filename = box.getAttribute('data-new-filename') || '';
-    const ext = getExtension(filename);
-    const isChecked = checkedExtensions.has(ext);
-
-    if (isChecked) {
+  for (const box of fileBoxes()) {
+    if (checkedExtensions.has(fileExt(box))) {
       box.classList.remove('tw-hidden');
     } else {
       box.classList.add('tw-hidden');
       hiddenCount += 1;
     }
-  });
-
-  isFiltering.value = hiddenCount > 0;
+  }
   appliedExtensions.value = hiddenCount > 0 ? Array.from(checkedExtensions) : null;
 }
 
 function focusElem(elem: HTMLElement | null, prevElem: HTMLElement | null) {
-  if (elem) {
-    elem.tabIndex = 0;
-    if (prevElem) prevElem.tabIndex = -1;
-    // Focus the input/button inside the menuitem if it exists, otherwise focus the item itself
-    const focusTarget = elem.querySelector('input, button') as HTMLElement || elem;
-    focusTarget.focus();
-  }
+  if (!elem) return;
+  elem.tabIndex = 0;
+  if (prevElem) prevElem.tabIndex = -1;
+  const focusTarget = elem.querySelector<HTMLElement>('input, button') ?? elem;
+  focusTarget.focus();
 }
 
 function toggleMenu() {
@@ -116,10 +95,7 @@ function toggleMenu() {
     searchQuery.value = '';
     scanExtensions();
     document.addEventListener('click', onOutsideClick, true);
-    setTimeout(() => {
-      const searchInput = el.querySelector('.diff-ext-search-input') as HTMLInputElement;
-      if (searchInput) searchInput.focus();
-    }, 0);
+    nextTick(() => el.querySelector<HTMLInputElement>('.diff-ext-search-input')!.focus());
   } else {
     document.removeEventListener('click', onOutsideClick, true);
   }
@@ -181,7 +157,7 @@ function onKeyDown(event: KeyboardEvent) {
       event.preventDefault();
       const currentElement = document.activeElement as HTMLElement;
 
-      // Try to find and toggle a checkbox (currentElement may be the input itself or a parent)
+      // currentElement may be the checkbox input itself, or a menuitem wrapping it
       const checkbox = (currentElement?.matches('input[type="checkbox"]')
         ? currentElement
         : currentElement?.querySelector('input[type="checkbox"]')) as HTMLInputElement | null;
@@ -191,7 +167,6 @@ function onKeyDown(event: KeyboardEvent) {
         break;
       }
 
-      // If focused element is a button, click it
       if (currentElement?.tagName === 'BUTTON') {
         currentElement.click();
       }
@@ -207,32 +182,31 @@ function onKeyDown(event: KeyboardEvent) {
   }
 }
 
+// Re-apply the filter when files are dynamically added (e.g. "load more" button).
+// Throttled so a batch insertion of many files runs the re-scan once.
+const onFileBoxesMutation = throttle(200, () => {
+  if (appliedExtensions.value) {
+    applyFilterToFileBoxes(new Set(appliedExtensions.value));
+  }
+  if (menuVisible.value) {
+    scanExtensions();
+  }
+});
+
 onMounted(() => {
   el.addEventListener('keydown', onKeyDown);
 
-  // Watch for new files being added (e.g., when "load more" is clicked)
   const fileBoxesContainer = document.querySelector('#diff-file-boxes');
   if (fileBoxesContainer) {
-    mutationObserver.value = new MutationObserver(() => {
-      if (appliedExtensions.value) {
-        applyFilterToFileBoxes(new Set(appliedExtensions.value));
-      }
-
-      if (menuVisible.value) {
-        scanExtensions();
-      }
-    });
-    mutationObserver.value.observe(fileBoxesContainer, {childList: true, subtree: false});
+    mutationObserver = new MutationObserver(onFileBoxesMutation);
+    mutationObserver.observe(fileBoxesContainer, {childList: true, subtree: false});
   }
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', onOutsideClick, true);
   el.removeEventListener('keydown', onKeyDown);
-
-  if (mutationObserver.value) {
-    mutationObserver.value.disconnect();
-  }
+  mutationObserver?.disconnect();
 });
 </script>
 <template>
@@ -251,23 +225,21 @@ onUnmounted(() => {
     </button>
     <!-- this dropdown is not managed by Fomantic UI, so it needs some classes like "transition" explicitly -->
     <div class="left menu transition" :id="uniqueIdMenu" :class="{visible: menuVisible}" v-show="menuVisible" role="menu">
-      <div class="header">{{ locale.filter_by_file_extension }}</div>
-      <div class="ui divider tw-mt-2 tw-mb-0"/>
-      <!-- Search input -->
-      <div class="ui form tw-mb-2">
-        <div class="ui input fluid field tw-mb-0">
-          <input
-            type="text"
-            v-model="searchQuery"
-            class="diff-ext-search-input"
-            :placeholder="locale.search"
-            @keydown.escape="toggleMenu()"
-          >
-        </div>
+      <div class="ui small input tw-mb-2 tw-w-full">
+        <input
+          type="text"
+          v-model="searchQuery"
+          class="diff-ext-search-input"
+          :placeholder="locale.search"
+          @keydown.escape="toggleMenu()"
+        >
       </div>
-      <div class="ui divider tw-mt-2 tw-mb-0"/>
+      <div class="tw-flex tw-items-center tw-justify-center tw-gap-4 tw-px-2 tw-py-1">
+        <button type="button" class="diff-ext-text-btn" tabindex="-1" role="menuitem" @click="selectAll()">{{ locale.select_all }}</button>
+        <button type="button" class="diff-ext-text-btn" tabindex="-1" role="menuitem" @click="deselectAll()">{{ locale.deselect_all }}</button>
+      </div>
+      <div class="ui divider tw-my-2"/>
       <div class="ui form">
-        <!-- Extension checkboxes -->
         <div class="grouped fields">
           <template v-for="ext in filteredExtensions" :key="ext.ext">
             <div class="field" role="menuitem" tabindex="-1">
@@ -290,13 +262,6 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
-
-      <!-- Select all / Deselect all buttons -->
-      <div class="ui divider tw-my-2"/>
-      <div class="tw-flex tw-items-center tw-justify-center tw-gap-4 tw-px-2 tw-py-1">
-        <button type="button" class="diff-ext-text-btn" tabindex="-1" role="menuitem" @click="selectAll()">{{ locale.select_all }}</button>
-        <button type="button" class="diff-ext-text-btn" tabindex="-1" role="menuitem" @click="deselectAll()">{{ locale.deselect_all }}</button>
-      </div>
     </div>
   </div>
 </template>
@@ -305,13 +270,12 @@ onUnmounted(() => {
     margin-top: 0.25em;
     overflow-x: hidden;
     max-height: 450px;
-    padding: 0.75rem;
-    padding-top: 0.5rem;
+    padding: 0.5rem;
   }
 
-  .ui.dropdown.diff-file-extension-filter .menu > .header {
-    margin-top: 0;
-    padding-top: 0;
+  .ui.dropdown.diff-file-extension-filter .menu .ui.input {
+    display: block;
+    margin: 0;
   }
 
   .ui.dropdown.diff-file-extension-filter .menu .ui.form {
@@ -347,9 +311,5 @@ onUnmounted(() => {
 
   .ui.dropdown.diff-file-extension-filter .diff-ext-search-input {
     width: 100%;
-  }
-
-  .ui.dropdown.diff-file-extension-filter .ui.input {
-    margin-bottom: 0.5rem;
   }
 </style>
