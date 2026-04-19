@@ -1808,8 +1808,11 @@ jobs:
 	})
 }
 
-// Verify LoadActionStatuses surfaces the live ActionRunJob.Status after a
-// Waiting→Running transition (the dedup on State keeps the initial row).
+// Verify GetCommitStatusActionInfo surfaces the live ActionRunJob.Status after
+// a Waiting→Running transition: the createCommitStatus dedup is keyed only on
+// CommitStatus.State, so both job statuses map to the same Pending row and its
+// stored Description freezes at the first one ("Waiting to run") even though
+// the job is now Running. The action info enrichment exposes the live status.
 func TestActionsCommitStatusRunning(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -1828,8 +1831,9 @@ func TestActionsCommitStatusRunning(t *testing.T) {
 		payload, err := json.Marshal(&api.PushPayload{HeadCommit: &api.PayloadCommit{ID: sha}})
 		require.NoError(t, err)
 		run := &actions_model.ActionRun{
-			RepoID: repo.ID, OwnerID: user2.ID, WorkflowID: "test.yml",
-			CommitSHA: sha, Event: webhook_module.HookEventPush, TriggerEvent: "push",
+			RepoID: repo.ID, OwnerID: user2.ID, TriggerUserID: user2.ID,
+			WorkflowID: "test.yml", CommitSHA: sha,
+			Event: webhook_module.HookEventPush, TriggerEvent: "push",
 			EventPayload: string(payload),
 		}
 		require.NoError(t, db.Insert(t.Context(), run))
@@ -1841,6 +1845,8 @@ func TestActionsCommitStatusRunning(t *testing.T) {
 
 		actions_service.CreateCommitStatusForRunJobs(t.Context(), run, job)
 		job.Status = actions_model.StatusRunning
+		_, err = actions_model.UpdateRunJob(t.Context(), job, nil, "status")
+		require.NoError(t, err)
 		actions_service.CreateCommitStatusForRunJobs(t.Context(), run, job)
 
 		statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
@@ -1850,7 +1856,19 @@ func TestActionsCommitStatusRunning(t *testing.T) {
 		// Dedup on State only → stored Description stays at the Waiting text.
 		assert.Equal(t, "Waiting to run", statuses[0].Description)
 
-		actions_service.LoadActionStatuses(t.Context(), statuses)
-		assert.Equal(t, actions_model.StatusRunning, statuses[0].ActionStatus)
+		info := actions_service.GetCommitStatusActionInfo(t.Context(), statuses)
+		assert.Equal(t, actions_model.StatusRunning.String(), info.IconStatus(statuses[0]))
+		assert.Equal(t, "In progress", info.Description(statuses[0]))
+
+		job.Status = actions_model.StatusBlocked
+		_, err = actions_model.UpdateRunJob(t.Context(), job, nil, "status")
+		require.NoError(t, err)
+		info = actions_service.GetCommitStatusActionInfo(t.Context(), statuses)
+		assert.Equal(t, "Blocked by required conditions", info.Description(statuses[0]))
+
+		// No enrichment available → IconStatus is empty, Description falls back.
+		empty := actions_service.CommitStatusActionInfo{}
+		assert.Empty(t, empty.IconStatus(statuses[0]))
+		assert.Equal(t, statuses[0].Description, empty.Description(statuses[0]))
 	})
 }

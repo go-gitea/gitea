@@ -69,21 +69,13 @@ func Branches(ctx *context.Context) {
 		ctx.ServerError("LoadBranches", err)
 		return
 	}
-	if !ctx.Repo.CanRead(unit.TypeActions) {
-		for key := range commitStatuses {
-			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
-		}
-	}
 	var flatStatuses []*git_model.CommitStatus
-	for _, cs := range commitStatuses {
-		flatStatuses = append(flatStatuses, cs...)
-	}
-	actions_service.LoadActionStatuses(ctx, flatStatuses)
-
 	commitStatus := make(map[string]*git_model.CommitStatus)
 	for commitID, cs := range commitStatuses {
 		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
+		flatStatuses = append(flatStatuses, cs...)
 	}
+	actions_service.PrepareCommitStatusesUI(ctx, flatStatuses)
 
 	ctx.Data["Keyword"] = kw
 	ctx.Data["Branches"] = branches

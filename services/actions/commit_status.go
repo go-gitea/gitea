@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/actions/jobparser"
@@ -22,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	gitea_context "code.gitea.io/gitea/services/context"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 )
 
@@ -80,17 +82,74 @@ func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.Commit
 	return runs, nil
 }
 
-// LoadActionStatuses sets CommitStatus.ActionStatus from the matching ActionRunJob.
-func LoadActionStatuses(ctx context.Context, statuses []*git_model.CommitStatus) {
-	if len(statuses) == 0 {
-		return
+// CommitStatusActionInfo maps CommitStatus.ID to the live ActionRunJob status
+// for pending CommitStatus rows backed by Gitea Actions. Built by
+// GetCommitStatusActionInfo and stored as a separate template value, never on
+// the CommitStatus model itself: non-pending CommitStatus state already
+// reflects the underlying job result, statuses can also originate from
+// external CIs (e.g. Woodpecker) or be set via API independently of any job,
+// and CommitStatus must keep its meaning regardless of any Actions run.
+type CommitStatusActionInfo map[int64]actions_model.Status
+
+// IconStatus returns the action status name to render the icon for the given
+// CommitStatus, or "" when the regular commit_status icon should be used.
+func (m CommitStatusActionInfo) IconStatus(s *git_model.CommitStatus) string {
+	if status, ok := m[s.ID]; ok {
+		return status.String()
 	}
-	statusByJobID := make(map[int64]*git_model.CommitStatus, len(statuses))
+	return ""
+}
+
+// Description returns a description matching the live ActionRunJob status when
+// available, falling back to s.Description otherwise. The createCommitStatus
+// dedup is keyed only on State, so a Pending row's stored Description freezes
+// at whichever of waiting/blocked/running was written first — this surfaces
+// the live one (e.g. "In progress" after a Waiting→Running transition).
+func (m CommitStatusActionInfo) Description(s *git_model.CommitStatus) string {
+	switch m[s.ID] {
+	case actions_model.StatusWaiting:
+		return "Waiting to run"
+	case actions_model.StatusRunning:
+		return "In progress"
+	case actions_model.StatusBlocked:
+		return "Blocked by required conditions"
+	}
+	return s.Description
+}
+
+// PrepareCommitStatusesUI hides Gitea Actions URLs for users without Actions
+// read permission and stores the action info enrichment under
+// ctx.Data["CommitStatusActionInfo"] for templates like repo/pulls/status.tmpl.
+func PrepareCommitStatusesUI(ctx *gitea_context.Context, statuses []*git_model.CommitStatus) {
+	if !ctx.Repo.CanRead(unit.TypeActions) {
+		git_model.CommitStatusesHideActionsURL(ctx, statuses)
+	}
+	ctx.Data["CommitStatusActionInfo"] = GetCommitStatusActionInfo(ctx, statuses)
+}
+
+// PrepareCommitStatusesMapUI is the map variant of PrepareCommitStatusesUI for
+// callers that hold statuses keyed by commit-or-issue ID.
+func PrepareCommitStatusesMapUI[K comparable](ctx *gitea_context.Context, m map[K][]*git_model.CommitStatus) {
+	var flat []*git_model.CommitStatus
+	for _, cs := range m {
+		flat = append(flat, cs...)
+	}
+	PrepareCommitStatusesUI(ctx, flat)
+}
+
+// GetCommitStatusActionInfo resolves the live ActionRunJob.Status for any
+// pending CommitStatus rows backed by Gitea Actions. Non-pending statuses are
+// not enriched: they're trusted as-is regardless of source.
+func GetCommitStatusActionInfo(ctx context.Context, statuses []*git_model.CommitStatus) CommitStatusActionInfo {
+	if len(statuses) == 0 {
+		return nil
+	}
+	statusByJobID := make(map[int64]*git_model.CommitStatus)
 	// Cache repo per RepoID across ParseGiteaActionsTargetURL lazy-loads,
 	// same as CommitStatusesHideActionsURL.
 	repoCache := make(map[int64]*repo_model.Repository)
 	for _, status := range statuses {
-		if status == nil {
+		if status == nil || status.State != commitstatus.CommitStatusPending {
 			continue
 		}
 		if status.Repo == nil {
@@ -103,7 +162,7 @@ func LoadActionStatuses(ctx context.Context, statuses []*git_model.CommitStatus)
 		}
 	}
 	if len(statusByJobID) == 0 {
-		return
+		return nil
 	}
 	jobIDs := make([]int64, 0, len(statusByJobID))
 	for id := range statusByJobID {
@@ -111,14 +170,16 @@ func LoadActionStatuses(ctx context.Context, statuses []*git_model.CommitStatus)
 	}
 	jobs := make(map[int64]*actions_model.ActionRunJob, len(jobIDs))
 	if err := db.GetEngine(ctx).In("id", jobIDs).Cols("id", "status").Find(&jobs); err != nil {
-		log.Error("LoadActionStatuses: find action run jobs: %v", err)
-		return
+		log.Error("GetCommitStatusActionInfo: find action run jobs: %v", err)
+		return nil
 	}
+	info := make(CommitStatusActionInfo, len(jobs))
 	for jobID, status := range statusByJobID {
-		if job, ok := jobs[jobID]; ok {
-			status.ActionStatus = job.Status
+		if job, ok := jobs[jobID]; ok && !job.Status.IsUnknown() {
+			info[status.ID] = job.Status
 		}
 	}
+	return info
 }
 
 func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {

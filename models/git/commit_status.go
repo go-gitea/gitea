@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -47,10 +46,6 @@ type CommitStatus struct {
 	Context     string           `xorm:"TEXT"`
 	Creator     *user_model.User `xorm:"-"`
 	CreatorID   int64
-
-	// ActionStatus is more granular than State, which maps waiting/blocked/running
-	// all to CommitStatusPending. Set by LoadActionStatuses.
-	ActionStatus actions_model.Status `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -216,20 +211,6 @@ func (status *CommitStatus) APIURL(ctx context.Context) string {
 // LocaleString returns the locale string name of the Status
 func (status *CommitStatus) LocaleString(lang translation.Locale) string {
 	return lang.TrString("repo.commitstatus." + status.State.String())
-}
-
-// GetDescription is Description with an override for waiting/blocked/running,
-// whose stored text is only written on the first transition into any of them.
-func (status *CommitStatus) GetDescription() string {
-	switch status.ActionStatus {
-	case actions_model.StatusWaiting:
-		return "Waiting to run"
-	case actions_model.StatusRunning:
-		return "In progress"
-	case actions_model.StatusBlocked:
-		return "Blocked by required conditions"
-	}
-	return status.Description
 }
 
 // HideActionsURL set `TargetURL` to an empty string if the status comes from Gitea Actions

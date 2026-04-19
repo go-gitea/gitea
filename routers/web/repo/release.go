@@ -148,7 +148,7 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 
 		releaseInfos = append(releaseInfos, info)
 	}
-	actions_service.LoadActionStatuses(ctx, flatStatuses)
+	actions_service.PrepareCommitStatusesUI(ctx, flatStatuses)
 
 	return releaseInfos, nil
 }
