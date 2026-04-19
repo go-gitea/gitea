@@ -782,9 +782,15 @@ tr.top-line-blame:first-of-type {
 
 .color-icon {
   display: inline-block;
+  flex-shrink: 0;
   border-radius: var(--border-radius-full);
   height: 14px;
   width: 14px;
+}
+
+.icon-size-8 {
+  width: 8px;
+  height: 8px;
 }
 
 .rss-icon {

@@ -34,10 +34,9 @@ type issueSidebarAssigneesData struct {
 }
 
 type issueSidebarProjectCardData struct {
-	Project          *project_model.Project
-	Columns          []*project_model.Column
-	SelectedColumn   *project_model.Column
-	SelectedColumnID int64
+	Project        *project_model.Project
+	Columns        []*project_model.Column
+	SelectedColumn *project_model.Column
 }
 
 type issueSidebarProjectsData struct {
@@ -195,10 +194,9 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 	}
 	d.ProjectsData.ProjectCards = []*issueSidebarProjectCardData{
 		{
-			Project:          d.Issue.Project,
-			Columns:          columns,
-			SelectedColumn:   selectedColumn,
-			SelectedColumnID: columnID,
+			Project:        d.Issue.Project,
+			Columns:        columns,
+			SelectedColumn: selectedColumn,
 		},
 	}
 	d.ProjectsData.SelectedProjectIDs = make([]int64, 0, len(d.ProjectsData.ProjectCards))

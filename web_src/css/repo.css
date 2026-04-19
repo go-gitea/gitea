@@ -65,31 +65,8 @@
 .sidebar-project-card {
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
-  padding: 7px;
-  margin: 8px 0;
-}
-
-.sidebar-project-card-header a {
-  font-weight: var(--font-weight-semibold);
-}
-
-.sidebar-project-card > .sidebar-project-column-combo,
-.sidebar-project-card > .sidebar-project-column-text {
-  margin-top: var(--gap-inline);
-  padding-left: 18px;
-}
-
-.sidebar-project-column-text {
-  font-size: 13px;
-}
-
-.sidebar-column-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  vertical-align: middle;
+  margin-top: var(--gap-block);
+  padding: 8px;
 }
 
 .issue-content-right .ui.list.labels-list {
@@ -98,7 +75,7 @@
   flex-wrap: wrap;
 }
 
-.issue-content-right .ui.list .item.empty-list {
+.issue-content-right .empty-list {
   font-size: var(--font-size-label);
 }
 
