@@ -71,7 +71,7 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
   view.mount(el);
 }
 
-function executeScripts(elem: HTMLElement) {
+function executeScripts(elem: Element) {
   for (const oldScript of elem.querySelectorAll('script')) {
     // TODO: that's the only way to load the data for the merge form. In the future
     //  we need to completely decouple the page data and embedded script

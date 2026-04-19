@@ -287,7 +287,7 @@ export function isElemVisible(el: HTMLElement): boolean {
   return Boolean(!el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none');
 }
 
-export function createElementFromHTML<T extends HTMLElement>(htmlString: string): T {
+export function createElementFromHTML<T extends Element>(htmlString: string): T {
   htmlString = htmlString.trim();
   // There is no way to create some elements without a proper parent, jQuery's approach: https://github.com/jquery/jquery/blob/main/src/manipulation/wrapMap.js
   // eslint-disable-next-line github/unescaped-html-literal
