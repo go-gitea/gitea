@@ -500,9 +500,9 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 	}
 
 	// append to the end of the target column so we don't collide with existing sorting values
-	newSorting, err := column.NextSorting(ctx)
+	newSorting, err := project_model.GetColumnIssueNextSorting(ctx, column.ProjectID, column.ID)
 	if err != nil {
-		ctx.ServerError("column.NextSorting", err)
+		ctx.ServerError("GetColumnIssueNextSorting", err)
 		return
 	}
 
