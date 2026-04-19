@@ -73,7 +73,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 			repository = ctx.Repo.Repository
 		} else {
 			if jobs[i].Run == nil || jobs[i].Run.Repo == nil {
-				ctx.APIErrorNotFound(fmt.Sprintf("job %d has no associated run or repository", jobs[i].ID))
+				ctx.APIErrorInternal(fmt.Errorf("job %d is missing its run or repository", jobs[i].ID))
 				return
 			}
 			repository = jobs[i].Run.Repo
