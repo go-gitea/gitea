@@ -1,5 +1,6 @@
 import {encodeURLEncodedBase64, decodeURLEncodedBase64} from '../utils.ts';
 import {hideElem, showElem} from '../utils/dom.ts';
+import {errorMessage} from '../utils/error.ts';
 import {GET, POST} from '../modules/fetch.ts';
 
 const {appSubUrl} = window.config;
@@ -80,7 +81,7 @@ async function loginPasskey() {
 
     window.location.href = reply?.redirect ?? `${appSubUrl}/`;
   } catch (err) {
-    webAuthnError('general', (err as Error).message);
+    webAuthnError('general', errorMessage(err));
   }
 }
 
@@ -104,7 +105,7 @@ async function login2FA() {
     await verifyAssertion(credential);
   } catch (err) {
     if (!options.publicKey.extensions?.appid) {
-      webAuthnError('general', (err as Error).message);
+      webAuthnError('general', errorMessage(err));
       return;
     }
     delete options.publicKey.extensions.appid;
@@ -114,7 +115,7 @@ async function login2FA() {
       });
       await verifyAssertion(credential);
     } catch (err) {
-      webAuthnError('general', (err as Error).message);
+      webAuthnError('general', errorMessage(err));
     }
   }
 }

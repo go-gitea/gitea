@@ -21,6 +21,7 @@ import {
   type DayDataObject,
 } from '../utils/time.ts';
 import {chartJsColors} from '../utils/color.ts';
+import {errorMessage} from '../utils/error.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {onMounted, shallowRef} from 'vue';
@@ -78,7 +79,7 @@ async function fetchGraphData() {
       errorText.value = response.statusText;
     }
   } catch (err) {
-    errorText.value = (err as Error).message;
+    errorText.value = errorMessage(err);
   } finally {
     isLoading.value = false;
   }

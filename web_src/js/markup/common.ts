@@ -1,8 +1,9 @@
-export function displayError(el: Element, err: Error): void {
+export function displayError(el: Element, err: unknown): void {
+  const e = err as Error;
   el.classList.remove('is-loading');
   const errorNode = document.createElement('pre');
   errorNode.setAttribute('class', 'ui message error markup-block-error');
-  errorNode.textContent = err.message || String(err);
+  errorNode.textContent = e.message || String(e);
   el.before(errorNode);
   el.setAttribute('data-render-done', 'true');
 }

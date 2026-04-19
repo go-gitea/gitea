@@ -41,7 +41,7 @@ export async function initMarkupCodeMath(elMarkup: HTMLElement): Promise<void> {
       });
       target.replaceWith(tempEl);
     } catch (error) {
-      displayError(target, error as Error);
+      displayError(target, error);
     }
   });
 }
