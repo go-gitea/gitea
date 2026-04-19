@@ -59,7 +59,7 @@ type RenderOptions struct {
 	MarkupType string
 
 	// user&repo, format&style&regexp (for external issue pattern), teams&org (for mention)
-	// RefTypeNameSubURL (for iframe&asciicast)
+	// RefTypeNameSubURL (for iframe render)
 	// markupAllowShortIssuePattern
 	// markdownNewLineHardBreak
 	Metas map[string]string
