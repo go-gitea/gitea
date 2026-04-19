@@ -262,6 +262,6 @@ async function webAuthnRegisterRequest() {
     });
     await webauthnRegistered(credential);
   } catch (err) {
-    webAuthnError('unknown', err instanceof Error ? err.message : String(err));
+    webAuthnError('unknown', String(err));
   }
 }
