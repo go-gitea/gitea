@@ -21,6 +21,8 @@ on:
         value: ${{ jobs.detect.outputs.yaml }}
       json:
         value: ${{ jobs.detect.outputs.json }}
+      e2e:
+        value: ${{ jobs.detect.outputs.e2e }}
 
 jobs:
   detect:
@@ -38,6 +40,7 @@ jobs:
       swagger: ${{ steps.changes.outputs.swagger }}
       yaml: ${{ steps.changes.outputs.yaml }}
       json: ${{ steps.changes.outputs.json }}
+      e2e: ${{ steps.changes.outputs.e2e }}
     steps:
       - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v4
@@ -107,3 +110,8 @@ jobs:
 
             json:
               - "**/*.json"
+
+            e2e:
+              - "tests/e2e/**"
+              - "tools/test-e2e.sh"
+              - "playwright.config.ts"
