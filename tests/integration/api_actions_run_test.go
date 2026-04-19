@@ -29,6 +29,7 @@ func TestAPIActionsWorkflowRun(t *testing.T) {
 	t.Run("GetWorkflowRun", testAPIActionsGetWorkflowRun)
 	t.Run("GetWorkflowJob", testAPIActionsGetWorkflowJob)
 	t.Run("ListUserWorkflows", testAPIActionsListUserWorkflows)
+	t.Run("ListRepoWorkflows", testAPIActionsListRepoWorkflows)
 	t.Run("DeleteRunCheckPermission", testAPIActionsDeleteRunCheckPermission)
 	t.Run("DeleteRunRunning", testAPIActionsDeleteRunRunning)
 	t.Run("DeleteRunGeneral", testAPIActionsDeleteRunGeneral)
@@ -341,4 +342,28 @@ func testAPIActionsListUserWorkflows(t *testing.T) {
 			assert.NotEmpty(t, job.HTMLURL, "html_url should be populated via batch-loaded repo")
 		}
 	})
+}
+
+func testAPIActionsListRepoWorkflows(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs", repo.FullName())).
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var runs api.ActionWorkflowRunsResponse
+	err := json.Unmarshal(resp.Body.Bytes(), &runs)
+	require.NoError(t, err)
+
+	assert.Positive(t, runs.TotalCount)
+	assert.NotEmpty(t, runs.Entries)
+
+	for _, run := range runs.Entries {
+		assert.NotNil(t, run.Repository, "repository should be populated from ctx.Repo")
+		assert.Equal(t, repo.FullName(), run.Repository.FullName, "repository full_name should match")
+		assert.NotNil(t, run.TriggerActor, "trigger_actor should be populated")
+	}
 }

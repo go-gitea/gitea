@@ -182,18 +182,18 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 		for i := range runs {
 			runs[i].Repo = ctx.Repo.Repository
 		}
-	}
-	if err := runList.LoadRepos(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	repos := repo_model.RepositoryList(container.FilterSlice(runs, func(r *actions_model.ActionRun) (*repo_model.Repository, bool) {
-		return r.Repo, r.Repo != nil
-	}))
-	if err := repos.LoadOwners(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
+	} else {
+		if err := runList.LoadRepos(ctx); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		repos := repo_model.RepositoryList(container.FilterSlice(runs, func(r *actions_model.ActionRun) (*repo_model.Repository, bool) {
+			return r.Repo, r.Repo != nil
+		}))
+		if err := repos.LoadOwners(ctx); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
 	}
 
 	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
