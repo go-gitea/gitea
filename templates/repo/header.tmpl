@@ -39,21 +39,17 @@
 			</div>
 			{{if not (or .IsBeingCreated .IsBroken)}}
 				<div class="flex-text-block tw-flex-wrap">
-					{{if $.RepoTransfer}}
-						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
-							<div class="flex-text-inline" data-tooltip-content="{{if $.CanUserAcceptOrRejectTransfer}}{{ctx.Locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
-								<button type="submit" class="ui compact small basic button {{if $.CanUserAcceptOrRejectTransfer}}primary {{end}} ok small"{{if not $.CanUserAcceptOrRejectTransfer}} disabled{{end}}>
-									{{ctx.Locale.Tr "repo.transfer.accept"}}
-								</button>
-							</div>
-						</form>
-						<form method="post" action="{{$.RepoLink}}/action/reject_transfer?redirect_to={{$.RepoLink}}">
-							<div class="flex-text-inline" data-tooltip-content="{{if $.CanUserAcceptOrRejectTransfer}}{{ctx.Locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
-								<button type="submit" class="ui compact small basic button {{if $.CanUserAcceptOrRejectTransfer}}red {{end}}ok small"{{if not $.CanUserAcceptOrRejectTransfer}} disabled{{end}}>
-									{{ctx.Locale.Tr "repo.transfer.reject"}}
-								</button>
-							</div>
-						</form>
+					{{if $.CanUserAcceptOrRejectTransfer}}
+						<button type="button" class="ui compact small basic primary button link-action" data-url="{{$.RepoLink}}/action/accept_transfer"
+							data-tooltip-content="{{ctx.Locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.GetDisplayName}}"
+						>{{ctx.Locale.Tr "repo.transfer.accept"}}</button>
+						<button type="button" class="ui compact small basic red button link-action" data-url="{{$.RepoLink}}/action/reject_transfer"
+							data-tooltip-content="{{ctx.Locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.GetDisplayName}}"
+						>{{ctx.Locale.Tr "repo.transfer.reject"}}</button>
+					{{else if $.RepoTransfer}}
+						<div data-tooltip-content="{{ctx.Locale.Tr "repo.transfer.is_transferring_prompt" $.RepoTransfer.Recipient.GetDisplayName}}">
+							<button class="ui compact small basic red button" disabled>{{ctx.Locale.Tr "repo.transfer.is_transferring"}}</button>
+						</div>
 					{{end}}
 					{{if $.EnableFeed}}
 					{{/* An extra div-element is not necessary here, as this button does not secretly contain two buttons. */}}
