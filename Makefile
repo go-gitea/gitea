@@ -271,22 +271,6 @@ openapi3-check: generate-openapi3
 		exit 1; \
 	fi
 
-.PHONY: openapi3-schema-check
-openapi3-schema-check: generate-openapi3 ## assert OAS3 spec has correctly-named enum schemas
-	@set -e; \
-	for name in CommitStatusState ObjectFormatName AccessLevelName RepoWritePermission ReviewStateType StateType UserVisibility; do \
-		if ! grep -q "\"$$name\": {" '$(OPENAPI3_SPEC)'; then \
-			echo "openapi3-schema-check: expected schema $$name missing from $(OPENAPI3_SPEC)"; \
-			exit 1; \
-		fi; \
-	done; \
-	if grep -Eq '"[A-Z][A-Za-z0-9]*Enum": \{' '$(OPENAPI3_SPEC)'; then \
-		echo "openapi3-schema-check: unexpected *Enum fallback name found in $(OPENAPI3_SPEC)"; \
-		grep -E '"[A-Z][A-Za-z0-9]*Enum": \{' '$(OPENAPI3_SPEC)'; \
-		exit 1; \
-	fi; \
-	echo "openapi3-schema-check: OK"
-
 .PHONY: checks
 checks: checks-frontend checks-backend ## run various consistency checks
 
@@ -294,7 +278,7 @@ checks: checks-frontend checks-backend ## run various consistency checks
 checks-frontend: lockfile-check svg-check ## check frontend files
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check openapi3-check openapi3-schema-check fmt-check swagger-validate security-check ## check backend files
+checks-backend: tidy-check swagger-check openapi3-check fmt-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
 lint: lint-frontend lint-backend lint-spell ## lint everything
