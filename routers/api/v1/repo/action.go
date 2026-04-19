@@ -22,7 +22,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -1037,14 +1036,8 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 		return
 	}
 	if !runExists {
-		if _, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID); err != nil {
-			if errors.Is(err, util.ErrNotExist) || git.IsErrNotExist(err) {
-				ctx.APIError(http.StatusNotFound, err)
-			} else {
-				ctx.APIErrorInternal(err)
-			}
-			return
-		}
+		ctx.APIError(http.StatusNotFound, util.NewNotExistErrorf("workflow %q not found", workflowID))
+		return
 	}
 
 	repoID := ctx.Repo.Repository.ID
