@@ -152,7 +152,7 @@ func testAPIOrgGeneral(t *testing.T) {
 			Description: new("new description"),
 			Website:     new("https://org3-new-website.example.com"),
 			Location:    new("new location"),
-			Visibility:  func() *api.UserVisibility { v := api.UserVisibilityLimited; return &v }(),
+			Visibility:  new(api.UserVisibilityLimited),
 			Email:       new("org3-new-email@example.com"),
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org3Edit).AddTokenAuth(user1Token)
@@ -182,7 +182,7 @@ func testAPIOrgGeneral(t *testing.T) {
 
 	t.Run("OrgEditInvalidVisibility", func(t *testing.T) {
 		org := api.EditOrgOption{
-			Visibility: func() *api.UserVisibility { v := api.UserVisibility("invalid-visibility"); return &v }(),
+			Visibility: new(api.UserVisibility("invalid-visibility")),
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org).AddTokenAuth(user1Token)
 		MakeRequest(t, req, http.StatusUnprocessableEntity)
