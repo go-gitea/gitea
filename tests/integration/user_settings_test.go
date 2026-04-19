@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/container"
@@ -309,8 +310,7 @@ func TestUserSettingsApplications(t *testing.T) {
 				})
 				resp := session.MakeRequest(t, req, http.StatusOK)
 				doc := NewHTMLParser(t, resp.Body)
-
-				msg := doc.Find(".flash-error p").Text()
+				msg := strings.TrimSpace(doc.Find(".ui.message.flash-message").Text())
 				assert.Equal(t, `form.RedirectURIs"ftp://127.0.0.1" is not a valid URL.`, msg)
 			})
 

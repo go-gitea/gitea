@@ -14,7 +14,6 @@ XGO_VERSION := go-1.25.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.2
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0
@@ -206,7 +205,7 @@ clean: ## delete backend and integration files
 
 .PHONY: fmt
 fmt: ## format the Go and template code
-	@GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run tools/code-batch-process.go gitea-fmt -w '{file-list}'
+	$(GO) run $(GOLANGCI_LINT_PACKAGE) fmt
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
 	@# whitespace before it
@@ -278,10 +277,10 @@ lint-frontend: lint-js lint-css ## lint frontend files
 lint-frontend-fix: lint-js-fix lint-css-fix ## lint frontend files and fix issues
 
 .PHONY: lint-backend
-lint-backend: lint-go lint-go-gitea-vet lint-editorconfig ## lint backend files
+lint-backend: lint-go lint-editorconfig ## lint backend files
 
 .PHONY: lint-backend-fix
-lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backend files and fix issues
+lint-backend-fix: lint-go-fix lint-editorconfig ## lint backend files and fix issues
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js and ts files
@@ -335,11 +334,6 @@ lint-go-fix: ## lint go files and fix issues
 lint-go-windows:
 	@GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
 	golangci-lint run
-
-.PHONY: lint-go-gitea-vet
-lint-go-gitea-vet: ## lint go files with gitea-vet
-	@echo "Running gitea-vet..."
-	@$(GO) vet -vettool="$(shell GOOS= GOARCH= go tool -n gitea-vet)" ./...
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
@@ -524,8 +518,7 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
 playwright: deps-frontend
-	@# on GitHub Actions VMs, playwright's system deps are pre-installed
-	@pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium firefox $(PLAYWRIGHT_FLAGS)
+	@pnpm exec playwright install --with-deps chromium firefox webkit $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e
 test-e2e: playwright $(EXECUTABLE_E2E)
@@ -730,7 +723,6 @@ deps-backend: ## install backend dependencies
 deps-tools: ## install tool dependencies
 	$(GO) install $(AIR_PACKAGE) & \
 	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE) & \
-	$(GO) install $(GOFUMPT_PACKAGE) & \
 	$(GO) install $(GOLANGCI_LINT_PACKAGE) & \
 	$(GO) install $(GXZ_PACKAGE) & \
 	$(GO) install $(MISSPELL_PACKAGE) & \

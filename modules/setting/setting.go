@@ -201,7 +201,7 @@ func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
 	if HasInstallLock(rootCfg) {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
 		if !match {
-			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
+			log.Fatal("Expect user '%s' (RUN_USER in app.ini) but current user is: %s", RunUser, currentUser)
 		}
 	}
 }

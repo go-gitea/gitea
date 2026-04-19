@@ -24,8 +24,8 @@ func TestRenderIFrame(t *testing.T) {
 
 	// the value is read from config RENDER_CONTENT_SANDBOX, empty means "disabled"
 	ret := render(ctx, ExternalRendererOptions{ContentSandbox: ""})
-	assert.Equal(t, `<iframe data-src="/test-owner/test-repo/render/src/branch/master/tree-path" class="external-render-iframe"></iframe>`, ret)
+	assert.Equal(t, `<iframe data-src="/test-owner/test-repo/render/src/branch/master/tree-path" data-global-init="initExternalRenderIframe" class="external-render-iframe"></iframe>`, ret)
 
 	ret = render(ctx, ExternalRendererOptions{ContentSandbox: "allow"})
-	assert.Equal(t, `<iframe data-src="/test-owner/test-repo/render/src/branch/master/tree-path" class="external-render-iframe" sandbox="allow"></iframe>`, ret)
+	assert.Equal(t, `<iframe data-src="/test-owner/test-repo/render/src/branch/master/tree-path" data-global-init="initExternalRenderIframe" class="external-render-iframe" sandbox="allow"></iframe>`, ret)
 }

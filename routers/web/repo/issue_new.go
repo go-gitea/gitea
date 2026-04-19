@@ -170,7 +170,7 @@ func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) templat
 	flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 		"Message": ctx.Tr("repo.issues.choose.ignore_invalid_templates"),
 		"Summary": ctx.Tr("repo.issues.choose.invalid_templates", len(errs)),
-		"Details": utils.SanitizeFlashErrorString(strings.Join(lines, "\n")),
+		"Details": utils.EscapeFlashErrorString(strings.Join(lines, "\n")),
 	})
 	if err != nil {
 		log.Debug("render flash error: %v", err)

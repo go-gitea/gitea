@@ -80,9 +80,7 @@ func (s *Service) Register(
 		AgentLabels: labels,
 		Ephemeral:   req.Msg.Ephemeral,
 	}
-	if err := runner.GenerateToken(); err != nil {
-		return nil, errors.New("can't generate token")
-	}
+	runner.GenerateAndFillToken()
 
 	// create new runner
 	if err := actions_model.CreateRunner(ctx, runner); err != nil {

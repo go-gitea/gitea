@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	_ "image/jpeg" // Needed for jpeg support
-
 	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -23,6 +21,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+
+	_ "image/jpeg" // Needed for jpeg support
 
 	"xorm.io/builder"
 )
