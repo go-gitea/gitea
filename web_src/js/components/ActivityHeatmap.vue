@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, onBeforeUnmount, onMounted, shallowRef} from 'vue';
+import {computed, onBeforeUnmount, onMounted} from 'vue';
 import tippy, {createSingleton} from 'tippy.js';
 import type {CreateSingletonInstance, Instance} from 'tippy.js';
 
@@ -26,15 +26,15 @@ const colorRange = [
   'var(--color-primary-dark-4)',
 ];
 
-const SQUARE_SIZE = 10;
-const SQUARE_BORDER = 2;
-const CELL = SQUARE_SIZE + SQUARE_BORDER;
-const DAYS_IN_WEEK = 7;
-const TRAILING_DAYS = 365;
-const LEFT = Math.ceil(SQUARE_SIZE * 2.5);
-const TOP = SQUARE_SIZE + SQUARE_SIZE / 2;
+const squareSize = 10;
+const squareBorder = 2;
+const cellSize = squareSize + squareBorder;
+const daysInWeek = 7;
+const trailingDays = 365;
+const gridLeft = Math.ceil(squareSize * 2.5);
+const gridTop = squareSize + squareSize / 2;
 
-const now = shallowRef(new Date());
+const now = new Date();
 
 function dateKey(d: Date): string {
   return `${d.getFullYear()}${String(d.getMonth()).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
@@ -46,15 +46,13 @@ function shiftDate(d: Date, days: number): Date {
   return out;
 }
 
-const heatmap = computed(() => {
-  const end = now.value;
-  const start = shiftDate(end, -TRAILING_DAYS);
+const grid = computed(() => {
+  const start = shiftDate(now, -trailingDays);
   const padStart = start.getDay();
-  const padEnd = DAYS_IN_WEEK - 1 - end.getDay();
-  const weekCount = (TRAILING_DAYS + 1 + padStart + padEnd) / DAYS_IN_WEEK;
+  const padEnd = daysInWeek - 1 - now.getDay();
+  const weekCount = (trailingDays + 1 + padStart + padEnd) / daysInWeek;
 
-  const counts = props.values.map((v) => v.count);
-  const maxCount = counts.length ? Math.max(...counts) : 0;
+  const maxCount = props.values.length ? Math.max(...props.values.map((v) => v.count)) : 0;
   const max = maxCount > 0 ? Math.ceil(maxCount / 5 * 4) : 1;
 
   const activities = new Map<string, {count: number; colorIndex: number}>();
@@ -71,12 +69,12 @@ const heatmap = computed(() => {
   const calendar: HeatmapCell[][] = [];
   for (let w = 0; w < weekCount; w++) {
     const week: HeatmapCell[] = [];
-    for (let d = 0; d < DAYS_IN_WEEK; d++) {
+    for (let d = 0; d < daysInWeek; d++) {
       const hit = activities.get(dateKey(cursor));
       const dateStr = `${months[cursor.getMonth()]} ${cursor.getDate()}, ${cursor.getFullYear()}`;
       const head = hit ? `${hit.count} ${tooltipUnit}` : noDataText;
       week.push({
-        date: new Date(cursor.valueOf()),
+        date: new Date(cursor),
         colorIndex: hit ? hit.colorIndex : 0,
         ariaLabel: `${head} ${on} ${dateStr}`,
         tooltip: `<b>${head}</b> ${on} ${dateStr}`,
@@ -90,18 +88,17 @@ const heatmap = computed(() => {
   for (let w = 1; w < calendar.length; w++) {
     const prev = calendar[w - 1][0].date;
     const curr = calendar[w][0].date;
-    if (prev.getFullYear() < curr.getFullYear() || prev.getMonth() < curr.getMonth()) {
+    if (prev.getMonth() !== curr.getMonth()) {
       monthLabels.push({monthIdx: curr.getMonth(), weekIdx: w});
     }
   }
 
-  const width = LEFT + (CELL * weekCount) + SQUARE_BORDER;
-  const height = TOP + (CELL * DAYS_IN_WEEK);
+  const width = gridLeft + (cellSize * weekCount) + squareBorder;
+  const height = gridTop + (cellSize * daysInWeek);
   return {calendar, monthLabels, width, height};
 });
 
-const viewbox = computed(() => `0 0 ${heatmap.value.width} ${heatmap.value.height}`);
-const legendViewbox = `${CELL} 0 ${SQUARE_SIZE * (colorRange.length + 2)} ${SQUARE_SIZE}`;
+const legendViewBox = `${cellSize} 0 ${squareSize * (colorRange.length + 2)} ${squareSize}`;
 
 const cellInstances = new Map<Element, Instance>();
 let singleton: CreateSingletonInstance | null = null;
@@ -125,9 +122,8 @@ onBeforeUnmount(() => {
 
 function lazyInitTooltip(e: MouseEvent) {
   const el = e.target as Element;
-  if (!singleton || cellInstances.has(el) || !el.classList?.contains('vch__day__square')) return;
-  const content = el.getAttribute('data-tooltip') ?? '';
-  cellInstances.set(el, tippy(el, {content}));
+  if (!singleton || cellInstances.has(el) || !el.classList.contains('heatmap-day')) return;
+  cellInstances.set(el, tippy(el, {content: el.getAttribute('data-tooltip')!}));
   singleton.setInstances([...cellInstances.values()]);
 }
 
@@ -150,38 +146,38 @@ function handleDayClick(date: Date) {
 }
 </script>
 <template>
-  <div class="vch__container">
-    <svg class="vch__wrapper" :viewBox="viewbox">
-      <g class="vch__months__labels__wrapper" :transform="`translate(${LEFT}, 0)`">
+  <div>
+    <svg class="heatmap-svg" :viewBox="`0 0 ${grid.width} ${grid.height}`">
+      <g class="heatmap-month-labels" :transform="`translate(${gridLeft}, 0)`">
         <text
-          v-for="m in heatmap.monthLabels"
+          v-for="m in grid.monthLabels"
           :key="m.weekIdx"
-          class="vch__month__label"
-          :x="CELL * m.weekIdx"
-          :y="CELL - SQUARE_BORDER"
+          class="heatmap-month-label"
+          :x="cellSize * m.weekIdx"
+          :y="cellSize - squareBorder"
         >
           {{ locale.heatMapLocale.months[m.monthIdx] }}
         </text>
       </g>
-      <g class="vch__days__labels__wrapper" :transform="`translate(0, ${TOP})`">
-        <text class="vch__day__label" :x="0" :y="20">{{ locale.heatMapLocale.days[1] }}</text>
-        <text class="vch__day__label" :x="0" :y="44">{{ locale.heatMapLocale.days[3] }}</text>
-        <text class="vch__day__label" :x="0" :y="69">{{ locale.heatMapLocale.days[5] }}</text>
+      <g class="heatmap-day-labels" :transform="`translate(0, ${gridTop})`">
+        <text class="heatmap-day-label" :x="0" :y="20">{{ locale.heatMapLocale.days[1] }}</text>
+        <text class="heatmap-day-label" :x="0" :y="44">{{ locale.heatMapLocale.days[3] }}</text>
+        <text class="heatmap-day-label" :x="0" :y="69">{{ locale.heatMapLocale.days[5] }}</text>
       </g>
-      <g class="vch__year__wrapper" :transform="`translate(${LEFT}, ${TOP})`" @mouseover="lazyInitTooltip">
+      <g class="heatmap-grid" :transform="`translate(${gridLeft}, ${gridTop})`" @mouseover="lazyInitTooltip">
         <g
-          v-for="(week, w) in heatmap.calendar"
+          v-for="(week, w) in grid.calendar"
           :key="w"
-          class="vch__month__wrapper"
-          :transform="`translate(${w * CELL}, 0)`"
+          class="heatmap-week"
+          :transform="`translate(${w * cellSize}, 0)`"
         >
           <template v-for="(day, d) in week" :key="d">
             <rect
               v-if="day.date < now"
-              class="vch__day__square"
-              :transform="`translate(0, ${d * CELL})`"
-              :width="SQUARE_SIZE"
-              :height="SQUARE_SIZE"
+              class="heatmap-day"
+              :transform="`translate(0, ${d * cellSize})`"
+              :width="squareSize"
+              :height="squareSize"
               :style="{fill: colorRange[day.colorIndex]}"
               :aria-label="day.ariaLabel"
               :data-tooltip="day.tooltip"
@@ -191,29 +187,21 @@ function handleDayClick(date: Date) {
         </g>
       </g>
     </svg>
-    <div class="vch__legend">
-      <div class="vch__legend-left">{{ locale.textTotalContributions }}</div>
-      <div class="vch__legend-right">
-        <div class="vch__legend">
-          <div>{{ locale.heatMapLocale.less }}</div>
-          <svg
-            class="vch__external-legend-wrapper"
-            :viewBox="legendViewbox"
-            :height="SQUARE_SIZE"
-          >
-            <g class="vch__legend__wrapper">
-              <rect
-                v-for="(color, i) in colorRange"
-                :key="i"
-                :width="SQUARE_SIZE"
-                :height="SQUARE_SIZE"
-                :x="(i + 1) * CELL"
-                :style="{fill: color}"
-              />
-            </g>
-          </svg>
-          <div>{{ locale.heatMapLocale.more }}</div>
-        </div>
+    <div class="heatmap-footer">
+      <div>{{ locale.textTotalContributions }}</div>
+      <div class="heatmap-legend">
+        <div>{{ locale.heatMapLocale.less }}</div>
+        <svg class="heatmap-legend-svg" :viewBox="legendViewBox" :height="squareSize">
+          <rect
+            v-for="(color, i) in colorRange"
+            :key="i"
+            :width="squareSize"
+            :height="squareSize"
+            :x="(i + 1) * cellSize"
+            :style="{fill: color}"
+          />
+        </svg>
+        <div>{{ locale.heatMapLocale.more }}</div>
       </div>
     </div>
   </div>
