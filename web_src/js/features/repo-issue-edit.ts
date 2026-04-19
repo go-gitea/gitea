@@ -3,7 +3,7 @@ import {getComboMarkdownEditor, initComboMarkdownEditor, ComboMarkdownEditor} fr
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {hideElem, querySingleVisibleElem, showElem} from '../utils/dom.ts';
-import {errorMessage} from '../utils/error.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
 import {applyAreYouSure, reinitializeAreYouSure} from '../vendor/jquery.are-you-sure.ts';

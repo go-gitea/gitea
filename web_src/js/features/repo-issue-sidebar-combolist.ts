@@ -2,7 +2,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
-import {errorMessage} from '../utils/error.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {parseDom} from '../utils.ts';
 
 export function syncIssueMainContentTimelineItems(oldMainContent: Element, newMainContent: Element) {

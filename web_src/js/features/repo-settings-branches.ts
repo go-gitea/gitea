@@ -2,7 +2,7 @@ import {createSortable} from '../modules/sortable.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {queryElemChildren} from '../utils/dom.ts';
-import {errorMessage} from '../utils/error.ts';
+import {errorMessage} from '../modules/errors.ts';
 
 export function initRepoSettingsBranchesDrag() {
   const protectedBranchesList = document.querySelector<HTMLElement>('#protected-branches-list');
@@ -24,7 +24,7 @@ export function initRepoSettingsBranchesDrag() {
             },
           });
         } catch (err) {
-          showErrorToast(`Failed to update branch protection rule priority:, error: ${errorMessage(err)}`);
+          showErrorToast(`Failed to update branch protection rule priority: ${errorMessage(err)}`);
         }
       })();
     },

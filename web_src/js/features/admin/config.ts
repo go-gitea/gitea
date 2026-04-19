@@ -2,7 +2,7 @@ import {showTemporaryTooltip} from '../../modules/tippy.ts';
 import {POST} from '../../modules/fetch.ts';
 import {registerGlobalInitFunc} from '../../modules/observer.ts';
 import {queryElems} from '../../utils/dom.ts';
-import {errorMessage} from '../../utils/error.ts';
+import {errorMessage} from '../../modules/errors.ts';
 import {submitFormFetchAction} from '../common-fetch-action.ts';
 
 const {appSubUrl} = window.config;

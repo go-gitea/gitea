@@ -21,7 +21,7 @@ import {
   type DayDataObject,
 } from '../utils/time.ts';
 import {chartJsColors} from '../utils/color.ts';
-import {errorMessage} from '../utils/error.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {onMounted, shallowRef} from 'vue';

@@ -2,7 +2,7 @@ import type {InplaceRenderPlugin} from '../render/plugin.ts';
 import {newInplacePluginPdfViewer} from '../render/plugins/inplace-pdf-viewer.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
-import {errorMessage} from '../utils/error.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {html} from '../utils/html.ts';
 import {basename} from '../utils.ts';
 

@@ -1,5 +1,5 @@
 import {getCurrentLocale} from '../utils.ts';
-import {errorMessage} from '../utils/error.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 

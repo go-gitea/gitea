@@ -1,4 +1,4 @@
-import {errorMessage} from '../utils/error.ts';
+import {errorMessage} from '../modules/errors.ts';
 
 export function displayError(el: Element, err: unknown): void {
   el.classList.remove('is-loading');

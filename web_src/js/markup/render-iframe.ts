@@ -1,5 +1,5 @@
 import {generateElemId} from '../utils/dom.ts';
-import {errorMessage} from '../utils/error.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {isDarkTheme} from '../utils.ts';
 import {GET} from '../modules/fetch.ts';
 

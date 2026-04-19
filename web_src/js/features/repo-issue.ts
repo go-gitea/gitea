@@ -1,4 +1,4 @@
-import {errorMessage} from '../utils/error.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {htmlEscape} from '../utils/html.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {
