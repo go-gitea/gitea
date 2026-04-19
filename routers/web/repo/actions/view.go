@@ -371,7 +371,7 @@ type ViewStepLogLine struct {
 }
 
 func ViewPost(ctx *context_module.Context) {
-	run, attempt, _, jobs := getCurrentRunJobsByPathParam(ctx)
+	run, attempt, jobs := getCurrentRunJobsByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -461,8 +461,8 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			Status:          runAttempt.Status.String(),
 			Done:            runAttempt.Status.IsDone(),
 			Link:            getRunViewLink(run, runAttempt),
-			Current:         attempt != nil && runAttempt.ID == attempt.ID,
-			Latest:          run.LatestAttemptID > 0 && runAttempt.ID == run.LatestAttemptID,
+			Current:         runAttempt.ID == attempt.ID,
+			Latest:          runAttempt.ID == run.LatestAttemptID,
 			TriggeredAt:     runAttempt.Created.AsTime().Unix(),
 			TriggerUserName: runAttempt.TriggerUser.GetDisplayName(),
 			TriggerUserLink: runAttempt.TriggerUser.HomeLink(),
@@ -503,7 +503,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	}
 	arts, err := actions_model.ListUploadedArtifactsMetaByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
 	if err != nil {
-		ctx.ServerError("get view artifacts", err)
+		ctx.ServerError("ListUploadedArtifactsMetaByRunAttempt", err)
 		return
 	}
 	resp.Artifacts = make([]*ArtifactsViewItem, 0, len(arts))
@@ -657,8 +657,8 @@ func checkRunRerunAllowed(ctx *context_module.Context, run *actions_model.Action
 	return true
 }
 
-func checkLatestAttempt(ctx *context_module.Context, attempt *actions_model.ActionRunAttempt, isLatestAttempt bool) bool {
-	if attempt != nil && !isLatestAttempt {
+func checkLatestAttempt(ctx *context_module.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) bool {
+	if attempt != nil && run.LatestAttemptID != attempt.ID {
 		ctx.NotFound(nil)
 		return false
 	}
@@ -668,11 +668,11 @@ func checkLatestAttempt(ctx *context_module.Context, attempt *actions_model.Acti
 // Rerun will rerun jobs in the given run
 // If jobIDStr is a blank string, it means rerun all jobs
 func Rerun(ctx *context_module.Context) {
-	run, attempt, isLatestAttempt, jobs := getCurrentRunJobsByPathParam(ctx)
+	run, attempt, jobs := getCurrentRunJobsByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
-	if !checkLatestAttempt(ctx, attempt, isLatestAttempt) {
+	if !checkLatestAttempt(ctx, run, attempt) {
 		return
 	}
 	if !checkRunRerunAllowed(ctx, run) {
@@ -700,11 +700,11 @@ func Rerun(ctx *context_module.Context) {
 
 // RerunFailed reruns all failed jobs in the given run
 func RerunFailed(ctx *context_module.Context) {
-	run, attempt, isLatestAttempt, jobs := getCurrentRunJobsByPathParam(ctx)
+	run, attempt, jobs := getCurrentRunJobsByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
-	if !checkLatestAttempt(ctx, attempt, isLatestAttempt) {
+	if !checkLatestAttempt(ctx, run, attempt) {
 		return
 	}
 	if !checkRunRerunAllowed(ctx, run) {
@@ -746,11 +746,11 @@ func Logs(ctx *context_module.Context) {
 }
 
 func Cancel(ctx *context_module.Context) {
-	run, attempt, isLatestAttempt, jobs := getCurrentRunJobsByPathParam(ctx)
+	run, attempt, jobs := getCurrentRunJobsByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
-	if !checkLatestAttempt(ctx, attempt, isLatestAttempt) {
+	if !checkLatestAttempt(ctx, run, attempt) {
 		return
 	}
 
@@ -821,10 +821,10 @@ func getRunViewLink(run *actions_model.ActionRun, attempt *actions_model.ActionR
 
 // getCurrentRunJobsByPathParam resolves the current run view context from path parameters, including the run, optional attempt, and jobs to render.
 // Any error will be written to the ctx, empty jobs will also result in 404 error, then the return values are all nil.
-func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.ActionRun, *actions_model.ActionRunAttempt, bool, []*actions_model.ActionRunJob) {
+func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.ActionRun, *actions_model.ActionRunAttempt, []*actions_model.ActionRunJob) {
 	run := getCurrentRunByPathParam(ctx)
 	if ctx.Written() {
-		return nil, nil, false, nil
+		return nil, nil, nil
 	}
 	run.Repo = ctx.Repo.Repository
 
@@ -837,7 +837,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 			ctx.NotFoundOrServerError("GetRunJobByRepoAndID", func(err error) bool {
 				return errors.Is(err, util.ErrNotExist)
 			}, err)
-			return nil, nil, false, nil
+			return nil, nil, nil
 		}
 	}
 
@@ -846,7 +846,6 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 	// attempt may be nil for legacy runs that pre-date ActionRunAttempt; callers must handle that case.
 	attemptNum := ctx.PathParamInt64("attempt")
 	var attempt *actions_model.ActionRunAttempt
-	var isLatestAttempt bool
 	switch {
 	case attemptNum > 0:
 		// Explicit attempt number in the URL — user is viewing a historical attempt.
@@ -855,9 +854,8 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 			ctx.NotFoundOrServerError("GetRunAttemptByRunIDAndAttempt", func(err error) bool {
 				return errors.Is(err, util.ErrNotExist)
 			}, err)
-			return nil, nil, false, nil
+			return nil, nil, nil
 		}
-		isLatestAttempt = run.LatestAttemptID == attempt.ID
 	case selectedJob != nil && selectedJob.RunAttemptID > 0:
 		// No explicit attempt in the URL, but the requested job belongs to a known attempt — resolve via the job.
 		attempt, err = actions_model.GetRunAttemptByRepoAndID(ctx, selectedJob.RepoID, selectedJob.RunAttemptID)
@@ -865,9 +863,8 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 			ctx.NotFoundOrServerError("GetRunAttemptByRepoAndID", func(err error) bool {
 				return errors.Is(err, util.ErrNotExist)
 			}, err)
-			return nil, nil, false, nil
+			return nil, nil, nil
 		}
-		isLatestAttempt = run.LatestAttemptID == attempt.ID
 	default:
 		// No attempt context at all — show the latest attempt (nil for legacy runs).
 		attempt, _, err = run.GetLatestAttempt(ctx)
@@ -875,9 +872,8 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 			ctx.NotFoundOrServerError("GetLatestAttempt", func(err error) bool {
 				return errors.Is(err, util.ErrNotExist)
 			}, err)
-			return nil, nil, false, nil
+			return nil, nil, nil
 		}
-		isLatestAttempt = true
 	}
 
 	// Resolve the jobs for the resolved attempt.
@@ -889,17 +885,17 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, resolvedAttemptID)
 	if err != nil {
 		ctx.ServerError("get current jobs", err)
-		return nil, nil, false, nil
+		return nil, nil, nil
 	}
 	if len(jobs) == 0 {
 		ctx.NotFound(nil)
-		return nil, nil, false, nil
+		return nil, nil, nil
 	}
 
 	for _, job := range jobs {
 		job.Run = run
 	}
-	return run, attempt, isLatestAttempt, jobs
+	return run, attempt, jobs
 }
 
 // resolveArtifactAttemptIDFromQuery resolves the run_attempt_id used to scope artifact lookups.

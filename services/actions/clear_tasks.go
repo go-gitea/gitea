@@ -61,7 +61,7 @@ func shouldBlockJobByConcurrency(ctx context.Context, job *actions_model.ActionR
 
 	attempts, jobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, []actions_model.Status{actions_model.StatusRunning})
 	if err != nil {
-		return false, fmt.Errorf("GetConcurrentRunsAndJobs: %w", err)
+		return false, fmt.Errorf("GetConcurrentRunAttemptsAndJobs: %w", err)
 	}
 
 	return len(attempts) > 0 || len(jobs) > 0, nil
@@ -191,8 +191,8 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		if job.Run == nil || job.Run.Repo == nil {
 			continue // error occurs during loading attributes, the following code that depends on "Run.Repo" will fail, so ignore and skip
 		}
-		CreateCommitStatusForRunJobs(ctx, job.Run, job)
 		if updated {
+			CreateCommitStatusForRunJobs(ctx, job.Run, job)
 			updatedJobs = append(updatedJobs, job)
 		}
 	}

@@ -72,7 +72,7 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 	var jobs, updatedJobs, cancelledJobs []*actions_model.ActionRunJob
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// check jobs of the current run
-		if js, ujs, cjs, err := checkJobsOfCurrentRunAttempt(ctx, run, run.LatestAttemptID); err != nil {
+		if js, ujs, cjs, err := checkJobsOfCurrentRunAttempt(ctx, run); err != nil {
 			return err
 		} else {
 			jobs = append(jobs, js...)
@@ -167,7 +167,7 @@ func checkBlockedConcurrentRun(ctx context.Context, repoID, runID int64) (jobs, 
 		return nil, nil, nil, nil
 	}
 
-	return checkJobsOfCurrentRunAttempt(ctx, concurrentRun, concurrentRun.LatestAttemptID)
+	return checkJobsOfCurrentRunAttempt(ctx, concurrentRun)
 }
 
 // checkRunConcurrency rechecks runs blocked by concurrency that may become unblocked after the current run releases a workflow-level or job-level concurrency group.
@@ -222,8 +222,9 @@ func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (job
 	return jobs, updatedJobs, cancelledJobs, nil
 }
 
-func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.ActionRun, attemptID int64) (jobs, updatedJobs, cancelledJobs []*actions_model.ActionRunJob, err error) {
-	jobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, attemptID)
+// checkJobsOfCurrentRunAttempt resolves blocked jobs of the run's latest attempt.
+func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.ActionRun) (jobs, updatedJobs, cancelledJobs []*actions_model.ActionRunJob, err error) {
+	jobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, run.LatestAttemptID)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -383,7 +384,11 @@ func updateConcurrencyEvaluationForJobWithNeeds(ctx context.Context, actionRunJo
 		return nil // for testing purpose only, no repo, no evaluation
 	}
 
-	err := EvaluateJobConcurrencyFillModel(ctx, actionRunJob.Run, nil, actionRunJob, vars, nil)
+	attempt, err := actions_model.GetRunAttemptByRepoAndID(ctx, actionRunJob.RepoID, actionRunJob.RunAttemptID)
+	if err != nil {
+		return fmt.Errorf("GetRunAttemptByRepoAndID: %w", err)
+	}
+	err = EvaluateJobConcurrencyFillModel(ctx, actionRunJob.Run, attempt, actionRunJob, vars, nil)
 	if err != nil {
 		return fmt.Errorf("evaluate job concurrency: %w", err)
 	}

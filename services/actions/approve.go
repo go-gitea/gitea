@@ -22,17 +22,18 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			if err != nil {
 				return err
 			}
-			run.Repo = repo
 			run.NeedApproval = false
 			run.ApprovedBy = doer.ID
 			if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
 				return err
 			}
-			jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID) // GetLatestAttemptJobsByRepoAndRunID returns the latest attempt's jobs here
+			jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 			if err != nil {
 				return err
 			}
 			for _, job := range jobs {
+				// Skip jobs with `needs`: they stay blocked until their dependencies finish,
+				// at which point job_emitter will evaluate and start them.
 				if len(job.Needs) > 0 {
 					continue
 				}
