@@ -21,7 +21,6 @@ const locale = {
   filter_by_file_extension: el.getAttribute('data-filter-by-file-extension'),
   select_all: el.getAttribute('data-select-all'),
   deselect_all: el.getAttribute('data-deselect-all'),
-  apply: el.getAttribute('data-apply'),
   search: el.getAttribute('data-search'),
   no_file_extension: el.getAttribute('data-no-file-extension'),
   no_file_extensions_found: el.getAttribute('data-no-file-extensions-found'),
@@ -40,11 +39,12 @@ const filteredExtensions = computed(() => {
 });
 
 function getExtension(filename: string): string {
-  const lastDot = filename.lastIndexOf('.');
+  const basename = filename.substring(filename.lastIndexOf('/') + 1);
+  const lastDot = basename.lastIndexOf('.');
   if (lastDot === -1) {
     return locale.no_file_extension;
   }
-  return filename.substring(lastDot);
+  return basename.substring(lastDot);
 }
 
 function scanExtensions() {
@@ -132,21 +132,21 @@ function deselectAll() {
   for (const ext of extensions.value) {
     ext.checked = false;
   }
+  applyFilter();
 }
 
 function applyFilter() {
   const checkedExtensions = new Set(extensions.value.filter((e) => e.checked).map((e) => e.ext));
   applyFilterToFileBoxes(checkedExtensions);
-  toggleMenu();
 }
 
-/**
- * Handle keyboard navigation within the dropdown menu
- * Arrow Up/Down: navigate through checkboxes and buttons
- * Space/Enter: toggle checkboxes or activate buttons
- * Escape: close the dropdown
- * @param event Keyboard event
- */
+function onBodyClick(event: MouseEvent) {
+  if (el.contains(event.target as Node)) return;
+  if (menuVisible.value) {
+    toggleMenu();
+  }
+}
+
 function onKeyDown(event: KeyboardEvent) {
   if (!menuVisible.value) return;
   const currentFocused = document.activeElement as HTMLElement;
@@ -204,6 +204,7 @@ function onKeyDown(event: KeyboardEvent) {
 }
 
 onMounted(() => {
+  document.addEventListener('click', onBodyClick, true);
   el.addEventListener('keydown', onKeyDown);
 
   // Watch for new files being added (e.g., when "load more" is clicked)
@@ -223,6 +224,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  document.removeEventListener('click', onBodyClick, true);
   el.removeEventListener('keydown', onKeyDown);
 
   if (mutationObserver.value) {
@@ -232,20 +234,20 @@ onUnmounted(() => {
 </script>
 <template>
   <div class="ui scrolling dropdown custom diff-file-extension-filter">
-    <div v-if="menuVisible" class="diff-ext-backdrop" @click="toggleMenu()"/>
     <button
       class="ui tiny basic button"
       :class="{'diff-ext-filter-btn-active': isFiltering}"
       @click="toggleMenu()"
       :data-tooltip-content="locale.filter_by_file_extension"
       aria-haspopup="true"
+      :aria-expanded="menuVisible ? 'true' : 'false'"
       :aria-label="locale.filter_by_file_extension"
       :aria-controls="uniqueIdMenu"
     >
       <SvgIcon name="octicon-filter"/>
     </button>
     <!-- this dropdown is not managed by Fomantic UI, so it needs some classes like "transition" explicitly -->
-    <div class="left menu transition" :id="uniqueIdMenu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
+    <div class="left menu transition" :id="uniqueIdMenu" :class="{visible: menuVisible}" v-show="menuVisible" role="menu">
       <div class="header">{{ locale.filter_by_file_extension }}</div>
       <div class="ui divider tw-mt-2 tw-mb-0"/>
       <!-- Search input -->
@@ -264,23 +266,22 @@ onUnmounted(() => {
       <div class="ui form">
         <!-- Extension checkboxes -->
         <div class="grouped fields">
-          <div v-if="filteredExtensions.length > 0">
-            <template v-for="ext in filteredExtensions" :key="ext.ext">
-              <div class="field" role="menuitem" tabindex="-1">
-                <div class="ui checkbox">
-                  <input
-                    type="checkbox"
-                    :id="`ext-filter-${ext.ext}`"
-                    v-model="ext.checked"
-                  >
-                  <label :for="`ext-filter-${ext.ext}`" class="tw-cursor-pointer">
-                    <span>{{ ext.ext }}</span>
-                    <span class="tw-text-text-light-2"> ({{ ext.count }})</span>
-                  </label>
-                </div>
+          <template v-for="ext in filteredExtensions" :key="ext.ext">
+            <div class="field" role="menuitem" tabindex="-1">
+              <div class="ui checkbox">
+                <input
+                  type="checkbox"
+                  :id="`ext-filter-${ext.ext}`"
+                  v-model="ext.checked"
+                  @change="applyFilter()"
+                >
+                <label :for="`ext-filter-${ext.ext}`" class="tw-cursor-pointer">
+                  <span>{{ ext.ext }}</span>
+                  <span class="tw-text-text-light-2"> ({{ ext.count }})</span>
+                </label>
               </div>
-            </template>
-          </div>
+            </div>
+          </template>
           <div v-if="filteredExtensions.length === 0" class="tw-py-4 tw-text-center tw-text-text-light-2">
             {{ locale.no_file_extensions_found }}
           </div>
@@ -290,15 +291,9 @@ onUnmounted(() => {
       <!-- Select all / Deselect all buttons -->
       <div class="ui divider tw-my-2"/>
       <div class="tw-flex tw-items-center tw-justify-center tw-gap-4 tw-px-2 tw-py-1">
-        <button type="button" class="diff-ext-text-btn" tabindex="-1" role="menuitem" @click="selectAll()">{{ locale.select_all }}</button>
+        <button type="button" class="diff-ext-text-btn" tabindex="-1" role="menuitem" @click="selectAll(); applyFilter()">{{ locale.select_all }}</button>
         <button type="button" class="diff-ext-text-btn" tabindex="-1" role="menuitem" @click="deselectAll()">{{ locale.deselect_all }}</button>
       </div>
-
-      <!-- Apply button -->
-      <div class="ui divider tw-my-2"/>
-      <button type="button" class="ui button fluid" tabindex="-1" role="menuitem" @click="applyFilter()">
-        {{ locale.apply }}
-      </button>
     </div>
   </div>
 </template>
@@ -320,11 +315,11 @@ onUnmounted(() => {
     margin: 0;
   }
 
-  .ui.dropdown.diff-file-extension-filter .grouped.fields > div > .field {
+  .ui.dropdown.diff-file-extension-filter .grouped.fields > .field {
     margin-bottom: 0.5rem;
   }
 
-  .ui.dropdown.diff-file-extension-filter .grouped.fields > div > .field:last-child {
+  .ui.dropdown.diff-file-extension-filter .grouped.fields > .field:last-child {
     margin-bottom: 0;
   }
 
@@ -349,12 +344,6 @@ onUnmounted(() => {
 
   .ui.dropdown.diff-file-extension-filter .diff-ext-search-input {
     width: 100%;
-  }
-
-  .diff-ext-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 10;
   }
 
   .ui.dropdown.diff-file-extension-filter .ui.input {

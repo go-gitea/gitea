@@ -30,7 +30,7 @@ export default defineComponent({
       queryParams: el.getAttribute('data-queryparams'),
       issueLink: el.getAttribute('data-issuelink'),
       locale: {
-        filter_changes_by_commit: el.getAttribute('data-filter_changes_by_commit'),
+        filter_changes_by_commit: el.getAttribute('data-filter-changes-by-commit'),
       } as Record<string, string>,
       mergeBase: el.getAttribute('data-merge-base'),
       commits: [] as Array<Commit>,

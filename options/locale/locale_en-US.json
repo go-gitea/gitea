@@ -1780,7 +1780,7 @@
   "repo.pulls.filter_by_file_extension": "Filter by file extension",
   "repo.pulls.select_all_file_extensions": "Select all",
   "repo.pulls.deselect_all_file_extensions": "Deselect all",
-  "repo.pulls.apply_file_extension_filter": "Apply",
+  "repo.pulls.search_file_extensions": "Search extensions...",
   "repo.pulls.no_file_extension": "(no extension)",
   "repo.pulls.no_file_extensions_found": "No extensions found",
   "repo.pulls.nothing_to_compare": "These branches are equal. There is no need to create a pull request.",
