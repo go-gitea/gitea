@@ -461,10 +461,9 @@ func InitRepoPullRequestCtx(ctx *Context, base, head *repo_model.Repository) {
 }
 
 type repoAssignmentPrepareDataStruct struct {
-	ownerName        string
-	repoName         string
-	isHomeOrSettings bool
-	repo             *repo_model.Repository
+	ownerName string
+	repoName  string
+	repo      *repo_model.Repository
 }
 
 func repoAssignmentPreCheck(ctx *Context) {
@@ -488,17 +487,7 @@ func repoAssignmentPrepareData(ctx *Context) *repoAssignmentPrepareDataStruct {
 		repoName = strings.TrimSuffix(repoName, ".rss")
 		repoName = strings.TrimSuffix(repoName, ".atom")
 	}
-
-	isHomeOrSettings := ctx.Link == ctx.Repo.RepoLink ||
-		ctx.Link == ctx.Repo.RepoLink+"/settings" ||
-		strings.HasPrefix(ctx.Link, ctx.Repo.RepoLink+"/settings/") ||
-		ctx.Link == ctx.Repo.RepoLink+"/-/migrate/status"
-
-	return &repoAssignmentPrepareDataStruct{
-		ownerName:        userName,
-		repoName:         repoName,
-		isHomeOrSettings: isHomeOrSettings,
-	}
+	return &repoAssignmentPrepareDataStruct{ownerName: userName, repoName: repoName}
 }
 
 func repoAssignmentPrepareOwner(ctx *Context, data *repoAssignmentPrepareDataStruct) {
@@ -681,10 +670,17 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 	}
 }
 
-func repoAssignmentAutoRedirectNotRead(ctx *Context, data *repoAssignmentPrepareDataStruct) {
+func repoAssignmentIsHomeOrSettings(ctx *Context, data *repoAssignmentPrepareDataStruct) bool {
+	repoLink := data.repo.Link()
+	return ctx.Link == repoLink ||
+		strings.HasPrefix(ctx.Link+"/", repoLink+"/settings/") ||
+		ctx.Link == repoLink+"/-/migrate/status"
+}
+
+func repoAssignmentAutoRedirectNotReady(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 	// Disable everything when the repo is being created
 	if ctx.Repo.Repository.IsBeingCreated() || ctx.Repo.Repository.IsBroken() {
-		if !data.isHomeOrSettings {
+		if !repoAssignmentIsHomeOrSettings(ctx, data) {
 			ctx.Redirect(ctx.Repo.RepoLink)
 		}
 		return
@@ -700,7 +696,7 @@ func repoAssignmentPrepareGitRepo(ctx *Context, data *repoAssignmentPrepareDataS
 			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RelativePath(), err)
 			ctx.Repo.Repository.MarkAsBrokenEmpty()
 			// Only allow access to base of repo or settings
-			if !data.isHomeOrSettings {
+			if !repoAssignmentIsHomeOrSettings(ctx, data) {
 				ctx.Redirect(ctx.Repo.RepoLink)
 			}
 			return
@@ -793,7 +789,7 @@ func RepoAssignment(ctx *Context) {
 		repoAssignmentPrepareRepo,
 		repoAssignmentLegacy,
 		repoAssignmentPrepareTemplateData,
-		repoAssignmentAutoRedirectNotRead,
+		repoAssignmentAutoRedirectNotReady,
 		repoAssignmentPrepareGitRepo,
 		repoAssignmentPrepareRepoTransfer,
 		repoAssignmentPrepareBranches,
