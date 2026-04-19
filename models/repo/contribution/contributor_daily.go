@@ -130,7 +130,14 @@ func IterateRepoIDsWithoutContributorDaily(ctx context.Context, batchSize int, h
 	for {
 		repoIDs := make([]int64, 0, batchSize)
 		if err := db.GetEngine(ctx).
-			SQL("SELECT id FROM repository WHERE is_empty = ? AND id > ? AND NOT EXISTS (SELECT 1 FROM repo_contributor_daily WHERE repo_id = repository.id) ORDER BY id LIMIT ?", false, lastID, batchSize).
+			Table("repository").
+			Select("repository.id").
+			Join("LEFT", "repo_contributor_daily", "repo_contributor_daily.repo_id = repository.id").
+			Where("repository.is_empty = ?", false).
+			And("repository.id > ?", lastID).
+			And("repo_contributor_daily.repo_id IS NULL").
+			Asc("repository.id").
+			Limit(batchSize).
 			Find(&repoIDs); err != nil {
 			return err
 		}
