@@ -64,7 +64,7 @@ export class IssueSidebarComboList {
   }
 
   collectCheckedValues() {
-    return Array.from(this.elDropdown.querySelectorAll('.menu > .item.checked'), (el) => el.getAttribute('data-value')!);
+    return Array.from(this.elDropdown.querySelectorAll('.menu .item.checked'), (el) => el.getAttribute('data-value')!);
   }
 
   updateUiList(changedValues: Array<string>) {
@@ -72,7 +72,7 @@ export class IssueSidebarComboList {
     const elEmptyTip = this.elList.querySelector('.item.empty-list')!;
     queryElemChildren(this.elList, '.item:not(.empty-list)', (el) => el.remove());
     for (const value of changedValues) {
-      const el = this.elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${CSS.escape(value)}"]`);
+      const el = this.elDropdown.querySelector<HTMLElement>(`.menu .item[data-value="${CSS.escape(value)}"]`);
       if (!el) continue;
       const listItem = el.cloneNode(true) as HTMLElement;
       queryElems(listItem, '.item-check-mark, .item-secondary-info', (el) => el.remove());
@@ -155,7 +155,7 @@ export class IssueSidebarComboList {
     if (elItem.hasAttribute('data-can-change') && elItem.getAttribute('data-can-change') !== 'true') return;
 
     if (elItem.matches('.clear-selection')) {
-      queryElems(this.elDropdown, '.menu > .item', (el) => el.classList.remove('checked'));
+      queryElems(this.elDropdown, '.menu .item', (el) => el.classList.remove('checked'));
       this.elComboValue.value = '';
       this.onChange();
       return;
@@ -164,18 +164,18 @@ export class IssueSidebarComboList {
     const scope = elItem.getAttribute('data-scope');
     if (scope) {
       // scoped items could only be checked one at a time
-      const elSelected = this.elDropdown.querySelector<HTMLElement>(`.menu > .item.checked[data-scope="${CSS.escape(scope)}"]`);
+      const elSelected = this.elDropdown.querySelector<HTMLElement>(`.menu .item.checked[data-scope="${CSS.escape(scope)}"]`);
       if (elSelected === elItem) {
         elItem.classList.toggle('checked');
       } else {
-        queryElems(this.elDropdown, `.menu > .item[data-scope="${CSS.escape(scope)}"]`, (el) => el.classList.remove('checked'));
+        queryElems(this.elDropdown, `.menu .item[data-scope="${CSS.escape(scope)}"]`, (el) => el.classList.remove('checked'));
         elItem.classList.toggle('checked', true);
       }
     } else {
       if (this.selectionMode === 'multiple') {
         elItem.classList.toggle('checked');
       } else {
-        queryElems(this.elDropdown, `.menu > .item.checked`, (el) => el.classList.remove('checked'));
+        queryElems(this.elDropdown, `.menu .item.checked`, (el) => el.classList.remove('checked'));
         elItem.classList.toggle('checked', true);
       }
     }
@@ -189,10 +189,10 @@ export class IssueSidebarComboList {
 
   init() {
     // init the checked items from initial value
-    if (this.elComboValue.value && this.elComboValue.value !== '0' && !queryElems(this.elDropdown, `.menu > .item.checked`).length) {
+    if (this.elComboValue.value && this.elComboValue.value !== '0' && !queryElems(this.elDropdown, `.menu .item.checked`).length) {
       const values = this.elComboValue.value.split(',');
       for (const value of values) {
-        const elItem = this.elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${CSS.escape(value)}"]`);
+        const elItem = this.elDropdown.querySelector<HTMLElement>(`.menu .item[data-value="${CSS.escape(value)}"]`);
         elItem?.classList.add('checked');
       }
       this.updateUiList(values);

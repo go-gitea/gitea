@@ -33,13 +33,17 @@ test('assign issue to project and change column', async ({page}) => {
   const columnCombo = page.locator('.sidebar-project-column-combo');
   await expect(columnCombo).toBeVisible();
   await columnCombo.locator('.ui.dropdown').click();
+  await columnCombo.locator('.menu').waitFor({state: 'visible'});
 
-  await Promise.all([
-    page.waitForResponse((resp) => resp.url().includes('/issues/projects/column') && resp.status() === 200),
-    columnCombo.locator('.menu .item', {hasText: 'In Progress'}).click(),
-  ]);
+  const columnPost = page.waitForResponse((resp) =>
+    resp.request().method() === 'POST' &&
+    resp.url().includes('/issues/projects/column') &&
+    resp.ok(),
+  );
+  await columnCombo.locator('a.item', {hasText: 'In Progress'}).click();
+  await columnPost;
 
-  await expect(columnCombo.locator('.sidebar-project-column-text')).toContainText('In Progress');
+  await expect(columnCombo.locator('.interact-bg .gt-ellipsis')).toContainText('In Progress');
   await expect(page.locator('.timeline-item', {hasText: 'moved this to In Progress'})).toBeVisible();
 
   await apiDeleteRepo(page.request, user, repoName);

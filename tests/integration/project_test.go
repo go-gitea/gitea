@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -162,8 +163,8 @@ func TestIssueSidebarProjectColumn(t *testing.T) {
 	cards := htmlDoc.Find(".sidebar-project-card")
 	assert.Equal(t, 1, cards.Length())
 
-	header := cards.Find(".sidebar-project-card-header")
-	assert.Contains(t, header.Text(), "First project")
+	title := cards.Find(".sidebar-project-card a.suppressed .gt-ellipsis")
+	assert.Contains(t, strings.TrimSpace(title.Text()), "First project")
 
 	columnCombo := cards.Find(".sidebar-project-column-combo")
 	assert.Equal(t, 1, columnCombo.Length())
@@ -176,7 +177,9 @@ func TestIssueSidebarProjectColumn(t *testing.T) {
 	doneItem := columnCombo.Find(`.menu .item[data-value="3"]`)
 	assert.Equal(t, 1, doneItem.Length())
 
-	assert.True(t, doneItem.HasClass("checked"))
+	comboVal, exists := columnCombo.Find("input.combo-value").Attr("value")
+	assert.True(t, exists)
+	assert.Equal(t, "3", comboVal)
 
 	req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=5", map[string]string{
 		"id": "0",
