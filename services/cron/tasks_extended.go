@@ -226,7 +226,7 @@ func registerRebuildIssueIndexer() {
 
 func registerRebuildContributorStats() {
 	RegisterTaskFatal("rebuild_contributor_stats", &BaseConfig{
-		Enabled:    true,
+		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 24h",
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
