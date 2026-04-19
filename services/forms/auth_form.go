@@ -14,7 +14,6 @@ import (
 
 // AuthenticationForm form for authentication
 type AuthenticationForm struct {
-	ID              int64
 	Type            int    `binding:"Range(2,7)"`
 	Name            string `binding:"Required;MaxSize(30)"`
 	TwoFactorPolicy string

@@ -1,5 +1,5 @@
 {{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
-	<div class="flex-text-block tw-justify-between tw-mb-4">
+	<div class="flex-left-right tw-mb-4">
 		<div class="small-menu-items ui compact tiny menu list-header-toggle">
 			<a class="item{{if not .IsShowClosed}} active{{end}}" href="?state=open&q={{$.Keyword}}">
 				{{svg "octicon-project-symlink" 16 "tw-mr-2"}}
