@@ -115,10 +115,13 @@ function toggleMenu() {
   if (menuVisible.value) {
     searchQuery.value = '';
     scanExtensions();
+    document.addEventListener('click', onOutsideClick, true);
     setTimeout(() => {
       const searchInput = el.querySelector('.diff-ext-search-input') as HTMLInputElement;
       if (searchInput) searchInput.focus();
     }, 0);
+  } else {
+    document.removeEventListener('click', onOutsideClick, true);
   }
 }
 
@@ -126,6 +129,7 @@ function selectAll() {
   for (const ext of extensions.value) {
     ext.checked = true;
   }
+  applyFilter();
 }
 
 function deselectAll() {
@@ -140,7 +144,7 @@ function applyFilter() {
   applyFilterToFileBoxes(checkedExtensions);
 }
 
-function onBodyClick(event: MouseEvent) {
+function onOutsideClick(event: MouseEvent) {
   if (el.contains(event.target as Node)) return;
   if (menuVisible.value) {
     toggleMenu();
@@ -204,7 +208,6 @@ function onKeyDown(event: KeyboardEvent) {
 }
 
 onMounted(() => {
-  document.addEventListener('click', onBodyClick, true);
   el.addEventListener('keydown', onKeyDown);
 
   // Watch for new files being added (e.g., when "load more" is clicked)
@@ -224,7 +227,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  document.removeEventListener('click', onBodyClick, true);
+  document.removeEventListener('click', onOutsideClick, true);
   el.removeEventListener('keydown', onKeyDown);
 
   if (mutationObserver.value) {
@@ -291,7 +294,7 @@ onUnmounted(() => {
       <!-- Select all / Deselect all buttons -->
       <div class="ui divider tw-my-2"/>
       <div class="tw-flex tw-items-center tw-justify-center tw-gap-4 tw-px-2 tw-py-1">
-        <button type="button" class="diff-ext-text-btn" tabindex="-1" role="menuitem" @click="selectAll(); applyFilter()">{{ locale.select_all }}</button>
+        <button type="button" class="diff-ext-text-btn" tabindex="-1" role="menuitem" @click="selectAll()">{{ locale.select_all }}</button>
         <button type="button" class="diff-ext-text-btn" tabindex="-1" role="menuitem" @click="deselectAll()">{{ locale.deselect_all }}</button>
       </div>
     </div>
