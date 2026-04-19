@@ -280,7 +280,11 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 				return 0, fmt.Errorf("update run attempt %d: %w", attempt.ID, err)
 			}
 		} else {
-			// TODO: This logic is for compatibility with jobs created BEFORE Migration 331 but completed AFTER it. Do we need to keep this logic?
+			// TODO: Remove this fallback in the future.
+			// Legacy fallback: jobs created before migration v331 have RunAttemptID=0 and are NOT backfilled.
+			// This path keeps those runs' status consistent when their jobs finish, including:
+			//   - jobs created before migration v331 and complete on the new version starts
+			//   - zombie/abandoned cleanup cron tasks that call UpdateRunJob on legacy jobs
 			run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
 			if err != nil {
 				return 0, err
