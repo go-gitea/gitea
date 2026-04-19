@@ -165,8 +165,8 @@ export default defineComponent({
         } else {
           this.errorText = response.statusText;
         }
-      } catch (err: any) {
-        this.errorText = err.message;
+      } catch (err) {
+        this.errorText = (err as Error).message;
       } finally {
         this.isLoading = false;
       }

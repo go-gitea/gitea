@@ -10,8 +10,8 @@ function safeRenderIframeLink(link: any): string | null {
       return null;
     }
     return url.href;
-  } catch (e: any) {
-    console.error(`Failed to parse link: ${link}, error: ${e}`);
+  } catch (e) {
+    console.error(`Failed to parse link: ${link}, error: ${String(e)}`);
     return null;
   }
 }

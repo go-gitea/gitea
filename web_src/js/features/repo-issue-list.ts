@@ -86,8 +86,9 @@ function initRepoIssueListCheckboxes() {
       try {
         await updateIssuesMeta(url, action, issueIDs, elementId);
         window.location.reload();
-      } catch (err: any) {
-        showErrorToast(err.responseJSON?.error ?? err.message);
+      } catch (err) {
+        const e = err as {responseJSON?: {error: string}, message: string};
+        showErrorToast(e.responseJSON?.error ?? e.message);
       }
     },
   ));

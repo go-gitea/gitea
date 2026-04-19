@@ -45,8 +45,8 @@ export async function initCitationFileCopyContent() {
   document.querySelector('#cite-repo-button')?.addEventListener('click', async () => {
     try {
       await initInputCitationValue(citationCopyApa, citationCopyBibtex);
-    } catch (e: any) {
-      console.error(`initCitationFileCopyContent error: ${e}`, e);
+    } catch (e) {
+      console.error(`initCitationFileCopyContent error: ${String(e)}`, e);
       return;
     }
     updateUi();

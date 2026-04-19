@@ -134,10 +134,11 @@ async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
       return;
     }
     await handleFetchActionError(resp);
-  } catch (e: any) {
+  } catch (err) {
+    const e = err as Error;
     if (e.name !== 'AbortError') {
       console.error(`Fetch action request error:`, e);
-      showErrorToast(`Error: ${e.message ?? e}`);
+      showErrorToast(`Error: ${e.message ?? String(e)}`);
     }
   } finally {
     toggleLoadingIndicator(el, opt, false);

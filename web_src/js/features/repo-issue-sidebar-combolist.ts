@@ -127,9 +127,9 @@ export class IssueSidebarComboList {
         return;
       }
       await this.reloadPagePartially();
-    } catch (e: any) {
+    } catch (e) {
       console.error('Failed to update to backend', e);
-      showErrorToast(`Failed to update to backend: ${e}`);
+      showErrorToast(`Failed to update to backend: ${String(e)}`);
     } finally {
       this.elIssueSidebar.classList.remove('is-loading');
     }

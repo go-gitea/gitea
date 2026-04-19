@@ -77,8 +77,8 @@ async function fetchGraphData() {
     } else {
       errorText.value = response.statusText;
     }
-  } catch (err: any) {
-    errorText.value = err.message;
+  } catch (err) {
+    errorText.value = (err as Error).message;
   } finally {
     isLoading.value = false;
   }

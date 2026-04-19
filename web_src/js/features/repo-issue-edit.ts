@@ -72,8 +72,8 @@ async function tryOnEditContent(e: Event) {
         commentContent.querySelector('.dropzone-attachments')!.outerHTML = data.attachments;
       }
       comboMarkdownEditor.dropzoneSubmitReload();
-    } catch (error: any) {
-      showErrorToast(`Failed to save the content: ${error}`);
+    } catch (error) {
+      showErrorToast(`Failed to save the content: ${String(error)}`);
       console.error(error);
     } finally {
       renderContent.classList.remove('is-loading');

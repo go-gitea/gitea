@@ -423,9 +423,9 @@ export function initRepoIssueTitleEdit() {
       }
       ignoreAreYouSure(issueTitleEditor);
       window.location.reload();
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
-      showErrorToast(error.message);
+      showErrorToast((error as Error).message);
     }
   });
 }

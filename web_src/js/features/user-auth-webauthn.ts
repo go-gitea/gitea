@@ -79,8 +79,8 @@ async function loginPasskey() {
     const reply = await res.json();
 
     window.location.href = reply?.redirect ?? `${appSubUrl}/`;
-  } catch (err: any) {
-    webAuthnError('general', err.message);
+  } catch (err) {
+    webAuthnError('general', (err as Error).message);
   }
 }
 
@@ -102,9 +102,9 @@ async function login2FA() {
       publicKey: options.publicKey,
     });
     await verifyAssertion(credential);
-  } catch (err: any) {
+  } catch (err) {
     if (!options.publicKey.extensions?.appid) {
-      webAuthnError('general', err.message);
+      webAuthnError('general', (err as Error).message);
       return;
     }
     delete options.publicKey.extensions.appid;
@@ -113,8 +113,8 @@ async function login2FA() {
         publicKey: options.publicKey,
       });
       await verifyAssertion(credential);
-    } catch (err: any) {
-      webAuthnError('general', err.message);
+    } catch (err) {
+      webAuthnError('general', (err as Error).message);
     }
   }
 }
@@ -261,7 +261,7 @@ async function webAuthnRegisterRequest() {
       publicKey: options.publicKey,
     });
     await webauthnRegistered(credential);
-  } catch (err: any) {
-    webAuthnError('unknown', err.message);
+  } catch (err) {
+    webAuthnError('unknown', err instanceof Error ? err.message : String(err));
   }
 }

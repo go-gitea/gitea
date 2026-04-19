@@ -83,9 +83,9 @@ function initRepoDiffConversationForm() {
         counter.textContent = String(num);
         animateOnce(reviewBox, 'pulse-1p5-200');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error:', error);
-      showErrorToast(`Submit form failed: ${error}`);
+      showErrorToast(`Submit form failed: ${String(error)}`);
     } finally {
       form?.classList.remove('is-loading');
     }

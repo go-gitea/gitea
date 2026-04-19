@@ -244,8 +244,8 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
 
       const container = createElementFromAttrs('div', {class: 'mermaid-block'}, iframe, viewController);
       parentContainer.replaceWith(container);
-    } catch (err: any) {
-      displayError(parentContainer, err);
+    } catch (err) {
+      displayError(parentContainer, err as Error);
     }
   }
 }

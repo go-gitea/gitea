@@ -46,8 +46,8 @@ export function fetchMentions(mentionsUrl: string): Promise<Mention[]> {
       const res = await GET(`${mentionsUrl}${query}`);
       if (!res.ok) throw new Error(res.statusText);
       return await res.json() as Mention[];
-    } catch (e: any) {
-      showErrorToast(`Failed to load mentions: ${e}`);
+    } catch (e) {
+      showErrorToast(`Failed to load mentions: ${String(e)}`);
       return [];
     }
   })();
