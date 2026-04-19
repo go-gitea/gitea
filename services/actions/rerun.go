@@ -228,7 +228,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				newJob.IsConcurrencyEvaluated = false
 
 				if newJob.RawConcurrency != "" && !shouldBlockJob {
-					if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newJob, vars, nil); err != nil {
+					if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil); err != nil {
 						return fmt.Errorf("evaluate job concurrency: %w", err)
 					}
 					newJob.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, newJob)

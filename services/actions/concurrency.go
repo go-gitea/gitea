@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -23,9 +22,6 @@ import (
 // Workflow-level concurrency doesn't depend on the job outputs, so it can always be evaluated if there is no syntax error.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency
 func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, wfRawConcurrency *act_model.RawConcurrency, vars map[string]string, inputs map[string]any) error {
-	if attempt == nil {
-		return errors.New("run attempt is nil")
-	}
 	if err := run.LoadAttributes(ctx); err != nil {
 		return fmt.Errorf("run LoadAttributes: %w", err)
 	}
@@ -72,7 +68,7 @@ func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.Actio
 // Job-level concurrency may depend on other job's outputs (via `needs`): `concurrency.group: my-group-${{ needs.job1.outputs.out1 }}`
 // If the needed jobs haven't been executed yet, this evaluation will also fail.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idconcurrency
-func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.ActionRun, actionRunJob *actions_model.ActionRunJob, vars map[string]string, inputs map[string]any) error {
+func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, actionRunJob *actions_model.ActionRunJob, vars map[string]string, inputs map[string]any) error {
 	if err := actionRunJob.LoadAttributes(ctx); err != nil {
 		return fmt.Errorf("job LoadAttributes: %w", err)
 	}
@@ -82,7 +78,7 @@ func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 		return fmt.Errorf("unmarshal raw concurrency: %w", err)
 	}
 
-	actionsJobCtx := GenerateGiteaContext(ctx, run, nil, actionRunJob)
+	actionsJobCtx := GenerateGiteaContext(ctx, run, attempt, actionRunJob)
 
 	jobResults, err := findJobNeedsAndFillJobResults(ctx, actionRunJob)
 	if err != nil {

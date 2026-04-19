@@ -177,7 +177,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 
 				// do not evaluate job concurrency when it requires `needs`, the jobs with `needs` will be evaluated later by job emitter
 				if len(needs) == 0 {
-					err = EvaluateJobConcurrencyFillModel(ctx, run, runJob, vars, inputs)
+					err = EvaluateJobConcurrencyFillModel(ctx, run, runAttempt, runJob, vars, inputs)
 					if err != nil {
 						return fmt.Errorf("evaluate job concurrency: %w", err)
 					}

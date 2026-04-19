@@ -383,7 +383,7 @@ func updateConcurrencyEvaluationForJobWithNeeds(ctx context.Context, actionRunJo
 		return nil // for testing purpose only, no repo, no evaluation
 	}
 
-	err := EvaluateJobConcurrencyFillModel(ctx, actionRunJob.Run, actionRunJob, vars, nil)
+	err := EvaluateJobConcurrencyFillModel(ctx, actionRunJob.Run, nil, actionRunJob, vars, nil)
 	if err != nil {
 		return fmt.Errorf("evaluate job concurrency: %w", err)
 	}
