@@ -43,7 +43,7 @@ test('assign issue to project and change column', async ({page}) => {
   await columnCombo.locator('a.item', {hasText: 'In Progress'}).click();
   await columnPost;
 
-  await expect(columnCombo.locator('.interact-bg .gt-ellipsis')).toContainText('In Progress');
+  await expect(columnCombo.getByTestId('sidebar-project-column-text')).toContainText('In Progress');
   await expect(page.locator('.timeline-item', {hasText: 'moved this to In Progress'})).toBeVisible();
 
   await apiDeleteRepo(page.request, user, repoName);

@@ -71,9 +71,9 @@
 							<div class="interact-bg tw-px-2 tw-py-1 tw-rounded flex-text-block">
 								{{if $selectedColumn}}
 									{{if $card.SelectedColumn.Color}}<span class="color-icon icon-size-8" style="background-color: {{$card.SelectedColumn.Color}}"></span>{{end}}
-									<div class="gt-ellipsis">{{$card.SelectedColumn.Title}}</div>
+									<div class="gt-ellipsis" data-testid="sidebar-project-column-text">{{$card.SelectedColumn.Title}}</div>
 								{{else}}
-									<div class="gt-ellipsis">{{ctx.Locale.Tr "repo.issues.new.no_column"}}</div>
+									<div class="gt-ellipsis" data-testid="sidebar-project-column-text">{{ctx.Locale.Tr "repo.issues.new.no_column"}}</div>
 								{{end}}
 								{{svg "octicon-triangle-down" 14}}
 							</div>

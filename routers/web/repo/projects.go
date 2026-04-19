@@ -466,13 +466,7 @@ func UpdateIssueProject(ctx *context.Context) {
 
 // UpdateIssueProjectColumn moves an issue to a different column within its project
 func UpdateIssueProjectColumn(ctx *context.Context) {
-	issueID := ctx.FormInt64("issue_id")
-	if issueID <= 0 {
-		ctx.JSONError("invalid issue_id")
-		return
-	}
-
-	issue, err := issues_model.GetIssueByRepoID(ctx, ctx.Repo.Repository.ID, issueID)
+	issue, err := issues_model.GetIssueByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("issue_id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetIssueByID", issues_model.IsErrIssueNotExist, err)
 		return
@@ -499,7 +493,7 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 		}
 	}
 	if columnProject == nil {
-		ctx.JSONError("column does not belong to the issue's project")
+		ctx.NotFound(nil)
 		return
 	}
 

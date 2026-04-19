@@ -115,7 +115,7 @@ func TestUpdateIssueProjectColumn(t *testing.T) {
 			"issue_id": "0",
 			"id":       "3",
 		})
-		sess.MakeRequest(t, req, http.StatusBadRequest)
+		sess.MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("WrongRepo", func(t *testing.T) {
@@ -146,7 +146,7 @@ func TestUpdateIssueProjectColumn(t *testing.T) {
 			"issue_id": "1",
 			"id":       strconv.FormatInt(columns[0].ID, 10),
 		})
-		sess.MakeRequest(t, req, http.StatusBadRequest)
+		sess.MakeRequest(t, req, http.StatusNotFound)
 	})
 }
 
