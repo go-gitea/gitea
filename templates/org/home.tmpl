@@ -60,10 +60,9 @@
 						<a class="tw-text-text-light flex-text-inline" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
 					</h4>
 					<div class="ui attached segment members">
-						{{$isMember := .IsOrganizationMember}}
-						{{range .Members}}
-							{{if or $isMember (call $.IsPublicMember .ID)}}
-								<a href="{{.HomeLink}}" title="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
+						{{range $memberUser := .OrgOverviewMembers}}
+							{{if or $.IsOrganizationMember (call $.IsPublicMember $memberUser.ID)}}
+								{{template "shared/user/avatarlink" dict "user" $memberUser "size" 32 "tooltip" true}}
 							{{end}}
 						{{end}}
 					</div>
@@ -74,7 +73,7 @@
 						<a class="tw-text-text-light flex-text-inline" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 					</div>
 					<div class="ui attached table segment teams">
-						{{range .Teams}}
+						{{range .OrgOverviewTeams}}
 							<div class="item">
 								<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong class="team-name">{{.Name}}</strong></a>
 								<p class="tw-text-text-light">

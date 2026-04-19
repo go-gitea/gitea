@@ -56,7 +56,6 @@ interface Window {
   },
   $: JQueryStatic,
   jQuery: JQueryStatic,
-  htmx: typeof import('htmx.org').default,
   _globalHandlerErrors: Array<ErrorEvent & PromiseRejectionEvent> & {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
@@ -67,6 +66,15 @@ interface Window {
   grecaptcha: any,
   turnstile: any,
   hcaptcha: any,
+
+  // Make IIFE private functions can be tested in unit tests, without exposing the IIFE module to global scope.
+  // Otherwise, when using "export" in IIFE code, the compiled JS will inject global "var externalRenderHelper = ..."
+  // which is not expected and may cause conflicts with other modules.
+  testModules: {
+    externalRenderHelper?: {
+      isValidCssColor(s: string | null): boolean,
+    }
+  }
 
   // do not add more properties here unless it is a must
 }

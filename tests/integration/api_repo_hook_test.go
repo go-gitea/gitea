@@ -38,8 +38,7 @@ func TestAPICreateHook(t *testing.T) {
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var apiHook *api.Hook
-	DecodeJSON(t, resp, &apiHook)
+	apiHook := DecodeJSON(t, resp, &api.Hook{})
 	assert.Equal(t, "http://example.com/", apiHook.Config["url"])
 	assert.Equal(t, "Bearer s3cr3t", apiHook.AuthorizationHeader)
 	assert.Equal(t, "CI notifications", apiHook.Name)
@@ -49,8 +48,7 @@ func TestAPICreateHook(t *testing.T) {
 		Name: &newName,
 	}).AddTokenAuth(token)
 	patchResp := MakeRequest(t, patchReq, http.StatusOK)
-	var patched *api.Hook
-	DecodeJSON(t, patchResp, &patched)
+	patched := DecodeJSON(t, patchResp, &api.Hook{})
 	assert.Equal(t, newName, patched.Name)
 
 	hooksURL := fmt.Sprintf("/api/v1/repos/%s/%s/hooks", owner.Name, repo.Name)
@@ -64,8 +62,7 @@ func TestAPICreateHook(t *testing.T) {
 		},
 	}).AddTokenAuth(token)
 	resp2 := MakeRequest(t, req2, http.StatusCreated)
-	var created *api.Hook
-	DecodeJSON(t, resp2, &created)
+	created := DecodeJSON(t, resp2, &api.Hook{})
 	assert.Empty(t, created.Name)
 
 	hookURL := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d", owner.Name, repo.Name, created.ID)
@@ -80,8 +77,7 @@ func TestAPICreateHook(t *testing.T) {
 	// PATCH without Name field: name must remain "original"
 	patchReq2 := NewRequestWithJSON(t, "PATCH", hookURL, api.EditHookOption{}).AddTokenAuth(token)
 	patchResp2 := MakeRequest(t, patchReq2, http.StatusOK)
-	var notCleared *api.Hook
-	DecodeJSON(t, patchResp2, &notCleared)
+	notCleared := DecodeJSON(t, patchResp2, &api.Hook{})
 	assert.Equal(t, "original", notCleared.Name)
 
 	// PATCH with Name: "" explicitly: Name should be cleared to ""
@@ -89,7 +85,6 @@ func TestAPICreateHook(t *testing.T) {
 		Name: new(""),
 	}).AddTokenAuth(token)
 	clearResp := MakeRequest(t, clearReq, http.StatusOK)
-	var cleared *api.Hook
-	DecodeJSON(t, clearResp, &cleared)
+	cleared := DecodeJSON(t, clearResp, &api.Hook{})
 	assert.Empty(t, cleared.Name)
 }
