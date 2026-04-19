@@ -48,7 +48,7 @@
 						>{{ctx.Locale.Tr "repo.transfer.reject"}}</button>
 					{{else if $.RepoTransfer}}
 						<div data-tooltip-content="{{ctx.Locale.Tr "repo.transfer.is_transferring_prompt" $.RepoTransfer.Recipient.GetDisplayName}}">
-							<a class="ui compact small basic red button disabled">{{ctx.Locale.Tr "repo.transfer.is_transferring"}}</a>
+							<button class="ui compact small basic red button" disabled>{{ctx.Locale.Tr "repo.transfer.is_transferring"}}</button>
 						</div>
 					{{end}}
 					{{if $.EnableFeed}}

@@ -759,7 +759,7 @@ func repoAssignmentPrepareRepoTransfer(ctx *Context, data *repoAssignmentPrepare
 		}
 
 		if err := repoTransfer.LoadAttributes(ctx); err != nil {
-			ctx.ServerError("LoadRecipient", err)
+			ctx.ServerError("LoadAttributes", err)
 			return
 		}
 
