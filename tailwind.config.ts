@@ -93,6 +93,9 @@ export default {
         return [`${i}`, `${i === 0 ? '0' : `${i}px`}`];
       })),
     },
+    extend: {
+      zIndex: {'1': '1'},
+    },
   },
   plugins: [
     plugin(({addUtilities}) => {

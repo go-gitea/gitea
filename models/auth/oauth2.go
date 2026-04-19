@@ -185,10 +185,7 @@ var base32Lower = base32.NewEncoding(lowerBase32Chars).WithPadding(base32.NoPadd
 
 // GenerateClientSecret will generate the client secret and returns the plaintext and saves the hash at the database
 func (app *OAuth2Application) GenerateClientSecret(ctx context.Context) (string, error) {
-	rBytes, err := util.CryptoRandomBytes(32)
-	if err != nil {
-		return "", err
-	}
+	rBytes := util.CryptoRandomBytes(32)
 	// Add a prefix to the base32, this is in order to make it easier
 	// for code scanners to grab sensitive tokens.
 	clientSecret := "gto_" + base32Lower.EncodeToString(rBytes)
@@ -484,10 +481,7 @@ func (grant *OAuth2Grant) TableName() string {
 
 // GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the database
 func (grant *OAuth2Grant) GenerateNewAuthorizationCode(ctx context.Context, redirectURI, codeChallenge, codeChallengeMethod string) (code *OAuth2AuthorizationCode, err error) {
-	rBytes, err := util.CryptoRandomBytes(32)
-	if err != nil {
-		return &OAuth2AuthorizationCode{}, err
-	}
+	rBytes := util.CryptoRandomBytes(32)
 	// Add a prefix to the base32, this is in order to make it easier
 	// for code scanners to grab sensitive tokens.
 	codeSecret := "gta_" + base32Lower.EncodeToString(rBytes)

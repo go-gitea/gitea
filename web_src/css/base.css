@@ -782,9 +782,15 @@ tr.top-line-blame:first-of-type {
 
 .color-icon {
   display: inline-block;
+  flex-shrink: 0;
   border-radius: var(--border-radius-full);
   height: 14px;
   width: 14px;
+}
+
+.icon-size-8 {
+  width: 8px;
+  height: 8px;
 }
 
 .rss-icon {
@@ -873,6 +879,16 @@ table th[data-sortt-desc] .svg {
   gap: var(--gap-block);
 }
 
+/* this is useful to make a left-right (e.g.: title .... operations) layout with default gap, and it wrap for small widths */
+.flex-left-right {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--gap-block);
+  min-width: 0;
+}
+
 .ui.list.flex-items-block > .item,
 .ui.vertical.menu.flex-items-block > .item,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
@@ -884,6 +900,7 @@ table th[data-sortt-desc] .svg {
   min-width: 0;
 }
 
+.flex-left-right > .ui.button,
 .flex-text-block > .ui.button,
 .flex-text-inline > .ui.button {
   margin: 0; /* fomantic buttons have default margin, when we use them in a flex container with gap, we do not need these margins */
