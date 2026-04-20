@@ -46,10 +46,10 @@
 
 	{{/* project list - on new issue page shows simple list, on existing issue shows project cards with column selectors */}}
 	{{if len $data.ProjectCards}}
-		<div class="flex-relaxed-list">
+		<div class="flex-relaxed-list tw-pt-2">
 		{{range $card := $data.ProjectCards}}
 		{{$selectedColumn := $card.SelectedColumn}}
-		<div class="item sidebar-project-card">
+		<div class="item sidebar-project-card tw-mt-0">
 			<div class="tw-mb-1">
 				<a class="suppressed flex-text-block" href="{{$card.Project.Link ctx}}">
 					{{svg $card.Project.IconName 16}}
