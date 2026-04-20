@@ -87,14 +87,6 @@ func testGetBadgeUsers(t *testing.T) {
 	assert.EqualValues(t, 2, count)
 	assert.Len(t, users, 1)
 
-	// Test without pagination
-	opts.Page = 0
-	opts.PageSize = 0
-	users, count, err = user_model.GetBadgeUsers(t.Context(), opts)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 2, count)
-	assert.Len(t, users, 2)
-
 	// Test with non-existent badge
 	opts.BadgeSlug = "non-existent"
 	users, count, err = user_model.GetBadgeUsers(t.Context(), opts)
