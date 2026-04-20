@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/translation"
@@ -22,12 +21,6 @@ type RunList []*ActionRun
 func (runs RunList) GetUserIDs() []int64 {
 	return container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
 		return run.TriggerUserID, true
-	})
-}
-
-func (runs RunList) GetRepoIDs() []int64 {
-	return container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
-		return run.RepoID, true
 	})
 }
 
@@ -46,18 +39,6 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 				run.TriggerUser = user_model.NewGhostUser()
 			}
 		}
-	}
-	return nil
-}
-
-func (runs RunList) LoadRepos(ctx context.Context) error {
-	repoIDs := runs.GetRepoIDs()
-	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
-	if err != nil {
-		return err
-	}
-	for _, run := range runs {
-		run.Repo = repos[run.RepoID]
 	}
 	return nil
 }

@@ -35,8 +35,6 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "strictPropertyInitialization": false,
-    "useUnknownInCatchVariables": false,
     "stripInternal": true,
     "verbatimModuleSyntax": true,
     "types": [
