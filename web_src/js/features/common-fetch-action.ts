@@ -91,7 +91,7 @@ async function handleFetchActionSuccess(el: HTMLElement, opt: FetchActionOpts, r
 async function handleFetchActionError(resp: Response) {
   const isRespJson = resp.headers.get('content-type')?.includes('application/json');
   const respText = await resp.text();
-  const respJson = isRespJson ? JSON.parse(await resp.text()) : null;
+  const respJson = isRespJson ? JSON.parse(respText) : null;
   if (respJson?.errorMessage) {
     // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
     // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
