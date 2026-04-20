@@ -82,37 +82,33 @@ async function deleteArtifact(name: string) {
               {{ locale.rerun_all }}
             </button>
           </template>
-          <div v-if="run.attempts.length > 1" class="ui dropdown jump basic small compact button attempt-switcher tw-relative">
-            <SvgIcon name="octicon-history" :size="14" class="tw-mr-1.5"/>
-            <span class="text tw-mr-1.5">{{ formatCurrentAttemptTitle(run.attempts.find((attempt) => attempt.current)!) }}</span>
+          <div v-if="run.attempts.length > 1" class="ui dropdown basic small compact button">
+            <div class="flex-text-inline">
+              <SvgIcon name="octicon-history" :size="14"/>
+              <span>{{ formatCurrentAttemptTitle(run.attempts.find((attempt) => attempt.current)!) }}</span>
+            </div>
             <SvgIcon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
-            <div class="menu attempt-switcher-menu">
+            <div class="menu">
               <a
                 v-for="attempt in run.attempts"
                 :key="attempt.attempt"
-                class="item attempt-switcher-item"
+                class="item tw-flex tw-flex-col tw-gap-2"
                 :class="attempt.current ? 'selected' : ''"
                 :href="attempt.link"
               >
-                <div class="tw-flex tw-items-start tw-gap-3">
-                  <div class="tw-flex tw-justify-center tw-w-4 tw-flex-shrink-0 tw-pt-[3px]">
-                    <SvgIcon v-if="attempt.current" name="octicon-check" :size="14"/>
-                  </div>
-                  <div class="tw-flex tw-flex-col tw-flex-1 tw-min-w-0 tw-gap-1">
-                    <div class="tw-whitespace-nowrap tw-text-sm tw-font-semibold">
-                      <span>{{ formatAttemptTitle(attempt) }}</span>
-                    </div>
-                    <div class="attempt-switcher-item-meta">
-                      <span class="tw-inline-flex tw-items-center tw-gap-1 tw-flex-shrink-0">
-                        <ActionRunStatus :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14"/>
-                        <span>{{ locale.status[attempt.status] }}</span>
-                      </span>
-                      <span class="tw-min-w-0 gt-ellipsis">
-                        <relative-time :datetime="new Date(attempt.triggeredAt * 1000).toISOString()" prefix=""/>
-                        {{ locale.attemptTriggeredBy.replace('%s', attempt.triggerUserName) }}
-                      </span>
-                    </div>
-                  </div>
+                <div class="flex-text-block">
+                  <SvgIcon name="octicon-check" :size="14" :class="{'tw-invisible': !Boolean(attempt.current)}"/>
+                  <strong class="tw-text-sm gt-ellipsis">{{ formatAttemptTitle(attempt) }}</strong>
+                </div>
+                <div class="flex-text-block tw-pl-[20px]">
+                  <span class="flex-text-inline tw-flex-shrink-0">
+                    <ActionRunStatus :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14"/>
+                    <span>{{ locale.status[attempt.status] }}</span>
+                  </span>
+                  <span class="gt-ellipsis">
+                    <relative-time :datetime="new Date(attempt.triggeredAt * 1000).toISOString()" prefix=""/>
+                    {{ locale.attemptTriggeredBy.replace('%s', attempt.triggerUserName) }}
+                  </span>
                 </div>
               </a>
             </div>
@@ -274,49 +270,6 @@ async function deleteArtifact(name: string) {
   flex-wrap: wrap;
   gap: 5px;
   margin-left: 28px;
-}
-
-.attempt-switcher.ui.dropdown > .menu.attempt-switcher-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 10px);
-  margin-top: 0;
-  min-width: 300px;
-  padding: 0;
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
-  background: var(--color-box-body);
-  box-shadow: 0 8px 24px var(--color-shadow);
-  z-index: 10;
-}
-
-.attempt-switcher-menu > .attempt-switcher-item {
-  padding: 12px 14px;
-  margin: 0;
-}
-
-.attempt-switcher-menu > .attempt-switcher-item:not(:last-child) {
-  border-bottom: 1px solid var(--color-secondary);
-}
-
-.attempt-switcher-menu > .attempt-switcher-item:hover {
-  background: var(--color-hover);
-}
-
-.attempt-switcher-menu > .attempt-switcher-item.selected {
-  background: var(--color-active);
-  font-weight: var(--font-weight-semibold);
-}
-
-.attempt-switcher-item-meta {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  gap: 6px;
-  color: var(--color-text-light-2);
-  font-size: 13px;
-  line-height: 1.4;
-  white-space: nowrap;
 }
 
 @media (max-width: 767.98px) {
