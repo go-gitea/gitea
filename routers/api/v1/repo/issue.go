@@ -38,21 +38,38 @@ import (
 // by the given repository. Returns an error if any project is invalid or inaccessible.
 // This prevents code duplication between CreateIssue and EditIssue endpoints.
 func validateProjectAccess(ctx *context.APIContext, projectIDs []int64, repo *repo_model.Repository) error {
+	if len(projectIDs) == 0 {
+		return nil
+	}
+
+	uniqueProjectIDs := make([]int64, 0, len(projectIDs))
+	seenProjectIDs := make(map[int64]struct{}, len(projectIDs))
 	for _, projectID := range projectIDs {
-		p, err := project_model.GetProjectByID(ctx, projectID)
-		if err != nil {
-			if project_model.IsErrProjectNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project does not exist: [id: %d]", projectID))
-			} else {
-				ctx.APIErrorInternal(err)
-			}
-			return err
+		if _, seen := seenProjectIDs[projectID]; seen {
+			continue
 		}
-		if err := p.LoadRepo(ctx); err != nil {
-			ctx.APIErrorInternal(err)
-			return err
+		seenProjectIDs[projectID] = struct{}{}
+		uniqueProjectIDs = append(uniqueProjectIDs, projectID)
+	}
+
+	projects, err := project_model.GetProjectsByIDs(ctx, uniqueProjectIDs)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return err
+	}
+
+	projectsByID := make(map[int64]*project_model.Project, len(projects))
+	for _, project := range projects {
+		projectsByID[project.ID] = project
+	}
+
+	for _, projectID := range uniqueProjectIDs {
+		project, ok := projectsByID[projectID]
+		if !ok {
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project does not exist: [id: %d]", projectID))
+			return project_model.ErrProjectNotExist{ID: projectID}
 		}
-		if !p.CanBeAccessedByOwnerRepo(repo.OwnerID, repo) {
+		if !project.CanBeAccessedByOwnerRepo(repo.OwnerID, repo) {
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project cannot be accessed: [id: %d]", projectID))
 			return fmt.Errorf("project %d cannot be accessed", projectID)
 		}
