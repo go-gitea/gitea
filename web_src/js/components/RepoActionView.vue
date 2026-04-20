@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
-import {computed, toRefs} from 'vue';
+import {toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
@@ -31,7 +31,10 @@ function formatCurrentAttemptTitle(attempt: ActionsRunAttempt) {
   return attempt.latest ? `${locale.latest} #${attempt.attempt}` : formatAttemptTitle(attempt);
 }
 
-const artifactActionSuffix = computed(() => run.value.runAttempt > 0 ? `?attempt=${run.value.runAttempt}` : '');
+function buildArtifactLink(name: string) {
+  const searchString = run.value.runAttempt > 0 ? `?attempt=${run.value.runAttempt}` : '';
+  return `${run.value.link}/artifacts/${encodeURIComponent(name)}${searchString}`;
+}
 
 function cancelRun() {
   POST(`${run.value.link}/cancel`);
@@ -43,7 +46,7 @@ function approveRun() {
 
 async function deleteArtifact(name: string) {
   if (!window.confirm(locale.confirmDeleteArtifact.replace('%s', name))) return;
-  await DELETE(`${run.value.link}/artifacts/${encodeURIComponent(name)}${artifactActionSuffix.value}`);
+  await DELETE(buildArtifactLink(name));
   await store.forceReloadCurrentRun();
 }
 </script>
@@ -168,7 +171,7 @@ async function deleteArtifact(name: string) {
               <template v-if="artifact.status !== 'expired'">
                 <a
                   class="tw-flex-1 flex-text-block muted" target="_blank"
-                  :href="run.link+'/artifacts/'+encodeURIComponent(artifact.name)+artifactActionSuffix"
+                  :href="buildArtifactLink(artifact.name)"
                   :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
                   data-tooltip-render="html"
                   data-tooltip-placement="top-end"
@@ -258,10 +261,6 @@ async function deleteArtifact(name: string) {
 .action-info-summary .ui.button {
   margin: 0;
   white-space: nowrap;
-}
-
-.action-info-summary > .flex-text-block {
-  gap: 8px;
 }
 
 .action-commit-summary {
