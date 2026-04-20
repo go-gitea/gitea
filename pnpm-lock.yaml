@@ -112,9 +112,6 @@ importers:
       '@resvg/resvg-wasm':
         specifier: 2.6.2
         version: 2.6.2
-      '@silverwind/vue3-calendar-heatmap':
-        specifier: 2.1.1
-        version: 2.1.1(tippy.js@6.3.7)(vue@3.5.32(typescript@6.0.2))
       '@vitejs/plugin-vue':
         specifier: 6.0.6
         version: 6.0.6(vite@8.0.8(@types/node@25.6.0)(esbuild@0.28.0)(jiti@2.6.1))(vue@3.5.32(typescript@6.0.2))
@@ -1248,13 +1245,6 @@ packages:
 
   '@scarf/scarf@1.4.0':
     resolution: {integrity: sha512-xxeapPiUXdZAE3che6f3xogoJPeZgig6omHEy1rIY5WVsB3H2BHNnZH+gHG6x91SCWyQCzWGsuL2Hh3ClO5/qQ==}
-
-  '@silverwind/vue3-calendar-heatmap@2.1.1':
-    resolution: {integrity: sha512-RQtLOpkysm0LR3PbUoc+aDcYxzy7xboygb1SQEwrUm2/XB2nmt0BEra2ADXpu4kwFxtk0+IyNwzFvbBai/wvTg==}
-    engines: {node: '>=16'}
-    peerDependencies:
-      tippy.js: ^6.3.7
-      vue: ^3.2.29
 
   '@simonwep/pickr@1.9.0':
     resolution: {integrity: sha512-oEYvv15PyfZzjoAzvXYt3UyNGwzsrpFxLaZKzkOSd0WYBVwLd19iJerePDONxC1iF6+DpcswPdLIM2KzCJuYFg==}
@@ -5051,11 +5041,6 @@ snapshots:
   '@rtsao/scc@1.1.0': {}
 
   '@scarf/scarf@1.4.0': {}
-
-  '@silverwind/vue3-calendar-heatmap@2.1.1(tippy.js@6.3.7)(vue@3.5.32(typescript@6.0.2))':
-    dependencies:
-      tippy.js: 6.3.7
-      vue: 3.5.32(typescript@6.0.2)
 
   '@simonwep/pickr@1.9.0':
     dependencies:

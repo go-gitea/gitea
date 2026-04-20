@@ -2,6 +2,10 @@
 import {html} from '../utils/html.ts';
 import type {Intent} from '../types.ts';
 
+export function errorMessage(err: unknown): string {
+  return (err as Error)?.message || String(err);
+}
+
 export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error') {
   const msgContainer = document.querySelector('.page-content') ?? document.body;
   if (!msgContainer) {
