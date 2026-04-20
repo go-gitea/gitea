@@ -1028,21 +1028,28 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	workflowID := ctx.PathParam("workflow_id")
-	runExists, err := db.GetEngine(ctx).
-		Where("repo_id = ? AND workflow_id = ?", ctx.Repo.Repository.ID, workflowID).
-		Exist(&actions_model.ActionRun{})
+	// Existing runs prove the workflow is/was valid and cover historical workflows
+	// whose file was later removed. Fall back to a git lookup for never-run workflows.
+	runExists, err := db.Exist[actions_model.ActionRun](ctx, actions_model.FindRunOptions{
+		RepoID:     ctx.Repo.Repository.ID,
+		WorkflowID: workflowID,
+	}.ToConds())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 	if !runExists {
-		ctx.APIError(http.StatusNotFound, util.NewNotExistErrorf("workflow %q not found", workflowID))
-		return
+		if _, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID); err != nil {
+			if errors.Is(err, util.ErrNotExist) {
+				ctx.APIError(http.StatusNotFound, err)
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
+		}
 	}
 
-	repoID := ctx.Repo.Repository.ID
-
-	shared.ListRuns(ctx, 0, repoID, workflowID)
+	shared.ListRuns(ctx, 0, ctx.Repo.Repository.ID, workflowID)
 }
 
 func ActionsDisableWorkflow(ctx *context.APIContext) {

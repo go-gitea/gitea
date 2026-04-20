@@ -58,6 +58,19 @@ func testAPIWorkflowRunsByWorkflowID(t *testing.T, owner, repo, workflowID, user
 	}
 	assert.True(t, found, "expected to find run with ID %d in workflow %s runs", expectedRunID, workflowID)
 
+	req = NewRequest(t, "GET", workflowRunsURL+"?exclude_pull_requests=true").AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	excludedList := api.ActionWorkflowRunsResponse{}
+	DecodeJSON(t, resp, &excludedList)
+	excludedFound := false
+	for _, run := range excludedList.Entries {
+		assert.NotEqual(t, "pull_request", run.Event)
+		if run.ID == expectedRunID {
+			excludedFound = true
+		}
+	}
+	assert.True(t, excludedFound, "expected to find run with ID %d when excluding pull requests", expectedRunID)
+
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/workflows/nonexistent.yaml/runs", owner, repo)).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }

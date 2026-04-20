@@ -85,7 +85,7 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Eq{"`action_run`.commit_sha": opts.CommitSHA})
 	}
 	if opts.ExcludePullRequests {
-		cond = cond.And(builder.Neq{"`action_run`.trigger_event": "pull_request"})
+		cond = cond.And(builder.Neq{"`action_run`.trigger_event": string(webhook_module.HookEventPullRequest)})
 	}
 	if len(opts.ConcurrencyGroup) > 0 {
 		if opts.RepoID == 0 {
