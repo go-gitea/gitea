@@ -212,12 +212,6 @@ func RemoveUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 	})
 }
 
-// RemoveAllUserBadges removes all badges from a user.
-func RemoveAllUserBadges(ctx context.Context, u *User) error {
-	_, err := db.GetEngine(ctx).Where("user_id=?", u.ID).Delete(&UserBadge{})
-	return err
-}
-
 // SearchBadgeOptions represents the options when finding badges
 type SearchBadgeOptions struct {
 	db.ListOptions
@@ -257,17 +251,4 @@ func (opts *SearchBadgeOptions) ToOrders() string {
 // SearchBadges returns badges based on the provided SearchBadgeOptions options
 func SearchBadges(ctx context.Context, opts *SearchBadgeOptions) ([]*Badge, int64, error) {
 	return db.FindAndCount[Badge](ctx, opts)
-}
-
-// GetBadgeByID returns a specific badge by ID
-func GetBadgeByID(ctx context.Context, id int64) (*Badge, error) {
-	badge := new(Badge)
-	has, err := db.GetEngine(ctx).ID(id).Get(badge)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, util.NewNotExistErrorf("badge does not exist [id: %d]", id)
-	}
-	return badge, nil
 }

@@ -94,8 +94,8 @@ function createContext(imageAfter: HTMLImageElement, imageBefore: HTMLImageEleme
 }
 
 class ImageDiff {
-  containerEl: HTMLElement;
-  diffContainerWidth: number;
+  containerEl!: HTMLElement;
+  diffContainerWidth!: number;
 
   async init(containerEl: HTMLElement) {
     this.containerEl = containerEl;
