@@ -108,10 +108,10 @@ async function deleteArtifact(name: string) {
                     <ActionRunStatus :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14"/>
                     <span>{{ locale.status[attempt.status] }}</span>
                   </span>
-                  <span class="gt-ellipsis">
-                    • <relative-time :datetime="new Date(attempt.triggeredAt * 1000).toISOString()" prefix=""/>
-                    • {{ attempt.triggerUserName }}
-                  </span>
+                  <span>•</span>
+                  <relative-time :datetime="new Date(attempt.triggeredAt * 1000).toISOString()" prefix=""/>
+                  <span>•</span>
+                  <span class="gt-ellipsis">{{ attempt.triggerUserName }}</span>
                 </div>
               </a>
             </div>
