@@ -92,14 +92,14 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		projectIDs = append(projectIDs, project.ID)
 	}
 
-	projectColumnID, err := issue.ProjectColumnID(ctx)
+	projectColumnMap, err := issue.ProjectColumnMap(ctx)
 	if err != nil {
 		return nil, false, err
 	}
 
-	projectColumnMap, err := issue.ProjectColumnMap(ctx)
-	if err != nil {
-		return nil, false, err
+	projectColumnID := int64(0)
+	if len(projectIDs) == 1 {
+		projectColumnID = projectColumnMap[projectIDs[0]]
 	}
 
 	if err := issue.Repo.LoadOwner(ctx); err != nil {
