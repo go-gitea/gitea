@@ -291,7 +291,7 @@ export class ComboMarkdownEditor {
   }
 
   switchTabToEditor() {
-    this.tabEditor?.click();
+    this.tabEditor!.click(); // when this function is called, the tab must exist
   }
 
   prepareEasyMDEToolbarActions() {

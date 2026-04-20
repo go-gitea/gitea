@@ -88,6 +88,7 @@ function initRepoIssueListCheckboxes() {
         await updateIssuesMeta(url, action, issueIDs, elementId);
         window.location.reload();
       } catch (err) {
+        // FIXME: this logic (including updateIssuesMeta) is not right, should refactor to our JSONError framework
         const e = err as {responseJSON?: {error: string}};
         showErrorToast(e.responseJSON?.error ?? errorMessage(err));
       }
