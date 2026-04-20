@@ -160,13 +160,13 @@ func TestIssueSidebarProjectColumn(t *testing.T) {
 	resp := sess.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	cards := htmlDoc.Find(".sidebar-project-card")
+	cards := htmlDoc.Find(".sidebar-project-combo > .ui.relaxed.list > .item.tw-flex-col")
 	assert.Equal(t, 1, cards.Length())
 
-	title := cards.Find(".sidebar-project-card a.suppressed .gt-ellipsis")
+	title := cards.Find("a span.tw-break-anywhere")
 	assert.Contains(t, strings.TrimSpace(title.Text()), "First project")
 
-	columnCombo := cards.Find(".sidebar-project-column-combo")
+	columnCombo := cards.Find(".issue-sidebar-combo[data-project-id]")
 	assert.Equal(t, 1, columnCombo.Length())
 
 	defaultItem := columnCombo.Find(`.menu .item[data-value="1"]`)
@@ -190,8 +190,11 @@ func TestIssueSidebarProjectColumn(t *testing.T) {
 	resp = sess.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
 
-	cards = htmlDoc.Find(".sidebar-project-card")
+	cards = htmlDoc.Find(".sidebar-project-combo > .ui.relaxed.list > .item.tw-flex-col")
 	assert.Equal(t, 0, cards.Length())
+
+	emptyList := htmlDoc.Find(".sidebar-project-combo > .ui.relaxed.list > .item.empty-list:not(.tw-hidden)")
+	assert.Equal(t, 1, emptyList.Length())
 }
 
 // getProjectIssueIDs returns the set of issue IDs rendered as cards on the project board page.

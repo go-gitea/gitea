@@ -33,12 +33,21 @@ type issueSidebarAssigneesData struct {
 	CandidateAssignees  []*user_model.User
 }
 
+type ProjectWithColumns struct {
+	Project        *project_model.Project
+	Columns        []*project_model.Column
+	SelectedColumn *project_model.Column
+}
+
 type issueSidebarProjectsData struct {
 	SelectedProjectIDs []int64
 
 	// the "selected" fields are only valid when there's a single project selected
 	SelectedProjectColumns []*project_model.Column
 	SelectedProjectColumn  *project_model.Column
+
+	// ProjectsWithColumns contains all selected projects with their columns loaded
+	ProjectsWithColumns []*ProjectWithColumns
 
 	OpenProjects   []*project_model.Project
 	ClosedProjects []*project_model.Project
@@ -177,26 +186,42 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 		d.ProjectsData.SelectedProjectIDs = append(d.ProjectsData.SelectedProjectIDs, p.ID)
 	}
 
-	// For column selection, we only support it when there's a single project
-	if len(d.Issue.Projects) == 1 {
-		columns, err := d.Issue.Projects[0].GetColumns(ctx)
+	// Load columns for all selected projects
+	projectColumnMap, err := d.Issue.ProjectColumnMap(ctx)
+	if err != nil {
+		ctx.ServerError("ProjectColumnMap", err)
+		return
+	}
+
+	d.ProjectsData.ProjectsWithColumns = make([]*ProjectWithColumns, 0, len(d.Issue.Projects))
+	for _, project := range d.Issue.Projects {
+		columns, err := project.GetColumns(ctx)
 		if err != nil {
 			ctx.ServerError("GetProjectColumns", err)
 			return
 		}
-		d.ProjectsData.SelectedProjectColumns = columns
-		projectColumnMap, err := d.Issue.ProjectColumnMap(ctx)
-		if err != nil {
-			ctx.ServerError("ProjectColumnMap", err)
-			return
+
+		pwc := &ProjectWithColumns{
+			Project: project,
+			Columns: columns,
 		}
-		columnID := projectColumnMap[d.Issue.Projects[0].ID]
+
+		// Find the selected column for this project
+		columnID := projectColumnMap[project.ID]
 		for _, col := range columns {
 			if col.ID == columnID {
-				d.ProjectsData.SelectedProjectColumn = col
+				pwc.SelectedColumn = col
 				break
 			}
 		}
+
+		d.ProjectsData.ProjectsWithColumns = append(d.ProjectsData.ProjectsWithColumns, pwc)
+	}
+
+	// For backwards compatibility, keep the single-project logic
+	if len(d.Issue.Projects) == 1 {
+		d.ProjectsData.SelectedProjectColumns = d.ProjectsData.ProjectsWithColumns[0].Columns
+		d.ProjectsData.SelectedProjectColumn = d.ProjectsData.ProjectsWithColumns[0].SelectedColumn
 	}
 }
 
