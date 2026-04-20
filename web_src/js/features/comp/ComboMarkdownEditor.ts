@@ -71,26 +71,26 @@ export class ComboMarkdownEditor {
 
   options: ComboMarkdownEditorOptions;
 
-  tabEditor: HTMLElement;
-  tabPreviewer: HTMLElement;
+  tabEditor?: HTMLElement;
+  tabPreviewer?: HTMLElement;
 
-  supportEasyMDE: boolean;
+  supportEasyMDE!: boolean;
   easyMDE: any;
   easyMDEToolbarActions: any;
   easyMDEToolbarDefault: any;
 
-  textarea: ComboMarkdownEditorTextarea;
-  textareaMarkdownToolbar: HTMLElement;
+  textarea!: ComboMarkdownEditorTextarea;
+  textareaMarkdownToolbar!: HTMLElement;
   textareaAutosize: any;
 
-  buttonMonospace: HTMLButtonElement;
+  buttonMonospace!: HTMLButtonElement;
 
-  dropzone: HTMLElement | null;
+  dropzone: HTMLElement | null = null;
   attachedDropzoneInst: any;
 
-  previewMode: string;
-  previewUrl: string;
-  previewContext: string;
+  previewMode!: string;
+  previewUrl!: string;
+  previewContext!: string;
 
   constructor(container: ComboMarkdownEditorContainer, options:ComboMarkdownEditorOptions = {}) {
     if (container._giteaComboMarkdownEditor) throw new Error('ComboMarkdownEditor already initialized');
@@ -291,7 +291,7 @@ export class ComboMarkdownEditor {
   }
 
   switchTabToEditor() {
-    this.tabEditor.click();
+    this.tabEditor!.click(); // when this function is called, the tab must exist
   }
 
   prepareEasyMDEToolbarActions() {
