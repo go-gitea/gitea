@@ -67,8 +67,8 @@ test.describe('Multiple Projects Feature', () => {
       await projectsSection.locator('.ui.dropdown').click();
 
       // Select both projects
-      await page.locator(`.menu .item[data-value="${project1.id}"]`).click();
-      await page.locator(`.menu .item[data-value="${project2.id}"]`).click();
+      await page.locator(`.menu .muted.item[data-value="${project1.id}"]`).click();
+      await page.locator(`.menu .muted.item[data-value="${project2.id}"]`).click();
 
       // Click outside to close the dropdown and trigger the update
       await page.locator('.issue-content-left').click();
@@ -115,8 +115,8 @@ test.describe('Multiple Projects Feature', () => {
       await projectsSection.locator('.ui.dropdown').click();
 
       // Select both projects
-      await page.locator(`.menu .item[data-value="${project1.id}"]`).click();
-      await page.locator(`.menu .item[data-value="${project2.id}"]`).click();
+      await page.locator(`.menu .muted.item[data-value="${project1.id}"]`).click();
+      await page.locator(`.menu .muted.item[data-value="${project2.id}"]`).click();
 
       // Click outside to close the dropdown
       await page.locator('.issue-content-left').click();
@@ -256,10 +256,10 @@ test.describe('Multiple Projects Feature', () => {
       await expect(projectList.locator(`a:has-text("${project2Title}")`)).toBeVisible();
 
       // Open the projects dropdown
-      await projectsSection.locator('.ui.dropdown').click();
+      await projectsSection.locator('.ui.dropdown').first().click();
 
       // Deselect project2 (click on the already selected item to deselect)
-      await page.locator(`.menu .item[data-value="${project2.id}"]`).click();
+      await page.locator(`.menu .muted.item[data-value="${project2.id}"]`).click();
 
       // Click outside to close the dropdown and trigger the update
       await page.locator('.issue-content-left').click();
