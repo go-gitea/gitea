@@ -8,7 +8,7 @@ description: |
 
 icon: public/assets/img/logo.png
 confinement: strict
-base: core22
+base: core24
 adopt-info: gitea
 
 architectures:

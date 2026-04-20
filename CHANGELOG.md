@@ -4,7 +4,7 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.26.0-rc0](https://github.com/go-gitea/gitea/releases/tag/v1.26.0-rc0) - 2026-04-07
+## [1.26.0](https://github.com/go-gitea/gitea/releases/tag/v1.26.0) - 2026-04-17
 
 * BREAKING
   * Correct swagger annotations for enums, status codes, and notification state (#37030)
@@ -30,7 +30,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add summary to action runs view (#36883)
   * Add user badges (#36752)
   * Add configurable permissions for Actions automatic tokens (#36173)
-  * Add per-runner “Disable/Pause”  (#36776)
+  * Add per-runner "Disable/Pause"  (#36776)
+  * Feature non-zipped actions artifacts (action v7 / nodejs / npm v6.2.0) (#36786)
 * PERFORMANCE
   * WorkflowDispatch API optionally return runid (#36706)
   * Add render cache for SVG icons (#36863)
@@ -41,6 +42,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Refactor cat-file batch operations and support `--batch-command` approach (#35775)
   * Use merge tree to detect conflicts when possible (#36400)
 * ENHANCEMENTS
+  * Implement logout redirection for reverse proxy auth setups (#36085) (#37171)
   * Adds option to force update new branch in contents routes (#35592)
   * Add viewer controller for mermaid (zoom, drag) (#36557)
   * Add code editor setting dropdowns (#36534)
@@ -49,7 +51,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Allow configuring default PR base branch (fixes #36412) (#36425)
   * Add support for RPM Errata (updateinfo.xml) (#37125)
   * Require additional user confirmation for making repo private (#36959)
-  * Feature non-zipped actions artifacts (action v7 / nodejs / npm v6.2.0) (#36786)
   * Add `actions.WORKFLOW_DIRS` setting (#36619)
   * Avoid opening new tab when downloading actions logs (#36740)
   * Implements OIDC RP-Initiated Logout (#36724)
@@ -67,7 +68,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Refactor storage content-type handling of ServeDirectURL (#36804)
   * Use "Enable Gravatar" but not "Disable" (#36771)
   * Use case-insensitive matching for Git error "Not a valid object name" (#36728)
-  * Add “Copy Source” to markup comment menu (#36726)
+  * Add "Copy Source" to markup comment menu (#36726)
   * Change image transparency grid to CSS (#36711)
   * Add "Run" prefix for unnamed action steps (#36624)
   * Persist actions log time display settings in `localStorage` (#36623)
@@ -139,6 +140,20 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Expose content_version for optimistic locking on issue and PR edits (#37035)
   * Pass ServeHeaderOptions by value instead of pointer, fine tune httplib tests (#36982)
 * BUGFIXES
+  * Frontend iframe renderer framework: 3D models, OpenAPI (#37233) (#37273)
+  * Fix CODEOWNERS absolute path matching. (#37244) (#37264)
+  * Swift registry metadata: preserve more JSON fields and accept empty metadata (#37254) (#37261)
+  * Fix user ssh key exporting and tests (#37256) (#37258)
+  * Fix team member avatar size and add tooltip (#37253)
+  * Fix commit title rendering in action run and blame (#37243) (#37251)
+  * Fix corrupted JSON caused by goccy library (#37214) (#37220)
+  * Add test for "fetch redirect", add CSS value validation for external render (#37207) (#37216)
+  * Fix incorrect concurrency check (#37205) (#37215)
+  * Fix handle missing base branch in PR commits API (#37193) (#37203)
+  * Fix encoding for Matrix Webhooks (#37190) (#37201)
+  * Fix handle fork-only commits in compare API (#37185) (#37199)
+  * Indicate form field readonly via background, fix RunUser config (#37175, #37180) (#37178)
+  * Report structurally invalid workflows to users (#37116) (#37164)
   * Fix API not persisting pull request unit config when has_pull_requests is not set (#36718)
   * Rename CSS variables and improve colorblind themes (#36353)
   * Hide `add-matcher` and `remove-matcher` from actions job logs (#36520)
@@ -232,6 +247,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Only turn links to current instance into hash links (#36237)
   * Fix typos in code comments: doesnt, dont, wont (#36890)
 * REFACTOR
+  * Clean up and improve non-gitea js error filter (#37148) (#37155)
+  * Always show owner/repo name in compare page dropdowns (#37172) (#37200)
+  * Remove dead CSS rules (#37173) (#37177)
   * Replace Monaco with CodeMirror (#36764)
   * Replace CSRF cookie with `CrossOriginProtection` (#36183)
   * Replace index with id in actions routes (#36842)
@@ -289,6 +307,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add e2e reaction test, improve accessibility, enable parallel testing (#37081)
   * Increase e2e test timeouts on CI to fix flaky tests (#37053)
 * BUILD
+  * Upgrade go-git to v5.18.0 (#37269)
+  * Replace rollup-plugin-license with rolldown-license-plugin (#37130) (#37158)
+  * Bump min go version to 1.26.2 (#37139) (#37143)
   * Convert locale files from ini to json format (#35489)
   * Bump golangci-lint to 2.7.2, enable modernize stringsbuilder (#36180)
   * Port away from `flake-utils` (#35675)

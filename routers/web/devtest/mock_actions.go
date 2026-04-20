@@ -67,6 +67,9 @@ func MockActionsView(ctx *context.Context) {
 func MockActionsRunsJobs(ctx *context.Context) {
 	runID := ctx.PathParamInt64("run")
 
+	alignTime := func(v, unit int64) int64 {
+		return (v + unit) / unit * unit
+	}
 	resp := &actions.ViewResponse{}
 	resp.State.Run.RepoID = 12345
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
@@ -96,24 +99,28 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		},
 	}
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:   "artifact-a",
-		Size:   100 * 1024,
-		Status: "expired",
+		Name:        "artifact-a",
+		Size:        100 * 1024,
+		Status:      "expired",
+		ExpiresUnix: alignTime(time.Now().Add(-24*time.Hour).Unix(), 3600),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:   "artifact-b",
-		Size:   1024 * 1024,
-		Status: "completed",
+		Name:        "artifact-b",
+		Size:        1024 * 1024,
+		Status:      "completed",
+		ExpiresUnix: alignTime(time.Now().Add(24*time.Hour).Unix(), 3600),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:   "artifact-very-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
-		Size:   100 * 1024,
-		Status: "expired",
+		Name:        "artifact-very-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+		Size:        100 * 1024,
+		Status:      "expired",
+		ExpiresUnix: alignTime(time.Now().Add(-24*time.Hour).Unix(), 3600),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:   "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
-		Size:   1024 * 1024,
-		Status: "completed",
+		Name:        "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+		Size:        1024 * 1024,
+		Status:      "completed",
+		ExpiresUnix: 0,
 	})
 
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
