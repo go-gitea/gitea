@@ -87,7 +87,7 @@ function iifeBuildOpts({sourceFileName, write}: {sourceFileName: string, write?:
 }
 
 // Build iife.js as a blocking IIFE bundle. In dev mode, serves it from memory
-// and rebuilds on file changes. In prod mode, writes to disk during closeBundle.
+// and rebuilds on file changes. In prod mode, writes to disk and updates "manifest.json".
 function iifePlugin(sourceFileName: string): Plugin {
   let iifeCode = '', iifeMap = '';
   const iifeModules = new Set<string>();
@@ -144,7 +144,7 @@ function iifePlugin(sourceFileName: string): Plugin {
         }
       });
     },
-    async closeBundle() {
+    async writeBundle() {
       for (const file of globSync(`js/${sourceBaseName}.*.js*`, {cwd: outDir})) unlinkSync(join(outDir, file));
 
       const result = await build(iifeBuildOpts({sourceFileName}));
@@ -153,15 +153,9 @@ function iifePlugin(sourceFileName: string): Plugin {
       if (!entry) throw new Error('IIFE build produced no output');
 
       const manifestPath = join(outDir, '.vite', 'manifest.json');
-      try {
-        const manifestData = JSON.parse(readFileSync(manifestPath, 'utf8'));
-        manifestData[`web_src/js/${sourceFileName}`] = {file: entry.fileName, name: sourceBaseName, isEntry: true};
-        writeFileSync(manifestPath, JSON.stringify(manifestData, null, 2));
-      } catch {
-        // FIXME: if it throws error here, the real Vite compilation error will be hidden, and makes the debug very difficult
-        // Need to find a correct way to handle errors.
-        console.error(`Failed to update manifest for ${sourceFileName}`);
-      }
+      const manifestData = JSON.parse(readFileSync(manifestPath, 'utf8'));
+      manifestData[`web_src/js/${sourceFileName}`] = {file: entry.fileName, name: sourceBaseName, isEntry: true};
+      writeFileSync(manifestPath, JSON.stringify(manifestData, null, 2));
     },
   };
 }
