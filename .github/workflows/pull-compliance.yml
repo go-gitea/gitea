@@ -41,6 +41,8 @@ jobs:
       - uses: astral-sh/setup-uv@v8.1.0
       - run: uv python install 3.14
       - uses: pnpm/action-setup@v6
+        with:
+          cache: true
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -72,6 +74,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
+        with:
+          cache: true
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -89,6 +93,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
+        with:
+          cache: true
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -171,6 +177,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
+        with:
+          cache: true
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -225,6 +233,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
+        with:
+          cache: true
       - uses: actions/setup-node@v6
         with:
           node-version: 24

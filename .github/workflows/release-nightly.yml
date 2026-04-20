@@ -23,6 +23,8 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - uses: pnpm/action-setup@v6
+        with:
+          cache: true
       - uses: actions/setup-node@v6
         with:
           node-version: 24
