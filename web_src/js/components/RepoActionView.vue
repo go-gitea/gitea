@@ -105,7 +105,7 @@ async function deleteArtifact(name: string) {
                 </div>
                 <div class="flex-text-block tw-pl-[20px]">
                   <span class="flex-text-inline tw-flex-shrink-0">
-                    <ActionRunStatus :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14"/>
+                    <ActionRunStatus :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" class="tw-inline-flex"/>
                     <span>{{ locale.status[attempt.status] }}</span>
                   </span>
                   <span>•</span>
