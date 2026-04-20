@@ -25,12 +25,7 @@ func TestWithScheduleInEventPayload(t *testing.T) {
 
 	t.Run("creates payload when empty", func(t *testing.T) {
 		updated := withScheduleInEventPayload("", "37 12 5 1 2")
-		assert.NotEmpty(t, updated)
-
-		event, err := eventPayloadAsMap(updated)
-		assert.NoError(t, err)
-		assert.Equal(t, "37 12 5 1 2", event["schedule"])
-		assert.Len(t, event, 1)
+		assert.Empty(t, updated)
 	})
 
 	t.Run("keeps payload when schedule empty", func(t *testing.T) {

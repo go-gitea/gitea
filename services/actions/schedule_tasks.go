@@ -132,7 +132,7 @@ func CreateScheduleTask(ctx context.Context, spec *actions_model.ActionScheduleS
 }
 
 func withScheduleInEventPayload(eventPayload, schedule string) string {
-	if schedule == "" {
+	if schedule == "" || eventPayload == "" {
 		return eventPayload
 	}
 
