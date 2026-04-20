@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
+	act_model "github.com/nektos/act/pkg/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -34,13 +35,6 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		return fmt.Errorf("ReadWorkflowRawConcurrency: %w", err)
 	}
 
-	if wfRawConcurrency != nil {
-		err = EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars, inputsWithDefaults)
-		if err != nil {
-			return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
-		}
-	}
-
 	giteaCtx := GenerateGiteaContext(run, nil)
 
 	jobs, err := jobparser.Parse(content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()), jobparser.WithInputs(inputsWithDefaults))
@@ -52,7 +46,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		run.Title = jobs[0].RunName
 	}
 
-	if err = InsertRun(ctx, run, jobs, vars, inputsWithDefaults); err != nil {
+	if err = InsertRun(ctx, run, jobs, vars, inputsWithDefaults, wfRawConcurrency); err != nil {
 		return fmt.Errorf("InsertRun: %w", err)
 	}
 
@@ -74,7 +68,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
-func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any) error {
+func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any, wfRawConcurrency *act_model.RawConcurrency) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
@@ -82,6 +76,16 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		}
 		run.Index = index
 		run.Title = util.EllipsisDisplayString(run.Title, 255)
+
+		// Evaluate workflow-level concurrency now that run.Index is populated,
+		// so expressions referencing github.run_id resolve to a per-run unique
+		// value instead of an empty string (which would collapse all pushes to
+		// the same group across branches).
+		if wfRawConcurrency != nil {
+			if err := EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars, inputs); err != nil {
+				return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
+			}
+		}
 
 		// check run (workflow-level) concurrency
 		run.Status, err = PrepareToStartRunWithConcurrency(ctx, run)

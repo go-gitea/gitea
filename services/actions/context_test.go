@@ -12,6 +12,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestRunIDForContext(t *testing.T) {
+	// Regression: workflow-level concurrency is evaluated before the run is
+	// inserted (run.ID == 0), so github.run_id must fall back to run.Index —
+	// otherwise ${{ github.head_ref || github.run_id }} collapses to the same
+	// string across all push events, cancelling runs across unrelated branches.
+	assert.Equal(t, "42", runIDForContext(&actions_model.ActionRun{ID: 42, Index: 7}))
+	assert.Equal(t, "7", runIDForContext(&actions_model.ActionRun{ID: 0, Index: 7}))
+	assert.Empty(t, runIDForContext(&actions_model.ActionRun{ID: 0, Index: 0}))
+}
+
 func TestFindTaskNeeds(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
