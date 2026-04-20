@@ -29,7 +29,6 @@ export function initRepositoryActionView() {
       summary: el.getAttribute('data-locale-summary'),
       allJobs: el.getAttribute('data-locale-all-jobs'),
       triggeredVia: el.getAttribute('data-locale-triggered-via'),
-      rerunTriggeredBy: el.getAttribute('data-locale-rerun-triggered-by'),
       totalDuration: el.getAttribute('data-locale-total-duration'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       artifactExpired: el.getAttribute('data-locale-artifact-expired'),

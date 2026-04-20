@@ -3783,7 +3783,6 @@
   "actions.runs.latest": "Latest",
   "actions.runs.latest_attempt": "Latest attempt",
   "actions.runs.triggered_via": "Triggered via %s",
-  "actions.runs.rerun_triggered_by": "Re-run triggered by",
   "actions.runs.total_duration": "Total duration:",
   "actions.workflow.disable": "Disable Workflow",
   "actions.workflow.disable_success": "Workflow '%s' disabled successfully.",

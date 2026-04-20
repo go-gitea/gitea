@@ -110,7 +110,7 @@ async function deleteArtifact(name: string) {
                   </span>
                   <span class="gt-ellipsis">
                     <relative-time :datetime="new Date(attempt.triggeredAt * 1000).toISOString()" prefix=""/>
-                    {{ attempt.triggerUserName }}
+                    • {{ attempt.triggerUserName }}
                   </span>
                 </div>
               </a>
