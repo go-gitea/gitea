@@ -185,11 +185,12 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 			return
 		}
 		d.ProjectsData.SelectedProjectColumns = columns
-		columnID, err := d.Issue.ProjectColumnID(ctx)
+		projectColumnMap, err := d.Issue.ProjectColumnMap(ctx)
 		if err != nil {
-			ctx.ServerError("ProjectColumnID", err)
+			ctx.ServerError("ProjectColumnMap", err)
 			return
 		}
+		columnID := projectColumnMap[d.Issue.Projects[0].ID]
 		for _, col := range columns {
 			if col.ID == columnID {
 				d.ProjectsData.SelectedProjectColumn = col

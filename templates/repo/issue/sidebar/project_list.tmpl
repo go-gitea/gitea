@@ -72,15 +72,16 @@
 						<div class="gt-ellipsis">{{.Title}}</div>
 					</a>
 				{{end}}
-			</div>
 		</div>
+	</div>
+	<div class="ui list muted-links flex-items-block">
+		<span class="item empty-list {{if $data.SelectedProjectColumn}}tw-hidden{{end}}">No column</span>
 		{{if $data.SelectedProjectColumn}}
-			<div class="ui list muted-links flex-items-block">
-				<div class="item flex-text-block">
-					{{if $data.SelectedProjectColumn.Color}}<span class="color-icon icon-size-8" style="background-color: {{$data.SelectedProjectColumn.Color}}"></span>{{end}}
-					<div class="gt-ellipsis">{{$data.SelectedProjectColumn.Title}}</div>
-				</div>
+			<div class="item flex-text-block">
+				{{if $data.SelectedProjectColumn.Color}}<span class="color-icon icon-size-8" style="background-color: {{$data.SelectedProjectColumn.Color}}"></span>{{end}}
+				<div class="gt-ellipsis">{{$data.SelectedProjectColumn.Title}}</div>
 			</div>
 		{{end}}
 	</div>
+</div>
 {{end}}

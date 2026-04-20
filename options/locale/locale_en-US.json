@@ -1385,6 +1385,7 @@
   "repo.projects.column.delete": "Delete Column",
   "repo.projects.column.deletion_desc": "Deleting a project column moves all related issues to the default column. Continue?",
   "repo.projects.column.color": "Color",
+  "repo.projects.column": "Column",
   "repo.projects.open": "Open",
   "repo.projects.close": "Close",
   "repo.projects.column.assigned_to": "Assigned to",

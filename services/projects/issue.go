@@ -59,10 +59,12 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 				continue
 			}
 
-			projectColumnID, err := curIssue.ProjectColumnID(ctx)
+			projectColumnMap, err := curIssue.ProjectColumnMap(ctx)
 			if err != nil {
 				return err
 			}
+
+			projectColumnID := projectColumnMap[column.ProjectID]
 
 			if projectColumnID != column.ID {
 				// add timeline to issue
