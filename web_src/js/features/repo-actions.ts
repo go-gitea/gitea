@@ -30,7 +30,6 @@ export function initRepositoryActionView() {
       allJobs: el.getAttribute('data-locale-all-jobs'),
       triggeredViaBy: el.getAttribute('data-locale-triggered-via-by'),
       rerunTriggeredBy: el.getAttribute('data-locale-rerun-triggered-by'),
-      attemptTriggeredBy: el.getAttribute('data-locale-attempt-triggered-by'),
       totalDuration: el.getAttribute('data-locale-total-duration'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       artifactExpired: el.getAttribute('data-locale-artifact-expired'),
