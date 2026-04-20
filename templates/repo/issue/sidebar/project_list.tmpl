@@ -63,7 +63,7 @@
 			</div>
 			{{if $pageMeta.CanModifyIssueOrPull}}
 				<div class="issue-sidebar-combo sidebar-project-column-combo" data-selection-mode="single" data-update-algo="all"
-					data-update-url="{{$pageMeta.RepoLink}}/issues/projects/column?issue_id={{$pageMeta.Issue.ID}}&project_id={{$card.Project.ID}}"
+					data-update-url="{{$pageMeta.RepoLink}}/issues/projects/column?issue_id={{$pageMeta.Issue.ID}}"
 				>
 					<input class="combo-value" name="column_id" type="hidden" value="{{if $selectedColumn}}{{$selectedColumn.ID}}{{end}}">
 					<div class="ui dropdown full-width">
