@@ -46,11 +46,12 @@ onBeforeUnmount(() => {
       <div class="flex-text-block">
         <span>{{ isRerun ? locale.rerun : locale.triggeredVia.replace('%s', run.triggerEvent) }}</span>
         <template v-if="triggerUser">
-          •
+          <span>•</span>
           <a v-if="triggerUser.link" class="muted" :href="triggerUser.link">{{ triggerUser.name }}</a>
           <span v-else class="muted">{{ triggerUser.name }}</span>
         </template>
-        • <relative-time :datetime="runTriggeredAtIso" prefix=""/>
+        <span>•</span> 
+        <relative-time :datetime="runTriggeredAtIso" prefix=""/>
       </div>
       <div class="flex-text-block">
         <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="16"/>
