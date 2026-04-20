@@ -39,7 +39,7 @@ test('processWindowErrorEvent renders stack trace in details', () => {
 
 test('processWindowErrorEvent falls back to message without stack', () => {
   processWindowErrorEvent({
-    error: {message: 'script error'} as Error, type: 'error',
+    error: {message: 'script error'}, type: 'error',
     filename: `${window.location.origin}/assets/js/x.js`, lineno: 5, colno: 10,
   } as ErrorEvent & PromiseRejectionEvent);
   const msgText = document.querySelector('.js-global-error .ui.message')!.textContent;
