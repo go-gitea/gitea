@@ -192,8 +192,17 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 			return
 		}
 
+		defaultColumn, err := project.MustDefaultColumn(ctx)
+		if err != nil {
+			ctx.ServerError("MustDefaultColumn", err)
+			return
+		}
+
 		var selectedColumn *project_model.Column
 		columnID := projectColumnMap[project.ID]
+		if columnID == 0 {
+			columnID = defaultColumn.ID
+		}
 		for _, col := range columns {
 			if col.ID == columnID {
 				selectedColumn = col
