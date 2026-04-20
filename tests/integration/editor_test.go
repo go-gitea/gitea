@@ -372,7 +372,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 				"action":    "convert_fork",
 			},
 		)
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 	})
 
 	// Fork repository again, and check the existence of the forked repo with unique name
