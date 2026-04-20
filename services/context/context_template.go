@@ -81,5 +81,5 @@ func (c TemplateContext) AppFullLink(link ...string) template.URL {
 	if len(link) == 0 {
 		return template.URL(s)
 	}
-	return template.URL(s + strings.TrimPrefix(link[0], "/"))
+	return template.URL(s + "/" + strings.TrimPrefix(link[0], "/"))
 }

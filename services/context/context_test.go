@@ -49,3 +49,17 @@ func TestRedirectToCurrentSite(t *testing.T) {
 		})
 	}
 }
+
+func TestAppFullLink(t *testing.T) {
+	setting.IsInTesting = true
+	defer test.MockVariableValue(&setting.AppURL, "https://gitea.example.com/sub/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+	defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLNever)()
+
+	req := httptest.NewRequest(http.MethodGet, "https://gitea.example.com/sub/", nil)
+	tmplCtx := NewTemplateContext(req.Context(), req)
+
+	assert.Equal(t, "https://gitea.example.com/sub", string(tmplCtx.AppFullLink()))
+	assert.Equal(t, "https://gitea.example.com/sub/user/repo", string(tmplCtx.AppFullLink("user/repo")))
+	assert.Equal(t, "https://gitea.example.com/sub/user/repo", string(tmplCtx.AppFullLink("/user/repo")))
+}
