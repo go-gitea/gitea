@@ -1,4 +1,5 @@
 import {getCurrentLocale} from '../utils.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 
@@ -46,7 +47,7 @@ export async function initCitationFileCopyContent() {
     try {
       await initInputCitationValue(citationCopyApa, citationCopyBibtex);
     } catch (e) {
-      console.error(`initCitationFileCopyContent error: ${e}`, e);
+      console.error(`initCitationFileCopyContent error: ${errorMessage(e)}`, e);
       return;
     }
     updateUi();

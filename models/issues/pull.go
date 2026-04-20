@@ -475,7 +475,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *Iss
 			LabelIDs:    labelIDs,
 			Attachments: uuids,
 		}); err != nil {
-			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
+			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 				return err
 			}
 			return fmt.Errorf("newIssue: %w", err)
