@@ -86,7 +86,7 @@ function iifeBuildOpts({sourceFileName, write}: {sourceFileName: string, write?:
 }
 
 // Build iife.js as a blocking IIFE bundle. In dev mode, serves it from memory
-// and rebuilds on file changes. In prod mode, writes to disk and update "manifest.json".
+// and rebuilds on file changes. In prod mode, writes to disk and updates "manifest.json".
 function iifePlugin(sourceFileName: string): Plugin {
   let iifeCode = '', iifeMap = '';
   const iifeModules = new Set<string>();
