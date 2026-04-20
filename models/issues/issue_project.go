@@ -18,7 +18,9 @@ func (issue *Issue) LoadProjects(ctx context.Context) (err error) {
 	if !issue.isProjectsLoaded {
 		err = db.GetEngine(ctx).Table("project").
 			Join("INNER", "project_issue", "project.id=project_issue.project_id").
-			Where("project_issue.issue_id = ?", issue.ID).Find(&issue.Projects)
+			Where("project_issue.issue_id = ?", issue.ID).
+			OrderBy("project.id ASC").
+			Find(&issue.Projects)
 		if err == nil {
 			issue.isProjectsLoaded = true
 		}

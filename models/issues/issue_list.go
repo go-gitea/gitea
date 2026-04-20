@@ -202,6 +202,7 @@ func (issues IssueList) LoadProjects(ctx context.Context) error {
 			Select("project.*, project_issue.issue_id").
 			Join("INNER", "project_issue", "project.id = project_issue.project_id").
 			In("project_issue.issue_id", issueIDs[:limit]).
+			OrderBy("project_issue.issue_id ASC, project.id ASC").
 			Find(&projects)
 		if err != nil {
 			return err
