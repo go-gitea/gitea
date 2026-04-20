@@ -74,9 +74,8 @@ test.describe('Multiple Projects Feature', () => {
       await page.locator('.issue-content-left').click();
 
       // Verify both projects are shown in the sidebar (expect will auto-wait)
-      const projectList = projectsSection.locator('.relaxed.list');
-      await expect(projectList.locator(`a:has-text("${project1Title}")`)).toBeVisible();
-      await expect(projectList.locator(`a:has-text("${project2Title}")`)).toBeVisible();
+      await expect(page.locator(`.item.sidebar-project-card a span:has-text("${project1Title}")`)).toBeVisible();
+      await expect(page.locator(`.item.sidebar-project-card a span:has-text("${project2Title}")`)).toBeVisible();
     } finally {
       await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
     }
@@ -128,9 +127,8 @@ test.describe('Multiple Projects Feature', () => {
       await page.waitForURL(new RegExp(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/\\d+`));
 
       // Verify both projects are shown in the sidebar
-      const projectsList = page.locator('.issue-sidebar-combo').filter({has: page.locator('input[name="project_ids"]')}).locator('.relaxed.list');
-      await expect(projectsList.locator(`a:has-text("${project1Title}")`)).toBeVisible();
-      await expect(projectsList.locator(`a:has-text("${project2Title}")`)).toBeVisible();
+      await expect(page.locator(`.item.sidebar-project-card a:has-text("${project1Title}")`)).toBeVisible();
+      await expect(page.locator(`.item.sidebar-project-card a:has-text("${project2Title}")`)).toBeVisible();
     } finally {
       await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
     }
@@ -251,9 +249,8 @@ test.describe('Multiple Projects Feature', () => {
 
       // Verify both projects are initially shown
       const projectsSection = page.locator('.issue-sidebar-combo').filter({has: page.locator('input[name="project_ids"]')});
-      const projectList = projectsSection.locator('.relaxed.list');
-      await expect(projectList.locator(`a:has-text("${project1Title}")`)).toBeVisible();
-      await expect(projectList.locator(`a:has-text("${project2Title}")`)).toBeVisible();
+      await expect(page.locator(`.item.sidebar-project-card a span:has-text("${project1Title}")`)).toBeVisible();
+      await expect(page.locator(`.item.sidebar-project-card a span:has-text("${project2Title}")`)).toBeVisible();
 
       // Open the projects dropdown
       await projectsSection.locator('.ui.dropdown').first().click();
@@ -265,8 +262,8 @@ test.describe('Multiple Projects Feature', () => {
       await page.locator('.issue-content-left').click();
 
       // Verify project1 is still shown but project2 is removed (expect will auto-wait)
-      await expect(projectList.locator(`a:has-text("${project1Title}")`)).toBeVisible();
-      await expect(projectList.locator(`a:has-text("${project2Title}")`)).toBeHidden();
+      await expect(page.locator(`.item.sidebar-project-card a span:has-text("${project1Title}")`)).toBeVisible();
+      await expect(page.locator(`.item.sidebar-project-card a span:has-text("${project2Title}")`)).toBeHidden();
 
       // Reload the page to see the timeline comment
       await page.reload();
