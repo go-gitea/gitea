@@ -82,7 +82,8 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			return fmt.Errorf("parse workflow: %w", err)
 		}
 
-		if len(jobs) > 0 && jobs[0].RunName != "" {
+		titleChanged := len(jobs) > 0 && jobs[0].RunName != ""
+		if titleChanged {
 			run.Title = util.EllipsisDisplayString(jobs[0].RunName, 255)
 		}
 
@@ -163,7 +164,10 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		}
 
 		run.Status = actions_model.AggregateJobStatus(runJobs)
-		cols := []string{"status", "title"}
+		cols := []string{"status"}
+		if titleChanged {
+			cols = append(cols, "title")
+		}
 		if wfRawConcurrency != nil {
 			cols = append(cols, "raw_concurrency", "concurrency_group", "concurrency_cancel")
 		}
