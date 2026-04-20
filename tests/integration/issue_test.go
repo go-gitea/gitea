@@ -238,6 +238,23 @@ func TestNewIssueInvalidProjectIDs(t *testing.T) {
 		assert.Contains(t, resp.Body.String(), "999")
 	})
 
+	t.Run("Non-numeric project ID returns 400 error", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/user2/repo1/issues/new")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+		assert.True(t, exists, "The template has changed")
+
+		req = NewRequestWithValues(t, "POST", link, map[string]string{
+			"title":       "test issue",
+			"content":     "test content",
+			"project_ids": "invalid",
+		})
+		resp = session.MakeRequest(t, req, http.StatusBadRequest)
+
+		assert.Contains(t, resp.Body.String(), "Invalid project IDs")
+	})
+
 	t.Run("Multiple invalid project IDs returns 400 with all IDs listed", func(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo1/issues/new")
 		resp := session.MakeRequest(t, req, http.StatusOK)

@@ -272,7 +272,11 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 
 	allProjects := append(slices.Clone(pageMetaData.ProjectsData.OpenProjects), pageMetaData.ProjectsData.ClosedProjects...)
 	candidateProjects := toSet(allProjects, func(project *project_model.Project) int64 { return project.ID })
-	inputProjectIDs, _ := base.StringsToInt64s(strings.Split(form.ProjectIDs, ","))
+	inputProjectIDs, err := base.StringsToInt64s(strings.Split(form.ProjectIDs, ","))
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, "Invalid project IDs")
+		return ret
+	}
 
 	// Validate all project IDs - return error if any are invalid
 	var invalidProjectIDs []int64
