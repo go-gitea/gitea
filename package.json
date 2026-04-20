@@ -89,7 +89,7 @@
     "@types/swagger-ui-dist": "3.30.6",
     "@types/throttle-debounce": "5.0.2",
     "@types/toastify-js": "1.12.4",
-    "@typescript-eslint/parser": "8.58.2",
+    "@typescript-eslint/parser": "8.59.0",
     "@vitejs/plugin-vue": "6.0.6",
     "@vitest/eslint-plugin": "1.6.16",
     "eslint": "10.2.1",
@@ -120,7 +120,7 @@
     "stylelint-value-no-unknown-custom-properties": "6.1.1",
     "svgo": "4.0.1",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.58.2",
+    "typescript-eslint": "8.59.0",
     "updates": "17.15.5",
     "vitest": "4.1.4",
     "vue-tsc": "3.2.7"
