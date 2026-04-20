@@ -70,11 +70,6 @@ export class IssueSidebarComboList {
 
   updateUiList(changedValues: Array<string>) {
     if (!this.elList) return;
-    // Skip updating the list if it contains server-rendered complex content (e.g., inline column dropdowns)
-    // The server reload will provide the correct updated content
-    const hasComplexContent = this.elList.querySelector('.issue-sidebar-combo');
-    if (hasComplexContent) return;
-
     const elEmptyTip = this.elList.querySelector('.item.empty-list')!;
     queryElemChildren(this.elList, '.item:not(.empty-list)', (el) => el.remove());
     for (const value of changedValues) {
@@ -201,12 +196,7 @@ export class IssueSidebarComboList {
         const elItem = this.elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${CSS.escape(value)}"]`);
         elItem?.classList.add('checked');
       }
-      // Only update the UI list if it doesn't already have server-rendered content
-      // (e.g., for projects with inline column dropdowns)
-      const hasServerRenderedContent = this.elList && queryElems(this.elList, '.issue-sidebar-combo').length > 0;
-      if (!hasServerRenderedContent) {
-        this.updateUiList(values);
-      }
+      this.updateUiList(values);
     }
     this.initialValues = this.collectCheckedValues();
 
