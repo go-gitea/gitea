@@ -76,6 +76,7 @@ export class IssueSidebarComboList {
       const el = this.elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${CSS.escape(value)}"]`);
       if (!el) continue;
       const listItem = el.cloneNode(true) as HTMLElement;
+      listItem.classList.remove('checked', 'active', 'selected');
       queryElems(listItem, '.item-check-mark, .item-secondary-info', (el) => el.remove());
       this.elList.append(listItem);
     }

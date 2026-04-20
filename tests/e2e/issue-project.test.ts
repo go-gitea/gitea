@@ -416,3 +416,48 @@ test('close project and view in closed projects list', async ({page}) => {
     await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
   }
 });
+
+test('select projects on new issue page shows in sidebar', async ({page}) => {
+  const repoName = `e2e-new-issue-project-${Date.now()}`;
+  const project1Title = 'Project One';
+  const project2Title = 'Project Two';
+
+  await login(page);
+  await apiCreateRepo(page.request, {name: repoName});
+
+  try {
+    // Create two projects
+    const project1 = await createProject(page, {
+      owner: env.GITEA_TEST_E2E_USER,
+      repo: repoName,
+      title: project1Title,
+    });
+    const project2 = await createProject(page, {
+      owner: env.GITEA_TEST_E2E_USER,
+      repo: repoName,
+      title: project2Title,
+    });
+
+    // Navigate to new issue page
+    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/new`);
+
+    // Open the projects dropdown in the sidebar
+    const projectsSection = page.locator('.issue-sidebar-combo').filter({has: page.locator('input[name="project_ids"]')});
+    await projectsSection.locator('.ui.dropdown').click();
+
+    // Select both projects
+    await page.locator(`.menu .muted.item[data-value="${project1.id}"]`).click();
+    await page.locator(`.menu .muted.item[data-value="${project2.id}"]`).click();
+
+    // Click outside to close dropdown
+    await page.locator('.issue-content-left').click();
+
+    // Verify both projects appear in the sidebar list below the dropdown
+    // On new issue page, these are simple cloned items rendered in the list container
+    const projectList = projectsSection.locator(':scope > .flex-relaxed-list, :scope > .ui.list');
+    await expect(projectList.locator(`.item:has-text("${project1Title}")`).first()).toBeVisible();
+    await expect(projectList.locator(`.item:has-text("${project2Title}")`).first()).toBeVisible();
+  } finally {
+    await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
+  }
+});

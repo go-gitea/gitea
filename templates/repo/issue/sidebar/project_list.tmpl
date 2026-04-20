@@ -43,16 +43,11 @@
 			</div>
 		</div>
 	</div>
-</div>
 
-{{/* project cards (column selectors) */}}
-{{if not $data.ProjectCards}}
-	<div class="ui list">
-		<div class="item empty-list">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</div>
-	</div>
-{{else}}
-	<div class="flex-relaxed-list">
-	{{range $card := $data.ProjectCards}}
+	{{/* project list - on new issue page shows simple list, on existing issue shows project cards with column selectors */}}
+	{{if len $data.ProjectCards}}
+		<div class="flex-relaxed-list">
+		{{range $card := $data.ProjectCards}}
 		{{$selectedColumn := $card.SelectedColumn}}
 		<div class="item sidebar-project-card">
 			<div class="tw-mb-1">
@@ -96,6 +91,11 @@
 				</div>
 			{{end}}
 		</div>
+		{{end}}
+		</div>
+	{{else}}
+		<div class="ui list muted-links flex-items-block">
+			<div class="item empty-list">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</div>
+		</div>
 	{{end}}
-	</div>
-{{end}}
+</div>
