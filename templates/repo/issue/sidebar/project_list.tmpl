@@ -3,10 +3,10 @@
 <div class="divider"></div>
 
 {{/* project selector */}}
-<div class="issue-sidebar-combo sidebar-project-combo" data-selection-mode="single" data-update-algo="all"
+<div class="issue-sidebar-combo sidebar-project-combo" data-selection-mode="multiple" data-update-algo="all"
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/projects?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
-	<input class="combo-value" name="project_id" type="hidden" value="{{if and $pageMeta.CanModifyIssueOrPull $data.SelectedProjectIDs}}{{index $data.SelectedProjectIDs 0}}{{end}}">
+	<input class="combo-value" name="project_ids" type="hidden" value="{{SliceUtils.JoinInt64 $data.SelectedProjectIDs}}">
 	<div class="ui dropdown full-width {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
 		<a class="fixed-text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.new.projects"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
@@ -63,7 +63,7 @@
 			</div>
 			{{if $pageMeta.CanModifyIssueOrPull}}
 				<div class="issue-sidebar-combo sidebar-project-column-combo" data-selection-mode="single" data-update-algo="all"
-					data-update-url="{{$pageMeta.RepoLink}}/issues/projects/column?issue_id={{$pageMeta.Issue.ID}}"
+					data-update-url="{{$pageMeta.RepoLink}}/issues/projects/column?issue_id={{$pageMeta.Issue.ID}}&project_id={{$card.Project.ID}}"
 				>
 					<input class="combo-value" name="column_id" type="hidden" value="{{if $selectedColumn}}{{$selectedColumn.ID}}{{end}}">
 					<div class="ui dropdown full-width">

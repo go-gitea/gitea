@@ -172,33 +172,42 @@ func (d *IssuePageMetaData) retrieveAssigneesData(ctx *context.Context) {
 }
 
 func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
-	if d.Issue == nil || d.Issue.Project == nil {
+	if d.Issue == nil || len(d.Issue.Projects) == 0 {
 		return
 	}
-	columns, err := d.Issue.Project.GetColumns(ctx)
+
+	// Load column mappings for all projects
+	projectColumnMap, err := d.Issue.ProjectColumnMap(ctx)
 	if err != nil {
-		ctx.ServerError("GetProjectColumns", err)
+		ctx.ServerError("ProjectColumnMap", err)
 		return
 	}
-	columnID, err := d.Issue.ProjectColumnID(ctx)
-	if err != nil {
-		ctx.ServerError("ProjectColumnID", err)
-		return
-	}
-	var selectedColumn *project_model.Column
-	for _, col := range columns {
-		if col.ID == columnID {
-			selectedColumn = col
-			break
+
+	// Build project cards for each project
+	d.ProjectsData.ProjectCards = make([]*issueSidebarProjectCardData, 0, len(d.Issue.Projects))
+	for _, project := range d.Issue.Projects {
+		columns, err := project.GetColumns(ctx)
+		if err != nil {
+			ctx.ServerError("GetProjectColumns", err)
+			return
 		}
-	}
-	d.ProjectsData.ProjectCards = []*issueSidebarProjectCardData{
-		{
-			Project:        d.Issue.Project,
+
+		var selectedColumn *project_model.Column
+		columnID := projectColumnMap[project.ID]
+		for _, col := range columns {
+			if col.ID == columnID {
+				selectedColumn = col
+				break
+			}
+		}
+
+		d.ProjectsData.ProjectCards = append(d.ProjectsData.ProjectCards, &issueSidebarProjectCardData{
+			Project:        project,
 			Columns:        columns,
 			SelectedColumn: selectedColumn,
-		},
+		})
 	}
+
 	d.ProjectsData.SelectedProjectIDs = make([]int64, 0, len(d.ProjectsData.ProjectCards))
 	for _, card := range d.ProjectsData.ProjectCards {
 		d.ProjectsData.SelectedProjectIDs = append(d.ProjectsData.SelectedProjectIDs, card.Project.ID)
