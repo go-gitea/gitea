@@ -885,7 +885,7 @@
 				<div class="ui warning message">
 					{{ctx.Locale.Tr "repo.settings.convert_notices_1"}}
 				</div>
-				<form class="ui form" action="{{.Link}}" method="post">
+				<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 					<input type="hidden" name="action" value="convert">
 					{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
 					{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.convert_confirm"))}}
@@ -902,7 +902,7 @@
 				<div class="ui warning message">
 					{{ctx.Locale.Tr "repo.settings.convert_fork_notices_1"}}
 				</div>
-				<form class="ui form" action="{{.Link}}" method="post">
+				<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 					<input type="hidden" name="action" value="convert_fork">
 					{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
 					{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.convert_fork_confirm"))}}
@@ -921,7 +921,7 @@
 				{{ctx.Locale.Tr "repo.settings.transfer_notices_3"}} <br>
 				{{ctx.Locale.Tr "repo.settings.transfer_notices_4"}}
 			</div>
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 				<input type="hidden" name="action" value="transfer">
 				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
 				<div class="required field">
@@ -946,7 +946,7 @@
 				{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
 				{{end}}
 			</div>
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 				<input type="hidden" name="action" value="delete">
 				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
 				{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.confirm_delete"))}}
@@ -1012,7 +1012,7 @@
 				{{ctx.Locale.Tr "repo.settings.delete_notices_1"}}<br>
 				{{ctx.Locale.Tr "repo.settings.wiki_delete_notices_1" .Repository.Name}}
 			</div>
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 				<input type="hidden" name="action" value="delete-wiki">
 				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
 				{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.confirm_wiki_delete"))}}
