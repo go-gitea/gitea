@@ -110,31 +110,25 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		TriggerUser:   user2,
 	}}
 	if runID == 10 {
-		attempts[0].Status = actions_model.StatusRunning
-	}
-	if runID == 20 {
-		attempts[0].Status = actions_model.StatusBlocked
-	}
-	if runID == 30 {
 		attempts = []*actions_model.ActionRunAttempt{
 			{
 				Attempt:       3,
 				Status:        actions_model.StatusSuccess,
-				Created:       timeutil.TimeStamp(now.Add(-time.Hour).Unix()),
+				Created:       timeutil.TimeStamp(alignTime(now.Add(-time.Hour).Unix(), 3600)),
 				TriggerUserID: 2,
 				TriggerUser:   user2,
 			},
 			{
 				Attempt:       2,
-				Status:        actions_model.StatusSuccess,
-				Created:       timeutil.TimeStamp(now.Add(-2 * time.Hour).Unix()),
+				Status:        actions_model.StatusBlocked,
+				Created:       timeutil.TimeStamp(alignTime(now.Add(-2*time.Hour).Unix(), 3600)),
 				TriggerUserID: 1,
 				TriggerUser:   admin,
 			},
 			{
 				Attempt:       1,
 				Status:        actions_model.StatusSuccess,
-				Created:       timeutil.TimeStamp(now.Add(-3 * time.Hour).Unix()),
+				Created:       timeutil.TimeStamp(alignTime(now.Add(-3*time.Hour).Unix(), 3600)),
 				TriggerUserID: 2,
 				TriggerUser:   user2,
 			},
@@ -143,6 +137,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 			currentAttemptNum = 3
 		}
 	}
+
 	latestAttempt := attempts[0]
 	resp.State.Run.RunAttempt = currentAttemptNum
 	resp.State.Run.Done = latestAttempt.Status.IsDone()
