@@ -1856,6 +1856,7 @@
   "repo.pulls.merge_manually": "Manually merged",
   "repo.pulls.merge_commit_id": "The merge commit ID",
   "repo.pulls.require_signed_wont_sign": "The branch requires signed commits but this merge will not be signed",
+  "repo.pulls.require_signed_head_commits_unverified": "The branch requires signed commits but one or more commits on this pull request are not verified",
   "repo.pulls.invalid_merge_option": "You cannot use this merge option for this pull request.",
   "repo.pulls.merge_conflict": "Merge Failed: There was a conflict while merging. Hint: Try a different strategy.",
   "repo.pulls.merge_conflict_summary": "Error Message",

@@ -10,23 +10,53 @@
 >
 	{{$statusCheckData := .StatusCheckData}}
 	{{$requiredStatusCheckState := $statusCheckData.RequiredChecksState}}
-	<div class="timeline-avatar {{if .Issue.PullRequest.HasMerged}}tw-text-purple
-	{{- else if .Issue.IsClosed}}tw-text-text-light
-	{{- else if .IsPullWorkInProgress}}tw-text-text-light
-	{{- else if .IsFilesConflicted}}tw-text-text-light
-	{{- else if .IsPullRequestBroken}}tw-text-red
-	{{- else if .IsBlockedByApprovals}}tw-text-red
-	{{- else if .IsBlockedByRejection}}tw-text-red
-	{{- else if .IsBlockedByOfficialReviewRequests}}tw-text-red
-	{{- else if .IsBlockedByOutdatedBranch}}tw-text-red
-	{{- else if .IsBlockedByChangedProtectedFiles}}tw-text-red
-	{{- else if and .EnableStatusCheck (or $requiredStatusCheckState.IsFailure $requiredStatusCheckState.IsError)}}tw-text-red
-	{{- else if and .EnableStatusCheck (or (not $.LatestCommitStatus) $requiredStatusCheckState.IsPending $requiredStatusCheckState.IsWarning)}}tw-text-yellow
-	{{- else if and .AllowMerge .RequireSigned (not .WillSign)}}tw-text-red
-	{{- else if .Issue.PullRequest.IsChecking}}tw-text-yellow
-	{{- else if .Issue.PullRequest.IsEmpty}}tw-text-text-light
-	{{- else if .Issue.PullRequest.CanAutoMerge}}tw-text-green
-	{{- else}}tw-text-red{{end}}">{{svg "octicon-git-merge" 40}}</div>
+	{{$prUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypePullRequests}}
+	{{/* True when the repo allows fast-forward-only and the PR is fast-forwardable.
+	Commit verification is checked in the backend at merge time, not here. */}}
+	{{$canUseFastForwardOnly := and $prUnit.PullRequestsConfig.AllowFastForwardOnly (eq .Issue.PullRequest.CommitsBehind 0)}}
+	{{$signingOK := or (not .RequireSigned) .WillSign}}
+	{{/* True when the branch requires signed commits but Gitea cannot sign.
+	Per-style items use data-pull-merge-style to toggle visibility. */}}
+	{{$signingBlocksMerge := and .AllowMerge .RequireSigned (not .WillSign)}}
+	{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
+	{{/* admin can merge without checks; writer can merge when checks succeed.
+	fast-forward-only can bypass the signing block since it creates no Gitea commit. */}}
+	{{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) $signingOK $canUseFastForwardOnly)}}
+	{{/* "fast-forward-only" when signing blocks the merge, empty otherwise.
+	Used in data-pull-merge-style so only ff-only keeps the attached rows visible. */}}
+	{{$ffOnlyStyleAttr := ""}}
+	{{if $signingBlocksMerge}}{{$ffOnlyStyleAttr = "fast-forward-only"}}{{end}}
+	{{/* The cascade below picks the avatar color. $avatarColorFromSigning is true only
+	on the signing branch so the two-avatar render can swap per selected style. New
+	cascade branches must leave $avatarColorFromSigning false. */}}
+	{{$avatarIcon := svg "octicon-git-merge" 40}}
+	{{$avatarBaseClass := ""}}
+	{{$avatarColorFromSigning := false}}
+	{{if .Issue.PullRequest.HasMerged}}{{$avatarBaseClass = "tw-text-purple"}}
+	{{else if .Issue.IsClosed}}{{$avatarBaseClass = "tw-text-text-light"}}
+	{{else if .IsPullWorkInProgress}}{{$avatarBaseClass = "tw-text-text-light"}}
+	{{else if .IsFilesConflicted}}{{$avatarBaseClass = "tw-text-text-light"}}
+	{{else if .IsPullRequestBroken}}{{$avatarBaseClass = "tw-text-red"}}
+	{{else if .IsBlockedByApprovals}}{{$avatarBaseClass = "tw-text-red"}}
+	{{else if .IsBlockedByRejection}}{{$avatarBaseClass = "tw-text-red"}}
+	{{else if .IsBlockedByOfficialReviewRequests}}{{$avatarBaseClass = "tw-text-red"}}
+	{{else if .IsBlockedByOutdatedBranch}}{{$avatarBaseClass = "tw-text-red"}}
+	{{else if .IsBlockedByChangedProtectedFiles}}{{$avatarBaseClass = "tw-text-red"}}
+	{{else if and .EnableStatusCheck (or $requiredStatusCheckState.IsFailure $requiredStatusCheckState.IsError)}}{{$avatarBaseClass = "tw-text-red"}}
+	{{else if and .EnableStatusCheck (or (not $.LatestCommitStatus) $requiredStatusCheckState.IsPending $requiredStatusCheckState.IsWarning)}}{{$avatarBaseClass = "tw-text-yellow"}}
+	{{else if $signingBlocksMerge}}{{$avatarBaseClass = "tw-text-red"}}{{$avatarColorFromSigning = true}}
+	{{else if .Issue.PullRequest.IsChecking}}{{$avatarBaseClass = "tw-text-yellow"}}
+	{{else if .Issue.PullRequest.IsEmpty}}{{$avatarBaseClass = "tw-text-text-light"}}
+	{{else if .Issue.PullRequest.CanAutoMerge}}{{$avatarBaseClass = "tw-text-green"}}
+	{{else}}{{$avatarBaseClass = "tw-text-red"}}{{end}}
+	{{if and $avatarColorFromSigning $canUseFastForwardOnly}}
+		{{/* manually-merged is in the red list because it is not a real merge, just a mark.
+		It is not in the green ff-only list because it does not fix the signing problem. */}}
+		<div class="timeline-avatar tw-text-red" data-pull-merge-style="merge,rebase,rebase-merge,squash,manually-merged">{{$avatarIcon}}</div>
+		<div class="timeline-avatar tw-hidden tw-text-green" data-pull-merge-style="fast-forward-only">{{$avatarIcon}}</div>
+	{{else}}
+		<div class="timeline-avatar {{$avatarBaseClass}}">{{$avatarIcon}}</div>
+	{{end}}
 	<div class="content">
 		{{if .LatestCommitStatus}}
 		<div class="ui attached segment fitted">
@@ -159,42 +189,45 @@
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.required_status_check_missing"}}
 					</div>
-				{{else if and .AllowMerge .RequireSigned (not .WillSign)}}
-					<div class="item">
+				{{else if $signingBlocksMerge}}
+					{{/* Hide the warning for styles that create no Gitea commit. */}}
+					<div class="item" data-pull-merge-style="merge,rebase,rebase-merge,squash">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
-					<div class="item">
-						{{svg "octicon-unlock"}}
-						{{ctx.Locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason)}}
-					</div>
+					{{/* When $canMergeNow (fast-forward-only rescue) the wont_sign detail is rendered
+					below by the $canMergeNow block instead, to avoid duplicating it. */}}
+					{{if not $canMergeNow}}
+						<div class="item">
+							{{svg "octicon-unlock"}}
+							{{ctx.Locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason)}}
+						</div>
+					{{end}}
 				{{end}}
 
-				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
-
-				{{/* admin can merge without checks, writer can merge when checks succeed */}}
-				{{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
 				{{/* admin and writer both can make an auto merge schedule */}}
 
 				{{if $canMergeNow}}
+					{{/* When signing blocks non-ff-only styles, show "can merge now" only for ff-only. */}}
 					{{if $notAllOverridableChecksOk}}
-						<div class="item">
+						<div class="item" {{if $ffOnlyStyleAttr}}data-pull-merge-style="{{$ffOnlyStyleAttr}}"{{end}}>
 							{{svg "octicon-dot-fill"}}
 							{{ctx.Locale.Tr "repo.pulls.required_status_check_administrator"}}
 						</div>
 					{{else}}
-						<div class="item">
+						<div class="item" {{if $ffOnlyStyleAttr}}data-pull-merge-style="{{$ffOnlyStyleAttr}}"{{end}}>
 							{{svg "octicon-check"}}
 							{{ctx.Locale.Tr "repo.pulls.can_auto_merge_desc"}}
 						</div>
 					{{end}}
+					{{/* The signing status only applies to merge styles that produce a Gitea-authored commit. */}}
 					{{if .WillSign}}
-						<div class="item">
+						<div class="item" data-pull-merge-style="merge,rebase,rebase-merge,squash">
 							{{svg "octicon-lock" 16 "tw-text-green"}}
 							{{ctx.Locale.Tr "repo.signing.will_sign" .SigningKeyMergeDisplay}}
 						</div>
 					{{else if .IsSigned}}
-						<div class="item">
+						<div class="item" data-pull-merge-style="merge,rebase,rebase-merge,squash">
 							{{svg "octicon-unlock"}}
 							{{ctx.Locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason)}}
 						</div>
@@ -212,7 +245,6 @@
 				{{end}}
 
 				{{if .AllowMerge}} {{/* user is allowed to merge */}}
-					{{$prUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypePullRequests}}
 					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash $prUnit.PullRequestsConfig.AllowFastForwardOnly}}
 						{{$hasPendingPullRequestMergeTip := ""}}
 						{{if .HasPendingPullRequestMerge}}

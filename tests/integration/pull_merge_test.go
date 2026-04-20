@@ -17,6 +17,7 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -36,6 +37,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/automergequeue"
+	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
@@ -507,6 +509,81 @@ func TestFastForwardOnlyMerge(t *testing.T) {
 
 		err := pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false)
 		assert.NoError(t, err)
+	})
+}
+
+func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "update", "README.md", "Hello, signed\n")
+
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		createPRReq := NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user1/repo1/pulls", &api.CreatePullRequestOption{
+			Head:  "update",
+			Base:  "master",
+			Title: "ff-only merge under require-signed-commits",
+		}).AddTokenAuth(token)
+		session.MakeRequest(t, createPRReq, http.StatusCreated)
+
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user1.ID, Name: "repo1"})
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			HeadRepoID: repo1.ID,
+			BaseRepoID: repo1.ID,
+			HeadBranch: "update",
+			BaseBranch: "master",
+		})
+
+		// Enable require-signed-commits on master.
+		txCtx, committer, err := db.TxContext(t.Context())
+		require.NoError(t, err)
+		require.NoError(t, git_model.UpdateProtectBranch(txCtx, repo1, &git_model.ProtectedBranch{
+			RepoID:               repo1.ID,
+			RuleName:             "master",
+			RequireSignedCommits: true,
+		}, git_model.WhitelistOptions{}))
+		require.NoError(t, committer.Commit())
+
+		prIndex := strconv.FormatInt(pr.Index, 10)
+		mergeURL := "/user1/repo1/pulls/" + prIndex + "/merge"
+
+		for _, style := range []repo_model.MergeStyle{repo_model.MergeStyleFastForwardOnly, repo_model.MergeStyleMerge} {
+			t.Run(string(style)+"/head-commits-unverified", func(t *testing.T) {
+				mergeReq := NewRequestWithValues(t, http.MethodPost, mergeURL, map[string]string{"do": string(style)})
+				resp := session.MakeRequest(t, mergeReq, http.StatusBadRequest)
+				assert.Contains(t, resp.Body.String(), "not verified")
+			})
+		}
+
+		for _, style := range []repo_model.MergeStyle{repo_model.MergeStyleRebase, repo_model.MergeStyleSquash} {
+			t.Run(string(style)+"/wont-sign", func(t *testing.T) {
+				mergeReq := NewRequestWithValues(t, http.MethodPost, mergeURL, map[string]string{"do": string(style)})
+				resp := session.MakeRequest(t, mergeReq, http.StatusBadRequest)
+				assert.NotContains(t, resp.Body.String(), "not verified")
+				assert.Contains(t, resp.Body.String(), "sign")
+			})
+		}
+
+		t.Run("api/fast-forward-only/head-commits-unverified", func(t *testing.T) {
+			apiReq := NewRequestWithJSON(t, http.MethodPost,
+				fmt.Sprintf("/api/v1/repos/user1/repo1/pulls/%s/merge", prIndex),
+				&forms.MergePullRequestForm{Do: string(repo_model.MergeStyleFastForwardOnly)},
+			).AddTokenAuth(token)
+			resp := session.MakeRequest(t, apiReq, http.StatusMethodNotAllowed)
+			assert.Contains(t, resp.Body.String(), "not all head commits are verified")
+		})
+
+		txCtx, committer, err = db.TxContext(t.Context())
+		require.NoError(t, err)
+		pb, err := git_model.GetFirstMatchProtectedBranchRule(t.Context(), repo1.ID, "master")
+		require.NoError(t, err)
+		require.NotNil(t, pb)
+		pb.RequireSignedCommits = false
+		require.NoError(t, git_model.UpdateProtectBranch(txCtx, repo1, pb, git_model.WhitelistOptions{}))
+		require.NoError(t, committer.Commit())
+
+		require.NoError(t, pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false))
 	})
 }
 
