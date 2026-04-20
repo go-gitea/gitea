@@ -21,27 +21,11 @@ const runTriggeredAtIso = computed(() => {
   return t ? new Date(t * 1000).toISOString() : '';
 });
 
-const currentAttempt = computed(() => {
-  return run.value.attempts.find((attempt) => attempt.current);
-});
+const isRerun = computed(() => run.value.runAttempt > 1);
 
-const triggerUser = computed(() => {
-  if (currentAttempt.value) {
-    return {
-      name: currentAttempt.value.triggerUserName,
-      link: currentAttempt.value.triggerUserLink,
-    };
-  }
-  return {
-    name: run.value.commit.pusher.displayName,
-    link: run.value.commit.pusher.link,
-  };
-});
-
-const triggerPrefix = computed(() => {
-  return run.value.runAttempt > 1
-    ? locale.rerunTriggeredBy
-    : locale.triggeredViaBy.replace('%s', run.value.triggerEvent);
+const rerunUser = computed(() => {
+  const currentAttempt = run.value.attempts.find((attempt) => attempt.current);
+  return currentAttempt ? {name: currentAttempt.triggerUserName, link: currentAttempt.triggerUserLink} : null;
 });
 
 onMounted(async () => {
@@ -56,9 +40,14 @@ onBeforeUnmount(() => {
   <div class="action-run-summary-view">
     <div class="action-run-summary-block">
       <div class="flex-text-block">
-        {{ triggerPrefix }}
-        <a v-if="triggerUser.link" class="muted" :href="triggerUser.link">{{ triggerUser.name }}</a>
-        <span v-else class="muted">{{ triggerUser.name }}</span>
+        <template v-if="isRerun">
+          {{ locale.rerunTriggeredBy }}
+          <a v-if="rerunUser?.link" class="muted" :href="rerunUser.link">{{ rerunUser.name }}</a>
+          <span v-else-if="rerunUser" class="muted">{{ rerunUser.name }}</span>
+        </template>
+        <template v-else>
+          {{ locale.triggeredVia.replace('%s', run.triggerEvent) }}
+        </template>
         • <relative-time :datetime="runTriggeredAtIso" prefix=""/>
       </div>
       <div class="flex-text-block">
