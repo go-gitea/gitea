@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"strconv"
 	"testing"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -11,16 +12,14 @@ import (
 
 	act_model "github.com/nektos/act/pkg/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
-	// Regression: two push-event runs evaluating
-	//   ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-	// must produce distinct concurrency groups. head_ref is empty on push,
-	// so github.run_id is the only uniqueness source; if it evaluated to ""
-	// (as it did before run.ID was populated pre-evaluation), both runs would
-	// share a group and cancel-in-progress would cross-cancel unrelated
-	// branches.
+	// Unit-level check that EvaluateRunConcurrencyFillModel resolves
+	// github.run_id from run.ID. The full-flow regression — that run.ID is
+	// non-zero by the time evaluation happens — is in
+	// TestPrepareRunAndInsert_ExpressionsSeeRunID.
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
@@ -38,6 +37,51 @@ func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
 	assert.Contains(t, runA.ConcurrencyGroup, "791")
 	assert.Contains(t, runB.ConcurrencyGroup, "792")
 	assert.NotEqual(t, runA.ConcurrencyGroup, runB.ConcurrencyGroup)
+}
+
+func TestPrepareRunAndInsert_ExpressionsSeeRunID(t *testing.T) {
+	// Regression for the cross-branch concurrency leak: github.run_id must
+	// be available during BOTH jobparser.Parse (run-name) and workflow-level
+	// concurrency evaluation. Re-ordering db.Insert relative to either step
+	// would leave run.ID at 0 and break this test.
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	content := []byte(`name: cross-branch
+run-name: "Run ${{ github.run_id }}"
+on: push
+concurrency:
+  group: group-${{ github.run_id }}
+  cancel-in-progress: true
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+`)
+
+	run := &actions_model.ActionRun{
+		Title:         "before parse",
+		RepoID:        4,
+		OwnerID:       1,
+		WorkflowID:    "expr-runid.yaml",
+		TriggerUserID: 1,
+		Ref:           "refs/heads/master",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "push",
+		TriggerEvent:  "push",
+		EventPayload:  "{}",
+	}
+	require.NoError(t, PrepareRunAndInsert(ctx, content, run, nil))
+	require.Positive(t, run.ID)
+
+	persisted := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+	runIDStr := strconv.FormatInt(run.ID, 10)
+	assert.Equal(t, "Run "+runIDStr, persisted.Title)
+	assert.Equal(t, "group-"+runIDStr, persisted.ConcurrencyGroup)
+	// Rerun reads raw_concurrency from the DB to re-evaluate the group;
+	// see services/actions/rerun.go. Must survive the insert.
+	assert.NotEmpty(t, persisted.RawConcurrency)
 }
 
 func TestFindTaskNeeds(t *testing.T) {
