@@ -770,16 +770,13 @@ func Issues(ctx *context.Context) {
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	}
 
-	// Parse project IDs from either "project" (single) or "projects" (comma-separated) parameter
 	var projectIDs []int64
-	if projectsParam := ctx.FormString("projects"); projectsParam != "" {
+	if projectsParam := ctx.FormString("project", ctx.FormString("projects")); projectsParam != "" {
 		for part := range strings.SplitSeq(projectsParam, ",") {
 			if id, err := strconv.ParseInt(part, 10, 64); err == nil && id != 0 {
 				projectIDs = append(projectIDs, id)
 			}
 		}
-	} else if projectID := ctx.FormInt64("project"); projectID != 0 {
-		projectIDs = []int64{projectID}
 	}
 
 	prepareIssueFilterAndList(ctx, ctx.FormInt64("milestone"), projectIDs, optional.Some(isPullList))
