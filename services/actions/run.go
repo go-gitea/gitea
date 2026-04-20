@@ -76,25 +76,27 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		}
 		run.Index = index
 		run.Title = util.EllipsisDisplayString(run.Title, 255)
+		run.Status = actions_model.StatusWaiting
 
-		// Evaluate workflow-level concurrency now that run.Index is populated,
-		// so expressions referencing github.run_id resolve to a per-run unique
-		// value instead of an empty string (which would collapse all pushes to
-		// the same group across branches).
+		// Insert before evaluating workflow-level concurrency so that run.ID
+		// is populated: expressions like `${{ github.head_ref || github.run_id }}`
+		// need a per-run unique value at group evaluation time, otherwise the
+		// group collapses across unrelated branches on push events.
+		if err := db.Insert(ctx, run); err != nil {
+			return err
+		}
+
 		if wfRawConcurrency != nil {
 			if err := EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars, inputs); err != nil {
 				return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
 			}
-		}
-
-		// check run (workflow-level) concurrency
-		run.Status, err = PrepareToStartRunWithConcurrency(ctx, run)
-		if err != nil {
-			return err
-		}
-
-		if err := db.Insert(ctx, run); err != nil {
-			return err
+			run.Status, err = PrepareToStartRunWithConcurrency(ctx, run)
+			if err != nil {
+				return err
+			}
+			if err := actions_model.UpdateRun(ctx, run, "concurrency_group", "concurrency_cancel", "status"); err != nil {
+				return err
+			}
 		}
 
 		if err := run.LoadRepo(ctx); err != nil {

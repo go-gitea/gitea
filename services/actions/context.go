@@ -22,20 +22,6 @@ import (
 
 type GiteaContext map[string]any
 
-// runIDForContext returns a stable identifier for the run suitable for use as
-// github.run_id in expression contexts. Prefer the persisted run.ID; fall back
-// to run.Index during pre-insert workflow-level concurrency evaluation, where
-// run.ID is still 0 but run.Index is already assigned.
-func runIDForContext(run *actions_model.ActionRun) string {
-	if run.ID > 0 {
-		return strconv.FormatInt(run.ID, 10)
-	}
-	if run.Index > 0 {
-		return strconv.FormatInt(run.Index, 10)
-	}
-	return ""
-}
-
 // GenerateGiteaContext generate the gitea context without token and gitea_runtime_token
 // job can be nil when generating a context for parsing workflow-level expressions
 func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.ActionRunJob) GiteaContext {
@@ -87,7 +73,7 @@ func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.Actio
 		"repository_owner":  run.Repo.OwnerName,                       // string, The repository owner's name. For example, Codertocat.
 		"repositoryUrl":     run.Repo.HTMLURL(),                       // string, The Git URL to the repository. For example, git://github.com/codertocat/hello-world.git.
 		"retention_days":    "",                                       // string, The number of days that workflow run logs and artifacts are kept.
-		"run_id":            runIDForContext(run),                     // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
+		"run_id":            "",                                       // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
 		"run_number":        strconv.FormatInt(run.Index, 10),         // string, A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
 		"run_attempt":       "",                                       // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.
 		"secret_source":     "Actions",                                // string, The source of a secret used in a workflow. Possible values are None, Actions, Dependabot, or Codespaces.
@@ -99,6 +85,10 @@ func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.Actio
 
 		// additional contexts
 		"gitea_default_actions_url": setting.Actions.DefaultActionsURL.URL(),
+	}
+
+	if run.ID > 0 {
+		gitContext["run_id"] = strconv.FormatInt(run.ID, 10)
 	}
 
 	if job != nil {

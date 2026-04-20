@@ -9,17 +9,35 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/unittest"
 
+	act_model "github.com/nektos/act/pkg/model"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRunIDForContext(t *testing.T) {
-	// Regression: workflow-level concurrency is evaluated before the run is
-	// inserted (run.ID == 0), so github.run_id must fall back to run.Index —
-	// otherwise ${{ github.head_ref || github.run_id }} collapses to the same
-	// string across all push events, cancelling runs across unrelated branches.
-	assert.Equal(t, "42", runIDForContext(&actions_model.ActionRun{ID: 42, Index: 7}))
-	assert.Equal(t, "7", runIDForContext(&actions_model.ActionRun{ID: 0, Index: 7}))
-	assert.Empty(t, runIDForContext(&actions_model.ActionRun{ID: 0, Index: 0}))
+func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
+	// Regression: two push-event runs evaluating
+	//   ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+	// must produce distinct concurrency groups. head_ref is empty on push,
+	// so github.run_id is the only uniqueness source; if it evaluated to ""
+	// (as it did before run.ID was populated pre-evaluation), both runs would
+	// share a group and cancel-in-progress would cross-cancel unrelated
+	// branches.
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	runA := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 791})
+	runB := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 792})
+
+	expr := &act_model.RawConcurrency{
+		Group:            "${{ github.workflow }}-${{ github.head_ref || github.run_id }}",
+		CancelInProgress: "true",
+	}
+
+	assert.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runA, expr, nil, nil))
+	assert.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runB, expr, nil, nil))
+
+	assert.Contains(t, runA.ConcurrencyGroup, "791")
+	assert.Contains(t, runB.ConcurrencyGroup, "792")
+	assert.NotEqual(t, runA.ConcurrencyGroup, runB.ConcurrencyGroup)
 }
 
 func TestFindTaskNeeds(t *testing.T) {
