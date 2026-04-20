@@ -109,7 +109,7 @@ async function deleteArtifact(name: string) {
                     <span>{{ locale.status[attempt.status] }}</span>
                   </span>
                   <span class="gt-ellipsis">
-                    <relative-time :datetime="new Date(attempt.triggeredAt * 1000).toISOString()" prefix=""/>
+                    • <relative-time :datetime="new Date(attempt.triggeredAt * 1000).toISOString()" prefix=""/>
                     • {{ attempt.triggerUserName }}
                   </span>
                 </div>
