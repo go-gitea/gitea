@@ -13,7 +13,7 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', d
   let msgContainer = parentContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
   if (!msgContainer) {
     const el = document.createElement('div');
-    el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><details class="ui ${msgType} message tw-text-center tw-whitespace-pre-line"><summary></summary></details></div>`;
+    el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><details class="ui ${msgType} message"><summary></summary></details></div>`;
     msgContainer = el.childNodes[0] as HTMLDivElement;
   }
 
@@ -27,13 +27,9 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', d
   msgSummary.textContent = msg + (msgCount > 1 ? ` (${msgCount})` : '');
   if (details) {
     let msgDetailsPre = msgElem.querySelector('pre');
-    if (!msgDetailsPre) {
-      msgDetailsPre = document.createElement('pre');
-      msgElem.append(msgDetailsPre);
-    }
+    if (!msgDetailsPre) msgDetailsPre = document.createElement('pre');
     msgDetailsPre.textContent = details;
-  } else {
-    msgElem.querySelector('pre')?.remove();
+    msgElem.append(msgDetailsPre);
   }
   parentContainer.prepend(msgContainer);
 }
