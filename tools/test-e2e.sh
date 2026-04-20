@@ -32,7 +32,9 @@ WORK_DIR=$(mktemp -d)
 FREE_PORT=$(node -e "const s=require('net').createServer();s.listen(0,'127.0.0.1',()=>{process.stdout.write(String(s.address().port));s.close()})")
 
 cleanup() {
-  $CONTAINER_RUNTIME stop gitea-e2e-runner
+  if [ -z "$PLAYWRIGHT_CONTAINER" ]; then
+    $CONTAINER_RUNTIME stop gitea-e2e-runner
+  fi
   if [ -n "${SERVER_PID:-}" ]; then
     kill "$SERVER_PID" 2>/dev/null || true
     wait "$SERVER_PID" 2>/dev/null || true
@@ -40,11 +42,14 @@ cleanup() {
   rm -rf "$WORK_DIR"
 }
 trap cleanup EXIT
-# Start playwright worker
-$CONTAINER_RUNTIME run --network=host --name gitea-e2e-runner -d --rm --init -it --workdir /home/pwuser --user pwuser mcr.microsoft.com/playwright:v1.59.1-noble /bin/sh -c "npx -y playwright@1.59.1 run-server --port 4000 --host 0.0.0.0"
 
-if ! wait_for_container 5; then
-    exit 1
+if [ -z "$PLAYWRIGHT_CONTAINER" ]; then
+  # Start playwright worker
+  $CONTAINER_RUNTIME run --network=host --name gitea-e2e-runner -d --rm --init -it --workdir /home/pwuser --user pwuser mcr.microsoft.com/playwright:v1.59.1-noble /bin/sh -c "npx -y playwright@1.59.1 run-server --port 4000 --host 0.0.0.0"
+
+  if ! wait_for_container 5; then
+      exit 1
+  fi
 fi
 
 
@@ -144,4 +149,7 @@ export GITEA_TEST_E2E_PASSWORD
 export GITEA_TEST_E2E_EMAIL
 export GITEA_TEST_E2E_TIMEOUT_FACTOR
 
-PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:4000/ pnpm exec playwright test "$@"
+if [ -z "$PLAYWRIGHT_CONTAINER" ]; then
+  export PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:4000/
+fi
+pnpm exec playwright test "$@"
