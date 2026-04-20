@@ -101,7 +101,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		currentAttemptNum = attemptID
 	}
 	user2 := &user_model.User{Name: "user2"}
-	admin := &user_model.User{Name: "admin"}
+	user3 := &user_model.User{Name: "user3"}
 	attempts := []*actions_model.ActionRunAttempt{{
 		Attempt:       1,
 		Status:        actions_model.StatusSuccess,
@@ -120,10 +120,10 @@ func MockActionsRunsJobs(ctx *context.Context) {
 			},
 			{
 				Attempt:       2,
-				Status:        actions_model.StatusBlocked,
+				Status:        actions_model.StatusFailure,
 				Created:       timeutil.TimeStamp(alignTime(now.Add(-2*time.Hour).Unix(), 3600)),
 				TriggerUserID: 1,
-				TriggerUser:   admin,
+				TriggerUser:   user3,
 			},
 			{
 				Attempt:       1,
