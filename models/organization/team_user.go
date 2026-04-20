@@ -36,14 +36,6 @@ type SearchMembersOptions struct {
 	TeamID int64
 }
 
-func (opts SearchMembersOptions) ToConds() builder.Cond {
-	cond := builder.NewCond()
-	if opts.TeamID > 0 {
-		cond = cond.And(builder.Eq{"": opts.TeamID})
-	}
-	return cond
-}
-
 // GetTeamMembers returns all members in given team of organization.
 func GetTeamMembers(ctx context.Context, opts *SearchMembersOptions) ([]*user_model.User, error) {
 	var members []*user_model.User
