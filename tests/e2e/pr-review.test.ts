@@ -20,9 +20,20 @@ test('pr review flow', async ({page, request}) => {
     loginUser(page, poster),
   ]);
 
-  // poster replies to the reviewer's inline comment
   await page.goto(`/${poster}/${repoName}/pulls/${prIndex}/files`);
-  const conversation = page.locator('.diff-file-box[data-new-filename="added.txt"] .conversation-holder');
+
+  // diff viewer renders the added file with its header and one added-line row
+  const fileBox = page.locator('.diff-file-box[data-new-filename="added.txt"]');
+  await expect(fileBox.locator('.diff-file-header .file-link')).toHaveText('added.txt');
+  await expect(fileBox.locator('tr.add-code')).toHaveCount(1);
+
+  // commits tab badge reflects the single PR commit, and the diff stats header counts one changed file
+  const commitsTab = page.locator('.ui.pull.tabular.menu a.item', {has: page.locator('.octicon-git-commit')});
+  await expect(commitsTab.locator('.label')).toHaveText('1');
+  await expect(page.locator('.diff-detail-stats')).toContainText(/1 changed file/);
+
+  // poster replies to the reviewer's inline comment
+  const conversation = fileBox.locator('.conversation-holder');
   await conversation.locator('.comment-form-reply').click();
   const replyForm = conversation.locator('form');
   await replyForm.locator('textarea[name="content"]').fill('my reply body');
