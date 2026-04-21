@@ -144,18 +144,9 @@ func (ctx *Context) NotFound(logErr error) {
 }
 
 func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
-	// it's safe to show the error message to end users since the error is fully controlled by our error system
-	var errorMsg string
+	// TODO: it's safe to show the error message to end users if the error is fully controlled by our error system
 	if logErr != nil {
-		log.Log(2, log.DEBUG, "NotFound: %s: %v", logMsg, logErr)
-		errorMsg = logErr.Error()
-	}
-	if logMsg != "" {
-		if errorMsg == "" {
-			errorMsg = logMsg
-		} else {
-			errorMsg = logMsg + "; " + errorMsg
-		}
+		log.Log(2, log.DEBUG, "%s: %v", logMsg, logErr)
 	}
 
 	// response simple message if Accept isn't text/html
@@ -168,14 +159,13 @@ func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 	}
 
 	if !showHTML {
-		errorMsg = util.IfZero(errorMsg, "Not found.")
-		ctx.plainTextInternal(3, http.StatusNotFound, []byte(errorMsg+"\n"))
+		ctx.plainTextInternal(3, http.StatusNotFound, []byte("Not found.\n"))
 		return
 	}
 
 	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
 	ctx.Data["Title"] = "Page Not Found"
-	ctx.Data["ErrorMsg"] = errorMsg
+	ctx.Data["ErrorMsg"] = "" // FIXME: the template never renders this message, need to fix in the future (and show safe messages to end users)
 	ctx.HTML(http.StatusNotFound, "status/404")
 }
 

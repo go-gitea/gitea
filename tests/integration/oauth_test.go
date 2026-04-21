@@ -1115,7 +1115,11 @@ func testOAuthSourceSpecialChars(t *testing.T) {
 	testOAuth2 := func(t *testing.T, uri string, statusCode int) {
 		req := NewRequest(t, "GET", uri)
 		resp := MakeRequest(t, req, statusCode)
-		assert.NotEmpty(t, resp.Header().Get("Location"))
+		if statusCode == http.StatusTemporaryRedirect {
+			assert.NotEmpty(t, resp.Header().Get("Location"))
+		} else {
+			assert.Empty(t, resp.Header().Get("Location"))
+		}
 	}
 
 	req := MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK)
