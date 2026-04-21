@@ -725,16 +725,16 @@ func handleSettingsPostConvert(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
 	if !ctx.Repo.IsOwner() {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.JSONErrorNotFound()
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
 
 	if !repo.IsMirror {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.JSONErrorNotFound()
 		return
 	}
 	repo.IsMirror = false
@@ -748,14 +748,14 @@ func handleSettingsPostConvert(ctx *context.Context) {
 	}
 	log.Trace("Repository converted from mirror to regular: %s", repo.FullName())
 	ctx.Flash.Success(ctx.Tr("repo.settings.convert_succeed"))
-	ctx.Redirect(repo.Link())
+	ctx.JSONRedirect(repo.Link())
 }
 
 func handleSettingsPostConvertFork(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
 	if !ctx.Repo.IsOwner() {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.JSONErrorNotFound()
 		return
 	}
 	if err := repo.LoadOwner(ctx); err != nil {
@@ -763,12 +763,12 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
 
 	if !repo.IsFork {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.JSONErrorNotFound()
 		return
 	}
 
@@ -776,7 +776,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 		maxCreationLimit := ctx.Repo.Owner.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
 		ctx.Flash.Error(msg)
-		ctx.Redirect(repo.Link() + "/settings")
+		ctx.JSONRedirect(repo.Link() + "/settings")
 		return
 	}
 
@@ -788,25 +788,25 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 
 	log.Trace("Repository converted from fork to regular: %s", repo.FullName())
 	ctx.Flash.Success(ctx.Tr("repo.settings.convert_fork_succeed"))
-	ctx.Redirect(repo.Link())
+	ctx.JSONRedirect(repo.Link())
 }
 
 func handleSettingsPostTransfer(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
 	if !ctx.Repo.IsOwner() {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.JSONErrorNotFound()
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
 
 	newOwner, err := user_model.GetUserByName(ctx, ctx.FormString("new_owner_name"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+			ctx.JSONError(ctx.Tr("form.enterred_invalid_owner_name"))
 			return
 		}
 		ctx.ServerError("IsUserExist", err)
@@ -816,7 +816,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 	if newOwner.Type == user_model.UserTypeOrganization {
 		if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
 			// The user shouldn't know about this organization
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+			ctx.JSONError(ctx.Tr("form.enterred_invalid_owner_name"))
 			return
 		}
 	}
@@ -830,14 +830,14 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 	oldFullname := repo.FullName()
 	if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, repo, nil); err != nil {
 		if repo_model.IsErrRepoAlreadyExist(err) {
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
+			ctx.JSONError(ctx.Tr("repo.settings.new_owner_has_same_repo"))
 		} else if repo_model.IsErrRepoTransferInProgress(err) {
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
+			ctx.JSONError(ctx.Tr("repo.settings.transfer_in_progress"))
 		} else if repo_service.IsRepositoryLimitReached(err) {
 			limit := err.(repo_service.LimitReachedError).Limit
-			ctx.RenderWithErrDeprecated(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit), tplSettingsOptions, nil)
+			ctx.JSONError(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit))
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.transfer.blocked_user"), tplSettingsOptions, nil)
+			ctx.JSONError(ctx.Tr("repo.settings.transfer.blocked_user"))
 		} else {
 			ctx.ServerError("TransferOwnership", err)
 		}
@@ -852,7 +852,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 		log.Trace("Repository transferred: %s -> %s", oldFullname, ctx.Repo.Repository.FullName())
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_succeed"))
 	}
-	ctx.Redirect(repo.Link() + "/settings")
+	ctx.JSONRedirect(repo.Link() + "/settings")
 }
 
 func handleSettingsPostCancelTransfer(ctx *context.Context) {
@@ -887,11 +887,11 @@ func handleSettingsPostDelete(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
 	if !ctx.Repo.IsOwner() {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.JSONErrorNotFound()
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
 
@@ -907,18 +907,18 @@ func handleSettingsPostDelete(ctx *context.Context) {
 	log.Trace("Repository deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
-	ctx.Redirect(ctx.Repo.Owner.DashboardLink())
+	ctx.JSONRedirect(ctx.Repo.Owner.DashboardLink())
 }
 
 func handleSettingsPostDeleteWiki(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
 	if !ctx.Repo.IsOwner() {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.JSONErrorNotFound()
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
 
@@ -929,7 +929,7 @@ func handleSettingsPostDeleteWiki(ctx *context.Context) {
 	log.Trace("Repository wiki deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
 }
 
 func handleSettingsPostArchive(ctx *context.Context) {
