@@ -556,7 +556,7 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 			})
 		}
 
-		for _, style := range []repo_model.MergeStyle{repo_model.MergeStyleRebase, repo_model.MergeStyleSquash} {
+		for _, style := range []repo_model.MergeStyle{repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge, repo_model.MergeStyleSquash} {
 			t.Run(string(style)+"/wont-sign", func(t *testing.T) {
 				mergeReq := NewRequestWithValues(t, http.MethodPost, mergeURL, map[string]string{"do": string(style)})
 				resp := session.MakeRequest(t, mergeReq, http.StatusBadRequest)
@@ -564,6 +564,17 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 				assert.Contains(t, resp.Body.String(), "sign")
 			})
 		}
+
+		// Admin force-merge must not bypass the unverified-head-commits check, since
+		// the pre-receive hook would reject the push regardless.
+		t.Run("fast-forward-only/admin-force-merge-does-not-bypass", func(t *testing.T) {
+			mergeReq := NewRequestWithValues(t, http.MethodPost, mergeURL, map[string]string{
+				"do":          string(repo_model.MergeStyleFastForwardOnly),
+				"force_merge": "true",
+			})
+			resp := session.MakeRequest(t, mergeReq, http.StatusBadRequest)
+			assert.Contains(t, resp.Body.String(), "not verified")
+		})
 
 		t.Run("api/fast-forward-only/head-commits-unverified", func(t *testing.T) {
 			apiReq := NewRequestWithJSON(t, http.MethodPost,
