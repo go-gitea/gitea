@@ -771,21 +771,13 @@ func Issues(ctx *context.Context) {
 	}
 
 	var projectIDs []int64
-	projectParam := ctx.FormTrim("project")
-	paramName := "project"
-	if projectParam == "" {
-		projectParam = ctx.FormTrim("projects")
-		paramName = "projects"
-	}
-	if projectParam != "" {
-		parsedProjectIDs, err := base.StringsToInt64s(strings.Split(projectParam, ","))
-		if err != nil {
-			ctx.HTTPError(http.StatusBadRequest, "Invalid "+paramName+" parameter", err.Error())
-			return
+	if projectsParam := ctx.FormString("project", ctx.FormString("projects")); projectsParam != "" {
+		for part := range strings.SplitSeq(projectsParam, ",") {
+			if id, err := strconv.ParseInt(part, 10, 64); err == nil && id != 0 {
+				projectIDs = append(projectIDs, id)
+			}
 		}
-		projectIDs = parsedProjectIDs
 	}
-	projectIDs = util.SliceRemoveAll(projectIDs, int64(0))
 
 	prepareIssueFilterAndList(ctx, ctx.FormInt64("milestone"), projectIDs, optional.Some(isPullList))
 	if ctx.Written() {

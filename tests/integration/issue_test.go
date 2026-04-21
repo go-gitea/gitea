@@ -65,13 +65,6 @@ func TestNoLoginViewIssues(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 }
 
-func TestViewIssuesInvalidProjectsParam(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	req := NewRequest(t, "GET", "/user2/repo1/issues?projects=invalid,not-a-number")
-	MakeRequest(t, req, http.StatusBadRequest)
-}
-
 func TestViewIssuesSortByType(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
