@@ -93,12 +93,6 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"gitea_default_actions_url": setting.Actions.DefaultActionsURL.URL(),
 	}
 
-	if run.ID > 0 {
-		// Before insert (parse time, run-level concurrency evaluation) run.ID is 0.
-		// Only populate when the run has been persisted.
-		gitContext["run_id"] = strconv.FormatInt(run.ID, 10)
-	}
-
 	if job != nil {
 		gitContext["job"] = job.JobID
 		gitContext["run_attempt"] = strconv.FormatInt(job.Attempt, 10)
