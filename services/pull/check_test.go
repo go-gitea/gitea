@@ -74,7 +74,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	prPatchCheckerQueue = nil
 }
 
-func TestCheckHeadCommitsVerifiedIfRequired(t *testing.T) {
+func TestCheckSigningRequirementsHeadCommits(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
@@ -82,8 +82,12 @@ func TestCheckHeadCommitsVerifiedIfRequired(t *testing.T) {
 	require.NoError(t, pr.LoadBaseRepo(ctx))
 	require.NoError(t, pr.LoadHeadRepo(ctx))
 
+	check := func() error {
+		return checkSigningRequirements(ctx, pr, nil, repo_model.MergeStyleFastForwardOnly)
+	}
+
 	// No protected branch rule on the base branch: the check must pass.
-	require.NoError(t, checkHeadCommitsVerifiedIfRequired(ctx, pr))
+	require.NoError(t, check())
 
 	// Protected branch without RequireSignedCommits: the check must still pass.
 	txCtx, committer, err := db.TxContext(ctx)
@@ -94,7 +98,7 @@ func TestCheckHeadCommitsVerifiedIfRequired(t *testing.T) {
 		RequireSignedCommits: false,
 	}, git_model.WhitelistOptions{}))
 	require.NoError(t, committer.Commit())
-	require.NoError(t, checkHeadCommitsVerifiedIfRequired(ctx, pr))
+	require.NoError(t, check())
 
 	// With RequireSignedCommits enabled: the test fixture commits have no signatures,
 	// so the check must report ErrHeadCommitsNotAllVerified.
@@ -106,7 +110,7 @@ func TestCheckHeadCommitsVerifiedIfRequired(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, git_model.UpdateProtectBranch(txCtx, pr.BaseRepo, pb, git_model.WhitelistOptions{}))
 	require.NoError(t, committer.Commit())
-	require.ErrorIs(t, checkHeadCommitsVerifiedIfRequired(ctx, pr), ErrHeadCommitsNotAllVerified)
+	require.ErrorIs(t, check(), ErrHeadCommitsNotAllVerified)
 }
 
 func TestMarkPullRequestAsMergeable(t *testing.T) {

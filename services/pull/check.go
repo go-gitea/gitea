@@ -214,21 +214,8 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 			}
 		}
 
-		// Styles that preserve the user's commits on the base branch ("fast-forward-only" and "merge")
-		// need those commits to be verified when the branch requires signed commits, otherwise the
-		// pre-receive hook would reject the push with a generic error.
-		// Styles that rewrite commits through Gitea ("rebase", "rebase-merge", "squash") rely on
-		// Gitea's own signing key, which is checked by isSignedIfRequired below.
-		if mergeStyle == repo_model.MergeStyleFastForwardOnly || mergeStyle == repo_model.MergeStyleMerge {
-			if err := checkHeadCommitsVerifiedIfRequired(ctx, pr); err != nil {
-				return err
-			}
-		}
-		// Fast-forward-only creates no Gitea commit, so there is nothing for Gitea to sign.
-		if mergeStyle != repo_model.MergeStyleFastForwardOnly {
-			if _, err := isSignedIfRequired(ctx, pr, doer); err != nil {
-				return err
-			}
+		if err := checkSigningRequirements(ctx, pr, doer, mergeStyle); err != nil {
+			return err
 		}
 
 		if noDeps, err := issues_model.IssueNoDependenciesLeft(ctx, pr.Issue); err != nil {
@@ -241,9 +228,15 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 	})
 }
 
-// checkHeadCommitsVerifiedIfRequired returns ErrHeadCommitsNotAllVerified when the
-// target branch requires signed commits and any PR commit is unverified.
-func checkHeadCommitsVerifiedIfRequired(ctx context.Context, pr *issues_model.PullRequest) error {
+// checkSigningRequirements enforces the target branch's RequireSignedCommits rule
+// against the selected merge style:
+//   - fast-forward-only and merge keep the user's commits on the base branch, so
+//     those commits must all be verified, or the pre-receive hook will reject the
+//     push with a generic error.
+//   - fast-forward-only creates no Gitea commit, so Gitea's signing key is not used.
+//   - merge, rebase, rebase-merge and squash produce a Gitea-signed commit, so
+//     Gitea must be configured to sign it.
+func checkSigningRequirements(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle) error {
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
 	if err != nil {
 		return err
@@ -258,36 +251,22 @@ func checkHeadCommitsVerifiedIfRequired(ctx context.Context, pr *issues_model.Pu
 	}
 	defer closer.Close()
 
-	verified, err := asymkey_service.AllHeadCommitsVerified(ctx, pr, gitRepo)
-	if err != nil {
-		return err
+	if mergeStyle == repo_model.MergeStyleFastForwardOnly || mergeStyle == repo_model.MergeStyleMerge {
+		verified, err := asymkey_service.AllHeadCommitsVerified(ctx, pr, gitRepo)
+		if err != nil {
+			return err
+		}
+		if !verified {
+			return ErrHeadCommitsNotAllVerified
+		}
 	}
-	if !verified {
-		return ErrHeadCommitsNotAllVerified
+
+	if mergeStyle != repo_model.MergeStyleFastForwardOnly {
+		if _, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo); err != nil {
+			return err
+		}
 	}
 	return nil
-}
-
-// isSignedIfRequired check if merge will be signed if required
-func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) (bool, error) {
-	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
-	if err != nil {
-		return false, err
-	}
-
-	if pb == nil || !pb.RequireSignedCommits {
-		return true, nil
-	}
-
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
-	if err != nil {
-		return false, err
-	}
-	defer closer.Close()
-
-	sign, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo)
-
-	return sign, err
 }
 
 // markPullRequestAsMergeable checks if pull request is possible to leaving checking status,
