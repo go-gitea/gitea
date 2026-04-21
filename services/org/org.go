@@ -104,12 +104,12 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 
 func updateRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Repository, makePrivate bool) error {
 	if err := repo.LoadOwner(ctx); err != nil {
-		return fmt.Errorf("loadOwner: %w", err)
+		return fmt.Errorf("LoadOwner: %w", err)
 	}
 
 	// Organization repository need to recalculate access table when visibility is changed.
 	if err := access_model.RecalculateAccesses(ctx, repo); err != nil {
-		return fmt.Errorf("recalculateAccesses: %w", err)
+		return fmt.Errorf("RecalculateAccesses: %w", err)
 	}
 
 	if makePrivate {

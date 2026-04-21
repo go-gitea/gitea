@@ -63,11 +63,8 @@ func TestOrg(t *testing.T) {
 	})
 
 	t.Run("ChangeVisibilityWithUserFork", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
-
 		// org 19 has a repository 27 which has a forked repository 29 by user 20
 		org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 19})
-
 		require.NoError(t, ChangeOrganizationVisibility(t.Context(), org, structs.VisibleTypePrivate))
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: org.ID, Visibility: structs.VisibleTypePrivate})
 	})
