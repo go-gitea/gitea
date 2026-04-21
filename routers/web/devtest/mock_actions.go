@@ -214,10 +214,10 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		ID:       runID * 10,
 		Link:     jobLink(runID * 10),
 		JobID:    "job-100",
-		Name:     "job 100",
+		Name:     "job 100 (testsubname)",
 		Status:   actions_model.StatusRunning.String(),
 		CanRerun: true,
-		Duration: "1h",
+		Duration: "1h23m45s",
 	})
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID*10 + 1,
