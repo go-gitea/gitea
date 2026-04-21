@@ -4,6 +4,7 @@ import {registerGlobalInitFunc} from './observer.ts';
 import {fomanticQuery} from './fomantic/base.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
+import {showGlobalErrorMessage} from './errors.ts';
 
 type LevelMap = Record<string, (message: string) => Toast | null>;
 
@@ -54,4 +55,10 @@ function initDevtestPage() {
 
 export function initDevtest() {
   registerGlobalInitFunc('initDevtestPage', initDevtestPage);
+  registerGlobalInitFunc('initDevtestDetailsErrorMessage', () => {
+    for (let i = 0; i < 2; i++) {
+      showGlobalErrorMessage('showGlobalErrorMessage single message', 'warning');
+      showGlobalErrorMessage('showGlobalErrorMessage message with details', 'error', `detail message 1\nvery lo${'o'.repeat(200)}ng line 2\nline 3`);
+    }
+  });
 }

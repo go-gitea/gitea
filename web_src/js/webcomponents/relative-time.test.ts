@@ -109,6 +109,18 @@ test('respects lang from parent element', async () => {
   expect(getText(el)).toBe('vor 3 Tagen');
 });
 
+test('falls back when navigator.language is invalid', async () => {
+  vi.spyOn(navigator, 'language', 'get').mockReturnValue('undefined');
+  try {
+    const el = document.createElement('relative-time');
+    el.setAttribute('datetime', new Date(Date.now() - 3 * 60 * 1000).toISOString());
+    await Promise.resolve();
+    expect(getText(el)).toBe('3 minutes ago');
+  } finally {
+    vi.restoreAllMocks();
+  }
+});
+
 test('switches to datetime with P1D threshold', async () => {
   const el = createRelativeTime(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), {
     lang: 'en-US',

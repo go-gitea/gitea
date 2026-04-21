@@ -1,6 +1,7 @@
 import {GET, request} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {confirmModal, createConfirmModal} from './comp/ConfirmModal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
@@ -90,7 +91,7 @@ async function handleFetchActionSuccess(el: HTMLElement, opt: FetchActionOpts, r
 async function handleFetchActionError(resp: Response) {
   const isRespJson = resp.headers.get('content-type')?.includes('application/json');
   const respText = await resp.text();
-  const respJson = isRespJson ? JSON.parse(await resp.text()) : null;
+  const respJson = isRespJson ? JSON.parse(respText) : null;
   if (respJson?.errorMessage) {
     // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
     // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
@@ -134,10 +135,10 @@ async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
       return;
     }
     await handleFetchActionError(resp);
-  } catch (e) {
-    if (e.name !== 'AbortError') {
-      console.error(`Fetch action request error:`, e);
-      showErrorToast(`Error: ${e.message ?? e}`);
+  } catch (err) {
+    if ((err as Error).name !== 'AbortError') {
+      console.error(`Fetch action request error:`, err);
+      showErrorToast(`Error: ${errorMessage(err)}`);
     }
   } finally {
     toggleLoadingIndicator(el, opt, false);
