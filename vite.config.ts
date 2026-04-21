@@ -56,7 +56,7 @@ const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
     pluginTimings: false,
   },
-  ...(env.CI ? {plugins: [failOnWarningsPlugin()]} : {}),
+  ...(env.NODE_ENV === 'test' ? {plugins: [failOnWarningsPlugin()]} : {}),
 };
 
 function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
