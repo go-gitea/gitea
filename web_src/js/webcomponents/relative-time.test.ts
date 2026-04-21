@@ -54,6 +54,12 @@ test('switches to datetime format after default threshold', async () => {
   expect(getText(el)).toMatch(/on [A-Z][a-z]{2} \d{1,2}/);
 });
 
+test('support unix timestamp', async () => {
+  const el = createRelativeTime(String(Date.now() / 1000));
+  await Promise.resolve();
+  expect(getText(el)).toBe('now');
+});
+
 test('ignores invalid datetime', async () => {
   const el = createRelativeTime('bogus');
   el.shadowRoot!.textContent = 'fallback';
