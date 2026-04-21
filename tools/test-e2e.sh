@@ -1,14 +1,39 @@
 #!/bin/bash
 set -euo pipefail
 
+# Extract Playwright version from package.json
+PLAYWRIGHT_VERSION=$(node -e "process.stdout.write(require('./package.json').devDependencies['@playwright/test'])")
+
+detect_playwright_mode() {
+    # If PLAYWRIGHT_MODE is already set to local or container, use it
+    if [ "${PLAYWRIGHT_MODE:-auto}" = "local" ] || [ "${PLAYWRIGHT_MODE:-auto}" = "container" ]; then
+        return
+    fi
+
+    # Default to local
+    PLAYWRIGHT_MODE="local"
+
+    if [ "$(uname -s)" = "Linux" ]; then
+        if [ -f /etc/os-release ]; then
+            # Check ID and ID_LIKE for ubuntu or debian
+            if ! grep -qE '^ID(_LIKE)?=.*(ubuntu|debian)' /etc/os-release; then
+                PLAYWRIGHT_MODE="container"
+            fi
+        else
+            PLAYWRIGHT_MODE="container"
+        fi
+    fi
+}
+
 wait_for_container() {
     local max_attempts=$1
     local attempt=1
     local wait_time=1
+    echo "Waiting for container to start..."
     sleep 5 # give the container some time to start listening.
 
     while [ $attempt -le $max_attempts ]; do
-        if $CONTAINER_RUNTIME logs gitea-e2e-runner 2>&1 | grep -q "Listening on"; then
+        if ${CONTAINER_RUNTIME:-docker} logs gitea-e2e-runner 2>&1 | grep -q "Listening on"; then
             echo "Container is ready."
             return 0  # Success
         fi
@@ -25,6 +50,26 @@ wait_for_container() {
     done
 }
 
+CMD="${1:-run}"
+if [ "$CMD" = "install" ] || [ "$CMD" = "run" ]; then
+    shift
+else
+    CMD="run"
+fi
+
+detect_playwright_mode
+
+if [ "$CMD" = "install" ]; then
+    if [ "$PLAYWRIGHT_MODE" = "local" ]; then
+        # on Github Actions VMs, playwright's system deps are preinstalled
+        pnpm exec playwright install "$(if [ -z "${GITHUB_ACTIONS:-}" ]; then echo "--with-deps"; fi)" chromium firefox ${PLAYWRIGHT_FLAGS:-}
+    else
+        echo "Running playwright in container as host distro is not supported by playwright directly"
+        ${CONTAINER_RUNTIME:-docker} pull "mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble"
+    fi
+    exit 0
+fi
+
 # Create isolated work directory
 WORK_DIR=$(mktemp -d)
 
@@ -32,8 +77,8 @@ WORK_DIR=$(mktemp -d)
 FREE_PORT=$(node -e "const s=require('net').createServer();s.listen(0,'127.0.0.1',()=>{process.stdout.write(String(s.address().port));s.close()})")
 
 cleanup() {
-  if [ -z "$PLAYWRIGHT_CONTAINER" ]; then
-    $CONTAINER_RUNTIME stop gitea-e2e-runner
+  if [ "${PLAYWRIGHT_MODE:-}" = "container" ]; then
+    ${CONTAINER_RUNTIME:-docker} stop gitea-e2e-runner
   fi
   if [ -n "${SERVER_PID:-}" ]; then
     kill "$SERVER_PID" 2>/dev/null || true
@@ -43,9 +88,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
-if [ -z "$PLAYWRIGHT_CONTAINER" ]; then
+if [ "${PLAYWRIGHT_MODE:-}" = "container" ]; then
   # Start playwright worker
-  $CONTAINER_RUNTIME run --network=host --name gitea-e2e-runner -d --rm --init -it --workdir /home/pwuser --user pwuser mcr.microsoft.com/playwright:v1.59.1-noble /bin/sh -c "npx -y playwright@1.59.1 run-server --port 4000 --host 0.0.0.0"
+  ${CONTAINER_RUNTIME:-docker} run --network=host --name gitea-e2e-runner -d --rm --init -it --workdir /home/pwuser --user pwuser "mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble" /bin/sh -c "npx -y playwright@${PLAYWRIGHT_VERSION} run-server --port 4000 --host 0.0.0.0"
 
   if ! wait_for_container 5; then
       exit 1
@@ -137,6 +182,9 @@ GITEA_TEST_E2E_EMAIL="$GITEA_TEST_E2E_USER@$GITEA_TEST_E2E_DOMAIN"
 if [ -z "${GITEA_TEST_E2E_TIMEOUT_FACTOR:-}" ]; then
   if [ -n "${CI:-}" ]; then
     GITEA_TEST_E2E_TIMEOUT_FACTOR=4
+  # Container based runs seem slower so bump the default timeout to avoid failing tests
+  elif [ "${PLAYWRIGHT_MODE}" = "container" ]; then
+    GITEA_TEST_E2E_TIMEOUT_FACTOR=1.5
   else
     GITEA_TEST_E2E_TIMEOUT_FACTOR=1
   fi
@@ -149,7 +197,7 @@ export GITEA_TEST_E2E_PASSWORD
 export GITEA_TEST_E2E_EMAIL
 export GITEA_TEST_E2E_TIMEOUT_FACTOR
 
-if [ -z "$PLAYWRIGHT_CONTAINER" ]; then
+if [ "$PLAYWRIGHT_MODE" = "container" ]; then
   export PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:4000/
 fi
 pnpm exec playwright test "$@"

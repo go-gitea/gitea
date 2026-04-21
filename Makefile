@@ -519,12 +519,11 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
 playwright: deps-frontend
-	@# on GitHub Actions VMs, playwright's system deps are pre-installed
-	@pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium firefox $(PLAYWRIGHT_FLAGS)
+	@./tools/test-e2e.sh install
 
 .PHONY: test-e2e
-test-e2e: $(EXECUTABLE_E2E)
-	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE_E2E) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
+test-e2e: playwright $(EXECUTABLE_E2E)
+	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE_E2E) ./tools/test-e2e.sh run $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
@@ -820,7 +819,7 @@ generate-manpage: ## generate manpage
 
 .PHONY: docker
 docker:
-	docker build --disable-content-trust=false -t $(DOCKER_REF) .
+	$(CONTAINER_RUNTIME) build --disable-content-trust=false -t $(DOCKER_REF) .
 # support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
 
 # Disable parallel execution because it would break some targets that don't
