@@ -63,7 +63,7 @@ export async function apiStartStopwatch(requestContext: APIRequestContext, owner
 export async function apiCreateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string, {branch, newBranch, message}: {branch?: string; newBranch?: string; message?: string} = {}) {
   await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
     headers: apiHeaders(),
-    data: {content: globalThis.btoa(content), branch, new_branch: newBranch, message},
+    data: {content: Buffer.from(content, 'utf8').toString('base64'), branch, new_branch: newBranch, message},
   }), 'apiCreateFile');
 }
 
@@ -89,17 +89,11 @@ export async function apiCreatePR(requestContext: APIRequestContext, owner: stri
 }
 
 /** Create a review on a PR. `event: "COMMENT"` submits immediately without a pending review. */
-export async function apiCreateReview(requestContext: APIRequestContext, owner: string, repo: string, index: number, {event = 'COMMENT', body, comments = [], headers}: {event?: string; body?: string; comments?: Array<{path: string; body: string; new_position?: number; old_position?: number}>; headers?: Record<string, string>}) {
-  let reviewID = 0;
-  await apiRetry(async () => {
-    const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/reviews`, {
-      headers: headers || apiHeaders(),
-      data: {event, body, comments},
-    });
-    if (response.ok()) reviewID = (await response.json()).id;
-    return response;
-  }, 'apiCreateReview');
-  return reviewID;
+export async function apiCreateReview(requestContext: APIRequestContext, owner: string, repo: string, index: number, {event = 'COMMENT', body, comments = [], headers}: {event?: string; body?: string; comments?: Array<{path: string; body: string; new_position?: number; old_position?: number}>; headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/reviews`, {
+    headers: headers || apiHeaders(),
+    data: {event, body, comments},
+  }), 'apiCreateReview');
 }
 
 export async function createProjectColumn(requestContext: APIRequestContext, owner: string, repo: string, projectID: string, title: string) {
