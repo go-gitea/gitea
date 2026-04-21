@@ -1,4 +1,4 @@
-import {showTemporaryTooltip} from '../../modules/tippy.ts';
+import {showTemporaryTooltip} from '../../modules/float.ts';
 import {POST} from '../../modules/fetch.ts';
 import {registerGlobalInitFunc} from '../../modules/observer.ts';
 import {queryElems} from '../../utils/dom.ts';

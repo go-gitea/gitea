@@ -1,0 +1,192 @@
+/* Styles for the Float module (popups, tooltips, menus) */
+
+/* hide float target elements on page load; they are moved into a .float-box by JS */
+.float-target {
+  display: none !important;
+}
+
+/* show target element once it has been moved into a .float-box */
+.float-content .float-target {
+  display: unset !important;
+}
+
+.float-box {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: calc(100vw - 32px);
+  background-color: var(--color-menu);
+  color: var(--color-text);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  z-index: 9999;
+}
+
+.float-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* interactive hit area: an invisible padded region around the popup so the
+   cursor can traverse the gap between reference and popup without closing it */
+.float-box[data-interactive="true"]::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--float-interactive-border, 0px));
+  z-index: 0;
+}
+
+.float-box[data-theme="default"] {
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
+/* bare theme, no styling at all, except box-shadow */
+.float-box[data-theme="bare"] {
+  border: none;
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
+.float-box[data-theme="bare"] .float-content {
+  padding: 0;
+  background: transparent;
+}
+
+/* tooltip theme for text tooltips */
+
+.float-box[data-theme="tooltip"] {
+  background-color: var(--color-tooltip-bg);
+  color: var(--color-tooltip-text);
+  border: none;
+}
+
+.float-box[data-theme="tooltip"] .float-content {
+  padding: 0.5rem 1rem;
+}
+
+.float-box[data-theme="tooltip"] .float-arrow-inner,
+.float-box[data-theme="tooltip"] .float-arrow-outer {
+  fill: var(--color-tooltip-bg);
+}
+
+/* menu theme for .ui.menu */
+
+.float-box[data-theme="menu"] {
+  background-color: var(--color-menu);
+  color: var(--color-text);
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
+.float-box[data-theme="menu"] .float-content {
+  padding: 4px 0;
+}
+
+.float-box[data-theme="menu"] .float-arrow-inner {
+  fill: var(--color-menu);
+}
+
+.float-box[data-theme="menu"] .item {
+  display: flex;
+  align-items: center;
+  padding: 9px 18px;
+  color: inherit;
+  background: inherit;
+  text-decoration: none;
+  gap: 10px;
+  width: 100%;
+}
+
+.float-box[data-theme="menu"] .item:hover {
+  background: var(--color-hover);
+}
+
+.float-box[data-theme="menu"] .item:focus {
+  background: var(--color-hover);
+}
+
+.float-box[data-theme="menu"] .item.active {
+  background: var(--color-active);
+}
+
+/* box-with-header theme to look like .ui.attached.segment. can contain .ui.attached.header */
+
+.float-box[data-theme="box-with-header"] {
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
+.float-box[data-theme="box-with-header"] .float-content {
+  background: var(--color-box-body);
+  border-radius: var(--border-radius);
+  padding: 0;
+}
+
+.float-box[data-theme="box-with-header"][data-placement^="top"] .float-arrow-inner {
+  fill: var(--color-box-body);
+}
+
+.float-box[data-theme="box-with-header"][data-placement^="bottom"] .float-arrow-inner {
+  fill: var(--color-box-header);
+}
+
+/* arrow: positioned by the floating-ui arrow middleware via inline top/left,
+   with a data-side attribute selecting which side it points at */
+
+.float-arrow {
+  position: absolute;
+  width: 16px;
+  height: 7px;
+  text-align: initial;
+}
+
+.float-arrow > svg {
+  position: absolute;
+}
+
+.float-arrow[data-side="top"] {
+  bottom: -7px;
+}
+
+.float-arrow[data-side="top"] > svg {
+  top: 0;
+  transform: rotate(180deg);
+}
+
+.float-arrow[data-side="bottom"] {
+  top: -7px;
+}
+
+.float-arrow[data-side="bottom"] > svg {
+  top: 0;
+}
+
+.float-arrow[data-side="left"] {
+  right: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.float-arrow[data-side="left"] > svg {
+  transform: rotate(90deg);
+  top: calc(50% - 3px);
+  left: 11px;
+}
+
+.float-arrow[data-side="right"] {
+  left: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.float-arrow[data-side="right"] > svg {
+  transform: rotate(-90deg);
+  top: calc(50% - 3px);
+  right: 11px;
+}
+
+.float-arrow-outer {
+  fill: var(--color-secondary);
+}
+
+.float-arrow-inner {
+  fill: var(--color-menu);
+}

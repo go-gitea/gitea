@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import {computed, onBeforeUnmount, onMounted} from 'vue';
-import tippy, {createSingleton} from 'tippy.js';
-import type {CreateSingletonInstance, Instance} from 'tippy.js';
+import {computed, onBeforeUnmount} from 'vue';
+import {createFloat} from '../modules/float.ts';
+import type {FloatInstance} from '../modules/float.ts';
 
 type HeatmapValue = {date: Date; count: number};
 type HeatmapCell = {date: Date; colorIndex: number; ariaLabel: string; tooltip: string};
@@ -100,31 +100,48 @@ const grid = computed(() => {
 
 const legendViewBox = `${cellSize} 0 ${squareSize * (colorRange.length + 2)} ${squareSize}`;
 
-const cellInstances = new Map<Element, Instance>();
-let singleton: CreateSingletonInstance | null = null;
+let singleton: {instance: FloatInstance; anchor: HTMLElement} | null = null;
+let hoveredCell: Element | null = null;
 
-onMounted(() => {
-  singleton = createSingleton([], {
-    overrides: [],
-    moveTransition: 'transform 0.1s ease-out',
+function ensureSingleton(): FloatInstance {
+  if (singleton) return singleton.instance;
+  const anchor = document.createElement('div');
+  anchor.style.position = 'fixed';
+  document.body.append(anchor);
+  const instance = createFloat(anchor, {
+    content: '',
     allowHTML: true,
     theme: 'tooltip',
     role: 'tooltip',
     placement: 'top',
+    trigger: 'manual',
+    getReferenceClientRect: () => (hoveredCell ?? anchor).getBoundingClientRect(),
   });
-});
+  instance.float.style.transition = 'transform 0.1s ease-out';
+  singleton = {instance, anchor};
+  return instance;
+}
 
 onBeforeUnmount(() => {
-  singleton?.destroy();
-  for (const instance of cellInstances.values()) instance.destroy();
-  cellInstances.clear();
+  singleton?.instance.destroy();
+  singleton?.anchor.remove();
+  singleton = null;
+  hoveredCell = null;
 });
 
 function lazyInitTooltip(e: MouseEvent) {
   const el = e.target as Element;
-  if (!singleton || cellInstances.has(el) || !el.classList.contains('heatmap-day')) return;
-  cellInstances.set(el, tippy(el, {content: el.getAttribute('data-tooltip')!}));
-  singleton.setInstances([...cellInstances.values()]);
+  if (!el.classList.contains('heatmap-day')) return;
+  const inst = ensureSingleton();
+  hoveredCell = el;
+  inst.setContent(el.getAttribute('data-tooltip')!);
+  if (inst.state.isShown) inst.update();
+  else inst.show();
+}
+
+function onGridMouseLeave() {
+  hoveredCell = null;
+  singleton?.instance.hide();
 }
 
 function handleDayClick(date: Date) {
@@ -164,7 +181,7 @@ function handleDayClick(date: Date) {
         <text class="heatmap-day-label" :x="0" :y="44">{{ locale.heatMapLocale.days[3] }}</text>
         <text class="heatmap-day-label" :x="0" :y="69">{{ locale.heatMapLocale.days[5] }}</text>
       </g>
-      <g class="heatmap-grid" :transform="`translate(${gridLeft}, ${gridTop})`" @mouseover="lazyInitTooltip">
+      <g class="heatmap-grid" :transform="`translate(${gridLeft}, ${gridTop})`" @mouseover="lazyInitTooltip" @mouseleave="onGridMouseLeave">
         <g
           v-for="(week, w) in grid.calendar"
           :key="w"

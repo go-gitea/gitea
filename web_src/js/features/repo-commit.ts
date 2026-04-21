@@ -1,4 +1,4 @@
-import {createTippy} from '../modules/tippy.ts';
+import {createFloat} from '../modules/float.ts';
 import {toggleElem} from '../utils/dom.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 
@@ -14,8 +14,8 @@ export function initRepoEllipsisButton() {
 export function initCommitStatuses() {
   registerGlobalInitFunc('initCommitStatuses', (el: HTMLElement) => {
     const nextEl = el.nextElementSibling!;
-    if (!nextEl.matches('.tippy-target')) throw new Error('Expected next element to be a tippy target');
-    createTippy(el, {
+    if (!nextEl.matches('.float-target')) throw new Error('Expected next element to be a float target');
+    createFloat(el, {
       content: nextEl,
       placement: 'bottom-start',
       interactive: true,

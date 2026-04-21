@@ -1,5 +1,5 @@
 import {clippie} from 'clippie';
-import {showTemporaryTooltip} from '../modules/tippy.ts';
+import {showTemporaryTooltip} from '../modules/float.ts';
 import {convertImage} from '../utils.ts';
 import {GET} from '../modules/fetch.ts';
 import {registerGlobalEventFunc} from '../modules/observer.ts';

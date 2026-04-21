@@ -318,7 +318,7 @@ export function addDelegatedEventListener<T extends HTMLElement, E extends Event
     const elem = (e.target as HTMLElement).closest(selector);
     // It strictly checks "parent contains the target elem" to avoid side effects of selector running on outside the parent.
     // Keep in mind that the elem could have been removed from parent by other event handlers before this event handler is called.
-    // For example, tippy popup item, the tippy popup could be hidden and removed from DOM before this.
+    // For example, a float popup item, the float popup could be hidden and removed from DOM before this.
     // It is the caller's responsibility to make sure the elem is still in parent's DOM when this event handler is called.
     if (!elem || (parent !== document && !parent.contains(elem))) return;
     listener(elem as T, e as E);

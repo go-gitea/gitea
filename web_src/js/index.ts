@@ -43,7 +43,7 @@ import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts'
 import {initCopyContent} from './features/copycontent.ts';
 import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActionView} from './features/repo-actions.ts';
-import {initGlobalTooltips} from './modules/tippy.ts';
+import {initGlobalTooltips} from './modules/float.ts';
 import {initGiteaFomantic} from './modules/fomantic.ts';
 import {initRepoIssueList} from './features/repo-issue-list.ts';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.ts';
