@@ -627,7 +627,7 @@ func GetActiveOAuth2SourceByAuthName(ctx context.Context, name string) (*Source,
 	}
 
 	if !has {
-		return nil, fmt.Errorf("oauth2 source not found, name: %q", name)
+		return nil, util.NewNotExistErrorf("oauth2 source not found, name: %q", name)
 	}
 
 	return authSource, nil

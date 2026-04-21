@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
+	act_model "github.com/nektos/act/pkg/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -34,25 +35,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		return fmt.Errorf("ReadWorkflowRawConcurrency: %w", err)
 	}
 
-	if wfRawConcurrency != nil {
-		err = EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars, inputsWithDefaults)
-		if err != nil {
-			return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
-		}
-	}
-
-	giteaCtx := GenerateGiteaContext(run, nil)
-
-	jobs, err := jobparser.Parse(content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()), jobparser.WithInputs(inputsWithDefaults))
-	if err != nil {
-		return fmt.Errorf("parse workflow: %w", err)
-	}
-
-	if len(jobs) > 0 && jobs[0].RunName != "" {
-		run.Title = jobs[0].RunName
-	}
-
-	if err = InsertRun(ctx, run, jobs, vars, inputsWithDefaults); err != nil {
+	if err = InsertRun(ctx, run, content, vars, inputsWithDefaults, wfRawConcurrency); err != nil {
 		return fmt.Errorf("InsertRun: %w", err)
 	}
 
@@ -74,7 +57,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
-func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any) error {
+func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte, vars map[string]string, inputs map[string]any, wfRawConcurrency *act_model.RawConcurrency) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
@@ -82,23 +65,36 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		}
 		run.Index = index
 		run.Title = util.EllipsisDisplayString(run.Title, 255)
+		run.Status = actions_model.StatusWaiting
 
-		// check run (workflow-level) concurrency
-		run.Status, err = PrepareToStartRunWithConcurrency(ctx, run)
-		if err != nil {
-			return err
-		}
-
+		// Insert before parsing jobs or evaluating workflow-level concurrency
+		// so that run.ID is populated. Expressions referencing github.run_id —
+		// in run-name, job names, runs-on, or a workflow-level concurrency
+		// group like `${{ github.head_ref || github.run_id }}` — would otherwise
+		// interpolate to an empty string.
 		if err := db.Insert(ctx, run); err != nil {
 			return err
 		}
 
-		if err := run.LoadRepo(ctx); err != nil {
-			return err
+		giteaCtx := GenerateGiteaContext(run, nil)
+		jobs, err := jobparser.Parse(content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()), jobparser.WithInputs(inputs))
+		if err != nil {
+			return fmt.Errorf("parse workflow: %w", err)
 		}
 
-		if err := actions_model.UpdateRepoRunsNumbers(ctx, run.Repo); err != nil {
-			return err
+		titleChanged := len(jobs) > 0 && jobs[0].RunName != ""
+		if titleChanged {
+			run.Title = util.EllipsisDisplayString(jobs[0].RunName, 255)
+		}
+
+		if wfRawConcurrency != nil {
+			if err := EvaluateRunConcurrencyFillModel(ctx, run, wfRawConcurrency, vars, inputs); err != nil {
+				return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
+			}
+			run.Status, err = PrepareToStartRunWithConcurrency(ctx, run)
+			if err != nil {
+				return err
+			}
 		}
 
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
@@ -168,7 +164,14 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		}
 
 		run.Status = actions_model.AggregateJobStatus(runJobs)
-		if err := actions_model.UpdateRun(ctx, run, "status"); err != nil {
+		cols := []string{"status"}
+		if titleChanged {
+			cols = append(cols, "title")
+		}
+		if wfRawConcurrency != nil {
+			cols = append(cols, "raw_concurrency", "concurrency_group", "concurrency_cancel")
+		}
+		if err := actions_model.UpdateRun(ctx, run, cols...); err != nil {
 			return err
 		}
 

@@ -1,4 +1,5 @@
 import {generateElemId} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {isDarkTheme} from '../utils.ts';
 import {GET} from '../modules/fetch.ts';
 
@@ -11,7 +12,7 @@ function safeRenderIframeLink(link: any): string | null {
     }
     return url.href;
   } catch (e) {
-    console.error(`Failed to parse link: ${link}, error: ${e}`);
+    console.error(`Failed to parse link: ${link}, error: ${errorMessage(e)}`);
     return null;
   }
 }
