@@ -36,7 +36,6 @@ func TestRender_Commits(t *testing.T) {
 	repo := markup.TestAppURL + testRepoOwnerName + "/" + testRepoName + "/"
 	commit := repo + "commit/" + sha
 	commitPath := "/user13/repo11/commit/" + sha
-	tree := repo + "tree/" + sha + "/src"
 
 	file := repo + "commit/" + sha + "/example.txt"
 	fileWithExtra := file + ":"
@@ -49,7 +48,6 @@ func TestRender_Commits(t *testing.T) {
 	test(sha[:7], `<p><a href="`+commitPath[:len(commitPath)-(40-7)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
 	test(sha[:39], `<p><a href="`+commitPath[:len(commitPath)-(40-39)]+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test(commit, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
-	test(tree, `<p><a href="`+tree+`" rel="nofollow"><code>65f1bf27bc/src</code></a></p>`)
 
 	test(file, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf27bc/example.txt</code></a></p>`)
 	test(fileWithExtra, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf27bc/example.txt</code></a>:</p>`)
