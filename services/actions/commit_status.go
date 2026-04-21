@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"path"
 	"strconv"
 	"strings"
@@ -123,9 +124,7 @@ func PrepareCommitStatusesUI(ctx *gitea_context.Context, statuses []*git_model.C
 		if info == nil {
 			info = make(CommitStatusActionInfo, len(existing))
 		}
-		for k, v := range existing {
-			info[k] = v
-		}
+		maps.Copy(info, existing)
 	}
 	ctx.Data["CommitStatusActionInfo"] = info
 	if !ctx.Repo.CanRead(unit.TypeActions) {
