@@ -97,6 +97,15 @@ func TestFixFileSchemas_recursesIntoNested(t *testing.T) {
 									"alt": {Value: &openapi3.Schema{
 										AllOf: openapi3.SchemaRefs{fileType()},
 									}},
+									"one": {Value: &openapi3.Schema{
+										OneOf: openapi3.SchemaRefs{fileType()},
+									}},
+									"any": {Value: &openapi3.Schema{
+										AnyOf: openapi3.SchemaRefs{fileType()},
+									}},
+									"not": {Value: &openapi3.Schema{
+										Not: fileType(),
+									}},
 								},
 							}},
 						},
@@ -118,6 +127,15 @@ func TestFixFileSchemas_recursesIntoNested(t *testing.T) {
 	}
 	if !props["alt"].Value.AllOf[0].Value.Type.Is("string") || props["alt"].Value.AllOf[0].Value.Format != "binary" {
 		t.Errorf("allOf branch not fixed: %+v", props["alt"].Value.AllOf[0].Value)
+	}
+	if !props["one"].Value.OneOf[0].Value.Type.Is("string") || props["one"].Value.OneOf[0].Value.Format != "binary" {
+		t.Errorf("oneOf branch not fixed: %+v", props["one"].Value.OneOf[0].Value)
+	}
+	if !props["any"].Value.AnyOf[0].Value.Type.Is("string") || props["any"].Value.AnyOf[0].Value.Format != "binary" {
+		t.Errorf("anyOf branch not fixed: %+v", props["any"].Value.AnyOf[0].Value)
+	}
+	if !props["not"].Value.Not.Value.Type.Is("string") || props["not"].Value.Not.Value.Format != "binary" {
+		t.Errorf("not branch not fixed: %+v", props["not"].Value.Not.Value)
 	}
 }
 

@@ -76,7 +76,7 @@ func fixFileSchemas(doc *openapi3.T) {
 
 // fixSchema rewrites any "type: file" schemas to the OAS3 equivalent
 // (type: string, format: binary), recursing into Properties, Items, and
-// AllOf/OneOf/AnyOf branches. $ref nodes are skipped so shared schemas
+// AllOf/OneOf/AnyOf/Not branches. $ref nodes are skipped so shared schemas
 // are rewritten exactly once when visited through their declaration.
 func fixSchema(ref *openapi3.SchemaRef) {
 	if ref == nil || ref.Value == nil || ref.Ref != "" {
@@ -100,6 +100,7 @@ func fixSchema(ref *openapi3.SchemaRef) {
 	for _, sub := range s.AnyOf {
 		fixSchema(sub)
 	}
+	fixSchema(s.Not)
 }
 
 // addURIFormats sets format: uri on string properties whose names indicate
