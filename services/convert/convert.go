@@ -292,7 +292,7 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		RunAttempt:         runAttempt,
 		StartedAt:          startedAt,
 		CompletedAt:        completedAt,
-		Event:              string(run.Event),
+		Event:              run.TriggerEvent,
 		DisplayTitle:       run.Title,
 		HeadBranch:         git.RefName(run.Ref).BranchName(),
 		HeadSha:            run.CommitSHA,
