@@ -21,7 +21,7 @@ details.ui.message summary {
 }
 
 details.ui.message pre {
-  margin: -1.25em 0 0 0;
+  margin: -1.25em 0 0;
   padding: 0.5em 1.5em;
   white-space: pre-wrap;
 }
