@@ -155,9 +155,6 @@ export async function loginUser(page: Page, username: string) {
   return login(page, username, testUserPassword);
 }
 
-/** Log `page` in via a direct form POST — ~10× faster than driving the login UI. Gitea's /user/login
- * accepts a form POST without CSRF (see tests/integration/integration_test.go loginUserWithPassword).
- * Cookies land in the page context; caller is responsible for navigating to a destination page. */
 export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, password = env.GITEA_TEST_E2E_PASSWORD) {
   const response = await page.request.post('/user/login', {
     form: {user_name: username, password},

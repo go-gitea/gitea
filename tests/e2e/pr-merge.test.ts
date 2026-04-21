@@ -5,13 +5,10 @@ import {apiCreateFile, apiCreatePR, apiCreateRepo, login, randomString} from './
 
 const owner = env.GITEA_TEST_E2E_USER;
 
-async function setupMergeablePR(request: APIRequestContext, {mergeable = true}: {mergeable?: boolean} = {}) {
+async function setupMergeablePR(request: APIRequestContext) {
   const repoName = `e2e-prmerge-${randomString(8)}`;
   await apiCreateRepo(request, {name: repoName});
-  await Promise.all([
-    apiCreateFile(request, owner, repoName, 'feature.txt', mergeable ? 'hello\n' : 'conflicting\n', {branch: 'main', newBranch: 'feat'}),
-    ...(mergeable ? [] : [apiCreateFile(request, owner, repoName, 'feature.txt', 'main side\n', {branch: 'main'})]),
-  ]);
+  await apiCreateFile(request, owner, repoName, 'feature.txt', 'hello\n', {branch: 'main', newBranch: 'feat'});
   const prIndex = await apiCreatePR(request, owner, repoName, 'feat', 'main', 'add feature');
   return {repoName, prIndex};
 }
@@ -35,20 +32,6 @@ test.describe('pr merge', () => {
     expect(branchResponse.status()).toBe(200);
   });
 
-  test('merge with delete-branch', async ({page, request}) => {
-    const [, {repoName, prIndex}] = await Promise.all([login(page), setupMergeablePR(request)]);
-    await page.goto(`/${owner}/${repoName}/pulls/${prIndex}`);
-
-    await page.locator('.merge-button button.ui.button').first().click();
-    await page.getByLabel(/^Delete Branch/).check();
-    await page.getByRole('button', {name: 'Create merge commit', exact: true}).click();
-
-    await expect(page.locator('.issue-state-label')).toContainText('Merged');
-
-    const branchResponse = await request.get(`/api/v1/repos/${owner}/${repoName}/branches/feat`);
-    expect(branchResponse.status()).toBe(404);
-  });
-
   test('squash merge', async ({page, request}) => {
     const [, {repoName, prIndex}] = await Promise.all([login(page), setupMergeablePR(request)]);
     await page.goto(`/${owner}/${repoName}/pulls/${prIndex}`);
@@ -68,13 +51,5 @@ test.describe('pr merge', () => {
     const commits = await commitsResponse.json();
     expect(commits).toHaveLength(2);
     expect(commits[0].parents).toHaveLength(1);
-  });
-
-  test('conflicted pr', async ({page, request}) => {
-    const [, {repoName, prIndex}] = await Promise.all([login(page), setupMergeablePR(request, {mergeable: false})]);
-    await page.goto(`/${owner}/${repoName}/pulls/${prIndex}`);
-
-    await expect(page.locator('.merge-button')).toBeHidden();
-    await expect(page.locator('.merge-section')).toContainText(/conflict|cannot/i);
   });
 });

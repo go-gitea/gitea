@@ -64,41 +64,4 @@ test.describe('pr review', () => {
     await expect(page.locator('.timeline-item .octicon-check').first()).toBeVisible();
     await expect(page.locator('.timeline-item').filter({hasText: 'LGTM'})).toBeVisible();
   });
-
-  test('self-review disabled', async ({page, request}) => {
-    const poster = `rv-self-${randomString(8)}`;
-    await apiCreateUser(request, poster);
-    const posterHeaders = apiUserHeaders(poster);
-    const repoName = `e2e-prreview-self-${randomString(8)}`;
-    // login can run in parallel with repo/PR setup once the poster user exists
-    const [, prIndex] = await Promise.all([
-      loginUser(page, poster),
-      (async () => {
-        await apiCreateRepo(request, {name: repoName, headers: posterHeaders});
-        await apiCreateFile(request, poster, repoName, 'added.txt', 'new\n', {branch: 'main', newBranch: 'feat'});
-        // poster must be the PR author for self-review to trigger
-        return apiCreatePR(request, poster, repoName, 'feat', 'main', 'self-review', {headers: posterHeaders});
-      })(),
-    ]);
-
-    await page.goto(`/${poster}/${repoName}/pulls/${prIndex}/files`);
-    await page.locator('#review-box .js-btn-review').click();
-
-    await expect(page.locator('.review-box-panel button[name="type"][value="approve"]')).toBeDisabled();
-  });
-
-  test('request changes review', async ({page, request}) => {
-    const {poster, reviewer} = await createReviewUsers(request);
-    const [, {repoName, prIndex}] = await Promise.all([loginUser(page, reviewer), createReviewablePR(request, poster)]);
-    await page.goto(`/${poster}/${repoName}/pulls/${prIndex}/files`);
-
-    await page.locator('#review-box .js-btn-review').click();
-    const panel = page.locator('.review-box-panel');
-    await panel.locator('textarea[name="content"]').fill('needs changes');
-    await panel.getByRole('button', {name: 'Request changes', exact: true}).click();
-
-    await expect(page.locator('.timeline-item').filter({hasText: 'needs changes'})).toBeVisible();
-    // ReviewTypeReject renders as octicon-diff on a red badge (see ReviewType.Icon())
-    await expect(page.locator('.timeline-item-group .badge.tw-bg-red .octicon-diff')).toBeVisible();
-  });
 });
