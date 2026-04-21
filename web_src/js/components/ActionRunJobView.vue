@@ -469,7 +469,7 @@ async function hashChangeListener() {
           :name="currentJobStepsStates[stepIdx].expanded ? 'octicon-chevron-down' : 'octicon-chevron-right'"
           :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"
         />
-        <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
+        <ActionRunStatus :status="jobStep.status" :fill="true" class="tw-mr-2"/>
         <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
         <span class="step-summary-duration">{{ jobStep.duration }}</span>
       </div>

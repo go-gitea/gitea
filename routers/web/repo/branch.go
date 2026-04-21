@@ -69,13 +69,11 @@ func Branches(ctx *context.Context) {
 		ctx.ServerError("LoadBranches", err)
 		return
 	}
-	var flatStatuses []*git_model.CommitStatus
+	actions_service.PrepareCommitStatusesMapUI(ctx, commitStatuses)
 	commitStatus := make(map[string]*git_model.CommitStatus)
 	for commitID, cs := range commitStatuses {
 		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
-		flatStatuses = append(flatStatuses, cs...)
 	}
-	actions_service.PrepareCommitStatusesUI(ctx, flatStatuses)
 
 	ctx.Data["Keyword"] = kw
 	ctx.Data["Branches"] = branches

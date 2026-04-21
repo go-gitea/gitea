@@ -639,7 +639,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             class="job-status-fg-obj"
           >
             <div class="job-status-icon-wrap">
-              <ActionRunStatus :status="job.status"/>
+              <ActionRunStatus :status="job.status" :fill="true"/>
             </div>
           </foreignObject>
 

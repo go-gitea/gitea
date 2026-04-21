@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
+	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
@@ -768,15 +769,20 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				ctx.ServerError("LoadCommentPushCommits", err)
 				return
 			}
-			if !ctx.Repo.CanRead(unit.TypeActions) {
-				for _, commit := range comment.Commits {
-					if commit.Status == nil {
-						continue
-					}
-					commit.Status.HideActionsURL(ctx)
-					git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
+			canReadActions := ctx.Repo.CanRead(unit.TypeActions)
+			var flatStatuses []*git_model.CommitStatus
+			for _, commit := range comment.Commits {
+				if commit.Status == nil {
+					continue
 				}
+				if !canReadActions {
+					// commit.Status is the synthetic CalcCommitStatus result, not in commit.Statuses,
+					// so it needs HideActionsURL on its own; PrepareCommitStatusesUI handles the rest.
+					commit.Status.HideActionsURL(ctx)
+				}
+				flatStatuses = append(flatStatuses, commit.Statuses...)
 			}
+			actions_service.PrepareCommitStatusesUI(ctx, flatStatuses)
 		} else if comment.Type == issues_model.CommentTypeAddTimeManual ||
 			comment.Type == issues_model.CommentTypeStopTracking ||
 			comment.Type == issues_model.CommentTypeDeleteTimeManual {
