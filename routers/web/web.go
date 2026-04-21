@@ -543,6 +543,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("", user.Issues)
 		m.Get("/search", repo.SearchIssues)
 	}, reqSignIn)
+	m.Get("/issues.ics", reqSignIn, user.IssuesICS)
 
 	m.Get("/pulls", reqSignIn, user.Pulls)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
@@ -944,6 +945,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/dashboard/-/heatmap", user.DashboardHeatmap)
 			m.Get("/dashboard/-/heatmap/{team}", user.DashboardHeatmap)
 			m.Get("/issues", user.Issues)
+			m.Get("/issues.ics", user.IssuesICS)
+			m.Get("/issues/{team}.ics", user.IssuesICS)
 			m.Get("/issues/{team}", user.Issues)
 			m.Get("/pulls", user.Pulls)
 			m.Get("/pulls/{team}", user.Pulls)

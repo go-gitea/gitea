@@ -37,6 +37,7 @@
 			</div>
 
 			{{$queryLinkWithFilter := QueryBuild $queryLink "poster" $.FilterPosterUsername "assignee" $.FilterAssigneeUsername}}
+			{{$calendarLink := QueryBuild $.IssueCalendarURL "type" $.ViewType "sort" $.SortType "state" $.State "q" $.Keyword "labels" .SelectLabels "search_mode" $.SelectedSearchMode "poster" $.FilterPosterUsername "assignee" $.FilterAssigneeUsername}}
 			<div class="flex-container-main content">
 				<div class="list-header">
 					<div class="small-menu-items ui compact tiny menu list-header-toggle flex-items-block">
@@ -65,6 +66,12 @@
 					<div class="list-header-filters ui secondary menu tw-m-0">
 						{{if $.Labels}}
 							{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLinkWithFilter "SupportArchivedLabel" true}}
+						{{end}}
+
+						{{if $.IssueCalendarURL}}
+							<a class="item" href="{{$calendarLink}}" data-tooltip-content="{{ctx.Locale.Tr "issues.calendar"}}">
+								{{svg "octicon-calendar" 14}}
+							</a>
 						{{end}}
 
 						{{/* at the moment there is no easy way to get poster candidates on this page, so only show a username input, search for what the end user enters */}}

@@ -357,7 +357,19 @@ func Issues(ctx *context.Context) {
 // Regexp for repos query
 var issueReposQueryPattern = regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
 
-func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
+type issueOverviewQuery struct {
+	ctxUser      *user_model.User
+	viewType     string
+	filterMode   int
+	sortType     string
+	searchMode   string
+	keyword      string
+	isShowClosed bool
+	page         int
+	opts         *issues_model.IssuesOptions
+}
+
+func buildIssueOverviewQuery(ctx *context.Context, unitType unit.Type) (*issueOverviewQuery, bool) {
 	// ----------------------------------------------------
 	// Determine user; can be either user or organization.
 	// Return with NotFound or ServerError if unsuccessful.
@@ -365,7 +377,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	ctxUser := prepareDashboardContextUserOrgTeams(ctx)
 	if ctx.Written() {
-		return
+		return nil, false
 	}
 
 	// Default to recently updated, unlike repository issues list
@@ -426,7 +438,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 		issue.PrepareFilterIssueLabels(ctx, 0, ctx.Org.Organization.AsUser())
 		if ctx.Written() {
-			return
+			return nil, false
 		}
 	}
 	// Get filter by author id & assignee id
@@ -466,14 +478,12 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	if opts.Team != nil {
 		repoOpts.TeamID = opts.Team.ID
 	}
-	accessibleRepos := container.Set[int64]{}
 	{
 		ids, _, err := repo_model.SearchRepositoryIDs(ctx, repoOpts)
 		if err != nil {
 			ctx.ServerError("SearchRepositoryIDs", err)
-			return
+			return nil, false
 		}
-		accessibleRepos.AddMultiple(ids...)
 		opts.RepoIDs = ids
 		if len(opts.RepoIDs) == 0 {
 			// no repos found, don't let the indexer return all repos
@@ -528,6 +538,35 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			ctx.Flash.Error(ctx.Tr("invalid_data", selectedLabels), true)
 		}
 	}
+
+	return &issueOverviewQuery{
+		ctxUser:      ctxUser,
+		viewType:     viewType,
+		filterMode:   filterMode,
+		sortType:     sortType,
+		searchMode:   searchMode,
+		keyword:      keyword,
+		isShowClosed: isShowClosed,
+		page:         page,
+		opts:         opts,
+	}, true
+}
+
+func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
+	query, ok := buildIssueOverviewQuery(ctx, unitType)
+	if !ok {
+		return
+	}
+
+	ctxUser := query.ctxUser
+	filterMode := query.filterMode
+	searchMode := query.searchMode
+	keyword := query.keyword
+	opts := query.opts
+	sortType := query.sortType
+	viewType := query.viewType
+	isShowClosed := query.isShowClosed
+	page := query.page
 
 	// ------------------------------
 	// Get issues as defined by opts.
@@ -627,6 +666,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["SearchModes"] = issue_indexer.SupportedSearchModes()
 	ctx.Data["SelectedSearchMode"] = ctx.FormTrim("search_mode")
+	if unitType == unit.TypeIssues {
+		ctx.Data["IssueCalendarURL"] = ctx.Req.URL.Path + ".ics"
+	}
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -639,6 +681,48 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplIssues)
+}
+
+// IssuesICS renders the issue search as an iCalendar feed.
+func IssuesICS(ctx *context.Context) {
+	if unit.TypeIssues.UnitGlobalDisabled() {
+		log.Debug("Issues calendar not available as it is globally disabled.")
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	query, ok := buildIssueOverviewQuery(ctx, unit.TypeIssues)
+	if !ok {
+		return
+	}
+
+	query.opts.Paginator = &db.ListOptions{ListAll: true, PageSize: setting.API.DefaultPagingNum}
+	issueIDs, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(query.keyword, query.opts).Copy(
+		func(o *issue_indexer.SearchOptions) {
+			o.SearchMode = indexer.SearchModeType(query.searchMode)
+		},
+	))
+	if err != nil {
+		ctx.ServerError("issueIDsFromSearch", err)
+		return
+	}
+	issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs, true)
+	if err != nil {
+		ctx.ServerError("GetIssuesByIDs", err)
+		return
+	}
+
+	calendar, err := issue_service.BuildIssuesCalendar(ctx, issues, ctx.Locale.TrString("issues"))
+	if err != nil {
+		ctx.ServerError("BuildIssuesCalendar", err)
+		return
+	}
+
+	ctx.Resp.Header().Set("Content-Type", "text/calendar; charset=utf-8")
+	ctx.Resp.WriteHeader(http.StatusOK)
+	if _, err := ctx.Resp.Write(calendar); err != nil {
+		ctx.ServerError("WriteIssuesCalendar", err)
+	}
 }
 
 // ShowSSHKeys output all the ssh keys of user by uid

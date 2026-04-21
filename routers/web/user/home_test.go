@@ -4,9 +4,11 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
@@ -61,6 +63,28 @@ func TestIssues(t *testing.T) {
 
 	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
 	assert.Len(t, ctx.Data["Issues"], 1)
+}
+
+func TestIssuesICS(t *testing.T) {
+	assert.NoError(t, unittest.LoadFixtures())
+
+	ctx, resp := contexttest.MockContext(t, "issues.ics")
+	contexttest.LoadUser(t, ctx, 2)
+
+	IssuesICS(ctx)
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+	assert.Contains(t, resp.Header().Get("Content-Type"), "text/calendar")
+
+	body := resp.Body.String()
+	assert.Contains(t, body, "BEGIN:VCALENDAR")
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
+	assert.NoError(t, issue.LoadRepo(ctx))
+
+	expectedDate := issue.DeadlineUnix.AsTime().Format("20060102")
+	assert.Contains(t, body, "DTSTART;VALUE=DATE:"+expectedDate)
+	assert.Contains(t, body, fmt.Sprintf("SUMMARY:%s (%s)", issue.Title, issue.Repo.FullName()))
+	assert.Contains(t, body, "URL:"+issue.HTMLURL(ctx))
 }
 
 func TestPulls(t *testing.T) {
