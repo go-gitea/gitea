@@ -62,7 +62,11 @@ detect_playwright_mode
 if [ "$CMD" = "install" ]; then
     if [ "$PLAYWRIGHT_MODE" = "local" ]; then
         # on Github Actions VMs, playwright's system deps are preinstalled
-        pnpm exec playwright install "$(if [ -z "${GITHUB_ACTIONS:-}" ]; then echo "--with-deps"; fi)" chromium firefox ${PLAYWRIGHT_FLAGS:-}
+        if [ -z "${GITHUB_ACTIONS:-}" ]; then
+          pnpm exec playwright install --with-deps chromium firefox ${PLAYWRIGHT_FLAGS:-}
+        else
+          pnpm exec playwright install chromium firefox ${PLAYWRIGHT_FLAGS:-}
+        fi
     else
         echo "Running playwright in container as host distro is not supported by playwright directly"
         ${CONTAINER_RUNTIME:-docker} pull "mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble"
