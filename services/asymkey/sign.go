@@ -338,10 +338,6 @@ Loop:
 				return false, nil, nil, &ErrWontSign{headSigned}
 			}
 		case commitsSigned:
-			verification := ParseCommitWithSignature(ctx, headCommit)
-			if !verification.Verified {
-				return false, nil, nil, &ErrWontSign{commitsSigned}
-			}
 			verified, err := AllHeadCommitsVerified(ctx, pr, gitRepo)
 			if err != nil {
 				return false, nil, nil, err
