@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
-import {apiCreateBranch, apiCreateRepo, apiCreateFile, assertFlushWithParent, assertNoJsError, login, randomString} from './utils.ts';
+import {apiCreateRepo, apiCreateFile, assertFlushWithParent, assertNoJsError, login, randomString} from './utils.ts';
 
 test('3d model file', async ({page, request}) => {
   const repoName = `e2e-3d-render-${randomString(8)}`;
@@ -47,8 +47,8 @@ test('asciicast file', async ({page, request}) => {
   const branchEnc = encodeURIComponent(branch);
   await Promise.all([apiCreateRepo(request, {name: repoName, autoInit: false}), login(page)]);
   const cast = '{"version": 2, "width": 80, "height": 24}\n[0.0, "o", "hi"]\n';
-  await apiCreateFile(request, owner, repoName, 'readme.cast', cast);
-  await apiCreateBranch(request, owner, repoName, branch);
+  // on an empty repo, apiCreateFile with newBranch creates that branch as the initial commit
+  await apiCreateFile(request, owner, repoName, 'readme.cast', cast, {newBranch: branch});
   await page.goto(`/${owner}/${repoName}/src/branch/${branchEnc}`);
   const container = page.locator('.asciinema-player-container');
   await expect(container).toHaveAttribute('data-asciinema-player-src', `/${owner}/${repoName}/raw/branch/${branchEnc}/readme.cast`);

@@ -32,13 +32,15 @@ test.describe('events', () => {
 
     await apiCreateUser(request, name);
 
-    // Create repo, issue, and start stopwatch before login
-    await apiCreateRepo(request, {name, headers});
-    await apiCreateIssue(request, name, name, {title: 'events stopwatch test', headers});
-    await apiStartStopwatch(request, name, name, 1, {headers});
-
-    // Login — page renders with the active stopwatch element
-    await loginUser(page, name);
+    // Login in parallel with repo+issue+stopwatch setup (all independent after user exists)
+    await Promise.all([
+      loginUser(page, name),
+      (async () => {
+        await apiCreateRepo(request, {name, headers});
+        await apiCreateIssue(request, name, name, {title: 'events stopwatch test', headers});
+        await apiStartStopwatch(request, name, name, 1, {headers});
+      })(),
+    ]);
     await page.goto('/');
 
     // Verify stopwatch is visible and links to the correct issue
