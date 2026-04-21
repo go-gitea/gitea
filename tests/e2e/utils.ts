@@ -88,18 +88,8 @@ export async function apiCreatePR(requestContext: APIRequestContext, owner: stri
   return prIndex;
 }
 
-export type MergeStyle = 'merge' | 'rebase' | 'rebase-merge' | 'squash' | 'fast-forward-only';
-export type ReviewEvent = 'COMMENT' | 'APPROVED' | 'REQUEST_CHANGES';
-
-export async function apiMergePR(requestContext: APIRequestContext, owner: string, repo: string, index: number, {style = 'merge', deleteBranch}: {style?: MergeStyle; deleteBranch?: boolean} = {}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/merge`, {
-    headers: apiHeaders(),
-    data: {Do: style, delete_branch_after_merge: deleteBranch},
-  }), 'apiMergePR');
-}
-
 /** Create a review on a PR. `event: "COMMENT"` submits immediately without a pending review. */
-export async function apiCreateReview(requestContext: APIRequestContext, owner: string, repo: string, index: number, {event = 'COMMENT', body, comments = [], headers}: {event?: ReviewEvent; body?: string; comments?: Array<{path: string; body: string; new_position?: number; old_position?: number}>; headers?: Record<string, string>}) {
+export async function apiCreateReview(requestContext: APIRequestContext, owner: string, repo: string, index: number, {event = 'COMMENT', body, comments = [], headers}: {event?: string; body?: string; comments?: Array<{path: string; body: string; new_position?: number; old_position?: number}>; headers?: Record<string, string>}) {
   let reviewID = 0;
   await apiRetry(async () => {
     const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/reviews`, {

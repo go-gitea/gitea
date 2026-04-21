@@ -1,5 +1,5 @@
 import {test, expect} from '@playwright/test';
-import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiDeleteUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, timeoutFactor, randomString} from './utils.ts';
+import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, timeoutFactor, randomString} from './utils.ts';
 
 // These tests rely on a short EVENT_SOURCE_UPDATE_TIME in the e2e server config.
 test.describe('events', () => {
@@ -24,9 +24,6 @@ test.describe('events', () => {
 
     // Wait for the notification badge to appear via server event
     await expect(badge).toBeVisible({timeout: 15000 * timeoutFactor});
-
-    // Cleanup
-    await Promise.all([apiDeleteUser(request, commenter), apiDeleteUser(request, owner)]);
   });
 
   test('stopwatch', async ({page, request}) => {
@@ -47,9 +44,6 @@ test.describe('events', () => {
     // Verify stopwatch is visible and links to the correct issue
     const stopwatch = page.locator('.active-stopwatch.not-mobile');
     await expect(stopwatch).toBeVisible();
-
-    // Cleanup
-    await apiDeleteUser(request, name);
   });
 
   test('logout propagation', async ({browser, request}) => {
@@ -77,8 +71,5 @@ test.describe('events', () => {
     await expect(page2.getByRole('link', {name: 'Sign In'})).toBeVisible();
 
     await context.close();
-
-    // Cleanup
-    await apiDeleteUser(request, name);
   });
 });
