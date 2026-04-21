@@ -62,8 +62,7 @@
 				>
 					<input class="combo-value" name="column_id" type="hidden" value="{{if $selectedColumn}}{{$selectedColumn.ID}}{{end}}">
 					<div class="ui dropdown full-width">
-						<div class="flex-text-block">{{/* align with the "project" icon */}}
-							<span class="tw-w-4 tw-h-4 tw-shrink-0"></span>
+						<div class="flex-text-block tw-ml-[16px]">{{/* align with the "project" icon */}}
 							<div class="interact-bg tw-px-2 tw-py-1 tw-rounded flex-text-block">
 								{{if $selectedColumn}}
 									{{if $card.SelectedColumn.Color}}<span class="color-icon icon-size-8" style="background-color: {{$card.SelectedColumn.Color}}"></span>{{end}}
@@ -86,8 +85,7 @@
 					</div>
 				</div>
 			{{else if $selectedColumn}}
-				<div class="flex-text-block tw-my-1">{{/* align with the "project" icon */}}
-					<span class="tw-w-4 tw-h-4 tw-shrink-0"></span>
+				<div class="flex-text-block tw-my-1 tw-ml-[22px]">{{/* align with the "project" icon */}}
 					{{if $selectedColumn.Color}}<span class="color-icon icon-size-8" style="background-color: {{$selectedColumn.Color}}"></span>{{end}}
 					<div class="gt-ellipsis">{{$selectedColumn.Title}}</div>
 				</div>
