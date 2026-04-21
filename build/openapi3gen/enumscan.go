@@ -107,16 +107,47 @@ func ScanSwaggerEnumTypes(dirs []string) (map[string]string, error) {
 	return result, nil
 }
 
+// collectEnumType scans a `type` GenDecl for // swagger:enum annotations,
+// handling both the lone form (`// swagger:enum Foo\n type Foo string`)
+// where the comment group is attached to the GenDecl, and the grouped form:
+//
+//	type (
+//	    // swagger:enum Foo
+//	    Foo string
+//	)
+//
+// where the comment group is attached to each TypeSpec. Caveat: Go's parser
+// only attaches a CommentGroup when it is immediately adjacent to the decl.
+// A blank line (not a `//` continuation line) between the comment and the
+// declaration drops the Doc, so annotations MUST sit directly above their
+// type. All current annotated files obey this — the rule is noted here so
+// a future edit that inserts a blank line fails fast rather than silently.
 func collectEnumType(gd *ast.GenDecl, enumTypes map[string]string) error {
-	if gd.Doc == nil {
+	if err := registerEnumAnnotation(gd.Doc, gd.Specs, enumTypes); err != nil {
+		return err
+	}
+	for _, spec := range gd.Specs {
+		ts, ok := spec.(*ast.TypeSpec)
+		if !ok || ts.Doc == nil {
+			continue
+		}
+		if err := registerEnumAnnotation(ts.Doc, []ast.Spec{ts}, enumTypes); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func registerEnumAnnotation(doc *ast.CommentGroup, specs []ast.Spec, enumTypes map[string]string) error {
+	if doc == nil {
 		return nil
 	}
-	matches := rxSwaggerEnum.FindStringSubmatch(gd.Doc.Text())
+	matches := rxSwaggerEnum.FindStringSubmatch(doc.Text())
 	if len(matches) < 2 {
 		return nil
 	}
 	annotated := matches[1]
-	for _, spec := range gd.Specs {
+	for _, spec := range specs {
 		ts, ok := spec.(*ast.TypeSpec)
 		if !ok {
 			continue

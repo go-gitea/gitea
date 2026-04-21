@@ -198,3 +198,42 @@ type Shade string
 		t.Fatalf("map[%q] = %q, want %q", wantKey, got[wantKey], "Shade")
 	}
 }
+
+func TestScanSwaggerEnumTypes_groupedTypeDecl(t *testing.T) {
+	dir := t.TempDir()
+	src := `package fixture
+
+type (
+	// swagger:enum Color
+	Color string
+	// swagger:enum Shade
+	Shade string
+)
+
+const (
+	ColorRed  Color = "red"
+	ColorBlue Color = "blue"
+)
+
+const (
+	ShadeDark  Shade = "dark"
+	ShadeLight Shade = "light"
+)
+`
+	if err := os.WriteFile(filepath.Join(dir, "grouped.go"), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := ScanSwaggerEnumTypes([]string{dir})
+	if err != nil {
+		t.Fatalf("ScanSwaggerEnumTypes: %v", err)
+	}
+	colorKey := EnumKey([]any{"red", "blue"})
+	shadeKey := EnumKey([]any{"dark", "light"})
+	if got[colorKey] != "Color" {
+		t.Fatalf("Color: map[%q] = %q, want %q", colorKey, got[colorKey], "Color")
+	}
+	if got[shadeKey] != "Shade" {
+		t.Fatalf("Shade: map[%q] = %q, want %q", shadeKey, got[shadeKey], "Shade")
+	}
+}
