@@ -140,6 +140,39 @@ type Lonely string
 	}
 }
 
+func TestScanSwaggerEnumTypes_constsAndTypeInDifferentFiles(t *testing.T) {
+	dir := t.TempDir()
+	// Name ordering: `a_consts.go` < `b_type.go`, so readdir returns consts first.
+	// Old single-pass scanner would miss the values; two-pass must not.
+	constsSrc := `package fixture
+
+const (
+	HueA Hue = "a"
+	HueB Hue = "b"
+)
+`
+	typeSrc := `package fixture
+
+// swagger:enum Hue
+type Hue string
+`
+	if err := os.WriteFile(filepath.Join(dir, "a_consts.go"), []byte(constsSrc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "b_type.go"), []byte(typeSrc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := ScanSwaggerEnumTypes([]string{dir})
+	if err != nil {
+		t.Fatalf("ScanSwaggerEnumTypes: %v", err)
+	}
+	wantKey := EnumKey([]any{"a", "b"})
+	if got[wantKey] != "Hue" {
+		t.Fatalf("map[%q] = %q, want %q", wantKey, got[wantKey], "Hue")
+	}
+}
+
 func TestScanSwaggerEnumTypes_constsBeforeType(t *testing.T) {
 	dir := t.TempDir()
 	src := `package fixture
