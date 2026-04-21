@@ -67,7 +67,7 @@ describe.sequential('float', () => {
     instance.destroy();
   });
 
-  test('interactive hover', () => {
+  test('interactive hover', async () => {
     const target = makeTarget();
     const instance = createFloat(target, {interactive: true});
     target.dispatchEvent(new MouseEvent('mouseenter'));
@@ -75,7 +75,7 @@ describe.sequential('float', () => {
     target.dispatchEvent(new MouseEvent('mouseleave'));
     expect(instance.state.isShown).toBe(true);
     instance.float.dispatchEvent(new MouseEvent('mouseleave'));
-    expect(instance.state.isShown).toBe(false);
+    await vi.waitFor(() => expect(instance.state.isShown).toBe(false));
     instance.destroy();
   });
 

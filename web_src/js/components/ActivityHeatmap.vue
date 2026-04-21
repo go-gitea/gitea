@@ -131,7 +131,11 @@ onBeforeUnmount(() => {
 
 function lazyInitTooltip(e: MouseEvent) {
   const el = e.target as Element;
-  if (!el.classList.contains('heatmap-day')) return;
+  if (!el.classList.contains('heatmap-day')) {
+    hoveredCell = null;
+    singleton?.instance.hide();
+    return;
+  }
   const inst = ensureSingleton();
   hoveredCell = el;
   inst.setContent(el.getAttribute('data-tooltip')!);

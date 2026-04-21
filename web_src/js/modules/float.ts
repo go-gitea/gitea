@@ -279,7 +279,10 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
     clearTimers();
     if (props.interactive && isCursorOverFloat) return;
     const d = resolveDelay(props.delay, 'hide');
-    if (d > 0) hideTimer = window.setTimeout(doHide, d);
+    // Interactive popups defer a zero-delay hide by one tick so the float's
+    // own `mouseenter` can cancel the timer when the pointer crosses from
+    // the reference into the float.
+    if (d > 0 || props.interactive) hideTimer = window.setTimeout(doHide, d);
     else doHide();
   }
 
@@ -382,6 +385,7 @@ function attachTooltip(target: Element, content: FloatContent | null = null): Fl
     allowHTML,
     placement,
     followCursor: followCursorAttr,
+    getReferenceClientRect: null,
     ...(interactiveAttr ? {interactive: true} : {}),
   };
 
@@ -403,8 +407,8 @@ function switchTitleToTooltip(target: Element): void {
 /** Lazy first-hover init: `mouseover` bubbles and fires before `mouseenter`,
  *  so the real mouseenter listener attached by `attachTooltip` still fires
  *  for the same user hover, respecting the configured delay. */
-function lazyTooltipOnMouseHover(this: HTMLElement, e: Event): void {
-  (e.target as HTMLElement).removeEventListener('mouseover', lazyTooltipOnMouseHover, {capture: true});
+function lazyTooltipOnMouseHover(this: HTMLElement): void {
+  this.removeEventListener('mouseover', lazyTooltipOnMouseHover, {capture: true});
   attachTooltip(this);
 }
 
