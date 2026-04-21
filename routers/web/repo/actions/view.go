@@ -209,14 +209,15 @@ func View(ctx *context_module.Context) {
 
 	attemptNum := ctx.PathParamInt64("attempt")
 
-	// ViewURL is the endpoint the frontend POSTs to for run/attempt/job state.
+	// ActionsViewURL is the endpoint for viewing a run (job summary), a job, or a job attempt.
+	// It's POST method handler can provide the state data for the frontend rendering.
 	switch {
 	case attemptNum > 0:
-		ctx.Data["ViewURL"] = fmt.Sprintf("%s/attempts/%d", run.Link(), attemptNum)
+		ctx.Data["ActionsViewURL"] = fmt.Sprintf("%s/attempts/%d", run.Link(), attemptNum)
 	case jobID > 0:
-		ctx.Data["ViewURL"] = fmt.Sprintf("%s/jobs/%d", run.Link(), jobID)
+		ctx.Data["ActionsViewURL"] = fmt.Sprintf("%s/jobs/%d", run.Link(), jobID)
 	default:
-		ctx.Data["ViewURL"] = run.Link()
+		ctx.Data["ActionsViewURL"] = run.Link()
 	}
 
 	ctx.HTML(http.StatusOK, tplViewActions)

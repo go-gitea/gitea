@@ -62,8 +62,12 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 }
 
 func MockActionsView(ctx *context.Context) {
+	if runID := ctx.PathParamInt64("run"); runID == 0 {
+		ctx.Redirect("/repo-action-view/runs/10")
+		return
+	}
 	ctx.Data["JobID"] = ctx.PathParamInt64("job")
-	ctx.Data["ViewURL"] = ctx.Req.URL.Path
+	ctx.Data["ActionsViewURL"] = ctx.Req.URL.Path
 	ctx.HTML(http.StatusOK, "devtest/repo-action-view")
 }
 

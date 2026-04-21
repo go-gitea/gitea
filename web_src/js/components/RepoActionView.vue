@@ -15,12 +15,12 @@ defineOptions({
 
 const props = defineProps<{
   jobId: number;
-  viewUrl: string;
+  actionsViewUrl: string;
   locale: Record<string, any>;
 }>();
 
 const locale = props.locale;
-const store = createActionRunViewStore(props.viewUrl);
+const store = createActionRunViewStore(props.actionsViewUrl);
 const {currentRun: run, runArtifacts: artifacts} = toRefs(store.viewData);
 
 function formatAttemptTitle(attempt: ActionsRunAttempt) {
@@ -215,7 +215,7 @@ async function deleteArtifact(name: string) {
           v-else
           :store="store"
           :locale="locale"
-          :view-url="props.viewUrl"
+          :actions-view-url="props.actionsViewUrl"
           :job-id="props.jobId"
         />
       </div>
