@@ -1,5 +1,5 @@
 import {GET, POST} from '../modules/fetch.ts';
-import {showGlobalErrorMessage} from '../bootstrap.ts';
+import {showGlobalErrorMessage} from '../modules/errors.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
@@ -156,8 +156,8 @@ export function checkAppUrl() {
   if (curUrl.startsWith(appUrl) || `${curUrl}/` === appUrl) {
     return;
   }
-  showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
-Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`, 'warning');
+  showGlobalErrorMessage(`The detected web site URL is "${appUrl}", it's unlikely matching the site config.
+Mismatched app.ini ROOT_URL or reverse proxy "Host/X-Forwarded-Proto" config might cause wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`, 'warning');
 }
 
 export function checkAppUrlScheme() {

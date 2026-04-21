@@ -6,6 +6,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"hash"
 	"hash/fnv"
@@ -245,13 +246,13 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 }
 
 // token has to be unique this counter take care of
-var tokenCounter int64
+var tokenCounter atomic.Int64
 
 // getTokenForLoggedInUser returns a token for a logged-in user.
 func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.AccessTokenScope) string {
 	t.Helper()
 	urlValues := url.Values{}
-	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)))
+	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", tokenCounter.Add(1)))
 	for _, scope := range scopes {
 		urlValues.Add("scope-dummy", string(scope)) // it only needs to start with "scope-" to be accepted
 	}
@@ -326,9 +327,10 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *Re
 		urlStr = "/" + urlStr
 	}
 	req, err := http.NewRequest(method, urlStr, body)
-	assert.NoError(t, err)
-	req.RequestURI = urlStr
-
+	require.NoError(t, err)
+	if req.URL.User != nil {
+		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(req.URL.User.String())))
+	}
 	return &RequestWrapper{req}
 }
 
@@ -340,6 +342,10 @@ func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest
 	recorder := httptest.NewRecorder()
 	if req.RemoteAddr == "" {
 		req.RemoteAddr = "test-mock:12345"
+	}
+	// Ensure unknown contentLength is seen as -1
+	if req.Body != nil && req.ContentLength == 0 {
+		req.ContentLength = -1
 	}
 	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
@@ -398,18 +404,19 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	if err != nil {
 		return // probably a non-HTML response
 	}
-	errMsg := htmlDoc.Find(".ui.negative.message").Text()
+	errMsg := htmlDoc.Find(".ui.negative.message:not(.tw-hidden)").Text()
 	if len(errMsg) > 0 {
 		t.Log("A flash error message was found:", errMsg)
 	}
 }
 
-func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
+func DecodeJSON[T any](t testing.TB, resp *httptest.ResponseRecorder, v T) (ret T) {
 	t.Helper()
 
 	// FIXME: JSON-KEY-CASE: for testing purpose only, because many structs don't provide `json` tags, they just use capitalized field names
 	decoder := json.NewDecoderCaseInsensitive(resp.Body)
-	require.NoError(t, decoder.Decode(v))
+	require.NoError(t, decoder.Decode(&v))
+	return v
 }
 
 func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile string) {

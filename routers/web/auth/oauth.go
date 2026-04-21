@@ -36,7 +36,9 @@ import (
 
 // SignInOAuth handles the OAuth2 login buttons
 func SignInOAuth(ctx *context.Context) {
-	authName := ctx.PathParam("provider")
+	// the provider is escaped by backend QueryEscape and frontend urlQueryEscape
+	// so always use QueryUnescape to decode it
+	authName, _ := url.QueryUnescape(ctx.PathParamRaw("provider"))
 	authSource, err := auth.GetActiveOAuth2SourceByAuthName(ctx, authName)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
@@ -79,7 +81,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 		}
 		sort.Strings(errorKeyValues)
-		ctx.Flash.Error(strings.Join(errorKeyValues, "<br>"), true)
+		ctx.Flash.Error(strings.Join(errorKeyValues, "\n"), true)
 	}
 
 	// first look if the provider is still active
@@ -118,7 +120,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			return
 		}
 		if err, ok := err.(*go_oauth2.RetrieveError); ok {
-			ctx.Flash.Error("OAuth2 RetrieveError: "+err.Error(), true)
+			ctx.Flash.Error("OAuth2 RetrieveError: " + err.Error())
 			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
 		}
@@ -482,7 +484,7 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 		LoginSource: authSource.ID,
 	}
 
-	hasUser, err := user_model.GetUser(ctx, user)
+	hasUser, err := user_model.GetIndividualUser(ctx, user)
 	if err != nil {
 		return nil, goth.User{}, err
 	}

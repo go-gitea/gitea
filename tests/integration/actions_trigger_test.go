@@ -38,6 +38,7 @@ import (
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPullRequestTargetEvent(t *testing.T) {
@@ -437,7 +438,7 @@ jobs:
 		assert.NotNil(t, run)
 
 		// delete the branch
-		err = repo_service.DeleteBranch(t.Context(), user2, repo, gitRepo, "test-create-branch", nil)
+		err = repo_service.DeleteBranch(t.Context(), user2, repo, gitRepo, "test-create-branch")
 		assert.NoError(t, err)
 		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
@@ -898,6 +899,27 @@ jobs:
 		_ = MakeRequest(t, req, http.StatusNoContent)
 
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      "add workflow",
+			RepoID:     repo.ID,
+			Event:      "workflow_dispatch",
+			Ref:        "refs/heads/main",
+			WorkflowID: "dispatch.yml",
+			CommitSHA:  branch.CommitID,
+		})
+		assert.NotNil(t, run)
+
+		// Now trigger with rundetails
+		values.Set("return_run_details", "true")
+
+		req = NewRequestWithURLValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/dispatch.yml/dispatches", repo.FullName()), values).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		runDetails := &api.RunDetails{}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(runDetails))
+		assert.NotEqual(t, 0, runDetails.WorkflowRunID)
+
+		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			ID:         runDetails.WorkflowRunID,
 			Title:      "add workflow",
 			RepoID:     repo.ID,
 			Event:      "workflow_dispatch",

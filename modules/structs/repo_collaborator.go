@@ -5,7 +5,7 @@ package structs
 
 // AddCollaboratorOption options when adding a user as a collaborator of a repository
 type AddCollaboratorOption struct {
-	// enum: read,write,admin
+	// enum: ["read","write","admin"]
 	// Permission level to grant the collaborator
 	Permission *string `json:"permission"`
 }

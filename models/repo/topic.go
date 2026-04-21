@@ -44,12 +44,6 @@ type ErrTopicNotExist struct {
 	Name string
 }
 
-// IsErrTopicNotExist checks if an error is an ErrTopicNotExist.
-func IsErrTopicNotExist(err error) bool {
-	_, ok := err.(ErrTopicNotExist)
-	return ok
-}
-
 // Error implements error interface
 func (err ErrTopicNotExist) Error() string {
 	return fmt.Sprintf("topic is not exist [name: %s]", err.Name)

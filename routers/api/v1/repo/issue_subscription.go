@@ -138,7 +138,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	// If watch state wont change
+	// If watch state won't change
 	if current == watch {
 		ctx.Status(http.StatusOK)
 		return

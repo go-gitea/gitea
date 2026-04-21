@@ -46,14 +46,14 @@ func IsRelativeURL(s string) bool {
 
 func getRequestScheme(req *http.Request) string {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto
-	if s := req.Header.Get("X-Forwarded-Proto"); s != "" {
-		return s
+	if proto, ok := parseForwardedProtoValue(req.Header.Get("X-Forwarded-Proto")); ok {
+		return proto
 	}
-	if s := req.Header.Get("X-Forwarded-Protocol"); s != "" {
-		return s
+	if proto, ok := parseForwardedProtoValue(req.Header.Get("X-Forwarded-Protocol")); ok {
+		return proto
 	}
-	if s := req.Header.Get("X-Url-Scheme"); s != "" {
-		return s
+	if proto, ok := parseForwardedProtoValue(req.Header.Get("X-Url-Scheme")); ok {
+		return proto
 	}
 	if s := req.Header.Get("Front-End-Https"); s != "" {
 		return util.Iif(s == "on", "https", "http")
@@ -64,6 +64,13 @@ func getRequestScheme(req *http.Request) string {
 	return ""
 }
 
+func parseForwardedProtoValue(val string) (string, bool) {
+	if val == "http" || val == "https" {
+		return val, true
+	}
+	return "", false
+}
+
 // GuessCurrentAppURL tries to guess the current full public URL (with sub-path) by http headers. It always has a '/' suffix, exactly the same as setting.AppURL
 // TODO: should rename it to GuessCurrentPublicURL in the future
 func GuessCurrentAppURL(ctx context.Context) string {
@@ -72,6 +79,10 @@ func GuessCurrentAppURL(ctx context.Context) string {
 
 // GuessCurrentHostURL tries to guess the current full host URL (no sub-path) by http headers, there is no trailing slash.
 func GuessCurrentHostURL(ctx context.Context) string {
+	// "never" means always trust ROOT_URL and skip any request header detection.
+	if setting.PublicURLDetection == setting.PublicURLNever {
+		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
+	}
 	// Try the best guess to get the current host URL (will be used for public URL) by http headers.
 	// At the moment, if site admin doesn't configure the proxy headers correctly, then Gitea would guess wrong.
 	// There are some cases:

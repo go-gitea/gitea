@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, logout} from './utils.ts';
+import {login, logout, apiDeleteUser, randomString} from './utils.ts';
 
 test.beforeEach(async ({page}) => {
   await page.goto('/user/sign_up');
@@ -32,7 +32,7 @@ test('register with mismatched passwords shows error', async ({page}) => {
 });
 
 test('register then login', async ({page}) => {
-  const username = `e2e-register-${Date.now()}`;
+  const username = `e2e-register-${randomString(8)}`;
   const email = `${username}@${env.GITEA_TEST_E2E_DOMAIN}`;
   const password = 'password123!';
 
@@ -50,10 +50,7 @@ test('register then login', async ({page}) => {
   await login(page, username, password);
 
   // delete via API because of issues related to form-fetch-action
-  const response = await page.request.delete(`/api/v1/admin/users/${username}?purge=true`, {
-    headers: {Authorization: `Basic ${btoa(`${env.GITEA_TEST_E2E_USER}:${env.GITEA_TEST_E2E_PASSWORD}`)}`},
-  });
-  expect(response.ok()).toBeTruthy();
+  await apiDeleteUser(page.request, username);
 });
 
 test('register with existing username shows error', async ({page}) => {

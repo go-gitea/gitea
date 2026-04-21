@@ -268,13 +268,14 @@ select.ui.dropdown {
 }
 
 .ui.selection.dropdown:hover {
-  border-color: var(--color-input-border-hover);
   box-shadow: none;
 }
 
 .ui.selection.active.dropdown {
   border-color: var(--color-primary);
   box-shadow: 0 6px 18px var(--color-shadow);
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
 }
 
 .ui.selection.active.dropdown .menu {
@@ -310,11 +311,6 @@ select.ui.dropdown {
 .ui.active.selection.dropdown > .dropdown.icon,
 .ui.visible.selection.dropdown > .dropdown.icon {
   z-index: 3;
-}
-
-.ui.active.selection.dropdown {
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
 }
 
 .ui.active.empty.selection.dropdown {

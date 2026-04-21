@@ -2,7 +2,7 @@
 // even if backend is in testing mode, frontend could be complied in production mode
 // so this function only checks if the frontend is in unit testing mode (usually from *.test.ts files)
 export function isInFrontendUnitTest() {
-  return import.meta.env.TEST === 'true';
+  return import.meta.env.MODE === 'test';
 }
 
 /** strip common indentation from a string and trim it */
@@ -19,4 +19,12 @@ export function dedent(str: string) {
   }
 
   return str.replace(new RegExp(`^[ \\t]{${minIndent}}`, 'gm'), '').trim();
+}
+
+export function normalizeTestHtml(s: string) {
+  const lines = s.replace(/>\s+</g, '>\n<').trim().split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    lines[i] = lines[i].trim();
+  }
+  return lines.join('\n');
 }

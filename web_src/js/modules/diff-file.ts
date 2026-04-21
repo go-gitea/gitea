@@ -17,7 +17,7 @@ export type DiffTreeEntry = {
   ParentEntry?: DiffTreeEntry,
 };
 
-type DiffFileTreeData = {
+export type DiffFileTreeData = {
   TreeRoot: DiffTreeEntry,
 };
 
@@ -33,7 +33,7 @@ type DiffFileTree = {
 let diffTreeStoreReactive: Reactive<DiffFileTree>;
 export function diffTreeStore() {
   if (!diffTreeStoreReactive) {
-    diffTreeStoreReactive = reactiveDiffTreeStore(pageData.DiffFileTree, pageData.FolderIcon, pageData.FolderOpenIcon);
+    diffTreeStoreReactive = reactiveDiffTreeStore(pageData.DiffFileTree!, pageData.FolderIcon!, pageData.FolderOpenIcon!);
   }
   return diffTreeStoreReactive;
 }

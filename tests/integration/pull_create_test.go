@@ -189,7 +189,8 @@ func testDeleteRepository(t *testing.T, session *TestSession, ownerName, repoNam
 	req := NewRequestWithValues(t, "POST", relURL+"?action=delete", map[string]string{
 		"repo_name": repoName,
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.NotNil(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
 }
 
 func TestPullBranchDelete(t *testing.T) {

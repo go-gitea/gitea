@@ -15,7 +15,6 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // Scheme describes protocol types
@@ -44,6 +43,7 @@ const (
 const (
 	PublicURLAuto   = "auto"
 	PublicURLLegacy = "legacy"
+	PublicURLNever  = "never"
 )
 
 // Server settings
@@ -71,9 +71,6 @@ var (
 	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
 	// It maps to ini:"LOCAL_ROOT_URL" in [server]
 	LocalURL string
-
-	// AssetVersion holds an opaque value that is used for cache-busting assets
-	AssetVersion string
 
 	// appTempPathInternal is the temporary path for the app, it is only an internal variable
 	// DO NOT use it directly, always use AppDataTempDir
@@ -162,7 +159,7 @@ func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
 }
 
 // MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
-func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
+func MakeAbsoluteAssetURL(appURL *url.URL, staticURLPrefix string) string {
 	parsedPrefix, err := url.Parse(strings.TrimSuffix(staticURLPrefix, "/"))
 	if err != nil {
 		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
@@ -170,11 +167,12 @@ func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
 
 	if err == nil && parsedPrefix.Hostname() == "" {
 		if staticURLPrefix == "" {
-			return strings.TrimSuffix(appURL, "/")
+			return strings.TrimSuffix(appURL.String(), "/")
 		}
 
 		// StaticURLPrefix is just a path
-		return util.URLJoin(appURL, strings.TrimSuffix(staticURLPrefix, "/"))
+		appHostURL := &url.URL{Scheme: appURL.Scheme, Host: appURL.Host}
+		return appHostURL.String() + "/" + strings.Trim(staticURLPrefix, "/")
 	}
 
 	return strings.TrimSuffix(staticURLPrefix, "/")
@@ -285,8 +283,8 @@ func loadServerFrom(rootCfg ConfigProvider) {
 
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
-	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLLegacy)
-	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy {
+	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLAuto)
+	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy && PublicURLDetection != PublicURLNever {
 		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLDetection)
 	}
 
@@ -315,9 +313,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		Domain = urlHostname
 	}
 
-	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefix)
-	AssetVersion = strings.ReplaceAll(AppVer, "+", "~") // make sure the version string is clear (no real escaping is needed)
-
+	AbsoluteAssetURL = MakeAbsoluteAssetURL(appURL, StaticURLPrefix)
 	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
 	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
 

@@ -5,12 +5,14 @@ package validation
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/glob"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/binding"
@@ -27,10 +29,27 @@ const (
 	ErrUsername = "UsernameError"
 	// ErrInvalidGroupTeamMap is returned when a group team mapping is invalid
 	ErrInvalidGroupTeamMap = "InvalidGroupTeamMap"
+	// ErrInvalidBadgeSlug is returned when a badge slug is invalid
+	ErrInvalidBadgeSlug = "InvalidBadgeSlug"
 )
+
+type jsonProvider struct{}
+
+func (j jsonProvider) Marshal(v any) ([]byte, error) { return json.Marshal(v) }
+
+func (j jsonProvider) Unmarshal(data []byte, v any) error { return json.Unmarshal(data, v) }
+
+func (j jsonProvider) NewDecoder(reader io.Reader) binding.JSONDecoder {
+	return json.NewDecoder(reader)
+}
+
+func (j jsonProvider) NewEncoder(writer io.Writer) binding.JSONEncoder {
+	return json.NewEncoder(writer)
+}
 
 // AddBindingRules adds additional binding rules
 func AddBindingRules() {
+	binding.JSONProvider = jsonProvider{}
 	addGitRefNameBindingRule()
 	addValidURLListBindingRule()
 	addValidURLBindingRule()
@@ -40,6 +59,7 @@ func AddBindingRules() {
 	addGlobOrRegexPatternRule()
 	addUsernamePatternRule()
 	addValidGroupTeamMapRule()
+	addSlugPatternRule()
 }
 
 func addGitRefNameBindingRule() {
@@ -118,6 +138,22 @@ func addValidSiteURLBindingRule() {
 				return false, errs
 			}
 
+			return true, errs
+		},
+	})
+}
+
+func addSlugPatternRule() {
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return rule == "BadgeSlug"
+		},
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
+			str := fmt.Sprintf("%v", val)
+			if !IsValidBadgeSlug(str) {
+				errs.Add([]string{name}, ErrInvalidBadgeSlug, "invalid badge slug")
+				return false, errs
+			}
 			return true, errs
 		},
 	})

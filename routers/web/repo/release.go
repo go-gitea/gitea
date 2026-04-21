@@ -187,7 +187,7 @@ func Releases(ctx *context.Context) {
 	ctx.Data["Releases"] = releases
 
 	numReleases := ctx.Data["NumReleases"].(int64)
-	pager := context.NewPagination(int(numReleases), listOptions.PageSize, listOptions.Page, 5)
+	pager := context.NewPagination(numReleases, listOptions.PageSize, listOptions.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplReleasesList)
@@ -239,7 +239,7 @@ func TagsList(ctx *context.Context) {
 	ctx.Data["Releases"] = releases
 	ctx.Data["TagCount"] = count
 
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
@@ -451,6 +451,7 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
+	form.Target = util.IfZero(form.Target, ctx.Repo.Repository.DefaultBranch)
 	if exist, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, form.Target); !exist {
 		ctx.RenderWithErrDeprecated(ctx.Tr("form.target_branch_not_exist"), tplReleaseNew, &form)
 		return
@@ -564,6 +565,11 @@ func EditRelease(ctx *context.Context) {
 		}
 		return
 	}
+	if rel.IsTag {
+		ctx.NotFound(err) // for a pure tag release, don't allow to edit it as a release
+		return
+	}
+
 	ctx.Data["ID"] = rel.ID
 	ctx.Data["tag_name"] = rel.TagName
 	ctx.Data["tag_target"] = util.IfZero(rel.Target, ctx.Repo.Repository.DefaultBranch)
@@ -613,7 +619,7 @@ func EditReleasePost(ctx *context.Context) {
 		return
 	}
 	if rel.IsTag {
-		ctx.NotFound(err)
+		ctx.NotFound(err) // for a pure tag release, don't allow to edit it as a release
 		return
 	}
 	ctx.Data["tag_name"] = rel.TagName

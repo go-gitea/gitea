@@ -35,14 +35,6 @@ const (
 	tplProjectsView templates.TplName = "org/projects/view"
 )
 
-// MustEnableProjects check if projects are enabled in settings
-func MustEnableProjects(ctx *context.Context) {
-	if unit.TypeProjects.UnitGlobalDisabled() {
-		ctx.NotFound(nil)
-		return
-	}
-}
-
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
@@ -114,12 +106,7 @@ func Projects(ctx *context.Context) {
 		project.RenderedContent = renderUtils.MarkdownToHtml(project.Description)
 	}
 
-	numPages := 0
-	if total > 0 {
-		numPages = (int(total) - 1/setting.UI.IssuePagingNum)
-	}
-
-	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, numPages)
+	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 

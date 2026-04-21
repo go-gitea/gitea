@@ -7,6 +7,11 @@
   padding: 0 10px;
 }
 
+/* When notification message is present after navbar, hide border to avoid double border */
+#navbar:has(+ .ui.message) {
+  border-bottom: none;
+}
+
 #navbar .navbar-left,
 #navbar .navbar-right {
   display: flex;
@@ -63,6 +68,7 @@
   }
   #navbar .navbar-mobile-right {
     display: flex;
+    align-items: center;
     margin: 0 0 0 auto;
     width: auto;
   }
@@ -92,7 +98,6 @@
   }
   #navbar.navbar-menu-open .navbar-left .navbar-mobile-right {
     justify-content: flex-end;
-    width: 50%;
     min-height: 49px;
   }
   #navbar #mobile-stopwatch-icon,
@@ -102,12 +107,14 @@
 }
 
 #navbar a.item:hover .notification_count,
-#navbar a.item:hover .header-stopwatch-dot {
+#navbar a.item:hover .header-stopwatch-dot,
+#navbar .item.active .navbar-admin-badge {
   border-color: var(--color-nav-hover-bg);
 }
 
 #navbar a.item .notification_count,
-#navbar a.item .header-stopwatch-dot {
+#navbar a.item .header-stopwatch-dot,
+#navbar .item .navbar-admin-badge {
   color: var(--color-nav-bg);
   padding: 0 3.75px;
   font-size: 12px;
@@ -127,6 +134,19 @@
   z-index: 1; /* prevent menu button background from overlaying icon */
   user-select: none;
   white-space: nowrap;
+  overflow: visible;
+}
+
+.navbar-avatar {
+  position: relative;
+  display: inline-flex;
+}
+
+#navbar .item .navbar-admin-badge {
+  position: absolute;
+  bottom: calc(100% - 29px);
+  left: calc(100% - 18px);
+  padding: 1.5px;
 }
 
 .secondary-nav {

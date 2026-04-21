@@ -24,6 +24,7 @@ import {
   fillEmptyStartDaysWithZeroes,
 } from '../utils/time.ts';
 import {chartJsColors} from '../utils/color.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
@@ -166,7 +167,7 @@ export default defineComponent({
           this.errorText = response.statusText;
         }
       } catch (err) {
-        this.errorText = err.message;
+        this.errorText = errorMessage(err);
       } finally {
         this.isLoading = false;
       }
@@ -339,7 +340,7 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <div class="ui header tw-flex tw-items-center tw-justify-between">
+    <div class="ui header flex-left-right">
       <div>
         <relative-time
           v-if="xAxisMin && xAxisMin > 0"

@@ -11,15 +11,14 @@ import (
 	"image/color"
 	"image/png"
 
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
-
 	"code.gitea.io/gitea/modules/avatar/identicon"
 	"code.gitea.io/gitea/modules/setting"
 
-	"golang.org/x/image/draw"
-
 	_ "golang.org/x/image/webp" // for processing webp images
+	_ "image/gif"               // for processing gif images
+	_ "image/jpeg"              // for processing jpeg images
+
+	"golang.org/x/image/draw"
 )
 
 // DefaultAvatarSize is the target CSS pixel size for avatar generation. It is
@@ -28,21 +27,18 @@ import (
 // than the size after resizing.
 const DefaultAvatarSize = 256
 
-// RandomImageSize generates and returns a random avatar image unique to input data
+// RandomImageWithSize generates and returns a random avatar image unique to input data
 // in custom size (height and width).
-func RandomImageSize(size int, data []byte) (image.Image, error) {
+func RandomImageWithSize(size int, data []byte) image.Image {
 	// we use white as background, and use dark colors to draw blocks
-	imgMaker, err := identicon.New(size, color.White, identicon.DarkColors...)
-	if err != nil {
-		return nil, fmt.Errorf("identicon.New: %w", err)
-	}
-	return imgMaker.Make(data), nil
+	imgMaker := identicon.New(size, color.White, identicon.DarkColors)
+	return imgMaker.Make(data)
 }
 
-// RandomImage generates and returns a random avatar image unique to input data
+// RandomImageDefaultSize generates and returns a random avatar image unique to input data
 // in default size (height and width).
-func RandomImage(data []byte) (image.Image, error) {
-	return RandomImageSize(DefaultAvatarSize*setting.Avatar.RenderedSizeFactor, data)
+func RandomImageDefaultSize(data []byte) image.Image {
+	return RandomImageWithSize(DefaultAvatarSize*setting.Avatar.RenderedSizeFactor, data)
 }
 
 // processAvatarImage process the avatar image data, crop and resize it if necessary.

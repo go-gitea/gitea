@@ -93,12 +93,6 @@ type ErrIssueIsOpen struct {
 	Index  int64
 }
 
-// IsErrIssueIsOpen checks if an error is a ErrIssueIsOpen.
-func IsErrIssueIsOpen(err error) bool {
-	_, ok := err.(ErrIssueIsOpen)
-	return ok
-}
-
 func (err ErrIssueIsOpen) Error() string {
 	return fmt.Sprintf("%s [id: %d, repo_id: %d, index: %d] is already open", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.RepoID, err.Index)
 }
@@ -441,7 +435,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *Issue, la
 			LabelIDs:    labelIDs,
 			Attachments: uuids,
 		}); err != nil {
-			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
+			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 				return err
 			}
 			return fmt.Errorf("newIssue: %w", err)
@@ -665,9 +659,9 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 			continue
 		}
 		// Normal users must have read access to the referencing issue
-		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, user)
+		perm, err := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, user)
 		if err != nil {
-			return nil, fmt.Errorf("GetUserRepoPermission [%d]: %w", user.ID, err)
+			return nil, fmt.Errorf("GetIndividualUserRepoPermission [%d]: %w", user.ID, err)
 		}
 		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
 			continue

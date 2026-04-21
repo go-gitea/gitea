@@ -123,9 +123,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["PageIsAdminConfigSummary"] = true
 
 	ctx.Data["CustomConf"] = setting.CustomConf
-	ctx.Data["AppUrl"] = setting.AppURL
 	ctx.Data["AppBuiltWith"] = setting.AppBuiltWith
-	ctx.Data["Domain"] = setting.Domain
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
 	ctx.Data["GitVersion"] = git.DefaultFeatures().VersionInfo()
