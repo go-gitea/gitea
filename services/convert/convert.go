@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
 
@@ -247,12 +248,19 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	}, nil
 }
 
-func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
+func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, excludePullRequests bool) (*api.ActionWorkflowRun, error) {
 	err := run.LoadAttributes(ctx)
 	if err != nil {
 		return nil, err
 	}
 	status, conclusion := ToActionsStatus(run.Status)
+	pullRequests := []*api.PullRequestMinimal{}
+	if !excludePullRequests {
+		pullRequests, err = loadPullRequestsForRun(ctx, repo, run)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &api.ActionWorkflowRun{
 		ID:           run.ID,
 		URL:          fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
@@ -270,7 +278,90 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		Repository:   ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		TriggerActor: ToUser(ctx, run.TriggerUser, nil),
 		// We do not have a way to get a different User for the actor than the trigger user
-		Actor: ToUser(ctx, run.TriggerUser, nil),
+		Actor:        ToUser(ctx, run.TriggerUser, nil),
+		PullRequests: pullRequests,
+	}, nil
+}
+
+// loadPullRequestsForRun returns the pull requests associated with a run, matching
+// GitHub's `pull_requests` field on workflow run responses:
+// - For pull_request / pull_request_review events, the PR whose ref triggered the run.
+// - For push events, open PRs whose head branch matches the pushed ref in the same repo.
+// - For other events, no PRs.
+func loadPullRequestsForRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) ([]*api.PullRequestMinimal, error) {
+	result := []*api.PullRequestMinimal{}
+	refName := git.RefName(run.Ref)
+	var prs issues_model.PullRequestList
+	switch {
+	case run.Event.IsPullRequest() || run.Event.IsPullRequestReview():
+		index, err := strconv.ParseInt(refName.PullName(), 10, 64)
+		if err != nil {
+			return result, nil
+		}
+		pr, err := issues_model.GetPullRequestByIndex(ctx, run.RepoID, index)
+		if err != nil {
+			if issues_model.IsErrPullRequestNotExist(err) {
+				return result, nil
+			}
+			return nil, err
+		}
+		prs = issues_model.PullRequestList{pr}
+	case run.Event == webhook_module.HookEventPush:
+		branch := refName.BranchName()
+		if branch == "" {
+			return result, nil
+		}
+		var err error
+		prs, err = issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, run.RepoID, branch)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return result, nil
+	}
+	for _, pr := range prs {
+		minimal, err := toPullRequestMinimal(ctx, repo, pr, run.CommitSHA)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, minimal)
+	}
+	return result, nil
+}
+
+func toPullRequestMinimal(ctx context.Context, repo *repo_model.Repository, pr *issues_model.PullRequest, headSHA string) (*api.PullRequestMinimal, error) {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return nil, err
+	}
+	if err := pr.LoadHeadRepo(ctx); err != nil {
+		return nil, err
+	}
+	headRepo := pr.HeadRepo
+	if headRepo == nil {
+		headRepo = pr.BaseRepo
+	}
+	return &api.PullRequestMinimal{
+		ID:     pr.ID,
+		Number: pr.Index,
+		URL:    fmt.Sprintf("%s/pulls/%d", repo.APIURL(), pr.Index),
+		Head: api.PullRequestMinimalHead{
+			Ref: pr.HeadBranch,
+			SHA: headSHA,
+			Repo: api.PullRequestMinimalHeadRepo{
+				ID:   headRepo.ID,
+				URL:  headRepo.APIURL(),
+				Name: headRepo.Name,
+			},
+		},
+		Base: api.PullRequestMinimalHead{
+			Ref: pr.BaseBranch,
+			SHA: pr.MergeBase,
+			Repo: api.PullRequestMinimalHeadRepo{
+				ID:   pr.BaseRepo.ID,
+				URL:  pr.BaseRepo.APIURL(),
+				Name: pr.BaseRepo.Name,
+			},
+		},
 	}, nil
 }
 

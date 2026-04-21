@@ -9,11 +9,15 @@ import (
 	"net/url"
 	"testing"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIWorkflowRun(t *testing.T) {
@@ -32,6 +36,63 @@ func TestAPIWorkflowRun(t *testing.T) {
 	t.Run("RepoWorkflowRuns", func(t *testing.T) {
 		testAPIWorkflowRunsByWorkflowID(t, "org3", "repo5", "test.yaml", "User2", 802, auth_model.AccessTokenScopeReadRepository)
 	})
+	t.Run("PullRequestsField", testAPIWorkflowRunsPullRequestsField)
+}
+
+// testAPIWorkflowRunsPullRequestsField exercises the `pull_requests` field and the
+// `exclude_pull_requests` toggle by associating an inserted run with fixture PR
+// user2/repo1#3 (head: branch2, base: master).
+func testAPIWorkflowRunsPullRequestsField(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	ctx := t.Context()
+
+	run := &actions_model.ActionRun{
+		RepoID:        1,
+		OwnerID:       2,
+		TriggerUserID: 2,
+		WorkflowID:    "pr-assoc.yaml",
+		Index:         99001,
+		Ref:           "refs/pull/3/head",
+		CommitSHA:     "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+		Event:         webhook_module.HookEventPullRequest,
+		TriggerEvent:  string(webhook_module.HookEventPullRequest),
+		Status:        actions_model.StatusSuccess,
+	}
+	require.NoError(t, db.Insert(ctx, run))
+
+	token := getUserToken(t, "User2", auth_model.AccessTokenScopeReadRepository)
+	runsURL := "/api/v1/repos/user2/repo1/actions/workflows/pr-assoc.yaml/runs"
+
+	req := NewRequest(t, "GET", runsURL).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	list := api.ActionWorkflowRunsResponse{}
+	DecodeJSON(t, resp, &list)
+
+	var got *api.ActionWorkflowRun
+	for _, r := range list.Entries {
+		if r.ID == run.ID {
+			got = r
+			break
+		}
+	}
+	require.NotNil(t, got, "inserted PR-triggered run not returned")
+	require.Len(t, got.PullRequests, 1)
+	pr := got.PullRequests[0]
+	assert.Equal(t, int64(3), pr.Number)
+	assert.Equal(t, "branch2", pr.Head.Ref)
+	assert.Equal(t, "master", pr.Base.Ref)
+	assert.Equal(t, int64(1), pr.Base.Repo.ID)
+	assert.Equal(t, "repo1", pr.Base.Repo.Name)
+
+	req = NewRequest(t, "GET", runsURL+"?exclude_pull_requests=true").AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	excluded := api.ActionWorkflowRunsResponse{}
+	DecodeJSON(t, resp, &excluded)
+	for _, r := range excluded.Entries {
+		if r.ID == run.ID {
+			assert.Empty(t, r.PullRequests)
+		}
+	}
 }
 
 func testAPIWorkflowRunsByWorkflowID(t *testing.T, owner, repo, workflowID, userUsername string, expectedRunID int64, scope ...auth_model.AccessTokenScope) {
@@ -64,7 +125,7 @@ func testAPIWorkflowRunsByWorkflowID(t *testing.T, owner, repo, workflowID, user
 	DecodeJSON(t, resp, &excludedList)
 	excludedFound := false
 	for _, run := range excludedList.Entries {
-		assert.NotEqual(t, "pull_request", run.Event)
+		assert.Empty(t, run.PullRequests, "expected pull_requests to be empty when excluded")
 		if run.ID == expectedRunID {
 			excludedFound = true
 		}

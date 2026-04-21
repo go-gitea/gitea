@@ -156,7 +156,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	if headSHA := ctx.FormString("head_sha"); headSHA != "" {
 		opts.CommitSHA = headSHA
 	}
-	opts.ExcludePullRequests = ctx.FormBool("exclude_pull_requests")
+	excludePullRequests := ctx.FormBool("exclude_pull_requests")
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
@@ -181,7 +181,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 			}
 		}
 
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, repository, runs[i])
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, repository, runs[i], excludePullRequests)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

@@ -765,7 +765,7 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 	//   required: false
 	// - name: exclude_pull_requests
 	//   in: query
-	//   description: if true, pull request events are omitted from the results
+	//   description: if true, the `pull_requests` field on each returned run is emptied
 	//   type: boolean
 	//   required: false
 	// - name: page
@@ -1006,7 +1006,7 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	//   required: false
 	// - name: exclude_pull_requests
 	//   in: query
-	//   description: if true, pull request events are omitted from the results
+	//   description: if true, the `pull_requests` field on each returned run is emptied
 	//   type: boolean
 	//   required: false
 	// - name: page
@@ -1307,7 +1307,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1360,7 +1360,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
