@@ -37,10 +37,8 @@ const forceMerge = computed(() => {
 
 watch(mergeStyle, (val) => {
   mergeStyleDetail.value = mergeForm.mergeStyles.find((e: any) => e.name === val);
-  for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
-    // Attribute is a comma-separated list of styles without whitespace.
-    const styles = elem.getAttribute('data-pull-merge-style')!.split(',');
-    toggleElem(elem, styles.includes(val));
+  for (const elem of document.querySelectorAll('[data-pull-merge-styles]')) {
+    toggleElem(elem, elem.getAttribute('data-pull-merge-styles')!.split(',').includes(val));
   }
 });
 

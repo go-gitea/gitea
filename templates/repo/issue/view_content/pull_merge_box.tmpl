@@ -44,8 +44,8 @@
 	{{if and $avatarColorFromSigning $canUseFastForwardOnly}}
 		{{/* manually-merged is in the red list because it is not a real merge, just a mark.
 		It is not in the green ff-only list because it does not fix the signing problem. */}}
-		<div class="timeline-avatar tw-text-red" data-pull-merge-style="merge,rebase,rebase-merge,squash,manually-merged">{{$avatarIcon}}</div>
-		<div class="timeline-avatar tw-hidden tw-text-green" data-pull-merge-style="fast-forward-only">{{$avatarIcon}}</div>
+		<div class="timeline-avatar tw-text-red" data-pull-merge-styles="merge,rebase,rebase-merge,squash,manually-merged">{{$avatarIcon}}</div>
+		<div class="timeline-avatar tw-hidden tw-text-green" data-pull-merge-styles="fast-forward-only">{{$avatarIcon}}</div>
 	{{else}}
 		<div class="timeline-avatar {{$avatarBaseClass}}">{{$avatarIcon}}</div>
 	{{end}}
@@ -183,7 +183,7 @@
 					</div>
 				{{else if $signingBlocksMerge}}
 					{{/* Hide the warning for styles that create no Gitea commit. */}}
-					<div class="item" data-pull-merge-style="merge,rebase,rebase-merge,squash">
+					<div class="item" data-pull-merge-styles="merge,rebase,rebase-merge,squash">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
@@ -202,24 +202,24 @@
 				{{if $canMergeNow}}
 					{{/* When signing blocks non-ff-only styles, show "can merge now" only for ff-only. */}}
 					{{if $notAllOverridableChecksOk}}
-						<div class="item" {{if $ffOnlyStyleAttr}}data-pull-merge-style="{{$ffOnlyStyleAttr}}"{{end}}>
+						<div class="item" {{if $ffOnlyStyleAttr}}data-pull-merge-styles="{{$ffOnlyStyleAttr}}"{{end}}>
 							{{svg "octicon-dot-fill"}}
 							{{ctx.Locale.Tr "repo.pulls.required_status_check_administrator"}}
 						</div>
 					{{else}}
-						<div class="item" {{if $ffOnlyStyleAttr}}data-pull-merge-style="{{$ffOnlyStyleAttr}}"{{end}}>
+						<div class="item" {{if $ffOnlyStyleAttr}}data-pull-merge-styles="{{$ffOnlyStyleAttr}}"{{end}}>
 							{{svg "octicon-check"}}
 							{{ctx.Locale.Tr "repo.pulls.can_auto_merge_desc"}}
 						</div>
 					{{end}}
 					{{/* The signing status only applies to merge styles that produce a Gitea-authored commit. */}}
 					{{if .WillSign}}
-						<div class="item" data-pull-merge-style="merge,rebase,rebase-merge,squash">
+						<div class="item" data-pull-merge-styles="merge,rebase,rebase-merge,squash">
 							{{svg "octicon-lock" 16 "tw-text-green"}}
 							{{ctx.Locale.Tr "repo.signing.will_sign" .SigningKeyMergeDisplay}}
 						</div>
 					{{else if .IsSigned}}
-						<div class="item" data-pull-merge-style="merge,rebase,rebase-merge,squash">
+						<div class="item" data-pull-merge-styles="merge,rebase,rebase-merge,squash">
 							{{svg "octicon-unlock"}}
 							{{ctx.Locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason)}}
 						</div>
