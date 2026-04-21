@@ -31,10 +31,14 @@ func Members(ctx *context.Context) {
 	ctx.Data["PageIsOrgMembers"] = true
 
 	page := max(ctx.FormInt("page"), 1)
+	keyword := ctx.FormTrim("q")
+	ctx.Data["Keyword"] = keyword
 
 	opts := &organization.FindOrgMembersOpts{
-		Doer:  ctx.Doer,
-		OrgID: org.ID,
+		Doer:          ctx.Doer,
+		OrgID:         org.ID,
+		Keyword:       keyword,
+		SearchByEmail: true,
 	}
 
 	if ctx.Doer != nil {
@@ -59,6 +63,7 @@ func Members(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(total, setting.UI.MembersPagingNum, page, 5)
+	pager.AddParamFromRequest(ctx.Req)
 	opts.ListOptions.Page = page
 	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
 	members, membersIsPublic, err := organization.FindOrgMembers(ctx, opts)
@@ -68,6 +73,8 @@ func Members(ctx *context.Context) {
 	}
 	ctx.Data["Page"] = pager
 	ctx.Data["Members"] = members
+	ctx.Data["MembersShown"] = len(members)
+	ctx.Data["MembersTotal"] = total
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
 	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(ctx, members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus(ctx)

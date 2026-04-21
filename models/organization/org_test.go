@@ -288,6 +288,80 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 	assert.Empty(t, orgUsers)
 }
 
+func TestOrgMembersSearch(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	member := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	testCases := []struct {
+		name         string
+		opts         *organization.FindOrgMembersOpts
+		expectedUIDs []int64
+	}{
+		{
+			name: "match by username",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:         3,
+				Doer:          member,
+				IsDoerMember:  true,
+				Keyword:       "user4",
+				SearchByEmail: true,
+			},
+			expectedUIDs: []int64{4},
+		},
+		{
+			name: "match by full name",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:         3,
+				Doer:          member,
+				IsDoerMember:  true,
+				Keyword:       "user27",
+				SearchByEmail: true,
+			},
+			expectedUIDs: []int64{28},
+		},
+		{
+			name: "private email hidden",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:         3,
+				Doer:          member,
+				IsDoerMember:  true,
+				Keyword:       "user2@example.com",
+				SearchByEmail: true,
+			},
+			expectedUIDs: []int64{},
+		},
+		{
+			name: "admin can search private email",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:         3,
+				Doer:          admin,
+				Keyword:       "user2@example.com",
+				SearchByEmail: true,
+			},
+			expectedUIDs: []int64{2},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			count, err := organization.CountOrgMembers(t.Context(), tc.opts)
+			assert.NoError(t, err)
+			assert.EqualValues(t, len(tc.expectedUIDs), count)
+
+			members, err := organization.GetOrgUsersByOrgID(t.Context(), tc.opts)
+			assert.NoError(t, err)
+			memberUIDs := make([]int64, 0, len(members))
+			for _, member := range members {
+				memberUIDs = append(memberUIDs, member.UID)
+			}
+			slices.Sort(memberUIDs)
+			assert.Equal(t, tc.expectedUIDs, memberUIDs)
+		})
+	}
+}
+
 func TestChangeOrgUserStatus(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
