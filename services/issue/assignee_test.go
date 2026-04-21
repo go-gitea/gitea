@@ -29,7 +29,7 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Check if he got removed
-	isAssigned, err := issues_model.IsUserAssignedToIssue(t.Context(), issue, user1)
+	isAssigned, err := issues_model.IsUserAssignedToIssue(t.Context(), issue, user1.ID)
 	assert.NoError(t, err)
 	assert.True(t, isAssigned)
 

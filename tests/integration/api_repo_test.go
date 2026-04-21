@@ -729,4 +729,14 @@ func TestAPIRepoGetAssignees(t *testing.T) {
 	var assignees []*api.User
 	DecodeJSON(t, resp, &assignees)
 	assert.Len(t, assignees, 2)
+
+	assignee := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees/%s", user.Name, repo.Name, assignee.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	nonAssignee := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees/%s", user.Name, repo.Name, nonAssignee.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }
