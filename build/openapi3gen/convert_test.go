@@ -73,6 +73,54 @@ func TestExtractSharedEnums_usesASTMap(t *testing.T) {
 	}
 }
 
+func TestFixFileSchemas_recursesIntoNested(t *testing.T) {
+	fileType := func() *openapi3.SchemaRef {
+		return &openapi3.SchemaRef{Value: &openapi3.Schema{Type: &openapi3.Types{"file"}}}
+	}
+	doc := &openapi3.T{
+		Paths: openapi3.NewPaths(),
+	}
+	doc.Paths.Set("/upload", &openapi3.PathItem{
+		Post: &openapi3.Operation{
+			RequestBody: &openapi3.RequestBodyRef{
+				Value: &openapi3.RequestBody{
+					Content: openapi3.Content{
+						"multipart/form-data": {
+							Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{
+								Type: &openapi3.Types{"object"},
+								Properties: openapi3.Schemas{
+									"attachment": fileType(),
+									"items": {Value: &openapi3.Schema{
+										Type:  &openapi3.Types{"array"},
+										Items: fileType(),
+									}},
+									"alt": {Value: &openapi3.Schema{
+										AllOf: openapi3.SchemaRefs{fileType()},
+									}},
+								},
+							}},
+						},
+					},
+				},
+			},
+			Responses: openapi3.NewResponses(),
+		},
+	})
+
+	fixFileSchemas(doc)
+
+	props := doc.Paths.Value("/upload").Post.RequestBody.Value.Content["multipart/form-data"].Schema.Value.Properties
+	if !props["attachment"].Value.Type.Is("string") || props["attachment"].Value.Format != "binary" {
+		t.Errorf("nested property not fixed: %+v", props["attachment"].Value)
+	}
+	if !props["items"].Value.Items.Value.Type.Is("string") || props["items"].Value.Items.Value.Format != "binary" {
+		t.Errorf("array items not fixed: %+v", props["items"].Value.Items.Value)
+	}
+	if !props["alt"].Value.AllOf[0].Value.Type.Is("string") || props["alt"].Value.AllOf[0].Value.Format != "binary" {
+		t.Errorf("allOf branch not fixed: %+v", props["alt"].Value.AllOf[0].Value)
+	}
+}
+
 func TestExtractSharedEnums_missReturnsError(t *testing.T) {
 	doc := &openapi3.T{
 		Components: &openapi3.Components{
