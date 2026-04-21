@@ -42,8 +42,7 @@ var rxSwaggerEnum = regexp.MustCompile(`swagger:enum\s+(\w+)`)
 // different enum types.
 func ScanSwaggerEnumTypes(dirs []string) (map[string]string, error) {
 	fset := token.NewFileSet()
-	enumTypes := map[string]string{} // typeName → canonical key
-	enumValues := map[string][]any{} // typeName → values
+	parsed := []*ast.File{}
 
 	for _, dir := range dirs {
 		entries, err := os.ReadDir(dir)
@@ -58,9 +57,38 @@ func ScanSwaggerEnumTypes(dirs []string) (map[string]string, error) {
 				continue
 			}
 			path := filepath.Join(dir, entry.Name())
-			if err := scanFile(fset, path, enumTypes, enumValues); err != nil {
+			file, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
+			if err != nil {
 				return nil, fmt.Errorf("%s: %w", path, err)
 			}
+			parsed = append(parsed, file)
+		}
+	}
+
+	enumTypes := map[string]string{} // typeName → "" (presence marker)
+	enumValues := map[string][]any{} // typeName → values
+
+	// Pass 1: collect every // swagger:enum TypeName declaration.
+	for _, file := range parsed {
+		for _, decl := range file.Decls {
+			gd, ok := decl.(*ast.GenDecl)
+			if !ok || gd.Tok != token.TYPE {
+				continue
+			}
+			if err := collectEnumType(gd, enumTypes); err != nil {
+				return nil, fmt.Errorf("%s: %w", fset.Position(gd.Pos()).Filename, err)
+			}
+		}
+	}
+
+	// Pass 2: collect const values; now every annotated type is visible.
+	for _, file := range parsed {
+		for _, decl := range file.Decls {
+			gd, ok := decl.(*ast.GenDecl)
+			if !ok || gd.Tok != token.CONST {
+				continue
+			}
+			collectEnumValues(gd, enumTypes, enumValues)
 		}
 	}
 
@@ -77,29 +105,6 @@ func ScanSwaggerEnumTypes(dirs []string) (map[string]string, error) {
 		result[key] = typeName
 	}
 	return result, nil
-}
-
-func scanFile(fset *token.FileSet, path string, enumTypes map[string]string, enumValues map[string][]any) error {
-	file, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
-	if err != nil {
-		return err
-	}
-
-	for _, decl := range file.Decls {
-		gd, ok := decl.(*ast.GenDecl)
-		if !ok {
-			continue
-		}
-		switch gd.Tok {
-		case token.TYPE:
-			if err := collectEnumType(gd, enumTypes); err != nil {
-				return err
-			}
-		case token.CONST:
-			collectEnumValues(gd, enumTypes, enumValues)
-		}
-	}
-	return nil
 }
 
 func collectEnumType(gd *ast.GenDecl, enumTypes map[string]string) error {

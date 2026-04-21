@@ -139,3 +139,29 @@ type Lonely string
 		t.Fatalf("error %q should mention Lonely", err.Error())
 	}
 }
+
+func TestScanSwaggerEnumTypes_constsBeforeType(t *testing.T) {
+	dir := t.TempDir()
+	src := `package fixture
+
+const (
+	ShadeDark  Shade = "dark"
+	ShadeLight Shade = "light"
+)
+
+// swagger:enum Shade
+type Shade string
+`
+	if err := os.WriteFile(filepath.Join(dir, "shade.go"), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := ScanSwaggerEnumTypes([]string{dir})
+	if err != nil {
+		t.Fatalf("ScanSwaggerEnumTypes: %v", err)
+	}
+	wantKey := EnumKey([]any{"dark", "light"})
+	if got[wantKey] != "Shade" {
+		t.Fatalf("map[%q] = %q, want %q", wantKey, got[wantKey], "Shade")
+	}
+}
