@@ -203,7 +203,7 @@ func (opts FindOrgMembersOpts) applyKeywordFilter(sess *xorm.Session) (*xorm.Ses
 		builder.Like{"LOWER(`user`.full_name)", lowerKeyword},
 	)
 	if opts.SearchByEmail {
-		emailCond := builder.Like{"LOWER(`user`.email)", lowerKeyword}
+		var emailCond builder.Cond = builder.Like{"LOWER(`user`.email)", lowerKeyword}
 		switch {
 		case opts.Doer == nil:
 			emailCond = emailCond.And(builder.Eq{"`user`.keep_email_private": false})
