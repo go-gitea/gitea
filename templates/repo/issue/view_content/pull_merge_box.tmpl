@@ -11,24 +11,16 @@
 	{{$statusCheckData := .StatusCheckData}}
 	{{$requiredStatusCheckState := $statusCheckData.RequiredChecksState}}
 	{{$prUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypePullRequests}}
-	{{/* True when the repo allows fast-forward-only and the PR is fast-forwardable.
-	Commit verification is checked in the backend at merge time, not here. */}}
 	{{$canUseFastForwardOnly := and $prUnit.PullRequestsConfig.AllowFastForwardOnly (eq .Issue.PullRequest.CommitsBehind 0)}}
 	{{$signingOK := or (not .RequireSigned) .WillSign}}
-	{{/* True when the branch requires signed commits but Gitea cannot sign.
-	Per-style items use data-pull-merge-style to toggle visibility. */}}
 	{{$signingBlocksMerge := and .AllowMerge .RequireSigned (not .WillSign)}}
 	{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
-	{{/* admin can merge without checks; writer can merge when checks succeed.
-	fast-forward-only can bypass the signing block since it creates no Gitea commit. */}}
+	{{/* $canUseFastForwardOnly rescues a signing-blocked merge: ff-only creates no Gitea commit. */}}
 	{{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) $signingOK $canUseFastForwardOnly)}}
-	{{/* "fast-forward-only" when signing blocks the merge, empty otherwise.
-	Used in data-pull-merge-style so only ff-only keeps the attached rows visible. */}}
 	{{$ffOnlyStyleAttr := ""}}
 	{{if $signingBlocksMerge}}{{$ffOnlyStyleAttr = "fast-forward-only"}}{{end}}
-	{{/* The cascade below picks the avatar color. $avatarColorFromSigning is true only
-	on the signing branch so the two-avatar render can swap per selected style. New
-	cascade branches must leave $avatarColorFromSigning false. */}}
+	{{/* $avatarColorFromSigning must stay false on any new cascade branch; only the
+	signing branch drives the two-avatar style-swap below. */}}
 	{{$avatarIcon := svg "octicon-git-merge" 40}}
 	{{$avatarBaseClass := ""}}
 	{{$avatarColorFromSigning := false}}
