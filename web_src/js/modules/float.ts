@@ -489,3 +489,53 @@ export function showTemporaryTooltip(target: Element, content: FloatContent): vo
 export function getFloat(el: Element): FloatInstance | null {
   return instances.get(el) ?? null;
 }
+
+type FloatDelegateProps = Omit<FloatProps, 'content' | 'trigger' | 'getReferenceClientRect'> & {
+  target: string;
+  content: (el: Element) => FloatContent;
+};
+
+/** A single Float shared across many children of `container` matching `target`,
+ *  reference-swapped on hover so it appears to glide between cells. */
+export function delegate(container: Element | string, props: FloatDelegateProps): () => void {
+  const resolved = typeof container === 'string' ? document.querySelector(container) : container;
+  if (!resolved) return () => {};
+  const root: Element = resolved;
+  const {target, content, ...floatProps} = props;
+  const anchor = document.createElement('div');
+  anchor.style.position = 'fixed';
+  document.body.append(anchor);
+  let hovered: Element | null = null;
+  const instance = createFloat(anchor, {
+    ...floatProps,
+    trigger: 'manual',
+    getReferenceClientRect: () => (hovered ?? anchor).getBoundingClientRect(),
+  });
+  instance.float.style.transition = 'transform 0.1s ease-out';
+
+  function onOver(e: Event): void {
+    const el = (e.target as Element).closest(target);
+    if (!el || !root.contains(el)) {
+      hovered = null;
+      instance.hide();
+      return;
+    }
+    hovered = el;
+    instance.setContent(content(el));
+    if (instance.state.isShown) instance.update();
+    else instance.show();
+  }
+  function onLeave(): void {
+    hovered = null;
+    instance.hide();
+  }
+  root.addEventListener('mouseover', onOver);
+  root.addEventListener('mouseleave', onLeave);
+
+  return () => {
+    root.removeEventListener('mouseover', onOver);
+    root.removeEventListener('mouseleave', onLeave);
+    instance.destroy();
+    anchor.remove();
+  };
+}

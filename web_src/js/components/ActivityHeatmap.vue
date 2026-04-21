@@ -1,7 +1,6 @@
 <script lang="ts" setup>
-import {computed, onBeforeUnmount} from 'vue';
-import {createFloat} from '../modules/float.ts';
-import type {FloatInstance} from '../modules/float.ts';
+import {computed, onMounted, onBeforeUnmount} from 'vue';
+import {delegate} from '../modules/float.ts';
 
 type HeatmapValue = {date: Date; count: number};
 type HeatmapCell = {date: Date; colorIndex: number; ariaLabel: string; tooltip: string};
@@ -100,53 +99,17 @@ const grid = computed(() => {
 
 const legendViewBox = `${cellSize} 0 ${squareSize * (colorRange.length + 2)} ${squareSize}`;
 
-let singleton: {instance: FloatInstance; anchor: HTMLElement} | null = null;
-let hoveredCell: Element | null = null;
-
-function ensureSingleton(): FloatInstance {
-  if (singleton) return singleton.instance;
-  const anchor = document.createElement('div');
-  anchor.style.position = 'fixed';
-  document.body.append(anchor);
-  const instance = createFloat(anchor, {
-    content: '',
-    allowHTML: true,
+let disposeDelegate: (() => void) | null = null;
+onMounted(() => {
+  disposeDelegate = delegate('.heatmap-grid', {
+    target: '.heatmap-day',
     theme: 'tooltip',
     role: 'tooltip',
-    placement: 'top',
-    trigger: 'manual',
-    getReferenceClientRect: () => (hoveredCell ?? anchor).getBoundingClientRect(),
+    allowHTML: true,
+    content: (el) => el.getAttribute('data-tooltip')!,
   });
-  instance.float.style.transition = 'transform 0.1s ease-out';
-  singleton = {instance, anchor};
-  return instance;
-}
-
-onBeforeUnmount(() => {
-  singleton?.instance.destroy();
-  singleton?.anchor.remove();
-  singleton = null;
-  hoveredCell = null;
 });
-
-function lazyInitTooltip(e: MouseEvent) {
-  const el = e.target as Element;
-  if (!el.classList.contains('heatmap-day')) {
-    hoveredCell = null;
-    singleton?.instance.hide();
-    return;
-  }
-  const inst = ensureSingleton();
-  hoveredCell = el;
-  inst.setContent(el.getAttribute('data-tooltip')!);
-  if (inst.state.isShown) inst.update();
-  else inst.show();
-}
-
-function onGridMouseLeave() {
-  hoveredCell = null;
-  singleton?.instance.hide();
-}
+onBeforeUnmount(() => disposeDelegate?.());
 
 function handleDayClick(date: Date) {
   const params = new URLSearchParams(document.location.search);
@@ -185,7 +148,7 @@ function handleDayClick(date: Date) {
         <text class="heatmap-day-label" :x="0" :y="44">{{ locale.heatMapLocale.days[3] }}</text>
         <text class="heatmap-day-label" :x="0" :y="69">{{ locale.heatMapLocale.days[5] }}</text>
       </g>
-      <g class="heatmap-grid" :transform="`translate(${gridLeft}, ${gridTop})`" @mouseover="lazyInitTooltip" @mouseleave="onGridMouseLeave">
+      <g class="heatmap-grid" :transform="`translate(${gridLeft}, ${gridTop})`">
         <g
           v-for="(week, w) in grid.calendar"
           :key="w"
