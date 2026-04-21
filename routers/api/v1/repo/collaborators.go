@@ -371,8 +371,8 @@ func GetAssignees(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToUsers(ctx, ctx.Doer, assignees))
 }
 
-// IsAssignee check if a user can be assigned to issues in a repository
-func IsAssignee(ctx *context.APIContext) {
+// CheckRepoIssueAssignee check if a user can be assigned to issues in a repository
+func CheckRepoIssueAssignee(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/assignees/{assignee} repository repoCheckAssignee
 	// ---
 	// summary: Check if a user can be assigned to issues in a repository
@@ -410,7 +410,7 @@ func IsAssignee(ctx *context.APIContext) {
 		return
 	}
 
-	canAssign, err := repo_model.IsRepoAssignee(ctx, ctx.Repo.Repository, assignee)
+	canAssign, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

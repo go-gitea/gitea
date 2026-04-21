@@ -545,7 +545,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 
-		valid, err := access_model.CanBeAssigned(ctx, assignee, repo, true)
+		valid, err := access_model.CanBeAssigned(ctx, assignee, repo)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

@@ -1204,7 +1204,7 @@ func Routes() *web.Router {
 					})
 				}, reqToken())
 				m.Get("/assignees", reqToken(), reqAnyRepoReader(), repo.GetAssignees)
-				m.Get("/assignees/{assignee}", reqToken(), reqAnyRepoReader(), repo.IsAssignee)
+				m.Get("/assignees/{assignee}", reqToken(), reqAnyRepoReader(), repo.CheckRepoIssueAssignee)
 				m.Get("/reviewers", reqToken(), reqAnyRepoReader(), repo.GetReviewers)
 				m.Group("/teams", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListTeams)

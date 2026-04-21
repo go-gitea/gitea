@@ -146,43 +146,6 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 	return users, nil
 }
 
-// IsRepoAssignee checks if a user can be assigned to issues in the repository.
-func IsRepoAssignee(ctx context.Context, repo *Repository, user *user_model.User) (bool, error) {
-	if err := repo.LoadOwner(ctx); err != nil {
-		return false, err
-	}
-
-	if !repo.Owner.IsOrganization() && repo.OwnerID == user.ID {
-		return true, nil
-	}
-
-	if !user.IsActive {
-		return false, nil
-	}
-
-	e := db.GetEngine(ctx)
-	exists, err := e.Table("access").
-		Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, user.ID, perm.AccessModeWrite).
-		Exist()
-	if err != nil {
-		return false, err
-	}
-	if exists {
-		return true, nil
-	}
-
-	if repo.Owner.IsOrganization() {
-		return e.Table("team_user").
-			Join("INNER", "team_repo", "`team_repo`.team_id = `team_user`.team_id").
-			Join("INNER", "team_unit", "`team_unit`.team_id = `team_user`.team_id").
-			Where("`team_user`.uid = ? AND `team_repo`.repo_id = ? AND (`team_unit`.access_mode >= ? OR (`team_unit`.access_mode = ? AND `team_unit`.`type` = ?))",
-				user.ID, repo.ID, perm.AccessModeWrite, perm.AccessModeRead, unit.TypePullRequests).
-			Exist()
-	}
-
-	return false, nil
-}
-
 // GetIssuePostersWithSearch returns users with limit of 30 whose username started with prefix that have authored an issue/pull request for the given repository
 // It searches with the "user.name" and "user.full_name" fields case-insensitively.
 func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull bool, search string) ([]*user_model.User, error) {
