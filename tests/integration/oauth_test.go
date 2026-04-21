@@ -44,6 +44,8 @@ func TestOAuth2Provider(t *testing.T) {
 	t.Run("AuthorizeLoginRedirect", testAuthorizeLoginRedirect)
 
 	t.Run("OAuth2WellKnown", testOAuth2WellKnown)
+	t.Run("OAuthSourceWithSpace", testOAuthSourceWithSpace)
+	// TODO: move more tests as sub-tests here, avoid unnecessary PrepareTestEnv
 }
 
 func testAuthorizeNoClientID(t *testing.T) {
@@ -999,9 +1001,7 @@ func addOAuth2Source(t *testing.T, authName string, cfg oauth2.Source) {
 	require.NoError(t, err)
 }
 
-func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func createMockServer() *httptest.Server {
 	var mockServer *httptest.Server
 	mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -1016,6 +1016,14 @@ func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
+
+	return mockServer
+}
+
+func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	mockServer := createMockServer()
 	defer mockServer.Close()
 
 	ctx := t.Context()
@@ -1090,4 +1098,23 @@ func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 			assert.Equal(t, c.mockFullName, user.FullName)
 		})
 	}
+}
+
+// Checks if an OAuth provider with spaces within the name does work,
+// with the encoding of its names in the URL (PR#37327)
+func testOAuthSourceWithSpace(t *testing.T) {
+	mockServer := createMockServer()
+	defer mockServer.Close()
+
+	authName := "oauth test with spaces"
+	oauth2Source := oauth2.Source{
+		Provider:                      "openidConnect",
+		OpenIDConnectAutoDiscoveryURL: mockServer.URL + "/.well-known/openid-configuration",
+	}
+	addOAuth2Source(t, authName, oauth2Source)
+
+	session := emptyTestSession(t)
+	req := NewRequest(t, "GET", "/user/oauth2/"+url.QueryEscape(authName))
+	resp := session.MakeRequest(t, req, http.StatusTemporaryRedirect)
+	assert.Contains(t, resp.Header().Get("Location"), mockServer.URL+"/authorize")
 }
