@@ -11,6 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -39,6 +41,10 @@ func ProtocolMiddlewares() (handlers []any) {
 		handlers = append(handlers, context.AccessLogger())
 	}
 
+	if !setting.IsProd {
+		handlers = append(handlers, public.ViteDevMiddleware)
+	}
+
 	return handlers
 }
 
@@ -62,8 +68,8 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 			}()
 
 			defer func() {
-				if err := recover(); err != nil {
-					RenderPanicErrorPage(respWriter, req, err) // it should never panic
+				if recovered := recover(); recovered != nil {
+					renderPanicErrorPage(respWriter, req, recovered) // it should never panic, and it handles the stack trace internally
 				}
 			}()
 
@@ -71,8 +77,13 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 			req = req.WithContext(cache.WithCacheContext(ctx))
 			ds.SetContextValue(httplib.RequestContextKey, req)
 			ds.AddCleanUp(func() {
-				if req.MultipartForm != nil {
-					_ = req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
+				// TODO: GOLANG-HTTP-TMPDIR: Golang saves the uploaded files to temp directory (TMPDIR) when parsing multipart-form.
+				// The "req" might have changed due to the new "req.WithContext" calls
+				// For example: in NewBaseContext, a new "req" with context is created, and the multipart-form is parsed there.
+				// So we always use the latest "req" from the data store.
+				ctxReq := ds.GetContextValue(httplib.RequestContextKey).(*http.Request)
+				if ctxReq.MultipartForm != nil {
+					_ = ctxReq.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
 				}
 			})
 			next.ServeHTTP(respWriter, req)
@@ -107,7 +118,11 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 	return proxy.ForwardedHeaders(opt)
 }
 
-func Sessioner() (func(next http.Handler) http.Handler, error) {
+func MustInitSessioner() func(next http.Handler) http.Handler {
+	// TODO: CHI-SESSION-GOB-REGISTER: chi-session has a design problem: it calls gob.Register for "Set"
+	// But if the server restarts, then the first "Get" will fail to decode the previously stored session data because the structs are not registered yet.
+	// So each package should make sure their structs are registered correctly during startup for session storage.
+
 	middleware, err := session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
@@ -120,8 +135,7 @@ func Sessioner() (func(next http.Handler) http.Handler, error) {
 		Domain:         setting.SessionConfig.Domain,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create session middleware: %w", err)
+		log.Fatal("common.Sessioner failed: %v", err)
 	}
-
-	return middleware, nil
+	return middleware
 }

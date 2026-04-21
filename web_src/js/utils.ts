@@ -23,9 +23,17 @@ export function extname(path: string): string {
 }
 
 /** test whether a variable is an object */
-export function isObject(obj: any): boolean {
+export function isObject<T = Record<string, any>>(obj: any): obj is T {
   return Object.prototype.toString.call(obj) === '[object Object]';
 }
+
+/** Whether the current platform is macOS or iOS. */
+export const isMac = /Mac/i.test(navigator.userAgent);
+
+/** Platform-aware display symbols for keyboard modifier and special keys. */
+export const keySymbols: Record<string, string> = isMac ?
+  {Mod: '⌘', Alt: '⌥', Shift: '⇧', Ctrl: '⌃', Up: '↑', Down: '↓', Enter: '⏎'} :
+  {Mod: 'Ctrl', Shift: 'Shift', Alt: 'Alt', Up: '↑', Down: '↓', Enter: '⏎'};
 
 /** returns whether a dark theme is enabled */
 export function isDarkTheme(): boolean {
@@ -41,6 +49,15 @@ export function stripTags(text: string): string {
     text = text.replace(/<[^>]*>?/g, '');
   }
   return text;
+}
+
+export function urlQueryEscape(s: string) {
+  // See "TestQueryEscape" in backend
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#encoding_for_rfc3986
+  return encodeURIComponent(s).replace(
+    /[!'()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
 }
 
 export function parseIssueHref(href: string): IssuePathInfo {
@@ -60,16 +77,11 @@ export function parseRepoOwnerPathInfo(pathname: string): RepoOwnerPathInfo {
 export function parseIssuePageInfo(): IssuePageInfo {
   const el = document.querySelector('#issue-page-info');
   return {
-    issueNumber: parseInt(el?.getAttribute('data-issue-index')),
+    issueNumber: parseInt(el?.getAttribute('data-issue-index') || ''),
     issueDependencySearchType: el?.getAttribute('data-issue-dependency-search-type') || '',
-    repoId: parseInt(el?.getAttribute('data-issue-repo-id')),
+    repoId: parseInt(el?.getAttribute('data-issue-repo-id') || ''),
     repoLink: el?.getAttribute('data-issue-repo-link') || '',
   };
-}
-
-/** parse a URL, either relative '/path' or absolute 'https://localhost/path' */
-export function parseUrl(str: string): URL {
-  return new URL(str, str.startsWith('http') ? undefined : window.location.origin);
 }
 
 /** return current locale chosen by user */
@@ -93,14 +105,18 @@ export function blobToDataURI(blob: Blob): Promise<string> {
     try {
       const reader = new FileReader();
       reader.addEventListener('load', (e) => {
-        resolve(e.target.result as string);
+        if (e.target) {
+          resolve(e.target.result as string);
+        } else {
+          reject(new Error('blobToDataURI: FileReader failed'));
+        }
       });
       reader.addEventListener('error', () => {
-        reject(new Error('FileReader failed'));
+        reject(new Error('blobToDataURI: FileReader error'));
       });
       reader.readAsDataURL(blob);
-    } catch (err) {
-      reject(err);
+    } catch (err: unknown) {
+      reject(err instanceof Error ? err : new Error(String(err)));
     }
   });
 }
@@ -116,21 +132,22 @@ export function convertImage(blob: Blob, mime: string): Promise<Blob> {
           canvas.width = img.naturalWidth;
           canvas.height = img.naturalHeight;
           const context = canvas.getContext('2d');
+          if (!context) return reject(new Error('convertImage: no context'));
           context.drawImage(img, 0, 0);
           canvas.toBlob((blob) => {
-            if (!(blob instanceof Blob)) return reject(new Error('imageBlobToPng failed'));
+            if (!(blob instanceof Blob)) return reject(new Error('convertImage: toBlob failed'));
             resolve(blob);
           }, mime);
-        } catch (err) {
-          reject(err);
+        } catch (err: unknown) {
+          reject(err instanceof Error ? err : new Error(String(err)));
         }
       });
       img.addEventListener('error', () => {
-        reject(new Error('imageBlobToPng failed'));
+        reject(new Error('convertImage: image failed to load'));
       });
       img.src = await blobToDataURI(blob);
-    } catch (err) {
-      reject(err);
+    } catch (err: unknown) {
+      reject(err instanceof Error ? err : new Error(String(err)));
     }
   });
 }
@@ -179,27 +196,36 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export function isImageFile({name, type}: {name?: string, type?: string}): boolean {
-  return /\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/');
+  return Boolean(/\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/'));
 }
 
 export function isVideoFile({name, type}: {name?: string, type?: string}): boolean {
-  return /\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/');
+  return Boolean(/\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/'));
 }
 
-export function toggleFullScreen(fullscreenElementsSelector: string, isFullScreen: boolean, sourceParentSelector?: string): void {
+const byteUnits = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB'];
+
+export function formatBytes(num: number, precision = 2): string {
+  if (!Number.isFinite(num) || num < 0) return `0 ${byteUnits[0]}`;
+  if (num < 1024) return `${num} ${byteUnits[0]}`;
+  const exp = Math.min(Math.floor(Math.log2(num) / 10), byteUnits.length - 1);
+  const value = num / (1024 ** exp);
+  const digits = Math.max(0, precision - 1 - Math.floor(Math.log10(value)));
+  return `${value.toFixed(digits)} ${byteUnits[exp]}`;
+}
+
+export function toggleFullScreen(fullScreenEl: HTMLElement, isFullScreen: boolean, sourceParentSelector?: string): void {
   // hide other elements
-  const headerEl = document.querySelector('#navbar');
-  const contentEl = document.querySelector('.page-content');
-  const footerEl = document.querySelector('.page-footer');
+  const headerEl = document.querySelector('#navbar')!;
+  const contentEl = document.querySelector('.page-content')!;
+  const footerEl = document.querySelector('.page-footer')!;
   toggleElem(headerEl, !isFullScreen);
   toggleElem(contentEl, !isFullScreen);
   toggleElem(footerEl, !isFullScreen);
 
-  const sourceParentEl = sourceParentSelector ? document.querySelector(sourceParentSelector) : contentEl;
-
-  const fullScreenEl = document.querySelector(fullscreenElementsSelector);
-  const outerEl = document.querySelector('.full.height');
-  toggleElemClass(fullscreenElementsSelector, 'fullscreen', isFullScreen);
+  const sourceParentEl = sourceParentSelector ? document.querySelector(sourceParentSelector)! : contentEl;
+  const outerEl = document.querySelector('.full.height')!;
+  toggleElemClass(fullScreenEl, 'fullscreen', isFullScreen);
   if (isFullScreen) {
     outerEl.append(fullScreenEl);
   } else {

@@ -7,6 +7,7 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"slices"
@@ -20,7 +21,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/htmlutil"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
@@ -233,11 +237,17 @@ func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 	return lang.TrString("repo.issues.role." + string(r) + "_helper")
 }
 
+type SpecialDoerNameType string
+
+const SpecialDoerNameCodeOwners SpecialDoerNameType = "CODEOWNERS"
+
 // CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
 type CommentMetaData struct {
 	ProjectColumnID    int64  `json:"project_column_id,omitempty"`
 	ProjectColumnTitle string `json:"project_column_title,omitempty"`
 	ProjectTitle       string `json:"project_title,omitempty"`
+
+	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
 }
 
 // Comment represents a comment in commit and issue page.
@@ -319,21 +329,34 @@ type Comment struct {
 	RefIssue   *Issue                 `xorm:"-"`
 	RefComment *Comment               `xorm:"-"`
 
-	Commits     []*git_model.SignCommitWithStatuses `xorm:"-"`
-	OldCommit   string                              `xorm:"-"`
-	NewCommit   string                              `xorm:"-"`
-	CommitsNum  int64                               `xorm:"-"`
-	IsForcePush bool                                `xorm:"-"`
+	Commits    []*git_model.SignCommitWithStatuses `xorm:"-"`
+	OldCommit  string                              `xorm:"-"`
+	NewCommit  string                              `xorm:"-"`
+	CommitsNum int64                               `xorm:"-"`
+
+	// Templates still use it. It is not persisted in database, it is only set when creating or loading
+	IsForcePush bool `xorm:"-"`
 }
 
 func init() {
 	db.RegisterModel(new(Comment))
 }
 
-// PushActionContent is content of push pull comment
+// PushActionContent is content of pull request's push comment
 type PushActionContent struct {
-	IsForcePush bool     `json:"is_force_push"`
-	CommitIDs   []string `json:"commit_ids"`
+	IsForcePush bool `json:"is_force_push"`
+	// if IsForcePush=true, CommitIDs contains the commit pair [old head, new head]
+	// if IsForcePush=false, CommitIDs contains the new commits newly pushed to the head branch
+	CommitIDs []string `json:"commit_ids"`
+}
+
+func (c *Comment) GetPushActionContent() (*PushActionContent, error) {
+	if c.Type != CommentTypePullRequestPush {
+		return nil, errors.New("not a pull request push comment")
+	}
+	var data PushActionContent
+	_ = json.Unmarshal(util.UnsafeStringToBytes(c.Content), &data)
+	return &data, nil
 }
 
 // LoadIssue loads the issue reference for the comment
@@ -521,6 +544,12 @@ func (c *Comment) EventTag() string {
 	return fmt.Sprintf("event-%d", c.ID)
 }
 
+func (c *Comment) GetSanitizedContentHTML() template.HTML {
+	// mainly for type=4 CommentTypeCommitRef
+	// the content is a link like <a href="{RepoLink}/commit/{CommitID}">message title</a> (from CreateRefComment)
+	return markup.Sanitize(c.Content)
+}
+
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
 func (c *Comment) LoadLabel(ctx context.Context) error {
 	var label Label
@@ -692,7 +721,7 @@ func (c *Comment) LoadTime(ctx context.Context) error {
 		return nil
 	}
 	var err error
-	c.Time, err = GetTrackedTimeByID(ctx, c.TimeID)
+	c.Time, err = GetTrackedTimeByID(ctx, c.IssueID, c.TimeID)
 	return err
 }
 
@@ -764,6 +793,37 @@ func (c *Comment) CodeCommentLink(ctx context.Context) string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
 }
 
+func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
+	if c.CommentMetaData == nil {
+		return ""
+	}
+	if c.CommentMetaData.SpecialDoerName == SpecialDoerNameCodeOwners {
+		return locale.Tr("repo.issues.review.codeowners_rules")
+	}
+	return htmlutil.HTMLFormat("%s", c.CommentMetaData.SpecialDoerName)
+}
+
+func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdStr template.HTML) template.HTML {
+	if c.AssigneeID > 0 {
+		// it guarantees LoadAssigneeUserAndTeam has been called, and c.Assignee is Ghost user but not nil if the user doesn't exist
+		if c.RemovedAssignee {
+			if c.PosterID == c.AssigneeID {
+				return locale.Tr("repo.issues.review.remove_review_request_self", createdStr)
+			}
+			return locale.Tr("repo.issues.review.remove_review_request", c.Assignee.GetDisplayName(), createdStr)
+		}
+		return locale.Tr("repo.issues.review.add_review_request", c.Assignee.GetDisplayName(), createdStr)
+	}
+	teamName := "Ghost Team"
+	if c.AssigneeTeam != nil {
+		teamName = c.AssigneeTeam.Name
+	}
+	if c.RemovedAssignee {
+		return locale.Tr("repo.issues.review.remove_review_request", teamName, createdStr)
+	}
+	return locale.Tr("repo.issues.review.add_review_request", teamName, createdStr)
+}
+
 // CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
@@ -778,6 +838,11 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 				ProjectColumnID:    opts.ProjectColumnID,
 				ProjectColumnTitle: opts.ProjectColumnTitle,
 				ProjectTitle:       opts.ProjectTitle,
+			}
+		}
+		if opts.SpecialDoerName != "" {
+			commentMetaData = &CommentMetaData{
+				SpecialDoerName: opts.SpecialDoerName,
 			}
 		}
 
@@ -862,10 +927,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		if err = UpdateCommentAttachments(ctx, comment, opts.Attachments); err != nil {
 			return err
 		}
-	case CommentTypeReopen, CommentTypeClose:
-		if err = repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, true); err != nil {
-			return err
-		}
+		// comment type reopen and close event have their own logic to update numbers but not here
 	}
 	// update the issue's updated_unix column
 	return UpdateIssueCols(ctx, opts.Issue, "updated_unix")
@@ -979,6 +1041,7 @@ type CreateCommentOptions struct {
 	RefIsPull          bool
 	IsForcePush        bool
 	Invalidated        bool
+	SpecialDoerName    SpecialDoerNameType // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
 }
 
 // GetCommentByID returns the comment by given ID.
@@ -989,6 +1052,20 @@ func GetCommentByID(ctx context.Context, id int64) (*Comment, error) {
 		return nil, err
 	} else if !has {
 		return nil, ErrCommentNotExist{id, 0}
+	}
+	return c, nil
+}
+
+func GetCommentWithRepoID(ctx context.Context, repoID, commentID int64) (*Comment, error) {
+	c, err := GetCommentByID(ctx, commentID)
+	if err != nil {
+		return nil, err
+	}
+	if err := c.LoadIssue(ctx); err != nil {
+		return nil, err
+	}
+	if c.Issue.RepoID != repoID {
+		return nil, ErrCommentNotExist{commentID, 0}
 	}
 	return c, nil
 }

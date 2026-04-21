@@ -16,10 +16,6 @@ import (
 	"strings"
 	"time"
 
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
-	_ "image/png"  // for processing png images
-
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -46,6 +42,9 @@ import (
 
 	_ "golang.org/x/image/bmp"  // for processing bmp images
 	_ "golang.org/x/image/webp" // for processing webp images
+	_ "image/gif"               // for processing gif images
+	_ "image/jpeg"              // for processing jpeg images
+	_ "image/png"               // for processing png images
 )
 
 const (
@@ -95,6 +94,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []b
 
 	meta, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, pointer.Oid)
 	if err != nil { // fallback to a plain file
+		fi.lfsMeta = &pointer
 		log.Warn("Unable to access LFS pointer %s in repo %d: %v", pointer.Oid, repoID, err)
 		return buf, dataRc, fi, nil
 	}
@@ -150,12 +150,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 	return true
 }
 
-func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
-	renderer, err := markup.FindRendererByContext(renderCtx)
-	if err != nil {
-		return nil, "", err
-	}
-
+func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, renderer markup.Renderer, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
 	markupRd, markupWr := io.Pipe()
 	defer markupWr.Close()
 
@@ -163,7 +158,7 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 	go func() {
 		sb := &strings.Builder{}
 		if markup.RendererNeedPostProcess(renderer) {
-			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP) // We allow NBSP here this is rendered
+			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.EscapeOptionsForView())
 		} else {
 			escaped = &charset.EscapeStatus{}
 			_, _ = io.Copy(sb, markupRd)
@@ -244,26 +239,16 @@ func LastCommit(ctx *context.Context) {
 		return
 	}
 
+	// The "/lastcommit/" endpoint is used to render the embedded HTML content for the directory file listing with latest commit info
+	// It needs to construct correct links to the file items, but the route only accepts a commit ID, not a full ref name (branch or tag).
+	// So we need to get the ref name from the query parameter "refSubUrl".
+	// TODO: LAST-COMMIT-ASYNC-LOADING: it needs more tests to cover this
+	refSubURL := path.Clean(ctx.FormString("refSubUrl"))
+	prepareRepoViewContent(ctx, util.IfZero(refSubURL, ctx.Repo.RefTypeNameSubURL()))
 	renderDirectoryFiles(ctx, 0)
 	if ctx.Written() {
 		return
 	}
-
-	var treeNames []string
-	paths := make([]string, 0, 5)
-	if len(ctx.Repo.TreePath) > 0 {
-		treeNames = strings.Split(ctx.Repo.TreePath, "/")
-		for i := range treeNames {
-			paths = append(paths, strings.Join(treeNames[:i+1], "/"))
-		}
-
-		ctx.Data["HasParentPath"] = true
-		if len(paths)-2 >= 0 {
-			ctx.Data["ParentPath"] = "/" + paths[len(paths)-2]
-		}
-	}
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
-	ctx.Data["BranchLink"] = branchLink
 
 	ctx.HTML(http.StatusOK, tplRepoViewList)
 }
@@ -288,7 +273,9 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 
-	ctx.Data["LastCommitLoaderURL"] = ctx.Repo.RepoLink + "/lastcommit/" + url.PathEscape(ctx.Repo.CommitID) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+	// TODO: LAST-COMMIT-ASYNC-LOADING: search this keyword to see more details
+	lastCommitLoaderURL := ctx.Repo.RepoLink + "/lastcommit/" + url.PathEscape(ctx.Repo.CommitID) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+	ctx.Data["LastCommitLoaderURL"] = lastCommitLoaderURL + "?refSubUrl=" + url.QueryEscape(ctx.Repo.RefTypeNameSubURL())
 
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
@@ -307,7 +294,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		ctx.ServerError("ListEntries", err)
 		return nil
 	}
-	allEntries.CustomSort(base.NaturalSortLess)
+	allEntries.CustomSort(base.NaturalSortCompare)
 
 	commitInfoCtx := gocontext.Context(ctx)
 	if timeout > 0 {
@@ -321,6 +308,23 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		ctx.ServerError("GetCommitsInfo", err)
 		return nil
 	}
+
+	{ // this block is for testing purpose only
+		if timeout != 0 && !setting.IsProd && !setting.IsInTesting {
+			log.Debug("first call to get directory file commit info")
+			clearFilesCommitInfo := func() {
+				log.Warn("clear directory file commit info to force async loading on frontend")
+				for i := range files {
+					if i%2 == 0 { // for testing purpose, only clear half of the files' commit info
+						files[i].Commit = nil
+					}
+				}
+			}
+			_ = clearFilesCommitInfo
+			// clearFilesCommitInfo() // TODO: LAST-COMMIT-ASYNC-LOADING: debug the frontend async latest commit info loading, uncomment this line, and it needs more tests
+		}
+	}
+
 	ctx.Data["Files"] = files
 	prepareDirectoryFileIcons(ctx, files)
 	for _, f := range files {
@@ -333,16 +337,6 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	if !loadLatestCommitData(ctx, latestCommit) {
 		return nil
 	}
-
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
-	treeLink := branchLink
-
-	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-	}
-
-	ctx.Data["TreeLink"] = treeLink
-
 	return allEntries
 }
 
@@ -352,7 +346,7 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOp
 	if page <= 0 {
 		page = 1
 	}
-	pager := context.NewPagination(total, setting.ItemsPerPage, page, 5)
+	pager := context.NewPagination(int64(total), setting.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
 	items, err := getter(db.ListOptions{
@@ -410,7 +404,7 @@ func Forks(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPagination(int(total), pageSize, page, 5)
+	pager := context.NewPagination(total, pageSize, page, 5)
 	ctx.Data["ShowRepoOwnerAvatar"] = true
 	ctx.Data["ShowRepoOwnerOnList"] = true
 	ctx.Data["Page"] = pager

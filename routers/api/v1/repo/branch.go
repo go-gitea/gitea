@@ -150,12 +150,12 @@ func DeleteBranch(ctx *context.APIContext) {
 		}
 	}
 
-	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName, nil); err != nil {
+	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			ctx.APIErrorNotFound(err)
 		case errors.Is(err, repo_service.ErrBranchIsDefault):
-			ctx.APIError(http.StatusForbidden, errors.New("can not delete default branch"))
+			ctx.APIError(http.StatusForbidden, errors.New("can not delete default or pull request target branch"))
 		case errors.Is(err, git_model.ErrBranchIsProtected):
 			ctx.APIError(http.StatusForbidden, errors.New("branch protected"))
 		default:
@@ -375,9 +375,84 @@ func ListBranches(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.SetLinkHeader(int(totalNumOfBranches), listOptions.PageSize)
+	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
 	ctx.SetTotalCountHeader(totalNumOfBranches)
 	ctx.JSON(http.StatusOK, apiBranches)
+}
+
+// UpdateBranch moves a branch reference to a new commit.
+func UpdateBranch(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/branches/{branch} repository repoUpdateBranch
+	// ---
+	// summary: Update a branch reference to a new commit
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: branch
+	//   in: path
+	//   description: name of the branch
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/UpdateBranchRepoOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	opt := web.GetForm(ctx).(*api.UpdateBranchRepoOption)
+
+	branchName := ctx.PathParam("*")
+	repo := ctx.Repo.Repository
+
+	if repo.IsEmpty {
+		ctx.APIError(http.StatusNotFound, "Git Repository is empty.")
+		return
+	}
+
+	if repo.IsMirror {
+		ctx.APIError(http.StatusForbidden, "Git Repository is a mirror.")
+		return
+	}
+
+	// permission check has been done in api.go
+	if err := repo_service.UpdateBranch(ctx, repo, ctx.Repo.GitRepo, ctx.Doer, branchName, opt.NewCommitID, opt.OldCommitID, opt.Force); err != nil {
+		switch {
+		case git_model.IsErrBranchNotExist(err):
+			ctx.APIErrorNotFound(err)
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.APIError(http.StatusUnprocessableEntity, err)
+		case git.IsErrPushRejected(err):
+			rej := err.(*git.ErrPushRejected)
+			ctx.APIError(http.StatusForbidden, rej.Message)
+		default:
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
 
 // RenameBranch renames a repository's branch.
@@ -440,7 +515,7 @@ func RenameBranch(ctx *context.APIContext) {
 		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
 			ctx.APIError(http.StatusForbidden, "User must be a repo or site admin to rename default or protected branches.")
 		case errors.Is(err, git_model.ErrBranchIsProtected):
-			ctx.APIError(http.StatusForbidden, "Branch is protected by glob-based protection rules.")
+			ctx.APIError(http.StatusForbidden, "Failed to rename branch due to branch protection rules.")
 		default:
 			ctx.APIErrorInternal(err)
 		}
@@ -488,7 +563,7 @@ func GetBranchProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
-	bpName := ctx.PathParam("name")
+	bpName := ctx.PathParam("*")
 	bp, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -770,7 +845,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.EditBranchProtectionOption)
 	repo := ctx.Repo.Repository
-	bpName := ctx.PathParam("name")
+	bpName := ctx.PathParam("*")
 	protectBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -897,7 +972,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	} else {
 		whitelistUsers = protectBranch.WhitelistUserIDs
 	}
-	if form.ForcePushAllowlistDeployKeys != nil {
+	if form.ForcePushAllowlistUsernames != nil {
 		forcePushAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.ForcePushAllowlistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
@@ -1093,7 +1168,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
-	bpName := ctx.PathParam("name")
+	bpName := ctx.PathParam("*")
 	bp, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.APIErrorInternal(err)

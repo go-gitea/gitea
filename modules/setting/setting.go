@@ -28,8 +28,10 @@ var (
 	CfgProvider ConfigProvider
 	IsWindows   bool
 
-	// IsInTesting indicates whether the testing is running. A lot of unreliable code causes a lot of nonsense error logs during testing
-	// TODO: this is only a temporary solution, we should make the test code more reliable
+	// IsInTesting indicates whether the testing is running (unit test or integration test). It can be used for:
+	// * Skip nonsense error logs during testing caused by unreliable code (TODO: this is only a temporary solution, we should make the test code more reliable)
+	// * Panic in dev or testing mode to make the problem more obvious and easier to debug
+	// * Mock some functions or options to make testing easier (eg: session store, time, URL detection, etc.)
 	IsInTesting = false
 )
 
@@ -55,6 +57,10 @@ func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
 
 	currentUser := user.CurrentUsername()
 	return currentUser, runUser == currentUser
+}
+
+func IsInE2eTesting() bool {
+	return os.Getenv("GITEA_TEST_E2E") == "true"
 }
 
 // PrepareAppDataPath creates app data directory if necessary
@@ -108,6 +114,9 @@ func LoadCommonSettings() {
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
 func loadCommonSettingsFrom(cfg ConfigProvider) error {
+	// a lot of logic depends on InstallLock value, so it must be loaded before any other settings
+	InstallLock = HasInstallLock(cfg)
+
 	// WARNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadLogGlobalFrom(cfg)
@@ -192,7 +201,7 @@ func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
 	if HasInstallLock(rootCfg) {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
 		if !match {
-			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
+			log.Fatal("Expect user '%s' (RUN_USER in app.ini) but current user is: %s", RunUser, currentUser)
 		}
 	}
 }
@@ -223,7 +232,7 @@ func LoadSettings() {
 func LoadSettingsForInstall() {
 	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
-	loadMailerFrom(CfgProvider)
+	loadMailsFrom(CfgProvider)
 }
 
 var configuredPaths = make(map[string]string)
@@ -240,4 +249,5 @@ func PanicInDevOrTesting(msg string, a ...any) {
 	if !IsProd || IsInTesting {
 		panic(fmt.Sprintf(msg, a...))
 	}
+	log.Error(msg, a...)
 }

@@ -8,6 +8,7 @@ import {
   TimeScale,
   type ChartOptions,
   type ChartData,
+  type ChartDataset,
 } from 'chart.js';
 import {GET} from '../modules/fetch.ts';
 import {Bar} from 'vue-chartjs';
@@ -19,6 +20,7 @@ import {
   type DayDataObject,
 } from '../utils/time.ts';
 import {chartJsColors} from '../utils/color.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {onMounted, ref, shallowRef} from 'vue';
@@ -45,7 +47,7 @@ defineProps<{
 
 const isLoading = shallowRef(false);
 const errorText = shallowRef('');
-const repoLink = pageData.repoLink;
+const repoLink = pageData.repoLink!;
 const data = ref<DayData[]>([]);
 
 onMounted(() => {
@@ -73,7 +75,7 @@ async function fetchGraphData() {
       errorText.value = response.statusText;
     }
   } catch (err) {
-    errorText.value = err.message;
+    errorText.value = errorMessage(err);
   } finally {
     isLoading.value = false;
   }
@@ -83,13 +85,12 @@ function toGraphData(data: DayData[]): ChartData<'bar'> {
   return {
     datasets: [
       {
-        // @ts-expect-error -- bar chart expects one-dimensional data, but apparently x/y still works
         data: data.map((i) => ({x: i.week, y: i.commits})),
         label: 'Commits',
         backgroundColor: chartJsColors['commits'],
         borderWidth: 0,
         tension: 0.3,
-      },
+      } as unknown as ChartDataset<'bar'>,
     ],
   };
 }
@@ -122,16 +123,16 @@ const options: ChartOptions<'bar'> = {
 
 <template>
   <div>
-    <div class="ui header tw-flex tw-items-center tw-justify-between">
+    <div class="ui header">
       {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "Number of commits in the past year" }}
     </div>
     <div class="tw-flex ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="tw-m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="octicon-sync" class="tw-mr-2 circular-spin"/>
+          <SvgIcon name="gitea-running" class="tw-mr-2 rotate-clockwise"/>
           {{ locale.loadingInfo }}
         </div>
-        <div v-else class="text red">
+        <div v-else class="tw-text-red">
           <SvgIcon name="octicon-x-circle-fill"/>
           {{ errorText }}
         </div>

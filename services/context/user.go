@@ -30,27 +30,6 @@ func UserAssignmentWeb() func(ctx *Context) {
 	}
 }
 
-// UserIDAssignmentAPI returns a middleware to handle context-user assignment for api routes
-func UserIDAssignmentAPI() func(ctx *APIContext) {
-	return func(ctx *APIContext) {
-		userID := ctx.PathParamInt64("user-id")
-
-		if ctx.IsSigned && ctx.Doer.ID == userID {
-			ctx.ContextUser = ctx.Doer
-		} else {
-			var err error
-			ctx.ContextUser, err = user_model.GetUserByID(ctx, userID)
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					ctx.APIError(http.StatusNotFound, err)
-				} else {
-					ctx.APIErrorInternal(err)
-				}
-			}
-		}
-	}
-}
-
 // UserAssignmentAPI returns a middleware to handle context-user assignment for api routes
 func UserAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
@@ -69,7 +48,7 @@ func userAssignment(ctx *Base, doer *user_model.User, errCb func(int, any)) (con
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				if redirectUserID, err := user_model.LookupUserRedirect(ctx, username); err == nil {
-					RedirectToUser(ctx, username, redirectUserID)
+					RedirectToUser(ctx, doer, username, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
 					errCb(http.StatusNotFound, err)
 				} else {

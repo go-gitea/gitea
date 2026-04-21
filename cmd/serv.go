@@ -18,7 +18,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/repo"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/json"
@@ -35,22 +35,23 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// CmdServ represents the available serv sub-command.
-var CmdServ = &cli.Command{
-	Name:        "serv",
-	Usage:       "(internal) Should only be called by SSH shell",
-	Description: "Serv provides access auth for repositories",
-	Hidden:      true, // Internal commands shouldn't be visible in help
-	Before:      PrepareConsoleLoggerLevel(log.FATAL),
-	Action:      runServ,
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name: "enable-pprof",
+func newServCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "serv",
+		Usage:       "(internal) Should only be called by SSH shell",
+		Description: "Serv provides access auth for repositories",
+		Hidden:      true, // Internal commands shouldn't be visible in help
+		Before:      PrepareConsoleLoggerLevel(log.FATAL),
+		Action:      runServ,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name: "enable-pprof",
+			},
+			&cli.BoolFlag{
+				Name: "debug",
+			},
 		},
-		&cli.BoolFlag{
-			Name: "debug",
-		},
-	},
+	}
 }
 
 func setup(ctx context.Context, debug bool) {
@@ -207,7 +208,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	username := repoPathFields[0]
 	reponame := strings.TrimSuffix(repoPathFields[1], ".git") // “the-repo-name" or "the-repo-name.wiki"
 
-	if !repo.IsValidSSHAccessRepoName(reponame) {
+	if !repo_model.IsValidSSHAccessRepoName(reponame) {
 		return fail(ctx, "Invalid repo name", "Invalid repo name: %s", reponame)
 	}
 
@@ -253,10 +254,12 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		return fail(ctx, extra.UserMsg, "ServCommand failed: %s", extra.Error)
 	}
 
-	// LowerCase and trim the repoPath as that's how they are stored.
-	// This should be done after splitting the repoPath into username and reponame
-	// so that username and reponame are not affected.
-	repoPath = strings.ToLower(results.OwnerName + "/" + results.RepoName + ".git")
+	// because the original repoPath maybe redirected, we need to use the returned actual repository information
+	if results.IsWiki {
+		repoPath = repo_model.RelativeWikiPath(results.OwnerName, results.RepoName)
+	} else {
+		repoPath = repo_model.RelativePath(results.OwnerName, results.RepoName)
+	}
 
 	// LFS SSH protocol
 	if verb == git.CmdVerbLfsTransfer {

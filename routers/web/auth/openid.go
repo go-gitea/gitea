@@ -35,7 +35,7 @@ func SignInOpenID(ctx *context.Context) {
 		return
 	}
 
-	if CheckAutoLogin(ctx) {
+	if performAutoLogin(ctx) {
 		return
 	}
 
@@ -82,7 +82,7 @@ func SignInOpenIDPost(ctx *context.Context) {
 
 	id, err := openid.Normalize(form.Openid)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &form)
+		ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &form)
 		return
 	}
 	form.Openid = id
@@ -91,7 +91,7 @@ func SignInOpenIDPost(ctx *context.Context) {
 
 	err = allowedOpenIDURI(id)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &form)
+		ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &form)
 		return
 	}
 
@@ -99,7 +99,7 @@ func SignInOpenIDPost(ctx *context.Context) {
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
 	if err != nil {
 		log.Error("Error in OpenID redirect URL: %s, %v", redirectTo, err.Error())
-		ctx.RenderWithErr("Unable to find OpenID provider in "+redirectTo, tplSignInOpenID, &form)
+		ctx.RenderWithErrDeprecated("Unable to find OpenID provider in "+redirectTo, tplSignInOpenID, &form)
 		return
 	}
 
@@ -129,7 +129,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 
 	id, err := openid.Verify(fullURL)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
+		ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 			Openid: id,
 		})
 		return
@@ -143,7 +143,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	u, err := user_model.GetUserByOpenID(ctx, id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
-			ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
+			ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 				Openid: id,
 			})
 			return
@@ -162,14 +162,14 @@ func signInOpenIDVerify(ctx *context.Context) {
 
 	parsedURL, err := url.Parse(fullURL)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
+		ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 			Openid: id,
 		})
 		return
 	}
 	values, err := url.ParseQuery(parsedURL.RawQuery)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
+		ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 			Openid: id,
 		})
 		return
@@ -183,7 +183,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 		u, err = user_model.GetUserByEmail(ctx, email)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {
-				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
+				ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 					Openid: id,
 				})
 				return
@@ -199,7 +199,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 		u, _ = user_model.GetUserByName(ctx, nickname)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {
-				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
+				ctx.RenderWithErrDeprecated(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 					Openid: id,
 				})
 				return
@@ -229,19 +229,26 @@ func signInOpenIDVerify(ctx *context.Context) {
 	}
 }
 
-// ConnectOpenID shows a form to connect an OpenID URI to an existing account
-func ConnectOpenID(ctx *context.Context) {
-	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
+func prepareConnectOpenIDPageData(ctx *context.Context) (oid string) {
+	oid, _ = ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
-		return
+		return ""
 	}
 	ctx.Data["Title"] = "OpenID connect"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDConnect"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
-	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["OpenID"] = oid
+	prepareCommonAuthPageData(ctx, CommonAuthOptions{EnableCaptcha: false})
+	return oid
+}
+
+// ConnectOpenID shows a form to connect an OpenID URI to an existing account
+func ConnectOpenID(ctx *context.Context) {
+	oid := prepareConnectOpenIDPageData(ctx)
+	if oid == "" {
+		return
+	}
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
 		ctx.Data["user_name"] = userName
@@ -252,16 +259,10 @@ func ConnectOpenID(ctx *context.Context) {
 // ConnectOpenIDPost handles submission of a form to connect an OpenID URI to an existing account
 func ConnectOpenIDPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.ConnectOpenIDForm)
-	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
+	oid := prepareConnectOpenIDPageData(ctx)
 	if oid == "" {
-		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
 		return
 	}
-	ctx.Data["Title"] = "OpenID connect"
-	ctx.Data["PageIsSignIn"] = true
-	ctx.Data["PageIsOpenIDConnect"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
-	ctx.Data["OpenID"] = oid
 
 	u, _, err := auth.UserSignIn(ctx, form.UserName, form.Password)
 	if err != nil {
@@ -271,9 +272,9 @@ func ConnectOpenIDPost(ctx *context.Context) {
 
 	// add OpenID for the user
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
-	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
+	if err := user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
-			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
 			return
 		}
 		ctx.ServerError("AddUserOpenID", err)
@@ -287,28 +288,29 @@ func ConnectOpenIDPost(ctx *context.Context) {
 	handleSignIn(ctx, u, remember)
 }
 
-// RegisterOpenID shows a form to create a new user authenticated via an OpenID URI
-func RegisterOpenID(ctx *context.Context) {
-	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
+func prepareRegisterOpenIDPageData(ctx *context.Context) (oid string) {
+	oid, _ = ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
-		return
+		return ""
 	}
 	ctx.Data["Title"] = "OpenID signup"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
-	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-	ctx.Data["Captcha"] = context.GetImageCaptcha()
-	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
-	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
-	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 	ctx.Data["OpenID"] = oid
+	prepareCommonAuthPageData(ctx, CommonAuthOptions{
+		EnableCaptcha: setting.Service.EnableCaptcha,
+	})
+	return oid
+}
+
+// RegisterOpenID shows a form to create a new user authenticated via an OpenID URI
+func RegisterOpenID(ctx *context.Context) {
+	oid := prepareRegisterOpenIDPageData(ctx)
+	if oid == "" {
+		return
+	}
+
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
 		ctx.Data["user_name"] = userName
@@ -322,19 +324,12 @@ func RegisterOpenID(ctx *context.Context) {
 
 // RegisterOpenIDPost handles submission of a form to create a new user authenticated via an OpenID URI
 func RegisterOpenIDPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.SignUpOpenIDForm)
-	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
+	oid := prepareRegisterOpenIDPageData(ctx)
 	if oid == "" {
-		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
 		return
 	}
 
-	ctx.Data["Title"] = "OpenID signup"
-	ctx.Data["PageIsSignIn"] = true
-	ctx.Data["PageIsOpenIDRegister"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
-	context.SetCaptchaData(ctx)
-	ctx.Data["OpenID"] = oid
+	form := web.GetForm(ctx).(*forms.SignUpOpenIDForm)
 
 	if setting.Service.AllowOnlyInternalRegistration {
 		ctx.HTTPError(http.StatusForbidden)
@@ -350,11 +345,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	}
 
 	length := max(setting.MinPasswordLength, 256)
-	password, err := util.CryptoRandomString(int64(length))
-	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSignUpOID, form)
-		return
-	}
+	password := util.CryptoRandomString(int64(length))
 
 	u := &user_model.User{
 		Name:   form.UserName,
@@ -368,9 +359,9 @@ func RegisterOpenIDPost(ctx *context.Context) {
 
 	// add OpenID for the user
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
-	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
+	if err := user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
-			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)
 			return
 		}
 		ctx.ServerError("AddUserOpenID", err)

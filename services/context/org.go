@@ -49,7 +49,7 @@ func GetOrganizationByParams(ctx *Context) {
 		if organization.IsErrOrgNotExist(err) {
 			redirectUserID, err := user_model.LookupUserRedirect(ctx, orgName)
 			if err == nil {
-				RedirectToUser(ctx.Base, orgName, redirectUserID)
+				RedirectToUser(ctx.Base, ctx.Doer, orgName, redirectUserID)
 			} else if user_model.IsErrUserRedirectNotExist(err) {
 				ctx.NotFound(err)
 			} else {
@@ -70,8 +70,9 @@ type OrgAssignmentOptions struct {
 }
 
 // OrgAssignment returns a middleware to handle organization assignment
-func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
+func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 	return func(ctx *Context) {
+		opts := orgAssignmentOpts // it must be a copy, because the values will be changed
 		var err error
 		if ctx.ContextUser == nil {
 			// if Organization is not defined, get it from params
@@ -131,10 +132,12 @@ func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
 					ctx.ServerError("IsOrgMember", err)
 					return
 				}
-				ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
-				if err != nil {
-					ctx.ServerError("CanCreateOrgRepo", err)
-					return
+				if ctx.Org.IsMember {
+					ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
+					if err != nil {
+						ctx.ServerError("CanCreateOrgRepo", err)
+						return
+					}
 				}
 			}
 		} else {
@@ -171,23 +174,12 @@ func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
 		}
 
 		// Team.
+		shouldSeeAllTeams, err := UserShouldSeeAllOrgTeams(ctx)
+		if err != nil {
+			ctx.ServerError("UserShouldSeeAllOrgTeams", err)
+			return
+		}
 		if ctx.Org.IsMember {
-			shouldSeeAllTeams := false
-			if ctx.Org.IsOwner {
-				shouldSeeAllTeams = true
-			} else {
-				teams, err := org.GetUserTeams(ctx, ctx.Doer.ID)
-				if err != nil {
-					ctx.ServerError("GetUserTeams", err)
-					return
-				}
-				for _, team := range teams {
-					if team.IncludesAllRepositories && team.HasAdminAccess() {
-						shouldSeeAllTeams = true
-						break
-					}
-				}
-			}
 			if shouldSeeAllTeams {
 				ctx.Org.Teams, err = org.LoadTeams(ctx)
 				if err != nil {
@@ -251,4 +243,26 @@ func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
 			ctx.Data["RenderedDescription"] = content
 		}
 	}
+}
+
+// UserShouldSeeAllOrgTeams tells if a user has permission to view all teams in the org.
+func UserShouldSeeAllOrgTeams(ctx *Context) (bool, error) {
+	if !ctx.Org.IsMember {
+		return false, nil
+	}
+
+	if ctx.Org.IsOwner {
+		return true, nil
+	}
+
+	teams, err := ctx.Org.Organization.GetUserTeams(ctx, ctx.Doer.ID)
+	if err != nil {
+		return false, err
+	}
+	for _, team := range teams {
+		if team.IncludesAllRepositories && team.HasAdminAccess() {
+			return true, nil
+		}
+	}
+	return false, nil
 }

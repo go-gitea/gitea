@@ -4,11 +4,13 @@
 package test
 
 import (
+	"archive/tar"
+	"archive/zip"
+	"bytes"
+	"compress/gzip"
+	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
 
 	"code.gitea.io/gitea/modules/json"
@@ -44,6 +46,14 @@ func ParseJSONError(buf []byte) (ret struct {
 	return ret
 }
 
+func ParseJSONRedirect(buf []byte) (ret struct {
+	Redirect *string `json:"redirect"`
+},
+) {
+	_ = json.Unmarshal(buf, &ret)
+	return ret
+}
+
 func IsNormalPageCompleted(s string) bool {
 	return strings.Contains(s, `<footer class="page-footer"`) && strings.Contains(s, `</html>`)
 }
@@ -56,18 +66,78 @@ func MockVariableValue[T any](p *T, v ...T) (reset func()) {
 	return func() { *p = old }
 }
 
-// SetupGiteaRoot Sets GITEA_ROOT if it is not already set and returns the value
-func SetupGiteaRoot() string {
-	giteaRoot := os.Getenv("GITEA_ROOT")
-	if giteaRoot != "" {
-		return giteaRoot
+func ReadAllTarGzContent(r io.Reader) (map[string]string, error) {
+	gzr, err := gzip.NewReader(r)
+	if err != nil {
+		return nil, err
 	}
-	_, filename, _, _ := runtime.Caller(0)
-	giteaRoot = filepath.Dir(filepath.Dir(filepath.Dir(filename)))
-	fixturesDir := filepath.Join(giteaRoot, "models", "fixtures")
-	if exist, _ := util.IsDir(fixturesDir); !exist {
-		panic("fixtures directory not found: " + fixturesDir)
+
+	content := make(map[string]string)
+
+	tr := tar.NewReader(gzr)
+	for {
+		hd, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		buf, err := io.ReadAll(tr)
+		if err != nil {
+			return nil, err
+		}
+
+		content[hd.Name] = string(buf)
 	}
-	_ = os.Setenv("GITEA_ROOT", giteaRoot)
-	return giteaRoot
+	return content, nil
+}
+
+func WriteTarArchive(files map[string]string) *bytes.Buffer {
+	return WriteTarCompression(func(w io.Writer) io.WriteCloser { return util.NopCloser{Writer: w} }, files)
+}
+
+func WriteZipArchive(files map[string]string) *bytes.Buffer {
+	buf := &bytes.Buffer{}
+	zw := zip.NewWriter(buf)
+	for name, content := range files {
+		w, _ := zw.Create(name)
+		_, _ = w.Write([]byte(content))
+	}
+	_ = zw.Close()
+	return buf
+}
+
+func WriteTarCompression[F func(io.Writer) io.WriteCloser | func(io.Writer) (io.WriteCloser, error)](compression F, files map[string]string) *bytes.Buffer {
+	buf := &bytes.Buffer{}
+	var cw io.WriteCloser
+	switch compressFunc := any(compression).(type) {
+	case func(io.Writer) io.WriteCloser:
+		cw = compressFunc(buf)
+	case func(io.Writer) (io.WriteCloser, error):
+		cw, _ = compressFunc(buf)
+	}
+	tw := tar.NewWriter(cw)
+
+	for name, content := range files {
+		hdr := &tar.Header{
+			Name: name,
+			Mode: 0o600,
+			Size: int64(len(content)),
+		}
+		_ = tw.WriteHeader(hdr)
+		_, _ = tw.Write([]byte(content))
+	}
+	_ = tw.Close()
+	_ = cw.Close()
+	return buf
+}
+
+func CompressGzip(content string) *bytes.Buffer {
+	buf := &bytes.Buffer{}
+	cw := gzip.NewWriter(buf)
+	_, _ = cw.Write([]byte(content))
+	_ = cw.Close()
+	return buf
 }

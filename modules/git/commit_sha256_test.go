@@ -14,33 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCommitsCountSha256(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
-
-	commitsCount, err := CommitsCount(t.Context(),
-		CommitsCountOptions{
-			RepoPath: bareRepo1Path,
-			Revision: []string{"f004f41359117d319dedd0eaab8c5259ee2263da839dcba33637997458627fdc"},
-		})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(3), commitsCount)
-}
-
-func TestCommitsCountWithoutBaseSha256(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
-
-	commitsCount, err := CommitsCount(t.Context(),
-		CommitsCountOptions{
-			RepoPath: bareRepo1Path,
-			Not:      "main",
-			Revision: []string{"branch1"},
-		})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(2), commitsCount)
-}
-
 func TestGetFullCommitIDSha256(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
 
@@ -156,40 +129,4 @@ func TestHasPreviousCommitSha256(t *testing.T) {
 	selfNot, err := commit.HasPreviousCommit(commit.ID)
 	assert.NoError(t, err)
 	assert.False(t, selfNot)
-}
-
-func TestGetCommitFileStatusMergesSha256(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo6_merge_sha256")
-
-	commitFileStatus, err := GetCommitFileStatus(t.Context(), bareRepo1Path, "d2e5609f630dd8db500f5298d05d16def282412e3e66ed68cc7d0833b29129a1")
-	assert.NoError(t, err)
-
-	expected := CommitFileStatus{
-		[]string{
-			"add_file.txt",
-		},
-		[]string{},
-		[]string{
-			"to_modify.txt",
-		},
-	}
-
-	assert.Equal(t, expected.Added, commitFileStatus.Added)
-	assert.Equal(t, expected.Removed, commitFileStatus.Removed)
-	assert.Equal(t, expected.Modified, commitFileStatus.Modified)
-
-	expected = CommitFileStatus{
-		[]string{},
-		[]string{
-			"to_remove.txt",
-		},
-		[]string{},
-	}
-
-	commitFileStatus, err = GetCommitFileStatus(t.Context(), bareRepo1Path, "da1ded40dc8e5b7c564171f4bf2fc8370487decfb1cb6a99ef28f3ed73d09172")
-	assert.NoError(t, err)
-
-	assert.Equal(t, expected.Added, commitFileStatus.Added)
-	assert.Equal(t, expected.Removed, commitFileStatus.Removed)
-	assert.Equal(t, expected.Modified, commitFileStatus.Modified)
 }

@@ -9,7 +9,7 @@
 			{{if and $.UpdateAllowed $.UpdateByRebaseAllowed}}
 				<div class="tw-inline-block">
 					<div id="update-pr-branch-with-base" class="ui buttons">
-						<button class="ui button" data-do="{{$.Issue.Link}}/update" data-redirect="{{$.Issue.Link}}">
+						<button class="ui button" data-do="{{$.Issue.Link}}/update">
 							<span class="button-text">
 								{{ctx.Locale.Tr "repo.pulls.update_branch"}}
 							</span>
@@ -26,7 +26,6 @@
 			{{end}}
 			{{if and $.UpdateAllowed (not $.UpdateByRebaseAllowed)}}
 				<form action="{{$.Issue.Link}}/update" method="post" class="ui update-branch-form">
-					{{$.CsrfTokenHtml}}
 					<button class="ui compact button">
 						<span class="ui text">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</span>
 					</button>

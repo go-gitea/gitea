@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/container"
@@ -129,13 +130,7 @@ func TestUserSettingsUpdatePassword(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		session := loginUser(t, "user2")
-
-		req := NewRequest(t, "GET", "/user/settings/account")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-
-		req = NewRequestWithValues(t, "POST", "/user/settings/account", map[string]string{
-			"_csrf":        doc.GetCSRF(),
+		req := NewRequestWithValues(t, "POST", "/user/settings/account", map[string]string{
 			"old_password": "password",
 			"password":     "password",
 			"retype":       "password",
@@ -147,16 +142,8 @@ func TestUserSettingsUpdatePassword(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		WithDisabledFeatures(t, setting.UserFeatureManageCredentials)
-
 		session := loginUser(t, "user2")
-
-		req := NewRequest(t, "GET", "/user/settings/account")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-
-		req = NewRequestWithValues(t, "POST", "/user/settings/account", map[string]string{
-			"_csrf": doc.GetCSRF(),
-		})
+		req := NewRequest(t, "POST", "/user/settings/account")
 		session.MakeRequest(t, req, http.StatusNotFound)
 	})
 }
@@ -168,17 +155,37 @@ func TestUserSettingsUpdateEmail(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		WithDisabledFeatures(t, setting.UserFeatureManageCredentials)
+		session := loginUser(t, "user2")
+		req := NewRequest(t, "POST", "/user/settings/account/email")
+		session.MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("primary email not found", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
 		session := loginUser(t, "user2")
-
-		req := NewRequest(t, "GET", "/user/settings/account")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-
-		req = NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
-			"_csrf": doc.GetCSRF(),
+		req := NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
+			"_method": "PRIMARY",
+			"id":      "9999",
 		})
-		session.MakeRequest(t, req, http.StatusNotFound)
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, "/user/settings/account", resp.Header().Get("Location"))
+		flashMsg := session.GetCookieFlashMessage()
+		assert.Equal(t, "The selected email address could not be found.", flashMsg.ErrorMsg)
+	})
+
+	t.Run("primary email not owned by user", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		session := loginUser(t, "user2")
+		req := NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
+			"_method": "PRIMARY",
+			"id":      "6",
+		})
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, "/user/settings/account", resp.Header().Get("Location"))
+		flashMsg := session.GetCookieFlashMessage()
+		assert.Equal(t, "The selected email address could not be found.", flashMsg.ErrorMsg)
 	})
 }
 
@@ -189,16 +196,8 @@ func TestUserSettingsDeleteEmail(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		WithDisabledFeatures(t, setting.UserFeatureManageCredentials)
-
 		session := loginUser(t, "user2")
-
-		req := NewRequest(t, "GET", "/user/settings/account")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-
-		req = NewRequestWithValues(t, "POST", "/user/settings/account/email/delete", map[string]string{
-			"_csrf": doc.GetCSRF(),
-		})
+		req := NewRequest(t, "POST", "/user/settings/account/email/delete")
 		session.MakeRequest(t, req, http.StatusNotFound)
 	})
 }
@@ -212,14 +211,7 @@ func TestUserSettingsDelete(t *testing.T) {
 		WithDisabledFeatures(t, setting.UserFeatureDeletion)
 
 		session := loginUser(t, "user2")
-
-		req := NewRequest(t, "GET", "/user/settings/account")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-
-		req = NewRequestWithValues(t, "POST", "/user/settings/account/delete", map[string]string{
-			"_csrf": doc.GetCSRF(),
-		})
+		req := NewRequest(t, "POST", "/user/settings/account/delete")
 		session.MakeRequest(t, req, http.StatusNotFound)
 	})
 }
@@ -308,23 +300,17 @@ func TestUserSettingsApplications(t *testing.T) {
 		t.Run("OAuthApplicationsEdit", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", "/user/settings/applications/oauth2/2")
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			doc := NewHTMLParser(t, resp.Body)
-
 			t.Run("Invalid URL", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/2", map[string]string{
-					"_csrf":               doc.GetCSRF(),
 					"application_name":    "Test native app",
 					"redirect_uris":       "ftp://127.0.0.1",
 					"confidential_client": "false",
 				})
 				resp := session.MakeRequest(t, req, http.StatusOK)
 				doc := NewHTMLParser(t, resp.Body)
-
-				msg := doc.Find(".flash-error p").Text()
+				msg := strings.TrimSpace(doc.Find(".ui.message.flash-message").Text())
 				assert.Equal(t, `form.RedirectURIs"ftp://127.0.0.1" is not a valid URL.`, msg)
 			})
 
@@ -332,7 +318,6 @@ func TestUserSettingsApplications(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/2", map[string]string{
-					"_csrf":               doc.GetCSRF(),
 					"application_name":    "Test native app",
 					"redirect_uris":       "http://127.0.0.1",
 					"confidential_client": "false",

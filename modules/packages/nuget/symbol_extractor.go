@@ -42,7 +42,7 @@ func (l PortablePdbList) Close() {
 func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 	archive, err := zip.NewReader(r, size)
 	if err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("unable to extract portable pdb: %v", err)
 	}
 
 	var pdbs PortablePdbList
@@ -142,8 +142,8 @@ func ParseDebugHeaderID(r io.ReadSeeker) (string, error) {
 			if _, err := r.Read(b); err != nil {
 				return "", err
 			}
-			if i := bytes.IndexByte(b, 0); i != -1 {
-				buf.Write(b[:i])
+			if before, _, ok := bytes.Cut(b, []byte{0}); ok {
+				buf.Write(before)
 				return buf.String(), nil
 			}
 			buf.Write(b)

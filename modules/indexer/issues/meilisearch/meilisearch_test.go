@@ -36,7 +36,11 @@ func TestMeilisearchIndexer(t *testing.T) {
 
 	require.Eventually(t, func() bool {
 		resp, err := http.Get(url)
-		return err == nil && resp.StatusCode == http.StatusOK
+		if err != nil {
+			return false
+		}
+		defer resp.Body.Close()
+		return resp.StatusCode == http.StatusOK
 	}, time.Minute, time.Second, "Expected meilisearch to be up")
 
 	indexer := NewIndexer(url, key, fmt.Sprintf("test_meilisearch_indexer_%d", time.Now().Unix()))

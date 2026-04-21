@@ -10,7 +10,6 @@ import (
 
 	"code.gitea.io/gitea/cmd"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -38,13 +37,14 @@ func Test_CmdKeys(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				// FIXME: this test is not quite right. Each "command run" always re-initializes settings
-				defer test.MockVariableValue(&cmd.CmdKeys.Before, nil)() // don't re-initialize logger during the test
+				keysCmd := cmd.NewKeysCommand()
+				keysCmd.Before = nil // don't re-initialize logger during the test
 
 				var stdout, stderr bytes.Buffer
 				app := &cli.Command{
 					Writer:    &stdout,
 					ErrWriter: &stderr,
-					Commands:  []*cli.Command{cmd.CmdKeys},
+					Commands:  []*cli.Command{keysCmd},
 				}
 				err := app.Run(t.Context(), append([]string{"prog"}, tt.args...))
 				if tt.wantErr {

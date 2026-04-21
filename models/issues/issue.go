@@ -48,21 +48,6 @@ func (err ErrIssueNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrNewIssueInsert is used when the INSERT statement in newIssue fails
-type ErrNewIssueInsert struct {
-	OriginalError error
-}
-
-// IsErrNewIssueInsert checks if an error is a ErrNewIssueInsert.
-func IsErrNewIssueInsert(err error) bool {
-	_, ok := err.(ErrNewIssueInsert)
-	return ok
-}
-
-func (err ErrNewIssueInsert) Error() string {
-	return err.OriginalError.Error()
-}
-
 var ErrIssueAlreadyChanged = util.NewInvalidArgumentErrorf("the issue is already changed")
 
 // Issue represents an issue or pull request of repository.
@@ -498,7 +483,7 @@ func (issue *Issue) GetLastComment(ctx context.Context) (*Comment, error) {
 		return nil, err
 	}
 	if !exist {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return &c, nil
 }
@@ -588,6 +573,17 @@ func GetIssueByID(ctx context.Context, id int64) (*Issue, error) {
 		return nil, err
 	} else if !has {
 		return nil, ErrIssueNotExist{id, 0, 0}
+	}
+	return issue, nil
+}
+
+func GetIssueByRepoID(ctx context.Context, repoID, issueID int64) (*Issue, error) {
+	issue := new(Issue)
+	has, err := db.GetEngine(ctx).ID(issueID).Where("repo_id=?", repoID).Get(issue)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrIssueNotExist{issueID, repoID, 0}
 	}
 	return issue, nil
 }
@@ -682,7 +678,7 @@ func (issue *Issue) GetParticipantIDsByIssue(ctx context.Context) ([]int64, erro
 }
 
 // BlockedByDependencies finds all Dependencies an issue is blocked by
-func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptions) (issueDeps []*DependencyInfo, err error) {
+func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptions) (issueDeps []*DependencyInfo, total int64, err error) {
 	sess := db.GetEngine(ctx).
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
@@ -693,13 +689,13 @@ func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptio
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 	}
-	err = sess.Find(&issueDeps)
+	total, err = sess.FindAndCount(&issueDeps)
 
 	for _, depInfo := range issueDeps {
 		depInfo.Issue.Repo = &depInfo.Repository
 	}
 
-	return issueDeps, err
+	return issueDeps, total, err
 }
 
 // BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks

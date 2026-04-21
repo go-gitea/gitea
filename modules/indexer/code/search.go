@@ -72,10 +72,11 @@ func writeStrings(buf *bytes.Buffer, strs ...string) error {
 
 func HighlightSearchResultCode(filename, language string, lineNums []int, code string) []*ResultLine {
 	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
-	hl, _ := highlight.Code(filename, language, code)
-	highlightedLines := strings.Split(string(hl), "\n")
+	lexer := highlight.DetectChromaLexerByFileName(filename, language)
+	hl := highlight.RenderCodeByLexer(lexer, code)
+	highlightedLines := highlight.UnsafeSplitHighlightedLines(hl)
 
-	// The lineNums outputted by highlight.Code might not match the original lineNums, because "highlight" removes the last `\n`
+	// The lineNums outputted by render might not match the original lineNums, because "highlight" removes the last `\n`
 	lines := make([]*ResultLine, min(len(highlightedLines), len(lineNums)))
 	for i := range lines {
 		lines[i] = &ResultLine{
@@ -129,7 +130,7 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 }
 
 // PerformSearch perform a search on a repository
-func PerformSearch(ctx context.Context, opts *SearchOptions) (int, []*Result, []*SearchResultLanguages, error) {
+func PerformSearch(ctx context.Context, opts *SearchOptions) (int64, []*Result, []*SearchResultLanguages, error) {
 	if opts == nil || len(opts.Keyword) == 0 {
 		return 0, nil, nil, nil
 	}
@@ -148,5 +149,5 @@ func PerformSearch(ctx context.Context, opts *SearchOptions) (int, []*Result, []
 			return 0, nil, nil, err
 		}
 	}
-	return int(total), displayResults, resultLanguages, nil
+	return total, displayResults, resultLanguages, nil
 }

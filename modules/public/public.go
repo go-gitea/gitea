@@ -18,6 +18,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/go-chi/cors"
 )
 
 func CustomAssets() *assetfs.Layer {
@@ -28,6 +30,15 @@ func AssetFS() *assetfs.LayeredFS {
 	return assetfs.Layered(CustomAssets(), BuiltinAssets())
 }
 
+func AssetsCors() func(next http.Handler) http.Handler {
+	// static assets need to be served for external renders (sandboxed)
+	return cors.Handler(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"HEAD", "GET"},
+		MaxAge:         3600 * 24,
+	})
+}
+
 // FileHandlerFunc implements the static handler for serving files in "public" assets
 func FileHandlerFunc() http.HandlerFunc {
 	assetFS := AssetFS()
@@ -36,7 +47,7 @@ func FileHandlerFunc() http.HandlerFunc {
 			resp.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handleRequest(resp, req, assetFS, req.URL.Path)
+		handleRequest(resp, req, http.FS(assetFS), req.URL.Path)
 	}
 }
 
@@ -51,9 +62,9 @@ func parseAcceptEncoding(val string) container.Set[string] {
 }
 
 // setWellKnownContentType will set the Content-Type if the file is a well-known type.
-// See the comments of detectWellKnownMimeType
+// See the comments of DetectWellKnownMimeType
 func setWellKnownContentType(w http.ResponseWriter, file string) {
-	mimeType := detectWellKnownMimeType(path.Ext(file))
+	mimeType := DetectWellKnownMimeType(path.Ext(file))
 	if mimeType != "" {
 		w.Header().Set("Content-Type", mimeType)
 	}

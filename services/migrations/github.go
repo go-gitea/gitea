@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/google/go-github/v74/github"
+	"github.com/google/go-github/v84/github"
 	"golang.org/x/oauth2"
 )
 
@@ -329,7 +329,6 @@ func (g *GithubDownloaderV3) convertGithubRelease(ctx context.Context, rel *gith
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            asset.GetID(),
 			Name:          asset.GetName(),
-			ContentType:   asset.ContentType,
 			Size:          asset.Size,
 			DownloadCount: asset.DownloadCount,
 			Created:       asset.CreatedAt.Time,
@@ -862,28 +861,22 @@ func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Rev
 		opt.Page = resp.NextPage
 	}
 	// Get requested reviews
-	for {
-		g.waitAndPickClient(ctx)
-		reviewers, resp, err := g.getClient().PullRequests.ListReviewers(ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt)
-		if err != nil {
-			return nil, fmt.Errorf("error while listing repos: %w", err)
-		}
-		g.setRate(&resp.Rate)
-		for _, user := range reviewers.Users {
-			r := &base.Review{
-				ReviewerID:   user.GetID(),
-				ReviewerName: user.GetLogin(),
-				State:        base.ReviewStateRequestReview,
-				IssueIndex:   reviewable.GetLocalIndex(),
-			}
-			allReviews = append(allReviews, r)
-		}
-		// TODO: Handle Team requests
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
+	g.waitAndPickClient(ctx)
+	reviewers, resp, err := g.getClient().PullRequests.ListReviewers(ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()))
+	if err != nil {
+		return nil, fmt.Errorf("error while listing repos: %w", err)
 	}
+	g.setRate(&resp.Rate)
+	for _, user := range reviewers.Users {
+		r := &base.Review{
+			ReviewerID:   user.GetID(),
+			ReviewerName: user.GetLogin(),
+			State:        base.ReviewStateRequestReview,
+			IssueIndex:   reviewable.GetLocalIndex(),
+		}
+		allReviews = append(allReviews, r)
+	}
+	// TODO: Handle Team requests
 	return allReviews, nil
 }
 

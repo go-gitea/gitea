@@ -3,7 +3,7 @@
 		{{$statusUnread := 1}}{{$statusRead := 2}}{{$statusPinned := 3}}
 		{{$notificationUnreadCount := call .PageGlobalData.GetNotificationUnreadCount}}
 		{{$pageTypeIsRead := eq $.PageType "read"}}
-		<div class="flex-text-block tw-justify-between tw-mb-[--page-spacing]">
+		<div class="flex-left-right tw-mb-[--page-spacing]">
 			<div class="small-menu-items ui compact tiny menu">
 				<a class="{{if not $pageTypeIsRead}}active{{end}} item" href="{{AppSubUrl}}/notifications?type=unread">
 					{{ctx.Locale.Tr "notification.unread"}}
@@ -15,7 +15,6 @@
 			</div>
 			{{if and (not $pageTypeIsRead) $notificationUnreadCount}}
 				<form action="{{AppSubUrl}}/notifications/purge" method="post">
-					{{$.CsrfTokenHtml}}
 					<button class="ui mini button primary tw-mr-0" title="{{ctx.Locale.Tr "notification.mark_all_as_read"}}">
 						{{svg "octicon-checklist"}}
 					</button>
@@ -29,14 +28,14 @@
 						{{if $one.Issue}}
 							{{template "shared/issueicon" $one.Issue}}
 						{{else}}
-							{{svg "octicon-repo" 16 "text grey"}}
+							{{svg "octicon-repo" 16 "tw-text-text-light"}}
 						{{end}}
 					</div>
 					<a class="notifications-link silenced tw-flex-1" href="{{$one.Link ctx}}">
 						<div class="flex-text-block tw-text-[0.95em]">
-							{{$one.Repository.FullName}} {{if $one.Issue}}<span class="text light-3">#{{$one.Issue.Index}}</span>{{end}}
+							{{$one.Repository.FullName}} {{if $one.Issue}}<span class="tw-text-text-light-3">#{{$one.Issue.Index}}</span>{{end}}
 							{{if eq $one.Status $statusPinned}}
-								{{svg "octicon-pin" 13 "text blue"}}
+								{{svg "octicon-pin" 13 "tw-text-blue"}}
 							{{end}}
 						</div>
 						<div class="tw-text-16 tw-py-0.5">
@@ -54,10 +53,9 @@
 							{{DateUtils.TimeSince $one.UpdatedUnix}}
 						{{end}}
 					</div>
-					<form class="notifications-buttons" action="{{AppSubUrl}}/notifications/status?type={{$.PageType}}&page={{$.Page.Paginater.Current}}&perPage={{$.Page.Paginater.PagingNum}}" method="post"
-								hx-boost="true" hx-target="#notification_div" hx-swap="outerHTML"
+					<form class="notifications-buttons form-fetch-action" action="{{AppSubUrl}}/notifications/status?type={{$.PageType}}&page={{$.Page.Paginater.Current}}&perPage={{$.Page.Paginater.PagingNum}}" method="post"
+								data-fetch-sync="$body #notification_div"
 					>
-						{{$.CsrfTokenHtml}}
 						<input type="hidden" name="notification_id" value="{{$one.ID}}">
 						{{if ne $one.Status $statusPinned}}
 							<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "notification.pin"}}"

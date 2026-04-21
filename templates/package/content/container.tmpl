@@ -78,7 +78,7 @@
 			{{ctx.Locale.Tr "packages.container.layers"}}
 			{{/* only show the platform if the image metadata is not the package's, which means that it is a sub manifest */}}
 			{{if ne .ContainerImageMetadata .PackageDescriptor.Metadata}}
-				<span class="tw-text-sm flex-text-inline" title="{{ctx.Locale.Tr "packages.container.details.platform"}}">
+				<span class="tw-text-base flex-text-inline" title="{{ctx.Locale.Tr "packages.container.details.platform"}}">
 					({{svg "octicon-cpu" 12}} {{.ContainerImageMetadata.Platform}})
 				</span>
 			{{end}}

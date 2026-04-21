@@ -8,8 +8,8 @@
 default = "gitea"
 
 [registries.gitea]
-index = "sparse+<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/cargo/"></origin-url>" # Sparse index
-# index = "<origin-url data-url="{{AppSubUrl}}/{{.PackageDescriptor.Owner.Name}}/_cargo-index.git"></origin-url>" # Git
+index = "sparse+{{ctx.AppFullLink}}/api/packages/{{.PackageDescriptor.Owner.Name}}/cargo/" # Sparse index
+# index = "{{ctx.AppFullLink}}/{{.PackageDescriptor.Owner.Name}}/_cargo-index.git" # Git
 
 [net]
 git-fetch-with-cli = true</code></pre></div>

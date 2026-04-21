@@ -264,12 +264,12 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 			return git_model.ErrBranchAlreadyExists{
 				BranchName: name,
 			}
-		// If branchRefName like a/b but we want to create a branch named a then we have a conflict
+		// If branchRefName like "a/b" but we want to create a branch named a then we have a conflict
 		case strings.HasPrefix(branchRefName, name+"/"):
 			return git_model.ErrBranchNameConflict{
 				BranchName: branchRefName,
 			}
-			// Conversely if branchRefName like a but we want to create a branch named a/b then we also have a conflict
+			// Conversely if branchRefName like "a" but we want to create a branch named "a/b" then we also have a conflict
 		case strings.HasPrefix(name, branchRefName+"/"):
 			return git_model.ErrBranchNameConflict{
 				BranchName: branchRefName,
@@ -281,7 +281,6 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 		}
 		return nil
 	})
-
 	return err
 }
 
@@ -385,8 +384,7 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 		return err
 	}
 
-	if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
-		Remote: repo.RepoPath(),
+	if err := gitrepo.Push(ctx, repo, repo, git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitID, git.BranchPrefix, branchName),
 		Env:    repo_module.PushingEnvironment(doer, repo),
 	}); err != nil {
@@ -421,7 +419,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "", err
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
 	if err != nil {
 		return "", err
 	}
@@ -442,6 +440,15 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 			UserID:   doer.ID,
 			RepoName: repo.LowerName,
 		}
+	}
+
+	// We also need to check if "to" matches with a protected branch rule.
+	rule, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, to)
+	if err != nil {
+		return "", err
+	}
+	if rule != nil && !rule.CanUserPush(ctx, doer) {
+		return "", git_model.ErrBranchIsProtected
 	}
 
 	if err := git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
@@ -483,14 +490,72 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	return "", nil
 }
 
-var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default")
+// UpdateBranch moves a branch reference to the provided commit. permission check should be done before calling this function.
+func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, branchName, newCommitID, expectedOldCommitID string, force bool) error {
+	branch, err := git_model.GetBranch(ctx, repo.ID, branchName)
+	if err != nil {
+		return err
+	}
+	if branch.IsDeleted {
+		return git_model.ErrBranchNotExist{
+			BranchName: branchName,
+		}
+	}
+
+	if expectedOldCommitID != "" {
+		expectedID, err := gitRepo.ConvertToGitID(expectedOldCommitID)
+		if err != nil {
+			return fmt.Errorf("ConvertToGitID(old): %w", err)
+		}
+		if expectedID.String() != branch.CommitID {
+			return util.NewInvalidArgumentErrorf("branch commit does not match [expected: %s, given: %s]", expectedID.String(), branch.CommitID)
+		}
+	}
+
+	newID, err := gitRepo.ConvertToGitID(newCommitID)
+	if err != nil {
+		return fmt.Errorf("ConvertToGitID(new): %w", err)
+	}
+	newCommit, err := gitRepo.GetCommit(newID.String())
+	if err != nil {
+		return err
+	}
+
+	if newCommit.ID.String() == branch.CommitID {
+		return nil
+	}
+
+	isForcePush, err := newCommit.IsForcePush(branch.CommitID)
+	if err != nil {
+		return err
+	}
+	if isForcePush && !force {
+		return util.NewInvalidArgumentErrorf("Force push %s need a confirm force parameter", branchName)
+	}
+
+	pushOpts := git.PushOptions{
+		Branch: fmt.Sprintf("%s:%s%s", newCommit.ID.String(), git.BranchPrefix, branchName),
+		Env:    repo_module.PushingEnvironment(doer, repo),
+		Force:  isForcePush || force,
+	}
+
+	if expectedOldCommitID != "" {
+		pushOpts.ForceWithLease = fmt.Sprintf("%s:%s", git.BranchPrefix+branchName, branch.CommitID)
+	}
+
+	// branch protection will be checked in the pre received hook, so that we don't need any check here
+	return gitrepo.Push(ctx, repo, repo, pushOpts)
+}
+
+var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default or pull request target")
 
 func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
-	if branchName == repo.DefaultBranch {
+	unitPRConfig := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
+	if branchName == repo.DefaultBranch || branchName == unitPRConfig.DefaultTargetBranch {
 		return ErrBranchIsDefault
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
 	if err != nil {
 		return err
 	}
@@ -508,8 +573,38 @@ func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchNam
 	return nil
 }
 
+func deleteBranchInternal(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branchName string, branchCommit *git.Commit) (branchExisted bool, err error) {
+	activeInDB, err := git_model.IsBranchExist(ctx, repo.ID, branchName)
+	if err != nil {
+		return false, fmt.Errorf("IsBranchExist: %w", err)
+	}
+
+	// process the branch in db
+	if activeInDB {
+		if err := git_model.MarkBranchAsDeleted(ctx, repo.ID, branchName, doer.ID); err != nil {
+			return false, err
+		}
+	}
+
+	// process the branch in git
+	if branchCommit != nil {
+		err := gitrepo.DeleteBranch(ctx, repo, branchName, true)
+		if err != nil {
+			return false, fmt.Errorf("DeleteBranch: %w", err)
+		}
+		// since the branch existed in git, return branchExisted=true
+		branchExisted = true
+	} else {
+		// the branch didn't exist in git, return activeInDB to indicate whether the branch was active in DB,
+		// for consistency with that the user had seen on the web ui or in the branch list API response.
+		branchExisted = activeInDB
+	}
+
+	return branchExisted, nil
+}
+
 // DeleteBranch delete branch
-func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string, pr *issues_model.PullRequest) error {
+func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
 	err := repo.MustNotBeArchived()
 	if err != nil {
 		return err
@@ -519,46 +614,31 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		return err
 	}
 
-	rawBranch, err := git_model.GetBranch(ctx, repo.ID, branchName)
-	if err != nil && !git_model.IsErrBranchNotExist(err) {
-		return fmt.Errorf("GetBranch: %vc", err)
-	}
-
-	// database branch record not exist or it's a deleted branch
-	notExist := git_model.IsErrBranchNotExist(err) || rawBranch.IsDeleted
-
 	branchCommit, err := gitRepo.GetBranchCommit(branchName)
+	// branchCommit can be nil if the branch doesn't exist in git
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return err
 	}
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if !notExist {
-			if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, doer.ID); err != nil {
-				return err
-			}
-		}
-
-		if pr != nil {
-			if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
-				return fmt.Errorf("DeleteBranch: %v", err)
-			}
-		}
-		if branchCommit == nil {
-			return nil
-		}
-
-		return gitrepo.DeleteBranch(ctx, repo, branchName, true)
-	}); err != nil {
+	branchExisted, err := db.WithTx2(ctx, func(ctx context.Context) (bool, error) {
+		return deleteBranchInternal(ctx, doer, repo, branchName, branchCommit)
+	})
+	if err != nil {
 		return err
 	}
 
-	if branchCommit == nil {
-		return nil
+	if !branchExisted {
+		return git.ErrBranchNotExist{Name: branchName}
 	}
 
-	// Don't return error below this
+	// Don't return error below this since the deletion has succeeded
+	if branchCommit != nil {
+		deleteBranchSuccessPostProcess(doer, repo, branchName, branchCommit)
+	}
+	return nil
+}
 
+func deleteBranchSuccessPostProcess(doer *user_model.User, repo *repo_model.Repository, branchName string, branchCommit *git.Commit) {
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 	if err := PushUpdate(
 		&repo_module.PushUpdateOptions{
@@ -572,8 +652,6 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		}); err != nil {
 		log.Error("PushUpdateOptions: %v", err)
 	}
-
-	return nil
 }
 
 type BranchSyncOptions struct {
@@ -821,9 +899,17 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 		return util.ErrorWrapTranslatable(util.ErrUnprocessableContent, "repo.branch.delete_branch_has_new_commits", fullBranchName)
 	}
 
-	err = DeleteBranch(ctx, doer, pr.HeadRepo, gitHeadRepo, pr.HeadBranch, pr)
+	err = DeleteBranch(ctx, doer, pr.HeadRepo, gitHeadRepo, pr.HeadBranch)
 	if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
 		return errFailedToDelete(err)
 	}
-	return err
+	if err != nil {
+		return err
+	}
+
+	// intentionally ignore the following error, since the branch has already been deleted successfully
+	if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+		log.Error("AddDeletePRBranchComment: %v", err)
+	}
+	return nil
 }

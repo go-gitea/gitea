@@ -10,7 +10,6 @@
 		</h4>
 		<div class="ui attached table segment">
 			<form method="post" action="{{AppSubUrl}}/-/admin">
-				{{.CsrfTokenHtml}}
 				<table class="ui very basic table tw-mt-0 tw-px-4">
 					<tbody>
 						<tr>
@@ -77,10 +76,7 @@
 		</h4>
 		{{/* TODO: make these stats work in multi-server deployments, likely needs per-server stats in DB */}}
 		<div class="ui attached table segment">
-			<div class="no-loading-indicator tw-hidden"></div>
-			<div hx-get="{{$.Link}}/system_status" hx-swap="morph:innerHTML" hx-trigger="every 5s" hx-indicator=".no-loading-indicator">
-				{{template "admin/system_status" .}}
-			</div>
+			{{template "admin/system_status" .}}
 		</div>
 	</div>
 {{template "admin/layout_footer" .}}

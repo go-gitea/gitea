@@ -45,17 +45,6 @@
 					</div>
 				</li>
 			</ul>
-			<script>
-				document.addEventListener('gitea:index-ready', () => {
-					const $buttons = $('#devtest-button-samples').find('button.ui');
-
-					const $buttonStyles = $('input[name*="button-style"]');
-					$buttonStyles.on('click', () => $buttonStyles.map((_, el) => $buttons.toggleClass(el.value, el.checked)));
-
-					const $buttonStates = $('input[name*="button-state"]');
-					$buttonStates.on('click', () => $buttonStates.map((_, el) => $buttons.prop(el.value, el.checked)));
-				});
-			</script>
 		</div>
 	</div>
 
@@ -82,12 +71,6 @@
 			<p>loading ...</p>
 			<p>loading ...</p>
 		</div>
-	</div>
-
-	<div>
-		<h1>&lt;origin-url&gt;</h1>
-		<div><origin-url data-url="test/url"></origin-url></div>
-		<div><origin-url data-url="/test/url"></origin-url></div>
 	</div>
 
 	<div>
@@ -118,16 +101,6 @@
 	</div>
 
 	<div>
-		<h1>GiteaAbsoluteDate</h1>
-		<div><absolute-date date="2024-03-11" year="numeric" day="numeric" month="short"></absolute-date></div>
-		<div><absolute-date date="2024-03-11" year="numeric" day="numeric" month="long"></absolute-date></div>
-		<div><absolute-date date="2024-03-11" year="" day="numeric" month="numeric"></absolute-date></div>
-		<div><absolute-date date="2024-03-11" year="" day="numeric" month="numeric" weekday="long"></absolute-date></div>
-		<div><absolute-date date="2024-03-11T19:00:00-05:00" year="" day="numeric" month="numeric" weekday="long"></absolute-date></div>
-		<div class="tw-text-text-light-2">relative-time: <relative-time format="datetime" datetime="2024-03-11" year="" day="numeric" month="numeric"></relative-time></div>
-	</div>
-
-	<div>
 		<h1>LocaleNumber</h1>
 		<div>{{ctx.Locale.PrettyNumber 1}}</div>
 		<div>{{ctx.Locale.PrettyNumber 12}}</div>
@@ -136,17 +109,6 @@
 		<div>{{ctx.Locale.PrettyNumber 12345}}</div>
 		<div>{{ctx.Locale.PrettyNumber 123456}}</div>
 		<div>{{ctx.Locale.PrettyNumber 1234567}}</div>
-	</div>
-
-	<div>
-		<h1>TimeSince</h1>
-		<div>Now: {{DateUtils.TimeSince .TimeNow}}</div>
-		<div>5s past: {{DateUtils.TimeSince .TimePast5s}}</div>
-		<div>5s future: {{DateUtils.TimeSince .TimeFuture5s}}</div>
-		<div>2m past: {{DateUtils.TimeSince .TimePast2m}}</div>
-		<div>2m future: {{DateUtils.TimeSince .TimeFuture2m}}</div>
-		<div>1y past: {{DateUtils.TimeSince .TimePast1y}}</div>
-		<div>1y future: {{DateUtils.TimeSince .TimeFuture1y}}</div>
 	</div>
 
 	<div>
@@ -185,7 +147,7 @@
 
 	<div>
 		<h1>ComboMarkdownEditor</h1>
-		{{template "shared/combomarkdowneditor" dict "MarkdownPreviewContext" "/owner/path"}}
+		{{template "shared/combomarkdowneditor" dict "MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorGeneral nil)}}
 	</div>
 
 	<h1>Tailwind CSS Demo</h1>

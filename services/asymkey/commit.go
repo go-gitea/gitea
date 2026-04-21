@@ -162,7 +162,7 @@ func parseCommitWithGPGSignature(ctx context.Context, c *git.Commit, committer *
 		}
 	}
 
-	defaultGPGSettings, err := c.GetRepositoryDefaultPublicGPGKey(false)
+	defaultGPGSettings, err := git.GetDefaultPublicGPGKey(ctx, false)
 	if err != nil {
 		log.Error("Error getting default public gpg key: %v", err)
 	} else if defaultGPGSettings == nil {

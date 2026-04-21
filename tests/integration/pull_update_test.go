@@ -12,6 +12,9 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -58,6 +61,14 @@ func TestAPIPullUpdate(t *testing.T) {
 	})
 }
 
+func enableRepoAllowUpdateWithRebase(t *testing.T, repoID int64, allow bool) {
+	t.Helper()
+
+	repoUnit := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: repoID, Type: unit.TypePullRequests})
+	repoUnit.PullRequestsConfig().AllowRebaseUpdate = allow
+	assert.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), repoUnit))
+}
+
 func TestAPIPullUpdateByRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// Create PR to test
@@ -73,10 +84,32 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.Equal(t, 1, diffCount.Ahead)
 		assert.NoError(t, pr.LoadIssue(t.Context()))
 
+		enableRepoAllowUpdateWithRebase(t, pr.BaseRepo.ID, false)
+
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
 			AddTokenAuth(token)
+		session.MakeRequest(t, req, http.StatusForbidden)
+
+		enableRepoAllowUpdateWithRebase(t, pr.BaseRepo.ID, true)
+		assert.NoError(t, pr.LoadHeadRepo(t.Context()))
+
+		// use a user which have write access to the pr but not write permission to the head repository to do the rebase
+		user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
+		err = repo_service.AddOrUpdateCollaborator(t.Context(), pr.BaseRepo, user40, perm.AccessModeWrite)
+		assert.NoError(t, err)
+		token40 := getUserToken(t, "user40", auth_model.AccessTokenScopeWriteRepository)
+
+		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token40)
+		session.MakeRequest(t, req, http.StatusForbidden)
+
+		err = repo_service.AddOrUpdateCollaborator(t.Context(), pr.HeadRepo, user40, perm.AccessModeWrite)
+		assert.NoError(t, err)
+
+		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token40)
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update

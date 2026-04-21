@@ -1,10 +1,7 @@
 import {readFileSync} from 'node:fs';
-import {env} from 'node:process';
 import {parse} from 'postcss';
 import plugin from 'tailwindcss/plugin.js';
 import type {Config} from 'tailwindcss';
-
-const isProduction = env.NODE_ENV !== 'development';
 
 function extractRootVars(css: string) {
   const root = parse(css);
@@ -29,15 +26,13 @@ export default {
   prefix: 'tw-',
   important: true, // the frameworks are mixed together, so tailwind needs to override other framework's styles
   content: [
-    isProduction && '!./templates/devtest/**/*',
-    isProduction && '!./web_src/js/standalone/devtest.ts',
     '!./templates/swagger/v1_json.tmpl',
     '!./templates/user/auth/oidc_wellknown.tmpl',
     '!**/*_test.go',
     './{build,models,modules,routers,services}/**/*.go',
     './templates/**/*.tmpl',
     './web_src/js/**/*.{ts,js,vue}',
-  ].filter(Boolean),
+  ].filter(Boolean as unknown as <T>(x: T | boolean) => x is T),
   blocklist: [
     // classes that don't work without CSS variables from "@tailwind base" which we don't use
     'transform', 'shadow', 'ring', 'blur', 'grayscale', 'invert', '!invert', 'filter', '!filter',
@@ -80,10 +75,10 @@ export default {
       semibold: 'var(--font-weight-semibold)',
       bold: 'var(--font-weight-bold)',
     },
-    fontSize: { // not using `rem` units because our root is currently 14px
-      'xs': '12px',
-      'sm': '14px',
-      'base': '16px',
+    fontSize: { // rarely used, but "text-base" (matching body's 1em=14px) is useful to reset font-size in a header container
+      'xs': '11px',
+      'sm': '12px',
+      'base': '14px',
       'lg': '18px',
       'xl': '20px',
       '2xl': '24px',
@@ -97,6 +92,9 @@ export default {
       ...Object.fromEntries(Array.from({length: 100}, (_, i) => {
         return [`${i}`, `${i === 0 ? '0' : `${i}px`}`];
       })),
+    },
+    extend: {
+      zIndex: {'1': '1'},
     },
   },
   plugins: [

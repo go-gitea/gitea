@@ -49,3 +49,11 @@
   gap: 1rem;
   margin-bottom: 1rem;
 }
+
+.web-banner-content-editor .render-content.render-preview {
+  /* use the styles from ".ui.message" */
+  padding: 1em 1.5em;
+  border: 1px solid var(--color-info-border);
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}

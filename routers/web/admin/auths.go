@@ -136,6 +136,7 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 		AttributesInBind:      form.AttributesInBind,
 		AttributeSSHPublicKey: form.AttributeSSHPublicKey,
 		AttributeAvatar:       form.AttributeAvatar,
+		SSHKeysAreVerified:    form.SSHKeysAreVerified,
 		SearchPageSize:        pageSize,
 		Filter:                form.Filter,
 		GroupsEnabled:         form.GroupsEnabled,
@@ -204,6 +205,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 
 		SSHPublicKeyClaimName: form.Oauth2SSHPublicKeyClaimName,
 		FullNameClaimName:     form.Oauth2FullNameClaimName,
+		ExternalIDClaim:       form.OpenIDConnectExternalIDClaim,
 	}
 }
 
@@ -272,7 +274,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 			discoveryURL, err := url.Parse(oauth2Config.OpenIDConnectAutoDiscoveryURL)
 			if err != nil || (discoveryURL.Scheme != "http" && discoveryURL.Scheme != "https") {
 				ctx.Data["Err_DiscoveryURL"] = true
-				ctx.RenderWithErr(ctx.Tr("admin.auths.invalid_openIdConnectAutoDiscoveryURL"), tplAuthNew, form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.invalid_openIdConnectAutoDiscoveryURL"), tplAuthNew, form)
 				return
 			}
 		}
@@ -280,13 +282,13 @@ func NewAuthSourcePost(ctx *context.Context) {
 		var err error
 		config, err = parseSSPIConfig(ctx, form)
 		if err != nil {
-			ctx.RenderWithErr(err.Error(), tplAuthNew, form)
+			ctx.RenderWithErrDeprecated(err.Error(), tplAuthNew, form)
 			return
 		}
 		existing, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{LoginType: auth.SSPI})
 		if err != nil || len(existing) > 0 {
 			ctx.Data["Err_Type"] = true
-			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_of_type_exist"), tplAuthNew, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_of_type_exist"), tplAuthNew, form)
 			return
 		}
 	default:
@@ -310,11 +312,11 @@ func NewAuthSourcePost(ctx *context.Context) {
 	}); err != nil {
 		if auth.IsErrSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
-			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthNew, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthNew, form)
 		} else if oauth2.IsErrOpenIDConnectInitialize(err) {
 			ctx.Data["Err_DiscoveryURL"] = true
 			unwrapped := err.(oauth2.ErrOpenIDConnectInitialize).Unwrap()
-			ctx.RenderWithErr(ctx.Tr("admin.auths.unable_to_initialize_openid", unwrapped), tplAuthNew, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.unable_to_initialize_openid", unwrapped), tplAuthNew, form)
 		} else {
 			ctx.ServerError("auth.CreateSource", err)
 		}
@@ -402,14 +404,14 @@ func EditAuthSourcePost(ctx *context.Context) {
 			discoveryURL, err := url.Parse(oauth2Config.OpenIDConnectAutoDiscoveryURL)
 			if err != nil || (discoveryURL.Scheme != "http" && discoveryURL.Scheme != "https") {
 				ctx.Data["Err_DiscoveryURL"] = true
-				ctx.RenderWithErr(ctx.Tr("admin.auths.invalid_openIdConnectAutoDiscoveryURL"), tplAuthEdit, form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.invalid_openIdConnectAutoDiscoveryURL"), tplAuthEdit, form)
 				return
 			}
 		}
 	case auth.SSPI:
 		config, err = parseSSPIConfig(ctx, form)
 		if err != nil {
-			ctx.RenderWithErr(err.Error(), tplAuthEdit, form)
+			ctx.RenderWithErrDeprecated(err.Error(), tplAuthEdit, form)
 			return
 		}
 	default:
@@ -425,7 +427,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	if err := auth.UpdateSource(ctx, source); err != nil {
 		if auth.IsErrSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
-			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthEdit, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthEdit, form)
 		} else if oauth2.IsErrOpenIDConnectInitialize(err) {
 			ctx.Flash.Error(err.Error(), true)
 			ctx.Data["Err_DiscoveryURL"] = true
@@ -438,7 +440,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	log.Trace("Authentication changed by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.update_success"))
-	ctx.Redirect(setting.AppSubURL + "/-/admin/auths/" + strconv.FormatInt(form.ID, 10))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/auths/" + strconv.FormatInt(source.ID, 10))
 }
 
 // DeleteAuthSource response for deleting an auth source

@@ -147,11 +147,6 @@ func InsertEmailAddress(ctx context.Context, email *EmailAddress) (*EmailAddress
 	return email, nil
 }
 
-func UpdateEmailAddress(ctx context.Context, email *EmailAddress) error {
-	_, err := db.GetEngine(ctx).ID(email.ID).AllCols().Update(email)
-	return err
-}
-
 // ValidateEmail check if email is a valid & allowed address
 func ValidateEmail(email string) error {
 	if err := validateEmailBasic(email); err != nil {
@@ -215,7 +210,7 @@ func GetEmailAddressByID(ctx context.Context, uid, id int64) (*EmailAddress, err
 	if has, err := db.GetEngine(ctx).ID(id).Get(email); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return email, nil
 }
@@ -276,17 +271,22 @@ func updateActivation(ctx context.Context, email *EmailAddress, activate bool) e
 	return UpdateUserCols(ctx, user, "rands")
 }
 
-func MakeActiveEmailPrimary(ctx context.Context, emailID int64) error {
-	return makeEmailPrimaryInternal(ctx, emailID, true)
+func MakeActiveEmailPrimary(ctx context.Context, ownerID, emailID int64) error {
+	return makeEmailPrimaryInternal(ctx, ownerID, emailID, true)
 }
 
-func MakeInactiveEmailPrimary(ctx context.Context, emailID int64) error {
-	return makeEmailPrimaryInternal(ctx, emailID, false)
+func MakeInactiveEmailPrimary(ctx context.Context, ownerID, emailID int64) error {
+	return makeEmailPrimaryInternal(ctx, ownerID, emailID, false)
 }
 
-func makeEmailPrimaryInternal(ctx context.Context, emailID int64, isActive bool) error {
+func makeEmailPrimaryInternal(ctx context.Context, ownerID, emailID int64, isActive bool) error {
 	email := &EmailAddress{}
-	if has, err := db.GetEngine(ctx).ID(emailID).Where(builder.Eq{"is_activated": isActive}).Get(email); err != nil {
+	if has, err := db.GetEngine(ctx).ID(emailID).
+		Where(builder.Eq{
+			"uid":          ownerID,
+			"is_activated": isActive,
+		}).
+		Get(email); err != nil {
 		return err
 	} else if !has {
 		return ErrEmailAddressNotExist{}
@@ -336,7 +336,7 @@ func ChangeInactivePrimaryEmail(ctx context.Context, uid int64, oldEmailAddr, ne
 		if err != nil {
 			return err
 		}
-		return MakeInactiveEmailPrimary(ctx, newEmail.ID)
+		return MakeInactiveEmailPrimary(ctx, uid, newEmail.ID)
 	})
 }
 

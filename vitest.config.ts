@@ -13,6 +13,10 @@ export default defineConfig({
     passWithNoTests: true,
     globals: true,
     watch: false,
+    isolate: false,
+    sequence: {
+      concurrent: true,
+    },
   },
   plugins: [
     stringPlugin(),

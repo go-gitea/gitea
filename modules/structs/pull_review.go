@@ -8,6 +8,8 @@ import (
 )
 
 // ReviewStateType review state type
+//
+// swagger:enum ReviewStateType
 type ReviewStateType string
 
 const (
@@ -21,9 +23,10 @@ const (
 	ReviewStateRequestChanges ReviewStateType = "REQUEST_CHANGES"
 	// ReviewStateRequestReview review is requested from user
 	ReviewStateRequestReview ReviewStateType = "REQUEST_REVIEW"
-	// ReviewStateUnknown state of pr is unknown
-	ReviewStateUnknown ReviewStateType = ""
 )
+
+// ReviewStateUnknown is an internal sentinel for unknown review state, not a valid API value.
+const ReviewStateUnknown = ""
 
 // PullReview represents a pull request review
 type PullReview struct {
@@ -72,7 +75,7 @@ type PullReviewComment struct {
 	HTMLPullURL string `json:"pull_request_url"`
 }
 
-// CreatePullReviewOptions are options to create a pull review
+// CreatePullReviewOptions are options to create a pull request review
 type CreatePullReviewOptions struct {
 	Event    ReviewStateType           `json:"event"`
 	Body     string                    `json:"body"`
@@ -91,19 +94,19 @@ type CreatePullReviewComment struct {
 	NewLineNum int64 `json:"new_position"`
 }
 
-// SubmitPullReviewOptions are options to submit a pending pull review
+// SubmitPullReviewOptions are options to submit a pending pull request review
 type SubmitPullReviewOptions struct {
 	Event ReviewStateType `json:"event"`
 	Body  string          `json:"body"`
 }
 
-// DismissPullReviewOptions are options to dismiss a pull review
+// DismissPullReviewOptions are options to dismiss a pull request review
 type DismissPullReviewOptions struct {
 	Message string `json:"message"`
 	Priors  bool   `json:"priors"`
 }
 
-// PullReviewRequestOptions are options to add or remove pull review requests
+// PullReviewRequestOptions are options to add or remove pull request review requests
 type PullReviewRequestOptions struct {
 	Reviewers     []string `json:"reviewers"`
 	TeamReviewers []string `json:"team_reviewers"`

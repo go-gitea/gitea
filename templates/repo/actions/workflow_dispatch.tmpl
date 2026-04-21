@@ -1,17 +1,22 @@
-<div class="ui blue info message tw-flex tw-justify-between tw-items-center">
-	<span class="ui text middle">{{ctx.Locale.Tr "actions.workflow.has_workflow_dispatch"}}</span>
-	<button class="ui mini button show-modal" data-modal="#runWorkflowDispatchModal">{{ctx.Locale.Tr "actions.workflow.run"}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}</button>
+{{/* "z-index" is used to maintain continuous attached styling and keep the colored border-bottom visible (pre-existing fomantic issue with negative margins) */}}
+<div class="ui blue info attached message flex-left-right tw-z-1">
+	<span>{{ctx.Locale.Tr "actions.workflow.has_workflow_dispatch"}}</span>
+	<div class="flex-text-block tw-bg-box-body tw-rounded">{{/*make the button have correct hovered color */}}
+		<button class="ui mini button show-modal" data-modal="#runWorkflowDispatchModal">{{ctx.Locale.Tr "actions.workflow.run"}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}</button>
+	</div>
 </div>
 <div id="runWorkflowDispatchModal" class="ui tiny modal">
 	<div class="content">
-		<form id="runWorkflowDispatchForm" class="ui form" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}" method="post">
-			{{.CsrfTokenHtml}}
+		<form id="runWorkflowDispatchForm" class="ui form ignore-dirty" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}" method="post">
 			<div class="ui inline field required tw-flex tw-items-center">
 				<span class="ui inline required field">
 					<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}}:</label>
 				</span>
 				<div class="ui inline field dropdown button select-branch branch-selector-dropdown ellipsis-text-items">
-					<input type="hidden" name="ref" hx-sync="this:replace" hx-target="#runWorkflowDispatchModalInputs" hx-swap="innerHTML" hx-get="{{$.Link}}/workflow-dispatch-inputs?workflow={{$.CurWorkflow}}" hx-trigger="change" value="refs/heads/{{index .Branches 0}}">
+					<input type="hidden" name="ref" value="refs/heads/{{index .Branches 0}}"
+								data-fetch-trigger="change" data-fetch-sync="$body #runWorkflowDispatchModalInputs"
+								data-fetch-url="{{$.Link}}/workflow-dispatch-inputs?workflow={{$.CurWorkflow}}"
+					>
 					{{svg "octicon-git-branch" 14}}
 					<div class="default text">{{index .Branches 0}}</div>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -46,12 +51,8 @@
 					</div>
 				</div>
 			</div>
-
 			<div class="divider"></div>
-
-			<div id="runWorkflowDispatchModalInputs">
-				{{template "repo/actions/workflow_dispatch_inputs" .}}
-			</div>
+			{{template "repo/actions/workflow_dispatch_inputs" .}}
 		</form>
 	</div>
 </div>

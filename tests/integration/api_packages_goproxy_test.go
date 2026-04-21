@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"archive/zip"
 	"bytes"
 	"fmt"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -29,23 +29,12 @@ func TestPackageGo(t *testing.T) {
 	packageVersion2 := "v0.0.2"
 	goModContent := `module "gitea.com/go-gitea/gitea"`
 
-	createArchive := func(files map[string][]byte) []byte {
-		var buf bytes.Buffer
-		zw := zip.NewWriter(&buf)
-		for name, content := range files {
-			w, _ := zw.Create(name)
-			w.Write(content)
-		}
-		zw.Close()
-		return buf.Bytes()
-	}
-
 	url := fmt.Sprintf("/api/packages/%s/go", user.Name)
 
 	t.Run("Upload", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		content := createArchive(nil)
+		content := test.WriteZipArchive(nil).Bytes()
 
 		req := NewRequestWithBody(t, "PUT", url+"/upload", bytes.NewReader(content))
 		MakeRequest(t, req, http.StatusUnauthorized)
@@ -54,9 +43,9 @@ func TestPackageGo(t *testing.T) {
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusBadRequest)
 
-		content = createArchive(map[string][]byte{
-			packageName + "@" + packageVersion + "/go.mod": []byte(goModContent),
-		})
+		content = test.WriteZipArchive(map[string]string{
+			packageName + "@" + packageVersion + "/go.mod": goModContent,
+		}).Bytes()
 
 		req = NewRequestWithBody(t, "PUT", url+"/upload", bytes.NewReader(content)).
 			AddBasicAuth(user.Name)
@@ -88,9 +77,9 @@ func TestPackageGo(t *testing.T) {
 
 		time.Sleep(time.Second) // Ensure the timestamp is different, then the "list" below can have stable order
 
-		content = createArchive(map[string][]byte{
-			packageName + "@" + packageVersion2 + "/go.mod": []byte(goModContent),
-		})
+		content = test.WriteZipArchive(map[string]string{
+			packageName + "@" + packageVersion2 + "/go.mod": goModContent,
+		}).Bytes()
 
 		req = NewRequestWithBody(t, "PUT", url+"/upload", bytes.NewReader(content)).
 			AddBasicAuth(user.Name)

@@ -1,5 +1,5 @@
 {{if or .UsesIgnoreRevs .FaultyIgnoreRevsFile}}
-	{{$revsFileLink := URLJoin .RepoLink "src" .RefTypeNameSubURL "/.git-blame-ignore-revs"}}
+	{{$revsFileLink := print .RepoLink "/src/" .RefTypeNameSubURL "/.git-blame-ignore-revs"}}
 	{{if .UsesIgnoreRevs}}
 		<div class="ui info message">
 			<p>{{ctx.Locale.Tr "repo.blame.ignore_revs" $revsFileLink "?bypass-blame-ignore=true"}}</p>
@@ -11,7 +11,7 @@
 	{{end}}
 {{end}}
 <div class="{{TabSizeClass .Editorconfig .FileTreePath}} non-diff-file-content">
-	<h4 class="file-header ui top attached header tw-flex tw-items-center tw-justify-between tw-flex-wrap">
+	<h4 class="file-header ui top attached header flex-left-right">
 		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
 			{{template "repo/file_info" .}}
 		</div>
@@ -38,17 +38,15 @@
 			<table>
 				<tbody>
 					{{range $row := .BlameRows}}
-						<tr class="{{if and (gt $.CommitCnt 1) ($row.CommitMessage)}}top-line-blame{{end}}">
+						<tr class="{{if $row.CommitURL}}top-line-blame{{end}}">
 							<td class="lines-commit">
 								<div class="blame-info">
 									<div class="blame-data">
 										<div class="blame-avatar">
 											{{$row.Avatar}}
 										</div>
-										<div class="blame-message">
-											<a class="suppressed tw-text-text" href="{{$row.CommitURL}}" title="{{$row.CommitMessage}}">
-												{{$row.CommitMessage}}
-											</a>
+										<div class="blame-message muted-links" title="{{$row.CommitMessage}}">
+											{{ctx.RenderUtils.RenderCommitMessageLinkSubject $row.CommitMessage $row.CommitURL $.Repository}}
 										</div>
 										<div class="blame-time not-mobile">
 											{{$row.CommitSince}}
@@ -66,13 +64,9 @@
 							<td class="lines-num">
 								<span id="L{{$row.RowNumber}}" data-line-number="{{$row.RowNumber}}"></span>
 							</td>
-							{{if $.EscapeStatus.Escaped}}
-								<td class="lines-escape">
-									{{if $row.EscapeStatus.Escaped}}
-										<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $row}}"></button>
-									{{end}}
-								</td>
-							{{end}}
+
+							{{ctx.RenderUtils.RenderUnicodeEscapeToggleTd $.EscapeStatus $row.EscapeStatus}}
+
 							<td rel="L{{$row.RowNumber}}" class="lines-code blame-code chroma">
 								<code class="code-inner tw-pl-2">{{$row.Code}}</code>
 							</td>

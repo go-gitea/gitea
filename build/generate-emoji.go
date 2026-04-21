@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	gemojiURL         = "https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json"
-	maxUnicodeVersion = 15
+	gemojiURL         = "https://raw.githubusercontent.com/rhysd/gemoji/537ff2d7e0496e9964824f7f73ec7ece88c9765a/db/emoji.json"
+	maxUnicodeVersion = 16
 )
 
 var flagOut = flag.String("o", "modules/emoji/emoji_data.go", "out")
@@ -149,8 +149,8 @@ func generate() ([]byte, error) {
 	}
 
 	// write a JSON file to use with tribute (write before adding skin tones since we can't support them there yet)
-	file, _ := json.Marshal(data)
-	_ = os.WriteFile("assets/emoji.json", file, 0o644)
+	file, _ := json.MarshalIndent(data, "", "  ")
+	_ = os.WriteFile("assets/emoji.json", append(file, '\n'), 0o644)
 
 	// Add skin tones to emoji that support it
 	var (

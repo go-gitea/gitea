@@ -33,10 +33,18 @@ type issueSidebarAssigneesData struct {
 	CandidateAssignees  []*user_model.User
 }
 
+type issueSidebarProjectCardData struct {
+	Project        *project_model.Project
+	Columns        []*project_model.Column
+	SelectedColumn *project_model.Column
+}
+
 type issueSidebarProjectsData struct {
-	SelectedProjectID int64
-	OpenProjects      []*project_model.Project
-	ClosedProjects    []*project_model.Project
+	SelectedProjectIDs []int64 // TODO: support multiple projects in the future
+	ProjectCards       []*issueSidebarProjectCardData
+
+	OpenProjects   []*project_model.Project
+	ClosedProjects []*project_model.Project
 }
 
 type IssuePageMetaData struct {
@@ -88,6 +96,11 @@ func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository
 
 	// it sets the "Assignees" template data, and the data is also used to "mention" users.
 	data.retrieveAssigneesData(ctx)
+	if ctx.Written() {
+		return data
+	}
+
+	data.retrieveProjectData(ctx)
 	if ctx.Written() {
 		return data
 	}
@@ -155,14 +168,44 @@ func (d *IssuePageMetaData) retrieveAssigneesData(ctx *context.Context) {
 		}
 		d.AssigneesData.SelectedAssigneeIDs = strings.Join(ids, ",")
 	}
-	// FIXME: this is a tricky part which writes ctx.Data["Mentionable*"]
-	handleMentionableAssigneesAndTeams(ctx, d.AssigneesData.CandidateAssignees)
+	ctx.Data["Assignees"] = d.AssigneesData.CandidateAssignees
+}
+
+func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
+	if d.Issue == nil || d.Issue.Project == nil {
+		return
+	}
+	columns, err := d.Issue.Project.GetColumns(ctx)
+	if err != nil {
+		ctx.ServerError("GetProjectColumns", err)
+		return
+	}
+	columnID, err := d.Issue.ProjectColumnID(ctx)
+	if err != nil {
+		ctx.ServerError("ProjectColumnID", err)
+		return
+	}
+	var selectedColumn *project_model.Column
+	for _, col := range columns {
+		if col.ID == columnID {
+			selectedColumn = col
+			break
+		}
+	}
+	d.ProjectsData.ProjectCards = []*issueSidebarProjectCardData{
+		{
+			Project:        d.Issue.Project,
+			Columns:        columns,
+			SelectedColumn: selectedColumn,
+		},
+	}
+	d.ProjectsData.SelectedProjectIDs = make([]int64, 0, len(d.ProjectsData.ProjectCards))
+	for _, card := range d.ProjectsData.ProjectCards {
+		d.ProjectsData.SelectedProjectIDs = append(d.ProjectsData.SelectedProjectIDs, card.Project.ID)
+	}
 }
 
 func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {
-	if d.Issue != nil && d.Issue.Project != nil {
-		d.ProjectsData.SelectedProjectID = d.Issue.Project.ID
-	}
 	d.ProjectsData.OpenProjects, d.ProjectsData.ClosedProjects = retrieveProjectsInternal(ctx, ctx.Repo.Repository)
 }
 

@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
@@ -24,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/system"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -49,6 +47,7 @@ import (
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	"code.gitea.io/gitea/services/oauth2_provider"
+	packages_spec "code.gitea.io/gitea/services/packages/pkgspec"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -132,7 +131,6 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(uinotification.Init)
 	mustInitCtx(ctx, archiver.Init)
 
-	highlight.NewContext()
 	external.RegisterRenderers()
 	markup.Init(markup_service.FormalRenderHelperFuncs())
 
@@ -152,6 +150,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, models.Init)
 	mustInitCtx(ctx, authmodel.Init)
 	mustInitCtx(ctx, repo_service.Init)
+	mustInit(packages_spec.InitManager)
 
 	// Booting long running goroutines.
 	mustInit(indexer_service.Init)
@@ -182,9 +181,10 @@ func InitWebInstalled(ctx context.Context) {
 
 // NormalRoutes represents non install routes
 func NormalRoutes() *web.Router {
-	_ = templates.HTMLRenderer()
 	r := web.NewRouter()
-	r.Use(common.ProtocolMiddlewares()...)
+	r.BeforeRouting(common.ProtocolMiddlewares()...)
+
+	r.AfterRouting(common.MaintenanceModeHandler())
 
 	r.Mount("/", web_routers.Routes())
 	r.Mount("/api/v1", apiv1.Routes())

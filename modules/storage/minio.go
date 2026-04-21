@@ -23,11 +23,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-var (
-	_ ObjectStorage = &MinioStorage{}
-
-	quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
-)
+var _ ObjectStorage = &MinioStorage{}
 
 type minioObject struct {
 	*minio.Object
@@ -278,27 +274,31 @@ func (m *MinioStorage) Delete(path string) error {
 	return convertMinioErr(err)
 }
 
-// URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (m *MinioStorage) URL(path, name, method string, serveDirectReqParams url.Values) (*url.URL, error) {
-	// copy serveDirectReqParams
-	reqParams, err := url.ParseQuery(serveDirectReqParams.Encode())
-	if err != nil {
-		return nil, err
+func (m *MinioStorage) ServeDirectURL(storePath, name, method string, opt *ServeDirectOptions) (*url.URL, error) {
+	reqParams := url.Values{}
+
+	param := prepareServeDirectOptions(opt, name)
+	// minio does not ignore empty params
+	if param.ContentType != "" {
+		reqParams.Set("response-content-type", param.ContentType)
 	}
-	// TODO it may be good to embed images with 'inline' like ServeData does, but we don't want to have to read the file, do we?
-	reqParams.Set("response-content-disposition", "attachment; filename=\""+quoteEscaper.Replace(name)+"\"")
+	if param.ContentDisposition != "" {
+		reqParams.Set("response-content-disposition", param.ContentDisposition)
+	}
+
 	expires := 5 * time.Minute
 	if method == http.MethodHead {
-		u, err := m.client.PresignedHeadObject(m.ctx, m.bucket, m.buildMinioPath(path), expires, reqParams)
+		u, err := m.client.PresignedHeadObject(m.ctx, m.bucket, m.buildMinioPath(storePath), expires, reqParams)
 		return u, convertMinioErr(err)
 	}
-	u, err := m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(path), expires, reqParams)
+	u, err := m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(storePath), expires, reqParams)
 	return u, convertMinioErr(err)
 }
 
 // IterateObjects iterates across the objects in the miniostorage
 func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
 	opts := minio.GetObjectOptions{}
+	// FIXME: this loop is not right and causes resource leaking, see the comment of ListObjects
 	for mObjInfo := range m.client.ListObjects(m.ctx, m.bucket, minio.ListObjectsOptions{
 		Prefix:    m.buildMinioDirPrefix(dirName),
 		Recursive: true,

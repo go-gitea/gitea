@@ -12,23 +12,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetSystemOrDefaultWebhooks(t *testing.T) {
+func TestListSystemWebhookOptions(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	hooks, err := GetSystemOrDefaultWebhooks(t.Context(), optional.None[bool]())
+	opts := ListSystemWebhookOptions{IsSystem: optional.None[bool]()}
+	hooks, _, err := GetGlobalWebhooks(t.Context(), &opts)
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 2) {
 		assert.Equal(t, int64(5), hooks[0].ID)
 		assert.Equal(t, int64(6), hooks[1].ID)
 	}
-
-	hooks, err = GetSystemOrDefaultWebhooks(t.Context(), optional.Some(true))
+	opts.IsSystem = optional.Some(true)
+	hooks, _, err = GetGlobalWebhooks(t.Context(), &opts)
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(5), hooks[0].ID)
 	}
 
-	hooks, err = GetSystemOrDefaultWebhooks(t.Context(), optional.Some(false))
+	opts.IsSystem = optional.Some(false)
+	hooks, _, err = GetGlobalWebhooks(t.Context(), &opts)
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(6), hooks[0].ID)

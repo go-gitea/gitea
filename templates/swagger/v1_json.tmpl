@@ -1,11 +1,9 @@
 {
   "consumes": [
-    "application/json",
-    "text/plain"
+    "application/json"
   ],
   "produces": [
-    "application/json",
-    "text/html"
+    "application/json"
   ],
   "schemes": [
     "https",
@@ -23,58 +21,6 @@
   },
   "basePath": "{{.SwaggerAppSubUrl}}/api/v1",
   "paths": {
-    "/activitypub/user-id/{user-id}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "activitypub"
-        ],
-        "summary": "Returns the Person actor for a user",
-        "operationId": "activitypubPerson",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "user ID of the user",
-            "name": "user-id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/ActivityPub"
-          }
-        }
-      }
-    },
-    "/activitypub/user-id/{user-id}/inbox": {
-      "post": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "activitypub"
-        ],
-        "summary": "Send to the inbox",
-        "operationId": "activitypubPersonInbox",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "user ID of the user",
-            "name": "user-id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          }
-        }
-      }
-    },
     "/admin/actions/jobs": {
       "get": {
         "produces": [
@@ -128,9 +74,17 @@
         ],
         "summary": "Get all runners",
         "operationId": "getAdminRunners",
+        "parameters": [
+          {
+            "type": "boolean",
+            "description": "filter by disabled status (true or false)",
+            "name": "disabled",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunnersResponse"
+            "$ref": "#/responses/RunnerList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -149,7 +103,7 @@
         "tags": [
           "admin"
         ],
-        "summary": "Get an global actions runner registration token",
+        "summary": "Get a global actions runner registration token",
         "operationId": "adminCreateRunnerRegistrationToken",
         "responses": {
           "200": {
@@ -166,7 +120,7 @@
         "tags": [
           "admin"
         ],
-        "summary": "Get an global runner",
+        "summary": "Get a global runner",
         "operationId": "getAdminRunner",
         "parameters": [
           {
@@ -179,7 +133,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunner"
+            "$ref": "#/responses/Runner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -196,7 +150,7 @@
         "tags": [
           "admin"
         ],
-        "summary": "Delete an global runner",
+        "summary": "Delete a global runner",
         "operationId": "deleteAdminRunner",
         "parameters": [
           {
@@ -216,6 +170,49 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update a global runner",
+        "operationId": "updateAdminRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditActionRunnerOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Runner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -616,23 +613,6 @@
         }
       }
     },
-    "/admin/runners/registration-token": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Get an global actions runner registration token",
-        "operationId": "adminGetRunnerRegistrationToken",
-        "responses": {
-          "200": {
-            "$ref": "#/responses/RegistrationToken"
-          }
-        }
-      }
-    },
     "/admin/unadopted": {
       "get": {
         "produces": [
@@ -781,6 +761,60 @@
             "description": "page size of results",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort users by attribute. Supported values are \"name\", \"created\", \"updated\" and \"id\". Default is \"name\"",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\", ignored if \"sort\" is not specified.",
+            "name": "order",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "search term (username, full name, email)",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "visibility filter. Supported values are \"public\", \"limited\" and \"private\".",
+            "name": "visibility",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter active users",
+            "name": "is_active",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter admin users",
+            "name": "is_admin",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter restricted users",
+            "name": "is_restricted",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter 2FA enabled users",
+            "name": "is_2fa_enabled",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter login prohibited users",
+            "name": "is_prohibit_login",
+            "in": "query"
           }
         ],
         "responses": {
@@ -789,6 +823,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -1469,23 +1506,6 @@
         }
       }
     },
-    "/nodeinfo": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "miscellaneous"
-        ],
-        "summary": "Returns the nodeinfo of the Gitea application",
-        "operationId": "getNodeInfo",
-        "responses": {
-          "200": {
-            "$ref": "#/responses/NodeInfo"
-          }
-        }
-      }
-    },
     "/notifications": {
       "get": {
         "consumes": [
@@ -1976,11 +1996,17 @@
             "name": "org",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "filter by disabled status (true or false)",
+            "name": "disabled",
+            "in": "query"
           }
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunnersResponse"
+            "$ref": "#/responses/RunnerList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -1992,30 +2018,6 @@
       }
     },
     "/orgs/{org}/actions/runners/registration-token": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "organization"
-        ],
-        "summary": "Get an organization's actions runner registration token",
-        "operationId": "orgGetRunnerRegistrationToken",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "name of the organization",
-            "name": "org",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/RegistrationToken"
-          }
-        }
-      },
       "post": {
         "produces": [
           "application/json"
@@ -2069,7 +2071,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunner"
+            "$ref": "#/responses/Runner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -2113,6 +2115,56 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Update an org-level runner",
+        "operationId": "updateOrgRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditActionRunnerOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Runner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -3581,6 +3633,39 @@
             "$ref": "#/responses/notFound"
           }
         }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete all repositories in an organization",
+        "operationId": "orgDeleteRepos",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "$ref": "#/responses/empty"
+          },
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       }
     },
     "/orgs/{org}/teams": {
@@ -3783,6 +3868,7 @@
               "rpm",
               "rubygems",
               "swift",
+              "terraform",
               "vagrant"
             ],
             "type": "string",
@@ -3855,6 +3941,44 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PackageList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "package"
+        ],
+        "summary": "Delete a package",
+        "operationId": "deletePackage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the package",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "type of the package",
+            "name": "type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the package",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -4045,8 +4169,8 @@
         "tags": [
           "package"
         ],
-        "summary": "Delete a package",
-        "operationId": "deletePackage",
+        "summary": "Delete a package version",
+        "operationId": "deletePackageVersion",
         "parameters": [
           {
             "type": "string",
@@ -4179,13 +4303,6 @@
             "in": "query"
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "Repository ID to prioritize in the results",
-            "name": "priority_repo_id",
-            "in": "query"
-          },
-          {
             "enum": [
               "issues",
               "pulls"
@@ -4248,6 +4365,12 @@
             "type": "string",
             "description": "Filter by repository owner",
             "name": "owner",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Only show items which were created by the given user",
+            "name": "created_by",
             "in": "query"
           },
           {
@@ -4926,11 +5049,17 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "filter by disabled status (true or false)",
+            "name": "disabled",
+            "in": "query"
           }
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunnersResponse"
+            "$ref": "#/responses/RunnerList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -4942,37 +5071,6 @@
       }
     },
     "/repos/{owner}/{repo}/actions/runners/registration-token": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Get a repository's actions runner registration token",
-        "operationId": "repoGetRunnerRegistrationToken",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/RegistrationToken"
-          }
-        }
-      },
       "post": {
         "produces": [
           "application/json"
@@ -5013,7 +5111,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get an repo-level runner",
+        "summary": "Get a repo-level runner",
         "operationId": "getRepoRunner",
         "parameters": [
           {
@@ -5040,7 +5138,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunner"
+            "$ref": "#/responses/Runner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5057,7 +5155,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Delete an repo-level runner",
+        "summary": "Delete a repo-level runner",
         "operationId": "deleteRepoRunner",
         "parameters": [
           {
@@ -5091,6 +5189,63 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update a repo-level runner",
+        "operationId": "updateRepoRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditActionRunnerOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Runner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -5202,7 +5357,7 @@
             "required": true
           },
           {
-            "type": "string",
+            "type": "integer",
             "description": "id of the run",
             "name": "run",
             "in": "path",
@@ -5378,6 +5533,166 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/jobs/{job_id}/rerun": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reruns a specific workflow job in a run",
+        "operationId": "rerunWorkflowJob",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the job",
+            "name": "job_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/WorkflowJob"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/rerun": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reruns an entire workflow run",
+        "operationId": "rerunWorkflowRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/rerun-failed-jobs": {
+      "post": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reruns all failed jobs in a workflow run",
+        "operationId": "rerunFailedWorkflowRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -6044,11 +6359,20 @@
             "schema": {
               "$ref": "#/definitions/CreateActionWorkflowDispatch"
             }
+          },
+          {
+            "type": "boolean",
+            "description": "Whether the response should include the workflow run ID and URLs.",
+            "name": "return_run_details",
+            "in": "query"
           }
         ],
         "responses": {
+          "200": {
+            "$ref": "#/responses/RunDetails"
+          },
           "204": {
-            "description": "No Content"
+            "description": "No Content, if return_run_details is missing or false"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -6206,6 +6530,16 @@
             "name": "archive",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "subpath of the repository to download",
+            "name": "path",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6747,6 +7081,66 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update a branch reference to a new commit",
+        "operationId": "repoUpdateBranch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the branch",
+            "name": "branch",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateBranchRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -9906,7 +10300,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "$ref": "#/responses/empty"
           },
           "403": {
@@ -10040,6 +10434,7 @@
         }
       },
       "patch": {
+        "description": "Pass `content_version` to enable optimistic locking on body edits.\nIf the version doesn't match the current value, the request fails with 409 Conflict.\n",
         "consumes": [
           "application/json"
         ],
@@ -11645,7 +12040,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "$ref": "#/responses/empty"
           },
           "403": {
@@ -13587,6 +13982,106 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/comments/{id}/resolve": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Resolve a pull request review comment",
+        "operationId": "repoResolvePullReviewComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/comments/{id}/unresolve": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Unresolve a pull request review comment",
+        "operationId": "repoUnresolvePullReviewComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/pinned": {
       "get": {
         "produces": [
@@ -14070,6 +14565,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -15077,7 +15575,7 @@
           },
           {
             "type": "boolean",
-            "description": "filter (exclude / include) drafts, if you dont have repo write access none will show",
+            "description": "filter (exclude / include) drafts, if you don't have repo write access none will show",
             "name": "draft",
             "in": "query"
           },
@@ -18236,9 +18734,17 @@
         ],
         "summary": "Get user-level runners",
         "operationId": "getUserRunners",
+        "parameters": [
+          {
+            "type": "boolean",
+            "description": "filter by disabled status (true or false)",
+            "name": "disabled",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunnersResponse"
+            "$ref": "#/responses/RunnerList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -18250,21 +18756,6 @@
       }
     },
     "/user/actions/runners/registration-token": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "user"
-        ],
-        "summary": "Get an user's actions runner registration token",
-        "operationId": "userGetRunnerRegistrationToken",
-        "responses": {
-          "200": {
-            "$ref": "#/responses/RegistrationToken"
-          }
-        }
-      },
       "post": {
         "produces": [
           "application/json"
@@ -18289,7 +18780,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Get an user-level runner",
+        "summary": "Get a user-level runner",
         "operationId": "getUserRunner",
         "parameters": [
           {
@@ -18302,7 +18793,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunner"
+            "$ref": "#/responses/Runner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -18319,7 +18810,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Delete an user-level runner",
+        "summary": "Delete a user-level runner",
         "operationId": "deleteUserRunner",
         "parameters": [
           {
@@ -18339,6 +18830,49 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Update a user-level runner",
+        "operationId": "updateUserRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditActionRunnerOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Runner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -20925,6 +21459,10 @@
           "type": "boolean",
           "x-go-name": "Busy"
         },
+        "disabled": {
+          "type": "boolean",
+          "x-go-name": "Disabled"
+        },
         "ephemeral": {
           "type": "boolean",
           "x-go-name": "Ephemeral"
@@ -21541,18 +22079,6 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "UserID"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "ActivityPub": {
-      "description": "ActivityPub type",
-      "type": "object",
-      "properties": {
-        "@context": {
-          "description": "Context defines the JSON-LD context for ActivityPub",
-          "type": "string",
-          "x-go-name": "Context"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -23009,6 +23535,11 @@
           },
           "x-go-name": "Events"
         },
+        "name": {
+          "description": "Optional human-readable name for the webhook",
+          "type": "string",
+          "x-go-name": "Name"
+        },
         "type": {
           "type": "string",
           "enum": [
@@ -23310,6 +23841,11 @@
       "description": "CreatePullRequestOption options when creating a pull request",
       "type": "object",
       "properties": {
+        "allow_maintainer_edit": {
+          "description": "Whether maintainers can edit the pull request",
+          "type": "boolean",
+          "x-go-name": "AllowMaintainerEdit"
+        },
         "assignee": {
           "description": "The primary assignee username",
           "type": "string",
@@ -23411,7 +23947,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CreatePullReviewOptions": {
-      "description": "CreatePullReviewOptions are options to create a pull review",
+      "description": "CreatePullReviewOptions are options to create a pull request review",
       "type": "object",
       "properties": {
         "body": {
@@ -23430,7 +23966,16 @@
           "x-go-name": "CommitID"
         },
         "event": {
-          "$ref": "#/definitions/ReviewStateType"
+          "type": "string",
+          "enum": [
+            "APPROVED",
+            "PENDING",
+            "COMMENT",
+            "REQUEST_CHANGES",
+            "REQUEST_REVIEW"
+          ],
+          "x-go-enum-desc": "APPROVED ReviewStateApproved  ReviewStateApproved pr is approved\nPENDING ReviewStatePending  ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment  ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges  ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview  ReviewStateRequestReview review is requested from user",
+          "x-go-name": "Event"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -23555,7 +24100,7 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
-          "description": "ObjectFormatName of the underlying git repository",
+          "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)",
           "type": "string",
           "enum": [
             "sha1",
@@ -24008,7 +24553,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "DismissPullReviewOptions": {
-      "description": "DismissPullReviewOptions are options to dismiss a pull review",
+      "description": "DismissPullReviewOptions are options to dismiss a pull request review",
       "type": "object",
       "properties": {
         "message": {
@@ -24018,6 +24563,20 @@
         "priors": {
           "type": "boolean",
           "x-go-name": "Priors"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "EditActionRunnerOption": {
+      "type": "object",
+      "title": "EditActionRunnerOption represents the editable fields for a runner.",
+      "required": [
+        "disabled"
+      ],
+      "properties": {
+        "disabled": {
+          "type": "boolean",
+          "x-go-name": "Disabled"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -24247,6 +24806,11 @@
             "type": "string"
           },
           "x-go-name": "Events"
+        },
+        "name": {
+          "description": "Optional human-readable name",
+          "type": "string",
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -24284,6 +24848,12 @@
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "content_version": {
+          "description": "The current version of the issue content to detect conflicts during editing",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContentVersion"
         },
         "due_date": {
           "type": "string",
@@ -24364,6 +24934,10 @@
         "state": {
           "description": "State indicates the updated state of the milestone",
           "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
           "x-go-name": "State"
         },
         "title": {
@@ -24384,7 +24958,7 @@
           "x-go-name": "Description"
         },
         "email": {
-          "description": "The email address of the organization",
+          "description": "The email address of the organization; use empty string to clear",
           "type": "string",
           "x-go-name": "Email"
         },
@@ -24452,6 +25026,12 @@
           "description": "The new description body for the pull request",
           "type": "string",
           "x-go-name": "Body"
+        },
+        "content_version": {
+          "description": "The current version of the pull request content to detect conflicts during editing",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContentVersion"
         },
         "due_date": {
           "type": "string",
@@ -25651,6 +26231,11 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "name": {
+          "description": "Optional human-readable name for the webhook",
+          "type": "string",
+          "x-go-name": "Name"
+        },
         "type": {
           "description": "The type of the webhook (e.g., gitea, slack, discord)",
           "type": "string",
@@ -25738,6 +26323,12 @@
           "format": "int64",
           "x-go-name": "Comments"
         },
+        "content_version": {
+          "description": "The version of the issue content for optimistic locking",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContentVersion"
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -25801,7 +26392,13 @@
           "$ref": "#/definitions/RepositoryMeta"
         },
         "state": {
-          "$ref": "#/definitions/StateType"
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-name": "State"
         },
         "time_estimate": {
           "type": "integer",
@@ -25902,7 +26499,16 @@
           "x-go-name": "ID"
         },
         "type": {
-          "$ref": "#/definitions/IssueFormFieldType"
+          "type": "string",
+          "enum": [
+            "markdown",
+            "textarea",
+            "input",
+            "dropdown",
+            "checkboxes"
+          ],
+          "x-go-enum-desc": "markdown IssueFormFieldTypeMarkdown\ntextarea IssueFormFieldTypeTextarea\ninput IssueFormFieldTypeInput\ndropdown IssueFormFieldTypeDropdown\ncheckboxes IssueFormFieldTypeCheckboxes",
+          "x-go-name": "Type"
         },
         "validations": {
           "type": "object",
@@ -25912,21 +26518,16 @@
         "visible": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/IssueFormFieldVisible"
+            "type": "string",
+            "enum": [
+              "form",
+              "content"
+            ],
+            "x-go-enum-desc": "form IssueFormFieldVisibleForm\ncontent IssueFormFieldVisibleContent"
           },
           "x-go-name": "Visible"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "IssueFormFieldType": {
-      "type": "string",
-      "title": "IssueFormFieldType defines issue form field type, can be \"markdown\", \"textarea\", \"input\", \"dropdown\" or \"checkboxes\"",
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "IssueFormFieldVisible": {
-      "description": "IssueFormFieldVisible defines issue form field visible",
-      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "IssueLabelsOption": {
@@ -26203,10 +26804,14 @@
       "description": "MergePullRequestForm form for merging Pull Request",
       "type": "object",
       "required": [
-        "Do"
+        "do"
       ],
       "properties": {
-        "Do": {
+        "delete_branch_after_merge": {
+          "type": "boolean",
+          "x-go-name": "DeleteBranchAfterMerge"
+        },
+        "do": {
           "type": "string",
           "enum": [
             "merge",
@@ -26215,20 +26820,8 @@
             "squash",
             "fast-forward-only",
             "manually-merged"
-          ]
-        },
-        "MergeCommitID": {
-          "type": "string"
-        },
-        "MergeMessageField": {
-          "type": "string"
-        },
-        "MergeTitleField": {
-          "type": "string"
-        },
-        "delete_branch_after_merge": {
-          "type": "boolean",
-          "x-go-name": "DeleteBranchAfterMerge"
+          ],
+          "x-go-name": "Do"
         },
         "force_merge": {
           "type": "boolean",
@@ -26237,6 +26830,18 @@
         "head_commit_id": {
           "type": "string",
           "x-go-name": "HeadCommitID"
+        },
+        "merge_commit_id": {
+          "type": "string",
+          "x-go-name": "MergeCommitID"
+        },
+        "merge_message_field": {
+          "type": "string",
+          "x-go-name": "MergeMessageField"
+        },
+        "merge_title_field": {
+          "type": "string",
+          "x-go-name": "MergeTitleField"
         },
         "merge_when_checks_succeed": {
           "type": "boolean",
@@ -26426,7 +27031,14 @@
           "x-go-name": "OpenIssues"
         },
         "state": {
-          "$ref": "#/definitions/StateType"
+          "description": "State indicates if the milestone is open or closed\nopen StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-name": "State"
         },
         "title": {
           "description": "Title is the title of the milestone",
@@ -26640,7 +27252,15 @@
           "x-go-name": "LatestCommentURL"
         },
         "state": {
-          "$ref": "#/definitions/StateType"
+          "description": "State indicates the current state of the notification subject\nopen NotifySubjectStateOpen  NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed  NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged  NotifySubjectStateMerged is a merged pull request",
+          "type": "string",
+          "enum": [
+            "open",
+            "closed",
+            "merged"
+          ],
+          "x-go-enum-desc": "open NotifySubjectStateOpen  NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed  NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged  NotifySubjectStateMerged is a merged pull request",
+          "x-go-name": "State"
         },
         "title": {
           "description": "Title is the title of the notification subject",
@@ -26648,7 +27268,16 @@
           "x-go-name": "Title"
         },
         "type": {
-          "$ref": "#/definitions/NotifySubjectType"
+          "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue  NotifySubjectIssue an issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull an pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit an commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository an repository is subject of an notification",
+          "type": "string",
+          "enum": [
+            "Issue",
+            "Pull",
+            "Commit",
+            "Repository"
+          ],
+          "x-go-enum-desc": "Issue NotifySubjectIssue  NotifySubjectIssue an issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull an pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit an commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository an repository is subject of an notification",
+          "x-go-name": "Type"
         },
         "url": {
           "description": "URL is the API URL for the notification subject",
@@ -26696,11 +27325,6 @@
           "x-go-name": "URL"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "NotifySubjectType": {
-      "description": "NotifySubjectType represent type of notification subject",
-      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "OAuth2Application": {
@@ -27211,6 +27835,12 @@
           "format": "int64",
           "x-go-name": "Comments"
         },
+        "content_version": {
+          "description": "The version of the pull request content for optimistic locking",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContentVersion"
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -27335,7 +27965,14 @@
           "x-go-name": "ReviewComments"
         },
         "state": {
-          "$ref": "#/definitions/StateType"
+          "description": "The current state of the pull request\nopen StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-name": "State"
         },
         "title": {
           "description": "The title of the pull request",
@@ -27427,7 +28064,16 @@
           "x-go-name": "Stale"
         },
         "state": {
-          "$ref": "#/definitions/ReviewStateType"
+          "type": "string",
+          "enum": [
+            "APPROVED",
+            "PENDING",
+            "COMMENT",
+            "REQUEST_CHANGES",
+            "REQUEST_REVIEW"
+          ],
+          "x-go-enum-desc": "APPROVED ReviewStateApproved  ReviewStateApproved pr is approved\nPENDING ReviewStatePending  ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment  ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges  ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview  ReviewStateRequestReview review is requested from user",
+          "x-go-name": "State"
         },
         "submitted_at": {
           "type": "string",
@@ -27520,7 +28166,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "PullReviewRequestOptions": {
-      "description": "PullReviewRequestOptions are options to add or remove pull review requests",
+      "description": "PullReviewRequestOptions are options to add or remove pull request review requests",
       "type": "object",
       "properties": {
         "reviewers": {
@@ -27897,6 +28543,11 @@
           "type": "string",
           "x-go-name": "AvatarURL"
         },
+        "branch_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "BranchCount"
+        },
         "clone_url": {
           "type": "string",
           "x-go-name": "CloneURL"
@@ -27921,6 +28572,10 @@
         "default_merge_style": {
           "type": "string",
           "x-go-name": "DefaultMergeStyle"
+        },
+        "default_target_branch": {
+          "type": "string",
+          "x-go-name": "DefaultTargetBranch"
         },
         "description": {
           "type": "string",
@@ -28155,9 +28810,24 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "ReviewStateType": {
-      "description": "ReviewStateType review state type",
-      "type": "string",
+    "RunDetails": {
+      "description": "RunDetails returns workflow_dispatch runid and url",
+      "type": "object",
+      "properties": {
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "run_url": {
+          "type": "string",
+          "x-go-name": "RunURL"
+        },
+        "workflow_run_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "WorkflowRunID"
+        }
+      },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "SearchResults": {
@@ -28214,11 +28884,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "StateType": {
-      "description": "StateType issue state type",
-      "type": "string",
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "StopWatch": {
       "description": "StopWatch represent a running stopwatch",
       "type": "object",
@@ -28264,7 +28929,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "SubmitPullReviewOptions": {
-      "description": "SubmitPullReviewOptions are options to submit a pending pull review",
+      "description": "SubmitPullReviewOptions are options to submit a pending pull request review",
       "type": "object",
       "properties": {
         "body": {
@@ -28272,7 +28937,16 @@
           "x-go-name": "Body"
         },
         "event": {
-          "$ref": "#/definitions/ReviewStateType"
+          "type": "string",
+          "enum": [
+            "APPROVED",
+            "PENDING",
+            "COMMENT",
+            "REQUEST_CHANGES",
+            "REQUEST_REVIEW"
+          ],
+          "x-go-enum-desc": "APPROVED ReviewStateApproved  ReviewStateApproved pr is approved\nPENDING ReviewStatePending  ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment  ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges  ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview  ReviewStateRequestReview review is requested from user",
+          "x-go-name": "Event"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -28698,6 +29372,31 @@
             "format": "int64"
           },
           "x-go-name": "IDs"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateBranchRepoOption": {
+      "description": "UpdateBranchRepoOption options when updating a branch reference in a repository",
+      "type": "object",
+      "required": [
+        "new_commit_id"
+      ],
+      "properties": {
+        "force": {
+          "description": "Force update even if the change is not a fast-forward",
+          "type": "boolean",
+          "x-go-name": "Force"
+        },
+        "new_commit_id": {
+          "description": "New commit SHA (or any ref) the branch should point to",
+          "type": "string",
+          "x-go-name": "NewCommitID"
+        },
+        "old_commit_id": {
+          "description": "Expected old commit SHA of the branch; if provided it must match the current tip",
+          "type": "string",
+          "x-go-name": "OldCommitID"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -29246,12 +29945,6 @@
         "items": {
           "$ref": "#/definitions/Activity"
         }
-      }
-    },
-    "ActivityPub": {
-      "description": "ActivityPub",
-      "schema": {
-        "$ref": "#/definitions/ActivityPub"
       }
     },
     "AnnotatedTag": {
@@ -30012,6 +30705,12 @@
         "items": {
           "$ref": "#/definitions/Repository"
         }
+      }
+    },
+    "RunDetails": {
+      "description": "RunDetails",
+      "schema": {
+        "$ref": "#/definitions/RunDetails"
       }
     },
     "Runner": {

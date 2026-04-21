@@ -11,12 +11,10 @@ import (
 
 func TestNaturalSortLess(t *testing.T) {
 	testLess := func(s1, s2 string) {
-		assert.True(t, NaturalSortLess(s1, s2), "s1<s2 should be true: s1=%q, s2=%q", s1, s2)
-		assert.False(t, NaturalSortLess(s2, s1), "s2<s1 should be false: s1=%q, s2=%q", s1, s2)
+		assert.Negative(t, NaturalSortCompare(s1, s2), "s1<s2 should be true: s1=%q, s2=%q", s1, s2)
 	}
 	testEqual := func(s1, s2 string) {
-		assert.False(t, NaturalSortLess(s1, s2), "s1<s2 should be false: s1=%q, s2=%q", s1, s2)
-		assert.False(t, NaturalSortLess(s2, s1), "s2<s1 should be false: s1=%q, s2=%q", s1, s2)
+		assert.Zero(t, NaturalSortCompare(s1, s2), "s1<s2 should be false: s1=%q, s2=%q", s1, s2)
 	}
 
 	testEqual("", "")

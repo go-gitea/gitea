@@ -8,7 +8,6 @@ import (
 	"html"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
@@ -21,15 +20,13 @@ import (
 // Routes registers the installation routes
 func Routes() *web.Router {
 	base := web.NewRouter()
-	base.Use(common.ProtocolMiddlewares()...)
+	base.BeforeRouting(common.ProtocolMiddlewares()...)
+
 	base.Methods("GET, HEAD", "/assets/*", public.FileHandlerFunc())
 
 	r := web.NewRouter()
-	if sessionMid, err := common.Sessioner(); err == nil && sessionMid != nil {
-		r.Use(sessionMid, Contexter())
-	} else {
-		log.Fatal("common.Sessioner failed: %v", err)
-	}
+	r.AfterRouting(common.MustInitSessioner(), installContexter())
+
 	r.Get("/", Install) // it must be on the root, because the "install.js" use the window.location to replace the "localhost" AppURL
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
 	r.Get("/post-install", InstallDone)

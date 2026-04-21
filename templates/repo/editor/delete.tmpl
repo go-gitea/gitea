@@ -1,13 +1,29 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository file editor delete">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui container fluid padded">
 		{{template "base/alert" .}}
-		<form class="ui form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}">
-			{{.CsrfTokenHtml}}
-			{{template "repo/editor/common_top" .}}
-			{{template "repo/editor/commit_form" .}}
-		</form>
+		<div class="repo-view-container">
+			{{template "repo/view_file_tree" .}}
+			<div class="repo-view-content">
+				<form class="ui form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}">
+					{{template "repo/editor/common_top" .}}
+					<div class="repo-editor-header">
+						{{/* although the UI isn't good enough, this header is necessary for the "left file tree view" toggle button, this button must exist */}}
+						{{template "repo/view_file_tree_toggle_button" .}}
+						{{/* then, to make the page looks overall good, add the breadcrumb here to make the toggle button can be shown in a text row, but not a single button*/}}
+						<div class="breadcrumb">
+							<a class="section" href="{{$.BranchLink}}">{{.Repository.Name}}</a>
+							{{range $i, $v := .TreeNames}}
+								<div class="breadcrumb-divider">/</div>
+								<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
+							{{end}}
+						</div>
+					</div>
+					{{template "repo/editor/commit_form" .}}
+				</form>
+			</div>
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}}

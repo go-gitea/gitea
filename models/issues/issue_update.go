@@ -93,12 +93,6 @@ type ErrIssueIsOpen struct {
 	Index  int64
 }
 
-// IsErrIssueIsOpen checks if an error is a ErrIssueIsOpen.
-func IsErrIssueIsOpen(err error) bool {
-	_, ok := err.(ErrIssueIsOpen)
-	return ok
-}
-
 func (err ErrIssueIsOpen) Error() string {
 	return fmt.Sprintf("%s [id: %d, repo_id: %d, index: %d] is already open", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.RepoID, err.Index)
 }
@@ -146,8 +140,19 @@ func updateIssueNumbers(ctx context.Context, issue *Issue, doer *user_model.User
 	}
 
 	// update repository's issue closed number
-	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
-		return nil, err
+	switch cmtType {
+	case CommentTypeClose, CommentTypeMergePull:
+		// only increase closed count
+		if err := IncrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
+			return nil, err
+		}
+	case CommentTypeReopen:
+		// only decrease closed count
+		if err := DecrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false, true); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("invalid comment type: %d", cmtType)
 	}
 
 	return CreateComment(ctx, &CreateCommentOptions{
@@ -318,7 +323,6 @@ type NewIssueOptions struct {
 	Issue       *Issue
 	LabelIDs    []int64
 	Attachments []string // In UUID format.
-	IsPull      bool
 }
 
 // NewIssueWithIndex creates issue with given index
@@ -369,7 +373,8 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 		}
 	}
 
-	if err := repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.IsPull, false); err != nil {
+	// Update repository issue total count
+	if err := IncrRepoIssueNumbers(ctx, opts.Repo.ID, opts.Issue.IsPull, true); err != nil {
 		return err
 	}
 
@@ -430,13 +435,49 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *Issue, la
 			LabelIDs:    labelIDs,
 			Attachments: uuids,
 		}); err != nil {
-			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
+			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 				return err
 			}
 			return fmt.Errorf("newIssue: %w", err)
 		}
 		return nil
 	})
+}
+
+// IncrRepoIssueNumbers increments repository issue numbers.
+func IncrRepoIssueNumbers(ctx context.Context, repoID int64, isPull, totalOrClosed bool) error {
+	dbSession := db.GetEngine(ctx)
+	var colName string
+	if totalOrClosed {
+		colName = util.Iif(isPull, "num_pulls", "num_issues")
+	} else {
+		colName = util.Iif(isPull, "num_closed_pulls", "num_closed_issues")
+	}
+	_, err := dbSession.Incr(colName).ID(repoID).
+		NoAutoCondition().NoAutoTime().
+		Update(new(repo_model.Repository))
+	return err
+}
+
+// DecrRepoIssueNumbers decrements repository issue numbers.
+func DecrRepoIssueNumbers(ctx context.Context, repoID int64, isPull, includeTotal, includeClosed bool) error {
+	if !includeTotal && !includeClosed {
+		return fmt.Errorf("no numbers to decrease for repo id %d", repoID)
+	}
+
+	dbSession := db.GetEngine(ctx)
+	if includeTotal {
+		colName := util.Iif(isPull, "num_pulls", "num_issues")
+		dbSession = dbSession.Decr(colName)
+	}
+	if includeClosed {
+		closedColName := util.Iif(isPull, "num_closed_pulls", "num_closed_issues")
+		dbSession = dbSession.Decr(closedColName)
+	}
+	_, err := dbSession.ID(repoID).
+		NoAutoCondition().NoAutoTime().
+		Update(new(repo_model.Repository))
+	return err
 }
 
 // UpdateIssueMentions updates issue-user relations for mentioned users.
@@ -618,9 +659,9 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 			continue
 		}
 		// Normal users must have read access to the referencing issue
-		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, user)
+		perm, err := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, user)
 		if err != nil {
-			return nil, fmt.Errorf("GetUserRepoPermission [%d]: %w", user.ID, err)
+			return nil, fmt.Errorf("GetIndividualUserRepoPermission [%d]: %w", user.ID, err)
 		}
 		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
 			continue

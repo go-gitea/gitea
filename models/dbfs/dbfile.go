@@ -75,7 +75,7 @@ func (f *file) readAt(fileMeta *dbfsMeta, offset int64, p []byte) (n int, err er
 }
 
 func (f *file) Read(p []byte) (n int, err error) {
-	if f.metaID == 0 || !f.allowRead {
+	if !f.allowRead {
 		return 0, os.ErrInvalid
 	}
 
@@ -89,7 +89,7 @@ func (f *file) Read(p []byte) (n int, err error) {
 }
 
 func (f *file) Write(p []byte) (n int, err error) {
-	if f.metaID == 0 || !f.allowWrite {
+	if !f.allowWrite {
 		return 0, os.ErrInvalid
 	}
 
@@ -184,10 +184,6 @@ func (f *file) Close() error {
 }
 
 func (f *file) Stat() (os.FileInfo, error) {
-	if f.metaID == 0 {
-		return nil, os.ErrInvalid
-	}
-
 	fileMeta, err := findFileMetaByID(f.ctx, f.metaID)
 	if err != nil {
 		return nil, err
@@ -232,14 +228,16 @@ func (f *file) open(flag int) (err error) {
 				if f.metaID != 0 {
 					return os.ErrExist
 				}
-			} else {
-				// create a new file if none exists.
-				if f.metaID == 0 {
-					if err = f.createEmpty(); err != nil {
-						return err
-					}
+			}
+			// create a new file if not exists.
+			if f.metaID == 0 {
+				if err = f.createEmpty(); err != nil {
+					return err
 				}
 			}
+		}
+		if f.metaID == 0 {
+			return os.ErrNotExist
 		}
 		if flag&os.O_TRUNC != 0 {
 			if err = f.truncate(); err != nil {
@@ -252,7 +250,7 @@ func (f *file) open(flag int) (err error) {
 			}
 		}
 		return nil
-	}
+	} // end if: allowWrite
 
 	// read only mode
 	if f.metaID == 0 {
@@ -322,9 +320,6 @@ func (f *file) delete() error {
 }
 
 func (f *file) size() (int64, error) {
-	if f.metaID == 0 {
-		return 0, os.ErrNotExist
-	}
 	fileMeta, err := findFileMetaByID(f.ctx, f.metaID)
 	if err != nil {
 		return 0, err
@@ -339,7 +334,7 @@ func findFileMetaByID(ctx context.Context, metaID int64) (*dbfsMeta, error) {
 	} else if ok {
 		return &fileMeta, nil
 	}
-	return nil, nil
+	return nil, os.ErrNotExist
 }
 
 func buildPath(path string) string {

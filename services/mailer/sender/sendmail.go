@@ -33,7 +33,13 @@ func (s *SendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 
 	args := []string{"-f", envelopeFrom, "-i"}
 	args = append(args, setting.MailService.SendmailArgs...)
-	args = append(args, to...)
+	for _, recipient := range to {
+		smtpTo, err := sanitizeEmailAddress(recipient)
+		if err != nil {
+			return fmt.Errorf("invalid recipient address %q: %w", recipient, err)
+		}
+		args = append(args, smtpTo)
+	}
 	log.Trace("Sending with: %s %v", setting.MailService.SendmailPath, args)
 
 	desc := fmt.Sprintf("SendMail: %s %v", setting.MailService.SendmailPath, args)

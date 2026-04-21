@@ -14,6 +14,12 @@ import (
 )
 
 // Security settings
+var Security = struct {
+	// TODO: move more settings to this struct in future
+	XFrameOptions string
+}{
+	XFrameOptions: "SAMEORIGIN",
+}
 
 var (
 	InstallLock                        bool
@@ -25,6 +31,7 @@ var (
 	ReverseProxyAuthEmail              string
 	ReverseProxyAuthFullName           string
 	ReverseProxyLimit                  int
+	ReverseProxyLogoutRedirect         string
 	ReverseProxyTrustedProxies         []string
 	MinPasswordLength                  int
 	ImportLocalPaths                   bool
@@ -36,8 +43,6 @@ var (
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
 	DisableQueryAuthToken              bool
-	CSRFCookieName                     = "_csrf"
-	CSRFCookieHTTPOnly                 = true
 	RecordUserSignupMetadata           = false
 	TwoFactorAuthEnforced              = false
 )
@@ -105,7 +110,6 @@ func generateSaveInternalToken(rootCfg ConfigProvider) {
 
 func loadSecurityFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("security")
-	InstallLock = HasInstallLock(rootCfg)
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(31)
 	SecretKey = loadSecret(sec, "SECRET_KEY_URI", "SECRET_KEY")
 	if SecretKey == "" {
@@ -121,6 +125,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	ReverseProxyAuthFullName = sec.Key("REVERSE_PROXY_AUTHENTICATION_FULL_NAME").MustString("X-WEBAUTH-FULLNAME")
 
 	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
+	ReverseProxyLogoutRedirect = sec.Key("REVERSE_PROXY_LOGOUT_REDIRECT").String()
 	ReverseProxyTrustedProxies = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
 	if len(ReverseProxyTrustedProxies) == 0 {
 		ReverseProxyTrustedProxies = []string{"127.0.0.0/8", "::1/128"}
@@ -139,9 +144,15 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		log.Fatal("The provided password hash algorithm was invalid: %s", sec.Key("PASSWORD_HASH_ALGO").MustString(""))
 	}
 
-	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
+
+	deprecatedSetting(rootCfg, "cors", "X_FRAME_OPTIONS", "security", "X_FRAME_OPTIONS", "v1.26.0")
+	if sec.HasKey("X_FRAME_OPTIONS") {
+		Security.XFrameOptions = sec.Key("X_FRAME_OPTIONS").MustString(Security.XFrameOptions)
+	} else {
+		Security.XFrameOptions = rootCfg.Section("cors").Key("X_FRAME_OPTIONS").MustString(Security.XFrameOptions)
+	}
 
 	twoFactorAuth := sec.Key("TWO_FACTOR_AUTH").String()
 	switch twoFactorAuth {

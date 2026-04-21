@@ -5,6 +5,7 @@ package actions
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -58,8 +59,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 
 	if ctx.Data["PageIsOrgSettings"] == true {
 		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-			ctx.ServerError("RenderUserOrgHeader", err)
-			return nil, nil
+			return nil, fmt.Errorf("RenderUserOrgHeader: %w", err)
 		}
 		return &runnersCtx{
 			RepoID:             0,
@@ -159,7 +159,7 @@ func Runners(ctx *context.Context) {
 	ctx.Data["RunnerRepoID"] = opts.RepoID
 	ctx.Data["SortType"] = opts.Sort
 
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 
 	ctx.Data["Page"] = pager
 
@@ -220,7 +220,7 @@ func RunnersEdit(ctx *context.Context) {
 	}
 
 	ctx.Data["Tasks"] = tasks
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, rCtx.RunnerEditTemplate)
@@ -321,8 +321,45 @@ func RunnerDeletePost(ctx *context.Context) {
 	ctx.JSONRedirect(successRedirectTo)
 }
 
-func RedirectToDefaultSetting(ctx *context.Context) {
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/actions/runners")
+func RunnerUpdatePost(ctx *context.Context) {
+	rCtx, err := getRunnersCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getRunnersCtx", err)
+		return
+	}
+
+	runner := findActionsRunner(ctx, rCtx)
+	if ctx.Written() {
+		return
+	}
+
+	if !runner.EditableInContext(rCtx.OwnerID, rCtx.RepoID) {
+		ctx.NotFound(util.NewPermissionDeniedErrorf("no permission to edit this runner"))
+		return
+	}
+
+	isDisabled := ctx.FormOptionalBool("disabled")
+	if !isDisabled.Has() {
+		ctx.HTTPError(http.StatusBadRequest, "missing 'disabled' parameter")
+		return
+	}
+
+	successKey := "actions.runners.enable_runner_success"
+	failedKey := "actions.runners.enable_runner_failed"
+	if isDisabled.Value() {
+		successKey = "actions.runners.disable_runner_success"
+		failedKey = "actions.runners.disable_runner_failed"
+	}
+
+	if err := actions_model.SetRunnerDisabled(ctx, runner, isDisabled.Value()); err != nil {
+		log.Warn("RunnerUpdatePost.SetRunnerDisabled failed: %v, url: %s", err, ctx.Req.URL)
+		ctx.Flash.Error(ctx.Tr(failedKey))
+		ctx.JSONRedirect("")
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr(successKey))
+	ctx.JSONRedirect("")
 }
 
 func findActionsRunner(ctx *context.Context, rCtx *runnersCtx) *actions_model.ActionRunner {

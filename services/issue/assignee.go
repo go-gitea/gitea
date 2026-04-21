@@ -20,10 +20,10 @@ import (
 // DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array
 func DeleteNotPassedAssignee(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assignees []*user_model.User) (err error) {
 	var found bool
-	oriAssignes := make([]*user_model.User, len(issue.Assignees))
-	_ = copy(oriAssignes, issue.Assignees)
+	oriAssignees := make([]*user_model.User, len(issue.Assignees))
+	_ = copy(oriAssignees, issue.Assignees)
 
-	for _, assignee := range oriAssignes {
+	for _, assignee := range oriAssignees {
 		found = false
 		for _, alreadyAssignee := range assignees {
 			if assignee.ID == alreadyAssignee.ID {
@@ -70,7 +70,7 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 	}
 
 	if isAdd {
-		comment, err = issues_model.AddReviewRequest(ctx, issue, reviewer, doer)
+		comment, err = issues_model.AddReviewRequest(ctx, issue, reviewer, doer, false)
 	} else {
 		comment, err = issues_model.RemoveReviewRequest(ctx, issue, reviewer, doer)
 	}
@@ -103,14 +103,14 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		}
 	}
 
-	permReviewer, err := access_model.GetUserRepoPermission(ctx, issue.Repo, reviewer)
+	permReviewer, err := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, reviewer)
 	if err != nil {
 		return err
 	}
 
 	if permDoer == nil {
 		permDoer = new(access_model.Permission)
-		*permDoer, err = access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+		*permDoer, err = access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return err
 		}
@@ -224,7 +224,7 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 		return nil, err
 	}
 	if isAdd {
-		comment, err = issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer)
+		comment, err = issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer, false)
 	} else {
 		comment, err = issues_model.RemoveTeamReviewRequest(ctx, issue, reviewer, doer)
 	}
@@ -234,7 +234,7 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 	}
 
 	if comment == nil || !isAdd {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil because no comment was created or it is a removal
 	}
 
 	return comment, teamReviewRequestNotify(ctx, issue, doer, reviewer, isAdd, comment)

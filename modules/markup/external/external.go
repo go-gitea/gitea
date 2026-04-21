@@ -21,10 +21,35 @@ import (
 
 // RegisterRenderers registers all supported third part renderers according settings
 func RegisterRenderers() {
+	markup.RegisterRenderer(&frontendRenderer{
+		name: "openapi-swagger",
+		patterns: []string{
+			"openapi.yaml",
+			"openapi.yml",
+			"openapi.json",
+			"swagger.yaml",
+			"swagger.yml",
+			"swagger.json",
+		},
+	})
+
+	markup.RegisterRenderer(&frontendRenderer{
+		name: "viewer-3d",
+		patterns: []string{
+			// It needs more logic to make it overall right (render a text 3D model automatically):
+			// we need to distinguish the ambiguous filename extensions.
+			// For example: "*.amf, *.obj, *.off, *.step" might be or not be a 3D model file.
+			// So when it is a text file, we can't assume that "we only render it by 3D plugin",
+			// otherwise the end users would be impossible to view its real content when the file is not a 3D model.
+			"*.3dm", "*.3ds", "*.3mf", "*.amf", "*.bim", "*.brep",
+			"*.dae", "*.fbx", "*.fcstd", "*.glb", "*.gltf",
+			"*.ifc", "*.igs", "*.iges", "*.stp", "*.step",
+			"*.stl", "*.obj", "*.off", "*.ply", "*.wrl",
+		},
+	})
+
 	for _, renderer := range setting.ExternalMarkupRenderers {
-		if renderer.Enabled && renderer.Command != "" && len(renderer.FileExtensions) > 0 {
-			markup.RegisterRenderer(&Renderer{renderer})
-		}
+		markup.RegisterRenderer(&Renderer{renderer})
 	}
 }
 
@@ -38,22 +63,18 @@ var (
 	_ markup.ExternalRenderer    = (*Renderer)(nil)
 )
 
-// Name returns the external tool name
 func (p *Renderer) Name() string {
 	return p.MarkupName
 }
 
-// NeedPostProcess implements markup.Renderer
 func (p *Renderer) NeedPostProcess() bool {
 	return p.MarkupRenderer.NeedPostProcess
 }
 
-// Extensions returns the supported extensions of the tool
-func (p *Renderer) Extensions() []string {
-	return p.FileExtensions
+func (p *Renderer) FileNamePatterns() []string {
+	return p.FilePatterns
 }
 
-// SanitizerRules implements markup.Renderer
 func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return p.MarkupSanitizerRules
 }

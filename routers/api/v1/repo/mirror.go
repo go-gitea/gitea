@@ -179,7 +179,7 @@ func ListPushMirrors(ctx *context.APIContext) {
 			responsePushMirrors = append(responsePushMirrors, m)
 		}
 	}
-	ctx.SetLinkHeader(len(responsePushMirrors), utils.GetListOptions(ctx).PageSize)
+	ctx.SetLinkHeader(int64(len(responsePushMirrors)), utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, responsePushMirrors)
 }
@@ -351,11 +351,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 		return
 	}
 
-	remoteSuffix, err := util.CryptoRandomString(10)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
+	remoteSuffix := util.CryptoRandomString(10)
 
 	remoteAddress, err := util.SanitizeURL(mirrorOption.RemoteAddress)
 	if err != nil {

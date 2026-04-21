@@ -50,8 +50,8 @@ type RepoFileOptions struct {
 	DeprecatedRepoName  string // it is only a patch for the non-standard "markup" api
 	DeprecatedOwnerName string // it is only a patch for the non-standard "markup" api
 
-	CurrentRefPath  string // eg: "branch/main"
-	CurrentTreePath string // eg: "path/to/file" in the repo
+	CurrentRefPath  string // eg: "branch/main", it is a sub URL path escaped by callers, TODO: rename to CurrentRefSubURL
+	CurrentTreePath string // eg: "path/to/file" in the repo, it is the tree path without URL path escaping
 }
 
 func NewRenderContextRepoFile(ctx context.Context, repo *repo_model.Repository, opts ...RepoFileOptions) *markup.RenderContext {
@@ -70,6 +70,10 @@ func NewRenderContextRepoFile(ctx context.Context, repo *repo_model.Repository, 
 			"repo": helper.opts.DeprecatedRepoName,
 		})
 	}
-	rctx = rctx.WithHelper(helper)
+	// External render's iframe needs this to generate correct links
+	// TODO: maybe need to make it access "CurrentRefPath" directly (but impossible at the moment due to cycle-import)
+	// CurrentRefPath is already path-escaped by callers
+	rctx.RenderOptions.Metas["RefTypeNameSubURL"] = helper.opts.CurrentRefPath
+	rctx = rctx.WithHelper(helper).WithEnableHeadingIDGeneration(true)
 	return rctx
 }

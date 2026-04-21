@@ -39,23 +39,17 @@
 			</div>
 			{{if not (or .IsBeingCreated .IsBroken)}}
 				<div class="flex-text-block tw-flex-wrap">
-					{{if $.RepoTransfer}}
-						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
-							{{$.CsrfTokenHtml}}
-							<div class="flex-text-inline" data-tooltip-content="{{if $.CanUserAcceptOrRejectTransfer}}{{ctx.Locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
-								<button type="submit" class="ui compact small basic button {{if $.CanUserAcceptOrRejectTransfer}}primary {{end}} ok small"{{if not $.CanUserAcceptOrRejectTransfer}} disabled{{end}}>
-									{{ctx.Locale.Tr "repo.transfer.accept"}}
-								</button>
-							</div>
-						</form>
-						<form method="post" action="{{$.RepoLink}}/action/reject_transfer?redirect_to={{$.RepoLink}}">
-							{{$.CsrfTokenHtml}}
-							<div class="flex-text-inline" data-tooltip-content="{{if $.CanUserAcceptOrRejectTransfer}}{{ctx.Locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
-								<button type="submit" class="ui compact small basic button {{if $.CanUserAcceptOrRejectTransfer}}red {{end}}ok small"{{if not $.CanUserAcceptOrRejectTransfer}} disabled{{end}}>
-									{{ctx.Locale.Tr "repo.transfer.reject"}}
-								</button>
-							</div>
-						</form>
+					{{if $.CanUserAcceptOrRejectTransfer}}
+						<button type="button" class="ui compact small basic primary button link-action" data-url="{{$.RepoLink}}/action/accept_transfer"
+							data-tooltip-content="{{ctx.Locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.GetDisplayName}}"
+						>{{ctx.Locale.Tr "repo.transfer.accept"}}</button>
+						<button type="button" class="ui compact small basic red button link-action" data-url="{{$.RepoLink}}/action/reject_transfer"
+							data-tooltip-content="{{ctx.Locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.GetDisplayName}}"
+						>{{ctx.Locale.Tr "repo.transfer.reject"}}</button>
+					{{else if $.RepoTransfer}}
+						<div data-tooltip-content="{{ctx.Locale.Tr "repo.transfer.is_transferring_prompt" $.RepoTransfer.Recipient.GetDisplayName}}">
+							<button class="ui compact small basic red button" disabled>{{ctx.Locale.Tr "repo.transfer.is_transferring"}}</button>
+						</div>
 					{{end}}
 					{{if $.EnableFeed}}
 					{{/* An extra div-element is not necessary here, as this button does not secretly contain two buttons. */}}
@@ -123,7 +117,7 @@
 		{{if $.PullMirror}}
 			<div class="fork-flag">
 				{{ctx.Locale.Tr "repo.mirror_from"}}
-				<a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
+				<a target="_blank" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
 				{{if $.PullMirror.UpdatedUnix}}{{ctx.Locale.Tr "repo.mirror_sync"}} {{DateUtils.TimeSince $.PullMirror.UpdatedUnix}}{{end}}
 			</div>
 		{{end}}
@@ -151,7 +145,7 @@
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeExternalTracker}}
-						<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
+						<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoExternalIssuesLink}}" target="_blank">
 							{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.issues"}}
 						</a>
 					{{end}}
@@ -206,7 +200,7 @@
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeExternalWiki}}
-						<a class="item" href="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" rel="noopener noreferrer">
+						<a class="item" href="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank">
 							{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.wiki"}}
 						</a>
 					{{end}}

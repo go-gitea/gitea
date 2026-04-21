@@ -151,7 +151,11 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	gitRepo := ctx.Repo.GitRepo
 	objectFormat := ctx.Repo.GetObjectFormat()
 
-	if branchName == repo.DefaultBranch && newCommitID == objectFormat.EmptyObjectID().String() {
+	defaultBranch := repo.DefaultBranch
+	if ctx.opts.IsWiki && repo.DefaultWikiBranch != "" {
+		defaultBranch = repo.DefaultWikiBranch
+	}
+	if branchName == defaultBranch && newCommitID == objectFormat.EmptyObjectID().String() {
 		log.Warn("Forbidden: Branch: %s is the default branch in %-v and cannot be deleted", branchName, repo)
 		ctx.JSON(http.StatusForbidden, private.Response{
 			UserMsg: fmt.Sprintf("branch %s is the default branch and cannot be deleted", branchName),
@@ -191,7 +195,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 	// 2. Disallow force pushes to protected branches
 	if oldCommitID != objectFormat.EmptyObjectID().String() {
-		output, err := gitrepo.RunCmdString(ctx,
+		output, _, err := gitrepo.RunCmdString(ctx,
 			repo,
 			gitcmd.NewCommand("rev-list", "--max-count=1").
 				AddDynamicArguments(oldCommitID, "^"+newCommitID).
@@ -492,16 +496,25 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 	}
 
 	if ctx.opts.UserID == user_model.ActionsUserID {
-		ctx.user = user_model.NewActionsUser()
-		ctx.userPerm.AccessMode = perm_model.AccessMode(ctx.opts.ActionPerm)
-		if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
-			log.Error("Unable to get User id %d Error: %v", ctx.opts.UserID, err)
+		taskID := ctx.opts.ActionsTaskID
+		ctx.user = user_model.NewActionsUserWithTaskID(taskID)
+		if taskID == 0 {
+			log.Error("HookPreReceive: ActionsUser with task ID 0")
 			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Unable to get User id %d Error: %v", ctx.opts.UserID, err),
+				Err: "ActionsUser with task ID 0",
 			})
 			return false
 		}
-		ctx.userPerm.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, ctx.userPerm.AccessMode)
+
+		userPerm, err := access_model.GetActionsUserRepoPermission(ctx, ctx.Repo.Repository, ctx.user, taskID)
+		if err != nil {
+			log.Error("Unable to get Actions user repo permission for task %d Error: %v", taskID, err)
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: fmt.Sprintf("Unable to get Actions user repo permission for task %d Error: %v", taskID, err),
+			})
+			return false
+		}
+		ctx.userPerm = userPerm
 	} else {
 		user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
 		if err != nil {
@@ -512,7 +525,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 			return false
 		}
 		ctx.user = user
-		userPerm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
+		userPerm, err := access_model.GetDoerRepoPermission(ctx, ctx.Repo.Repository, user)
 		if err != nil {
 			log.Error("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{

@@ -4,10 +4,15 @@
 package webtheme
 
 import (
+	"io/fs"
+	"net/url"
+	"os"
+	"path"
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
+	"sync/atomic"
+	"time"
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
@@ -16,11 +21,15 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-var (
-	availableThemes   []*ThemeMetaInfo
-	availableThemeMap map[string]*ThemeMetaInfo
-	themeOnce         sync.Once
-)
+type themeCollectionStruct struct {
+	lastCheckTime    time.Time
+	usingViteDevMode bool
+
+	themeList []*ThemeMetaInfo
+	themeMap  map[string]*ThemeMetaInfo
+}
+
+var themeCollection atomic.Pointer[themeCollectionStruct]
 
 const (
 	fileNamePrefix = "theme-"
@@ -35,9 +44,16 @@ type ThemeMetaInfo struct {
 	ColorScheme    string
 }
 
+func (info *ThemeMetaInfo) PublicAssetURI() string {
+	return public.AssetURI("css/theme-" + url.PathEscape(info.InternalName) + ".css")
+}
+
 func (info *ThemeMetaInfo) GetDescription() string {
 	if info.ColorblindType == "red-green" {
 		return "Red-green colorblind friendly"
+	}
+	if info.ColorblindType == "blue-yellow" {
+		return "Blue-yellow colorblind friendly"
 	}
 	return ""
 }
@@ -45,6 +61,9 @@ func (info *ThemeMetaInfo) GetDescription() string {
 func (info *ThemeMetaInfo) GetExtraIconName() string {
 	if info.ColorblindType == "red-green" {
 		return "gitea-colorblind-redgreen"
+	}
+	if info.ColorblindType == "blue-yellow" {
+		return "gitea-colorblind-blueyellow"
 	}
 	return ""
 }
@@ -99,9 +118,16 @@ func parseThemeMetaInfoToMap(cssContent string) map[string]string {
 }
 
 func defaultThemeMetaInfoByFileName(fileName string) *ThemeMetaInfo {
+	internalName := strings.TrimSuffix(strings.TrimPrefix(fileName, fileNamePrefix), fileNameSuffix)
+	// For built-in themes, the manifest knows the unhashed entry name (e.g. "theme-gitea-dark")
+	// which lets us correctly strip the content hash without guessing.
+	// Custom themes are not in the manifest and never have content hashes.
+	if name := public.AssetNameFromHashedPath("css/" + fileName); name != "" {
+		internalName = strings.TrimPrefix(name, fileNamePrefix)
+	}
 	themeInfo := &ThemeMetaInfo{
 		FileName:     fileName,
-		InternalName: strings.TrimSuffix(strings.TrimPrefix(fileName, fileNamePrefix), fileNameSuffix),
+		InternalName: internalName,
 	}
 	themeInfo.DisplayName = themeInfo.InternalName
 	return themeInfo
@@ -123,67 +149,114 @@ func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 	return themeInfo
 }
 
-func initThemes() {
-	availableThemes = nil
-	defer func() {
-		availableThemeMap = map[string]*ThemeMetaInfo{}
-		for _, theme := range availableThemes {
-			availableThemeMap[theme.InternalName] = theme
-		}
-		if availableThemeMap[setting.UI.DefaultTheme] == nil {
-			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.UI.DefaultTheme)
-		}
-	}()
-	cssFiles, err := public.AssetFS().ListFiles("/assets/css")
+func collectThemeFiles(dirFS fs.ReadDirFS, fsPath string) (themes []*ThemeMetaInfo, _ error) {
+	files, err := dirFS.ReadDir(fsPath)
 	if err != nil {
-		log.Error("Failed to list themes: %v", err)
-		availableThemes = []*ThemeMetaInfo{defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)}
-		return
+		return nil, err
 	}
-	var foundThemes []*ThemeMetaInfo
-	for _, fileName := range cssFiles {
-		if strings.HasPrefix(fileName, fileNamePrefix) && strings.HasSuffix(fileName, fileNameSuffix) {
-			content, err := public.AssetFS().ReadFile("/assets/css/" + fileName)
-			if err != nil {
-				log.Error("Failed to read theme file %q: %v", fileName, err)
-				continue
-			}
-			foundThemes = append(foundThemes, parseThemeMetaInfo(fileName, util.UnsafeBytesToString(content)))
+	for _, file := range files {
+		fileName := file.Name()
+		if !strings.HasPrefix(fileName, fileNamePrefix) || !strings.HasSuffix(fileName, fileNameSuffix) {
+			continue
 		}
+		content, err := fs.ReadFile(dirFS, path.Join(fsPath, file.Name()))
+		if err != nil {
+			log.Error("Failed to read theme file %q: %v", fileName, err)
+			continue
+		}
+		themes = append(themes, parseThemeMetaInfo(fileName, util.UnsafeBytesToString(content)))
 	}
+	return themes, nil
+}
+
+func loadThemesFromAssets(isViteDevMode bool) (themeList []*ThemeMetaInfo, themeMap map[string]*ThemeMetaInfo) {
+	var themeDir fs.ReadDirFS
+	var themePath string
+
+	if isViteDevMode {
+		// In vite dev mode, Vite serves themes directly from source files.
+		themeDir, themePath = os.DirFS(setting.StaticRootPath).(fs.ReadDirFS), "web_src/css/themes"
+	} else {
+		// Without vite dev server, use built assets from AssetFS.
+		themeDir, themePath = public.AssetFS(), "assets/css"
+	}
+
+	foundThemes, err := collectThemeFiles(themeDir, themePath)
+	if err != nil {
+		log.Error("Failed to load theme files: %v", err)
+		return themeList, themeMap
+	}
+
+	themeList = foundThemes
 	if len(setting.UI.Themes) > 0 {
+		themeList = nil // only allow the themes specified in the setting
 		allowedThemes := container.SetOf(setting.UI.Themes...)
 		for _, theme := range foundThemes {
 			if allowedThemes.Contains(theme.InternalName) {
-				availableThemes = append(availableThemes, theme)
+				themeList = append(themeList, theme)
 			}
 		}
-	} else {
-		availableThemes = foundThemes
 	}
-	sort.Slice(availableThemes, func(i, j int) bool {
-		if availableThemes[i].InternalName == setting.UI.DefaultTheme {
+
+	sort.Slice(themeList, func(i, j int) bool {
+		if themeList[i].InternalName == setting.UI.DefaultTheme {
 			return true
 		}
-		if availableThemes[i].ColorblindType != availableThemes[j].ColorblindType {
-			return availableThemes[i].ColorblindType < availableThemes[j].ColorblindType
+		if themeList[i].ColorblindType != themeList[j].ColorblindType {
+			return themeList[i].ColorblindType < themeList[j].ColorblindType
 		}
-		return availableThemes[i].DisplayName < availableThemes[j].DisplayName
+		return themeList[i].DisplayName < themeList[j].DisplayName
 	})
-	if len(availableThemes) == 0 {
-		setting.LogStartupProblem(1, log.ERROR, "No theme candidate in asset files, but Gitea requires there should be at least one usable theme")
-		availableThemes = []*ThemeMetaInfo{defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)}
+
+	themeMap = map[string]*ThemeMetaInfo{}
+	for _, theme := range themeList {
+		themeMap[theme.InternalName] = theme
 	}
+	return themeList, themeMap
+}
+
+func getAvailableThemes() *themeCollectionStruct {
+	themes := themeCollection.Load()
+
+	now := time.Now()
+	if themes != nil && now.Sub(themes.lastCheckTime) < time.Second {
+		return themes
+	}
+
+	isViteDevMode := public.IsViteDevMode()
+	useLoadedThemes := themes != nil && (setting.IsProd || themes.usingViteDevMode == isViteDevMode)
+	if useLoadedThemes && len(themes.themeList) > 0 {
+		return themes
+	}
+
+	themeList, themeMap := loadThemesFromAssets(isViteDevMode)
+	hasAvailableThemes := len(themeList) > 0
+	if !hasAvailableThemes {
+		defaultTheme := defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)
+		themeList = []*ThemeMetaInfo{defaultTheme}
+		themeMap = map[string]*ThemeMetaInfo{setting.UI.DefaultTheme: defaultTheme}
+	}
+
+	if setting.IsProd {
+		if !hasAvailableThemes {
+			setting.LogStartupProblem(1, log.ERROR, "No theme candidate in asset files, but Gitea requires there should be at least one usable theme")
+		}
+		if themeMap[setting.UI.DefaultTheme] == nil {
+			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.UI.DefaultTheme)
+		}
+	}
+
+	themes = &themeCollectionStruct{now, isViteDevMode, themeList, themeMap}
+	themeCollection.Store(themes)
+	return themes
 }
 
 func GetAvailableThemes() []*ThemeMetaInfo {
-	themeOnce.Do(initThemes)
-	return availableThemes
+	return getAvailableThemes().themeList
 }
 
 func GetThemeMetaInfo(internalName string) *ThemeMetaInfo {
-	themeOnce.Do(initThemes)
-	return availableThemeMap[internalName]
+	return getAvailableThemes().themeMap[internalName]
 }
 
 // GuaranteeGetThemeMetaInfo guarantees to return a non-nil ThemeMetaInfo,

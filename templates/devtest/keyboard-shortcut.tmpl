@@ -1,0 +1,23 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	<h1>Keyboard Shortcut</h1>
+
+	<div>
+		<div class="ui input global-shortcut-wrapper">
+			<input class="ui input" placeholder="Press S to focus">
+			<kbd data-global-init="onGlobalShortcut" data-shortcut-keys="s">S</kbd>
+		</div>
+	</div>
+
+	<div class="tw-mt-2">
+		<div class="ui action input">
+			<div class="ui input global-shortcut-wrapper">
+				<input class="ui input" placeholder="Press T to focus">
+				<kbd data-global-init="onGlobalShortcut" data-shortcut-keys="t">T</kbd>
+			</div>
+			<button class="ui button">Go</button>
+		</div>
+	</div>
+</div>
+
+{{template "devtest/devtest-footer"}}

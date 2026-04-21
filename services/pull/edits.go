@@ -26,7 +26,7 @@ func SetAllowEdits(ctx context.Context, doer *user_model.User, pr *issues_model.
 		return err
 	}
 
-	permission, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
+	permission, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
 	if err != nil {
 		return err
 	}

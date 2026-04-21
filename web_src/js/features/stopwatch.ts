@@ -1,9 +1,9 @@
 import {createTippy} from '../modules/tippy.ts';
 import {GET} from '../modules/fetch.ts';
 import {hideElem, queryElems, showElem} from '../utils/dom.ts';
-import {logoutFromWorker} from '../modules/worker.ts';
+import {UserEventsSharedWorker} from '../modules/worker.ts';
 
-const {appSubUrl, notificationSettings, enableTimeTracking, assetVersionEncoded} = window.config;
+const {appSubUrl, notificationSettings, enableTimeTracking} = window.config;
 
 export function initStopwatch() {
   if (!enableTimeTracking) {
@@ -47,56 +47,16 @@ export function initStopwatch() {
   // if the browser supports EventSource and SharedWorker, use it instead of the periodic poller
   if (notificationSettings.EventSourceUpdateTime > 0 && window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js?v=${assetVersionEncoded}`, 'notification-worker');
-    worker.addEventListener('error', (event) => {
-      console.error('worker error', event);
-    });
-    worker.port.addEventListener('messageerror', () => {
-      console.error('unable to deserialize message');
-    });
-    worker.port.postMessage({
-      type: 'start',
-      url: `${window.location.origin}${appSubUrl}/user/events`,
-    });
-    worker.port.addEventListener('message', (event) => {
-      if (!event.data || !event.data.type) {
-        console.error('unknown worker message event', event);
-        return;
-      }
-      if (event.data.type === 'stopwatches') {
-        updateStopwatchData(JSON.parse(event.data.data));
-      } else if (event.data.type === 'no-event-source') {
+    const worker = new UserEventsSharedWorker('stopwatch-worker');
+    worker.addMessageEventListener((event) => {
+      if (event.data.type === 'no-event-source') {
         // browser doesn't support EventSource, falling back to periodic poller
         if (!usingPeriodicPoller) startPeriodicPoller(notificationSettings.MinTimeout);
-      } else if (event.data.type === 'error') {
-        console.error('worker port event error', event.data);
-      } else if (event.data.type === 'logout') {
-        if (event.data.data !== 'here') {
-          return;
-        }
-        worker.port.postMessage({
-          type: 'close',
-        });
-        worker.port.close();
-        logoutFromWorker();
-      } else if (event.data.type === 'close') {
-        worker.port.postMessage({
-          type: 'close',
-        });
-        worker.port.close();
+      } else if (event.data.type === 'stopwatches') {
+        updateStopwatchData(JSON.parse(event.data.data));
       }
     });
-    worker.port.addEventListener('error', (e) => {
-      console.error('worker port error', e);
-    });
-    worker.port.start();
-    window.addEventListener('beforeunload', () => {
-      worker.port.postMessage({
-        type: 'close',
-      });
-      worker.port.close();
-    });
-
+    worker.startPort();
     return;
   }
 

@@ -1,29 +1,20 @@
-import type {FileRenderPlugin} from '../render/plugin.ts';
-import {newRenderPlugin3DViewer} from '../render/plugins/3d-viewer.ts';
-import {newRenderPluginPdfViewer} from '../render/plugins/pdf-viewer.ts';
+import type {InplaceRenderPlugin} from '../render/plugin.ts';
+import {newInplacePluginPdfViewer} from '../render/plugins/inplace-pdf-viewer.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
-import {createElementFromHTML, showElem, toggleElemClass} from '../utils/dom.ts';
+import {createElementFromHTML} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {html} from '../utils/html.ts';
 import {basename} from '../utils.ts';
 
-const plugins: FileRenderPlugin[] = [];
+const inplacePlugins: InplaceRenderPlugin[] = [];
 
-function initPluginsOnce(): void {
-  if (plugins.length) return;
-  plugins.push(newRenderPlugin3DViewer(), newRenderPluginPdfViewer());
+function initInplacePluginsOnce(): void {
+  if (inplacePlugins.length) return;
+  inplacePlugins.push(newInplacePluginPdfViewer());
 }
 
-function findFileRenderPlugin(filename: string, mimeType: string): FileRenderPlugin | null {
-  return plugins.find((plugin) => plugin.canHandle(filename, mimeType)) || null;
-}
-
-function showRenderRawFileButton(elFileView: HTMLElement, renderContainer: HTMLElement | null): void {
-  const toggleButtons = elFileView.querySelector('.file-view-toggle-buttons');
-  showElem(toggleButtons);
-  const displayingRendered = Boolean(renderContainer);
-  toggleElemClass(toggleButtons.querySelectorAll('.file-view-toggle-source'), 'active', !displayingRendered); // it may not exist
-  toggleElemClass(toggleButtons.querySelector('.file-view-toggle-rendered'), 'active', displayingRendered);
-  // TODO: if there is only one button, hide it?
+function findInplaceRenderPlugin(filename: string, mimeType: string): InplaceRenderPlugin | null {
+  return inplacePlugins.find((plugin) => plugin.canHandle(filename, mimeType)) || null;
 }
 
 async function renderRawFileToContainer(container: HTMLElement, rawFileLink: string, mimeType: string) {
@@ -32,7 +23,7 @@ async function renderRawFileToContainer(container: HTMLElement, rawFileLink: str
 
   let rendered = false, errorMsg = '';
   try {
-    const plugin = findFileRenderPlugin(basename(rawFileLink), mimeType);
+    const plugin = findInplaceRenderPlugin(basename(rawFileLink), mimeType);
     if (plugin) {
       container.classList.add('is-loading');
       container.setAttribute('data-render-name', plugin.name); // not used yet
@@ -40,7 +31,7 @@ async function renderRawFileToContainer(container: HTMLElement, rawFileLink: str
       rendered = true;
     }
   } catch (e) {
-    errorMsg = `${e}`;
+    errorMsg = errorMessage(e);
   } finally {
     container.classList.remove('is-loading');
   }
@@ -61,16 +52,13 @@ async function renderRawFileToContainer(container: HTMLElement, rawFileLink: str
 
 export function initRepoFileView(): void {
   registerGlobalInitFunc('initRepoFileView', async (elFileView: HTMLElement) => {
-    initPluginsOnce();
-    const rawFileLink = elFileView.getAttribute('data-raw-file-link');
+    initInplacePluginsOnce();
+    const rawFileLink = elFileView.getAttribute('data-raw-file-link')!;
     const mimeType = elFileView.getAttribute('data-mime-type') || ''; // not used yet
-    // TODO: we should also provide the prefetched file head bytes to let the plugin decide whether to render or not
-    const plugin = findFileRenderPlugin(basename(rawFileLink), mimeType);
+    const plugin = findInplaceRenderPlugin(basename(rawFileLink), mimeType);
     if (!plugin) return;
 
     const renderContainer = elFileView.querySelector<HTMLElement>('.file-view-render-container');
-    showRenderRawFileButton(elFileView, renderContainer);
-    // maybe in the future multiple plugins can render the same file, so we should not assume only one plugin will render it
     if (renderContainer) await renderRawFileToContainer(renderContainer, rawFileLink, mimeType);
   });
 }

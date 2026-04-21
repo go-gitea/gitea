@@ -4,7 +4,7 @@
 package integration
 
 import (
-	"bytes"
+	"io"
 	"testing"
 
 	"github.com/PuerkitoBio/goquery"
@@ -17,7 +17,7 @@ type HTMLDoc struct {
 }
 
 // NewHTMLParser parse html file
-func NewHTMLParser(t testing.TB, body *bytes.Buffer) *HTMLDoc {
+func NewHTMLParser(t testing.TB, body io.Reader) *HTMLDoc {
 	t.Helper()
 	doc, err := goquery.NewDocumentFromReader(body)
 	assert.NoError(t, err)
@@ -35,11 +35,6 @@ func (doc *HTMLDoc) GetInputValueByName(name string) string {
 // object containing these matched elements.
 func (doc *HTMLDoc) Find(selector string) *goquery.Selection {
 	return doc.doc.Find(selector)
-}
-
-// GetCSRF for getting CSRF token value from input
-func (doc *HTMLDoc) GetCSRF() string {
-	return doc.GetInputValueByName("_csrf")
 }
 
 // AssertHTMLElement check if the element by selector exists or does not exist depending on checkExists

@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import type {FomanticInitFunction} from '../../types.ts';
 import {generateElemId, queryElems} from '../../utils/dom.ts';
 
@@ -65,7 +64,7 @@ function updateSelectionLabel(label: HTMLElement) {
   const deleteIcon = label.querySelector('.delete.icon');
   if (deleteIcon) {
     deleteIcon.setAttribute('aria-hidden', 'false');
-    deleteIcon.setAttribute('aria-label', window.config.i18n.remove_label_str.replace('%s', label.getAttribute('data-value')));
+    deleteIcon.setAttribute('aria-label', window.config.i18n.remove_label_str.replace('%s', label.getAttribute('data-value')!));
     deleteIcon.setAttribute('role', 'button');
   }
 }
@@ -225,6 +224,7 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
   };
 
   dropdown.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.isComposing) return;
     // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
     if (e.key === 'Enter') {
       const elItem = menu.querySelector<HTMLElement>(':scope > .item.selected, .menu > .item.selected');
@@ -324,7 +324,7 @@ export function hideScopedEmptyDividers(container: Element) {
       handleScopeSwitch(itemScope);
     }
     if (!isHidden(item)) {
-      curScopeVisibleItems.push(item as HTMLElement);
+      curScopeVisibleItems.push(item);
     }
   }
   handleScopeSwitch('');

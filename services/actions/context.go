@@ -73,7 +73,7 @@ func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.Actio
 		"repository_owner":  run.Repo.OwnerName,                       // string, The repository owner's name. For example, Codertocat.
 		"repositoryUrl":     run.Repo.HTMLURL(),                       // string, The Git URL to the repository. For example, git://github.com/codertocat/hello-world.git.
 		"retention_days":    "",                                       // string, The number of days that workflow run logs and artifacts are kept.
-		"run_id":            "",                                       // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
+		"run_id":            strconv.FormatInt(run.ID, 10),            // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
 		"run_number":        strconv.FormatInt(run.Index, 10),         // string, A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
 		"run_attempt":       "",                                       // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.
 		"secret_source":     "Actions",                                // string, The source of a secret used in a workflow. Possible values are None, Actions, Dependabot, or Codespaces.
@@ -104,7 +104,7 @@ type TaskNeed struct {
 // FindTaskNeeds finds the `needs` for the task by the task's job
 func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*TaskNeed, error) {
 	if len(job.Needs) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil when the job has no needs
 	}
 	needs := container.SetOf(job.Needs...)
 

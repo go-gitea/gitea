@@ -1,0 +1,67 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	<div class="tw-grid tw-grid-cols-3 tw-gap-4">
+		<div>
+			<h2>Relative (auto)</h2>
+			<div>now: <relative-time data-testid="relative-time-now" datetime="{{.TimeNow.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>3m ago: <relative-time datetime="{{.TimePast3m.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>3h ago: <relative-time datetime="{{.TimePast3h.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>1d ago: <relative-time datetime="{{.TimePast1d.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>3d ago: <relative-time datetime="{{.TimePast3d.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>3d future: <relative-time datetime="{{.TimeFuture3d.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>40d ago (threshold): <relative-time datetime="{{.TimePast40d.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+		</div>
+		<div>
+			<h2>tense=past</h2>
+			<div>3m ago: <relative-time tense="past" datetime="{{.TimePast3m.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>future clamped: <relative-time tense="past" datetime="{{.TimeFuture1h.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>60d ago: <relative-time tense="past" datetime="{{.TimePast60d.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+		</div>
+		<div>
+			<h2>tense=future</h2>
+			<div>3h future: <relative-time tense="future" datetime="{{.TimeFuture3h.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>past clamped: <relative-time tense="future" datetime="{{.TimePast1h.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+		</div>
+		<div>
+			<h2>Duration</h2>
+			<div>0s: <relative-time format="duration" datetime="{{.TimeNow.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>3h: <relative-time format="duration" datetime="{{.TimePast3h.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>1d 2h: <relative-time format="duration" datetime="{{.TimePast26h.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>short: <relative-time format="duration" format-style="short" datetime="{{.TimePast26h.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>narrow: <relative-time format="duration" format-style="narrow" datetime="{{.TimePast26h.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+		</div>
+		<div>
+			<h2>Datetime (absolute)</h2>
+			<div>default: <relative-time format="datetime" datetime="2024-03-11"></relative-time></div>
+			<div>month=short: <relative-time datetime="2024-03-11" threshold="P0Y" prefix="" weekday="" year="numeric" month="short"></relative-time></div>
+			<div>month=long: <relative-time datetime="2024-03-11" threshold="P0Y" prefix="" weekday="" year="numeric" month="long"></relative-time></div>
+			<div>numeric: <relative-time datetime="2024-03-11" threshold="P0Y" prefix="" weekday="" year="" day="numeric" month="numeric"></relative-time></div>
+			<div>weekday: <relative-time datetime="2024-03-11" threshold="P0Y" prefix="" weekday="long" year="" month="numeric"></relative-time></div>
+			<div>with time: <relative-time datetime="2024-03-11T19:00:00-05:00" threshold="P0Y" prefix="" weekday="long" year="" month="numeric"></relative-time></div>
+			<div>minutes: <relative-time datetime="2024-03-11T19:30:45-05:00" threshold="P0Y" prefix="" weekday="" year="numeric" month="short" hour="numeric" minute="2-digit"></relative-time></div>
+		</div>
+		<div>
+			<h2>Threshold</h2>
+			<div>P0Y: <relative-time threshold="P0Y" prefix="" weekday="" year="numeric" month="short" datetime="{{.TimePast1d.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>P1D: <relative-time threshold="P1D" datetime="{{.TimePast2d.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+			<div>P30D: <relative-time datetime="{{.TimePast1d.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time></div>
+		</div>
+		<div>
+			<h2>Prefix</h2>
+			<div>default: <relative-time datetime="2024-03-11"></relative-time></div>
+			<div>prefix="": <relative-time prefix="" datetime="2024-03-11"></relative-time></div>
+			<div>prefix="at": <relative-time prefix="at" datetime="2024-03-11"></relative-time></div>
+		</div>
+		<div>
+			<h2>TimeSince (Go helper)</h2>
+			<div>now: {{DateUtils.TimeSince .TimeNow}}</div>
+			<div>5s past: {{DateUtils.TimeSince .TimePast5s}}</div>
+			<div>5s future: {{DateUtils.TimeSince .TimeFuture5s}}</div>
+			<div>2m past: {{DateUtils.TimeSince .TimePast2m}}</div>
+			<div>2m future: {{DateUtils.TimeSince .TimeFuture2m}}</div>
+			<div>1y past: {{DateUtils.TimeSince .TimePast1y}}</div>
+			<div>1y future: {{DateUtils.TimeSince .TimeFuture1y}}</div>
+		</div>
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}

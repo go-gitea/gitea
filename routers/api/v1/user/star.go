@@ -31,7 +31,7 @@ func getStarredRepos(ctx *context.APIContext, user *user_model.User, private boo
 
 	repos := make([]*api.Repository, len(starredRepos))
 	for i, starred := range starredRepos {
-		permission, err := access_model.GetUserRepoPermission(ctx, starred, user)
+		permission, err := access_model.GetIndividualUserRepoPermission(ctx, starred, user)
 		if err != nil {
 			return nil, err
 		}
@@ -76,6 +76,7 @@ func GetStarredRepos(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetLinkHeader(int64(ctx.ContextUser.NumStars), utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(int64(ctx.ContextUser.NumStars))
 	ctx.JSON(http.StatusOK, &repos)
 }
@@ -107,6 +108,7 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 	}
 
+	ctx.SetLinkHeader(int64(ctx.Doer.NumStars), utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(int64(ctx.Doer.NumStars))
 	ctx.JSON(http.StatusOK, &repos)
 }

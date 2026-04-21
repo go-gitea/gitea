@@ -18,7 +18,7 @@ import (
 func TestRenderHelperCodePreview(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.HTMLRenderer()})
+	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
 	htm, err := renderRepoFileCodePreview(ctx, markup.RenderCodePreviewOptions{
 		FullURL:   "http://full",
 		OwnerName: "user2",
@@ -37,16 +37,18 @@ func TestRenderHelperCodePreview(t *testing.T) {
 	<table class="file-view">
 		<tbody><tr>
 				<td class="lines-num"><span data-line-number="1"></span></td>
-				<td class="lines-code chroma"><div class="code-inner"><span class="gh"># repo1</div></td>
+				<td class="lines-code chroma"><div class="code-inner"><span class="gh"># repo1
+</span></div></td>
 			</tr><tr>
 				<td class="lines-num"><span data-line-number="2"></span></td>
-				<td class="lines-code chroma"><div class="code-inner"></span><span class="gh"></span></div></td>
+				<td class="lines-code chroma"><div class="code-inner">
+</div></td>
 			</tr></tbody>
 	</table>
 </div>
 `, string(htm))
 
-	ctx, _ = contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.HTMLRenderer()})
+	ctx, _ = contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
 	htm, err = renderRepoFileCodePreview(ctx, markup.RenderCodePreviewOptions{
 		FullURL:   "http://full",
 		OwnerName: "user2",
@@ -64,13 +66,14 @@ func TestRenderHelperCodePreview(t *testing.T) {
 	<table class="file-view">
 		<tbody><tr>
 				<td class="lines-num"><span data-line-number="1"></span></td>
-				<td class="lines-code chroma"><div class="code-inner"><span class="gh"># repo1</div></td>
+				<td class="lines-code chroma"><div class="code-inner"><span class="gh"># repo1
+</span></div></td>
 			</tr></tbody>
 	</table>
 </div>
 `, string(htm))
 
-	ctx, _ = contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.HTMLRenderer()})
+	ctx, _ = contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
 	_, err = renderRepoFileCodePreview(ctx, markup.RenderCodePreviewOptions{
 		FullURL:   "http://full",
 		OwnerName: "user15",

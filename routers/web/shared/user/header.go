@@ -101,7 +101,7 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 		return nil, nil
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, profileDbRepo, doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, profileDbRepo, doer)
 	if err != nil {
 		log.Error("FindOwnerProfileReadme failed to GetRepositoryByName: %v", err)
 		return nil, nil

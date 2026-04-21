@@ -4,12 +4,14 @@
 package storage
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
@@ -49,4 +51,54 @@ func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
 		assert.NoError(t, err)
 		assert.Len(t, expected, count)
 	}
+}
+
+type expectedServeDirectHeaders struct {
+	ContentType        string
+	ContentDisposition string
+}
+
+func testSingleBlobStorageURLContentTypeAndDisposition(t *testing.T, s ObjectStorage, path, name string, expected expectedServeDirectHeaders, reqParams *ServeDirectOptions) {
+	u, err := s.ServeDirectURL(path, name, http.MethodGet, reqParams)
+	require.NoError(t, err)
+	resp, err := http.Get(u.String())
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	if expected.ContentType != "" {
+		assert.Equal(t, expected.ContentType, resp.Header.Get("Content-Type"))
+	}
+	if expected.ContentDisposition != "" {
+		assert.Equal(t, expected.ContentDisposition, resp.Header.Get("Content-Disposition"))
+	}
+}
+
+func testBlobStorageURLContentTypeAndDisposition(t *testing.T, typStr Type, cfg *setting.Storage) {
+	s, err := NewStorage(typStr, cfg)
+	assert.NoError(t, err)
+
+	testFilename := "test.txt"
+	_, err = s.Save(testFilename, strings.NewReader("dummy-content"), -1)
+	assert.NoError(t, err)
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testFilename, "test.txt", expectedServeDirectHeaders{
+		ContentType:        "text/plain; charset=utf-8",
+		ContentDisposition: `inline; filename=test.txt`,
+	}, nil)
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testFilename, "test.pdf", expectedServeDirectHeaders{
+		ContentType:        "application/pdf",
+		ContentDisposition: `inline; filename=test.pdf`,
+	}, nil)
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testFilename, "test.wasm", expectedServeDirectHeaders{
+		ContentDisposition: `inline; filename=test.wasm`,
+	}, nil)
+
+	testSingleBlobStorageURLContentTypeAndDisposition(t, s, testFilename, "test.wasm", expectedServeDirectHeaders{
+		ContentType:        "application/wasm",
+		ContentDisposition: `inline; filename=test.wasm`,
+	}, &ServeDirectOptions{
+		ContentType: "application/wasm",
+	})
+	assert.NoError(t, s.Delete(testFilename))
 }

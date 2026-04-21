@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -43,6 +44,8 @@ func TestOAuth2Provider(t *testing.T) {
 	t.Run("AuthorizeLoginRedirect", testAuthorizeLoginRedirect)
 
 	t.Run("OAuth2WellKnown", testOAuth2WellKnown)
+	t.Run("OAuthSourceWithSpace", testOAuthSourceWithSpace)
+	// TODO: move more tests as sub-tests here, avoid unnecessary PrepareTestEnv
 }
 
 func testAuthorizeNoClientID(t *testing.T) {
@@ -92,7 +95,44 @@ func TestAuthorizeShow(t *testing.T) {
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	AssertHTMLElement(t, htmlDoc, "#authorize-app", true)
-	htmlDoc.GetCSRF()
+}
+
+func TestAuthorizeGrantS256RequiresVerifier(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	ctx := loginUser(t, "user4")
+	codeChallenge := "CjvyTLSdR47G5zYenDA-eDWW4lRrO8yvjcWwbD_deOg"
+	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=a&response_type=code&state=thestate&code_challenge_method=S256&code_challenge="+url.QueryEscape(codeChallenge))
+	resp := ctx.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	AssertHTMLElement(t, htmlDoc, "#authorize-app", true)
+
+	grantReq := NewRequestWithValues(t, "POST", "/login/oauth/grant", map[string]string{
+		"client_id":    "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"state":        "thestate",
+		"scope":        "",
+		"nonce":        "",
+		"redirect_uri": "a",
+		"granted":      "true",
+	})
+	grantResp := ctx.MakeRequest(t, grantReq, http.StatusSeeOther)
+	u, err := grantResp.Result().Location()
+	assert.NoError(t, err)
+	code := u.Query().Get("code")
+	assert.NotEmpty(t, code)
+
+	accessReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		"redirect_uri":  "a",
+		"code":          code,
+	})
+	accessResp := MakeRequest(t, accessReq, http.StatusBadRequest)
+	parsedError := new(oauth2_provider.AccessTokenError)
+	assert.NoError(t, json.Unmarshal(accessResp.Body.Bytes(), parsedError))
+	assert.Equal(t, "unauthorized_client", string(parsedError.ErrorCode))
+	assert.Equal(t, "failed PKCE code challenge", parsedError.ErrorDescription)
 }
 
 func TestAuthorizeRedirectWithExistingGrant(t *testing.T) {
@@ -517,8 +557,7 @@ func TestOAuth_GrantScopesReadUserFailRepos(t *testing.T) {
 		AddBasicAuth(user.Name)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var app *api.OAuth2Application
-	DecodeJSON(t, resp, &app)
+	app := DecodeJSON(t, resp, &api.OAuth2Application{})
 
 	grant := &auth_model.OAuth2Grant{
 		ApplicationID: app.ID,
@@ -598,8 +637,7 @@ func TestOAuth_GrantScopesReadRepositoryFailOrganization(t *testing.T) {
 		AddBasicAuth(user.Name)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var app *api.OAuth2Application
-	DecodeJSON(t, resp, &app)
+	app := DecodeJSON(t, resp, &api.OAuth2Application{})
 
 	grant := &auth_model.OAuth2Grant{
 		ApplicationID: app.ID,
@@ -738,8 +776,7 @@ func TestOAuth_GrantScopesClaimPublicOnlyGroups(t *testing.T) {
 		AddBasicAuth(user.Name)
 	appResp := MakeRequest(t, appReq, http.StatusCreated)
 
-	var app *api.OAuth2Application
-	DecodeJSON(t, appResp, &app)
+	app := DecodeJSON(t, appResp, &api.OAuth2Application{})
 
 	grant := &auth_model.OAuth2Grant{
 		ApplicationID: app.ID,
@@ -839,8 +876,7 @@ func TestOAuth_GrantScopesClaimAllGroups(t *testing.T) {
 		AddBasicAuth(user.Name)
 	appResp := MakeRequest(t, appReq, http.StatusCreated)
 
-	var app *api.OAuth2Application
-	DecodeJSON(t, appResp, &app)
+	app := DecodeJSON(t, appResp, &api.OAuth2Application{})
 
 	grant := &auth_model.OAuth2Grant{
 		ApplicationID: app.ID,
@@ -919,20 +955,32 @@ func TestOAuth_GrantScopesClaimAllGroups(t *testing.T) {
 }
 
 func testOAuth2WellKnown(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/")()
 	urlOpenidConfiguration := "/.well-known/openid-configuration"
 
-	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/")()
-	req := NewRequest(t, "GET", urlOpenidConfiguration)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var respMap map[string]any
-	DecodeJSON(t, resp, &respMap)
-	assert.Equal(t, "https://try.gitea.io", respMap["issuer"])
-	assert.Equal(t, "https://try.gitea.io/login/oauth/authorize", respMap["authorization_endpoint"])
-	assert.Equal(t, "https://try.gitea.io/login/oauth/access_token", respMap["token_endpoint"])
-	assert.Equal(t, "https://try.gitea.io/login/oauth/keys", respMap["jwks_uri"])
-	assert.Equal(t, "https://try.gitea.io/login/oauth/userinfo", respMap["userinfo_endpoint"])
-	assert.Equal(t, "https://try.gitea.io/login/oauth/introspect", respMap["introspection_endpoint"])
-	assert.Equal(t, []any{"RS256"}, respMap["id_token_signing_alg_values_supported"])
+	t.Run("WellKnown", func(t *testing.T) {
+		req := NewRequest(t, "GET", urlOpenidConfiguration)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var respMap map[string]any
+		DecodeJSON(t, resp, &respMap)
+		assert.Equal(t, "https://try.gitea.io", respMap["issuer"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/authorize", respMap["authorization_endpoint"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/access_token", respMap["token_endpoint"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/keys", respMap["jwks_uri"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/userinfo", respMap["userinfo_endpoint"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/introspect", respMap["introspection_endpoint"])
+		assert.Equal(t, []any{"RS256"}, respMap["id_token_signing_alg_values_supported"])
+	})
+
+	t.Run("WellKnownWithIssuer", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.OAuth2.JWTClaimIssuer, "https://try.gitea.io/")()
+		req := NewRequest(t, "GET", urlOpenidConfiguration)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var respMap map[string]any
+		DecodeJSON(t, resp, &respMap)
+		assert.Equal(t, "https://try.gitea.io/", respMap["issuer"]) // has trailing by JWTClaimIssuer
+		assert.Equal(t, "https://try.gitea.io/login/oauth/authorize", respMap["authorization_endpoint"])
+	})
 
 	defer test.MockVariableValue(&setting.OAuth2.Enabled, false)()
 	MakeRequest(t, NewRequest(t, "GET", urlOpenidConfiguration), http.StatusNotFound)
@@ -949,9 +997,7 @@ func addOAuth2Source(t *testing.T, authName string, cfg oauth2.Source) {
 	require.NoError(t, err)
 }
 
-func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func createMockServer() *httptest.Server {
 	var mockServer *httptest.Server
 	mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -966,6 +1012,14 @@ func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
+
+	return mockServer
+}
+
+func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	mockServer := createMockServer()
 	defer mockServer.Close()
 
 	ctx := t.Context()
@@ -1040,4 +1094,23 @@ func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 			assert.Equal(t, c.mockFullName, user.FullName)
 		})
 	}
+}
+
+// Checks if an OAuth provider with spaces within the name does work,
+// with the encoding of its names in the URL (PR#37327)
+func testOAuthSourceWithSpace(t *testing.T) {
+	mockServer := createMockServer()
+	defer mockServer.Close()
+
+	authName := "oauth test with spaces"
+	oauth2Source := oauth2.Source{
+		Provider:                      "openidConnect",
+		OpenIDConnectAutoDiscoveryURL: mockServer.URL + "/.well-known/openid-configuration",
+	}
+	addOAuth2Source(t, authName, oauth2Source)
+
+	session := emptyTestSession(t)
+	req := NewRequest(t, "GET", "/user/oauth2/"+url.QueryEscape(authName))
+	resp := session.MakeRequest(t, req, http.StatusTemporaryRedirect)
+	assert.Contains(t, resp.Header().Get("Location"), mockServer.URL+"/authorize")
 }

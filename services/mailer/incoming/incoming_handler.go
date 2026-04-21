@@ -67,7 +67,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 		return err
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 		for _, attachment := range content.Attachments {
 			attachmentBuf := bytes.NewReader(attachment.Content)
 			uploaderFile := attachment_service.NewLimitedUploaderKnownSize(attachmentBuf, attachmentBuf.Size())
-			a, err := attachment_service.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, setting.Attachment.AllowedTypes, &repo_model.Attachment{
+			a, err := attachment_service.UploadAttachmentForIssue(ctx, uploaderFile, &repo_model.Attachment{
 				Name:       attachment.Name,
 				UploaderID: doer.ID,
 				RepoID:     issue.Repo.ID,
@@ -171,7 +171,7 @@ func (h *UnsubscribeHandler) Handle(ctx context.Context, _ *MailContent, doer *u
 			return err
 		}
 
-		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+		perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return err
 		}

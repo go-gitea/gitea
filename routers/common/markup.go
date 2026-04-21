@@ -6,14 +6,13 @@ package common
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -27,24 +26,24 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 	// filePath is the path of the file to render if the end user is trying to preview a repo file (mode == "file")
 	// filePath will be used as RenderContext.RelativePath
 
+	// TODO: MARKUP-RENDER-CONTEXT: this logic is unnecessarily complicated.
+	//  Ideally: the "file path" should not appear in the "url path context", but it needs a lot of refactoring to achieve that
 	// for example, when previewing file "/gitea/owner/repo/src/branch/features/feat-123/doc/CHANGE.md", then filePath is "doc/CHANGE.md"
 	// and the urlPathContext is "/gitea/owner/repo/src/branch/features/feat-123/doc"
 
 	if mode == "" || mode == "markdown" {
-		// raw markdown doesn't need any special handling
-		baseLink := urlPathContext
-		if baseLink == "" {
-			baseLink = fmt.Sprintf("%s%s", httplib.GuessCurrentHostURL(ctx), urlPathContext)
-		}
-		rctx := renderhelper.NewRenderContextSimpleDocument(ctx, baseLink).WithUseAbsoluteLink(true).
+		// raw Markdown doesn't do any special handling
+		// TODO: raw markdown doesn't do any link processing, so "urlPathContext" doesn't take effect
+		rctx := renderhelper.NewRenderContextSimpleDocument(ctx, urlPathContext).WithUseAbsoluteLink(true).
 			WithMarkupType(markdown.MarkupName)
 		if err := markdown.RenderRaw(rctx, strings.NewReader(text), ctx.Resp); err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, err.Error())
+			log.Error("RenderMarkupRaw: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "failed to render raw markup")
 		}
 		return
 	}
 
-	// Ideally, this handler should be called with RepoAssigment and get the related repo from context "/owner/repo/markup"
+	// Ideally, this handler should be called with RepoAssignment and get the related repo from context "/owner/repo/markup"
 	// then render could use the repo to do various things (the permission check has passed)
 	//
 	// However, this handler is also exposed as "/markup" without any repo context,
@@ -92,7 +91,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 		})
 		rctx = rctx.WithMarkupType("").WithRelativePath(filePath) // render the repo file content by its extension
 	default:
-		ctx.HTTPError(http.StatusUnprocessableEntity, "Unknown mode: "+mode)
+		ctx.HTTPError(http.StatusUnprocessableEntity, "unsupported render mode: "+mode)
 		return
 	}
 	rctx = rctx.WithUseAbsoluteLink(true)
@@ -100,7 +99,8 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.HTTPError(http.StatusUnprocessableEntity, err.Error())
 		} else {
-			ctx.HTTPError(http.StatusInternalServerError, err.Error())
+			log.Error("RenderMarkup: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "failed to render markup")
 		}
 		return
 	}

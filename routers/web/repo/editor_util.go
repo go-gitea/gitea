@@ -7,15 +7,19 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"strconv"
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	context_service "code.gitea.io/gitea/services/context"
 )
 
@@ -61,17 +65,39 @@ func getClosestParentWithFiles(gitRepo *git.Repository, branchName, originTreePa
 	return f(originTreePath, commit)
 }
 
-// getContextRepoEditorConfig returns the editorconfig JSON string for given treePath or "null"
-func getContextRepoEditorConfig(ctx *context_service.Context, treePath string) string {
+// CodeEditorConfig is also used by frontend, defined in "codeeditor" module
+type CodeEditorConfig struct {
+	Filename              string   `json:"filename"` // the base name, not full path
+	Autofocus             bool     `json:"autofocus"`
+	PreviewableExtensions []string `json:"previewableExtensions,omitempty"`
+	LineWrapExtensions    []string `json:"lineWrapExtensions,omitempty"`
+	LineWrap              bool     `json:"lineWrap"`
+	Previewable           bool     `json:"previewable,omitempty"`
+
+	// the following can be read from .editorconfig if exists, or use default value
+	IndentStyle            string `json:"indentStyle"` // in most cases, keep it empty by default, detected by the source code
+	IndentSize             int    `json:"indentSize"`
+	TabWidth               int    `json:"tabWidth"`
+	TrimTrailingWhitespace *bool  `json:"trimTrailingWhitespace,omitempty"`
+}
+
+func getCodeEditorConfigByEditorconfig(ctx *context_service.Context, treePath string) CodeEditorConfig {
+	ret := CodeEditorConfig{Filename: path.Base(treePath)}
+	ret.PreviewableExtensions = markup.PreviewableExtensions()
+	ret.LineWrapExtensions = setting.Repository.Editor.LineWrapExtensions
+	ret.LineWrap = util.SliceContainsString(ret.LineWrapExtensions, path.Ext(treePath), true)
+	ret.Previewable = util.SliceContainsString(ret.PreviewableExtensions, path.Ext(treePath), true)
 	ec, _, err := ctx.Repo.GetEditorconfig()
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
-			jsonStr, _ := json.Marshal(def)
-			return string(jsonStr)
+			ret.IndentStyle = util.IfZero(def.IndentStyle, ret.IndentStyle)
+			ret.IndentSize, _ = strconv.Atoi(def.IndentSize)
+			ret.TabWidth = def.TabWidth
+			ret.TrimTrailingWhitespace = def.TrimTrailingWhitespace
 		}
 	}
-	return "null"
+	return ret
 }
 
 // getParentTreeFields returns list of parent tree names and corresponding tree paths based on given treePath.
@@ -102,8 +128,7 @@ func getUniqueRepositoryName(ctx context.Context, ownerID int64, name string) st
 }
 
 func editorPushBranchToForkedRepository(ctx context.Context, doer *user_model.User, baseRepo *repo_model.Repository, baseBranchName string, targetRepo *repo_model.Repository, targetBranchName string) error {
-	return git.Push(ctx, baseRepo.RepoPath(), git.PushOptions{
-		Remote: targetRepo.RepoPath(),
+	return gitrepo.Push(ctx, baseRepo, targetRepo, git.PushOptions{
 		Branch: baseBranchName + ":" + targetBranchName,
 		Env:    repo_module.PushingEnvironment(doer, targetRepo),
 	})

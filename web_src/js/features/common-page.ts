@@ -1,5 +1,5 @@
 import {GET, POST} from '../modules/fetch.ts';
-import {showGlobalErrorMessage} from '../bootstrap.ts';
+import {showGlobalErrorMessage} from '../modules/errors.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
@@ -25,7 +25,7 @@ function initFooterLanguageMenu() {
     const item = (e.target as HTMLElement).closest('.item');
     if (!item) return;
     e.preventDefault();
-    await GET(item.getAttribute('data-url'));
+    await GET(item.getAttribute('data-url')!);
     window.location.reload();
   });
 }
@@ -39,7 +39,7 @@ function initFooterThemeSelector() {
     apiSettings: {url: `${appSubUrl}/-/web-theme/list`, cache: false},
   });
   addDelegatedEventListener(elDropdown, 'click', '.menu > .item', async (el) => {
-    const themeName = el.getAttribute('data-value');
+    const themeName = el.getAttribute('data-value')!;
     await POST(`${appSubUrl}/-/web-theme/apply?theme=${encodeURIComponent(themeName)}`);
     window.location.reload();
   });
@@ -116,12 +116,30 @@ function attachInputDirAuto(el: Partial<HTMLInputElement | HTMLTextAreaElement>)
   }
 }
 
+function autoFocusEnd(el: HTMLInputElement | HTMLTextAreaElement) {
+  el.focus();
+  el.setSelectionRange(el.value.length, el.value.length);
+}
+
+export function applyAutoFocus(container: Element) {
+  // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/autofocus
+  // "autofocus" behavior is defined by the standard: when a container (e.g.: dialog) becomes visible, focus the element with "autofocus" attribute
+  // Fomantic UI already supports it for its modal dialog, we need to cover more cases (e.g.: ".show-panel" button)
+  // Here is just a simple support, we don't expect more than one element that need "autofocus" appearing in the same container
+  container.querySelector<HTMLElement>('[autofocus]')?.focus();
+  // Also, apply our autoFocusEnd behavior
+  // TODO: GLOBAL-INIT-MULTIPLE-FUNCTIONS: use "~=" operator in case we would extend the "data-global-init" to support more functions in the future.
+  const el = container.querySelector<HTMLInputElement>('[data-global-init~="autoFocusEnd"]');
+  if (el) autoFocusEnd(el);
+}
+
 export function initGlobalInput() {
   registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
-  registerGlobalInitFunc('initInputAutoFocusEnd', (el: HTMLInputElement) => {
-    el.focus(); // expects only one such element on one page. If there are many, then the last one gets the focus.
-    el.setSelectionRange(el.value.length, el.value.length);
-  });
+
+  // autoFocusEnd is used for autofocus an input/textarea and move the cursor to the end of the text.
+  // It is useful for "New Issue"/"New PR" pages when the title is pre-filled with prefix text (e.g.: from template or commit message)
+  // The native "autofocus" isn't used because there is a delay between "focused (DOM rendering)" and "move cursor to end (our JS)", it causes flickers.
+  registerGlobalInitFunc('autoFocusEnd', autoFocusEnd);
 }
 
 /**
@@ -138,8 +156,8 @@ export function checkAppUrl() {
   if (curUrl.startsWith(appUrl) || `${curUrl}/` === appUrl) {
     return;
   }
-  showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
-Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`, 'warning');
+  showGlobalErrorMessage(`The detected web site URL is "${appUrl}", it's unlikely matching the site config.
+Mismatched app.ini ROOT_URL or reverse proxy "Host/X-Forwarded-Proto" config might cause wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`, 'warning');
 }
 
 export function checkAppUrlScheme() {

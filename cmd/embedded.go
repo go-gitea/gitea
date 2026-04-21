@@ -23,20 +23,23 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// CmdEmbedded represents the available extract sub-command.
-var (
-	CmdEmbedded = &cli.Command{
+var matchedAssetFiles []assetFile
+
+func newEmbeddedCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "embedded",
 		Usage:       "Extract embedded resources",
 		Description: "A command for extracting embedded resources, like templates and images",
 		Commands: []*cli.Command{
-			subcmdList,
-			subcmdView,
-			subcmdExtract,
+			newEmbeddedListCommand(),
+			newEmbeddedViewCommand(),
+			newEmbeddedExtractCommand(),
 		},
 	}
+}
 
-	subcmdList = &cli.Command{
+func newEmbeddedListCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "list",
 		Usage:  "List files matching the given pattern",
 		Action: runList,
@@ -48,8 +51,10 @@ var (
 			},
 		},
 	}
+}
 
-	subcmdView = &cli.Command{
+func newEmbeddedViewCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "view",
 		Usage:  "View a file matching the given pattern",
 		Action: runView,
@@ -61,8 +66,10 @@ var (
 			},
 		},
 	}
+}
 
-	subcmdExtract = &cli.Command{
+func newEmbeddedExtractCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "extract",
 		Usage:  "Extract resources",
 		Action: runExtract,
@@ -91,9 +98,7 @@ var (
 			},
 		},
 	}
-
-	matchedAssetFiles []assetFile
-)
+}
 
 type assetFile struct {
 	fs   *assetfs.LayeredFS

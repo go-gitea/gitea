@@ -5,6 +5,7 @@
 package org
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 
@@ -69,24 +70,25 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	org := ctx.Org.Organization
-
-	if form.Email != "" {
-		if err := user_service.ReplacePrimaryEmailAddress(ctx, org.AsUser(), form.Email); err != nil {
+	if err := org_service.UpdateOrgEmailAddress(ctx, org, form.Email); err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsOptions, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplSettingsOptions, &form)
 			return
 		}
+		ctx.ServerError("UpdateOrgEmailAddress", err)
+		return
 	}
 
 	opts := &user_service.UpdateOptions{
-		FullName:                  optional.Some(form.FullName),
-		Description:               optional.Some(form.Description),
-		Website:                   optional.Some(form.Website),
-		Location:                  optional.Some(form.Location),
-		RepoAdminChangeTeamAccess: optional.Some(form.RepoAdminChangeTeamAccess),
+		FullName:                  optional.FromPtr(form.FullName),
+		Description:               optional.FromPtr(form.Description),
+		Website:                   optional.FromPtr(form.Website),
+		Location:                  optional.FromPtr(form.Location),
+		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if ctx.Doer.IsAdmin {
-		opts.MaxRepoCreation = optional.Some(form.MaxRepoCreation)
+		opts.MaxRepoCreation = optional.FromPtr(form.MaxRepoCreation)
 	}
 
 	if err := user_service.UpdateUser(ctx, org.AsUser(), opts); err != nil {
@@ -213,7 +215,7 @@ func SettingsRenamePost(ctx *context.Context) {
 		return
 	}
 
-	if err := user_service.RenameUser(ctx, ctx.Org.Organization.AsUser(), newOrgName); err != nil {
+	if err := user_service.RenameUser(ctx, ctx.Org.Organization.AsUser(), newOrgName, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) {
 			ctx.JSONError(ctx.Tr("org.form.name_been_taken", newOrgName))
 		} else if db.IsErrNameReserved(err) {

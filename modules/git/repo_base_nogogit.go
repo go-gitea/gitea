@@ -7,9 +7,9 @@
 package git
 
 import (
-	"bufio"
 	"context"
 	"path/filepath"
+	"sync"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -23,13 +23,9 @@ type Repository struct {
 
 	tagCache *ObjectCache[*Tag]
 
-	gpgSettings *GPGSettings
-
-	batchInUse bool
-	batch      *Batch
-
-	checkInUse bool
-	check      *Batch
+	mu                 sync.Mutex
+	catFileBatchCloser CatFileBatchCloser
+	catFileBatchInUse  bool
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
@@ -58,69 +54,47 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	}, nil
 }
 
-// CatFileBatch obtains a CatFileBatch for this repository
-func (repo *Repository) CatFileBatch(ctx context.Context) (WriteCloserError, *bufio.Reader, func(), error) {
-	if repo.batch == nil {
-		var err error
-		repo.batch, err = NewBatch(ctx, repo.Path)
+// CatFileBatch obtains a "batch object provider" for this repository.
+// It reuses an existing one if available, otherwise creates a new one.
+func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, closeFunc func(), err error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+
+	if repo.catFileBatchCloser == nil {
+		repo.catFileBatchCloser, err = NewBatch(ctx, repo.Path)
 		if err != nil {
-			return nil, nil, nil, err
+			repo.catFileBatchCloser = nil // otherwise it is "interface(nil)" and will cause wrong logic
+			return nil, nil, err
 		}
 	}
 
-	if !repo.batchInUse {
-		repo.batchInUse = true
-		return repo.batch.Writer, repo.batch.Reader, func() {
-			repo.batchInUse = false
+	if !repo.catFileBatchInUse {
+		repo.catFileBatchInUse = true
+		return CatFileBatch(repo.catFileBatchCloser), func() {
+			repo.mu.Lock()
+			defer repo.mu.Unlock()
+			repo.catFileBatchInUse = false
 		}, nil
 	}
 
 	log.Debug("Opening temporary cat file batch for: %s", repo.Path)
 	tempBatch, err := NewBatch(ctx, repo.Path)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
-	return tempBatch.Writer, tempBatch.Reader, tempBatch.Close, nil
-}
-
-// CatFileBatchCheck obtains a CatFileBatchCheck for this repository
-func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError, *bufio.Reader, func(), error) {
-	if repo.check == nil {
-		var err error
-		repo.check, err = NewBatchCheck(ctx, repo.Path)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-	}
-
-	if !repo.checkInUse {
-		repo.checkInUse = true
-		return repo.check.Writer, repo.check.Reader, func() {
-			repo.checkInUse = false
-		}, nil
-	}
-
-	log.Debug("Opening temporary cat file batch-check for: %s", repo.Path)
-	tempBatchCheck, err := NewBatchCheck(ctx, repo.Path)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return tempBatchCheck.Writer, tempBatchCheck.Reader, tempBatchCheck.Close, nil
+	return tempBatch, tempBatch.Close, nil
 }
 
 func (repo *Repository) Close() error {
 	if repo == nil {
 		return nil
 	}
-	if repo.batch != nil {
-		repo.batch.Close()
-		repo.batch = nil
-		repo.batchInUse = false
-	}
-	if repo.check != nil {
-		repo.check.Close()
-		repo.check = nil
-		repo.checkInUse = false
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+	if repo.catFileBatchCloser != nil {
+		repo.catFileBatchCloser.Close()
+		repo.catFileBatchCloser = nil
+		repo.catFileBatchInUse = false
 	}
 	repo.LastCommitCache = nil
 	repo.tagCache = nil

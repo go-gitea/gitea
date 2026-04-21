@@ -24,7 +24,7 @@ test('textareaSplitLines', () => {
 });
 
 test('markdownHandleIndention', () => {
-  const testInput = (input: string, expected?: string) => {
+  const testInput = (input: string, expected: string | null) => {
     const inputPos = input.indexOf('|');
     input = input.replaceAll('|', '');
     const ret = markdownHandleIndention({value: input, selStart: inputPos, selEnd: inputPos});
@@ -171,9 +171,9 @@ test('EditorMarkdown', () => {
     pos: number;
   };
   const testInput = (input: ValueWithCursor, result: ValueWithCursor) => {
-    const intputValue = typeof input === 'string' ? input : input.value;
-    const inputPos = typeof input === 'string' ? intputValue.length : input.pos;
-    textarea.value = intputValue;
+    const inputValue = typeof input === 'string' ? input : input.value;
+    const inputPos = typeof input === 'string' ? inputValue.length : input.pos;
+    textarea.value = inputValue;
     textarea.setSelectionRange(inputPos, inputPos);
 
     const e = new KeyboardEvent('keydown', {key: 'Enter', cancelable: true});

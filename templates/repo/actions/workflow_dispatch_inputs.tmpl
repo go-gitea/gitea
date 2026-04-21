@@ -1,3 +1,4 @@
+<div id="runWorkflowDispatchModalInputs">
 {{if not .WorkflowDispatchConfig}}
 	<div class="ui error message tw-block">{{/* using "ui message" in "ui form" needs to force to display */}}
 		{{if not .CurWorkflowExists}}
@@ -11,14 +12,12 @@
 		<div class="ui field {{if .Required}}required{{end}}">
 			{{if eq .Type "choice"}}
 				<label>{{or .Description .Name}}:</label>
-				{{/* htmx won't initialize the fomantic dropdown, so it is a standard "select" input */}}
 				<select class="ui selection dropdown" name="{{.Name}}">
 					{{range .Options}}
 						<option value="{{.}}" {{if eq $item.Default .}}selected{{end}}>{{.}}</option>
 					{{end}}
 				</select>
 			{{else if eq .Type "boolean"}}
-				{{/* htmx doesn't trigger our JS code to attach fomantic label to checkbox, so here we use standard checkbox */}}
 				<label class="tw-flex flex-text-inline">
 					<input type="checkbox" name="{{.Name}}" {{if eq .Default "true"}}checked{{end}}>
 					{{or .Description .Name}}
@@ -40,7 +39,8 @@
 {{range .workflows}}
 	{{if and .ErrMsg (eq .Entry.Name $.CurWorkflow)}}
 		<div class="ui field">
-			<div>{{svg "octicon-alert" 16 "text red"}} {{.ErrMsg}}</div>
+			<div>{{svg "octicon-alert" 16 "tw-text-red"}} {{.ErrMsg}}</div>
 		</div>
 	{{end}}
 {{end}}
+</div>
