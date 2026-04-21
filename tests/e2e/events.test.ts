@@ -15,6 +15,7 @@ test.describe('events', () => {
       apiCreateRepo(request, {name: repoName, headers: apiUserHeaders(owner)}),
       loginUser(page, owner),
     ]);
+    await page.goto('/');
     const badge = page.locator('a.not-mobile .notification_count');
     await expect(badge).toBeHidden();
 
@@ -41,6 +42,7 @@ test.describe('events', () => {
 
     // Login — page renders with the active stopwatch element
     await loginUser(page, name);
+    await page.goto('/');
 
     // Verify stopwatch is visible and links to the correct issue
     const stopwatch = page.locator('.active-stopwatch.not-mobile');

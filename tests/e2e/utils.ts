@@ -60,10 +60,10 @@ export async function apiStartStopwatch(requestContext: APIRequestContext, owner
   }), 'apiStartStopwatch');
 }
 
-export async function apiCreateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string) {
+export async function apiCreateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string, {branch, newBranch, message}: {branch?: string; newBranch?: string; message?: string} = {}) {
   await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
     headers: apiHeaders(),
-    data: {content: globalThis.btoa(content)},
+    data: {content: globalThis.btoa(content), branch, new_branch: newBranch, message},
   }), 'apiCreateFile');
 }
 
@@ -72,6 +72,44 @@ export async function apiCreateBranch(requestContext: APIRequestContext, owner: 
     headers: apiHeaders(),
     data: {new_branch_name: newBranch},
   }), 'apiCreateBranch');
+}
+
+/** Create a PR via API. Returns the PR index for subsequent operations. */
+export async function apiCreatePR(requestContext: APIRequestContext, owner: string, repo: string, head: string, base: string, title: string, {headers}: {headers?: Record<string, string>} = {}): Promise<number> {
+  let prIndex = 0;
+  await apiRetry(async () => {
+    const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {
+      headers: headers || apiHeaders(),
+      data: {head, base, title},
+    });
+    if (response.ok()) prIndex = (await response.json()).number;
+    return response;
+  }, 'apiCreatePR');
+  return prIndex;
+}
+
+export type MergeStyle = 'merge' | 'rebase' | 'rebase-merge' | 'squash' | 'fast-forward-only';
+export type ReviewEvent = 'COMMENT' | 'APPROVED' | 'REQUEST_CHANGES';
+
+export async function apiMergePR(requestContext: APIRequestContext, owner: string, repo: string, index: number, {style = 'merge', deleteBranch}: {style?: MergeStyle; deleteBranch?: boolean} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/merge`, {
+    headers: apiHeaders(),
+    data: {Do: style, delete_branch_after_merge: deleteBranch},
+  }), 'apiMergePR');
+}
+
+/** Create a review on a PR. `event: "COMMENT"` submits immediately without a pending review. */
+export async function apiCreateReview(requestContext: APIRequestContext, owner: string, repo: string, index: number, {event = 'COMMENT', body, comments = [], headers}: {event?: ReviewEvent; body?: string; comments?: Array<{path: string; body: string; new_position?: number; old_position?: number}>; headers?: Record<string, string>}) {
+  let reviewID = 0;
+  await apiRetry(async () => {
+    const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/reviews`, {
+      headers: headers || apiHeaders(),
+      data: {event, body, comments},
+    });
+    if (response.ok()) reviewID = (await response.json()).id;
+    return response;
+  }, 'apiCreateReview');
+  return reviewID;
 }
 
 export async function createProjectColumn(requestContext: APIRequestContext, owner: string, repo: string, projectID: string, title: string) {
@@ -117,12 +155,16 @@ export async function loginUser(page: Page, username: string) {
   return login(page, username, testUserPassword);
 }
 
+/** Log `page` in via a direct form POST — ~10× faster than driving the login UI. Gitea's /user/login
+ * accepts a form POST without CSRF (see tests/integration/integration_test.go loginUserWithPassword).
+ * Cookies land in the page context; caller is responsible for navigating to a destination page. */
 export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, password = env.GITEA_TEST_E2E_PASSWORD) {
-  await page.goto('/user/login');
-  await page.getByLabel('Username or Email Address').fill(username);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', {name: 'Sign In'}).click();
-  await expect(page.getByRole('link', {name: 'Sign In'})).toBeHidden();
+  const response = await page.request.post('/user/login', {
+    form: {user_name: username, password},
+    maxRedirects: 0,
+  });
+  const status = response.status();
+  if (status !== 302 && status !== 303) throw new Error(`login as ${username} failed: HTTP ${status}`);
 }
 
 export async function assertNoJsError(page: Page) {
