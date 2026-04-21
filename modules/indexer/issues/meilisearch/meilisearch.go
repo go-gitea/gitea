@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 7
+	issueIndexerLatestVersion = 5
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
