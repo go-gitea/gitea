@@ -153,11 +153,11 @@ func AddAssignees(ctx context.Context, issue *issues_model.Issue, doer *user_mod
 
 func RemoveAssignees(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeIDs []int64) error {
 	for _, assigneeID := range assigneeIDs {
-		assigneed, err := issues_model.IsUserAssignedToIssue(ctx, issue, assigneeID)
+		isAssigned, err := issues_model.IsUserAssignedToIssue(ctx, issue, assigneeID)
 		if err != nil {
 			return err
 		}
-		if !assigneed {
+		if !isAssigned {
 			continue
 		}
 		if _, _, err := ToggleAssigneeWithNotify(ctx, issue, doer, assigneeID); err != nil {
