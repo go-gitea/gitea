@@ -230,7 +230,7 @@ func performAutoLoginOAuth2(ctx *context.Context, data *preparedSignInData) bool
 		return false
 	}
 
-	skipToOAuthURL := setting.AppSubURL + "/user/oauth2/" + url.QueryEscape(data.oauth2Providers[0].DisplayName())
+	skipToOAuthURL := setting.AppSubURL + "/user/oauth2/" + url.PathEscape(data.oauth2Providers[0].DisplayName())
 	if redirectTo := ctx.FormString("redirect_to"); redirectTo != "" {
 		skipToOAuthURL += "?redirect_to=" + url.QueryEscape(redirectTo)
 	}

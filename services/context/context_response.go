@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
@@ -143,10 +144,17 @@ func (ctx *Context) NotFound(logErr error) {
 }
 
 func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
+	// it's safe to show the error message to end users since the error is fully controlled by our error system
+	var errorMsg string
 	if logErr != nil {
-		log.Log(2, log.DEBUG, "%s: %v", logMsg, logErr)
-		if !setting.IsProd {
-			ctx.Data["ErrorMsg"] = logErr
+		log.Log(2, log.DEBUG, "NotFound: %s: %v", logMsg, logErr)
+		errorMsg = logErr.Error()
+	}
+	if logMsg != "" {
+		if errorMsg == "" {
+			errorMsg = logMsg
+		} else {
+			errorMsg = logMsg + "; " + errorMsg
 		}
 	}
 
@@ -160,17 +168,24 @@ func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 	}
 
 	if !showHTML {
-		ctx.plainTextInternal(3, http.StatusNotFound, []byte("Not found.\n"))
+		errorMsg = util.IfZero(errorMsg, "Not found.")
+		ctx.plainTextInternal(3, http.StatusNotFound, []byte(errorMsg+"\n"))
 		return
 	}
 
 	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
 	ctx.Data["Title"] = "Page Not Found"
+	ctx.Data["ErrorMsg"] = errorMsg
 	ctx.HTML(http.StatusNotFound, "status/404")
 }
 
 // ServerError displays a 500 (Internal Server Error) page and prints the given error, if any.
+// If the error is controlled by our error system, a related 404 page can be displayed instead.
 func (ctx *Context) ServerError(logMsg string, logErr error) {
+	if errors.Is(logErr, util.ErrNotExist) {
+		ctx.notFoundInternal(logMsg, logErr)
+		return
+	}
 	ctx.serverErrorInternal(logMsg, logErr)
 }
 
