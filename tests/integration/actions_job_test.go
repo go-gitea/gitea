@@ -10,14 +10,18 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
@@ -168,6 +172,79 @@ jobs:
 				}
 			})
 		}
+	})
+}
+
+func TestActionsCommitStatusDescriptionUpdatesOnTaskStart(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		apiRepo := createActionsTestRepo(t, token, "actions-commit-status-description", false)
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, user2.Name, apiRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+		const wfTreePath = ".gitea/workflows/commit-status-description.yml"
+		const wfFileContent = `name: commit-status-description
+on:
+  push:
+    paths:
+      - '.gitea/workflows/commit-status-description.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hello
+`
+		const pollTimeout = 10 * time.Second
+		const pollInterval = 200 * time.Millisecond
+
+		opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
+		fileResp := createWorkflowFile(t, token, user2.Name, apiRepo.Name, wfTreePath, opts)
+
+		getLatestStatus := func() (*git_model.CommitStatus, error) {
+			statuses, err := git_model.GetLatestCommitStatus(t.Context(), apiRepo.ID, fileResp.Commit.SHA, db.ListOptionsAll)
+			if err != nil {
+				return nil, err
+			}
+			if len(statuses) != 1 {
+				t.Logf("expected 1 commit status, got %d", len(statuses))
+				return nil, nil
+			}
+			return statuses[0], nil
+		}
+
+		assert.Eventually(t, func() bool {
+			status, err := getLatestStatus()
+			if err != nil || status == nil {
+				return false
+			}
+			return status.State == commitstatus.CommitStatusPending && status.Description == "Waiting to run"
+		}, pollTimeout, pollInterval)
+
+		task := runner.fetchTask(t)
+
+		assert.Eventually(t, func() bool {
+			status, err := getLatestStatus()
+			if err != nil || status == nil {
+				return false
+			}
+			return status.State == commitstatus.CommitStatusPending && status.Description == "Has started running"
+		}, pollTimeout, pollInterval)
+
+		runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+
+		assert.Eventually(t, func() bool {
+			status, err := getLatestStatus()
+			if err != nil || status == nil {
+				return false
+			}
+			return status.State == commitstatus.CommitStatusSuccess &&
+				status.Context == "commit-status-description / test (push)" &&
+				status.TargetURL != "" &&
+				strings.HasPrefix(status.Description, "Successful in ")
+		}, pollTimeout, pollInterval)
 	})
 }
 
