@@ -192,18 +192,19 @@ td .commit-summary {
 }
 
 .repo-editor-header {
+  /* it should match ".repo-button-row" so the tree toggle button stays aligned */
+  margin: 8px 0;
   display: flex;
-  margin: 1rem 0;
-  padding: 3px 0;
-  width: 100%;
-  gap: 0.5em;
   align-items: center;
+  gap: 8px;
+  width: 100%;
 }
 
 .repo-editor-header input {
   vertical-align: middle !important;
   width: auto !important;
-  padding: 7px 8px !important;
+  height: 30px !important;
+  padding: 5px 8px !important;
   margin-right: 5px !important;
 }
 
