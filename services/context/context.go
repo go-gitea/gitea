@@ -200,6 +200,10 @@ func Contexter() func(next http.Handler) http.Handler {
 				ctx.Resp.Header().Set(`X-Frame-Options`, setting.Security.XFrameOptions)
 			}
 
+			if setting.Security.XContentTypeOptions != "unset" {
+				ctx.Resp.Header().Set(`X-Content-Type-Options`, setting.Security.XContentTypeOptions)
+			}
+
 			ctx.Data["SystemConfig"] = setting.Config()
 
 			ctx.Data["ShowTwoFactorRequiredMessage"] = ctx.DoerNeedTwoFactorAuth()
