@@ -5,6 +5,7 @@ package integration
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -199,6 +200,7 @@ jobs:
 `
 		const pollTimeout = 10 * time.Second
 		const pollInterval = 200 * time.Millisecond
+		errCommitStatusNotReady := errors.New("commit status not ready")
 
 		opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
 		fileResp := createWorkflowFile(t, token, user2.Name, apiRepo.Name, wfTreePath, opts)
@@ -210,7 +212,7 @@ jobs:
 			}
 			if len(statuses) != 1 {
 				t.Logf("expected 1 commit status, got %d", len(statuses))
-				return nil, nil
+				return nil, errCommitStatusNotReady
 			}
 			return statuses[0], nil
 		}
