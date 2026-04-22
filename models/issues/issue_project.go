@@ -203,17 +203,10 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			projectColumnID := defaultColumn.ID
 
 			// Calculate sorting position (this query must be per-project for correctness)
-			res := struct {
-				MaxSorting int64
-				IssueCount int64
-			}{}
-			if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").Table("project_issue").
-				And("project_id=?", projectID).
-				And("project_board_id=?", projectColumnID).
-				Get(&res); err != nil {
+			newSorting, err := project_model.GetColumnIssueNextSorting(ctx, projectID, projectColumnID)
+			if err != nil {
 				return err
 			}
-			newSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
 
 			pi = append(pi, &project_model.ProjectIssue{
 				IssueID:         issue.ID,
