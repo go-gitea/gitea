@@ -54,8 +54,33 @@ test('switches to datetime format after default threshold', async () => {
   expect(getText(el)).toMatch(/on [A-Z][a-z]{2} \d{1,2}/);
 });
 
+test('accepts unix seconds as integer string', async () => {
+  const el = createRelativeTime(String(Math.floor(Date.now() / 1000) - 3 * 60));
+  await Promise.resolve();
+  expect(getText(el)).toBe('3 minutes ago');
+});
+
+test('accepts unix seconds as fractional string', async () => {
+  const el = createRelativeTime(String(Date.now() / 1000 - 3 * 60));
+  await Promise.resolve();
+  expect(getText(el)).toBe('3 minutes ago');
+});
+
+test('accepts negative unix seconds (pre-1970)', async () => {
+  const el = createRelativeTime('-86400', {lang: 'en-US'});
+  await Promise.resolve();
+  expect(getText(el)).toMatch(/on Dec 31/);
+});
+
 test('ignores invalid datetime', async () => {
   const el = createRelativeTime('bogus');
+  el.shadowRoot!.textContent = 'fallback';
+  await Promise.resolve();
+  expect(getText(el)).toBe('fallback');
+});
+
+test('ignores partial numeric datetime', async () => {
+  const el = createRelativeTime('123abc');
   el.shadowRoot!.textContent = 'fallback';
   await Promise.resolve();
   expect(getText(el)).toBe('fallback');

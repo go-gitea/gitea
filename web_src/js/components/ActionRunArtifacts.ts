@@ -10,13 +10,10 @@ export function buildArtifactTooltipHtml(artifact: ActionsArtifact, expiresAtLoc
 
   // split so the <relative-time> element can be interleaved, e.g. "Expires at %s" -> ["Expires at ", ""]
   const [prefix, suffix = ''] = expiresAtLocale.split('%s');
-  const datetime = new Date(artifact.expiresUnix * 1000).toISOString();
   return html`
     <span class="flex-text-inline">
       <span>${prefix}</span>
-      <relative-time datetime="${datetime}" threshold="P0Y" prefix="" weekday="" year="numeric" month="short" hour="numeric" minute="2-digit">
-        ${datetime}
-      </relative-time>
+      <relative-time datetime="${artifact.expiresUnix}" threshold="P0Y" prefix="" weekday="" year="numeric" month="short" hour="numeric" minute="2-digit"></relative-time>
       <span>${suffix}</span>
       <span class="inline-divider">,</span>
       <span>${sizeText}</span>

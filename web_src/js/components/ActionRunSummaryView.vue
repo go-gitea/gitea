@@ -16,11 +16,6 @@ const props = defineProps<{
 const locale = props.locale;
 const {currentRun: run} = toRefs(props.store.viewData);
 
-const runTriggeredAtIso = computed(() => {
-  const t = props.store.viewData.currentRun.triggeredAt;
-  return t ? new Date(t * 1000).toISOString() : '';
-});
-
 const isRerun = computed(() => run.value.runAttempt > 1);
 
 const triggerUser = computed(() => {
@@ -51,7 +46,7 @@ onBeforeUnmount(() => {
           <span v-else class="muted">{{ triggerUser.name }}</span>
         </template>
         <span>•</span> 
-        <relative-time :datetime="runTriggeredAtIso" prefix=""/>
+        <relative-time :datetime="run.triggeredAt || ''" prefix=""/>
       </div>
       <div class="flex-text-block">
         <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="16"/>
