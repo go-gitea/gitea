@@ -46,7 +46,8 @@ func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
 	giteaRoot := setting.GetGiteaTestSourceRoot()
 	fixturesOpts := FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: testOpts.FixtureFiles}
 	if err := CreateTestEngine(fixturesOpts); err != nil {
-		testlogger.Panicf("Error creating test engine: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Error creating test database engine: %v\n", err)
+		os.Exit(1)
 	}
 
 	setting.AppURL = "https://try.gitea.io/"
