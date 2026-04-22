@@ -50,6 +50,8 @@ func runTestApp(app *cli.Command, args ...string) (runResult, error) {
 	app.Writer = outBuf
 	app.ErrWriter = errBuf
 	exitCode := -1
+	// TODO: TESTING-INSTALL-LOCK-FAILURE: need to figure the root problem of "InstallLock becoming true unexpectedly"
+	defer test.MockVariableValue(&setting.InstallLock, false)()
 	defer test.MockVariableValue(&cli.ErrWriter, app.ErrWriter)()
 	defer test.MockVariableValue(&cli.OsExiter, func(code int) {
 		if exitCode == -1 {
