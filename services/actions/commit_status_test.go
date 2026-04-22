@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateCommitStatus_RewritesPendingDescription(t *testing.T) {
+func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
@@ -49,26 +49,30 @@ func TestCreateCommitStatus_RewritesPendingDescription(t *testing.T) {
 	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), run, job))
 
 	statuses := findCommitStatusesForContext(t, repo.ID, commit.ID.String(), expectedContext)
-	if assert.Len(t, statuses, 1) {
-		assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
-		assert.Equal(t, "Waiting to run", statuses[0].Description)
-		assert.Equal(t, expectedTargetURL, statuses[0].TargetURL)
-	}
+	require.Len(t, statuses, 1)
+	assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
+	assert.Equal(t, "Waiting to run", statuses[0].Description)
+	assert.Equal(t, expectedTargetURL, statuses[0].TargetURL)
 
 	job.Status = actions_model.StatusRunning
 	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), run, job))
 
 	statuses = findCommitStatusesForContext(t, repo.ID, commit.ID.String(), expectedContext)
-	if assert.Len(t, statuses, 2) {
-		assert.Equal(t, "Waiting to run", statuses[0].Description)
-		assert.Equal(t, commitstatus.CommitStatusPending, statuses[1].State)
-		assert.Equal(t, "Has started running", statuses[1].Description)
-		assert.Equal(t, expectedTargetURL, statuses[1].TargetURL)
-	}
+	require.Len(t, statuses, 2)
+	assert.Equal(t, "Waiting to run", statuses[0].Description)
+	assert.Equal(t, commitstatus.CommitStatusPending, statuses[1].State)
+	assert.Equal(t, "Has started running", statuses[1].Description)
+	assert.Equal(t, expectedTargetURL, statuses[1].TargetURL)
 
 	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), run, job))
 	statuses = findCommitStatusesForContext(t, repo.ID, commit.ID.String(), expectedContext)
 	assert.Len(t, statuses, 2)
+
+	job.Status = actions_model.StatusSuccess
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), run, job))
+	statuses = findCommitStatusesForContext(t, repo.ID, commit.ID.String(), expectedContext)
+	require.Len(t, statuses, 3)
+	assert.Equal(t, commitstatus.CommitStatusSuccess, statuses[2].State)
 }
 
 func findCommitStatusesForContext(t *testing.T, repoID int64, sha, context string) []*git_model.CommitStatus {

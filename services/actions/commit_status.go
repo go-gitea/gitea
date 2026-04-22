@@ -147,21 +147,13 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 	targetURL := fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID)
 	description := toCommitStatusDescription(job)
 
-	if statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll); err != nil {
+	statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll)
+	if err != nil {
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
-	} else {
-		for _, v := range statuses {
-			if v.Context != ctxName {
-				continue
-			}
-			if v.State != state {
-				break
-			}
-			if v.TargetURL != targetURL {
-				break
-			}
-			if v.Description == description {
-				// no need to update
+	}
+	for _, v := range statuses {
+		if v.Context == ctxName {
+			if v.State == state && v.TargetURL == targetURL && v.Description == description {
 				return nil
 			}
 			break
