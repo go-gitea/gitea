@@ -71,27 +71,6 @@ func (err ErrUserProhibitLogin) Unwrap() error {
 	return util.ErrPermissionDenied
 }
 
-// ErrUserInactive represents a "ErrUserInactive" kind of error.
-type ErrUserInactive struct {
-	UID  int64
-	Name string
-}
-
-// IsErrUserInactive checks if an error is a ErrUserInactive
-func IsErrUserInactive(err error) bool {
-	_, ok := err.(ErrUserInactive)
-	return ok
-}
-
-func (err ErrUserInactive) Error() string {
-	return fmt.Sprintf("user is inactive [uid: %d, name: %s]", err.UID, err.Name)
-}
-
-// Unwrap unwraps this error as a ErrPermission error
-func (err ErrUserInactive) Unwrap() error {
-	return util.ErrPermissionDenied
-}
-
 // ErrUserIsNotLocal represents a "ErrUserIsNotLocal" kind of error.
 type ErrUserIsNotLocal struct {
 	UID  int64

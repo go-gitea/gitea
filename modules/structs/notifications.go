@@ -68,12 +68,12 @@ const (
 type NotifySubjectType string
 
 const (
-	// NotifySubjectIssue an issue is subject of an notification
+	// NotifySubjectIssue a issue is subject of an notification
 	NotifySubjectIssue NotifySubjectType = "Issue"
-	// NotifySubjectPull an pull is subject of an notification
+	// NotifySubjectPull a pull is subject of an notification
 	NotifySubjectPull NotifySubjectType = "Pull"
-	// NotifySubjectCommit an commit is subject of an notification
+	// NotifySubjectCommit a commit is subject of an notification
 	NotifySubjectCommit NotifySubjectType = "Commit"
-	// NotifySubjectRepository an repository is subject of an notification
+	// NotifySubjectRepository a repository is subject of an notification
 	NotifySubjectRepository NotifySubjectType = "Repository"
 )

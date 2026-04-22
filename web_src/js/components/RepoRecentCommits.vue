@@ -20,6 +20,7 @@ import {
   type DayDataObject,
 } from '../utils/time.ts';
 import {chartJsColors} from '../utils/color.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {onMounted, ref, shallowRef} from 'vue';
@@ -80,7 +81,7 @@ async function fetchGraphData() {
       errorText.value = response.statusText;
     }
   } catch (err) {
-    errorText.value = err.message;
+    errorText.value = errorMessage(err);
   } finally {
     isLoading.value = false;
   }
@@ -128,7 +129,7 @@ const options: ChartOptions<'bar'> = {
 
 <template>
   <div>
-    <div class="ui header tw-flex tw-items-center tw-justify-between">
+    <div class="ui header">
       {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "Commits over time" }}
     </div>
     <div class="tw-flex ui segment main-graph">

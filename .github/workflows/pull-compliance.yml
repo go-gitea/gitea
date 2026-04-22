@@ -38,7 +38,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v8.0.0
+      - uses: astral-sh/setup-uv@v8.1.0
       - run: uv python install 3.14
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
@@ -58,7 +58,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v8.0.0
+      - uses: astral-sh/setup-uv@v8.1.0
       - run: uv python install 3.14
       - run: make deps-py
       - run: make lint-yaml
@@ -72,9 +72,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       - run: make deps-frontend
       - run: make lint-json
 

@@ -14,7 +14,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
   const elDetailDialog = createElementFromHTML(`
 <div class="ui modal content-history-detail-dialog">
   ${svg('octicon-x', 16, 'close icon inside')}
-  <div class="header tw-flex tw-items-center tw-justify-between">
+  <div class="header flex-left-right">
     <div>${itemTitleHtml}</div>
     <div class="ui dropdown dialog-header-options tw-mr-8 tw-hidden">
       ${i18nTextOptions}

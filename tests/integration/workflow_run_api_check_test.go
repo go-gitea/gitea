@@ -44,6 +44,10 @@ func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runI
 	foundRun := false
 
 	for _, run := range runnerList.Entries {
+		if run.ID == 802 {
+			// Fixture stores registration event (push) and schedule as trigger; API must expose the trigger as Event.
+			assert.Equal(t, "schedule", run.Event)
+		}
 		// Verify filtering works
 		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", run.Status, "", "", "", "")
 		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, run.Conclusion, "", "", "", "", "")
