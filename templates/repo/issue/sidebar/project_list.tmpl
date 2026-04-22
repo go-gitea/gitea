@@ -51,51 +51,51 @@
 		<div class="item empty-list">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</div>
 	</div>
 {{else}}
-<div class="flex-relaxed-list tw-my-2">
+	<div class="flex-relaxed-list tw-my-2">
 	{{range $card := $data.ProjectCards}}
-	{{$selectedColumn := $card.SelectedColumn}}
-	<div class="item sidebar-project-card">
-		<div class="tw-mb-1">
-			<a class="suppressed flex-text-block" href="{{$card.Project.Link ctx}}">
-				{{svg $card.Project.IconName 16}}
-				<span class="gt-ellipsis">{{$card.Project.Title}}</span>
-			</a>
-		</div>
-		{{if $pageMeta.CanModifyIssueOrPull}}
-			<div class="issue-sidebar-combo sidebar-project-column-combo" data-selection-mode="single" data-update-algo="all"
-				data-update-url="{{$pageMeta.RepoLink}}/issues/projects/column?issue_id={{$pageMeta.Issue.ID}}"
-			>
-				<input class="combo-value" name="column_id" type="hidden" value="{{if $selectedColumn}}{{$selectedColumn.ID}}{{end}}">
-				<div class="ui dropdown full-width">
-					<div class="flex-text-block tw-ml-[16px]">{{/* align with the "project" icon */}}
-						<div class="interact-bg tw-px-2 tw-py-1 tw-rounded flex-text-block">
-							{{if $selectedColumn}}
-								{{if $card.SelectedColumn.Color}}<span class="color-icon icon-size-8" style="background-color: {{$card.SelectedColumn.Color}}"></span>{{end}}
-								<div class="gt-ellipsis" data-testid="sidebar-project-column-text">{{$card.SelectedColumn.Title}}</div>
-							{{else}}
-								<div class="gt-ellipsis" data-testid="sidebar-project-column-text">{{ctx.Locale.Tr "repo.issues.new.no_column"}}</div>
+		{{$selectedColumn := $card.SelectedColumn}}
+		<div class="item sidebar-project-card">
+			<div class="tw-mb-1">
+				<a class="suppressed flex-text-block" href="{{$card.Project.Link ctx}}">
+					{{svg $card.Project.IconName 16}}
+					<span class="gt-ellipsis">{{$card.Project.Title}}</span>
+				</a>
+			</div>
+			{{if $pageMeta.CanModifyIssueOrPull}}
+				<div class="issue-sidebar-combo sidebar-project-column-combo" data-selection-mode="single" data-update-algo="all"
+					data-update-url="{{$pageMeta.RepoLink}}/issues/projects/column?issue_id={{$pageMeta.Issue.ID}}"
+				>
+					<input class="combo-value" name="column_id" type="hidden" value="{{if $selectedColumn}}{{$selectedColumn.ID}}{{end}}">
+					<div class="ui dropdown full-width">
+						<div class="flex-text-block tw-ml-[16px]">{{/* align with the "project" icon */}}
+							<div class="interact-bg tw-px-2 tw-py-1 tw-rounded flex-text-block">
+								{{if $selectedColumn}}
+									{{if $card.SelectedColumn.Color}}<span class="color-icon icon-size-8" style="background-color: {{$card.SelectedColumn.Color}}"></span>{{end}}
+									<div class="gt-ellipsis" data-testid="sidebar-project-column-text">{{$card.SelectedColumn.Title}}</div>
+								{{else}}
+									<div class="gt-ellipsis" data-testid="sidebar-project-column-text">{{ctx.Locale.Tr "repo.issues.new.no_column"}}</div>
+								{{end}}
+								{{svg "octicon-triangle-down" 14}}
+							</div>
+						</div>
+						<div class="menu flex-items-menu">
+							{{range $columnItem := $card.Columns}}
+								<a class="item" data-value="{{$columnItem.ID}}">
+									<span class="item-check-mark">{{svg "octicon-check"}}</span>
+									{{if $columnItem.Color}}<span class="color-icon icon-size-8" style="background-color: {{$columnItem.Color}}"></span>{{end}}
+									<div class="gt-ellipsis">{{$columnItem.Title}}</div>
+								</a>
 							{{end}}
-							{{svg "octicon-triangle-down" 14}}
 						</div>
 					</div>
-					<div class="menu flex-items-menu">
-						{{range $columnItem := $card.Columns}}
-							<a class="item" data-value="{{$columnItem.ID}}">
-								<span class="item-check-mark">{{svg "octicon-check"}}</span>
-								{{if $columnItem.Color}}<span class="color-icon icon-size-8" style="background-color: {{$columnItem.Color}}"></span>{{end}}
-								<div class="gt-ellipsis">{{$columnItem.Title}}</div>
-							</a>
-						{{end}}
-					</div>
 				</div>
-			</div>
-		{{else if $selectedColumn}}
-			<div class="flex-text-block tw-my-1 tw-ml-[22px]">{{/* align with the "project" icon */}}
-				{{if $selectedColumn.Color}}<span class="color-icon icon-size-8" style="background-color: {{$selectedColumn.Color}}"></span>{{end}}
-				<div class="gt-ellipsis">{{$selectedColumn.Title}}</div>
-			</div>
-		{{end}}
-	</div>
+			{{else if $selectedColumn}}
+				<div class="flex-text-block tw-my-1 tw-ml-[22px]">{{/* align with the "project" icon */}}
+					{{if $selectedColumn.Color}}<span class="color-icon icon-size-8" style="background-color: {{$selectedColumn.Color}}"></span>{{end}}
+					<div class="gt-ellipsis">{{$selectedColumn.Title}}</div>
+				</div>
+			{{end}}
+		</div>
 	{{end}}
-</div>
+	</div>
 {{end}}
