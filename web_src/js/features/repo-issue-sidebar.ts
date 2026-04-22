@@ -5,7 +5,7 @@ import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {parseIssuePageInfo} from '../utils.ts';
 import {html} from '../utils/html.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {showTemporaryTooltip} from '../modules/float.ts';
+import {showTemporaryTooltip} from '../modules/floating.ts';
 
 const {appSubUrl} = window.config;
 

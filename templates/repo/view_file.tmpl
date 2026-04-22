@@ -140,7 +140,7 @@
 			{{end}}
 		</div>
 
-		<div class="code-line-menu float-target">
+		<div class="code-line-menu floating-target">
 			{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
 			<a class="item ref-in-new-issue" role="menuitem" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}" rel="nofollow noindex">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</a>
 			{{end}}

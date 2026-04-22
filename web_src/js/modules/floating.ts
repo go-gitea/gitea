@@ -4,17 +4,17 @@ import {generateElemId, isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 import {stripTags} from '../utils.ts';
 
-type FloatContent = string | Element | DocumentFragment;
-type FloatTheme = 'default' | 'tooltip' | 'menu' | 'box-with-header' | 'bare';
+type FloatingContent = string | Element | DocumentFragment;
+type FloatingTheme = 'default' | 'tooltip' | 'menu' | 'box-with-header' | 'bare';
 type FollowCursor = false | 'horizontal' | 'vertical';
 type Delay = number | [number, number];
 type Trigger = 'mouseenter focus' | 'mouseenter' | 'focus' | 'click' | 'focus click' | 'manual';
 
-type FloatProps = {
-  content?: FloatContent;
+type FloatingElementProps = {
+  content?: FloatingContent;
   placement?: Placement;
   role?: string;
-  theme?: FloatTheme;
+  theme?: FloatingTheme;
   trigger?: Trigger;
   delay?: Delay;
   offset?: number | [number, number];
@@ -27,29 +27,29 @@ type FloatProps = {
   followCursor?: FollowCursor;
   showOnCreate?: boolean;
   getReferenceClientRect?: (() => DOMRect) | null;
-  onShow?: (instance: FloatInstance) => void | false;
-  onHide?: (instance: FloatInstance) => void | false;
-  onHidden?: (instance: FloatInstance) => void;
-  onDestroy?: (instance: FloatInstance) => void;
+  onShow?: (instance: FloatingElement) => void | false;
+  onHide?: (instance: FloatingElement) => void | false;
+  onHidden?: (instance: FloatingElement) => void;
+  onDestroy?: (instance: FloatingElement) => void;
 };
 
-export type FloatInstance = {
-  float: HTMLElement;
-  props: FloatProps;
+export type FloatingElement = {
+  element: HTMLElement;
+  props: FloatingElementProps;
   state: {isShown: boolean};
   show(): void;
   hide(): void;
   destroy(): void;
   update(): void;
-  setContent(content: FloatContent): void;
-  setProps(props: Partial<FloatProps>): void;
+  setContent(content: FloatingContent): void;
+  setProps(props: Partial<FloatingElementProps>): void;
   enable(): void;
   disable(): void;
 };
 
 const defaults = {
   placement: 'top' as Placement,
-  theme: 'default' as FloatTheme,
+  theme: 'default' as FloatingTheme,
   role: 'menu',
   trigger: 'mouseenter focus' as Trigger,
   arrow: true,
@@ -58,8 +58,8 @@ const defaults = {
   offset: 6,
 };
 
-const instances = new WeakMap<Element, FloatInstance>();
-const visibleInstances = new Set<FloatInstance>();
+const instances = new WeakMap<Element, FloatingElement>();
+const visibleInstances = new Set<FloatingElement>();
 
 let mouseCoords = {x: 0, y: 0};
 const cursorListeners = new Set<() => void>();
@@ -98,7 +98,7 @@ function parseTriggers(trigger: Trigger): {mouse: boolean; focus: boolean; click
   return {mouse: parts.has('mouseenter'), focus: parts.has('focus'), click: parts.has('click')};
 }
 
-function setElementContent(el: HTMLElement, content: FloatContent, allowHTML: boolean): void {
+function setElementContent(el: HTMLElement, content: FloatingContent, allowHTML: boolean): void {
   if (content instanceof Element || content instanceof DocumentFragment) {
     el.replaceChildren(content);
   } else if (allowHTML) {
@@ -108,31 +108,31 @@ function setElementContent(el: HTMLElement, content: FloatContent, allowHTML: bo
   }
 }
 
-const arrowHtml = html`<svg class="float-arrow" width="16" height="16" viewBox="0 0 16 16" overflow="visible"><path d="M0,0 H16 L8,7 Z" class="float-arrow-outer"/><path d="M0,-1 H16 L8,6 Z" class="float-arrow-inner"/></svg>`;
+const arrowHtml = html`<svg class="floating-arrow" width="16" height="16" viewBox="0 0 16 16" overflow="visible"><path d="M0,0 H16 L8,7 Z" class="floating-arrow-outer"/><path d="M0,-1 H16 L8,6 Z" class="floating-arrow-inner"/></svg>`;
 
-export function createFloat(target: Element, opts: FloatProps = {}): FloatInstance {
-  const props: FloatProps = {
+export function createFloatingElement(target: Element, opts: FloatingElementProps = {}): FloatingElement {
+  const props: FloatingElementProps = {
     ...defaults,
     arrow: opts.theme === 'bare' ? false : defaults.arrow,
     ...opts,
   };
 
-  const float = document.createElement('div');
-  float.className = 'float-box';
-  float.id = generateElemId('float-');
-  float.setAttribute('data-theme', props.theme ?? defaults.theme);
-  float.setAttribute('role', props.role ?? defaults.role);
+  const el = document.createElement('div');
+  el.className = 'floating-box';
+  el.id = generateElemId('floating-');
+  el.setAttribute('data-theme', props.theme ?? defaults.theme);
+  el.setAttribute('role', props.role ?? defaults.role);
 
   const contentEl = document.createElement('div');
-  contentEl.className = 'float-content';
-  float.append(contentEl);
+  contentEl.className = 'floating-content';
+  el.append(contentEl);
 
   let arrowEl: SVGSVGElement | null = null;
   if (props.arrow) {
     const tmpl = document.createElement('template');
     tmpl.innerHTML = arrowHtml;
     arrowEl = tmpl.content.firstElementChild as SVGSVGElement;
-    float.append(arrowEl);
+    el.append(arrowEl);
   }
 
   if (props.content !== undefined && props.content !== null) {
@@ -145,11 +145,11 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
   let isDestroyed = false;
   let isEnabled = true;
   let isShown = false;
-  let isCursorOverFloat = false;
+  let isCursorOverFloating = false;
 
   const triggers = parseTriggers(props.trigger ?? defaults.trigger);
   const needsClickHandler = triggers.click || ((triggers.mouse || triggers.focus) && Boolean(props.hideOnClick));
-  const floatHoverTracked = Boolean(props.interactive) && triggers.mouse;
+  const floatingHoverTracked = Boolean(props.interactive) && triggers.mouse;
   const needsDismissTracking = triggers.click || Boolean(props.interactive);
 
   const disposers: Array<() => void> = [];
@@ -158,7 +158,7 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
     disposers.push(() => el.removeEventListener(ev, fn));
   }
 
-  const instance = {} as FloatInstance;
+  const instance = {} as FloatingElement;
 
   function clearTimers(): void {
     if (showTimer !== undefined) { clearTimeout(showTimer); showTimer = undefined }
@@ -189,7 +189,7 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
   }
 
   async function update(): Promise<void> {
-    if (!float.isConnected) return;
+    if (!el.isConnected) return;
     const offsetOpt = props.offset ?? defaults.offset;
     const middleware: Middleware[] = [
       offsetMiddleware(typeof offsetOpt === 'number' ? (props.arrow ? offsetOpt + 4 : offsetOpt) : {crossAxis: offsetOpt[0], mainAxis: offsetOpt[1]}),
@@ -200,18 +200,18 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
         apply({availableWidth}) {
           const avail = `${Math.max(0, Math.floor(availableWidth))}px`;
           const cap = typeof props.maxWidth === 'number' ? `${props.maxWidth}px` : (props.maxWidth && props.maxWidth !== 'none' ? props.maxWidth : null);
-          float.style.maxWidth = cap ? `min(${cap}, ${avail})` : avail;
+          el.style.maxWidth = cap ? `min(${cap}, ${avail})` : avail;
         },
       }),
     ];
     if (arrowEl) middleware.push(arrowMiddleware({element: arrowEl, padding: 6}));
-    const result = await computePosition(buildReference(), float, {
+    const result = await computePosition(buildReference(), el, {
       strategy: 'absolute',
       placement: props.placement ?? defaults.placement,
       middleware,
     });
-    float.style.transform = `translate(${Math.round(result.x)}px, ${Math.round(result.y)}px)`;
-    float.setAttribute('data-placement', result.placement);
+    el.style.transform = `translate(${Math.round(result.x)}px, ${Math.round(result.y)}px)`;
+    el.setAttribute('data-placement', result.placement);
     if (arrowEl) {
       const side = result.placement.split('-')[0] as 'top' | 'bottom' | 'left' | 'right';
       const {x, y} = result.middlewareData.arrow ?? {};
@@ -229,7 +229,7 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
 
   function startAutoUpdate(): void {
     stopAutoUpdate?.();
-    stopAutoUpdate = autoUpdate(buildReference(), float, update);
+    stopAutoUpdate = autoUpdate(buildReference(), el, update);
   }
 
   function cursorUpdateHandler(): void { update() }
@@ -237,7 +237,7 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
   function onDocDismiss(e: MouseEvent): void {
     if (!isShown) return;
     const t = e.target as Node;
-    if (target.contains(t) || float.contains(t)) return;
+    if (target.contains(t) || el.contains(t)) return;
     doHide();
   }
 
@@ -251,9 +251,9 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
         if (other !== instance && other.props.role === 'tooltip') other.hide();
       }
     }
-    document.body.append(float);
-    target.setAttribute('aria-controls', float.id);
-    if (props.role === 'tooltip') target.setAttribute('aria-describedby', float.id);
+    document.body.append(el);
+    target.setAttribute('aria-controls', el.id);
+    if (props.role === 'tooltip') target.setAttribute('aria-describedby', el.id);
     startAutoUpdate();
     if (props.followCursor) acquireCursorTracking(cursorUpdateHandler);
     if (needsDismissTracking) acquireDismissTracking(onDocDismiss);
@@ -268,9 +268,9 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
     stopAutoUpdate = null;
     if (props.followCursor) releaseCursorTracking(cursorUpdateHandler);
     if (needsDismissTracking) releaseDismissTracking(onDocDismiss);
-    float.remove();
+    el.remove();
     target.removeAttribute('aria-controls');
-    if (target.getAttribute('aria-describedby') === float.id) target.removeAttribute('aria-describedby');
+    if (target.getAttribute('aria-describedby') === el.id) target.removeAttribute('aria-describedby');
     props.onHidden?.(instance);
   }
 
@@ -283,11 +283,11 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
 
   function scheduleHide(): void {
     clearTimers();
-    if (props.interactive && isCursorOverFloat) return;
+    if (props.interactive && isCursorOverFloating) return;
     const d = resolveDelay(props.delay, 'hide');
-    // Interactive popups defer a zero-delay hide by one tick so the float's
+    // Interactive popups defer a zero-delay hide by one tick so the el's
     // own `mouseenter` can cancel the timer when the pointer crosses from
-    // the reference into the float.
+    // the reference into the floating element.
     if (d > 0 || props.interactive) hideTimer = window.setTimeout(doHide, d);
     else doHide();
   }
@@ -305,8 +305,8 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
   }
 
   if (props.interactive && props.interactiveBorder) {
-    float.style.setProperty('--float-interactive-border', `${props.interactiveBorder}px`);
-    float.setAttribute('data-interactive', 'true');
+    el.style.setProperty('--floating-interactive-border', `${props.interactiveBorder}px`);
+    el.setAttribute('data-interactive', 'true');
   }
 
   if (triggers.mouse) {
@@ -318,12 +318,12 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
     listen(target, 'blur', scheduleHide);
   }
   if (needsClickHandler) listen(target, 'click', onRefClick);
-  if (floatHoverTracked) {
-    listen(float, 'mouseenter', () => { isCursorOverFloat = true; clearTimers() });
-    listen(float, 'mouseleave', () => { isCursorOverFloat = false; scheduleHide() });
+  if (floatingHoverTracked) {
+    listen(el, 'mouseenter', () => { isCursorOverFloating = true; clearTimers() });
+    listen(el, 'mouseleave', () => { isCursorOverFloating = false; scheduleHide() });
   }
 
-  instance.float = float;
+  instance.element = el;
   instance.props = props;
   instance.state = {get isShown() { return isShown }};
   instance.show = doShow;
@@ -346,8 +346,8 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
   instance.setProps = (partial) => {
     const wasFollow = Boolean(props.followCursor);
     Object.assign(props, partial);
-    if (partial.theme) float.setAttribute('data-theme', partial.theme);
-    if (partial.role) float.setAttribute('role', partial.role);
+    if (partial.theme) el.setAttribute('data-theme', partial.theme);
+    if (partial.role) el.setAttribute('role', partial.role);
     if (partial.content !== undefined && partial.content !== null) {
       setElementContent(contentEl, partial.content, Boolean(props.allowHTML));
     }
@@ -369,7 +369,7 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
 }
 
 /** Attach or update a tooltip Float on `target`. Returns null if content is empty. */
-function attachTooltip(target: Element, content: FloatContent | null = null): FloatInstance | null {
+function attachTooltip(target: Element, content: FloatingContent | null = null): FloatingElement | null {
   switchTitleToTooltip(target);
 
   content = content ?? target.getAttribute('data-tooltip-content');
@@ -382,7 +382,7 @@ function attachTooltip(target: Element, content: FloatContent | null = null): Fl
   const followCursorAttr = target.getAttribute('data-tooltip-follow-cursor') as FollowCursor || false;
   const allowHTML = target.getAttribute('data-tooltip-render') === 'html';
 
-  const props: Partial<FloatProps> = {
+  const props: Partial<FloatingElementProps> = {
     content,
     delay: 100,
     role: 'tooltip',
@@ -397,7 +397,7 @@ function attachTooltip(target: Element, content: FloatContent | null = null): Fl
 
   const existing = instances.get(target);
   if (existing) existing.setProps(props);
-  else createFloat(target, props);
+  else createFloatingElement(target, props);
   return instances.get(target) ?? null;
 }
 
@@ -464,9 +464,9 @@ export function initGlobalTooltips(): void {
   attachChildrenLazyTooltip(document.documentElement);
 }
 
-export function showTemporaryTooltip(target: Element, content: FloatContent): void {
+export function showTemporaryTooltip(target: Element, content: FloatingContent): void {
   let refClientRect: DOMRect | undefined;
-  const popupRoot = target.closest<HTMLElement>('.float-box');
+  const popupRoot = target.closest<HTMLElement>('.floating-box');
   const popupId = popupRoot?.id;
   if (popupId) {
     target = document.body;
@@ -493,32 +493,32 @@ export function showTemporaryTooltip(target: Element, content: FloatContent): vo
   }
 }
 
-export function getFloat(el: Element): FloatInstance | null {
+export function getFloatingElement(el: Element): FloatingElement | null {
   return instances.get(el) ?? null;
 }
 
-type FloatDelegateProps = Omit<FloatProps, 'content' | 'trigger' | 'getReferenceClientRect'> & {
+type FloatingDelegateProps = Omit<FloatingElementProps, 'content' | 'trigger' | 'getReferenceClientRect'> & {
   target: string;
-  content: (el: Element) => FloatContent;
+  content: (el: Element) => FloatingContent;
 };
 
-/** A single Float shared across many children of `container` matching `target`,
+/** A single floating element shared across many children of `container` matching `target`,
  *  reference-swapped on hover so it appears to glide between cells. */
-export function delegate(container: Element | string, props: FloatDelegateProps): () => void {
+export function delegate(container: Element | string, props: FloatingDelegateProps): () => void {
   const resolved = typeof container === 'string' ? document.querySelector(container) : container;
   if (!resolved) return () => {};
   const root: Element = resolved;
-  const {target, content, ...floatProps} = props;
+  const {target, content, ...floatingProps} = props;
   const anchor = document.createElement('div');
   anchor.style.position = 'fixed';
   document.body.append(anchor);
   let hovered: Element | null = null;
-  const instance = createFloat(anchor, {
-    ...floatProps,
+  const instance = createFloatingElement(anchor, {
+    ...floatingProps,
     trigger: 'manual',
     getReferenceClientRect: () => (hovered ?? anchor).getBoundingClientRect(),
   });
-  instance.float.style.transition = 'transform 0.1s ease-out';
+  instance.element.style.transition = 'transform 0.1s ease-out';
 
   function onOver(e: Event): void {
     const el = (e.target as Element).closest(target);

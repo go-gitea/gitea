@@ -5,7 +5,7 @@ import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
-import {getFloat} from '../modules/float.ts';
+import {getFloatingElement} from '../modules/floating.ts';
 
 const {appUrl, appSubUrl} = window.config;
 
@@ -63,25 +63,25 @@ export function initGlobalDropdown() {
     if (el.classList.contains('jump')) {
       // The "jump" means this dropdown is mainly used for "menu" purpose,
       // clicking an item will jump to somewhere else or trigger an action/function.
-      // When a dropdown is used for non-refresh actions with a float popup,
-      // it must have this "jump" class to hide the float when dropdown is closed.
+      // When a dropdown is used for non-refresh actions with a floating popup,
+      // it must have this "jump" class to hide the floating popup when dropdown is closed.
       $dropdown.dropdown('setting', {
         action: 'hide',
         onShow() {
           // hide associated tooltip while dropdown is open
-          getFloat(this)?.hide();
-          getFloat(this)?.disable();
+          getFloatingElement(this)?.hide();
+          getFloatingElement(this)?.disable();
         },
         onHide() {
-          getFloat(this)?.enable();
+          getFloatingElement(this)?.enable();
           // eslint-disable-next-line unicorn/no-this-assignment
           const elDropdown = this;
 
-          // hide all float popups of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
+          // hide all floating popups of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
           setTimeout(() => {
             const $dropdown = fomanticQuery(elDropdown);
             if ($dropdown.dropdown('is hidden')) {
-              queryElems(elDropdown, '.menu > .item', (el) => getFloat(el)?.hide());
+              queryElems(elDropdown, '.menu > .item', (el) => getFloatingElement(el)?.hide());
             }
           }, 2000);
         },

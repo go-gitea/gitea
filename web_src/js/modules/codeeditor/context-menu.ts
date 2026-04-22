@@ -1,8 +1,8 @@
 import {clippie} from 'clippie';
-import {createFloat} from '../float.ts';
+import {createFloatingElement} from '../floating.ts';
 import {keySymbols} from '../../utils.ts';
 import {goToDefinitionAt} from './utils.ts';
-import type {FloatInstance} from '../float.ts';
+import type {FloatingElement} from '../floating.ts';
 import type {EditorView} from '@codemirror/view';
 import type {CodemirrorModules} from './main.ts';
 
@@ -155,7 +155,7 @@ function createMenuElement(items: MenuItem[], view: EditorView, onAction: () => 
 }
 
 export function contextMenu(cm: CodemirrorModules, togglePalette: (view: EditorView) => boolean, goToSymbol: (view: EditorView) => void) {
-  let instance: FloatInstance | null = null;
+  let instance: FloatingElement | null = null;
 
   function hideMenu() {
     if (instance) {
@@ -194,7 +194,7 @@ export function contextMenu(cm: CodemirrorModules, togglePalette: (view: EditorV
       anchor.style.top = `${event.clientY}px`;
       document.body.append(anchor);
 
-      instance = createFloat(anchor, {
+      instance = createFloatingElement(anchor, {
         content: menuEl,
         theme: 'menu',
         trigger: 'manual',

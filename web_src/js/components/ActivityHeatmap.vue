@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, onMounted, onBeforeUnmount} from 'vue';
-import {delegate} from '../modules/float.ts';
+import {delegate} from '../modules/floating.ts';
 
 type HeatmapValue = {date: Date; count: number};
 type HeatmapCell = {date: Date; colorIndex: number; ariaLabel: string; tooltip: string};

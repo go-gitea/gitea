@@ -6,7 +6,7 @@ import {sleep} from '../utils.ts';
 import RepoActivityTopAuthors from '../components/RepoActivityTopAuthors.vue';
 import {createApp} from 'vue';
 import {toOriginUrl} from '../utils/url.ts';
-import {createFloat} from '../modules/float.ts';
+import {createFloatingElement} from '../modules/floating.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 
 async function onDownloadArchive(e: Event) {
@@ -134,9 +134,9 @@ function initCloneSchemeUrlSelection(parent: Element) {
 
 function initClonePanelButton(btn: HTMLButtonElement) {
   const elPanel = btn.nextElementSibling!;
-  // "init" must be before the "createFloat" otherwise the "float-target" will be removed from the document
+  // "init" must be before the "createFloatingElement" otherwise the "floating-target" will be removed from the document
   initCloneSchemeUrlSelection(elPanel);
-  createFloat(btn, {
+  createFloatingElement(btn, {
     content: elPanel,
     trigger: 'click',
     placement: 'bottom-end',

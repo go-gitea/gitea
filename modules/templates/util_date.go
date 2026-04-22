@@ -118,7 +118,7 @@ func timeSinceTo(then any, now time.Time) template.HTML {
 		attrs = `tense="future"`
 	}
 
-	// declare data-tooltip-content attribute to switch from "title" tooltip to float-based tooltip
+	// declare data-tooltip-content attribute to switch from "title" tooltip to floating-element-based tooltip
 	htm := fmt.Sprintf(`<relative-time prefix="" %s datetime="%s" data-tooltip-content data-tooltip-interactive="true">%s</relative-time>`,
 		attrs, thenTime.Format(time.RFC3339), friendlyText)
 	return template.HTML(htm)

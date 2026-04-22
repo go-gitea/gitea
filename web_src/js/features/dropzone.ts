@@ -1,7 +1,7 @@
 import {svg} from '../svg.ts';
 import {html} from '../utils/html.ts';
 import {clippie} from 'clippie';
-import {showTemporaryTooltip} from '../modules/float.ts';
+import {showTemporaryTooltip} from '../modules/floating.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createElementFromHTML, createElementFromAttrs} from '../utils/dom.ts';

@@ -8,7 +8,7 @@ import {showErrorToast} from '../modules/toast.ts';
 import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {POST, GET} from '../modules/fetch.ts';
-import {createFloat} from '../modules/float.ts';
+import {createFloatingElement} from '../modules/floating.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
@@ -137,8 +137,8 @@ function initDiffHeaderPopup() {
   for (const btn of document.querySelectorAll('.diff-header-popup-btn:not([data-header-popup-initialized])')) {
     btn.setAttribute('data-header-popup-initialized', '');
     const popup = btn.nextElementSibling;
-    if (!popup?.matches('.float-target')) throw new Error('Popup element not found');
-    createFloat(btn, {
+    if (!popup?.matches('.floating-target')) throw new Error('Popup element not found');
+    createFloatingElement(btn, {
       content: popup,
       theme: 'menu',
       placement: 'bottom-end',

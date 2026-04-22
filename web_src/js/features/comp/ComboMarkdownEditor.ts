@@ -22,7 +22,7 @@ import {
   triggerEditorContentChanged,
 } from './EditorMarkdown.ts';
 import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
-import {createFloat} from '../../modules/float.ts';
+import {createFloatingElement} from '../../modules/floating.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
 import type EasyMDE from 'easymde';
 import {localUserSettings} from '../../modules/user-settings.ts';
@@ -269,8 +269,8 @@ export class ComboMarkdownEditor {
   initMarkdownButtonTableAdd() {
     const addTableButton = this.container.querySelector('.markdown-button-table-add')!;
     const addTablePanel = this.container.querySelector('.markdown-add-table-panel')!;
-    // here the float can't attach to the button because the button already owns a float for the tooltip
-    const addTablePanelFloat = createFloat(addTablePanel, {
+    // here the floating element can't attach to the button because the button already owns a floating element for the tooltip
+    const addTablePanelFloat = createFloatingElement(addTablePanel, {
       content: addTablePanel,
       trigger: 'manual',
       placement: 'bottom',

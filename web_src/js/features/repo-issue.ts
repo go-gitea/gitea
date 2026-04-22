@@ -1,6 +1,6 @@
 import {errorMessage} from '../modules/errors.ts';
 import {htmlEscape} from '../utils/html.ts';
-import {createFloat} from '../modules/float.ts';
+import {createFloatingElement} from '../modules/floating.ts';
 import {
   addDelegatedEventListener,
   createElementFromHTML,
@@ -247,9 +247,9 @@ export function initRepoPullRequestReview() {
   if (!document.querySelector('.repository.pull.diff')) return;
 
   const elReviewBtn = document.querySelector('.js-btn-review');
-  const elReviewPanel = document.querySelector('.review-box-panel.float-target');
+  const elReviewPanel = document.querySelector('.review-box-panel.floating-target');
   if (elReviewBtn && elReviewPanel) {
-    const float = createFloat(elReviewBtn, {
+    const floating = createFloatingElement(elReviewBtn, {
       content: elReviewPanel,
       theme: 'default',
       placement: 'bottom',
@@ -258,7 +258,7 @@ export function initRepoPullRequestReview() {
       interactive: true,
       hideOnClick: true,
     });
-    elReviewPanel.querySelector('.close')!.addEventListener('click', () => float.hide());
+    elReviewPanel.querySelector('.close')!.addEventListener('click', () => floating.hide());
   }
 
   addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {

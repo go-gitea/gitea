@@ -8,7 +8,7 @@
 			{{template "repo/commit_status" .Status}}
 		</span>
 	{{end}}
-	<div class="float-target">
+	<div class="floating-target">
 		{{template "repo/pulls/status" (dict "CommitStatuses" .Statuses "CommitStatus" .Status)}}
 	</div>
 {{end}}

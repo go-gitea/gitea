@@ -1,16 +1,16 @@
 /* Styles for the Float module (popups, tooltips, menus) */
 
-/* hide float target elements on page load; they are moved into a .float-box by JS */
-.float-target {
+/* hide float target elements on page load; they are moved into a .floating-box by JS */
+.floating-target {
   display: none !important;
 }
 
-/* show target element once it has been moved into a .float-box */
-.float-content .float-target {
+/* show target element once it has been moved into a .floating-box */
+.floating-content .floating-target {
   display: unset !important;
 }
 
-.float-box {
+.floating-box {
   position: absolute;
   top: 0;
   left: 0;
@@ -23,69 +23,69 @@
   z-index: 9999;
 }
 
-.float-content {
+.floating-content {
   position: relative;
   z-index: 1;
 }
 
 /* interactive hit area: an invisible padded region around the popup so the
    cursor can traverse the gap between reference and popup without closing it */
-.float-box[data-interactive="true"]::before {
+.floating-box[data-interactive="true"]::before {
   content: "";
   position: absolute;
-  inset: calc(-1 * var(--float-interactive-border, 0px));
+  inset: calc(-1 * var(--floating-interactive-border, 0px));
   z-index: 0;
 }
 
-.float-box[data-theme="default"] {
+.floating-box[data-theme="default"] {
   box-shadow: 0 6px 18px var(--color-shadow);
 }
 
 /* bare theme, no styling at all, except box-shadow */
-.float-box[data-theme="bare"] {
+.floating-box[data-theme="bare"] {
   border: none;
   box-shadow: 0 6px 18px var(--color-shadow);
 }
 
-.float-box[data-theme="bare"] .float-content {
+.floating-box[data-theme="bare"] .floating-content {
   padding: 0;
   background: transparent;
 }
 
 /* tooltip theme for text tooltips */
 
-.float-box[data-theme="tooltip"] {
+.floating-box[data-theme="tooltip"] {
   background-color: var(--color-tooltip-bg);
   color: var(--color-tooltip-text);
   border: none;
 }
 
-.float-box[data-theme="tooltip"] .float-content {
+.floating-box[data-theme="tooltip"] .floating-content {
   padding: 0.5rem 1rem;
 }
 
-.float-box[data-theme="tooltip"] .float-arrow-inner,
-.float-box[data-theme="tooltip"] .float-arrow-outer {
+.floating-box[data-theme="tooltip"] .floating-arrow-inner,
+.floating-box[data-theme="tooltip"] .floating-arrow-outer {
   fill: var(--color-tooltip-bg);
 }
 
 /* menu theme for .ui.menu */
 
-.float-box[data-theme="menu"] {
+.floating-box[data-theme="menu"] {
   background-color: var(--color-menu);
   color: var(--color-text);
   box-shadow: 0 6px 18px var(--color-shadow);
 }
 
-.float-box[data-theme="menu"] .float-content {
+.floating-box[data-theme="menu"] .floating-content {
   padding: 4px 0;
 }
 
-.float-box[data-theme="menu"] .float-arrow-inner {
+.floating-box[data-theme="menu"] .floating-arrow-inner {
   fill: var(--color-menu);
 }
 
-.float-box[data-theme="menu"] .item {
+.floating-box[data-theme="menu"] .item {
   display: flex;
   align-items: center;
   padding: 9px 18px;
@@ -96,49 +96,49 @@
   width: 100%;
 }
 
-.float-box[data-theme="menu"] .item:hover {
+.floating-box[data-theme="menu"] .item:hover {
   background: var(--color-hover);
 }
 
-.float-box[data-theme="menu"] .item:focus {
+.floating-box[data-theme="menu"] .item:focus {
   background: var(--color-hover);
 }
 
-.float-box[data-theme="menu"] .item.active {
+.floating-box[data-theme="menu"] .item.active {
   background: var(--color-active);
 }
 
 /* box-with-header theme to look like .ui.attached.segment. can contain .ui.attached.header */
 
-.float-box[data-theme="box-with-header"] {
+.floating-box[data-theme="box-with-header"] {
   box-shadow: 0 6px 18px var(--color-shadow);
 }
 
-.float-box[data-theme="box-with-header"] .float-content {
+.floating-box[data-theme="box-with-header"] .floating-content {
   background: var(--color-box-body);
   border-radius: var(--border-radius);
   padding: 0;
 }
 
-.float-box[data-theme="box-with-header"][data-placement^="top"] .float-arrow-inner {
+.floating-box[data-theme="box-with-header"][data-placement^="top"] .floating-arrow-inner {
   fill: var(--color-box-body);
 }
 
-.float-box[data-theme="box-with-header"][data-placement^="bottom"] .float-arrow-inner {
+.floating-box[data-theme="box-with-header"][data-placement^="bottom"] .floating-arrow-inner {
   fill: var(--color-box-header);
 }
 
 /* arrow: positioned and rotated by `update()` via inline styles */
 
-.float-arrow {
+.floating-arrow {
   position: absolute;
   pointer-events: none;
 }
 
-.float-arrow-outer {
+.floating-arrow-outer {
   fill: var(--color-secondary);
 }
 
-.float-arrow-inner {
+.floating-arrow-inner {
   fill: var(--color-menu);
 }

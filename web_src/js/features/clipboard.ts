@@ -1,4 +1,4 @@
-import {showTemporaryTooltip} from '../modules/float.ts';
+import {showTemporaryTooltip} from '../modules/floating.ts';
 import {toAbsoluteUrl} from '../utils.ts';
 import {clippie} from 'clippie';
 

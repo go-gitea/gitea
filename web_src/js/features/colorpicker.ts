@@ -1,4 +1,4 @@
-import {createFloat} from '../modules/float.ts';
+import {createFloatingElement} from '../modules/floating.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 export async function initColorPickers() {
@@ -43,7 +43,7 @@ function initPicker(el: HTMLElement): void {
     updatePicker(picker, (e.target as HTMLInputElement).value);
   });
 
-  createFloat(input, {
+  createFloatingElement(input, {
     trigger: 'focus click',
     theme: 'bare',
     hideOnClick: true,

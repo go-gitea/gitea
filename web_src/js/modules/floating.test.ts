@@ -1,4 +1,4 @@
-import {createFloat, getFloat} from './float.ts';
+import {createFloatingElement, getFloatingElement} from './floating.ts';
 import {sleep} from '../utils.ts';
 
 function makeTarget(): HTMLElement {
@@ -7,38 +7,38 @@ function makeTarget(): HTMLElement {
   return el;
 }
 
-describe.sequential('float', () => {
+describe.sequential('floating', () => {
   beforeEach(() => { document.body.innerHTML = '' });
 
   test('register', () => {
     const target = makeTarget();
-    const instance = createFloat(target, {trigger: 'manual'});
-    expect(getFloat(target)).toBe(instance);
+    const instance = createFloatingElement(target, {trigger: 'manual'});
+    expect(getFloatingElement(target)).toBe(instance);
     instance.destroy();
-    expect(getFloat(target)).toBeNull();
+    expect(getFloatingElement(target)).toBeNull();
   });
 
   test('show/hide', () => {
-    const instance = createFloat(makeTarget(), {content: 'x', trigger: 'manual'});
+    const instance = createFloatingElement(makeTarget(), {content: 'x', trigger: 'manual'});
     instance.show();
     expect(instance.state.isShown).toBe(true);
-    expect(instance.float.parentElement).toBe(document.body);
+    expect(instance.element.parentElement).toBe(document.body);
     instance.hide();
     expect(instance.state.isShown).toBe(false);
-    expect(instance.float.parentElement).toBeNull();
+    expect(instance.element.parentElement).toBeNull();
     instance.destroy();
   });
 
   test('setContent', () => {
-    const instance = createFloat(makeTarget(), {content: 'a', trigger: 'manual'});
+    const instance = createFloatingElement(makeTarget(), {content: 'a', trigger: 'manual'});
     instance.setContent('b');
-    expect(instance.float.querySelector('.float-content')!.textContent).toBe('b');
+    expect(instance.element.querySelector('.floating-content')!.textContent).toBe('b');
     instance.destroy();
   });
 
   test('hover delay', async () => {
     const target = makeTarget();
-    const instance = createFloat(target, {delay: [40, 0]});
+    const instance = createFloatingElement(target, {delay: [40, 0]});
     target.dispatchEvent(new MouseEvent('mouseenter'));
     expect(instance.state.isShown).toBe(false);
     await sleep(80);
@@ -50,7 +50,7 @@ describe.sequential('float', () => {
 
   test('click toggles', () => {
     const target = makeTarget();
-    const instance = createFloat(target, {trigger: 'click'});
+    const instance = createFloatingElement(target, {trigger: 'click'});
     target.dispatchEvent(new MouseEvent('click', {bubbles: true}));
     expect(instance.state.isShown).toBe(true);
     target.dispatchEvent(new MouseEvent('click', {bubbles: true}));
@@ -60,7 +60,7 @@ describe.sequential('float', () => {
 
   test('focus click', () => {
     const target = makeTarget();
-    const instance = createFloat(target, {trigger: 'focus click'});
+    const instance = createFloatingElement(target, {trigger: 'focus click'});
     target.dispatchEvent(new FocusEvent('focus'));
     target.dispatchEvent(new MouseEvent('click', {bubbles: true}));
     expect(instance.state.isShown).toBe(true);
@@ -69,19 +69,19 @@ describe.sequential('float', () => {
 
   test('interactive hover', async () => {
     const target = makeTarget();
-    const instance = createFloat(target, {interactive: true});
+    const instance = createFloatingElement(target, {interactive: true});
     target.dispatchEvent(new MouseEvent('mouseenter'));
-    instance.float.dispatchEvent(new MouseEvent('mouseenter'));
+    instance.element.dispatchEvent(new MouseEvent('mouseenter'));
     target.dispatchEvent(new MouseEvent('mouseleave'));
     expect(instance.state.isShown).toBe(true);
-    instance.float.dispatchEvent(new MouseEvent('mouseleave'));
+    instance.element.dispatchEvent(new MouseEvent('mouseleave'));
     await vi.waitFor(() => expect(instance.state.isShown).toBe(false));
     instance.destroy();
   });
 
   test('tooltip dedupe', () => {
-    const a = createFloat(makeTarget(), {trigger: 'manual', role: 'tooltip'});
-    const b = createFloat(makeTarget(), {trigger: 'manual', role: 'tooltip'});
+    const a = createFloatingElement(makeTarget(), {trigger: 'manual', role: 'tooltip'});
+    const b = createFloatingElement(makeTarget(), {trigger: 'manual', role: 'tooltip'});
     a.show();
     b.show();
     expect(a.state.isShown).toBe(false);

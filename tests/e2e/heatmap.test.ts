@@ -5,5 +5,5 @@ test('heatmap tooltip shows on hover', async ({page}) => {
   await login(page);
   await page.goto('/');
   await page.locator('.heatmap-day').first().hover();
-  await expect(page.locator('.float-box')).toBeVisible();
+  await expect(page.locator('.floating-box')).toBeVisible();
 });

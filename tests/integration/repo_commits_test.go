@@ -112,8 +112,8 @@ func TestRepoCommitsWithStatus(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 
 		doc = NewHTMLParser(t, resp.Body)
-		// Check if commit status is displayed in message column (.float-target to ignore the float trigger)
-		sel := doc.doc.Find("#commits-table .message .float-target .commit-status")
+		// Check if commit status is displayed in message column (.floating-target to ignore the float trigger)
+		sel := doc.doc.Find("#commits-table .message .floating-target .commit-status")
 		assert.Equal(t, 1, sel.Length())
 		for _, class := range classes {
 			assert.True(t, sel.HasClass(class))

@@ -1,5 +1,5 @@
 import {svg} from '../svg.ts';
-import {createFloat} from '../modules/float.ts';
+import {createFloatingElement} from '../modules/floating.ts';
 import {toAbsoluteUrl} from '../utils.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
 
@@ -94,7 +94,7 @@ function showLineButton() {
   // put a copy of the menu back into DOM for the next click
   btn.closest('.code-view')!.append(menu.cloneNode(true));
 
-  createFloat(btn, {
+  createFloatingElement(btn, {
     theme: 'menu',
     trigger: 'click',
     hideOnClick: true,
@@ -102,7 +102,7 @@ function showLineButton() {
     placement: 'right-start',
     interactive: true,
     onShow: (instance) => {
-      instance.float.addEventListener('click', () => {
+      instance.element.addEventListener('click', () => {
         instance.hide();
       }, {once: true});
     },
