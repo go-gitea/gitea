@@ -142,25 +142,30 @@ func GetOrgAssignees(ctx context.Context, orgID int64) (_ []*user_model.User, er
 		return nil, err
 	}
 
-	additionalUserIDs := make([]int64, 0, 10)
-	if err = e.Table("team_user").
-		Join("INNER", "team_repo", "`team_repo`.team_id = `team_user`.team_id").
-		Join("INNER", "team_unit", "`team_unit`.team_id = `team_user`.team_id").
-		Join("INNER", "repository", "`repository`.id = `team_repo`.repo_id").
-		Where("`repository`.owner_id = ? AND (`team_unit`.access_mode >= ? OR (`team_unit`.access_mode = ? AND `team_unit`.`type` = ?))",
-			orgID, perm.AccessModeWrite, perm.AccessModeRead, unit.TypePullRequests).
-		Distinct("`team_user`.uid").
-		Select("`team_user`.uid").
-		Find(&additionalUserIDs); err != nil {
-		return nil, err
-	}
-
 	uniqueUserIDs := make(container.Set[int64])
 	uniqueUserIDs.AddMultiple(userIDs...)
-	uniqueUserIDs.AddMultiple(additionalUserIDs...)
+
+	// Include org team members who can write to any repository unit. The
+	// helper matches both `team.authorize` and `team_unit.access_mode`, so
+	// Owner-team members are returned even when the corresponding
+	// `team_unit` rows have a stale `access_mode`.
+	writerIDs, err := GetTeamUserIDsWithAccessToAnyRepoUnitInOrg(ctx, orgID, perm.AccessModeWrite, unit.AllRepoUnitTypes[0], unit.AllRepoUnitTypes[1:]...)
+	if err != nil {
+		return nil, err
+	}
+	uniqueUserIDs.AddMultiple(writerIDs...)
+
+	// Also include team members with at least read access to the pull
+	// requests unit (historical behaviour preserved from the original
+	// query).
+	prReaderIDs, err := GetTeamUserIDsWithAccessToAnyRepoUnitInOrg(ctx, orgID, perm.AccessModeRead, unit.TypePullRequests)
+	if err != nil {
+		return nil, err
+	}
+	uniqueUserIDs.AddMultiple(prReaderIDs...)
 
 	users := make([]*user_model.User, 0, len(uniqueUserIDs))
-	if len(userIDs) > 0 {
+	if len(uniqueUserIDs) > 0 {
 		if err = e.In("id", uniqueUserIDs.Values()).
 			Where(builder.Eq{"`user`.is_active": true}).
 			OrderBy(user_model.GetOrderByName()).
