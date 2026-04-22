@@ -61,25 +61,19 @@ func blockedUsersPost(ctx *context.Context, form *forms.BlockUserForm, blocker *
 }
 
 func BlockedUsersPost(ctx *context.Context, blocker *user_model.User, redirect string) {
-	// TODO: can refactor to "form-fetch-action" in the future
-	flashErrorRedirect := func(msg any) {
-		ctx.Flash.Error(msg)
-		ctx.Redirect(redirect)
-	}
-
 	if ctx.HasError() {
-		flashErrorRedirect(ctx.GetErrMsg())
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
 	form := web.GetForm(ctx).(*forms.BlockUserForm)
 	err := blockedUsersPost(ctx, form, blocker)
 	if err == nil {
-		ctx.Redirect(redirect)
+		ctx.JSONRedirect(redirect)
 	} else if errTr := util.ErrorAsTranslatable(err); errTr != nil {
-		flashErrorRedirect(errTr.Translate(ctx.Locale))
+		ctx.JSONError(errTr.Translate(ctx.Locale))
 	} else if errors.Is(err, util.ErrNotExist) {
-		flashErrorRedirect(ctx.Locale.Tr("error.not_found"))
+		ctx.JSONError(ctx.Locale.Tr("error.not_found"))
 	} else {
 		ctx.ServerError("BlockedUsersPost", err)
 	}
