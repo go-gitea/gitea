@@ -196,7 +196,3 @@
 .ui.error.segment {
   border-color: var(--color-error-border) !important;
 }
-
-.ui.warning.segment {
-  border-color: var(--color-warning-border) !important;
-}

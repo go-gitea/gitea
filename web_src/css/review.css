@@ -26,9 +26,7 @@
   height: 14px;
   background-color: var(--color-yellow); /* TODO: maybe it needs a new kind of color, there is no suitable "warning" color in the current palette */
   mask-image: var(--octicon-alert-fill);
-  -webkit-mask-image: var(--octicon-alert-fill);
   mask-size: contain;
-  -webkit-mask-size: contain;
 }
 
 .repository .diff-file-box .code-diff td.lines-escape {
