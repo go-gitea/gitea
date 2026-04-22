@@ -181,9 +181,9 @@ func (org *Organization) HomeLink() string {
 // FindOrgMembersOpts represents find org members conditions
 type FindOrgMembersOpts struct {
 	db.ListOptions
-	Doer         *user_model.User
-	IsDoerMember bool
-	OrgID        int64
+	Doer          *user_model.User
+	IsDoerMember  bool
+	OrgID         int64
 	Keyword       string
 	SearchByEmail bool
 }
