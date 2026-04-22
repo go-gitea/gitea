@@ -28,6 +28,7 @@ func ProtocolMiddlewares() (handlers []any) {
 	// the order is important
 	handlers = append(handlers, ChiRoutePathHandler())   // make sure chi has correct paths
 	handlers = append(handlers, RequestContextHandler()) //	prepare the context and panic recovery
+	handlers = append(handlers, SecurityHeadersHandler())
 
 	if setting.ReverseProxyLimit > 0 && len(setting.ReverseProxyTrustedProxies) > 0 {
 		handlers = append(handlers, ForwardedHeadersHandler(setting.ReverseProxyLimit, setting.ReverseProxyTrustedProxies))
@@ -46,6 +47,26 @@ func ProtocolMiddlewares() (handlers []any) {
 	}
 
 	return handlers
+}
+
+// SecurityHeadersHandler sets X-Content-Type-Options globally for every
+// response that leaves Gitea -- web UI, /api/*, /api/internal/*,
+// /captcha/*, /metrics, /robots.txt, /ssh_info, etc. Operators who want
+// the raw HTTP behaviour can opt out by setting the value to "unset" in
+// [security].
+//
+// X-Frame-Options is deliberately not set here: it is web-UI-specific
+// and the services/context web middleware already sets it on the
+// rendered HTML responses that actually need clickjacking protection.
+func SecurityHeadersHandler() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			if setting.Security.XContentTypeOptions != "unset" {
+				resp.Header().Set("X-Content-Type-Options", setting.Security.XContentTypeOptions)
+			}
+			next.ServeHTTP(resp, req)
+		})
+	}
 }
 
 func RequestContextHandler() func(h http.Handler) http.Handler {

@@ -199,10 +199,10 @@ func Contexter() func(next http.Handler) http.Handler {
 			if setting.Security.XFrameOptions != "unset" {
 				ctx.Resp.Header().Set(`X-Frame-Options`, setting.Security.XFrameOptions)
 			}
-
-			if setting.Security.XContentTypeOptions != "unset" {
-				ctx.Resp.Header().Set(`X-Content-Type-Options`, setting.Security.XContentTypeOptions)
-			}
+			// X-Content-Type-Options is set globally by
+			// routers/common.SecurityHeadersHandler so every endpoint
+			// (including /api/internal/*, /captcha/*, /metrics,
+			// /robots.txt, /ssh_info) gets it, not just web UI pages.
 
 			ctx.Data["SystemConfig"] = setting.Config()
 
