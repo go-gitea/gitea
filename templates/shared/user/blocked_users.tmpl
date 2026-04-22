@@ -5,8 +5,8 @@
 	<p>{{ctx.Locale.Tr "user.block.info"}} <a target="_blank" href="https://docs.gitea.com/usage/access-control/blocking-user">{{ctx.Locale.Tr "user.block.info.docs"}}</a></p>
 </div>
 <div class="ui segment">
-	<form class="ui form ignore-dirty" action="{{$.Link}}" method="post">
-		<input type="hidden" name="action" value="block" />
+	<form class="ui form form-fetch-action ignore-dirty" action="{{$.Link}}" method="post">
+		<input type="hidden" name="action" value="block">
 		<div id="search-user-box" class="field ui fluid search input">
 			<input class="prompt tw-mr-2" name="blockee" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" required>
 			<button class="ui red button">{{ctx.Locale.Tr "user.block.block"}}</button>
@@ -40,9 +40,9 @@
 				</div>
 				<div class="flex-item-trailing">
 					<button class="ui compact mini button show-modal" data-modal="#block-user-note-modal" data-modal-modal-blockee="{{.Blockee.Name}}" data-modal-modal-note="{{.Note}}">{{ctx.Locale.Tr "user.block.note.edit"}}</button>
-					<form action="{{$.Link}}" method="post">
-						<input type="hidden" name="action" value="unblock" />
-						<input type="hidden" name="blockee" value="{{.Blockee.Name}}" />
+					<form class="form-fetch-action" action="{{$.Link}}" method="post">
+						<input type="hidden" name="action" value="unblock">
+						<input type="hidden" name="blockee" value="{{.Blockee.Name}}">
 						<button class="ui compact mini button">{{ctx.Locale.Tr "user.block.unblock"}}</button>
 					</form>
 				</div>
@@ -55,12 +55,12 @@
 <div class="ui small modal" id="block-user-note-modal">
 	<div class="header">{{ctx.Locale.Tr "user.block.note.edit"}}</div>
 	<div class="content">
-		<form class="ui form" action="{{$.Link}}" method="post">
-			<input type="hidden" name="action" value="note" />
-			<input type="hidden" name="blockee" class="modal-blockee" />
+		<form class="ui form form-fetch-action" action="{{$.Link}}" method="post">
+			<input type="hidden" name="action" value="note">
+			<input type="hidden" name="blockee" class="modal-blockee">
 			<div class="field">
 				<label>{{ctx.Locale.Tr "user.block.note.title"}}</label>
-				<input name="note" class="modal-note" />
+				<input name="note" class="modal-note">
 				<p class="help">{{ctx.Locale.Tr "user.block.note.info"}}</p>
 			</div>
 			<div class="actions">
