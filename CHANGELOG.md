@@ -4,6 +4,22 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.26.1](https://github.com/go-gitea/gitea/releases/tag/v1.26.1) - 2026-04-21
+
+* BUGFIXES
+  * Add event.schedule context for schedule actions task (#37320) (#37348)
+  * Fix an issue where changing an organization's visibility caused problems when users had forked its repositories. (#37324) (#37344)
+  * Use modern "git update-index --cacheinfo" syntax to support more file names (#37338) (#37343)
+  * Fix URL related escaping for oauth2 (#37334) (#37340)
+  * When the requested arch rpm is missing fall back to noarch (#37236) (#37339)
+  * Fix actions concurrency groups cross-branch leak (#37311) (#37331)
+  * Fix bug when accessing user badges (#37321) (#37329)
+  * Fix AppFullLink (#37325) (#37328)
+  * Fix container auth for public instance (#37290) (#37294)
+  * Enhance GetActionWorkflow to support fallback references (#37189) (#37283)
+  * Fix vite manifest update masking build errors (#37279) (#37310)
+  * Fix Mermaid diagrams failing when node labels contain line breaks (#37296) (#37299)
+
 ## [1.26.0](https://github.com/go-gitea/gitea/releases/tag/v1.26.0) - 2026-04-17
 
 * BREAKING
