@@ -101,9 +101,9 @@ function showLineButton() {
     content: menu,
     placement: 'right-start',
     interactive: true,
-    onShow: (inst) => {
-      inst.float.addEventListener('click', () => {
-        inst.hide();
+    onShow: (instance) => {
+      instance.float.addEventListener('click', () => {
+        instance.hide();
       }, {once: true});
     },
   });

@@ -476,20 +476,20 @@ export function showTemporaryTooltip(target: Element, content: FloatContent): vo
     target = target.closest('.ui.dropdown') ?? target;
     refClientRect = target.getBoundingClientRect();
   }
-  const inst = instances.get(target) ?? attachTooltip(target, content);
-  if (!inst) return;
-  inst.setContent(content);
-  inst.setProps({getReferenceClientRect: () => refClientRect});
-  if (!inst.state.isShown) inst.show();
+  const instance = instances.get(target) ?? attachTooltip(target, content);
+  if (!instance) return;
+  instance.setContent(content);
+  instance.setProps({getReferenceClientRect: () => refClientRect});
+  if (!instance.state.isShown) instance.show();
 
-  inst.setProps({
+  instance.setProps({
     onHidden: (i) => {
       if (!attachTooltip(target)) i.destroy();
     },
   });
 
   if (!popupId) {
-    setTimeout(() => { if (inst.state.isShown) inst.hide(); }, 1500);
+    setTimeout(() => { if (instance.state.isShown) instance.hide(); }, 1500);
   }
 }
 
