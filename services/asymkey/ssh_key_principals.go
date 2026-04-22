@@ -20,6 +20,7 @@ func AddPrincipalKey(ctx context.Context, ownerID int64, content string, authSou
 		Content:       content,
 		Mode:          perm.AccessModeWrite,
 		Type:          asymkey_model.KeyTypePrincipal,
+		Usage:         asymkey_model.KeyUsageAuth,
 		LoginSourceID: authSourceID,
 	}
 

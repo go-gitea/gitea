@@ -658,6 +658,9 @@ func ShowSSHKeys(ctx *context.Context) {
 		if keys[i].Type == asymkey_model.KeyTypePrincipal {
 			continue // SSH principal keys are not for signing or authentication
 		}
+		if !keys[i].UsesAuth() {
+			continue
+		}
 		buf.WriteString(keys[i].OmitEmail())
 		buf.WriteString("\n")
 	}

@@ -31,7 +31,7 @@ func TestParseCommitWithSSHSignature(t *testing.T) {
 	// AAAEDWqPHTH51xb4hy1y1f1VeWL/2A9Q0b6atOyv5fx8x5prpPrMXSg9qTx04jPNPWRcHs
 	// utyxWjThIpzcaO68yWVnAAAAEXVzZXIyQGV4YW1wbGUuY29tAQIDBA==
 	// -----END OPENSSH PRIVATE KEY-----
-	sshPubKey, err := asymkey_model.AddPublicKey(t.Context(), 999, "user-ssh-key-any-name", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILpPrMXSg9qTx04jPNPWRcHsutyxWjThIpzcaO68yWVn", 0, false)
+	sshPubKey, err := asymkey_model.AddPublicKey(t.Context(), 999, "user-ssh-key-any-name", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILpPrMXSg9qTx04jPNPWRcHsutyxWjThIpzcaO68yWVn", 0, false, asymkey_model.DefaultKeyUsage)
 	require.NoError(t, err)
 	_, err = db.GetEngine(t.Context()).ID(sshPubKey.ID).Cols("verified").Update(&asymkey_model.PublicKey{Verified: true})
 	require.NoError(t, err)
@@ -61,6 +61,34 @@ init project
 		assert.Equal(t, committingUser, ret.SigningUser)
 		assert.Equal(t, committingUser, ret.CommittingUser)
 		assert.Equal(t, sshPubKey.ID, ret.SigningSSHKey.ID)
+	})
+
+	t.Run("UserSSHKeyAuthOnly", func(t *testing.T) {
+		_, err := db.GetEngine(t.Context()).ID(sshPubKey.ID).Cols("usage").Update(&asymkey_model.PublicKey{Usage: asymkey_model.KeyUsageAuth})
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			_, resetErr := db.GetEngine(t.Context()).ID(sshPubKey.ID).Cols("usage").Update(&asymkey_model.PublicKey{Usage: asymkey_model.DefaultKeyUsage})
+			require.NoError(t, resetErr)
+		})
+
+		commit, err := git.CommitFromReader(nil, git.Sha1ObjectFormat.EmptyObjectID(), strings.NewReader(`tree a3b1fad553e0f9a2b4a58327bebde36c7da75aa2
+author user2 <user2@example.com> 1752194028 -0700
+committer user2 <user2@example.com> 1752194028 -0700
+gpgsig -----BEGIN SSH SIGNATURE-----
+ U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAguk+sxdKD2pPHTiM809ZFwey63L
+ FaNOEinNxo7rzJZWcAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
+ AAAAQBfX+6mcKZBnXckwHcBFqRuXMD3vTKi1yv5wgrqIxTyr2LWB97xxmO92cvjsr0POQ2
+ 2YA7mQS510Cg2s1uU1XAk=
+ -----END SSH SIGNATURE-----
+
+init project`))
+		require.NoError(t, err)
+
+		committingUser := &user_model.User{ID: 999, Name: "user-x"}
+		ret := parseCommitWithSSHSignature(t.Context(), commit, committingUser)
+		require.NotNil(t, ret)
+		assert.False(t, ret.Verified)
+		assert.Equal(t, asymkey_model.NoKeyFound, ret.Reason)
 	})
 
 	t.Run("TrustedSSHKey", func(t *testing.T) {

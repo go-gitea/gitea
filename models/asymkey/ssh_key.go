@@ -35,6 +35,61 @@ const (
 	KeyTypePrincipal
 )
 
+// KeyUsage specifies how a key can be used.
+type KeyUsage int
+
+const (
+	// KeyUsageAuth allows authentication.
+	KeyUsageAuth KeyUsage = 1 << iota
+	// KeyUsageSign allows commit signing verification.
+	KeyUsageSign
+)
+
+// DefaultKeyUsage matches the previous behavior (authentication and signing).
+const DefaultKeyUsage = KeyUsageAuth | KeyUsageSign
+
+// Normalize ensures an empty usage behaves like the default.
+func (usage KeyUsage) Normalize() KeyUsage {
+	if usage == 0 {
+		return DefaultKeyUsage
+	}
+	return usage
+}
+
+// Has reports whether the usage includes the specified flag.
+func (usage KeyUsage) Has(flag KeyUsage) bool {
+	return usage.Normalize()&flag != 0
+}
+
+// String returns the API/UI string form of the usage.
+func (usage KeyUsage) String() string {
+	usage = usage.Normalize()
+	switch usage {
+	case DefaultKeyUsage:
+		return "authentication_and_signing"
+	case KeyUsageAuth:
+		return "authentication"
+	case KeyUsageSign:
+		return "signing"
+	default:
+		return "unknown"
+	}
+}
+
+// ParseKeyUsage parses a string usage value into KeyUsage.
+func ParseKeyUsage(value string) (KeyUsage, error) {
+	switch strings.TrimSpace(strings.ToLower(value)) {
+	case "", "authentication_and_signing":
+		return DefaultKeyUsage, nil
+	case "authentication":
+		return KeyUsageAuth, nil
+	case "signing":
+		return KeyUsageSign, nil
+	default:
+		return 0, fmt.Errorf("invalid ssh key usage: %s", value)
+	}
+}
+
 // PublicKey represents a user or deploy SSH public key.
 type PublicKey struct {
 	ID            int64           `xorm:"pk autoincr"`
@@ -44,6 +99,7 @@ type PublicKey struct {
 	Content       string          `xorm:"MEDIUMTEXT NOT NULL"`
 	Mode          perm.AccessMode `xorm:"NOT NULL DEFAULT 2"`
 	Type          KeyType         `xorm:"NOT NULL DEFAULT 1"`
+	Usage         KeyUsage        `xorm:"NOT NULL DEFAULT 3"`
 	LoginSourceID int64           `xorm:"NOT NULL DEFAULT 0"`
 
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
@@ -61,6 +117,21 @@ func init() {
 func (key *PublicKey) AfterLoad() {
 	key.HasUsed = key.UpdatedUnix > key.CreatedUnix
 	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
+}
+
+// UsageString returns the user-facing usage string for templates.
+func (key *PublicKey) UsageString() string {
+	return key.Usage.String()
+}
+
+// UsesAuth reports whether the key allows authentication.
+func (key *PublicKey) UsesAuth() bool {
+	return key.Usage.Has(KeyUsageAuth)
+}
+
+// UsesSign reports whether the key allows signing verification.
+func (key *PublicKey) UsesSign() bool {
+	return key.Usage.Has(KeyUsageSign)
 }
 
 // OmitEmail returns content of public key without email address.
@@ -90,7 +161,7 @@ func addKey(ctx context.Context, key *PublicKey) (err error) {
 }
 
 // AddPublicKey adds new public key to database and authorized_keys file.
-func AddPublicKey(ctx context.Context, ownerID int64, name, content string, authSourceID int64, verified bool) (*PublicKey, error) {
+func AddPublicKey(ctx context.Context, ownerID int64, name, content string, authSourceID int64, verified bool, usage KeyUsage) (*PublicKey, error) {
 	log.Trace(content)
 
 	fingerprint, err := CalcFingerprint(content)
@@ -120,6 +191,7 @@ func AddPublicKey(ctx context.Context, ownerID int64, name, content string, auth
 			Content:       content,
 			Mode:          perm.AccessModeWrite,
 			Type:          KeyTypeUser,
+			Usage:         usage.Normalize(),
 			LoginSourceID: authSourceID,
 			Verified:      verified,
 		}
@@ -175,12 +247,29 @@ func SearchPublicKeyByContentExact(ctx context.Context, content string) (*Public
 	return key, nil
 }
 
+// SearchPublicKeyByContentExactWithUsage searches content and usage
+// and returns public key found.
+func SearchPublicKeyByContentExactWithUsage(ctx context.Context, content string, usage KeyUsage) (*PublicKey, error) {
+	key := new(PublicKey)
+	conds := builder.NewCond().
+		And(builder.Eq{"content": content}).
+		And(builder.Expr("usage & ? != 0", usage))
+	has, err := db.GetEngine(ctx).Where(conds).Get(key)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrKeyNotExist{}
+	}
+	return key, nil
+}
+
 type FindPublicKeyOptions struct {
 	db.ListOptions
 	OwnerID       int64
 	Fingerprint   string
 	KeyTypes      []KeyType
 	NotKeytype    KeyType
+	Usage         KeyUsage
 	LoginSourceID int64
 }
 
@@ -197,6 +286,9 @@ func (opts FindPublicKeyOptions) ToConds() builder.Cond {
 	}
 	if opts.NotKeytype > 0 {
 		cond = cond.And(builder.Neq{"`type`": opts.NotKeytype})
+	}
+	if opts.Usage != 0 {
+		cond = cond.And(builder.Expr("usage & ? != 0", opts.Usage))
 	}
 	if opts.LoginSourceID > 0 {
 		cond = cond.And(builder.Eq{"login_source_id": opts.LoginSourceID})
@@ -324,7 +416,7 @@ func AddPublicKeysBySource(ctx context.Context, usr *user_model.User, s *auth.So
 			marshalled = marshalled[:len(marshalled)-1]
 			sshKeyName := fmt.Sprintf("%s-%s", s.Name, ssh.FingerprintSHA256(out))
 
-			if _, err := AddPublicKey(ctx, usr.ID, sshKeyName, marshalled, s.ID, verified); err != nil {
+			if _, err := AddPublicKey(ctx, usr.ID, sshKeyName, marshalled, s.ID, verified, DefaultKeyUsage); err != nil {
 				if IsErrKeyAlreadyExist(err) {
 					log.Trace("AddPublicKeysBySource[%s]: Public SSH Key %s already exists for user", sshKeyName, usr.Name)
 				} else {

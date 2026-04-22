@@ -80,6 +80,7 @@ func userHasPubkeysSSH(ctx context.Context, userID int64) (bool, error) {
 	return db.Exist[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
 		OwnerID:    userID,
 		NotKeytype: asymkey_model.KeyTypePrincipal,
+		Usage:      asymkey_model.KeyUsageSign,
 	}.ToConds())
 }
 

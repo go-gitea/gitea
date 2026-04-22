@@ -370,6 +370,7 @@ func parseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committerUs
 		keys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
 			OwnerID:    committerUser.ID,
 			NotKeytype: asymkey_model.KeyTypePrincipal,
+			Usage:      asymkey_model.KeyUsageSign,
 		})
 		if err != nil { // Skipping failed to get ssh keys of user
 			log.Error("ListPublicKeys: %v", err)

@@ -78,6 +78,9 @@ func writeAuthorizedStringForKey(key *PublicKey, w io.Writer) (keyValid bool, er
 		}
 		sshKey = fmt.Sprintf("%s # user-%d", key.Content, key.OwnerID)
 	} else {
+		if !key.UsesAuth() {
+			return false, fmt.Errorf("ssh key is not enabled for authentication")
+		}
 		pubKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key.Content))
 		if err != nil {
 			return false, err
@@ -151,6 +154,9 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 
 	for _, key := range keys {
 		if key.Type == KeyTypePrincipal {
+			continue
+		}
+		if !key.UsesAuth() {
 			continue
 		}
 		if err = WriteAuthorizedStringForValidKey(key, f); err != nil {

@@ -211,7 +211,13 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 		return
 	}
 
-	key, err := asymkey_model.AddPublicKey(ctx, uid, form.Title, content, 0, false)
+	usage, err := asymkey_model.ParseKeyUsage(form.Usage)
+	if err != nil {
+		ctx.APIError(http.StatusUnprocessableEntity, "Invalid key usage: "+err.Error())
+		return
+	}
+
+	key, err := asymkey_model.AddPublicKey(ctx, uid, form.Title, content, 0, false, usage)
 	if err != nil {
 		repo.HandleAddKeyError(ctx, err)
 		return
