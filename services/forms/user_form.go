@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/context"
 
@@ -367,9 +368,7 @@ type EditOAuth2ApplicationForm struct {
 func DetectInvalidOAuth2ApplicationRedirectURI(uris []string) (invalidURL string) {
 	for _, u := range uris {
 		scheme, _, ok := strings.Cut(u, ":")
-		valid := ok && (strings.EqualFold(scheme, "http") ||
-			strings.EqualFold(scheme, "https") ||
-			util.SliceContainsString(setting.OAuth2.CustomSchemes, scheme, true))
+		valid := ok && (validation.IsValidURL(u) || util.SliceContainsString(setting.OAuth2.CustomSchemes, scheme))
 		if !valid {
 			return u
 		}
