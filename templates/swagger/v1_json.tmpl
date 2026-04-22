@@ -22027,7 +22027,7 @@
           "x-go-name": "Path"
         },
         "previous_attempt_url": {
-          "description": "PreviousAttemptURL is the API URL of the previous attempt of this run, e.g. \".../actions/runs/{run_id}/attempts/{attempt-1}\".\nIt is set only when the current attempt is \u003e 1 (i.e. a rerun). For the first attempt, or for legacy runs that pre-date ActionRunAttempt, it is nil.\nThe field is declared as *string without `omitempty` on purpose:\na nil value must still appear in the JSON body as `\"previous_attempt_url\": null`, matching GitHub's Actions API.",
+          "description": "PreviousAttemptURL is the API URL of the previous attempt of this run, e.g. \".../actions/runs/{run_id}/attempts/{attempt-1}\".\nIt is set only when the current attempt is \u003e 1 (i.e. a rerun). For the first attempt, or for legacy runs that pre-date ActionRunAttempt, it is null.",
           "type": "string",
           "x-go-name": "PreviousAttemptURL"
         },

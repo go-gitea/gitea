@@ -266,6 +266,9 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 	completedAt := run.Stopped.AsLocalTime()
 	actor := run.TriggerUser       // The username of the user that triggered the initial workflow run.
 	triggerUser := run.TriggerUser // The username of the user that initiated the workflow run. If the workflow run is a re-run, this value may differ from actor.
+
+	// previousAttemptURL is the value of ActionWorkflowRun.PreviousAttemptURL, which is declared as *string without `omitempty` on purpose:
+	// a nil value must still appear in the JSON body as `"previous_attempt_url": null`, matching GitHub's Actions API.
 	var previousAttemptURL *string
 
 	if attempt != nil {

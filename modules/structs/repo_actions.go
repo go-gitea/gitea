@@ -108,9 +108,7 @@ type ActionWorkflowRun struct {
 	ID  int64  `json:"id"`
 	URL string `json:"url"`
 	// PreviousAttemptURL is the API URL of the previous attempt of this run, e.g. ".../actions/runs/{run_id}/attempts/{attempt-1}".
-	// It is set only when the current attempt is > 1 (i.e. a rerun). For the first attempt, or for legacy runs that pre-date ActionRunAttempt, it is nil.
-	// The field is declared as *string without `omitempty` on purpose:
-	// a nil value must still appear in the JSON body as `"previous_attempt_url": null`, matching GitHub's Actions API.
+	// It is set only when the current attempt is > 1 (i.e. a rerun). For the first attempt, or for legacy runs that pre-date ActionRunAttempt, it is null.
 	PreviousAttemptURL *string `json:"previous_attempt_url"`
 	HTMLURL            string  `json:"html_url"`
 	DisplayTitle       string  `json:"display_title"`
