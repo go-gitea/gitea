@@ -28,7 +28,7 @@ type FormatStyle = 'long' | 'short' | 'narrow';
 const unitNames = ['year', 'month', 'week', 'day', 'hour', 'minute', 'second'] as const;
 
 const durationRe = /^[-+]?P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/;
-const unixSecondsRe = /^-?\d+(?:\.\d+)?$/;
+const unixSecondsRe = /^\d+$/;
 
 function parseDurationMs(str: string): number {
   const m = durationRe.exec(str);

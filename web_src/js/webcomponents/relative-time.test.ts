@@ -60,16 +60,18 @@ test('accepts unix seconds as integer string', async () => {
   expect(getText(el)).toBe('3 minutes ago');
 });
 
-test('accepts unix seconds as fractional string', async () => {
-  const el = createRelativeTime(String(Date.now() / 1000 - 3 * 60));
+test('ignores fractional unix seconds', async () => {
+  const el = createRelativeTime('1700000000.5');
+  el.shadowRoot!.textContent = 'fallback';
   await Promise.resolve();
-  expect(getText(el)).toBe('3 minutes ago');
+  expect(getText(el)).toBe('fallback');
 });
 
-test('accepts negative unix seconds (pre-1970)', async () => {
-  const el = createRelativeTime('-86400', {lang: 'en-US'});
+test('ignores negative unix seconds', async () => {
+  const el = createRelativeTime('-86400');
+  el.shadowRoot!.textContent = 'fallback';
   await Promise.resolve();
-  expect(getText(el)).toMatch(/on Dec 31/);
+  expect(getText(el)).toBe('fallback');
 });
 
 test('ignores invalid datetime', async () => {
