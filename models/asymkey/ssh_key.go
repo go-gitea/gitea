@@ -63,8 +63,7 @@ func (usage KeyUsage) Has(flag KeyUsage) bool {
 
 // String returns the API/UI string form of the usage.
 func (usage KeyUsage) String() string {
-	usage = usage.Normalize()
-	switch usage {
+	switch usage.Normalize() {
 	case DefaultKeyUsage:
 		return "authentication_and_signing"
 	case KeyUsageAuth:

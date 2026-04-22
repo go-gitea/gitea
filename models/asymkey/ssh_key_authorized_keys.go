@@ -6,6 +6,7 @@ package asymkey
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -79,7 +80,7 @@ func writeAuthorizedStringForKey(key *PublicKey, w io.Writer) (keyValid bool, er
 		sshKey = fmt.Sprintf("%s # user-%d", key.Content, key.OwnerID)
 	} else {
 		if !key.UsesAuth() {
-			return false, fmt.Errorf("ssh key is not enabled for authentication")
+			return false, errors.New("ssh key is not enabled for authentication")
 		}
 		pubKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key.Content))
 		if err != nil {
