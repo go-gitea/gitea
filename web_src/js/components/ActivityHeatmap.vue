@@ -106,6 +106,7 @@ onMounted(() => {
     theme: 'tooltip',
     role: 'tooltip',
     allowHTML: true,
+    arrow: false,
     content: (el) => el.getAttribute('data-tooltip')!,
   });
 });

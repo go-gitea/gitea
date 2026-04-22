@@ -108,7 +108,7 @@ function setElementContent(el: HTMLElement, content: FloatContent, allowHTML: bo
   }
 }
 
-const arrowHtml = html`<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="float-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="float-arrow-inner"/></svg>`;
+const arrowHtml = html`<svg class="float-arrow" width="16" height="16" viewBox="0 0 16 16" overflow="visible"><path d="M0,0 H16 L8,7 Z" class="float-arrow-outer"/><path d="M0,-1 H16 L8,6 Z" class="float-arrow-inner"/></svg>`;
 
 export function createFloat(target: Element, opts: FloatProps = {}): FloatInstance {
   const props: FloatProps = {
@@ -127,11 +127,11 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
   contentEl.className = 'float-content';
   float.append(contentEl);
 
-  let arrowEl: HTMLElement | null = null;
+  let arrowEl: SVGSVGElement | null = null;
   if (props.arrow) {
-    arrowEl = document.createElement('div');
-    arrowEl.className = 'float-arrow';
-    arrowEl.innerHTML = arrowHtml;
+    const tmpl = document.createElement('template');
+    tmpl.innerHTML = arrowHtml;
+    arrowEl = tmpl.content.firstElementChild as SVGSVGElement;
     float.append(arrowEl);
   }
 
@@ -213,11 +213,17 @@ export function createFloat(target: Element, opts: FloatProps = {}): FloatInstan
     float.style.transform = `translate(${Math.round(result.x)}px, ${Math.round(result.y)}px)`;
     float.setAttribute('data-placement', result.placement);
     if (arrowEl) {
-      const side = result.placement.split('-')[0];
+      const side = result.placement.split('-')[0] as 'top' | 'bottom' | 'left' | 'right';
       const {x, y} = result.middlewareData.arrow ?? {};
-      arrowEl.setAttribute('data-side', side);
-      arrowEl.style.left = x === undefined ? '' : `${x}px`;
-      arrowEl.style.top = y === undefined ? '' : `${y}px`;
+      const rotation = {top: '', bottom: 'rotate(180deg)', left: 'rotate(-90deg)', right: 'rotate(90deg)'}[side];
+      Object.assign(arrowEl.style, {
+        left: x === undefined ? '' : `${x}px`,
+        right: '',
+        top: y === undefined ? '' : `${y}px`,
+        bottom: '',
+        [side]: '100%',
+        transform: rotation,
+      });
     }
   }
 
@@ -404,12 +410,13 @@ function switchTitleToTooltip(target: Element): void {
   }
 }
 
-/** Lazy first-hover init: `mouseover` bubbles and fires before `mouseenter`,
- *  so the real mouseenter listener attached by `attachTooltip` still fires
- *  for the same user hover, respecting the configured delay. */
+/** Lazy first-hover init: on the first `mouseover`, attach the Float, then
+ *  re-dispatch `mouseenter` to drive the freshly-attached listener (the
+ *  native one has already fired by the time our capture-phase handler runs). */
 function lazyTooltipOnMouseHover(this: HTMLElement): void {
   this.removeEventListener('mouseover', lazyTooltipOnMouseHover, {capture: true});
   attachTooltip(this);
+  this.dispatchEvent(new MouseEvent('mouseenter'));
 }
 
 function attachLazyTooltip(el: HTMLElement): void {

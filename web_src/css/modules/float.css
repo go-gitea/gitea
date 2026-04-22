@@ -128,59 +128,11 @@
   fill: var(--color-box-header);
 }
 
-/* arrow: positioned by the floating-ui arrow middleware via inline top/left,
-   with a data-side attribute selecting which side it points at */
+/* arrow: positioned and rotated by `update()` via inline styles */
 
 .float-arrow {
   position: absolute;
-  width: 16px;
-  height: 7px;
-  text-align: initial;
-}
-
-.float-arrow > svg {
-  position: absolute;
-}
-
-.float-arrow[data-side="top"] {
-  bottom: -7px;
-}
-
-.float-arrow[data-side="top"] > svg {
-  top: 0;
-  transform: rotate(180deg);
-}
-
-.float-arrow[data-side="bottom"] {
-  top: -7px;
-}
-
-.float-arrow[data-side="bottom"] > svg {
-  top: 0;
-}
-
-.float-arrow[data-side="left"] {
-  right: 0;
-  width: 16px;
-  height: 16px;
-}
-
-.float-arrow[data-side="left"] > svg {
-  transform: rotate(90deg);
-  top: calc(50% - 3px);
-  left: 11px;
-}
-
-.float-arrow[data-side="right"] {
-  left: 0;
-  width: 16px;
-  height: 16px;
-}
-
-.float-arrow[data-side="right"] > svg {
-  transform: rotate(-90deg);
-  top: calc(50% - 3px);
-  right: 11px;
+  pointer-events: none;
 }
 
 .float-arrow-outer {
