@@ -364,8 +364,7 @@ class RelativeTime extends HTMLElement {
   }
 
   get date(): Date | null {
-    let parsed = Number(this.datetime);
-    parsed = isNaN(parsed) ? Date.parse(this.datetime) : parsed * 1000;
+    const parsed = Date.parse(this.datetime);
     return Number.isNaN(parsed) ? null : new Date(parsed);
   }
 
