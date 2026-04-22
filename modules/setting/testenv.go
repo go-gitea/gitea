@@ -63,7 +63,8 @@ func SetupGiteaTestEnv() {
 		if giteaConf == "" {
 			// if no GITEA_TEST_CONF, then it is in unit test, use a temp (non-existing / empty) config file
 			giteaConf = "custom/conf/app-test-tmp.ini"
-			CustomConf = filepath.Join(AppWorkPath, giteaConf)
+			customConfBuiltin = filepath.Join(AppWorkPath, giteaConf)
+			CustomConf = customConfBuiltin
 			_ = os.Remove(CustomConf)
 		} else {
 			// CustomConf must be absolute path to make tests pass,

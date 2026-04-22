@@ -50,8 +50,6 @@ func runTestApp(app *cli.Command, args ...string) (runResult, error) {
 	app.Writer = outBuf
 	app.ErrWriter = errBuf
 	exitCode := -1
-	// TODO: TESTING-INSTALL-LOCK-FAILURE: need to figure the root problem of "InstallLock becoming true unexpectedly"
-	defer test.MockVariableValue(&setting.InstallLock, false)()
 	defer test.MockVariableValue(&cli.ErrWriter, app.ErrWriter)()
 	defer test.MockVariableValue(&cli.OsExiter, func(code int) {
 		if exitCode == -1 {
@@ -64,9 +62,10 @@ func runTestApp(app *cli.Command, args ...string) (runResult, error) {
 }
 
 func TestCliCmd(t *testing.T) {
-	defaultWorkPath := filepath.Dir(setting.AppPath)
+	defaultWorkPath := filepath.FromSlash("/tmp/mocked-work-path")
 	defaultCustomPath := filepath.Join(defaultWorkPath, "custom")
 	defaultCustomConf := filepath.Join(defaultCustomPath, "conf/app.ini")
+	defer setting.MockBuiltinPaths(defaultWorkPath, "", "")()
 
 	cli.CommandHelpTemplate = "(command help template)"
 	cli.RootCommandHelpTemplate = "(app help template)"
@@ -159,10 +158,6 @@ func TestCliCmd(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.cmd, func(t *testing.T) {
-			// TODO: this mock is still needed, because the "{appWorkPathBuiltin}/conf/app.ini" is still the default custom conf path
-			// When this "app.ini" contains some options like "INSTALL_LOCK=true", it affects the testing.
-			// Ideally, in the future we can fully mock the "appWorkPathBuiltin" variables, then avoid the "app.ini" confliction.
-			defer test.MockVariableValue(&setting.InstallLock, false)()
 			app := newTestApp(cli.Command{
 				Action: func(ctx context.Context, cmd *cli.Command) error {
 					_, _ = fmt.Fprint(cmd.Root().Writer, makePathOutput(setting.AppWorkPath, setting.CustomPath, setting.CustomConf))

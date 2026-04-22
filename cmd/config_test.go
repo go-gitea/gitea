@@ -7,17 +7,10 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-
 	"github.com/stretchr/testify/require"
 )
 
 func TestConfigEdit(t *testing.T) {
-	// TODO: TESTING-INSTALL-LOCK-FAILURE: need to figure the root problem of "InstallLock becoming true unexpectedly"
-	// * clone and open the project in a DevContainer in VS Code
-	// * run TAGS="bindata sqlite sqlite_unlock_notify" make test --> test failures in cmd/main_test.go ("Config is loaded before console logger is setup")
-	defer test.MockVariableValue(&setting.InstallLock, false)()
 	tmpDir := t.TempDir()
 	configOld := tmpDir + "/app-old.ini"
 	configTemplate := tmpDir + "/app-template.ini"
