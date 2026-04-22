@@ -1,7 +1,7 @@
 import {queryElems} from '../utils/dom.ts';
 import {parseIssueHref} from '../utils.ts';
 import {createApp} from 'vue';
-import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
+import {createFloatingElement, getFloatingElement} from '../modules/floating.ts';
 
 export function initMarkupRefIssue(el: HTMLElement) {
   queryElems(el, '.ref-issue', (el) => {
@@ -12,7 +12,7 @@ export function initMarkupRefIssue(el: HTMLElement) {
 
 function showMarkupRefIssuePopup(e: MouseEvent | FocusEvent) {
   const refIssue = e.currentTarget as HTMLElement;
-  if (getAttachedTippyInstance(refIssue)) return;
+  if (getFloatingElement(refIssue)) return;
   if (refIssue.classList.contains('ref-external-issue')) return;
 
   const issuePathInfo = parseIssueHref(refIssue.getAttribute('href')!);
@@ -27,7 +27,7 @@ function showMarkupRefIssuePopup(e: MouseEvent | FocusEvent) {
     });
     view.mount(el);
   };
-  const tippy = createTippy(refIssue, {
+  const floating = createFloatingElement(refIssue, {
     theme: 'default',
     content: el,
     trigger: 'mouseenter focus',
@@ -38,5 +38,5 @@ function showMarkupRefIssuePopup(e: MouseEvent | FocusEvent) {
     // onHide() { return false }, // help to keep the popup and debug the layout
     onShow: () => { onShowAsync() },
   });
-  tippy.show();
+  floating.show();
 }

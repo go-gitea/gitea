@@ -1,4 +1,4 @@
-import {createTippy} from '../modules/tippy.ts';
+import {createFloatingElement} from '../modules/floating.ts';
 import {GET} from '../modules/fetch.ts';
 import {hideElem, queryElems, showElem} from '../utils/dom.ts';
 import {UserEventsSharedWorker} from '../modules/worker.ts';
@@ -26,7 +26,7 @@ export function initStopwatch() {
   for (const stopwatchEl of stopwatchEls) {
     stopwatchEl.removeAttribute('href'); // intended for noscript mode only
 
-    createTippy(stopwatchEl, {
+    createFloatingElement(stopwatchEl, {
       content: stopwatchPopup.cloneNode(true) as Element,
       placement: 'bottom-end',
       trigger: 'click',

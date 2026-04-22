@@ -153,7 +153,7 @@
 
 	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
 	{{if $activeStopwatch}}
-		<div class="active-stopwatch-popup tippy-target">
+		<div class="active-stopwatch-popup floating-target">
 			<div class="flex-text-block tw-p-3">
 				<a class="stopwatch-link flex-text-block muted" href="{{$activeStopwatch.IssueLink}}">
 					{{svg "octicon-issue-opened" 16}}

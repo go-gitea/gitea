@@ -536,7 +536,7 @@
 .code-editor-container[data-language="html"] .tok-propertyName,
 .code-editor-container[data-language="xml"] .tok-propertyName { color: var(--color-syntax-attribute); }
 
-/* context menu — uses tippy "menu" theme for base styling */
+/* context menu — uses floating "menu" theme for base styling */
 .cm-context-menu {
   min-width: 200px;
   font-size: 13px;

@@ -1,5 +1,5 @@
 import {svg} from '../svg.ts';
-import {createTippy} from '../modules/tippy.ts';
+import {createFloatingElement} from '../modules/floating.ts';
 import {toAbsoluteUrl} from '../utils.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
 
@@ -94,16 +94,16 @@ function showLineButton() {
   // put a copy of the menu back into DOM for the next click
   btn.closest('.code-view')!.append(menu.cloneNode(true));
 
-  createTippy(btn, {
+  createFloatingElement(btn, {
     theme: 'menu',
     trigger: 'click',
     hideOnClick: true,
     content: menu,
     placement: 'right-start',
     interactive: true,
-    onShow: (tippy) => {
-      tippy.popper.addEventListener('click', () => {
-        tippy.hide();
+    onShow: (instance) => {
+      instance.element.addEventListener('click', () => {
+        instance.hide();
       }, {once: true});
     },
   });

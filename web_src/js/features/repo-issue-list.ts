@@ -8,6 +8,7 @@ import {createSortable} from '../modules/sortable.ts';
 import {DELETE, POST} from '../modules/fetch.ts';
 import {parseDom} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {getFloatingElement} from '../modules/floating.ts';
 import type {SortableEvent} from 'sortablejs';
 
 function initRepoIssueListCheckboxes() {
@@ -190,7 +191,7 @@ function initPinRemoveButton() {
       const response = await DELETE(el.getAttribute('data-unpin-url')!);
       if (response.ok) {
         // Delete the tooltip
-        el._tippy.destroy();
+        getFloatingElement(el)?.destroy();
         // Remove the Card
         el.closest(`div.issue-card[data-issue-id="${id}"]`)!.remove();
       }
