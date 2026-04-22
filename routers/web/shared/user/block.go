@@ -37,7 +37,7 @@ func BlockedUsersPost(ctx *context.Context, blocker *user_model.User) {
 
 	blockee, err := user_model.GetUserByName(ctx, form.Blockee)
 	if err != nil {
-		ctx.ServerError("GetUserByName", nil)
+		ctx.ServerError("GetUserByName", err)
 		return
 	}
 
