@@ -124,7 +124,7 @@ func PrepareConsoleLoggerLevel(defaultLevel log.Level) func(context.Context, *cl
 		if setting.InstallLock {
 			// During config loading, there might also be logs (for example: deprecation warnings).
 			// It must make sure that console logger is set up before config is loaded.
-			log.Error("Config is loaded before console logger is setup, it will cause bugs. Please fix it.")
+			log.Error("Config is loaded before console logger is setup, it will cause bugs. Please fix it. CustomConf=%s", setting.CustomConf)
 			return nil, errors.New("console logger must be setup before config is loaded")
 		}
 		level := defaultLevel
