@@ -7,10 +7,14 @@ import (
 	"os"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/require"
 )
 
 func TestConfigEdit(t *testing.T) {
+	defer test.MockVariableValue(&setting.InstallLock, false)()
 	tmpDir := t.TempDir()
 	configOld := tmpDir + "/app-old.ini"
 	configTemplate := tmpDir + "/app-template.ini"
