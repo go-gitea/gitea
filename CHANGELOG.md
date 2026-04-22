@@ -20,6 +20,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix vite manifest update masking build errors (#37279) (#37310)
   * Fix Mermaid diagrams failing when node labels contain line breaks (#37296) (#37299)
   * Use TriggerEvent instead of Event in workflow runs API response for scheduled runs (#37288) #37360
+  * Add URL to Learn more about blocking a user. (#37355) #37367
 
 ## [1.26.0](https://github.com/go-gitea/gitea/releases/tag/v1.26.0) - 2026-04-17
 
