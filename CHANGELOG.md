@@ -19,6 +19,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Enhance GetActionWorkflow to support fallback references (#37189) (#37283)
   * Fix vite manifest update masking build errors (#37279) (#37310)
   * Fix Mermaid diagrams failing when node labels contain line breaks (#37296) (#37299)
+  * Use TriggerEvent instead of Event in workflow runs API response for scheduled runs (#37288) #37360
 
 ## [1.26.0](https://github.com/go-gitea/gitea/releases/tag/v1.26.0) - 2026-04-17
 
