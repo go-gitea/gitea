@@ -23663,6 +23663,11 @@
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "Title"
+        },
+        "usage": {
+          "description": "Usage of the SSH key, defaults to authentication and signing",
+          "type": "string",
+          "x-go-name": "Usage"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -27777,6 +27782,11 @@
           "description": "URL is the API URL for this key",
           "type": "string",
           "x-go-name": "URL"
+        },
+        "usage": {
+          "description": "Usage indicates whether the key can be used for authentication or signing",
+          "type": "string",
+          "x-go-name": "Usage"
         },
         "user": {
           "$ref": "#/definitions/User"
