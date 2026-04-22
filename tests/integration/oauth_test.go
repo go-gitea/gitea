@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/services/oauth2_provider"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/stretchr/testify/assert"
@@ -44,7 +45,7 @@ func TestOAuth2Provider(t *testing.T) {
 	t.Run("AuthorizeLoginRedirect", testAuthorizeLoginRedirect)
 
 	t.Run("OAuth2WellKnown", testOAuth2WellKnown)
-	t.Run("OAuthSourceWithSpace", testOAuthSourceWithSpace)
+	t.Run("OAuthSourceSpecialChars", testOAuthSourceSpecialChars)
 	// TODO: move more tests as sub-tests here, avoid unnecessary PrepareTestEnv
 }
 
@@ -1098,19 +1099,44 @@ func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 
 // Checks if an OAuth provider with spaces within the name does work,
 // with the encoding of its names in the URL (PR#37327)
-func testOAuthSourceWithSpace(t *testing.T) {
+func testOAuthSourceSpecialChars(t *testing.T) {
 	mockServer := createMockServer()
 	defer mockServer.Close()
 
-	authName := "oauth test with spaces"
-	oauth2Source := oauth2.Source{
+	addOAuth2Source(t, "test space", oauth2.Source{
 		Provider:                      "openidConnect",
 		OpenIDConnectAutoDiscoveryURL: mockServer.URL + "/.well-known/openid-configuration",
-	}
-	addOAuth2Source(t, authName, oauth2Source)
+	})
+	addOAuth2Source(t, "test+plus", oauth2.Source{
+		Provider:                      "openidConnect",
+		OpenIDConnectAutoDiscoveryURL: mockServer.URL + "/.well-known/openid-configuration",
+	})
 
-	session := emptyTestSession(t)
-	req := NewRequest(t, "GET", "/user/oauth2/"+url.QueryEscape(authName))
-	resp := session.MakeRequest(t, req, http.StatusTemporaryRedirect)
-	assert.Contains(t, resp.Header().Get("Location"), mockServer.URL+"/authorize")
+	testOAuth2 := func(t *testing.T, uri string, statusCode int) {
+		req := NewRequest(t, "GET", uri)
+		resp := MakeRequest(t, req, statusCode)
+		if statusCode == http.StatusTemporaryRedirect {
+			assert.NotEmpty(t, resp.Header().Get("Location"))
+		} else {
+			assert.Empty(t, resp.Header().Get("Location"))
+		}
+	}
+
+	req := MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK)
+	doc := NewHTMLParser(t, req.Body)
+	var oauth2Links []string
+	doc.Find(".external-login-link").Each(func(i int, s *goquery.Selection) {
+		oauth2Links = append(oauth2Links, s.AttrOr("href", ""))
+	})
+	assert.Equal(t, []string{
+		"/user/oauth2/test%20space",
+		"/user/oauth2/test+plus",
+	}, oauth2Links)
+
+	testOAuth2(t, "/user/oauth2/test%20space", http.StatusTemporaryRedirect)
+	testOAuth2(t, "/user/oauth2/test+space", http.StatusNotFound)
+
+	testOAuth2(t, "/user/oauth2/test+plus", http.StatusTemporaryRedirect)
+	testOAuth2(t, "/user/oauth2/test%2Bplus", http.StatusTemporaryRedirect)
+	testOAuth2(t, "/user/oauth2/test%20plus", http.StatusNotFound)
 }
