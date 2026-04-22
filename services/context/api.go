@@ -322,24 +322,6 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 	})
 }
 
-// HasAPIError returns true if error occurs in form validation.
-func (ctx *APIContext) HasAPIError() bool {
-	hasErr, ok := ctx.Data["HasError"]
-	if !ok {
-		return false
-	}
-	return hasErr.(bool)
-}
-
-// GetErrMsg returns error message in form validation.
-func (ctx *APIContext) GetErrMsg() string {
-	msg, _ := ctx.Data["ErrorMsg"].(string)
-	if msg == "" {
-		msg = "invalid form data"
-	}
-	return msg
-}
-
 // NotFoundOrServerError use error check function to determine if the error
 // is about not found. It responds with 404 status code for not found error,
 // or error context description for logging purpose of 500 server error.
