@@ -17,6 +17,14 @@
 				<label for="ssh-key-content">{{ctx.Locale.Tr "settings.key_content"}}</label>
 				<textarea id="ssh-key-content" name="content" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 			</div>
+			<div class="field {{if .Err_Usage}}error{{end}}">
+				<label for="ssh-key-usage">{{ctx.Locale.Tr "settings.ssh_key_usage"}}</label>
+				<select id="ssh-key-usage" name="usage" class="ui dropdown">
+					<option value="authentication_and_signing" {{if or (eq .usage "") (eq .usage "authentication_and_signing")}}selected{{end}}>{{ctx.Locale.Tr "settings.ssh_key_usage_authentication_and_signing"}}</option>
+					<option value="authentication" {{if eq .usage "authentication"}}selected{{end}}>{{ctx.Locale.Tr "settings.ssh_key_usage_authentication"}}</option>
+					<option value="signing" {{if eq .usage "signing"}}selected{{end}}>{{ctx.Locale.Tr "settings.ssh_key_usage_signing"}}</option>
+				</select>
+			</div>
 			<input name="type" type="hidden" value="ssh">
 			<button class="ui primary button">
 				{{ctx.Locale.Tr "settings.add_key"}}
@@ -44,13 +52,16 @@
 					<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
 				</div>
 				<div class="flex-item-main">
-						{{if .Verified}}
-							<div class="flex-item-title flex-text-block" data-tooltip-content="{{ctx.Locale.Tr "settings.ssh_key_verified_long"}}">{{svg "octicon-verified"}}{{ctx.Locale.Tr "settings.ssh_key_verified"}}</div>
-						{{end}}
-						<div class="flex-item-title">{{.Name}}</div>
-						<div class="flex-item-body">
-								{{.Fingerprint}}
-						</div>
+					{{if .Verified}}
+						<div class="flex-item-title flex-text-block" data-tooltip-content="{{ctx.Locale.Tr "settings.ssh_key_verified_long"}}">{{svg "octicon-verified"}}{{ctx.Locale.Tr "settings.ssh_key_verified"}}</div>
+					{{end}}
+					<div class="flex-item-title">{{.Name}}</div>
+					<div class="flex-item-body">
+						<span class="ui label">{{ctx.Locale.Tr (printf "settings.ssh_key_usage_%s" .UsageString)}}</span>
+					</div>
+					<div class="flex-item-body">
+							{{.Fingerprint}}
+					</div>
 						<div class="flex-item-body">
 								<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>

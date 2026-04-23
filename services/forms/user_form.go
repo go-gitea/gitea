@@ -313,6 +313,7 @@ type AddKeyForm struct {
 	Signature   string `binding:"OmitEmpty"`
 	KeyID       string `binding:"OmitEmpty"`
 	Fingerprint string `binding:"OmitEmpty"`
+	Usage       string `binding:"OmitEmpty;In(authentication,signing,authentication_and_signing)"`
 	IsWritable  bool
 }
 

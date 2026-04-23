@@ -585,6 +585,7 @@ func ToPublicKey(apiLink string, key *asymkey_model.PublicKey) *api.PublicKey {
 		Fingerprint: key.Fingerprint,
 		Created:     key.CreatedUnix.AsTime(),
 		Updated:     key.UpdatedUnix.AsTime(),
+		Usage:       key.Usage.String(),
 	}
 }
 

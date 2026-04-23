@@ -42,6 +42,10 @@ type CreateKeyOption struct {
 	// required: true
 	// unique: true
 	Key string `json:"key" binding:"Required"`
+	// Usage of the SSH key, defaults to authentication and signing
+	//
+	// required: false
+	Usage string `json:"usage,omitempty" binding:"OmitEmpty;In(authentication,signing,authentication_and_signing)"`
 	// Describe if the key has only read access or read/write
 	//
 	// required: false

@@ -30,4 +30,6 @@ type PublicKey struct {
 	ReadOnly bool `json:"read_only,omitempty"`
 	// KeyType indicates the type of the SSH key
 	KeyType string `json:"key_type,omitempty"`
+	// Usage indicates whether the key can be used for authentication or signing
+	Usage string `json:"usage,omitempty"`
 }

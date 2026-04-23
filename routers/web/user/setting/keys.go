@@ -185,7 +185,16 @@ func KeysPost(ctx *context.Context) {
 			return
 		}
 
-		if _, err = asymkey_model.AddPublicKey(ctx, ctx.Doer.ID, form.Title, content, 0, false); err != nil {
+		usage, err := asymkey_model.ParseKeyUsage(form.Usage)
+		if err != nil {
+			ctx.Data["HasSSHError"] = true
+			loadKeysData(ctx)
+			ctx.Data["Err_Usage"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.invalid_ssh_key", err.Error()), tplSettingsKeys, &form)
+			return
+		}
+
+		if _, err = asymkey_model.AddPublicKey(ctx, ctx.Doer.ID, form.Title, content, 0, false, usage); err != nil {
 			ctx.Data["HasSSHError"] = true
 			switch {
 			case asymkey_model.IsErrKeyAlreadyExist(err):

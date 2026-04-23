@@ -131,6 +131,7 @@ func AddDeployKey(ctx context.Context, repoID int64, name, content string, readO
 				Fingerprint: fingerprint,
 				Mode:        accessMode,
 				Type:        KeyTypeDeploy,
+				Usage:       KeyUsageAuth,
 				Content:     content,
 				Name:        name,
 			}
