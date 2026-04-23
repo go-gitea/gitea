@@ -169,7 +169,7 @@ func TestToTitleCase(t *testing.T) {
 
 func TestNormalizeStringEOL(t *testing.T) {
 	assert.Equal(t, "test\ndata", NormalizeStringEOL("test\r\ndata"))
-	assert.Equal(t, "test\ndata\n", NormalizeStringEOL("test\r\ndata\r\n"))
+	assert.Equal(t, " test\ndata\n ", NormalizeStringEOL(" test\rdata\r "))
 }
 
 func TestOptionalArg(t *testing.T) {
