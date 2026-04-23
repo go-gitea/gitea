@@ -4,24 +4,15 @@ import {createApp} from 'vue';
 import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
 
-const issueInfoCache = new Map<string, Promise<any>>();
+const issueInfoCache = new Map<string, any>();
 
-function getIssueInfo(url: string): Promise<any> {
-  let promise = issueInfoCache.get(url);
-  if (!promise) {
-    promise = (async () => {
-      try {
-        const resp = await GET(url);
-        if (!resp.ok) throw new Error(resp.statusText || 'Unknown network error');
-        return await resp.json();
-      } catch (err) {
-        issueInfoCache.delete(url);
-        throw err;
-      }
-    })();
-    issueInfoCache.set(url, promise);
+async function getIssueInfo(url: string): Promise<any> {
+  if (!issueInfoCache.has(url)) {
+    const resp = await GET(url);
+    if (!resp.ok) throw new Error(resp.statusText || 'Unknown network error');
+    issueInfoCache.set(url, await resp.json());
   }
-  return promise;
+  return issueInfoCache.get(url);
 }
 
 async function showRefIssuePopup(link: HTMLAnchorElement) {
