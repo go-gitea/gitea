@@ -450,7 +450,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetLinkHeader(commitsCount, limit)
+	ctx.SetLinkHeader(commitsCount, len(commitsHistory))
 	ctx.SetTotalCountHeader(commitsCount)
 	ctx.JSON(http.StatusOK, convert.ToWikiCommitList(commitsHistory, commitsCount))
 }
