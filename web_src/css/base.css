@@ -431,8 +431,9 @@ img.ui.avatar,
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
-.ui .message.flash-message {
-  text-align: center;
+.ui.message.flash-message pre {
+  white-space: pre-line;
+  margin: 0;
 }
 
 .ui .header > i + .content {
@@ -643,10 +644,6 @@ overflow-menu .ui.label {
   color: var(--color-primary-contrast);
 }
 
-.archived-icon {
-  color: var(--color-secondary-dark-2) !important;
-}
-
 .oauth2-authorize-application-box {
   margin-top: 3em !important;
 }
@@ -668,10 +665,6 @@ overflow-menu .ui.label {
 
 .code-diff .lines-num {
   min-width: 50px;
-}
-
-.lines-num span.bottom-line::after {
-  border-bottom: 1px solid var(--color-secondary);
 }
 
 .lines-num span::after {
@@ -783,20 +776,21 @@ tr.top-line-blame:first-of-type {
   border-top: none; /* merge code lines belonging to the same commit into one block */
 }
 
-.lines-code .bottom-line,
-.lines-commit .bottom-line {
-  border-bottom: 1px solid var(--color-secondary);
-}
-
 .migrate .svg.gitea-git {
   color: var(--color-git);
 }
 
 .color-icon {
   display: inline-block;
+  flex-shrink: 0;
   border-radius: var(--border-radius-full);
   height: 14px;
   width: 14px;
+}
+
+.icon-size-8 {
+  width: 8px;
+  height: 8px;
 }
 
 .rss-icon {
@@ -878,6 +872,23 @@ table th[data-sortt-desc] .svg {
   align-items: stretch;
 }
 
+/* can be used to replace "ui relaxed list" or "tw-flex tw-flex-col tw-gap-xxx" when we need more flexible layout */
+.flex-relaxed-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-block);
+}
+
+/* this is useful to make a left-right (e.g.: title .... operations) layout with default gap, and it wrap for small widths */
+.flex-left-right {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--gap-block);
+  min-width: 0;
+}
+
 .ui.list.flex-items-block > .item,
 .ui.vertical.menu.flex-items-block > .item,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
@@ -889,6 +900,7 @@ table th[data-sortt-desc] .svg {
   min-width: 0;
 }
 
+.flex-left-right > .ui.button,
 .flex-text-block > .ui.button,
 .flex-text-inline > .ui.button {
   margin: 0; /* fomantic buttons have default margin, when we use them in a flex container with gap, we do not need these margins */

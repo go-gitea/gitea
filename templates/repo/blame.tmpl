@@ -11,7 +11,7 @@
 	{{end}}
 {{end}}
 <div class="{{TabSizeClass .Editorconfig .FileTreePath}} non-diff-file-content">
-	<h4 class="file-header ui top attached header tw-flex tw-items-center tw-justify-between tw-flex-wrap">
+	<h4 class="file-header ui top attached header flex-left-right">
 		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
 			{{template "repo/file_info" .}}
 		</div>
@@ -45,10 +45,8 @@
 										<div class="blame-avatar">
 											{{$row.Avatar}}
 										</div>
-										<div class="blame-message">
-											<a class="suppressed tw-text-text" href="{{$row.CommitURL}}" title="{{$row.CommitMessage}}">
-												{{$row.CommitMessage}}
-											</a>
+										<div class="blame-message muted-links" title="{{$row.CommitMessage}}">
+											{{ctx.RenderUtils.RenderCommitMessageLinkSubject $row.CommitMessage $row.CommitURL $.Repository}}
 										</div>
 										<div class="blame-time not-mobile">
 											{{$row.CommitSince}}

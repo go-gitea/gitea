@@ -178,8 +178,9 @@ func (t *TemporaryUploadRepository) HashObjectAndWrite(ctx context.Context, cont
 
 // AddObjectToIndex adds the provided object hash to the index with the provided mode and path
 func (t *TemporaryUploadRepository) AddObjectToIndex(ctx context.Context, mode, objectHash, objectPath string) error {
-	if err := gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
-		AddDynamicArguments(mode, objectHash, objectPath).WithDir(t.basePath).RunWithStderr(ctx); err != nil {
+	cmd := gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
+		AddDynamicArguments(mode + "," + objectHash + "," + objectPath).WithDir(t.basePath)
+	if err := cmd.RunWithStderr(ctx); err != nil {
 		if matched, _ := regexp.MatchString(".*Invalid path '.*", err.Stderr()); matched {
 			return ErrFilePathInvalid{
 				Message: objectPath,

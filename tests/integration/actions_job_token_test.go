@@ -137,7 +137,7 @@ func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 				require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), repoActionsUnit))
 
 				// prepare task and its token
-				require.NoError(t, task.GenerateToken())
+				task.GenerateAndFillToken()
 				task.Status = actions_model.StatusRunning
 				task.IsForkPullRequest = tt.isFork
 				err := actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status", "is_fork_pull_request")
@@ -309,7 +309,7 @@ func TestActionsJobTokenPermissionsWriteIssue(t *testing.T) {
 	repoActionsCfg.MaxTokenPermissions = nil
 	require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), repoActionsUnit))
 
-	require.NoError(t, task.GenerateToken())
+	task.GenerateAndFillToken()
 	task.Status = actions_model.StatusRunning
 	require.NoError(t, actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status"))
 
@@ -359,7 +359,7 @@ func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.Ac
 		Status:            actions_model.StatusRunning,
 		IsForkPullRequest: isFork,
 	}
-	require.NoError(t, task.GenerateToken())
+	task.GenerateAndFillToken()
 	require.NoError(t, db.Insert(t.Context(), task))
 	return task
 }

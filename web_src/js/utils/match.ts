@@ -2,6 +2,7 @@ import emojis from '../../../assets/emoji.json' with {type: 'json'};
 import {GET} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {parseIssuePageInfo} from '../utils.ts';
+import {errorMessage} from '../modules/errors.ts';
 import type {Issue, Mention} from '../types.ts';
 
 const maxMatches = 6;
@@ -47,7 +48,7 @@ export function fetchMentions(mentionsUrl: string): Promise<Mention[]> {
       if (!res.ok) throw new Error(res.statusText);
       return await res.json() as Mention[];
     } catch (e) {
-      showErrorToast(`Failed to load mentions: ${e}`);
+      showErrorToast(`Failed to load mentions: ${errorMessage(e)}`);
       return [];
     }
   })();

@@ -8,7 +8,7 @@ test('codeeditor textarea updates correctly', async ({page, request}) => {
   try {
     await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/_new/main`);
     await page.getByPlaceholder('Name your file…').fill('test.js');
-    await expect(page.locator('.editor-loading')).toBeHidden();
+    await expect(page.locator('[data-tab="write"] .editor-loading')).toBeHidden();
     const editor = page.locator('.cm-content[role="textbox"]');
     await expect(editor).toBeVisible();
     await editor.click();

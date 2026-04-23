@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
@@ -143,11 +144,9 @@ func (ctx *Context) NotFound(logErr error) {
 }
 
 func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
+	// TODO: it's safe to show the error message to end users if the error is fully controlled by our error system
 	if logErr != nil {
 		log.Log(2, log.DEBUG, "%s: %v", logMsg, logErr)
-		if !setting.IsProd {
-			ctx.Data["ErrorMsg"] = logErr
-		}
 	}
 
 	// response simple message if Accept isn't text/html
@@ -166,11 +165,17 @@ func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 
 	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
 	ctx.Data["Title"] = "Page Not Found"
+	ctx.Data["ErrorMsg"] = "" // FIXME: the template never renders this message, need to fix in the future (and show safe messages to end users)
 	ctx.HTML(http.StatusNotFound, "status/404")
 }
 
 // ServerError displays a 500 (Internal Server Error) page and prints the given error, if any.
+// If the error is controlled by our error system, a related 404 page can be displayed instead.
 func (ctx *Context) ServerError(logMsg string, logErr error) {
+	if errors.Is(logErr, util.ErrNotExist) {
+		ctx.notFoundInternal(logMsg, logErr)
+		return
+	}
 	ctx.serverErrorInternal(logMsg, logErr)
 }
 

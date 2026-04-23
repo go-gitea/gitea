@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"strings"
 
+	"code.gitea.io/gitea/modules/auth/password/hash"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -25,48 +27,84 @@ func SetupGiteaTestEnv() {
 	}
 
 	IsInTesting = true
-	giteaRoot := os.Getenv("GITEA_TEST_ROOT")
-	if giteaRoot == "" {
-		_, filename, _, _ := runtime.Caller(0)
-		giteaRoot = filepath.Dir(filepath.Dir(filepath.Dir(filename)))
-		fixturesDir := filepath.Join(giteaRoot, "models", "fixtures")
-		if _, err := os.Stat(fixturesDir); err != nil {
-			panic("in gitea source code directory, fixtures directory not found: " + fixturesDir)
+
+	log.OsExiter = func(code int) {
+		if code != 0 {
+			// non-zero exit code (log.Fatal) shouldn't occur during testing, if it happens, show a full stacktrace for more details
+			panic(fmt.Errorf("non-zero exit code during testing: %d", code))
+		}
+		os.Exit(0)
+	}
+
+	initGiteaRoot := func() string {
+		giteaRoot := os.Getenv("GITEA_TEST_ROOT")
+		if giteaRoot == "" {
+			_, filename, _, _ := runtime.Caller(0)
+			giteaRoot = filepath.Dir(filepath.Dir(filepath.Dir(filename)))
+			fixturesDir := filepath.Join(giteaRoot, "models", "fixtures")
+			if _, err := os.Stat(fixturesDir); err != nil {
+				panic("in gitea source code directory, fixtures directory not found: " + fixturesDir)
+			}
+		}
+		giteaTestSourceRoot = &giteaRoot
+		return giteaRoot
+	}
+
+	initGiteaPaths := func() {
+		appWorkPathBuiltin = *giteaTestSourceRoot
+		AppWorkPath = appWorkPathBuiltin
+		AppPath = filepath.Join(AppWorkPath, "gitea") + util.Iif(IsWindows, ".exe", "")
+		StaticRootPath = AppWorkPath // need to load assets (options, public) from the source code directory for testing
+	}
+
+	initGiteaConf := func() string {
+		// giteaConf (GITEA_CONF) must be relative because it is used in the git hooks as "$GITEA_ROOT/$GITEA_CONF"
+		giteaConf := os.Getenv("GITEA_TEST_CONF")
+		if giteaConf == "" {
+			// if no GITEA_TEST_CONF, then it is in unit test, use a temp (non-existing / empty) config file
+			giteaConf = "custom/conf/app-test-tmp.ini"
+			customConfBuiltin = filepath.Join(AppWorkPath, giteaConf)
+			CustomConf = customConfBuiltin
+			_ = os.Remove(CustomConf)
+		} else {
+			// CustomConf must be absolute path to make tests pass,
+			CustomConf = filepath.Join(AppWorkPath, giteaConf)
+		}
+		return giteaConf
+	}
+
+	cleanUpEnv := func() {
+		// also unset unnecessary env vars for testing (only keep "GITEA_TEST_*" ones)
+		UnsetUnnecessaryEnvVars()
+		for _, env := range os.Environ() {
+			if strings.HasPrefix(env, "GIT_") || (strings.HasPrefix(env, "GITEA_") && !strings.HasPrefix(env, "GITEA_TEST_")) {
+				k, _, _ := strings.Cut(env, "=")
+				_ = os.Unsetenv(k)
+			}
 		}
 	}
 
-	appWorkPathBuiltin = giteaRoot
-	AppWorkPath = giteaRoot
-	AppPath = filepath.Join(giteaRoot, "gitea") + util.Iif(IsWindows, ".exe", "")
-	StaticRootPath = giteaRoot // need to load assets (options, public) from the source code directory for testing
+	initWorkPathAndConfig := func() {
+		// init paths and config system for testing
+		getTestEnv := func(key string) string { return "" }
+		InitWorkPathAndCommonConfig(getTestEnv, ArgWorkPathAndCustomConf{CustomConf: CustomConf})
 
-	// giteaConf (GITEA_CONF) must be relative because it is used in the git hooks as "$GITEA_ROOT/$GITEA_CONF"
-	giteaConf := os.Getenv("GITEA_TEST_CONF")
-	if giteaConf == "" {
-		// By default, use sqlite.ini for testing, then IDE like GoLand can start the test process with debugger.
-		// It's easier for developers to debug bugs step by step with a debugger.
-		// Notice: when doing "ssh push", Gitea executes sub processes, debugger won't work for the sub processes.
-		giteaConf = "tests/sqlite.ini"
-		_, _ = fmt.Fprintf(os.Stderr, "Environment variable GITEA_TEST_CONF not set - defaulting to %s\n", giteaConf)
-		if !EnableSQLite3 {
-			_, _ = fmt.Fprintf(os.Stderr, "sqlite3 requires: -tags sqlite,sqlite_unlock_notify\n")
-			os.Exit(1)
+		if err := PrepareAppDataPath(); err != nil {
+			log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 		}
-	}
-	// CustomConf must be absolute path to make tests pass,
-	CustomConf = filepath.Join(AppWorkPath, giteaConf)
 
-	// also unset unnecessary env vars for testing (only keep "GITEA_TEST_*" ones)
-	UnsetUnnecessaryEnvVars()
-	for _, env := range os.Environ() {
-		if strings.HasPrefix(env, "GIT_") || (strings.HasPrefix(env, "GITEA_") && !strings.HasPrefix(env, "GITEA_TEST_")) {
-			k, _, _ := strings.Cut(env, "=")
-			_ = os.Unsetenv(k)
-		}
+		// register the dummy hash algorithm function used in the test fixtures
+		_ = hash.Register("dummy", hash.NewDummyHasher)
+		PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
 	}
+
+	giteaRoot := initGiteaRoot()
+	initGiteaPaths()
+	giteaConf := initGiteaConf()
+	cleanUpEnv()
+	initWorkPathAndConfig()
 
 	// TODO: some git repo hooks (test fixtures) still use these env variables, need to be refactored in the future
 	_ = os.Setenv("GITEA_ROOT", giteaRoot)
 	_ = os.Setenv("GITEA_CONF", giteaConf) // test fixture git hooks use "$GITEA_ROOT/$GITEA_CONF" in their scripts
-	giteaTestSourceRoot = &giteaRoot
 }
