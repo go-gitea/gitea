@@ -55,8 +55,8 @@ jobs:
             ~/go/pkg/mod
           key: gocache-${{ runner.os }}-pgsql-${{ hashFiles('go.sum') }}-${{ github.run_id }}
           restore-keys: |
-            gocache-${{ runner.os }}-pgsql-${{ hashFiles('go.sum') }}-
-            gocache-${{ runner.os }}-pgsql-
+            gocache-${{ runner.os }}-pgsql-${{ hashFiles('go.sum') }}
+            gocache-${{ runner.os }}-pgsql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
       - run: make deps-backend
@@ -94,8 +94,8 @@ jobs:
             ~/go/pkg/mod
           key: gocache-${{ runner.os }}-sqlite-${{ hashFiles('go.sum') }}-${{ github.run_id }}
           restore-keys: |
-            gocache-${{ runner.os }}-sqlite-${{ hashFiles('go.sum') }}-
-            gocache-${{ runner.os }}-sqlite-
+            gocache-${{ runner.os }}-sqlite-${{ hashFiles('go.sum') }}
+            gocache-${{ runner.os }}-sqlite
       - run: make deps-backend
       - run: GOEXPERIMENT='' make backend
         env:
@@ -163,8 +163,8 @@ jobs:
             ~/go/pkg/mod
           key: gocache-${{ runner.os }}-unit-${{ hashFiles('go.sum') }}-${{ github.run_id }}
           restore-keys: |
-            gocache-${{ runner.os }}-unit-${{ hashFiles('go.sum') }}-
-            gocache-${{ runner.os }}-unit-
+            gocache-${{ runner.os }}-unit-${{ hashFiles('go.sum') }}
+            gocache-${{ runner.os }}-unit
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
@@ -230,8 +230,8 @@ jobs:
             ~/go/pkg/mod
           key: gocache-${{ runner.os }}-mysql-${{ hashFiles('go.sum') }}-${{ github.run_id }}
           restore-keys: |
-            gocache-${{ runner.os }}-mysql-${{ hashFiles('go.sum') }}-
-            gocache-${{ runner.os }}-mysql-
+            gocache-${{ runner.os }}-mysql-${{ hashFiles('go.sum') }}
+            gocache-${{ runner.os }}-mysql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
@@ -281,8 +281,8 @@ jobs:
             ~/go/pkg/mod
           key: gocache-${{ runner.os }}-mssql-${{ hashFiles('go.sum') }}-${{ github.run_id }}
           restore-keys: |
-            gocache-${{ runner.os }}-mssql-${{ hashFiles('go.sum') }}-
-            gocache-${{ runner.os }}-mssql-
+            gocache-${{ runner.os }}-mssql-${{ hashFiles('go.sum') }}
+            gocache-${{ runner.os }}-mssql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
       - run: make deps-backend
