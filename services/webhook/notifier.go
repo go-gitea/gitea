@@ -776,6 +776,47 @@ func (m *webhookNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 	}
 }
 
+func (m *webhookNotifier) PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User) {
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+	if err := pr.Issue.LoadPoster(ctx); err != nil {
+		log.Error("LoadPoster: %v", err)
+		return
+	}
+	if comment.Poster == nil {
+		if err := comment.LoadPoster(ctx); err != nil {
+			log.Error("LoadPoster: %v", err)
+			return
+		}
+	}
+
+	permission, err := access_model.GetIndividualUserRepoPermission(ctx, pr.Issue.Repo, pr.Issue.Poster)
+	if err != nil {
+		log.Error("models.GetIndividualUserRepoPermission: %v", err)
+		return
+	}
+
+	if err := PrepareWebhooks(ctx, EventSource{Repository: pr.Issue.Repo}, webhook_module.HookEventPullRequestReviewComment, &api.PullRequestPayload{
+		Action:      api.HookIssueReviewed,
+		Index:       pr.Issue.Index,
+		PullRequest: convert.ToAPIPullRequest(ctx, pr, comment.Poster),
+		Repository:  convert.ToRepo(ctx, pr.Issue.Repo, permission),
+		Sender:      convert.ToUser(ctx, comment.Poster, nil),
+		Review: &api.ReviewPayload{
+			Type:    string(webhook_module.HookEventPullRequestReviewComment),
+			Content: comment.Content,
+		},
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
 func (m *webhookNotifier) PullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 	if !issue.IsPull {
 		log.Warn("PullRequestReviewRequest: issue is not a pull request: %v", issue.ID)
