@@ -1,4 +1,5 @@
 name: go-caches
+description: Restore and save go module, build, and golangci-lint caches
 
 inputs:
   job:
