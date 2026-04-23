@@ -5,9 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "**/*.go"
       - "go.sum"
-      - "Makefile"
       - ".golangci.yml"
       - ".github/actions/go-cache/action.yml"
       - ".github/workflows/cache-seeder.yml"
