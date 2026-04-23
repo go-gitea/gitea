@@ -26,7 +26,7 @@
 						</div>
 					</div>
 					<div class="flex-item-trailing">
-						<button class="ui red tiny button delete-button" data-modal-id="delete-principal" data-url="{{$.Link}}/delete?type=principal" data-id="{{.ID}}">
+						<button class="ui red tiny button link-action" data-url="{{$.Link}}/delete?type=principal&id={{.ID}}" data-modal-confirm-header="{{ctx.Locale.Tr "settings.ssh_principal_deletion"}}" data-modal-confirm-content="{{ctx.Locale.Tr "settings.ssh_principal_deletion_desc"}}">
 							{{ctx.Locale.Tr "settings.delete_key"}}
 						</button>
 					</div>
@@ -53,16 +53,5 @@
 				</button>
 			</form>
 		</div>
-	</div>
-
-	<div class="ui g-modal-confirm delete modal" id="delete-principal">
-		<div class="header">
-			{{svg "octicon-trash"}}
-			{{ctx.Locale.Tr "settings.ssh_principal_deletion"}}
-		</div>
-		<div class="content">
-			<p>{{ctx.Locale.Tr "settings.ssh_principal_deletion_desc"}}</p>
-		</div>
-		{{template "base/modal_actions_confirm" .}}
 	</div>
 {{end}}

@@ -56,7 +56,7 @@
 							</div>
 							<div class="flex-text-block">
 							{{if not .IsPrimary}}
-								<button class="ui red tiny button delete-button" data-modal-id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
+								<button class="ui red tiny button link-action" data-url="{{AppSubUrl}}/user/settings/account/email/delete?id={{.ID}}" data-modal-confirm-header="{{ctx.Locale.Tr "settings.email_deletion"}}" data-modal-confirm-content="{{ctx.Locale.Tr "settings.email_deletion_desc"}}">
 									{{ctx.Locale.Tr "settings.delete_email"}}
 								</button>
 								{{if .CanBePrimary}}
@@ -140,16 +140,5 @@
 		</div>
 		{{end}}
 	</div>
-
-<div class="ui g-modal-confirm delete modal" id="delete-email">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{ctx.Locale.Tr "settings.email_deletion"}}
-	</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "settings.email_deletion_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
-</div>
 
 {{template "user/settings/layout_footer" .}}
