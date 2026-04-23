@@ -3,7 +3,7 @@ import {normalizeTestHtml} from '../utils/testhelper.ts';
 
 describe('buildArtifactTooltipHtml', () => {
   test('active artifact', () => {
-    const expiresUnix = Date.UTC(2026, 2, 20, 12, 0, 0) / 1000
+    const expiresUnix = Date.UTC(2026, 2, 20, 12, 0, 0) / 1000;
     const expiresLocal = new Date(expiresUnix * 1000).toLocaleString();
     const result = buildArtifactTooltipHtml({
       name: 'artifact.zip',
