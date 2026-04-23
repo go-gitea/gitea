@@ -1,7 +1,7 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package statusinfo
+package actions
 
 import (
 	"context"
@@ -13,41 +13,43 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// ActionInfo maps CommitStatus.ID to the live ActionRunJob status
+// CommitStatusInfo maps CommitStatus.ID to the live ActionRunJob status
 // for Gitea Actions rows.
-type ActionInfo map[int64]actions_model.Status
+type CommitStatusInfo map[int64]actions_model.Status
 
 // IconStatus returns the action status name to route the icon through
 // repo/icons/action_status, or "" when the row isn't from Gitea Actions.
-func (m ActionInfo) IconStatus(s *git_model.CommitStatus) string {
+func (m CommitStatusInfo) IconStatus(s *git_model.CommitStatus) string {
 	if status, ok := m[s.ID]; ok {
 		return status.String()
 	}
 	return ""
 }
 
-// GetActionInfo resolves the live ActionRunJob.Status for every
+// GetCommitStatusInfo resolves the live ActionRunJob.Status for every
 // CommitStatus row backed by Gitea Actions. Rows from other sources (external
 // CIs, API) are left untouched and rendered from their stored State.
 //
-// Side effect: populates status.Repo for inputs whose Repo is nil, sharing
-// one lookup across entries with the same RepoID. ParseGiteaActionsTargetURL
-// needs the Repo loaded; the caching avoids one DB hit per row.
-func GetActionInfo(ctx context.Context, statuses []*git_model.CommitStatus) ActionInfo {
+// Side effect: fills in status.Repo for inputs whose Repo is nil, sharing one
+// lookup across entries with the same RepoID — ParseGiteaActionsTargetURL
+// needs Repo loaded and would otherwise lazy-load it per row.
+func GetCommitStatusInfo(ctx context.Context, statuses []*git_model.CommitStatus) CommitStatusInfo {
 	if len(statuses) == 0 {
 		return nil
 	}
 	statusByJobID := make(map[int64]*git_model.CommitStatus)
-	repoCache := make(map[int64]*repo_model.Repository)
+	repoByID := make(map[int64]*repo_model.Repository)
 	for _, status := range statuses {
 		if status == nil || status.TargetURL == "" {
 			continue
 		}
 		if status.Repo == nil {
-			status.Repo = repoCache[status.RepoID]
+			status.Repo = repoByID[status.RepoID]
 		}
+		// ParseGiteaActionsTargetURL lazy-loads status.Repo on miss; cache the
+		// outcome so later entries with the same RepoID skip that load.
 		_, jobID, ok := status.ParseGiteaActionsTargetURL(ctx)
-		repoCache[status.RepoID] = status.Repo
+		repoByID[status.RepoID] = status.Repo
 		if ok {
 			statusByJobID[jobID] = status
 		}
@@ -61,10 +63,10 @@ func GetActionInfo(ctx context.Context, statuses []*git_model.CommitStatus) Acti
 	}
 	jobs := make(map[int64]*actions_model.ActionRunJob, len(jobIDs))
 	if err := db.GetEngine(ctx).In("id", jobIDs).Cols("id", "status").Find(&jobs); err != nil {
-		log.Error("GetActionInfo: find action run jobs: %v", err)
+		log.Error("GetCommitStatusInfo: find action run jobs: %v", err)
 		return nil
 	}
-	info := make(ActionInfo, len(jobs))
+	info := make(CommitStatusInfo, len(jobs))
 	for jobID, status := range statusByJobID {
 		if job, ok := jobs[jobID]; ok && !job.Status.IsUnknown() {
 			info[status.ID] = job.Status

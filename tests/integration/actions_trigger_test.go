@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/actions/statusinfo"
 	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
@@ -1810,7 +1809,7 @@ jobs:
 	})
 }
 
-// Verify GetActionInfo surfaces the live ActionRunJob.Status so the
+// Verify GetCommitStatusInfo surfaces the live ActionRunJob.Status so the
 // icon reflects Waiting/Running/Blocked — all three share State=Pending in the
 // stored CommitStatus row.
 func TestActionsCommitStatusRunning(t *testing.T) {
@@ -1850,11 +1849,11 @@ func TestActionsCommitStatusRunning(t *testing.T) {
 		require.Len(t, statuses, 1)
 		assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
 
-		info := statusinfo.GetActionInfo(t.Context(), statuses)
+		info := actions_module.GetCommitStatusInfo(t.Context(), statuses)
 		assert.Equal(t, actions_model.StatusRunning.String(), info.IconStatus(statuses[0]))
 
 		// No enrichment available → IconStatus is empty.
-		empty := statusinfo.ActionInfo{}
+		empty := actions_module.CommitStatusInfo{}
 		assert.Empty(t, empty.IconStatus(statuses[0]))
 
 		// The commits-list tippy tooltip renders status.tmpl too: verify the live
