@@ -121,13 +121,9 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	pageMetaData.MilestonesData.SelectedMilestoneID = ctx.FormInt64("milestone")
-	projectStr := ctx.FormString("project")
-	if len(projectStr) > 0 {
-		projectIDs, _ := base.StringsToInt64s(strings.Split(projectStr, ","))
-		pageMetaData.ProjectsData.SelectedProjectIDs = projectIDs
-		if len(ctx.Req.URL.Query().Get("project")) > 0 {
-			ctx.Data["redirect_after_creation"] = "project"
-		}
+	pageMetaData.ProjectsData.SelectedProjectIDs, _ = base.StringsToInt64s(strings.Split(ctx.FormString("project"), ","))
+	if len(pageMetaData.ProjectsData.SelectedProjectIDs) == 1 {
+		ctx.Data["redirect_after_creation"] = "project"
 	}
 
 	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
