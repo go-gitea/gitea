@@ -457,7 +457,7 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 			ID:     task.JobID,
 			RepoID: task.RepoID,
 			Status: StatusCancelling,
-		}, nil); err != nil {
+		}, nil, "status"); err != nil {
 			return err
 		}
 

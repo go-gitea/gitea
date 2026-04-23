@@ -7,9 +7,16 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions/jobparser"
+	"code.gitea.io/gitea/modules/timeutil"
 
+	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestMakeTaskStepDisplayName(t *testing.T) {
@@ -74,4 +81,100 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestTaskCancellingFinalizesToCancelled(t *testing.T) {
+	ensureUserExists := func(t *testing.T, id int64, name string) {
+		t.Helper()
+
+		exists, err := db.GetEngine(t.Context()).ID(id).Exist(&user_model.User{})
+		require.NoError(t, err)
+		if exists {
+			return
+		}
+
+		u := &user_model.User{
+			ID:          id,
+			LowerName:   strings.ToLower(name),
+			Name:        name,
+			Email:       name + "@example.com",
+			Passwd:      "not-used",
+			Avatar:      "",
+			AvatarEmail: name + "@example.com",
+			IsActive:    true,
+		}
+		require.NoError(t, db.Insert(t.Context(), u))
+	}
+
+	newRunningTask := func(t *testing.T) (*ActionTask, *ActionRunJob) {
+		t.Helper()
+
+		run := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: 793})
+
+		job := &ActionRunJob{
+			RunID:     run.ID,
+			RepoID:    run.RepoID,
+			OwnerID:   run.OwnerID,
+			CommitSHA: run.CommitSHA,
+			Name:      "cancelling-finalization-job",
+			Attempt:   1,
+			JobID:     "cancelling-finalization-job",
+			Status:    StatusRunning,
+		}
+		require.NoError(t, db.Insert(t.Context(), job))
+
+		task := &ActionTask{
+			JobID:     job.ID,
+			Attempt:   1,
+			RunnerID:  999999,
+			Status:    StatusRunning,
+			Started:   timeutil.TimeStampNow(),
+			RepoID:    run.RepoID,
+			OwnerID:   run.OwnerID,
+			CommitSHA: run.CommitSHA,
+		}
+		require.NoError(t, db.Insert(t.Context(), task))
+
+		job.TaskID = task.ID
+		_, err := UpdateRunJob(t.Context(), job, nil, "task_id")
+		require.NoError(t, err)
+
+		return task, job
+	}
+
+	testResult := func(t *testing.T, result runnerv1.Result) {
+		t.Helper()
+		require.NoError(t, unittest.PrepareTestDatabase())
+
+		ensureUserExists(t, 1, "user1")
+		ensureUserExists(t, 5, "user5")
+
+		task, job := newRunningTask(t)
+		require.NoError(t, StopTask(t.Context(), task.ID, StatusCancelling))
+
+		taskAfterStop := unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID})
+		assert.Equal(t, StatusCancelling, taskAfterStop.Status)
+
+		updatedTask, err := UpdateTaskByState(t.Context(), task.RunnerID, &runnerv1.TaskState{
+			Id:        task.ID,
+			Result:    result,
+			StoppedAt: timestamppb.Now(),
+		})
+		require.NoError(t, err)
+		assert.Equal(t, StatusCancelled, updatedTask.Status)
+
+		taskAfterUpdate := unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID})
+		assert.Equal(t, StatusCancelled, taskAfterUpdate.Status)
+
+		jobAfterUpdate := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
+		assert.Equal(t, StatusCancelled, jobAfterUpdate.Status)
+	}
+
+	t.Run("runner reports success", func(t *testing.T) {
+		testResult(t, runnerv1.Result_RESULT_SUCCESS)
+	})
+
+	t.Run("runner reports failure", func(t *testing.T) {
+		testResult(t, runnerv1.Result_RESULT_FAILURE)
+	})
 }

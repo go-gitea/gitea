@@ -177,7 +177,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return 0, err
 	}
 
-	if affected == 0 || (!slices.Contains(cols, "status") && job.Status == 0) {
+	if affected == 0 || len(cols) > 0 && !slices.Contains(cols, "status") {
 		return affected, nil
 	}
 
