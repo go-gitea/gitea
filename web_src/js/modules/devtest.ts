@@ -1,7 +1,7 @@
 import {showInfoToast, showWarningToast, showErrorToast} from './toast.ts';
 import type {Toast} from './toast.ts';
 import {registerGlobalInitFunc} from './observer.ts';
-import {fomanticQuery} from './fomantic/base.ts';
+import {showModal} from './modal.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 import {showGlobalErrorMessage} from './errors.ts';
@@ -25,7 +25,13 @@ function initDevtestPage() {
   if (modalButtons) {
     for (const el of document.querySelectorAll('.ui.modal:not([data-skip-button])')) {
       const btn = createElementFromHTML(html`<button class="ui button">${el.id}</button`);
-      btn.addEventListener('click', () => fomanticQuery(el).modal('show'));
+      btn.addEventListener('click', () => {
+        const opts: Parameters<typeof showModal>[1] = {};
+        if (el.hasAttribute('data-devtest-closable-false')) opts.closable = false;
+        if (el.hasAttribute('data-devtest-approve-keep-open')) opts.onApprove = () => false;
+        if (el.hasAttribute('data-devtest-onshow-log')) opts.onShow = function() { this.setAttribute('data-devtest-onshow-ran', 'true') };
+        showModal(el, opts);
+      });
       modalButtons.append(btn);
     }
   }

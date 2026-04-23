@@ -70,6 +70,24 @@
 		{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" "I know and must do  this is dangerous operation")}}
 	</div>
 
+	<div class="ui g-modal-confirm modal" id="test-modal-keep-open" data-devtest-approve-keep-open>
+		<div class="header">Approve keeps modal open</div>
+		<div class="content">onApprove returns false, so clicking Confirm should NOT close the modal</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+	</div>
+
+	<div class="ui g-modal-confirm modal" id="test-modal-non-closable" data-devtest-closable-false>
+		<div class="header">Non-closable</div>
+		<div class="content">closable: false — clicking the dimmer should NOT close this modal</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+	</div>
+
+	<div class="ui g-modal-confirm modal" id="test-modal-onshow" data-devtest-onshow-log>
+		<div class="header">onShow callback</div>
+		<div class="content">onShow should run and set data-devtest-onshow-ran on the modal</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+	</div>
+
 	<div class="divider"></div>
 
 	<button class="show-modal" data-modal="#test-modal-fill-values"

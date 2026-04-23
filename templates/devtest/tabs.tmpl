@@ -1,0 +1,27 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	<h2>Tabular menu (global initGlobalComponent)</h2>
+	<div class="ui container">
+		<div class="ui secondary pointing tabular menu">
+			<a class="active item" data-tab="tab-a">Tab A</a>
+			<a class="item" data-tab="tab-b">Tab B</a>
+			<a class="item" data-tab="tab-c">Tab C</a>
+		</div>
+		<div class="ui tab active" data-tab="tab-a">Content A</div>
+		<div class="ui tab" data-tab="tab-b">Content B</div>
+		<div class="ui tab" data-tab="tab-c">Content C</div>
+	</div>
+
+	<div class="divider"></div>
+
+	<h2>Tabular menu marked .custom (should NOT be wired globally)</h2>
+	<div class="ui container">
+		<div class="ui secondary pointing tabular custom menu">
+			<a class="active item" data-tab="cust-a">Custom Tab A</a>
+			<a class="item" data-tab="cust-b">Custom Tab B</a>
+		</div>
+		<div class="ui tab active" data-tab="cust-a">Custom A</div>
+		<div class="ui tab" data-tab="cust-b">Custom B</div>
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}

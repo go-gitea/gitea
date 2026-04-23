@@ -1,6 +1,6 @@
 import {getCurrentLocale} from '../utils.ts';
 import {errorMessage} from '../modules/errors.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {showModal} from '../modules/modal.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 
 const {pageData} = window.config;
@@ -66,6 +66,6 @@ export async function initCitationFileCopyContent() {
       inputContent.select();
     });
 
-    fomanticQuery('#cite-repo-modal').modal('show');
+    showModal(document.querySelector('#cite-repo-modal'));
   });
 }

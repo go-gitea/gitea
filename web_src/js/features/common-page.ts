@@ -1,6 +1,7 @@
 import {GET, POST} from '../modules/fetch.ts';
 import {showGlobalErrorMessage} from '../modules/errors.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {initTabs} from '../modules/tab.ts';
 import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
@@ -100,7 +101,7 @@ export function initGlobalDropdown() {
 }
 
 export function initGlobalComponent() {
-  fomanticQuery('.ui.menu.tabular:not(.custom) .item').tab();
+  initTabs(document.querySelectorAll('.ui.menu.tabular:not(.custom) .item'));
   registerGlobalInitFunc('initAvatarUploader', initAvatarUploaderWithCropper);
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
 }

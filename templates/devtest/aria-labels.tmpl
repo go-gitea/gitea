@@ -1,0 +1,31 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	<h2>.ui.checkbox (initAriaLabels should link label→input)</h2>
+	<div class="ui checkbox">
+		<input type="checkbox" name="cb-a">
+		<label>checkbox-a: click the text to toggle</label>
+	</div>
+	<br><br>
+	<div class="ui checkbox">
+		<input type="checkbox" name="cb-b" checked>
+		<label>checkbox-b: starts checked</label>
+	</div>
+
+	<div class="divider"></div>
+
+	<h2>.ui.form .field (initAriaLabels should link label→input)</h2>
+	<form class="ui form">
+		<div class="field">
+			<label>field-text: clicking the label should focus the input</label>
+			<input type="text" name="f-text" placeholder="type here">
+		</div>
+		<div class="field">
+			<label>field-select: clicking the label should focus the select</label>
+			<select name="f-select">
+				<option>one</option>
+				<option>two</option>
+			</select>
+		</div>
+	</form>
+</div>
+{{template "devtest/devtest-footer"}}

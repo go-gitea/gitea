@@ -23,7 +23,7 @@ import {
 } from './EditorMarkdown.ts';
 import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
 import {createTippy} from '../../modules/tippy.ts';
-import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {initTabs} from '../../modules/tab.ts';
 import type EasyMDE from 'easymde';
 import {localUserSettings} from '../../modules/user-settings.ts';
 
@@ -227,7 +227,7 @@ export class ComboMarkdownEditor {
       });
     });
 
-    fomanticQuery(tabs).tab();
+    initTabs(tabs);
 
     this.tabPreviewer.addEventListener('click', async () => {
       const formData = new FormData();
