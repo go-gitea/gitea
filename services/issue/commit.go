@@ -122,6 +122,23 @@ func getIssueFromRef(ctx context.Context, repo *repo_model.Repository, index int
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
 func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commits []*repository.PushCommit, branchName string) error {
+	authorCache := make(map[string]*user_model.User)
+	getCommitAuthor := func(email string) (*user_model.User, error) {
+		if _, ok := authorCache[email]; ok {
+			return authorCache[email], nil
+		}
+		author, err := user_model.GetUserByEmail(ctx, email)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				authorCache[email] = nil
+				return nil, nil
+			}
+			return nil, err
+		}
+		authorCache[email] = author
+		return author, nil
+	}
+
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
@@ -215,7 +232,13 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 			refIssue.Repo = refRepo
 			if ref.Action == references.XRefActionCloses && !refIssue.IsClosed {
 				if len(ref.TimeLog) > 0 {
-					if err := issueAddTime(ctx, refIssue, doer, c.Timestamp, ref.TimeLog); err != nil {
+					timeDoer := doer
+					if author, err := getCommitAuthor(c.AuthorEmail); err != nil {
+						return err
+					} else if author != nil {
+						timeDoer = author
+					}
+					if err := issueAddTime(ctx, refIssue, timeDoer, c.Timestamp, ref.TimeLog); err != nil {
 						return err
 					}
 				}

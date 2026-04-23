@@ -144,6 +144,34 @@ func TestUpdateIssuesCommit_Colon(t *testing.T) {
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }
 
+func TestUpdateIssuesCommitTimeLogUsesAuthor(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	pushCommits := []*repository.PushCommit{
+		{
+			Sha1:           "abcdef1",
+			CommitterEmail: "user2@example.com",
+			CommitterName:  "User Two",
+			AuthorEmail:    "user4@example.com",
+			AuthorName:     "User Four",
+			Message:        "close #1 @1h",
+		},
+	}
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repo.Owner = user
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 1})
+	unittest.AssertNotExistsBean(t, &issues_model.TrackedTime{IssueID: issue.ID, UserID: 4})
+
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
+	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 1}, "is_closed=1")
+
+	trackedTime := unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{IssueID: issue.ID, UserID: 4})
+	assert.Equal(t, int64(3600), trackedTime.Time)
+	unittest.CheckConsistencyFor(t, &activities_model.Action{})
+}
+
 func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
