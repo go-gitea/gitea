@@ -422,13 +422,13 @@ func searchIssueInProject(t *testing.T) {
 		},
 		{
 			SearchOptions{
-				ProjectColumnID: optional.Some(int64(1)),
+				ProjectColumnIDs: []int64{1},
 			},
 			[]int64{1},
 		},
 		{
 			SearchOptions{
-				ProjectColumnID: optional.Some(int64(0)), // issue with in default column
+				ProjectColumnIDs: []int64{0}, // issue with in default column
 			},
 			[]int64{2},
 		},

@@ -89,21 +89,13 @@ func LoadProjectIssueColumnMap(ctx context.Context, projectID, defaultColumnID i
 
 // LoadIssuesFromColumn load issues assigned to this column
 func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *IssuesOptions) (IssueList, error) {
-	issueList, err := Issues(ctx, opts.Copy(func(o *IssuesOptions) {
-		o.ProjectColumnID = b.ID
-		o.ProjectIDs = []int64{b.ProjectID}
-		o.SortType = "project-column-sorting"
-	}))
+	issueList, err := loadIssuesForProjectColumn(ctx, b.ProjectID, b.ID, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	if b.Default {
-		issues, err := Issues(ctx, opts.Copy(func(o *IssuesOptions) {
-			o.ProjectColumnID = db.NoConditionID
-			o.ProjectIDs = []int64{b.ProjectID}
-			o.SortType = "project-column-sorting"
-		}))
+		issues, err := loadIssuesForProjectColumn(ctx, b.ProjectID, 0, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -111,6 +103,33 @@ func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *Is
 	}
 
 	if err := issueList.LoadComments(ctx); err != nil {
+		return nil, err
+	}
+
+	return issueList, nil
+}
+
+func loadIssuesForProjectColumn(ctx context.Context, projectID, columnID int64, opts *IssuesOptions) (IssueList, error) {
+	columnOpts := opts.Copy(func(o *IssuesOptions) {
+		o.ProjectIDs = []int64{projectID}
+		o.SortType = "project-column-sorting"
+	})
+	if columnOpts == nil {
+		columnOpts = &IssuesOptions{ProjectIDs: []int64{projectID}, SortType: "project-column-sorting"}
+	}
+
+	sess := db.GetEngine(ctx).
+		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
+	applyLimit(sess, columnOpts)
+	applyConditions(sess, columnOpts)
+	sess.And("project_issue.project_board_id = ?", columnID)
+	applySorts(sess, columnOpts.SortType, columnOpts.PriorityRepoID)
+
+	issueList := IssueList{}
+	if err := sess.Find(&issueList); err != nil {
+		return nil, err
+	}
+	if err := issueList.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
 

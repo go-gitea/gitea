@@ -65,7 +65,6 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		return nil
 	}
 
-	searchOpt.ProjectColumnID = convertID(opts.ProjectColumnID)
 	searchOpt.PosterID = opts.PosterID
 	searchOpt.MentionID = convertID(opts.MentionedID)
 	searchOpt.ReviewedID = convertID(opts.ReviewedID)

@@ -38,7 +38,6 @@ type IssuesOptions struct { //nolint:revive // export stutter
 	SubscriberID       int64
 	MilestoneIDs       []int64
 	ProjectIDs         []int64
-	ProjectColumnID    int64
 	IsClosed           optional.Option[bool]
 	IsPull             optional.Option[bool]
 	LabelIDs           []int64
@@ -203,42 +202,12 @@ func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) {
 	if len(projectIDs) == 1 && projectIDs[0] == db.NoConditionID { // show those that are in no project
 		sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue")))
 	} else if len(projectIDs) == 1 && projectIDs[0] > 0 { // single specific project
-		if opts.ProjectColumnID > 0 {
-			sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id AND project_issue.project_id = ? AND project_issue.project_board_id = ?", projectIDs[0], opts.ProjectColumnID)
-		} else if opts.ProjectColumnID == db.NoConditionID {
-			sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id AND project_issue.project_id = ? AND project_issue.project_board_id = 0", projectIDs[0])
-		} else {
-			sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id AND project_issue.project_id = ?", projectIDs[0])
-		}
+		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id AND project_issue.project_id = ?", projectIDs[0])
 	} else if len(projectIDs) > 1 { // multiple projects
-		cond := builder.In("project_id", projectIDs)
-		if opts.ProjectColumnID > 0 {
-			cond = builder.And(cond, builder.Eq{"project_board_id": opts.ProjectColumnID})
-		} else if opts.ProjectColumnID == db.NoConditionID {
-			cond = builder.And(cond, builder.Eq{"project_board_id": 0})
-		}
-		sess.And(builder.In("issue.id", builder.Select("issue_id").From("project_issue").Where(cond)))
+		sess.And(builder.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.In("project_id", projectIDs))))
 	}
 	// empty projectIDs means all projects,
 	// do not need to apply any condition
-}
-
-func applyProjectColumnCondition(sess *xorm.Session, opts *IssuesOptions) {
-	// If project filter was applied, it already handles ProjectColumnID inline,
-	// so we only apply standalone column filter when no project filter was specified.
-	projectIDs := util.SliceRemoveAll(opts.ProjectIDs, 0)
-	if len(projectIDs) > 0 {
-		// Project filter already handled column filtering
-		return
-	}
-
-	// opts.ProjectColumnID == 0 means all project columns,
-	// do not need to apply any condition
-	if opts.ProjectColumnID > 0 {
-		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectColumnID}))
-	} else if opts.ProjectColumnID == db.NoConditionID {
-		sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
-	}
 }
 
 func applyRepoConditions(sess *xorm.Session, opts *IssuesOptions) {
@@ -298,8 +267,6 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) {
 	}
 
 	applyProjectCondition(sess, opts)
-
-	applyProjectColumnCondition(sess, opts)
 
 	if opts.IsPull.Has() {
 		sess.And("issue.is_pull=?", opts.IsPull.Value())

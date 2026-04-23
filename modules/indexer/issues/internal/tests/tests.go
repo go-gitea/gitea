@@ -319,38 +319,38 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
-		Name: "ProjectColumnID",
+		Name: "ProjectColumnIDs",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectColumnID: optional.Some(int64(1)),
+			ProjectColumnIDs: []int64{1},
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(1), data[v.ID].ProjectColumnID)
+				assert.Contains(t, data[v.ID].ProjectColumnIDs, int64(1))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectColumnID == 1
+				return slices.Contains(v.ProjectColumnIDs, int64(1))
 			}), result.Total)
 		},
 	},
 	{
-		Name: "no ProjectColumnID",
+		Name: "no ProjectColumnIDs",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectColumnID: optional.Some(int64(0)),
+			ProjectColumnIDs: []int64{0},
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].ProjectColumnID)
+				assert.Contains(t, data[v.ID].ProjectColumnIDs, int64(0))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectColumnID == 0
+				return slices.Contains(v.ProjectColumnIDs, int64(0))
 			}), result.Total)
 		},
 	},
@@ -397,6 +397,14 @@ var cases = []*testIndexerCase{
 					// ProjectColumnMap should only contain projects from ProjectIDs
 					assert.Len(t, issue.ProjectColumnMap, len(issue.ProjectIDs),
 						"Issue %d: ProjectColumnMap size should match ProjectIDs size", v.ID)
+					// ProjectColumnIDs should cover all map values
+					for _, columnID := range issue.ProjectColumnMap {
+						assert.Contains(t, issue.ProjectColumnIDs, columnID,
+							"Issue %d: ProjectColumnIDs should include column %d", v.ID, columnID)
+					}
+				} else {
+					assert.Empty(t, issue.ProjectColumnIDs,
+						"Issue %d: ProjectColumnIDs should be empty when no projects", v.ID)
 				}
 			}
 		},
@@ -746,6 +754,13 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				projectColumnMap[projectID] = issueIndex % 6
 			}
 
+			projectColumnIDs := make([]int64, 0, len(projectColumnMap))
+			for _, columnID := range projectColumnMap {
+				projectColumnIDs = append(projectColumnIDs, columnID)
+			}
+			slices.Sort(projectColumnIDs)
+			projectColumnIDs = slices.Compact(projectColumnIDs)
+
 			data = append(data, &internal.IndexerData{
 				ID:                 id,
 				RepoID:             repoID,
@@ -760,7 +775,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				MilestoneID:        issueIndex % 4,
 				ProjectIDs:         projectIDs,
 				NoProject:          len(projectIDs) == 0,
-				ProjectColumnID:    issueIndex % 6,
+				ProjectColumnIDs:   projectColumnIDs,
 				ProjectColumnMap:   projectColumnMap,
 				PosterID:           id%10 + 1, // PosterID should not be 0
 				AssigneeID:         issueIndex % 10,

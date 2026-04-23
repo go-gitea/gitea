@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	issue_model "code.gitea.io/gitea/models/issues"
@@ -97,10 +98,12 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		return nil, false, err
 	}
 
-	projectColumnID := int64(0)
-	if len(projectIDs) == 1 {
-		projectColumnID = projectColumnMap[projectIDs[0]]
+	projectColumnIDs := make([]int64, 0, len(projectColumnMap))
+	for _, columnID := range projectColumnMap {
+		projectColumnIDs = append(projectColumnIDs, columnID)
 	}
+	slices.Sort(projectColumnIDs)
+	projectColumnIDs = slices.Compact(projectColumnIDs)
 
 	if err := issue.Repo.LoadOwner(ctx); err != nil {
 		return nil, false, fmt.Errorf("issue.Repo.LoadOwner: %w", err)
@@ -121,7 +124,7 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		MilestoneID:        issue.MilestoneID,
 		ProjectIDs:         projectIDs,
 		NoProject:          len(projectIDs) == 0,
-		ProjectColumnID:    projectColumnID,
+		ProjectColumnIDs:   projectColumnIDs,
 		ProjectColumnMap:   projectColumnMap,
 		PosterID:           issue.PosterID,
 		AssigneeID:         issue.AssigneeID,

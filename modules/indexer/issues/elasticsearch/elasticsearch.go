@@ -70,7 +70,7 @@ const (
 			"milestone_id": { "type": "integer", "index": true },
 			"project_ids": { "type": "integer", "index": true },
 			"no_project": { "type": "boolean", "index": true },
-			"project_board_id": { "type": "integer", "index": true },
+			"project_board_ids": { "type": "integer", "index": true },
 			"poster_id": { "type": "integer", "index": true },
 			"assignee_id": { "type": "integer", "index": true },
 			"mention_ids": { "type": "integer", "index": true },
@@ -210,8 +210,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	} else if len(options.ProjectIDs) > 0 {
 		query.Must(elastic.NewTermsQuery("project_ids", toAnySlice(options.ProjectIDs)...))
 	}
-	if options.ProjectColumnID.Has() {
-		query.Must(elastic.NewTermQuery("project_board_id", options.ProjectColumnID.Value()))
+	if len(options.ProjectColumnIDs) > 0 {
+		query.Must(elastic.NewTermsQuery("project_board_ids", toAnySlice(options.ProjectColumnIDs)...))
 	}
 
 	if options.PosterID != "" {

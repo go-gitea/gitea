@@ -85,7 +85,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	docMapping.AddFieldMappingsAt("milestone_id", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("project_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("no_project", boolFieldMapping)
-	docMapping.AddFieldMappingsAt("project_board_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("project_board_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("poster_id", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("assignee_id", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("mention_ids", numberFieldMapping)
@@ -252,8 +252,12 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		queries = append(queries, bleve.NewDisjunctionQuery(projectQueries...))
 	}
 
-	if options.ProjectColumnID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectColumnID.Value(), "project_board_id"))
+	if len(options.ProjectColumnIDs) > 0 {
+		var columnQueries []query.Query
+		for _, columnID := range options.ProjectColumnIDs {
+			columnQueries = append(columnQueries, inner_bleve.NumericEqualityQuery(columnID, "project_board_ids"))
+		}
+		queries = append(queries, bleve.NewDisjunctionQuery(columnQueries...))
 	}
 
 	if options.PosterID != "" {

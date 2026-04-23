@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/builder"
 )
 
 func TestIssueMultipleProjects(t *testing.T) {
@@ -501,28 +502,36 @@ func TestIssueMultipleProjects(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, issues, 2, "Should find both issues when filtering by both projects without column filter")
 
+		projectColumnCond := func(columnID int64, projectIDs []int64) builder.Cond {
+			cond := builder.NewCond().And(builder.Eq{"project_board_id": columnID})
+			if len(projectIDs) > 0 {
+				cond = cond.And(builder.In("project_id", projectIDs))
+			}
+			return builder.In("issue.id", builder.Select("issue_id").From("project_issue").Where(cond))
+		}
+
+		projectIDs := []int64{project1.ID, project2.ID}
+
 		// Query for issues in both projects with project1's default column - should only find issue1
-		issues, err = issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
-			RepoIDs:         []int64{issue1.RepoID},
-			ProjectIDs:      []int64{project1.ID, project2.ID},
-			ProjectColumnID: columns1[0].ID,
-		})
+		issueIDs, _, err := issues_model.IssueIDs(t.Context(), &issues_model.IssuesOptions{
+			RepoIDs:    []int64{issue1.RepoID},
+			ProjectIDs: projectIDs,
+		}, projectColumnCond(columns1[0].ID, projectIDs))
 		require.NoError(t, err)
-		assert.Len(t, issues, 1, "Should find only 1 issue when filtering by specific column")
-		if len(issues) > 0 {
-			assert.Equal(t, issue1.ID, issues[0].ID, "Should find issue1 in project1's default column")
+		assert.Len(t, issueIDs, 1, "Should find only 1 issue when filtering by specific column")
+		if len(issueIDs) > 0 {
+			assert.Equal(t, issue1.ID, issueIDs[0], "Should find issue1 in project1's default column")
 		}
 
 		// Query for issues in both projects with project2's default column - should only find issue2
-		issues, err = issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
-			RepoIDs:         []int64{issue1.RepoID},
-			ProjectIDs:      []int64{project1.ID, project2.ID},
-			ProjectColumnID: columns2[0].ID,
-		})
+		issueIDs, _, err = issues_model.IssueIDs(t.Context(), &issues_model.IssuesOptions{
+			RepoIDs:    []int64{issue1.RepoID},
+			ProjectIDs: projectIDs,
+		}, projectColumnCond(columns2[0].ID, projectIDs))
 		require.NoError(t, err)
-		assert.Len(t, issues, 1, "Should find only 1 issue when filtering by specific column")
-		if len(issues) > 0 {
-			assert.Equal(t, issue2.ID, issues[0].ID, "Should find issue2 in project2's default column")
+		assert.Len(t, issueIDs, 1, "Should find only 1 issue when filtering by specific column")
+		if len(issueIDs) > 0 {
+			assert.Equal(t, issue2.ID, issueIDs[0], "Should find issue2 in project2's default column")
 		}
 
 		// Clean up
