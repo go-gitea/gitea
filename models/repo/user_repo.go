@@ -95,8 +95,7 @@ func GetWatchedRepos(ctx context.Context, opts *WatchedReposOptions) ([]*Reposit
 	return db.FindAndCount[Repository](ctx, opts)
 }
 
-// GetRepoAssignees returns all users that have write access and can be assigned to issues
-// of the repository,
+// GetRepoAssignees returns all users that have write access and can be assigned to issues or pull-requests of the repository,
 func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.User, err error) {
 	if err = repo.LoadOwner(ctx); err != nil {
 		return nil, err
@@ -115,7 +114,8 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 	uniqueUserIDs.AddMultiple(userIDs...)
 
 	if repo.Owner.IsOrganization() {
-		additionalUserIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
+		// issues and pull requests both need "assignee list"
+		additionalUserIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypeIssues, unit.TypePullRequests)
 		if err != nil {
 			return nil, err
 		}

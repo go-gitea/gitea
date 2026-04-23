@@ -19,9 +19,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRepoAssignees(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func TestUserRepo(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	t.Run("Assignees", testUserRepoAssignees)
+	t.Run("AssigneesNoTeamUnit", testRepoAssigneesNoTeamUnit)
+	t.Run("GetIssuePostersWithSearch", testUserRepoGetIssuePostersWithSearch)
+}
 
+func testUserRepoAssignees(t *testing.T) {
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	users, err := repo_model.GetRepoAssignees(t.Context(), repo2)
 	assert.NoError(t, err)
@@ -44,10 +49,7 @@ func TestRepoAssignees(t *testing.T) {
 	}
 }
 
-func TestRepoAssigneesIncludesOwnerTeamWithZeroUnitAccessMode(t *testing.T) {
-	// Regression: owner/admin team members were excluded when team_unit.access_mode=0,
-	// because the old query filtered only on team_unit.access_mode and ignored team.authorize.
-	require.NoError(t, unittest.PrepareTestDatabase())
+func testRepoAssigneesNoTeamUnit(t *testing.T) {
 	ctx := t.Context()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
@@ -57,22 +59,19 @@ func TestRepoAssigneesIncludesOwnerTeamWithZeroUnitAccessMode(t *testing.T) {
 	require.NoError(t, db.TruncateBeans(ctx, &organization.Team{}, &organization.TeamUser{}, &organization.TeamRepo{}, &organization.TeamUnit{}, &access_model.Access{}))
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-	team := &organization.Team{OrgID: repo.OwnerID, LowerName: "owners_like", AccessMode: perm_model.AccessModeOwner}
+	team := &organization.Team{OrgID: repo.OwnerID, LowerName: "admin-team", AccessMode: perm_model.AccessModeAdmin}
 	require.NoError(t, db.Insert(ctx, team))
 	require.NoError(t, db.Insert(ctx, &organization.TeamUser{OrgID: repo.OwnerID, TeamID: team.ID, UID: user.ID}))
 	require.NoError(t, db.Insert(ctx, &organization.TeamRepo{OrgID: repo.OwnerID, TeamID: team.ID, RepoID: repo.ID}))
-	require.NoError(t, db.Insert(ctx, &organization.TeamUnit{OrgID: repo.OwnerID, TeamID: team.ID, Type: unit.TypeCode, AccessMode: perm_model.AccessModeNone}))
+	require.NoError(t, db.Insert(ctx, &organization.TeamUnit{OrgID: repo.OwnerID, TeamID: team.ID, Type: unit.TypePullRequests, AccessMode: perm_model.AccessModeNone}))
 
 	users, err := repo_model.GetRepoAssignees(ctx, repo)
 	require.NoError(t, err)
-	userIDs := make([]int64, 0, len(users))
-	for _, u := range users {
-		userIDs = append(userIDs, u.ID)
-	}
-	assert.Contains(t, userIDs, user.ID)
+	require.Len(t, users, 1)
+	assert.ElementsMatch(t, []int64{4}, []int64{users[0].ID})
 }
 
-func TestGetIssuePostersWithSearch(t *testing.T) {
+func testUserRepoGetIssuePostersWithSearch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
