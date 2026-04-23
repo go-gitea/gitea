@@ -550,17 +550,11 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 		// services/asymkey/sign.go; the test config uses SIGNING_KEY = none.
 		const wontSignMsg = "wont sign: nokey"
 
-		type webErrBody struct {
-			ErrorMessage string `json:"errorMessage"`
-		}
-
 		for _, style := range []repo_model.MergeStyle{repo_model.MergeStyleFastForwardOnly, repo_model.MergeStyleMerge} {
 			t.Run(string(style)+"/head-commits-unverified", func(t *testing.T) {
 				mergeReq := NewRequestWithValues(t, http.MethodPost, mergeURL, map[string]string{"do": string(style)})
 				resp := session.MakeRequest(t, mergeReq, http.StatusBadRequest)
-				var body webErrBody
-				DecodeJSON(t, resp, &body)
-				assert.Equal(t, notVerifiedMsg, body.ErrorMessage)
+				assert.Equal(t, notVerifiedMsg, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 			})
 		}
 
@@ -568,9 +562,7 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 			t.Run(string(style)+"/wont-sign", func(t *testing.T) {
 				mergeReq := NewRequestWithValues(t, http.MethodPost, mergeURL, map[string]string{"do": string(style)})
 				resp := session.MakeRequest(t, mergeReq, http.StatusBadRequest)
-				var body webErrBody
-				DecodeJSON(t, resp, &body)
-				assert.Equal(t, wontSignMsg, body.ErrorMessage)
+				assert.Equal(t, wontSignMsg, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 			})
 		}
 
@@ -582,9 +574,7 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 				"force_merge": "true",
 			})
 			resp := session.MakeRequest(t, mergeReq, http.StatusBadRequest)
-			var body webErrBody
-			DecodeJSON(t, resp, &body)
-			assert.Equal(t, notVerifiedMsg, body.ErrorMessage)
+			assert.Equal(t, notVerifiedMsg, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 		})
 
 		t.Run("api/fast-forward-only/head-commits-unverified", func(t *testing.T) {
