@@ -7,12 +7,12 @@ import {addDelegatedEventListener} from '../utils/dom.ts';
 const issueInfoCache = new Map<string, any>();
 
 async function getIssueInfo(url: string): Promise<any> {
-  if (!issueInfoCache.has(url)) {
-    const resp = await GET(url);
-    if (!resp.ok) throw new Error(resp.statusText || 'Unknown network error');
-    issueInfoCache.set(url, await resp.json());
-  }
-  return issueInfoCache.get(url);
+  if (issueInfoCache.has(url)) return issueInfoCache.get(url);
+  const resp = await GET(url);
+  if (!resp.ok) throw new Error(resp.statusText || 'Unknown network error');
+  const data = await resp.json();
+  issueInfoCache.set(url, data);
+  return data;
 }
 
 async function showRefIssuePopup(link: HTMLAnchorElement) {
