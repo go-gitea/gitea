@@ -7,6 +7,7 @@ import (
 	gocontext "context"
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -719,6 +720,21 @@ func CompareDiff(ctx *context.Context) {
 		ctx.Data["AllowMaintainerEdit"] = config.DefaultAllowMaintainerEdit
 	} else {
 		ctx.Data["AllowMaintainerEdit"] = false
+	}
+
+	refIssueIndex := ctx.FormInt64("ref_issue_index")
+	if refIssueIndex > 0 {
+		refIssue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, refIssueIndex)
+		if err != nil {
+			ctx.Flash.Warning(ctx.Tr("repo.issues.pr.not_exist_issue"), true)
+		} else {
+			keyword := "Resolve"
+			if len(setting.Repository.PullRequest.CloseKeywords) > 0 {
+				keyword = setting.Repository.PullRequest.CloseKeywords[0]
+			}
+			ctx.Data["TitleQuery"] = fmt.Sprintf("%s %s", keyword, refIssue.Title)
+			ctx.Data["BodyQuery"] = fmt.Sprintf("%s #%d", keyword, refIssueIndex)
+		}
 	}
 
 	ctx.HTML(http.StatusOK, tplCompare)

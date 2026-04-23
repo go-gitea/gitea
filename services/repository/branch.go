@@ -573,6 +573,22 @@ func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchNam
 	return nil
 }
 
+func DeleteIssueDevLinkByBranchName(ctx context.Context, repoID int64, branchName string) error {
+	branch, err := git_model.GetBranch(ctx, repoID, branchName)
+	if err != nil && !git_model.IsErrBranchNotExist(err) {
+		return fmt.Errorf("GetBranch: %v", err)
+	}
+	if branch == nil {
+		return nil
+	}
+
+	_, err = db.GetEngine(ctx).
+		Where("linked_repo_id = ? AND link_type = ? AND link_id = ?",
+			repoID, issues_model.IssueDevLinkTypeBranch, branch.ID).
+		Delete(new(issues_model.IssueDevLink))
+	return err
+}
+
 func deleteBranchInternal(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branchName string, branchCommit *git.Commit) (branchExisted bool, err error) {
 	activeInDB, err := git_model.IsBranchExist(ctx, repo.ID, branchName)
 	if err != nil {
@@ -584,6 +600,10 @@ func deleteBranchInternal(ctx context.Context, doer *user_model.User, repo *repo
 		if err := git_model.MarkBranchAsDeleted(ctx, repo.ID, branchName, doer.ID); err != nil {
 			return false, err
 		}
+	}
+
+	if err := DeleteIssueDevLinkByBranchName(ctx, repo.ID, branchName); err != nil {
+		return false, err
 	}
 
 	// process the branch in git
