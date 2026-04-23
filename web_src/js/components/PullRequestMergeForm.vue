@@ -37,8 +37,8 @@ const forceMerge = computed(() => {
 
 watch(mergeStyle, (val) => {
   mergeStyleDetail.value = mergeForm.mergeStyles.find((e: any) => e.name === val);
-  for (const elem of document.querySelectorAll('[data-pull-merge-styles]')) {
-    toggleElem(elem, elem.getAttribute('data-pull-merge-styles')!.split(',').includes(val));
+  for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
+    toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
   }
 });
 
