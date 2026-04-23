@@ -450,9 +450,9 @@ test('select projects on new issue page shows in sidebar', async ({page}) => {
 
     // Verify both projects appear in the sidebar list below the dropdown
     // On new issue page, these are simple cloned items rendered in the list container
-    const projectList = page.locator('[data-testid="issue-sidebar-projects"] .ui.list, [data-testid="issue-sidebar-projects"] .flex-relaxed-list');
-    await expect(projectList.locator(`.item:has-text("${project1Title}")`).first()).toBeVisible();
-    await expect(projectList.locator(`.item:has-text("${project2Title}")`).first()).toBeVisible();
+    const projectList = page.locator('.issue-sidebar-projects');
+    await expect(projectList.locator(`.issue-sidebar-project-item:has-text("${project1Title}")`).first()).toBeVisible();
+    await expect(projectList.locator(`.issue-sidebar-project-item:has-text("${project2Title}")`).first()).toBeVisible();
   } finally {
     await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
   }
