@@ -90,14 +90,11 @@ func TestCheckSigningRequirementsHeadCommits(t *testing.T) {
 	require.NoError(t, check())
 
 	// Protected branch without RequireSignedCommits: the check must still pass.
-	txCtx, committer, err := db.TxContext(ctx)
-	require.NoError(t, err)
-	require.NoError(t, git_model.UpdateProtectBranch(txCtx, pr.BaseRepo, &git_model.ProtectedBranch{
+	require.NoError(t, git_model.UpdateProtectBranch(ctx, pr.BaseRepo, &git_model.ProtectedBranch{
 		RepoID:               pr.BaseRepoID,
 		RuleName:             pr.BaseBranch,
 		RequireSignedCommits: false,
 	}, git_model.WhitelistOptions{}))
-	require.NoError(t, committer.Commit())
 	require.NoError(t, check())
 
 	// With RequireSignedCommits enabled: the test fixture commits have no signatures,
@@ -106,10 +103,7 @@ func TestCheckSigningRequirementsHeadCommits(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, pb)
 	pb.RequireSignedCommits = true
-	txCtx, committer, err = db.TxContext(ctx)
-	require.NoError(t, err)
-	require.NoError(t, git_model.UpdateProtectBranch(txCtx, pr.BaseRepo, pb, git_model.WhitelistOptions{}))
-	require.NoError(t, committer.Commit())
+	require.NoError(t, git_model.UpdateProtectBranch(ctx, pr.BaseRepo, pb, git_model.WhitelistOptions{}))
 	require.ErrorIs(t, check(), ErrHeadCommitsNotAllVerified)
 }
 

@@ -17,7 +17,6 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -536,14 +535,11 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 		})
 
 		// Enable require-signed-commits on master.
-		txCtx, committer, err := db.TxContext(t.Context())
-		require.NoError(t, err)
-		require.NoError(t, git_model.UpdateProtectBranch(txCtx, repo1, &git_model.ProtectedBranch{
+		require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo1, &git_model.ProtectedBranch{
 			RepoID:               repo1.ID,
 			RuleName:             "master",
 			RequireSignedCommits: true,
 		}, git_model.WhitelistOptions{}))
-		require.NoError(t, committer.Commit())
 
 		prIndex := strconv.FormatInt(pr.Index, 10)
 		mergeURL := "/user1/repo1/pulls/" + prIndex + "/merge"
@@ -585,14 +581,11 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 			assert.Contains(t, resp.Body.String(), "not all head commits are verified")
 		})
 
-		txCtx, committer, err = db.TxContext(t.Context())
-		require.NoError(t, err)
 		pb, err := git_model.GetFirstMatchProtectedBranchRule(t.Context(), repo1.ID, "master")
 		require.NoError(t, err)
 		require.NotNil(t, pb)
 		pb.RequireSignedCommits = false
-		require.NoError(t, git_model.UpdateProtectBranch(txCtx, repo1, pb, git_model.WhitelistOptions{}))
-		require.NoError(t, committer.Commit())
+		require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo1, pb, git_model.WhitelistOptions{}))
 
 		require.NoError(t, pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false))
 	})
