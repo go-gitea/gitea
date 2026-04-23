@@ -9,8 +9,15 @@
 .page-content.organization #org-info .ui.header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   font-size: 36px;
   margin-bottom: 0;
+}
+
+@media (max-width: 767.98px) {
+  .page-content.organization #org-info .ui.header {
+    font-size: 24px;
+  }
 }
 
 .page-content.organization #org-info .desc {
@@ -34,11 +41,13 @@
 .organization.invite #invite-box {
   margin: 50px auto auto;
   width: 500px !important;
+  max-width: 100%;
 }
 
 .organization.invite #invite-box #search-user-box input {
   margin-left: 0;
   width: 300px;
+  max-width: 100%;
 }
 
 .organization.invite #invite-box .ui.button {
