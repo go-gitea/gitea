@@ -86,6 +86,22 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 	})
 }
 
+func LoadIssuesAssigneesForProject(ctx context.Context, issuesMap map[int64]issues_model.IssueList) ([]*user_model.User, error) {
+	var issueList issues_model.IssueList
+	for _, colIssues := range issuesMap {
+		issueList = append(issueList, colIssues...)
+	}
+	err := issueList.LoadAssignees(ctx)
+	if err != nil {
+		return nil, err
+	}
+	users := make([]*user_model.User, 0, len(issueList))
+	for _, issue := range issueList {
+		users = append(users, issue.Assignees...)
+	}
+	return users, nil
+}
+
 // LoadIssuesFromProject load issues assigned to each project column inside the given project
 func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (results map[int64]issues_model.IssueList, _ error) {
 	issueList, err := issues_model.Issues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
