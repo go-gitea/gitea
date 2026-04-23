@@ -19,13 +19,17 @@ import {
  * When a commit reaches a branch via two different merge paths, Gitea incorrectly
  * lists it as a new commit in a subsequent PR that targets that branch.
  *
- * Scenario:
- *   1. commit A is added to `feature`
- *   2. PR feature → staging is merged  (commit A is now in staging)
- *   3. PR feature → develop is merged  (commit A is now in develop)
- *   4. PR develop → staging is opened
- *   → BUG: PR #4 lists commit A as new, even though it is already in staging
- *   → FIX: PR #4 lists 0 commits (nothing new for staging)
+ * Git topology after setup:
+ *   main:    A
+ *   feature: A → B          (B = the feature file commit)
+ *   staging: A → M1         (M1 = merge commit "feature into staging"; M1 contains B)
+ *   develop: A → M2         (M2 = merge commit "feature into develop"; M2 contains B)
+ *
+ * PR develop → staging (PR3):
+ *   git log staging..develop = [M2]   (M2 is new in develop; B is already in staging via M1)
+ *
+ *   → BUG: PR3 lists [M2, B] (2 commits) — B incorrectly shown as new for staging
+ *   → FIX: PR3 lists [M2]   (1 commit)  — only the genuinely new merge commit appears
  */
 test('PR should not list commits already present in the target branch via another merge path', async ({page, request}) => {
   const owner = env.GITEA_TEST_E2E_USER;
@@ -70,9 +74,12 @@ test('PR should not list commits already present in the target branch via anothe
 
     const commits = await apiGetPullRequestCommits(request, owner, repo, pr3);
 
-    // The commit from `feature` is already in `staging` via PR 1.
-    // A correct implementation lists 0 new commits for this PR.
-    expect(commits, 'PR develop→staging must not list commits already present in staging').toHaveLength(0);
+    // M2 (the merge commit "feature into develop") is genuinely new in develop and
+    // should appear. The feature file commit B must NOT appear — it is already
+    // reachable from staging via M1. A buggy Gitea lists both (length 2); a correct
+    // implementation lists only M2 (length 1).
+    expect(commits, 'PR develop→staging must not list commits already present in staging').toHaveLength(1);
+    expect(commits[0].commit.message, 'Only the develop merge commit should appear — not the feature file commit').toContain('feature into develop');
   } finally {
     await apiDeleteRepo(request, owner, repo);
   }
