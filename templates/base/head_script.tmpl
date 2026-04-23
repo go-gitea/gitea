@@ -2,14 +2,13 @@
 If you are customizing Gitea, please do not change this file.
 If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 */}}
-<script>
+<script nonce="{{ctx.CspScriptNonce}}">
 	{{/* before our JS code gets loaded, use arrays to store errors, then the arrays will be switched to our error handler later */}}
 	window.addEventListener('error', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 	window.addEventListener('unhandledrejection', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 	window.config = {
-		appUrl: '{{AppUrl}}',
+		appUrl: '{{ctx.AppFullLink "/"}}',
 		appSubUrl: '{{AppSubUrl}}',
-		assetVersionEncoded: encodeURIComponent('{{AssetVersion}}'), // will be used in URL construction directly
 		assetUrlPrefix: '{{AssetUrlPrefix}}',
 		runModeIsProd: {{.RunModeIsProd}},
 		customEmojis: {{CustomEmojis}},
@@ -17,6 +16,7 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 		notificationSettings: {{NotificationSettings}}, {{/*a map provided by NewFuncMap in helper.go*/}}
 		enableTimeTracking: {{EnableTimetracking}},
 		mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
+		sharedWorkerUri: '{{AssetURI "js/eventsource.sharedworker.js"}}',
 		{{/* this global i18n object should only contain general texts. for specialized texts, it should be provided inside the related modules by: (1) API response (2) HTML data-attribute (3) PageData */}}
 		i18n: {
 			copy_success: {{ctx.Locale.Tr "copy_success"}},
@@ -31,4 +31,4 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 	{{/* in case some pages don't render the pageData, we make sure it is an object to prevent null access */}}
 	window.config.pageData = window.config.pageData || {};
 </script>
-<script src="{{AssetUrlPrefix}}/js/index.js?v={{AssetVersion}}" onerror="alert('Failed to load asset files from ' + this.src + '. Please make sure the asset files can be accessed.')"></script>
+{{ctx.ScriptImport "js/iife.js"}}

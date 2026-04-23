@@ -115,6 +115,20 @@ func DeleteFileByID(ctx context.Context, fileID int64) error {
 	return err
 }
 
+// DeleteFilesByPackageID deletes all files of a specific package
+// Versions must not be deleted prior to this call
+func DeleteFilesByPackageID(ctx context.Context, packageID int64) error {
+	deleteStmt := builder.Delete(builder.In("version_id", builder.Select("package_version.id").From("package_version").Where(builder.Eq{"package_id": packageID}))).From("package_file")
+	_, err := db.GetEngine(ctx).Exec(deleteStmt)
+	return err
+}
+
+// DeleteFilesByVersionID deletes all files of a specific version
+func DeleteFilesByVersionID(ctx context.Context, versionID int64) error {
+	_, err := db.GetEngine(ctx).Where("version_id = ?", versionID).Delete(&PackageFile{})
+	return err
+}
+
 func UpdateFile(ctx context.Context, pf *PackageFile, cols []string) error {
 	_, err := db.GetEngine(ctx).ID(pf.ID).Cols(cols...).Update(pf)
 	return err

@@ -153,7 +153,11 @@ func (run *ActionRun) LoadRepo(ctx context.Context) error {
 }
 
 func (run *ActionRun) Duration() time.Duration {
-	return calculateDuration(run.Started, run.Stopped, run.Status) + run.PreviousDuration
+	d := calculateDuration(run.Started, run.Stopped, run.Status, run.Updated) + run.PreviousDuration
+	if d < 0 {
+		return 0
+	}
+	return d
 }
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
@@ -322,16 +326,16 @@ func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, er
 	return &run, nil
 }
 
-func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error) {
+func GetRunByRepoAndIndex(ctx context.Context, repoID, runIndex int64) (*ActionRun, error) {
 	run := &ActionRun{
 		RepoID: repoID,
-		Index:  index,
+		Index:  runIndex,
 	}
 	has, err := db.GetEngine(ctx).Get(run)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, fmt.Errorf("run with index %d %d: %w", repoID, index, util.ErrNotExist)
+		return nil, fmt.Errorf("run with repo_id %d and index %d: %w", repoID, runIndex, util.ErrNotExist)
 	}
 
 	return run, nil

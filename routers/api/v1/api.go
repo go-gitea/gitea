@@ -11,11 +11,9 @@
 //
 //	Consumes:
 //	- application/json
-//	- text/plain
 //
 //	Produces:
 //	- application/json
-//	- text/html
 //
 //	Security:
 //	- BasicAuth :
@@ -202,7 +200,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			if needTwoFactor {
 				ctx.Repo.Permission = access_model.PermissionNoAccess()
 			} else {
-				ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+				ctx.Repo.Permission, err = access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 				if err != nil {
 					ctx.APIErrorInternal(err)
 					return
@@ -916,6 +914,7 @@ func Routes() *web.Router {
 				m.Post("/registration-token", reqToken(), reqOwnerCheck, act.CreateRegistrationToken)
 				m.Get("/{runner_id}", reqToken(), reqOwnerCheck, act.GetRunner)
 				m.Delete("/{runner_id}", reqToken(), reqOwnerCheck, act.DeleteRunner)
+				m.Patch("/{runner_id}", reqToken(), reqOwnerCheck, bind(api.EditActionRunnerOption{}), act.UpdateRunner)
 			})
 			m.Get("/runs", reqToken(), reqReaderCheck, act.ListWorkflowRuns)
 			m.Get("/jobs", reqToken(), reqReaderCheck, act.ListWorkflowJobs)
@@ -1043,6 +1042,7 @@ func Routes() *web.Router {
 					m.Post("/registration-token", reqToken(), user.CreateRegistrationToken)
 					m.Get("/{runner_id}", reqToken(), user.GetRunner)
 					m.Delete("/{runner_id}", reqToken(), user.DeleteRunner)
+					m.Patch("/{runner_id}", reqToken(), bind(api.EditActionRunnerOption{}), user.UpdateRunner)
 				})
 
 				m.Get("/runs", reqToken(), user.ListWorkflowRuns)
@@ -1228,10 +1228,10 @@ func Routes() *web.Router {
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
 					m.Post("", bind(api.CreateBranchProtectionOption{}), mustNotBeArchived, repo.CreateBranchProtection)
-					m.Group("/{name}", func() {
+					m.Group("/*", func() {
 						m.Get("", repo.GetBranchProtection)
 						m.Patch("", bind(api.EditBranchProtectionOption{}), mustNotBeArchived, repo.EditBranchProtection)
-						m.Delete("", repo.DeleteBranchProtection)
+						m.Delete("", mustNotBeArchived, repo.DeleteBranchProtection)
 					})
 					m.Post("/priority", bind(api.UpdateBranchProtectionPriories{}), mustNotBeArchived, repo.UpdateBranchProtectionPriories)
 				}, reqToken(), reqAdmin())
@@ -1257,6 +1257,7 @@ func Routes() *web.Router {
 							m.Get("", repo.GetWorkflowRun)
 							m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
 							m.Post("/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowRun)
+							m.Post("/rerun-failed-jobs", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunFailedWorkflowRun)
 							m.Get("/jobs", repo.ListWorkflowRunJobs)
 							m.Post("/jobs/{job_id}/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowJob)
 							m.Get("/artifacts", repo.GetArtifactsOfRun)
@@ -1577,10 +1578,11 @@ func Routes() *web.Router {
 		m.Group("/packages/{username}", func() {
 			m.Group("/{type}/{name}", func() {
 				m.Get("/", packages.ListPackageVersions)
+				m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
 
 				m.Group("/{version}", func() {
 					m.Get("", packages.GetPackage)
-					m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
+					m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackageVersion)
 					m.Get("/files", packages.ListPackageFiles)
 				})
 
@@ -1608,7 +1610,8 @@ func Routes() *web.Router {
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)
 			m.Post("/rename", reqToken(), reqOrgOwnership(), bind(api.RenameOrgOption{}), org.Rename)
 			m.Combo("/repos").Get(user.ListOrgRepos).
-				Post(reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
+				Post(reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo).
+				Delete(reqToken(), reqOrgOwnership(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), org.DeleteOrgRepos)
 			m.Group("/members", func() {
 				m.Get("", reqToken(), org.ListMembers)
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
@@ -1728,6 +1731,7 @@ func Routes() *web.Router {
 					m.Post("/registration-token", admin.CreateRegistrationToken)
 					m.Get("/{runner_id}", admin.GetRunner)
 					m.Delete("/{runner_id}", admin.DeleteRunner)
+					m.Patch("/{runner_id}", bind(api.EditActionRunnerOption{}), admin.UpdateRunner)
 				})
 				m.Get("/runs", admin.ListWorkflowRuns)
 				m.Get("/jobs", admin.ListWorkflowJobs)

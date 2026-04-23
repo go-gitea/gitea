@@ -102,10 +102,14 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 	return nil
 }
 
-func updateOrgRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Repository, makePrivate bool) error {
+func updateRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Repository, makePrivate bool) error {
+	if err := repo.LoadOwner(ctx); err != nil {
+		return fmt.Errorf("LoadOwner: %w", err)
+	}
+
 	// Organization repository need to recalculate access table when visibility is changed.
-	if err := access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
-		return fmt.Errorf("recalculateTeamAccesses: %w", err)
+	if err := access_model.RecalculateAccesses(ctx, repo); err != nil {
+		return fmt.Errorf("RecalculateAccesses: %w", err)
 	}
 
 	if makePrivate {
@@ -135,7 +139,7 @@ func updateOrgRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Rep
 		return fmt.Errorf("getRepositoriesByForkID: %w", err)
 	}
 	for i := range forkRepos {
-		if err := updateOrgRepoForVisibilityChanged(ctx, forkRepos[i], makePrivate); err != nil {
+		if err := updateRepoForVisibilityChanged(ctx, forkRepos[i], makePrivate); err != nil {
 			return fmt.Errorf("updateRepoForVisibilityChanged[%s]: %w", forkRepos[i].FullName(), err)
 		}
 	}
@@ -161,10 +165,27 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 			return err
 		}
 		for _, repo := range repos {
-			if err := updateOrgRepoForVisibilityChanged(ctx, repo, visibility == structs.VisibleTypePrivate); err != nil {
-				return fmt.Errorf("updateOrgRepoForVisibilityChanged: %w", err)
+			if err := updateRepoForVisibilityChanged(ctx, repo, visibility == structs.VisibleTypePrivate); err != nil {
+				return fmt.Errorf("updateRepoForVisibilityChanged: %w", err)
 			}
 		}
 		return nil
 	})
+}
+
+// UpdateOrgEmailAddress validates and updates the organization's contact email.
+// A nil email means no change.
+func UpdateOrgEmailAddress(ctx context.Context, org *org_model.Organization, email *string) error {
+	if email == nil {
+		return nil
+	}
+
+	if *email != "" {
+		if err := user_model.ValidateEmail(*email); err != nil {
+			return err
+		}
+	}
+
+	org.Email = *email
+	return user_model.UpdateUserCols(ctx, org.AsUser(), "email")
 }

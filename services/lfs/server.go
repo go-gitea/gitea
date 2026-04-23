@@ -42,7 +42,6 @@ type requestContext struct {
 	User          string
 	Repo          string
 	Authorization string
-	Method        string
 	RepoGitURL    string
 }
 
@@ -173,7 +172,7 @@ func DownloadHandler(ctx *context.Context) {
 	if len(filename) > 0 {
 		decodedFilename, err := base64.RawURLEncoding.DecodeString(filename)
 		if err == nil {
-			ctx.Resp.Header().Set("Content-Disposition", "attachment; filename=\""+string(decodedFilename)+"\"")
+			ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment(string(decodedFilename)))
 			ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 		}
 	}
@@ -427,7 +426,6 @@ func getRequestContext(ctx *context.Context) *requestContext {
 		User:          ownerName,
 		Repo:          repoName,
 		Authorization: ctx.Req.Header.Get("Authorization"),
-		Method:        ctx.Req.Method,
 		RepoGitURL:    httplib.GuessCurrentAppURL(ctx) + url.PathEscape(ownerName) + "/" + url.PathEscape(repoName+".git"),
 	}
 }
@@ -490,7 +488,8 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			var link *lfs_module.Link
 			if setting.LFS.Storage.ServeDirect() {
 				// If we have a signed url (S3, object storage), redirect to this directly.
-				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid, rc.Method, nil)
+				// DO NOT USE the http POST method coming from the lfs batch endpoint
+				u, err := storage.LFS.ServeDirectURL(pointer.RelativePath(), pointer.Oid, http.MethodGet, nil)
 				if u != nil && err == nil {
 					link = lfs_module.NewLink(u.String()) // Presigned url does not need the Authorization header
 				}
@@ -551,9 +550,9 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	}
 
 	// it works for both anonymous request and signed-in user, then perm.CanAccess will do the permission check
-	perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
-		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
+		log.Error("Unable to GetDoerRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
 		return false
 	}
 

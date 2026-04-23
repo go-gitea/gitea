@@ -67,7 +67,7 @@ func (err ErrNotValidReviewRequest) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
-// ErrReviewRequestOnClosedPR represents an error when an user tries to request a re-review on a closed or merged PR.
+// ErrReviewRequestOnClosedPR represents an error when a user tries to request a re-review on a closed or merged PR.
 type ErrReviewRequestOnClosedPR struct{}
 
 // IsErrReviewRequestOnClosedPR checks if an error is an ErrReviewRequestOnClosedPR.
@@ -919,7 +919,7 @@ func CanMarkConversation(ctx context.Context, issue *Issue, doer *user_model.Use
 		return false, nil
 	}
 	if doer.ID != issue.PosterID {
-		p, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+		p, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return false, err
 		}

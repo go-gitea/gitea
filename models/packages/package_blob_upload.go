@@ -31,16 +31,13 @@ type PackageBlobUpload struct {
 
 // CreateBlobUpload inserts a blob upload
 func CreateBlobUpload(ctx context.Context) (*PackageBlobUpload, error) {
-	id, err := util.CryptoRandomString(25)
-	if err != nil {
-		return nil, err
-	}
+	id := util.CryptoRandomString(25)
 
 	pbu := &PackageBlobUpload{
 		ID: strings.ToLower(id),
 	}
 
-	_, err = db.GetEngine(ctx).Insert(pbu)
+	_, err := db.GetEngine(ctx).Insert(pbu)
 	return pbu, err
 }
 

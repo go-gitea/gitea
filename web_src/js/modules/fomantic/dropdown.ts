@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import type {FomanticInitFunction} from '../../types.ts';
 import {generateElemId, queryElems} from '../../utils/dom.ts';
 
@@ -325,7 +324,7 @@ export function hideScopedEmptyDividers(container: Element) {
       handleScopeSwitch(itemScope);
     }
     if (!isHidden(item)) {
-      curScopeVisibleItems.push(item as HTMLElement);
+      curScopeVisibleItems.push(item);
     }
   }
   handleScopeSwitch('');

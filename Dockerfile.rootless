@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Build frontend on the native platform to avoid QEMU-related issues with esbuild/webpack
+# Build frontend on the native platform to avoid QEMU-related issues with nodejs ecosystem
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26-alpine3.23 AS frontend-build
 RUN apk --no-cache add build-base git nodejs pnpm
 WORKDIR /src

@@ -258,13 +258,13 @@ class RelativeTime extends HTMLElement {
   }
 
   get #lang(): string {
-    const lang = this.closest('[lang]')?.getAttribute('lang');
-    if (!lang) return navigator.language;
-    try {
-      return new Intl.Locale(lang).toString();
-    } catch {
-      return navigator.language;
+    for (const candidate of [this.closest('[lang]')?.getAttribute('lang'), navigator.language]) {
+      if (!candidate) continue;
+      try {
+        return String(new Intl.Locale(candidate));
+      } catch {}
     }
+    return 'en';
   }
 
   get second(): 'numeric' | '2-digit' | undefined {
@@ -322,6 +322,10 @@ class RelativeTime extends HTMLElement {
     return this.getAttribute('prefix') ?? (this.format === 'datetime' ? '' : 'on');
   }
 
+  set prefix(v: string) {
+    this.setAttribute('prefix', v);
+  }
+
   get #thresholdMs(): number {
     const ms = parseDurationMs(this.getAttribute('threshold') ?? '');
     return ms >= 0 ? ms : 30 * 86400000;
@@ -353,6 +357,10 @@ class RelativeTime extends HTMLElement {
 
   get datetime(): string {
     return this.getAttribute('datetime') || '';
+  }
+
+  set datetime(v: string) {
+    this.setAttribute('datetime', v);
   }
 
   get date(): Date | null {
@@ -424,7 +432,7 @@ class RelativeTime extends HTMLElement {
       const value = d[`${unit}s` as keyof Duration] as number;
       if (value || (duration.blank && unit === 'second')) {
         try {
-          parts.push(new Intl.NumberFormat(locale, {style: 'unit', unit, unitDisplay: style} as Intl.NumberFormatOptions).format(value));
+          parts.push(new Intl.NumberFormat(locale, {style: 'unit', unit, unitDisplay: style}).format(value));
         } catch { // PaleMoon lacks Intl.NumberFormat unit style support
           parts.push(`${value} ${value === 1 ? unit : `${unit}s`}`);
         }

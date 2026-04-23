@@ -6,6 +6,7 @@ package tests
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -26,7 +27,15 @@ import (
 
 func InitTest() {
 	testlogger.Init()
-	unittest.InitSettingsForTesting()
+	if os.Getenv("GITEA_TEST_CONF") == "" {
+		// By default, use sqlite.ini for testing, then IDE like GoLand can start the test process with debugger.
+		// It's easier for developers to debug bugs step by step with a debugger.
+		// Notice: when doing "ssh push", Gitea executes sub processes, debugger won't work for the sub processes.
+		giteaConf := "tests/sqlite.ini"
+		_ = os.Setenv("GITEA_TEST_CONF", giteaConf)
+		_, _ = fmt.Fprintf(os.Stderr, "Environment variable GITEA_TEST_CONF not set - defaulting to %s\n", giteaConf)
+	}
+	setting.SetupGiteaTestEnv()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 
 	if err := git.InitFull(); err != nil {

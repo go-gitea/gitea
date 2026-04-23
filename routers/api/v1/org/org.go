@@ -5,15 +5,23 @@
 package org
 
 import (
+	gocontext "context"
+	"errors"
+	"fmt"
 	"net/http"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -21,6 +29,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	feed_service "code.gitea.io/gitea/services/feed"
 	"code.gitea.io/gitea/services/org"
+	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -379,19 +388,21 @@ func Edit(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditOrgOption)
 
-	if form.Email != "" {
-		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.Org.Organization.AsUser(), form.Email); err != nil {
-			ctx.APIErrorInternal(err)
+	if err := org.UpdateOrgEmailAddress(ctx, ctx.Org.Organization, form.Email); err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return
 		}
+		ctx.APIErrorInternal(err)
+		return
 	}
 
 	opts := &user_service.UpdateOptions{
-		FullName:                  optional.Some(form.FullName),
-		Description:               optional.Some(form.Description),
-		Website:                   optional.Some(form.Website),
-		Location:                  optional.Some(form.Location),
-		Visibility:                optional.FromMapLookup(api.VisibilityModes, form.Visibility),
+		FullName:                  optional.FromPtr(form.FullName),
+		Description:               optional.FromPtr(form.Description),
+		Website:                   optional.FromPtr(form.Website),
+		Location:                  optional.FromPtr(form.Location),
+		Visibility:                optional.FromMapLookup(api.VisibilityModes, optional.FromPtr(form.Visibility).Value()),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {
@@ -492,4 +503,71 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 	ctx.SetTotalCountHeader(count)
 
 	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
+}
+
+func deleteOrgReposBackground(ctx gocontext.Context, org *organization.Organization, repoIDs []int64, doer *user_model.User) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("panic during org repo deletion: %v, stack: %v", r, log.Stack(2))
+		}
+	}()
+
+	for _, repoID := range repoIDs {
+		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+		if err != nil {
+			desc := fmt.Sprintf("Failed to get repository ID %d in org %s: %v", repoID, org.Name, err)
+			_ = system_model.CreateNotice(ctx, system_model.NoticeRepository, desc)
+			log.Error("GetRepositoryByID failed: %v", desc)
+			continue
+		}
+		if err := repo_service.DeleteRepository(ctx, doer, repo, true); err != nil {
+			desc := fmt.Sprintf("Failed to delete repository %s (ID: %d) in org %s: %v", repo.Name, repo.ID, org.Name, err)
+			_ = system_model.CreateNotice(ctx, system_model.NoticeRepository, desc)
+			log.Error("DeleteRepository failed: %v", desc)
+			continue
+		}
+		log.Info("Successfully deleted repository %s (ID: %d) in org %s", repo.Name, repo.ID, org.Name)
+	}
+	log.Info("Completed deletion of repositories in org %s", org.Name)
+}
+
+func DeleteOrgRepos(ctx *context.APIContext) {
+	// swagger:operation DELETE /orgs/{org}/repos organization orgDeleteRepos
+	// ---
+	// summary: Delete all repositories in an organization
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// responses:
+	//   "202":
+	//     "$ref": "#/responses/empty"
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	// Intentionally it only loads repository IDs to avoid loading too much data into memory
+	// There is no need to do pagination here as the number of repositories is expected to be manageable
+	repoIDs, err := repo_model.GetOrgRepositoryIDs(ctx, ctx.Org.Organization.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if len(repoIDs) == 0 {
+		ctx.Status(http.StatusNoContent)
+		return
+	}
+
+	// Start deletion (slow) in background with detached context, so it can continue even if the request is canceled
+	go deleteOrgReposBackground(graceful.GetManager().ShutdownContext(), ctx.Org.Organization, repoIDs, ctx.Doer)
+
+	ctx.Status(http.StatusAccepted)
 }

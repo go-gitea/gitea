@@ -202,16 +202,15 @@ func LoadTableSchemasMap(t *testing.T, x *xorm.Engine) map[string]*schemas.Table
 
 func mainTest(m *testing.M) int {
 	testlogger.Init()
+	setting.SetupGiteaTestEnv()
 
 	tmpDataPath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("data")
 	if err != nil {
 		testlogger.Panicf("Unable to create temporary data path %v\n", err)
 	}
 	defer cleanup()
-
 	setting.AppDataPath = tmpDataPath
 
-	unittest.InitSettingsForTesting()
 	if err = git.InitFull(); err != nil {
 		testlogger.Panicf("Unable to InitFull: %v\n", err)
 	}

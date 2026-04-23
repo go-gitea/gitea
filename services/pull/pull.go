@@ -79,7 +79,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			if err := pr.LoadHeadRepo(ctx); err != nil {
 				return err
 			}
-			perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, issue.Poster)
+			perm, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, issue.Poster)
 			if err != nil {
 				return err
 			}
@@ -136,7 +136,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		// add first push codes comment
-		if _, err := CreatePushPullComment(ctx, issue.Poster, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false); err != nil {
+		if _, _, err := CreatePushPullComment(ctx, issue.Poster, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false); err != nil {
 			return err
 		}
 
@@ -159,7 +159,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 
 	// Request reviews, these should be requested before other notifications because they will add request reviews record
 	// on database
-	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
+	permDoer, err := access_model.GetDoerRepoPermission(ctx, repo, issue.Poster)
 	if err != nil {
 		return err
 	}
@@ -343,7 +343,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 			return err
 		}
 
-		_, err = CreatePushPullComment(ctx, doer, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false)
+		_, _, err = CreatePushPullComment(ctx, doer, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false)
 		return err
 	})
 }
@@ -411,8 +411,10 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 
 			// create push comment before check pull request status,
 			// then when the status is mergeable, the comment is already in database, to make testing easy and stable
-			comment, err := CreatePushPullComment(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID, opts.IsForcePush)
-			if err == nil && comment != nil {
+			comment, commentCreated, err := CreatePushPullComment(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID, opts.IsForcePush)
+			if err != nil {
+				log.Error("CreatePushPullComment: %v", err)
+			} else if commentCreated {
 				notify_service.PullRequestPushCommits(ctx, opts.Doer, pr, comment)
 			}
 			// The caller can be in a goroutine or a "push queue", "conflict check" can be time-consuming,

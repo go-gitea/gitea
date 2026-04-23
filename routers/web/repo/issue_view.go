@@ -29,7 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -57,7 +56,7 @@ func roleDescriptor(ctx *context.Context, repo *repo_model.Repository, poster *u
 	// Guess the role of the poster in the repo by permission
 	perm, hasPermCache := permsCache[poster.ID]
 	if !hasPermCache {
-		perm, err = access_model.GetUserRepoPermission(ctx, repo, poster)
+		perm, err = access_model.GetIndividualUserRepoPermission(ctx, repo, poster)
 		if err != nil {
 			return roleDesc, err
 		}
@@ -145,9 +144,9 @@ func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.Depende
 			perm = existPerm
 		} else {
 			var err error
-			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
+			perm, err = access_model.GetDoerRepoPermission(ctx, &blocker.Repository, ctx.Doer)
 			if err != nil {
-				ctx.ServerError("GetUserRepoPermission", err)
+				ctx.ServerError("GetDoerRepoPermission", err)
 				return nil, nil
 			}
 			repoPerms[blocker.RepoID] = perm
@@ -192,7 +191,7 @@ func filterXRefComments(ctx *context.Context, issue *issues_model.Issue) error {
 			if err != nil {
 				return err
 			}
-			perm, err := access_model.GetUserRepoPermission(ctx, c.RefRepo, ctx.Doer)
+			perm, err := access_model.GetDoerRepoPermission(ctx, c.RefRepo, ctx.Doer)
 			if err != nil {
 				return err
 			}
@@ -781,14 +780,14 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 		} else if comment.Type == issues_model.CommentTypeAddTimeManual ||
 			comment.Type == issues_model.CommentTypeStopTracking ||
 			comment.Type == issues_model.CommentTypeDeleteTimeManual {
-			// drop error since times could be pruned from DB..
+			// drop error since times could be pruned from DB
 			_ = comment.LoadTime(ctx)
 			if comment.Content != "" {
 				// Content before v1.21 did store the formatted string instead of seconds,
 				// so "|" is used as delimiter to mark the new format
 				if comment.Content[0] != '|' {
 					// handle old time comments that have formatted text stored
-					comment.RenderedContent = templates.SanitizeHTML(comment.Content)
+					comment.RenderedContent = markup.Sanitize(comment.Content)
 					comment.Content = ""
 				} else {
 					// else it's just a duration in seconds to pass on to the frontend
@@ -845,9 +844,9 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		if err := pull.LoadHeadRepo(ctx); err != nil {
 			log.Error("LoadHeadRepo: %v", err)
 		} else if pull.HeadRepo != nil {
-			perm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
+			perm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 			if err != nil {
-				ctx.ServerError("GetUserRepoPermission", err)
+				ctx.ServerError("GetDoerRepoPermission", err)
 				return
 			}
 			if perm.CanWrite(unit.TypeCode) {
@@ -867,9 +866,9 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		if err := pull.LoadBaseRepo(ctx); err != nil {
 			log.Error("LoadBaseRepo: %v", err)
 		}
-		perm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
+		perm, err := access_model.GetDoerRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
+			ctx.ServerError("GetDoerRepoPermission", err)
 			return
 		}
 		if !canWriteToHeadRepo { // maintainers maybe allowed to push to head repo even if they can't write to it

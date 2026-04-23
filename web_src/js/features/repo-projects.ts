@@ -5,6 +5,8 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 import type {SortableEvent} from 'sortablejs';
 import {toggleFullScreen} from '../utils.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 
 function updateIssueCount(card: HTMLElement): void {
   const parent = card.parentElement!;
@@ -129,11 +131,11 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
         const textColor = contrastColor(elColumnColor.value);
         elBoardColumn.style.setProperty('background', elColumnColor.value, 'important');
         elBoardColumn.style.setProperty('color', textColor, 'important');
-        queryElemChildren<HTMLElement>(elBoardColumn, '.divider', (divider) => divider.style.color = textColor);
+        queryElemChildren(elBoardColumn, '.divider', (divider: HTMLElement) => divider.style.color = textColor);
       } else {
         elBoardColumn.style.removeProperty('background');
         elBoardColumn.style.removeProperty('color');
-        queryElemChildren<HTMLElement>(elBoardColumn, '.divider', (divider) => divider.style.removeProperty('color'));
+        queryElemChildren(elBoardColumn, '.divider', (divider: HTMLElement) => divider.style.removeProperty('color'));
       }
 
       fomanticQuery(elModal).modal('hide');
@@ -143,27 +145,42 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
   });
 }
 
-function initRepoProjectToggleFullScreen(): void {
+function initRepoProjectToggleFullScreen(elProjectsView: HTMLElement): void {
   const enterFullscreenBtn = document.querySelector('.screen-full');
   const exitFullscreenBtn = document.querySelector('.screen-normal');
   if (!enterFullscreenBtn || !exitFullscreenBtn) return;
 
+  const settingKey = 'projects-view-options';
+  type ProjectsViewOptions = {
+    fullScreen: boolean;
+  };
+  const opts = localUserSettings.getJsonObject<ProjectsViewOptions>(settingKey, {fullScreen: false});
   const toggleFullscreenState = (isFullScreen: boolean) => {
-    toggleFullScreen('.projects-view', isFullScreen);
+    toggleFullScreen(elProjectsView, isFullScreen);
     toggleElem(enterFullscreenBtn, !isFullScreen);
     toggleElem(exitFullscreenBtn, isFullScreen);
+
+    opts.fullScreen = isFullScreen;
+    localUserSettings.setJsonObject(settingKey, opts);
   };
 
   enterFullscreenBtn.addEventListener('click', () => toggleFullscreenState(true));
   exitFullscreenBtn.addEventListener('click', () => toggleFullscreenState(false));
+  if (opts.fullScreen) {
+    // a temporary solution to remember the full screen state, not perfect,
+    // just make UX better than before, especially for users who need to change the label filter frequently and want to keep full screen mode.
+    toggleFullscreenState(true);
+  }
 }
 
-export function initRepoProject(): void {
-  initRepoProjectToggleFullScreen();
+export function initRepoProjectsView(): void {
+  registerGlobalInitFunc('initRepoProjectsView', (elProjectsView) => {
+    initRepoProjectToggleFullScreen(elProjectsView);
 
-  const writableProjectBoard = document.querySelector('#project-board[data-project-board-writable="true"]');
-  if (!writableProjectBoard) return;
+    const writableProjectBoard = document.querySelector('#project-board[data-project-board-writable="true"]');
+    if (!writableProjectBoard) return;
 
-  initRepoProjectSortable(); // no await
-  initRepoProjectColumnEdit(writableProjectBoard);
+    initRepoProjectSortable(); // no await
+    initRepoProjectColumnEdit(writableProjectBoard);
+  });
 }

@@ -40,7 +40,7 @@ type NotificationSubject struct {
 	// Type indicates the type of the notification subject
 	Type NotifySubjectType `json:"type" binding:"In(Issue,Pull,Commit,Repository)"`
 	// State indicates the current state of the notification subject
-	State StateType `json:"state"`
+	State NotifySubjectStateType `json:"state"`
 }
 
 // NotificationCount number of unread notifications
@@ -49,16 +49,31 @@ type NotificationCount struct {
 	New int64 `json:"new"`
 }
 
+// NotifySubjectStateType represents the state of a notification subject
+// swagger:enum NotifySubjectStateType
+type NotifySubjectStateType string
+
+const (
+	// NotifySubjectStateOpen is an open subject
+	NotifySubjectStateOpen NotifySubjectStateType = "open"
+	// NotifySubjectStateClosed is a closed subject
+	NotifySubjectStateClosed NotifySubjectStateType = "closed"
+	// NotifySubjectStateMerged is a merged pull request
+	NotifySubjectStateMerged NotifySubjectStateType = "merged"
+)
+
 // NotifySubjectType represent type of notification subject
+//
+// swagger:enum NotifySubjectType
 type NotifySubjectType string
 
 const (
-	// NotifySubjectIssue an issue is subject of an notification
+	// NotifySubjectIssue a issue is subject of an notification
 	NotifySubjectIssue NotifySubjectType = "Issue"
-	// NotifySubjectPull an pull is subject of an notification
+	// NotifySubjectPull a pull is subject of an notification
 	NotifySubjectPull NotifySubjectType = "Pull"
-	// NotifySubjectCommit an commit is subject of an notification
+	// NotifySubjectCommit a commit is subject of an notification
 	NotifySubjectCommit NotifySubjectType = "Commit"
-	// NotifySubjectRepository an repository is subject of an notification
+	// NotifySubjectRepository a repository is subject of an notification
 	NotifySubjectRepository NotifySubjectType = "Repository"
 )

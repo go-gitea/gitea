@@ -1,3 +1,290 @@
+/* These are the remnants of the fomantic modal module */
+
+.ui.modal {
+  position: absolute;
+  display: none;
+  z-index: var(--z-index-modal);
+  text-align: left;
+  background: var(--color-body);
+  border: none;
+  box-shadow: 1px 3px 3px 0 var(--color-shadow), 1px 3px 15px 2px var(--color-shadow);
+  transform-origin: 50% 25%;
+  flex: 0 0 auto;
+  border-radius: var(--border-radius);
+  user-select: text;
+  will-change: top, left, margin, transform, opacity;
+}
+
+.ui.modal > :first-child:not(.icon) {
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+
+.ui.modal > :last-child {
+  border-bottom-left-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
+}
+
+.ui.modal > .close {
+  cursor: pointer;
+  position: absolute;
+  top: -2.5rem;
+  right: -2.5rem;
+  z-index: 1;
+  opacity: 0.8;
+  font-size: 1.25em;
+  color: var(--color-white);
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0.625rem 0 0;
+}
+
+.ui.modal > .close:hover {
+  opacity: 1;
+}
+
+.ui.modal > .header {
+  display: block;
+  font-family: var(--fonts-regular);
+  background: var(--color-body);
+  margin: 0;
+  padding: 1.25rem 1.5rem;
+  box-shadow: none;
+  color: var(--color-text-dark);
+  border-bottom: 1px solid var(--color-secondary);
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+
+.ui.modal > .header:not(.ui) {
+  font-size: 1.42857143rem;
+  line-height: 1.28571429em;
+  font-weight: var(--font-weight-medium);
+}
+
+.ui.modal > .header .svg {
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.ui.modal > .content,
+.ui.modal form > .content {
+  display: block;
+  width: 100%;
+  font-size: 1em;
+  line-height: 1.4;
+  padding: 1.5em;
+  background: var(--color-body);
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.ui.modal > .actions,
+.ui.modal .content + .actions,
+.ui.modal .content + form > .actions {
+  background: var(--color-secondary-bg);
+  padding: 1rem;
+  border-top: 1px solid var(--color-secondary);
+  text-align: right;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.ui.modal .actions > .button {
+  margin-left: 0.75em;
+}
+
+@media only screen and (max-width: 767.98px) {
+  .ui.modal {
+    width: 95%;
+  }
+}
+
+@media only screen and (min-width: 768px) {
+  .ui.modal {
+    width: 88%;
+  }
+}
+
+@media only screen and (min-width: 992px) {
+  .ui.modal {
+    width: 850px;
+  }
+}
+
+@media only screen and (min-width: 1200px) {
+  .ui.modal {
+    width: 900px;
+  }
+}
+
+@media only screen and (min-width: 1920px) {
+  .ui.modal {
+    width: 950px;
+  }
+}
+
+@media only screen and (max-width: 991.98px) {
+  .ui.modal > .header {
+    padding-right: 2.25rem;
+  }
+  .ui.modal > .close {
+    top: 1.0535rem;
+    right: 1rem;
+    color: var(--color-text);
+  }
+}
+
+@media only screen and (max-width: 767.98px) {
+  .ui.modal > .header {
+    padding: 0.75rem 1rem !important;
+    padding-right: 2.25rem !important;
+  }
+  .ui.modal > .content {
+    display: block;
+    padding: 1rem !important;
+  }
+  .ui.modal > .close {
+    top: 0.5rem !important;
+    right: 0.5rem !important;
+  }
+  .ui.modal > .actions {
+    padding: 1rem 1rem 0 !important;
+  }
+  .ui.modal .actions > .buttons,
+  .ui.modal .actions > .button {
+    margin-bottom: 1rem;
+  }
+}
+
+.ui.active.modal {
+  display: block;
+}
+
+.scrolling.dimmable > .dimmer {
+  justify-content: flex-start;
+  position: fixed;
+}
+
+.modals.dimmer .ui.scrolling.modal {
+  margin: 2rem auto;
+}
+
+.ui.modal > .close.inside + .header {
+  padding-right: 2.25rem;
+}
+
+.ui.modal > .close.inside {
+  top: 1.0535rem;
+  right: 1rem;
+  color: inherit;
+}
+
+.ui.modal > .close.icon[height="16"] {
+  top: 0.7em;
+  color: var(--color-text-dark);
+}
+
+.ui.mini.modal > .header:not(.ui) {
+  font-size: 1.3em;
+}
+
+@media only screen and (max-width: 767.98px) {
+  .ui.mini.modal {
+    width: 95%;
+  }
+}
+
+@media only screen and (min-width: 768px) {
+  .ui.mini.modal {
+    width: 35.2%;
+  }
+}
+
+@media only screen and (min-width: 992px) {
+  .ui.mini.modal {
+    width: 340px;
+  }
+}
+
+@media only screen and (min-width: 1200px) {
+  .ui.mini.modal {
+    width: 360px;
+  }
+}
+
+@media only screen and (min-width: 1920px) {
+  .ui.mini.modal {
+    width: 380px;
+  }
+}
+
+.ui.tiny.modal > .header:not(.ui) {
+  font-size: 1.3em;
+}
+
+@media only screen and (max-width: 767.98px) {
+  .ui.tiny.modal {
+    width: 95%;
+  }
+}
+
+@media only screen and (min-width: 768px) {
+  .ui.tiny.modal {
+    width: 52.8%;
+  }
+}
+
+@media only screen and (min-width: 992px) {
+  .ui.tiny.modal {
+    width: 510px;
+  }
+}
+
+@media only screen and (min-width: 1200px) {
+  .ui.tiny.modal {
+    width: 540px;
+  }
+}
+
+@media only screen and (min-width: 1920px) {
+  .ui.tiny.modal {
+    width: 570px;
+  }
+}
+
+.ui.small.modal > .header:not(.ui) {
+  font-size: 1.3em;
+}
+
+@media only screen and (max-width: 767.98px) {
+  .ui.small.modal {
+    width: 95%;
+  }
+}
+
+@media only screen and (min-width: 768px) {
+  .ui.small.modal {
+    width: 70.4%;
+  }
+}
+
+@media only screen and (min-width: 992px) {
+  .ui.small.modal {
+    width: 680px;
+  }
+}
+
+@media only screen and (min-width: 1200px) {
+  .ui.small.modal {
+    width: 720px;
+  }
+}
+
+@media only screen and (min-width: 1920px) {
+  .ui.small.modal {
+    width: 760px;
+  }
+}
+
 .ui.modal.g-modal-confirm {
   max-width: min(800px, 90vw);
   width: fit-content;
@@ -10,70 +297,12 @@
   top: 1.2em;
 }
 
-.ui.modal > .close.inside {
-  color: inherit;
-}
-
-.ui.modal > .close.icon[height="16"] {
-  top: 0.7em; /* fomantic uses absolute layout, so if we have special icon size, it needs this trick to align vertically */
-  color: var(--color-text-dark);
-}
-
-.ui.modal > .header {
-  /* can't use display:flex, because some headers have space-separated elements, eg: delete branch modal */
-  color: var(--color-text-dark);
-  background: var(--color-body);
-  border-color: var(--color-secondary);
-  border-top-left-radius: var(--border-radius);
-  border-top-right-radius: var(--border-radius);
-  vertical-align: middle;
-}
-
-.ui.modal > .header .svg {
-  vertical-align: middle;
-  display: inline-block;
-}
-
-.ui.modal {
-  background: var(--color-body);
-  box-shadow: 1px 3px 3px 0 var(--color-shadow), 1px 3px 15px 2px var(--color-shadow);
-}
-
-/* Gitea sometimes use a form in a modal dialog, then the "positive" button could submit the form directly
-Fomantic UI only supports the layout: <div .modal><div .content/><div .actions/></div>
-However, Gitea uses the following layouts:
-* <div .modal><div .content><div .actions/></div></div>
-* <div .modal><form><div .content/><div .actions/></form></div>
-* <div .modal><div .content><form><div .actions/></form></div></div>
-* <div .modal><div .content></div><form><div .actions/></form></div>
-* ...
-These inconsistent layouts should be refactored to simple ones.
-*/
-
-.ui.modal > .content,
-.ui.modal form > .content {
-  padding: 1.5em;
-  background: var(--color-body);
-  border-radius: 0 0 var(--border-radius) var(--border-radius);
-}
-
-.ui.modal > .actions,
-.ui.modal .content + .actions,
-.ui.modal .content + form > .actions {
-  background: var(--color-secondary-bg);
-  border-color: var(--color-secondary);
-  padding: 1rem;
-  text-align: right;
-  border-radius: 0 0 var(--border-radius) var(--border-radius);
-}
-
 .ui.modal .content > form > .actions,
 .ui.modal .content > .actions {
-  padding-top: 1em; /* if the "actions" is in the "content", some paddings are already added by the "content" */
+  padding-top: 1em;
   text-align: right;
 }
 
-/* positive/negative action buttons */
 .ui.modal .actions > .ui.button {
   display: inline-flex;
   align-items: center;

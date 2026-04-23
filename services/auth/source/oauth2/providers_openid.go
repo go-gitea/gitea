@@ -33,7 +33,7 @@ func (o *OpenIDProvider) DisplayName() string {
 
 // IconHTML returns icon HTML for this provider
 func (o *OpenIDProvider) IconHTML(size int) template.HTML {
-	return svg.RenderHTML("gitea-openid", size, "tw-mr-2")
+	return svg.RenderHTML("gitea-openid", size)
 }
 
 // CreateGothProvider creates a GothProvider from this Provider
@@ -46,8 +46,14 @@ func (o *OpenIDProvider) CreateGothProvider(providerName, callbackURL string, so
 	provider, err := openidConnect.New(source.ClientID, source.ClientSecret, callbackURL, source.OpenIDConnectAutoDiscoveryURL, scopes...)
 	if err != nil {
 		log.Warn("Failed to create OpenID Connect Provider with name '%s' with url '%s': %v", providerName, source.OpenIDConnectAutoDiscoveryURL, err)
+		return nil, err
 	}
-	return provider, err
+	if source.ExternalIDClaim != "" {
+		// UserIdClaims is a fallback list; goth returns the first non-empty matching claim.
+		// A single entry is sufficient because the admin explicitly chooses one claim (e.g. "oid" for Azure AD).
+		provider.UserIdClaims = []string{source.ExternalIDClaim}
+	}
+	return provider, nil
 }
 
 // CustomURLSettings returns the custom url settings for this provider

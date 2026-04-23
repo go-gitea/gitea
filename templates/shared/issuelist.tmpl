@@ -5,7 +5,7 @@
 
 			<div class="flex-item-leading">
 				{{/* using some tw helpers is the only way to align the checkbox */}}
-				<div class="flex-text-inline tw-mt-[2px]">
+				<div class="flex-text-inline tw-mt-[3px]">
 					{{if $.CanWriteIssuesOrPulls}}
 						<input type="checkbox" autocomplete="off" class="issue-checkbox tw-mr-[14px]" data-issue-id={{.ID}} aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
 					{{end}}

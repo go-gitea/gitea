@@ -35,7 +35,7 @@ func GetRepositoryKey(ctx *context.Context) {
 		return
 	}
 
-	ctx.ServeContent(strings.NewReader(pub), &context.ServeHeaderOptions{
+	ctx.ServeContent(strings.NewReader(pub), context.ServeHeaderOptions{
 		ContentType: "application/pgp-keys",
 		Filename:    "repository.key",
 	})
@@ -233,7 +233,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	helper.ServePackageFile(ctx, s, u, pf, &context.ServeHeaderOptions{
+	helper.ServePackageFile(ctx, s, u, pf, context.ServeHeaderOptions{
 		ContentType:  "application/vnd.debian.binary-package",
 		Filename:     pf.Name,
 		LastModified: pf.CreatedUnix.AsLocalTime(),

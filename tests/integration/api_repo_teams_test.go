@@ -52,8 +52,7 @@ func TestAPIRepoTeams(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/teams/%s", publicOrgRepo.FullName(), "Test_Team")).
 		AddTokenAuth(token)
 	res = MakeRequest(t, req, http.StatusOK)
-	var team *api.Team
-	DecodeJSON(t, res, &team)
+	team := DecodeJSON(t, res, &api.Team{})
 	assert.Equal(t, teams[1], team)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/teams/%s", publicOrgRepo.FullName(), "NonExistingTeam")).
