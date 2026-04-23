@@ -25,13 +25,7 @@ function initDevtestPage() {
   if (modalButtons) {
     for (const el of document.querySelectorAll('.ui.modal:not([data-skip-button])')) {
       const btn = createElementFromHTML(html`<button class="ui button">${el.id}</button`);
-      btn.addEventListener('click', () => {
-        const opts: Parameters<typeof showModal>[1] = {};
-        if (el.hasAttribute('data-devtest-closable-false')) opts.closable = false;
-        if (el.hasAttribute('data-devtest-approve-keep-open')) opts.onApprove = () => false;
-        if (el.hasAttribute('data-devtest-onshow-log')) opts.onShow = function() { this.setAttribute('data-devtest-onshow-ran', 'true') };
-        showModal(el, opts);
-      });
+      btn.addEventListener('click', () => showModal(el));
       modalButtons.append(btn);
     }
   }
