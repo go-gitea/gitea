@@ -3,11 +3,17 @@ import {GET} from '../modules/fetch.ts';
 import {createApp} from 'vue';
 import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
+import type {Issue} from '../types.ts';
 
-const issueInfoCache = new Map<string, any>();
+type IssueInfo = {
+  convertedIssue: Issue,
+  renderedLabels: string,
+};
 
-async function getIssueInfo(url: string): Promise<any> {
-  if (issueInfoCache.has(url)) return issueInfoCache.get(url);
+const issueInfoCache = new Map<string, IssueInfo>();
+
+async function getIssueInfo(url: string): Promise<IssueInfo> {
+  if (issueInfoCache.has(url)) return issueInfoCache.get(url)!;
   const resp = await GET(url);
   if (!resp.ok) throw new Error(resp.statusText || 'Unknown network error');
   const data = await resp.json();
