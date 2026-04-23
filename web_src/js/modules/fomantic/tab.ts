@@ -1,6 +1,6 @@
 import {queryElemSiblings} from '../../utils/dom.ts';
 
-// wire a collection of `[data-tab]` menu items so clicking one activates the matching `.ui.tab[data-tab=...]`
+// clicking a `[data-tab]` menu item activates the matching `.ui.tab[data-tab=...]` panel
 export function initTabs(elBtns: Iterable<Element>) {
   for (const elBtn of elBtns) {
     const tabName = elBtn.getAttribute('data-tab');
