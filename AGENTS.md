@@ -3,7 +3,7 @@
 - Run `make lint-js` to lint `.ts` files
 - Run `make tidy` after any `go.mod` changes
 - Run single integration tests with `make 'test-sqlite#TestName/Subtest'`
-- Run single playwright e2e tests with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e` (the value is passed as arguments to `playwright test`)
+- Run single playwright e2e tests with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e`, the value is passed as arguments to `playwright test`
 - Add the current year into the copyright header of new `.go` files
 - Ensure no trailing whitespace in edited files
 - Never force-push, amend, or squash unless asked. Use new commits and normal push for pull request updates
