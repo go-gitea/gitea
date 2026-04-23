@@ -61,8 +61,8 @@ func resolveMappedMemberships(sourceUserGroups container.Set[string], sourceGrou
 		}
 	}
 
-	// If any group grants a team membership, do not remove it even if another
-	// group the user is not in also maps to that team.
+	// If another group grants the same team, don't remove it — for the Owners
+	// team this would fail with ErrLastOrgOwner before the add runs.
 	for org, addTeams := range membershipsToAdd {
 		removeTeams, ok := membershipsToRemove[org]
 		if !ok {
