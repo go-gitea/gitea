@@ -2426,6 +2426,8 @@
   "repo.settings.protect_approvals_whitelist_enabled_desc": "Only reviews from allowlisted users or teams will count to the required approvals. Without approval allowlist, reviews from anyone with write access count to the required approvals.",
   "repo.settings.protect_approvals_whitelist_users": "Allowlisted reviewers:",
   "repo.settings.protect_approvals_whitelist_teams": "Allowlisted teams for reviews:",
+  "repo.settings.dismiss_approvals_on_re_request": "Dismiss approvals on review request",
+  "repo.settings.dismiss_approvals_on_re_request_desc": "When the same reviewer is re-requested, previous approvals from that reviewer will be dismissed.",
   "repo.settings.dismiss_stale_approvals": "Dismiss stale approvals",
   "repo.settings.dismiss_stale_approvals_desc": "When new commits that change the content of the pull request are pushed to the branch, old approvals will be dismissed.",
   "repo.settings.ignore_stale_approvals": "Ignore stale approvals",

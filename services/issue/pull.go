@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"slices"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
@@ -15,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 type ReviewRequestNotifier struct {
@@ -108,8 +110,6 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		}
 	}
 
-	notifiers := make([]*ReviewRequestNotifier, 0, len(uniqUsers)+len(uniqTeams))
-
 	if err := issue.LoadPoster(ctx); err != nil {
 		return nil, err
 	}
@@ -129,38 +129,77 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		return false
 	}
 
-	for _, u := range uniqUsers {
-		if u.ID != issue.Poster.ID && !contain(latestReviews, u) {
-			comment, err := issues_model.AddReviewRequest(ctx, issue, u, issue.Poster, true)
+	dismisser := &reviewRequestDismisser{
+		issue:               issue,
+		reviewsByReviewerID: make(map[int64][]*issues_model.Review),
+	}
+
+	notifiers, err := db.WithTx2(ctx, func(ctx context.Context) ([]*ReviewRequestNotifier, error) {
+		notifiers := make([]*ReviewRequestNotifier, 0, len(uniqUsers)+len(uniqTeams))
+
+		for _, u := range uniqUsers {
+			if u.ID != issue.Poster.ID && !contain(latestReviews, u) {
+				comment, err := issues_model.AddReviewRequest(ctx, issue, u, issue.Poster, true)
+				if err != nil {
+					log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
+					return nil, err
+				}
+				if comment == nil { // comment maybe nil if review type is ReviewTypeRequest
+					continue
+				}
+				if err := dismisser.dismissReviewsForReviewerIDs(ctx, issue.Poster, []int64{u.ID}); err != nil {
+					log.Warn("Failed dismissing prior approvals for user review request: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
+					return nil, err
+				}
+				notifiers = append(notifiers, &ReviewRequestNotifier{
+					Comment:  comment,
+					IsAdd:    true,
+					Reviewer: u,
+				})
+			}
+		}
+
+		for _, t := range uniqTeams {
+			comment, err := issues_model.AddTeamReviewRequest(ctx, issue, t, issue.Poster, true)
 			if err != nil {
-				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
+				log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
 				return nil, err
 			}
 			if comment == nil { // comment maybe nil if review type is ReviewTypeRequest
 				continue
 			}
+			members, err := org_model.GetTeamMembers(ctx, &org_model.SearchMembersOptions{TeamID: t.ID})
+			if err != nil {
+				log.Warn("Failed dismissing prior approvals for team review request: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
+				return nil, err
+			}
+			reviewerIDs := make([]int64, 0, len(members))
+			for _, m := range members {
+				reviewerIDs = append(reviewerIDs, m.ID)
+			}
+			if err := dismisser.dismissReviewsForReviewerIDs(ctx, issue.Poster, reviewerIDs); err != nil {
+				log.Warn("Failed dismissing prior approvals for team review request: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
+				return nil, err
+			}
 			notifiers = append(notifiers, &ReviewRequestNotifier{
-				Comment:  comment,
-				IsAdd:    true,
-				Reviewer: u,
+				Comment:    comment,
+				IsAdd:      true,
+				ReviewTeam: t,
 			})
 		}
+
+		return notifiers, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	for _, t := range uniqTeams {
-		comment, err := issues_model.AddTeamReviewRequest(ctx, issue, t, issue.Poster, true)
-		if err != nil {
-			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
-			return nil, err
+	if engine, ok := db.GetEngine(ctx).(interface{ IsInTx() bool }); ok && engine.IsInTx() {
+		// still in transaction: skip sending notifications
+	} else {
+		for _, dismissNotification := range dismisser.dismissNotifications {
+			notify_service.PullReviewDismiss(ctx, dismissNotification.doer, dismissNotification.review, dismissNotification.comment)
 		}
-		if comment == nil { // comment maybe nil if review type is ReviewTypeRequest
-			continue
-		}
-		notifiers = append(notifiers, &ReviewRequestNotifier{
-			Comment:    comment,
-			IsAdd:      true,
-			ReviewTeam: t,
-		})
 	}
 
 	return notifiers, nil

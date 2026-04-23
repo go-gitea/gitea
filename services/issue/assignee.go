@@ -6,6 +6,7 @@ package issue
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -69,8 +70,25 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 		return nil, err
 	}
 
+	var dismisser *reviewRequestDismisser
 	if isAdd {
-		comment, err = issues_model.AddReviewRequest(ctx, issue, reviewer, doer, false)
+		dismisser = &reviewRequestDismisser{
+			issue:               issue,
+			reviewsByReviewerID: make(map[int64][]*issues_model.Review),
+		}
+
+		comment, err = db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
+			comment, err := issues_model.AddReviewRequest(ctx, issue, reviewer, doer, false)
+			if err != nil || comment == nil {
+				return comment, err
+			}
+
+			if err := dismisser.dismissReviewsForReviewerIDs(ctx, doer, []int64{reviewer.ID}); err != nil {
+				return nil, err
+			}
+
+			return comment, nil
+		})
 	} else {
 		comment, err = issues_model.RemoveReviewRequest(ctx, issue, reviewer, doer)
 	}
@@ -80,6 +98,15 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 	}
 
 	if comment != nil {
+		if dismisser != nil {
+			if engine, ok := db.GetEngine(ctx).(interface{ IsInTx() bool }); ok && engine.IsInTx() {
+				// still in transaction: skip sending notifications
+			} else {
+				for _, dismissNotification := range dismisser.dismissNotifications {
+					notify_service.PullReviewDismiss(ctx, dismissNotification.doer, dismissNotification.review, dismissNotification.comment)
+				}
+			}
+		}
 		notify_service.PullRequestReviewRequest(ctx, doer, issue, reviewer, isAdd, comment)
 	}
 
@@ -223,14 +250,50 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 	if err != nil {
 		return nil, err
 	}
+
+	var dismisser *reviewRequestDismisser
 	if isAdd {
-		comment, err = issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer, false)
+		dismisser = &reviewRequestDismisser{
+			issue:               issue,
+			reviewsByReviewerID: make(map[int64][]*issues_model.Review),
+		}
+
+		comment, err = db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
+			comment, err := issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer, false)
+			if err != nil || comment == nil {
+				return comment, err
+			}
+
+			members, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{TeamID: reviewer.ID})
+			if err != nil {
+				return nil, err
+			}
+			reviewerIDs := make([]int64, 0, len(members))
+			for _, m := range members {
+				reviewerIDs = append(reviewerIDs, m.ID)
+			}
+			if err := dismisser.dismissReviewsForReviewerIDs(ctx, doer, reviewerIDs); err != nil {
+				return nil, err
+			}
+
+			return comment, nil
+		})
 	} else {
 		comment, err = issues_model.RemoveTeamReviewRequest(ctx, issue, reviewer, doer)
 	}
 
 	if err != nil {
 		return nil, err
+	}
+
+	if dismisser != nil {
+		if engine, ok := db.GetEngine(ctx).(interface{ IsInTx() bool }); ok && engine.IsInTx() {
+			// still in transaction: skip sending notifications
+		} else {
+			for _, dismissNotification := range dismisser.dismissNotifications {
+				notify_service.PullReviewDismiss(ctx, dismissNotification.doer, dismissNotification.review, dismissNotification.comment)
+			}
+		}
 	}
 
 	if comment == nil || !isAdd {

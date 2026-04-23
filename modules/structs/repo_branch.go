@@ -59,6 +59,7 @@ type BranchProtection struct {
 	BlockOnRejectedReviews        bool     `json:"block_on_rejected_reviews"`
 	BlockOnOfficialReviewRequests bool     `json:"block_on_official_review_requests"`
 	BlockOnOutdatedBranch         bool     `json:"block_on_outdated_branch"`
+	DismissApprovalsOnReRequest   bool     `json:"dismiss_approvals_on_re_request"`
 	DismissStaleApprovals         bool     `json:"dismiss_stale_approvals"`
 	IgnoreStaleApprovals          bool     `json:"ignore_stale_approvals"`
 	RequireSignedCommits          bool     `json:"require_signed_commits"`
@@ -99,6 +100,7 @@ type CreateBranchProtectionOption struct {
 	BlockOnRejectedReviews        bool     `json:"block_on_rejected_reviews"`
 	BlockOnOfficialReviewRequests bool     `json:"block_on_official_review_requests"`
 	BlockOnOutdatedBranch         bool     `json:"block_on_outdated_branch"`
+	DismissApprovalsOnReRequest   bool     `json:"dismiss_approvals_on_re_request"`
 	DismissStaleApprovals         bool     `json:"dismiss_stale_approvals"`
 	IgnoreStaleApprovals          bool     `json:"ignore_stale_approvals"`
 	RequireSignedCommits          bool     `json:"require_signed_commits"`
@@ -132,6 +134,7 @@ type EditBranchProtectionOption struct {
 	BlockOnRejectedReviews        *bool    `json:"block_on_rejected_reviews"`
 	BlockOnOfficialReviewRequests *bool    `json:"block_on_official_review_requests"`
 	BlockOnOutdatedBranch         *bool    `json:"block_on_outdated_branch"`
+	DismissApprovalsOnReRequest   *bool    `json:"dismiss_approvals_on_re_request"`
 	DismissStaleApprovals         *bool    `json:"dismiss_stale_approvals"`
 	IgnoreStaleApprovals          *bool    `json:"ignore_stale_approvals"`
 	RequireSignedCommits          *bool    `json:"require_signed_commits"`

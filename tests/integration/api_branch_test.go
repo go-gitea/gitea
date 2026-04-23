@@ -370,7 +370,22 @@ func TestAPIBranchProtection(t *testing.T) {
 	// Get branch protection on branch that exist but not branch protection
 	testAPIGetBranchProtection(t, "master", http.StatusNotFound)
 
-	testAPICreateBranchProtection(t, "master", 1, http.StatusCreated)
+	testAPICreateBranchProtection(t, "master", 2, http.StatusCreated)
+	var bp *api.BranchProtection
+
+	// explicitly enable and disable to verify dismiss-on-review-request flag round-trip
+	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
+		DismissApprovalsOnReRequest: true,
+	}, http.StatusOK)
+	bp = testAPIGetBranchProtection(t, "master", http.StatusOK)
+	assert.True(t, bp.DismissApprovalsOnReRequest)
+
+	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
+		DismissApprovalsOnReRequest: false,
+	}, http.StatusOK)
+	bp = testAPIGetBranchProtection(t, "master", http.StatusOK)
+	assert.False(t, bp.DismissApprovalsOnReRequest)
+
 	// Can only create once
 	testAPICreateBranchProtection(t, "master", 0, http.StatusForbidden)
 
@@ -389,7 +404,7 @@ func TestAPIBranchProtection(t *testing.T) {
 		EnableStatusCheck:   true,
 		StatusCheckContexts: []string{"test1"},
 	}, http.StatusOK)
-	bp := testAPIGetBranchProtection(t, "master", http.StatusOK)
+	bp = testAPIGetBranchProtection(t, "master", http.StatusOK)
 	assert.True(t, bp.EnableStatusCheck)
 	assert.Equal(t, []string{"test1"}, bp.StatusCheckContexts)
 

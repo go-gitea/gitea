@@ -210,6 +210,13 @@
 				</div>
 				<div class="field">
 					<div class="ui checkbox">
+						<input id="dismiss_approvals_on_re_request" name="dismiss_approvals_on_re_request" type="checkbox" {{if .Rule.DismissApprovalsOnReRequest}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.settings.dismiss_approvals_on_re_request"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.dismiss_approvals_on_re_request_desc"}}</p>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui checkbox">
 						<input id="dismiss_stale_approvals" name="dismiss_stale_approvals" type="checkbox" {{if .Rule.DismissStaleApprovals}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "repo.settings.dismiss_stale_approvals"}}</label>
 						<p class="help">{{ctx.Locale.Tr "repo.settings.dismiss_stale_approvals_desc"}}</p>

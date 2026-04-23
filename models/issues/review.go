@@ -348,6 +348,8 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 			Stale:        opts.Stale,
 		}
 
+		// Re-request dismissal side effects are handled by service layer, but the
+		// model still keeps review records internally consistent for submit flows.
 		if opts.Reviewer != nil {
 			review.Type = opts.Type
 			review.ReviewerID = opts.Reviewer.ID
@@ -663,8 +665,10 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 			}
 
 			if issue.IsPull {
-				if err := issue.LoadPullRequest(ctx); err != nil {
-					return nil, err
+				if issue.PullRequest == nil {
+					if err := issue.LoadPullRequest(ctx); err != nil {
+						return nil, err
+					}
 				}
 				if issue.PullRequest.HasMerged {
 					return nil, ErrReviewRequestOnClosedPR{}
