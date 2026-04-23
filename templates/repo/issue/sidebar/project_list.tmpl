@@ -3,11 +3,11 @@
 <div class="divider"></div>
 
 {{/* project selector */}}
-<div class="issue-sidebar-combo sidebar-project-combo" data-selection-mode="multiple" data-update-algo="all"
+<div class="issue-sidebar-combo sidebar-project-combo" data-testid="issue-sidebar-projects" data-selection-mode="multiple" data-update-algo="all"
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/projects?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
 	<input class="combo-value" name="project_ids" type="hidden" value="{{SliceUtils.JoinInt64 $data.SelectedProjectIDs}}">
-	<div class="ui dropdown full-width {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
+	<div class="ui dropdown full-width {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}" data-testid="issue-sidebar-projects-dropdown">
 		<a class="fixed-text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.new.projects"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
 		</a>
@@ -24,7 +24,7 @@
 				{{if $data.OpenProjects}}
 					<div class="header">{{ctx.Locale.Tr "repo.issues.new.open_projects"}}</div>
 					{{range $data.OpenProjects}}
-						<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
+						<a class="item muted" data-testid="project-option" data-value="{{.ID}}" href="{{.Link ctx}}">
 							<span class="item-check-mark">{{svg "octicon-check"}}</span>
 							{{svg .IconName 18}}<span class="tw-flex-1 tw-break-anywhere">{{.Title}}</span>
 						</a>
@@ -34,7 +34,7 @@
 				{{if $data.ClosedProjects}}
 					<div class="header">{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}</div>
 					{{range $data.ClosedProjects}}
-						<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
+						<a class="item muted" data-testid="project-option" data-value="{{.ID}}" href="{{.Link ctx}}">
 							<span class="item-check-mark">{{svg "octicon-check"}}</span>
 							{{svg .IconName 18}}<span class="tw-flex-1 tw-break-anywhere">{{.Title}}</span>
 						</a>
@@ -51,22 +51,22 @@
 		<div class="item empty-list">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</div>
 	</div>
 {{else}}
-	<div class="flex-relaxed-list tw-my-2">
+	<div class="flex-relaxed-list tw-my-2" data-testid="issue-sidebar-project-cards">
 	{{range $card := $data.ProjectCards}}
 		{{$selectedColumn := $card.SelectedColumn}}
-		<div class="item sidebar-project-card">
+		<div class="item sidebar-project-card" data-testid="sidebar-project-card">
 			<div class="tw-mb-1">
-				<a class="suppressed flex-text-block" href="{{$card.Project.Link ctx}}">
+				<a class="suppressed flex-text-block" href="{{$card.Project.Link ctx}}" data-testid="sidebar-project-link">
 					{{svg $card.Project.IconName 16}}
-					<span class="gt-ellipsis">{{$card.Project.Title}}</span>
+					<span class="gt-ellipsis" data-testid="sidebar-project-title">{{$card.Project.Title}}</span>
 				</a>
 			</div>
 			{{if $pageMeta.CanModifyIssueOrPull}}
-				<div class="issue-sidebar-combo sidebar-project-column-combo" data-selection-mode="single" data-update-algo="all"
+				<div class="issue-sidebar-combo sidebar-project-column-combo" data-testid="sidebar-project-column-combo" data-selection-mode="single" data-update-algo="all"
 					data-update-url="{{$pageMeta.RepoLink}}/issues/projects/column?issue_id={{$pageMeta.Issue.ID}}"
 				>
 					<input class="combo-value" name="column_id" type="hidden" value="{{if $selectedColumn}}{{$selectedColumn.ID}}{{end}}">
-					<div class="ui dropdown full-width">
+					<div class="ui dropdown full-width" data-testid="sidebar-project-column-dropdown">
 						<div class="flex-text-block tw-ml-[16px]">{{/* align with the "project" icon */}}
 							<div class="interact-bg tw-px-2 tw-py-1 tw-rounded flex-text-block">
 								{{if $selectedColumn}}
@@ -80,7 +80,7 @@
 						</div>
 						<div class="menu flex-items-menu">
 							{{range $columnItem := $card.Columns}}
-								<a class="item" data-value="{{$columnItem.ID}}">
+								<a class="item" data-testid="project-column-option" data-value="{{$columnItem.ID}}">
 									<span class="item-check-mark">{{svg "octicon-check"}}</span>
 									{{if $columnItem.Color}}<span class="color-icon icon-size-8" style="background-color: {{$columnItem.Color}}"></span>{{end}}
 									<div class="gt-ellipsis">{{$columnItem.Title}}</div>
