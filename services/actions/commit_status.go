@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"path"
 	"strings"
 
@@ -22,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-	gitea_context "code.gitea.io/gitea/services/context"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 )
 
@@ -79,91 +77,6 @@ func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.Commit
 		runs = append(runs, run)
 	}
 	return runs, nil
-}
-
-// CommitStatusActionInfo maps CommitStatus.ID to the live ActionRunJob status
-// for Gitea Actions rows.
-type CommitStatusActionInfo map[int64]actions_model.Status
-
-// IconStatus returns the action status name to route the icon through
-// repo/icons/action_status, or "" when the row isn't from Gitea Actions.
-func (m CommitStatusActionInfo) IconStatus(s *git_model.CommitStatus) string {
-	if status, ok := m[s.ID]; ok {
-		return status.String()
-	}
-	return ""
-}
-
-// PrepareCommitStatusesUI merges live-action status enrichment into
-// ctx.Data["CommitStatusActionInfo"] for templates like repo/pulls/status.tmpl.
-// Multiple independent status sets on the same page (e.g., PR head + push
-// comments) each call this helper; entries are merged by CommitStatus.ID.
-func PrepareCommitStatusesUI(ctx *gitea_context.Context, statuses []*git_model.CommitStatus) {
-	info := GetCommitStatusActionInfo(ctx, statuses)
-	if existing, ok := ctx.Data["CommitStatusActionInfo"].(CommitStatusActionInfo); ok && len(existing) > 0 {
-		if info == nil {
-			info = make(CommitStatusActionInfo, len(existing))
-		}
-		maps.Copy(info, existing)
-	}
-	ctx.Data["CommitStatusActionInfo"] = info
-}
-
-// PrepareCommitStatusesMapUI is the map variant of PrepareCommitStatusesUI for
-// callers that hold statuses keyed by commit-or-issue ID.
-func PrepareCommitStatusesMapUI[K comparable](ctx *gitea_context.Context, m map[K][]*git_model.CommitStatus) {
-	total := 0
-	for _, cs := range m {
-		total += len(cs)
-	}
-	flat := make([]*git_model.CommitStatus, 0, total)
-	for _, cs := range m {
-		flat = append(flat, cs...)
-	}
-	PrepareCommitStatusesUI(ctx, flat)
-}
-
-// GetCommitStatusActionInfo resolves the live ActionRunJob.Status for every
-// CommitStatus row backed by Gitea Actions. Rows from other sources (external
-// CIs, API) are left untouched and rendered from their stored State.
-func GetCommitStatusActionInfo(ctx context.Context, statuses []*git_model.CommitStatus) CommitStatusActionInfo {
-	if len(statuses) == 0 {
-		return nil
-	}
-	statusByJobID := make(map[int64]*git_model.CommitStatus)
-	repoCache := make(map[int64]*repo_model.Repository)
-	for _, status := range statuses {
-		if status == nil || status.TargetURL == "" {
-			continue
-		}
-		if status.Repo == nil {
-			status.Repo = repoCache[status.RepoID]
-		}
-		_, jobID, ok := status.ParseGiteaActionsTargetURL(ctx)
-		repoCache[status.RepoID] = status.Repo
-		if ok {
-			statusByJobID[jobID] = status
-		}
-	}
-	if len(statusByJobID) == 0 {
-		return nil
-	}
-	jobIDs := make([]int64, 0, len(statusByJobID))
-	for id := range statusByJobID {
-		jobIDs = append(jobIDs, id)
-	}
-	jobs := make(map[int64]*actions_model.ActionRunJob, len(jobIDs))
-	if err := db.GetEngine(ctx).In("id", jobIDs).Cols("id", "status").Find(&jobs); err != nil {
-		log.Error("GetCommitStatusActionInfo: find action run jobs: %v", err)
-		return nil
-	}
-	info := make(CommitStatusActionInfo, len(jobs))
-	for jobID, status := range statusByJobID {
-		if job, ok := jobs[jobID]; ok && !job.Status.IsUnknown() {
-			info[status.ID] = job.Status
-		}
-	}
-	return info
 }
 
 func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {

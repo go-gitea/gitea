@@ -1849,11 +1849,11 @@ func TestActionsCommitStatusRunning(t *testing.T) {
 		require.Len(t, statuses, 1)
 		assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
 
-		info := actions_service.GetCommitStatusActionInfo(t.Context(), statuses)
+		info := git_model.GetCommitStatusActionInfo(t.Context(), statuses)
 		assert.Equal(t, actions_model.StatusRunning.String(), info.IconStatus(statuses[0]))
 
 		// No enrichment available → IconStatus is empty.
-		empty := actions_service.CommitStatusActionInfo{}
+		empty := git_model.CommitStatusActionInfo{}
 		assert.Empty(t, empty.IconStatus(statuses[0]))
 
 		// The commits-list tippy tooltip renders status.tmpl too: verify the live

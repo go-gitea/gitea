@@ -32,7 +32,6 @@ import (
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
-	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
@@ -769,11 +768,6 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				ctx.ServerError("LoadCommentPushCommits", err)
 				return
 			}
-			var flatStatuses []*git_model.CommitStatus
-			for _, commit := range comment.Commits {
-				flatStatuses = append(flatStatuses, commit.Statuses...)
-			}
-			actions_service.PrepareCommitStatusesUI(ctx, flatStatuses)
 			if !ctx.Repo.CanRead(unit.TypeActions) {
 				for _, commit := range comment.Commits {
 					if commit.Status == nil {
