@@ -51,6 +51,15 @@ details.ui.message:not(:has(pre)) summary {
   border-radius: 0;
 }
 
+.ui.bottom.attached.message {
+  margin-top: -1px;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.ui.bottom.attached.message:not(:last-child) {
+  margin-bottom: 1em;
+}
+
 .ui.message .header {
   color: inherit;
   font-weight: var(--font-weight-semibold);
