@@ -44,9 +44,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { job: lint-backend,    tags: "bindata sqlite sqlite_unlock_notify",       target: "lint-backend" }
-          - { job: lint-go-windows, tags: "bindata sqlite sqlite_unlock_notify",       target: "lint-go-windows" }
-          - { job: lint-go-gogit,   tags: "bindata sqlite sqlite_unlock_notify gogit", target: "lint-go" }
+          - { job: lint-backend, tags: "bindata sqlite sqlite_unlock_notify", target: "lint-backend" }
+          - { job: lint-go-windows, tags: "bindata sqlite sqlite_unlock_notify", target: "lint-go-windows" }
+          - { job: lint-go-gogit, tags: "bindata sqlite sqlite_unlock_notify gogit", target: "lint-go" }
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
