@@ -142,16 +142,18 @@ jobs:
         env:
           TAGS: bindata
       - name: unit-tests
-        run: make unit-test-coverage test-check
+        run: make test-backend test-check
         env:
           TAGS: bindata
           RACE_ENABLED: true
+          GOTESTFLAGS: -timeout=20m
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
       - name: unit-tests-gogit
-        run: GOEXPERIMENT='' make unit-test-coverage test-check
+        run: GOEXPERIMENT='' make test-backend test-check
         env:
           TAGS: bindata gogit
           RACE_ENABLED: true
+          GOTESTFLAGS: -timeout=20m
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
   test-mysql:
