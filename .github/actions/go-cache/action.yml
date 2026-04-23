@@ -23,7 +23,6 @@ runs:
         path: ~/go/pkg/mod
         key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
         restore-keys: gomod-${{ runner.os }}-${{ runner.arch }}
-
     - if: ${{ inputs.build-cache == 'true' && inputs.build-cache-rotate == 'true' }}
       uses: actions/cache@v5
       with:
@@ -32,13 +31,14 @@ runs:
         restore-keys: |
           gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.job }}-${{ hashFiles('go.sum') }}
           gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.job }}
+          gobuild-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
+          gobuild-${{ runner.os }}-${{ runner.arch }}
     - if: ${{ inputs.build-cache == 'true' && inputs.build-cache-rotate != 'true' }}
       uses: actions/cache@v5
       with:
         path: ~/.cache/go-build
         key: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
         restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}
-
     - if: ${{ inputs.lint-cache == 'true' }}
       uses: actions/cache@v5
       with:
