@@ -776,7 +776,7 @@ func (m *webhookNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 	}
 }
 
-func (m *webhookNotifier) PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User) {
+func (m *webhookNotifier) PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, _ []*user_model.User) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return
