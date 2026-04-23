@@ -23,7 +23,7 @@ const body = computed(() => {
 </script>
 
 <template>
-  <div class="tw-p-4" data-no-ref-issue-popup>
+  <div class="tw-p-4">
     <div v-if="issue" class="tw-flex tw-flex-col tw-gap-2">
       <div class="tw-text-12">
         <a :href="issue.repository.html_url" class="muted">{{ issue.repository.full_name }}</a>
