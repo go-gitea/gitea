@@ -218,8 +218,8 @@ func Test_Projects(t *testing.T) {
 		assignees, err := LoadIssuesAssigneesForProject(t.Context(), issuesMap)
 		require.NoError(t, err)
 		require.Len(t, assignees, 3)
-		require.EqualValues(t, "user1", assignees[0].Name)
-		require.EqualValues(t, "user10", assignees[1].Name)
-		require.EqualValues(t, "user2", assignees[2].Name)
+		require.Equal(t, "user1", assignees[0].Name)
+		require.Equal(t, "user10", assignees[1].Name)
+		require.Equal(t, "user2", assignees[2].Name)
 	})
 }
