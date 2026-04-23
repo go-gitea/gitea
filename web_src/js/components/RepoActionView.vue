@@ -95,7 +95,7 @@ async function deleteArtifact(name: string) {
       <div class="action-view-left">
         <!-- summary -->
         <a class="job-brief-item silenced" :href="run.link" :class="!props.jobId ? 'selected' : ''">
-          <SvgIcon name="octicon-list-unordered"/>
+          <SvgIcon name="octicon-home"/>
           <span class="gt-ellipsis">{{ locale.summary }}</span>
         </a>
 
@@ -136,7 +136,7 @@ async function deleteArtifact(name: string) {
                 </a>
               </template>
               <span v-else class="flex-text-block tw-flex-1 tw-text-text-light-2">
-                <SvgIcon name="octicon-file"/>
+                <SvgIcon name="octicon-file-removed"/>
                 <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 <span class="ui label tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
               </span>

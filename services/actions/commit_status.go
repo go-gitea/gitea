@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"maps"
 	"path"
-	"strconv"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -94,21 +93,6 @@ func (m CommitStatusActionInfo) IconStatus(s *git_model.CommitStatus) string {
 		return status.String()
 	}
 	return ""
-}
-
-// Description overrides s.Description for the three Pending-mapped states:
-// createCommitStatus dedups on State, so a Pending row's stored Description
-// freezes at whichever of waiting/running/blocked was written first.
-func (m CommitStatusActionInfo) Description(s *git_model.CommitStatus) string {
-	switch m[s.ID] {
-	case actions_model.StatusWaiting:
-		return "Waiting to run"
-	case actions_model.StatusRunning:
-		return "In progress"
-	case actions_model.StatusBlocked:
-		return "Blocked by required conditions"
-	}
-	return s.Description
 }
 
 // PrepareCommitStatusesUI hides Gitea Actions URLs for users without Actions
@@ -252,55 +236,57 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 	if wfs, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(wfs) > 0 {
 		runName = wfs[0].Name
 	}
-	ctxName := fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)
-	ctxName = strings.TrimSpace(ctxName) // git_model.NewCommitStatus also trims spaces
+	ctxName := strings.TrimSpace(fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)) // git_model.NewCommitStatus also trims spaces
 	state := toCommitStatus(job.Status)
-	if statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll); err == nil {
-		for _, v := range statuses {
-			if v.Context == ctxName {
-				if v.State == state {
-					// no need to update
-					return nil
-				}
-				break
-			}
-		}
-	} else {
+	targetURL := fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID)
+	description := toCommitStatusDescription(job)
+
+	statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll)
+	if err != nil {
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
-
-	var description string
-	switch job.Status {
-	// TODO: if we want support description in different languages, we need to support i18n placeholders in it
-	case actions_model.StatusSuccess:
-		description = fmt.Sprintf("Successful in %s", job.Duration())
-	case actions_model.StatusFailure:
-		description = fmt.Sprintf("Failing after %s", job.Duration())
-	case actions_model.StatusCancelled:
-		description = fmt.Sprintf("Cancelled after %s", job.Duration())
-	case actions_model.StatusSkipped:
-		description = "Skipped"
-	case actions_model.StatusRunning:
-		description = "In progress"
-	case actions_model.StatusWaiting:
-		description = "Waiting to run"
-	case actions_model.StatusBlocked:
-		description = "Blocked by required conditions"
-	default:
-		description = "Unknown status: " + strconv.Itoa(int(job.Status))
+	for _, v := range statuses {
+		if v.Context == ctxName {
+			if v.State == state && v.TargetURL == targetURL && v.Description == description {
+				return nil
+			}
+			break
+		}
 	}
 
 	creator := user_model.NewActionsUser()
 	status := git_model.CommitStatus{
 		SHA:         commitID,
-		TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID),
+		TargetURL:   targetURL,
 		Description: description,
 		Context:     ctxName,
-		CreatorID:   creator.ID,
 		State:       state,
+		CreatorID:   creator.ID,
 	}
 
 	return commitstatus_service.CreateCommitStatus(ctx, repo, creator, commitID, &status)
+}
+
+func toCommitStatusDescription(job *actions_model.ActionRunJob) string {
+	switch job.Status {
+	// TODO: if we want support description in different languages, we need to support i18n placeholders in it
+	case actions_model.StatusSuccess:
+		return fmt.Sprintf("Successful in %s", job.Duration())
+	case actions_model.StatusFailure:
+		return fmt.Sprintf("Failing after %s", job.Duration())
+	case actions_model.StatusCancelled:
+		return fmt.Sprintf("Cancelled after %s", job.Duration())
+	case actions_model.StatusSkipped:
+		return "Skipped"
+	case actions_model.StatusRunning:
+		return "In progress"
+	case actions_model.StatusWaiting:
+		return "Waiting to run"
+	case actions_model.StatusBlocked:
+		return "Blocked by required conditions"
+	default:
+		return fmt.Sprintf("Unknown status: %d", job.Status)
+	}
 }
 
 func toCommitStatus(status actions_model.Status) commitstatus.CommitStatusState {

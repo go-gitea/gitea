@@ -165,27 +165,6 @@ func MovePin(ctx context.Context, issue *Issue, newPosition int) error {
 	})
 }
 
-func GetPinnedIssueIDs(ctx context.Context, repoID int64, isPull bool) ([]int64, error) {
-	var issuePins []IssuePin
-	if err := db.GetEngine(ctx).
-		Table("issue_pin").
-		Where("repo_id = ?", repoID).
-		And("is_pull = ?", isPull).
-		Find(&issuePins); err != nil {
-		return nil, err
-	}
-
-	sort.Slice(issuePins, func(i, j int) bool {
-		return issuePins[i].PinOrder < issuePins[j].PinOrder
-	})
-
-	var ids []int64
-	for _, pin := range issuePins {
-		ids = append(ids, pin.IssueID)
-	}
-	return ids, nil
-}
-
 func GetIssuePinsByRepoID(ctx context.Context, repoID int64, isPull bool) ([]*IssuePin, error) {
 	var pins []*IssuePin
 	if err := db.GetEngine(ctx).Where("repo_id = ? AND is_pull = ?", repoID, isPull).Find(&pins); err != nil {

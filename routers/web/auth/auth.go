@@ -230,7 +230,7 @@ func performAutoLoginOAuth2(ctx *context.Context, data *preparedSignInData) bool
 		return false
 	}
 
-	skipToOAuthURL := setting.AppSubURL + "/user/oauth2/" + url.QueryEscape(data.oauth2Providers[0].DisplayName())
+	skipToOAuthURL := setting.AppSubURL + "/user/oauth2/" + url.PathEscape(data.oauth2Providers[0].DisplayName())
 	if redirectTo := ctx.FormString("redirect_to"); redirectTo != "" {
 		skipToOAuthURL += "?redirect_to=" + url.QueryEscape(redirectTo)
 	}
@@ -314,15 +314,6 @@ func SignInPost(ctx *context.Context) {
 			log.Warn("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
-		} else if user_model.IsErrUserInactive(err) {
-			if setting.Service.RegisterEmailConfirm {
-				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.HTML(http.StatusOK, TplActivate)
-			} else {
-				log.Warn("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
-				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
-			}
 		} else {
 			ctx.ServerError("UserSignIn", err)
 		}

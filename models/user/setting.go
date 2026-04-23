@@ -50,12 +50,6 @@ func (err ErrUserSettingIsNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// IsErrUserSettingIsNotExist return true if err is ErrSettingIsNotExist
-func IsErrUserSettingIsNotExist(err error) bool {
-	_, ok := err.(ErrUserSettingIsNotExist)
-	return ok
-}
-
 // genSettingCacheKey returns the cache key for some configuration
 func genSettingCacheKey(userID int64, key string) string {
 	return fmt.Sprintf("user_%d.setting.%s", userID, key)

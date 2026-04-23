@@ -1,3 +1,4 @@
+import {errorMessage} from '../modules/errors.ts';
 import {htmlEscape} from '../utils/html.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {
@@ -425,7 +426,7 @@ export function initRepoIssueTitleEdit() {
       window.location.reload();
     } catch (error) {
       console.error(error);
-      showErrorToast(error.message);
+      showErrorToast(errorMessage(error));
     }
   });
 }

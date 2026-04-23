@@ -8,8 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/util"
@@ -106,4 +108,19 @@ func TestGetActionWorkflow_FallbackRef(t *testing.T) {
 		require.Error(t, err)
 		assert.ErrorIs(t, err, util.ErrNotExist)
 	})
+}
+
+func TestToActionWorkflowRun_UsesTriggerEvent(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 803})
+
+	// Scheduled runs keep Event as the registration event (push) and use TriggerEvent as the real trigger.
+	run.Event = "push"
+	run.TriggerEvent = "schedule"
+
+	apiRun, err := ToActionWorkflowRun(t.Context(), repo, run)
+	require.NoError(t, err)
+	assert.Equal(t, "schedule", apiRun.Event)
 }

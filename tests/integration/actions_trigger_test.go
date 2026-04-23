@@ -1809,9 +1809,9 @@ jobs:
 	})
 }
 
-// Verify GetCommitStatusActionInfo surfaces the live ActionRunJob.Status even
-// when the stored CommitStatus Description is stale — createCommitStatus dedups
-// on State, so Waiting/Running/Blocked all map to one Pending row.
+// Verify GetCommitStatusActionInfo surfaces the live ActionRunJob.Status so the
+// icon reflects Waiting/Running/Blocked — all three share State=Pending in the
+// stored CommitStatus row.
 func TestActionsCommitStatusRunning(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -1838,37 +1838,23 @@ func TestActionsCommitStatusRunning(t *testing.T) {
 		require.NoError(t, db.Insert(t.Context(), run))
 		job := &actions_model.ActionRunJob{
 			RunID: run.ID, RepoID: repo.ID, OwnerID: user2.ID, Name: "test",
-			Status: actions_model.StatusWaiting,
+			Status: actions_model.StatusRunning,
 		}
 		require.NoError(t, db.Insert(t.Context(), job))
 
-		actions_service.CreateCommitStatusForRunJobs(t.Context(), run, job)
-		job.Status = actions_model.StatusRunning
-		_, err = actions_model.UpdateRunJob(t.Context(), job, nil, "status")
-		require.NoError(t, err)
 		actions_service.CreateCommitStatusForRunJobs(t.Context(), run, job)
 
 		statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
 		require.NoError(t, err)
 		require.Len(t, statuses, 1)
 		assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
-		// Dedup on State only → stored Description stays at the Waiting text.
-		assert.Equal(t, "Waiting to run", statuses[0].Description)
 
 		info := actions_service.GetCommitStatusActionInfo(t.Context(), statuses)
 		assert.Equal(t, actions_model.StatusRunning.String(), info.IconStatus(statuses[0]))
-		assert.Equal(t, "In progress", info.Description(statuses[0]))
 
-		job.Status = actions_model.StatusBlocked
-		_, err = actions_model.UpdateRunJob(t.Context(), job, nil, "status")
-		require.NoError(t, err)
-		info = actions_service.GetCommitStatusActionInfo(t.Context(), statuses)
-		assert.Equal(t, "Blocked by required conditions", info.Description(statuses[0]))
-
-		// No enrichment available → IconStatus is empty, Description falls back.
+		// No enrichment available → IconStatus is empty.
 		empty := actions_service.CommitStatusActionInfo{}
 		assert.Empty(t, empty.IconStatus(statuses[0]))
-		assert.Equal(t, statuses[0].Description, empty.Description(statuses[0]))
 	})
 }
 
