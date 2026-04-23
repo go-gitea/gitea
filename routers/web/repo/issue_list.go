@@ -159,22 +159,13 @@ func SearchIssues(ctx *context.Context) {
 
 	var includedProjectIDs []int64
 	{
-		// Parse 'projects' parameter (comma-separated list, takes precedence over legacy 'project')
-		projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormTrim("projects"), ","))
+		projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("project", ctx.FormString("projects")), ","))
 		if err != nil {
-			ctx.HTTPError(http.StatusBadRequest, "Invalid projects parameter", err.Error())
+			ctx.HTTPError(http.StatusBadRequest, "Invalid project parameter", err.Error())
 			return
 		}
-
 		if len(projectIDs) > 0 {
-			// Use 'projects' parameter if provided (takes complete precedence)
 			includedProjectIDs = projectIDs
-		} else {
-			// Fall back to legacy 'project' parameter (single project ID)
-			projectID := ctx.FormInt64("project")
-			if projectID > 0 {
-				includedProjectIDs = append(includedProjectIDs, projectID)
-			}
 		}
 	}
 
@@ -724,12 +715,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
-	// For template backward compatibility, set ProjectID to first project or 0
-	if len(projectIDs) > 0 {
-		ctx.Data["ProjectID"] = projectIDs[0]
-	} else {
-		ctx.Data["ProjectID"] = int64(0)
-	}
+	ctx.Data["ProjectIDs"] = projectIDs
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["PosterUsername"] = posterUsername
 	ctx.Data["Keyword"] = keyword
@@ -770,7 +756,7 @@ func Issues(ctx *context.Context) {
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	}
 
-	projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("projects", ctx.FormString("project")), ","))
+	projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("project", ctx.FormString("projects")), ","))
 	if err != nil {
 		ctx.ServerError("Invalid project parameter", err)
 		return
