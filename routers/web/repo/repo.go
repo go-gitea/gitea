@@ -534,6 +534,9 @@ func SearchRepo(ctx *context.Context) {
 		return
 	}
 	actions_service.PrepareCommitStatusesUI(ctx, latestCommitStatuses)
+	if !ctx.Repo.CanRead(unit.TypeActions) {
+		git_model.CommitStatusesHideActionsURL(ctx, latestCommitStatuses)
+	}
 
 	results := make([]*repo_service.WebSearchRepository, len(repos))
 	for i, repo := range repos {

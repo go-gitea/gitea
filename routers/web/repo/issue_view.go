@@ -769,20 +769,20 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				ctx.ServerError("LoadCommentPushCommits", err)
 				return
 			}
-			canReadActions := ctx.Repo.CanRead(unit.TypeActions)
 			var flatStatuses []*git_model.CommitStatus
 			for _, commit := range comment.Commits {
-				if commit.Status == nil {
-					continue
-				}
-				if !canReadActions {
-					// commit.Status is the synthetic CalcCommitStatus result, not in commit.Statuses,
-					// so it needs HideActionsURL on its own; PrepareCommitStatusesUI handles the rest.
-					commit.Status.HideActionsURL(ctx)
-				}
 				flatStatuses = append(flatStatuses, commit.Statuses...)
 			}
 			actions_service.PrepareCommitStatusesUI(ctx, flatStatuses)
+			if !ctx.Repo.CanRead(unit.TypeActions) {
+				for _, commit := range comment.Commits {
+					if commit.Status == nil {
+						continue
+					}
+					commit.Status.HideActionsURL(ctx)
+					git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
+				}
+			}
 		} else if comment.Type == issues_model.CommentTypeAddTimeManual ||
 			comment.Type == issues_model.CommentTypeStopTracking ||
 			comment.Type == issues_model.CommentTypeDeleteTimeManual {

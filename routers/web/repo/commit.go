@@ -386,6 +386,9 @@ func Diff(ctx *context.Context) {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
 	actions_service.PrepareCommitStatusesUI(ctx, statuses)
+	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+		git_model.CommitStatusesHideActionsURL(ctx, statuses)
+	}
 
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
@@ -465,19 +468,19 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 	if err != nil {
 		return nil, err
 	}
-	canReadActions := ctx.Repo.CanRead(unit_model.TypeActions)
 	var flatStatuses []*git_model.CommitStatus
 	for _, commit := range commits {
-		if commit.Status == nil {
-			continue
-		}
-		if !canReadActions {
-			// commit.Status is the synthetic CalcCommitStatus result, not in commit.Statuses,
-			// so it needs HideActionsURL on its own; PrepareCommitStatusesUI handles the rest.
-			commit.Status.HideActionsURL(ctx)
-		}
 		flatStatuses = append(flatStatuses, commit.Statuses...)
 	}
 	actions_service.PrepareCommitStatusesUI(ctx, flatStatuses)
+	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+		for _, commit := range commits {
+			if commit.Status == nil {
+				continue
+			}
+			commit.Status.HideActionsURL(ctx)
+			git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
+		}
+	}
 	return commits, nil
 }

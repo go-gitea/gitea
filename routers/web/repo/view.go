@@ -141,6 +141,9 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
 		actions_service.PrepareCommitStatusesUI(ctx, statuses)
+		if !ctx.Repo.CanRead(unit_model.TypeActions) {
+			git_model.CommitStatusesHideActionsURL(ctx, statuses)
+		}
 
 		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
 		ctx.Data["LatestCommitStatuses"] = statuses

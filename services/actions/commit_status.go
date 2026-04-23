@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/actions/jobparser"
@@ -95,14 +94,11 @@ func (m CommitStatusActionInfo) IconStatus(s *git_model.CommitStatus) string {
 	return ""
 }
 
-// PrepareCommitStatusesUI hides Gitea Actions URLs for users without Actions
-// read permission and merges the action info enrichment into
+// PrepareCommitStatusesUI merges live-action status enrichment into
 // ctx.Data["CommitStatusActionInfo"] for templates like repo/pulls/status.tmpl.
 // Multiple independent status sets on the same page (e.g., PR head + push
 // comments) each call this helper; entries are merged by CommitStatus.ID.
 func PrepareCommitStatusesUI(ctx *gitea_context.Context, statuses []*git_model.CommitStatus) {
-	// Enrich before hiding URLs — GetCommitStatusActionInfo needs the target
-	// URLs intact to recognize Gitea Actions rows.
 	info := GetCommitStatusActionInfo(ctx, statuses)
 	if existing, ok := ctx.Data["CommitStatusActionInfo"].(CommitStatusActionInfo); ok && len(existing) > 0 {
 		if info == nil {
@@ -111,9 +107,6 @@ func PrepareCommitStatusesUI(ctx *gitea_context.Context, statuses []*git_model.C
 		maps.Copy(info, existing)
 	}
 	ctx.Data["CommitStatusActionInfo"] = info
-	if !ctx.Repo.CanRead(unit.TypeActions) {
-		git_model.CommitStatusesHideActionsURL(ctx, statuses)
-	}
 }
 
 // PrepareCommitStatusesMapUI is the map variant of PrepareCommitStatusesUI for
