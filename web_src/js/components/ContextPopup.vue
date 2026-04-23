@@ -4,8 +4,6 @@ import {getIssueColorClass, getIssueIcon} from '../features/issue.ts';
 import {computed} from 'vue';
 import type {Issue} from '../types.ts';
 
-const {appSubUrl} = window.config;
-
 const props = defineProps<{
   issue?: Issue | null,
   renderedLabels?: string,
@@ -25,15 +23,15 @@ const body = computed(() => {
 </script>
 
 <template>
-  <div class="ref-issue-popup tw-p-4">
+  <div class="tw-p-4" data-no-ref-issue-popup>
     <div v-if="issue" class="tw-flex tw-flex-col tw-gap-2">
       <div class="tw-text-12">
-        <a :href="`${appSubUrl}/${issue.repository.full_name}`" class="muted">{{ issue.repository.full_name }}</a>
+        <a :href="issue.repository.html_url" class="muted">{{ issue.repository.full_name }}</a>
         on {{ createdAt }}
       </div>
       <div class="flex-text-block">
         <svg-icon :name="getIssueIcon(issue)" :class="getIssueColorClass(issue)"/>
-        <a :href="`${appSubUrl}/${issue.repository.full_name}/${issue.pull_request ? 'pulls' : 'issues'}/${issue.number}`" class="issue-title tw-font-semibold tw-break-anywhere muted">
+        <a :href="issue.html_url" class="issue-title tw-font-semibold tw-break-anywhere muted">
           {{ issue.title }}
           <span class="index">#{{ issue.number }}</span>
         </a>

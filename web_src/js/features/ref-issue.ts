@@ -51,8 +51,7 @@ export function initRefIssueContextPopup() {
   const selector = 'a[href]:not([data-ref-issue-popup]):not(.ref-external-issue)';
   addDelegatedEventListener<HTMLAnchorElement, MouseEvent>(document, 'mouseover', selector, (link) => {
     if (!parseIssueHref(link.getAttribute('href')!).ownerName) return;
-    // skip issue/PR listings — the popup would be redundant with on-page info
-    if (link.closest('.ref-issue-popup, #issue-list, #project-board, .milestone-issue-list')) return;
+    if (link.closest('[data-no-ref-issue-popup]')) return;
     if (getAttachedTippyInstance(link)) return;
     link.setAttribute('data-ref-issue-popup', '');
 
