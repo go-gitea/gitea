@@ -70,7 +70,6 @@ jobs:
         timeout-minutes: 50
         env:
           TAGS: bindata gogit
-          RACE_ENABLED: true
           TEST_TAGS: gogit
           TEST_LDAP: 1
 
@@ -245,7 +244,6 @@ jobs:
         run: make test-mysql
         env:
           TAGS: bindata
-          RACE_ENABLED: true
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
