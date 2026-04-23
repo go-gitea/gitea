@@ -583,8 +583,7 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 				&forms.MergePullRequestForm{Do: string(repo_model.MergeStyleFastForwardOnly)},
 			).AddTokenAuth(token)
 			resp := session.MakeRequest(t, apiReq, http.StatusMethodNotAllowed)
-			var apiBody api.APIError
-			DecodeJSON(t, resp, &apiBody)
+			apiBody := DecodeJSON(t, resp, &api.APIError{})
 			assert.Equal(t, apiNotVerifiedMsg, apiBody.Message)
 		})
 
