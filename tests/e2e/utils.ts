@@ -166,3 +166,26 @@ export async function logout(page: Page) {
   await page.goto('/');
   await expect(page.getByRole('link', {name: 'Sign In'})).toBeVisible();
 }
+
+export async function apiCreatePullRequest(requestContext: APIRequestContext, owner: string, repo: string, {head, base, title}: {head: string; base: string; title: string}): Promise<number> {
+  const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {
+    headers: apiHeaders(),
+    data: {head, base, title},
+  });
+  const body = await response.json();
+  return body.number;
+}
+
+export async function apiMergePullRequest(requestContext: APIRequestContext, owner: string, repo: string, index: number): Promise<void> {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/merge`, {
+    headers: apiHeaders(),
+    data: {Do: 'merge', merge_message_field: ''},
+  }), 'apiMergePullRequest');
+}
+
+export async function apiGetPullRequestCommits(requestContext: APIRequestContext, owner: string, repo: string, index: number): Promise<{sha: string; commit: {message: string}}[]> {
+  const response = await requestContext.get(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/commits`, {
+    headers: apiHeaders(),
+  });
+  return response.json();
+}
