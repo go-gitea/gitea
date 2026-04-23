@@ -4,7 +4,7 @@ import {GET, POST} from '../modules/fetch.ts';
 import {createElementFromHTML, showElem} from '../utils/dom.ts';
 import {parseIssuePageInfo} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {hideModal, showModal} from '../modules/fomantic/modal.ts';
+import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
 
 let i18nTextEdited: string;
 let i18nTextOptions: string;
@@ -46,7 +46,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
             const resp = await response.json();
 
             if (resp.ok) {
-              hideModal(elDetailDialog);
+              hideFomanticModal(elDetailDialog);
             } else {
               showErrorToast(resp.message);
             }
@@ -63,7 +63,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
       $fomanticDropdownOptions.dropdown('clear', true);
     },
   });
-  showModal(elDetailDialog, {
+  showFomanticModal(elDetailDialog, {
     async onShow() {
       try {
         const params = new URLSearchParams();

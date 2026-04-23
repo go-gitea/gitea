@@ -1,6 +1,6 @@
 import {POST} from '../modules/fetch.ts';
 import {addDelegatedEventListener, hideElem, isElemVisible, showElem, toggleElem} from '../utils/dom.ts';
-import {showModal} from '../modules/fomantic/modal.ts';
+import {showFomanticModal} from '../modules/fomantic/modal.ts';
 import {camelize} from 'vue';
 import {applyAutoFocus} from './common-page.ts';
 
@@ -42,7 +42,7 @@ export function initGlobalDeleteButton(): void {
         }
       }
 
-      showModal(modal, {
+      showFomanticModal(modal, {
         closable: false,
         onApprove: () => {
           // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
@@ -174,7 +174,7 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
     }
   }
 
-  showModal(elModal);
+  showFomanticModal(elModal);
 }
 
 export function initGlobalButtons(): void {

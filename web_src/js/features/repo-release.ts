@@ -3,7 +3,7 @@ import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {getComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {hideElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {hideModal, showModal} from '../modules/fomantic/modal.ts';
+import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import {htmlEscape} from '../utils/html.ts';
 import {compareVersions} from 'compare-versions';
@@ -113,7 +113,7 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
       }
     } finally {
       elModal.classList.remove('loading', 'disabled');
-      hideModal(elModal);
+      hideFomanticModal(elModal);
       comboEditor.focus();
     }
   };
@@ -140,7 +140,7 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
     }
     $dropdown.dropdown('set selected', guessPreviousReleaseTag(tagName, existingTags));
 
-    showModal(elModal, {
+    showFomanticModal(elModal, {
       onApprove: () => {
         doSubmit(tagName); // don't await, need to return false to keep the modal
         return false;

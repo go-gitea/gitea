@@ -11,14 +11,14 @@ type ModalOpts = {
 };
 
 // thin wrapper around Fomantic's jQuery modal plugin so callers don't have to touch jQuery or fomanticQuery
-export function showModal(el: Element | null, opts: ModalOpts = {}) {
+export function showFomanticModal(el: Element | null, opts: ModalOpts = {}) {
   if (!el) return;
   const $el = $(el);
   if (Object.keys(opts).length) $el.modal(opts);
   $el.modal('show');
 }
 
-export function hideModal(el: Element | null) {
+export function hideFomanticModal(el: Element | null) {
   if (!el) return;
   $(el).modal('hide');
 }

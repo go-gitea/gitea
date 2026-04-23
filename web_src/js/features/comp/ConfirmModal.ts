@@ -1,7 +1,7 @@
 import {svg} from '../../svg.ts';
 import {html, htmlRaw} from '../../utils/html.ts';
 import {createElementFromHTML} from '../../utils/dom.ts';
-import {showModal} from '../../modules/fomantic/modal.ts';
+import {showFomanticModal} from '../../modules/fomantic/modal.ts';
 import {hideToastsAll} from '../../modules/toast.ts';
 
 const {i18n} = window.config;
@@ -32,7 +32,7 @@ export function confirmModal(modal: HTMLElement | ConfirmModalOptions): Promise<
   // it's fine to do so because the modal is triggered by user's explicit action, so the user should already have read the toast messages
   hideToastsAll();
   return new Promise((resolve) => {
-    showModal(modal, {
+    showFomanticModal(modal, {
       onApprove() {
         resolve(true);
       },
