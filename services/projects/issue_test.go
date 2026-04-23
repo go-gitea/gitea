@@ -15,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_Projects(t *testing.T) {
@@ -206,5 +207,19 @@ func Test_Projects(t *testing.T) {
 			assert.Len(t, columnIssues[2], 1)
 			assert.Len(t, columnIssues[3], 1)
 		})
+	})
+
+	t.Run("LoadIssuesAssigneesForProject", func(t *testing.T) {
+		issuesMap := map[int64]issues_model.IssueList{}
+		issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		issue6 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
+		issuesMap[1] = issues_model.IssueList{issue1}
+		issuesMap[2] = issues_model.IssueList{issue6}
+		assignees, err := LoadIssuesAssigneesForProject(t.Context(), issuesMap)
+		require.NoError(t, err)
+		require.Len(t, assignees, 3)
+		require.Equal(t, "user1", assignees[0].Name)
+		require.Equal(t, "user10", assignees[1].Name)
+		require.Equal(t, "user2", assignees[2].Name)
 	})
 }
