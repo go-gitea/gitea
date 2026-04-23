@@ -24,11 +24,10 @@ function getIssueInfo(url: string): Promise<any> {
   return promise;
 }
 
-async function showRefIssuePopup(link: HTMLElement) {
-  const infoUrl = `${new URL(link.getAttribute('href')!, window.location.origin).pathname}/info`;
+async function showRefIssuePopup(link: HTMLAnchorElement) {
   const [data, {default: ContextPopup}] = await Promise.all([
-    getIssueInfo(infoUrl),
-    import(/* webpackChunkName: "ContextPopup" */ '../components/ContextPopup.vue'),
+    getIssueInfo(`${link.pathname}/info`),
+    import('../components/ContextPopup.vue'),
   ]);
   const el = document.createElement('div');
   const app = createApp(ContextPopup, {
@@ -50,15 +49,14 @@ async function showRefIssuePopup(link: HTMLElement) {
 
 export function initRefIssueContextPopup() {
   const selector = 'a[href]:not([data-ref-issue-popup]):not(.ref-external-issue)';
-  addDelegatedEventListener(document, 'mouseover', selector, (link: HTMLElement) => {
-    const href = link.getAttribute('href')!;
-    if (!parseIssueHref(href).ownerName) return; // not an issue/PR link
-    if (link.closest('.ref-issue-popup')) return; // avoid nesting
-    if (link.closest('#issue-list, #project-board, .milestone-issue-list')) return; // skip issue/PR listings — redundant with on-page info
-    if (getAttachedTippyInstance(link)) return; // already has tooltip
-    link.setAttribute('data-ref-issue-popup', ''); // prevent parallel fetches
+  addDelegatedEventListener<HTMLAnchorElement, MouseEvent>(document, 'mouseover', selector, (link) => {
+    if (!parseIssueHref(link.getAttribute('href')!).ownerName) return;
+    // skip issue/PR listings — the popup would be redundant with on-page info
+    if (link.closest('.ref-issue-popup, #issue-list, #project-board, .milestone-issue-list')) return;
+    if (getAttachedTippyInstance(link)) return;
+    link.setAttribute('data-ref-issue-popup', '');
 
-    // delay to avoid fetching on mouse passes
+    // delay so a mouse passing over the link doesn't fire a fetch
     let timer: ReturnType<typeof setTimeout>;
     const cancel = () => {
       clearTimeout(timer);
