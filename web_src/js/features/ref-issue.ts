@@ -26,6 +26,8 @@ async function showRefIssuePopup(link: HTMLAnchorElement) {
     renderedLabels: data.renderedLabels,
   });
   app.mount(el);
+  // suppress ancestor title like from .commit-summary to prevent double tooltip
+  link.title = '';
   createTippy(link, {
     theme: 'default',
     content: el,
