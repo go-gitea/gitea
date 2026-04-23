@@ -45,6 +45,34 @@ func TestSyncGroupsToTeams_LastOwnerNotRemoved(t *testing.T) {
 
 	// End-to-end: sync must not fail with ErrLastOrgOwner.
 	require.NoError(t, SyncGroupsToTeams(t.Context(), user2, sourceUserGroups, sourceGroupTeamMapping, true))
+
+	// User2 must still be a member of the Owners team.
+	stillOwner, err := organization.IsTeamMember(t.Context(), org3.ID, ownersTeam.ID, user2.ID)
+	require.NoError(t, err)
+	assert.True(t, stillOwner)
+}
+
+func TestSyncGroupsToTeams_LastOwnerRemovalSkippedWhenNotGranted(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	org3 := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	ownersTeam, err := org3.GetOwnerTeam(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, 1, ownersTeam.NumMembers)
+
+	// User is in no mapped group, so Owners is scheduled for removal with no
+	// offsetting add. The remove must be attempted and gracefully skipped.
+	sourceUserGroups := container.SetOf[string]()
+	sourceGroupTeamMapping := map[string]map[string][]string{
+		"groupA": {"org3": {"Owners"}},
+	}
+
+	require.NoError(t, SyncGroupsToTeams(t.Context(), user2, sourceUserGroups, sourceGroupTeamMapping, true))
+
+	stillOwner, err := organization.IsTeamMember(t.Context(), org3.ID, ownersTeam.ID, user2.ID)
+	require.NoError(t, err)
+	assert.True(t, stillOwner, "sole owner must remain after sync that couldn't remove them")
 }
 
 func TestResolveMappedMemberships_Dedup(t *testing.T) {

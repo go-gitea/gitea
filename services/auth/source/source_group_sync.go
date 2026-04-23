@@ -63,8 +63,8 @@ func resolveMappedMemberships(sourceUserGroups container.Set[string], sourceGrou
 
 	// If another group grants the same team, don't remove it — for the Owners
 	// team this would fail with ErrLastOrgOwner before the add runs.
-	for org, addTeams := range membershipsToAdd {
-		removeTeams, ok := membershipsToRemove[org]
+	for org, removeTeams := range membershipsToRemove {
+		addTeams, ok := membershipsToAdd[org]
 		if !ok {
 			continue
 		}
@@ -128,6 +128,11 @@ func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeam
 				}
 			} else if action == syncRemove && isMember {
 				if err := org_service.RemoveTeamMember(ctx, team, user); err != nil {
+					// Skip sole-owner removal so OAuth login still succeeds.
+					if organization.IsErrLastOrgOwner(err) {
+						log.Warn("group sync: Skipping removal of last owner in org %s for user %s: %v", org.Name, user.Name, err)
+						continue
+					}
 					log.Error("group sync: Could not remove user from team: %v", err)
 					return err
 				}
