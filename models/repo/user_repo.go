@@ -115,7 +115,6 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 	uniqueUserIDs.AddMultiple(userIDs...)
 
 	if repo.Owner.IsOrganization() {
-		// Helper also matches via team.authorize, so owner/admin team members are included even when their team_unit.access_mode is 0.
 		additionalUserIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
 		if err != nil {
 			return nil, err
