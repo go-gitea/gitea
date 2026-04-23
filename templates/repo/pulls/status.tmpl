@@ -5,8 +5,8 @@
 * StatusCheckData: additional status check data, see backend pullCommitStatusCheckData struct
 */}}
 {{$statusCheckData := .StatusCheckData}}
-{{$actionInfo := ctx.ActionsUtils.CommitStatusInfo .CommitStatuses}}
 {{if .CommitStatus}}
+{{$actionInfo := ctx.ActionsUtils.CommitStatusInfo .CommitStatuses}}
 <div class="commit-status-panel">
 	<div class="ui top attached header commit-status-header">
 		{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}

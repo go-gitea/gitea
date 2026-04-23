@@ -1,7 +1,7 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package commitstatusinfo
+package statusinfo
 
 import (
 	"context"
@@ -13,23 +13,27 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// CommitStatusActionInfo maps CommitStatus.ID to the live ActionRunJob status
+// ActionInfo maps CommitStatus.ID to the live ActionRunJob status
 // for Gitea Actions rows.
-type CommitStatusActionInfo map[int64]actions_model.Status
+type ActionInfo map[int64]actions_model.Status
 
 // IconStatus returns the action status name to route the icon through
 // repo/icons/action_status, or "" when the row isn't from Gitea Actions.
-func (m CommitStatusActionInfo) IconStatus(s *git_model.CommitStatus) string {
+func (m ActionInfo) IconStatus(s *git_model.CommitStatus) string {
 	if status, ok := m[s.ID]; ok {
 		return status.String()
 	}
 	return ""
 }
 
-// GetCommitStatusActionInfo resolves the live ActionRunJob.Status for every
+// GetActionInfo resolves the live ActionRunJob.Status for every
 // CommitStatus row backed by Gitea Actions. Rows from other sources (external
 // CIs, API) are left untouched and rendered from their stored State.
-func GetCommitStatusActionInfo(ctx context.Context, statuses []*git_model.CommitStatus) CommitStatusActionInfo {
+//
+// Side effect: populates status.Repo for inputs whose Repo is nil, sharing
+// one lookup across entries with the same RepoID. ParseGiteaActionsTargetURL
+// needs the Repo loaded; the caching avoids one DB hit per row.
+func GetActionInfo(ctx context.Context, statuses []*git_model.CommitStatus) ActionInfo {
 	if len(statuses) == 0 {
 		return nil
 	}
@@ -57,10 +61,10 @@ func GetCommitStatusActionInfo(ctx context.Context, statuses []*git_model.Commit
 	}
 	jobs := make(map[int64]*actions_model.ActionRunJob, len(jobIDs))
 	if err := db.GetEngine(ctx).In("id", jobIDs).Cols("id", "status").Find(&jobs); err != nil {
-		log.Error("GetCommitStatusActionInfo: find action run jobs: %v", err)
+		log.Error("GetActionInfo: find action run jobs: %v", err)
 		return nil
 	}
-	info := make(CommitStatusActionInfo, len(jobs))
+	info := make(ActionInfo, len(jobs))
 	for jobID, status := range statusByJobID {
 		if job, ok := jobs[jobID]; ok && !job.Status.IsUnknown() {
 			info[status.ID] = job.Status

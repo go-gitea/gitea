@@ -7,7 +7,7 @@ import (
 	"context"
 
 	git_model "code.gitea.io/gitea/models/git"
-	commitstatusinfo "code.gitea.io/gitea/modules/actions/commitstatusinfo"
+	"code.gitea.io/gitea/modules/actions/statusinfo"
 )
 
 // ActionsUtils groups template helpers for Gitea Actions data. Methods may
@@ -24,6 +24,6 @@ func NewActionsUtils(ctx context.Context) *ActionsUtils {
 // Gitea-Actions-backed CommitStatus row so repo/pulls/status.tmpl can render
 // the matching live icon (the stored State collapses Waiting/Running/Blocked
 // into Pending).
-func (a *ActionsUtils) CommitStatusInfo(statuses []*git_model.CommitStatus) commitstatusinfo.CommitStatusActionInfo {
-	return commitstatusinfo.GetCommitStatusActionInfo(a.ctx, statuses)
+func (a *ActionsUtils) CommitStatusInfo(statuses []*git_model.CommitStatus) statusinfo.ActionInfo {
+	return statusinfo.GetActionInfo(a.ctx, statuses)
 }
