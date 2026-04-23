@@ -48,15 +48,9 @@ jobs:
           go-version-file: go.mod
           check-latest: true
           cache: false
-      - uses: actions/cache@v5
+      - uses: ./.github/actions/go-cache
         with:
-          path: ~/go/pkg/mod
-          key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
-      - uses: actions/cache@v5
-        with:
-          path: ~/.cache/go-build
-          key: gobuild-${{ runner.os }}-${{ runner.arch }}-pgsql-${{ hashFiles('go.sum') }}-${{ github.run_id }}
-          restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}-pgsql-${{ hashFiles('go.sum') }}
+          job: pgsql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
       - run: make deps-backend
@@ -86,15 +80,9 @@ jobs:
           go-version-file: go.mod
           check-latest: true
           cache: false
-      - uses: actions/cache@v5
+      - uses: ./.github/actions/go-cache
         with:
-          path: ~/go/pkg/mod
-          key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
-      - uses: actions/cache@v5
-        with:
-          path: ~/.cache/go-build
-          key: gobuild-${{ runner.os }}-${{ runner.arch }}-sqlite-${{ hashFiles('go.sum') }}-${{ github.run_id }}
-          restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}-sqlite-${{ hashFiles('go.sum') }}
+          job: sqlite
       - run: make deps-backend
       - run: GOEXPERIMENT='' make backend
         env:
@@ -155,15 +143,10 @@ jobs:
           go-version-file: go.mod
           check-latest: true
           cache: false
-      - uses: actions/cache@v5
+      - uses: ./.github/actions/go-cache
         with:
-          path: ~/go/pkg/mod
-          key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
-      - uses: actions/cache@v5
-        with:
-          path: ~/.cache/go-build
-          key: gobuild-${{ runner.os }}-${{ runner.arch }}-unit-${{ hashFiles('go.sum') }}-${{ github.run_id }}
-          restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}-unit-${{ hashFiles('go.sum') }}
+          job: unit
+          build-cache-rotate: "true"
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
@@ -222,15 +205,9 @@ jobs:
           go-version-file: go.mod
           check-latest: true
           cache: false
-      - uses: actions/cache@v5
+      - uses: ./.github/actions/go-cache
         with:
-          path: ~/go/pkg/mod
-          key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
-      - uses: actions/cache@v5
-        with:
-          path: ~/.cache/go-build
-          key: gobuild-${{ runner.os }}-${{ runner.arch }}-mysql-${{ hashFiles('go.sum') }}-${{ github.run_id }}
-          restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}-mysql-${{ hashFiles('go.sum') }}
+          job: mysql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
@@ -272,15 +249,9 @@ jobs:
           go-version-file: go.mod
           check-latest: true
           cache: false
-      - uses: actions/cache@v5
+      - uses: ./.github/actions/go-cache
         with:
-          path: ~/go/pkg/mod
-          key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
-      - uses: actions/cache@v5
-        with:
-          path: ~/.cache/go-build
-          key: gobuild-${{ runner.os }}-${{ runner.arch }}-mssql-${{ hashFiles('go.sum') }}-${{ github.run_id }}
-          restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}-mssql-${{ hashFiles('go.sum') }}
+          job: mssql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
       - run: make deps-backend

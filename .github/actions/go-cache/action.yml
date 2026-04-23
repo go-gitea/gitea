@@ -1,0 +1,46 @@
+name: Go caches
+description: Restore/save Go module, build, and golangci-lint caches.
+
+inputs:
+  job:
+    description: Short identifier used in the per-job build cache key.
+    required: true
+  build-cache:
+    description: Include ~/.cache/go-build.
+    default: "true"
+  build-cache-rotate:
+    description: |
+      Rotate the build cache key per run so newly-populated entries
+      persist (needed for Go's test result cache to accumulate).
+      Off by default: stable key means one save per (job, go.sum).
+    default: "false"
+  lint-cache:
+    description: Include ~/.cache/golangci-lint.
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@v5
+      with:
+        path: ~/go/pkg/mod
+        key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
+        restore-keys: gomod-${{ runner.os }}-${{ runner.arch }}
+
+    - if: ${{ inputs.build-cache == 'true' && inputs.build-cache-rotate == 'true' }}
+      uses: actions/cache@v5
+      with:
+        path: ~/.cache/go-build
+        key: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.job }}-${{ hashFiles('go.sum') }}-${{ github.run_id }}
+        restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.job }}-${{ hashFiles('go.sum') }}
+    - if: ${{ inputs.build-cache == 'true' && inputs.build-cache-rotate != 'true' }}
+      uses: actions/cache@v5
+      with:
+        path: ~/.cache/go-build
+        key: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.job }}-${{ hashFiles('go.sum') }}
+
+    - if: ${{ inputs.lint-cache == 'true' }}
+      uses: actions/cache@v5
+      with:
+        path: ~/.cache/golangci-lint
+        key: golangci-${{ runner.os }}-${{ runner.arch }}-${{ inputs.job }}-${{ hashFiles('go.sum', '.golangci.yml') }}

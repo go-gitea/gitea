@@ -26,10 +26,10 @@ jobs:
           go-version-file: go.mod
           check-latest: true
           cache: false
-      - uses: actions/cache@v5
+      - uses: ./.github/actions/go-cache
         with:
-          path: ~/go/pkg/mod
-          key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
+          job: e2e
+          build-cache: "false"
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
