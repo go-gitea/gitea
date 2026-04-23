@@ -1,4 +1,4 @@
-import {queryElemSiblings} from '../utils/dom.ts';
+import {queryElemSiblings} from '../../utils/dom.ts';
 
 // wire a collection of `[data-tab]` menu items so clicking one activates the matching `.ui.tab[data-tab=...]`
 export function initTabs(elBtns: Iterable<Element>) {

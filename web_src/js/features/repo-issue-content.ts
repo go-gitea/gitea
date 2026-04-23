@@ -4,7 +4,7 @@ import {GET, POST} from '../modules/fetch.ts';
 import {createElementFromHTML, showElem} from '../utils/dom.ts';
 import {parseIssuePageInfo} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {hideModal, showModal} from '../modules/modal.ts';
+import {hideModal, showModal} from '../modules/fomantic/modal.ts';
 
 let i18nTextEdited: string;
 let i18nTextOptions: string;

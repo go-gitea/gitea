@@ -1,7 +1,7 @@
 import {contrastColor} from '../utils/color.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {POST, request} from '../modules/fetch.ts';
-import {hideModal} from '../modules/modal.ts';
+import {hideModal} from '../modules/fomantic/modal.ts';
 import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 import type {SortableEvent} from 'sortablejs';
 import {toggleFullScreen} from '../utils.ts';

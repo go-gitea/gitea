@@ -1,6 +1,6 @@
 import {POST} from '../modules/fetch.ts';
 import {addDelegatedEventListener, hideElem, isElemVisible, showElem, toggleElem} from '../utils/dom.ts';
-import {showModal} from '../modules/modal.ts';
+import {showModal} from '../modules/fomantic/modal.ts';
 import {camelize} from 'vue';
 import {applyAutoFocus} from './common-page.ts';
 

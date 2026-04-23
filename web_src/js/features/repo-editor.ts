@@ -9,7 +9,7 @@ import {applyAreYouSure, ignoreAreYouSure} from '../vendor/jquery.are-you-sure.t
 import {submitFormFetchAction} from './common-fetch-action.ts';
 import {dirname} from '../utils.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
-import {initTabs} from '../modules/tab.ts';
+import {initTabs} from '../modules/fomantic/tab.ts';
 import {showErrorToast} from '../modules/toast.ts';
 
 function initEditPreviewTab(elForm: HTMLFormElement) {

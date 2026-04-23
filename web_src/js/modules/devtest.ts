@@ -1,7 +1,7 @@
 import {showInfoToast, showWarningToast, showErrorToast} from './toast.ts';
 import type {Toast} from './toast.ts';
 import {registerGlobalInitFunc} from './observer.ts';
-import {showModal} from './modal.ts';
+import {showModal} from './fomantic/modal.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 import {showGlobalErrorMessage} from './errors.ts';

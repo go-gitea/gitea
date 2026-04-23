@@ -1,6 +1,6 @@
 import {getCurrentLocale} from '../utils.ts';
 import {errorMessage} from '../modules/errors.ts';
-import {showModal} from '../modules/modal.ts';
+import {showModal} from '../modules/fomantic/modal.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 
 const {pageData} = window.config;

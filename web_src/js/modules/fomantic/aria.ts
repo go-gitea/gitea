@@ -1,4 +1,4 @@
-import {generateElemId} from '../utils/dom.ts';
+import {generateElemId} from '../../utils/dom.ts';
 
 function linkLabelAndInput(label: Element, input: Element) {
   const labelFor = label.getAttribute('for');

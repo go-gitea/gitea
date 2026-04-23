@@ -1,7 +1,7 @@
 import {GET} from '../modules/fetch.ts';
 import {hideElem, loadElem, queryElemChildren, queryElems} from '../utils/dom.ts';
 import {parseDom} from '../utils.ts';
-import {initTabs} from '../modules/tab.ts';
+import {initTabs} from '../modules/fomantic/tab.ts';
 
 type ImageContext = {
   imageBefore: HTMLImageElement | undefined,

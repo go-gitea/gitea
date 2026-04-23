@@ -23,7 +23,7 @@ import {
 } from './EditorMarkdown.ts';
 import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
 import {createTippy} from '../../modules/tippy.ts';
-import {initTabs} from '../../modules/tab.ts';
+import {initTabs} from '../../modules/fomantic/tab.ts';
 import type EasyMDE from 'easymde';
 import {localUserSettings} from '../../modules/user-settings.ts';
 

@@ -1,7 +1,7 @@
 import {svg} from '../../svg.ts';
 import {html, htmlRaw} from '../../utils/html.ts';
 import {createElementFromHTML} from '../../utils/dom.ts';
-import {showModal} from '../../modules/modal.ts';
+import {showModal} from '../../modules/fomantic/modal.ts';
 import {hideToastsAll} from '../../modules/toast.ts';
 
 const {i18n} = window.config;
