@@ -39,9 +39,9 @@ test('PR should not list commits already present in the target branch via anothe
     await apiCreateBranch(request, owner, repo, 'develop');
     await apiCreateBranch(request, owner, repo, 'feature');
 
-    // Add a commit on feature
+    // Add a commit on feature (must specify branch — default would commit to main)
     await apiCreateFile(request, owner, repo, 'feature.txt',
-      `feature content ${randomString(8)}`);
+      `feature content ${randomString(8)}`, 'feature');
 
     // PR 1: feature → staging, merge it
     const pr1 = await apiCreatePullRequest(request, owner, repo, {

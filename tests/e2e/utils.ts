@@ -167,20 +167,21 @@ export async function logout(page: Page) {
   await expect(page.getByRole('link', {name: 'Sign In'})).toBeVisible();
 }
 
-export async function apiCreatePullRequest(requestContext: APIRequestContext, owner: string, repo: string, {head, base, title}: {head: string; base: string; title: string}): Promise<number> {
-  const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {
-    headers: apiHeaders(),
-    data: {head, base, title},
-  });
-  const body = await response.json();
-  return body.number;
-}
-
 export async function apiMergePullRequest(requestContext: APIRequestContext, owner: string, repo: string, index: number): Promise<void> {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/merge`, {
-    headers: apiHeaders(),
-    data: {Do: 'merge', merge_message_field: ''},
-  }), 'apiMergePullRequest');
+  // Gitea returns 405 "Please try again later" when the merge queue is busy or mergeability
+  // has not been computed yet — retry until the merge succeeds.
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/merge`, {
+      headers: apiHeaders(),
+      data: {Do: 'merge', merge_message_field: ''},
+    });
+    if (response.ok()) return;
+    if (response.status() === 405 && attempt < 19) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      continue;
+    }
+    throw new Error(`apiMergePullRequest failed: ${response.status()} ${await response.text()}`);
+  }
 }
 
 export async function apiGetPullRequestCommits(requestContext: APIRequestContext, owner: string, repo: string, index: number): Promise<{sha: string; commit: {message: string}}[]> {
