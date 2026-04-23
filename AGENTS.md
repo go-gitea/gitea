@@ -2,7 +2,7 @@
 - Run `make fmt` to format `.go` files, and run `make lint-go` to lint them
 - Run `make lint-js` to lint `.ts` files
 - Run `make tidy` after any `go.mod` changes
-- Run single integration tests with `make 'test-sqlite#TestName/Subtest'`
+- Run single go or integration tests with `make 'test-sqlite#TestName/Subtest'`
 - Run single playwright e2e tests with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e`, its value is passed as args to `playwright test`
 - Add the current year into the copyright header of new `.go` files
 - Ensure no trailing whitespace in edited files
