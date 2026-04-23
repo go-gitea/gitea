@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/internal"
+	"code.gitea.io/gitea/modules/optional"
 )
 
 // Indexer defines an interface to index and search code contents
@@ -28,6 +29,7 @@ type SearchOptions struct {
 	Language string
 
 	SearchMode indexer.SearchModeType
+	Archived   optional.Option[bool]
 
 	db.Paginator
 }

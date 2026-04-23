@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	esRepoIndexerLatestVersion = 3
+	esRepoIndexerLatestVersion = 4
 	// multi-match-types, currently only 2 types are used
 	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
 	esMultiMatchTypeBestFields   = "best_fields"
@@ -98,6 +98,10 @@ const (
 			"properties": {
 				"repo_id": {
 					"type": "long",
+					"index": true
+				},
+				"archived": {
+					"type": "boolean",
 					"index": true
 				},
 				"filename": {
@@ -185,6 +189,7 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 			Id(id).
 			Doc(map[string]any{
 				"repo_id":    repo.ID,
+				"archived":   repo.IsArchived,
 				"filename":   update.Filename,
 				"content":    string(charset.ToUTF8DropErrors(fileContents)),
 				"commit_id":  sha,
@@ -376,6 +381,9 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		}
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
 		query = query.Must(repoQuery)
+	}
+	if opts.Archived.Has() {
+		query = query.Must(elastic.NewTermQuery("archived", opts.Archived.Value()))
 	}
 
 	var (

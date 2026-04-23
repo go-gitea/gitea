@@ -1,12 +1,29 @@
-<form class="ui form ignore-dirty">
-	{{template "shared/search/combo" (dict
-	"Disabled" .CodeIndexerUnavailable
-	"Value" .Keyword
-	"Placeholder" (ctx.Locale.Tr "search.code_kind")
-	"SearchModes" .SearchModes
-	"SelectedSearchMode" .SelectedSearchMode
-	)}}
-</form>
+<div class="ui small secondary filter menu">
+	<form id="repo-search-form" class="ui form ignore-dirty tw-flex-1 tw-flex tw-items-center tw-gap-x-2">
+		{{if .Language}}<input type="hidden" name="l" value="{{.Language}}">{{end}}
+		<div class="tw-flex-1">
+			{{template "shared/search/combo" (dict
+			"Disabled" .CodeIndexerUnavailable
+			"Value" .Keyword
+			"Placeholder" (ctx.Locale.Tr "search.code_kind")
+			"SearchModes" .SearchModes
+			"SelectedSearchMode" .SelectedSearchMode
+			)}}
+		</div>
+		{{if .PageIsExploreCode}}
+		<div class="item ui small dropdown jump">
+			<span class="text">{{ctx.Locale.Tr "filter_title"}}</span>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<div class="menu flex-items-menu">
+				<label class="item"><input type="radio" name="clear-filter"> {{ctx.Locale.Tr "filter.clear"}}</label>
+				<div class="divider"></div>
+				<label class="item"><input type="radio" name="archived" {{if eq .ArchivedMode "only"}}checked{{end}} value="only"> {{ctx.Locale.Tr "filter.is_archived"}}</label>
+				<label class="item"><input type="radio" name="archived" {{if eq .ArchivedMode "exclude"}}checked{{end}} value="exclude"> {{ctx.Locale.Tr "filter.not_archived"}}</label>
+			</div>
+		</div>
+		{{end}}
+	</form>
+</div>
 <div class="divider"></div>
 <div class="ui list">
 	{{template "base/alert" .}}
