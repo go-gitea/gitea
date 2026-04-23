@@ -62,9 +62,10 @@ func runTestApp(app *cli.Command, args ...string) (runResult, error) {
 }
 
 func TestCliCmd(t *testing.T) {
-	defaultWorkPath := filepath.Dir(setting.AppPath)
+	defaultWorkPath := filepath.FromSlash("/tmp/mocked-work-path")
 	defaultCustomPath := filepath.Join(defaultWorkPath, "custom")
 	defaultCustomConf := filepath.Join(defaultCustomPath, "conf/app.ini")
+	defer setting.MockBuiltinPaths(defaultWorkPath, "", "")()
 
 	cli.CommandHelpTemplate = "(command help template)"
 	cli.RootCommandHelpTemplate = "(app help template)"
@@ -157,7 +158,6 @@ func TestCliCmd(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.cmd, func(t *testing.T) {
-			defer test.MockVariableValue(&setting.InstallLock, false)()
 			app := newTestApp(cli.Command{
 				Action: func(ctx context.Context, cmd *cli.Command) error {
 					_, _ = fmt.Fprint(cmd.Root().Writer, makePathOutput(setting.AppWorkPath, setting.CustomPath, setting.CustomConf))

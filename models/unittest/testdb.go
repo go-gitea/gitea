@@ -13,10 +13,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/storage"
@@ -28,37 +26,6 @@ import (
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 )
-
-// InitSettingsForTesting initializes config provider and load common settings for tests
-func InitSettingsForTesting() {
-	setting.SetupGiteaTestEnv()
-
-	log.OsExiter = func(code int) {
-		if code != 0 {
-			// non-zero exit code (log.Fatal) shouldn't occur during testing, if it happens, show a full stacktrace for more details
-			panic(fmt.Errorf("non-zero exit code during testing: %d", code))
-		}
-		os.Exit(0)
-	}
-	if setting.CustomConf == "" {
-		setting.CustomConf = filepath.Join(setting.CustomPath, "conf/app-unittest-tmp.ini")
-		_ = os.Remove(setting.CustomConf)
-	}
-
-	// init paths and config system for testing
-	getTestEnv := func(key string) string {
-		return ""
-	}
-	setting.InitWorkPathAndCommonConfig(getTestEnv, setting.ArgWorkPathAndCustomConf{CustomConf: setting.CustomConf})
-
-	if err := setting.PrepareAppDataPath(); err != nil {
-		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
-	}
-	// register the dummy hash algorithm function used in the test fixtures
-	_ = hash.Register("dummy", hash.NewDummyHasher)
-
-	setting.PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
-}
 
 // TestOptions represents test options
 type TestOptions struct {
@@ -75,11 +42,12 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 
 func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
 	testOpts := util.OptionalArg(testOptsArg, &TestOptions{})
-	InitSettingsForTesting()
+	setting.SetupGiteaTestEnv()
 	giteaRoot := setting.GetGiteaTestSourceRoot()
 	fixturesOpts := FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: testOpts.FixtureFiles}
 	if err := CreateTestEngine(fixturesOpts); err != nil {
-		testlogger.Panicf("Error creating test engine: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Error creating test database engine: %v\n", err)
+		os.Exit(1)
 	}
 
 	setting.AppURL = "https://try.gitea.io/"
