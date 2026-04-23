@@ -38,10 +38,13 @@ test('PR should not list commits already present in the target branch via anothe
   await apiCreateRepo(request, {name: repo, autoInit: true});
 
   try {
-    // Create branches from main
-    await apiCreateBranch(request, owner, repo, 'staging');
-    await apiCreateBranch(request, owner, repo, 'develop');
-    await apiCreateBranch(request, owner, repo, 'feature');
+    // Create branches and log in concurrently — all independent after repo exists
+    await Promise.all([
+      apiCreateBranch(request, owner, repo, 'staging'),
+      apiCreateBranch(request, owner, repo, 'develop'),
+      apiCreateBranch(request, owner, repo, 'feature'),
+      login(page),
+    ]);
 
     // Add a commit on feature (must specify branch — default would commit to main)
     await apiCreateFile(request, owner, repo, 'feature.txt',
@@ -59,20 +62,18 @@ test('PR should not list commits already present in the target branch via anothe
     });
     await apiMergePullRequest(request, owner, repo, pr2);
 
-    // PR 3: develop → staging (the one that should show 0 new commits)
+    // PR 3: develop → staging (the one being tested)
     const pr3 = await apiCreatePullRequest(request, owner, repo, {
       head: 'develop', base: 'staging', title: 'develop into staging',
     });
 
-    // Verify via UI that the PR commits page is reachable and shows the correct state
-    await login(page);
-    await page.goto(`/${owner}/${repo}/pulls/${pr3}/commits`);
-    await page.waitForLoadState('load');
-
-    // Screenshot before assertion — proves we reached the correct PR commits page
-    await page.screenshot({path: 'test-results/pr-commits-tab.png'});
-
-    const commits = await apiGetPullRequestCommits(request, owner, repo, pr3);
+    // Fetch commits via API and navigate to the PR page concurrently
+    const [commits] = await Promise.all([
+      apiGetPullRequestCommits(request, owner, repo, pr3),
+      page.goto(`/${owner}/${repo}/pulls/${pr3}/commits`)
+        .then(() => page.waitForLoadState('load'))
+        .then(() => page.screenshot({path: 'test-results/pr-commits-tab.png'})),
+    ]);
 
     // M2 (the merge commit "feature into develop") is genuinely new in develop and
     // should appear. The feature file commit B must NOT appear — it is already
