@@ -12,9 +12,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRenderFileSVGIsInImgTag(t *testing.T) {
+func TestView(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("RenderFileSVGIsInImgTag", testRenderFileSVGIsInImgTag)
+	t.Run("CommitListActions", testCommitListActions)
+	t.Run("SecurityHeadersDefaults", testSecurityHeadersDefaults)
+}
 
+func testRenderFileSVGIsInImgTag(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	req := NewRequest(t, "GET", "/user2/repo2/src/branch/master/line.svg")
@@ -26,8 +31,7 @@ func TestRenderFileSVGIsInImgTag(t *testing.T) {
 	assert.Equal(t, "/user2/repo2/raw/branch/master/line.svg", src)
 }
 
-func TestCommitListActions(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testCommitListActions(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	t.Run("WikiRevisionList", func(t *testing.T) {
@@ -64,4 +68,16 @@ func TestCommitListActions(t *testing.T) {
 		AssertHTMLElement(t, htmlDoc, `.commit-list .view-single-diff`, true)
 		AssertHTMLElement(t, htmlDoc, `.commit-list .view-commit-path`, true)
 	})
+}
+
+func testSecurityHeadersDefaults(t *testing.T) {
+	assertSecurityHeaders := func(t *testing.T, uri string) {
+		req := NewRequest(t, "GET", uri)
+		resp := MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, "nosniff", resp.Header().Get("X-Content-Type-Options"))
+		assert.Equal(t, "SAMEORIGIN", resp.Header().Get("X-Frame-Options"))
+	}
+	assertSecurityHeaders(t, "/")
+	assertSecurityHeaders(t, "/api/v1/version")
+	assertSecurityHeaders(t, "/assets/img/favicon.png")
 }

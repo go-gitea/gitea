@@ -865,9 +865,6 @@ func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 func Routes() *web.Router {
 	m := web.NewRouter()
 
-	// X-Content-Type-Options is now set globally by
-	// routers/common.SecurityHeadersHandler in ProtocolMiddlewares;
-	// no api-v1-specific securityHeaders wrapper is needed.
 	if setting.CORSConfig.Enabled {
 		m.BeforeRouting(cors.Handler(cors.Options{
 			AllowedOrigins:   setting.CORSConfig.AllowDomain,
@@ -1747,4 +1744,3 @@ func Routes() *web.Router {
 
 	return m
 }
-

@@ -50,19 +50,15 @@ func ProtocolMiddlewares() (handlers []any) {
 }
 
 // SecurityHeadersHandler sets X-Content-Type-Options globally for every
-// response that leaves Gitea -- web UI, /api/*, /api/internal/*,
-// /captcha/*, /metrics, /robots.txt, /ssh_info, etc. Operators who want
-// the raw HTTP behaviour can opt out by setting the value to "unset" in
-// [security].
-//
-// X-Frame-Options is deliberately not set here: it is web-UI-specific
-// and the services/context web middleware already sets it on the
-// rendered HTML responses that actually need clickjacking protection.
+// response that leaves Gitea
 func SecurityHeadersHandler() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			if setting.Security.XContentTypeOptions != "unset" {
 				resp.Header().Set("X-Content-Type-Options", setting.Security.XContentTypeOptions)
+			}
+			if setting.Security.XFrameOptions != "unset" {
+				resp.Header().Set(`X-Frame-Options`, setting.Security.XFrameOptions)
 			}
 			next.ServeHTTP(resp, req)
 		})

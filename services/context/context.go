@@ -196,14 +196,6 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
 
-			if setting.Security.XFrameOptions != "unset" {
-				ctx.Resp.Header().Set(`X-Frame-Options`, setting.Security.XFrameOptions)
-			}
-			// X-Content-Type-Options is set globally by
-			// routers/common.SecurityHeadersHandler so every endpoint
-			// (including /api/internal/*, /captcha/*, /metrics,
-			// /robots.txt, /ssh_info) gets it, not just web UI pages.
-
 			ctx.Data["SystemConfig"] = setting.Config()
 
 			ctx.Data["ShowTwoFactorRequiredMessage"] = ctx.DoerNeedTwoFactorAuth()
