@@ -63,7 +63,7 @@ test('PR should not list commits already present in the target branch via anothe
     // Verify via UI that the PR commits page is reachable and shows the correct state
     await login(page);
     await page.goto(`/${owner}/${repo}/pulls/${pr3}/commits`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
     // Screenshot before assertion — proves we reached the correct PR commits page
     await page.screenshot({path: 'test-results/pr-commits-tab.png'});
