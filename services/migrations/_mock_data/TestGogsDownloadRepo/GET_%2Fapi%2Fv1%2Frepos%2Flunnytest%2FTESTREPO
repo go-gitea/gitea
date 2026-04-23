@@ -1,0 +1,3 @@
+Content-Type: application/json; charset=UTF-8
+
+{"id":1,"owner":{"id":5331,"login":"lunny","full_name":"","email":"xiaolunwen@gmail.com","avatar_url":"https://try.gogs.io/avatars/5331"},"name":"TESTREPO","full_name":"lunnytest/TESTREPO","description":"","private":false,"fork":false,"parent":null,"empty":false,"mirror":false,"size":0,"html_url":"https://try.gogs.io/lunnytest/TESTREPO","ssh_url":"git@try.gogs.io:lunnytest/TESTREPO.git","clone_url":"https://try.gogs.io/lunnytest/TESTREPO.git","website":"","stars_count":0,"forks_count":0,"watchers_count":1,"open_issues_count":1,"default_branch":"master","created_at":"2019-06-11T08:15:00Z","updated_at":"2019-06-11T08:15:00Z","permissions":{"admin":false,"push":false,"pull":true}}
