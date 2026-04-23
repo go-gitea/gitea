@@ -13,7 +13,6 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -195,14 +194,6 @@ type MiscUtils struct {
 
 func NewMiscUtils(ctx context.Context) *MiscUtils {
 	return &MiscUtils{ctx: ctx}
-}
-
-// ActionsCommitStatusInfo resolves the live ActionRunJob.Status for every
-// Gitea-Actions-backed CommitStatus row so repo/pulls/status.tmpl can render
-// the matching live icon (the stored State collapses Waiting/Running/Blocked
-// into Pending).
-func (m *MiscUtils) ActionsCommitStatusInfo(statuses []*git_model.CommitStatus) git_model.CommitStatusActionInfo {
-	return git_model.GetCommitStatusActionInfo(m.ctx, statuses)
 }
 
 type MarkdownEditorContext struct {

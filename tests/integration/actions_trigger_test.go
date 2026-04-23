@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	commitstatusinfo "code.gitea.io/gitea/modules/actions/commitstatusinfo"
 	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
@@ -1849,11 +1850,11 @@ func TestActionsCommitStatusRunning(t *testing.T) {
 		require.Len(t, statuses, 1)
 		assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
 
-		info := git_model.GetCommitStatusActionInfo(t.Context(), statuses)
+		info := commitstatusinfo.GetCommitStatusActionInfo(t.Context(), statuses)
 		assert.Equal(t, actions_model.StatusRunning.String(), info.IconStatus(statuses[0]))
 
 		// No enrichment available → IconStatus is empty.
-		empty := git_model.CommitStatusActionInfo{}
+		empty := commitstatusinfo.CommitStatusActionInfo{}
 		assert.Empty(t, empty.IconStatus(statuses[0]))
 
 		// The commits-list tippy tooltip renders status.tmpl too: verify the live
