@@ -25,6 +25,21 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
+      - uses: actions/cache@v5
+        with:
+          path: ~/go/pkg/mod
+          key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/go-build
+          key: gobuild-${{ runner.os }}-${{ runner.arch }}-lint-backend-${{ hashFiles('go.sum') }}-${{ github.run_id }}
+          restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}-lint-backend-${{ hashFiles('go.sum') }}
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/golangci-lint
+          key: golangci-${{ runner.os }}-${{ runner.arch }}-lint-backend-${{ hashFiles('go.sum', '.golangci.yml') }}-${{ github.run_id }}
+          restore-keys: golangci-${{ runner.os }}-${{ runner.arch }}-lint-backend-${{ hashFiles('go.sum', '.golangci.yml') }}
       - run: make deps-backend deps-tools
       - run: make lint-backend
         env:
@@ -123,6 +138,21 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
+      - uses: actions/cache@v5
+        with:
+          path: ~/go/pkg/mod
+          key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/go-build
+          key: gobuild-${{ runner.os }}-${{ runner.arch }}-lint-go-windows-${{ hashFiles('go.sum') }}-${{ github.run_id }}
+          restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}-lint-go-windows-${{ hashFiles('go.sum') }}
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/golangci-lint
+          key: golangci-${{ runner.os }}-${{ runner.arch }}-lint-go-windows-${{ hashFiles('go.sum', '.golangci.yml') }}-${{ github.run_id }}
+          restore-keys: golangci-${{ runner.os }}-${{ runner.arch }}-lint-go-windows-${{ hashFiles('go.sum', '.golangci.yml') }}
       - run: make deps-backend deps-tools
       - run: make lint-go-windows
         env:
@@ -142,6 +172,21 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
+      - uses: actions/cache@v5
+        with:
+          path: ~/go/pkg/mod
+          key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/go-build
+          key: gobuild-${{ runner.os }}-${{ runner.arch }}-lint-go-gogit-${{ hashFiles('go.sum') }}-${{ github.run_id }}
+          restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}-lint-go-gogit-${{ hashFiles('go.sum') }}
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/golangci-lint
+          key: golangci-${{ runner.os }}-${{ runner.arch }}-lint-go-gogit-${{ hashFiles('go.sum', '.golangci.yml') }}-${{ github.run_id }}
+          restore-keys: golangci-${{ runner.os }}-${{ runner.arch }}-lint-go-gogit-${{ hashFiles('go.sum', '.golangci.yml') }}
       - run: make deps-backend deps-tools
       - run: make lint-go
         env:
@@ -159,6 +204,16 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
+      - uses: actions/cache@v5
+        with:
+          path: ~/go/pkg/mod
+          key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/go-build
+          key: gobuild-${{ runner.os }}-${{ runner.arch }}-checks-backend-${{ hashFiles('go.sum') }}-${{ github.run_id }}
+          restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}-checks-backend-${{ hashFiles('go.sum') }}
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
 
@@ -194,6 +249,16 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
+      - uses: actions/cache@v5
+        with:
+          path: ~/go/pkg/mod
+          key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/go-build
+          key: gobuild-${{ runner.os }}-${{ runner.arch }}-backend-${{ hashFiles('go.sum') }}-${{ github.run_id }}
+          restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}-backend-${{ hashFiles('go.sum') }}
       # no frontend build here as backend should be able to build
       # even without any frontend files
       - run: make deps-backend

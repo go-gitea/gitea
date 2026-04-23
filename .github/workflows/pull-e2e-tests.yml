@@ -25,6 +25,16 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
+      - uses: actions/cache@v5
+        with:
+          path: ~/go/pkg/mod
+          key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/go-build
+          key: gobuild-${{ runner.os }}-${{ runner.arch }}-e2e-${{ hashFiles('go.sum') }}-${{ github.run_id }}
+          restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}-e2e-${{ hashFiles('go.sum') }}
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
