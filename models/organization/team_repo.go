@@ -95,39 +95,3 @@ func GetTeamUserIDsWithAccessToAnyRepoUnit(ctx context.Context, orgID, repoID in
 	err = db.GetEngine(ctx).Table("team_user").Select("uid").Where(builder.In("team_id", teamIDs)).Find(&userIDs)
 	return userIDs, err
 }
-
-// GetTeamUserIDsWithAccessToAnyRepoUnitInOrg is the org-wide counterpart of
-// GetTeamUserIDsWithAccessToAnyRepoUnit: instead of scoping to a single
-// repository, it returns every user who is a member of an org team that
-// either grants the requested permission at the team level
-// (`team.authorize`) or has a matching `team_unit.access_mode` for one of
-// the requested unit types.
-func GetTeamUserIDsWithAccessToAnyRepoUnitInOrg(ctx context.Context, orgID int64, mode perm.AccessMode, unitType unit.Type, unitTypesMore ...unit.Type) (userIDs []int64, err error) {
-	teamIDs, err := getTeamIDsWithAccessToAnyRepoUnitInOrg(ctx, orgID, mode, unitType, unitTypesMore...)
-	if err != nil {
-		return nil, err
-	}
-	if len(teamIDs) == 0 {
-		return userIDs, nil
-	}
-	err = db.GetEngine(ctx).Table("team_user").Select("uid").Where(builder.In("team_id", teamIDs)).Find(&userIDs)
-	return userIDs, err
-}
-
-func getTeamIDsWithAccessToAnyRepoUnitInOrg(ctx context.Context, orgID int64, mode perm.AccessMode, unitType unit.Type, unitTypesMore ...unit.Type) (teamIDs []int64, err error) {
-	sub := builder.Select("team_id").From("team_unit").
-		Where(builder.Expr("team_unit.team_id = team.id")).
-		And(builder.In("team_unit.type", append([]unit.Type{unitType}, unitTypesMore...))).
-		And(builder.Expr("team_unit.access_mode >= ?", mode))
-
-	err = db.GetEngine(ctx).
-		Select("team.id").
-		Table("team").
-		Where("team.org_id = ?", orgID).
-		And(builder.Or(
-			builder.Expr("team.authorize >= ?", mode),
-			builder.In("team.id", sub),
-		)).
-		Find(&teamIDs)
-	return teamIDs, err
-}

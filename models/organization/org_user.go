@@ -8,10 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/builder"
@@ -127,54 +124,6 @@ func IsUserOrgOwner(ctx context.Context, users user_model.UserList, orgID int64)
 		}
 	}
 	return results
-}
-
-// GetOrgAssignees returns all users that have write access and can be assigned to issues
-// of the any repository in the organization.
-func GetOrgAssignees(ctx context.Context, orgID int64) (_ []*user_model.User, err error) {
-	e := db.GetEngine(ctx)
-	userIDs := make([]int64, 0, 10)
-	if err = e.Table("access").
-		Join("INNER", "repository", "`repository`.id = `access`.repo_id").
-		Where("`repository`.owner_id = ? AND `access`.mode >= ?", orgID, perm.AccessModeWrite).
-		Select("user_id").
-		Find(&userIDs); err != nil {
-		return nil, err
-	}
-
-	uniqueUserIDs := make(container.Set[int64])
-	uniqueUserIDs.AddMultiple(userIDs...)
-
-	// Include org team members who can write to any repository unit. The
-	// helper matches both `team.authorize` and `team_unit.access_mode`, so
-	// Owner-team members are returned even when the corresponding
-	// `team_unit` rows have a stale `access_mode`.
-	writerIDs, err := GetTeamUserIDsWithAccessToAnyRepoUnitInOrg(ctx, orgID, perm.AccessModeWrite, unit.AllRepoUnitTypes[0], unit.AllRepoUnitTypes[1:]...)
-	if err != nil {
-		return nil, err
-	}
-	uniqueUserIDs.AddMultiple(writerIDs...)
-
-	// Also include team members with at least read access to the pull
-	// requests unit (historical behaviour preserved from the original
-	// query).
-	prReaderIDs, err := GetTeamUserIDsWithAccessToAnyRepoUnitInOrg(ctx, orgID, perm.AccessModeRead, unit.TypePullRequests)
-	if err != nil {
-		return nil, err
-	}
-	uniqueUserIDs.AddMultiple(prReaderIDs...)
-
-	users := make([]*user_model.User, 0, len(uniqueUserIDs))
-	if len(uniqueUserIDs) > 0 {
-		if err = e.In("id", uniqueUserIDs.Values()).
-			Where(builder.Eq{"`user`.is_active": true}).
-			OrderBy(user_model.GetOrderByName()).
-			Find(&users); err != nil {
-			return nil, err
-		}
-	}
-
-	return users, nil
 }
 
 func loadOrganizationOwners(ctx context.Context, users user_model.UserList, orgID int64) (map[int64]*TeamUser, error) {
