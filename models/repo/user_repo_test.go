@@ -21,9 +21,9 @@ import (
 
 func TestUserRepo(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
+	t.Run("GetIssuePostersWithSearch", testUserRepoGetIssuePostersWithSearch)
 	t.Run("Assignees", testUserRepoAssignees)
 	t.Run("AssigneesNoTeamUnit", testRepoAssigneesNoTeamUnit)
-	t.Run("GetIssuePostersWithSearch", testUserRepoGetIssuePostersWithSearch)
 }
 
 func testUserRepoAssignees(t *testing.T) {
@@ -72,8 +72,6 @@ func testRepoAssigneesNoTeamUnit(t *testing.T) {
 }
 
 func testUserRepoGetIssuePostersWithSearch(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 
 	users, err := repo_model.GetIssuePostersWithSearch(t.Context(), repo2, false, "USER")
