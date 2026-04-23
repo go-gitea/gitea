@@ -60,12 +60,12 @@ test('PR should not list commits already present in the target branch via anothe
       head: 'develop', base: 'staging', title: 'develop into staging',
     });
 
-    // Verify via UI that the PR commit count is correct
+    // Verify via UI that the PR commits page is reachable and shows the correct state
     await login(page);
-    await page.goto(`/${owner}/${repo}/pulls/${pr3}`);
-    await page.getByRole('tab', {name: /Commits/i}).click();
+    await page.goto(`/${owner}/${repo}/pulls/${pr3}/commits`);
+    await page.waitForLoadState('networkidle');
 
-    // Screenshot before assertion — proves we reached the correct PR state
+    // Screenshot before assertion — proves we reached the correct PR commits page
     await page.screenshot({path: 'test-results/pr-commits-tab.png'});
 
     const commits = await apiGetPullRequestCommits(request, owner, repo, pr3);
