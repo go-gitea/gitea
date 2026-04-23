@@ -28,4 +28,7 @@ func TestRenderIFrame(t *testing.T) {
 
 	ret = render(ctx, ExternalRendererOptions{ContentSandbox: "allow"})
 	assert.Equal(t, `<iframe data-src="/test-owner/test-repo/render/src/branch/master/tree-path" data-global-init="initExternalRenderIframe" class="external-render-iframe" sandbox="allow"></iframe>`, ret)
+
+	ret = render(ctx, ExternalRendererOptions{ContentSandbox: "allow", SrcMethod: "src"})
+	assert.Equal(t, `<iframe data-src="/test-owner/test-repo/render/src/branch/master/tree-path" data-global-init="initExternalRenderIframe" class="external-render-iframe" sandbox="allow" data-src-method="src"></iframe>`, ret)
 }

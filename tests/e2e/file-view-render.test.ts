@@ -47,22 +47,28 @@ test('pdf file', async ({page, request}) => {
 });
 
 test('asciicast file', async ({page, request}) => {
-  // regression for repo_file.go's RefTypeNameSubURL double-escape: readme.cast on a non-ASCII branch
-  // is rendered via view_readme.go (no metas override), exposing the bug as a broken player URL
+  // Non-ASCII branch name guards the render-URL escaping path — the iframe's data-src and
+  // the eventual iframe.src must survive round-tripping through RefTypeNameSubURL.
   const repoName = `e2e-asciicast-render-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   const branch = '日本語-branch';
   const branchEnc = encodeURIComponent(branch);
-  await Promise.all([apiCreateRepo(request, {name: repoName, autoInit: false}), login(page)]);
+  await Promise.all([apiCreateRepo(request, {name: repoName}), login(page)]);
   try {
-    const cast = '{"version": 2, "width": 80, "height": 24}\n[0.0, "o", "hi"]\n';
-    await apiCreateFile(request, owner, repoName, 'readme.cast', cast);
+    const cast = '{"version": 2, "width": 80, "height": 24}\n[0.0, "o", "test"]\n';
+    await apiCreateFile(request, owner, repoName, 'test.cast', cast);
     await apiCreateBranch(request, owner, repoName, branch);
-    await page.goto(`/${owner}/${repoName}/src/branch/${branchEnc}`);
-    const container = page.locator('.asciinema-player-container');
-    await expect(container).toHaveAttribute('data-asciinema-player-src', `/${owner}/${repoName}/raw/branch/${branchEnc}/readme.cast`);
-    await expect(container.locator('.ap-wrapper')).toBeVisible();
-    expect((await container.boundingBox())!.height).toBeGreaterThan(300);
+    await page.goto(`/${owner}/${repoName}/src/branch/${branchEnc}/test.cast`);
+    const iframe = page.locator('iframe.external-render-iframe');
+    await expect(iframe).toBeVisible();
+    await expect(iframe).toHaveAttribute('data-src', new RegExp(`/${owner}/${repoName}/render/branch/${branchEnc}/test\\.cast`));
+    const frame = page.frameLocator('iframe.external-render-iframe');
+    const wrapper = frame.locator('.ap-wrapper');
+    await expect(wrapper).toBeVisible();
+    await expect(wrapper).toContainText('test');
+    await expect.poll(async () => (await iframe.boundingBox())!.height).toBeGreaterThan(300);
+    await assertFlushWithParent(iframe, page.locator('.file-view'));
+    await assertNoJsError(page);
   } finally {
     await apiDeleteRepo(request, owner, repoName);
   }

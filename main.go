@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	// register supported doc types
-	_ "code.gitea.io/gitea/modules/markup/asciicast"
 	_ "code.gitea.io/gitea/modules/markup/console"
 	_ "code.gitea.io/gitea/modules/markup/csv"
 	_ "code.gitea.io/gitea/modules/markup/markdown"

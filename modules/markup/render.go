@@ -59,7 +59,7 @@ type RenderOptions struct {
 	MarkupType string
 
 	// user&repo, format&style&regexp (for external issue pattern), teams&org (for mention)
-	// RefTypeNameSubURL (for iframe&asciicast)
+	// RefTypeNameSubURL (for iframe render)
 	// markupAllowShortIssuePattern
 	// markdownNewLineHardBreak
 	Metas map[string]string
@@ -223,6 +223,9 @@ func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.W
 	var extraAttrs template.HTML
 	if opts.ContentSandbox != "" {
 		extraAttrs = htmlutil.HTMLFormat(` sandbox="%s"`, opts.ContentSandbox)
+	}
+	if opts.SrcMethod == "src" {
+		extraAttrs += ` data-src-method="src"`
 	}
 	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" data-global-init="initExternalRenderIframe" class="external-render-iframe"%s></iframe>`, src, extraAttrs)
 	return err

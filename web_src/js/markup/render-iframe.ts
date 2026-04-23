@@ -65,6 +65,14 @@ export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
   u.searchParams.set('gitea-iframe-id', iframe.id);
   u.searchParams.set('gitea-iframe-bgcolor', getRealBackgroundColor(iframe));
 
+  if (iframe.getAttribute('data-src-method') === 'src') {
+    // Renderers that set `ExternalRendererOptions.SrcMethod = "src"` get their own
+    // response-level CSP (no inheritance from the parent page's). Isolation still comes
+    // from the iframe's sandbox attribute.
+    iframe.src = u.href;
+    return;
+  }
+
   // It must use "srcdoc" here, because our backend always sends CSP sandbox directive for the rendered content
   // (to protect from XSS risks), so we can't use "src" to load the content directly, otherwise there will be console errors like:
   // Unsafe attempt to load URL http://localhost:3000/test from frame with URL http://localhost:3000/test
