@@ -3,7 +3,7 @@ import {initAriaModalPatch} from './fomantic/modal.ts';
 import {initFomanticTransition} from './fomantic/transition.ts';
 import {initFomanticDimmer} from './fomantic/dimmer.ts';
 import {svg} from '../svg.ts';
-import {initAriaLabels} from './fomantic/aria.ts';
+import {initAriaLabels} from './fomantic/base.ts';
 
 export const fomanticMobileScreen = window.matchMedia('only screen and (max-width: 767.98px)');
 
