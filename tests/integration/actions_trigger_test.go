@@ -1855,6 +1855,18 @@ func TestActionsCommitStatusRunning(t *testing.T) {
 		// No enrichment available → IconStatus is empty.
 		empty := actions_service.CommitStatusActionInfo{}
 		assert.Empty(t, empty.IconStatus(statuses[0]))
+
+		// The commits-list tippy tooltip renders status.tmpl too: verify the live
+		// action icon and description reach it (covers every page that embeds
+		// repo/commit_statuses.tmpl, not just the PR merge box).
+		session := loginUser(t, user2.Name)
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/commits/branch/main", user2.Name, repo.Name))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		tippy := NewHTMLParser(t, resp.Body).doc.Find("#commits-table .tippy-target .commit-status-item").First()
+		require.Equal(t, 1, tippy.Length())
+		svgClass, _ := tippy.Find("svg").First().Attr("class")
+		assert.Contains(t, svgClass, "gitea-running")
+		assert.Contains(t, tippy.Find(".status-context").Text(), "In progress")
 	})
 }
 
