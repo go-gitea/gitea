@@ -6,7 +6,12 @@ package repo_test
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	perm_model "code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -37,6 +42,34 @@ func TestRepoAssignees(t *testing.T) {
 	if assert.Len(t, users, 3) {
 		assert.NotContains(t, []int64{users[0].ID, users[1].ID, users[2].ID}, 15)
 	}
+}
+
+func TestRepoAssigneesIncludesOwnerTeamWithZeroUnitAccessMode(t *testing.T) {
+	// Regression: owner/admin team members were excluded when team_unit.access_mode=0,
+	// because the old query filtered only on team_unit.access_mode and ignored team.authorize.
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
+	require.NoError(t, repo.LoadOwner(ctx))
+	require.True(t, repo.Owner.IsOrganization())
+
+	require.NoError(t, db.TruncateBeans(ctx, &organization.Team{}, &organization.TeamUser{}, &organization.TeamRepo{}, &organization.TeamUnit{}, &access_model.Access{}))
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	team := &organization.Team{OrgID: repo.OwnerID, LowerName: "owners_like", AccessMode: perm_model.AccessModeOwner}
+	require.NoError(t, db.Insert(ctx, team))
+	require.NoError(t, db.Insert(ctx, &organization.TeamUser{OrgID: repo.OwnerID, TeamID: team.ID, UID: user.ID}))
+	require.NoError(t, db.Insert(ctx, &organization.TeamRepo{OrgID: repo.OwnerID, TeamID: team.ID, RepoID: repo.ID}))
+	require.NoError(t, db.Insert(ctx, &organization.TeamUnit{OrgID: repo.OwnerID, TeamID: team.ID, Type: unit.TypeCode, AccessMode: perm_model.AccessModeNone}))
+
+	users, err := repo_model.GetRepoAssignees(ctx, repo)
+	require.NoError(t, err)
+	userIDs := make([]int64, 0, len(users))
+	for _, u := range users {
+		userIDs = append(userIDs, u.ID)
+	}
+	assert.Contains(t, userIDs, user.ID)
 }
 
 func TestGetIssuePostersWithSearch(t *testing.T) {

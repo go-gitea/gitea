@@ -452,7 +452,7 @@ func ViewProject(ctx *context.Context) {
 	// Get assignees.
 	assigneeUsers, err := project_service.LoadIssuesAssigneesForProject(ctx, issuesMap)
 	if err != nil {
-		ctx.ServerError("LoadIssuesAssignees", err)
+		ctx.ServerError("LoadIssuesAssigneesForProject", err)
 		return
 	}
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
