@@ -544,11 +544,23 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 		prIndex := strconv.FormatInt(pr.Index, 10)
 		mergeURL := "/user1/repo1/pulls/" + prIndex + "/merge"
 
+		notVerifiedMsg := translation.NewLocale("en-US").TrString("repo.pulls.require_signed_head_commits_unverified")
+		apiNotVerifiedMsg := pull_service.ErrHeadCommitsNotAllVerified.Error()
+		// Matches the unexported "wont sign: %s" format and nokey signingMode in
+		// services/asymkey/sign.go; the test config uses SIGNING_KEY = none.
+		const wontSignMsg = "wont sign: nokey"
+
+		type webErrBody struct {
+			ErrorMessage string `json:"errorMessage"`
+		}
+
 		for _, style := range []repo_model.MergeStyle{repo_model.MergeStyleFastForwardOnly, repo_model.MergeStyleMerge} {
 			t.Run(string(style)+"/head-commits-unverified", func(t *testing.T) {
 				mergeReq := NewRequestWithValues(t, http.MethodPost, mergeURL, map[string]string{"do": string(style)})
 				resp := session.MakeRequest(t, mergeReq, http.StatusBadRequest)
-				assert.Contains(t, resp.Body.String(), "not verified")
+				var body webErrBody
+				DecodeJSON(t, resp, &body)
+				assert.Equal(t, notVerifiedMsg, body.ErrorMessage)
 			})
 		}
 
@@ -556,8 +568,9 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 			t.Run(string(style)+"/wont-sign", func(t *testing.T) {
 				mergeReq := NewRequestWithValues(t, http.MethodPost, mergeURL, map[string]string{"do": string(style)})
 				resp := session.MakeRequest(t, mergeReq, http.StatusBadRequest)
-				assert.NotContains(t, resp.Body.String(), "not verified")
-				assert.Contains(t, resp.Body.String(), "sign")
+				var body webErrBody
+				DecodeJSON(t, resp, &body)
+				assert.Equal(t, wontSignMsg, body.ErrorMessage)
 			})
 		}
 
@@ -569,7 +582,9 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 				"force_merge": "true",
 			})
 			resp := session.MakeRequest(t, mergeReq, http.StatusBadRequest)
-			assert.Contains(t, resp.Body.String(), "not verified")
+			var body webErrBody
+			DecodeJSON(t, resp, &body)
+			assert.Equal(t, notVerifiedMsg, body.ErrorMessage)
 		})
 
 		t.Run("api/fast-forward-only/head-commits-unverified", func(t *testing.T) {
@@ -578,7 +593,9 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 				&forms.MergePullRequestForm{Do: string(repo_model.MergeStyleFastForwardOnly)},
 			).AddTokenAuth(token)
 			resp := session.MakeRequest(t, apiReq, http.StatusMethodNotAllowed)
-			assert.Contains(t, resp.Body.String(), "not all head commits are verified")
+			var apiBody api.APIError
+			DecodeJSON(t, resp, &apiBody)
+			assert.Equal(t, apiNotVerifiedMsg, apiBody.Message)
 		})
 
 		pb, err := git_model.GetFirstMatchProtectedBranchRule(t.Context(), repo1.ID, "master")
