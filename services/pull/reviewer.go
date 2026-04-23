@@ -40,11 +40,6 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 	uniqueUserIDs.AddMultiple(collaboratorIDs...)
 
 	if repo.Owner.IsOrganization() {
-		// Include org team members with at least read access to the pull
-		// requests unit. The helper matches both `team.authorize` and
-		// `team_unit.access_mode`, so members of a team whose team-level
-		// permission is sufficient are returned even if the corresponding
-		// `team_unit` row has a stale `access_mode`.
 		additionalUserIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
 		if err != nil {
 			return nil, err

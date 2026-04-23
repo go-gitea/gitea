@@ -115,24 +115,11 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 	uniqueUserIDs.AddMultiple(userIDs...)
 
 	if repo.Owner.IsOrganization() {
-		// Include team members who can write to any repository unit. The
-		// helper matches both `team.authorize` and `team_unit.access_mode`,
-		// so Owner-team members are returned even when the corresponding
-		// `team_unit` rows have a stale `access_mode`.
-		writerIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeWrite, unit.AllRepoUnitTypes[0], unit.AllRepoUnitTypes[1:]...)
+		additionalUserIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
 		if err != nil {
 			return nil, err
 		}
-		uniqueUserIDs.AddMultiple(writerIDs...)
-
-		// Also include team members with at least read access to the pull
-		// requests unit (historical behaviour: PR-only readers can be
-		// requested as reviewers via the assignee picker).
-		prReaderIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
-		if err != nil {
-			return nil, err
-		}
-		uniqueUserIDs.AddMultiple(prReaderIDs...)
+		uniqueUserIDs.AddMultiple(additionalUserIDs...)
 	}
 
 	// Leave a seat for owner itself to append later, but if owner is an organization
