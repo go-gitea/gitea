@@ -54,6 +54,7 @@ export function initRefIssueContextPopup() {
     const href = link.getAttribute('href')!;
     if (!parseIssueHref(href).ownerName) return; // not an issue/PR link
     if (link.closest('.ref-issue-popup')) return; // avoid nesting
+    if (link.closest('#issue-list, #project-board, .milestone-issue-list')) return; // skip issue/PR listings — redundant with on-page info
     if (getAttachedTippyInstance(link)) return; // already has tooltip
     link.setAttribute('data-ref-issue-popup', ''); // prevent parallel fetches
 
