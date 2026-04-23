@@ -6,11 +6,14 @@ package project
 import (
 	"context"
 	"errors"
+	"slices"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 )
 
@@ -96,9 +99,18 @@ func LoadIssuesAssigneesForProject(ctx context.Context, issuesMap map[int64]issu
 		return nil, err
 	}
 	users := make([]*user_model.User, 0, len(issueList))
+	usersAdded := container.Set[int64]{}
 	for _, issue := range issueList {
-		users = append(users, issue.Assignees...)
+		for _, assignee := range issue.Assignees {
+			if !usersAdded.Contains(assignee.ID) {
+				usersAdded.Add(assignee.ID)
+				users = append(users, assignee)
+			}
+		}
 	}
+	slices.SortFunc(users, func(a, b *user_model.User) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 	return users, nil
 }
 
