@@ -131,7 +131,7 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				authorCache[email] = nil
-				return nil, nil
+				return nil, nil //nolint:nilnil // returns nil so that the email will be cached
 			}
 			return nil, err
 		}
