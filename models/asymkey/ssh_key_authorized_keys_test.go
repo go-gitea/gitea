@@ -43,9 +43,9 @@ func TestWriteAuthorizedStringForKey(t *testing.T) {
 			Content: validKeyContent + " any-comment",
 			Type:    KeyTypeUser,
 			Usage:   DefaultKeyUsage,
-		}, `# gitea public key
+	}, `# gitea public key
 command="/tmp/gitea --config=/tmp/app.ini serv key-0",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,no-user-rc,restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf user-123
-	`)
+`)
 	})
 
 	t.Run("PublicKeyWithNewLine", func(t *testing.T) {
@@ -54,9 +54,9 @@ command="/tmp/gitea --config=/tmp/app.ini serv key-0",no-port-forwarding,no-X11-
 			Content: validKeyContent + "\nany-more", // the new line should be ignored
 			Type:    KeyTypeUser,
 			Usage:   DefaultKeyUsage,
-		}, `# gitea public key
+	}, `# gitea public key
 command="/tmp/gitea --config=/tmp/app.ini serv key-0",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,no-user-rc,restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf user-123
-	`)
+`)
 	})
 
 	t.Run("PublicKeyInvalid", func(t *testing.T) {
