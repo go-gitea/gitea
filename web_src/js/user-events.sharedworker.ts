@@ -1,8 +1,9 @@
-// Wire-format event type names — must match services/websocket/events.go on
-// the server and web_src/js/modules/user-events-types.ts on the page side.
-// These are duplicated here rather than imported because a classic SharedWorker
-// script cannot use ES-module imports without `{type: "module"}`, which
-// browsers do not support uniformly for SharedWorker.
+// Wire-format event type names — kept in sync with services/websocket/events.go
+// on the server and web_src/js/modules/user-events-types.ts on the page side.
+// Duplicated here (instead of imported) so this SharedWorker stays a classic
+// script: module SharedWorkers would need `new SharedWorker(url, {type:'module'})`,
+// which is only in Chrome 83+, Firefox 114+, Safari 15+ — classic works everywhere
+// SharedWorker itself does.
 const USER_EVENT_NOTIFICATION_COUNT = 'notification-count';
 const USER_EVENT_STOPWATCHES = 'stopwatches';
 const USER_EVENT_LOGOUT = 'logout';
