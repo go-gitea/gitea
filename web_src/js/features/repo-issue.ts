@@ -16,6 +16,7 @@ import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {showFomanticModal} from '../modules/fomantic/modal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 
@@ -335,7 +336,7 @@ export function initRepoIssueReferenceIssue() {
     const modal = document.querySelector(modalSelector)!;
     const textarea = modal.querySelector<HTMLTextAreaElement>('textarea[name="content"]')!;
     textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
-    fomanticQuery(modal).modal('show');
+    showFomanticModal(modal);
   });
 }
 
