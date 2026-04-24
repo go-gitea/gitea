@@ -145,6 +145,16 @@ func TestBroker_HasSubscribers(t *testing.T) {
 	assert.False(t, b.HasSubscribers())
 }
 
+func TestBroker_CancelDeletesEmptyTopic(t *testing.T) {
+	b := NewBroker()
+	_, cancel := b.Subscribe("topic")
+	cancel()
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	_, present := b.subs["topic"]
+	assert.False(t, present, "empty topic must be removed from the map so idle-user entries don't accumulate")
+}
+
 func TestBroker_ConcurrentPublishSubscribeCancel(t *testing.T) {
 	b := NewBroker()
 

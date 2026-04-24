@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -84,12 +85,15 @@ func Serve(ctx *context.Context) {
 	defer cancel()
 
 	wsCtx := ctx.Req.Context()
+	shutdownCtx := graceful.GetManager().ShutdownContext()
 	pingTicker := time.NewTicker(pingInterval)
 	defer pingTicker.Stop()
 
 	for {
 		select {
 		case <-wsCtx.Done():
+			return
+		case <-shutdownCtx.Done():
 			return
 		case <-pingTicker.C:
 			pingCtx, cancelPing := gocontext.WithTimeout(wsCtx, pingTimeout)

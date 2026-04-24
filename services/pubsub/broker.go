@@ -42,9 +42,14 @@ func (b *Broker) Subscribe(topic string) (<-chan []byte, func()) {
 		subs := b.subs[topic]
 		for i, sub := range subs {
 			if sub == ch {
-				b.subs[topic] = append(subs[:i], subs[i+1:]...)
+				subs = append(subs[:i], subs[i+1:]...)
 				break
 			}
+		}
+		if len(subs) == 0 {
+			delete(b.subs, topic)
+		} else {
+			b.subs[topic] = subs
 		}
 		close(ch)
 	}
