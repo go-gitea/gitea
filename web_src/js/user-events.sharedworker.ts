@@ -86,7 +86,6 @@ class WsSource {
     this.ws.addEventListener('open', () => {
       this.reconnectDelay = 1000;
       this.failuresWithoutConnect = 0;
-      this.source.notifyClients({type: 'ws-opened', data: ''});
     });
 
     this.ws.addEventListener('message', (event: MessageEvent<string>) => {

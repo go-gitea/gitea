@@ -55,8 +55,6 @@ export class UserEventsSharedWorker {
 
       if (event.data.type === 'error') {
         console.error('worker port event error', event.data);
-      } else if (event.data.type === 'ws-opened') {
-        window.__userEventsWsReady = true;
       } else if (event.data.type === 'logout') {
         if (event.data.data !== 'here') return;
         this.sharedWorker!.port.postMessage({type: 'close'});

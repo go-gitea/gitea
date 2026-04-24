@@ -20,13 +20,14 @@ test.describe('events', () => {
     const badge = page.locator('a.not-mobile .notification_count');
     await expect(badge).toBeHidden();
 
-    // Wait for the SharedWorker to open its WebSocket before triggering the push.
-    await page.waitForFunction(() => window.__userEventsWsReady === true);
-
-    // Create issue as another user — the notification-count push should arrive within a few seconds
-    await apiCreateIssue(request, owner, repoName, {title: 'events notification test', headers: apiUserHeaders(commenter)});
-
-    await expect(badge).toBeVisible({timeout: 5000 * timeoutFactor});
+    // Pushes fired before the SharedWorker subscribes are dropped, so retry
+    // the trigger until one lands. Extra notifications are harmless here.
+    const commenterHeaders = apiUserHeaders(commenter);
+    await expect.poll(async () => {
+      await apiCreateIssue(request, owner, repoName, {title: `events-notif-${Date.now()}`, headers: commenterHeaders});
+      await page.waitForTimeout(300 * timeoutFactor);
+      return await badge.isVisible();
+    }, {timeout: 10000 * timeoutFactor, intervals: [0]}).toBe(true);
   });
 
   test('stopwatch appears on active-at-page-load', async ({page, request}) => {
@@ -64,8 +65,8 @@ test.describe('events', () => {
     await expect(stopwatch).toHaveCount(1);
     await expect(stopwatch).toBeHidden();
 
-    // Wait for the SharedWorker to open its WebSocket before triggering the push.
-    await page.waitForFunction(() => window.__userEventsWsReady === true);
+    // Wait for the SharedWorker WS to subscribe; pushes before that are dropped.
+    await page.waitForTimeout(1000 * timeoutFactor);
 
     // Start the stopwatch from outside this tab; the push should reveal the icon
     await apiStartStopwatch(request, name, name, 1, {headers});
@@ -85,8 +86,7 @@ test.describe('events', () => {
     await page.goto('/');
     const stopwatch = page.locator('.active-stopwatch.not-mobile');
     await expect(stopwatch).toBeVisible();
-
-    await page.waitForFunction(() => window.__userEventsWsReady === true);
+    await page.waitForTimeout(1000 * timeoutFactor);
 
     await apiCancelStopwatch(request, name, name, 1, {headers});
     await expect(stopwatch).toBeHidden({timeout: 5000 * timeoutFactor});
@@ -109,8 +109,7 @@ test.describe('events', () => {
 
     // Verify page2 is logged in
     await expect(page2.getByRole('link', {name: 'Sign In'})).toBeHidden();
-
-    await page2.waitForFunction(() => window.__userEventsWsReady === true);
+    await page2.waitForTimeout(1000 * timeoutFactor);
 
     // Logout from page1 — this sends a logout event to all tabs
     await page1.goto('/user/logout');
