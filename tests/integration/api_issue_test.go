@@ -31,7 +31,7 @@ func TestAPIIssue(t *testing.T) {
 	t.Run("ListIssuesPublicOnly", testAPIListIssuesPublicOnly)
 	t.Run("SearchIssues", testAPISearchIssues)
 	t.Run("SearchIssuesWithLabels", testAPISearchIssuesWithLabels)
-	// t.Run("EditIssue", testAPIEditIssue)
+	t.Run("EditIssue", testAPIEditIssue)
 	t.Run("IssueContentVersion", testAPIIssueContentVersion)
 	t.Run("CreateIssue", testAPICreateIssue)
 	t.Run("CreateIssueParallel", testAPICreateIssueParallel)
