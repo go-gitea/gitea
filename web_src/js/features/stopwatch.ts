@@ -49,10 +49,10 @@ export function initStopwatch() {
     setTimeout(() => updateStopwatchWithCallback(startPeriodicPoller, timeout), timeout);
   };
 
-  // if the browser supports WebSocket and SharedWorker, use push updates.
-  // Fall back to periodic polling only when the worker signals that the
-  // WebSocket could not be established.
   if (window.WebSocket && window.SharedWorker) {
+    // Fall back to periodic polling only when the worker signals that the
+    // WebSocket could not be established (e.g. network / proxy blocks it,
+    // or the browser lacks module-SharedWorker support).
     let pollerStarted = false;
     const worker = new UserEventsSharedWorker('stopwatch-worker');
     worker.addMessageEventListener((event) => {

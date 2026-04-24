@@ -31,9 +31,9 @@ export function initNotificationCount() {
   };
 
   if (window.WebSocket && window.SharedWorker) {
-    // Receive real-time notification counts via the shared WebSocket worker.
     // Fall back to periodic polling only when the worker signals that the
-    // WebSocket could not be established (e.g. network / proxy blocks it).
+    // WebSocket could not be established (e.g. network / proxy blocks it,
+    // or the browser lacks module-SharedWorker support).
     let pollerStarted = false;
     const worker = new UserEventsSharedWorker('notification-worker');
     worker.addMessageEventListener((event: MessageEvent) => {

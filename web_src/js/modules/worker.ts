@@ -1,16 +1,31 @@
-import {USER_EVENT_LOGOUT, USER_EVENT_WS_OPENED} from './user-events-types.ts';
+import {USER_EVENT_LOGOUT, USER_EVENT_PUSH_UNAVAILABLE, USER_EVENT_WS_OPENED} from './user-events-types.ts';
 
 const {appSubUrl, sharedWorkerUri} = window.config;
 
 export class UserEventsSharedWorker {
-  sharedWorker: SharedWorker;
+  sharedWorker: SharedWorker | null = null;
+  private listeners: Array<(event: MessageEvent) => void> = [];
+  private fallbackSignalled = false;
 
   // options can be either a string (the debug name of the worker) or an object of type WorkerOptions
   constructor(options?: string | WorkerOptions) {
-    const worker = new SharedWorker(sharedWorkerUri, options);
+    const workerOptions: WorkerOptions = typeof options === 'string' ? {name: options} : {...options};
+    workerOptions.type = 'module';
+    let worker: SharedWorker;
+    try {
+      worker = new SharedWorker(sharedWorkerUri, workerOptions);
+    } catch (err) {
+      console.warn('SharedWorker unavailable, falling back to periodic polling', err);
+      queueMicrotask(() => this.signalFallback());
+      return;
+    }
     this.sharedWorker = worker;
     worker.addEventListener('error', (event) => {
       console.error('worker error', event);
+      // A failure before the worker ever opens its WebSocket (e.g. browser
+      // doesn't support module SharedWorkers and rejects the `import` at
+      // parse time) degrades the page to the periodic poller.
+      this.signalFallback();
     });
     worker.port.addEventListener('messageerror', () => {
       console.error('unable to deserialize message');
@@ -33,7 +48,8 @@ export class UserEventsSharedWorker {
   }
 
   addMessageEventListener(listener: (event: MessageEvent) => void) {
-    this.sharedWorker.port.addEventListener('message', (event: MessageEvent) => {
+    this.listeners.push(listener);
+    this.sharedWorker?.port.addEventListener('message', (event: MessageEvent) => {
       if (!event.data || !event.data.type) {
         console.error('unknown worker message event', event);
         return;
@@ -45,8 +61,8 @@ export class UserEventsSharedWorker {
         window.__userEventsWsReady = true;
       } else if (event.data.type === USER_EVENT_LOGOUT) {
         if (event.data.data !== 'here') return;
-        this.sharedWorker.port.postMessage({type: 'close'});
-        this.sharedWorker.port.close();
+        this.sharedWorker!.port.postMessage({type: 'close'});
+        this.sharedWorker!.port.close();
         // slightly delay our "logout" for a short while, in case there are other logout requests in-flight.
         // * if the logout is triggered by a page redirection (e.g.: user clicks "/user/logout")
         //   * "beforeunload" event is triggered, this code path won't execute
@@ -57,14 +73,21 @@ export class UserEventsSharedWorker {
         //     * the fetch call's logout redirection should always win over the worker message, because it might have a custom location
         setTimeout(() => { window.location.href = `${appSubUrl}/` }, 1000);
       } else if (event.data.type === 'close') {
-        this.sharedWorker.port.postMessage({type: 'close'});
-        this.sharedWorker.port.close();
+        this.sharedWorker!.port.postMessage({type: 'close'});
+        this.sharedWorker!.port.close();
       }
       listener(event);
     });
   }
 
   startPort() {
-    this.sharedWorker.port.start();
+    this.sharedWorker?.port.start();
+  }
+
+  private signalFallback() {
+    if (this.fallbackSignalled) return;
+    this.fallbackSignalled = true;
+    const syntheticEvent = {data: {type: USER_EVENT_PUSH_UNAVAILABLE}} as MessageEvent;
+    for (const listener of this.listeners) listener(syntheticEvent);
   }
 }

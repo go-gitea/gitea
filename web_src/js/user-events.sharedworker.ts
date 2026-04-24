@@ -1,14 +1,10 @@
-// Wire-format event type names — kept in sync with services/websocket/events.go
-// on the server and web_src/js/modules/user-events-types.ts on the page side.
-// Duplicated here (instead of imported) so this SharedWorker stays a classic
-// script: module SharedWorkers would need `new SharedWorker(url, {type:'module'})`,
-// which is only in Chrome 83+, Firefox 114+, Safari 15+ — classic works everywhere
-// SharedWorker itself does.
-const USER_EVENT_NOTIFICATION_COUNT = 'notification-count';
-const USER_EVENT_STOPWATCHES = 'stopwatches';
-const USER_EVENT_LOGOUT = 'logout';
-const USER_EVENT_WS_OPENED = 'ws-opened';
-const USER_EVENT_PUSH_UNAVAILABLE = 'push-unavailable';
+import {
+  USER_EVENT_LOGOUT,
+  USER_EVENT_NOTIFICATION_COUNT,
+  USER_EVENT_PUSH_UNAVAILABLE,
+  USER_EVENT_STOPWATCHES,
+  USER_EVENT_WS_OPENED,
+} from './modules/user-events-types.ts';
 
 // translateServerMessage converts a server-sent WebSocket message into the
 // {type, data} envelope consumed by page-side listeners. Returns null for
