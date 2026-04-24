@@ -1,8 +1,7 @@
 import {test, expect} from '@playwright/test';
-import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiDeleteUser, timeoutFactor, randomString} from './utils.ts';
+import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, timeoutFactor, randomString} from './utils.ts';
 
-// These tests rely on a short ui.notification EVENT_SOURCE_UPDATE_TIME in the e2e server config.
-// (The setting drives both the polling fallback interval and the WebSocket push cadence.)
+// These tests rely on a short EVENT_SOURCE_UPDATE_TIME in the e2e server config.
 test.describe('events', () => {
   test('notification count', async ({page, request}) => {
     const owner = `ev-notif-owner-${randomString(8)}`;
@@ -24,10 +23,10 @@ test.describe('events', () => {
     await apiCreateIssue(request, owner, repoName, {title: 'events notification test', headers: apiUserHeaders(commenter)});
 
     // Wait for the notification badge to appear via server event
-    await expect(badge).toBeVisible({timeout: 5000 * timeoutFactor});
+    await expect(badge).toBeVisible({timeout: 15000 * timeoutFactor});
   });
 
-  test('stopwatch visible at page load', async ({page, request}) => {
+  test('stopwatch', async ({page, request}) => {
     const name = `ev-sw-${randomString(8)}`;
     const headers = apiUserHeaders(name);
 
@@ -47,28 +46,6 @@ test.describe('events', () => {
     // Verify stopwatch is visible and links to the correct issue
     const stopwatch = page.locator('.active-stopwatch.not-mobile');
     await expect(stopwatch).toBeVisible();
-  });
-
-  test('stopwatch appears via real-time push', async ({page, request}) => {
-    const name = `ev-sw-push-${randomString(8)}`;
-    const headers = apiUserHeaders(name);
-
-    await apiCreateUser(request, name);
-    await apiCreateRepo(request, {name, headers});
-    await apiCreateIssue(request, name, name, {title: 'events stopwatch push test', headers});
-
-    // Login before starting stopwatch — page loads without active stopwatch
-    await loginUser(page, name);
-
-    const stopwatch = page.locator('.active-stopwatch.not-mobile');
-    await expect(stopwatch).toBeHidden();
-
-    // Start stopwatch after page is loaded — icon should appear via WebSocket push
-    await apiStartStopwatch(request, name, name, 1, {headers});
-    await expect(stopwatch).toBeVisible({timeout: 5000 * timeoutFactor});
-
-    // Cleanup
-    await apiDeleteUser(request, name);
   });
 
   test('logout propagation', async ({browser, request}) => {

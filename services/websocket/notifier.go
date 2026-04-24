@@ -14,21 +14,25 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	notify_service "code.gitea.io/gitea/services/notify"
 	"code.gitea.io/gitea/services/pubsub"
 )
+
+// nowTS returns the current time as a TimeStamp using the real wall clock.
+// Avoids reading timeutil.MockNow, which is not concurrency-safe (tests can
+// write it while this goroutine is running).
+func nowTS() timeutil.TimeStamp {
+	return timeutil.TimeStamp(time.Now().Unix())
+}
 
 type notificationCountEvent struct {
 	Type  string `json:"type"`
 	Count int64  `json:"count"`
 }
 
-// Init starts the background goroutines that push real-time updates to
+// Init starts the background goroutines that publish real-time updates to
 // connected WebSocket clients: notification counts and (when time-tracking
-// is enabled) active stopwatches. It also registers the websocket notifier
-// so that targeted pushes fire immediately when notification counts change.
+// is enabled) active stopwatches. Mirrors the former SSE polling loops.
 func Init() error {
-	notify_service.RegisterNotifier(&wsNotifier{})
 	go graceful.GetManager().RunWithShutdownContext(run)
 	if setting.Service.EnableTimetracking {
 		go graceful.GetManager().RunWithShutdownContext(runStopwatch)
@@ -52,12 +56,12 @@ func run(ctx context.Context) {
 	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: WebSocket", process.SystemProcessType, true)
 	defer finished()
 
-	if setting.UI.Notification.PushUpdateTime <= 0 {
+	if setting.UI.Notification.EventSourceUpdateTime <= 0 {
 		return
 	}
 
-	then := timeutil.TimeStampNow().Add(-2)
-	timer := time.NewTicker(setting.UI.Notification.PushUpdateTime)
+	then := nowTS().Add(-2)
+	timer := time.NewTicker(setting.UI.Notification.EventSourceUpdateTime)
 	defer timer.Stop()
 
 	for {
@@ -66,11 +70,11 @@ func run(ctx context.Context) {
 			return
 		case <-timer.C:
 			if !pubsub.DefaultBroker.HasSubscribers() {
-				then = timeutil.TimeStampNow().Add(-2)
+				then = nowTS().Add(-2)
 				continue
 			}
 
-			now := timeutil.TimeStampNow().Add(-2)
+			now := nowTS().Add(-2)
 
 			uidCounts, err := activities_model.GetUIDsAndNotificationCounts(ctx, then, now)
 			if err != nil {

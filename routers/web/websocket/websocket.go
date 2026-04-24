@@ -5,6 +5,7 @@ package websocket
 
 import (
 	gocontext "context"
+	"net/http"
 	"time"
 
 	"code.gitea.io/gitea/modules/json"
@@ -58,11 +59,15 @@ func rewriteLogout(msg []byte, connSessionID string) []byte {
 }
 
 // Serve handles WebSocket upgrade and real-time event delivery.
-// Anonymous connections are accepted and kept open; user-specific events
-// (notification count, stopwatch, logout) are only delivered to signed-in
-// users. This allows future public event types to reuse the same endpoint
-// without requiring authentication.
+// Mirrors the former /user/events SSE endpoint: requires a signed-in user and
+// rejects unauthenticated requests with 401 (reqSignIn middleware isn't used
+// here because it returns a 303 redirect which breaks the WebSocket upgrade).
 func Serve(ctx *context.Context) {
+	if !ctx.IsSigned {
+		ctx.HTTPError(http.StatusUnauthorized)
+		return
+	}
+
 	routing.MarkLongPolling(ctx.Resp, ctx.Req)
 
 	conn, err := gitea_ws.Accept(ctx.Resp, ctx.Req, &gitea_ws.AcceptOptions{
@@ -74,17 +79,9 @@ func Serve(ctx *context.Context) {
 	}
 	defer conn.CloseNow() //nolint:errcheck // CloseNow is best-effort; error is intentionally ignored
 
-	// Subscribe to user-specific events only for signed-in users.
-	// ch is nil for anonymous users: the receive case below never fires,
-	// keeping the connection open for future public event types.
-	var ch <-chan []byte
-	var sessionID string
-	if ctx.IsSigned {
-		sessionID = ctx.Session.ID()
-		var cancel func()
-		ch, cancel = pubsub.DefaultBroker.Subscribe(pubsub.UserTopic(ctx.Doer.ID))
-		defer cancel()
-	}
+	sessionID := ctx.Session.ID()
+	ch, cancel := pubsub.DefaultBroker.Subscribe(pubsub.UserTopic(ctx.Doer.ID))
+	defer cancel()
 
 	wsCtx := ctx.Req.Context()
 	pingTicker := time.NewTicker(pingInterval)

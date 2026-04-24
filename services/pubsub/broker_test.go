@@ -145,18 +145,6 @@ func TestBroker_HasSubscribers(t *testing.T) {
 	assert.False(t, b.HasSubscribers())
 }
 
-func TestBroker_HasTopicSubscribers(t *testing.T) {
-	b := NewBroker()
-	assert.False(t, b.HasTopicSubscribers("a"))
-
-	_, cancelA := b.Subscribe("a")
-	assert.True(t, b.HasTopicSubscribers("a"))
-	assert.False(t, b.HasTopicSubscribers("b"))
-
-	cancelA()
-	assert.False(t, b.HasTopicSubscribers("a"))
-}
-
 func TestBroker_ConcurrentPublishSubscribeCancel(t *testing.T) {
 	b := NewBroker()
 

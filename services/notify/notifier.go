@@ -82,10 +82,4 @@ type Notifier interface {
 	WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun)
 
 	WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask)
-
-	// NotificationCountChange is called when the unread notification count for a
-	// specific user may have changed (e.g. after a new issue notification is created).
-	// Implementations can use this to push an immediate update to connected clients
-	// instead of waiting for the next polling tick.
-	NotificationCountChange(ctx context.Context, userID int64)
 }

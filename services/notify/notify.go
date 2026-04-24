@@ -416,11 +416,3 @@ func WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, s
 		notifier.WorkflowJobStatusUpdate(ctx, repo, sender, job, task)
 	}
 }
-
-// NotificationCountChange notifies that the unread notification count for a
-// specific user may have changed.
-func NotificationCountChange(ctx context.Context, userID int64) {
-	for _, notifier := range notifiers {
-		notifier.NotificationCountChange(ctx, userID)
-	}
-}

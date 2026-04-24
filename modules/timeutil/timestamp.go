@@ -4,7 +4,6 @@
 package timeutil
 
 import (
-	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -13,29 +12,29 @@ import (
 // TimeStamp defines a timestamp
 type TimeStamp int64
 
-// mockNow holds a pointer to a mocked time.Time, or nil when unmocked.
-// Stored atomically so concurrent readers (e.g. background notifiers) cannot
-// race with test code calling MockSet/MockUnset.
-var mockNow atomic.Pointer[time.Time]
+var (
+	// mockNow is NOT concurrency-safe!!
+	mockNow time.Time
 
-// Used for IsZero, to check if timestamp is the zero time instant.
-var timeZeroUnix = time.Time{}.Unix()
+	// Used for IsZero, to check if timestamp is the zero time instant.
+	timeZeroUnix = time.Time{}.Unix()
+)
 
 // MockSet sets the time to a mocked time.Time
 func MockSet(now time.Time) func() {
-	mockNow.Store(&now)
+	mockNow = now
 	return MockUnset
 }
 
 // MockUnset will unset the mocked time.Time
 func MockUnset() {
-	mockNow.Store(nil)
+	mockNow = time.Time{}
 }
 
 // TimeStampNow returns now int64
 func TimeStampNow() TimeStamp {
-	if m := mockNow.Load(); m != nil && !m.IsZero() {
-		return TimeStamp(m.Unix())
+	if !mockNow.IsZero() {
+		return TimeStamp(mockNow.Unix())
 	}
 	return TimeStamp(time.Now().Unix())
 }

@@ -8,24 +8,27 @@
 					{{svg "octicon-pencil"}}
 				</button>
 			</div>
-			<div class="ui buttons tw-mt-2 tw-w-full issue-stop-cancel-buttons{{if not $.IsStopwatchRunning}} tw-hidden{{end}}">
-				<button class="ui button tw-flex-1 issue-stop-time" data-url="{{.Issue.Link}}/times/stopwatch/stop">
+			<div class="ui buttons tw-mt-2 tw-w-full">
+			{{if $.IsStopwatchRunning}}
+				<button class="ui button tw-flex-1 issue-stop-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/stop">
 					{{svg "octicon-stopwatch"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_stop"}}
 				</button>
-				<button class="ui icon button issue-cancel-time" data-url="{{.Issue.Link}}/times/stopwatch/cancel" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.timetracker_timer_discard"}}">
+				<button class="ui icon button issue-cancel-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/cancel" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.timetracker_timer_discard"}}">
 					{{svg "octicon-trash"}}
 				</button>
-			</div>
-			<div class="ui buttons tw-mt-2 tw-w-full issue-start-buttons{{if $.IsStopwatchRunning}} tw-hidden{{end}}">
-				<button class="ui button tw-flex-1 issue-start-time" data-url="{{.Issue.Link}}/times/stopwatch/start">
+			{{else}}
+				<button class="ui button tw-flex-1 issue-start-time link-action" data-url="{{.Issue.Link}}/times/stopwatch/start">
 					{{svg "octicon-stopwatch"}} {{ctx.Locale.Tr "repo.issues.timetracker_timer_start"}}
 				</button>
 				<button class="ui icon button issue-add-time show-modal" data-modal="#issue-time-manually-add-modal" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.timetracker_timer_manually_add"}}">
 					{{svg "octicon-plus"}}
 				</button>
+			{{end}}
 			</div>
 
-			<div class="ui warning message issue-tracking-already-started{{if or $.IsStopwatchRunning (not .HasUserStopwatch)}} tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.tracking_already_started" .OtherStopwatchURL}}</div>
+			{{if and (not $.IsStopwatchRunning) .HasUserStopwatch}}
+				<div class="ui warning message">{{ctx.Locale.Tr "repo.issues.tracking_already_started" .OtherStopwatchURL}}</div>
+			{{end}}
 
 			{{if .Issue.TimeEstimate}}
 				<div class="tw-my-2">{{ctx.Locale.Tr "repo.issues.time_estimate_display" (TimeEstimateString .Issue.TimeEstimate)}}</div>

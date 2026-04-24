@@ -115,10 +115,10 @@ func newFuncMapWebPage() template.FuncMap {
 		},
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
-				"MinTimeout":     int(setting.UI.Notification.MinTimeout / time.Millisecond),
-				"TimeoutStep":    int(setting.UI.Notification.TimeoutStep / time.Millisecond),
-				"MaxTimeout":     int(setting.UI.Notification.MaxTimeout / time.Millisecond),
-				"PushUpdateTime": int(setting.UI.Notification.PushUpdateTime / time.Millisecond),
+				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
+				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
+				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
+				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
 			}
 		},
 		"MermaidMaxSourceCharacters": func() int {
