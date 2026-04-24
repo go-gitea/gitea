@@ -160,14 +160,15 @@
 				<span class="stopwatch-issue">{{if $activeStopwatch}}{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}{{end}}</span>
 			</a>
 			<div class="tw-flex tw-gap-1">
-				<form class="stopwatch-commit form-fetch-action" method="post" {{if $activeStopwatch}}action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop"{{end}}>
+				{{/* form-fetch-action is only set when a stopwatch is currently active; stopwatch.ts re-adds it when the icon appears via a cross-tab push. Otherwise unrelated pages with a generic `.form-fetch-action` lookup (e.g. the editor upload form test) would match these empty forms. */}}
+				<form class="stopwatch-commit{{if $activeStopwatch}} form-fetch-action{{end}}" method="post" {{if $activeStopwatch}}action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop"{{end}}>
 					<button
 						type="submit"
 						class="ui button mini compact basic icon tw-mr-0"
 						data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
 					>{{svg "octicon-square-fill"}}</button>
 				</form>
-				<form class="stopwatch-cancel form-fetch-action" method="post" {{if $activeStopwatch}}action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel"{{end}}>
+				<form class="stopwatch-cancel{{if $activeStopwatch}} form-fetch-action{{end}}" method="post" {{if $activeStopwatch}}action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel"{{end}}>
 					<button
 						type="submit"
 						class="ui button mini compact basic icon tw-mr-0"

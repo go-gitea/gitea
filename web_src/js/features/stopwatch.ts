@@ -100,8 +100,16 @@ function updateStopwatchData(data: any) {
     const {repo_owner_name, repo_name, issue_index, seconds} = watch;
     const issueUrl = `${appSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
     document.querySelector('.stopwatch-link')?.setAttribute('href', issueUrl);
-    document.querySelector('.stopwatch-commit')?.setAttribute('action', `${issueUrl}/times/stopwatch/stop`);
-    document.querySelector('.stopwatch-cancel')?.setAttribute('action', `${issueUrl}/times/stopwatch/cancel`);
+    const commitForm = document.querySelector('.stopwatch-commit');
+    if (commitForm) {
+      commitForm.setAttribute('action', `${issueUrl}/times/stopwatch/stop`);
+      commitForm.classList.add('form-fetch-action');
+    }
+    const cancelForm = document.querySelector('.stopwatch-cancel');
+    if (cancelForm) {
+      cancelForm.setAttribute('action', `${issueUrl}/times/stopwatch/cancel`);
+      cancelForm.classList.add('form-fetch-action');
+    }
     const stopwatchIssue = document.querySelector('.stopwatch-issue');
     if (stopwatchIssue) stopwatchIssue.textContent = `${repo_owner_name}/${repo_name}#${issue_index}`;
     updateStopwatchTime(seconds);
