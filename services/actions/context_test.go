@@ -26,17 +26,20 @@ func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
 	runA := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 791})
 	runB := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 792})
 
+	attemptA := &actions_model.ActionRunAttempt{RepoID: runA.RepoID, RunID: runA.ID, Attempt: 1}
+	attemptB := &actions_model.ActionRunAttempt{RepoID: runB.RepoID, RunID: runB.ID, Attempt: 1}
+
 	expr := &act_model.RawConcurrency{
 		Group:            "${{ github.workflow }}-${{ github.head_ref || github.run_id }}",
 		CancelInProgress: "true",
 	}
 
-	assert.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runA, expr, nil, nil))
-	assert.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runB, expr, nil, nil))
+	assert.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runA, attemptA, expr, nil, nil))
+	assert.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runB, attemptB, expr, nil, nil))
 
-	assert.Contains(t, runA.ConcurrencyGroup, "791")
-	assert.Contains(t, runB.ConcurrencyGroup, "792")
-	assert.NotEqual(t, runA.ConcurrencyGroup, runB.ConcurrencyGroup)
+	assert.Contains(t, attemptA.ConcurrencyGroup, "791")
+	assert.Contains(t, attemptB.ConcurrencyGroup, "792")
+	assert.NotEqual(t, attemptA.ConcurrencyGroup, attemptB.ConcurrencyGroup)
 }
 
 func TestPrepareRunAndInsert_ExpressionsSeeRunID(t *testing.T) {
@@ -78,7 +81,10 @@ jobs:
 	persisted := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
 	runIDStr := strconv.FormatInt(run.ID, 10)
 	assert.Equal(t, "Run "+runIDStr, persisted.Title)
-	assert.Equal(t, "group-"+runIDStr, persisted.ConcurrencyGroup)
+	// ConcurrencyGroup lives on the latest attempt after migration v331.
+	require.Positive(t, persisted.LatestAttemptID)
+	attempt := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{ID: persisted.LatestAttemptID})
+	assert.Equal(t, "group-"+runIDStr, attempt.ConcurrencyGroup)
 	// Rerun reads raw_concurrency from the DB to re-evaluate the group;
 	// see services/actions/rerun.go. Must survive the insert.
 	assert.NotEmpty(t, persisted.RawConcurrency)

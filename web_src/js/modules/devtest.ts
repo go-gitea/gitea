@@ -1,7 +1,7 @@
 import {showInfoToast, showWarningToast, showErrorToast} from './toast.ts';
 import type {Toast} from './toast.ts';
 import {registerGlobalInitFunc} from './observer.ts';
-import {fomanticQuery} from './fomantic/base.ts';
+import {showFomanticModal} from './fomantic/modal.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 import {showGlobalErrorMessage} from './errors.ts';
@@ -25,7 +25,7 @@ function initDevtestPage() {
   if (modalButtons) {
     for (const el of document.querySelectorAll('.ui.modal:not([data-skip-button])')) {
       const btn = createElementFromHTML(html`<button class="ui button">${el.id}</button`);
-      btn.addEventListener('click', () => fomanticQuery(el).modal('show'));
+      btn.addEventListener('click', () => showFomanticModal(el));
       modalButtons.append(btn);
     }
   }

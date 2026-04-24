@@ -439,5 +439,5 @@ func ListWorkflowJobs(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	shared.ListJobs(ctx, ctx.Doer.ID, 0, 0)
+	shared.ListJobs(ctx, ctx.Doer.ID, 0, 0, nil)
 }

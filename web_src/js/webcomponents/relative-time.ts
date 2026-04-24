@@ -28,6 +28,7 @@ type FormatStyle = 'long' | 'short' | 'narrow';
 const unitNames = ['year', 'month', 'week', 'day', 'hour', 'minute', 'second'] as const;
 
 const durationRe = /^[-+]?P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/;
+const unixSecondsRe = /^\d+$/;
 
 function parseDurationMs(str: string): number {
   const m = durationRe.exec(str);
@@ -364,7 +365,8 @@ class RelativeTime extends HTMLElement {
   }
 
   get date(): Date | null {
-    const parsed = Date.parse(this.datetime);
+    const dt = this.datetime;
+    const parsed = unixSecondsRe.test(dt) ? Number(dt) * 1000 : Date.parse(dt);
     return Number.isNaN(parsed) ? null : new Date(parsed);
   }
 

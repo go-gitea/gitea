@@ -9,13 +9,11 @@ import {applyAreYouSure, ignoreAreYouSure} from '../vendor/jquery.are-you-sure.t
 import {submitFormFetchAction} from './common-fetch-action.ts';
 import {dirname} from '../utils.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showErrorToast} from '../modules/toast.ts';
 
 function initEditPreviewTab(elForm: HTMLFormElement) {
   const elTabMenu = elForm.querySelector('.repo-editor-menu');
   if (!elTabMenu) return;
-  fomanticQuery(elTabMenu.querySelectorAll('.item')).tab();
 
   const elTreePath = elForm.querySelector<HTMLInputElement>('input#tree_path');
   const elTextarea = elForm.querySelector<HTMLTextAreaElement>('.tab[data-tab="write"] textarea');
