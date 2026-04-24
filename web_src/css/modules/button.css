@@ -55,13 +55,6 @@
   pointer-events: none !important;
 }
 
-.ui.labeled.button.disabled {
-  pointer-events: auto !important;
-}
-.ui.labeled.button.disabled > .button {
-  pointer-events: none;
-}
-
 /* there is no "ui labeled icon button" support" because it is not used */
 .ui.labeled.button:not(.icon) {
   flex-direction: row;
