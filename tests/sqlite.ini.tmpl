@@ -5,8 +5,6 @@ RUN_MODE = prod
 [database]
 DB_TYPE = sqlite3
 PATH    = gitea.db
-; Tests use a throwaway DB: skip fsync to speed up the CI run. Unsafe for prod.
-SQLITE_SYNCHRONOUS = OFF
 
 [indexer]
 REPO_INDEXER_ENABLED = true
