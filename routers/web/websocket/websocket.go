@@ -84,7 +84,10 @@ func Serve(ctx *context.Context) {
 	ch, cancel := pubsub.DefaultBroker.Subscribe(pubsub.UserTopic(ctx.Doer.ID))
 	defer cancel()
 
-	wsCtx := ctx.Req.Context()
+	// CloseRead spawns a reader that responds to ping/pong/close frames and
+	// cancels its returned context when the peer goes away. Ping itself
+	// requires a concurrent reader to observe the pong frame.
+	wsCtx := conn.CloseRead(ctx.Req.Context())
 	shutdownCtx := graceful.GetManager().ShutdownContext()
 	pingTicker := time.NewTicker(pingInterval)
 	defer pingTicker.Stop()

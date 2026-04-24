@@ -78,6 +78,7 @@ class WsSource {
   reconnectDelay: number;
   failuresWithoutConnect: number;
   fallbackSignalled: boolean;
+  closed: boolean;
 
   constructor(wsUrl: string, source: Source) {
     this.wsUrl = wsUrl;
@@ -87,10 +88,12 @@ class WsSource {
     this.reconnectDelay = 50;
     this.failuresWithoutConnect = 0;
     this.fallbackSignalled = false;
+    this.closed = false;
     this.connect();
   }
 
   connect() {
+    if (this.closed) return;
     this.ws = new WebSocket(this.wsUrl);
 
     this.ws.addEventListener('open', () => {
@@ -118,6 +121,7 @@ class WsSource {
 
     this.ws.addEventListener('close', () => {
       this.ws = null;
+      if (this.closed) return;
       this.failuresWithoutConnect++;
       this.maybeSignalFallback();
       this.scheduleReconnect();
@@ -144,6 +148,7 @@ class WsSource {
   }
 
   close() {
+    this.closed = true;
     if (this.reconnectTimer !== null) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
