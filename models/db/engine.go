@@ -16,8 +16,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"  // Needed for the MySQL driver
 	_ "github.com/lib/pq"               // Needed for the Postgresql driver
 	_ "github.com/microsoft/go-mssqldb" // Needed for the MSSQL driver
-	_ "modernc.org/sqlite"              // Needed for the Sqlite driver
+	"modernc.org/sqlite"                // Needed for the Sqlite driver
 )
+
+func init() {
+	sql.Register("sqlite3", &sqlite.Driver{})
+}
 
 var (
 	xormEngine          *xorm.Engine

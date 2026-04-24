@@ -19,9 +19,6 @@ var (
 	// DatabaseTypeNames contains the friendly names for all database types
 	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3"}
 
-	//// EnableSQLite3 use SQLite3, set by build flag
-	//EnableSQLite3 bool
-
 	// Database holds the database settings
 	Database = struct {
 		Type               DatabaseType
@@ -61,9 +58,6 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	// mattn sqlite driver was using sqlite3 as it's name
 	// Override it during loading config so it's correctly named for xorm imports
 	dbType := sec.Key("DB_TYPE").String()
-	if dbType == "sqlite3" {
-		dbType = "sqlite"
-	}
 	Database.Type = DatabaseType(dbType)
 
 	Database.Host = sec.Key("HOST").String()
