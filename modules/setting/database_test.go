@@ -107,3 +107,33 @@ func Test_getPostgreSQLConnectionString(t *testing.T) {
 		assert.Equal(t, test.Output, connStr)
 	}
 }
+
+func Test_loadDBSetting_legacySQLite3Type(t *testing.T) {
+	// DB_TYPE=sqlite3 (mattn-era) must still be accepted and normalized to "sqlite"
+	for _, input := range []string{"sqlite3", "sqlite"} {
+		t.Run(input, func(t *testing.T) {
+			cfg, err := NewConfigProviderFromData("[database]\nDB_TYPE = " + input)
+			assert.NoError(t, err)
+			loadDBSetting(cfg)
+			assert.Equal(t, DatabaseType("sqlite"), Database.Type)
+			assert.True(t, Database.Type.IsSQLite3())
+		})
+	}
+}
+
+func Test_DBConnStr_sqliteJournalMode(t *testing.T) {
+	Database.Type = "sqlite"
+	Database.Path = t.TempDir() + "/gitea.db"
+	Database.Timeout = 500
+
+	Database.SQLiteJournalMode = "WAL"
+	connStr, err := DBConnStr()
+	assert.NoError(t, err)
+	assert.Contains(t, connStr, "journal_mode(WAL)")
+
+	Database.SQLiteJournalMode = "bogus; DROP TABLE users"
+	_, err = DBConnStr()
+	assert.ErrorContains(t, err, "invalid SQLITE_JOURNAL_MODE")
+
+	Database.SQLiteJournalMode = ""
+}

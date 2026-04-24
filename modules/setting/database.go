@@ -18,6 +18,11 @@ var (
 	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "sqlite"}
 	// DatabaseTypeNames contains the friendly names for all database types
 	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite": "SQLite3"}
+	// validSQLiteJournalModes are the journal_mode pragma values sqlite accepts
+	validSQLiteJournalModes = map[string]bool{
+		"DELETE": true, "TRUNCATE": true, "PERSIST": true,
+		"MEMORY": true, "WAL": true, "OFF": true,
+	}
 
 	// Database holds the database settings
 	Database = struct {
@@ -122,6 +127,9 @@ func DBConnStr() (string, error) {
 		}
 		journalMode := ""
 		if Database.SQLiteJournalMode != "" {
+			if !validSQLiteJournalModes[strings.ToUpper(Database.SQLiteJournalMode)] {
+				return "", fmt.Errorf("invalid SQLITE_JOURNAL_MODE: %q", Database.SQLiteJournalMode)
+			}
 			journalMode = "&_pragma=journal_mode(" + Database.SQLiteJournalMode + ")"
 		}
 		connStr = fmt.Sprintf("file:%s?_pragma=busy_timeout(%d)&_txlock=immediate%s",
