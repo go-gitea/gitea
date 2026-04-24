@@ -23,6 +23,11 @@ var (
 		"DELETE": true, "TRUNCATE": true, "PERSIST": true,
 		"MEMORY": true, "WAL": true, "OFF": true,
 	}
+	// validSQLiteSynchronous are the synchronous pragma values sqlite accepts.
+	validSQLiteSynchronous = map[string]bool{
+		"OFF": true, "NORMAL": true, "FULL": true, "EXTRA": true,
+		"0": true, "1": true, "2": true, "3": true,
+	}
 
 	// Database holds the database settings
 	Database = struct {
@@ -39,6 +44,7 @@ var (
 		CharsetCollation   string
 		Timeout            int // seconds
 		SQLiteJournalMode  string
+		SQLiteSynchronous  string
 		DBConnectRetries   int
 		DBConnectBackoff   time.Duration
 		MaxIdleConns       int
@@ -79,6 +85,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 		sqliteDefaultJournal = "WAL"
 	}
 	Database.SQLiteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString(sqliteDefaultJournal)
+	Database.SQLiteSynchronous = sec.Key("SQLITE_SYNCHRONOUS").MustString("NORMAL")
 
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
 	if Database.Type.IsMySQL() {
@@ -131,9 +138,15 @@ func DBConnStr() (string, error) {
 			}
 			journalMode = "&_pragma=journal_mode(" + Database.SQLiteJournalMode + ")"
 		}
-		// synchronous=NORMAL is safe under WAL and dramatically faster than FULL.
-		connStr = fmt.Sprintf("file:%s?_pragma=busy_timeout(%d)&_pragma=synchronous(NORMAL)&_txlock=immediate%s",
-			Database.Path, Database.Timeout, journalMode)
+		sync := Database.SQLiteSynchronous
+		if sync == "" {
+			sync = "NORMAL"
+		}
+		if !validSQLiteSynchronous[strings.ToUpper(sync)] {
+			return "", fmt.Errorf("invalid SQLITE_SYNCHRONOUS: %q", Database.SQLiteSynchronous)
+		}
+		connStr = fmt.Sprintf("file:%s?_pragma=busy_timeout(%d)&_pragma=synchronous(%s)&_txlock=immediate%s",
+			Database.Path, Database.Timeout, sync, journalMode)
 	default:
 		return "", fmt.Errorf("unknown database type: %s", Database.Type)
 	}

@@ -22,6 +22,8 @@ cat > "$WORK_DIR/custom/conf/app.ini" <<EOF
 [database]
 DB_TYPE = sqlite3
 PATH = $WORK_DIR/data/gitea.db
+; Tests use a throwaway DB: skip fsync to speed up the CI run. Unsafe for prod.
+SQLITE_SYNCHRONOUS = OFF
 
 [server]
 HTTP_PORT = $FREE_PORT
