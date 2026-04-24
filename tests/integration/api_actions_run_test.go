@@ -208,15 +208,18 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 		assert.Equal(t, actions_model.StatusWaiting, run.Status)
 		assert.Equal(t, timeutil.TimeStamp(0), run.Started)
 		assert.Equal(t, timeutil.TimeStamp(0), run.Stopped)
-
-		job198, err := actions_model.GetRunJobByRunAndID(t.Context(), 795, 198)
+		latestAttempt, hasLatestAttempt, err := run.GetLatestAttempt(t.Context())
 		require.NoError(t, err)
+		require.True(t, hasLatestAttempt)
+
+		job198 := getLatestAttemptJobByTemplateJobID(t, 795, 198)
 		assert.Equal(t, actions_model.StatusWaiting, job198.Status)
+		assert.Equal(t, latestAttempt.Attempt, job198.Attempt)
 		assert.Equal(t, int64(0), job198.TaskID)
 
-		job199, err := actions_model.GetRunJobByRunAndID(t.Context(), 795, 199)
-		require.NoError(t, err)
+		job199 := getLatestAttemptJobByTemplateJobID(t, 795, 199)
 		assert.Equal(t, actions_model.StatusWaiting, job199.Status)
+		assert.Equal(t, latestAttempt.Attempt, job199.Attempt)
 		assert.Equal(t, int64(0), job199.TaskID)
 	})
 
@@ -262,22 +265,28 @@ func TestAPIActionsRerunWorkflowJob(t *testing.T) {
 		var rerunResp api.ActionWorkflowJob
 		err := json.Unmarshal(resp.Body.Bytes(), &rerunResp)
 		require.NoError(t, err)
-		assert.Equal(t, int64(199), rerunResp.ID)
+		job199Rerun := getLatestAttemptJobByTemplateJobID(t, 795, 199)
+		assert.Equal(t, job199Rerun.ID, rerunResp.ID)
 		assert.Equal(t, "queued", rerunResp.Status)
 
 		run, err := actions_model.GetRunByRepoAndID(t.Context(), repo.ID, 795)
 		require.NoError(t, err)
 		assert.Equal(t, actions_model.StatusWaiting, run.Status)
-
-		job198, err := actions_model.GetRunJobByRunAndID(t.Context(), 795, 198)
+		latestAttempt, hasLatestAttempt, err := run.GetLatestAttempt(t.Context())
 		require.NoError(t, err)
-		assert.Equal(t, actions_model.StatusSuccess, job198.Status)
-		assert.Equal(t, int64(53), job198.TaskID)
+		require.True(t, hasLatestAttempt)
 
-		job199, err := actions_model.GetRunJobByRunAndID(t.Context(), 795, 199)
-		require.NoError(t, err)
-		assert.Equal(t, actions_model.StatusWaiting, job199.Status)
-		assert.Equal(t, int64(0), job199.TaskID)
+		job198Rerun := getLatestAttemptJobByTemplateJobID(t, 795, 198)
+		assert.Equal(t, actions_model.StatusSuccess, job198Rerun.Status)
+		assert.Equal(t, latestAttempt.Attempt, job198Rerun.Attempt)
+		assert.Equal(t, int64(0), job198Rerun.TaskID)
+		assert.Equal(t, int64(53), job198Rerun.SourceTaskID)
+
+		job199Rerun = getLatestAttemptJobByTemplateJobID(t, 795, 199)
+		assert.Equal(t, actions_model.StatusWaiting, job199Rerun.Status)
+		assert.Equal(t, latestAttempt.Attempt, job199Rerun.Attempt)
+		assert.Equal(t, int64(0), job199Rerun.TaskID)
+		assert.Equal(t, int64(0), job199Rerun.SourceTaskID)
 	})
 
 	t.Run("ForbiddenWithoutWriteScope", func(t *testing.T) {

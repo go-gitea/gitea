@@ -247,30 +247,64 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	}, nil
 }
 
-func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
-	err := run.LoadAttributes(ctx)
-	if err != nil {
+func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (*api.ActionWorkflowRun, error) {
+	if err := run.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
+
+	if attempt == nil {
+		if latestAttempt, has, err := run.GetLatestAttempt(ctx); err != nil {
+			return nil, err
+		} else if has {
+			attempt = latestAttempt
+		}
+	}
+
+	runAttempt := int64(0)
 	status, conclusion := ToActionsStatus(run.Status)
+	startedAt := run.Started.AsLocalTime()
+	completedAt := run.Stopped.AsLocalTime()
+	actor := run.TriggerUser       // The username of the user that triggered the initial workflow run.
+	triggerUser := run.TriggerUser // The username of the user that initiated the workflow run. If the workflow run is a re-run, this value may differ from actor.
+
+	// previousAttemptURL is the value of ActionWorkflowRun.PreviousAttemptURL, which is declared as *string without `omitempty` on purpose:
+	// a nil value must still appear in the JSON body as `"previous_attempt_url": null`, matching GitHub's Actions API.
+	var previousAttemptURL *string
+
+	if attempt != nil {
+		if err := attempt.LoadAttributes(ctx); err != nil {
+			return nil, err
+		}
+		runAttempt = attempt.Attempt
+		status, conclusion = ToActionsStatus(attempt.Status)
+		startedAt = attempt.Started.AsLocalTime()
+		completedAt = attempt.Stopped.AsLocalTime()
+		triggerUser = attempt.TriggerUser
+		if attempt.Attempt > 1 {
+			url := fmt.Sprintf("%s/actions/runs/%d/attempts/%d", repo.APIURL(), run.ID, attempt.Attempt-1)
+			previousAttemptURL = &url
+		}
+	}
+
 	return &api.ActionWorkflowRun{
-		ID:           run.ID,
-		URL:          fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
-		HTMLURL:      run.HTMLURL(),
-		RunNumber:    run.Index,
-		StartedAt:    run.Started.AsLocalTime(),
-		CompletedAt:  run.Stopped.AsLocalTime(),
-		Event:        run.TriggerEvent,
-		DisplayTitle: run.Title,
-		HeadBranch:   git.RefName(run.Ref).BranchName(),
-		HeadSha:      run.CommitSHA,
-		Status:       status,
-		Conclusion:   conclusion,
-		Path:         fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
-		Repository:   ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
-		TriggerActor: ToUser(ctx, run.TriggerUser, nil),
-		// We do not have a way to get a different User for the actor than the trigger user
-		Actor: ToUser(ctx, run.TriggerUser, nil),
+		ID:                 run.ID,
+		URL:                fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
+		PreviousAttemptURL: previousAttemptURL,
+		HTMLURL:            run.HTMLURL(),
+		RunNumber:          run.Index,
+		RunAttempt:         runAttempt,
+		StartedAt:          startedAt,
+		CompletedAt:        completedAt,
+		Event:              run.TriggerEvent,
+		DisplayTitle:       run.Title,
+		HeadBranch:         git.RefName(run.Ref).BranchName(),
+		HeadSha:            run.CommitSHA,
+		Status:             status,
+		Conclusion:         conclusion,
+		Path:               fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
+		Repository:         ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		TriggerActor:       ToUser(ctx, triggerUser, nil),
+		Actor:              ToUser(ctx, actor, nil),
 	}, nil
 }
 
@@ -329,9 +363,9 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 	var runnerName string
 	var steps []*api.ActionWorkflowStep
 
-	if job.TaskID != 0 {
+	if effectiveTaskID := job.EffectiveTaskID(); effectiveTaskID != 0 {
 		if task == nil {
-			task, _, err = db.GetByID[actions_model.ActionTask](ctx, job.TaskID)
+			task, _, err = db.GetByID[actions_model.ActionTask](ctx, effectiveTaskID)
 			if err != nil {
 				return nil, err
 			}
