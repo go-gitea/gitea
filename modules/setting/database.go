@@ -15,9 +15,9 @@ import (
 
 var (
 	// SupportedDatabaseTypes includes all XORM supported databases type
-	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "sqlite"}
+	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "sqlite3"}
 	// DatabaseTypeNames contains the friendly names for all database types
-	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite": "SQLite3"}
+	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3"}
 	// validSQLiteJournalModes are the journal_mode pragma values sqlite accepts
 	validSQLiteJournalModes = map[string]bool{
 		"DELETE": true, "TRUNCATE": true, "PERSIST": true,
@@ -60,12 +60,7 @@ func LoadDBSetting() {
 
 func loadDBSetting(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("database")
-	// accept legacy "sqlite3" DB_TYPE as "sqlite"
-	dbType := sec.Key("DB_TYPE").String()
-	if dbType == "sqlite3" {
-		dbType = "sqlite"
-	}
-	Database.Type = DatabaseType(dbType)
+	Database.Type = DatabaseType(sec.Key("DB_TYPE").String())
 
 	Database.Host = sec.Key("HOST").String()
 	Database.Name = sec.Key("NAME").String()
@@ -121,7 +116,7 @@ func DBConnStr() (string, error) {
 	case "mssql":
 		host, port := ParseMSSQLHostPort(Database.Host)
 		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, Database.Name, Database.User, Database.Passwd)
-	case "sqlite":
+	case "sqlite3":
 		if err := os.MkdirAll(filepath.Dir(Database.Path), os.ModePerm); err != nil {
 			return "", fmt.Errorf("Failed to create directories: %w", err)
 		}
@@ -215,7 +210,7 @@ func (t DatabaseType) String() string {
 }
 
 func (t DatabaseType) IsSQLite3() bool {
-	return t == "sqlite"
+	return t == "sqlite3"
 }
 
 func (t DatabaseType) IsMySQL() bool {

@@ -27,10 +27,6 @@ func DumpDatabase(filePath, dbType string) error {
 	tbs = append(tbs, t)
 
 	if dbType != "" {
-		// xorm only registers the sqlite dialect under the legacy "sqlite3" name
-		if dbType == "sqlite" {
-			dbType = "sqlite3"
-		}
 		return xormEngine.DumpTablesToFile(tbs, filePath, schemas.DBType(dbType))
 	}
 	return xormEngine.DumpTablesToFile(tbs, filePath)

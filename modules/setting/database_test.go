@@ -108,21 +108,8 @@ func Test_getPostgreSQLConnectionString(t *testing.T) {
 	}
 }
 
-func Test_loadDBSetting_legacySQLite3Type(t *testing.T) {
-	// DB_TYPE=sqlite3 (mattn-era) must still be accepted and normalized to "sqlite"
-	for _, input := range []string{"sqlite3", "sqlite"} {
-		t.Run(input, func(t *testing.T) {
-			cfg, err := NewConfigProviderFromData("[database]\nDB_TYPE = " + input)
-			assert.NoError(t, err)
-			loadDBSetting(cfg)
-			assert.Equal(t, DatabaseType("sqlite"), Database.Type)
-			assert.True(t, Database.Type.IsSQLite3())
-		})
-	}
-}
-
 func Test_DBConnStr_sqliteJournalMode(t *testing.T) {
-	Database.Type = "sqlite"
+	Database.Type = "sqlite3"
 	Database.Path = t.TempDir() + "/gitea.db"
 	Database.Timeout = 500
 
