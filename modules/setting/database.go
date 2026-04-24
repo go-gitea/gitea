@@ -82,7 +82,14 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	} else {
 		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFETIME").MustDuration(0)
 	}
-	Database.MaxOpenConns = sec.Key("MAX_OPEN_CONNS").MustInt(0)
+	// Default to a single open connection for sqlite. The modernc driver
+	// doesn't support mattn's cache=shared, so a larger pool yields
+	// SQLITE_BUSY under contention.
+	sqliteDefaultMaxOpen := 0
+	if Database.Type.IsSQLite3() {
+		sqliteDefaultMaxOpen = 1
+	}
+	Database.MaxOpenConns = sec.Key("MAX_OPEN_CONNS").MustInt(sqliteDefaultMaxOpen)
 
 	Database.IterateBufferSize = sec.Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	Database.LogSQL = sec.Key("LOG_SQL").MustBool(false)
