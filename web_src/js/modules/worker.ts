@@ -1,4 +1,4 @@
-import {USER_EVENT_LOGOUT, USER_EVENT_PUSH_UNAVAILABLE, USER_EVENT_WS_OPENED} from './user-events-types.ts';
+import type {WorkerInboundMessage} from './user-events-types.ts';
 
 const {appSubUrl, sharedWorkerUri} = window.config;
 
@@ -47,7 +47,7 @@ export class UserEventsSharedWorker {
 
   addMessageEventListener(listener: (event: MessageEvent) => void) {
     this.listeners.push(listener);
-    this.sharedWorker?.port.addEventListener('message', (event: MessageEvent) => {
+    this.sharedWorker?.port.addEventListener('message', (event: MessageEvent<WorkerInboundMessage>) => {
       if (!event.data || !event.data.type) {
         console.error('unknown worker message event', event);
         return;
@@ -55,9 +55,9 @@ export class UserEventsSharedWorker {
 
       if (event.data.type === 'error') {
         console.error('worker port event error', event.data);
-      } else if (event.data.type === USER_EVENT_WS_OPENED) {
+      } else if (event.data.type === 'ws-opened') {
         window.__userEventsWsReady = true;
-      } else if (event.data.type === USER_EVENT_LOGOUT) {
+      } else if (event.data.type === 'logout') {
         if (event.data.data !== 'here') return;
         this.sharedWorker!.port.postMessage({type: 'close'});
         this.sharedWorker!.port.close();
@@ -85,7 +85,7 @@ export class UserEventsSharedWorker {
   private signalFallback() {
     if (this.fallbackSignalled) return;
     this.fallbackSignalled = true;
-    const syntheticEvent = {data: {type: USER_EVENT_PUSH_UNAVAILABLE}} as MessageEvent;
+    const syntheticEvent = {data: {type: 'push-unavailable'} satisfies WorkerInboundMessage} as MessageEvent;
     for (const listener of this.listeners) listener(syntheticEvent);
   }
 }

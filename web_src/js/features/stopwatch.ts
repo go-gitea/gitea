@@ -1,7 +1,7 @@
 import {createTippy} from '../modules/tippy.ts';
 import {GET} from '../modules/fetch.ts';
 import {hideElem, queryElems, showElem} from '../utils/dom.ts';
-import {USER_EVENT_PUSH_UNAVAILABLE, USER_EVENT_STOPWATCHES} from '../modules/user-events-types.ts';
+import type {UserEventMessage} from '../modules/user-events-types.ts';
 import {UserEventsSharedWorker} from '../modules/worker.ts';
 
 const {appSubUrl, notificationSettings, enableTimeTracking} = window.config;
@@ -55,10 +55,10 @@ export function initStopwatch() {
     // or the browser lacks module-SharedWorker support).
     let pollerStarted = false;
     const worker = new UserEventsSharedWorker('stopwatch-worker');
-    worker.addMessageEventListener((event) => {
-      if (event.data.type === USER_EVENT_STOPWATCHES) {
+    worker.addMessageEventListener((event: MessageEvent<UserEventMessage>) => {
+      if (event.data.type === 'stopwatches') {
         updateStopwatchData(JSON.parse(event.data.data));
-      } else if (event.data.type === USER_EVENT_PUSH_UNAVAILABLE && !pollerStarted) {
+      } else if (event.data.type === 'push-unavailable' && !pollerStarted) {
         pollerStarted = true;
         startPeriodicPoller(notificationSettings.MinTimeout);
       }

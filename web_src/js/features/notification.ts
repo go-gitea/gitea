@@ -1,12 +1,12 @@
 import {GET} from '../modules/fetch.ts';
 import {toggleElem, createElementFromHTML} from '../utils/dom.ts';
-import {USER_EVENT_NOTIFICATION_COUNT, USER_EVENT_PUSH_UNAVAILABLE} from '../modules/user-events-types.ts';
+import type {UserEventMessage} from '../modules/user-events-types.ts';
 import {UserEventsSharedWorker} from '../modules/worker.ts';
 
 const {appSubUrl, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
 
-async function receiveUpdateCount(event: MessageEvent<{type: string, data: string}>) {
+async function receiveUpdateCount(event: MessageEvent<UserEventMessage>) {
   try {
     const data = JSON.parse(event.data.data);
     for (const count of document.querySelectorAll('.notification_count')) {
@@ -36,10 +36,10 @@ export function initNotificationCount() {
     // or the browser lacks module-SharedWorker support).
     let pollerStarted = false;
     const worker = new UserEventsSharedWorker('notification-worker');
-    worker.addMessageEventListener((event: MessageEvent) => {
-      if (event.data.type === USER_EVENT_NOTIFICATION_COUNT) {
+    worker.addMessageEventListener((event: MessageEvent<UserEventMessage>) => {
+      if (event.data.type === 'notification-count') {
         receiveUpdateCount(event); // no await
-      } else if (event.data.type === USER_EVENT_PUSH_UNAVAILABLE && !pollerStarted) {
+      } else if (event.data.type === 'push-unavailable' && !pollerStarted) {
         pollerStarted = true;
         startPeriodicPoller(notificationSettings.MinTimeout);
       }

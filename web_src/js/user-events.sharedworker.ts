@@ -1,21 +1,15 @@
-import {
-  USER_EVENT_LOGOUT,
-  USER_EVENT_NOTIFICATION_COUNT,
-  USER_EVENT_PUSH_UNAVAILABLE,
-  USER_EVENT_STOPWATCHES,
-  USER_EVENT_WS_OPENED,
-} from './modules/user-events-types.ts';
+import type {UserEventMessage} from './modules/user-events-types.ts';
 
 // Returns null for unknown message types so they are dropped silently.
-function translateServerMessage(msg: {type: string, count?: number, data?: any}): {type: string, data: any} | null {
-  if (msg.type === USER_EVENT_NOTIFICATION_COUNT) {
-    return {type: USER_EVENT_NOTIFICATION_COUNT, data: JSON.stringify({Count: msg.count})};
+function translateServerMessage(msg: {type: string, count?: number, data?: any}): UserEventMessage | null {
+  if (msg.type === 'notification-count') {
+    return {type: 'notification-count', data: JSON.stringify({Count: msg.count})};
   }
-  if (msg.type === USER_EVENT_STOPWATCHES) {
-    return {type: USER_EVENT_STOPWATCHES, data: JSON.stringify(msg.data)};
+  if (msg.type === 'stopwatches') {
+    return {type: 'stopwatches', data: JSON.stringify(msg.data)};
   }
-  if (msg.type === USER_EVENT_LOGOUT) {
-    return {type: USER_EVENT_LOGOUT, data: msg.data ?? ''};
+  if (msg.type === 'logout') {
+    return {type: 'logout', data: msg.data ?? ''};
   }
   return null;
 }
@@ -49,7 +43,7 @@ class Source {
     return this.clients.length;
   }
 
-  notifyClients(event: {type: string, data: any}) {
+  notifyClients(event: UserEventMessage) {
     for (const client of this.clients) {
       client.postMessage(event);
     }
@@ -92,7 +86,7 @@ class WsSource {
     this.ws.addEventListener('open', () => {
       this.reconnectDelay = 1000;
       this.failuresWithoutConnect = 0;
-      this.source.notifyClients({type: USER_EVENT_WS_OPENED, data: ''});
+      this.source.notifyClients({type: 'ws-opened', data: ''});
     });
 
     this.ws.addEventListener('message', (event: MessageEvent<string>) => {
@@ -125,7 +119,7 @@ class WsSource {
     if (this.fallbackSignalled) return;
     if (this.failuresWithoutConnect < 3) return;
     this.fallbackSignalled = true;
-    this.source.notifyClients({type: USER_EVENT_PUSH_UNAVAILABLE, data: ''});
+    this.source.notifyClients({type: 'push-unavailable', data: ''});
   }
 
   scheduleReconnect() {
