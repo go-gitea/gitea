@@ -105,12 +105,18 @@ type ActionArtifact struct {
 
 // ActionWorkflowRun represents a WorkflowRun
 type ActionWorkflowRun struct {
-	ID             int64       `json:"id"`
-	URL            string      `json:"url"`
-	HTMLURL        string      `json:"html_url"`
-	DisplayTitle   string      `json:"display_title"`
-	Path           string      `json:"path"`
-	Event          string      `json:"event"`
+	ID  int64  `json:"id"`
+	URL string `json:"url"`
+	// PreviousAttemptURL is the API URL of the previous attempt of this run, e.g. ".../actions/runs/{run_id}/attempts/{attempt-1}".
+	// It is set only when the current attempt is > 1 (i.e. a rerun). For the first attempt, or for legacy runs that pre-date ActionRunAttempt, it is null.
+	PreviousAttemptURL *string `json:"previous_attempt_url"`
+	HTMLURL            string  `json:"html_url"`
+	DisplayTitle       string  `json:"display_title"`
+	Path               string  `json:"path"`
+	Event              string  `json:"event"`
+	// RunAttempt is 1-based for runs created after ActionRunAttempt was introduced.
+	// A value of 0 is a legacy-only sentinel for runs created before attempts existed
+	// and indicates no corresponding /attempts/{n} resource is available.
 	RunAttempt     int64       `json:"run_attempt"`
 	RunNumber      int64       `json:"run_number"`
 	RepositoryID   int64       `json:"repository_id,omitempty"`

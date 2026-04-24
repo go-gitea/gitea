@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -214,5 +215,95 @@ jobs:
 				resetFunc()
 			})
 		}
+
+		t.Run("DownloadRerunTaskLogs", func(t *testing.T) {
+			treePath := ".gitea/workflows/download-rerun-logs.yml"
+			fileContent := `name: download-rerun-logs
+on:
+  push:
+    paths:
+      - '.gitea/workflows/download-rerun-logs.yml'
+jobs:
+    job1:
+      runs-on: ubuntu-latest
+      steps:
+        - run: echo job1
+    job2:
+      runs-on: ubuntu-latest
+      needs: [job1]
+      steps:
+        - run: echo job2
+`
+
+			// create the workflow file
+			opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+treePath, fileContent)
+			createWorkflowFile(t, token, user2.Name, repo.Name, treePath, opts)
+
+			// first run
+			job1Task1 := runner.fetchTask(t)
+			_, job1, _ := getTaskAndJobAndRunByTaskID(t, job1Task1.Id)
+			runner.execTask(t, job1Task1, &mockTaskOutcome{
+				result: runnerv1.Result_RESULT_SUCCESS,
+				logRows: []*runnerv1.LogRow{
+					{
+						Time:    timestamppb.New(now.Add(1 * time.Second)),
+						Content: "job1 first run",
+					},
+				},
+			})
+			job2Task1 := runner.fetchTask(t)
+			_, job2, run := getTaskAndJobAndRunByTaskID(t, job2Task1.Id)
+			runner.execTask(t, job2Task1, &mockTaskOutcome{
+				result: runnerv1.Result_RESULT_SUCCESS,
+				logRows: []*runnerv1.LogRow{
+					{
+						Time:    timestamppb.New(now.Add(1 * time.Second)),
+						Content: "job2 first run",
+					},
+				},
+			})
+
+			// check job1 log
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/logs", user2.Name, repo.Name, run.ID, job1.ID)).
+				AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			assert.Contains(t, resp.Body.String(), "job1 first run")
+			// check job2 log
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/logs", user2.Name, repo.Name, run.ID, job2.ID)).
+				AddTokenAuth(token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			assert.Contains(t, resp.Body.String(), "job2 first run")
+
+			// only rerun job2
+			req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, run.ID, job2.ID))
+			session.MakeRequest(t, req, http.StatusOK)
+			job2TaskRerun := runner.fetchTask(t)
+			runner.execTask(t, job2TaskRerun, &mockTaskOutcome{
+				result: runnerv1.Result_RESULT_SUCCESS,
+				logRows: []*runnerv1.LogRow{
+					{
+						Time:    timestamppb.New(now.Add(1 * time.Second)),
+						Content: "job2 rerun",
+					},
+				},
+			})
+
+			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+			job1Rerun := getLatestAttemptJobByTemplateJobID(t, run.ID, job1.ID)
+			assert.Equal(t, run.LatestAttemptID, job1Rerun.RunAttemptID)
+			job2Rerun := getLatestAttemptJobByTemplateJobID(t, run.ID, job2.ID)
+			assert.Equal(t, run.LatestAttemptID, job2Rerun.RunAttemptID)
+
+			// check job1 rerun log
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/logs", user2.Name, repo.Name, run.ID, job1Rerun.ID)).
+				AddTokenAuth(token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			assert.Contains(t, resp.Body.String(), "job1 first run") // should return the log of first run because job1 didn't rerun
+			// check job2 rerun log
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/logs", user2.Name, repo.Name, run.ID, job2Rerun.ID)).
+				AddTokenAuth(token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			assert.Contains(t, resp.Body.String(), "job2 rerun")
+		})
 	})
 }

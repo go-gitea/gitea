@@ -124,17 +124,11 @@ textarea:focus,
 .ui.form .fields:not(.grouped):not(.inline) .field:not(:only-child) .ui.toggle.checkbox {
   margin-top: 2.21428571em;
 }
-.ui.form .fields:not(.grouped):not(.inline) .field:not(:only-child) .ui.slider.checkbox {
-  margin-top: 2.61428571em;
-}
 .ui.ui.form .field .fields .field:not(:only-child) .ui.checkbox {
   margin-top: 0.6em;
 }
 .ui.ui.form .field .fields .field:not(:only-child) .ui.toggle.checkbox {
   margin-top: 0.5em;
-}
-.ui.ui.form .field .fields .field:not(:only-child) .ui.slider.checkbox {
-  margin-top: 0.7em;
 }
 
 .ui.form .field > .selection.dropdown {
@@ -289,14 +283,10 @@ textarea:focus,
   font-weight: var(--font-weight-medium);
   text-transform: none;
 }
-.ui.form .grouped.fields .field,
-.ui.form .grouped.inline.fields .field {
+.ui.form .grouped.fields .field {
   display: block;
   margin: 0.5em 0;
   padding: 0;
-}
-.ui.form .grouped.inline.fields .ui.checkbox {
-  margin-bottom: 0.4em;
 }
 
 .ui.form .fields {
