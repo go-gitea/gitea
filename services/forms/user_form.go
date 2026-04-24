@@ -7,9 +7,13 @@ package forms
 import (
 	"mime/multipart"
 	"net/http"
+	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/context"
 
@@ -356,14 +360,29 @@ func (f *NewAccessTokenForm) Validate(req *http.Request, errs binding.Errors) bi
 // EditOAuth2ApplicationForm form for editing oauth2 applications
 type EditOAuth2ApplicationForm struct {
 	Name                       string `binding:"Required;MaxSize(255)" form:"application_name"`
-	RedirectURIs               string `binding:"Required;ValidUrlList" form:"redirect_uris"`
+	RedirectURIs               string `binding:"Required" form:"redirect_uris"`
 	ConfidentialClient         bool   `form:"confidential_client"`
 	SkipSecondaryAuthorization bool   `form:"skip_secondary_authorization"`
+}
+
+func DetectInvalidOAuth2ApplicationRedirectURI(uris []string) (invalidURL string) {
+	for _, u := range uris {
+		scheme, _, ok := strings.Cut(u, ":")
+		valid := ok && (validation.IsValidURL(u) || util.SliceContainsString(setting.OAuth2.CustomSchemes, scheme))
+		if !valid {
+			return u
+		}
+	}
+	return ""
 }
 
 // Validate validates the fields
 func (f *EditOAuth2ApplicationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
+	invalidURI := DetectInvalidOAuth2ApplicationRedirectURI(util.SplitTrimSpace(f.RedirectURIs, "\n"))
+	if invalidURI != "" {
+		errs = middleware.ReportValidationError(errs, ctx.Data, "RedirectURIs", binding.ERR_URL, ctx.Locale.TrString("form.url_error", invalidURI))
+	}
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 

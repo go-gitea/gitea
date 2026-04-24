@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
-	notify_service "code.gitea.io/gitea/services/notify"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
@@ -224,7 +223,7 @@ func (s *Service) UpdateTask(
 	actions_service.CreateCommitStatusForRunJobs(ctx, task.Job.Run, task.Job)
 
 	if task.Status.IsDone() {
-		notify_service.WorkflowJobStatusUpdate(ctx, task.Job.Run.Repo, task.Job.Run.TriggerUser, task.Job, task)
+		actions_service.NotifyWorkflowJobStatusUpdateWithTask(ctx, task.Job, task)
 	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
@@ -232,7 +231,7 @@ func (s *Service) UpdateTask(
 			log.Error("Emit ready jobs of run %d: %v", task.Job.RunID, err)
 		}
 		if task.Job.Run.Status.IsDone() {
-			actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, task.Job)
+			actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, task.Job.RepoID, task.Job.RunID)
 		}
 	}
 
