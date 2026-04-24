@@ -30,10 +30,10 @@ func TestViteManifest(t *testing.T) {
 		"src": "web_src/css/themes/theme-gitea-dark.css",
 		"isEntry": true
 	},
-	"web_src/js/features/user-events.sharedworker.ts": {
+	"web_src/js/user-events.sharedworker.ts": {
 		"file": "js/user-events.sharedworker.Dug1twio.js",
 		"name": "user-events.sharedworker",
-		"src": "web_src/js/features/user-events.sharedworker.ts",
+		"src": "web_src/js/user-events.sharedworker.ts",
 		"isEntry": true
 	},
 	"_chunk.js": {
