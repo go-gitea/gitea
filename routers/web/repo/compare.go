@@ -421,8 +421,7 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	} else {
 		ctx.Data["BeforeCommitID"] = compareInfo.MergeBase
 	}
-
-	return compareInfo
+	return &compareInfo
 }
 
 func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses) (title, content string) {
