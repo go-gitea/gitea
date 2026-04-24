@@ -24,6 +24,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix button layout shift when collapsing file tree in editor (#37363) #37375
   * Fix org team assignee/reviewer lookups for team member permissions (#37365) #37391
   * Fix repo init README EOL (#37388) #37399
+  * Fix: dump with default zip type produces uncompressed zip (#37401)#37402
 
 ## [1.26.0](https://github.com/go-gitea/gitea/releases/tag/v1.26.0) - 2026-04-17
 
