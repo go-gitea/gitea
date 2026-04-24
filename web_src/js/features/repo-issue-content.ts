@@ -4,6 +4,7 @@ import {GET, POST} from '../modules/fetch.ts';
 import {createElementFromHTML, showElem} from '../utils/dom.ts';
 import {parseIssuePageInfo} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
 
 let i18nTextEdited: string;
 let i18nTextOptions: string;
@@ -28,7 +29,6 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
 </div>`);
   document.body.append(elDetailDialog);
   const elOptionsDropdown = elDetailDialog.querySelector('.ui.dropdown.dialog-header-options')!;
-  const $fomanticDialog = fomanticQuery(elDetailDialog);
   const $fomanticDropdownOptions = fomanticQuery(elOptionsDropdown);
   $fomanticDropdownOptions.dropdown({
     showOnFocus: false,
@@ -46,7 +46,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
             const resp = await response.json();
 
             if (resp.ok) {
-              $fomanticDialog.modal('hide');
+              hideFomanticModal(elDetailDialog);
             } else {
               showErrorToast(resp.message);
             }
@@ -63,7 +63,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
       $fomanticDropdownOptions.dropdown('clear', true);
     },
   });
-  $fomanticDialog.modal({
+  showFomanticModal(elDetailDialog, {
     async onShow() {
       try {
         const params = new URLSearchParams();
@@ -86,9 +86,9 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
       }
     },
     onHidden() {
-      $fomanticDialog.remove();
+      elDetailDialog.remove();
     },
-  }).modal('show');
+  });
 }
 
 function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, commentId: string) {
