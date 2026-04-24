@@ -19,7 +19,7 @@ type logoutEvent struct {
 // client can distinguish "this tab" from "another tab".
 func PublishLogout(userID int64, sessionID string) {
 	msg, err := json.Marshal(logoutEvent{
-		Type:      "logout",
+		Type:      EventLogout,
 		SessionID: sessionID,
 	})
 	if err != nil {

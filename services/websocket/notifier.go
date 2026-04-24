@@ -38,7 +38,7 @@ func Init() error {
 
 func publishNotificationCount(userID, count int64) {
 	msg, err := json.Marshal(notificationCountEvent{
-		Type:  "notification-count",
+		Type:  EventNotificationCount,
 		Count: count,
 	})
 	if err != nil {

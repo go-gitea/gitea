@@ -1,3 +1,24 @@
+// Wire-format event type names — must match services/websocket/events.go on the server.
+const EVENT_NOTIFICATION_COUNT = 'notification-count';
+const EVENT_STOPWATCHES = 'stopwatches';
+const EVENT_LOGOUT = 'logout';
+
+// translateServerMessage converts a server-sent WebSocket message into the
+// {type, data} envelope consumed by page-side listeners. Returns null for
+// unknown message types so they are dropped silently.
+function translateServerMessage(msg: {type: string, count?: number, data?: any}): {type: string, data: any} | null {
+  if (msg.type === EVENT_NOTIFICATION_COUNT) {
+    return {type: EVENT_NOTIFICATION_COUNT, data: JSON.stringify({Count: msg.count})};
+  }
+  if (msg.type === EVENT_STOPWATCHES) {
+    return {type: EVENT_STOPWATCHES, data: JSON.stringify(msg.data)};
+  }
+  if (msg.type === EVENT_LOGOUT) {
+    return {type: EVENT_LOGOUT, data: msg.data ?? ''};
+  }
+  return null;
+}
+
 // Source manages the list of connected page ports for one logical connection.
 // Real-time data is delivered by the accompanying WsSource over WebSocket.
 class Source {
@@ -72,22 +93,8 @@ class WsSource {
     this.ws.addEventListener('message', (event: MessageEvent<string>) => {
       try {
         const msg = JSON.parse(event.data);
-        if (msg.type === 'notification-count') {
-          this.source.notifyClients({
-            type: 'notification-count',
-            data: JSON.stringify({Count: msg.count}),
-          });
-        } else if (msg.type === 'stopwatches') {
-          this.source.notifyClients({
-            type: 'stopwatches',
-            data: JSON.stringify(msg.data),
-          });
-        } else if (msg.type === 'logout') {
-          this.source.notifyClients({
-            type: 'logout',
-            data: msg.data ?? '',
-          });
-        }
+        const forwarded = translateServerMessage(msg);
+        if (forwarded) this.source.notifyClients(forwarded);
       } catch (err) {
         console.warn('user-events: dropping malformed WebSocket message', err);
       }

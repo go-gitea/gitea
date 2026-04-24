@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/pubsub"
+	websocket_service "code.gitea.io/gitea/services/websocket"
 
 	gitea_ws "github.com/coder/websocket"
 )
@@ -42,14 +43,14 @@ type logoutClientMsg struct {
 // If sessionID is empty the logout applies to all sessions ("here" for all).
 func rewriteLogout(msg []byte, connSessionID string) []byte {
 	var lm logoutBrokerMsg
-	if err := json.Unmarshal(msg, &lm); err != nil || lm.Type != "logout" {
+	if err := json.Unmarshal(msg, &lm); err != nil || lm.Type != websocket_service.EventLogout {
 		return msg
 	}
 	where := "elsewhere"
 	if lm.SessionID == "" || lm.SessionID == connSessionID {
 		where = "here"
 	}
-	out, err := json.Marshal(logoutClientMsg{Type: "logout", Data: where})
+	out, err := json.Marshal(logoutClientMsg{Type: websocket_service.EventLogout, Data: where})
 	if err != nil {
 		return msg
 	}

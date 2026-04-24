@@ -14,20 +14,19 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/pubsub"
 )
 
 type stopwatchesEvent struct {
-	Type string `json:"type"`
-	Data any    `json:"data"`
+	Type string          `json:"type"`
+	Data api.StopWatches `json:"data"`
 }
 
 func publishStopwatchesForUser(ctx context.Context, user *user_model.User, sws []*issues_model.Stopwatch) {
-	var data any
-	if len(sws) == 0 {
-		data = []any{}
-	} else {
+	data := api.StopWatches{}
+	if len(sws) > 0 {
 		apiSWs, err := convert.ToStopWatches(ctx, user, sws)
 		if err != nil {
 			if !issues_model.IsErrIssueNotExist(err) {
@@ -38,7 +37,7 @@ func publishStopwatchesForUser(ctx context.Context, user *user_model.User, sws [
 		data = apiSWs
 	}
 
-	msg, err := json.Marshal(stopwatchesEvent{Type: "stopwatches", Data: data})
+	msg, err := json.Marshal(stopwatchesEvent{Type: EventStopwatches, Data: data})
 	if err != nil {
 		log.Error("websocket: marshal stopwatches event: %v", err)
 		return
