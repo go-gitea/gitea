@@ -479,27 +479,23 @@ func (n *actionsNotifier) PullRequestCodeComment(ctx context.Context, pr *issues
 	ctx = withMethod(ctx, "PullRequestCodeComment")
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("pr.LoadIssue: %v", err)
+		log.Error("LoadIssue: %v", err)
 		return
 	}
 	if err := pr.Issue.LoadRepo(ctx); err != nil {
-		log.Error("pr.Issue.LoadRepo: %v", err)
-		return
-	}
-	if err := pr.Issue.LoadPoster(ctx); err != nil {
-		log.Error("pr.Issue.LoadPoster: %v", err)
+		log.Error("LoadRepo: %v", err)
 		return
 	}
 	if comment.Poster == nil {
 		if err := comment.LoadPoster(ctx); err != nil {
-			log.Error("comment.LoadPoster: %v", err)
+			log.Error("LoadPoster: %v", err)
 			return
 		}
 	}
 
-	permission, err := access_model.GetIndividualUserRepoPermission(ctx, pr.Issue.Repo, pr.Issue.Poster)
+	permission, err := access_model.GetIndividualUserRepoPermission(ctx, pr.Issue.Repo, comment.Poster)
 	if err != nil {
-		log.Error("models.GetIndividualUserRepoPermission: %v", err)
+		log.Error("GetIndividualUserRepoPermission: %v", err)
 		return
 	}
 

@@ -785,10 +785,6 @@ func (m *webhookNotifier) PullRequestCodeComment(ctx context.Context, pr *issues
 		log.Error("LoadRepo: %v", err)
 		return
 	}
-	if err := pr.Issue.LoadPoster(ctx); err != nil {
-		log.Error("LoadPoster: %v", err)
-		return
-	}
 	if comment.Poster == nil {
 		if err := comment.LoadPoster(ctx); err != nil {
 			log.Error("LoadPoster: %v", err)
@@ -796,9 +792,9 @@ func (m *webhookNotifier) PullRequestCodeComment(ctx context.Context, pr *issues
 		}
 	}
 
-	permission, err := access_model.GetIndividualUserRepoPermission(ctx, pr.Issue.Repo, pr.Issue.Poster)
+	permission, err := access_model.GetIndividualUserRepoPermission(ctx, pr.Issue.Repo, comment.Poster)
 	if err != nil {
-		log.Error("models.GetIndividualUserRepoPermission: %v", err)
+		log.Error("GetIndividualUserRepoPermission: %v", err)
 		return
 	}
 
