@@ -1,25 +1,22 @@
-{{$cantForkOwn := and $.IsSigned (not $.CanSignedUserFork) (not $.UserAndOrgForks)}}
+{{$canNotForkOwn := and $.IsSigned (not $.CanSignedUserFork) (not $.UserAndOrgForks)}}
 <div class="ui labeled button"
 	{{if not $.IsSigned}}
 		data-tooltip-content="{{ctx.Locale.Tr "repo.fork_guest_user"}}"
-	{{else if $cantForkOwn}}
+	{{else if $canNotForkOwn}}
 		data-tooltip-content="{{ctx.Locale.Tr "repo.fork_from_self"}}"
 	{{end}}
 >
-	<a class="ui compact{{if $.ShowForkModal}} show-modal{{end}} small basic button{{if $cantForkOwn}} tw-pointer-events-none{{end}}"
+	<a role="button" class="ui compact small basic button {{if $.ShowForkModal}}show-modal{{end}}"
 		{{if not $.IsSigned}}
-			href="{{AppSubUrl}}/user/login?redirect_to={{$.Link | QueryEscape}}"
-		{{else if not $.CanSignedUserFork}}
-			{{if gt (len $.UserAndOrgForks) 1}}
-				href="#" data-modal="#fork-repo-modal"
-			{{else if eq (len $.UserAndOrgForks) 1}}
-				href="{{AppSubUrl}}/{{(index $.UserAndOrgForks 0).FullName}}"
-			{{/*else is not required here, because the button shouldn't link to any site if you can't create a fork*/}}
-			{{end}}
-		{{else if not $.UserAndOrgForks}}
-			href="{{$.RepoLink}}/fork"
-		{{else}}
+			href="{{AppSubUrl}}/user/login"
+		{{else if $.ShowForkModal}}{{/* see backend comment for this logic */}}
 			href="#" data-modal="#fork-repo-modal"
+		{{else if eq (len $.UserAndOrgForks) 1}}
+			href="{{AppSubUrl}}/{{(index $.UserAndOrgForks 0).FullName}}"
+		{{else if $canNotForkOwn}}
+			href="#"
+		{{else}}
+  		href="{{$.RepoLink}}/fork"
 		{{end}}
 	>
 		{{svg "octicon-repo-forked"}}<span class="text not-mobile">{{ctx.Locale.Tr "repo.fork"}}</span>
@@ -28,6 +25,7 @@
 		{{CountFmt $.Repository.NumForks}}
 	</a>
 </div>
+{{if $.ShowForkModal}}
 <div class="ui small modal" id="fork-repo-modal">
 	<div class="header">
 		{{ctx.Locale.Tr "repo.already_forked" $.Repository.Name}}
@@ -46,3 +44,4 @@
 		{{end}}
 	</div>
 </div>
+{{end}}
