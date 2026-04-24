@@ -55,7 +55,7 @@ func LoadDBSetting() {
 
 func loadDBSetting(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("database")
-	// legacy "sqlite3" DB_TYPE (from the mattn driver) is treated as "sqlite" for the modernc driver
+	// accept legacy "sqlite3" DB_TYPE as "sqlite"
 	dbType := sec.Key("DB_TYPE").String()
 	if dbType == "sqlite3" {
 		dbType = "sqlite"
