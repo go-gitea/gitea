@@ -39,8 +39,11 @@ func TestIsOpenSearch(t *testing.T) {
 }
 
 func TestIsOpenSearchUnreachable(t *testing.T) {
-	// Port 1 is reserved and refuses connections; we expect false, not a panic.
-	assert.False(t, isOpenSearch("http://127.0.0.1:1"))
+	// Start then immediately close a server to get a deterministically-unreachable URL.
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	url := server.URL
+	server.Close()
+	assert.False(t, isOpenSearch(url))
 }
 
 func TestIsOpenSearchWithBasicAuth(t *testing.T) {

@@ -226,7 +226,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 func (b *Indexer) Delete(ctx context.Context, repoID int64) error {
 	if err := b.doDelete(ctx, repoID); err != nil {
 		// Maybe there is a conflict during the delete operation, so we should retry after a refresh
-		log.Warn("Deletion of entries of repo %v within index %v was erroneous. Trying to refresh index before trying again", repoID, b.VersionedIndexName(), err)
+		log.Warn("Deletion of entries of repo %v within index %v was erroneous: %v. Trying to refresh index before trying again", repoID, b.VersionedIndexName(), err)
 		if err := b.Refresh(ctx); err != nil {
 			return err
 		}
