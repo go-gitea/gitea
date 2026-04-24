@@ -1,15 +1,15 @@
-{{$forkDisabled := or (not $.IsSigned) (and (not $.CanSignedUserFork) (not $.UserAndOrgForks))}}
-{{/* not using "disabled": need to show the tooltip and keep the link clickable, let the sub buttons decide their cursor */}}
-<div class="ui labeled button tw-cursor-default{{if $forkDisabled}} tw-opacity-[var(--opacity-disabled)]{{end}}"
+{{$cantForkOwn := and $.IsSigned (not $.CanSignedUserFork) (not $.UserAndOrgForks)}}
+<div class="ui labeled button"
 	{{if not $.IsSigned}}
 		data-tooltip-content="{{ctx.Locale.Tr "repo.fork_guest_user"}}"
-	{{else if and (not $.CanSignedUserFork) (not $.UserAndOrgForks)}}
+	{{else if $cantForkOwn}}
 		data-tooltip-content="{{ctx.Locale.Tr "repo.fork_from_self"}}"
 	{{end}}
 >
-	{{/* not using "disabled": make this button have the same style as the clickable link alongside */}}
-	<a class="ui compact{{if $.ShowForkModal}} show-modal{{end}} small basic button {{if $forkDisabled}}tw-pointer-events-none{{end}}"
-		{{if not $.CanSignedUserFork}}
+	<a class="ui compact{{if $.ShowForkModal}} show-modal{{end}} small basic button{{if $cantForkOwn}} tw-pointer-events-none{{end}}"
+		{{if not $.IsSigned}}
+			href="{{AppSubUrl}}/user/login?redirect_to={{$.Link | QueryEscape}}"
+		{{else if not $.CanSignedUserFork}}
 			{{if gt (len $.UserAndOrgForks) 1}}
 				href="#" data-modal="#fork-repo-modal"
 			{{else if eq (len $.UserAndOrgForks) 1}}

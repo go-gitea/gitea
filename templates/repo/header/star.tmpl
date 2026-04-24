@@ -1,16 +1,21 @@
-{{/* not using "disabled": need to show the tooltip and keep the link clickable, let the sub buttons decide their cursor */}}
-<div class="ui labeled button tw-cursor-default{{if not $.IsSigned}} tw-opacity-[var(--opacity-disabled)]{{end}}" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.star_guest_user"}}"{{end}}>
+<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.star_guest_user"}}"{{end}}>
 	{{$buttonText := ctx.Locale.Tr "repo.star"}}
 	{{if $.IsStaringRepo}}{{$buttonText = ctx.Locale.Tr "repo.unstar"}}{{end}}
-	{{/* not using "disabled": make this button have the the same style as the clickable link alongside */}}
-	<button type="button" class="ui compact small basic button {{if not $.IsSigned}}tw-pointer-events-none tw-cursor-default{{end}}" aria-label="{{$buttonText}}"
-		data-fetch-method="post"
-		data-fetch-url="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}unstar{{else}}star{{end}}"
-		data-fetch-sync="$closest(.ui.labeled.button)"
-	>
-		{{svg (Iif $.IsStaringRepo "octicon-star-fill" "octicon-star")}}
-		<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
-	</button>
+	{{if $.IsSigned}}
+		<button type="button" class="ui compact small basic button" aria-label="{{$buttonText}}"
+			data-fetch-method="post"
+			data-fetch-url="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}unstar{{else}}star{{end}}"
+			data-fetch-sync="$closest(.ui.labeled.button)"
+		>
+			{{svg (Iif $.IsStaringRepo "octicon-star-fill" "octicon-star")}}
+			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
+		</button>
+	{{else}}
+		<a class="ui compact small basic button" aria-label="{{$buttonText}}" href="{{AppSubUrl}}/user/login?redirect_to={{$.Link | QueryEscape}}">
+			{{svg (Iif $.IsStaringRepo "octicon-star-fill" "octicon-star")}}
+			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
+		</a>
+	{{end}}
 	<a class="ui basic label" href="{{$.RepoLink}}/stars">
 		{{CountFmt .Repository.NumStars}}
 	</a>
