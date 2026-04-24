@@ -13,8 +13,8 @@ export function linkLabelAndInput(label: Element, input: Element) {
   }
 }
 
-function patchLabels(containerSelector: string, labelSelector: string, inputSelector: string, marker: string) {
-  for (const el of document.querySelectorAll(containerSelector)) {
+function patchLabels(parent: ParentNode, containerSelector: string, labelSelector: string, inputSelector: string, marker: string) {
+  for (const el of parent.querySelectorAll(containerSelector)) {
     if (el.hasAttribute(marker)) continue;
     const label = el.querySelector(labelSelector);
     const input = el.querySelector(inputSelector);
@@ -25,9 +25,9 @@ function patchLabels(containerSelector: string, labelSelector: string, inputSele
 }
 
 // link labels and inputs in `.ui.checkbox` and `.ui.form .field` so labels are clickable and accessible
-export function initAriaLabels() {
-  patchLabels('.ui.checkbox', 'label', 'input', 'data-checkbox-patched');
-  patchLabels('.ui.form .field', ':scope > label', ':scope > input, :scope > select', 'data-field-patched');
+export function initAriaLabels(container: ParentNode) {
+  patchLabels(container, '.ui.checkbox', 'label', 'input', 'data-checkbox-patched');
+  patchLabels(container, '.ui.form .field', ':scope > label', ':scope > input, :scope > select', 'data-field-patched');
 }
 
 export function fomanticQuery(s: string | Element | NodeListOf<Element>): ReturnType<typeof $> {

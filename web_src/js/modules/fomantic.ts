@@ -24,7 +24,7 @@ export function initGiteaFomantic() {
   initFomanticDimmer();
 
   // Use the patches to improve accessibility, these patches are designed to be as independent as possible, make it easy to modify or remove in the future.
-  initAriaLabels();
+  initAriaLabels(document);
   initAriaDropdownPatch();
   initAriaModalPatch();
 }
