@@ -207,7 +207,7 @@ func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 		// Best-effort compatibility prefers the run ID when the same number also exists as a legacy run index.
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo.Name, collisionRun.Index))
 		resp = user2Session.MakeRequest(t, req, http.StatusOK)
-		assert.Contains(t, resp.Body.String(), fmt.Sprintf(`data-run-id="%d"`, normalRun.ID)) // because collisionRun.Index == normalRun.ID
+		assert.Contains(t, resp.Body.String(), fmt.Sprintf(`data-actions-view-url="/%s/%s/actions/runs/%d"`, user2.Name, repo.Name, normalRun.ID))
 
 		// by_index=1 should force the summary page to use the legacy run index interpretation.
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d?by_index=1", user2.Name, repo.Name, collisionRun.Index))

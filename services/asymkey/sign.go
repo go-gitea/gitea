@@ -338,26 +338,41 @@ Loop:
 				return false, nil, nil, &ErrWontSign{headSigned}
 			}
 		case commitsSigned:
-			verification := ParseCommitWithSignature(ctx, headCommit)
-			if !verification.Verified {
+			verified, err := AllHeadCommitsVerified(ctx, pr, gitRepo)
+			if err != nil {
+				return false, nil, nil, err
+			}
+			if !verified {
 				return false, nil, nil, &ErrWontSign{commitsSigned}
-			}
-			// need to work out merge-base
-			mergeBaseCommit, err := gitrepo.MergeBase(ctx, pr.BaseRepo, baseCommit.ID.String(), headCommit.ID.String())
-			if err != nil {
-				return false, nil, nil, err
-			}
-			commitList, err := headCommit.CommitsBeforeUntil(mergeBaseCommit)
-			if err != nil {
-				return false, nil, nil, err
-			}
-			for _, commit := range commitList {
-				verification := ParseCommitWithSignature(ctx, commit)
-				if !verification.Verified {
-					return false, nil, nil, &ErrWontSign{commitsSigned}
-				}
 			}
 		}
 	}
 	return true, signingKey, signer, nil
+}
+
+// AllHeadCommitsVerified checks that every new commit in the PR head has a
+// verified signature.
+func AllHeadCommitsVerified(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) (bool, error) {
+	baseCommit, err := gitRepo.GetCommit(pr.BaseBranch)
+	if err != nil {
+		return false, err
+	}
+	headCommit, err := gitRepo.GetCommit(pr.GetGitHeadRefName())
+	if err != nil {
+		return false, err
+	}
+	mergeBaseCommit, err := gitrepo.MergeBase(ctx, pr.BaseRepo, baseCommit.ID.String(), headCommit.ID.String())
+	if err != nil {
+		return false, err
+	}
+	commitList, err := headCommit.CommitsBeforeUntil(mergeBaseCommit)
+	if err != nil {
+		return false, err
+	}
+	for _, commit := range commitList {
+		if !ParseCommitWithSignature(ctx, commit).Verified {
+			return false, nil
+		}
+	}
+	return true, nil
 }
