@@ -73,8 +73,12 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	Database.CharsetCollation = sec.Key("CHARSET_COLLATION").String()
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
-	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
-	Database.SQLiteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("")
+	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(5000)
+	sqliteDefaultJournal := ""
+	if Database.Type.IsSQLite3() {
+		sqliteDefaultJournal = "WAL"
+	}
+	Database.SQLiteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString(sqliteDefaultJournal)
 
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
 	if Database.Type.IsMySQL() {
@@ -82,14 +86,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	} else {
 		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFETIME").MustDuration(0)
 	}
-	// Default to a single open connection for sqlite. The modernc driver
-	// doesn't support mattn's cache=shared, so a larger pool yields
-	// SQLITE_BUSY under contention.
-	sqliteDefaultMaxOpen := 0
-	if Database.Type.IsSQLite3() {
-		sqliteDefaultMaxOpen = 1
-	}
-	Database.MaxOpenConns = sec.Key("MAX_OPEN_CONNS").MustInt(sqliteDefaultMaxOpen)
+	Database.MaxOpenConns = sec.Key("MAX_OPEN_CONNS").MustInt(0)
 
 	Database.IterateBufferSize = sec.Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	Database.LogSQL = sec.Key("LOG_SQL").MustBool(false)
@@ -134,7 +131,8 @@ func DBConnStr() (string, error) {
 			}
 			journalMode = "&_pragma=journal_mode(" + Database.SQLiteJournalMode + ")"
 		}
-		connStr = fmt.Sprintf("file:%s?_pragma=busy_timeout(%d)&_txlock=immediate%s",
+		// synchronous=NORMAL is safe under WAL and dramatically faster than FULL.
+		connStr = fmt.Sprintf("file:%s?_pragma=busy_timeout(%d)&_pragma=synchronous(NORMAL)&_txlock=immediate%s",
 			Database.Path, Database.Timeout, journalMode)
 	default:
 		return "", fmt.Errorf("unknown database type: %s", Database.Type)
