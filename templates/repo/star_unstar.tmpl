@@ -1,8 +1,8 @@
-{{/* not using "disabled" to show the tooltip and keep the link clickable, let the sub buttons decide their cursor */}}
+{{/* not using "disabled": need to show the tooltip and keep the link clickable, let the sub buttons decide their cursor */}}
 <div class="ui labeled button tw-cursor-default" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.star_guest_user"}}"{{end}}>
 	{{$buttonText := ctx.Locale.Tr "repo.star"}}
 	{{if $.IsStaringRepo}}{{$buttonText = ctx.Locale.Tr "repo.unstar"}}{{end}}
-	{{/* not using "disabled" to make this button have the the same style as the clickable link alongside */}}
+	{{/* not using "disabled": make this button have the the same style as the clickable link alongside */}}
 	<button type="button" class="ui compact small basic button {{if not $.IsSigned}}tw-pointer-events-none tw-cursor-default{{end}}" aria-label="{{$buttonText}}"
 		data-fetch-method="post"
 		data-fetch-url="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}unstar{{else}}star{{end}}"
