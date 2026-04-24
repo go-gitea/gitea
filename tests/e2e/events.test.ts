@@ -69,6 +69,8 @@ test.describe('events', () => {
     // Give page2's SharedWorker time to register its SSE connection on the
     // server — otherwise the logout event can race the connection and be
     // silently dropped. See https://github.com/go-gitea/gitea/pull/37403
+    // In the future, we can set an attribute to HTML page when the connection is established,
+    // then here we can just wait for that attribute (it should also work for the planned WebSocket SharedWorker)
     await page2.waitForTimeout(500); // eslint-disable-line playwright/no-wait-for-timeout
 
     // Logout from page1 — this sends a logout event to all tabs
