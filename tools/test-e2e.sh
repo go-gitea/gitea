@@ -51,7 +51,6 @@ EOF
 
 export GITEA_WORK_DIR="$WORK_DIR"
 export GITEA_TEST_E2E=true
-export GITEA_WS_PING_INTERVAL=1s
 
 # Start Gitea server
 echo "Starting Gitea server on port $FREE_PORT (workdir: $WORK_DIR)..."

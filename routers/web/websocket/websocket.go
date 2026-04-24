@@ -7,7 +7,6 @@ import (
 	"bytes"
 	gocontext "context"
 	"net/http"
-	"os"
 	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
@@ -21,20 +20,10 @@ import (
 	gitea_ws "github.com/coder/websocket"
 )
 
-// GITEA_WS_PING_INTERVAL overrides the keepalive interval so e2e tests can
-// exercise the ping loop without waiting 30s per assertion.
-var pingInterval = envDurationOr("GITEA_WS_PING_INTERVAL", 30*time.Second)
-
-const pingTimeout = 10 * time.Second
-
-func envDurationOr(name string, fallback time.Duration) time.Duration {
-	if v := os.Getenv(name); v != "" {
-		if d, err := time.ParseDuration(v); err == nil && d > 0 {
-			return d
-		}
-	}
-	return fallback
-}
+const (
+	pingInterval = 30 * time.Second
+	pingTimeout  = 10 * time.Second
+)
 
 type logoutBrokerMsg struct {
 	Type      string `json:"type"`
