@@ -2,7 +2,7 @@ import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import {login, randomString, apiCreateRepo, apiCreateFile, apiDeleteRepo} from './utils.ts';
 
-test.fixme('code search returns results for all-numeric search terms', async ({page, request}) => {
+test('code search returns results for all-numeric search terms', async ({page, request}) => {
   const owner = env.GITEA_TEST_E2E_USER;
   const repo = `e2e-repo-search-${randomString(6)}`;
 
