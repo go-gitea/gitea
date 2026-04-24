@@ -6,6 +6,7 @@ package integration
 import (
 	"encoding/base64"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -61,55 +62,55 @@ func TestAPIPullCommits(t *testing.T) {
 //	git log staging..develop = [M2]     correct: M2 is new; B is already in staging via M1
 //	git log staging..develop = [M2, B]  buggy: B incorrectly listed as new
 func TestAPIPullCommitsNotDuplicatedViaMergePaths(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		ctx := NewAPITestContext(t, "user2", "pr-commits-dupe-test")
+		doAPICreateRepository(ctx, false)(t)
 
-	ctx := NewAPITestContext(t, "user2", "pr-commits-dupe-test")
-	doAPICreateRepository(ctx, false)(t)
+		// Create branches from the default branch
+		for _, branch := range []string{"staging", "develop", "feature"} {
+			req := NewRequestWithJSON(t, http.MethodPost,
+				"/api/v1/repos/"+ctx.Username+"/"+ctx.Reponame+"/branches",
+				&api.CreateBranchRepoOption{BranchName: branch},
+			).AddTokenAuth(ctx.Token)
+			ctx.Session.MakeRequest(t, req, http.StatusCreated)
+		}
 
-	// Create branches from the default branch
-	for _, branch := range []string{"staging", "develop", "feature"} {
-		req := NewRequestWithJSON(t, http.MethodPost,
-			"/api/v1/repos/"+ctx.Username+"/"+ctx.Reponame+"/branches",
-			&api.CreateBranchRepoOption{BranchName: branch},
+		// Commit a file on the feature branch (commit B in the diagram above)
+		doAPICreateFile(ctx, "feature.txt", &api.CreateFileOptions{
+			FileOptions:   api.FileOptions{Message: "add feature.txt", BranchName: "feature"},
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("feature content")),
+		})(t)
+
+		// PR1: feature → staging — merge creates M1
+		pr1, err := doAPICreatePullRequest(ctx, ctx.Username, ctx.Reponame, "staging", "feature")(t)
+		require.NoError(t, err)
+		doAPIMergePullRequest(ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
+
+		// PR2: feature → develop — merge creates M2
+		pr2, err := doAPICreatePullRequest(ctx, ctx.Username, ctx.Reponame, "develop", "feature")(t)
+		require.NoError(t, err)
+		doAPIMergePullRequest(ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
+
+		// Flush queues so that PR3's merge-base computation starts from a clean state
+		queue.GetManager().FlushAll(t.Context(), 5*time.Second)
+
+		// PR3: develop → staging — the PR whose commit list is under test
+		pr3, err := doAPICreatePullRequest(ctx, ctx.Username, ctx.Reponame, "staging", "develop")(t)
+		require.NoError(t, err)
+
+		req := NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/commits",
+			ctx.Username, ctx.Reponame, pr3.Index,
 		).AddTokenAuth(ctx.Token)
-		ctx.Session.MakeRequest(t, req, http.StatusCreated)
-	}
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
-	// Commit a file on the feature branch (commit B in the diagram above)
-	doAPICreateFile(ctx, "feature.txt", &api.CreateFileOptions{
-		FileOptions:   api.FileOptions{Message: "add feature.txt", BranchName: "feature"},
-		ContentBase64: base64.StdEncoding.EncodeToString([]byte("feature content")),
-	})(t)
+		var commits []*api.Commit
+		DecodeJSON(t, resp, &commits)
 
-	// PR1: feature → staging — merge creates M1
-	pr1, err := doAPICreatePullRequest(ctx, ctx.Username, ctx.Reponame, "staging", "feature")(t)
-	require.NoError(t, err)
-	doAPIMergePullRequest(ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
-
-	// PR2: feature → develop — merge creates M2
-	pr2, err := doAPICreatePullRequest(ctx, ctx.Username, ctx.Reponame, "develop", "feature")(t)
-	require.NoError(t, err)
-	doAPIMergePullRequest(ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
-
-	// Flush queues so that PR3's merge-base computation starts from a clean state
-	queue.GetManager().FlushAll(t.Context(), 5*time.Second)
-
-	// PR3: develop → staging — the PR whose commit list is under test
-	pr3, err := doAPICreatePullRequest(ctx, ctx.Username, ctx.Reponame, "staging", "develop")(t)
-	require.NoError(t, err)
-
-	req := NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/commits",
-		ctx.Username, ctx.Reponame, pr3.Index,
-	).AddTokenAuth(ctx.Token)
-	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
-
-	var commits []*api.Commit
-	DecodeJSON(t, resp, &commits)
-
-	// M2 is genuinely new in develop and must appear.
-	// B must NOT appear — it is already reachable from staging via M1.
-	// Buggy Gitea returns [M2, B] (len 2); fixed Gitea returns [M2] (len 1).
-	require.Len(t, commits, 1, "PR develop→staging must not list commits already present in staging")
+		// M2 is genuinely new in develop and must appear.
+		// B must NOT appear — it is already reachable from staging via M1.
+		// Buggy Gitea returns [M2, B] (len 2); fixed Gitea returns [M2] (len 1).
+		require.Len(t, commits, 1, "PR develop→staging must not list commits already present in staging")
+	})
 }
 
 // TODO add tests for already merged PR and closed PR
