@@ -4,9 +4,12 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -17,6 +20,7 @@ func TestView(t *testing.T) {
 	t.Run("RenderFileSVGIsInImgTag", testRenderFileSVGIsInImgTag)
 	t.Run("CommitListActions", testCommitListActions)
 	t.Run("SecurityHeadersDefaults", testSecurityHeadersDefaults)
+	t.Run("SiteManifest", testSiteManifest)
 }
 
 func testRenderFileSVGIsInImgTag(t *testing.T) {
@@ -80,4 +84,32 @@ func testSecurityHeadersDefaults(t *testing.T) {
 	assertSecurityHeaders(t, "/")
 	assertSecurityHeaders(t, "/api/v1/version")
 	assertSecurityHeaders(t, "/assets/img/favicon.png")
+}
+
+func testSiteManifest(t *testing.T) {
+	req := NewRequest(t, "GET", "/")
+	resp := MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), `<link rel="manifest" href="/assets/site-manifest.json">`)
+
+	req = NewRequest(t, "GET", "/assets/site-manifest.json")
+	resp = MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, "application/manifest+json", resp.Header().Get("Content-Type"))
+
+	assetBase := strings.TrimSuffix(setting.AppURL, "/")
+	expectedJSON := fmt.Sprintf(`{
+		"name": %q,
+		"short_name": %q,
+		"start_url": %q,
+		"icons": [
+			{"src": %q, "type": "image/png",     "sizes": "512x512"},
+			{"src": %q, "type": "image/svg+xml", "sizes": "512x512"}
+		]
+	}`,
+		setting.AppName,
+		setting.AppName,
+		setting.AppURL,
+		assetBase+"/assets/img/logo.png",
+		assetBase+"/assets/img/logo.svg",
+	)
+	assert.JSONEq(t, expectedJSON, resp.Body.String())
 }
