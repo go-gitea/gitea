@@ -96,8 +96,7 @@ func TestScanOneStat(t *testing.T) {
 		"author@example.com",
 		"2026-04-16T04:07:57+08:00",
 		"",
-		"1\t2\tfile1.txt",
-		"3\t0\tfile2.txt",
+		"  9902 files changed, 2034198 insertions(+), 298800 deletions(-)",
 		"",
 		"---",
 		"def456",
@@ -105,8 +104,7 @@ func TestScanOneStat(t *testing.T) {
 		"second@example.com",
 		"2026-04-17T05:07:57+08:00",
 		"",
-		"5\t1\tfile3.txt",
-		"",
+		"  5 files changed, 1 insertions(+), 1 deletions(-)",
 		"",
 	}, "\n")
 
@@ -122,9 +120,9 @@ func TestScanOneStat(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, date.Equal(expectedDate))
 	}
-	assert.Equal(t, int64(4), additions)
-	assert.Equal(t, int64(2), deletions)
-	assert.Equal(t, int64(2), changedFiles)
+	assert.Equal(t, int64(2034198), additions)
+	assert.Equal(t, int64(298800), deletions)
+	assert.Equal(t, int64(9902), changedFiles)
 
 	commitID, authorName, email, date, additions, deletions, changedFiles, err = scanOneStat(scanner)
 	assert.NoError(t, err)
@@ -136,9 +134,9 @@ func TestScanOneStat(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, date.Equal(expectedDate))
 	}
-	assert.Equal(t, int64(5), additions)
+	assert.Equal(t, int64(1), additions)
 	assert.Equal(t, int64(1), deletions)
-	assert.Equal(t, int64(1), changedFiles)
+	assert.Equal(t, int64(5), changedFiles)
 
 	_, _, _, _, _, _, _, err = scanOneStat(scanner)
 	assert.ErrorIs(t, err, errEndOfGitLogOutput)

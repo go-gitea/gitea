@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -228,24 +227,7 @@ author_name
 abc@example.com
 2026-04-16 04:07:57 +0800
 
-1       1       modules/markup/external/openapi.go
-1       1       modules/markup/render.go
-1       31      modules/templates/helper.go
-34      2       modules/util/util.go
-0       2       services/context/context.go
-76      0       services/context/context_template.go
-1       1       templates/base/footer.tmpl
-1       0       templates/base/head.tmpl
-2       2       templates/base/head_script.tmpl
-2       2       templates/repo/diff/box.tmpl
-1       1       templates/repo/issue/view_content/pull_merge_box.tmpl
-1       1       templates/shared/combomarkdowneditor.tmpl
-2       1       templates/status/500.tmpl
-2       1       templates/swagger/openapi-viewer.tmpl
-3       3       templates/user/auth/captcha.tmpl
-1       1       templates/user/dashboard/repolist.tmpl
-2       2       tests/integration/markup_external_test.go
-3       0       web_src/js/features/repo-issue-pull.ts
+ 9902 files changed, 2034198 insertions(+), 298800 deletions(-)
 
 ---
 2644bb8490
@@ -253,10 +235,7 @@ author_name2
 abcd@example.com
 */
 
-var (
-	errEndOfGitLogOutput      = errors.New("end of git log output")
-	errUnexpectedGitLogOutput = errors.New("unexpected git log output")
-)
+var errEndOfGitLogOutput = errors.New("end of git log output")
 
 func scanOneStat(scanner *bufio.Scanner) (commitID, authorName, email string, date *time.Time, additions, deletions, changedFiles int64, err error) {
 	var l string
@@ -288,30 +267,19 @@ func scanOneStat(scanner *bufio.Scanner) (commitID, authorName, email string, da
 	date = &parsedDate
 	scanner.Scan() // blank line
 
-	for scanner.Scan() {
-		l = strings.TrimSpace(scanner.Text())
-		if l == "" {
-			break
-		}
-
-		parts := strings.Fields(l)
-		if len(parts) < 3 {
-			err = errUnexpectedGitLogOutput
+	if scanner.Scan() {
+		numFiles, totalAdditions, totalDeletions, err := gitrepo.ParseDiffStat(scanner.Text())
+		if err != nil {
 			return commitID, authorName, email, date, additions, deletions, changedFiles, err
 		}
 
-		// For binary file, it should be -, so fileAddition and fileDeletion will be 0
-		if strings.TrimSpace(parts[0]) != "-" {
-			fileAddition, _ := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64)
-			additions += fileAddition
-		}
-		if strings.TrimSpace(parts[1]) != "-" {
-			fileDeletion, _ := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 64)
-			deletions += fileDeletion
-		}
-		changedFiles++
+		additions = int64(totalAdditions)
+		deletions = int64(totalDeletions)
+		changedFiles = int64(numFiles)
+
+		scanner.Scan() // blank line
 	}
-	return commitID, authorName, email, date, additions, deletions, changedFiles, err
+	return commitID, authorName, email, date, additions, deletions, changedFiles, scanner.Err()
 }
 
 // getExtendedCommitStats returns stats for commits between start and end.
@@ -320,7 +288,7 @@ func getExtendedCommitStats(ctx context.Context, repo *repo_model.Repository, re
 		return nil, nil
 	}
 
-	gitCmd := gitcmd.NewCommand("log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n%aI%n").
+	gitCmd := gitcmd.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n%aI%n").
 		AddDynamicArguments(revisionRange)
 
 	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
