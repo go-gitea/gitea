@@ -214,7 +214,7 @@ jobs:
       - name: run search-engine integration tests
         env:
           CI: "true"
-          TEST_INDEXER_CODE_ES_URL: "http://elasticsearch:9200"
+          TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
         run: |
           go test -tags 'sqlite sqlite_unlock_notify' -run '^TestElasticsearchIndexer$' ./modules/indexer/issues/elasticsearch/
           go test -tags 'sqlite sqlite_unlock_notify' -run '^TestESIndexAndSearch$' ./modules/indexer/code/
@@ -271,7 +271,7 @@ jobs:
         env:
           TAGS: bindata
           RACE_ENABLED: true
-          TEST_INDEXER_CODE_ES_URL: "http://elasticsearch:9200"
+          TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
