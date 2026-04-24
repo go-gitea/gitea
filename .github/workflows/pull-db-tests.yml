@@ -166,28 +166,40 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # OpenSearch rejects xpack.* as unknown settings (not silently ignored);
+          # Elasticsearch does not recognize DISABLE_SECURITY_PLUGIN. So env is per-entry.
           - name: elasticsearch-7.17
             image: docker.elastic.co/elasticsearch/elasticsearch:7.17.25
+            env:
+              discovery.type: single-node
+              xpack.security.enabled: "false"
+              xpack.security.http.ssl.enabled: "false"
           - name: elasticsearch-8.17
             image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+            env:
+              discovery.type: single-node
+              xpack.security.enabled: "false"
+              xpack.security.http.ssl.enabled: "false"
           - name: elasticsearch-9.0
             image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
+            env:
+              discovery.type: single-node
+              xpack.security.enabled: "false"
+              xpack.security.http.ssl.enabled: "false"
           - name: opensearch-2
             image: opensearchproject/opensearch:2.18.0
+            env:
+              discovery.type: single-node
+              DISABLE_SECURITY_PLUGIN: "true"
           - name: opensearch-3
             image: opensearchproject/opensearch:3.0.0
+            env:
+              discovery.type: single-node
+              DISABLE_SECURITY_PLUGIN: "true"
     services:
       elasticsearch:
         image: ${{ matrix.image }}
-        # DISABLE_SECURITY_PLUGIN: OpenSearch (ignored by ES).
-        # xpack.security.*: ES 8/9 enable both security and HTTP-level TLS by
-        # default; both must be off for plain-HTTP tests (ignored by ES 7 and
-        # OpenSearch).
-        env:
-          discovery.type: single-node
-          DISABLE_SECURITY_PLUGIN: "true"
-          xpack.security.enabled: "false"
-          xpack.security.http.ssl.enabled: "false"
+        env: ${{ matrix.env }}
         ports:
           - "9200:9200"
     steps:
