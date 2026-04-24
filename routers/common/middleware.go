@@ -49,8 +49,8 @@ func ProtocolMiddlewares() (handlers []any) {
 	return handlers
 }
 
-// SecurityHeadersHandler sets X-Content-Type-Options globally for every
-// response that leaves Gitea
+// SecurityHeadersHandler sets X-Content-Type-Options and X-Frame-Options
+// globally for every response that leaves Gitea.
 func SecurityHeadersHandler() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -58,7 +58,7 @@ func SecurityHeadersHandler() func(http.Handler) http.Handler {
 				resp.Header().Set("X-Content-Type-Options", setting.Security.XContentTypeOptions)
 			}
 			if setting.Security.XFrameOptions != "unset" {
-				resp.Header().Set(`X-Frame-Options`, setting.Security.XFrameOptions)
+				resp.Header().Set("X-Frame-Options", setting.Security.XFrameOptions)
 			}
 			next.ServeHTTP(resp, req)
 		})
