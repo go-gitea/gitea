@@ -16,7 +16,7 @@
 		{{else if $canNotForkOwn}}
 			href="#"
 		{{else}}
-  		href="{{$.RepoLink}}/fork"
+			href="{{$.RepoLink}}/fork"
 		{{end}}
 	>
 		{{svg "octicon-repo-forked"}}<span class="text not-mobile">{{ctx.Locale.Tr "repo.fork"}}</span>
@@ -30,11 +30,11 @@
 	<div class="header">
 		{{ctx.Locale.Tr "repo.already_forked" $.Repository.Name}}
 	</div>
-	<div class="content tw-text-left">
-		<div class="ui list">
+	<div class="content">
+		<div class="ui relaxed list">
 			{{range $.UserAndOrgForks}}
-				<div class="ui item tw-py-2">
-					<a href="{{.Link}}">{{svg "octicon-repo-forked" 16 "tw-mr-2"}}{{.FullName}}</a>
+				<div class="item">
+					<a class="flex-text-block" href="{{.Link}}">{{svg "octicon-repo-forked"}}{{.FullName}}</a>
 				</div>
 			{{end}}
 		</div>
