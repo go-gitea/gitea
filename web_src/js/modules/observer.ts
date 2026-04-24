@@ -96,6 +96,8 @@ export function initGlobalSelectorObserver(perfTracer: InitPerformanceTracer | n
       }
     }
   });
+
+  initAriaLabels(document);
   if (perfTracer) {
     for (const {selector, handler} of selectorHandlers) {
       perfTracer.recordCall(`initGlobalSelectorObserver ${selector}`, () => {
