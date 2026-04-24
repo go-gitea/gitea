@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"errors"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -446,6 +447,12 @@ func (n *actionsNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 	default:
 		// unsupported review webhook type here
 		log.Error("Unsupported review webhook type")
+		return
+	}
+
+	// A Comment-type review with empty body is a synthetic wrapper created to publish
+	// standalone code comments; the per-comment PullRequestCodeComment events carry them.
+	if review.Type == issues_model.ReviewTypeComment && strings.TrimSpace(review.Content) == "" {
 		return
 	}
 
