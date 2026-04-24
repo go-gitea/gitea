@@ -62,17 +62,17 @@
 					{{template "repo/star_unstar" $}}
 					{{end}}
 					{{if and (not .IsEmpty) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
-						<div class="ui labeled button
-							{{if or (not $.IsSigned) (and (not $.CanSignedUserFork) (not $.UserAndOrgForks))}}
-								disabled
-							{{end}}"
+						{{$forkDisabled := or (not $.IsSigned) (and (not $.CanSignedUserFork) (not $.UserAndOrgForks))}}
+						{{/* not using "disabled": need to show the tooltip and keep the link clickable, let the sub buttons decide their cursor */}}
+						<div class="ui labeled button tw-cursor-default{{if $forkDisabled}} tw-opacity-[var(--opacity-disabled)]{{end}}"
 							{{if not $.IsSigned}}
 								data-tooltip-content="{{ctx.Locale.Tr "repo.fork_guest_user"}}"
 							{{else if and (not $.CanSignedUserFork) (not $.UserAndOrgForks)}}
 								data-tooltip-content="{{ctx.Locale.Tr "repo.fork_from_self"}}"
 							{{end}}
 						>
-							<a class="ui compact{{if $.ShowForkModal}} show-modal{{end}} small basic button"
+							{{/* not using "disabled": make this button have the same style as the clickable link alongside */}}
+							<a class="ui compact{{if $.ShowForkModal}} show-modal{{end}} small basic button {{if $forkDisabled}}tw-pointer-events-none{{end}}"
 								{{if not $.CanSignedUserFork}}
 									{{if gt (len $.UserAndOrgForks) 1}}
 										href="#" data-modal="#fork-repo-modal"

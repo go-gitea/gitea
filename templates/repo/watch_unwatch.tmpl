@@ -1,5 +1,5 @@
 {{/* not using "disabled": need to show the tooltip and keep the link clickable, let the sub buttons decide their cursor */}}
-<div class="ui labeled button tw-cursor-default" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}"{{end}}>
+<div class="ui labeled button tw-cursor-default{{if not $.IsSigned}} tw-opacity-[var(--opacity-disabled)]{{end}}" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}"{{end}}>
 	{{$buttonText := ctx.Locale.Tr "repo.watch"}}
 	{{if $.IsWatchingRepo}}{{$buttonText = ctx.Locale.Tr "repo.unwatch"}}{{end}}
 	{{/* not using "disabled": make this button have the the same style as the clickable link alongside */}}
