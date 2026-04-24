@@ -3,16 +3,16 @@ description: Restore and save go module, build, and golangci-lint caches
 
 inputs:
   cache-name:
-    description: Short identifier used in the per-caller build cache key.
+    description: Short identifier used in the per-caller build cache key
     required: true
   build-cache:
-    description: Include ~/.cache/go-build.
+    description: Whether to include ~/.cache/go-build
     default: "true"
   build-cache-rotate:
-    description: Rotate the build cache key per run so Go's test result cache can accumulate across runs.
+    description: Whether to rotate the build cache key per run so Go's test result cache can accumulate across runs
     default: "false"
   lint-cache:
-    description: Include ~/.cache/golangci-lint.
+    description: Whether to include ~/.cache/golangci-lint
     default: "false"
 
 runs:
