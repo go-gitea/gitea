@@ -13,9 +13,10 @@ export class UserEventsSharedWorker {
     worker.port.addEventListener('messageerror', () => {
       console.error('unable to deserialize message');
     });
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     worker.port.postMessage({
       type: 'start',
-      url: `${window.location.origin}${appSubUrl}/user/events`,
+      url: `${wsProtocol}//${window.location.host}${appSubUrl}/-/ws`,
     });
     worker.port.addEventListener('error', (e) => {
       console.error('worker port error', e);

@@ -1,6 +1,5 @@
 // Source manages the list of connected page ports for one logical connection.
-// It no longer creates an EventSource; all real-time data is delivered by the
-// accompanying WsSource over WebSocket.
+// Real-time data is delivered by the accompanying WsSource over WebSocket.
 class Source {
   url: string;
   clients: Array<MessagePort>;
@@ -45,8 +44,8 @@ class Source {
 }
 
 // WsSource provides a WebSocket transport for real-time event delivery.
-// It normalises messages to the SSE event format so that callers do not
-// need to know which transport delivered the event.
+// It dispatches messages through the Source so each page port receives
+// a `{type, data}` event per message.
 class WsSource {
   wsUrl: string;
   ws: WebSocket | null;
@@ -74,7 +73,6 @@ class WsSource {
       try {
         const msg = JSON.parse(event.data);
         if (msg.type === 'notification-count') {
-          // Normalise to SSE event format so the receiver is transport-agnostic.
           this.source.notifyClients({
             type: 'notification-count',
             data: JSON.stringify({Count: msg.count}),
@@ -164,8 +162,7 @@ const wsSourcesByUrl = new Map<string, WsSource | null>();
         source.register(port);
         sourcesByUrl.set(url, source);
         sourcesByPort.set(port, source);
-        const wsUrl = url.replace(/^http/, 'ws').replace(/\/user\/events$/, '/-/ws');
-        wsSourcesByUrl.set(url, new WsSource(wsUrl, source));
+        wsSourcesByUrl.set(url, new WsSource(url, source));
       } else if (event.data.type === 'close') {
         const source = sourcesByPort.get(port);
         if (!source) return;

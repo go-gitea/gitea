@@ -29,8 +29,8 @@ export function initNotificationCount() {
     }, timeout);
   };
 
-  if (notificationSettings.EventSourceUpdateTime > 0 && window.EventSource && window.SharedWorker) {
-    // Try to connect to the event source via the shared worker first
+  if (notificationSettings.PushUpdateTime > 0 && window.WebSocket && window.SharedWorker) {
+    // Receive real-time notification counts via the shared WebSocket worker.
     const worker = new UserEventsSharedWorker('notification-worker');
     worker.addMessageEventListener((event: MessageEvent) => {
       if (event.data.type === 'notification-count') {

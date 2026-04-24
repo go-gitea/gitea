@@ -48,7 +48,7 @@ interface Window {
       MinTimeout: number,
       TimeoutStep: number,
       MaxTimeout: number,
-      EventSourceUpdateTime: number,
+      PushUpdateTime: number,
     },
     enableTimeTracking: boolean,
     mermaidMaxSourceCharacters: number,

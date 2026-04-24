@@ -62,11 +62,11 @@ func runStopwatch(ctx context.Context) {
 	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: WebSocket Stopwatch", process.SystemProcessType, true)
 	defer finished()
 
-	if setting.UI.Notification.EventSourceUpdateTime <= 0 {
+	if setting.UI.Notification.PushUpdateTime <= 0 {
 		return
 	}
 
-	timer := time.NewTicker(setting.UI.Notification.EventSourceUpdateTime)
+	timer := time.NewTicker(setting.UI.Notification.PushUpdateTime)
 	defer timer.Stop()
 
 	for {

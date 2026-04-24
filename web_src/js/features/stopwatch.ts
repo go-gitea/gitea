@@ -54,7 +54,7 @@ export function initStopwatch() {
     return;
   }
 
-  // global stop watch (in the head_navbar), it should always work in any case either the EventSource or the PeriodicPoller is used.
+  // global stop watch (in the head_navbar), it should always work in any case either the WebSocket push or the PeriodicPoller is used.
   const seconds = stopwatchEls[0]?.getAttribute('data-seconds');
   if (seconds) {
     updateStopwatchTime(parseInt(seconds));
@@ -84,9 +84,8 @@ export function initStopwatch() {
     setTimeout(() => updateStopwatchWithCallback(startPeriodicPoller, timeout), timeout);
   };
 
-  // if the browser supports EventSource and SharedWorker, use it instead of the periodic poller
-  if (notificationSettings.EventSourceUpdateTime > 0 && window.EventSource && window.SharedWorker) {
-    // Try to connect to the event source via the shared worker first
+  // if the browser supports WebSocket and SharedWorker, use it instead of the periodic poller
+  if (notificationSettings.PushUpdateTime > 0 && window.WebSocket && window.SharedWorker) {
     const worker = new UserEventsSharedWorker('stopwatch-worker');
     worker.addMessageEventListener((event) => {
       if (event.data.type === 'stopwatches') {
