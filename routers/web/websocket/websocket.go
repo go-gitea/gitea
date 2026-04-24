@@ -4,8 +4,10 @@
 package websocket
 
 import (
+	"bytes"
 	gocontext "context"
 	"net/http"
+	"os"
 	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
@@ -19,31 +21,40 @@ import (
 	gitea_ws "github.com/coder/websocket"
 )
 
-// pingInterval is how often the server sends a WebSocket ping to keep the
-// connection alive through idle-timeout proxies and load balancers.
-const pingInterval = 30 * time.Second
+// GITEA_WS_PING_INTERVAL overrides the keepalive interval so e2e tests can
+// exercise the ping loop without waiting 30s per assertion.
+var pingInterval = envDurationOr("GITEA_WS_PING_INTERVAL", 30*time.Second)
 
-// pingTimeout bounds how long the server waits for a pong response before
-// considering the connection dead and closing it.
 const pingTimeout = 10 * time.Second
 
-// logoutBrokerMsg is the internal broker message published by PublishLogout.
+func envDurationOr(name string, fallback time.Duration) time.Duration {
+	if v := os.Getenv(name); v != "" {
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
+			return d
+		}
+	}
+	return fallback
+}
+
 type logoutBrokerMsg struct {
 	Type      string `json:"type"`
 	SessionID string `json:"sessionID,omitempty"`
 }
 
-// logoutClientMsg is sent to the WebSocket client so the browser can tell
-// whether the logout originated from this tab ("here") or another ("elsewhere").
 type logoutClientMsg struct {
 	Type string `json:"type"`
 	Data string `json:"data"`
 }
 
-// rewriteLogout intercepts a broker logout message and rewrites it to the
-// client format using "here"/"elsewhere" instead of the raw session ID.
-// If sessionID is empty the logout applies to all sessions ("here" for all).
+// logoutPrefix lets us skip the full JSON Unmarshal for every non-logout event.
+var logoutPrefix = []byte(`{"type":"` + websocket_service.EventLogout + `"`)
+
+// Translates the raw session ID into "here"/"elsewhere" so the client can tell
+// whether logout originated from this tab. Empty sessionID targets all sessions.
 func rewriteLogout(msg []byte, connSessionID string) []byte {
+	if !bytes.HasPrefix(msg, logoutPrefix) {
+		return msg
+	}
 	var lm logoutBrokerMsg
 	if err := json.Unmarshal(msg, &lm); err != nil || lm.Type != websocket_service.EventLogout {
 		return msg
@@ -59,10 +70,8 @@ func rewriteLogout(msg []byte, connSessionID string) []byte {
 	return out
 }
 
-// Serve handles WebSocket upgrade and real-time event delivery.
-// Requires a signed-in user; rejects unauthenticated requests with 401.
-// (reqSignIn middleware isn't used here because it returns a 303 redirect
-// which breaks the WebSocket upgrade handshake.)
+// Rejects unauthenticated requests with 401 directly; reqSignIn middleware
+// would return a 303 redirect which breaks the WebSocket upgrade handshake.
 func Serve(ctx *context.Context) {
 	if !ctx.IsSigned {
 		ctx.HTTPError(http.StatusUnauthorized)
@@ -78,15 +87,14 @@ func Serve(ctx *context.Context) {
 		log.Error("websocket: accept failed: %v", err)
 		return
 	}
-	defer conn.CloseNow() //nolint:errcheck // CloseNow is best-effort; error is intentionally ignored
+	defer conn.CloseNow() //nolint:errcheck // best-effort close
 
 	sessionID := ctx.Session.ID()
 	ch, cancel := pubsub.DefaultBroker.Subscribe(pubsub.UserTopic(ctx.Doer.ID))
 	defer cancel()
 
-	// CloseRead spawns a reader that responds to ping/pong/close frames and
-	// cancels its returned context when the peer goes away. Ping itself
-	// requires a concurrent reader to observe the pong frame.
+	// Ping requires a concurrent reader to observe the pong frame; CloseRead
+	// spawns one and cancels its context when the peer goes away.
 	wsCtx := conn.CloseRead(ctx.Req.Context())
 	shutdownCtx := graceful.GetManager().ShutdownContext()
 	pingTicker := time.NewTicker(pingInterval)

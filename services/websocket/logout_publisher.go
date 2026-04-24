@@ -8,11 +8,10 @@ type logoutEvent struct {
 	SessionID string `json:"sessionID,omitempty"`
 }
 
-// PublishLogout publishes a logout event to all WebSocket clients connected as
-// the given user. sessionID identifies which session is signing out so the
-// client can distinguish "this tab" from "another tab".
+// sessionID identifies the session that is signing out so connected tabs can
+// distinguish the originating session from others.
 func PublishLogout(userID int64, sessionID string) {
-	publishUserEvent(userID, EventLogout, logoutEvent{
+	publishUserEvent(userID, logoutEvent{
 		Type:      EventLogout,
 		SessionID: sessionID,
 	})

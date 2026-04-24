@@ -7,7 +7,6 @@ export class UserEventsSharedWorker {
   private listeners: Array<(event: MessageEvent) => void> = [];
   private fallbackSignalled = false;
 
-  // options can be either a string (the debug name of the worker) or an object of type WorkerOptions
   constructor(options?: string | WorkerOptions) {
     const workerOptions: WorkerOptions = typeof options === 'string' ? {name: options} : {...options};
     workerOptions.type = 'module';
@@ -20,11 +19,10 @@ export class UserEventsSharedWorker {
       return;
     }
     this.sharedWorker = worker;
+    // Browsers that reject the module `import` at parse time (no module-SharedWorker
+    // support) fail here before the WebSocket ever opens — degrade to polling.
     worker.addEventListener('error', (event) => {
       console.error('worker error', event);
-      // A failure before the worker ever opens its WebSocket (e.g. browser
-      // doesn't support module SharedWorkers and rejects the `import` at
-      // parse time) degrades the page to the periodic poller.
       this.signalFallback();
     });
     worker.port.addEventListener('messageerror', () => {

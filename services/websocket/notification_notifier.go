@@ -24,9 +24,6 @@ type wsNotifier struct {
 
 var _ notify_service.Notifier = &wsNotifier{}
 
-// NotificationCountChange queries the current unread count for the user and
-// pushes it to all connected WebSocket clients. Skips the DB lookup when the
-// user has no active subscribers.
 func (n *wsNotifier) NotificationCountChange(ctx context.Context, userID int64) {
 	if !pubsub.DefaultBroker.HasTopicSubscribers(pubsub.UserTopic(userID)) {
 		return
@@ -39,7 +36,7 @@ func (n *wsNotifier) NotificationCountChange(ctx context.Context, userID int64) 
 		log.Error("websocket: NotificationCountChange count %d: %v", userID, err)
 		return
 	}
-	publishUserEvent(userID, EventNotificationCount, notificationCountEvent{
+	publishUserEvent(userID, notificationCountEvent{
 		Type:  EventNotificationCount,
 		Count: count,
 	})

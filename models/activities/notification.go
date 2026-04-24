@@ -336,9 +336,8 @@ func GetUIDsAndNotificationCounts(ctx context.Context, since, until timeutil.Tim
 	return res, db.GetEngine(ctx).SQL(sql, NotificationStatusUnread, since, until).Find(&res)
 }
 
-// SetIssueReadBy sets issue to be read by given user.
-// Returns true when the user's unread count actually decreased (i.e. an unread
-// notification was flipped to read), so callers can skip the push otherwise.
+// SetIssueReadBy sets issue to be read by given user. The bool result is true
+// when the unread count actually decreased, so callers can skip a push on no-op.
 func SetIssueReadBy(ctx context.Context, issueID, userID int64) (bool, error) {
 	if err := issues_model.UpdateIssueUserByRead(ctx, userID, issueID); err != nil {
 		return false, err

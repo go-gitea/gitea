@@ -20,9 +20,7 @@ type stopwatchesEvent struct {
 	Data api.StopWatches `json:"data"`
 }
 
-// PublishStopwatchesForUser fetches the user's current stopwatches and pushes
-// them immediately to all connected WebSocket clients. Call this after any
-// stopwatch start, stop, or cancel so that open tabs update without a reload.
+// Call after any stopwatch start/stop/cancel so connected tabs refresh.
 func PublishStopwatchesForUser(ctx context.Context, user *user_model.User) {
 	if !pubsub.DefaultBroker.HasTopicSubscribers(pubsub.UserTopic(user.ID)) {
 		return
@@ -46,5 +44,5 @@ func PublishStopwatchesForUser(ctx context.Context, user *user_model.User) {
 		data = apiSWs
 	}
 
-	publishUserEvent(user.ID, EventStopwatches, stopwatchesEvent{Type: EventStopwatches, Data: data})
+	publishUserEvent(user.ID, stopwatchesEvent{Type: EventStopwatches, Data: data})
 }

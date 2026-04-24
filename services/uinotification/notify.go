@@ -58,8 +58,6 @@ func handler(items ...issueNotificationOpts) []issueNotificationOpts {
 			log.Error("Was unable to create issue notification: %v", err)
 			continue
 		}
-		// Push an immediate count update to every user who had a notification row
-		// created or updated so connected tabs refresh without waiting for a poller.
 		for _, userID := range notifiedIDs {
 			notify_service.NotificationCountChange(ctx, userID)
 		}

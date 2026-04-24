@@ -1,5 +1,5 @@
 import {test, expect} from '@playwright/test';
-import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, timeoutFactor, randomString} from './utils.ts';
+import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiCancelStopwatch, timeoutFactor, randomString} from './utils.ts';
 
 // The /-/ws WebSocket pipeline is push-only: every event is fired by the server
 // immediately on the DB write. These tests exercise that each event type
@@ -70,6 +70,48 @@ test.describe('events', () => {
     // Start the stopwatch from outside this tab; the push should reveal the icon
     await apiStartStopwatch(request, name, name, 1, {headers});
     await expect(stopwatch).toBeVisible({timeout: 5000 * timeoutFactor});
+  });
+
+  test('stopwatch hides via real-time push on cancel', async ({page, request}) => {
+    const name = `ev-sw-stop-${randomString(8)}`;
+    const headers = apiUserHeaders(name);
+
+    await apiCreateUser(request, name);
+    await apiCreateRepo(request, {name, headers});
+    await apiCreateIssue(request, name, name, {title: 'events stopwatch stop test', headers});
+    await apiStartStopwatch(request, name, name, 1, {headers});
+
+    await loginUser(page, name);
+    await page.goto('/');
+    const stopwatch = page.locator('.active-stopwatch.not-mobile');
+    await expect(stopwatch).toBeVisible();
+
+    await page.waitForFunction(() => window.__userEventsWsReady === true);
+
+    // Cancel from outside this tab; the push should hide the icon
+    await apiCancelStopwatch(request, name, name, 1, {headers});
+    await expect(stopwatch).toBeHidden({timeout: 5000 * timeoutFactor});
+  });
+
+  // Guards the server-side ping keepalive: conn.Ping needs a concurrent reader
+  // (CloseRead) to observe the pong frame, otherwise every ping times out and
+  // healthy connections churn every ~40s. Run with GITEA_WS_PING_INTERVAL=1s
+  // so the loop fires within the test window.
+  test('websocket survives server ping cycle', async ({page, request}) => {
+    test.skip(!process.env.GITEA_WS_PING_INTERVAL, 'set GITEA_WS_PING_INTERVAL to enable (e.g. 1s)');
+    const name = `ev-ws-ping-${randomString(8)}`;
+    await apiCreateUser(request, name);
+    await loginUser(page, name);
+    await page.goto('/');
+    const result = await page.evaluate(() => new Promise<{state: number, closed: boolean, closeEvent?: {code: number, reason: string}}>((resolve) => {
+      const ws = new WebSocket(`ws://${location.host}/-/ws`);
+      let closeEvent: {code: number, reason: string} | undefined;
+      ws.addEventListener('close', (e) => { closeEvent = {code: e.code, reason: e.reason}; });
+      // Hold the connection for 4s — long enough to cover several 1s ping cycles.
+      setTimeout(() => resolve({state: ws.readyState, closed: !!closeEvent, closeEvent}), 4000);
+    }));
+    expect(result.closeEvent, 'connection closed during ping cycle').toBeUndefined();
+    expect(result.state).toBe(WebSocket.OPEN);
   });
 
   test('logout propagation', async ({browser, request}) => {

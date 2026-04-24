@@ -6,9 +6,7 @@ import {
   USER_EVENT_WS_OPENED,
 } from './modules/user-events-types.ts';
 
-// translateServerMessage converts a server-sent WebSocket message into the
-// {type, data} envelope consumed by page-side listeners. Returns null for
-// unknown message types so they are dropped silently.
+// Returns null for unknown message types so they are dropped silently.
 function translateServerMessage(msg: {type: string, count?: number, data?: any}): {type: string, data: any} | null {
   if (msg.type === USER_EVENT_NOTIFICATION_COUNT) {
     return {type: USER_EVENT_NOTIFICATION_COUNT, data: JSON.stringify({Count: msg.count})};
@@ -22,8 +20,6 @@ function translateServerMessage(msg: {type: string, count?: number, data?: any})
   return null;
 }
 
-// Source manages the list of connected page ports for one logical connection.
-// Real-time data is delivered by the accompanying WsSource over WebSocket.
 class Source {
   url: string;
   clients: Array<MessagePort>;
@@ -67,9 +63,6 @@ class Source {
   }
 }
 
-// WsSource provides a WebSocket transport for real-time event delivery.
-// It dispatches messages through the Source so each page port receives
-// a `{type, data}` event per message.
 class WsSource {
   wsUrl: string;
   ws: WebSocket | null;
@@ -85,7 +78,7 @@ class WsSource {
     this.source = source;
     this.ws = null;
     this.reconnectTimer = null;
-    this.reconnectDelay = 50;
+    this.reconnectDelay = 1000;
     this.failuresWithoutConnect = 0;
     this.fallbackSignalled = false;
     this.closed = false;
@@ -97,7 +90,7 @@ class WsSource {
     this.ws = new WebSocket(this.wsUrl);
 
     this.ws.addEventListener('open', () => {
-      this.reconnectDelay = 50;
+      this.reconnectDelay = 1000;
       this.failuresWithoutConnect = 0;
       this.source.notifyClients({type: USER_EVENT_WS_OPENED, data: ''});
     });
@@ -128,8 +121,6 @@ class WsSource {
     });
   }
 
-  // If the WebSocket repeatedly fails to connect, tell page listeners once so
-  // they can fall back to periodic polling instead of relying on pushes.
   maybeSignalFallback() {
     if (this.fallbackSignalled) return;
     if (this.failuresWithoutConnect < 3) return;
