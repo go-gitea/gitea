@@ -965,7 +965,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	// start with merging by checking
-	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, form.ForceMerge); err != nil {
+	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, repo_model.MergeStyle(form.Do), form.ForceMerge); err != nil {
 		if errors.Is(err, pull_service.ErrIsClosed) {
 			ctx.APIErrorNotFound()
 		} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
@@ -979,6 +979,8 @@ func MergePullRequest(ctx *context.APIContext) {
 		} else if errors.Is(err, pull_service.ErrNotReadyToMerge) {
 			ctx.APIError(http.StatusMethodNotAllowed, err)
 		} else if asymkey_service.IsErrWontSign(err) {
+			ctx.APIError(http.StatusMethodNotAllowed, err)
+		} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) {
 			ctx.APIError(http.StatusMethodNotAllowed, err)
 		} else {
 			ctx.APIErrorInternal(err)

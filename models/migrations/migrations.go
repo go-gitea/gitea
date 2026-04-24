@@ -408,7 +408,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(330, "Add name column to webhook", v1_26.AddNameToWebhook),
 		// Gitea 1.26.0 ends at migration ID number 330 (database version 331)
 
-		newMigration(331, "Add contributor daily stats tables", v1_27.AddRepoContributorDailyAndMeta),
+		newMigration(331, "Add ActionRunAttempt model and related action fields", v1_27.AddActionRunAttemptModel),
+		newMigration(332, "Add contributor daily stats tables", v1_27.AddRepoContributorDailyAndMeta),
 	}
 	return preparedMigrations
 }

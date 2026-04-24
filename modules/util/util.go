@@ -281,11 +281,13 @@ func EnumValue[T comparable](val EnumConst[T]) (ret T, valid bool) {
 	return enums[0], false
 }
 
-func ReserveLineBreakForTextarea(input string) string {
+func NormalizeStringEOL(input string) string {
 	// Since the content is from a form which is a textarea, the line endings are \r\n.
 	// It's a standard behavior of HTML.
-	// But we want to store them as \n like what GitHub does.
-	// And users are unlikely to really need to keep the \r.
+	// But in most cases, we only want "\n" for EOL
+	// * Text files: use "\n" by default because "\r\n" sometimes doesn't work in POSIX
+	// * Actions values: store them as "\n" like what GitHub does.
+	// And users are unlikely to really need the "\r".
 	// Other than this, we should respect the original content, even leading or trailing spaces.
-	return strings.ReplaceAll(input, "\r\n", "\n")
+	return UnsafeBytesToString(NormalizeEOL(UnsafeStringToBytes(input)))
 }

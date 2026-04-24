@@ -77,9 +77,8 @@ defineOptions({
 
 const props = defineProps<{
   store: ActionRunViewStore,
-  runId: number;
   jobId: number;
-  actionsUrl: string;
+  actionsViewUrl: string;
   locale: Record<string, any>;
 }>();
 const store = props.store;
@@ -270,8 +269,7 @@ async function fetchJobData(abortController: AbortController): Promise<JobData> 
     // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
     return {step: idx, cursor: it.cursor, expanded: it.expanded};
   });
-  const url = `${props.actionsUrl}/runs/${props.runId}/jobs/${props.jobId}`;
-  const resp = await POST(url, {
+  const resp = await POST(props.actionsViewUrl, {
     signal: abortController.signal,
     data: {logCursors},
   });

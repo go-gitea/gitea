@@ -1539,6 +1539,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("").
 				Get(actions.View).
 				Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
+			m.Group("/attempts/{attempt}", func() {
+				m.Combo("").
+					Get(actions.View).
+					Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
+			})
 			m.Group("/jobs/{job}", func() {
 				m.Combo("").
 					Get(actions.View).
@@ -1754,8 +1759,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Any("/mail-preview/*", devtest.MailPreviewRender)
 			m.Any("/{sub}", devtest.TmplCommon)
 			m.Get("/repo-action-view/runs/{run}", devtest.MockActionsView)
+			m.Get("/repo-action-view/runs/{run}/attempts/{attempt}", devtest.MockActionsView)
 			m.Get("/repo-action-view/runs/{run}/jobs/{job}", devtest.MockActionsView)
 			m.Post("/repo-action-view/runs/{run}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
+			m.Post("/repo-action-view/runs/{run}/attempts/{attempt}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
 			m.Post("/repo-action-view/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
 		})
 	}
