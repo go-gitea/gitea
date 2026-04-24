@@ -5,6 +5,8 @@ package actions
 
 import (
 	"context"
+	"maps"
+	"slices"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -57,12 +59,8 @@ func GetCommitStatusInfo(ctx context.Context, statuses []*git_model.CommitStatus
 	if len(statusByJobID) == 0 {
 		return nil
 	}
-	jobIDs := make([]int64, 0, len(statusByJobID))
-	for id := range statusByJobID {
-		jobIDs = append(jobIDs, id)
-	}
-	jobs := make(map[int64]*actions_model.ActionRunJob, len(jobIDs))
-	if err := db.GetEngine(ctx).In("id", jobIDs).Cols("id", "status").Find(&jobs); err != nil {
+	jobs := make(map[int64]*actions_model.ActionRunJob, len(statusByJobID))
+	if err := db.GetEngine(ctx).In("id", slices.Collect(maps.Keys(statusByJobID))).Cols("id", "status").Find(&jobs); err != nil {
 		log.Error("GetCommitStatusInfo: find action run jobs: %v", err)
 		return nil
 	}
