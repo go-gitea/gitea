@@ -88,8 +88,8 @@ class WsSource {
             data: msg.data ?? '',
           });
         }
-      } catch {
-        // ignore malformed messages
+      } catch (err) {
+        console.warn('user-events: dropping malformed WebSocket message', err);
       }
     });
 
@@ -124,9 +124,9 @@ class WsSource {
   }
 }
 
-const sourcesByUrl = new Map<string, Source | null>();
-const sourcesByPort = new Map<MessagePort, Source | null>();
-const wsSourcesByUrl = new Map<string, WsSource | null>();
+const sourcesByUrl = new Map<string, Source>();
+const sourcesByPort = new Map<MessagePort, Source>();
+const wsSourcesByUrl = new Map<string, WsSource>();
 
 (self as unknown as SharedWorkerGlobalScope).addEventListener('connect', (e: MessageEvent) => {
   for (const port of e.ports) {
@@ -149,11 +149,11 @@ const wsSourcesByUrl = new Map<string, WsSource | null>();
           const count = source.deregister(port);
           // Clean-up
           if (count === 0) {
-            sourcesByUrl.set(source.url, null);
+            sourcesByUrl.delete(source.url);
             const ws = wsSourcesByUrl.get(source.url);
             if (ws) {
               ws.close();
-              wsSourcesByUrl.set(source.url, null);
+              wsSourcesByUrl.delete(source.url);
             }
           }
         }
@@ -168,13 +168,13 @@ const wsSourcesByUrl = new Map<string, WsSource | null>();
         if (!source) return;
 
         const count = source.deregister(port);
+        sourcesByPort.delete(port);
         if (count === 0) {
-          sourcesByUrl.set(source.url, null);
-          sourcesByPort.set(port, null);
+          sourcesByUrl.delete(source.url);
           const ws = wsSourcesByUrl.get(source.url);
           if (ws) {
             ws.close();
-            wsSourcesByUrl.set(source.url, null);
+            wsSourcesByUrl.delete(source.url);
           }
         }
       } else if (event.data.type === 'status') {

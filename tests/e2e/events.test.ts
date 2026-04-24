@@ -1,7 +1,8 @@
 import {test, expect} from '@playwright/test';
-import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, timeoutFactor, randomString} from './utils.ts';
+import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiDeleteUser, timeoutFactor, randomString} from './utils.ts';
 
-// These tests rely on a short EVENT_SOURCE_UPDATE_TIME in the e2e server config.
+// These tests rely on a short ui.notification EVENT_SOURCE_UPDATE_TIME in the e2e server config.
+// (The setting drives both the polling fallback interval and the WebSocket push cadence.)
 test.describe('events', () => {
   test('notification count', async ({page, request}) => {
     const owner = `ev-notif-owner-${randomString(8)}`;
@@ -23,11 +24,11 @@ test.describe('events', () => {
     await apiCreateIssue(request, owner, repoName, {title: 'events notification test', headers: apiUserHeaders(commenter)});
 
     // Wait for the notification badge to appear via server event
-    await expect(badge).toBeVisible({timeout: 15000 * timeoutFactor});
+    await expect(badge).toBeVisible({timeout: 5000 * timeoutFactor});
   });
 
   test('stopwatch visible at page load', async ({page, request}) => {
-    const name = `ev-sw-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const name = `ev-sw-${randomString(8)}`;
     const headers = apiUserHeaders(name);
 
     await apiCreateUser(request, name);
@@ -49,7 +50,7 @@ test.describe('events', () => {
   });
 
   test('stopwatch appears via real-time push', async ({page, request}) => {
-    const name = `ev-sw-push-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const name = `ev-sw-push-${randomString(8)}`;
     const headers = apiUserHeaders(name);
 
     await apiCreateUser(request, name);
@@ -64,7 +65,7 @@ test.describe('events', () => {
 
     // Start stopwatch after page is loaded — icon should appear via WebSocket push
     await apiStartStopwatch(request, name, name, 1, {headers});
-    await expect(stopwatch).toBeVisible({timeout: 15000});
+    await expect(stopwatch).toBeVisible({timeout: 5000 * timeoutFactor});
 
     // Cleanup
     await apiDeleteUser(request, name);

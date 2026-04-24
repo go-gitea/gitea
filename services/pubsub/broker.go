@@ -67,6 +67,13 @@ func (b *Broker) HasSubscribers() bool {
 	return false
 }
 
+// HasTopicSubscribers reports whether the given topic has at least one active subscriber.
+func (b *Broker) HasTopicSubscribers(topic string) bool {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	return len(b.subs[topic]) > 0
+}
+
 // Publish sends msg to all subscribers of topic.
 // Non-blocking: slow subscribers are skipped.
 // The RLock is held for the entire fan-out to prevent a race where cancel()
