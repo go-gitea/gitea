@@ -41,7 +41,7 @@ require (
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
 	github.com/dustin/go-humanize v1.0.1
 	github.com/editorconfig/editorconfig-core-go/v2 v2.6.4
-	github.com/elastic/go-elasticsearch/v9 v9.3.2
+	github.com/elastic/go-elasticsearch/v8 v8.19.4
 	github.com/emersion/go-imap v1.2.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/ethantkoenig/rupture v1.0.1
