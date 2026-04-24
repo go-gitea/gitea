@@ -186,6 +186,15 @@ jobs:
               discovery.type: single-node
               xpack.security.enabled: "false"
               xpack.security.http.ssl.enabled: "false"
+          # Same ES 8 image but with basic-auth enforced (plaintext HTTP),
+          # to exercise URL userinfo → Basic Auth wiring end-to-end.
+          - name: elasticsearch-8.17-auth
+            image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+            env:
+              discovery.type: single-node
+              xpack.security.enabled: "true"
+              xpack.security.http.ssl.enabled: "false"
+              ELASTIC_PASSWORD: changeme
           - name: opensearch-2
             image: opensearchproject/opensearch:2.18.0
             env:
