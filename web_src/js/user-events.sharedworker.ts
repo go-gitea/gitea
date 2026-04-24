@@ -1,4 +1,4 @@
-import type {UserEventMessage} from './modules/user-events-types.ts';
+import type {UserEventMessage} from './types.ts';
 
 // Returns null for unknown message types so they are dropped silently.
 function translateServerMessage(msg: {type: string, count?: number, data?: any}): UserEventMessage | null {

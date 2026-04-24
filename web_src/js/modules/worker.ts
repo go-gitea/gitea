@@ -1,4 +1,4 @@
-import type {WorkerInboundMessage} from './user-events-types.ts';
+import type {WorkerInboundMessage} from '../types.ts';
 
 const {appSubUrl, sharedWorkerUri} = window.config;
 

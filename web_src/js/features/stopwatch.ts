@@ -1,7 +1,7 @@
 import {createTippy} from '../modules/tippy.ts';
 import {GET} from '../modules/fetch.ts';
 import {hideElem, queryElems, showElem} from '../utils/dom.ts';
-import type {UserEventMessage} from '../modules/user-events-types.ts';
+import type {UserEventMessage} from '../types.ts';
 import {UserEventsSharedWorker} from '../modules/worker.ts';
 
 const {appSubUrl, notificationSettings, enableTimeTracking} = window.config;
