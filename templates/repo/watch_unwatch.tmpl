@@ -1,4 +1,4 @@
-<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}"{{end}}>
+<div class="ui labeled button{{if not $.IsSigned}} disabled{{end}}" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}"{{end}}>
 	{{$buttonText := ctx.Locale.Tr "repo.watch"}}
 	{{if $.IsWatchingRepo}}{{$buttonText = ctx.Locale.Tr "repo.unwatch"}}{{end}}
 	<button type="button" class="ui compact small basic button" aria-label="{{$buttonText}}"
@@ -6,8 +6,6 @@
 			data-fetch-method="post"
 			data-fetch-url="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}unwatch{{else}}watch{{end}}"
 			data-fetch-sync="$closest(.ui.labeled.button)"
-		{{else}}
-			disabled
 		{{end}}
 	>
 		{{svg "octicon-eye"}}
