@@ -15,9 +15,9 @@ import (
 
 var (
 	// SupportedDatabaseTypes includes all XORM supported databases type
-	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "sqlite3"}
+	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "sqlite"}
 	// DatabaseTypeNames contains the friendly names for all database types
-	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3"}
+	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite": "SQLite3"}
 
 	// Database holds the database settings
 	Database = struct {
@@ -55,9 +55,11 @@ func LoadDBSetting() {
 
 func loadDBSetting(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("database")
-	// mattn sqlite driver was using sqlite3 as it's name
-	// Override it during loading config so it's correctly named for xorm imports
+	// legacy "sqlite3" DB_TYPE (from the mattn driver) is treated as "sqlite" for the modernc driver
 	dbType := sec.Key("DB_TYPE").String()
+	if dbType == "sqlite3" {
+		dbType = "sqlite"
+	}
 	Database.Type = DatabaseType(dbType)
 
 	Database.Host = sec.Key("HOST").String()

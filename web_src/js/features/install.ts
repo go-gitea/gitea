@@ -33,7 +33,7 @@ function initPreInstall() {
     hideElem('div[data-db-setting-for]');
     showElem(`div[data-db-setting-for=${dbType}]`);
 
-    if (dbType !== 'sqlite3') {
+    if (dbType !== 'sqlite') {
       // for most remote database servers
       showElem('div[data-db-setting-for=common-host]');
       const lastDbHost = dbHost.value;
