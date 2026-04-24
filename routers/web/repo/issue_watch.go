@@ -5,7 +5,6 @@ package repo
 
 import (
 	"net/http"
-	"strconv"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/log"
@@ -46,12 +45,7 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	watch, err := strconv.ParseBool(ctx.Req.PostFormValue("watch"))
-	if err != nil {
-		ctx.ServerError("watch is not bool", err)
-		return
-	}
-
+	watch := ctx.FormBool("watch")
 	if err := issues_model.CreateOrUpdateIssueWatch(ctx, ctx.Doer.ID, issue.ID, watch); err != nil {
 		ctx.ServerError("CreateOrUpdateIssueWatch", err)
 		return

@@ -67,7 +67,7 @@ func (err ErrNotValidReviewRequest) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
-// ErrReviewRequestOnClosedPR represents an error when an user tries to request a re-review on a closed or merged PR.
+// ErrReviewRequestOnClosedPR represents an error when a user tries to request a re-review on a closed or merged PR.
 type ErrReviewRequestOnClosedPR struct{}
 
 // IsErrReviewRequestOnClosedPR checks if an error is an ErrReviewRequestOnClosedPR.

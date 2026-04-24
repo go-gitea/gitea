@@ -83,12 +83,6 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	return ret, nil
 }
 
-func WithJobResults(results map[string]string) ParseOption {
-	return func(c *parseContext) {
-		c.jobResults = results
-	}
-}
-
 func WithGitContext(context *model.GithubContext) ParseOption {
 	return func(c *parseContext) {
 		c.gitContext = context

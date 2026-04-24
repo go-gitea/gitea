@@ -1,0 +1,12 @@
+Content-Type: application/xml; charset=utf-8
+
+<?xml version="1.0" encoding="UTF-8"?>
+<users type="array">
+  <user>
+    <email-address>gitea-codebase@smack.email</email-address>
+    <id type="integer">43</id>
+    <last-name>Test</last-name>
+    <first-name>Gitea</first-name>
+    <username>gitea-test-43</username>
+  </user>
+</users>

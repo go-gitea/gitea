@@ -1,0 +1,28 @@
+Cache-Control: max-age=0, private, must-revalidate
+Cf-Cache-Status: MISS
+Content-Security-Policy: default-src 'none'
+Content-Type: application/json
+Etag: W/"c8e2d3a5f05ee29c58b665c86684f9f9"
+Gitlab-Lb: haproxy-main-47-lb-gprd
+Gitlab-Sv: api-gke-us-east1-c
+Link: <https://gitlab.com/api/v4/projects/15578026/milestones?id=15578026&include_ancestors=false&page=1&per_page=100&state=all>; rel="first", <https://gitlab.com/api/v4/projects/15578026/milestones?id=15578026&include_ancestors=false&page=1&per_page=100&state=all>; rel="last"
+Ratelimit-Limit: 2000
+Ratelimit-Name: throttle_authenticated_api
+Ratelimit-Observed: 5
+Ratelimit-Remaining: 1995
+Ratelimit-Reset: 1776937500
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000
+Vary: Origin, Accept-Encoding
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Gitlab-Meta: {"correlation_id":"9f0bee7a2e97c27f-VIE","version":"1"}
+X-Next-Page: 
+X-Page: 1
+X-Per-Page: 100
+X-Prev-Page: 
+X-Runtime: 0.070685
+X-Total: 2
+X-Total-Pages: 1
+
+[{"id":1082927,"iid":2,"project_id":15578026,"title":"1.1.0","description":"","state":"active","created_at":"2019-11-28T08:42:44.575Z","updated_at":"2019-11-28T08:42:44.575Z","due_date":null,"start_date":null,"expired":false,"web_url":"https://gitlab.com/gitea/test_repo/-/milestones/2"},{"id":1082926,"iid":1,"project_id":15578026,"title":"1.0.0","description":"","state":"closed","created_at":"2019-11-28T08:42:30.301Z","updated_at":"2019-11-28T15:57:52.401Z","due_date":null,"start_date":null,"expired":false,"web_url":"https://gitlab.com/gitea/test_repo/-/milestones/1"}]

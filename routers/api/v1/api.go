@@ -1228,10 +1228,10 @@ func Routes() *web.Router {
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
 					m.Post("", bind(api.CreateBranchProtectionOption{}), mustNotBeArchived, repo.CreateBranchProtection)
-					m.Group("/{name}", func() {
+					m.Group("/*", func() {
 						m.Get("", repo.GetBranchProtection)
 						m.Patch("", bind(api.EditBranchProtectionOption{}), mustNotBeArchived, repo.EditBranchProtection)
-						m.Delete("", repo.DeleteBranchProtection)
+						m.Delete("", mustNotBeArchived, repo.DeleteBranchProtection)
 					})
 					m.Post("/priority", bind(api.UpdateBranchProtectionPriories{}), mustNotBeArchived, repo.UpdateBranchProtectionPriories)
 				}, reqToken(), reqAdmin())
@@ -1255,6 +1255,10 @@ func Routes() *web.Router {
 					m.Group("/runs", func() {
 						m.Group("/{run}", func() {
 							m.Get("", repo.GetWorkflowRun)
+							m.Group("/attempts/{attempt}", func() {
+								m.Get("", repo.GetWorkflowRunAttempt)
+								m.Get("/jobs", repo.ListWorkflowRunAttemptJobs)
+							})
 							m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
 							m.Post("/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowRun)
 							m.Post("/rerun-failed-jobs", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunFailedWorkflowRun)
@@ -1578,10 +1582,11 @@ func Routes() *web.Router {
 		m.Group("/packages/{username}", func() {
 			m.Group("/{type}/{name}", func() {
 				m.Get("/", packages.ListPackageVersions)
+				m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
 
 				m.Group("/{version}", func() {
 					m.Get("", packages.GetPackage)
-					m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
+					m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackageVersion)
 					m.Get("/files", packages.ListPackageFiles)
 				})
 
@@ -1609,7 +1614,8 @@ func Routes() *web.Router {
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)
 			m.Post("/rename", reqToken(), reqOrgOwnership(), bind(api.RenameOrgOption{}), org.Rename)
 			m.Combo("/repos").Get(user.ListOrgRepos).
-				Post(reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
+				Post(reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo).
+				Delete(reqToken(), reqOrgOwnership(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), org.DeleteOrgRepos)
 			m.Group("/members", func() {
 				m.Get("", reqToken(), org.ListMembers)
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).

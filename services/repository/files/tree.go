@@ -26,12 +26,6 @@ type ErrSHANotFound struct {
 	SHA string
 }
 
-// IsErrSHANotFound checks if an error is a ErrSHANotFound.
-func IsErrSHANotFound(err error) bool {
-	_, ok := err.(ErrSHANotFound)
-	return ok
-}
-
 func (err ErrSHANotFound) Error() string {
 	return fmt.Sprintf("sha not found [%s]", err.SHA)
 }

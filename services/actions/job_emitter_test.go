@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -132,5 +134,97 @@ jobs:
 			r := newJobStatusResolver(tt.jobs, nil)
 			assert.Equal(t, tt.want, r.Resolve(t.Context()))
 		})
+	}
+}
+
+// Test_checkRunConcurrency_NoDuplicateConcurrencyGroupCheck verifies that when a run's
+// ConcurrencyGroup has already been checked at the run level, the same group is not
+// re-checked for individual jobs.
+func Test_checkRunConcurrency_NoDuplicateConcurrencyGroupCheck(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	// Run A: the triggering run of attempt A
+	runA := &actions_model.ActionRun{
+		RepoID:        4,
+		OwnerID:       1,
+		TriggerUserID: 1,
+		WorkflowID:    "test.yml",
+		Index:         9901,
+		Ref:           "refs/heads/main",
+		Status:        actions_model.StatusRunning,
+	}
+	assert.NoError(t, db.Insert(ctx, runA))
+
+	// Attempt A: an attempt of run A with concurrency group "test-cg"
+	runAAttempt := &actions_model.ActionRunAttempt{
+		RepoID:           4,
+		RunID:            runA.ID,
+		Attempt:          1,
+		Status:           actions_model.StatusRunning,
+		ConcurrencyGroup: "test-cg",
+	}
+	assert.NoError(t, db.Insert(ctx, runAAttempt))
+	_, err := db.Exec(t.Context(), "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", runAAttempt.ID, runA.ID)
+	assert.NoError(t, err)
+
+	// A done job for run A with the same ConcurrencyGroup.
+	// This triggers the job-level concurrency check in checkRunConcurrency.
+	jobADone := &actions_model.ActionRunJob{
+		RunID:            runA.ID,
+		RunAttemptID:     runAAttempt.ID,
+		AttemptJobID:     1,
+		RepoID:           4,
+		OwnerID:          1,
+		JobID:            "job1",
+		Name:             "job1",
+		Status:           actions_model.StatusSuccess,
+		ConcurrencyGroup: "test-cg",
+	}
+	assert.NoError(t, db.Insert(ctx, jobADone))
+
+	// Run B: a run blocked by concurrency
+	runB := &actions_model.ActionRun{
+		RepoID:        4,
+		OwnerID:       1,
+		TriggerUserID: 1,
+		WorkflowID:    "test.yml",
+		Index:         9902,
+		Ref:           "refs/heads/main",
+		Status:        actions_model.StatusBlocked,
+	}
+	assert.NoError(t, db.Insert(ctx, runB))
+
+	// Attempt B: an blocked attempt of run B
+	runBAttempt := &actions_model.ActionRunAttempt{
+		RepoID:           4,
+		RunID:            runB.ID,
+		Attempt:          1,
+		Status:           actions_model.StatusBlocked,
+		ConcurrencyGroup: "test-cg",
+	}
+	assert.NoError(t, db.Insert(ctx, runBAttempt))
+	_, err = db.Exec(t.Context(), "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", runBAttempt.ID, runB.ID)
+	assert.NoError(t, err)
+
+	// A blocked job belonging to run B (no job-level concurrency group).
+	jobBBlocked := &actions_model.ActionRunJob{
+		RunID:        runB.ID,
+		RunAttemptID: runBAttempt.ID,
+		AttemptJobID: 1,
+		RepoID:       4,
+		OwnerID:      1,
+		JobID:        "job1",
+		Name:         "job1",
+		Status:       actions_model.StatusBlocked,
+	}
+	assert.NoError(t, db.Insert(ctx, jobBBlocked))
+
+	runA, _, _ = db.GetByID[actions_model.ActionRun](t.Context(), runA.ID)
+	jobs, _, _, err := checkRunConcurrency(ctx, runA)
+	assert.NoError(t, err)
+
+	if assert.Len(t, jobs, 1) {
+		assert.Equal(t, jobBBlocked.ID, jobs[0].ID)
 	}
 }

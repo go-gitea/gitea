@@ -103,8 +103,18 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := ValidateWorkflowContent(content); err != nil {
+		return nil, err
+	}
 
 	return events, nil
+}
+
+// ValidateWorkflowContent catches structural errors (e.g. blank lines in run: | blocks)
+// that model.ReadWorkflow alone does not detect.
+func ValidateWorkflowContent(content []byte) error {
+	_, err := jobparser.Parse(content)
+	return err
 }
 
 func DetectWorkflows(

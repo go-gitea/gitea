@@ -583,3 +583,39 @@ func TestMarkdownLink(t *testing.T) {
 	assert.Equal(t, `<p><a href="https://example.com/__init__.py" rel="nofollow">https://example.com/__init__.py</a></p>
 `, string(result))
 }
+
+func TestMarkdownUlDir(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, false)()
+	result, err := markdown.RenderString(markup.NewTestRenderContext(), `
+* a
+  * b
+`)
+	assert.NoError(t, err)
+	assert.Equal(t, `<ul dir="auto">
+<li>a
+<ul>
+<li>b</li>
+</ul>
+</li>
+</ul>
+`, string(result))
+}
+
+func TestMarkdownFencedCodeBlock(t *testing.T) {
+	testRender := func(input, expected string) {
+		buffer, err := markdown.RenderString(markup.NewTestRenderContext(), input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+	}
+	const nl = "\n"
+	const prefix = `<div class="code-block-container code-overflow-scroll"><pre class="code-block">`
+	const suffix = `</pre></div>`
+
+	testRender("```\ncode\n```", prefix+`<code class="chroma language-text display">code`+nl+`</code>`+suffix)
+
+	const jsCommon = prefix + `<code class="chroma language-js display"><span class="nx">code</span>` + nl + `</code>` + suffix
+	testRender("```js\ncode\n```", jsCommon)
+	testRender("```js:app.ts\ncode\n```", jsCommon)
+	testRender("```js,ignore\ncode\n```", jsCommon)
+	testRender("```js ignore\ncode\n```", jsCommon)
+}

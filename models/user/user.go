@@ -20,8 +20,6 @@ import (
 	"time"
 	"unicode"
 
-	_ "image/jpeg" // Needed for jpeg support
-
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/auth/openid"
@@ -38,6 +36,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
+
+	_ "image/jpeg" // Needed for jpeg support
 
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
@@ -524,10 +524,7 @@ const SaltByteLength = 16
 
 // GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
-	rBytes, err := util.CryptoRandomBytes(SaltByteLength)
-	if err != nil {
-		return "", err
-	}
+	rBytes := util.CryptoRandomBytes(SaltByteLength)
 	// Returns a 32-byte long string.
 	return hex.EncodeToString(rBytes), nil
 }
@@ -1460,16 +1457,6 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 		return true
 	}
 	return false
-}
-
-// CountWrongUserType count OrgUser who have wrong type
-func CountWrongUserType(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(User))
-}
-
-// FixWrongUserType fix OrgUser who have wrong type
-func FixWrongUserType(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
 }
 
 func GetOrderByName() string {

@@ -1,8 +1,7 @@
 import {
-  dirname, basename, extname, isObject, stripTags, parseIssueHref,
-  parseUrl, translateMonth, translateDay, blobToDataURI,
+  dirname, basename, extname, formatBytes, isObject, stripTags, parseIssueHref,
+  translateMonth, translateDay, blobToDataURI,
   toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseRepoOwnerPathInfo,
-  urlQueryEscape,
 } from './utils.ts';
 
 test('dirname', () => {
@@ -34,12 +33,6 @@ test('stripTags', () => {
   expect(stripTags('<a>test</a>')).toEqual('test');
 });
 
-test('urlQueryEscape', () => {
-  const input = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
-  const expected = '%21%22%23%24%25%26%27%28%29%2A%2B%2C-.%2F%3A%3B%3C%3D%3E%3F%40%5B%5C%5D%5E_%60%7B%7C%7D~';
-  expect(urlQueryEscape(input)).toEqual(expected);
-});
-
 test('parseIssueHref', () => {
   expect(parseIssueHref('/owner/repo/issues/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
   expect(parseIssueHref('/owner/repo/pulls/1?query')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls', indexString: '1'});
@@ -66,18 +59,6 @@ test('parseRepoOwnerPathInfo', () => {
   expect(parseRepoOwnerPathInfo('/sub/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo'});
   expect(parseRepoOwnerPathInfo('/sub/owner/repo/compare/feature/branch-1...fix/branch-2')).toEqual({ownerName: 'owner', repoName: 'repo'});
   window.config.appSubUrl = '';
-});
-
-test('parseUrl', () => {
-  expect(parseUrl('').pathname).toEqual('/');
-  expect(parseUrl('/path').pathname).toEqual('/path');
-  expect(parseUrl('/path?search').pathname).toEqual('/path');
-  expect(parseUrl('/path?search').search).toEqual('?search');
-  expect(parseUrl('/path?search#hash').hash).toEqual('#hash');
-  expect(parseUrl('https://localhost/path').pathname).toEqual('/path');
-  expect(parseUrl('https://localhost/path?search').pathname).toEqual('/path');
-  expect(parseUrl('https://localhost/path?search').search).toEqual('?search');
-  expect(parseUrl('https://localhost/path?search#hash').hash).toEqual('#hash');
 });
 
 test('translateMonth', () => {
@@ -132,6 +113,17 @@ test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
   expect(encodeURLEncodedBase64(uint8array('a'))).toEqual('YQ'); // standard base64: "YQ=="
   expect(new Uint8Array(decodeURLEncodedBase64('YQ'))).toEqual(uint8array('a'));
   expect(new Uint8Array(decodeURLEncodedBase64('YQ=='))).toEqual(uint8array('a'));
+});
+
+test('formatBytes', () => {
+  expect(formatBytes(-1)).toBe('0 B');
+  expect(formatBytes(0)).toBe('0 B');
+  expect(formatBytes(512)).toBe('512 B');
+  expect(formatBytes(1024)).toBe('1.0 KiB');
+  expect(formatBytes(1536)).toBe('1.5 KiB');
+  expect(formatBytes(10 * 1024)).toBe('10 KiB');
+  expect(formatBytes(1024 * 1024)).toBe('1.0 MiB');
+  expect(formatBytes(1024 * 1024 * 1024)).toBe('1.0 GiB');
 });
 
 test('file detection', () => {
