@@ -28,7 +28,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          job: lint-backend
+          cache-name: lint-backend
           lint-cache: "true"
       - run: make deps-backend deps-tools
       - run: make lint-backend
@@ -131,7 +131,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          job: lint-go-windows
+          cache-name: lint-go-windows
           lint-cache: "true"
       - run: make deps-backend deps-tools
       - run: make lint-go-windows
@@ -155,7 +155,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          job: lint-go-gogit
+          cache-name: lint-go-gogit
           lint-cache: "true"
       - run: make deps-backend deps-tools
       - run: make lint-go
@@ -177,7 +177,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          job: checks-backend
+          cache-name: checks-backend
           build-cache: "false"
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
@@ -217,7 +217,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          job: backend
+          cache-name: backend
       # no frontend build here as backend should be able to build
       # even without any frontend files
       - run: make deps-backend

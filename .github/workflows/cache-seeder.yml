@@ -1,3 +1,12 @@
+# Populates the go module, build, and golangci-lint caches under the default
+# branch's cache scope so that PR runs have a warm fallback to restore from.
+#
+# GitHub Actions caches are scoped per ref: a PR run can only write to its own
+# branch's scope, but can read from the base branch's scope as a fallback.
+# PRs therefore cannot seed main's scope themselves. Running the same cache
+# steps on push-to-main is the only opportunity to populate that fallback
+# scope so fresh PR branches start with a useful cache on first run.
+
 name: cache-seeder
 
 on:
@@ -28,7 +37,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          job: seed
+          cache-name: seed
       - run: make deps-backend
       - run: TAGS="bindata" make backend
       - run: TAGS="bindata sqlite sqlite_unlock_notify" make backend
@@ -54,7 +63,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          job: ${{ matrix.job }}
+          cache-name: ${{ matrix.job }}
           lint-cache: "true"
       - run: make deps-backend deps-tools
       - run: make ${{ matrix.target }}

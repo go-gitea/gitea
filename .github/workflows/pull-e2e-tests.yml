@@ -28,7 +28,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          job: e2e
+          cache-name: e2e
           build-cache: "false"
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6

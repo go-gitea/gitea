@@ -2,8 +2,8 @@ name: go-caches
 description: Restore and save go module, build, and golangci-lint caches
 
 inputs:
-  job:
-    description: Short identifier used in the per-job build cache key.
+  cache-name:
+    description: Short identifier used in the per-caller build cache key.
     required: true
   build-cache:
     description: Include ~/.cache/go-build.
@@ -27,10 +27,10 @@ runs:
       uses: actions/cache@v5
       with:
         path: ~/.cache/go-build
-        key: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.job }}-${{ hashFiles('go.sum') }}-${{ github.run_id }}
+        key: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}-${{ hashFiles('go.sum') }}-${{ github.run_id }}
         restore-keys: |
-          gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.job }}-${{ hashFiles('go.sum') }}
-          gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.job }}
+          gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}-${{ hashFiles('go.sum') }}
+          gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}
           gobuild-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
           gobuild-${{ runner.os }}-${{ runner.arch }}
     - if: ${{ inputs.build-cache == 'true' && inputs.build-cache-rotate != 'true' }}
@@ -43,5 +43,5 @@ runs:
       uses: actions/cache@v5
       with:
         path: ~/.cache/golangci-lint
-        key: golangci-${{ runner.os }}-${{ runner.arch }}-${{ inputs.job }}-${{ hashFiles('go.sum', '.golangci.yml') }}
-        restore-keys: golangci-${{ runner.os }}-${{ runner.arch }}-${{ inputs.job }}
+        key: golangci-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}-${{ hashFiles('go.sum', '.golangci.yml') }}
+        restore-keys: golangci-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}

@@ -50,7 +50,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          job: pgsql
+          cache-name: pgsql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
       - run: make deps-backend
@@ -82,7 +82,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          job: sqlite
+          cache-name: sqlite
       - run: make deps-backend
       - run: GOEXPERIMENT='' make backend
         env:
@@ -145,7 +145,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          job: unit
+          cache-name: unit
           build-cache-rotate: "true"
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
@@ -207,7 +207,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          job: mysql
+          cache-name: mysql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
@@ -251,7 +251,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          job: mssql
+          cache-name: mssql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
       - run: make deps-backend
