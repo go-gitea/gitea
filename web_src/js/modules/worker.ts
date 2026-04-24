@@ -1,3 +1,5 @@
+import {USER_EVENT_LOGOUT, USER_EVENT_WS_OPENED} from './user-events-types.ts';
+
 const {appSubUrl, sharedWorkerUri} = window.config;
 
 export class UserEventsSharedWorker {
@@ -39,9 +41,9 @@ export class UserEventsSharedWorker {
 
       if (event.data.type === 'error') {
         console.error('worker port event error', event.data);
-      } else if (event.data.type === 'ws-opened') {
+      } else if (event.data.type === USER_EVENT_WS_OPENED) {
         window.__userEventsWsReady = true;
-      } else if (event.data.type === 'logout') {
+      } else if (event.data.type === USER_EVENT_LOGOUT) {
         if (event.data.data !== 'here') return;
         this.sharedWorker.port.postMessage({type: 'close'});
         this.sharedWorker.port.close();

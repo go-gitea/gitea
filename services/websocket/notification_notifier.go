@@ -8,7 +8,6 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	notify_service "code.gitea.io/gitea/services/notify"
 	"code.gitea.io/gitea/services/pubsub"
@@ -29,8 +28,7 @@ var _ notify_service.Notifier = &wsNotifier{}
 // pushes it to all connected WebSocket clients. Skips the DB lookup when the
 // user has no active subscribers.
 func (n *wsNotifier) NotificationCountChange(ctx context.Context, userID int64) {
-	topic := pubsub.UserTopic(userID)
-	if !pubsub.DefaultBroker.HasTopicSubscribers(topic) {
+	if !pubsub.DefaultBroker.HasTopicSubscribers(pubsub.UserTopic(userID)) {
 		return
 	}
 	count, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
@@ -41,13 +39,8 @@ func (n *wsNotifier) NotificationCountChange(ctx context.Context, userID int64) 
 		log.Error("websocket: NotificationCountChange count %d: %v", userID, err)
 		return
 	}
-	msg, err := json.Marshal(notificationCountEvent{
+	publishUserEvent(userID, EventNotificationCount, notificationCountEvent{
 		Type:  EventNotificationCount,
 		Count: count,
 	})
-	if err != nil {
-		log.Error("websocket: marshal notification-count event: %v", err)
-		return
-	}
-	pubsub.DefaultBroker.Publish(topic, msg)
 }

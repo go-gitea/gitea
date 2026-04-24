@@ -9,7 +9,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/convert"
@@ -47,10 +46,5 @@ func PublishStopwatchesForUser(ctx context.Context, user *user_model.User) {
 		data = apiSWs
 	}
 
-	msg, err := json.Marshal(stopwatchesEvent{Type: EventStopwatches, Data: data})
-	if err != nil {
-		log.Error("websocket: marshal stopwatches event: %v", err)
-		return
-	}
-	pubsub.DefaultBroker.Publish(pubsub.UserTopic(user.ID), msg)
+	publishUserEvent(user.ID, EventStopwatches, stopwatchesEvent{Type: EventStopwatches, Data: data})
 }

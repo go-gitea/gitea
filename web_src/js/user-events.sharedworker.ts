@@ -1,20 +1,26 @@
-// Wire-format event type names — must match services/websocket/events.go on the server.
-const EVENT_NOTIFICATION_COUNT = 'notification-count';
-const EVENT_STOPWATCHES = 'stopwatches';
-const EVENT_LOGOUT = 'logout';
+// Wire-format event type names — must match services/websocket/events.go on
+// the server and web_src/js/modules/user-events-types.ts on the page side.
+// These are duplicated here rather than imported because a classic SharedWorker
+// script cannot use ES-module imports without `{type: "module"}`, which
+// browsers do not support uniformly for SharedWorker.
+const USER_EVENT_NOTIFICATION_COUNT = 'notification-count';
+const USER_EVENT_STOPWATCHES = 'stopwatches';
+const USER_EVENT_LOGOUT = 'logout';
+const USER_EVENT_WS_OPENED = 'ws-opened';
+const USER_EVENT_PUSH_UNAVAILABLE = 'push-unavailable';
 
 // translateServerMessage converts a server-sent WebSocket message into the
 // {type, data} envelope consumed by page-side listeners. Returns null for
 // unknown message types so they are dropped silently.
 function translateServerMessage(msg: {type: string, count?: number, data?: any}): {type: string, data: any} | null {
-  if (msg.type === EVENT_NOTIFICATION_COUNT) {
-    return {type: EVENT_NOTIFICATION_COUNT, data: JSON.stringify({Count: msg.count})};
+  if (msg.type === USER_EVENT_NOTIFICATION_COUNT) {
+    return {type: USER_EVENT_NOTIFICATION_COUNT, data: JSON.stringify({Count: msg.count})};
   }
-  if (msg.type === EVENT_STOPWATCHES) {
-    return {type: EVENT_STOPWATCHES, data: JSON.stringify(msg.data)};
+  if (msg.type === USER_EVENT_STOPWATCHES) {
+    return {type: USER_EVENT_STOPWATCHES, data: JSON.stringify(msg.data)};
   }
-  if (msg.type === EVENT_LOGOUT) {
-    return {type: EVENT_LOGOUT, data: msg.data ?? ''};
+  if (msg.type === USER_EVENT_LOGOUT) {
+    return {type: USER_EVENT_LOGOUT, data: msg.data ?? ''};
   }
   return null;
 }
@@ -93,7 +99,7 @@ class WsSource {
     this.ws.addEventListener('open', () => {
       this.reconnectDelay = 50;
       this.failuresWithoutConnect = 0;
-      this.source.notifyClients({type: 'ws-opened', data: ''});
+      this.source.notifyClients({type: USER_EVENT_WS_OPENED, data: ''});
     });
 
     this.ws.addEventListener('message', (event: MessageEvent<string>) => {
@@ -127,7 +133,7 @@ class WsSource {
     if (this.fallbackSignalled) return;
     if (this.failuresWithoutConnect < 3) return;
     this.fallbackSignalled = true;
-    this.source.notifyClients({type: 'push-unavailable', data: ''});
+    this.source.notifyClients({type: USER_EVENT_PUSH_UNAVAILABLE, data: ''});
   }
 
   scheduleReconnect() {
