@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -70,6 +71,7 @@ func (jobs ActionJobList) LoadAttributes(ctx context.Context, withRepo bool) err
 type FindRunJobOptions struct {
 	db.ListOptions
 	RunID            int64
+	RunAttemptID     optional.Option[int64] // use optional to allow filtering by zero (legacy jobs have run_attempt_id=0)
 	RepoID           int64
 	OwnerID          int64
 	CommitSHA        string
@@ -82,6 +84,9 @@ func (opts FindRunJobOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RunID > 0 {
 		cond = cond.And(builder.Eq{"`action_run_job`.run_id": opts.RunID})
+	}
+	if opts.RunAttemptID.Has() {
+		cond = cond.And(builder.Eq{"`action_run_job`.run_attempt_id": opts.RunAttemptID.Value()})
 	}
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"`action_run_job`.repo_id": opts.RepoID})

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -71,6 +72,39 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 
 	prPatchCheckerQueue.ShutdownWait(time.Second)
 	prPatchCheckerQueue = nil
+}
+
+func TestCheckSigningRequirementsHeadCommits(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	require.NoError(t, pr.LoadBaseRepo(ctx))
+	require.NoError(t, pr.LoadHeadRepo(ctx))
+
+	check := func() error {
+		return checkSigningRequirements(ctx, pr, nil, repo_model.MergeStyleFastForwardOnly)
+	}
+
+	// No protected branch rule on the base branch: the check must pass.
+	require.NoError(t, check())
+
+	// Protected branch without RequireSignedCommits: the check must still pass.
+	require.NoError(t, git_model.UpdateProtectBranch(ctx, pr.BaseRepo, &git_model.ProtectedBranch{
+		RepoID:               pr.BaseRepoID,
+		RuleName:             pr.BaseBranch,
+		RequireSignedCommits: false,
+	}, git_model.WhitelistOptions{}))
+	require.NoError(t, check())
+
+	// With RequireSignedCommits enabled: the test fixture commits have no signatures,
+	// so the check must report ErrHeadCommitsNotAllVerified.
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	require.NoError(t, err)
+	require.NotNil(t, pb)
+	pb.RequireSignedCommits = true
+	require.NoError(t, git_model.UpdateProtectBranch(ctx, pr.BaseRepo, pb, git_model.WhitelistOptions{}))
+	require.ErrorIs(t, check(), ErrHeadCommitsNotAllVerified)
 }
 
 func TestMarkPullRequestAsMergeable(t *testing.T) {

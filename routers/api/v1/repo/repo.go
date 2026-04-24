@@ -758,7 +758,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	if opts.HasIssues != nil {
 		if *opts.HasIssues && opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 			// Check that values are valid
-			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
+			if !validation.IsValidURL(opts.ExternalTracker.ExternalTrackerURL) {
 				err := errors.New("External tracker URL not valid")
 				ctx.APIError(http.StatusUnprocessableEntity, err)
 				return err
@@ -820,7 +820,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	if opts.HasWiki != nil {
 		if *opts.HasWiki && opts.ExternalWiki != nil && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			// Check that values are valid
-			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
+			if !validation.IsValidURL(opts.ExternalWiki.ExternalWikiURL) {
 				err := errors.New("External wiki URL not valid")
 				ctx.APIError(http.StatusUnprocessableEntity, "Invalid external wiki URL")
 				return err

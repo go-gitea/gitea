@@ -1100,7 +1100,7 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	// start with merging by checking
-	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, form.ForceMerge); err != nil {
+	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, repo_model.MergeStyle(form.Do), form.ForceMerge); err != nil {
 		switch {
 		case errors.Is(err, pull_service.ErrIsClosed):
 			if issue.IsPull {
@@ -1120,6 +1120,8 @@ func MergePullRequest(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_not_ready"))
 		case asymkey_service.IsErrWontSign(err):
 			ctx.JSONError(err.Error()) // has no translation ...
+		case errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified):
+			ctx.JSONError(ctx.Tr("repo.pulls.require_signed_head_commits_unverified"))
 		case errors.Is(err, pull_service.ErrDependenciesLeft):
 			ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
 		default:

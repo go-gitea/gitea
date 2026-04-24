@@ -527,7 +527,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnableWiki && form.EnableExternalWiki && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
-		if !validation.IsValidExternalURL(form.ExternalWikiURL) {
+		if !validation.IsValidURL(form.ExternalWikiURL) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
 			ctx.Redirect(repo.Link() + "/settings")
 			return
@@ -557,7 +557,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnableIssues && form.EnableExternalTracker && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
-		if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
+		if !validation.IsValidURL(form.ExternalTrackerURL) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))
 			ctx.Redirect(repo.Link() + "/settings")
 			return
