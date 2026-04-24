@@ -6,6 +6,7 @@
 # PRs therefore cannot seed main's scope themselves. Running the same cache
 # steps on push-to-main is the only opportunity to populate that fallback
 # scope so fresh PR branches start with a useful cache on first run.
+
 # A PR job's exact key lives in its own PR-scope (empty on first run, filled
 # by later runs of the same PR); on miss, actions/cache's restore-keys fall
 # back to prefix matches against entries this seeder saves in main's scope.
