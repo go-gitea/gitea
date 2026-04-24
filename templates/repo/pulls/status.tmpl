@@ -40,10 +40,7 @@
 	<div class="commit-status-list">
 		{{range $cs := .CommitStatuses}}
 			<div class="commit-status-item">
-				{{$actionStatus := ""}}
-				{{if $actionInfo}}
-					{{$actionStatus = $actionInfo.IconStatus $cs}}
-				{{end}}
+				{{$actionStatus := $actionInfo.IconStatus $cs}}
 				{{if $actionStatus}}
 					{{template "repo/icons/action_status" (dict "status" $actionStatus "size" 18 "className" "commit-status icon")}}
 				{{else}}
