@@ -51,9 +51,17 @@ func NewNotifier() notify_service.Notifier {
 }
 
 func handler(items ...issueNotificationOpts) []issueNotificationOpts {
+	ctx := graceful.GetManager().ShutdownContext()
 	for _, opts := range items {
-		if err := activities_model.CreateOrUpdateIssueNotifications(graceful.GetManager().ShutdownContext(), opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
+		notifiedIDs, err := activities_model.CreateOrUpdateIssueNotifications(ctx, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID)
+		if err != nil {
 			log.Error("Was unable to create issue notification: %v", err)
+			continue
+		}
+		// Push an immediate count update to every user who had a notification row
+		// created or updated so connected tabs refresh without waiting for a poller.
+		for _, userID := range notifiedIDs {
+			notify_service.NotificationCountChange(ctx, userID)
 		}
 	}
 	return nil

@@ -94,7 +94,7 @@ func TestBroker_CancelStopsDelivery(t *testing.T) {
 	// Publishing after cancel must not panic or block.
 	b.Publish("topic", []byte("after-cancel"))
 
-	assert.False(t, b.HasSubscribers())
+	assert.False(t, b.HasTopicSubscribers("topic"))
 }
 
 func TestBroker_SlowSubscriberDoesNotBlockOthers(t *testing.T) {
@@ -132,17 +132,6 @@ func TestBroker_SlowSubscriberDoesNotBlockOthers(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("fast subscriber did not receive message after slow subscriber stalled")
 	}
-}
-
-func TestBroker_HasSubscribers(t *testing.T) {
-	b := NewBroker()
-	assert.False(t, b.HasSubscribers())
-
-	_, cancel := b.Subscribe("topic")
-	assert.True(t, b.HasSubscribers())
-
-	cancel()
-	assert.False(t, b.HasSubscribers())
 }
 
 func TestBroker_CancelDeletesEmptyTopic(t *testing.T) {

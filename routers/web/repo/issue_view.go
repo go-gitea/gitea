@@ -36,6 +36,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	issue_service "code.gitea.io/gitea/services/issue"
+	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -367,9 +368,13 @@ func ViewIssue(ctx *context.Context) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err := activities_model.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
+		changed, err := activities_model.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID)
+		if err != nil {
 			ctx.ServerError("ReadBy", err)
 			return
+		}
+		if changed {
+			notify_service.NotificationCountChange(ctx, ctx.Doer.ID)
 		}
 	}
 

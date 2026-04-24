@@ -29,12 +29,18 @@ export function initNotificationCount() {
     }, timeout);
   };
 
-  if (notificationSettings.PushUpdateTime > 0 && window.WebSocket && window.SharedWorker) {
+  if (window.WebSocket && window.SharedWorker) {
     // Receive real-time notification counts via the shared WebSocket worker.
+    // Fall back to periodic polling only when the worker signals that the
+    // WebSocket could not be established (e.g. network / proxy blocks it).
+    let pollerStarted = false;
     const worker = new UserEventsSharedWorker('notification-worker');
     worker.addMessageEventListener((event: MessageEvent) => {
       if (event.data.type === 'notification-count') {
         receiveUpdateCount(event); // no await
+      } else if (event.data.type === 'push-unavailable' && !pollerStarted) {
+        pollerStarted = true;
+        startPeriodicPoller(notificationSettings.MinTimeout);
       }
     });
     worker.startPort();

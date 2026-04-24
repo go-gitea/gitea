@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/services/context"
 	websocket_service "code.gitea.io/gitea/services/websocket"
@@ -29,6 +28,7 @@ func IssueStartStopwatch(c *context.Context) {
 		c.Flash.Warning(c.Tr("repo.issues.stopwatch_already_created"))
 	} else {
 		c.Flash.Success(c.Tr("repo.issues.tracker_auto_close"))
+		websocket_service.PublishStopwatchesForUser(c, c.Doer)
 	}
 	c.JSONRedirect("")
 }
@@ -50,6 +50,8 @@ func IssueStopStopwatch(c *context.Context) {
 		return
 	} else if !ok {
 		c.Flash.Warning(c.Tr("repo.issues.stopwatch_already_stopped"))
+	} else {
+		websocket_service.PublishStopwatchesForUser(c, c.Doer)
 	}
 	c.JSONRedirect("")
 }
@@ -70,14 +72,6 @@ func CancelStopwatch(c *context.Context) {
 		return
 	}
 
-	stopwatches, err := issues_model.GetUserStopwatches(c, c.Doer.ID, db.ListOptions{})
-	if err != nil {
-		c.ServerError("GetUserStopwatches", err)
-		return
-	}
-	if len(stopwatches) == 0 {
-		websocket_service.PublishStopwatchesForUser(c, c.Doer)
-	}
-
+	websocket_service.PublishStopwatchesForUser(c, c.Doer)
 	c.JSONRedirect("")
 }

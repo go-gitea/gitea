@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	websocket_service "code.gitea.io/gitea/services/websocket"
 )
 
 // StartIssueStopwatch creates a stopwatch for the given issue.
@@ -60,6 +61,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 		ctx.APIError(http.StatusConflict, "cannot start a stopwatch again if it already exists")
 		return
 	}
+	websocket_service.PublishStopwatchesForUser(ctx, ctx.Doer)
 
 	ctx.Status(http.StatusCreated)
 }
@@ -112,6 +114,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 		ctx.APIError(http.StatusConflict, "cannot stop a non-existent stopwatch")
 		return
 	}
+	websocket_service.PublishStopwatchesForUser(ctx, ctx.Doer)
 	ctx.Status(http.StatusCreated)
 }
 
@@ -163,6 +166,7 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 		ctx.APIError(http.StatusConflict, "cannot cancel a non-existent stopwatch")
 		return
 	}
+	websocket_service.PublishStopwatchesForUser(ctx, ctx.Doer)
 
 	ctx.Status(http.StatusNoContent)
 }

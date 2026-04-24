@@ -12,6 +12,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // GetThread get notification by ID
@@ -93,6 +94,7 @@ func ReadThread(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	notify_service.NotificationCountChange(ctx, ctx.Doer.ID)
 	if err = notif.LoadAttributes(ctx); err != nil && !issues_model.IsErrCommentNotExist(err) {
 		ctx.APIErrorInternal(err)
 		return

@@ -82,4 +82,9 @@ type Notifier interface {
 	WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun)
 
 	WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask)
+
+	// NotificationCountChange is fired whenever the unread notification count for a
+	// specific user may have changed (new notification, mark-as-read, etc.). The
+	// WebSocket notifier uses this to push an immediate update to connected tabs.
+	NotificationCountChange(ctx context.Context, userID int64)
 }

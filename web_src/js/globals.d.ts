@@ -48,7 +48,6 @@ interface Window {
       MinTimeout: number,
       TimeoutStep: number,
       MaxTimeout: number,
-      EventSourceUpdateTime: number,
     },
     enableTimeTracking: boolean,
     mermaidMaxSourceCharacters: number,
@@ -60,6 +59,7 @@ interface Window {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
+  __userEventsWsReady?: boolean,
   localUserSettings: typeof import('./modules/user-settings.ts').localUserSettings,
 
   // various captcha plugins

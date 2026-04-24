@@ -73,6 +73,8 @@ class WsSource {
   source: Source;
   reconnectTimer: ReturnType<typeof setTimeout> | null;
   reconnectDelay: number;
+  failuresWithoutConnect: number;
+  fallbackSignalled: boolean;
 
   constructor(wsUrl: string, source: Source) {
     this.wsUrl = wsUrl;
@@ -80,6 +82,8 @@ class WsSource {
     this.ws = null;
     this.reconnectTimer = null;
     this.reconnectDelay = 50;
+    this.failuresWithoutConnect = 0;
+    this.fallbackSignalled = false;
     this.connect();
   }
 
@@ -88,6 +92,8 @@ class WsSource {
 
     this.ws.addEventListener('open', () => {
       this.reconnectDelay = 50;
+      this.failuresWithoutConnect = 0;
+      this.source.notifyClients({type: 'ws-opened', data: ''});
     });
 
     this.ws.addEventListener('message', (event: MessageEvent<string>) => {
@@ -100,15 +106,28 @@ class WsSource {
       }
     });
 
-    this.ws.addEventListener('close', () => {
-      this.ws = null;
-      this.scheduleReconnect();
-    });
-
+    // `error` always fires before `close` on a failed connection, so we count
+    // failures and schedule reconnects from `close` only — otherwise the
+    // fallback threshold would trip after two real failures instead of three.
     this.ws.addEventListener('error', () => {
       this.ws = null;
+    });
+
+    this.ws.addEventListener('close', () => {
+      this.ws = null;
+      this.failuresWithoutConnect++;
+      this.maybeSignalFallback();
       this.scheduleReconnect();
     });
+  }
+
+  // If the WebSocket repeatedly fails to connect, tell page listeners once so
+  // they can fall back to periodic polling instead of relying on pushes.
+  maybeSignalFallback() {
+    if (this.fallbackSignalled) return;
+    if (this.failuresWithoutConnect < 3) return;
+    this.fallbackSignalled = true;
+    this.source.notifyClients({type: 'push-unavailable', data: ''});
   }
 
   scheduleReconnect() {

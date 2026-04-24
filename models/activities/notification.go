@@ -337,29 +337,33 @@ func GetUIDsAndNotificationCounts(ctx context.Context, since, until timeutil.Tim
 }
 
 // SetIssueReadBy sets issue to be read by given user.
-func SetIssueReadBy(ctx context.Context, issueID, userID int64) error {
+// Returns true when the user's unread count actually decreased (i.e. an unread
+// notification was flipped to read), so callers can skip the push otherwise.
+func SetIssueReadBy(ctx context.Context, issueID, userID int64) (bool, error) {
 	if err := issues_model.UpdateIssueUserByRead(ctx, userID, issueID); err != nil {
-		return err
+		return false, err
 	}
 
 	return setIssueNotificationStatusReadIfUnread(ctx, userID, issueID)
 }
 
-func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID int64) error {
+func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID int64) (bool, error) {
 	notification, err := GetIssueNotification(ctx, userID, issueID)
 	// ignore if not exists
 	if err != nil {
-		return nil
+		return false, nil
 	}
 
 	if notification.Status != NotificationStatusUnread {
-		return nil
+		return false, nil
 	}
 
 	notification.Status = NotificationStatusRead
 
-	_, err = db.GetEngine(ctx).ID(notification.ID).Cols("status").Update(notification)
-	return err
+	if _, err := db.GetEngine(ctx).ID(notification.ID).Cols("status").Update(notification); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // SetRepoReadBy sets repo to be visited by given user.

@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
+	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -153,6 +154,7 @@ func NotificationStatusPost(ctx *context.Context) {
 		ctx.ServerError("SetNotificationStatus", err)
 		return
 	}
+	notify_service.NotificationCountChange(ctx, ctx.Doer.ID)
 
 	prepareUserNotificationsData(ctx)
 	if ctx.Written() {
@@ -168,6 +170,7 @@ func NotificationPurgePost(ctx *context.Context) {
 		ctx.ServerError("UpdateNotificationStatuses", err)
 		return
 	}
+	notify_service.NotificationCountChange(ctx, ctx.Doer.ID)
 
 	ctx.Redirect(setting.AppSubURL+"/notifications", http.StatusSeeOther)
 }

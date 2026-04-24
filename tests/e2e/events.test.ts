@@ -1,16 +1,17 @@
 import {test, expect} from '@playwright/test';
 import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, timeoutFactor, randomString} from './utils.ts';
 
-// These tests rely on a short EVENT_SOURCE_UPDATE_TIME in the e2e server config.
+// The /-/ws WebSocket pipeline is push-only: every event is fired by the server
+// immediately on the DB write. These tests exercise that each event type
+// (notification-count, stopwatches, logout) reaches a connected tab.
 test.describe('events', () => {
-  test('notification count', async ({page, request}) => {
+  test('notification count increases on new notification', async ({page, request}) => {
     const owner = `ev-notif-owner-${randomString(8)}`;
     const commenter = `ev-notif-commenter-${randomString(8)}`;
     const repoName = `ev-notif-${randomString(8)}`;
 
     await Promise.all([apiCreateUser(request, owner), apiCreateUser(request, commenter)]);
 
-    // Create repo and login in parallel — repo is needed for the issue, login for the event stream
     await Promise.all([
       apiCreateRepo(request, {name: repoName, headers: apiUserHeaders(owner)}),
       loginUser(page, owner),
@@ -19,20 +20,20 @@ test.describe('events', () => {
     const badge = page.locator('a.not-mobile .notification_count');
     await expect(badge).toBeHidden();
 
-    // Create issue as another user — this generates a notification delivered via server push
+    // Wait for the SharedWorker to open its WebSocket before triggering the push.
+    await page.waitForFunction(() => window.__userEventsWsReady === true);
+
+    // Create issue as another user — the notification-count push should arrive within a few seconds
     await apiCreateIssue(request, owner, repoName, {title: 'events notification test', headers: apiUserHeaders(commenter)});
 
-    // Wait for the notification badge to appear via server event
-    await expect(badge).toBeVisible({timeout: 15000 * timeoutFactor});
+    await expect(badge).toBeVisible({timeout: 5000 * timeoutFactor});
   });
 
-  test('stopwatch', async ({page, request}) => {
+  test('stopwatch appears on active-at-page-load', async ({page, request}) => {
     const name = `ev-sw-${randomString(8)}`;
     const headers = apiUserHeaders(name);
 
     await apiCreateUser(request, name);
-
-    // Login in parallel with repo+issue+stopwatch setup (all independent after user exists)
     await Promise.all([
       loginUser(page, name),
       (async () => {
@@ -43,9 +44,32 @@ test.describe('events', () => {
     ]);
     await page.goto('/');
 
-    // Verify stopwatch is visible and links to the correct issue
     const stopwatch = page.locator('.active-stopwatch.not-mobile');
     await expect(stopwatch).toBeVisible();
+  });
+
+  test('stopwatch appears via real-time push', async ({page, request}) => {
+    const name = `ev-sw-push-${randomString(8)}`;
+    const headers = apiUserHeaders(name);
+
+    await apiCreateUser(request, name);
+    await apiCreateRepo(request, {name, headers});
+    await apiCreateIssue(request, name, name, {title: 'events stopwatch push test', headers});
+
+    // Page loads before the stopwatch starts — the icon is hidden in the rendered HTML
+    await loginUser(page, name);
+    await page.goto('/');
+    const stopwatch = page.locator('.active-stopwatch.not-mobile');
+    // Element must exist in the DOM (just hidden); otherwise the push has nothing to reveal.
+    await expect(stopwatch).toHaveCount(1);
+    await expect(stopwatch).toBeHidden();
+
+    // Wait for the SharedWorker to open its WebSocket before triggering the push.
+    await page.waitForFunction(() => window.__userEventsWsReady === true);
+
+    // Start the stopwatch from outside this tab; the push should reveal the icon
+    await apiStartStopwatch(request, name, name, 1, {headers});
+    await expect(stopwatch).toBeVisible({timeout: 5000 * timeoutFactor});
   });
 
   test('logout propagation', async ({browser, request}) => {
@@ -66,11 +90,13 @@ test.describe('events', () => {
     // Verify page2 is logged in
     await expect(page2.getByRole('link', {name: 'Sign In'})).toBeHidden();
 
+    await page2.waitForFunction(() => window.__userEventsWsReady === true);
+
     // Logout from page1 — this sends a logout event to all tabs
     await page1.goto('/user/logout');
 
     // page2 should be redirected via the logout event
-    await expect(page2.getByRole('link', {name: 'Sign In'})).toBeVisible();
+    await expect(page2.getByRole('link', {name: 'Sign In'})).toBeVisible({timeout: 5000 * timeoutFactor});
 
     await context.close();
   });

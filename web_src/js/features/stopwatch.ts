@@ -17,7 +17,8 @@ export function initStopwatch() {
     return;
   }
 
-  // global stop watch (in the head_navbar), it should always work in any case either the WebSocket push or the PeriodicPoller is used.
+  // Always initialise the icon + popup even when no stopwatch is currently active,
+  // so cross-tab WebSocket pushes have a DOM element to toggle visibility on.
   const seconds = stopwatchEls[0]?.getAttribute('data-seconds');
   if (seconds) {
     updateStopwatchTime(parseInt(seconds));
@@ -34,6 +35,11 @@ export function initStopwatch() {
       interactive: true,
       hideOnClick: true,
       theme: 'default',
+      onShow(instance) {
+        // Re-clone on every open so the popup reflects the latest stopwatch state,
+        // including the case where the icon became visible via a real-time push.
+        instance.setContent(stopwatchPopup.cloneNode(true) as Element);
+      },
     });
   }
 
@@ -42,12 +48,18 @@ export function initStopwatch() {
     setTimeout(() => updateStopwatchWithCallback(startPeriodicPoller, timeout), timeout);
   };
 
-  // if the browser supports WebSocket and SharedWorker, use it instead of the periodic poller
-  if (notificationSettings.PushUpdateTime > 0 && window.WebSocket && window.SharedWorker) {
+  // if the browser supports WebSocket and SharedWorker, use push updates.
+  // Fall back to periodic polling only when the worker signals that the
+  // WebSocket could not be established.
+  if (window.WebSocket && window.SharedWorker) {
+    let pollerStarted = false;
     const worker = new UserEventsSharedWorker('stopwatch-worker');
     worker.addMessageEventListener((event) => {
       if (event.data.type === 'stopwatches') {
         updateStopwatchData(JSON.parse(event.data.data));
+      } else if (event.data.type === 'push-unavailable' && !pollerStarted) {
+        pollerStarted = true;
+        startPeriodicPoller(notificationSettings.MinTimeout);
       }
     });
     worker.startPort();

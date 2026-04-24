@@ -948,9 +948,13 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = activities_model.SetIssueReadBy(ctx, pr.Issue.ID, ctx.Doer.ID); err != nil {
+		changed, err := activities_model.SetIssueReadBy(ctx, pr.Issue.ID, ctx.Doer.ID)
+		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
+		}
+		if changed {
+			notify_service.NotificationCountChange(ctx, ctx.Doer.ID)
 		}
 	}
 

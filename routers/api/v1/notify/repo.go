@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 func statusStringToNotificationStatus(status string) activities_model.NotificationStatus {
@@ -222,6 +223,9 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 		}
 		_ = notif.LoadAttributes(ctx)
 		changed = append(changed, convert.ToNotificationThread(ctx, notif))
+	}
+	if len(changed) > 0 {
+		notify_service.NotificationCountChange(ctx, ctx.Doer.ID)
 	}
 	ctx.JSON(http.StatusResetContent, changed)
 }

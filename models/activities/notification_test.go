@@ -20,7 +20,8 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 
-	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), issue.ID, 0, 2, 0))
+	_, err := activities_model.CreateOrUpdateIssueNotifications(t.Context(), issue.ID, 0, 2, 0)
+	assert.NoError(t, err)
 
 	// User 9 is inactive, thus notifications for user 1 and 4 are created
 	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 1, IssueID: issue.ID})
@@ -131,7 +132,8 @@ func TestSetIssueReadBy(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 	assert.NoError(t, db.WithTx(t.Context(), func(ctx context.Context) error {
-		return activities_model.SetIssueReadBy(ctx, issue.ID, user.ID)
+		_, err := activities_model.SetIssueReadBy(ctx, issue.ID, user.ID)
+		return err
 	}))
 
 	nt, err := activities_model.GetIssueNotification(t.Context(), user.ID, issue.ID)

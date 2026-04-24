@@ -62,16 +62,11 @@ func UserTopic(userID int64) string {
 	return fmt.Sprintf("user-%d", userID)
 }
 
-// HasSubscribers reports whether the broker has at least one active subscriber across all topics.
-func (b *Broker) HasSubscribers() bool {
+// HasTopicSubscribers reports whether the given topic has at least one active subscriber.
+func (b *Broker) HasTopicSubscribers(topic string) bool {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-	for _, subs := range b.subs {
-		if len(subs) > 0 {
-			return true
-		}
-	}
-	return false
+	return len(b.subs[topic]) > 0
 }
 
 // Publish sends msg to all subscribers of topic.

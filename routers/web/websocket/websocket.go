@@ -60,9 +60,9 @@ func rewriteLogout(msg []byte, connSessionID string) []byte {
 }
 
 // Serve handles WebSocket upgrade and real-time event delivery.
-// Mirrors the former /user/events SSE endpoint: requires a signed-in user and
-// rejects unauthenticated requests with 401 (reqSignIn middleware isn't used
-// here because it returns a 303 redirect which breaks the WebSocket upgrade).
+// Requires a signed-in user; rejects unauthenticated requests with 401.
+// (reqSignIn middleware isn't used here because it returns a 303 redirect
+// which breaks the WebSocket upgrade handshake.)
 func Serve(ctx *context.Context) {
 	if !ctx.IsSigned {
 		ctx.HTTPError(http.StatusUnauthorized)
