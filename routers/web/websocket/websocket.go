@@ -4,6 +4,9 @@
 package websocket
 
 import (
+	gocontext "context"
+	"time"
+
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -12,6 +15,14 @@ import (
 
 	gitea_ws "github.com/coder/websocket"
 )
+
+// pingInterval is how often the server sends a WebSocket ping to keep the
+// connection alive through idle-timeout proxies and load balancers.
+const pingInterval = 30 * time.Second
+
+// pingTimeout bounds how long the server waits for a pong response before
+// considering the connection dead and closing it.
+const pingTimeout = 10 * time.Second
 
 // logoutBrokerMsg is the internal broker message published by PublishLogout.
 type logoutBrokerMsg struct {
@@ -75,10 +86,21 @@ func Serve(ctx *context.Context) {
 	}
 
 	wsCtx := ctx.Req.Context()
+	pingTicker := time.NewTicker(pingInterval)
+	defer pingTicker.Stop()
+
 	for {
 		select {
 		case <-wsCtx.Done():
 			return
+		case <-pingTicker.C:
+			pingCtx, cancelPing := gocontext.WithTimeout(wsCtx, pingTimeout)
+			err := conn.Ping(pingCtx)
+			cancelPing()
+			if err != nil {
+				log.Trace("websocket: ping failed: %v", err)
+				return
+			}
 		case msg, ok := <-ch:
 			if !ok {
 				return
