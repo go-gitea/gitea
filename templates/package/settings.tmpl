@@ -10,7 +10,7 @@
 			{{template "user/overview/header" .}}
 		{{end}}
 		{{template "base/alert" .}}
-		<p><a href="{{.PackageDescriptor.VersionWebLink}}">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</a> / <strong>{{ctx.Locale.Tr "repo.settings"}}</strong></p>
+		<p><a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a> / <strong>{{ctx.Locale.Tr "repo.settings"}}</strong></p>
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "packages.settings.link"}}
 		</h4>
@@ -45,10 +45,20 @@
 						</div>
 						<div class="content">
 							<div class="ui warning message tw-break-anywhere">
-								{{ctx.Locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
+								{{ctx.Locale.Tr "packages.settings.delete.notice.package" .PackageDescriptor.Package.Name}}
 							</div>
 							<form class="ui form" action="{{.Link}}" method="post">
 								<input type="hidden" name="action" value="delete">
+								<div class="field">
+									<label>
+										{{ctx.Locale.Tr "packages.settings.delete.confirm"}}
+										<span class="tw-text-red">{{.PackageDescriptor.Package.Name}}</span>
+									</label>
+								</div>
+								<div class="required field">
+									<label>{{ctx.Locale.Tr "packages.name"}}</label>
+									<input name="package_name" required maxlength="100">
+								</div>
 								{{template "base/modal_actions_confirm" .}}
 							</form>
 						</div>

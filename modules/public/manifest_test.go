@@ -24,13 +24,6 @@ func TestViteManifest(t *testing.T) {
 		"isEntry": true,
 		"css": ["css/index.B3zrQPqD.css"]
 	},
-	"web_src/js/standalone/swagger.ts": {
-		"file": "js/swagger.SujiEmYM.js",
-		"name": "swagger",
-		"src": "web_src/js/standalone/swagger.ts",
-		"isEntry": true,
-		"css": ["css/swagger._-APWT_3.css"]
-	},
 	"web_src/css/themes/theme-gitea-dark.css": {
 		"file": "css/theme-gitea-dark.CyAaQnn5.css",
 		"name": "theme-gitea-dark",
@@ -62,12 +55,10 @@ func TestViteManifest(t *testing.T) {
 
 		// JS entries
 		assert.Equal(t, "js/index.C6Z2MRVQ.js", paths["js/index.js"])
-		assert.Equal(t, "js/swagger.SujiEmYM.js", paths["js/swagger.js"])
 		assert.Equal(t, "js/eventsource.sharedworker.Dug1twio.js", paths["js/eventsource.sharedworker.js"])
 
 		// Associated CSS from JS entries
 		assert.Equal(t, "css/index.B3zrQPqD.css", paths["css/index.css"])
-		assert.Equal(t, "css/swagger._-APWT_3.css", paths["css/swagger.css"])
 
 		// CSS-only entries
 		assert.Equal(t, "css/theme-gitea-dark.CyAaQnn5.css", paths["css/theme-gitea-dark.css"])
@@ -78,8 +69,6 @@ func TestViteManifest(t *testing.T) {
 		// Names: hashed path -> entry name
 		assert.Equal(t, "index", names["js/index.C6Z2MRVQ.js"])
 		assert.Equal(t, "index", names["css/index.B3zrQPqD.css"])
-		assert.Equal(t, "swagger", names["js/swagger.SujiEmYM.js"])
-		assert.Equal(t, "swagger", names["css/swagger._-APWT_3.css"])
 		assert.Equal(t, "theme-gitea-dark", names["css/theme-gitea-dark.CyAaQnn5.css"])
 		assert.Equal(t, "eventsource.sharedworker", names["js/eventsource.sharedworker.Dug1twio.js"])
 

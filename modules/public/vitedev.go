@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/routing"
 )
 
@@ -70,6 +71,9 @@ func getViteDevProxy() *httputil.ReverseProxy {
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
+			if r.Context().Err() != nil {
+				return // request cancelled (e.g. client disconnected), silently ignore
+			}
 			log.Error("Error proxying to Vite dev server: %v", err)
 			http.Error(w, "Error proxying to Vite dev server: "+err.Error(), http.StatusBadGateway)
 		},
@@ -136,32 +140,31 @@ func IsViteDevMode() bool {
 	return isDev
 }
 
-func viteDevSourceURL(name string) string {
-	if !IsViteDevMode() {
-		return ""
-	}
-	if strings.HasPrefix(name, "css/theme-") {
-		// Only redirect built-in themes to Vite source; custom themes are served from custom/public/assets/css/
-		themeFile := strings.TrimPrefix(name, "css/")
-		srcPath := filepath.Join(setting.StaticRootPath, "web_src/css/themes", themeFile)
-		if _, err := os.Stat(srcPath); err == nil {
-			return setting.AppSubURL + "/web_src/css/themes/" + themeFile
-		}
-		return ""
-	}
-	if strings.HasPrefix(name, "css/") {
-		return setting.AppSubURL + "/web_src/" + name
-	}
-	if name == "js/eventsource.sharedworker.js" {
-		return setting.AppSubURL + "/web_src/js/features/eventsource.sharedworker.ts"
-	}
-	if name == "js/iife.js" {
-		return setting.AppSubURL + "/web_src/js/__vite_iife.js"
-	}
-	if name == "js/index.js" {
-		return setting.AppSubURL + "/web_src/js/index.ts"
+func detectWebSrcPath(webSrcPath string) string {
+	localPath := util.FilePathJoinAbs(setting.StaticRootPath, "web_src", webSrcPath)
+	if _, err := os.Stat(localPath); err == nil {
+		return setting.AppSubURL + "/web_src/" + webSrcPath
 	}
 	return ""
+}
+
+func viteDevSourceURL(name string) string {
+	if strings.HasPrefix(name, "css/theme-") {
+		// Only redirect built-in themes to Vite source; custom themes are served from custom/public/assets/css/
+		themeFilePath := "css/themes/" + strings.TrimPrefix(name, "css/")
+		if srcPath := detectWebSrcPath(themeFilePath); srcPath != "" {
+			return srcPath
+		}
+	}
+	// try to map ".js" files to ".ts" files
+	pathPrefix, ok := strings.CutSuffix(name, ".js")
+	if ok {
+		if srcPath := detectWebSrcPath(pathPrefix + ".ts"); srcPath != "" {
+			return srcPath
+		}
+	}
+	// for all others that the names match
+	return detectWebSrcPath(name)
 }
 
 // isViteDevRequest returns true if the request should be proxied to the Vite dev server.

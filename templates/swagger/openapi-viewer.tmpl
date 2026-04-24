@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		{{ctx.HeadMetaContentSecurityPolicy}}
+		<title>Gitea API</title>
+		<link rel="stylesheet" href="{{ctx.CurrentWebTheme.PublicAssetURI}}">
+		{{/* HINT: SWAGGER-CSS-IMPORT: import swagger styles ahead to avoid UI flicker (e.g.: the swagger-back-link element) */}}
+		<link rel="stylesheet" href="{{AssetURI "css/swagger.css"}}">
+	</head>
+	<body>
+		{{/* TODO: add Help & Glossary to help users understand the API, and explain some concepts like "Owner" */}}
+		<a class="swagger-back-link" href="{{AppSubUrl}}/">{{svg "octicon-reply"}}{{ctx.Locale.Tr "return_to_gitea"}}</a>
+		<div id="swagger-ui" data-source="{{AppSubUrl}}/swagger.v1.json"></div>
+		<footer class="page-footer"></footer>
+		{{ctx.ScriptImport "js/swagger.js" "module"}}
+	</body>
+</html>

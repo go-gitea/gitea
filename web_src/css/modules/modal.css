@@ -159,17 +159,9 @@
   display: block;
 }
 
-.scrolling.dimmable.dimmed {
-  overflow: hidden;
-}
-
 .scrolling.dimmable > .dimmer {
   justify-content: flex-start;
   position: fixed;
-}
-
-.scrolling.dimmable.dimmed > .dimmer {
-  overflow: auto;
 }
 
 .modals.dimmer .ui.scrolling.modal {

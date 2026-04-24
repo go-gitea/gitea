@@ -115,17 +115,10 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			panic("newColumnID must not be zero") // shouldn't happen
 		}
 
-		res := struct {
-			MaxSorting int64
-			IssueCount int64
-		}{}
-		if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").Table("project_issue").
-			Where("project_id=?", newProjectID).
-			And("project_board_id=?", newColumnID).
-			Get(&res); err != nil {
+		newSorting, err := project_model.GetColumnIssueNextSorting(ctx, newProjectID, newColumnID)
+		if err != nil {
 			return err
 		}
-		newSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
 		return db.Insert(ctx, &project_model.ProjectIssue{
 			IssueID:         issue.ID,
 			ProjectID:       newProjectID,

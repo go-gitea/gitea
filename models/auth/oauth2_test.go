@@ -12,19 +12,30 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestOAuth2AuthorizationCodeValidity(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func TestOAuth2AuthorizationCode(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("GenerateSetsValidUntil", func(t *testing.T) {
 		grant := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Grant{ID: 1})
 		expectedValidUntil := timeutil.TimeStamp(time.Now().Unix() + 600)
 		code, err := grant.GenerateNewAuthorizationCode(t.Context(), "http://127.0.0.1/", "", "")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expectedValidUntil, code.ValidUntil)
 		assert.False(t, code.IsExpired())
+		assert.Equal(t, int64(1), code.ID)
+
+		code2, err := auth_model.GetOAuth2AuthorizationByCode(t.Context(), code.Code)
+		require.NoError(t, err)
+		assert.Equal(t, code.Code, code2.Code)
+
 		assert.NoError(t, code.Invalidate(t.Context()))
+
+		code, err = auth_model.GetOAuth2AuthorizationByCode(t.Context(), "does not exist")
+		require.NoError(t, err)
+		require.Nil(t, code)
 	})
 
 	t.Run("Expired", func(t *testing.T) {
@@ -34,13 +45,14 @@ func TestOAuth2AuthorizationCodeValidity(t *testing.T) {
 		assert.True(t, code.IsExpired())
 	})
 
-	t.Run("InvalidateTwice", func(t *testing.T) {
-		code, err := auth_model.GetOAuth2AuthorizationByCode(t.Context(), "authcode")
-		assert.NoError(t, err)
-		if assert.NotNil(t, code) {
-			assert.NoError(t, code.Invalidate(t.Context()))
-			assert.ErrorIs(t, code.Invalidate(t.Context()), auth_model.ErrOAuth2AuthorizationCodeInvalidated)
-		}
+	t.Run("Invalidate", func(t *testing.T) {
+		grant := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Grant{ID: 1})
+		code, err := grant.GenerateNewAuthorizationCode(t.Context(), "http://127.0.0.1/", "", "")
+		require.NoError(t, err)
+		require.NotNil(t, code)
+		require.NoError(t, code.Invalidate(t.Context()))
+		unittest.AssertNotExistsBean(t, &auth_model.OAuth2AuthorizationCode{Code: code.Code})
+		assert.ErrorIs(t, code.Invalidate(t.Context()), auth_model.ErrOAuth2AuthorizationCodeInvalidated)
 	})
 }
 
@@ -224,19 +236,6 @@ func TestRevokeOAuth2Grant(t *testing.T) {
 
 //////////////////// Authorization Code
 
-func TestGetOAuth2AuthorizationByCode(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	code, err := auth_model.GetOAuth2AuthorizationByCode(t.Context(), "authcode")
-	assert.NoError(t, err)
-	assert.NotNil(t, code)
-	assert.Equal(t, "authcode", code.Code)
-	assert.Equal(t, int64(1), code.ID)
-
-	code, err = auth_model.GetOAuth2AuthorizationByCode(t.Context(), "does not exist")
-	assert.NoError(t, err)
-	assert.Nil(t, code)
-}
-
 func TestOAuth2AuthorizationCode_ValidateCodeChallenge(t *testing.T) {
 	// test plain
 	code := &auth_model.OAuth2AuthorizationCode{
@@ -282,13 +281,6 @@ func TestOAuth2AuthorizationCode_GenerateRedirectURI(t *testing.T) {
 	redirect, err = code.GenerateRedirectURI("")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://example.com/callback?code=thecode", redirect.String())
-}
-
-func TestOAuth2AuthorizationCode_Invalidate(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	code := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2AuthorizationCode{Code: "authcode"})
-	assert.NoError(t, code.Invalidate(t.Context()))
-	unittest.AssertNotExistsBean(t, &auth_model.OAuth2AuthorizationCode{Code: "authcode"})
 }
 
 func TestOAuth2AuthorizationCode_TableName(t *testing.T) {
