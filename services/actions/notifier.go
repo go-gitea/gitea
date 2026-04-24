@@ -508,7 +508,7 @@ func (n *actionsNotifier) PullRequestCodeComment(ctx context.Context, pr *issues
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueReviewed,
 			Index:       pr.Issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+			PullRequest: convert.ToAPIPullRequest(ctx, pr, comment.Poster),
 			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, comment.Poster, nil),
 			Review: &api.ReviewPayload{

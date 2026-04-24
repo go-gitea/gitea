@@ -158,6 +158,9 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		}
 
 		notify_service.CreateIssueComment(ctx, doer, issue.Repo, issue, comment, mentions)
+		// nil mentions: CreateIssueComment already mailed/notified them. This dispatch exists
+		// only so webhook/actions fire the review-comment event for the reply.
+		notify_service.PullRequestCodeComment(ctx, issue.PullRequest, comment, nil)
 
 		return comment, nil
 	}
