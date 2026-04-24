@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -22,9 +23,14 @@ import (
 
 type GiteaContext map[string]any
 
-// GenerateGiteaContext generate the gitea context without token and gitea_runtime_token
-// job can be nil when generating a context for parsing workflow-level expressions
-func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.ActionRunJob) GiteaContext {
+// GenerateGiteaContext generate the gitea context without token and gitea_runtime_token.
+// attempt and job can be nil when generating a context for parsing workflow-level expressions.
+//
+// The run_attempt value is resolved with the following precedence:
+//  1. attempt.Attempt - the explicit attempt argument, or run.GetLatestAttempt() as a fallback
+//  2. job.Attempt - only used when neither an explicit nor latest attempt is available
+//  3. "1" - when none of the above apply (first-run parse time, before the first attempt exists)
+func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob) GiteaContext {
 	event := map[string]any{}
 	_ = json.Unmarshal([]byte(run.EventPayload), &event)
 
@@ -89,8 +95,26 @@ func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.Actio
 
 	if job != nil {
 		gitContext["job"] = job.JobID
-		gitContext["run_id"] = strconv.FormatInt(job.RunID, 10)
 		gitContext["run_attempt"] = strconv.FormatInt(job.Attempt, 10)
+	}
+
+	if attempt == nil {
+		if latestAttempt, has, err := run.GetLatestAttempt(ctx); err == nil && has {
+			attempt = latestAttempt
+		}
+	}
+
+	if attempt != nil {
+		gitContext["run_attempt"] = strconv.FormatInt(attempt.Attempt, 10)
+		if err := attempt.LoadAttributes(ctx); err == nil {
+			gitContext["triggering_actor"] = attempt.TriggerUser.Name
+		}
+	}
+
+	// Fallback for first-run parse time: no job, no attempt (LatestAttemptID==0). github.run_attempt
+	// is 1-based per the documented contract, so emit "1" rather than leaving it empty.
+	if gitContext["run_attempt"] == "" {
+		gitContext["run_attempt"] = "1"
 	}
 
 	return gitContext
@@ -108,7 +132,13 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 	}
 	needs := container.SetOf(job.Needs...)
 
-	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: job.RunID})
+	// Scope to the same attempt. For legacy jobs RunAttemptID==0, which matches all other legacy jobs in the same run.
+	findOpts := actions_model.FindRunJobOptions{
+		RunID:        job.RunID,
+		RunAttemptID: optional.Some(job.RunAttemptID),
+	}
+
+	jobs, err := db.Find[actions_model.ActionRunJob](ctx, findOpts)
 	if err != nil {
 		return nil, fmt.Errorf("FindRunJobs: %w", err)
 	}
@@ -125,11 +155,12 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 		}
 		var jobOutputs map[string]string
 		for _, job := range jobsWithSameID {
-			if job.TaskID == 0 || !job.Status.IsDone() {
-				// it shouldn't happen, or the job has been rerun
+			taskID := job.EffectiveTaskID()
+			if taskID == 0 || !job.Status.IsDone() {
+				// it shouldn't happen
 				continue
 			}
-			got, err := actions_model.FindTaskOutputByTaskID(ctx, job.TaskID)
+			got, err := actions_model.FindTaskOutputByTaskID(ctx, taskID)
 			if err != nil {
 				return nil, fmt.Errorf("FindTaskOutputByTaskID: %w", err)
 			}

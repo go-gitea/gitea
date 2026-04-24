@@ -4,6 +4,7 @@
 package devtest
 
 import (
+	"fmt"
 	mathRand "math/rand/v2"
 	"net/http"
 	"slices"
@@ -12,7 +13,9 @@ import (
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/repo/actions"
@@ -59,13 +62,18 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 }
 
 func MockActionsView(ctx *context.Context) {
-	ctx.Data["RunID"] = ctx.PathParamInt64("run")
+	if runID := ctx.PathParamInt64("run"); runID == 0 {
+		ctx.Redirect("/repo-action-view/runs/10")
+		return
+	}
 	ctx.Data["JobID"] = ctx.PathParamInt64("job")
+	ctx.Data["ActionsViewURL"] = ctx.Req.URL.Path
 	ctx.HTML(http.StatusOK, "devtest/repo-action-view")
 }
 
 func MockActionsRunsJobs(ctx *context.Context) {
 	runID := ctx.PathParamInt64("run")
+	attemptID := ctx.PathParamInt64("attempt")
 
 	alignTime := func(v, unit int64) int64 {
 		return (v + unit) / unit * unit
@@ -74,16 +82,9 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.RepoID = 12345
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
 	resp.State.Run.Link = setting.AppSubURL + "/devtest/repo-action-view/runs/" + strconv.FormatInt(runID, 10)
-	resp.State.Run.Status = actions_model.StatusRunning.String()
-	resp.State.Run.CanCancel = runID == 10
-	resp.State.Run.CanApprove = runID == 20
-	resp.State.Run.CanRerun = runID == 30
-	resp.State.Run.CanRerunFailed = runID == 30
 	resp.State.Run.CanDeleteArtifact = true
 	resp.State.Run.WorkflowID = "workflow-id"
 	resp.State.Run.WorkflowLink = "./workflow-link"
-	resp.State.Run.Duration = "1h 23m 45s"
-	resp.State.Run.TriggeredAt = time.Now().Add(-time.Hour).Unix()
 	resp.State.Run.TriggerEvent = "push"
 	resp.State.Run.Commit = actions.ViewCommit{
 		ShortSha: "ccccdddd",
@@ -98,6 +99,88 @@ func MockActionsRunsJobs(ctx *context.Context) {
 			IsDeleted: false,
 		},
 	}
+	now := time.Now()
+	currentAttemptNum := int64(1)
+	if attemptID > 0 {
+		currentAttemptNum = attemptID
+	}
+	user2 := &user_model.User{Name: "user2"}
+	user3 := &user_model.User{Name: "user3"}
+	attempts := []*actions_model.ActionRunAttempt{{
+		Attempt:       1,
+		Status:        actions_model.StatusSuccess,
+		Created:       timeutil.TimeStamp(now.Add(-time.Hour).Unix()),
+		TriggerUserID: 2,
+		TriggerUser:   user2,
+	}}
+	if runID == 10 {
+		attempts = []*actions_model.ActionRunAttempt{
+			{
+				Attempt:       3,
+				Status:        actions_model.StatusSuccess,
+				Created:       timeutil.TimeStamp(alignTime(now.Add(-time.Hour).Unix(), 3600)),
+				TriggerUserID: 2,
+				TriggerUser:   user2,
+			},
+			{
+				Attempt:       2,
+				Status:        actions_model.StatusFailure,
+				Created:       timeutil.TimeStamp(alignTime(now.Add(-2*time.Hour).Unix(), 3600)),
+				TriggerUserID: 1,
+				TriggerUser:   user3,
+			},
+			{
+				Attempt:       1,
+				Status:        actions_model.StatusSuccess,
+				Created:       timeutil.TimeStamp(alignTime(now.Add(-3*time.Hour).Unix(), 3600)),
+				TriggerUserID: 2,
+				TriggerUser:   user2,
+			},
+		}
+		if attemptID == 0 {
+			currentAttemptNum = 3
+		}
+	}
+
+	latestAttempt := attempts[0]
+	resp.State.Run.RunAttempt = currentAttemptNum
+	resp.State.Run.Done = latestAttempt.Status.IsDone()
+	resp.State.Run.Status = latestAttempt.Status.String()
+	resp.State.Run.Duration = "1h 23m 45s"
+	resp.State.Run.TriggeredAt = latestAttempt.Created.AsTime().Unix()
+	resp.State.Run.ViewLink = resp.State.Run.Link
+	for _, attempt := range attempts {
+		link := resp.State.Run.Link
+		if attempt.Attempt != latestAttempt.Attempt {
+			link = fmt.Sprintf("%s/attempts/%d", resp.State.Run.Link, attempt.Attempt)
+		}
+		current := attempt.Attempt == currentAttemptNum
+		if current {
+			resp.State.Run.Status = attempt.Status.String()
+			resp.State.Run.Done = attempt.Status.IsDone()
+			resp.State.Run.TriggeredAt = attempt.Created.AsTime().Unix()
+			if attempt.Attempt != latestAttempt.Attempt {
+				resp.State.Run.ViewLink = link
+			}
+		}
+		resp.State.Run.Attempts = append(resp.State.Run.Attempts, &actions.ViewRunAttempt{
+			Attempt:         attempt.Attempt,
+			Status:          attempt.Status.String(),
+			Done:            attempt.Status.IsDone(),
+			Link:            link,
+			Current:         current,
+			Latest:          attempt.Attempt == latestAttempt.Attempt,
+			TriggeredAt:     attempt.Created.AsTime().Unix(),
+			TriggerUserName: attempt.TriggerUser.GetDisplayName(),
+			TriggerUserLink: attempt.TriggerUser.HomeLink(),
+		})
+	}
+	isLatestAttempt := currentAttemptNum == latestAttempt.Attempt
+	resp.State.Run.CanCancel = runID == 10 && isLatestAttempt
+	resp.State.Run.CanApprove = runID == 20 && isLatestAttempt
+	resp.State.Run.CanRerun = runID == 30 && isLatestAttempt
+	resp.State.Run.CanRerunFailed = runID == 30 && isLatestAttempt
+
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:        "artifact-a",
 		Size:        100 * 1024,
@@ -123,8 +206,13 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		ExpiresUnix: 0,
 	})
 
+	jobLink := func(jobID int64) string {
+		return fmt.Sprintf("%s/jobs/%d", resp.State.Run.Link, jobID)
+	}
+
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID * 10,
+		Link:     jobLink(runID * 10),
 		JobID:    "job-100",
 		Name:     "job 100 (testsubname)",
 		Status:   actions_model.StatusRunning.String(),
@@ -133,6 +221,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	})
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID*10 + 1,
+		Link:     jobLink(runID*10 + 1),
 		JobID:    "job-101",
 		Name:     "job 101",
 		Status:   actions_model.StatusWaiting.String(),
@@ -142,6 +231,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	})
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID*10 + 2,
+		Link:     jobLink(runID*10 + 2),
 		JobID:    "job-102",
 		Name:     "ULTRA LOOOOOOOOOOOONG job name 102 that exceeds the limit",
 		Status:   actions_model.StatusFailure.String(),
@@ -151,6 +241,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	})
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID*10 + 3,
+		Link:     jobLink(runID*10 + 3),
 		JobID:    "job-103",
 		Name:     "job 103",
 		Status:   actions_model.StatusCancelled.String(),
@@ -162,8 +253,10 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	// add more jobs to a run for UI testing
 	if resp.State.Run.CanCancel {
 		for i := range 10 {
+			jobID := runID*1000 + int64(i)
 			resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
-				ID:       runID*1000 + int64(i),
+				ID:       jobID,
+				Link:     jobLink(jobID),
 				JobID:    "job-dup-test-" + strconv.Itoa(i),
 				Name:     "job dup test " + strconv.Itoa(i),
 				Status:   actions_model.StatusSuccess.String(),
@@ -182,6 +275,14 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 	jobID := ctx.PathParamInt64("job")
 	if jobID == 0 {
 		return
+	}
+
+	for _, job := range resp.State.Run.Jobs {
+		if job.ID == jobID {
+			resp.State.CurrentJob.Title = job.Name
+			resp.State.CurrentJob.Detail = job.Status
+			break
+		}
 	}
 
 	req := web.GetForm(ctx).(*actions.ViewRequest)

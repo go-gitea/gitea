@@ -86,7 +86,6 @@ details.ui.message:not(:has(pre)) summary {
 .ui.error.message,
 .ui.attached.error.message,
 .ui.red.message,
-.ui.attached.red.message,
 .ui.negative.message,
 .ui.attached.negative.message {
   background: var(--color-error-bg);
@@ -95,9 +94,7 @@ details.ui.message:not(:has(pre)) summary {
 }
 
 .ui.warning.message,
-.ui.attached.warning.message,
-.ui.yellow.message,
-.ui.attached.yellow.message {
+.ui.attached.warning.message {
   background: var(--color-warning-bg);
   color: var(--color-warning-text);
   border-color: var(--color-warning-border);

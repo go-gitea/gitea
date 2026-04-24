@@ -311,7 +311,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning) {
 			continue
 		}
-		jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 		if err != nil {
 			ctx.ServerError("GetRunJobsByRunID", err)
 			return

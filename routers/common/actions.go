@@ -31,7 +31,8 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 		return util.NewNotExistErrorf("job not found")
 	}
 
-	if curJob.TaskID == 0 {
+	taskID := curJob.EffectiveTaskID()
+	if taskID == 0 {
 		return util.NewNotExistErrorf("job not started")
 	}
 
@@ -39,7 +40,7 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 		return fmt.Errorf("LoadRun: %w", err)
 	}
 
-	task, err := actions_model.GetTaskByID(ctx, curJob.TaskID)
+	task, err := actions_model.GetTaskByID(ctx, taskID)
 	if err != nil {
 		return fmt.Errorf("GetTaskByID: %w", err)
 	}
