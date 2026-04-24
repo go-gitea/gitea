@@ -17,7 +17,7 @@ import (
 
 func TestElasticsearchIndexer(t *testing.T) {
 	// The elasticsearch instance started by pull-db-tests.yml > test-unit > services > elasticsearch
-	url := "http://elastic:changeme@elasticsearch:9200"
+	url := "http://elasticsearch:9200"
 
 	if os.Getenv("CI") == "" {
 		// Make it possible to run tests against a local elasticsearch instance

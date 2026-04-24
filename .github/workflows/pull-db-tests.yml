@@ -98,9 +98,11 @@ jobs:
       contents: read
     services:
       elasticsearch:
-        image: elasticsearch:7.5.0
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
         env:
           discovery.type: single-node
+          xpack.security.enabled: false
+          xpack.security.http.ssl.enabled: false
         ports:
           - "9200:9200"
       meilisearch:
@@ -154,6 +156,57 @@ jobs:
           RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
+  test-search-engine-compat:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: elasticsearch-7.17
+            image: docker.elastic.co/elasticsearch/elasticsearch:7.17.25
+          - name: elasticsearch-8.17
+            image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+          - name: elasticsearch-9.0
+            image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
+          - name: opensearch-2
+            image: opensearchproject/opensearch:2.18.0
+          - name: opensearch-3
+            image: opensearchproject/opensearch:3.0.0
+    services:
+      elasticsearch:
+        image: ${{ matrix.image }}
+        # DISABLE_SECURITY_PLUGIN: OpenSearch (ignored by ES).
+        # xpack.security.*: ES 8/9 enable both security and HTTP-level TLS by
+        # default; both must be off for plain-HTTP tests (ignored by ES 7 and
+        # OpenSearch).
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: "true"
+          xpack.security.enabled: "false"
+          xpack.security.http.ssl.enabled: "false"
+        ports:
+          - "9200:9200"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - name: Add hosts to /etc/hosts
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 elasticsearch" | sudo tee -a /etc/hosts'
+      - run: make deps-backend
+      - name: run search-engine integration tests
+        env:
+          CI: "true"
+          TEST_INDEXER_CODE_ES_URL: "http://elasticsearch:9200"
+        run: |
+          go test -tags 'sqlite sqlite_unlock_notify' -run '^TestElasticsearchIndexer$' ./modules/indexer/issues/elasticsearch/
+          go test -tags 'sqlite sqlite_unlock_notify' -run '^TestESIndexAndSearch$' ./modules/indexer/code/
+
   test-mysql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
@@ -172,9 +225,11 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: elasticsearch:7.5.0
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
         env:
           discovery.type: single-node
+          xpack.security.enabled: false
+          xpack.security.http.ssl.enabled: false
         ports:
           - "9200:9200"
       smtpimap:
@@ -204,7 +259,7 @@ jobs:
         env:
           TAGS: bindata
           RACE_ENABLED: true
-          TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
+          TEST_INDEXER_CODE_ES_URL: "http://elasticsearch:9200"
 
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
