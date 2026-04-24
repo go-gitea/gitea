@@ -6,6 +6,8 @@ package pubsub
 import (
 	"fmt"
 	"sync"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // Broker is a simple in-memory pub/sub broker.
@@ -75,7 +77,8 @@ func (b *Broker) HasTopicSubscribers(topic string) bool {
 }
 
 // Publish sends msg to all subscribers of topic.
-// Non-blocking: slow subscribers are skipped.
+// Non-blocking: slow subscribers are skipped. The drop is logged at Trace
+// level so persistent back-pressure is diagnosable without spamming prod logs.
 // The RLock is held for the entire fan-out to prevent a race where cancel()
 // closes a channel between the slice read and the send.
 func (b *Broker) Publish(topic string, msg []byte) {
@@ -86,7 +89,7 @@ func (b *Broker) Publish(topic string, msg []byte) {
 		select {
 		case ch <- msg:
 		default:
-			// subscriber too slow — skip
+			log.Trace("pubsub: dropping message on topic %q — subscriber channel full", topic)
 		}
 	}
 }

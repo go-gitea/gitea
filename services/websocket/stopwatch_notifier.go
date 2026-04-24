@@ -40,6 +40,7 @@ func publishStopwatchesForUser(ctx context.Context, user *user_model.User, sws [
 
 	msg, err := json.Marshal(stopwatchesEvent{Type: "stopwatches", Data: data})
 	if err != nil {
+		log.Error("websocket: marshal stopwatches event: %v", err)
 		return
 	}
 	pubsub.DefaultBroker.Publish(pubsub.UserTopic(user.ID), msg)
@@ -83,11 +84,27 @@ func runStopwatch(ctx context.Context) {
 				log.Error("websocket: GetUIDsAndStopwatch: %v", err)
 				continue
 			}
+			if len(userStopwatches) == 0 {
+				continue
+			}
+
+			userIDs := make([]int64, 0, len(userStopwatches))
+			for _, us := range userStopwatches {
+				userIDs = append(userIDs, us.UserID)
+			}
+			users, err := user_model.GetUserByIDs(ctx, userIDs)
+			if err != nil {
+				log.Error("websocket: GetUserByIDs: %v", err)
+				continue
+			}
+			usersByID := make(map[int64]*user_model.User, len(users))
+			for _, u := range users {
+				usersByID[u.ID] = u
+			}
 
 			for _, us := range userStopwatches {
-				u, err := user_model.GetUserByID(ctx, us.UserID)
-				if err != nil {
-					log.Error("websocket: GetUserByID %d: %v", us.UserID, err)
+				u, ok := usersByID[us.UserID]
+				if !ok {
 					continue
 				}
 				publishStopwatchesForUser(ctx, u, us.StopWatches)

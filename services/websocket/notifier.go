@@ -18,12 +18,6 @@ import (
 	"code.gitea.io/gitea/services/pubsub"
 )
 
-// nowTS returns the current time as a TimeStamp using the real wall clock,
-// avoiding data races with timeutil.MockUnset during tests.
-func nowTS() timeutil.TimeStamp {
-	return timeutil.TimeStamp(time.Now().Unix())
-}
-
 type notificationCountEvent struct {
 	Type  string `json:"type"`
 	Count int64  `json:"count"`
@@ -48,6 +42,7 @@ func publishNotificationCount(userID, count int64) {
 		Count: count,
 	})
 	if err != nil {
+		log.Error("websocket: marshal notification-count event: %v", err)
 		return
 	}
 	pubsub.DefaultBroker.Publish(pubsub.UserTopic(userID), msg)
@@ -61,7 +56,7 @@ func run(ctx context.Context) {
 		return
 	}
 
-	then := nowTS().Add(-2)
+	then := timeutil.TimeStampNow().Add(-2)
 	timer := time.NewTicker(setting.UI.Notification.PushUpdateTime)
 	defer timer.Stop()
 
@@ -71,11 +66,11 @@ func run(ctx context.Context) {
 			return
 		case <-timer.C:
 			if !pubsub.DefaultBroker.HasSubscribers() {
-				then = nowTS().Add(-2)
+				then = timeutil.TimeStampNow().Add(-2)
 				continue
 			}
 
-			now := nowTS().Add(-2)
+			now := timeutil.TimeStampNow().Add(-2)
 
 			uidCounts, err := activities_model.GetUIDsAndNotificationCounts(ctx, then, now)
 			if err != nil {
