@@ -63,7 +63,7 @@ export type GitRefType = 'branch' | 'tag';
 
 export type Promisable<T> = T | Promise<T>; // stricter than type-fest which uses PromiseLike
 
-// Wire contract with services/websocket/events.go — keep in sync.
+// keep in sync with services/websocket/events.go
 export type UserEventType = 'notification-count' | 'stopwatches' | 'logout' | 'push-unavailable';
 
 export type UserEventMessage = {
