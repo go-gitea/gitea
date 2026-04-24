@@ -62,8 +62,12 @@ test.describe('events', () => {
 
     await loginUser(page1, name);
 
-    // Navigate page2 so it connects to the shared event stream
+    // Navigate page2 so it connects to the shared event stream, and wait for the
+    // SSE response to start — otherwise the logout event can race the connection
+    // and be silently dropped when no messenger is registered yet for the user.
+    const eventsResponse = page2.waitForResponse((r) => r.url().includes('/user/events'));
     await page2.goto('/');
+    await eventsResponse;
 
     // Verify page2 is logged in
     await expect(page2.getByRole('link', {name: 'Sign In'})).toBeHidden();
