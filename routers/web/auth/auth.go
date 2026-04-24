@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -472,12 +471,10 @@ func HandleSignOut(ctx *context.Context) {
 // SignOut sign out from login status
 func SignOut(ctx *context.Context) {
 	if ctx.Doer != nil {
-		// Retry briefly in case another tab is still establishing its SSE connection
-		// when this logout fires — otherwise the event would be silently dropped.
-		eventsource.GetManager().SendMessageBlockingWithRetry(ctx.Doer.ID, &eventsource.Event{
+		eventsource.GetManager().SendMessageBlocking(ctx.Doer.ID, &eventsource.Event{
 			Name: "logout",
 			Data: ctx.Session.ID(),
-		}, 500*time.Millisecond)
+		})
 	}
 
 	// prepare the sign-out URL before destroying the session

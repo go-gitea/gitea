@@ -5,7 +5,6 @@ package eventsource
 
 import (
 	"sync"
-	"time"
 )
 
 // Manager manages the eventsource Messengers
@@ -86,25 +85,5 @@ func (m *Manager) SendMessageBlocking(uid int64, message *Event) {
 	m.mutex.Unlock()
 	if ok {
 		messenger.SendMessageBlocking(message)
-	}
-}
-
-// SendMessageBlockingWithRetry sends a message, retrying for up to retry duration
-// if no messenger is registered yet. Useful for events like logout where a client
-// tab may still be establishing its SSE connection when another tab triggers the event.
-func (m *Manager) SendMessageBlockingWithRetry(uid int64, message *Event, retry time.Duration) {
-	deadline := time.Now().Add(retry)
-	for {
-		m.mutex.Lock()
-		messenger, ok := m.messengers[uid]
-		m.mutex.Unlock()
-		if ok {
-			messenger.SendMessageBlocking(message)
-			return
-		}
-		if time.Now().After(deadline) {
-			return
-		}
-		time.Sleep(20 * time.Millisecond)
 	}
 }
