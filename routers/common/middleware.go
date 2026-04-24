@@ -49,8 +49,7 @@ func ProtocolMiddlewares() (handlers []any) {
 	return handlers
 }
 
-// SecurityHeadersHandler sets X-Content-Type-Options and X-Frame-Options
-// globally for every response that leaves Gitea.
+// SecurityHeadersHandler sets headers globally for every response that leaves Gitea.
 func SecurityHeadersHandler() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
