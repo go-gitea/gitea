@@ -13,11 +13,10 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: renovatebot/github-action@v46.1.10
+      - uses: renovatebot/github-action@83ec54fee49ab67d9cd201084c1ff325b4b462e4 # v46.1.10
         with:
           configurationFile: renovate.json5
           token: ${{ secrets.RENOVATE_TOKEN }}
         env:
-          RENOVATE_PLATFORM_COMMIT: "true" # commit directly to branch to avoid API rate limits and for commit signing.
           RENOVATE_BINARY_SOURCE: install # auto-install go/node toolchains needed by post-upgrade tasks.
           RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg)$"]'
