@@ -9,11 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/indexer/internal"
 	"code.gitea.io/gitea/modules/json"
@@ -67,7 +69,21 @@ func (i *Indexer) Init(ctx context.Context) (bool, error) {
 		base += "/"
 	}
 	i.base = base
-	i.client = &http.Client{}
+	// No client-level Timeout: bulk/_delete_by_query can legitimately run for
+	// minutes on large repos. Per-request deadlines come from the caller's ctx;
+	// transport-level timeouts cover stalled connects/handshakes/headers so a
+	// half-open server cannot wedge the indexer indefinitely.
+	i.client = &http.Client{
+		Transport: &http.Transport{
+			Proxy:                 http.ProxyFromEnvironment,
+			DialContext:           (&net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ResponseHeaderTimeout: 30 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			IdleConnTimeout:       90 * time.Second,
+			MaxIdleConns:          100,
+		},
+	}
 
 	exists, err := i.indexExists(ctx, i.VersionedIndexName())
 	if err != nil {
@@ -140,7 +156,7 @@ func (i *Indexer) Bulk(ctx context.Context, ops []BulkOp) error {
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer drainAndClose(res)
 
 	var body struct {
 		Errors bool `json:"errors"`
@@ -184,7 +200,7 @@ func (i *Indexer) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	res.Body.Close()
+	drainAndClose(res)
 	return nil
 }
 
@@ -238,7 +254,7 @@ func (i *Indexer) Search(ctx context.Context, req SearchRequest) (*SearchRespons
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
+	defer drainAndClose(res)
 	return decodeSearchResponse(res.Body)
 }
 
@@ -247,7 +263,7 @@ func (i *Indexer) indexExists(ctx context.Context, name string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	res.Body.Close()
+	drainAndClose(res)
 	return res.StatusCode == http.StatusOK, nil
 }
 
@@ -302,12 +318,18 @@ func (i *Indexer) doJSON(ctx context.Context, method, path string, body io.Reade
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer drainAndClose(res)
 	if out == nil {
-		_, _ = io.Copy(io.Discard, res.Body)
 		return nil
 	}
 	return json.NewDecoder(res.Body).Decode(out)
+}
+
+// drainAndClose discards any unread response body before closing so the
+// underlying TCP connection can be reused for keep-alive.
+func drainAndClose(res *http.Response) {
+	_, _ = io.Copy(io.Discard, res.Body)
+	res.Body.Close()
 }
 
 func writeJSONLine(buf *bytes.Buffer, v any) error {

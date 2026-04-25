@@ -305,7 +305,12 @@ func extractAggs(searchResult *es.SearchResponse) []*internal.SearchResultLangua
 	}
 	searchResultLanguages := make([]*internal.SearchResultLanguages, 0, 10)
 	for _, bucket := range buckets {
-		key, _ := bucket.Key.(string)
+		// language is mapped as keyword so the key is always a string; if the
+		// mapping ever changes, skip rather than emit an empty-language bucket.
+		key, ok := bucket.Key.(string)
+		if !ok {
+			continue
+		}
 		searchResultLanguages = append(searchResultLanguages, &internal.SearchResultLanguages{
 			Language: key,
 			Color:    enry.GetColor(key),
