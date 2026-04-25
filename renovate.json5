@@ -19,6 +19,18 @@
       "matchManagers": ["github-actions"],
     },
     {
+      "matchPackageNames": ["@mcaptcha/vanilla-glue"],
+      "allowedVersions": "^0.1", // breaking changes in rc versions need to be handled
+    },
+    {
+      "matchPackageNames": ["cropperjs"],
+      "allowedVersions": "^1", // need to migrate to v2 but v2 is not compatible with v1
+    },
+    {
+      "matchPackageNames": ["tailwindcss"],
+      "allowedVersions": "^3", // need to migrate
+    },
+    {
       "groupName": "go dependencies",
       "matchManagers": ["gomod"],
       "postUpgradeTasks": {
