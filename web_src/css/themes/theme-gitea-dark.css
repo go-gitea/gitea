@@ -173,9 +173,9 @@ gitea-theme-meta-info {
   --color-info-border: #254a7e;
   --color-info-bg: #1b283a;
   --color-info-text: #2f81f7;
-  --color-done-border: #4a268d;
-  --color-done-bg: #251c39;
-  --color-done-text: #a371f7;
+  --color-important-border: #4a268d;
+  --color-important-bg: #251c39;
+  --color-important-text: #a371f7;
   --color-red-badge: #db2828;
   --color-red-badge-bg: #db28281a;
   --color-red-badge-hover-bg: #db28284d;

@@ -515,10 +515,10 @@ strong.attention-tip, svg.attention-tip {
 }
 
 blockquote.attention-important {
-  border-left-color: var(--color-done-text);
+  border-left-color: var(--color-important-text);
 }
 strong.attention-important, svg.attention-important {
-  color: var(--color-done-text);
+  color: var(--color-important-text);
 }
 
 blockquote.attention-warning {
