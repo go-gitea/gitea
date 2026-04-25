@@ -42,28 +42,13 @@ func validateProjectAccess(ctx *context.APIContext, projectIDs []int64, repo *re
 		return nil
 	}
 
-	uniqueProjectIDs := make([]int64, 0, len(projectIDs))
-	seenProjectIDs := make(map[int64]struct{}, len(projectIDs))
-	for _, projectID := range projectIDs {
-		if _, seen := seenProjectIDs[projectID]; seen {
-			continue
-		}
-		seenProjectIDs[projectID] = struct{}{}
-		uniqueProjectIDs = append(uniqueProjectIDs, projectID)
-	}
-
-	projects, err := project_model.GetProjectsByIDs(ctx, uniqueProjectIDs)
+	projectsByID, err := project_model.GetProjectsMapByIDs(ctx, projectIDs)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return err
 	}
 
-	projectsByID := make(map[int64]*project_model.Project, len(projects))
-	for _, project := range projects {
-		projectsByID[project.ID] = project
-	}
-
-	for _, projectID := range uniqueProjectIDs {
+	for _, projectID := range projectIDs {
 		project, ok := projectsByID[projectID]
 		if !ok {
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Project does not exist: [id: %d]", projectID))

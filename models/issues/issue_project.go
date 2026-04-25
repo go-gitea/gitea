@@ -180,13 +180,9 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 		}
 
 		// Batch load all projects to reduce queries (1 query instead of N)
-		projects, err := project_model.GetProjectsByIDs(ctx, projectsToAdd)
+		projectMap, err := project_model.GetProjectsMapByIDs(ctx, projectsToAdd)
 		if err != nil {
 			return err
-		}
-		projectMap := make(map[int64]*project_model.Project, len(projects))
-		for _, p := range projects {
-			projectMap[p.ID] = p
 		}
 
 		// Batch load all default columns (1-2 queries instead of N)
