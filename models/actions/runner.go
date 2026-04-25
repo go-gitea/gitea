@@ -64,6 +64,8 @@ type ActionRunner struct {
 	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 	// Store if this runner is disabled and should not pick up new jobs
 	IsDisabled bool `xorm:"is_disabled NOT NULL DEFAULT false"`
+	// Store if this runner supports the StatusCancelling flow
+	HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`

@@ -23,6 +23,7 @@ import (
 	gouuid "github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protowire"
 )
 
 func NewRunnerServiceHandler() (string, http.Handler) {
@@ -72,13 +73,14 @@ func (s *Service) Register(
 	// create new runner
 	name := util.EllipsisDisplayString(req.Msg.Name, 255)
 	runner := &actions_model.ActionRunner{
-		UUID:        gouuid.New().String(),
-		Name:        name,
-		OwnerID:     runnerToken.OwnerID,
-		RepoID:      runnerToken.RepoID,
-		Version:     req.Msg.Version,
-		AgentLabels: labels,
-		Ephemeral:   req.Msg.Ephemeral,
+		UUID:                 gouuid.New().String(),
+		Name:                 name,
+		OwnerID:              runnerToken.OwnerID,
+		RepoID:               runnerToken.RepoID,
+		Version:              req.Msg.Version,
+		AgentLabels:          labels,
+		Ephemeral:            req.Msg.Ephemeral,
+		HasCancellingSupport: registerRequestHasCapability(req.Msg, "cancelling"),
 	}
 	if err := runner.GenerateToken(); err != nil {
 		return nil, errors.New("can't generate token")
@@ -108,6 +110,57 @@ func (s *Service) Register(
 	})
 
 	return res, nil
+}
+
+func registerRequestHasCapability(req *runnerv1.RegisterRequest, capability string) bool {
+	if req == nil {
+		return false
+	}
+
+	const goCapabilitiesFieldNumber = 8
+
+	b := req.ProtoReflect().GetUnknown()
+	for len(b) > 0 {
+		num, typ, n := protowire.ConsumeTag(b)
+		if n < 0 {
+			return false
+		}
+		b = b[n:]
+
+		switch typ {
+		case protowire.BytesType:
+			v, m := protowire.ConsumeBytes(b)
+			if m < 0 {
+				return false
+			}
+			if num == goCapabilitiesFieldNumber && string(v) == capability {
+				return true
+			}
+			b = b[m:]
+		case protowire.VarintType:
+			_, m := protowire.ConsumeVarint(b)
+			if m < 0 {
+				return false
+			}
+			b = b[m:]
+		case protowire.Fixed32Type:
+			_, m := protowire.ConsumeFixed32(b)
+			if m < 0 {
+				return false
+			}
+			b = b[m:]
+		case protowire.Fixed64Type:
+			_, m := protowire.ConsumeFixed64(b)
+			if m < 0 {
+				return false
+			}
+			b = b[m:]
+		default:
+			return false
+		}
+	}
+
+	return false
 }
 
 func (s *Service) Declare(

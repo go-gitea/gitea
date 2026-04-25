@@ -451,6 +451,16 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 
 	now := timeutil.TimeStampNow()
 	if status == StatusCancelling {
+		runner, err := GetRunnerByID(ctx, task.RunnerID)
+		if err != nil {
+			return err
+		}
+		if !runner.HasCancellingSupport {
+			status = StatusCancelled
+		}
+	}
+
+	if status == StatusCancelling {
 		task.Status = StatusCancelling
 
 		if _, err := UpdateRunJob(ctx, &ActionRunJob{
