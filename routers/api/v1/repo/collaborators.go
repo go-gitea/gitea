@@ -330,7 +330,7 @@ func GetReviewers(ctx *context.APIContext) {
 		return
 	}
 
-	reviewers, err := pull_service.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, 0)
+	reviewers, err := pull_service.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer, 0)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
