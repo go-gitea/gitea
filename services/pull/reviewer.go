@@ -22,7 +22,7 @@ import (
 // - For collaborator, all users that have read access or higher to the repository.
 // - For repository under organization, users under the teams which have read permission or higher of pull request unit
 // - Owner will be listed if it's not an organization, not the poster and not in the list of reviewers
-// - Private/restricted users are filtered out for non-admin doers via BuildCanSeeUserCondition
+// - Users with visibility the doer cannot see are filtered out via BuildCanSeeUserCondition
 func GetReviewers(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, posterID int64) ([]*user_model.User, error) {
 	if err := repo.LoadOwner(ctx); err != nil {
 		return nil, err
@@ -58,16 +58,11 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doer *user_m
 			builder.In("`user`.id", uniqueUserIDs.Values()),
 			builder.Eq{"`user`.is_active": true},
 		)
-		// Hide private (visibility=private) and restricted users from non-admin
-		// doers. BuildCanSeeUserCondition returns nil for admins (no extra
-		// filter) and a visibility-aware condition otherwise; we additionally
-		// exclude is_restricted=true users for non-admin doers, which the
-		// helper does not cover. Regression guard for issue #37371.
+		// Hide users the doer cannot see (visibility=private when not in same org/self).
+		// BuildCanSeeUserCondition returns nil for admins (no extra filter).
+		// Regression guard for issue #37371.
 		if visCond := user_model.BuildCanSeeUserCondition(doer); visCond != nil {
 			cond = cond.And(visCond)
-		}
-		if doer == nil || !doer.IsAdmin {
-			cond = cond.And(builder.Eq{"`user`.is_restricted": false})
 		}
 		if err := e.Where(cond).
 			OrderBy(user_model.GetOrderByName()).
