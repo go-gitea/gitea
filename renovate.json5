@@ -12,7 +12,6 @@
   "vulnerabilityAlerts": {
     "enabled": true,
   },
-  "postUpdateOptions": ["gomodTidy"],
   "packageRules": [
     {
       "groupName": "action dependencies",
