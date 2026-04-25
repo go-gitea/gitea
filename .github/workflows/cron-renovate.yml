@@ -13,7 +13,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: renovatebot/github-action@v46
+      - uses: renovatebot/github-action@v46.1.10
         with:
           configurationFile: renovate.json5
           token: ${{ secrets.RENOVATE_TOKEN }}
