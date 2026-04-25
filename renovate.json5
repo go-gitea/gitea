@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "enabledManagers": ["github-actions", "gomod", "npm"],
-  "labels": ["modifies/dependencies"],
+  "labels": ["dependencies"],
   "branchPrefix": "renovate/",
   "minimumReleaseAge": "5 days",
   "semanticCommits": "enabled",
@@ -14,11 +14,11 @@
   "postUpdateOptions": ["gomodTidy"],
   "packageRules": [
     {
-      "groupName": "workflow dependencies",
+      "groupName": "action dependencies",
       "matchManagers": ["github-actions"],
     },
     {
-      "groupName": "Go dependencies",
+      "groupName": "go dependencies",
       "matchManagers": ["gomod"],
       "postUpgradeTasks": {
         "commands": ["make tidy"],
