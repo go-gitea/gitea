@@ -5,10 +5,14 @@ on:
     - cron: "0 1 * * *" # daily at 01:00 UTC
   workflow_dispatch:
 
+concurrency:
+  group: cron-renovate
+
 jobs:
   cron-renovate:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea' # prevent running on forks
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
