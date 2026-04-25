@@ -41,7 +41,6 @@ require (
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
 	github.com/dustin/go-humanize v1.0.1
 	github.com/editorconfig/editorconfig-core-go/v2 v2.6.4
-	github.com/elastic/go-elasticsearch/v8 v8.19.4
 	github.com/emersion/go-imap v1.2.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/ethantkoenig/rupture v1.0.1
@@ -183,7 +182,6 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/elastic/elastic-transport-go/v8 v8.9.0 // indirect
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.1 // indirect
@@ -193,8 +191,6 @@ require (
 	github.com/go-fed/httpsig v1.1.1-0.20201223112313-55836744818e // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
-	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/go-webauthn/x v0.2.3 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
@@ -269,10 +265,6 @@ require (
 	github.com/zeebo/assert v1.3.0 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	go.etcd.io/bbolt v1.4.3 // indirect
-	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/otel v1.39.0 // indirect
-	go.opentelemetry.io/otel/metric v1.39.0 // indirect
-	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect

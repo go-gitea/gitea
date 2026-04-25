@@ -29,13 +29,7 @@ import (
 	"github.com/go-enry/go-enry/v2"
 )
 
-const (
-	esRepoIndexerLatestVersion = 3
-	// multi-match-types, currently only 2 types are used
-	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
-	esMultiMatchTypeBestFields   = "best_fields"
-	esMultiMatchTypePhrasePrefix = "phrase_prefix"
-)
+const esRepoIndexerLatestVersion = 3
 
 var _ internal.Indexer = &Indexer{}
 
@@ -326,22 +320,17 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	var contentQuery es.Query
 	searchMode := util.IfZero(opts.SearchMode, b.SupportedSearchModes()[0].ModeValue)
 	if searchMode == indexer.SearchModeExact {
-		// 1.21 used NewMultiMatchQuery().Type(esMultiMatchTypePhrasePrefix), but later releases changed to NewMatchPhraseQuery
 		contentQuery = es.MatchPhraseQuery("content", opts.Keyword)
 	} else /* words */ {
-		contentQuery = es.NewMultiMatchQuery(opts.Keyword, "content").Type(esMultiMatchTypeBestFields).Operator("and")
+		contentQuery = es.NewMultiMatchQuery(opts.Keyword, "content").Type(es.MultiMatchTypeBestFields).Operator("and")
 	}
 	kwQuery := es.NewBoolQuery().Should(
 		contentQuery,
-		es.NewMultiMatchQuery(opts.Keyword, "filename^10").Type(esMultiMatchTypePhrasePrefix),
+		es.NewMultiMatchQuery(opts.Keyword, "filename^10").Type(es.MultiMatchTypePhrasePrefix),
 	)
 	query := es.NewBoolQuery().Must(kwQuery)
 	if len(opts.RepoIDs) > 0 {
-		repoStrs := make([]any, 0, len(opts.RepoIDs))
-		for _, repoID := range opts.RepoIDs {
-			repoStrs = append(repoStrs, repoID)
-		}
-		query.Must(es.TermsQuery("repo_id", repoStrs...))
+		query.Must(es.TermsQuery("repo_id", es.ToAnySlice(opts.RepoIDs)...))
 	}
 
 	start, pageSize := opts.GetSkipTake()

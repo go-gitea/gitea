@@ -3,6 +3,22 @@
 
 package elasticsearch
 
+// MultiMatch types used by the call sites. See
+// https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-multi-match-query.html#multi-match-types
+const (
+	MultiMatchTypeBestFields   = "best_fields"
+	MultiMatchTypePhrasePrefix = "phrase_prefix"
+)
+
+// ToAnySlice converts []T to []any for variadic query args like TermsQuery.
+func ToAnySlice[T any](s []T) []any {
+	out := make([]any, len(s))
+	for idx, v := range s {
+		out[idx] = v
+	}
+	return out
+}
+
 // Query is an Elasticsearch query DSL node. It marshals to the JSON
 // object expected by the ES query API.
 type Query interface {

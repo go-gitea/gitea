@@ -16,13 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-const (
-	issueIndexerLatestVersion = 2
-	// multi-match-types, currently only 2 types are used
-	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
-	esMultiMatchTypeBestFields   = "best_fields"
-	esMultiMatchTypePhrasePrefix = "phrase_prefix"
-)
+const issueIndexerLatestVersion = 2
 
 var _ internal.Indexer = &Indexer{}
 
@@ -118,15 +112,15 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.Keyword != "" {
 		searchMode := util.IfZero(options.SearchMode, b.SupportedSearchModes()[0].ModeValue)
 		if searchMode == indexer.SearchModeExact {
-			query.Must(es.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(esMultiMatchTypePhrasePrefix))
+			query.Must(es.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(es.MultiMatchTypePhrasePrefix))
 		} else /* words */ {
-			query.Must(es.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(esMultiMatchTypeBestFields).Operator("and"))
+			query.Must(es.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(es.MultiMatchTypeBestFields).Operator("and"))
 		}
 	}
 
 	if len(options.RepoIDs) > 0 {
 		q := es.NewBoolQuery()
-		q.Should(es.TermsQuery("repo_id", toAnySlice(options.RepoIDs)...))
+		q.Should(es.TermsQuery("repo_id", es.ToAnySlice(options.RepoIDs)...))
 		if options.AllPublic {
 			q.Should(es.TermQuery("is_public", true))
 		}
@@ -153,7 +147,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 			}
 			query.Must(q)
 		} else if len(options.IncludedAnyLabelIDs) > 0 {
-			query.Must(es.TermsQuery("label_ids", toAnySlice(options.IncludedAnyLabelIDs)...))
+			query.Must(es.TermsQuery("label_ids", es.ToAnySlice(options.IncludedAnyLabelIDs)...))
 		}
 		if len(options.ExcludedLabelIDs) > 0 {
 			q := es.NewBoolQuery()
@@ -165,7 +159,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if len(options.MilestoneIDs) > 0 {
-		query.Must(es.TermsQuery("milestone_id", toAnySlice(options.MilestoneIDs)...))
+		query.Must(es.TermsQuery("milestone_id", es.ToAnySlice(options.MilestoneIDs)...))
 	}
 
 	if options.ProjectID.Has() {
@@ -253,15 +247,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}, nil
 }
 
-func toAnySlice[T any](s []T) []any {
-	ret := make([]any, 0, len(s))
-	for _, item := range s {
-		ret = append(ret, item)
-	}
-	return ret
-}
-
 func parseSortBy(sortBy internal.SortBy) es.SortField {
-	field := strings.TrimPrefix(string(sortBy), "-")
-	return es.SortField{Field: field, Desc: strings.HasPrefix(string(sortBy), "-")}
+	field, desc := strings.CutPrefix(string(sortBy), "-")
+	return es.SortField{Field: field, Desc: desc}
 }

@@ -10,30 +10,34 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"slices"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/indexer/internal"
 	"code.gitea.io/gitea/modules/json"
-
-	"github.com/elastic/go-elasticsearch/v8"
 )
 
 var _ internal.Indexer = &Indexer{}
 
-// Indexer is Gitea's narrow wrapper around an Elasticsearch/OpenSearch cluster.
+// Indexer is a narrow wrapper around an Elasticsearch/OpenSearch cluster.
+// It targets the REST subset shared by Elasticsearch 7/8/9 and OpenSearch 3.
 type Indexer struct {
-	client *elasticsearch.Client
+	client *http.Client
+	base   string // base URL with trailing slash, no userinfo
+	user   string
+	pass   string
 
-	url       string
 	indexName string
 	version   int
 	mapping   string
 }
 
 // NewIndexer builds an Indexer. The connection is opened by Init.
-func NewIndexer(url, indexName string, version int, mapping string) *Indexer {
+func NewIndexer(rawURL, indexName string, version int, mapping string) *Indexer {
 	return &Indexer{
-		url:       url,
+		base:      rawURL,
 		indexName: indexName,
 		version:   version,
 		mapping:   mapping,
@@ -49,11 +53,21 @@ func (i *Indexer) Init(ctx context.Context) (bool, error) {
 		return false, errors.New("indexer is already initialized")
 	}
 
-	client, err := i.newClient()
+	parsed, err := url.Parse(i.base)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("parse elasticsearch url: %w", err)
 	}
-	i.client = client
+	if parsed.User != nil {
+		i.user = parsed.User.Username()
+		i.pass, _ = parsed.User.Password()
+		parsed.User = nil
+	}
+	base := parsed.String()
+	if !strings.HasSuffix(base, "/") {
+		base += "/"
+	}
+	i.base = base
+	i.client = &http.Client{}
 
 	exists, err := i.indexExists(ctx, i.VersionedIndexName())
 	if err != nil {
@@ -79,21 +93,10 @@ func (i *Indexer) Ping(ctx context.Context) error {
 		return errors.New("indexer is not initialized")
 	}
 
-	res, err := i.client.Cluster.Health(
-		i.client.Cluster.Health.WithContext(ctx),
-	)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	if res.IsError() {
-		return fmt.Errorf("cluster health: %s", res.String())
-	}
-
 	var body struct {
 		Status string `json:"status"`
 	}
-	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+	if err := i.doJSON(ctx, http.MethodGet, "_cluster/health", nil, &body); err != nil {
 		return err
 	}
 	// Healthy = green; usable = yellow. Red is unusable.
@@ -104,11 +107,12 @@ func (i *Indexer) Ping(ctx context.Context) error {
 	return nil
 }
 
-// Close drops the client reference; idle HTTP connections are closed by the GC.
+// Close releases idle HTTP connections held by the client.
 func (i *Indexer) Close() {
-	if i == nil {
+	if i == nil || i.client == nil {
 		return
 	}
+	i.client.CloseIdleConnections()
 	i.client = nil
 }
 
@@ -132,18 +136,11 @@ func (i *Indexer) Bulk(ctx context.Context, ops []BulkOp) error {
 		}
 	}
 
-	res, err := i.client.Bulk(
-		bytes.NewReader(buf.Bytes()),
-		i.client.Bulk.WithContext(ctx),
-		i.client.Bulk.WithIndex(index),
-	)
+	res, err := i.do(ctx, http.MethodPost, urlPath(index, "_bulk"), "application/x-ndjson", bytes.NewReader(buf.Bytes()))
 	if err != nil {
 		return err
 	}
 	defer res.Body.Close()
-	if res.IsError() {
-		return fmt.Errorf("bulk: %s", res.String())
-	}
 
 	var body struct {
 		Errors bool `json:"errors"`
@@ -156,10 +153,15 @@ func (i *Indexer) Bulk(ctx context.Context, ops []BulkOp) error {
 		return err
 	}
 	if body.Errors {
+		// Each item is a single-key map ({"index": {...}} or {"delete": {...}}).
 		for _, item := range body.Items {
-			for _, result := range item {
-				if len(result.Error) > 0 {
-					return fmt.Errorf("bulk item failed (status %d): %s", result.Status, string(result.Error))
+			for action, result := range item {
+				// Delete-of-missing returns 404; that's idempotent.
+				if action == string(bulkActionDelete) && result.Status == http.StatusNotFound {
+					continue
+				}
+				if result.Status >= 300 {
+					return fmt.Errorf("bulk %s failed (status %d): %s", action, result.Status, string(result.Error))
 				}
 			}
 		}
@@ -173,36 +175,16 @@ func (i *Indexer) Index(ctx context.Context, id string, doc any) error {
 	if err != nil {
 		return err
 	}
-	res, err := i.client.Index(
-		i.VersionedIndexName(),
-		bytes.NewReader(body),
-		i.client.Index.WithContext(ctx),
-		i.client.Index.WithDocumentID(id),
-	)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	if res.IsError() {
-		return fmt.Errorf("index: %s", res.String())
-	}
-	return nil
+	return i.doJSON(ctx, http.MethodPut, urlPath(i.VersionedIndexName(), "_doc", id), bytes.NewReader(body), nil)
 }
 
 // Delete removes a single document by id. Missing ids are not an error.
 func (i *Indexer) Delete(ctx context.Context, id string) error {
-	res, err := i.client.Delete(
-		i.VersionedIndexName(),
-		id,
-		i.client.Delete.WithContext(ctx),
-	)
+	res, err := i.do(ctx, http.MethodDelete, urlPath(i.VersionedIndexName(), "_doc", id), "", nil, http.StatusNotFound)
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
-	if res.IsError() && res.StatusCode != http.StatusNotFound {
-		return fmt.Errorf("delete: %s", res.String())
-	}
+	res.Body.Close()
 	return nil
 }
 
@@ -212,35 +194,12 @@ func (i *Indexer) DeleteByQuery(ctx context.Context, query Query) error {
 	if err != nil {
 		return err
 	}
-	res, err := i.client.DeleteByQuery(
-		[]string{i.VersionedIndexName()},
-		bytes.NewReader(body),
-		i.client.DeleteByQuery.WithContext(ctx),
-	)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	if res.IsError() {
-		return fmt.Errorf("delete_by_query: %s", res.String())
-	}
-	return nil
+	return i.doJSON(ctx, http.MethodPost, urlPath(i.VersionedIndexName(), "_delete_by_query"), bytes.NewReader(body), nil)
 }
 
 // Refresh forces a refresh so recent writes are searchable.
 func (i *Indexer) Refresh(ctx context.Context) error {
-	res, err := i.client.Indices.Refresh(
-		i.client.Indices.Refresh.WithContext(ctx),
-		i.client.Indices.Refresh.WithIndex(i.VersionedIndexName()),
-	)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	if res.IsError() {
-		return fmt.Errorf("refresh: %s", res.String())
-	}
-	return nil
+	return i.doJSON(ctx, http.MethodPost, urlPath(i.VersionedIndexName(), "_refresh"), nil, nil)
 }
 
 // Search runs a search request and decodes the reply.
@@ -272,60 +231,32 @@ func (i *Indexer) Search(ctx context.Context, req SearchRequest) (*SearchRespons
 		return nil, err
 	}
 
-	res, err := i.client.Search(
-		i.client.Search.WithContext(ctx),
-		i.client.Search.WithIndex(i.VersionedIndexName()),
-		i.client.Search.WithBody(bytes.NewReader(payload)),
-		i.client.Search.WithTrackTotalHits(req.TrackTotal),
-	)
+	// Default track_total_hits is 10000 (capped count); send it explicitly so
+	// callers can choose between exact totals (true) and skipping counting (false).
+	path := urlPath(i.VersionedIndexName(), "_search") + "?track_total_hits=" + strconv.FormatBool(req.TrackTotal)
+	res, err := i.do(ctx, http.MethodPost, path, "application/json", bytes.NewReader(payload))
 	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
-	if res.IsError() {
-		return nil, fmt.Errorf("search: %s", res.String())
-	}
-
 	return decodeSearchResponse(res.Body)
 }
 
 func (i *Indexer) indexExists(ctx context.Context, name string) (bool, error) {
-	res, err := i.client.Indices.Exists(
-		[]string{name},
-		i.client.Indices.Exists.WithContext(ctx),
-	)
+	res, err := i.do(ctx, http.MethodHead, urlPath(name), "", nil, http.StatusNotFound)
 	if err != nil {
 		return false, err
 	}
-	defer res.Body.Close()
-	if res.StatusCode == http.StatusOK {
-		return true, nil
-	}
-	if res.StatusCode == http.StatusNotFound {
-		return false, nil
-	}
-	return false, fmt.Errorf("indices.exists: %s", res.String())
+	res.Body.Close()
+	return res.StatusCode == http.StatusOK, nil
 }
 
 func (i *Indexer) createIndex(ctx context.Context) error {
-	res, err := i.client.Indices.Create(
-		i.VersionedIndexName(),
-		i.client.Indices.Create.WithContext(ctx),
-		i.client.Indices.Create.WithBody(strings.NewReader(i.mapping)),
-	)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	if res.IsError() {
-		return fmt.Errorf("create index %s: %s", i.VersionedIndexName(), res.String())
-	}
-
 	var body struct {
 		Acknowledged bool `json:"acknowledged"`
 	}
-	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
-		return err
+	if err := i.doJSON(ctx, http.MethodPut, urlPath(i.VersionedIndexName()), bytes.NewBufferString(i.mapping), &body); err != nil {
+		return fmt.Errorf("create index %s: %w", i.VersionedIndexName(), err)
 	}
 	if !body.Acknowledged {
 		return fmt.Errorf("create index %s not acknowledged", i.VersionedIndexName())
@@ -333,6 +264,50 @@ func (i *Indexer) createIndex(ctx context.Context) error {
 
 	i.checkOldIndexes(ctx)
 	return nil
+}
+
+// do sends a request and returns the response. Status >= 300 is turned into
+// an error unless the status appears in okStatus. The caller closes Body.
+func (i *Indexer) do(ctx context.Context, method, path, contentType string, body io.Reader, okStatus ...int) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, i.base+path, body)
+	if err != nil {
+		return nil, err
+	}
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+	if i.user != "" || i.pass != "" {
+		req.SetBasicAuth(i.user, i.pass)
+	}
+	res, err := i.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode >= 300 && !slices.Contains(okStatus, res.StatusCode) {
+		msg := readErrBody(res)
+		res.Body.Close()
+		return nil, fmt.Errorf("%s %s: %s", method, path, msg)
+	}
+	return res, nil
+}
+
+// doJSON sends a request with a JSON body and, when out is non-nil, decodes
+// the JSON response into it.
+func (i *Indexer) doJSON(ctx context.Context, method, path string, body io.Reader, out any) error {
+	contentType := ""
+	if body != nil {
+		contentType = "application/json"
+	}
+	res, err := i.do(ctx, method, path, contentType, body)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if out == nil {
+		_, _ = io.Copy(io.Discard, res.Body)
+		return nil
+	}
+	return json.NewDecoder(res.Body).Decode(out)
 }
 
 func writeJSONLine(buf *bytes.Buffer, v any) error {
@@ -343,6 +318,15 @@ func writeJSONLine(buf *bytes.Buffer, v any) error {
 	buf.Write(enc)
 	buf.WriteByte('\n')
 	return nil
+}
+
+// readErrBody reads up to 4 KiB of an error response and drains the rest so
+// the underlying connection can be reused (keep-alive needs Body fully read).
+func readErrBody(res *http.Response) string {
+	const limit = 4 << 10
+	b, _ := io.ReadAll(io.LimitReader(res.Body, limit))
+	_, _ = io.Copy(io.Discard, res.Body)
+	return fmt.Sprintf("status %d: %s", res.StatusCode, bytes.TrimSpace(b))
 }
 
 func decodeSearchResponse(r io.Reader) (*SearchResponse, error) {
@@ -392,4 +376,16 @@ func decodeSearchResponse(r io.Reader) (*SearchResponse, error) {
 		}
 	}
 	return resp, nil
+}
+
+// urlPath joins path segments with `/` and percent-escapes each.
+func urlPath(segments ...string) string {
+	var b bytes.Buffer
+	for idx, s := range segments {
+		if idx > 0 {
+			b.WriteByte('/')
+		}
+		b.WriteString(url.PathEscape(s))
+	}
+	return b.String()
 }
