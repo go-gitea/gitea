@@ -31,6 +31,26 @@
       "allowedVersions": "^3", // need to migrate
     },
     {
+      "matchPackageNames": ["github.com/urfave/cli/v3"],
+      "allowedVersions": "<3.6.2", // v3.6.2 breaks -c flag parsing in help commands
+    },
+    {
+      "matchPackageNames": ["github.com/Azure/azure-sdk-for-go/sdk/azcore"],
+      "allowedVersions": "<1.21.0", // v1.21.0+ uses API version unsupported by Azurite in CI
+    },
+    {
+      "matchPackageNames": ["github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"],
+      "allowedVersions": "<1.6.4", // v1.6.4+ uses API version unsupported by Azurite in CI
+    },
+    {
+      "matchPackageNames": ["github.com/microsoft/go-mssqldb"],
+      "allowedVersions": "<=1.9.7", // downgraded with Azure SDK
+    },
+    {
+      "matchPackageNames": ["go.yaml.in/yaml/v4"],
+      "allowedVersions": "<4.0.0-rc.4", // rc.4 changes block scalar serialization, wait for stable release
+    },
+    {
       "groupName": "go dependencies",
       "matchManagers": ["gomod"],
       "postUpgradeTasks": {
