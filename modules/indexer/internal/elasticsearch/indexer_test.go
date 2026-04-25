@@ -124,10 +124,17 @@ func TestBulkWireShape(t *testing.T) {
 		IndexOp("a", map[string]int{"v": 1}),
 		DeleteOp("b"),
 	}))
-	want := `{"index":{"_id":"a","_index":"test.v1"}}` + "\n" +
-		`{"v":1}` + "\n" +
-		`{"delete":{"_id":"b","_index":"test.v1"}}` + "\n"
-	assert.Equal(t, want, got)
+	// Compare structurally — map-key order in encoded JSON is not stable
+	// across encoder implementations (stdlib sorts, jsonv2 does not).
+	lines := strings.Split(strings.TrimRight(got, "\n"), "\n")
+	require.Len(t, lines, 3)
+	var line0, line1, line2 map[string]any
+	require.NoError(t, json.Unmarshal([]byte(lines[0]), &line0))
+	require.NoError(t, json.Unmarshal([]byte(lines[1]), &line1))
+	require.NoError(t, json.Unmarshal([]byte(lines[2]), &line2))
+	assert.Equal(t, map[string]any{"index": map[string]any{"_id": "a", "_index": "test.v1"}}, line0)
+	assert.Equal(t, map[string]any{"v": float64(1)}, line1)
+	assert.Equal(t, map[string]any{"delete": map[string]any{"_id": "b", "_index": "test.v1"}}, line2)
 }
 
 func TestSearchSendsTrackTotalAndBody(t *testing.T) {
