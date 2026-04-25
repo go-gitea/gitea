@@ -491,7 +491,7 @@ func DeletePullReview(ctx *context.APIContext) {
 func CreatePullReview(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews repository repoCreatePullReview
 	// ---
-	// summary: Create a review to an pull request
+	// summary: Create a review to a pull request
 	// produces:
 	// - application/json
 	// parameters:
@@ -608,11 +608,11 @@ func CreatePullReview(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiReview)
 }
 
-// SubmitPullReview submit a pending review to an pull request
+// SubmitPullReview submit a pending review to a pull request
 func SubmitPullReview(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews/{id} repository repoSubmitPullReview
 	// ---
-	// summary: Submit a pending review to an pull request
+	// summary: Submit a pending review to a pull request
 	// produces:
 	// - application/json
 	// parameters:
@@ -792,7 +792,7 @@ func prepareSingleReview(ctx *context.APIContext) (*issues_model.Review, *issues
 	return review, pr, false
 }
 
-// CreateReviewRequests create review requests to an pull request
+// CreateReviewRequests create review requests to a pull request
 func CreateReviewRequests(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/requested_reviewers repository repoCreatePullReviewRequests
 	// ---
@@ -833,7 +833,7 @@ func CreateReviewRequests(ctx *context.APIContext) {
 	apiReviewRequest(ctx, *opts, true)
 }
 
-// DeleteReviewRequests delete review requests to an pull request
+// DeleteReviewRequests delete review requests to a pull request
 func DeleteReviewRequests(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/requested_reviewers repository repoDeletePullReviewRequests
 	// ---

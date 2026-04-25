@@ -51,9 +51,3 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 func SetLocaleCookie(resp http.ResponseWriter, lang string, maxAge int) {
 	SetSiteCookie(resp, "lang", lang, maxAge)
 }
-
-// DeleteLocaleCookie convenience function to delete the locale cookie consistently
-// Setting the lang cookie will trigger the middleware to reset the language to previous state.
-func DeleteLocaleCookie(resp http.ResponseWriter) {
-	SetSiteCookie(resp, "lang", "", -1)
-}

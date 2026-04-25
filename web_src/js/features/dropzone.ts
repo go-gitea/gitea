@@ -5,6 +5,7 @@ import {showTemporaryTooltip} from '../modules/tippy.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createElementFromHTML, createElementFromAttrs} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {isImageFile, isVideoFile} from '../utils.ts';
 import type Dropzone from '@deltablot/dropzone';
 
@@ -149,7 +150,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
     } catch (error) {
       // TODO: if listing the existing attachments failed, it should stop from operating the content or attachments,
       //  otherwise the attachments might be lost.
-      showErrorToast(`Failed to load attachments: ${error}`);
+      showErrorToast(`Failed to load attachments: ${errorMessage(error)}`);
       console.error(error);
     }
   });

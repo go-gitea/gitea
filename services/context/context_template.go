@@ -88,7 +88,7 @@ func (c TemplateContext) AppFullLink(link ...string) template.URL {
 	if len(link) == 0 {
 		return template.URL(s)
 	}
-	return template.URL(s + strings.TrimPrefix(link[0], "/"))
+	return template.URL(s + "/" + strings.TrimPrefix(link[0], "/"))
 }
 
 var globalVars = sync.OnceValue(func() (ret struct {
@@ -148,8 +148,7 @@ func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
 	//    * Maybe this approach should be avoided, don't make the config system too complex, just let users use A
 	return template.HTML(`<meta http-equiv="Content-Security-Policy" content="` +
 		// allow all by default (the same as old releases with no CSP)
-		// "data:" is used to load the manifest in head (maybe also need to be refactored in the future)
-		// maybe some images are also loaded by "data:", need to investigate
+		// maybe some images or markup (external) renders need "data:", need to investigate
 		`default-src * data:;` +
 
 		// enforce nonce for all scripts, disallow inline scripts
