@@ -1,8 +1,39 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
-  "enabledManagers": ["github-actions"],
+  "enabledManagers": ["github-actions", "gomod", "npm"],
   "labels": ["modifies/dependencies"],
-  "minimumReleaseAge": "5 days",
   "branchPrefix": "renovate/",
+  "minimumReleaseAge": "5 days",
+  "semanticCommits": "enabled",
+  "dependencyDashboard": true,
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+  },
+  "postUpdateOptions": ["gomodTidy"],
+  "packageRules": [
+    {
+      "groupName": "workflow dependencies",
+      "matchManagers": ["github-actions"],
+    },
+    {
+      "groupName": "Go dependencies",
+      "matchManagers": ["gomod"],
+      "postUpgradeTasks": {
+        "commands": ["make tidy"],
+        "fileFilters": ["go.mod", "go.sum", "assets/go-licenses.json"],
+        "executionMode": "branch",
+      },
+    },
+    {
+      "groupName": "npm dependencies",
+      "matchManagers": ["npm"],
+      "postUpgradeTasks": {
+        "commands": ["make svg"],
+        "fileFilters": ["public/assets/img/svg/**"],
+        "executionMode": "branch",
+      },
+    },
+  ],
 }

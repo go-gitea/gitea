@@ -2,7 +2,7 @@ name: cron-renovate
 
 on:
   schedule:
-    - cron: "0 1 * * *" # every day at 01:00 UTC
+    - cron: "0 1 * * 1" # every Monday at 01:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -12,17 +12,12 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/create-github-app-token@v1
-        id: get_token
-        with:
-          app-id: ${{ secrets.RENOVATE_APP_ID }}
-          private-key: ${{ secrets.RENOVATE_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: gitea # scope token to this repo only
       - uses: actions/checkout@v6
       - uses: renovatebot/github-action@v46
         with:
           configurationFile: renovate.json5
-          token: ${{ steps.get_token.outputs.token }}
+          token: ${{ secrets.RENOVATE_TOKEN }}
         env:
           RENOVATE_PLATFORM_COMMIT: "true" # commit directly to branch to avoid API rate limits and for commit signing.
+          RENOVATE_BINARY_SOURCE: install # auto-install go/node toolchains needed by post-upgrade tasks.
+          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg)$"]'
