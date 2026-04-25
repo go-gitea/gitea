@@ -458,7 +458,7 @@ test('select projects on new issue page shows in sidebar', async ({page}) => {
   }
 });
 
-test('SearchRepoIssuesJSON supports multiple projects', async ({page}) => {
+test('SearchRepoIssuesJSON supports multiple projects and returns 400 with invalid project id', async ({page}) => {
   const repoName = `e2e-search-api-${Date.now()}`;
   const user = env.GITEA_TEST_E2E_USER;
 
@@ -498,6 +498,10 @@ test('SearchRepoIssuesJSON supports multiple projects', async ({page}) => {
     expect(singleTitles).toContain('Issue in both projects');
     expect(singleTitles).not.toContain('Issue in Project 2 only');
     expect(singleTitles).not.toContain('Issue with no project');
+
+    // Test: Invalid project IDs return 400 (not 500)
+    const invalidResp = await page.request.get(`/${user}/${repoName}/issues/search?project=1,abc,3`);
+    expect(invalidResp.status()).toBe(400);
   } finally {
     await apiDeleteRepo(page.request, user, repoName);
   }

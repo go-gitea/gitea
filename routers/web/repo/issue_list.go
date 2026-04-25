@@ -767,7 +767,7 @@ func Issues(ctx *context.Context) {
 
 	projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("project", ctx.FormString("projects")), ","))
 	if err != nil {
-		ctx.ServerError("Invalid project parameter", err)
+		ctx.HTTPError(http.StatusBadRequest, "Invalid project parameter", err.Error())
 		return
 	}
 	projectIDs = slices.DeleteFunc(projectIDs, func(id int64) bool { return id == 0 })
