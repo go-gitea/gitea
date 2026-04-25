@@ -1,0 +1,39 @@
+name: Giteabot
+
+on:
+  push:
+    branches:
+      - main
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - labeled
+      - unlabeled
+      - closed
+      - review_requested
+      - review_request_removed
+  pull_request_review:
+    types:
+      - submitted
+      - edited
+      - dismissed
+  schedule:
+    - cron: "15 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  statuses: write
+
+jobs:
+  giteabot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Giteabot
+        uses: go-gitea/giteabot@v1
+        with:
+          github_token: ${{ secrets.GITEABOT_TOKEN }}
+          gitea_fork: giteabot/gitea
