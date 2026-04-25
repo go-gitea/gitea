@@ -457,3 +457,48 @@ test('select projects on new issue page shows in sidebar', async ({page}) => {
     await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
   }
 });
+
+test('SearchRepoIssuesJSON supports multiple projects', async ({page}) => {
+  const repoName = `e2e-search-api-${Date.now()}`;
+  const user = env.GITEA_TEST_E2E_USER;
+
+  await login(page);
+  await apiCreateRepo(page.request, {name: repoName});
+
+  try {
+    // Create two projects
+    const project1 = await createProject(page, {owner: user, repo: repoName, title: 'API Project 1'});
+    const project2 = await createProject(page, {owner: user, repo: repoName, title: 'API Project 2'});
+
+    // Create issues in different projects
+    await apiCreateIssue(page.request, {owner: user, repo: repoName, title: 'Issue in Project 1 only', projects: [project1.id]});
+    await apiCreateIssue(page.request, {owner: user, repo: repoName, title: 'Issue in Project 2 only', projects: [project2.id]});
+    await apiCreateIssue(page.request, {owner: user, repo: repoName, title: 'Issue in both projects', projects: [project1.id, project2.id]});
+    await apiCreateIssue(page.request, {owner: user, repo: repoName, title: 'Issue with no project'});
+
+    // Test: Multiple projects using comma-separated IDs
+    const multiResp = await page.request.get(`/${user}/${repoName}/issues/search?projects=${project1.id},${project2.id}`);
+    expect(multiResp.ok()).toBeTruthy();
+    const multiData = await multiResp.json();
+
+    // Verify all 3 project-related issues are returned
+    const multiTitles = multiData.map((issue: any) => issue.title);
+    expect(multiTitles).toContain('Issue in Project 1 only');
+    expect(multiTitles).toContain('Issue in Project 2 only');
+    expect(multiTitles).toContain('Issue in both projects');
+    expect(multiTitles).not.toContain('Issue with no project');
+
+    // Test: Single project filter
+    const singleResp = await page.request.get(`/${user}/${repoName}/issues/search?project=${project1.id}`);
+    expect(singleResp.ok()).toBeTruthy();
+    const singleData = await singleResp.json();
+
+    const singleTitles = singleData.map((issue: any) => issue.title);
+    expect(singleTitles).toContain('Issue in Project 1 only');
+    expect(singleTitles).toContain('Issue in both projects');
+    expect(singleTitles).not.toContain('Issue in Project 2 only');
+    expect(singleTitles).not.toContain('Issue with no project');
+  } finally {
+    await apiDeleteRepo(page.request, user, repoName);
+  }
+});

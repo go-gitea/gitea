@@ -340,9 +340,18 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		SortBy:   issue_indexer.SortByCreatedDesc,
 	}
 
-	if v := ctx.FormInt64("project"); v > 0 {
-		searchOpt.ProjectIDs = []int64{v}
+	projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("project", ctx.FormString("projects")), ","))
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, "Invalid project parameter", err.Error())
+		return
 	}
+
+	if len(projectIDs) == 1 && projectIDs[0] == -1 {
+		searchOpt.NoProjectOnly = true
+	} else if len(projectIDs) > 0 {
+		searchOpt.ProjectIDs = projectIDs
+	}
+
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)
 	}
