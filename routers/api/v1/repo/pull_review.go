@@ -208,7 +208,6 @@ func GetPullReviewComments(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiComments)
 }
 
-// CreatePullReviewCommentReply creates a reply to a pull request review comment
 func CreatePullReviewCommentReply(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/comments/{id}/replies repository repoCreatePullReviewCommentReply
 	// ---
@@ -248,6 +247,8 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PullReviewComment"
+	//   "400":
+	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
@@ -255,43 +256,23 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 
 	opts := web.GetForm(ctx).(*api.CreatePullReviewCommentReplyOptions)
 
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		if issues_model.IsErrPullRequestNotExist(err) {
-			ctx.APIErrorNotFound("GetPullRequestByIndex", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	parent := getPullReviewCommentToResolve(ctx)
+	if parent == nil {
 		return
 	}
-	if err := pr.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	parent, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
-	if err != nil {
-		if issues_model.IsErrCommentNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return
-	}
-	if parent.IssueID != pr.IssueID {
+	if parent.Issue.Index != ctx.PathParamInt64("index") {
 		ctx.APIErrorNotFound()
 		return
 	}
-	if parent.Type != issues_model.CommentTypeCode || parent.ReviewID == 0 {
-		ctx.APIError(http.StatusUnprocessableEntity, "comment is not a review comment")
+	if parent.ReviewID == 0 {
+		ctx.APIError(http.StatusBadRequest, "comment is not a review comment")
 		return
 	}
 
 	comment, err := pull_service.CreateCodeComment(ctx,
-		ctx.Doer, ctx.Repo.GitRepo, pr.Issue,
+		ctx.Doer, ctx.Repo.GitRepo, parent.Issue,
 		parent.Line, opts.Body, parent.TreePath,
-		false,           // not pending — replies attach directly to the parent review
-		parent.ReviewID, // reply target
+		false, parent.ReviewID,
 		"", nil,
 	)
 	if err != nil {
@@ -302,7 +283,7 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	comment.Issue = pr.Issue
+	comment.Issue = parent.Issue
 
 	ctx.JSON(http.StatusCreated, convert.ToPullReviewComment(ctx, comment, ctx.Doer))
 }
