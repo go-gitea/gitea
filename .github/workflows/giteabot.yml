@@ -1,4 +1,4 @@
-name: Giteabot
+name: giteabot
 
 on:
   push:
