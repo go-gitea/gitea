@@ -4,9 +4,10 @@
   "enabledManagers": ["github-actions", "gomod", "npm"],
   "labels": ["dependencies"],
   "branchPrefix": "renovate/",
+  "schedule": ["* * * * 1"], // routine PRs Mondays only; vulnerabilityAlerts bypasses this
   "minimumReleaseAge": "5 days",
   "semanticCommits": "enabled",
-  "dependencyDashboard": true,
+  "dependencyDashboard": false,
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
     "enabled": true,
