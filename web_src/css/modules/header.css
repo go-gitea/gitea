@@ -154,6 +154,12 @@ h4.ui.header .sub.header {
   border-color: var(--color-error-border) !important;
 }
 
+.ui.warning.header {
+  background: var(--color-warning-bg) !important;
+  color: var(--color-warning-text) !important;
+  border-color: var(--color-warning-border) !important;
+}
+
 .attention-header {
   padding: 0.5em 0.75em !important;
   color: var(--color-text) !important;
