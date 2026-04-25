@@ -110,12 +110,14 @@ func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *Is
 }
 
 func loadIssuesForProjectColumn(ctx context.Context, projectID, columnID int64, opts *IssuesOptions) (IssueList, error) {
-	columnOpts := opts.Copy(func(o *IssuesOptions) {
-		o.ProjectIDs = []int64{projectID}
-		o.SortType = "project-column-sorting"
-	})
-	if columnOpts == nil {
+	var columnOpts *IssuesOptions
+	if opts == nil {
 		columnOpts = &IssuesOptions{ProjectIDs: []int64{projectID}, SortType: "project-column-sorting"}
+	} else {
+		columnOpts = opts.Copy(func(o *IssuesOptions) {
+			o.ProjectIDs = []int64{projectID}
+			o.SortType = "project-column-sorting"
+		})
 	}
 
 	sess := db.GetEngine(ctx).
