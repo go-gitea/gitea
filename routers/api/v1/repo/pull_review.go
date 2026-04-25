@@ -208,6 +208,105 @@ func GetPullReviewComments(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiComments)
 }
 
+// CreatePullReviewCommentReply creates a reply to a pull request review comment
+func CreatePullReviewCommentReply(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/comments/{id}/replies repository repoCreatePullReviewCommentReply
+	// ---
+	// summary: Reply to a pull request review comment
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review comment to reply to
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/CreatePullReviewCommentReplyOptions"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/PullReviewComment"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	opts := web.GetForm(ctx).(*api.CreatePullReviewCommentReplyOptions)
+
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
+	if err != nil {
+		if issues_model.IsErrPullRequestNotExist(err) {
+			ctx.APIErrorNotFound("GetPullRequestByIndex", err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+	if err := pr.LoadIssue(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	parent, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+	if err != nil {
+		if issues_model.IsErrCommentNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+	if parent.IssueID != pr.IssueID {
+		ctx.APIErrorNotFound()
+		return
+	}
+	if parent.Type != issues_model.CommentTypeCode || parent.ReviewID == 0 {
+		ctx.APIError(http.StatusUnprocessableEntity, "comment is not a review comment")
+		return
+	}
+
+	comment, err := pull_service.CreateCodeComment(ctx,
+		ctx.Doer, ctx.Repo.GitRepo, pr.Issue,
+		parent.Line, opts.Body, parent.TreePath,
+		false,           // not pending — replies attach directly to the parent review
+		parent.ReviewID, // reply target
+		"", nil,
+	)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if err := comment.LoadPoster(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	comment.Issue = pr.Issue
+
+	ctx.JSON(http.StatusCreated, convert.ToPullReviewComment(ctx, comment, ctx.Doer))
+}
+
 // ResolvePullReviewComment resolves a review comment in a pull request
 func ResolvePullReviewComment(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/comments/{id}/resolve repository repoResolvePullReviewComment
@@ -465,53 +564,11 @@ func CreatePullReview(ctx *context.APIContext) {
 		opts.CommitID = headCommitID
 	}
 
-	// resolve all in_reply_to IDs up front; replies in one request must target the same review
-	var replyReviewID int64
-	hasNonReplyComment := false
-	for _, c := range opts.Comments {
-		if c.InReplyToID == 0 {
-			hasNonReplyComment = true
-			continue
-		}
-		comment, err := issues_model.GetCommentByID(ctx, c.InReplyToID)
-		if err != nil {
-			if issues_model.IsErrCommentNotExist(err) {
-				ctx.APIErrorNotFound()
-			} else {
-				ctx.APIErrorInternal(err)
-			}
-			return
-		}
-		if comment.IssueID != pr.IssueID {
-			ctx.APIErrorNotFound()
-			return
-		}
-		if comment.Type != issues_model.CommentTypeCode || comment.ReviewID == 0 {
-			ctx.APIError(http.StatusUnprocessableEntity, "comment is not a review comment")
-			return
-		}
-		if replyReviewID != 0 && comment.ReviewID != replyReviewID {
-			ctx.APIError(http.StatusUnprocessableEntity, "replies must be to comments in the same review")
-			return
-		}
-		replyReviewID = comment.ReviewID
-	}
-
-	// a reply-only request attaches to the target review without creating a new one
-	noNewContent := !hasNonReplyComment && strings.TrimSpace(opts.Body) == ""
-	isDecisiveEvent := reviewType == issues_model.ReviewTypeApprove || reviewType == issues_model.ReviewTypeReject
-	isReplyOnly := replyReviewID != 0 && noNewContent && !isDecisiveEvent
-
 	// create review comments
 	for _, c := range opts.Comments {
 		line := c.NewLineNum
 		if c.OldLineNum > 0 {
 			line = c.OldLineNum * -1
-		}
-
-		var commentReviewID int64
-		if c.InReplyToID != 0 {
-			commentReviewID = replyReviewID
 		}
 
 		if _, err := pull_service.CreateCodeComment(ctx,
@@ -521,8 +578,8 @@ func CreatePullReview(ctx *context.APIContext) {
 			line,
 			c.Body,
 			c.Path,
-			commentReviewID == 0, // pending
-			commentReviewID,      // reply
+			true, // pending review
+			0,    // no reply
 			opts.CommitID,
 			nil,
 		); err != nil {
@@ -531,24 +588,15 @@ func CreatePullReview(ctx *context.APIContext) {
 		}
 	}
 
-	var review *issues_model.Review
-	if isReplyOnly {
-		review, err = issues_model.GetReviewByID(ctx, replyReviewID)
-		if err != nil {
+	// create review and associate all pending review comments
+	review, _, err := pull_service.SubmitReview(ctx, ctx.Doer, ctx.Repo.GitRepo, pr.Issue, reviewType, opts.Body, opts.CommitID, nil)
+	if err != nil {
+		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) {
+			ctx.APIError(http.StatusUnprocessableEntity, err)
+		} else {
 			ctx.APIErrorInternal(err)
-			return
 		}
-	} else {
-		// create review and associate all pending review comments
-		review, _, err = pull_service.SubmitReview(ctx, ctx.Doer, ctx.Repo.GitRepo, pr.Issue, reviewType, opts.Body, opts.CommitID, nil)
-		if err != nil {
-			if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
-			} else {
-				ctx.APIErrorInternal(err)
-			}
-			return
-		}
+		return
 	}
 
 	// convert response

@@ -544,47 +544,41 @@ func TestAPIPullReviewCommentReply(t *testing.T) {
 	commitID, err := gitRepo.GetRefCommitID(pullIssue.PullRequest.GetGitHeadRefName())
 	require.NoError(t, err)
 
-	// create an initial code comment to reply to
-	originalComment, err := pull_service.CreateCodeComment(t.Context(), doer, gitRepo, pullIssue, 1, "original comment", "README.md", false, 0, commitID, nil)
+	parent, err := pull_service.CreateCodeComment(t.Context(), doer, gitRepo, pullIssue, 1, "parent comment", "README.md", false, 0, commitID, nil)
 	require.NoError(t, err)
+	require.NotZero(t, parent.ReviewID)
 
+	repo := pullIssue.Repo
 	session := loginUser(t, doer.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", pullIssue.Repo.OwnerName, pullIssue.Repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
-		Event: "COMMENT",
-		Comments: []api.CreatePullReviewComment{{
-			Path: "README.md", Body: "reply to original", NewLineNum: 1, InReplyToID: originalComment.ID,
-		}},
-	}).AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
+	url := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/comments/%d/replies", repo.OwnerName, repo.Name, pullIssue.Index, parent.ID)
 
-	var review api.PullReview
-	DecodeJSON(t, resp, &review)
-	assert.EqualValues(t, "COMMENT", review.State)
+	// happy path
+	req := NewRequestWithJSON(t, http.MethodPost, url, &api.CreatePullReviewCommentReplyOptions{Body: "the reply"}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusCreated)
 
-	// verify the reply is threaded under the original review
-	comments, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
-		ReviewID: originalComment.ReviewID,
-		Type:     issues_model.CommentTypeCode,
-	})
-	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(comments), 2)
+	var reply api.PullReviewComment
+	DecodeJSON(t, resp, &reply)
+	assert.Equal(t, "the reply", reply.Body)
+	assert.Equal(t, parent.ReviewID, reply.ReviewID)
+	assert.Equal(t, "README.md", reply.Path)
 
-	// create a second code comment under a different review
-	otherComment, err := pull_service.CreateCodeComment(t.Context(), doer, gitRepo, pullIssue, 1, "other review comment", "README.md", false, 0, commitID, nil)
-	require.NoError(t, err)
-	require.NotEqual(t, originalComment.ReviewID, otherComment.ReviewID)
-
-	// replies targeting different reviews should be rejected
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", pullIssue.Repo.OwnerName, pullIssue.Repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
-		Event: "COMMENT",
-		Comments: []api.CreatePullReviewComment{
-			{Body: "r1", InReplyToID: originalComment.ID},
-			{Body: "r2", InReplyToID: otherComment.ID},
-		},
-	}).AddTokenAuth(token)
+	// empty body — caught by binding
+	req = NewRequestWithJSON(t, http.MethodPost, url, &api.CreatePullReviewCommentReplyOptions{}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	// reply to a non-existent comment
+	bad := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/comments/%d/replies", repo.OwnerName, repo.Name, pullIssue.Index, 999999)
+	req = NewRequestWithJSON(t, http.MethodPost, bad, &api.CreatePullReviewCommentReplyOptions{Body: "x"}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// reply to a code comment that belongs to a different PR — 404
+	otherCodeComment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4, Type: issues_model.CommentTypeCode})
+	require.NotEqual(t, pullIssue.ID, otherCodeComment.IssueID)
+	wrongPR := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/comments/%d/replies", repo.OwnerName, repo.Name, pullIssue.Index, otherCodeComment.ID)
+	req = NewRequestWithJSON(t, http.MethodPost, wrongPR, &api.CreatePullReviewCommentReplyOptions{Body: "x"}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func reviewsCountCheck(t *testing.T, name string, issueID, reviewerID int64, expectedDismissed, expectedRequested, expectedTotal int, expectApproval bool) {

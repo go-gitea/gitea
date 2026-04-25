@@ -92,8 +92,11 @@ type CreatePullReviewComment struct {
 	OldLineNum int64 `json:"old_position"`
 	// if comment to new file line or 0
 	NewLineNum int64 `json:"new_position"`
-	// if replying to an existing review comment, the comment ID to reply to
-	InReplyToID int64 `json:"in_reply_to_id"`
+}
+
+// CreatePullReviewCommentReplyOptions are options to reply to a pull request review comment
+type CreatePullReviewCommentReplyOptions struct {
+	Body string `json:"body" binding:"Required"`
 }
 
 // SubmitPullReviewOptions are options to submit a pending pull request review
