@@ -666,7 +666,7 @@ async function hashChangeListener() {
 }
 
 .job-step-logs .log-line-debug {
-  background: var(--color-important-bg);
+  background: var(--color-secondary-alpha-30);
 }
 
 .job-step-logs .log-cmd-error > .log-msg-label {
