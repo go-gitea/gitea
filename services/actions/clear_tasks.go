@@ -159,7 +159,11 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 	jobs := make([]*actions_model.ActionRunJob, 0, len(tasks))
 	for _, task := range tasks {
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			if err := actions_model.StopTask(ctx, task.ID, actions_model.StatusFailure); err != nil {
+			stopStatus := actions_model.StatusFailure
+			if task.Status == actions_model.StatusCancelling {
+				stopStatus = actions_model.StatusCancelled
+			}
+			if err := actions_model.StopTask(ctx, task.ID, stopStatus); err != nil {
 				return err
 			}
 			if err := task.LoadJob(ctx); err != nil {
