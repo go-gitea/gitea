@@ -204,14 +204,14 @@ textarea:focus,
 .ui.form .field.error input {
   background-color: var(--color-error-bg);
   border-color: var(--color-error-border);
-  color: var(--color-error-text);
+  color: var(--color-input-text);
 }
 .ui.form .field.error textarea:focus,
 .ui.form .field.error select:focus,
 .ui.form .field.error input:focus {
   background-color: var(--color-error-bg);
   border-color: var(--color-error-border);
-  color: var(--color-error-text);
+  color: var(--color-input-text);
 }
 
 .ui.form .field.error select {

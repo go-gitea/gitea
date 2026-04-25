@@ -36,6 +36,10 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 		"##[group]test group for: step={step}, cursor={cursor}",
 		"in group msg for: step={step}, cursor={cursor}",
 		"##[endgroup]",
+		"::error::mock error for: step={step}, cursor={cursor}",
+		"::warning::mock warning for: step={step}, cursor={cursor}",
+		"::notice::mock notice for: step={step}, cursor={cursor}",
+		"::debug::mock debug for: step={step}, cursor={cursor}",
 	)
 	// usually the cursor is the "file offset", but here we abuse it as "line number" to make the mock easier, intentionally
 	cur := logCur.Cursor

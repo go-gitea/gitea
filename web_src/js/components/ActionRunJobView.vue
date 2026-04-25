@@ -663,6 +663,14 @@ async function hashChangeListener() {
   background: var(--color-warning-bg);
 }
 
+.job-step-logs .log-line-notice {
+  background: var(--color-info-bg);
+}
+
+.job-step-logs .log-line-debug {
+  background: var(--color-secondary-alpha-30);
+}
+
 .job-step-logs .log-cmd-error > .log-msg-label {
   color: var(--color-error-text);
 }
@@ -671,7 +679,11 @@ async function hashChangeListener() {
   color: var(--color-warning-text);
 }
 
-.job-step-logs .log-cmd-debug {
+.job-step-logs .log-cmd-notice > .log-msg-label {
+  color: var(--color-info-text);
+}
+
+.job-step-logs .log-cmd-debug > .log-msg-label {
   color: var(--color-violet);
 }
 

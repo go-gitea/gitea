@@ -51,7 +51,6 @@
 .ui.blue.message,
 .ui.attached.blue.message {
   background: var(--color-info-bg);
-  color: var(--color-info-text);
   border-color: var(--color-info-border);
 }
 
@@ -60,7 +59,6 @@
 .ui.positive.message,
 .ui.attached.positive.message {
   background: var(--color-success-bg);
-  color: var(--color-success-text);
   border-color: var(--color-success-border);
 }
 
@@ -71,7 +69,6 @@
 .ui.negative.message,
 .ui.attached.negative.message {
   background: var(--color-error-bg);
-  color: var(--color-error-text);
   border-color: var(--color-error-border);
 }
 
@@ -80,7 +77,6 @@
 .ui.yellow.message,
 .ui.attached.yellow.message {
   background: var(--color-warning-bg);
-  color: var(--color-warning-text);
   border-color: var(--color-warning-border);
 }
 

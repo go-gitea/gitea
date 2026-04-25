@@ -500,10 +500,10 @@ img.ui.avatar,
 }
 
 blockquote.attention-note {
-  border-left-color: var(--color-blue-dark-1);
+  border-left-color: var(--color-info-text);
 }
 strong.attention-note, svg.attention-note {
-  color: var(--color-blue-dark-1);
+  color: var(--color-info-text);
 }
 
 blockquote.attention-tip {
@@ -514,10 +514,10 @@ strong.attention-tip, svg.attention-tip {
 }
 
 blockquote.attention-important {
-  border-left-color: var(--color-violet-dark-1);
+  border-left-color: var(--color-priority-text);
 }
 strong.attention-important, svg.attention-important {
-  color: var(--color-violet-dark-1);
+  color: var(--color-priority-text);
 }
 
 blockquote.attention-warning {
@@ -528,10 +528,10 @@ strong.attention-warning, svg.attention-warning {
 }
 
 blockquote.attention-caution {
-  border-left-color: var(--color-red-dark-1);
+  border-left-color: var(--color-error-text);
 }
 strong.attention-caution, svg.attention-caution {
-  color: var(--color-red-dark-1);
+  color: var(--color-error-text);
 }
 
 /* FIXME: this is a longstanding dirty patch since 2015, it only makes the pages more messy and shouldn't be used */
