@@ -29,7 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -387,10 +386,13 @@ func ViewIssue(ctx *context.Context) {
 		prepareIssueViewSidebarTimeTracker,
 		prepareIssueViewSidebarDependency,
 		prepareIssueViewSidebarPin,
-		func(ctx *context.Context, issue *issues_model.Issue) { preparePullViewPullInfo(ctx, issue) },
-		preparePullViewReviewAndMerge,
 	}
-
+	if issue.IsPull {
+		prepareFuncs = append(prepareFuncs,
+			func(ctx *context.Context, issue *issues_model.Issue) { preparePullViewPullInfo(ctx, issue) },
+			preparePullViewReviewAndMerge,
+		)
+	}
 	for _, prepareFunc := range prepareFuncs {
 		prepareFunc(ctx, issue)
 		if ctx.Written() {
@@ -444,7 +446,13 @@ func ViewPullMergeBox(ctx *context.Context) {
 		return
 	}
 	preparePullViewPullInfo(ctx, issue)
+	if ctx.Written() {
+		return
+	}
 	preparePullViewReviewAndMerge(ctx, issue)
+	if ctx.Written() {
+		return
+	}
 	ctx.Data["PullMergeBoxReloading"] = issue.PullRequest.IsChecking()
 
 	// TODO: it should use a dedicated struct to render the pull merge box, to make sure all data is prepared correctly
@@ -781,14 +789,14 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 		} else if comment.Type == issues_model.CommentTypeAddTimeManual ||
 			comment.Type == issues_model.CommentTypeStopTracking ||
 			comment.Type == issues_model.CommentTypeDeleteTimeManual {
-			// drop error since times could be pruned from DB..
+			// drop error since times could be pruned from DB
 			_ = comment.LoadTime(ctx)
 			if comment.Content != "" {
 				// Content before v1.21 did store the formatted string instead of seconds,
 				// so "|" is used as delimiter to mark the new format
 				if comment.Content[0] != '|' {
 					// handle old time comments that have formatted text stored
-					comment.RenderedContent = templates.SanitizeHTML(comment.Content)
+					comment.RenderedContent = markup.Sanitize(comment.Content)
 					comment.Content = ""
 				} else {
 					// else it's just a duration in seconds to pass on to the frontend

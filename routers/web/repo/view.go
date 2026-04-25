@@ -16,10 +16,6 @@ import (
 	"strings"
 	"time"
 
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
-	_ "image/png"  // for processing png images
-
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -46,6 +42,9 @@ import (
 
 	_ "golang.org/x/image/bmp"  // for processing bmp images
 	_ "golang.org/x/image/webp" // for processing webp images
+	_ "image/gif"               // for processing gif images
+	_ "image/jpeg"              // for processing jpeg images
+	_ "image/png"               // for processing png images
 )
 
 const (
@@ -159,7 +158,7 @@ func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, r
 	go func() {
 		sb := &strings.Builder{}
 		if markup.RendererNeedPostProcess(renderer) {
-			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP) // We allow NBSP here this is rendered
+			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.EscapeOptionsForView())
 		} else {
 			escaped = &charset.EscapeStatus{}
 			_, _ = io.Copy(sb, markupRd)
@@ -310,13 +309,15 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 
-	{
+	{ // this block is for testing purpose only
 		if timeout != 0 && !setting.IsProd && !setting.IsInTesting {
 			log.Debug("first call to get directory file commit info")
 			clearFilesCommitInfo := func() {
 				log.Warn("clear directory file commit info to force async loading on frontend")
 				for i := range files {
-					files[i].Commit = nil
+					if i%2 == 0 { // for testing purpose, only clear half of the files' commit info
+						files[i].Commit = nil
+					}
 				}
 			}
 			_ = clearFilesCommitInfo

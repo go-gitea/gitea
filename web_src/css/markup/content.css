@@ -154,12 +154,6 @@ In markup content, we always use bottom margin for all elements */
   padding-inline-start: 2em;
 }
 
-.markup ul.no-list,
-.markup ol.no-list {
-  padding: 0;
-  list-style-type: none;
-}
-
 .markup .task-list-item {
   list-style-type: none;
 }
@@ -290,7 +284,9 @@ In markup content, we always use bottom margin for all elements */
    We decide which to show via `data-gitea-theme-dark` on `<html>`, which is
    mirrored from `--is-dark-theme` in JS (so it also works with auto/custom themes).
 */
+html[data-gitea-theme-dark="true"] .markup a[href*="#gh-light-mode-only"],
 html[data-gitea-theme-dark="true"] .markup img[src*="#gh-light-mode-only"],
+html[data-gitea-theme-dark="false"] .markup a[href*="#gh-dark-mode-only"],
 html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   display: none;
 }
@@ -353,69 +349,6 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   padding: 5px 0 0;
   clear: both;
   color: var(--color-text);
-}
-
-.markup span.align-center {
-  display: block;
-  overflow: hidden;
-  clear: both;
-}
-
-.markup span.align-center > span {
-  display: block;
-  margin: 13px auto 0;
-  overflow: hidden;
-  text-align: center;
-}
-
-.markup span.align-center span img,
-.markup span.align-center span video {
-  margin: 0 auto;
-  text-align: center;
-}
-
-.markup span.align-right {
-  display: block;
-  overflow: hidden;
-  clear: both;
-}
-
-.markup span.align-right > span {
-  display: block;
-  margin: 13px 0 0;
-  overflow: hidden;
-  text-align: right;
-}
-
-.markup span.align-right span img,
-.markup span.align-right span video {
-  margin: 0;
-  text-align: right;
-}
-
-.markup span.float-left {
-  display: block;
-  float: left;
-  margin-inline-end: 13px;
-  overflow: hidden;
-}
-
-.markup span.float-left span {
-  margin: 13px 0 0;
-}
-
-.markup span.float-right {
-  display: block;
-  float: right;
-  margin-inline-start: 13px;
-  overflow: hidden;
-}
-
-.markup span.float-right > span {
-  display: block;
-  margin: 13px auto 0;
-  overflow: hidden;
-  text-align: right;
 }
 
 .markup code,
@@ -503,7 +436,7 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
   background-color: var(--color-markup-code-inline);
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
-  box-shadow: inset 0 -1px 0 var(--color-secondary);
+  box-shadow: var(--box-shadow-kbd);
 }
 
 .markup .ui.list .list,
@@ -525,8 +458,11 @@ html[data-gitea-theme-dark="false"] .markup img[src*="#gh-dark-mode-only"] {
 }
 
 .external-render-iframe {
+  display: block; /* removes the inline baseline gap below the iframe */
   width: 100%;
   height: max(300px, 80vh);
+  border: none;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .markup-content-iframe {

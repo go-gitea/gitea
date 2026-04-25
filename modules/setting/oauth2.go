@@ -99,6 +99,7 @@ var OAuth2 = struct {
 	JWTClaimIssuer             string `ini:"JWT_CLAIM_ISSUER"`
 	MaxTokenLength             int
 	DefaultApplications        []string
+	CustomSchemes              []string
 }{
 	Enabled:                    true,
 	AccessTokenExpirationTime:  3600,
@@ -139,10 +140,7 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 	if InstallLock {
 		jwtSecretBytes, err := generate.DecodeJwtSecretBase64(jwtSecretBase64)
 		if err != nil {
-			jwtSecretBytes, jwtSecretBase64, err = generate.NewJwtSecretWithBase64()
-			if err != nil {
-				log.Fatal("error generating JWT secret: %v", err)
-			}
+			jwtSecretBytes, jwtSecretBase64 = generate.NewJwtSecretWithBase64()
 			saveCfg, err := rootCfg.PrepareSaving()
 			if err != nil {
 				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
@@ -162,10 +160,7 @@ var generalSigningSecret atomic.Pointer[[]byte]
 func GetGeneralTokenSigningSecret() []byte {
 	old := generalSigningSecret.Load()
 	if old == nil || len(*old) == 0 {
-		jwtSecret, _, err := generate.NewJwtSecretWithBase64()
-		if err != nil {
-			log.Fatal("Unable to generate general JWT secret: %v", err)
-		}
+		jwtSecret, _ := generate.NewJwtSecretWithBase64()
 		if generalSigningSecret.CompareAndSwap(old, &jwtSecret) {
 			return jwtSecret
 		}

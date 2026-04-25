@@ -498,30 +498,10 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	opt := web.GetForm(ctx).(*api.CreateRepoOption)
-	org, err := organization.GetOrgByName(ctx, ctx.PathParam("org"))
-	if err != nil {
-		if organization.IsErrOrgNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	orgName := ctx.PathParam("org")
+	org := prepareDoerCreateRepoInOrg(ctx, orgName)
+	if ctx.Written() {
 		return
-	}
-
-	if !organization.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer) {
-		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
-		return
-	}
-
-	if !ctx.Doer.IsAdmin {
-		canCreate, err := org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		} else if !canCreate {
-			ctx.APIError(http.StatusForbidden, "Given user is not allowed to create repository in organization.")
-			return
-		}
 	}
 	CreateUserRepo(ctx, org.AsUser(), *opt)
 }
@@ -778,7 +758,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	if opts.HasIssues != nil {
 		if *opts.HasIssues && opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 			// Check that values are valid
-			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
+			if !validation.IsValidURL(opts.ExternalTracker.ExternalTrackerURL) {
 				err := errors.New("External tracker URL not valid")
 				ctx.APIError(http.StatusUnprocessableEntity, err)
 				return err
@@ -840,7 +820,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	if opts.HasWiki != nil {
 		if *opts.HasWiki && opts.ExternalWiki != nil && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			// Check that values are valid
-			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
+			if !validation.IsValidURL(opts.ExternalWiki.ExternalWikiURL) {
 				err := errors.New("External wiki URL not valid")
 				ctx.APIError(http.StatusUnprocessableEntity, "Invalid external wiki URL")
 				return err

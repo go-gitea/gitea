@@ -324,7 +324,7 @@ export function hideScopedEmptyDividers(container: Element) {
       handleScopeSwitch(itemScope);
     }
     if (!isHidden(item)) {
-      curScopeVisibleItems.push(item as HTMLElement);
+      curScopeVisibleItems.push(item);
     }
   }
   handleScopeSwitch('');

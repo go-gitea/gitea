@@ -14,7 +14,7 @@ import (
 func CreateRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation POST /user/actions/runners/registration-token user userCreateRunnerRegistrationToken
 	// ---
-	// summary: Get an user's actions runner registration token
+	// summary: Get a user's actions runner registration token
 	// produces:
 	// - application/json
 	// parameters:

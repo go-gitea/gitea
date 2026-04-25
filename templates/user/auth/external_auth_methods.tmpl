@@ -1,0 +1,17 @@
+<div id="external-login-navigator" class="tw-py-1 tw-flex tw-flex-col tw-gap-3">
+	{{range $provider := .OAuth2Providers}}
+		<a class="ui button external-login-link tw-gap-3" data-require-appurl-check="true" rel="nofollow" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName | PathEscape}}">
+			{{$provider.IconHTML 24}} {{ctx.Locale.Tr "sign_in_with_provider" $provider.DisplayName}}
+		</a>
+	{{end}}
+	{{if .EnableOpenIDSignIn}}
+		<a class="ui button external-login-link tw-gap-3" data-require-appurl-check="true" rel="nofollow" href="{{AppSubUrl}}/user/login/openid">
+			{{svg "fontawesome-openid" 24}} {{ctx.Locale.Tr "sign_in_with_provider" "OpenID"}}
+		</a>
+	{{end}}
+	{{if .EnableSSPI}}
+		<a class="ui button external-login-link tw-gap-3" rel="nofollow" href="{{AppSubUrl}}/user/login?auth_with_sspi=1">
+			{{svg "fontawesome-windows" 24}} Windows SSPI
+		</a>
+	{{end}}
+</div>

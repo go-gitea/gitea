@@ -1,7 +1,5 @@
 import '../fomantic/build/fomantic.js';
 import '../css/index.css';
-import type {HtmxResponseInfo} from 'htmx.org';
-import {showErrorToast} from './modules/toast.ts';
 
 import {initDashboardRepoList} from './features/dashboard.ts';
 import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
@@ -9,7 +7,7 @@ import {initRepoGraphGit} from './features/repo-graph.ts';
 import {initHeatmap} from './features/heatmap.ts';
 import {initImageDiff} from './features/imagediff.ts';
 import {initRepoMigration} from './features/repo-migration.ts';
-import {initRepoProject} from './features/repo-projects.ts';
+import {initRepoProjectsView} from './features/repo-projects.ts';
 import {initTableSort} from './features/tablesort.ts';
 import {initAdminUserListSearchForm} from './features/admin/users.ts';
 import {initAdminConfigs} from './features/admin/config.ts';
@@ -20,7 +18,7 @@ import {initStopwatch} from './features/stopwatch.ts';
 import {initRepoFileSearch} from './features/repo-findfile.ts';
 import {initMarkupContent} from './markup/content.ts';
 import {initRepoFileView} from './features/file-view.ts';
-import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
+import {initUserExternalLogins, initUserCheckAppUrl} from './features/user-auth.ts';
 import {initRepoPullRequestReview, initRepoIssueFilterItemLabel} from './features/repo-issue.ts';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
@@ -47,7 +45,6 @@ import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActionView} from './features/repo-actions.ts';
 import {initGlobalTooltips} from './modules/tippy.ts';
 import {initGiteaFomantic} from './modules/fomantic.ts';
-import {initSubmitEventPolyfill} from './utils/dom.ts';
 import {initRepoIssueList} from './features/repo-issue-list.ts';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.ts';
 import {initRepoContributors} from './features/contributors.ts';
@@ -66,11 +63,12 @@ import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFor
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
+import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
+import {initDevtest} from './modules/devtest.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
-  initSubmitEventPolyfill,
   initGiteaFomantic,
 
   initGlobalComponent,
@@ -101,6 +99,7 @@ const initPerformanceTracer = callInitFunctions([
   initImageDiff,
   initMarkupAnchors,
   initMarkupContent,
+  initRefIssueContextPopup,
   initSshKeyFormParser,
   initStopwatch,
   initTableSort,
@@ -132,7 +131,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoIssueFilterItemLabel,
   initRepoMigration,
   initRepoMigrationStatusChecker,
-  initRepoProject,
+  initRepoProjectsView,
   initRepoPullRequestReview,
   initRepoReleaseNew,
   initRepoTopicBar,
@@ -149,7 +148,7 @@ const initPerformanceTracer = callInitFunctions([
   initCaptcha,
 
   initUserCheckAppUrl,
-  initUserAuthOauth2,
+  initUserExternalLogins,
   initUserAuthWebAuthn,
   initUserAuthWebAuthnRegister,
   initUserSettings,
@@ -160,6 +159,8 @@ const initPerformanceTracer = callInitFunctions([
 
   initRepoFileView,
   initActionsPermissionsForm,
+
+  initDevtest,
 ]);
 
 // it must be the last one, then the "querySelectorAll" only needs to be executed once for global init functions.
@@ -170,17 +171,3 @@ const initDur = performance.now() - initStartTime;
 if (initDur > 500) {
   console.error(`slow init functions took ${initDur.toFixed(3)}ms`);
 }
-
-// https://htmx.org/events/#htmx:sendError
-type HtmxEvent = Event & {detail: HtmxResponseInfo};
-document.body.addEventListener('htmx:sendError', (event) => {
-  // TODO: add translations
-  showErrorToast(`Network error when calling ${(event as HtmxEvent).detail.requestConfig.path}`);
-});
-// https://htmx.org/events/#htmx:responseError
-document.body.addEventListener('htmx:responseError', (event) => {
-  // TODO: add translations
-  showErrorToast(`Error ${(event as HtmxEvent).detail.xhr.status} when calling ${(event as HtmxEvent).detail.requestConfig.path}`);
-});
-
-document.dispatchEvent(new CustomEvent('gitea:index-ready'));
