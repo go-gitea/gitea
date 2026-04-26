@@ -2,6 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests", "customManagers:githubActionsVersions"],
   "repositories" : ["go-gitea/gitea"],
+  requireConfig: "optional",
+  "configMigration": true,
   "enabledManagers": ["github-actions", "gomod", "npm", "pep621", "nix"],
   "labels": ["dependencies"],
   "branchPrefix": "renovate/",
