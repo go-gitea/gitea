@@ -75,7 +75,7 @@ func deleteDB() error {
 		}
 		db.Close()
 
-		// Check if we need to setup a specific schema
+		// Check if we need to set up a specific schema
 		if len(setting.Database.Schema) != 0 {
 			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
 				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
@@ -91,7 +91,7 @@ func deleteDB() error {
 			defer schrows.Close()
 
 			if !schrows.Next() {
-				// Create and setup a DB schema
+				// Create and set up a DB schema
 				_, err = db.Exec("CREATE SCHEMA " + setting.Database.Schema)
 				if err != nil {
 					return err
@@ -134,7 +134,8 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, fu
 	ourSkip := 2
 	ourSkip += skip
 	deferFn := testlogger.PrintCurrentTest(t, ourSkip)
-	require.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	giteaRoot := setting.GetGiteaTestSourceRoot()
+	require.NoError(t, unittest.SyncDirs(filepath.Join(giteaRoot, "tests/gitea-repositories-meta"), setting.RepoRootPath))
 
 	if err := deleteDB(); err != nil {
 		t.Fatalf("unable to reset database: %v", err)
@@ -166,7 +167,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, fu
 		}
 	}
 
-	fixturesDir := filepath.Join(filepath.Dir(setting.AppPath), "models", "migrations", "fixtures", t.Name())
+	fixturesDir := filepath.Join(giteaRoot, "models", "migrations", "fixtures", t.Name())
 
 	if _, err := os.Stat(fixturesDir); err == nil {
 		t.Logf("initializing fixtures from: %s", fixturesDir)
@@ -202,17 +203,18 @@ func LoadTableSchemasMap(t *testing.T, x *xorm.Engine) map[string]*schemas.Table
 
 func mainTest(m *testing.M) int {
 	testlogger.Init()
-	setting.SetupGiteaTestEnv()
 
-	tmpDataPath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("data")
+	tempWorkPath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("migration-test-data-")
 	if err != nil {
-		testlogger.Panicf("Unable to create temporary data path %v\n", err)
+		return testlogger.MainErrorf("Unable to create temporary dir for migration test: %v", err)
 	}
 	defer cleanup()
-	setting.AppDataPath = tmpDataPath
+
+	setting.MockBuiltinPaths(tempWorkPath, "", "")
+	setting.SetupGiteaTestEnv()
 
 	if err = git.InitFull(); err != nil {
-		testlogger.Panicf("Unable to InitFull: %v\n", err)
+		return testlogger.MainErrorf("Unable to InitFull: %v", err)
 	}
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()

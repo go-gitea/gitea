@@ -13,11 +13,7 @@ import (
 )
 
 func TestManager(t *testing.T) {
-	oldAppDataPath := setting.AppDataPath
 	setting.AppDataPath = t.TempDir()
-	defer func() {
-		setting.AppDataPath = oldAppDataPath
-	}()
 
 	newQueueFromConfig := func(name, cfg string) (*WorkerPoolQueue[int], error) {
 		cfgProvider, err := setting.NewConfigProviderFromData(cfg)
