@@ -57,7 +57,7 @@ export class IssueSidebarComboList {
     if (!['single', 'multiple'].includes(this.selectionMode)) throw new Error(`Invalid data-update-on: ${this.selectionMode}`);
     if (!['diff', 'all'].includes(this.updateAlgo)) throw new Error(`Invalid data-update-algo: ${this.updateAlgo}`);
     this.elDropdown = container.querySelector<HTMLElement>(':scope > .ui.dropdown')!;
-    this.elList = container.nextElementSibling?.matches('.issue-sidebar-projects.ui.list') ? container.nextElementSibling as HTMLElement : null;
+    this.elList = container.querySelector<HTMLElement>(':scope > .ui.list');
     this.elComboValue = container.querySelector<HTMLInputElement>(':scope > .combo-value')!;
 
     this.elIssueMainContent = document.querySelector('.issue-content-left')!;
@@ -70,19 +70,16 @@ export class IssueSidebarComboList {
 
   updateUiList(changedValues: Array<string>) {
     if (!this.elList) return;
-    const elEmptyTip = this.elList.querySelector('.item.empty-list');
-    if (!elEmptyTip) return;
-    queryElemChildren(this.elList, '.issue-sidebar-project-item', (el) => el.remove());
+    const elEmptyTip = this.elList.querySelector('.item.empty-list')!;
+    queryElemChildren(this.elList, '.item:not(.empty-list)', (el) => el.remove());
     for (const value of changedValues) {
       const el = this.elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${CSS.escape(value)}"]`);
       if (!el) continue;
       const listItem = el.cloneNode(true) as HTMLElement;
-      listItem.classList.remove('checked', 'active', 'selected', 'item', 'muted');
-      listItem.classList.add('suppressed', 'flex-text-block', 'issue-sidebar-project-item');
       queryElems(listItem, '.item-check-mark, .item-secondary-info', (el) => el.remove());
       this.elList.append(listItem);
     }
-    const hasItems = Boolean(this.elList.querySelector('.issue-sidebar-project-item'));
+    const hasItems = Boolean(this.elList.querySelector('.item:not(.empty-list)'));
     toggleElem(elEmptyTip, !hasItems);
   }
 

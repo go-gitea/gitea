@@ -24,7 +24,7 @@
 				{{if $data.OpenProjects}}
 					<div class="header">{{ctx.Locale.Tr "repo.issues.new.open_projects"}}</div>
 					{{range $data.OpenProjects}}
-						<a class="item muted" data-testid="project-option" data-value="{{.ID}}" href="{{.Link ctx}}">
+						<a class="item muted tw-flex tw-items-center tw-gap-2" data-testid="project-option" data-value="{{.ID}}" href="{{.Link ctx}}">
 							<span class="item-check-mark">{{svg "octicon-check"}}</span>
 							{{svg .IconName 18}}<span class="tw-flex-1 tw-break-anywhere">{{.Title}}</span>
 						</a>
@@ -34,7 +34,7 @@
 				{{if $data.ClosedProjects}}
 					<div class="header">{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}</div>
 					{{range $data.ClosedProjects}}
-						<a class="item muted" data-testid="project-option" data-value="{{.ID}}" href="{{.Link ctx}}">
+						<a class="item muted tw-flex tw-items-center tw-gap-2" data-testid="project-option" data-value="{{.ID}}" href="{{.Link ctx}}">
 							<span class="item-check-mark">{{svg "octicon-check"}}</span>
 							{{svg .IconName 18}}<span class="tw-flex-1 tw-break-anywhere">{{.Title}}</span>
 						</a>
@@ -43,15 +43,22 @@
 			</div>
 		</div>
 	</div>
+	{{if not $data.ProjectCards}}
+		<div class="ui list issue-sidebar-projects flex-relaxed-list">
+			<span class="item empty-list {{if $data.SelectedProjectIDs}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
+			{{range $data.OpenProjects}}{{if SliceUtils.Contains $data.SelectedProjectIDs .ID}}
+				<a class="item tw-flex tw-items-center tw-gap-2" href="{{.Link ctx}}">{{svg .IconName 16}}{{.Title}}</a>
+			{{end}}{{end}}
+			{{range $data.ClosedProjects}}{{if SliceUtils.Contains $data.SelectedProjectIDs .ID}}
+				<a class="item tw-flex tw-items-center tw-gap-2" href="{{.Link ctx}}">{{svg .IconName 16}}{{.Title}}</a>
+			{{end}}{{end}}
+		</div>
+	{{end}}
 </div>
 
 {{/* project cards (column selectors) */}}
-{{if not $data.ProjectCards}}
-	<div class="ui list issue-sidebar-projects flex-relaxed-list tw-my-2">
-		<div class="item empty-list">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</div>
-	</div>
-{{else}}
-	<div class="flex-relaxed-list tw-my-2" data-testid="issue-sidebar-project-cards">
+{{if $data.ProjectCards}}
+	<div class="flex-relaxed-list" data-testid="issue-sidebar-project-cards">
 	{{range $card := $data.ProjectCards}}
 		{{$selectedColumn := $card.SelectedColumn}}
 		<div class="item sidebar-project-card" data-testid="sidebar-project-card">
