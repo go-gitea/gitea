@@ -117,8 +117,7 @@ func testPrivateActivityHelperHasHeatmapContentFromPublic(t *testing.T) bool {
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/heatmap", privateActivityTestUser)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var items []*activities_model.UserHeatmapData
-	DecodeJSON(t, resp, &items)
+	items := DecodeJSON(t, resp, []*activities_model.UserHeatmapData{})
 
 	return len(items) != 0
 }
@@ -130,8 +129,7 @@ func testPrivateActivityHelperHasHeatmapContentFromSession(t *testing.T, session
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	var items []*activities_model.UserHeatmapData
-	DecodeJSON(t, resp, &items)
+	items := DecodeJSON(t, resp, []*activities_model.UserHeatmapData{})
 
 	return len(items) != 0
 }

@@ -1,11 +1,10 @@
-{{if and .Issue.PullRequest.HasMerged (not .IsPullBranchDeletable)}}
-{{/* Then the merge box will not be displayed because this page already contains enough information */}}
-{{else}}
+{{$data := $.PullMergeBoxData}}
+{{if $data.ShowMergeBox}}
 <div class="timeline-item comment pull-merge-box"
 	data-global-init="initRepoPullMergeBox"
-	{{if .PullMergeBoxReloadingInterval}}
-		data-pull-merge-box-reloading-interval="{{.PullMergeBoxReloadingInterval}}"
-		data-pull-link="{{.Issue.Link}}"
+	{{if $data.ReloadingInterval}}
+		data-pull-merge-box-reloading-interval="{{$data.ReloadingInterval}}"
+		data-pull-link="{{$.Issue.Link}}"
 	{{end}}
 >
 	{{$statusCheckData := .StatusCheckData}}
@@ -25,7 +24,7 @@
 	{{- else if and .AllowMerge .RequireSigned (not .WillSign)}}tw-text-red
 	{{- else if .Issue.PullRequest.IsChecking}}tw-text-yellow
 	{{- else if .Issue.PullRequest.IsEmpty}}tw-text-text-light
-	{{- else if .Issue.PullRequest.CanAutoMerge}}tw-text-green
+	{{- else if .Issue.PullRequest.IsStatusMergeable}}tw-text-green
 	{{- else}}tw-text-red{{end}}">{{svg "octicon-git-merge" 40}}</div>
 	<div class="content">
 		{{if .LatestCommitStatus}}
@@ -114,7 +113,7 @@
 					{{svg "octicon-alert"}}
 					{{ctx.Locale.Tr "repo.pulls.is_ancestor"}}
 				</div>
-			{{else if or .Issue.PullRequest.CanAutoMerge .Issue.PullRequest.IsEmpty}}
+			{{else if or .Issue.PullRequest.IsStatusMergeable .Issue.PullRequest.IsEmpty}}
 				{{if .IsBlockedByApprovals}}
 					<div class="item">
 						{{svg "octicon-x"}}
@@ -170,11 +169,8 @@
 					</div>
 				{{end}}
 
-				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
-
-				{{/* admin can merge without checks, writer can merge when checks succeed */}}
-				{{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
-				{{/* admin and writer both can make an auto merge schedule */}}
+				{{$notAllOverridableChecksOk := $data.HasOverridableBlockers}}
+				{{$canMergeNow := $data.CanMergeNow}}
 
 				{{if $canMergeNow}}
 					{{if $notAllOverridableChecksOk}}

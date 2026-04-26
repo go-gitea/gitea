@@ -32,8 +32,7 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/times", user2.Name, issue2.Repo.Name, issue2.Index).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var apiTimes api.TrackedTimeList
-	DecodeJSON(t, resp, &apiTimes)
+	apiTimes := DecodeJSON(t, resp, api.TrackedTimeList{})
 	expect, err := issues_model.GetTrackedTimes(t.Context(), &issues_model.FindTrackedTimesOptions{IssueID: issue2.ID})
 	assert.NoError(t, err)
 	assert.Len(t, apiTimes, 3)
@@ -56,8 +55,7 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/times?since=%s&before=%s", user2.Name, issue2.Repo.Name, issue2.Index, since, before).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	var filterAPITimes api.TrackedTimeList
-	DecodeJSON(t, resp, &filterAPITimes)
+	filterAPITimes := DecodeJSON(t, resp, api.TrackedTimeList{})
 	assert.Len(t, filterAPITimes, 2)
 	assert.Equal(t, int64(3), filterAPITimes[0].ID)
 	assert.Equal(t, int64(6), filterAPITimes[1].ID)
@@ -126,8 +124,7 @@ func TestAPIAddTrackedTimes(t *testing.T) {
 		Created: time.Unix(947688818, 0),
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var apiNewTime api.TrackedTime
-	DecodeJSON(t, resp, &apiNewTime)
+	apiNewTime := DecodeJSON(t, resp, &api.TrackedTime{})
 
 	assert.EqualValues(t, 33, apiNewTime.Time)
 	assert.Equal(t, user2.ID, apiNewTime.UserID)

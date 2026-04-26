@@ -200,8 +200,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo1.Name), &repoEditOption).
 			AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var repo api.Repository
-		DecodeJSON(t, resp, &repo)
+		repo := DecodeJSON(t, resp, &api.Repository{})
 		assert.NotNil(t, repo)
 		// check response
 		assert.Equal(t, *repoEditOption.Name, repo.Name)
@@ -237,7 +236,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &repo)
+		repo = DecodeJSON(t, resp, &api.Repository{})
 		assert.NotNil(t, repo)
 		// check repo1 was written to database
 		repo1edited = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -260,7 +259,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &repo)
+		repo = DecodeJSON(t, resp, &api.Repository{})
 		assert.NotNil(t, repo)
 		// check repo1 was written to database
 		repo1edited = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -280,7 +279,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &repo)
+		repo = DecodeJSON(t, resp, &api.Repository{})
 		assert.NotNil(t, repo)
 		repo1edited = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
@@ -312,7 +311,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &repo)
+		repo = DecodeJSON(t, resp, &api.Repository{})
 		assert.NotNil(t, repo)
 		// check repo1 was written to database
 		repo1edited = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -426,7 +425,7 @@ func TestAPIRepoEdit(t *testing.T) {
 			DefaultDeleteBranchAfterMerge: &bTrue,
 		}).AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &repo)
+		repo = DecodeJSON(t, resp, &api.Repository{})
 		assert.True(t, repo.DefaultDeleteBranchAfterMerge)
 		// reset
 		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{

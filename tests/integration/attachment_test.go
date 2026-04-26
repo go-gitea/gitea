@@ -60,8 +60,7 @@ func testCreateAttachment(t *testing.T, session *TestSession, repoURL, issueOrRe
 	if expectedStatus != http.StatusOK {
 		return ""
 	}
-	var obj map[string]string
-	DecodeJSON(t, resp, &obj)
+	obj := DecodeJSON(t, resp, map[string]string{})
 	return obj["uuid"]
 }
 

@@ -366,8 +366,8 @@ importers:
         specifier: 8.59.0
         version: 8.59.0(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3)
       updates:
-        specifier: 17.15.5
-        version: 17.15.5
+        specifier: 17.16.3
+        version: 17.16.3
       vitest:
         specifier: 4.1.4
         version: 4.1.4(@types/node@25.6.0)(happy-dom@20.9.0)(vite@8.0.9(@types/node@25.6.0)(esbuild@0.28.0)(jiti@2.6.1))
@@ -3902,8 +3902,8 @@ packages:
     peerDependencies:
       browserslist: '>= 4.21.0'
 
-  updates@17.15.5:
-    resolution: {integrity: sha512-Ce004Zzj63jL/Vml1YFGOoFSpzpxRVQlAVAo65HShwg0v1UpOzmYYAiYAi1Z7ILH65QtfqHQCphSHeqR5SgPAg==}
+  updates@17.16.3:
+    resolution: {integrity: sha512-j+bkgObnDVB9hYTSg1tflwGtkFg23ZrgXiqRmRw3Reu/sh2P29M9oecxavO9uBMO2bbKpgC1OBrAnIpNZtL01w==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -8019,7 +8019,7 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.1
 
-  updates@17.15.5: {}
+  updates@17.16.3: {}
 
   uri-js@4.4.1:
     dependencies:
