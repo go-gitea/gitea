@@ -396,7 +396,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfo(ctx *context.
 
 	prInfo.ProtectedBranchRule, err = git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, prInfo.issue.PullRequest.BaseBranch)
 	if err != nil {
-		ctx.ServerError("LoadProtectedBranch", err)
+		ctx.ServerError("GetFirstMatchProtectedBranchRule", err)
 		return
 	}
 

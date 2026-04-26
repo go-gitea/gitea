@@ -437,7 +437,7 @@ func (pr *PullRequest) IsChecking() bool {
 	return pr.Status == PullRequestStatusChecking
 }
 
-// IsStatusMergeable returns true if this pull request can be merged.
+// IsStatusMergeable returns true if this pull request is mergeable to its base
 func (pr *PullRequest) IsStatusMergeable() bool {
 	return pr.Status == PullRequestStatusMergeable
 }

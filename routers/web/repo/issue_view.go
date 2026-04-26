@@ -1002,11 +1002,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		if pull.IsStatusMergeable() || pull.IsWorkInProgress(ctx) || pull.IsChecking() {
 			return false
 		}
-		if allowMerge && prConfig.AllowManualMerge {
-			return true
-		}
-
-		return false
+		return allowMerge && prConfig.AllowManualMerge
 	}
 
 	ctx.Data["StillCanManualMerge"] = stillCanManualMerge()
@@ -1033,6 +1029,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	// this logic is from:
 	// {{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
+	// HINT: if a PR's status is not mergeable, then it is a non-overridable blocker, such logic is handled separately (see IsStatusMergeable)
 	data.HasOverridableBlockers = data.isBlockedByApprovals || data.isBlockedByRejection ||
 		data.isBlockedByOfficialReviewRequests || data.isBlockedByOutdatedBranch || data.isBlockedByChangedProtectedFiles ||
 		data.hasStatusCheckBlocker
