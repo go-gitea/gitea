@@ -6,8 +6,8 @@ test('add collaborator search', async ({page, request}) => {
   const userName = `repo-collab-${randomString(8)}`;
   const repoName = `repo-collab-${randomString(8)}`;
 
-  await apiCreateUser(request, userName);
   await Promise.all([
+    apiCreateUser(request, userName),
     apiCreateRepo(request, {name: repoName, autoInit: false}),
     login(page),
   ]);
@@ -19,4 +19,8 @@ test('add collaborator search', async ({page, request}) => {
   await expect(result).toContainText(userName);
   await result.click();
   await expect(input).toHaveValue(userName);
+
+  // submit and confirm the chosen user lands in the collaborator list
+  await page.getByRole('button', {name: 'Add Collaborator'}).click();
+  await expect(page.locator('body')).toContainText(userName);
 });
