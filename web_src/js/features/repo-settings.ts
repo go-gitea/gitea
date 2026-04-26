@@ -3,6 +3,7 @@ import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {initSearchBox} from '../modules/fomantic/search.ts';
 import {globMatch} from '../utils/glob.ts';
 
 const {appSubUrl} = window.config;
@@ -46,26 +47,20 @@ function initRepoSettingsCollaboration() {
 }
 
 function initRepoSettingsSearchTeamBox() {
-  const searchTeamBox = document.querySelector('#search-team-box');
+  const searchTeamBox = document.querySelector<HTMLElement>('#search-team-box');
   if (!searchTeamBox) return;
 
-  fomanticQuery(searchTeamBox).search({
-    minCharacters: 2,
-    searchFields: ['name', 'description'],
-    showNoResults: false,
-    rawResponse: true,
-    apiSettings: {
-      url: `${appSubUrl}/org/${searchTeamBox.getAttribute('data-org-name')}/teams/-/search?q={query}`,
-      onResponse(response: any) {
-        const items: Array<Record<string, any>> = [];
-        for (const item of response.data) {
-          items.push({
-            title: item.name,
-            description: `${item.permission} access`, // TODO: translate this string
-          });
-        }
-        return {results: items};
-      },
+  initSearchBox(searchTeamBox, {
+    apiUrl: `${appSubUrl}/org/${searchTeamBox.getAttribute('data-org-name')}/teams/-/search?q={query}`,
+    onResponse(response: any) {
+      const items = [];
+      for (const item of response.data) {
+        items.push({
+          title: item.name,
+          description: `${item.permission} access`, // TODO: translate this string
+        });
+      }
+      return {results: items};
     },
   });
 }
