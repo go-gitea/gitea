@@ -35,6 +35,7 @@ func TestAPIIssue(t *testing.T) {
 	t.Run("IssueContentVersion", testAPIIssueContentVersion)
 	t.Run("CreateIssue", testAPICreateIssue)
 	t.Run("CreateIssueParallel", testAPICreateIssueParallel)
+	t.Run("IssueAssignees", testAPIIssueAssignees)
 }
 
 func testAPIListIssues(t *testing.T) {
@@ -260,39 +261,6 @@ func testAPIEditIssue(t *testing.T) {
 	assert.Equal(t, int64(0), int64(issueAfter.DeadlineUnix))
 	assert.Equal(t, body, issueAfter.Content)
 	assert.Equal(t, title, issueAfter.Title)
-}
-
-func TestAPIIssueAssignees(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-
-	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assignees", owner.Name, repo.Name, issue.Index)
-
-	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueAssigneesOption{Assignees: []string{"user40"}}).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusCreated)
-	apiIssue := DecodeJSON(t, resp, &api.Issue{})
-	assert.Len(t, apiIssue.Assignees, 2)
-	assert.ElementsMatch(t, []int64{1, 40}, []int64{apiIssue.Assignees[0].ID, apiIssue.Assignees[1].ID})
-
-	checkReq := NewRequest(t, "GET", fmt.Sprintf("%s/%s", urlStr, "user40")).AddTokenAuth(token)
-	MakeRequest(t, checkReq, http.StatusNoContent)
-
-	checkReq = NewRequest(t, "GET", fmt.Sprintf("%s/%s", urlStr, "user5")).AddTokenAuth(token)
-	MakeRequest(t, checkReq, http.StatusNoContent)
-
-	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.IssueAssigneesOption{Assignees: []string{"user1"}}).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	apiIssue = DecodeJSON(t, resp, &api.Issue{})
-	assert.Len(t, apiIssue.Assignees, 1)
-	assert.Equal(t, int64(40), apiIssue.Assignees[0].ID)
 }
 
 func testAPISearchIssues(t *testing.T) {
@@ -528,4 +496,35 @@ func testAPIIssueContentVersion(t *testing.T) {
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 	})
+}
+
+func testAPIIssueAssignees(t *testing.T) {
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assignees", owner.Name, repo.Name, issue.Index)
+
+	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueAssigneesOption{Assignees: []string{"user40"}}).
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusCreated)
+	apiIssue := DecodeJSON(t, resp, &api.Issue{})
+	assert.Len(t, apiIssue.Assignees, 2)
+	assert.ElementsMatch(t, []int64{1, 40}, []int64{apiIssue.Assignees[0].ID, apiIssue.Assignees[1].ID})
+
+	checkReq := NewRequest(t, "GET", fmt.Sprintf("%s/%s", urlStr, "user40")).AddTokenAuth(token)
+	MakeRequest(t, checkReq, http.StatusNoContent)
+
+	checkReq = NewRequest(t, "GET", fmt.Sprintf("%s/%s", urlStr, "user5")).AddTokenAuth(token)
+	MakeRequest(t, checkReq, http.StatusNoContent)
+
+	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.IssueAssigneesOption{Assignees: []string{"user1"}}).
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiIssue = DecodeJSON(t, resp, &api.Issue{})
+	assert.Len(t, apiIssue.Assignees, 1)
+	assert.Equal(t, int64(40), apiIssue.Assignees[0].ID)
 }
