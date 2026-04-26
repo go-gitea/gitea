@@ -992,8 +992,7 @@ func testOAuth2WellKnown(t *testing.T) {
 	t.Run("WellKnown", func(t *testing.T) {
 		req := NewRequest(t, "GET", urlOpenidConfiguration)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var respMap map[string]any
-		DecodeJSON(t, resp, &respMap)
+		respMap := DecodeJSON(t, resp, map[string]any{})
 		assert.Equal(t, "https://try.gitea.io", respMap["issuer"])
 		assert.Equal(t, "https://try.gitea.io/login/oauth/authorize", respMap["authorization_endpoint"])
 		assert.Equal(t, "https://try.gitea.io/login/oauth/access_token", respMap["token_endpoint"])
@@ -1007,8 +1006,7 @@ func testOAuth2WellKnown(t *testing.T) {
 		defer test.MockVariableValue(&setting.OAuth2.JWTClaimIssuer, "https://try.gitea.io/")()
 		req := NewRequest(t, "GET", urlOpenidConfiguration)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var respMap map[string]any
-		DecodeJSON(t, resp, &respMap)
+		respMap := DecodeJSON(t, resp, map[string]any{})
 		assert.Equal(t, "https://try.gitea.io/", respMap["issuer"]) // has trailing by JWTClaimIssuer
 		assert.Equal(t, "https://try.gitea.io/login/oauth/authorize", respMap["authorization_endpoint"])
 	})
