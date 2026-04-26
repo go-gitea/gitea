@@ -17,7 +17,7 @@ function buildResultHTML(result: SearchResult): string {
 // Awaits one user selection from an autocomplete attached to `container`. Resolves with
 // the chosen item; the caller writes it to whatever input/state it owns. Wrap in a loop
 // to keep the search box live across selections.
-export function chooseFromApi(container: HTMLElement, url: string, parse: (raw: any, query: string) => SearchResult[], {minCharacters = 2}: {minCharacters?: number} = {}): Promise<SearchResult> {
+export function chooseFromApi<T = unknown>(container: HTMLElement, url: string, parse: (raw: T, query: string) => SearchResult[], {minCharacters = 2}: {minCharacters?: number} = {}): Promise<SearchResult> {
   return new Promise((resolve) => {
     const input = container.querySelector<HTMLInputElement>('input.prompt') ?? container.querySelector<HTMLInputElement>('input')!;
 

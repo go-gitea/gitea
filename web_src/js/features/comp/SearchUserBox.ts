@@ -3,6 +3,8 @@ import {chooseFromApi, type SearchResult} from '../../modules/search.ts';
 const {appSubUrl} = window.config;
 const looksLikeEmailAddressCheck = /^\S+@\S+$/;
 
+type UserSearchResponse = {data: Array<{login: string; avatar_url: string; full_name: string}>};
+
 export async function initCompSearchUserBox() {
   const box = document.querySelector<HTMLElement>('#search-user-box');
   if (!box) return;
@@ -14,7 +16,7 @@ export async function initCompSearchUserBox() {
   const input = box.querySelector<HTMLInputElement>('input.prompt')!;
 
   while (box.isConnected) {
-    const pick = await chooseFromApi(box, url, (response: any, query: string) => {
+    const pick = await chooseFromApi<UserSearchResponse>(box, url, (response, query) => {
       const items: SearchResult[] = [];
       const queryUpper = query.toUpperCase();
       for (const item of response.data) {

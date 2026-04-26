@@ -46,6 +46,8 @@ function initRepoSettingsCollaboration() {
   }
 }
 
+type TeamSearchResponse = {data: Array<{name: string; permission: string}>};
+
 async function initRepoSettingsSearchTeamBox() {
   const box = document.querySelector<HTMLElement>('#search-team-box');
   if (!box) return;
@@ -53,7 +55,7 @@ async function initRepoSettingsSearchTeamBox() {
   const url = `${appSubUrl}/org/${box.getAttribute('data-org-name')}/teams/-/search?q={query}`;
   const input = box.querySelector<HTMLInputElement>('input.prompt')!;
   while (box.isConnected) {
-    const pick = await chooseFromApi(box, url, (response: any) => response.data.map((item: any) => ({
+    const pick = await chooseFromApi<TeamSearchResponse>(box, url, (response) => response.data.map((item) => ({
       title: item.name,
       description: `${item.permission} access`, // TODO: translate this string
     })));
