@@ -35,12 +35,6 @@
 			{{template "repo/diff/whitespace_dropdown" .}}
 			{{template "repo/diff/options_dropdown" .}}
 			{{if .PageIsPullFiles}}
-				<div id="diff-extension-filter" data-filter-by-file-extension="{{ctx.Locale.Tr "repo.pulls.filter_by_file_extension"}}" data-select-all="{{ctx.Locale.Tr "repo.pulls.select_all_file_extensions"}}" data-deselect-all="{{ctx.Locale.Tr "repo.pulls.deselect_all_file_extensions"}}" data-search="{{ctx.Locale.Tr "repo.pulls.search_file_extensions"}}" data-no-file-extension="{{ctx.Locale.Tr "repo.pulls.no_file_extension"}}" data-no-file-extensions-found="{{ctx.Locale.Tr "repo.pulls.no_file_extensions_found"}}">
-					{{/* the following will be replaced by vue component, but this avoids any loading artifacts till the vue component is initialized */}}
-					<div class="ui jump dropdown tiny basic button custom">
-						{{svg "octicon-filter"}}
-					</div>
-				</div>
 				<div id="diff-commit-select" data-merge-base="{{.MergeBase}}" data-issuelink="{{$.Issue.Link}}" data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}" data-filter-changes-by-commit="{{ctx.Locale.Tr "repo.pulls.filter_changes_by_commit"}}">
 					{{/* the following will be replaced by vue component, but this avoids any loading artifacts till the vue component is initialized */}}
 					<div class="ui jump dropdown tiny basic button custom">
@@ -67,7 +61,7 @@
 	<div id="diff-container">
 		{{if $showFileTree}}
 			{{$.FileIconPoolHTML}}
-			<div id="diff-file-tree" class="tw-hidden not-mobile"></div>
+			<div id="diff-file-tree" class="tw-hidden not-mobile" data-filter-files="{{ctx.Locale.Tr "repo.diff.filter_files"}}" data-filter-files-no-results="{{ctx.Locale.Tr "repo.diff.filter_files_no_results"}}"{{if .PageIsPullFiles}} data-filter-by-file-extension="{{ctx.Locale.Tr "repo.pulls.filter_by_file_extension"}}" data-select-all="{{ctx.Locale.Tr "repo.pulls.select_all_file_extensions"}}" data-deselect-all="{{ctx.Locale.Tr "repo.pulls.deselect_all_file_extensions"}}" data-search="{{ctx.Locale.Tr "repo.pulls.search_file_extensions"}}" data-no-file-extension="{{ctx.Locale.Tr "repo.pulls.no_file_extension"}}" data-no-file-extensions-found="{{ctx.Locale.Tr "repo.pulls.no_file_extensions_found"}}"{{end}}></div>
 			<script>
 				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('tw-hidden');
 			</script>

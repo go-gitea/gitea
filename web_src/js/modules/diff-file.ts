@@ -28,6 +28,14 @@ type DiffFileTree = {
   fullNameMap: Record<string, DiffTreeEntry>
   fileTreeIsVisible: boolean;
   selectedItem: string;
+  filenameFilterQuery: string;
+  activeExtensions: string[] | null;
+  noFileExtensionLabel: string;
+};
+
+export type DiffExtensionStats = {
+  ext: string,
+  count: number,
 };
 
 let diffTreeStoreReactive: Reactive<DiffFileTree>;
@@ -64,19 +72,77 @@ export function reactiveDiffTreeStore(data: DiffFileTreeData, folderIcon: string
     folderOpenIcon,
     fileTreeIsVisible: false,
     selectedItem: '',
+    filenameFilterQuery: '',
+    activeExtensions: null,
+    noFileExtensionLabel: '',
     fullNameMap: {},
   });
   fillFullNameMap(store.fullNameMap, data.TreeRoot);
   return store;
 }
 
+export function getDiffFileExtension(filename: string, noFileExtensionLabel: string): string {
+  const basename = filename.substring(filename.lastIndexOf('/') + 1);
+  const lastDot = basename.lastIndexOf('.');
+  if (lastDot === -1) {
+    return noFileExtensionLabel;
+  }
+  return basename.substring(lastDot);
+}
+
+export function getDiffTreeExtensionStats(store: Reactive<DiffFileTree>): DiffExtensionStats[] {
+  const extensionMap = new Map<string, number>();
+
+  for (const entry of Object.values(store.fullNameMap)) {
+    if (!entry.FullName || entry.EntryMode === 'tree') continue;
+
+    const ext = getDiffFileExtension(entry.FullName, store.noFileExtensionLabel);
+    extensionMap.set(ext, (extensionMap.get(ext) ?? 0) + 1);
+  }
+
+  return Array.from(extensionMap.entries(), ([ext, count]) => ({ext, count}))
+    .sort((a, b) => b.count - a.count);
+}
+
+export function hasActiveDiffTreeFilter(store: Reactive<DiffFileTree>): boolean {
+  return Boolean(store.filenameFilterQuery.trim()) || store.activeExtensions !== null;
+}
+
+export function isDiffTreeEntryVisible(store: Reactive<DiffFileTree>, entry: DiffTreeEntry): boolean {
+  if (entry.EntryMode === 'tree') {
+    return Boolean(entry.Children?.some((child) => isDiffTreeEntryVisible(store, child)));
+  }
+
+  const query = store.filenameFilterQuery.trim().toLowerCase();
+  if (query && !entry.FullName.toLowerCase().includes(query)) {
+    return false;
+  }
+
+  if (store.activeExtensions === null) {
+    return true;
+  }
+
+  return store.activeExtensions.includes(getDiffFileExtension(entry.FullName, store.noFileExtensionLabel));
+}
+
+export function applyFiltersToFileBoxes(store: Reactive<DiffFileTree>) {
+  const fileBoxes = document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
+  const query = store.filenameFilterQuery.trim().toLowerCase();
+
+  for (const box of fileBoxes) {
+    const filename = box.getAttribute('data-new-filename') || '';
+
+    const matchesQuery = !query || filename.toLowerCase().includes(query);
+    const ext = getDiffFileExtension(filename, store.noFileExtensionLabel);
+    const matchesExtension = store.activeExtensions === null || store.activeExtensions.includes(ext);
+
+    box.classList.toggle('tw-hidden', !matchesQuery || !matchesExtension);
+  }
+}
+
 function isEntryViewed(entry: DiffTreeEntry): boolean {
   if (entry.Children) {
-    let count = 0;
-    for (const child of entry.Children) {
-      if (child.IsViewed) count++;
-    }
-    return count === entry.Children.length;
+    return entry.Children.every((child) => child.IsViewed);
   }
   return entry.IsViewed;
 }
