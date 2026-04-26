@@ -47,6 +47,10 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
+      - uses: ./.github/actions/go-cache
+        with:
+          cache-name: pgsql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
       - run: make deps-backend
@@ -60,7 +64,6 @@ jobs:
         timeout-minutes: 50
         env:
           TAGS: bindata gogit
-          RACE_ENABLED: true
           TEST_TAGS: gogit
           TEST_LDAP: 1
 
@@ -76,6 +79,10 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
+      - uses: ./.github/actions/go-cache
+        with:
+          cache-name: sqlite
       - run: make deps-backend
       - run: GOEXPERIMENT='' make backend
         env:
@@ -135,6 +142,11 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
+      - uses: ./.github/actions/go-cache
+        with:
+          cache-name: unit
+          build-cache-rotate: "true"
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
@@ -142,16 +154,18 @@ jobs:
         env:
           TAGS: bindata
       - name: unit-tests
-        run: make unit-test-coverage test-check
+        run: make test-backend test-check
         env:
           TAGS: bindata
           RACE_ENABLED: true
+          GOTESTFLAGS: -timeout=20m
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
       - name: unit-tests-gogit
-        run: GOEXPERIMENT='' make unit-test-coverage test-check
+        run: GOEXPERIMENT='' make test-backend test-check
         env:
           TAGS: bindata gogit
           RACE_ENABLED: true
+          GOTESTFLAGS: -timeout=20m
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
   test-mysql:
@@ -190,6 +204,10 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
+      - uses: ./.github/actions/go-cache
+        with:
+          cache-name: mysql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
@@ -203,7 +221,6 @@ jobs:
         run: make test-mysql
         env:
           TAGS: bindata
-          RACE_ENABLED: true
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
@@ -231,6 +248,10 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
+      - uses: ./.github/actions/go-cache
+        with:
+          cache-name: mssql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
       - run: make deps-backend
