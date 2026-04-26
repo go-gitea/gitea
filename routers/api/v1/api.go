@@ -297,6 +297,15 @@ func checkTokenPublicOnly() func(ctx *context.APIContext) {
 // if a token is being used for auth, we check that it contains the required scope
 // if a token is not being used, reqToken will enforce other sign in methods
 func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeCategory) func(ctx *context.APIContext) {
+	return tokenRequiresScopesImpl(false, requiredScopeCategories...)
+}
+
+// tokenRequiresAnyScopeCategory checks that the token has at least one of the required scope categories
+func tokenRequiresAnyScopeCategory(requiredScopeCategories ...auth_model.AccessTokenScopeCategory) func(ctx *context.APIContext) {
+	return tokenRequiresScopesImpl(true, requiredScopeCategories...)
+}
+
+func tokenRequiresScopesImpl(anyScope bool, requiredScopeCategories ...auth_model.AccessTokenScopeCategory) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		// no scope required
 		if len(requiredScopeCategories) == 0 {
@@ -317,7 +326,13 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 
 		// get the required scope for the given access level and category
 		requiredScopes := auth_model.GetRequiredScopes(requiredScopeLevel, requiredScopeCategories...)
-		allow, err := scope.HasScope(requiredScopes...)
+		var allow bool
+		var err error
+		if anyScope {
+			allow, err = scope.HasAnyScope(requiredScopes...)
+		} else {
+			allow, err = scope.HasScope(requiredScopes...)
+		}
 		if err != nil {
 			ctx.APIError(http.StatusForbidden, "checking scope failed: "+err.Error())
 			return
@@ -1339,8 +1354,6 @@ func Routes() *web.Router {
 					m.Combo("").Get(repo.ListPullRequests).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
 					m.Get("/pinned", repo.ListPinnedPullRequests)
-					m.Post("/comments/{id}/resolve", reqToken(), mustNotBeArchived, repo.ResolvePullReviewComment)
-					m.Post("/comments/{id}/unresolve", reqToken(), mustNotBeArchived, repo.UnresolvePullReviewComment)
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetPullRequest).
 							Patch(reqToken(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
@@ -1351,24 +1364,6 @@ func Routes() *web.Router {
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest).
 							Delete(reqToken(), mustNotBeArchived, repo.CancelScheduledAutoMerge)
-						m.Group("/reviews", func() {
-							m.Combo("").
-								Get(repo.ListPullReviews).
-								Post(reqToken(), bind(api.CreatePullReviewOptions{}), repo.CreatePullReview)
-							m.Group("/{id}", func() {
-								m.Combo("").
-									Get(repo.GetPullReview).
-									Delete(reqToken(), repo.DeletePullReview).
-									Post(reqToken(), bind(api.SubmitPullReviewOptions{}), repo.SubmitPullReview)
-								m.Combo("/comments").
-									Get(repo.GetPullReviewComments)
-								m.Post("/dismissals", reqToken(), bind(api.DismissPullReviewOptions{}), repo.DismissPullReview)
-								m.Post("/undismissals", reqToken(), repo.UnDismissPullReview)
-							})
-						})
-						m.Combo("/requested_reviewers", reqToken()).
-							Delete(bind(api.PullReviewRequestOptions{}), repo.DeleteReviewRequests).
-							Post(bind(api.PullReviewRequestOptions{}), repo.CreateReviewRequests)
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
@@ -1448,6 +1443,36 @@ func Routes() *web.Router {
 		// Artifacts direct download endpoint authenticates via signed url
 		// it is protected by the "sig" parameter (to help to access private repo), so no need to use other middlewares
 		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
+
+		// Pull request reviews (requires issue or repository scope)
+		m.Group("/repos", func() {
+			m.Group("/{username}/{reponame}", func() {
+				m.Group("/pulls", func() {
+					m.Post("/comments/{id}/resolve", reqToken(), mustNotBeArchived, repo.ResolvePullReviewComment)
+					m.Post("/comments/{id}/unresolve", reqToken(), mustNotBeArchived, repo.UnresolvePullReviewComment)
+					m.Group("/{index}", func() {
+						m.Group("/reviews", func() {
+							m.Combo("").
+								Get(repo.ListPullReviews).
+								Post(reqToken(), bind(api.CreatePullReviewOptions{}), repo.CreatePullReview)
+							m.Group("/{id}", func() {
+								m.Combo("").
+									Get(repo.GetPullReview).
+									Delete(reqToken(), repo.DeletePullReview).
+									Post(reqToken(), bind(api.SubmitPullReviewOptions{}), repo.SubmitPullReview)
+								m.Combo("/comments").
+									Get(repo.GetPullReviewComments)
+								m.Post("/dismissals", reqToken(), bind(api.DismissPullReviewOptions{}), repo.DismissPullReview)
+								m.Post("/undismissals", reqToken(), repo.UnDismissPullReview)
+							})
+						})
+						m.Combo("/requested_reviewers", reqToken()).
+							Delete(bind(api.PullReviewRequestOptions{}), repo.DeleteReviewRequests).
+							Post(bind(api.PullReviewRequestOptions{}), repo.CreateReviewRequests)
+					})
+				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
+			}, repoAssignment(), checkTokenPublicOnly())
+		}, tokenRequiresAnyScopeCategory(auth_model.AccessTokenScopeCategoryRepository, auth_model.AccessTokenScopeCategoryIssue))
 
 		// Notifications (requires notifications scope)
 		m.Group("/repos", func() {

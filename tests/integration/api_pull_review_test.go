@@ -236,6 +236,36 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, 1, reviews[1].Reviewer.ID)
 }
 
+func TestAPIPullReviewIssueScope(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	assert.NoError(t, pullIssue.LoadAttributes(t.Context()))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID})
+
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+
+	// test ListPullReviews with issue scope
+	req := NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	// test CreatePullReview with issue scope
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
+		Body:  "comment via issue scope",
+		Event: "COMMENT",
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var review api.PullReview
+	DecodeJSON(t, resp, &review)
+	assert.EqualValues(t, "COMMENT", review.State)
+
+	// test DeletePullReview with issue scope
+	req = NewRequestf(t, http.MethodDelete, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d", repo.OwnerName, repo.Name, pullIssue.Index, review.ID).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+}
+
 func TestAPIPullReviewRequest(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
