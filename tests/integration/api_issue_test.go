@@ -415,13 +415,13 @@ func testAPISearchIssuesWithLabels(t *testing.T) {
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
-	// multiple labels
+	// multiple labels (AND: issues must have ALL labels)
 	query.Set("labels", "label1,label2")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 2)
+	assert.Empty(t, apiIssues)
 
 	// an org label
 	query.Set("labels", "orglabel4")
@@ -431,22 +431,22 @@ func testAPISearchIssuesWithLabels(t *testing.T) {
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 1)
 
-	// org and repo label
+	// org and repo label (AND: no issue has both label2 and orglabel4)
 	query.Set("labels", "label2,orglabel4")
 	query.Add("state", "all")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 2)
+	assert.Empty(t, apiIssues)
 
-	// org and repo label which share the same issue
+	// org and repo label which share the same issue (AND: only issue 2 has both)
 	query.Set("labels", "label1,orglabel4")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 2)
+	assert.Len(t, apiIssues, 1)
 }
 
 func testAPIIssueContentVersion(t *testing.T) {

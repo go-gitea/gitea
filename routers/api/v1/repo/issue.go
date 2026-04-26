@@ -103,7 +103,7 @@ func SearchIssues(ctx *context.APIContext) {
 	//   default: open
 	// - name: labels
 	//   in: query
-	//   description: Comma-separated list of label names. Fetch only issues that have any of these labels. Non existent labels are discarded.
+	//   description: Comma-separated list of label names. Fetch only issues that have all of these labels. Non existent labels are discarded.
 	//   type: string
 	// - name: milestones
 	//   in: query
@@ -209,14 +209,14 @@ func SearchIssues(ctx *context.APIContext) {
 
 	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
-	var includedAnyLabels []int64
+	var includedLabels []int64
 	{
 		labels := ctx.FormTrim("labels")
 		var includedLabelNames []string
 		if len(labels) > 0 {
 			includedLabelNames = strings.Split(labels, ",")
 		}
-		includedAnyLabels, err = issues_model.GetLabelIDsByNames(ctx, includedLabelNames)
+		includedLabels, err = issues_model.GetLabelIDsByNames(ctx, includedLabelNames)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -244,14 +244,14 @@ func SearchIssues(ctx *context.APIContext) {
 			PageSize: limit,
 			Page:     ctx.FormInt("page"),
 		},
-		Keyword:             keyword,
-		RepoIDs:             repoIDs,
-		AllPublic:           allPublic,
-		IsPull:              isPull,
-		IsClosed:            isClosed,
-		IncludedAnyLabelIDs: includedAnyLabels,
-		MilestoneIDs:        includedMilestones,
-		SortBy:              issue_indexer.SortByCreatedDesc,
+		Keyword:          keyword,
+		RepoIDs:          repoIDs,
+		AllPublic:        allPublic,
+		IsPull:           isPull,
+		IsClosed:         isClosed,
+		IncludedLabelIDs: includedLabels,
+		MilestoneIDs:     includedMilestones,
+		SortBy:           issue_indexer.SortByCreatedDesc,
 	}
 
 	if since != 0 {
@@ -329,7 +329,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   enum: [closed, open, all]
 	// - name: labels
 	//   in: query
-	//   description: comma separated list of label names. Fetch only issues that have any of this label names. Non existent labels are discarded.
+	//   description: comma separated list of label names. Fetch only issues that have all of these labels. Non-existent labels are discarded.
 	//   type: string
 	// - name: q
 	//   in: query
@@ -342,7 +342,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   enum: [issues, pulls]
 	// - name: milestones
 	//   in: query
-	//   description: comma separated list of milestone names or ids. It uses names and fall back to ids. Fetch only issues that have any of this milestones. Non existent milestones are discarded
+	//   description: comma separated list of milestone names or ids. It uses names and fall back to ids. Fetch only issues that have any of these milestones. Non-existent milestones are discarded
 	//   type: string
 	// - name: since
 	//   in: query
