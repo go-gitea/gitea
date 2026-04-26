@@ -85,8 +85,8 @@ class WsSource {
     this.ws.addEventListener('close', (event: CloseEvent) => {
       this.ws = null;
       if (this.closed) return;
-      // Server signals an expired/missing session via 4401; reconnecting can't recover that.
-      if (event.code === 4401) {
+      // Server signals an expired/missing session via the IANA "Unauthorized" close code; reconnecting can't recover that.
+      if (event.code === 3000) {
         this.closed = true;
         return;
       }

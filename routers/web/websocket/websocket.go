@@ -23,10 +23,10 @@ const (
 	pingInterval = 30 * time.Second
 	pingTimeout  = 10 * time.Second
 
-	// Sent in the WebSocket close frame so the SharedWorker can tell
-	// "your cookie is gone" apart from a transient network failure
-	// and stop reconnecting in a tight loop.
-	closeCodeUnauthenticated gitea_ws.StatusCode = 4401
+	// IANA-registered "Unauthorized" close code. Sent so the SharedWorker
+	// can tell "your cookie is gone" apart from a transient network
+	// failure and stop reconnecting in a tight loop.
+	closeCodeUnauthenticated gitea_ws.StatusCode = 3000
 )
 
 type logoutBrokerMsg struct {
