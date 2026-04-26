@@ -3,7 +3,7 @@ import {SvgIcon} from '../svg.ts';
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import DiffFileExtensionFilter from './DiffFileExtensionFilter.vue';
 import {toggleElem} from '../utils/dom.ts';
-import {diffTreeStore, isDiffTreeEntryVisible, applyFiltersToFileBoxes} from '../modules/diff-file.ts';
+import {diffTreeStore, isDiffTreeEntryVisible, applyFiltersToFileBoxes, buildFilterPredicate} from '../modules/diff-file.ts';
 import {setFileFolding} from '../features/file-fold.ts';
 import {onMounted, onUnmounted, computed, watch} from 'vue';
 import {localUserSettings} from '../modules/user-settings.ts';
@@ -20,15 +20,15 @@ const filterFilesClearLabel = el.getAttribute('data-filter-files-clear')!;
 
 const extensionFilterLocale = el.hasAttribute('data-filter-by-file-extension') ? {
   filter_by_file_extension: el.getAttribute('data-filter-by-file-extension')!,
+  file_extensions: el.getAttribute('data-file-extensions')!,
   select_all: el.getAttribute('data-select-all')!,
   deselect_all: el.getAttribute('data-deselect-all')!,
-  search: el.getAttribute('data-search')!,
   no_file_extension: el.getAttribute('data-no-file-extension')!,
-  no_file_extensions_found: el.getAttribute('data-no-file-extensions-found')!,
 } : null;
 
+const treeMatcher = computed(() => buildFilterPredicate(store));
 const visibleTreeItems = computed(() => {
-  return (store.diffFileTree.TreeRoot.Children ?? []).filter((item) => isDiffTreeEntryVisible(store, item));
+  return (store.diffFileTree.TreeRoot.Children ?? []).filter((item) => isDiffTreeEntryVisible(item, treeMatcher.value));
 });
 
 const hasSearchQuery = computed(() => Boolean(store.filenameFilterQuery.trim()));
@@ -104,6 +104,7 @@ function updateState(visible: boolean) {
   <div v-if="store.fileTreeIsVisible" class="diff-file-tree-wrapper">
     <div class="diff-file-tree-search-row">
       <div class="diff-file-search-wrapper">
+        <SvgIcon name="octicon-search" :size="14" class="diff-file-search-icon"/>
         <input
           type="text"
           v-model="store.filenameFilterQuery"
@@ -123,7 +124,7 @@ function updateState(visible: boolean) {
       <DiffFileExtensionFilter v-if="extensionFilterLocale" :locale="extensionFilterLocale"/>
     </div>
     <div class="diff-file-tree-items">
-      <DiffFileTreeItem v-for="item in visibleTreeItems" :key="item.FullName" :item="item" :is-visible="(entry) => isDiffTreeEntryVisible(store, entry)"/>
+      <DiffFileTreeItem v-for="item in visibleTreeItems" :key="item.FullName" :item="item" :is-visible="(entry) => isDiffTreeEntryVisible(entry, treeMatcher)"/>
       <div v-if="visibleTreeItems.length === 0" class="tw-py-4 tw-text-center tw-text-text-light-2">
         {{ filterFilesNoResults }}
       </div>
@@ -136,6 +137,7 @@ function updateState(visible: boolean) {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  margin-right: .5rem;
 }
 
 .diff-file-tree-search-row {
@@ -157,10 +159,18 @@ function updateState(visible: boolean) {
   align-items: center;
 }
 
+.diff-file-search-icon {
+  position: absolute;
+  left: 8px;
+  color: var(--color-text-light-2);
+  pointer-events: none;
+}
+
 .diff-file-search-input {
   flex: 1;
   min-width: 0;
-  padding: 0.375rem 2.8rem 0.375rem 0.5rem;
+  height: 32px;
+  padding: 0 28px;
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
   background: var(--color-input-background);
@@ -175,10 +185,10 @@ function updateState(visible: boolean) {
 
 .diff-file-search-clear {
   position: absolute;
-  right: 0;
+  right: 4px;
   top: 0;
   bottom: 0;
-  width: 2.5rem;
+  width: 20px;
   background: none;
   border: none;
   color: var(--color-text-light);
@@ -202,6 +212,5 @@ function updateState(visible: boolean) {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  margin-right: .5rem;
 }
 </style>

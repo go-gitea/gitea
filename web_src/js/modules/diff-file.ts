@@ -92,33 +92,36 @@ export function getDiffTreeExtensionStats(store: Reactive<DiffFileTree>): DiffEx
     .sort((a, b) => b.count - a.count);
 }
 
-function fileMatchesFilters(filename: string, query: string, activeExtSet: Set<string> | null): boolean {
-  if (query && !filename.toLowerCase().includes(query)) return false;
-  if (activeExtSet && !activeExtSet.has(extname(filename))) return false;
-  return true;
-}
+export type FileFilterPredicate = (filename: string) => boolean;
 
-function buildFilterPredicate(store: Reactive<DiffFileTree>) {
-  return {
-    query: store.filenameFilterQuery.trim().toLowerCase(),
-    activeExtSet: store.activeExtensions ? new Set(store.activeExtensions) : null,
+export function buildFilterPredicate(store: Reactive<DiffFileTree>): FileFilterPredicate {
+  const query = store.filenameFilterQuery.trim().toLowerCase();
+  const activeExtSet = store.activeExtensions ? new Set(store.activeExtensions) : null;
+  return (filename) => {
+    if (query && !filename.toLowerCase().includes(query)) return false;
+    if (activeExtSet && !activeExtSet.has(extname(filename))) return false;
+    return true;
   };
 }
 
-export function isDiffTreeEntryVisible(store: Reactive<DiffFileTree>, entry: DiffTreeEntry): boolean {
+export function isDiffTreeEntryVisible(entry: DiffTreeEntry, matches: FileFilterPredicate): boolean {
   if (entry.EntryMode === 'tree') {
-    return Boolean(entry.Children?.some((child) => isDiffTreeEntryVisible(store, child)));
+    return Boolean(entry.Children?.some((child) => isDiffTreeEntryVisible(child, matches)));
   }
-  const {query, activeExtSet} = buildFilterPredicate(store);
-  return fileMatchesFilters(entry.FullName, query, activeExtSet);
+  return matches(entry.FullName);
 }
 
 export function applyFiltersToFileBoxes(store: Reactive<DiffFileTree>) {
-  const {query, activeExtSet} = buildFilterPredicate(store);
+  const matches = buildFilterPredicate(store);
+  const isFiltering = Boolean(store.filenameFilterQuery.trim()) || store.activeExtensions !== null;
+  let visibleCount = 0;
   for (const box of document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]')) {
-    const filename = box.getAttribute('data-new-filename') ?? '';
-    toggleElem(box, fileMatchesFilters(filename, query, activeExtSet));
+    const matched = matches(box.getAttribute('data-new-filename') ?? '');
+    if (matched) visibleCount++;
+    toggleElem(box, matched);
   }
+  const empty = document.querySelector('#diff-no-matches');
+  if (empty) toggleElem(empty, visibleCount === 0 && isFiltering);
 }
 
 function isEntryViewed(entry: DiffTreeEntry): boolean {

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, onMounted, onUnmounted, ref, useTemplateRef} from 'vue';
+import {computed, onMounted, onUnmounted, useTemplateRef} from 'vue';
 import type {Instance} from 'tippy.js';
 import {SvgIcon} from '../svg.ts';
 import {createTippy} from '../modules/tippy.ts';
@@ -8,19 +8,16 @@ import {diffTreeStore, getDiffTreeExtensionStats} from '../modules/diff-file.ts'
 const props = defineProps<{
   locale: {
     filter_by_file_extension: string,
+    file_extensions: string,
     select_all: string,
     deselect_all: string,
-    search: string,
     no_file_extension: string,
-    no_file_extensions_found: string,
   },
 }>();
 
 const store = diffTreeStore();
 const triggerEl = useTemplateRef<HTMLButtonElement>('triggerEl');
 const panelEl = useTemplateRef<HTMLDivElement>('panelEl');
-const searchEl = useTemplateRef<HTMLInputElement>('searchEl');
-const searchQuery = ref('');
 let tippyInstance: Instance | null = null;
 
 function displayName(ext: string): string {
@@ -28,12 +25,6 @@ function displayName(ext: string): string {
 }
 
 const allExtensions = computed(() => getDiffTreeExtensionStats(store));
-
-const filteredExtensions = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase();
-  if (!q) return allExtensions.value;
-  return allExtensions.value.filter((e) => displayName(e.ext).toLowerCase().includes(q));
-});
 
 const isFiltering = computed(() => store.activeExtensions !== null);
 
@@ -48,12 +39,17 @@ function setChecked(ext: string, checked: boolean) {
   store.activeExtensions = current.size === all.length ? null : Array.from(current);
 }
 
-function selectAll() {
-  store.activeExtensions = null;
-}
+const allSelected = computed(() => store.activeExtensions === null);
 
-function deselectAll() {
-  store.activeExtensions = [];
+function toggleAll(event: MouseEvent) {
+  store.activeExtensions = allSelected.value ? [] : null;
+  const btn = event.currentTarget as HTMLElement & {_tippy?: Instance};
+  const newLabel = allSelected.value ? props.locale.deselect_all : props.locale.select_all;
+  // wait for the data-tooltip-content attribute observer to attach/update tippy
+  setTimeout(() => {
+    btn._tippy?.setContent(newLabel);
+    btn._tippy?.show();
+  }, 0);
 }
 
 onMounted(() => {
@@ -64,10 +60,7 @@ onMounted(() => {
     hideOnClick: true,
     placement: 'bottom-end',
     theme: 'menu',
-    onShow() {
-      searchQuery.value = '';
-      setTimeout(() => searchEl.value?.focus(), 0);
-    },
+    arrow: false,
   });
 });
 
@@ -80,36 +73,28 @@ onUnmounted(() => {
   <button
     ref="triggerEl"
     type="button"
-    class="ui tiny basic button diff-ext-filter-trigger"
+    class="diff-ext-filter-trigger"
     :class="{'diff-ext-filter-active': isFiltering}"
-    :data-tooltip-content="locale.filter_by_file_extension"
     :aria-label="locale.filter_by_file_extension"
     aria-haspopup="true"
   >
     <SvgIcon name="octicon-filter"/>
   </button>
-  <div ref="panelEl" class="diff-ext-filter-panel tw-hidden">
-    <div class="diff-ext-filter-header">{{ locale.filter_by_file_extension }}</div>
-    <input
-      ref="searchEl"
-      v-model="searchQuery"
-      type="text"
-      class="diff-ext-filter-search"
-      :placeholder="locale.search"
-    >
-    <div class="diff-ext-filter-list">
-      <label v-for="ext in filteredExtensions" :key="ext.ext" class="diff-ext-filter-item">
-        <input type="checkbox" :checked="isChecked(ext.ext)" @change="setChecked(ext.ext, ($event.target as HTMLInputElement).checked)">
-        <span class="gt-ellipsis">{{ displayName(ext.ext) }}</span>
-        <span class="diff-ext-filter-count">{{ ext.count }}</span>
-      </label>
-      <div v-if="filteredExtensions.length === 0" class="diff-ext-filter-empty">
-        {{ locale.no_file_extensions_found }}
+  <div ref="panelEl" class="tippy-target">
+    <div class="diff-ext-filter-panel">
+      <div class="diff-ext-filter-header">
+        <span>{{ locale.file_extensions }}</span>
+        <button type="button" class="diff-ext-icon-btn interact-bg" @click="toggleAll" :data-tooltip-content="allSelected ? locale.deselect_all : locale.select_all" :aria-label="allSelected ? locale.deselect_all : locale.select_all">
+          <SvgIcon :name="allSelected ? 'octicon-checkbox' : 'gitea-empty-checkbox'"/>
+        </button>
       </div>
-    </div>
-    <div class="diff-ext-filter-actions">
-      <button type="button" class="diff-ext-text-btn" @click="selectAll()">{{ locale.select_all }}</button>
-      <button type="button" class="diff-ext-text-btn" @click="deselectAll()">{{ locale.deselect_all }}</button>
+      <div class="diff-ext-filter-list">
+        <label v-for="ext in allExtensions" :key="ext.ext" class="diff-ext-filter-item">
+          <input type="checkbox" :checked="isChecked(ext.ext)" @change="setChecked(ext.ext, ($event.target as HTMLInputElement).checked)">
+          <span class="gt-ellipsis">{{ displayName(ext.ext) }}</span>
+          <span class="diff-ext-filter-count">{{ ext.count }}</span>
+        </label>
+      </div>
     </div>
   </div>
 </template>
@@ -118,42 +103,43 @@ onUnmounted(() => {
 .diff-ext-filter-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
   min-width: 220px;
-  max-height: 450px;
-  padding: 0.5rem;
+  max-height: 80vh;
 }
 
 .diff-ext-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   font-weight: var(--font-weight-medium);
+  padding: 8px 12px;
 }
 
-.diff-ext-filter-search {
-  width: 100%;
-  padding: 0.375rem 0.5rem;
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
-  background: var(--color-input-background);
+.diff-ext-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
   color: var(--color-text);
-}
-
-.diff-ext-filter-search:focus {
-  outline: none;
-  border-color: var(--color-primary);
+  cursor: pointer;
+  border-radius: 4px;
 }
 
 .diff-ext-filter-list {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 2px;
   overflow-y: auto;
+  padding: 8px;
 }
 
 .diff-ext-filter-item {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.2rem 0.25rem;
+  padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
 }
@@ -167,35 +153,26 @@ onUnmounted(() => {
   color: var(--color-text-light-2);
 }
 
-.diff-ext-filter-empty {
-  text-align: center;
-  color: var(--color-text-light-2);
-  padding: 1rem 0;
-}
-
-.diff-ext-filter-actions {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  border-top: 1px solid var(--color-secondary);
-  padding-top: 0.5rem;
-}
-
-.diff-ext-text-btn {
-  background: none;
-  border: none;
+.diff-ext-filter-trigger {
+  height: 32px;
+  width: 32px;
   padding: 0;
-  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  background: var(--color-button);
+  color: var(--color-text);
   cursor: pointer;
-  font: inherit;
 }
 
-.diff-ext-text-btn:hover {
-  text-decoration: underline;
+.diff-ext-filter-trigger:hover {
+  background: var(--color-hover);
 }
 
 .diff-ext-filter-active {
-  outline: 1px solid var(--color-primary);
-  outline-offset: -2px;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 </style>
