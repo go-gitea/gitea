@@ -3,8 +3,8 @@ import {test, expect} from '@playwright/test';
 import {apiCreateRepo, apiCreateUser, login, randomString} from './utils.ts';
 
 test('add collaborator search', async ({page, request}) => {
-  const userName = `rc-${randomString(8)}`;
-  const repoName = `rc-${randomString(8)}`;
+  const userName = `repo-collab-${randomString(8)}`;
+  const repoName = `repo-collab-${randomString(8)}`;
 
   await apiCreateUser(request, userName);
   await Promise.all([
