@@ -54,7 +54,7 @@ export function initStopwatch() {
     // WebSocket could not be established (e.g. network / proxy blocks it,
     // or the browser lacks module-SharedWorker support).
     let pollerStarted = false;
-    const worker = new UserEventsSharedWorker('stopwatch-worker');
+    const worker = new UserEventsSharedWorker('user-events');
     worker.addMessageEventListener((event: MessageEvent<UserEventMessage>) => {
       if (event.data.type === 'stopwatches') {
         updateStopwatchData(JSON.parse(event.data.data));

@@ -35,7 +35,7 @@ export function initNotificationCount() {
     // WebSocket could not be established (e.g. network / proxy blocks it,
     // or the browser lacks module-SharedWorker support).
     let pollerStarted = false;
-    const worker = new UserEventsSharedWorker('notification-worker');
+    const worker = new UserEventsSharedWorker('user-events');
     worker.addMessageEventListener((event: MessageEvent<UserEventMessage>) => {
       if (event.data.type === 'notification-count') {
         receiveUpdateCount(event); // no await
