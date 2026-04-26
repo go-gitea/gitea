@@ -102,7 +102,6 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
-          xpack.security.http.ssl.enabled: false
         ports:
           - "9200:9200"
       meilisearch:
@@ -178,7 +177,6 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
-          xpack.security.http.ssl.enabled: false
         ports:
           - "9200:9200"
       smtpimap:
