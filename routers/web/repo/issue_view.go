@@ -999,7 +999,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		if pull.HasMerged || issue.IsClosed || !ctx.IsSigned {
 			return false
 		}
-		if pull.CanAutoMerge() || pull.IsWorkInProgress(ctx) || pull.IsChecking() {
+		if pull.IsStatusMergeable() || pull.IsWorkInProgress(ctx) || pull.IsChecking() {
 			return false
 		}
 		if allowMerge && prConfig.AllowManualMerge {

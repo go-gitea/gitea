@@ -24,7 +24,7 @@
 	{{- else if and .AllowMerge .RequireSigned (not .WillSign)}}tw-text-red
 	{{- else if .Issue.PullRequest.IsChecking}}tw-text-yellow
 	{{- else if .Issue.PullRequest.IsEmpty}}tw-text-text-light
-	{{- else if .Issue.PullRequest.CanAutoMerge}}tw-text-green
+	{{- else if .Issue.PullRequest.IsStatusMergeable}}tw-text-green
 	{{- else}}tw-text-red{{end}}">{{svg "octicon-git-merge" 40}}</div>
 	<div class="content">
 		{{if .LatestCommitStatus}}
@@ -113,7 +113,7 @@
 					{{svg "octicon-alert"}}
 					{{ctx.Locale.Tr "repo.pulls.is_ancestor"}}
 				</div>
-			{{else if or .Issue.PullRequest.CanAutoMerge .Issue.PullRequest.IsEmpty}}
+			{{else if or .Issue.PullRequest.IsStatusMergeable .Issue.PullRequest.IsEmpty}}
 				{{if .IsBlockedByApprovals}}
 					<div class="item">
 						{{svg "octicon-x"}}
