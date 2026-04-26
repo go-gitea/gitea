@@ -63,16 +63,26 @@ export type GitRefType = 'branch' | 'tag';
 
 export type Promisable<T> = T | Promise<T>; // stricter than type-fest which uses PromiseLike
 
+export type StopwatchData = {
+  repo_owner_name: string,
+  repo_name: string,
+  issue_index: number,
+  seconds: number,
+};
+
 // keep in sync with services/websocket/events.go
-export type UserEventType = 'notification-count' | 'stopwatches' | 'logout' | 'push-unavailable';
+export type ServerEventMessage =
+  {type: 'notification-count', count: number} |
+  {type: 'stopwatches', data: Array<StopwatchData>} |
+  {type: 'logout', data: 'here' | 'elsewhere'};
 
-export type UserEventMessage = {
-  type: UserEventType,
-  data: string,
-};
+export type UserEventMessage =
+  ServerEventMessage |
+  {type: 'push-unavailable'};
 
-export type WorkerInboundMessage = {
-  type: UserEventType | 'error' | 'close',
-  data?: any,
-  message?: string,
-};
+export type UserEventType = UserEventMessage['type'];
+
+export type WorkerInboundMessage =
+  UserEventMessage |
+  {type: 'error', message?: string} |
+  {type: 'close'};

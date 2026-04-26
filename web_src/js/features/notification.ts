@@ -5,17 +5,12 @@ import {onUserEvent} from '../modules/worker.ts';
 const {appSubUrl, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
 
-async function receiveUpdateCount(raw: string) {
-  try {
-    const data = JSON.parse(raw);
-    for (const count of document.querySelectorAll('.notification_count')) {
-      count.classList.toggle('tw-hidden', data.Count === 0);
-      count.textContent = `${data.Count}`;
-    }
-    await updateNotificationTable();
-  } catch (error) {
-    console.error(error, raw);
+async function receiveUpdateCount(count: number) {
+  for (const el of document.querySelectorAll('.notification_count')) {
+    el.classList.toggle('tw-hidden', count === 0);
+    el.textContent = `${count}`;
   }
+  await updateNotificationTable();
 }
 
 export function initNotificationCount() {
@@ -31,7 +26,7 @@ export function initNotificationCount() {
 
   // Fall back to periodic polling if the worker can't establish the WebSocket.
   let pollerStarted = false;
-  onUserEvent('notification-count', (data) => { receiveUpdateCount(data) }); // no await
+  onUserEvent('notification-count', (msg) => { receiveUpdateCount(msg.count) }); // no await
   onUserEvent('push-unavailable', () => {
     if (pollerStarted) return;
     pollerStarted = true;

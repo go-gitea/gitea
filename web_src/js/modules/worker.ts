@@ -1,22 +1,23 @@
-import type {UserEventType, WorkerInboundMessage} from '../types.ts';
+import type {UserEventMessage, UserEventType, WorkerInboundMessage} from '../types.ts';
 
 const {appSubUrl, sharedWorkerUri} = window.config;
 
-type Subscriber = (data: string) => void;
+type EventOf<T extends UserEventType> = Extract<UserEventMessage, {type: T}>;
+type Subscriber<T extends UserEventType = UserEventType> = (msg: EventOf<T>) => void;
 const subscribers = new Map<UserEventType, Set<Subscriber>>();
 let fallbackSignalled = false;
 let sharedWorker: SharedWorker | null = null;
 
-function dispatch(type: UserEventType, data: string) {
-  const set = subscribers.get(type);
+function dispatch(msg: UserEventMessage) {
+  const set = subscribers.get(msg.type);
   if (!set) return;
-  for (const cb of set) cb(data);
+  for (const cb of set) cb(msg);
 }
 
 function signalFallback() {
   if (fallbackSignalled) return;
   fallbackSignalled = true;
-  dispatch('push-unavailable', '');
+  dispatch({type: 'push-unavailable'});
 }
 
 function init() {
@@ -39,22 +40,22 @@ function init() {
     console.error('worker port error', e);
   });
   sharedWorker.port.addEventListener('message', (event: MessageEvent<WorkerInboundMessage>) => {
-    if (!event.data || !event.data.type) {
+    const msg = event.data;
+    if (!msg || !msg.type) {
       console.error('unknown worker message event', event);
       return;
     }
-    const {type, data} = event.data;
-    if (type === 'error') {
-      console.error('worker port event error', event.data);
+    if (msg.type === 'error') {
+      console.error('worker port event error', msg);
       return;
     }
-    if (type === 'close') {
+    if (msg.type === 'close') {
       sharedWorker!.port.postMessage({type: 'close'});
       sharedWorker!.port.close();
       return;
     }
-    if (type === 'logout') {
-      if (data !== 'here') return;
+    if (msg.type === 'logout') {
+      if (msg.data !== 'here') return;
       sharedWorker!.port.postMessage({type: 'close'});
       sharedWorker!.port.close();
       // slightly delay our "logout" for a short while, in case there are other logout requests in-flight.
@@ -66,10 +67,8 @@ function init() {
       //   * there can be a data-race between the fetch call's redirection and the "logout" message from the worker
       //     * the fetch call's logout redirection should always win over the worker message, because it might have a custom location
       setTimeout(() => { window.location.href = `${appSubUrl}/` }, 1000);
-      dispatch('logout', data);
-      return;
     }
-    dispatch(type, data ?? '');
+    dispatch(msg);
   });
   sharedWorker.port.start();
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -87,7 +86,7 @@ function init() {
 }
 
 let initialized = false;
-export function onUserEvent(type: UserEventType, cb: Subscriber) {
+export function onUserEvent<T extends UserEventType>(type: T, cb: Subscriber<T>) {
   if (!initialized) {
     initialized = true;
     if (window.WebSocket && window.SharedWorker) {
@@ -101,5 +100,5 @@ export function onUserEvent(type: UserEventType, cb: Subscriber) {
     set = new Set();
     subscribers.set(type, set);
   }
-  set.add(cb);
+  set.add(cb as unknown as Subscriber);
 }

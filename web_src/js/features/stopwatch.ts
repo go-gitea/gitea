@@ -49,7 +49,7 @@ export function initStopwatch() {
 
   // Fall back to periodic polling if the worker can't establish the WebSocket.
   let pollerStarted = false;
-  onUserEvent('stopwatches', (data) => updateStopwatchData(JSON.parse(data)));
+  onUserEvent('stopwatches', (msg) => updateStopwatchData(msg.data));
   onUserEvent('push-unavailable', () => {
     if (pollerStarted) return;
     pollerStarted = true;

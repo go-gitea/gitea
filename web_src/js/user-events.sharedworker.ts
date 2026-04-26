@@ -1,17 +1,8 @@
-import type {UserEventMessage} from './types.ts';
+import type {ServerEventMessage, UserEventMessage} from './types.ts';
 
-// Returns null for unknown message types so they are dropped silently.
-function translateServerMessage(msg: {type: string, count?: number, data?: any}): UserEventMessage | null {
-  if (msg.type === 'notification-count') {
-    return {type: 'notification-count', data: JSON.stringify({Count: msg.count})};
-  }
-  if (msg.type === 'stopwatches') {
-    return {type: 'stopwatches', data: JSON.stringify(msg.data)};
-  }
-  if (msg.type === 'logout') {
-    return {type: 'logout', data: msg.data ?? ''};
-  }
-  return null;
+function isServerEventMessage(msg: unknown): msg is ServerEventMessage {
+  if (!msg || typeof msg !== 'object' || !('type' in msg)) return false;
+  return msg.type === 'notification-count' || msg.type === 'stopwatches' || msg.type === 'logout';
 }
 
 class Source {
@@ -77,9 +68,8 @@ class WsSource {
 
     this.ws.addEventListener('message', (event: MessageEvent<string>) => {
       try {
-        const msg = JSON.parse(event.data);
-        const forwarded = translateServerMessage(msg);
-        if (forwarded) this.source.notifyClients(forwarded);
+        const msg: unknown = JSON.parse(event.data);
+        if (isServerEventMessage(msg)) this.source.notifyClients(msg);
       } catch (err) {
         console.warn('user-events: dropping malformed WebSocket message', err);
       }
@@ -105,7 +95,7 @@ class WsSource {
     if (this.fallbackSignalled) return;
     if (this.failuresWithoutConnect < 3) return;
     this.fallbackSignalled = true;
-    this.source.notifyClients({type: 'push-unavailable', data: ''});
+    this.source.notifyClients({type: 'push-unavailable'});
   }
 
   scheduleReconnect() {
