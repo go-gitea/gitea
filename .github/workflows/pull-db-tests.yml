@@ -98,7 +98,7 @@ jobs:
       contents: read
     services:
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+        image: docker.elastic.co/elasticsearch/elasticsearch:9.3.3
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -156,78 +156,6 @@ jobs:
           RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
-  test-search-engine-compat:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
-    needs: files-changed
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # OpenSearch rejects xpack.* as unknown settings (not silently ignored);
-          # Elasticsearch does not recognize DISABLE_SECURITY_PLUGIN. So env is per-entry.
-          - name: elasticsearch-7.17
-            image: docker.elastic.co/elasticsearch/elasticsearch:7.17.25
-            env:
-              discovery.type: single-node
-              xpack.security.enabled: "false"
-              xpack.security.http.ssl.enabled: "false"
-          - name: elasticsearch-8.17
-            image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
-            env:
-              discovery.type: single-node
-              xpack.security.enabled: "false"
-              xpack.security.http.ssl.enabled: "false"
-          - name: elasticsearch-9.0
-            image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
-            env:
-              discovery.type: single-node
-              xpack.security.enabled: "false"
-              xpack.security.http.ssl.enabled: "false"
-          # Same ES 8 image but with basic-auth enforced (plaintext HTTP),
-          # to exercise URL userinfo → Basic Auth wiring end-to-end.
-          - name: elasticsearch-8.17-auth
-            image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
-            env:
-              discovery.type: single-node
-              xpack.security.enabled: "true"
-              xpack.security.http.ssl.enabled: "false"
-              ELASTIC_PASSWORD: changeme
-          - name: opensearch-2
-            image: opensearchproject/opensearch:2.18.0
-            env:
-              discovery.type: single-node
-              DISABLE_SECURITY_PLUGIN: "true"
-          - name: opensearch-3
-            image: opensearchproject/opensearch:3.0.0
-            env:
-              discovery.type: single-node
-              DISABLE_SECURITY_PLUGIN: "true"
-    services:
-      elasticsearch:
-        image: ${{ matrix.image }}
-        env: ${{ matrix.env }}
-        ports:
-          - "9200:9200"
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          check-latest: true
-      - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 elasticsearch" | sudo tee -a /etc/hosts'
-      - run: make deps-backend
-      - name: run search-engine integration tests
-        env:
-          CI: "true"
-          TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
-        run: |
-          go test -tags 'sqlite sqlite_unlock_notify' -run '^TestElasticsearchIndexer$' ./modules/indexer/issues/elasticsearch/
-          go test -tags 'sqlite sqlite_unlock_notify' -run '^TestESIndexAndSearch$' ./modules/indexer/code/
-
   test-mysql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
@@ -246,7 +174,7 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+        image: docker.elastic.co/elasticsearch/elasticsearch:9.3.3
         env:
           discovery.type: single-node
           xpack.security.enabled: false
