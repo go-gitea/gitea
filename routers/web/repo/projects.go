@@ -449,7 +449,11 @@ func UpdateIssueProject(ctx *context.Context) {
 		return
 	}
 
-	projectIDs, _ := base.StringsToInt64s(strings.Split(ctx.FormString("id"), ","))
+	projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("id"), ","))
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, "invalid project IDs")
+		return
+	}
 	var failedIssues []int64
 	for _, issue := range issues {
 		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectIDs); err != nil {
