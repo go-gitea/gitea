@@ -64,8 +64,6 @@ func rewriteLogout(msg []byte, connSessionID string) []byte {
 }
 
 func Serve(ctx *context.Context) {
-	routing.MarkLongPolling(ctx.Resp, ctx.Req)
-
 	conn, err := gitea_ws.Accept(ctx.Resp, ctx.Req, nil)
 	if err != nil {
 		log.Error("websocket: accept failed: %v", err)
