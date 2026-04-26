@@ -116,8 +116,7 @@ func TestBlockUser(t *testing.T) {
 				AddTokenAuth(blockerToken)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var users []api.User
-			DecodeJSON(t, resp, &users)
+			users := DecodeJSON(t, resp, []api.User{})
 
 			assert.Len(t, users, 1)
 			assert.Equal(t, blockeeName, users[0].UserName)
@@ -143,8 +142,7 @@ func TestBlockUser(t *testing.T) {
 				AddTokenAuth(blockerToken)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var users []api.User
-			DecodeJSON(t, resp, &users)
+			users := DecodeJSON(t, resp, []api.User{})
 
 			assert.Empty(t, users)
 		})
@@ -206,8 +204,7 @@ func TestBlockUser(t *testing.T) {
 				AddTokenAuth(doerToken)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var users []api.User
-			DecodeJSON(t, resp, &users)
+			users := DecodeJSON(t, resp, []api.User{})
 
 			assert.Len(t, users, 1)
 			assert.Equal(t, blockeeName, users[0].UserName)
@@ -233,8 +230,7 @@ func TestBlockUser(t *testing.T) {
 				AddTokenAuth(doerToken)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var users []api.User
-			DecodeJSON(t, resp, &users)
+			users := DecodeJSON(t, resp, []api.User{})
 
 			assert.Empty(t, users)
 		})

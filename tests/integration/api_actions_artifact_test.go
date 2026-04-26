@@ -53,8 +53,7 @@ func TestActionsArtifactUploadSingleFile(t *testing.T) {
 		Name: "artifact",
 	}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
-	var uploadResp uploadArtifactResponse
-	DecodeJSON(t, resp, &uploadResp)
+	uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
 	assert.Contains(t, uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
 	// get upload url
@@ -134,8 +133,7 @@ func TestActionsArtifactDownload(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
-	var listResp listArtifactsResponse
-	DecodeJSON(t, resp, &listResp)
+	listResp := DecodeJSON(t, resp, &listArtifactsResponse{})
 	assert.Equal(t, int64(2), listResp.Count)
 
 	// Return list might be in any order. Get one file.
@@ -155,8 +153,7 @@ func TestActionsArtifactDownload(t *testing.T) {
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
-	var downloadResp downloadArtifactResponse
-	DecodeJSON(t, resp, &downloadResp)
+	downloadResp := DecodeJSON(t, resp, &downloadArtifactResponse{})
 	assert.Len(t, downloadResp.Value, 1)
 	assert.Equal(t, "artifact-download/abc.txt", downloadResp.Value[0].Path)
 	assert.Equal(t, "file", downloadResp.Value[0].ItemType)
@@ -183,8 +180,7 @@ func TestActionsArtifactUploadMultipleFile(t *testing.T) {
 		Name: testArtifactName,
 	}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
-	var uploadResp uploadArtifactResponse
-	DecodeJSON(t, resp, &uploadResp)
+	uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
 	assert.Contains(t, uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
 	type uploadingFile struct {
@@ -236,8 +232,7 @@ func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
-	var listResp listArtifactsResponse
-	DecodeJSON(t, resp, &listResp)
+	listResp := DecodeJSON(t, resp, &listArtifactsResponse{})
 	assert.Equal(t, int64(2), listResp.Count)
 
 	var fileContainerResourceURL string
@@ -254,8 +249,7 @@ func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
-	var downloadResp downloadArtifactResponse
-	DecodeJSON(t, resp, &downloadResp)
+	downloadResp := DecodeJSON(t, resp, &downloadArtifactResponse{})
 	assert.Len(t, downloadResp.Value, 2)
 
 	downloads := [][]string{{"multi-file-download/abc.txt", "B"}, {"multi-file-download/xyz/def.txt", "C"}}
@@ -293,8 +287,7 @@ func TestActionsArtifactUploadWithRetentionDays(t *testing.T) {
 		RetentionDays: 9,
 	}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
-	var uploadResp uploadArtifactResponse
-	DecodeJSON(t, resp, &uploadResp)
+	uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
 	assert.Contains(t, uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 	assert.Contains(t, uploadResp.FileContainerResourceURL, "?retentionDays=9")
 
@@ -327,16 +320,14 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 		req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp := MakeRequest(t, req, http.StatusOK)
-		var listResp listArtifactsResponse
-		DecodeJSON(t, resp, &listResp)
+		listResp := DecodeJSON(t, resp, &listArtifactsResponse{})
 
 		idx := strings.Index(listResp.Value[0].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
 		url := listResp.Value[0].FileContainerResourceURL[idx+1:] + "?itemPath=artifact-download"
 		req = NewRequest(t, "GET", url).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp = MakeRequest(t, req, http.StatusOK)
-		var downloadResp downloadArtifactResponse
-		DecodeJSON(t, resp, &downloadResp)
+		downloadResp := DecodeJSON(t, resp, &downloadArtifactResponse{})
 
 		idx = strings.Index(downloadResp.Value[0].ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
 		url = downloadResp.Value[0].ContentLocation[idx:]
@@ -354,8 +345,7 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 			Name: "artifact-download",
 		}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp := MakeRequest(t, req, http.StatusOK)
-		var uploadResp uploadArtifactResponse
-		DecodeJSON(t, resp, &uploadResp)
+		uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
 
 		idx := strings.Index(uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
 		url := uploadResp.FileContainerResourceURL[idx:] + "?itemPath=artifact-download/abc.txt"
@@ -378,8 +368,7 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 		req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp := MakeRequest(t, req, http.StatusOK)
-		var listResp listArtifactsResponse
-		DecodeJSON(t, resp, &listResp)
+		listResp := DecodeJSON(t, resp, &listArtifactsResponse{})
 
 		var uploadedItem listArtifactsResponseItem
 		for _, item := range listResp.Value {
@@ -395,8 +384,7 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 		req = NewRequest(t, "GET", url).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp = MakeRequest(t, req, http.StatusOK)
-		var downloadResp downloadArtifactResponse
-		DecodeJSON(t, resp, &downloadResp)
+		downloadResp := DecodeJSON(t, resp, &downloadArtifactResponse{})
 
 		idx = strings.Index(downloadResp.Value[0].ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
 		url = downloadResp.Value[0].ContentLocation[idx:]
@@ -502,8 +490,7 @@ func uploadTestArtifactFile(t *testing.T, runID int64, authToken, artifactName, 
 		Name: artifactName,
 	}).AddTokenAuth(authToken)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var uploadResp uploadArtifactResponse
-	DecodeJSON(t, resp, &uploadResp)
+	uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
 
 	idx := strings.Index(uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
 	uploadURL := uploadResp.FileContainerResourceURL[idx:] + "?itemPath=" + artifactName + "/" + fileName
@@ -527,8 +514,7 @@ func listArtifactNamesForRun(t *testing.T, runID int64, taskToken string) []stri
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/artifacts", runID)).
 		AddTokenAuth(taskToken)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var listResp listArtifactsResponse
-	DecodeJSON(t, resp, &listResp)
+	listResp := DecodeJSON(t, resp, &listArtifactsResponse{})
 
 	names := make([]string, 0, len(listResp.Value))
 	for _, item := range listResp.Value {
