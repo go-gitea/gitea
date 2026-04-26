@@ -148,6 +148,7 @@ jobs:
           TAGS: bindata
           RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
+          TEST_INDEXER_CODE_ES_URL: "http://elasticsearch:9200"
       - name: unit-tests-gogit
         run: GOEXPERIMENT='' make unit-test-coverage test-check
         env:
