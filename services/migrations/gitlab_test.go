@@ -8,10 +8,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 	base "code.gitea.io/gitea/modules/migration"
 
@@ -20,19 +23,15 @@ import (
 )
 
 func TestGitlabDownloadRepo(t *testing.T) {
-	// Skip tests if Gitlab token is not found
-	gitlabPersonalAccessToken := os.Getenv("GITLAB_READ_TOKEN")
-	if gitlabPersonalAccessToken == "" {
-		t.Skip("skipped test because GITLAB_READ_TOKEN was not in the environment")
-	}
+	token := os.Getenv("GITLAB_READ_TOKEN")
+	liveMode := token != ""
 
-	resp, err := http.Get("https://gitlab.com/gitea/test_repo")
-	if err != nil || resp.StatusCode != http.StatusOK {
-		t.Skipf("Can't access test repo, skipping %s", t.Name())
-	}
-	defer resp.Body.Close()
+	_, callerFile, _, _ := runtime.Caller(0)
+	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/TestGitlabDownloadRepo")
+	mockServer := unittest.NewMockWebServer(t, "https://gitlab.com", fixtureDir, liveMode)
+
 	ctx := t.Context()
-	downloader, err := NewGitlabDownloader(ctx, "https://gitlab.com", "gitea/test_repo", gitlabPersonalAccessToken)
+	downloader, err := NewGitlabDownloader(ctx, mockServer.URL, "gitea/test_repo", token)
 	if err != nil {
 		t.Fatalf("NewGitlabDownloader is nil: %v", err)
 	}
@@ -43,8 +42,8 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		Name:          "test_repo",
 		Owner:         "",
 		Description:   "Test repository for testing migration from gitlab to gitea",
-		CloneURL:      "https://gitlab.com/gitea/test_repo.git",
-		OriginalURL:   "https://gitlab.com/gitea/test_repo",
+		CloneURL:      mockServer.URL + "/gitea/test_repo.git",
+		OriginalURL:   mockServer.URL + "/gitea/test_repo",
 		DefaultBranch: "master",
 	}, repo)
 
@@ -255,51 +254,75 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, comments)
 
-	prs, _, err := downloader.GetPullRequests(ctx, 1, 1)
+	prs, _, err := downloader.GetPullRequests(ctx, 1, 2)
 	assert.NoError(t, err)
 	assertPullRequestsEqual(t, []*base.PullRequest{
 		{
-			Number:     4,
-			Title:      "Test branch",
-			Content:    "do not merge this PR",
-			Milestone:  "1.0.0",
-			PosterID:   1241334,
-			PosterName: "lafriks",
-			State:      "opened",
-			Created:    time.Date(2019, 11, 28, 15, 56, 54, 104000000, time.UTC),
-			Labels: []*base.Label{
-				{
-					Name: "bug",
-				},
-			},
-			Reactions: []*base.Reaction{{
-				UserID:   4575606,
-				UserName: "real6543",
-				Content:  "thumbsup",
-			}, {
-				UserID:   4575606,
-				UserName: "real6543",
-				Content:  "tada",
-			}},
-			PatchURL: "https://gitlab.com/gitea/test_repo/-/merge_requests/2.patch",
+			Number:     6,
+			Title:      "Test/parsing",
+			Content:    "This MR was created in error, feel free to delete when convenient. Sorry for the noise.",
+			Milestone:  "",
+			PosterID:   10529876,
+			PosterName: "patdyn",
+			State:      "closed",
+			Created:    time.Date(2025, 11, 25, 9, 21, 42, 628000000, time.UTC),
+			Labels:     []*base.Label{},
+			Reactions:  []*base.Reaction{},
+			PatchURL:   mockServer.URL + "/gitea/test_repo/-/merge_requests/4.patch",
 			Head: base.PullRequestBranch{
-				Ref:       "feat/test",
-				CloneURL:  "https://gitlab.com/gitea/test_repo/-/merge_requests/2",
-				SHA:       "9f733b96b98a4175276edf6a2e1231489c3bdd23",
+				Ref:       "test/parsing",
+				CloneURL:  mockServer.URL + "/gitea/test_repo/-/merge_requests/4",
+				SHA:       "c59c9b451acca9d106cc19d61d87afe3fbbb8b83",
 				RepoName:  "test_repo",
-				OwnerName: "lafriks",
+				OwnerName: "patdyn",
 			},
 			Base: base.PullRequestBranch{
 				Ref:       "master",
-				SHA:       "",
-				OwnerName: "lafriks",
+				SHA:       "c59c9b451acca9d106cc19d61d87afe3fbbb8b83",
+				OwnerName: "patdyn",
 				RepoName:  "test_repo",
 			},
-			Closed:         nil,
+			Closed:         new(time.Date(2025, 11, 25, 9, 43, 14, 581000000, time.UTC)),
 			Merged:         false,
 			MergedTime:     nil,
 			MergeCommitSHA: "",
-			ForeignIndex:   2,
+			ForeignIndex:   4,
+			Context:        gitlabIssueContext{IsMergeRequest: true},
+		},
+		{
+			Number:     5,
+			Title:      "Test branch",
+			Content:    "do not merge this PR",
+			Milestone:  "",
+			PosterID:   2005797,
+			PosterName: "oliverpool",
+			State:      "closed",
+			Created:    time.Date(2024, 9, 3, 7, 52, 8, 78000000, time.UTC),
+			Labels:     []*base.Label{},
+			Reactions: []*base.Reaction{{
+				UserID:   2005797,
+				UserName: "oliverpool",
+				Content:  "thumbsup",
+			}},
+			PatchURL: mockServer.URL + "/gitea/test_repo/-/merge_requests/3.patch",
+			Head: base.PullRequestBranch{
+				Ref:       "feat/test",
+				CloneURL:  mockServer.URL + "/gitea/test_repo/-/merge_requests/3",
+				SHA:       "9f733b96b98a4175276edf6a2e1231489c3bdd23",
+				RepoName:  "test_repo",
+				OwnerName: "oliverpool",
+			},
+			Base: base.PullRequestBranch{
+				Ref:       "master",
+				SHA:       "c59c9b451acca9d106cc19d61d87afe3fbbb8b83",
+				OwnerName: "oliverpool",
+				RepoName:  "test_repo",
+			},
+			Closed:         new(time.Date(2024, 9, 3, 7, 52, 28, 488000000, time.UTC)),
+			Merged:         false,
+			MergedTime:     nil,
+			MergeCommitSHA: "",
+			ForeignIndex:   3,
 			Context:        gitlabIssueContext{IsMergeRequest: true},
 		},
 	}, prs)
@@ -309,16 +332,16 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	assertReviewsEqual(t, []*base.Review{
 		{
 			IssueIndex:   1,
-			ReviewerID:   4102996,
-			ReviewerName: "zeripath",
-			CreatedAt:    time.Date(2019, 11, 28, 16, 2, 8, 377000000, time.UTC),
+			ReviewerID:   527793,
+			ReviewerName: "axifive",
+			CreatedAt:    time.Date(2019, 11, 28, 8, 54, 41, 34000000, time.UTC),
 			State:        "APPROVED",
 		},
 		{
 			IssueIndex:   1,
-			ReviewerID:   527793,
-			ReviewerName: "axifive",
-			CreatedAt:    time.Date(2019, 11, 28, 16, 2, 8, 377000000, time.UTC),
+			ReviewerID:   4102996,
+			ReviewerName: "zeripath",
+			CreatedAt:    time.Date(2019, 11, 28, 8, 54, 41, 34000000, time.UTC),
 			State:        "APPROVED",
 		},
 	}, rvs)
@@ -330,7 +353,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			IssueIndex:   2,
 			ReviewerID:   4575606,
 			ReviewerName: "real6543",
-			CreatedAt:    time.Date(2020, 4, 19, 19, 24, 21, 108000000, time.UTC),
+			CreatedAt:    time.Date(2019, 11, 28, 15, 56, 54, 104000000, time.UTC),
 			State:        "APPROVED",
 		},
 	}, rvs)

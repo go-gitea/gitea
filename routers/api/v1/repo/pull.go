@@ -965,7 +965,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	// start with merging by checking
-	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, form.ForceMerge); err != nil {
+	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, repo_model.MergeStyle(form.Do), form.ForceMerge); err != nil {
 		if errors.Is(err, pull_service.ErrIsClosed) {
 			ctx.APIErrorNotFound()
 		} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
@@ -979,6 +979,8 @@ func MergePullRequest(ctx *context.APIContext) {
 		} else if errors.Is(err, pull_service.ErrNotReadyToMerge) {
 			ctx.APIError(http.StatusMethodNotAllowed, err)
 		} else if asymkey_service.IsErrWontSign(err) {
+			ctx.APIError(http.StatusMethodNotAllowed, err)
+		} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) {
 			ctx.APIError(http.StatusMethodNotAllowed, err)
 		} else {
 			ctx.APIErrorInternal(err)
@@ -1173,7 +1175,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		return nil, nil
 	}
 
-	return compareInfo, closer
+	return &compareInfo, closer
 }
 
 // UpdatePullRequest merge PR's baseBranch into headBranch
@@ -1417,7 +1419,6 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		return
 	}
 
-	var compareInfo *git_service.CompareInfo
 	baseGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1425,6 +1426,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	}
 	defer closer.Close()
 
+	var compareInfo git_service.CompareInfo
 	if pr.HasMerged {
 		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), false, false)
 	} else {
@@ -1550,7 +1552,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	baseGitRepo := ctx.Repo.GitRepo
 
-	var compareInfo *git_service.CompareInfo
+	var compareInfo git_service.CompareInfo
 	if pr.HasMerged {
 		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), false, false)
 	} else {

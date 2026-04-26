@@ -179,8 +179,7 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	}).AddTokenAuth(token)
 
 	resp := MakeRequest(t, req, http.StatusCreated)
-	var fileResponse api.FileResponse
-	DecodeJSON(t, resp, &fileResponse)
+	fileResponse := DecodeJSON(t, resp, &api.FileResponse{})
 	expectedHTMLURL := setting.AppURL + "user30/empty/src/branch/new_branch/new-file.txt"
 	assert.Equal(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
 
@@ -191,7 +190,6 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/repos/user30/empty").
 		AddTokenAuth(token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	var apiRepo api.Repository
-	DecodeJSON(t, resp, &apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 	assert.Equal(t, "new_branch", apiRepo.DefaultBranch)
 }

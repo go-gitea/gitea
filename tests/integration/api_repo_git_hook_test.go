@@ -40,8 +40,7 @@ echo "TestGitHookScript"
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git", owner.Name, repo.Name).
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var apiGitHooks []*api.GitHook
-		DecodeJSON(t, resp, &apiGitHooks)
+		apiGitHooks := DecodeJSON(t, resp, []*api.GitHook{})
 		assert.Len(t, apiGitHooks, 3)
 		for _, apiGitHook := range apiGitHooks {
 			if apiGitHook.Name == "pre-receive" {
@@ -66,8 +65,7 @@ echo "TestGitHookScript"
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git", owner.Name, repo.Name).
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var apiGitHooks []*api.GitHook
-		DecodeJSON(t, resp, &apiGitHooks)
+		apiGitHooks := DecodeJSON(t, resp, []*api.GitHook{})
 		assert.Len(t, apiGitHooks, 3)
 		for _, apiGitHook := range apiGitHooks {
 			assert.False(t, apiGitHook.IsActive)

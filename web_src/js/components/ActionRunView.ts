@@ -91,6 +91,7 @@ export function createEmptyActionsRun(): ActionsRun {
   return {
     repoId: 0,
     link: '',
+    viewLink: '',
     title: '',
     titleHTML: '',
     status: '' as ActionsRunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
@@ -103,6 +104,8 @@ export function createEmptyActionsRun(): ActionsRun {
     workflowID: '',
     workflowLink: '',
     isSchedule: false,
+    runAttempt: 0,
+    attempts: [],
     duration: '',
     triggeredAt: 0,
     triggerEvent: '',
@@ -125,7 +128,7 @@ export function createEmptyActionsRun(): ActionsRun {
   };
 }
 
-export function createActionRunViewStore(actionsUrl: string, runId: number) {
+export function createActionRunViewStore(viewUrl: string) {
   let loadingAbortController: AbortController | null = null;
   let intervalID: IntervalId | null = null;
   const viewData = reactive({
@@ -137,8 +140,7 @@ export function createActionRunViewStore(actionsUrl: string, runId: number) {
     const abortController = new AbortController();
     loadingAbortController = abortController;
     try {
-      const url = `${actionsUrl}/runs/${runId}`;
-      const resp = await POST(url, {signal: abortController.signal, data: {}});
+      const resp = await POST(viewUrl, {signal: abortController.signal, data: {}});
       const runResp = await resp.json();
       if (loadingAbortController !== abortController) return;
 

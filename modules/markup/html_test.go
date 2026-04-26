@@ -317,7 +317,7 @@ func TestRender_email(t *testing.T) {
 
 func TestRender_emoji(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
-	setting.StaticURLPrefix = markup.TestAppURL
+	setting.StaticURLPrefix = strings.TrimSuffix(markup.TestAppURL, "/")
 
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
@@ -500,7 +500,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 }
 
 func TestPostProcess(t *testing.T) {
-	setting.StaticURLPrefix = markup.TestAppURL // can't run standalone
+	setting.StaticURLPrefix = strings.TrimSuffix(markup.TestAppURL, "/") // can't run standalone
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 
 	test := func(input, expected string) {

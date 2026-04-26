@@ -18,16 +18,13 @@ import (
 
 func TestAPIIssueTemplateList(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		var issueTemplates []*api.IssueTemplate
-
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 
 		// no issue template
 		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/issue_templates")
 		resp := MakeRequest(t, req, http.StatusOK)
-		issueTemplates = nil
-		DecodeJSON(t, resp, &issueTemplates)
+		issueTemplates := DecodeJSON(t, resp, []*api.IssueTemplate{})
 		assert.Empty(t, issueTemplates)
 
 		// one correct issue template and some incorrect issue templates
@@ -46,8 +43,7 @@ about: bar
 
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/issue_templates")
 		resp = MakeRequest(t, req, http.StatusOK)
-		issueTemplates = nil
-		DecodeJSON(t, resp, &issueTemplates)
+		issueTemplates = DecodeJSON(t, resp, []*api.IssueTemplate{})
 		assert.Len(t, issueTemplates, 1)
 		assert.Equal(t, "foo", issueTemplates[0].Name)
 		assert.Equal(t, "error occurs when parsing issue template: count=2", resp.Header().Get("X-Gitea-Warning"))

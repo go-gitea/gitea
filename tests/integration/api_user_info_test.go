@@ -34,8 +34,7 @@ func TestAPIUserInfo(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var u api.User
-		DecodeJSON(t, resp, &u)
+		u := DecodeJSON(t, resp, &api.User{})
 		assert.Equal(t, user2, u.UserName)
 
 		req = NewRequest(t, "GET", "/api/v1/users/"+user2)
@@ -44,14 +43,14 @@ func TestAPIUserInfo(t *testing.T) {
 		// test if the placaholder Mail is returned if a User is not logged in
 		req = NewRequest(t, "GET", "/api/v1/users/"+org3.Name)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &u)
+		u = DecodeJSON(t, resp, &api.User{})
 		assert.Equal(t, org3.GetPlaceholderEmail(), u.Email)
 
 		// Test if the correct Mail is returned if a User is logged in
 		req = NewRequest(t, "GET", "/api/v1/users/"+org3.Name).
 			AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &u)
+		u = DecodeJSON(t, resp, &api.User{})
 		assert.Equal(t, org3.GetEmail(), u.Email)
 	})
 
@@ -62,8 +61,7 @@ func TestAPIUserInfo(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var u api.User
-		DecodeJSON(t, resp, &u)
+		u := DecodeJSON(t, resp, &api.User{})
 		assert.Equal(t, user, u.UserName)
 	})
 }
