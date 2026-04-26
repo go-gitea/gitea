@@ -29,6 +29,11 @@ import (
 
 func TestAPIPullReview(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("General", testAPIPullReviewGeneral)
+	t.Run("CommentReply", testAPIPullReviewCommentReply)
+}
+
+func testAPIPullReviewGeneral(t *testing.T) {
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
 	assert.NoError(t, pullIssue.LoadAttributes(t.Context()))
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID})
@@ -526,9 +531,7 @@ func TestAPIPullReviewStayDismissed(t *testing.T) {
 		pullIssue.ID, user8.ID, 2, 0, 3, false)
 }
 
-func TestAPIPullReviewCommentReply(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIPullReviewCommentReply(t *testing.T) {
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
 	require.NoError(t, pullIssue.LoadRepo(t.Context()))
 	require.NoError(t, pullIssue.LoadPullRequest(t.Context()))
