@@ -117,19 +117,6 @@ func roleDescriptor(ctx *context.Context, repo *repo_model.Repository, poster *u
 	return roleDesc, nil
 }
 
-func getBranchData(ctx *context.Context, issue *issues_model.Issue) {
-	ctx.Data["BaseBranch"] = nil
-	ctx.Data["HeadBranch"] = nil
-	ctx.Data["HeadUserName"] = nil
-	ctx.Data["BaseName"] = ctx.Repo.Repository.OwnerName
-	if issue.IsPull {
-		pull := issue.PullRequest
-		ctx.Data["BaseBranch"] = pull.BaseBranch
-		ctx.Data["HeadBranch"] = pull.HeadBranch
-		ctx.Data["HeadUserName"] = pull.MustHeadUserName(ctx)
-	}
-}
-
 // checkBlockedByIssues return canRead and notPermitted
 func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
 	repoPerms := make(map[int64]access_model.Permission)
@@ -379,6 +366,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 	pageMetaData.LabelsData.SetSelectedLabels(issue.Labels)
 
+	prViewInfo := newPullRequestViewInfo()
 	prepareFuncs := []func(*context.Context, *issues_model.Issue){
 		prepareIssueViewContent,
 		prepareIssueViewCommentsAndSidebarParticipants,
@@ -389,8 +377,8 @@ func ViewIssue(ctx *context.Context) {
 	}
 	if issue.IsPull {
 		prepareFuncs = append(prepareFuncs,
-			func(ctx *context.Context, issue *issues_model.Issue) { preparePullViewPullInfo(ctx, issue) },
-			preparePullViewReviewAndMerge,
+			prViewInfo.prepareViewInfo,
+			prViewInfo.prepareMergeBox,
 		)
 	}
 	for _, prepareFunc := range prepareFuncs {
@@ -405,7 +393,7 @@ func ViewIssue(ctx *context.Context) {
 		if issue.PullRequest.HasMerged {
 			ctx.Data["DisableStatusChange"] = issue.PullRequest.HasMerged
 		} else {
-			ctx.Data["DisableStatusChange"] = ctx.Data["IsPullRequestBroken"] == true && issue.IsClosed
+			ctx.Data["DisableStatusChange"] = prViewInfo.IsPullRequestBroken && issue.IsClosed
 		}
 	}
 
@@ -445,11 +433,12 @@ func ViewPullMergeBox(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	preparePullViewPullInfo(ctx, issue)
+	prViewInfo := newPullRequestViewInfo()
+	prViewInfo.prepareViewInfo(ctx, issue)
 	if ctx.Written() {
 		return
 	}
-	preparePullViewReviewAndMerge(ctx, issue)
+	prViewInfo.prepareMergeBox(ctx, issue)
 	if ctx.Written() {
 		return
 	}
@@ -566,14 +555,11 @@ func prepareIssueViewSidebarTimeTracker(ctx *context.Context, issue *issues_mode
 	}
 }
 
-func preparePullViewDeleteBranch(ctx *context.Context, issue *issues_model.Issue, canDelete bool) {
-	if !issue.IsPull {
-		return
-	}
-	pull := issue.PullRequest
+func (prInfo *pullRequestViewInfo) prepareMergeBoxDeleteBranch(ctx *context.Context, canDelete bool) {
+	pull := prInfo.issue.PullRequest
 	isPullBranchDeletable := canDelete &&
 		pull.HeadRepo != nil &&
-		(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
+		(!pull.HasMerged || prInfo.HeadBranchCommitID == prInfo.CompareInfo.HeadCommitID)
 	if isPullBranchDeletable {
 		isPullBranchDeletable, _ = git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.HeadBranch)
 	}
@@ -835,10 +821,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 	ctx.Data["NumParticipants"] = len(participants)
 }
 
-func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Issue) {
-	getBranchData(ctx, issue)
-	if !issue.IsPull {
-		return
+func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *issues_model.Issue) {
+	if prInfo.issue != issue {
+		panic("impossible, issue must be the same")
 	}
 
 	pull := issue.PullRequest
@@ -848,6 +833,22 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 	canWriteToHeadRepo := false
 
 	pull_service.StartPullRequestCheckOnView(ctx, pull)
+
+	ctx.Data["GetCommitMessages"] = ""
+	if !prInfo.IsPullRequestBroken {
+		var err error
+		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(ctx, pull, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("IsUserAllowedToUpdate", err)
+			return
+		}
+		ctx.Data["GetCommitMessages"] = pull_service.GetSquashMergeCommitMessages(ctx, pull)
+	}
+
+	if pull.IsFilesConflicted() {
+		ctx.Data["IsPullFilesConflicted"] = true
+		ctx.Data["ConflictedFiles"] = pull.ConflictedFiles
+	}
 
 	if ctx.IsSigned {
 		if err := pull.LoadHeadRepo(ctx); err != nil {
@@ -974,7 +975,7 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		return
 	}
 
-	preparePullViewDeleteBranch(ctx, issue, canDelete)
+	prInfo.prepareMergeBoxDeleteBranch(ctx, canDelete)
 	if ctx.Written() {
 		return
 	}

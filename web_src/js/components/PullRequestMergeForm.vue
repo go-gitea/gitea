@@ -230,7 +230,7 @@ function clearMergeMessage() {
   bottom: -1px;
   position: absolute;
   align-items: center;
-  color: var(--color-info-text);
+  color: var(--color-text);
   background-color: var(--color-info-bg);
   border: 1px solid var(--color-info-border);
   border-left: none;
@@ -238,7 +238,7 @@ function clearMergeMessage() {
 }
 
 .auto-merge-small:hover {
-  color: var(--color-info-text);
+  color: var(--color-text);
   background-color: var(--color-info-bg);
   border: 1px solid var(--color-info-border);
 }

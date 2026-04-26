@@ -6,7 +6,7 @@
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.terraform.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>terraform {
 	backend "http" {
-		address = "{{ctx.AppFullLink}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/state/{{$.PackageDescriptor.Package.Name}}""
+		address = "{{ctx.AppFullLink}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/state/{{$.PackageDescriptor.Package.Name}}"
 		lock_address = "{{ctx.AppFullLink}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/state/{{$.PackageDescriptor.Package.Name}}/lock"
 		unlock_address = "{{ctx.AppFullLink}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/state/{{$.PackageDescriptor.Package.Name}}/lock"
 		lock_method = "POST"
