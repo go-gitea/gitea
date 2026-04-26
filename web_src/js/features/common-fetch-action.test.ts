@@ -45,19 +45,15 @@ test('handleFetchActionSuccessJson', async () => {
   await handleFetchActionSuccessJson(document.body, {redirect: '/'});
   expect(spyAssign).toHaveBeenCalledTimes(1);
   expect(spyReload).toHaveBeenCalledTimes(0);
-  spyAssign.mockClear();
-  spyReload.mockClear();
+  vi.resetAllMocks();
 
   await handleFetchActionSuccessJson(document.body, {redirect: ''});
   expect(spyAssign).toHaveBeenCalledTimes(0);
   expect(spyReload).toHaveBeenCalledTimes(1);
-  spyAssign.mockClear();
-  spyReload.mockClear();
+  vi.resetAllMocks();
 
   await handleFetchActionSuccessJson(document.body, {});
   expect(spyAssign).toHaveBeenCalledTimes(0);
   expect(spyReload).toHaveBeenCalledTimes(1);
-
-  spyAssign.mockRestore();
-  spyReload.mockRestore();
+  vi.resetAllMocks();
 });
