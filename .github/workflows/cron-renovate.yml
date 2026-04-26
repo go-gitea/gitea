@@ -23,8 +23,9 @@ jobs:
       - uses: renovatebot/github-action@83ec54fee49ab67d9cd201084c1ff325b4b462e4 # v46.1.10
         with:
           renovate-version: ${{ env.RENOVATE_VERSION }}
-          configurationFile: renovate-config.json5
+          configurationFile: renovate.json5
           token: ${{ secrets.RENOVATE_TOKEN }}
         env:
           RENOVATE_BINARY_SOURCE: install # auto-install go/node toolchains needed by post-upgrade tasks.
           RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg)$"]'
+          RENOVATE_REPOSITORIES: '["go-gitea/gitea"]'
