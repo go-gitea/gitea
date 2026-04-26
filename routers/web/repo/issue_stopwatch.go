@@ -30,7 +30,7 @@ func IssueStartStopwatch(c *context.Context) {
 		c.Flash.Success(c.Tr("repo.issues.tracker_auto_close"))
 		websocket_service.PublishStopwatchesForUser(c, c.Doer)
 	}
-	c.JSONRedirect("")
+	c.JSONOK()
 }
 
 // IssueStopStopwatch stops a stopwatch for the given issue.
@@ -53,7 +53,7 @@ func IssueStopStopwatch(c *context.Context) {
 	} else {
 		websocket_service.PublishStopwatchesForUser(c, c.Doer)
 	}
-	c.JSONRedirect("")
+	c.JSONOK()
 }
 
 // CancelStopwatch cancel the stopwatch
@@ -73,5 +73,5 @@ func CancelStopwatch(c *context.Context) {
 	}
 
 	websocket_service.PublishStopwatchesForUser(c, c.Doer)
-	c.JSONRedirect("")
+	c.JSONOK()
 }
