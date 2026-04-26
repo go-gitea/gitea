@@ -90,6 +90,34 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	assert.NoError(t, project_model.DeleteProjectByID(t.Context(), project1.ID))
 }
 
+func TestUpdateIssueProject(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	sess := loginUser(t, "user2")
+
+	t.Run("AssignAndRemove", func(t *testing.T) {
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
+			"id": "1",
+		})
+		sess.MakeRequest(t, req, http.StatusOK)
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
+
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
+			"id": "",
+		})
+		sess.MakeRequest(t, req, http.StatusOK)
+		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
+	})
+
+	t.Run("InvalidProjectID", func(t *testing.T) {
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
+			"id": "not-a-number",
+		})
+		sess.MakeRequest(t, req, http.StatusBadRequest)
+		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2})
+	})
+}
+
 func TestUpdateIssueProjectColumn(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
