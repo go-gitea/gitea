@@ -3,7 +3,7 @@ import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {chooseFromApi} from '../modules/search.ts';
+import {attachSearchBox} from '../modules/search.ts';
 import {globMatch} from '../utils/glob.ts';
 
 const {appSubUrl} = window.config;
@@ -48,20 +48,15 @@ function initRepoSettingsCollaboration() {
 
 type TeamSearchResponse = {data: Array<{name: string; permission: string}>};
 
-async function initRepoSettingsSearchTeamBox() {
+function initRepoSettingsSearchTeamBox() {
   const box = document.querySelector<HTMLElement>('#search-team-box');
   if (!box) return;
 
   const url = `${appSubUrl}/org/${box.getAttribute('data-org-name')}/teams/-/search?q={query}`;
-  const input = box.querySelector<HTMLInputElement>('input.prompt')!;
-  while (box.isConnected) {
-    const pick = await chooseFromApi<TeamSearchResponse>(box, url, (response) => response.data.map((item) => ({
-      title: item.name,
-      description: `${item.permission} access`, // TODO: translate this string
-    })));
-    input.value = pick.title;
-    input.dispatchEvent(new Event('change', {bubbles: true}));
-  }
+  attachSearchBox(box, url, (response: TeamSearchResponse) => response.data.map((item) => ({
+    title: item.name,
+    description: `${item.permission} access`, // TODO: translate this string
+  })));
 }
 
 function initRepoSettingsGitHook() {
