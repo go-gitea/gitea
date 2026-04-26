@@ -79,11 +79,6 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.HasAPIError() {
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.GetErrMsg())
-		return
-	}
-
 	if !ctx.Doer.IsAdmin {
 		if !repoOwner.IsOrganization() && ctx.Doer.ID != repoOwner.ID {
 			ctx.APIError(http.StatusForbidden, "Given user is not an organization.")

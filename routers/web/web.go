@@ -45,7 +45,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 
-	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
+	_ "code.gitea.io/gitea/modules/session" // to register all internal adapters
 
 	"gitea.com/go-chi/captcha"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
@@ -260,6 +260,7 @@ func Routes() *web.Router {
 	routes.BeforeRouting(chi_middleware.GetHead)
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
+	routes.Methods("GET, HEAD", "/assets/site-manifest.json", misc.SiteManifest)
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", routing.MarkLogLevelTrace, public.AssetsCors(), public.FileHandlerFunc())
 	routes.Methods("GET, HEAD", "/avatars/*", avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
@@ -1355,6 +1356,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
 			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, repo.UpdateIssueProject)
+			m.Post("/projects/column", reqRepoIssuesOrPullsWriter, reqRepoProjectsWriter, repo.UpdateIssueProjectColumn)
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
 			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
 			m.Post("/delete", reqRepoAdmin, repo.BatchDeleteIssues)
@@ -1538,6 +1540,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("").
 				Get(actions.View).
 				Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
+			m.Group("/attempts/{attempt}", func() {
+				m.Combo("").
+					Get(actions.View).
+					Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
+			})
 			m.Group("/jobs/{job}", func() {
 				m.Combo("").
 					Get(actions.View).
@@ -1753,8 +1760,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Any("/mail-preview/*", devtest.MailPreviewRender)
 			m.Any("/{sub}", devtest.TmplCommon)
 			m.Get("/repo-action-view/runs/{run}", devtest.MockActionsView)
+			m.Get("/repo-action-view/runs/{run}/attempts/{attempt}", devtest.MockActionsView)
 			m.Get("/repo-action-view/runs/{run}/jobs/{job}", devtest.MockActionsView)
 			m.Post("/repo-action-view/runs/{run}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
+			m.Post("/repo-action-view/runs/{run}/attempts/{attempt}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
 			m.Post("/repo-action-view/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
 		})
 	}

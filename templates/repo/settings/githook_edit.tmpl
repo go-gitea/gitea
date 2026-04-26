@@ -1,7 +1,7 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings edit githook")}}
 	<div class="repo-setting-content">
 		<form class="ui form" action="{{.Link}}" method="post">
-			<h4 class="ui top attached header flex-text-block tw-justify-between tw-flex-wrap">
+			<h4 class="ui top attached header flex-left-right">
 				{{.Hook.Name}}
 				<div class="tw-font-normal tw-font-sans tw-text-base">
 					{{template "repo/editor/options" dict "CodeEditorConfig" $.CodeEditorConfig}}

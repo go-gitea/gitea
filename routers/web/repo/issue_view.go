@@ -386,10 +386,13 @@ func ViewIssue(ctx *context.Context) {
 		prepareIssueViewSidebarTimeTracker,
 		prepareIssueViewSidebarDependency,
 		prepareIssueViewSidebarPin,
-		func(ctx *context.Context, issue *issues_model.Issue) { preparePullViewPullInfo(ctx, issue) },
-		preparePullViewReviewAndMerge,
 	}
-
+	if issue.IsPull {
+		prepareFuncs = append(prepareFuncs,
+			func(ctx *context.Context, issue *issues_model.Issue) { preparePullViewPullInfo(ctx, issue) },
+			preparePullViewReviewAndMerge,
+		)
+	}
 	for _, prepareFunc := range prepareFuncs {
 		prepareFunc(ctx, issue)
 		if ctx.Written() {
@@ -443,7 +446,13 @@ func ViewPullMergeBox(ctx *context.Context) {
 		return
 	}
 	preparePullViewPullInfo(ctx, issue)
+	if ctx.Written() {
+		return
+	}
 	preparePullViewReviewAndMerge(ctx, issue)
+	if ctx.Written() {
+		return
+	}
 	ctx.Data["PullMergeBoxReloading"] = issue.PullRequest.IsChecking()
 
 	// TODO: it should use a dedicated struct to render the pull merge box, to make sure all data is prepared correctly

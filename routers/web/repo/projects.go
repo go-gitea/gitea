@@ -464,6 +464,54 @@ func UpdateIssueProject(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
+// UpdateIssueProjectColumn moves an issue to a different column within its project
+func UpdateIssueProjectColumn(ctx *context.Context) {
+	issue, err := issues_model.GetIssueByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("issue_id"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetIssueByID", issues_model.IsErrIssueNotExist, err)
+		return
+	}
+	column, err := project_model.GetColumn(ctx, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetColumn", project_model.IsErrProjectColumnNotExist, err)
+		return
+	}
+
+	if err := issue.LoadProject(ctx); err != nil {
+		ctx.ServerError("LoadProject", err)
+		return
+	}
+
+	issueProjects := []*project_model.Project{issue.Project} // TODO: this is for the multiple project support in the future
+
+	// it must make sure the requested column is in this issue's projects
+	var columnProject *project_model.Project
+	for _, project := range issueProjects {
+		if column.ProjectID == project.ID {
+			columnProject = project
+			break
+		}
+	}
+	if columnProject == nil {
+		ctx.NotFound(nil)
+		return
+	}
+
+	// append to the end of the target column so we don't collide with existing sorting values
+	newSorting, err := project_model.GetColumnIssueNextSorting(ctx, columnProject.ID, column.ID)
+	if err != nil {
+		ctx.ServerError("GetColumnIssueNextSorting", err)
+		return
+	}
+
+	if err := project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, map[int64]int64{newSorting: issue.ID}); err != nil {
+		ctx.ServerError("MoveIssuesOnProjectColumn", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
 // DeleteProjectColumn allows for the deletion of a project column
 func DeleteProjectColumn(ctx *context.Context) {
 	if ctx.Doer == nil {

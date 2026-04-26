@@ -86,8 +86,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/topics", user2.Name, repo2.Name)).
 		AddTokenAuth(token2)
 	res := MakeRequest(t, req, http.StatusOK)
-	var topics *api.TopicName
-	DecodeJSON(t, res, &topics)
+	topics := DecodeJSON(t, res, &api.TopicName{})
 	assert.ElementsMatch(t, []string{"topicname1", "topicname2"}, topics.TopicNames)
 
 	// Test delete a topic

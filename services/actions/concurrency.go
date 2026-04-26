@@ -17,15 +17,15 @@ import (
 )
 
 // EvaluateRunConcurrencyFillModel evaluates the expressions in a run-level (workflow) concurrency,
-// and fills the run's model fields with `concurrency.group` and `concurrency.cancel-in-progress`.
+// and fills the run attempt model with the evaluated `concurrency.group` and `concurrency.cancel-in-progress` values.
 // Workflow-level concurrency doesn't depend on the job outputs, so it can always be evaluated if there is no syntax error.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency
-func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.ActionRun, wfRawConcurrency *act_model.RawConcurrency, vars map[string]string, inputs map[string]any) error {
+func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, wfRawConcurrency *act_model.RawConcurrency, vars map[string]string, inputs map[string]any) error {
 	if err := run.LoadAttributes(ctx); err != nil {
 		return fmt.Errorf("run LoadAttributes: %w", err)
 	}
 
-	actionsRunCtx := GenerateGiteaContext(run, nil)
+	actionsRunCtx := GenerateGiteaContext(ctx, run, attempt, nil)
 	jobResults := map[string]*jobparser.JobResult{"": {}}
 	if inputs == nil {
 		var err error
@@ -35,12 +35,8 @@ func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 		}
 	}
 
-	rawConcurrency, err := yaml.Marshal(wfRawConcurrency)
-	if err != nil {
-		return fmt.Errorf("marshal raw concurrency: %w", err)
-	}
-	run.RawConcurrency = string(rawConcurrency)
-	run.ConcurrencyGroup, run.ConcurrencyCancel, err = jobparser.EvaluateConcurrency(wfRawConcurrency, "", nil, actionsRunCtx, jobResults, vars, inputs)
+	var err error
+	attempt.ConcurrencyGroup, attempt.ConcurrencyCancel, err = jobparser.EvaluateConcurrency(wfRawConcurrency, "", nil, actionsRunCtx, jobResults, vars, inputs)
 	if err != nil {
 		return fmt.Errorf("evaluate concurrency: %w", err)
 	}
@@ -71,7 +67,7 @@ func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.Actio
 // Job-level concurrency may depend on other job's outputs (via `needs`): `concurrency.group: my-group-${{ needs.job1.outputs.out1 }}`
 // If the needed jobs haven't been executed yet, this evaluation will also fail.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idconcurrency
-func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.ActionRun, actionRunJob *actions_model.ActionRunJob, vars map[string]string, inputs map[string]any) error {
+func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, actionRunJob *actions_model.ActionRunJob, vars map[string]string, inputs map[string]any) error {
 	if err := actionRunJob.LoadAttributes(ctx); err != nil {
 		return fmt.Errorf("job LoadAttributes: %w", err)
 	}
@@ -81,7 +77,7 @@ func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 		return fmt.Errorf("unmarshal raw concurrency: %w", err)
 	}
 
-	actionsJobCtx := GenerateGiteaContext(run, actionRunJob)
+	actionsJobCtx := GenerateGiteaContext(ctx, run, attempt, actionRunJob)
 
 	jobResults, err := findJobNeedsAndFillJobResults(ctx, actionRunJob)
 	if err != nil {

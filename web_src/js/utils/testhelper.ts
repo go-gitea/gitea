@@ -20,3 +20,11 @@ export function dedent(str: string) {
 
   return str.replace(new RegExp(`^[ \\t]{${minIndent}}`, 'gm'), '').trim();
 }
+
+export function normalizeTestHtml(s: string) {
+  const lines = s.replace(/>\s+</g, '>\n<').trim().split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    lines[i] = lines[i].trim();
+  }
+  return lines.join('\n');
+}

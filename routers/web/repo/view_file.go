@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
@@ -76,14 +77,17 @@ func handleFileViewRenderMarkup(ctx *context.Context, prefetchBuf []byte, utf8Re
 		return false
 	}
 
-	ctx.Data["MarkupType"] = rctx.RenderOptions.MarkupType
-
 	var err error
 	ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRenderToHTML(ctx, rctx, renderer, utf8Reader)
 	if err != nil {
 		ctx.ServerError("Render", err)
 		return true
 	}
+
+	opts, ok := markup.GetExternalRendererOptions(renderer)
+	usingIframe := ok && opts.DisplayInIframe
+	ctx.Data["MarkupType"] = rctx.RenderOptions.MarkupType
+	ctx.Data["RenderAsMarkup"] = util.Iif(usingIframe, "markup-iframe", "markup-inplace")
 	return true
 }
 
@@ -235,8 +239,6 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	case fInfo.blobOrLfsSize >= setting.UI.MaxDisplayFileSize:
 		ctx.Data["IsFileTooLarge"] = true
 	case handleFileViewRenderMarkup(ctx, buf, contentReader):
-		// it also sets ctx.Data["FileContent"] and more
-		ctx.Data["IsMarkup"] = true
 	case handleFileViewRenderSource(ctx, attrs, fInfo, contentReader):
 		// it also sets ctx.Data["FileContent"] and more
 		ctx.Data["IsDisplayingSource"] = true
