@@ -39,6 +39,12 @@ func retrieveProjectsForIssueList(ctx *context.Context, repo *repo_model.Reposit
 	ctx.Data["OpenProjects"], ctx.Data["ClosedProjects"] = retrieveProjectsInternal(ctx, repo)
 }
 
+// parseFormProjectIDs parses the comma-separated `project` (preferred) or `projects`
+// query parameter into a slice of int64 IDs. Returns an error suitable for a 400 response.
+func parseFormProjectIDs(ctx *context.Context) ([]int64, error) {
+	return base.StringsToInt64s(strings.Split(ctx.FormString("project", ctx.FormString("projects")), ","))
+}
+
 // SearchIssues searches for issues across the repositories that the user has access to
 func SearchIssues(ctx *context.Context) {
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
@@ -157,16 +163,10 @@ func SearchIssues(ctx *context.Context) {
 		}
 	}
 
-	var includedProjectIDs []int64
-	{
-		projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("project", ctx.FormString("projects")), ","))
-		if err != nil {
-			ctx.HTTPError(http.StatusBadRequest, "Invalid project parameter", err.Error())
-			return
-		}
-		if len(projectIDs) > 0 {
-			includedProjectIDs = projectIDs
-		}
+	includedProjectIDs, err := parseFormProjectIDs(ctx)
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, "Invalid project parameter", err.Error())
+		return
 	}
 
 	// this api is also used in UI,
@@ -340,7 +340,7 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		SortBy:   issue_indexer.SortByCreatedDesc,
 	}
 
-	projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("project", ctx.FormString("projects")), ","))
+	projectIDs, err := parseFormProjectIDs(ctx)
 	if err != nil {
 		ctx.HTTPError(http.StatusBadRequest, "Invalid project parameter", err.Error())
 		return
@@ -765,7 +765,7 @@ func Issues(ctx *context.Context) {
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	}
 
-	projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("project", ctx.FormString("projects")), ","))
+	projectIDs, err := parseFormProjectIDs(ctx)
 	if err != nil {
 		ctx.HTTPError(http.StatusBadRequest, "Invalid project parameter", err.Error())
 		return

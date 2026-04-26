@@ -7,12 +7,10 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -241,7 +239,7 @@ func DeleteMilestone(ctx *context.Context) {
 // MilestoneIssuesAndPulls lists all the issues and pull requests of the milestone
 func MilestoneIssuesAndPulls(ctx *context.Context) {
 	milestoneID := ctx.PathParamInt64("id")
-	projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("project", ctx.FormString("projects")), ","))
+	projectIDs, err := parseFormProjectIDs(ctx)
 	if err != nil {
 		ctx.ServerError("Invalid project parameter", err)
 		return

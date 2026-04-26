@@ -302,16 +302,6 @@ func GetProjectByID(ctx context.Context, id int64) (*Project, error) {
 	return p, nil
 }
 
-// GetProjectsByIDs returns projects by a list of IDs
-func GetProjectsByIDs(ctx context.Context, ids []int64) ([]*Project, error) {
-	if len(ids) == 0 {
-		return []*Project{}, nil
-	}
-
-	projects := make([]*Project, 0, len(ids))
-	return projects, db.GetEngine(ctx).In("id", ids).Find(&projects)
-}
-
 // GetProjectsMapByIDs returns projects by a list of IDs.
 func GetProjectsMapByIDs(ctx context.Context, ids []int64) (map[int64]*Project, error) {
 	projects := make(map[int64]*Project, len(ids))

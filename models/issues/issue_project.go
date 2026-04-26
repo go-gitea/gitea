@@ -46,7 +46,6 @@ func (issue *Issue) projectIDs(ctx context.Context) ([]int64, error) {
 }
 
 // ProjectColumnMap returns a map of project ID to column ID for this issue.
-// This properly handles issues assigned to multiple projects.
 func (issue *Issue) ProjectColumnMap(ctx context.Context) (map[int64]int64, error) {
 	var pis []project_model.ProjectIssue
 	if err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Find(&pis); err != nil {
@@ -143,6 +142,10 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 		}
 
 		projectsToAdd, projectsToRemove := util.DiffSlice(oldProjectIDs, newProjectIDs)
+		resetCache := func() {
+			issue.isProjectsLoaded = false
+			issue.Projects = nil
+		}
 
 		if len(projectsToRemove) > 0 {
 			if _, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).In("project_id", projectsToRemove).Delete(&project_model.ProjectIssue{}); err != nil {
@@ -160,22 +163,18 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 					return err
 				}
 			}
-			// Reset cached state so subsequent LoadProjects calls fetch fresh data
-			issue.isProjectsLoaded = false
-			issue.Projects = nil
+			resetCache()
 		}
 
 		if len(projectsToAdd) == 0 {
 			return nil
 		}
 
-		// Batch load all projects to reduce queries (1 query instead of N)
 		projectMap, err := project_model.GetProjectsMapByIDs(ctx, projectsToAdd)
 		if err != nil {
 			return err
 		}
 
-		// Batch load all default columns (1-2 queries instead of N)
 		defaultColumns, err := project_model.GetDefaultColumnsByProjectIDs(ctx, projectsToAdd)
 		if err != nil {
 			return err
@@ -196,10 +195,8 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 				return util.NewPermissionDeniedErrorf("issue %d can't be accessed by project %d", issue.ID, newProject.ID)
 			}
 
-			// Get the default column for this project (from batch-loaded map)
 			defaultColumn, ok := defaultColumns[projectID]
 			if !ok {
-				// Fallback: if batch loading didn't find it, call the individual method
 				defaultColumn, err = newProject.MustDefaultColumn(ctx)
 				if err != nil {
 					return err
@@ -207,7 +204,6 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			}
 			projectColumnID := defaultColumn.ID
 
-			// Calculate sorting position (this query must be per-project for correctness)
 			newSorting, err := project_model.GetColumnIssueNextSorting(ctx, projectID, projectColumnID)
 			if err != nil {
 				return err
@@ -236,9 +232,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			if err := db.Insert(ctx, pi); err != nil {
 				return err
 			}
-			// Reset cached state so subsequent LoadProjects calls fetch fresh data
-			issue.isProjectsLoaded = false
-			issue.Projects = nil
+			resetCache()
 		}
 
 		return nil
