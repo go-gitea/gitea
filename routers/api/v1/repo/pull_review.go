@@ -208,6 +208,8 @@ func GetPullReviewComments(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiComments)
 }
 
+// CreatePullReviewCommentReply replies to a pull request review comment.
+// The URL mirrors GitHub's endpoint, {index} is verified against the parent comment's pull request.
 func CreatePullReviewCommentReply(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/comments/{id}/replies repository repoCreatePullReviewCommentReply
 	// ---
