@@ -19,8 +19,6 @@ test('add collaborator search', async ({page, request}) => {
   await expect(result).toContainText(userName);
   await result.click();
   await expect(input).toHaveValue(userName);
-
-  // submit and confirm the chosen user lands in the collaborator list
   await page.getByRole('button', {name: 'Add Collaborator'}).click();
   await expect(page.locator('body')).toContainText(userName);
 });
