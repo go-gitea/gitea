@@ -47,34 +47,6 @@ export async function apiCreateRepo(requestContext: APIRequestContext, {name, au
   }), 'apiCreateRepo');
 }
 
-export async function apiCreateOrg(requestContext: APIRequestContext, name: string, {headers}: {headers?: Record<string, string>} = {}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/orgs`, {
-    headers: headers || apiHeaders(),
-    data: {username: name},
-  }), 'apiCreateOrg');
-}
-
-export async function apiCreateOrgRepo(requestContext: APIRequestContext, org: string, name: string, {headers}: {headers?: Record<string, string>} = {}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/orgs/${org}/repos`, {
-    headers: headers || apiHeaders(),
-    data: {name, auto_init: true},
-  }), 'apiCreateOrgRepo');
-}
-
-/** Create a team with read permission on a fixed unit set, returning the team id. */
-export async function apiCreateTeam(requestContext: APIRequestContext, org: string, name: string, {includesAllRepositories = false, headers}: {includesAllRepositories?: boolean; headers?: Record<string, string>} = {}): Promise<number> {
-  let teamID = 0;
-  await apiRetry(async () => {
-    const response = await requestContext.post(`${baseUrl()}/api/v1/orgs/${org}/teams`, {
-      headers: headers || apiHeaders(),
-      data: {name, permission: 'read', includes_all_repositories: includesAllRepositories, units: ['repo.code', 'repo.issues', 'repo.pulls']},
-    });
-    if (response.ok()) teamID = (await response.json()).id;
-    return response;
-  }, 'apiCreateTeam');
-  return teamID;
-}
-
 export async function apiCreateIssue(requestContext: APIRequestContext, owner: string, repo: string, {title, headers}: {title: string; headers?: Record<string, string>}) {
   await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues`, {
     headers: headers || apiHeaders(),
