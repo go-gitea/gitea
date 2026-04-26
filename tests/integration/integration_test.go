@@ -87,16 +87,19 @@ func testMain(m *testing.M) int {
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
-	tests.InitTest()
+	err := tests.InitTest()
+	if err != nil {
+		return testlogger.MainErrorf("InitTest error: %v", err)
+	}
 	testWebRoutes = routers.NormalRoutes()
 
-	err := unittest.InitFixtures(
+	err = unittest.InitFixtures(
 		unittest.FixturesOptions{
-			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
+			Dir: filepath.Join(setting.GetGiteaTestSourceRoot(), "models/fixtures/"),
 		},
 	)
 	if err != nil {
-		testlogger.Panicf("InitFixtures: %v", err)
+		return testlogger.MainErrorf("InitFixtures: %v", err)
 	}
 
 	// FIXME: the console logger is deleted by mistake, so if there is any `log.Fatal`, developers won't see any error message.

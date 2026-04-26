@@ -17,6 +17,7 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -92,12 +93,25 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 	return resp
 }
 
+func preparePullMergeWebhook(t *testing.T, repoID int64) {
+	require.NoError(t, db.TruncateBeans(t.Context(), &webhook.Webhook{}, &webhook.HookTask{}))
+	require.NoError(t, db.Insert(t.Context(), &webhook.Webhook{
+		RepoID:      repoID,
+		URL:         "http://localhost/gitea-test-webhook-pull-merge",
+		ContentType: webhook.ContentTypeJSON,
+		Events:      `{"push_only":true,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":false}}`,
+		IsActive:    true,
+	}))
+}
+
+func assertPullMergeWebhookTask(t *testing.T, repoID int64) {
+	hook := unittest.AssertExistsAndLoadBean(t, &webhook.Webhook{RepoID: repoID})
+	unittest.AssertExistsAndLoadBean(t, &webhook.HookTask{HookID: hook.ID})
+}
+
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(t.Context(), 1, 1) // Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
-
+		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -123,18 +137,13 @@ func TestPullMerge(t *testing.T) {
 		assert.Equal(t, 4, repo.NumPulls)
 		assert.Equal(t, 3, repo.NumOpenPulls)
 
-		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		assertPullMergeWebhookTask(t, 1)
 	})
 }
 
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(t.Context(), 1, 1) // Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
-
+		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -160,18 +169,13 @@ func TestPullRebase(t *testing.T) {
 		assert.Equal(t, 4, repo.NumPulls)
 		assert.Equal(t, 3, repo.NumOpenPulls)
 
-		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		assertPullMergeWebhookTask(t, 1)
 	})
 }
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(t.Context(), 1, 1) // Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
-
+		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -197,18 +201,13 @@ func TestPullRebaseMerge(t *testing.T) {
 		assert.Equal(t, 4, repo.NumPulls)
 		assert.Equal(t, 3, repo.NumOpenPulls)
 
-		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		assertPullMergeWebhookTask(t, 1)
 	})
 }
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(t.Context(), 1, 1) // Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
-
+		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -223,18 +222,13 @@ func TestPullSquash(t *testing.T) {
 			DeleteBranch: false,
 		})
 
-		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		assertPullMergeWebhookTask(t, 1)
 	})
 }
 
 func TestPullSquashWithHeadCommitID(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(t.Context(), 1, 1) // Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
-
+		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -267,9 +261,7 @@ func TestPullSquashWithHeadCommitID(t *testing.T) {
 		assert.Equal(t, 4, repo.NumPulls)
 		assert.Equal(t, 3, repo.NumOpenPulls)
 
-		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		assertPullMergeWebhookTask(t, 1)
 	})
 }
 
@@ -303,18 +295,14 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 
 		// Check PR branch deletion
 		resp = testPullCleanUp(t, session, elem[1], elem[2], elem[4])
-		respJSON := struct {
-			Redirect string
-		}{}
-		DecodeJSON(t, resp, &respJSON)
+		respJSON := test.ParseJSONRedirect(resp.Body.Bytes())
+		require.NotEmpty(t, respJSON.Redirect, "Redirected URL is not found")
 
-		assert.NotEmpty(t, respJSON.Redirect, "Redirected URL is not found")
-
-		elem = strings.Split(respJSON.Redirect, "/")
+		elem = strings.Split(*respJSON.Redirect, "/")
 		assert.Equal(t, "pulls", elem[3])
 
 		// Check branch deletion result
-		req := NewRequest(t, "GET", respJSON.Redirect)
+		req := NewRequest(t, "GET", *respJSON.Redirect)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
@@ -767,8 +755,7 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 
 		// search issues
 		searchIssuesResp := session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
-		var apiIssuesBefore []*api.Issue
-		DecodeJSON(t, searchIssuesResp, &apiIssuesBefore)
+		apiIssuesBefore := DecodeJSON(t, searchIssuesResp, []*api.Issue{})
 		assert.Empty(t, apiIssuesBefore)
 
 		// merge the pull request
@@ -790,11 +777,9 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 
 		// search issues again
 		searchIssuesResp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
-		var apiIssuesAfter []*api.Issue
-		DecodeJSON(t, searchIssuesResp, &apiIssuesAfter)
-		if assert.Len(t, apiIssuesAfter, 1) {
-			assert.Equal(t, issue.ID, apiIssuesAfter[0].ID)
-		}
+		apiIssuesAfter := DecodeJSON(t, searchIssuesResp, []*api.Issue{})
+		require.Len(t, apiIssuesAfter, 1)
+		assert.Equal(t, issue.ID, apiIssuesAfter[0].ID)
 	})
 }
 
