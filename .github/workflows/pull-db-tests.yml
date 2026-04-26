@@ -105,7 +105,7 @@ jobs:
       contents: read
     services:
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:9.3.3
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.14
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -187,7 +187,7 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:9.3.3
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.14
         env:
           discovery.type: single-node
           xpack.security.enabled: false
