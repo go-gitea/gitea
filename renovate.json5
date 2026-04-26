@@ -1,0 +1,88 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests", "customManagers:githubActionsVersions"],
+  "configMigration": true,
+  "enabledManagers": ["github-actions", "gomod", "npm", "pep621", "nix"],
+  "labels": ["dependencies"],
+  "branchPrefix": "renovate/",
+  "schedule": ["* * * * 1"], // dependency update PRs weekly, vulnerabilityAlerts bypasses this
+  "minimumReleaseAge": "5 days",
+  "semanticCommits": "enabled",
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Makefile$/"],
+      "matchStrings": [
+        "[A-Z_]+_PACKAGE\\s*\\?=\\s*(?<depName>[^@\\s]+?)(?:/cmd/[^@/\\s]+)?@(?<currentValue>\\S+)\\s+# renovate: datasource=(?<datasource>\\S+)",
+      ],
+    },
+  ],
+  "packageRules": [
+    {
+      "groupName": "action dependencies",
+      "matchManagers": ["github-actions"],
+    },
+    {
+      "matchPackageNames": ["@mcaptcha/vanilla-glue"],
+      "allowedVersions": "^0.1", // breaking changes in rc versions need to be handled
+    },
+    {
+      "matchPackageNames": ["cropperjs"],
+      "allowedVersions": "^1", // need to migrate to v2 but v2 is not compatible with v1
+    },
+    {
+      "matchPackageNames": ["tailwindcss"],
+      "allowedVersions": "^3", // need to migrate
+    },
+    {
+      "matchPackageNames": ["github.com/urfave/cli/v3"],
+      "allowedVersions": "<3.6.2", // v3.6.2 breaks -c flag parsing in help commands
+    },
+    {
+      "matchPackageNames": ["github.com/Azure/azure-sdk-for-go/sdk/azcore"],
+      "allowedVersions": "<1.21.0", // v1.21.0+ uses API version unsupported by Azurite in CI
+    },
+    {
+      "matchPackageNames": ["github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"],
+      "allowedVersions": "<1.6.4", // v1.6.4+ uses API version unsupported by Azurite in CI
+    },
+    {
+      "matchPackageNames": ["github.com/microsoft/go-mssqldb"],
+      "allowedVersions": "<=1.9.7", // downgraded with Azure SDK
+    },
+    {
+      "matchPackageNames": ["go.yaml.in/yaml/v4"],
+      "allowedVersions": "<4.0.0-rc.4", // rc.4 changes block scalar serialization, wait for stable release
+    },
+    {
+      "groupName": "go dependencies",
+      "matchDatasources": ["go"], // covers gomod manager + Makefile go-tool customManager
+      "postUpgradeTasks": {
+        "commands": ["make tidy"],
+        "fileFilters": ["go.mod", "go.sum", "assets/go-licenses.json"],
+        "executionMode": "branch",
+      },
+    },
+    {
+      "groupName": "npm dependencies",
+      "matchManagers": ["npm"],
+      "postUpgradeTasks": {
+        "commands": ["make svg"],
+        "fileFilters": ["public/assets/img/svg/**"],
+        "executionMode": "branch",
+      },
+    },
+    {
+      "groupName": "python dependencies",
+      "matchManagers": ["pep621"],
+    },
+    {
+      "groupName": "nix dependencies",
+      "matchManagers": ["nix"],
+    },
+  ],
+}
