@@ -1,5 +1,7 @@
-import {generateElemId, queryElemChildren} from '../utils/dom.ts';
+import {generateElemId} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {isDarkTheme} from '../utils.ts';
+import {GET} from '../modules/fetch.ts';
 
 function safeRenderIframeLink(link: any): string | null {
   try {
@@ -10,7 +12,7 @@ function safeRenderIframeLink(link: any): string | null {
     }
     return url.href;
   } catch (e) {
-    console.error(`Failed to parse link: ${link}, error: ${e}`);
+    console.error(`Failed to parse link: ${link}, error: ${errorMessage(e)}`);
     return null;
   }
 }
@@ -29,7 +31,19 @@ export function navigateToIframeLink(unsafeLink: any, target: any) {
   window.location.assign(linkHref);
 }
 
-async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
+function getRealBackgroundColor(el: HTMLElement) {
+  for (let n = el; n; n = n.parentElement!) {
+    const style = window.getComputedStyle(n);
+    const bgColor = style.backgroundColor;
+    // 'rgba(0, 0, 0, 0)' is how most browsers represent transparent
+    if (bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
+      return bgColor;
+    }
+  }
+  return '';
+}
+
+export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
   const iframeSrcUrl = iframe.getAttribute('data-src')!;
   if (!iframe.id) iframe.id = generateElemId('gitea-iframe-');
 
@@ -49,9 +63,11 @@ async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
   const u = new URL(iframeSrcUrl, window.location.origin);
   u.searchParams.set('gitea-is-dark-theme', String(isDarkTheme()));
   u.searchParams.set('gitea-iframe-id', iframe.id);
-  iframe.src = u.href;
-}
+  u.searchParams.set('gitea-iframe-bgcolor', getRealBackgroundColor(iframe));
 
-export function initMarkupRenderIframe(el: HTMLElement) {
-  queryElemChildren(el, 'iframe.external-render-iframe', loadRenderIframeContent);
+  // It must use "srcdoc" here, because our backend always sends CSP sandbox directive for the rendered content
+  // (to protect from XSS risks), so we can't use "src" to load the content directly, otherwise there will be console errors like:
+  // Unsafe attempt to load URL http://localhost:3000/test from frame with URL http://localhost:3000/test
+  const resp = await GET(u.href);
+  iframe.srcdoc = await resp.text();
 }

@@ -9,7 +9,7 @@
 				<div class="menu">
 					{{range $key := .OrderedOAuth2Names}}
 						{{$provider := index $.OAuth2Providers $key}}
-						<a class="item" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
+						<a class="item" href="{{AppSubUrl}}/user/oauth2/{{$key | PathEscape}}">
 							{{$provider.IconHTML 20}}
 							{{$provider.DisplayName}}
 						</a>

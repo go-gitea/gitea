@@ -231,7 +231,7 @@ func CreateBranch(ctx *context.Context) {
 				flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
-					"Details": utils.SanitizeFlashErrorString(e.Message),
+					"Details": utils.EscapeFlashErrorString(e.Message),
 				})
 				if err != nil {
 					ctx.ServerError("UpdatePullRequest.HTMLString", err)

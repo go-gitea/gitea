@@ -5,10 +5,7 @@ package git
 
 import (
 	"bytes"
-	"fmt"
 	"io"
-
-	"code.gitea.io/gitea/modules/log"
 )
 
 // ParseTreeEntries parses the output of a `git ls-tree -l` command.
@@ -47,14 +44,11 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 }
 
 func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd BufferedReader, sz int64) ([]*TreeEntry, error) {
-	fnameBuf := make([]byte, 4096)
-	modeBuf := make([]byte, 40)
-	shaBuf := make([]byte, objectFormat.FullLength())
 	entries := make([]*TreeEntry, 0, 10)
 
 loop:
 	for sz > 0 {
-		mode, fname, sha, count, err := ParseCatFileTreeLine(objectFormat, rd, modeBuf, fnameBuf, shaBuf)
+		mode, fname, objID, count, err := ParseCatFileTreeLine(objectFormat, rd)
 		if err != nil {
 			if err == io.EOF {
 				break loop
@@ -64,25 +58,9 @@ loop:
 		sz -= int64(count)
 		entry := new(TreeEntry)
 		entry.ptree = ptree
-
-		switch string(mode) {
-		case "100644":
-			entry.entryMode = EntryModeBlob
-		case "100755":
-			entry.entryMode = EntryModeExec
-		case "120000":
-			entry.entryMode = EntryModeSymlink
-		case "160000":
-			entry.entryMode = EntryModeCommit
-		case "40000", "40755": // git uses 40000 for tree object, but some users may get 40755 for unknown reasons
-			entry.entryMode = EntryModeTree
-		default:
-			log.Debug("Unknown mode: %v", string(mode))
-			return nil, fmt.Errorf("unknown mode: %v", string(mode))
-		}
-
-		entry.ID = objectFormat.MustID(sha)
-		entry.name = string(fname)
+		entry.entryMode = mode
+		entry.ID = objID
+		entry.name = fname
 		entries = append(entries, entry)
 	}
 	if _, err := rd.Discard(1); err != nil {

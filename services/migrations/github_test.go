@@ -6,9 +6,12 @@ package migrations
 
 import (
 	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/unittest"
 	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
@@ -16,15 +19,20 @@ import (
 )
 
 func TestGitHubDownloadRepo(t *testing.T) {
-	GithubLimitRateRemaining = 3 // Wait at 3 remaining since we could have 3 CI in //
 	token := os.Getenv("GITHUB_READ_TOKEN")
-	if token == "" {
-		t.Skip("Skipping GitHub migration test because GITHUB_READ_TOKEN is empty")
-	}
+	liveMode := token != ""
+
+	_, callerFile, _, _ := runtime.Caller(0)
+	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/TestGitHubDownloadRepo")
+	mockServer := unittest.NewMockWebServer(t, "https://api.github.com", fixtureDir, liveMode, unittest.MockServerOptions{
+		StripPrefix: "/api/v3",
+	})
+
+	GithubLimitRateRemaining = 3 // Wait at 3 remaining since we could have 3 CI in //
 	ctx := t.Context()
-	downloader := NewGithubDownloaderV3(ctx, "https://github.com", "", "", token, "go-gitea", "test_repo")
+	downloader := NewGithubDownloaderV3(ctx, mockServer.URL, "", "", token, "go-gitea", "test_repo")
 	err := downloader.RefreshRate(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)
@@ -47,7 +55,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		{
 			Title:       "1.0.0",
 			Description: "Milestone 1.0.0",
-			Deadline:    new(time.Date(2019, 11, 11, 8, 0, 0, 0, time.UTC)),
+			Deadline:    new(time.Date(2019, 11, 11, 0, 0, 0, 0, time.UTC)),
 			Created:     time.Date(2019, 11, 12, 19, 37, 8, 0, time.UTC),
 			Updated:     new(time.Date(2019, 11, 12, 21, 56, 17, 0, time.UTC)),
 			Closed:      new(time.Date(2019, 11, 12, 19, 45, 49, 0, time.UTC)),
@@ -56,7 +64,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		{
 			Title:       "1.1.0",
 			Description: "Milestone 1.1.0",
-			Deadline:    new(time.Date(2019, 11, 12, 8, 0, 0, 0, time.UTC)),
+			Deadline:    new(time.Date(2019, 11, 12, 0, 0, 0, 0, time.UTC)),
 			Created:     time.Date(2019, 11, 12, 19, 37, 25, 0, time.UTC),
 			Updated:     new(time.Date(2019, 11, 12, 21, 39, 27, 0, time.UTC)),
 			Closed:      new(time.Date(2019, 11, 12, 19, 45, 46, 0, time.UTC)),
@@ -269,10 +277,10 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Description: "Improvements or additions to documentation",
 				},
 			},
-			PatchURL: "https://github.com/go-gitea/test_repo/pull/3.patch",
+			PatchURL: "",
 			Head: base.PullRequestBranch{
 				Ref:      "master",
-				CloneURL: "https://github.com/mrsdizzie/test_repo.git",
+				CloneURL: "",
 				SHA:      "076160cf0b039f13e5eff19619932d181269414b",
 				RepoName: "test_repo",
 
@@ -299,7 +307,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "mrsdizzie",
 			State:      "open",
 			Created:    time.Date(2019, 11, 12, 21, 54, 18, 0, time.UTC),
-			Updated:    time.Date(2020, 1, 4, 11, 30, 1, 0, time.UTC),
+			Updated:    time.Date(2025, 3, 16, 15, 46, 20, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "bug",
@@ -307,13 +315,13 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Description: "Something isn't working",
 				},
 			},
-			PatchURL: "https://github.com/go-gitea/test_repo/pull/4.patch",
+			PatchURL: "",
 			Head: base.PullRequestBranch{
 				Ref:       "test-branch",
 				SHA:       "2be9101c543658591222acbee3eb799edfc3853d",
 				RepoName:  "test_repo",
 				OwnerName: "mrsdizzie",
-				CloneURL:  "https://github.com/mrsdizzie/test_repo.git",
+				CloneURL:  "",
 			},
 			Base: base.PullRequestBranch{
 				Ref:       "master",

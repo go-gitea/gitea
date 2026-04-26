@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-// Star represents a starred repo by an user.
+// Star represents a starred repo by a user.
 type Star struct {
 	ID          int64              `xorm:"pk autoincr"`
 	UID         int64              `xorm:"UNIQUE(s)"`

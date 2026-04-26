@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"archive/zip"
 	"bytes"
 	"fmt"
 	"net/http"
@@ -17,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	composer_module "code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/tests"
 
@@ -38,10 +38,8 @@ func TestPackageComposer(t *testing.T) {
 	packageLicense := "MIT"
 	packageBin := "./bin/script"
 
-	var buf bytes.Buffer
-	archive := zip.NewWriter(&buf)
-	w, _ := archive.Create("composer.json")
-	w.Write([]byte(`{
+	content := test.WriteZipArchive(map[string]string{
+		"composer.json": `{
 		"name": "` + packageName + `",
 		"description": "` + packageDescription + `",
 		"type": "` + packageType + `",
@@ -54,9 +52,8 @@ func TestPackageComposer(t *testing.T) {
 		"bin": [
 			"` + packageBin + `"
 		]
-	}`))
-	archive.Close()
-	content := buf.Bytes()
+	}`,
+	}).Bytes()
 
 	url := fmt.Sprintf("%sapi/packages/%s/composer", setting.AppURL, user.Name)
 
@@ -67,8 +64,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result composer.ServiceIndexResponse
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &composer.ServiceIndexResponse{})
 
 		assert.Equal(t, url+"/search.json?q=%query%&type=%type%", result.SearchTemplate)
 		assert.Equal(t, url+"/p2/%package%.json", result.MetadataTemplate)
@@ -170,8 +166,7 @@ func TestPackageComposer(t *testing.T) {
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result composer.SearchResultResponse
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &composer.SearchResultResponse{})
 
 			assert.Equal(t, c.ExpectedTotal, result.Total, "case %d: unexpected total hits", i)
 			assert.Len(t, result.Results, c.ExpectedResults, "case %d: unexpected result count", i)
@@ -185,8 +180,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result map[string][]string
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, map[string][]string{})
 
 		assert.Contains(t, result, "packageNames")
 		names := result["packageNames"]
@@ -201,8 +195,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result composer.PackageMetadataResponse
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
 
 		assert.Contains(t, result.Packages, packageName)
 		pkgs := result.Packages[packageName]
@@ -232,8 +225,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		result = composer.PackageMetadataResponse{}
-		DecodeJSON(t, resp, &result)
+		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
 
 		assert.Contains(t, result.Packages, packageName)
 		pkgs = result.Packages[packageName]

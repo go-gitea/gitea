@@ -1,2 +1,2 @@
 <link rel="stylesheet" href="{{AssetURI "css/index.css"}}">
-<link rel="stylesheet" href="{{AssetURI (printf "css/theme-%s.css" (PathEscape ctx.CurrentWebTheme.InternalName))}}">
+<link rel="stylesheet" href="{{ctx.CurrentWebTheme.PublicAssetURI}}">

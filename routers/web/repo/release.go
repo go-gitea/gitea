@@ -104,13 +104,9 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 	releaseInfos := make([]*ReleaseInfo, 0, len(releases))
 	for _, r := range releases {
 		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
-			r.Publisher, err = user_model.GetPossibleUserByID(ctx, r.PublisherID)
+			r.PublisherID, r.Publisher, err = user_model.GetPossibleUserByID(ctx, r.PublisherID)
 			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					r.Publisher = user_model.NewGhostUser()
-				} else {
-					return nil, err
-				}
+				return nil, err
 			}
 			cacheUsers[r.PublisherID] = r.Publisher
 		}
@@ -451,6 +447,7 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
+	form.Target = util.IfZero(form.Target, ctx.Repo.Repository.DefaultBranch)
 	if exist, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, form.Target); !exist {
 		ctx.RenderWithErrDeprecated(ctx.Tr("form.target_branch_not_exist"), tplReleaseNew, &form)
 		return
@@ -564,6 +561,11 @@ func EditRelease(ctx *context.Context) {
 		}
 		return
 	}
+	if rel.IsTag {
+		ctx.NotFound(err) // for a pure tag release, don't allow to edit it as a release
+		return
+	}
+
 	ctx.Data["ID"] = rel.ID
 	ctx.Data["tag_name"] = rel.TagName
 	ctx.Data["tag_target"] = util.IfZero(rel.Target, ctx.Repo.Repository.DefaultBranch)
@@ -613,7 +615,7 @@ func EditReleasePost(ctx *context.Context) {
 		return
 	}
 	if rel.IsTag {
-		ctx.NotFound(err)
+		ctx.NotFound(err) // for a pure tag release, don't allow to edit it as a release
 		return
 	}
 	ctx.Data["tag_name"] = rel.TagName

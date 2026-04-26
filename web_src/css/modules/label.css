@@ -184,12 +184,6 @@ a.ui.ui.ui.basic.yellow.label:hover {
   border-color: var(--color-yellow-dark-1);
   color: var(--color-yellow-dark-1);
 }
-.ui.ui.ui.olive.label {
-  background: var(--color-olive);
-  border-color: var(--color-olive);
-  color: var(--color-white);
-}
-
 .ui.ui.ui.green.label {
   background: var(--color-green);
   border-color: var(--color-green);
@@ -221,16 +215,6 @@ a.ui.ui.ui.purple.label:hover {
   border-color: var(--color-purple-dark-1);
   color: var(--color-white);
 }
-.ui.ui.ui.basic.purple.label {
-  background: transparent;
-  border-color: var(--color-purple);
-  color: var(--color-purple);
-}
-a.ui.ui.ui.basic.purple.label:hover {
-  background: transparent;
-  border-color: var(--color-purple-dark-1);
-  color: var(--color-purple-dark-1);
-}
 
 .ui.ui.ui.grey.label {
   background: var(--color-label-bg);
@@ -241,16 +225,6 @@ a.ui.ui.ui.grey.label:hover {
   background: var(--color-label-hover-bg);
   border-color: var(--color-label-hover-bg);
   color: var(--color-white);
-}
-.ui.ui.ui.basic.grey.label {
-  background: transparent;
-  border-color: var(--color-label-bg);
-  color: var(--color-label-text);
-}
-a.ui.ui.ui.basic.grey.label:hover {
-  background: transparent;
-  border-color: var(--color-label-hover-bg);
-  color: var(--color-label-hover-bg);
 }
 
 /* "horizontal label" is actually "fat label" which has enough padding spaces to be used standalone in headers */
@@ -292,6 +266,7 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
 }
 
 .labels-list a {
+  display: inline-flex;
   max-width: 100%; /* for ellipsis */
 }
 

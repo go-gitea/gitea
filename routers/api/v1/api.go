@@ -865,7 +865,6 @@ func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 func Routes() *web.Router {
 	m := web.NewRouter()
 
-	m.BeforeRouting(securityHeaders())
 	if setting.CORSConfig.Enabled {
 		m.BeforeRouting(cors.Handler(cors.Options{
 			AllowedOrigins:   setting.CORSConfig.AllowDomain,
@@ -1228,10 +1227,10 @@ func Routes() *web.Router {
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
 					m.Post("", bind(api.CreateBranchProtectionOption{}), mustNotBeArchived, repo.CreateBranchProtection)
-					m.Group("/{name}", func() {
+					m.Group("/*", func() {
 						m.Get("", repo.GetBranchProtection)
 						m.Patch("", bind(api.EditBranchProtectionOption{}), mustNotBeArchived, repo.EditBranchProtection)
-						m.Delete("", repo.DeleteBranchProtection)
+						m.Delete("", mustNotBeArchived, repo.DeleteBranchProtection)
 					})
 					m.Post("/priority", bind(api.UpdateBranchProtectionPriories{}), mustNotBeArchived, repo.UpdateBranchProtectionPriories)
 				}, reqToken(), reqAdmin())
@@ -1255,6 +1254,10 @@ func Routes() *web.Router {
 					m.Group("/runs", func() {
 						m.Group("/{run}", func() {
 							m.Get("", repo.GetWorkflowRun)
+							m.Group("/attempts/{attempt}", func() {
+								m.Get("", repo.GetWorkflowRunAttempt)
+								m.Get("/jobs", repo.ListWorkflowRunAttemptJobs)
+							})
 							m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
 							m.Post("/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowRun)
 							m.Post("/rerun-failed-jobs", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunFailedWorkflowRun)
@@ -1578,10 +1581,11 @@ func Routes() *web.Router {
 		m.Group("/packages/{username}", func() {
 			m.Group("/{type}/{name}", func() {
 				m.Get("/", packages.ListPackageVersions)
+				m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
 
 				m.Group("/{version}", func() {
 					m.Get("", packages.GetPackage)
-					m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
+					m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackageVersion)
 					m.Get("/files", packages.ListPackageFiles)
 				})
 
@@ -1609,7 +1613,8 @@ func Routes() *web.Router {
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)
 			m.Post("/rename", reqToken(), reqOrgOwnership(), bind(api.RenameOrgOption{}), org.Rename)
 			m.Combo("/repos").Get(user.ListOrgRepos).
-				Post(reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
+				Post(reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo).
+				Delete(reqToken(), reqOrgOwnership(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), org.DeleteOrgRepos)
 			m.Group("/members", func() {
 				m.Get("", reqToken(), org.ListMembers)
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
@@ -1742,15 +1747,4 @@ func Routes() *web.Router {
 	}, sudo())
 
 	return m
-}
-
-func securityHeaders() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			// CORB: https://www.chromium.org/Home/chromium-security/corb-for-developers
-			// http://stackoverflow.com/a/3146618/244009
-			resp.Header().Set("x-content-type-options", "nosniff")
-			next.ServeHTTP(resp, req)
-		})
-	}
 }

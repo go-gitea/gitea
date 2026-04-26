@@ -48,7 +48,7 @@ func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
 	ctx.JSON(http.StatusOK, apiHooks)
 }
 
-// GetOwnerHook gets an user or organization webhook. Errors are written to ctx.
+// GetOwnerHook gets a user or organization webhook. Errors are written to ctx.
 func GetOwnerHook(ctx *context.APIContext, ownerID, hookID int64) (*webhook.Webhook, error) {
 	w, err := webhook.GetWebhookByOwnerID(ctx, ownerID, hookID)
 	if err != nil {
@@ -114,7 +114,7 @@ func AddSystemHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	}
 }
 
-// AddOwnerHook adds a hook to an user or organization
+// AddOwnerHook adds a hook to a user or organization
 func AddOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.CreateHookOption) {
 	hook, ok := addHook(ctx, form, owner.ID, 0)
 	if !ok {
@@ -215,6 +215,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 	w := &webhook.Webhook{
 		OwnerID:         ownerID,
 		RepoID:          repoID,
+		Name:            strings.TrimSpace(form.Name),
 		URL:             form.Config["url"],
 		ContentType:     webhook.ToHookContentType(form.Config["content_type"]),
 		Secret:          form.Config["secret"],
@@ -293,7 +294,7 @@ func EditSystemHook(ctx *context.APIContext, form *api.EditHookOption, hookID in
 	ctx.JSON(http.StatusOK, h)
 }
 
-// EditOwnerHook updates a webhook of an user or organization
+// EditOwnerHook updates a webhook of a user or organization
 func EditOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.EditHookOption, hookID int64) {
 	hook, err := GetOwnerHook(ctx, owner.ID, hookID)
 	if err != nil {
@@ -390,6 +391,10 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 
 	if form.Active != nil {
 		w.IsActive = *form.Active
+	}
+
+	if form.Name != nil {
+		w.Name = strings.TrimSpace(*form.Name)
 	}
 
 	if err := webhook.UpdateWebhook(ctx, w); err != nil {
