@@ -261,3 +261,82 @@ func TestStopTaskCancellingFallsBackForLegacyRunner(t *testing.T) {
 	assert.Equal(t, StatusCancelled, jobAfterStop.Status)
 	assert.NotZero(t, jobAfterStop.Stopped)
 }
+
+func TestStopTaskCancellingFallsBackForMissingRunner(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	ensureUserExists := func(t *testing.T, id int64, name string) {
+		t.Helper()
+
+		exists, err := db.GetEngine(t.Context()).ID(id).Exist(&user_model.User{})
+		require.NoError(t, err)
+		if exists {
+			return
+		}
+
+		u := &user_model.User{
+			ID:          id,
+			LowerName:   strings.ToLower(name),
+			Name:        name,
+			Email:       name + "@example.com",
+			Passwd:      "not-used",
+			Avatar:      "",
+			AvatarEmail: name + "@example.com",
+			IsActive:    true,
+		}
+		require.NoError(t, db.Insert(t.Context(), u))
+	}
+
+	ensureUserExists(t, 1, "user1")
+	ensureUserExists(t, 5, "user5")
+
+	run := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: 793})
+
+	job := &ActionRunJob{
+		RunID:     run.ID,
+		RepoID:    run.RepoID,
+		OwnerID:   run.OwnerID,
+		CommitSHA: run.CommitSHA,
+		Name:      "missing-runner-cancelling-job",
+		Attempt:   1,
+		JobID:     "missing-runner-cancelling-job",
+		Status:    StatusRunning,
+	}
+	require.NoError(t, db.Insert(t.Context(), job))
+
+	runner := &ActionRunner{
+		UUID:                 "runner-cleaned-up-before-cancel",
+		Name:                 "runner-cleaned-up-before-cancel",
+		HasCancellingSupport: true,
+	}
+	require.NoError(t, db.Insert(t.Context(), runner))
+
+	task := &ActionTask{
+		JobID:     job.ID,
+		Attempt:   1,
+		RunnerID:  runner.ID,
+		Status:    StatusRunning,
+		Started:   timeutil.TimeStampNow(),
+		RepoID:    run.RepoID,
+		OwnerID:   run.OwnerID,
+		CommitSHA: run.CommitSHA,
+	}
+	require.NoError(t, db.Insert(t.Context(), task))
+
+	job.TaskID = task.ID
+	_, err := UpdateRunJob(t.Context(), job, nil, "task_id")
+	require.NoError(t, err)
+
+	_, err = db.DeleteByID[ActionRunner](t.Context(), runner.ID)
+	require.NoError(t, err)
+
+	require.NoError(t, StopTask(t.Context(), task.ID, StatusCancelling))
+
+	taskAfterStop := unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID})
+	assert.Equal(t, StatusCancelled, taskAfterStop.Status)
+	assert.NotZero(t, taskAfterStop.Stopped)
+
+	jobAfterStop := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
+	assert.Equal(t, StatusCancelled, jobAfterStop.Status)
+	assert.NotZero(t, jobAfterStop.Stopped)
+}

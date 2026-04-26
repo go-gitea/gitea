@@ -449,9 +449,11 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	if status == StatusCancelling {
 		runner, err := GetRunnerByID(ctx, task.RunnerID)
 		if err != nil {
-			return err
-		}
-		if !runner.HasCancellingSupport {
+			if !errors.Is(err, util.ErrNotExist) {
+				return err
+			}
+			status = StatusCancelled
+		} else if !runner.HasCancellingSupport {
 			status = StatusCancelled
 		}
 	}
