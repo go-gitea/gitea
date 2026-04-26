@@ -417,8 +417,8 @@ func ViewIssue(ctx *context.Context) {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
 
-	if issue.PullRequest != nil && !issue.PullRequest.IsChecking() && !setting.IsProd {
-		ctx.Data["PullMergeBoxReloadingInterval"] = 1 // in dev env, force using the reloading logic to make sure it won't break
+	if !setting.IsProd && issue.PullRequest != nil && !issue.PullRequest.IsChecking() && prViewInfo.MergeBoxData != nil {
+		prViewInfo.MergeBoxData.ReloadingInterval = 1 // in dev env, force using the reloading logic to make sure it won't break
 	}
 
 	ctx.HTML(http.StatusOK, tplIssueView)
@@ -485,15 +485,12 @@ func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model
 	ctx.Data["BlockingDependencies"], ctx.Data["BlockingDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blocking)
 }
 
-func preparePullViewSigning(ctx *context.Context, issue *issues_model.Issue) {
-	if !issue.IsPull {
-		return
-	}
-	pull := issue.PullRequest
-	ctx.Data["WillSign"] = false
+func (prInfo *pullRequestViewInfo) prepareMergeBoxRequireSigning(ctx *context.Context) {
+	pull := prInfo.issue.PullRequest
+	willSign := false
 	if ctx.Doer != nil {
 		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo)
-		ctx.Data["WillSign"] = sign
+		willSign = sign
 		ctx.Data["SigningKeyMergeDisplay"] = asymkey_model.GetDisplaySigningKey(key)
 		if err != nil {
 			if asymkey_service.IsErrWontSign(err) {
@@ -506,6 +503,8 @@ func preparePullViewSigning(ctx *context.Context, issue *issues_model.Issue) {
 	} else {
 		ctx.Data["WontSignReason"] = "not_signed_in"
 	}
+	ctx.Data["WillSign"] = willSign
+	prInfo.MergeBoxData.willSign = willSign
 }
 
 func prepareIssueViewSidebarWatch(ctx *context.Context, issue *issues_model.Issue) {
@@ -574,6 +573,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxDeleteBranch(ctx *context.Cont
 		isPullBranchDeletable = !exist
 	}
 	ctx.Data["IsPullBranchDeletable"] = isPullBranchDeletable
+	prInfo.MergeBoxData.isPullBranchDeletable = isPullBranchDeletable
 }
 
 func prepareIssueViewSidebarPin(ctx *context.Context, issue *issues_model.Issue) {
@@ -826,8 +826,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		panic("impossible, issue must be the same")
 	}
 
+	data := &pullMergeBoxData{}
+	prInfo.MergeBoxData = data
+
+	statusCheckData := prInfo.StatusCheckData
+	if statusCheckData == nil {
+		statusCheckData = &pullCommitStatusCheckData{} // make the following logic easier, no need to keep checking "nil"
+	}
+
 	pull := issue.PullRequest
-	pull.Issue = issue
 	canDelete := false
 	allowMerge := false
 	canWriteToHeadRepo := false
@@ -896,7 +903,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		}
 	}
 
-	ctx.Data["PullMergeBoxReloadingInterval"] = util.Iif(pull != nil && pull.IsChecking(), 2000, 0)
+	data.ReloadingInterval = util.Iif(pull != nil && pull.IsChecking(), 2000, 0)
 	ctx.Data["CanWriteToHeadRepo"] = canWriteToHeadRepo
 	ctx.Data["ShowMergeInstructions"] = canWriteToHeadRepo
 	ctx.Data["AllowMerge"] = allowMerge
@@ -949,28 +956,36 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
 	ctx.Data["DefaultSquashMergeBody"] = defaultSquashMergeBody
 
-	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
-	if err != nil {
-		ctx.ServerError("LoadProtectedBranch", err)
-		return
-	}
-
+	pb := prInfo.ProtectedBranchRule
 	if pb != nil {
 		pb.Repo = pull.BaseRepo
 		ctx.Data["ProtectedBranch"] = pb
-		ctx.Data["IsBlockedByApprovals"] = !issues_model.HasEnoughApprovals(ctx, pb, pull)
-		ctx.Data["IsBlockedByRejection"] = issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
-		ctx.Data["IsBlockedByOfficialReviewRequests"] = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
-		ctx.Data["IsBlockedByOutdatedBranch"] = issues_model.MergeBlockedByOutdatedBranch(pb, pull)
+
+		data.isBlockedByApprovals = !issues_model.HasEnoughApprovals(ctx, pb, pull)
+		ctx.Data["IsBlockedByApprovals"] = data.isBlockedByApprovals
+
+		data.isBlockedByRejection = issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
+		ctx.Data["IsBlockedByRejection"] = data.isBlockedByRejection
+
+		data.isBlockedByOfficialReviewRequests = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
+		ctx.Data["IsBlockedByOfficialReviewRequests"] = data.isBlockedByOfficialReviewRequests
+
+		data.isBlockedByOutdatedBranch = issues_model.MergeBlockedByOutdatedBranch(pb, pull)
+		ctx.Data["IsBlockedByOutdatedBranch"] = data.isBlockedByOutdatedBranch
+
+		data.isBlockedByChangedProtectedFiles = len(pull.ChangedProtectedFiles) != 0
+		ctx.Data["IsBlockedByChangedProtectedFiles"] = data.isBlockedByChangedProtectedFiles
+
+		data.requireSigned = pb.RequireSignedCommits
+		ctx.Data["RequireSigned"] = data.requireSigned
+
 		ctx.Data["GrantedApprovals"] = issues_model.GetGrantedApprovalsCount(ctx, pb, pull)
-		ctx.Data["RequireSigned"] = pb.RequireSignedCommits
 		ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
-		ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
 		ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)
 		ctx.Data["RequireApprovalsWhitelist"] = pb.EnableApprovalsWhitelist
 	}
 
-	preparePullViewSigning(ctx, issue)
+	prInfo.prepareMergeBoxRequireSigning(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -984,14 +999,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		if pull.HasMerged || issue.IsClosed || !ctx.IsSigned {
 			return false
 		}
-		if pull.CanAutoMerge() || pull.IsWorkInProgress(ctx) || pull.IsChecking() {
+		if pull.IsStatusMergeable() || pull.IsWorkInProgress(ctx) || pull.IsChecking() {
 			return false
 		}
-		if allowMerge && prConfig.AllowManualMerge {
-			return true
-		}
-
-		return false
+		return allowMerge && prConfig.AllowManualMerge
 	}
 
 	ctx.Data["StillCanManualMerge"] = stillCanManualMerge()
@@ -1002,6 +1013,36 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		ctx.ServerError("GetScheduledMergeByPullID", err)
 		return
 	}
+
+	enableStatusCheck := pb != nil && pb.EnableStatusCheck
+	ctx.Data["EnableStatusCheck"] = enableStatusCheck
+
+	// Only show the merge box if the PR is not merged, or the branch is deletable.
+	// Otherwise, there is nothing to do, because the PR view page already contains enough information.
+	data.ShowMergeBox = !pull.HasMerged || data.isPullBranchDeletable
+
+	isRepoAdmin := ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
+
+	// admin can merge without checks, writer can merge when checks succeed
+	// admin and writer both can make an auto merge schedule (not affected by overridable blockers)
+	data.hasStatusCheckBlocker = enableStatusCheck && !statusCheckData.RequiredChecksState.IsSuccess()
+
+	// this logic is from:
+	// {{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
+	// HINT: if a PR's status is not mergeable, then it is a non-overridable blocker, such logic is handled separately (see IsStatusMergeable)
+	data.HasOverridableBlockers = data.isBlockedByApprovals || data.isBlockedByRejection ||
+		data.isBlockedByOfficialReviewRequests || data.isBlockedByOutdatedBranch || data.isBlockedByChangedProtectedFiles ||
+		data.hasStatusCheckBlocker
+
+	// this logic is from:
+	// {{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
+	// HINT: legacy "(not .AllowMerge)" is not right (always false, does nothing), fixed here
+	// CanMergeNow means: if the doer has write permission, whether the PR can be merged now
+	adminCanOverrideBlockers := (pb == nil || !pb.BlockAdminMergeOverride) && isRepoAdmin
+	data.CanMergeNow = (!data.HasOverridableBlockers || adminCanOverrideBlockers) && // status checks are satisfied
+		(!data.requireSigned || data.willSign) // signing requirement is satisfied
+
+	ctx.Data["PullMergeBoxData"] = prInfo.MergeBoxData
 }
 
 func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {

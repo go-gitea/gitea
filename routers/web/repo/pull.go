@@ -261,6 +261,25 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 	return baseCommit
 }
 
+type pullMergeBoxData struct {
+	ShowMergeBox      bool
+	ReloadingInterval int
+
+	HasOverridableBlockers bool
+	CanMergeNow            bool
+
+	// don't expose unneeded fields to templates, need more refactoring changes
+	hasStatusCheckBlocker bool
+	isPullBranchDeletable bool
+
+	isBlockedByApprovals              bool
+	isBlockedByRejection              bool
+	isBlockedByOfficialReviewRequests bool
+	isBlockedByOutdatedBranch         bool
+	isBlockedByChangedProtectedFiles  bool
+	requireSigned, willSign           bool
+}
+
 // pullRequestViewInfo is a structured type for viewing pull request
 // Refactoring plan:
 // * move dynamic template-data-based variable into this struct
@@ -271,13 +290,11 @@ type pullRequestViewInfo struct {
 	IsPullRequestBroken bool
 	HeadBranchCommitID  string
 
-	CompareInfo  git_service.CompareInfo
-	MergeBoxInfo struct {
-		// TODO: move "merge box" related template variables here in the future
-	}
-
-	StatusCheckData pullCommitStatusCheckData
-	CommitStatuses  []*git_model.CommitStatus
+	CompareInfo         git_service.CompareInfo
+	ProtectedBranchRule *git_model.ProtectedBranch
+	StatusCheckData     *pullCommitStatusCheckData
+	CommitStatuses      []*git_model.CommitStatus
+	MergeBoxData        *pullMergeBoxData
 }
 
 func newPullRequestViewInfo() *pullRequestViewInfo {
@@ -358,7 +375,8 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfo(ctx *context.
 	}
 
 	repo := ctx.Repo.Repository
-	statusCheckData := &prInfo.StatusCheckData
+	statusCheckData := &pullCommitStatusCheckData{}
+	prInfo.StatusCheckData = statusCheckData
 
 	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, prInfo.CompareInfo.HeadCommitID, db.ListOptionsAll)
 	if err != nil {
@@ -374,7 +392,13 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfo(ctx *context.
 	statusCheckData.LatestCommitStatus = git_model.CalcCommitStatus(commitStatuses)
 	ctx.Data["LatestCommitStatuses"] = commitStatuses
 	ctx.Data["LatestCommitStatus"] = statusCheckData.LatestCommitStatus
-	ctx.Data["StatusCheckData"] = &prInfo.StatusCheckData
+	ctx.Data["StatusCheckData"] = prInfo.StatusCheckData
+
+	prInfo.ProtectedBranchRule, err = git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, prInfo.issue.PullRequest.BaseBranch)
+	if err != nil {
+		ctx.ServerError("GetFirstMatchProtectedBranchRule", err)
+		return
+	}
 
 	if !prInfo.issue.IsClosed {
 		prInfo.prepareViewFillCommitStatusInfoForOpen(ctx)
@@ -382,8 +406,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfo(ctx *context.
 }
 
 func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfoForOpen(ctx *context.Context) {
-	issue := prInfo.issue
-	statusCheckData := &prInfo.StatusCheckData
+	statusCheckData := prInfo.StatusCheckData
 	commitStatuses := prInfo.CommitStatuses
 	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
 	if err != nil {
@@ -399,16 +422,12 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfoForOpen(ctx *c
 		statusCheckData.CanApprove = ctx.Repo.CanWrite(unit.TypeActions)
 	}
 
-	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, issue.PullRequest.BaseBranch)
-	if err != nil {
-		ctx.ServerError("LoadProtectedBranch", err)
-		return
-	}
+	pb := prInfo.ProtectedBranchRule
 	enableStatusCheck := pb != nil && pb.EnableStatusCheck
-	ctx.Data["EnableStatusCheck"] = enableStatusCheck
 	if !enableStatusCheck {
 		return
 	}
+
 	var missingRequiredChecks []string
 	for _, requiredContext := range pb.StatusCheckContexts {
 		contextFound := false
@@ -768,13 +787,8 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		return
 	}
 
-	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
-	if err != nil {
-		ctx.ServerError("LoadProtectedBranch", err)
-		return
-	}
-
-	if pb != nil {
+	pb := prViewInfo.ProtectedBranchRule
+	if prViewInfo.ProtectedBranchRule != nil {
 		protectedFilePatterns := pb.GetProtectedFilePatterns()
 		if len(protectedFilePatterns) != 0 {
 			for _, file := range diff.Files {
