@@ -25,13 +25,7 @@ class Source {
 
   register(port: MessagePort) {
     if (this.clients.includes(port)) return;
-
     this.clients.push(port);
-
-    port.postMessage({
-      type: 'status',
-      message: `registered to ${this.url}`,
-    });
   }
 
   deregister(port: MessagePort) {
@@ -47,13 +41,6 @@ class Source {
     for (const client of this.clients) {
       client.postMessage(event);
     }
-  }
-
-  status(port: MessagePort) {
-    port.postMessage({
-      type: 'status',
-      message: `url: ${this.url}`,
-    });
   }
 }
 
@@ -195,16 +182,6 @@ const wsSourcesByUrl = new Map<string, WsSource>();
             wsSourcesByUrl.delete(source.url);
           }
         }
-      } else if (event.data.type === 'status') {
-        const source = sourcesByPort.get(port);
-        if (!source) {
-          port.postMessage({
-            type: 'status',
-            message: 'not connected',
-          });
-          return;
-        }
-        source.status(port);
       } else {
         // just send it back
         port.postMessage({

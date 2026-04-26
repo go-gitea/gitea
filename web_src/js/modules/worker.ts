@@ -27,8 +27,7 @@ function init() {
     queueMicrotask(signalFallback);
     return;
   }
-  // Browsers that reject the module `import` at parse time (no module-SharedWorker
-  // support) fail here before the WebSocket ever opens — degrade to polling.
+  // Browsers without module-SharedWorker support fail at parse time, before the WebSocket opens.
   sharedWorker.addEventListener('error', (event) => {
     console.error('worker error', event);
     signalFallback();
@@ -49,7 +48,6 @@ function init() {
       console.error('worker port event error', event.data);
       return;
     }
-    if (type === 'status') return;
     if (type === 'close') {
       sharedWorker!.port.postMessage({type: 'close'});
       sharedWorker!.port.close();

@@ -17,8 +17,7 @@ export function initStopwatch() {
     return;
   }
 
-  // Always initialise the icon + popup even when no stopwatch is currently active,
-  // so cross-tab WebSocket pushes have a DOM element to toggle visibility on.
+  // Init the icon + popup even when no stopwatch is active so a real-time push has a target to toggle.
   const seconds = stopwatchEls[0]?.getAttribute('data-seconds');
   if (seconds) {
     updateStopwatchTime(parseInt(seconds));
@@ -48,9 +47,7 @@ export function initStopwatch() {
     setTimeout(() => updateStopwatchWithCallback(startPeriodicPoller, timeout), timeout);
   };
 
-  // Fall back to periodic polling only when the worker signals that the
-  // WebSocket could not be established (e.g. network / proxy blocks it,
-  // or the browser lacks module-SharedWorker support).
+  // Fall back to periodic polling if the worker can't establish the WebSocket.
   let pollerStarted = false;
   onUserEvent('stopwatches', (data) => updateStopwatchData(JSON.parse(data)));
   onUserEvent('push-unavailable', () => {

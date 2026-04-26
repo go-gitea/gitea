@@ -152,7 +152,7 @@
 	</div><!-- end full right menu -->
 
 	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
-	{{/* always rendered so the Tippy popup has content to clone when the stopwatch icon appears via a cross-tab push */}}
+	{{/* always rendered so the Tippy popup has content to clone if the icon appears via a real-time push */}}
 	<div class="active-stopwatch-popup tippy-target">
 		<div class="flex-text-block tw-p-3">
 			<a class="stopwatch-link flex-text-block muted" {{if $activeStopwatch}}href="{{$activeStopwatch.IssueLink}}"{{end}}>
@@ -160,7 +160,7 @@
 				<span class="stopwatch-issue">{{if $activeStopwatch}}{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}{{end}}</span>
 			</a>
 			<div class="tw-flex tw-gap-1">
-				{{/* form-fetch-action is only set when a stopwatch is currently active; stopwatch.ts re-adds it when the icon appears via a cross-tab push. Otherwise unrelated pages with a generic `.form-fetch-action` lookup (e.g. the editor upload form test) would match these empty forms. */}}
+				{{/* form-fetch-action is set only when the stopwatch is active so generic .form-fetch-action lookups don't match empty forms; stopwatch.ts re-adds it when the icon appears via a real-time push */}}
 				<form class="stopwatch-commit{{if $activeStopwatch}} form-fetch-action{{end}}" method="post" {{if $activeStopwatch}}action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop"{{end}}>
 					<button
 						type="submit"

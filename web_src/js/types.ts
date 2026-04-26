@@ -72,7 +72,7 @@ export type UserEventMessage = {
 };
 
 export type WorkerInboundMessage = {
-  type: UserEventType | 'error' | 'close' | 'status',
+  type: UserEventType | 'error' | 'close',
   data?: any,
   message?: string,
 };
