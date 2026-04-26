@@ -74,6 +74,10 @@
   flex-wrap: wrap;
 }
 
+.issue-content-right .issue-sidebar-project-cards {
+  margin-top: 0.5rem;
+}
+
 .issue-content-right .empty-list {
   font-size: 12px;
 }

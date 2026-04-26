@@ -56,7 +56,7 @@
 
 {{/* project cards (column selectors) */}}
 {{if $data.ProjectCards}}
-	<div class="flex-relaxed-list tw-mt-2" data-testid="issue-sidebar-project-cards">
+	<div class="flex-relaxed-list issue-sidebar-project-cards" data-testid="issue-sidebar-project-cards">
 	{{range $card := $data.ProjectCards}}
 		{{$selectedColumn := $card.SelectedColumn}}
 		<div class="item sidebar-project-card" data-testid="sidebar-project-card">
