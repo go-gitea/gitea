@@ -19,6 +19,6 @@ jobs:
           stale-issue-message: 'This issue has been automatically marked as stale because it has not had recent activity. This issue will be closed if no further activity occurs during the next 2 weeks. If the issue is still valid just add a comment or remove `issue/stale` label to keep it alive.'
           stale-issue-label: 'issue/stale'
           days-before-issue-stale: 120
-          days-before-isseu-close: 14
+          days-before-issue-close: 14
           days-before-pr-stale: -1
           days-before-pr-close: -1
