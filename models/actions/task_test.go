@@ -9,7 +9,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -83,33 +82,33 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 	}
 }
 
-func TestTaskCancellingFinalizesToCancelled(t *testing.T) {
-	ensureUserExists := func(t *testing.T, id int64, name string) {
-		t.Helper()
+func newTestActionRun(t *testing.T) *ActionRun {
+	t.Helper()
 
-		exists, err := db.GetEngine(t.Context()).ID(id).Exist(&user_model.User{})
-		require.NoError(t, err)
-		if exists {
-			return
-		}
-
-		u := &user_model.User{
-			ID:          id,
-			LowerName:   strings.ToLower(name),
-			Name:        name,
-			Email:       name + "@example.com",
-			Passwd:      "not-used",
-			Avatar:      "",
-			AvatarEmail: name + "@example.com",
-			IsActive:    true,
-		}
-		require.NoError(t, db.Insert(t.Context(), u))
+	run := &ActionRun{
+		Title:         "cancelling-test-run",
+		RepoID:        1,
+		OwnerID:       2,
+		WorkflowID:    "test.yaml",
+		Index:         999,
+		TriggerUserID: 2,
+		Ref:           "refs/heads/master",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "push",
+		TriggerEvent:  "push",
+		Status:        StatusRunning,
+		Started:       timeutil.TimeStampNow(),
 	}
+	require.NoError(t, db.Insert(t.Context(), run))
 
+	return run
+}
+
+func TestTaskCancellingFinalizesToCancelled(t *testing.T) {
 	newRunningTask := func(t *testing.T) (*ActionTask, *ActionRunJob) {
 		t.Helper()
 
-		run := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: 793})
+		run := newTestActionRun(t)
 
 		job := &ActionRunJob{
 			RunID:     run.ID,
@@ -153,9 +152,6 @@ func TestTaskCancellingFinalizesToCancelled(t *testing.T) {
 		t.Helper()
 		require.NoError(t, unittest.PrepareTestDatabase())
 
-		ensureUserExists(t, 1, "user1")
-		ensureUserExists(t, 5, "user5")
-
 		task, job := newRunningTask(t)
 		require.NoError(t, StopTask(t.Context(), task.ID, StatusCancelling))
 
@@ -189,32 +185,7 @@ func TestTaskCancellingFinalizesToCancelled(t *testing.T) {
 func TestStopTaskCancellingFallsBackForLegacyRunner(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	ensureUserExists := func(t *testing.T, id int64, name string) {
-		t.Helper()
-
-		exists, err := db.GetEngine(t.Context()).ID(id).Exist(&user_model.User{})
-		require.NoError(t, err)
-		if exists {
-			return
-		}
-
-		u := &user_model.User{
-			ID:          id,
-			LowerName:   strings.ToLower(name),
-			Name:        name,
-			Email:       name + "@example.com",
-			Passwd:      "not-used",
-			Avatar:      "",
-			AvatarEmail: name + "@example.com",
-			IsActive:    true,
-		}
-		require.NoError(t, db.Insert(t.Context(), u))
-	}
-
-	ensureUserExists(t, 1, "user1")
-	ensureUserExists(t, 5, "user5")
-
-	run := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: 793})
+	run := newTestActionRun(t)
 
 	job := &ActionRunJob{
 		RunID:     run.ID,
@@ -265,32 +236,7 @@ func TestStopTaskCancellingFallsBackForLegacyRunner(t *testing.T) {
 func TestStopTaskCancellingFallsBackForMissingRunner(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	ensureUserExists := func(t *testing.T, id int64, name string) {
-		t.Helper()
-
-		exists, err := db.GetEngine(t.Context()).ID(id).Exist(&user_model.User{})
-		require.NoError(t, err)
-		if exists {
-			return
-		}
-
-		u := &user_model.User{
-			ID:          id,
-			LowerName:   strings.ToLower(name),
-			Name:        name,
-			Email:       name + "@example.com",
-			Passwd:      "not-used",
-			Avatar:      "",
-			AvatarEmail: name + "@example.com",
-			IsActive:    true,
-		}
-		require.NoError(t, db.Insert(t.Context(), u))
-	}
-
-	ensureUserExists(t, 1, "user1")
-	ensureUserExists(t, 5, "user5")
-
-	run := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: 793})
+	run := newTestActionRun(t)
 
 	job := &ActionRunJob{
 		RunID:     run.ID,

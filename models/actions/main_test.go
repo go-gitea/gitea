@@ -15,6 +15,7 @@ func TestMain(m *testing.M) {
 			"action_runner_token.yml",
 			"action_run.yml",
 			"repository.yml",
+			"user.yml",
 		},
 	})
 }
