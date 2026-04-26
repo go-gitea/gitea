@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/pubsub"
 	websocket_service "code.gitea.io/gitea/services/websocket"
