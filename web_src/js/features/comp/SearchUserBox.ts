@@ -1,43 +1,33 @@
-import {htmlEscape} from '../../utils/html.ts';
-import {initSearchBox} from '../../modules/fomantic/search.ts';
+import {chooseFromApi, type SearchResult} from '../../modules/search.ts';
 
 const {appSubUrl} = window.config;
 const looksLikeEmailAddressCheck = /^\S+@\S+$/;
 
-export function initCompSearchUserBox() {
-  const searchUserBox = document.querySelector<HTMLElement>('#search-user-box');
-  if (!searchUserBox) return;
+export async function initCompSearchUserBox() {
+  const box = document.querySelector<HTMLElement>('#search-user-box');
+  if (!box) return;
 
-  const allowEmailInput = searchUserBox.getAttribute('data-allow-email') === 'true';
-  const allowEmailDescription = searchUserBox.getAttribute('data-allow-email-description') ?? undefined;
-  const includeOrgs = searchUserBox.getAttribute('data-include-orgs') === 'true';
-  initSearchBox(searchUserBox, {
-    apiUrl: `${appSubUrl}/user/search_candidates?q={query}&orgs=${includeOrgs}`,
-    onResponse(response: any, searchQuery: string) {
-      const resultItems = [];
-      const searchQueryUppercase = searchQuery.toUpperCase();
+  const allowEmailInput = box.getAttribute('data-allow-email') === 'true';
+  const allowEmailDescription = box.getAttribute('data-allow-email-description') ?? undefined;
+  const includeOrgs = box.getAttribute('data-include-orgs') === 'true';
+  const url = `${appSubUrl}/user/search_candidates?q={query}&orgs=${includeOrgs}`;
+  const input = box.querySelector<HTMLInputElement>('input.prompt')!;
+
+  while (box.isConnected) {
+    const pick = await chooseFromApi(box, url, (response: any, query: string) => {
+      const items: SearchResult[] = [];
+      const queryUpper = query.toUpperCase();
       for (const item of response.data) {
-        const resultItem = {
-          title: item.login,
-          image: item.avatar_url,
-          description: htmlEscape(item.full_name),
-        };
-        if (searchQueryUppercase === item.login.toUpperCase()) {
-          resultItems.unshift(resultItem); // add the exact match to the top
-        } else {
-          resultItems.push(resultItem);
-        }
+        const result: SearchResult = {title: item.login, image: item.avatar_url, description: item.full_name};
+        if (queryUpper === item.login.toUpperCase()) items.unshift(result); // exact match floats to top
+        else items.push(result);
       }
-
-      if (allowEmailInput && !resultItems.length && looksLikeEmailAddressCheck.test(searchQuery)) {
-        const resultItem = {
-          title: searchQuery,
-          description: allowEmailDescription,
-        };
-        resultItems.push(resultItem);
+      if (allowEmailInput && !items.length && looksLikeEmailAddressCheck.test(query)) {
+        items.push({title: query, description: allowEmailDescription});
       }
-
-      return {results: resultItems};
-    },
-  });
+      return items;
+    });
+    input.value = pick.title;
+    input.dispatchEvent(new Event('change', {bubbles: true}));
+  }
 }
