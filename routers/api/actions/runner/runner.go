@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -23,6 +24,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protowire"
+	"google.golang.org/protobuf/proto"
 )
 
 func NewRunnerServiceHandler() (string, http.Handler) {
@@ -68,6 +70,7 @@ func (s *Service) Register(
 	}
 
 	labels := req.Msg.Labels
+	hasCancellingSupport, _ := runnerRequestHasCapability(req.Msg, "cancelling")
 
 	// create new runner
 	name := util.EllipsisDisplayString(req.Msg.Name, 255)
@@ -79,7 +82,7 @@ func (s *Service) Register(
 		Version:              req.Msg.Version,
 		AgentLabels:          labels,
 		Ephemeral:            req.Msg.Ephemeral,
-		HasCancellingSupport: registerRequestHasCapability(req.Msg, "cancelling"),
+		HasCancellingSupport: hasCancellingSupport,
 	}
 	runner.GenerateAndFillToken()
 
@@ -109,18 +112,44 @@ func (s *Service) Register(
 	return res, nil
 }
 
-func registerRequestHasCapability(req *runnerv1.RegisterRequest, capability string) bool {
+type capabilityGetter interface {
+	GetCapabilities() []string
+}
+
+type declareRequest interface {
+	proto.Message
+	GetVersion() string
+	GetLabels() []string
+}
+
+func runnerRequestHasCapability(req proto.Message, capability string) (bool, bool) {
 	if req == nil {
-		return false
+		return false, false
 	}
 
+	if typedReq, ok := any(req).(capabilityGetter); ok {
+		if slices.Contains(typedReq.GetCapabilities(), capability) {
+			return true, true
+		}
+		return false, true
+	}
+
+	return legacyRunnerRequestHasCapability(req, capability)
+}
+
+func legacyRunnerRequestHasCapability(req proto.Message, capability string) (bool, bool) {
+	// TODO: This fallback is only for actions-proto-go v0.4.x, where capabilities
+	// still arrive as unknown fields. Once the upstream proto publishes typed
+	// accessors for RegisterRequest/DeclareRequest, keep using the typed path above
+	// and delete this field-8 wire parser after old runners are no longer supported.
 	const goCapabilitiesFieldNumber = 8
 
 	b := req.ProtoReflect().GetUnknown()
+	hasCapabilitiesField := false
 	for len(b) > 0 {
 		num, typ, n := protowire.ConsumeTag(b)
 		if n < 0 {
-			return false
+			return false, false
 		}
 		b = b[n:]
 
@@ -128,36 +157,53 @@ func registerRequestHasCapability(req *runnerv1.RegisterRequest, capability stri
 		case protowire.BytesType:
 			v, m := protowire.ConsumeBytes(b)
 			if m < 0 {
-				return false
+				return false, false
 			}
-			if num == goCapabilitiesFieldNumber && string(v) == capability {
-				return true
+			if num == goCapabilitiesFieldNumber {
+				hasCapabilitiesField = true
+				if string(v) == capability {
+					return true, true
+				}
 			}
 			b = b[m:]
 		case protowire.VarintType:
 			_, m := protowire.ConsumeVarint(b)
 			if m < 0 {
-				return false
+				return false, false
 			}
 			b = b[m:]
 		case protowire.Fixed32Type:
 			_, m := protowire.ConsumeFixed32(b)
 			if m < 0 {
-				return false
+				return false, false
 			}
 			b = b[m:]
 		case protowire.Fixed64Type:
 			_, m := protowire.ConsumeFixed64(b)
 			if m < 0 {
-				return false
+				return false, false
 			}
 			b = b[m:]
 		default:
-			return false
+			return false, false
 		}
 	}
 
-	return false
+	return false, hasCapabilitiesField
+}
+
+func applyDeclareRequestToRunner(runner *actions_model.ActionRunner, req declareRequest) []string {
+	runner.AgentLabels = req.GetLabels()
+	runner.Version = req.GetVersion()
+
+	cols := []string{"agent_labels", "version"}
+	hasCancellingSupport, capabilityStateKnown := runnerRequestHasCapability(req, "cancelling")
+	if capabilityStateKnown && runner.HasCancellingSupport != hasCancellingSupport {
+		runner.HasCancellingSupport = hasCancellingSupport
+		cols = append(cols, "has_cancelling_support")
+	}
+
+	return cols
 }
 
 func (s *Service) Declare(
@@ -165,9 +211,7 @@ func (s *Service) Declare(
 	req *connect.Request[runnerv1.DeclareRequest],
 ) (*connect.Response[runnerv1.DeclareResponse], error) {
 	runner := GetRunner(ctx)
-	runner.AgentLabels = req.Msg.Labels
-	runner.Version = req.Msg.Version
-	if err := actions_model.UpdateRunner(ctx, runner, "agent_labels", "version"); err != nil {
+	if err := actions_model.UpdateRunner(ctx, runner, applyDeclareRequestToRunner(runner, req.Msg)...); err != nil {
 		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
 	}
 
