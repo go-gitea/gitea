@@ -22,6 +22,7 @@ function requireAttr(name: string): string {
 
 const filterFilesPlaceholder = requireAttr('data-filter-files');
 const filterFilesNoResults = requireAttr('data-filter-files-no-results');
+const filterFilesClearLabel = requireAttr('data-filter-files-clear');
 
 // Extension filter locale — only present when the template adds the data attributes (PageIsPullFiles)
 const extensionFilterLocale = el.hasAttribute('data-filter-by-file-extension') ? {
@@ -29,9 +30,9 @@ const extensionFilterLocale = el.hasAttribute('data-filter-by-file-extension') ?
   select_all: requireAttr('data-select-all'),
   deselect_all: requireAttr('data-deselect-all'),
   search: requireAttr('data-search'),
-  no_file_extension: requireAttr('data-no-file-extension'),
   no_file_extensions_found: requireAttr('data-no-file-extensions-found'),
 } : null;
+const noFileExtensionLabel = el.getAttribute('data-no-file-extension') ?? '';
 
 const visibleTreeItems = computed(() => {
   return (store.diffFileTree.TreeRoot.Children ?? []).filter((item) => isDiffTreeEntryVisible(store, item));
@@ -48,10 +49,19 @@ function clearSearch() {
   store.filenameFilterQuery = '';
 }
 
+let fileBoxesObserver: MutationObserver | null = null;
+
 onMounted(() => {
   store.fileTreeIsVisible = localUserSettings.getBoolean(LOCAL_STORAGE_KEY, true);
-  store.noFileExtensionLabel = extensionFilterLocale?.no_file_extension || '';
+  store.noFileExtensionLabel = noFileExtensionLabel;
   document.querySelector('.diff-toggle-file-tree-button')!.addEventListener('click', toggleVisibility);
+
+  // Re-apply filters when "load more" appends new diff-file-box elements.
+  const fileBoxes = document.querySelector('#diff-file-boxes');
+  if (fileBoxes) {
+    fileBoxesObserver = new MutationObserver(() => applyFiltersToFileBoxes(store));
+    fileBoxesObserver.observe(fileBoxes, {childList: true});
+  }
 
   hashChangeListener();
   window.addEventListener('hashchange', hashChangeListener);
@@ -60,6 +70,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.querySelector('.diff-toggle-file-tree-button')!.removeEventListener('click', toggleVisibility);
   window.removeEventListener('hashchange', hashChangeListener);
+  fileBoxesObserver?.disconnect();
 });
 
 function hashChangeListener() {
@@ -113,7 +124,7 @@ function updateState(visible: boolean) {
           type="button"
           class="diff-file-search-clear"
           @click="clearSearch"
-          aria-label="Clear search"
+          :aria-label="filterFilesClearLabel"
         >
           <SvgIcon name="octicon-x" :size="14"/>
         </button>

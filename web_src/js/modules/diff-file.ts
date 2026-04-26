@@ -94,8 +94,7 @@ export function getDiffTreeExtensionStats(store: Reactive<DiffFileTree>): DiffEx
   const extensionMap = new Map<string, number>();
 
   for (const entry of Object.values(store.fullNameMap)) {
-    if (!entry.FullName || entry.EntryMode === 'tree') continue;
-
+    if (entry.EntryMode === 'tree' || !entry.FullName) continue;
     const ext = getDiffFileExtension(entry.FullName, store.noFileExtensionLabel);
     extensionMap.set(ext, (extensionMap.get(ext) ?? 0) + 1);
   }

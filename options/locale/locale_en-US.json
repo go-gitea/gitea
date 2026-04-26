@@ -2604,6 +2604,7 @@
   "repo.diff.hide_file_tree": "Hide file tree",
   "repo.diff.filter_files": "Filter files…",
   "repo.diff.filter_files_no_results": "No files match the filter.",
+  "repo.diff.filter_files_clear": "Clear filter",
   "repo.diff.submodule_added": "Submodule %[1]s added at %[2]s",
   "repo.diff.submodule_deleted": "Submodule %[1]s deleted from %[2]s",
   "repo.diff.submodule_updated": "Submodule %[1]s updated: %[2]s",

@@ -5,12 +5,12 @@ import {type DiffStatus, type DiffTreeEntry, diffTreeStore} from '../modules/dif
 
 const props = defineProps<{
   item: DiffTreeEntry,
-  isVisible?: (item: DiffTreeEntry) => boolean,
+  isVisible: (item: DiffTreeEntry) => boolean,
 }>();
 
 const store = diffTreeStore();
 const collapsed = shallowRef(props.item.IsViewed);
-const visibleChildren = computed(() => props.item.Children?.filter((item) => props.isVisible?.(item) ?? true) ?? []);
+const visibleChildren = computed(() => props.item.Children?.filter((item) => props.isVisible(item)) ?? []);
 const diffStatusIcon = computed(() => getIconForDiffStatus(props.item.DiffStatus));
 
 function getIconForDiffStatus(pType: DiffStatus) {
