@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -61,7 +62,8 @@ const (
 // ActionArtifact is a file that is stored in the artifact storage.
 type ActionArtifact struct {
 	ID                 int64 `xorm:"pk autoincr"`
-	RunID              int64 `xorm:"index unique(runid_name_path)"` // The run id of the artifact
+	RunID              int64 `xorm:"index unique(runid_attempt_name_path)"` // The run id of the artifact
+	RunAttemptID       int64 `xorm:"index unique(runid_attempt_name_path) NOT NULL DEFAULT 0"`
 	RunnerID           int64
 	RepoID             int64 `xorm:"index"`
 	OwnerID            int64
@@ -80,9 +82,9 @@ type ActionArtifact struct {
 	//   * "application/pdf", "text/html", etc.: real content type of the artifact
 	ContentEncodingOrType string `xorm:"content_encoding"`
 
-	ArtifactPath string             `xorm:"index unique(runid_name_path)"` // The path to the artifact when runner uploads it
-	ArtifactName string             `xorm:"index unique(runid_name_path)"` // The name of the artifact when runner uploads it
-	Status       ArtifactStatus     `xorm:"index"`                         // The status of the artifact, uploading, expired or need-delete
+	ArtifactPath string             `xorm:"index unique(runid_attempt_name_path)"` // The path to the artifact when runner uploads it
+	ArtifactName string             `xorm:"index unique(runid_attempt_name_path)"` // The name of the artifact when runner uploads it
+	Status       ArtifactStatus     `xorm:"index"`                                 // The status of the artifact, uploading, expired or need-delete
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix  timeutil.TimeStamp `xorm:"updated index"`
 	ExpiredUnix  timeutil.TimeStamp `xorm:"index"` // The time when the artifact will be expired
@@ -92,12 +94,13 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 	if err := t.LoadJob(ctx); err != nil {
 		return nil, err
 	}
-	artifact, err := getArtifactByNameAndPath(ctx, t.Job.RunID, artifactName, artifactPath)
+	artifact, err := getArtifactByNameAndPath(ctx, t.Job.RunID, t.Job.RunAttemptID, artifactName, artifactPath)
 	if errors.Is(err, util.ErrNotExist) {
 		artifact := &ActionArtifact{
 			ArtifactName: artifactName,
 			ArtifactPath: artifactPath,
 			RunID:        t.Job.RunID,
+			RunAttemptID: t.Job.RunAttemptID,
 			RunnerID:     t.RunnerID,
 			RepoID:       t.RepoID,
 			OwnerID:      t.OwnerID,
@@ -122,9 +125,9 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 	return artifact, nil
 }
 
-func getArtifactByNameAndPath(ctx context.Context, runID int64, name, fpath string) (*ActionArtifact, error) {
+func getArtifactByNameAndPath(ctx context.Context, runID, runAttemptID int64, name, fpath string) (*ActionArtifact, error) {
 	var art ActionArtifact
-	has, err := db.GetEngine(ctx).Where("run_id = ? AND artifact_name = ? AND artifact_path = ?", runID, name, fpath).Get(&art)
+	has, err := db.GetEngine(ctx).Where("run_id = ? AND run_attempt_id = ? AND artifact_name = ? AND artifact_path = ?", runID, runAttemptID, name, fpath).Get(&art)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -144,6 +147,7 @@ type FindArtifactsOptions struct {
 	db.ListOptions
 	RepoID               int64
 	RunID                int64
+	RunAttemptID         optional.Option[int64] // use optional to allow filtering by zero (legacy artifacts have run_attempt_id=0)
 	ArtifactName         string
 	Status               int
 	FinalizedArtifactsV4 bool
@@ -162,6 +166,9 @@ func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	}
 	if opts.RunID > 0 {
 		cond = cond.And(builder.Eq{"run_id": opts.RunID})
+	}
+	if opts.RunAttemptID.Has() {
+		cond = cond.And(builder.Eq{"run_attempt_id": opts.RunAttemptID.Value()})
 	}
 	if opts.ArtifactName != "" {
 		cond = cond.And(builder.Eq{"artifact_name": opts.ArtifactName})
@@ -186,11 +193,12 @@ type ActionArtifactMeta struct {
 	ExpiredUnix  timeutil.TimeStamp
 }
 
-// ListUploadedArtifactsMeta returns all uploaded artifacts meta of a run
-func ListUploadedArtifactsMeta(ctx context.Context, repoID, runID int64) ([]*ActionArtifactMeta, error) {
+// ListUploadedArtifactsMetaByRunAttempt returns uploaded artifacts meta scoped to a specific run and attempt.
+// Pass runAttemptID=0 to target legacy artifacts (pre-v331) belonging to the run.
+func ListUploadedArtifactsMetaByRunAttempt(ctx context.Context, repoID, runID, runAttemptID int64) ([]*ActionArtifactMeta, error) {
 	arts := make([]*ActionArtifactMeta, 0, 10)
 	return arts, db.GetEngine(ctx).Table("action_artifact").
-		Where("repo_id=? AND run_id=? AND (status=? OR status=?)", repoID, runID, ArtifactStatusUploadConfirmed, ArtifactStatusExpired).
+		Where("repo_id=? AND run_id=? AND run_attempt_id=? AND (status=? OR status=?)", repoID, runID, runAttemptID, ArtifactStatusUploadConfirmed, ArtifactStatusExpired).
 		GroupBy("artifact_name").
 		Select("artifact_name, sum(file_size) as file_size, max(status) as status, max(expired_unix) as expired_unix").
 		Find(&arts)
@@ -217,10 +225,27 @@ func SetArtifactExpired(ctx context.Context, artifactID int64) error {
 	return err
 }
 
-// SetArtifactNeedDelete sets an artifact to need-delete, cron job will delete it
-func SetArtifactNeedDelete(ctx context.Context, runID int64, name string) error {
-	_, err := db.GetEngine(ctx).Where("run_id=? AND artifact_name=? AND status = ?", runID, name, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusPendingDeletion})
+// SetArtifactNeedDeleteByID sets an artifact to need-delete by ID, cron job will delete it.
+func SetArtifactNeedDeleteByID(ctx context.Context, artifactID int64) error {
+	_, err := db.GetEngine(ctx).Where("id=? AND status = ?", artifactID, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusPendingDeletion})
 	return err
+}
+
+// SetArtifactNeedDeleteByRunAttempt sets an artifact to need-delete in a run attempt, cron job will delete it.
+// runAttemptID may be 0 for legacy artifacts created before ActionRunAttempt existed.
+func SetArtifactNeedDeleteByRunAttempt(ctx context.Context, runID, runAttemptID int64, name string) error {
+	_, err := db.GetEngine(ctx).Where("run_id=? AND run_attempt_id=? AND artifact_name=? AND status = ?", runID, runAttemptID, name, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusPendingDeletion})
+	return err
+}
+
+// GetArtifactsByRunAttemptAndName returns all artifacts with the given name in the specified run attempt.
+// This supports both attempt-scoped data and legacy artifacts with run_attempt_id=0.
+func GetArtifactsByRunAttemptAndName(ctx context.Context, runID, runAttemptID int64, artifactName string) ([]*ActionArtifact, error) {
+	arts := make([]*ActionArtifact, 0)
+	return arts, db.GetEngine(ctx).
+		Where("run_id = ? AND run_attempt_id = ? AND artifact_name = ?", runID, runAttemptID, artifactName).
+		OrderBy("id").
+		Find(&arts)
 }
 
 // SetArtifactDeleted sets an artifact to deleted

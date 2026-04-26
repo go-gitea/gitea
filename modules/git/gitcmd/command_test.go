@@ -24,7 +24,7 @@ func testMain(m *testing.M) int {
 	// "setting.Git.HomePath" is initialized in "git" package but really used in "gitcmd" package
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
-		testlogger.Panicf("failed to create temp dir: %v", err)
+		return testlogger.MainErrorf("failed to create temp dir: %v", err)
 	}
 	defer cleanup()
 

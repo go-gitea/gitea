@@ -36,8 +36,7 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var newPublicKey api.PublicKey
-	DecodeJSON(t, resp, &newPublicKey)
+	newPublicKey := DecodeJSON(t, resp, &api.PublicKey{})
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.PublicKey{
 		ID:          newPublicKey.ID,
 		Name:        newPublicKey.Title,
@@ -73,8 +72,7 @@ func TestAPIAdminDeleteUnauthorizedKey(t *testing.T) {
 		"title": "test-key",
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	var newPublicKey api.PublicKey
-	DecodeJSON(t, resp, &newPublicKey)
+	newPublicKey := DecodeJSON(t, resp, &api.PublicKey{})
 
 	token = getUserToken(t, normalUsername, auth_model.AccessTokenScopeAll)
 	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d", adminUsername, newPublicKey.ID).
@@ -91,8 +89,7 @@ func TestAPISudoUser(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/v1/user?sudo="+normalUsername).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var user api.User
-	DecodeJSON(t, resp, &user)
+	user := DecodeJSON(t, resp, &api.User{})
 
 	assert.Equal(t, normalUsername, user.UserName)
 }
@@ -116,8 +113,7 @@ func TestAPIListUsers(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/v1/admin/users").
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var users []api.User
-	DecodeJSON(t, resp, &users)
+	users := DecodeJSON(t, resp, []api.User{})
 
 	found := false
 	for _, user := range users {
@@ -306,8 +302,7 @@ func TestAPICron(t *testing.T) {
 
 		assert.Equal(t, "29", resp.Header().Get("X-Total-Count"))
 
-		var crons []api.Cron
-		DecodeJSON(t, resp, &crons)
+		crons := DecodeJSON(t, resp, []api.Cron{})
 		assert.Len(t, crons, 29)
 	})
 
@@ -328,8 +323,7 @@ func TestAPICron(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var crons []api.Cron
-		DecodeJSON(t, resp, &crons)
+		crons := DecodeJSON(t, resp, []api.Cron{})
 
 		for _, cron := range crons {
 			if cron.Name == "archive_cleanup" {

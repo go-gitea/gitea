@@ -186,15 +186,7 @@ func (a *Action) LoadActUser(ctx context.Context) {
 	if a.ActUser != nil {
 		return
 	}
-	var err error
-	a.ActUser, err = user_model.GetPossibleUserByID(ctx, a.ActUserID)
-	if err == nil {
-		return
-	} else if user_model.IsErrUserNotExist(err) {
-		a.ActUser = user_model.NewGhostUser()
-	} else {
-		log.Error("GetUserByID(%d): %v", a.ActUserID, err)
-	}
+	a.ActUserID, a.ActUser, _ = user_model.GetPossibleUserByID(ctx, a.ActUserID)
 }
 
 func (a *Action) LoadRepo(ctx context.Context) error {

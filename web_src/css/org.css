@@ -31,21 +31,6 @@
   color: var(--color-text-light-3);
 }
 
-.organization.invite #invite-box {
-  margin: 50px auto auto;
-  width: 500px !important;
-}
-
-.organization.invite #invite-box #search-user-box input {
-  margin-left: 0;
-  width: 300px;
-}
-
-.organization.invite #invite-box .ui.button {
-  margin-left: 5px;
-  margin-top: -3px;
-}
-
 .organization.invite .ui.avatar {
   width: 100%;
   height: 100%;

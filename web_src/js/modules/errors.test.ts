@@ -1,4 +1,8 @@
-import {isGiteaError, showGlobalErrorMessage} from './errors.ts';
+import {isGiteaError, processWindowErrorEvent, showGlobalErrorMessage} from './errors.ts';
+
+beforeEach(() => {
+  document.body.innerHTML = '<div class="page-content"></div>';
+});
 
 test('isGiteaError', () => {
   expect(isGiteaError('', '')).toBe(true);
@@ -16,7 +20,6 @@ test('isGiteaError', () => {
 });
 
 test('showGlobalErrorMessage', () => {
-  document.body.innerHTML = '<div class="page-content"></div>';
   showGlobalErrorMessage('test msg 1');
   showGlobalErrorMessage('test msg 2');
   showGlobalErrorMessage('test msg 1'); // duplicated
@@ -24,4 +27,22 @@ test('showGlobalErrorMessage', () => {
   expect(document.body.innerHTML).toContain('>test msg 1 (2)<');
   expect(document.body.innerHTML).toContain('>test msg 2<');
   expect(document.querySelectorAll('.js-global-error').length).toEqual(2);
+});
+
+test('processWindowErrorEvent renders stack trace in details', () => {
+  const error = new Error('boom');
+  error.stack = `Error: boom\n    at fn (${window.location.origin}/assets/js/index.js:1:1)`;
+  processWindowErrorEvent({error, type: 'error'} as ErrorEvent & PromiseRejectionEvent);
+  expect(document.querySelector('.js-global-error summary')!.textContent).toContain('JavaScript error: boom');
+  expect(document.querySelector('.js-global-error pre')!.textContent).toContain('/assets/js/index.js:1:1');
+});
+
+test('processWindowErrorEvent falls back to message without stack', () => {
+  processWindowErrorEvent({
+    error: {message: 'script error'}, type: 'error',
+    filename: `${window.location.origin}/assets/js/x.js`, lineno: 5, colno: 10,
+  } as ErrorEvent & PromiseRejectionEvent);
+  const msgText = document.querySelector('.js-global-error .ui.message')!.textContent;
+  expect(msgText).toContain('JavaScript error: script error');
+  expect(msgText).toContain('@ 5:10');
 });

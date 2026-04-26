@@ -198,6 +198,12 @@ func InitWorkPathAndCfgProvider(getEnvFn func(name string) string, args ArgWorkP
 	CustomConf = tmpCustomConf.Value
 }
 
+func MockBuiltinPaths(workPath, customPath, customConf string) func() {
+	oldApp, oldCustom, oldConf := appWorkPathBuiltin, customPathBuiltin, customConfBuiltin
+	appWorkPathBuiltin, customPathBuiltin, customConfBuiltin = workPath, customPath, customConf
+	return func() { appWorkPathBuiltin, customPathBuiltin, customConfBuiltin = oldApp, oldCustom, oldConf }
+}
+
 // AppDataTempDir returns a managed temporary directory for the application data.
 // Using empty sub will get the managed base temp directory, and it's safe to delete it.
 // Gitea only creates subdirectories under it, but not the APP_TEMP_PATH directory itself.

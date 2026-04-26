@@ -25,8 +25,7 @@ func assertTimeEqual(t *testing.T, expected, actual time.Time) {
 func assertTimePtrEqual(t *testing.T, expected, actual *time.Time) {
 	if expected == nil {
 		assert.Nil(t, actual)
-	} else {
-		assert.NotNil(t, actual)
+	} else if assert.NotNil(t, actual) {
 		assertTimeEqual(t, *expected, *actual)
 	}
 }

@@ -30,8 +30,7 @@ func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
 		return
 	}
 	assert.Equal(t, http.StatusOK, resp.Code)
-	var branch api.Branch
-	DecodeJSON(t, resp, &branch)
+	branch := DecodeJSON(t, resp, &api.Branch{})
 	assert.Equal(t, branchName, branch.Name)
 	assert.True(t, branch.UserCanPush)
 	assert.True(t, branch.UserCanMerge)
@@ -44,10 +43,9 @@ func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPSta
 	resp := MakeRequest(t, req, expectedHTTPStatus)
 
 	if resp.Code == http.StatusOK {
-		var branchProtection api.BranchProtection
-		DecodeJSON(t, resp, &branchProtection)
+		branchProtection := DecodeJSON(t, resp, &api.BranchProtection{})
 		assert.Equal(t, branchName, branchProtection.RuleName)
-		return &branchProtection
+		return branchProtection
 	}
 	return nil
 }
@@ -60,8 +58,7 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedPrio
 	resp := MakeRequest(t, req, expectedHTTPStatus)
 
 	if resp.Code == http.StatusCreated {
-		var branchProtection api.BranchProtection
-		DecodeJSON(t, resp, &branchProtection)
+		branchProtection := DecodeJSON(t, resp, &api.BranchProtection{})
 		assert.Equal(t, branchName, branchProtection.RuleName)
 		assert.EqualValues(t, expectedPriority, branchProtection.Priority)
 	}
@@ -74,8 +71,7 @@ func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.Bran
 	resp := MakeRequest(t, req, expectedHTTPStatus)
 
 	if resp.Code == http.StatusOK {
-		var branchProtection api.BranchProtection
-		DecodeJSON(t, resp, &branchProtection)
+		branchProtection := DecodeJSON(t, resp, &api.BranchProtection{})
 		assert.Equal(t, branchName, branchProtection.RuleName)
 	}
 }
@@ -179,8 +175,7 @@ func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBran
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, status)
 
-	var branch api.Branch
-	DecodeJSON(t, resp, &branch)
+	branch := DecodeJSON(t, resp, &api.Branch{})
 
 	if resp.Result().StatusCode == http.StatusCreated {
 		assert.Equal(t, newBranch, branch.Name)

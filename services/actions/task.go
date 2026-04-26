@@ -11,7 +11,6 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
-	notify_service "code.gitea.io/gitea/services/notify"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -78,7 +77,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 			return fmt.Errorf("findTaskNeeds: %w", err)
 		}
 
-		taskContext, err := generateTaskContext(t)
+		taskContext, err := generateTaskContext(ctx, t)
 		if err != nil {
 			return fmt.Errorf("generateTaskContext: %w", err)
 		}
@@ -102,23 +101,23 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	}
 
 	CreateCommitStatusForRunJobs(ctx, job.Run, job)
-	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, actionTask)
+	NotifyWorkflowJobStatusUpdateWithTask(ctx, job, actionTask)
 	// job.Run is loaded inside the transaction before UpdateRunJob sets run.Started,
 	// so Started is zero only on the very first pick-up of that run.
 	if job.Run.Started.IsZero() {
-		NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
+		NotifyWorkflowRunStatusUpdateWithReload(ctx, job.RepoID, job.RunID)
 	}
 
 	return task, true, nil
 }
 
-func generateTaskContext(t *actions_model.ActionTask) (*structpb.Struct, error) {
+func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*structpb.Struct, error) {
 	giteaRuntimeToken, err := CreateAuthorizationToken(t.ID, t.Job.RunID, t.JobID)
 	if err != nil {
 		return nil, err
 	}
 
-	gitCtx := GenerateGiteaContext(t.Job.Run, t.Job)
+	gitCtx := GenerateGiteaContext(ctx, t.Job.Run, nil, t.Job)
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
 

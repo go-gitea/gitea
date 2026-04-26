@@ -63,6 +63,7 @@ import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFor
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
+import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initDevtest} from './modules/devtest.ts';
 
@@ -98,6 +99,7 @@ const initPerformanceTracer = callInitFunctions([
   initImageDiff,
   initMarkupAnchors,
   initMarkupContent,
+  initRefIssueContextPopup,
   initSshKeyFormParser,
   initStopwatch,
   initTableSort,
