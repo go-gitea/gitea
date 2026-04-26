@@ -13,6 +13,15 @@
   "vulnerabilityAlerts": {
     "enabled": true,
   },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Makefile$/"],
+      "matchStrings": [
+        "[A-Z_]+_PACKAGE\\s*\\?=\\s*\\S+@(?<currentValue>\\S+)\\s+# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)",
+      ],
+    },
+  ],
   "packageRules": [
     {
       "groupName": "action dependencies",
@@ -52,7 +61,7 @@
     },
     {
       "groupName": "go dependencies",
-      "matchManagers": ["gomod"],
+      "matchDatasources": ["go"], // covers gomod manager + Makefile go-tool customManager
       "postUpgradeTasks": {
         "commands": ["make tidy"],
         "fileFilters": ["go.mod", "go.sum", "assets/go-licenses.json"],
