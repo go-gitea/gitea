@@ -38,24 +38,26 @@ test('execPseudoSelectorCommands', () => {
   expect(ret.targets).toEqual(Array.from(document.querySelectorAll('#d1 .x')));
 });
 
-test('handleFetchActionSuccessJson', () => {
-  const spyAssign = vi.spyOn(window.location, 'assign').mockImplementation(() => null);
-  const spyReload = vi.spyOn(window.location, 'reload').mockImplementation(() => null);
+test('handleFetchActionSuccessJson', async () => {
+  const spyAssign = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
+  const spyReload = vi.spyOn(window.location, 'reload').mockImplementation(() => {});
 
-  handleFetchActionSuccessJson(document.body, {redirect: '/'});
+  await handleFetchActionSuccessJson(document.body, {redirect: '/'});
   expect(spyAssign).toHaveBeenCalledTimes(1);
   expect(spyReload).toHaveBeenCalledTimes(0);
-  vi.resetAllMocks();
+  spyAssign.mockClear();
+  spyReload.mockClear();
 
-  handleFetchActionSuccessJson(document.body, {redirect: ''});
+  await handleFetchActionSuccessJson(document.body, {redirect: ''});
   expect(spyAssign).toHaveBeenCalledTimes(0);
   expect(spyReload).toHaveBeenCalledTimes(1);
-  vi.resetAllMocks();
+  spyAssign.mockClear();
+  spyReload.mockClear();
 
-  handleFetchActionSuccessJson(document.body, {});
+  await handleFetchActionSuccessJson(document.body, {});
   expect(spyAssign).toHaveBeenCalledTimes(0);
   expect(spyReload).toHaveBeenCalledTimes(1);
-  vi.resetAllMocks();
 
-  vi.clearAllMocks();
+  spyAssign.mockRestore();
+  spyReload.mockRestore();
 });
