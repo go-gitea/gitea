@@ -103,6 +103,7 @@ onUnmounted(() => {
 .diff-ext-filter-panel {
   display: flex;
   flex-direction: column;
+  gap: 8px;
   min-width: 220px;
   max-height: 80vh;
 }
@@ -113,7 +114,7 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 1rem;
   font-weight: var(--font-weight-medium);
-  padding: 8px 12px;
+  padding: 4px 12px 0;
 }
 
 .diff-ext-icon-btn {
@@ -132,7 +133,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 2px;
   overflow-y: auto;
-  padding: 8px;
+  padding: 0 8px;
 }
 
 .diff-ext-filter-item {
