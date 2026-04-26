@@ -1,89 +1,107 @@
-import type {WorkerInboundMessage} from '../types.ts';
+import type {UserEventType, WorkerInboundMessage} from '../types.ts';
 
 const {appSubUrl, sharedWorkerUri} = window.config;
 
-export class UserEventsSharedWorker {
-  sharedWorker: SharedWorker | null = null;
-  private listeners: Array<(event: MessageEvent) => void> = [];
-  private fallbackSignalled = false;
+type Subscriber = (data: string) => void;
+const subscribers = new Map<UserEventType, Set<Subscriber>>();
+let fallbackSignalled = false;
+let sharedWorker: SharedWorker | null = null;
 
-  constructor(options?: string | WorkerOptions) {
-    const workerOptions: WorkerOptions = typeof options === 'string' ? {name: options} : {...options};
-    workerOptions.type = 'module';
-    let worker: SharedWorker;
-    try {
-      worker = new SharedWorker(sharedWorkerUri, workerOptions);
-    } catch (err) {
-      console.warn('SharedWorker unavailable, falling back to periodic polling', err);
-      queueMicrotask(() => this.signalFallback());
+function dispatch(type: UserEventType, data: string) {
+  const set = subscribers.get(type);
+  if (!set) return;
+  for (const cb of set) cb(data);
+}
+
+function signalFallback() {
+  if (fallbackSignalled) return;
+  fallbackSignalled = true;
+  dispatch('push-unavailable', '');
+}
+
+function init() {
+  try {
+    sharedWorker = new SharedWorker(sharedWorkerUri, {type: 'module', name: 'user-events'});
+  } catch (err) {
+    console.warn('SharedWorker unavailable, falling back to periodic polling', err);
+    queueMicrotask(signalFallback);
+    return;
+  }
+  // Browsers that reject the module `import` at parse time (no module-SharedWorker
+  // support) fail here before the WebSocket ever opens — degrade to polling.
+  sharedWorker.addEventListener('error', (event) => {
+    console.error('worker error', event);
+    signalFallback();
+  });
+  sharedWorker.port.addEventListener('messageerror', () => {
+    console.error('unable to deserialize message');
+  });
+  sharedWorker.port.addEventListener('error', (e) => {
+    console.error('worker port error', e);
+  });
+  sharedWorker.port.addEventListener('message', (event: MessageEvent<WorkerInboundMessage>) => {
+    if (!event.data || !event.data.type) {
+      console.error('unknown worker message event', event);
       return;
     }
-    this.sharedWorker = worker;
-    // Browsers that reject the module `import` at parse time (no module-SharedWorker
-    // support) fail here before the WebSocket ever opens — degrade to polling.
-    worker.addEventListener('error', (event) => {
-      console.error('worker error', event);
-      this.signalFallback();
-    });
-    worker.port.addEventListener('messageerror', () => {
-      console.error('unable to deserialize message');
-    });
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    worker.port.postMessage({
-      type: 'start',
-      url: `${wsProtocol}//${window.location.host}${appSubUrl}/-/ws`,
-    });
-    worker.port.addEventListener('error', (e) => {
-      console.error('worker port error', e);
-    });
-    window.addEventListener('beforeunload', () => {
-      // FIXME: this logic is not quite right.
-      // "beforeunload" can be canceled by some actions like "are-you-sure" and the navigation can be cancelled.
-      // In this case: the worker port is incorrectly closed while the page is still there.
-      worker.port.postMessage({type: 'close'});
-      worker.port.close();
-    });
-  }
+    const {type, data} = event.data;
+    if (type === 'error') {
+      console.error('worker port event error', event.data);
+      return;
+    }
+    if (type === 'status') return;
+    if (type === 'close') {
+      sharedWorker!.port.postMessage({type: 'close'});
+      sharedWorker!.port.close();
+      return;
+    }
+    if (type === 'logout') {
+      if (data !== 'here') return;
+      sharedWorker!.port.postMessage({type: 'close'});
+      sharedWorker!.port.close();
+      // slightly delay our "logout" for a short while, in case there are other logout requests in-flight.
+      // * if the logout is triggered by a page redirection (e.g.: user clicks "/user/logout")
+      //   * "beforeunload" event is triggered, this code path won't execute
+      // * if the logout is triggered by a fetch call
+      //   * "beforeunload" event is not triggered until JS does the redirection.
+      //     * in this case, the logout fetch call already completes and has sent the "logout" message to the worker
+      //   * there can be a data-race between the fetch call's redirection and the "logout" message from the worker
+      //     * the fetch call's logout redirection should always win over the worker message, because it might have a custom location
+      setTimeout(() => { window.location.href = `${appSubUrl}/` }, 1000);
+      dispatch('logout', data);
+      return;
+    }
+    dispatch(type, data ?? '');
+  });
+  sharedWorker.port.start();
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  sharedWorker.port.postMessage({
+    type: 'start',
+    url: `${wsProtocol}//${window.location.host}${appSubUrl}/-/ws`,
+  });
+  window.addEventListener('beforeunload', () => {
+    // FIXME: this logic is not quite right.
+    // "beforeunload" can be canceled by some actions like "are-you-sure" and the navigation can be cancelled.
+    // In this case: the worker port is incorrectly closed while the page is still there.
+    sharedWorker!.port.postMessage({type: 'close'});
+    sharedWorker!.port.close();
+  });
+}
 
-  addMessageEventListener(listener: (event: MessageEvent) => void) {
-    this.listeners.push(listener);
-    this.sharedWorker?.port.addEventListener('message', (event: MessageEvent<WorkerInboundMessage>) => {
-      if (!event.data || !event.data.type) {
-        console.error('unknown worker message event', event);
-        return;
-      }
-
-      if (event.data.type === 'error') {
-        console.error('worker port event error', event.data);
-      } else if (event.data.type === 'logout') {
-        if (event.data.data !== 'here') return;
-        this.sharedWorker!.port.postMessage({type: 'close'});
-        this.sharedWorker!.port.close();
-        // slightly delay our "logout" for a short while, in case there are other logout requests in-flight.
-        // * if the logout is triggered by a page redirection (e.g.: user clicks "/user/logout")
-        //   * "beforeunload" event is triggered, this code path won't execute
-        // * if the logout is triggered by a fetch call
-        //   * "beforeunload" event is not triggered until JS does the redirection.
-        //     * in this case, the logout fetch call already completes and has sent the "logout" message to the worker
-        //   * there can be a data-race between the fetch call's redirection and the "logout" message from the worker
-        //     * the fetch call's logout redirection should always win over the worker message, because it might have a custom location
-        setTimeout(() => { window.location.href = `${appSubUrl}/` }, 1000);
-      } else if (event.data.type === 'close') {
-        this.sharedWorker!.port.postMessage({type: 'close'});
-        this.sharedWorker!.port.close();
-      }
-      listener(event);
-    });
+let initialized = false;
+export function onUserEvent(type: UserEventType, cb: Subscriber) {
+  if (!initialized) {
+    initialized = true;
+    if (window.WebSocket && window.SharedWorker) {
+      init();
+    } else {
+      queueMicrotask(signalFallback);
+    }
   }
-
-  startPort() {
-    this.sharedWorker?.port.start();
+  let set = subscribers.get(type);
+  if (!set) {
+    set = new Set();
+    subscribers.set(type, set);
   }
-
-  private signalFallback() {
-    if (this.fallbackSignalled) return;
-    this.fallbackSignalled = true;
-    const syntheticEvent = {data: {type: 'push-unavailable'} satisfies WorkerInboundMessage} as MessageEvent;
-    for (const listener of this.listeners) listener(syntheticEvent);
-  }
+  set.add(cb);
 }

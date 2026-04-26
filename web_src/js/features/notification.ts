@@ -1,21 +1,20 @@
 import {GET} from '../modules/fetch.ts';
 import {toggleElem, createElementFromHTML} from '../utils/dom.ts';
-import type {UserEventMessage} from '../types.ts';
-import {UserEventsSharedWorker} from '../modules/worker.ts';
+import {onUserEvent} from '../modules/worker.ts';
 
 const {appSubUrl, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
 
-async function receiveUpdateCount(event: MessageEvent<UserEventMessage>) {
+async function receiveUpdateCount(raw: string) {
   try {
-    const data = JSON.parse(event.data.data);
+    const data = JSON.parse(raw);
     for (const count of document.querySelectorAll('.notification_count')) {
       count.classList.toggle('tw-hidden', data.Count === 0);
       count.textContent = `${data.Count}`;
     }
     await updateNotificationTable();
   } catch (error) {
-    console.error(error, event);
+    console.error(error, raw);
   }
 }
 
@@ -30,25 +29,16 @@ export function initNotificationCount() {
     }, timeout);
   };
 
-  if (window.WebSocket && window.SharedWorker) {
-    // Fall back to periodic polling only when the worker signals that the
-    // WebSocket could not be established (e.g. network / proxy blocks it,
-    // or the browser lacks module-SharedWorker support).
-    let pollerStarted = false;
-    const worker = new UserEventsSharedWorker('user-events');
-    worker.addMessageEventListener((event: MessageEvent<UserEventMessage>) => {
-      if (event.data.type === 'notification-count') {
-        receiveUpdateCount(event); // no await
-      } else if (event.data.type === 'push-unavailable' && !pollerStarted) {
-        pollerStarted = true;
-        startPeriodicPoller(notificationSettings.MinTimeout);
-      }
-    });
-    worker.startPort();
-    return;
-  }
-
-  startPeriodicPoller(notificationSettings.MinTimeout);
+  // Fall back to periodic polling only when the worker signals that the
+  // WebSocket could not be established (e.g. network / proxy blocks it,
+  // or the browser lacks module-SharedWorker support).
+  let pollerStarted = false;
+  onUserEvent('notification-count', (data) => { receiveUpdateCount(data) }); // no await
+  onUserEvent('push-unavailable', () => {
+    if (pollerStarted) return;
+    pollerStarted = true;
+    startPeriodicPoller(notificationSettings.MinTimeout);
+  });
 }
 
 function getCurrentCount() {
