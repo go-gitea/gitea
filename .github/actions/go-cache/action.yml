@@ -18,13 +18,13 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/cache@v5
+    - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
         path: ~/go/pkg/mod
         key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
         restore-keys: gomod-${{ runner.os }}-${{ runner.arch }}
     - if: ${{ inputs.build-cache == 'true' && inputs.build-cache-rotate == 'true' }}
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
         path: ~/.cache/go-build
         key: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}-${{ hashFiles('go.sum') }}-${{ github.run_id }}
@@ -34,13 +34,13 @@ runs:
           gobuild-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
           gobuild-${{ runner.os }}-${{ runner.arch }}
     - if: ${{ inputs.build-cache == 'true' && inputs.build-cache-rotate != 'true' }}
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
         path: ~/.cache/go-build
         key: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
         restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}
     - if: ${{ inputs.lint-cache == 'true' }}
-      uses: actions/cache@v5
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
         path: ~/.cache/golangci-lint
         key: golangci-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}-${{ hashFiles('go.sum', '.golangci.yml') }}
