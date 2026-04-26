@@ -103,7 +103,6 @@ test('diff-tree visibility keeps directories for matching files', () => {
 
   store.filenameFilterQuery = '';
   store.activeExtensions = ['.ts'];
-  store.noFileExtensionLabel = '(no extension)';
   expect(isDiffTreeEntryVisible(store, store.fullNameMap.dir1)).toBe(false);
   expect(isDiffTreeEntryVisible(store, store.fullNameMap['other.ts'])).toBe(true);
 
@@ -169,11 +168,9 @@ test('diff-tree extension stats include files not yet loaded in diff boxes', () 
     },
   }, '', '');
 
-  store.noFileExtensionLabel = '(no extension)';
-
   expect(getDiffTreeExtensionStats(store)).toEqual([
     {ext: '.txt', count: 1},
-    {ext: '(no extension)', count: 1},
+    {ext: '', count: 1},
     {ext: '.ts', count: 1},
   ]);
 });

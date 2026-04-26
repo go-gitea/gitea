@@ -1,5 +1,7 @@
 import {reactive} from 'vue';
 import type {Reactive} from 'vue';
+import {extname} from '../utils.ts';
+import {toggleElem} from '../utils/dom.ts';
 
 const {pageData} = window.config;
 
@@ -30,7 +32,6 @@ type DiffFileTree = {
   selectedItem: string;
   filenameFilterQuery: string;
   activeExtensions: string[] | null;
-  noFileExtensionLabel: string;
 };
 
 export type DiffExtensionStats = {
@@ -74,68 +75,49 @@ export function reactiveDiffTreeStore(data: DiffFileTreeData, folderIcon: string
     selectedItem: '',
     filenameFilterQuery: '',
     activeExtensions: null,
-    noFileExtensionLabel: '',
     fullNameMap: {},
   });
   fillFullNameMap(store.fullNameMap, data.TreeRoot);
   return store;
 }
 
-export function getDiffFileExtension(filename: string, noFileExtensionLabel: string): string {
-  const basename = filename.substring(filename.lastIndexOf('/') + 1);
-  const lastDot = basename.lastIndexOf('.');
-  if (lastDot === -1) {
-    return noFileExtensionLabel;
-  }
-  return basename.substring(lastDot);
-}
-
 export function getDiffTreeExtensionStats(store: Reactive<DiffFileTree>): DiffExtensionStats[] {
   const extensionMap = new Map<string, number>();
-
   for (const entry of Object.values(store.fullNameMap)) {
     if (entry.EntryMode === 'tree' || !entry.FullName) continue;
-    const ext = getDiffFileExtension(entry.FullName, store.noFileExtensionLabel);
+    const ext = extname(entry.FullName);
     extensionMap.set(ext, (extensionMap.get(ext) ?? 0) + 1);
   }
-
   return Array.from(extensionMap.entries(), ([ext, count]) => ({ext, count}))
     .sort((a, b) => b.count - a.count);
 }
 
-export function hasActiveDiffTreeFilter(store: Reactive<DiffFileTree>): boolean {
-  return Boolean(store.filenameFilterQuery.trim()) || store.activeExtensions !== null;
+function fileMatchesFilters(filename: string, query: string, activeExtSet: Set<string> | null): boolean {
+  if (query && !filename.toLowerCase().includes(query)) return false;
+  if (activeExtSet && !activeExtSet.has(extname(filename))) return false;
+  return true;
+}
+
+function buildFilterPredicate(store: Reactive<DiffFileTree>) {
+  return {
+    query: store.filenameFilterQuery.trim().toLowerCase(),
+    activeExtSet: store.activeExtensions ? new Set(store.activeExtensions) : null,
+  };
 }
 
 export function isDiffTreeEntryVisible(store: Reactive<DiffFileTree>, entry: DiffTreeEntry): boolean {
   if (entry.EntryMode === 'tree') {
     return Boolean(entry.Children?.some((child) => isDiffTreeEntryVisible(store, child)));
   }
-
-  const query = store.filenameFilterQuery.trim().toLowerCase();
-  if (query && !entry.FullName.toLowerCase().includes(query)) {
-    return false;
-  }
-
-  if (store.activeExtensions === null) {
-    return true;
-  }
-
-  return store.activeExtensions.includes(getDiffFileExtension(entry.FullName, store.noFileExtensionLabel));
+  const {query, activeExtSet} = buildFilterPredicate(store);
+  return fileMatchesFilters(entry.FullName, query, activeExtSet);
 }
 
 export function applyFiltersToFileBoxes(store: Reactive<DiffFileTree>) {
-  const fileBoxes = document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
-  const query = store.filenameFilterQuery.trim().toLowerCase();
-
-  for (const box of fileBoxes) {
-    const filename = box.getAttribute('data-new-filename') || '';
-
-    const matchesQuery = !query || filename.toLowerCase().includes(query);
-    const ext = getDiffFileExtension(filename, store.noFileExtensionLabel);
-    const matchesExtension = store.activeExtensions === null || store.activeExtensions.includes(ext);
-
-    box.classList.toggle('tw-hidden', !matchesQuery || !matchesExtension);
+  const {query, activeExtSet} = buildFilterPredicate(store);
+  for (const box of document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]')) {
+    const filename = box.getAttribute('data-new-filename') ?? '';
+    toggleElem(box, fileMatchesFilters(filename, query, activeExtSet));
   }
 }
 

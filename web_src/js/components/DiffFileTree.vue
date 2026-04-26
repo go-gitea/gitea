@@ -14,25 +14,18 @@ const store = diffTreeStore();
 
 const el = document.querySelector<HTMLElement>('#diff-file-tree')!;
 
-function requireAttr(name: string): string {
-  const val = el.getAttribute(name);
-  if (val === null) throw new Error(`#diff-file-tree is missing required attribute: ${name}`);
-  return val;
-}
+const filterFilesPlaceholder = el.getAttribute('data-filter-files')!;
+const filterFilesNoResults = el.getAttribute('data-filter-files-no-results')!;
+const filterFilesClearLabel = el.getAttribute('data-filter-files-clear')!;
 
-const filterFilesPlaceholder = requireAttr('data-filter-files');
-const filterFilesNoResults = requireAttr('data-filter-files-no-results');
-const filterFilesClearLabel = requireAttr('data-filter-files-clear');
-
-// Extension filter locale — only present when the template adds the data attributes (PageIsPullFiles)
 const extensionFilterLocale = el.hasAttribute('data-filter-by-file-extension') ? {
-  filter_by_file_extension: requireAttr('data-filter-by-file-extension'),
-  select_all: requireAttr('data-select-all'),
-  deselect_all: requireAttr('data-deselect-all'),
-  search: requireAttr('data-search'),
-  no_file_extensions_found: requireAttr('data-no-file-extensions-found'),
+  filter_by_file_extension: el.getAttribute('data-filter-by-file-extension')!,
+  select_all: el.getAttribute('data-select-all')!,
+  deselect_all: el.getAttribute('data-deselect-all')!,
+  search: el.getAttribute('data-search')!,
+  no_file_extension: el.getAttribute('data-no-file-extension')!,
+  no_file_extensions_found: el.getAttribute('data-no-file-extensions-found')!,
 } : null;
-const noFileExtensionLabel = el.getAttribute('data-no-file-extension') ?? '';
 
 const visibleTreeItems = computed(() => {
   return (store.diffFileTree.TreeRoot.Children ?? []).filter((item) => isDiffTreeEntryVisible(store, item));
@@ -53,10 +46,8 @@ let fileBoxesObserver: MutationObserver | null = null;
 
 onMounted(() => {
   store.fileTreeIsVisible = localUserSettings.getBoolean(LOCAL_STORAGE_KEY, true);
-  store.noFileExtensionLabel = noFileExtensionLabel;
   document.querySelector('.diff-toggle-file-tree-button')!.addEventListener('click', toggleVisibility);
 
-  // Re-apply filters when "load more" appends new diff-file-box elements.
   const fileBoxes = document.querySelector('#diff-file-boxes');
   if (fileBoxes) {
     fileBoxesObserver = new MutationObserver(() => applyFiltersToFileBoxes(store));

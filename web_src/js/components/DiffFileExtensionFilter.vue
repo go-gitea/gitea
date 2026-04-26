@@ -5,12 +5,13 @@ import {SvgIcon} from '../svg.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {diffTreeStore, getDiffTreeExtensionStats} from '../modules/diff-file.ts';
 
-defineProps<{
+const props = defineProps<{
   locale: {
     filter_by_file_extension: string,
     select_all: string,
     deselect_all: string,
     search: string,
+    no_file_extension: string,
     no_file_extensions_found: string,
   },
 }>();
@@ -22,12 +23,16 @@ const searchEl = useTemplateRef<HTMLInputElement>('searchEl');
 const searchQuery = ref('');
 let tippyInstance: Instance | null = null;
 
+function displayName(ext: string): string {
+  return ext || props.locale.no_file_extension;
+}
+
 const allExtensions = computed(() => getDiffTreeExtensionStats(store));
 
 const filteredExtensions = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
   if (!q) return allExtensions.value;
-  return allExtensions.value.filter((e) => e.ext.toLowerCase().includes(q));
+  return allExtensions.value.filter((e) => displayName(e.ext).toLowerCase().includes(q));
 });
 
 const isFiltering = computed(() => store.activeExtensions !== null);
@@ -61,7 +66,7 @@ onMounted(() => {
     theme: 'menu',
     onShow() {
       searchQuery.value = '';
-      setTimeout(() => searchEl.value!.focus(), 0);
+      setTimeout(() => searchEl.value?.focus(), 0);
     },
   });
 });
@@ -95,7 +100,7 @@ onUnmounted(() => {
     <div class="diff-ext-filter-list">
       <label v-for="ext in filteredExtensions" :key="ext.ext" class="diff-ext-filter-item">
         <input type="checkbox" :checked="isChecked(ext.ext)" @change="setChecked(ext.ext, ($event.target as HTMLInputElement).checked)">
-        <span class="gt-ellipsis">{{ ext.ext }}</span>
+        <span class="gt-ellipsis">{{ displayName(ext.ext) }}</span>
         <span class="diff-ext-filter-count">{{ ext.count }}</span>
       </label>
       <div v-if="filteredExtensions.length === 0" class="diff-ext-filter-empty">
