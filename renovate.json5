@@ -18,7 +18,7 @@
       "customType": "regex",
       "managerFilePatterns": ["/(^|/)Makefile$/"],
       "matchStrings": [
-        "[A-Z_]+_PACKAGE\\s*\\?=\\s*\\S+@(?<currentValue>\\S+)\\s+# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)",
+        "[A-Z_]+_PACKAGE\\s*\\?=\\s*(?<depName>[^@\\s]+?)(?:/cmd/[^@/\\s]+)?@(?<currentValue>\\S+)\\s+# renovate: datasource=(?<datasource>\\S+)",
       ],
     },
   ],
