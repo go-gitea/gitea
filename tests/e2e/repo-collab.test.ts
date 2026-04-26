@@ -3,10 +3,10 @@ import {test, expect} from '@playwright/test';
 import {apiCreateRepo, apiCreateUser, login, randomString} from './utils.ts';
 
 test('add collaborator search', async ({page, request}) => {
-  const target = `rc-${randomString(8)}`;
+  const userName = `rc-${randomString(8)}`;
   const repoName = `rc-${randomString(8)}`;
 
-  await apiCreateUser(request, target);
+  await apiCreateUser(request, userName);
   await Promise.all([
     apiCreateRepo(request, {name: repoName, autoInit: false}),
     login(page),
@@ -14,9 +14,9 @@ test('add collaborator search', async ({page, request}) => {
 
   await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/settings/collaboration`);
   const input = page.locator('#search-user-box input.prompt');
-  await input.fill(target.slice(-6));
+  await input.fill(userName.slice(-6));
   const result = page.locator('#search-user-box .results .result').first();
-  await expect(result).toContainText(target);
+  await expect(result).toContainText(userName);
   await result.click();
-  await expect(input).toHaveValue(target);
+  await expect(input).toHaveValue(userName);
 });
