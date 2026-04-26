@@ -25,7 +25,6 @@ function displayName(ext: string): string {
 }
 
 const allExtensions = computed(() => getDiffTreeExtensionStats(store));
-
 const isFiltering = computed(() => store.activeExtensions !== null);
 
 function isChecked(ext: string): boolean {
