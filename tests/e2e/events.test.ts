@@ -92,6 +92,34 @@ test.describe('events', () => {
     await expect(stopwatch).toBeHidden({timeout: 5000 * timeoutFactor});
   });
 
+  // Repro for https://github.com/go-gitea/gitea/pull/36965#issuecomment-4321282667:
+  // clicking the sidebar "Start timer" button reportedly produced a blank page.
+  // Drives the actual UI button (not the API) so the link-action → JSONRedirect("")
+  // → fetchActionDoRedirect("") path is exercised end-to-end.
+  test('sidebar start timer button starts stopwatch without blanking the page', async ({page, request}) => {
+    const name = `ev-sw-ui-${randomString(8)}`;
+    const headers = apiUserHeaders(name);
+
+    await apiCreateUser(request, name);
+    await Promise.all([
+      loginUser(page, name),
+      (async () => {
+        await apiCreateRepo(request, {name, headers});
+        await apiCreateIssue(request, name, name, {title: 'sidebar start timer test', headers});
+      })(),
+    ]);
+    await page.goto(`/${name}/${name}/issues/1`);
+
+    await page.getByRole('button', {name: 'Start timer'}).click();
+
+    // After the click the page reloads; the sidebar should now show the Stop/Discard
+    // controls and the navbar stopwatch icon should appear. If the page blanked,
+    // neither of these would be present.
+    await expect(page.getByRole('button', {name: 'Stop timer'})).toBeVisible();
+    await expect(page.getByRole('button', {name: 'Discard timer'})).toBeVisible();
+    await expect(page.locator('.active-stopwatch.not-mobile')).toBeVisible();
+  });
+
   test('logout propagation', async ({browser, request}) => {
     const name = `ev-logout-${randomString(8)}`;
 
