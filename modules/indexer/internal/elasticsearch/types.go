@@ -5,16 +5,14 @@ package elasticsearch
 
 import "code.gitea.io/gitea/modules/json"
 
-type bulkAction string
-
 const (
-	bulkActionIndex  bulkAction = "index"
-	bulkActionDelete bulkAction = "delete"
+	bulkActionIndex  = "index"
+	bulkActionDelete = "delete"
 )
 
 // BulkOp is a single write inside a Bulk call. Construct with IndexOp or DeleteOp.
 type BulkOp struct {
-	action bulkAction
+	action string
 	id     string
 	doc    any
 }

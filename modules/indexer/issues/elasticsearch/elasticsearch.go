@@ -111,11 +111,13 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	if options.Keyword != "" {
 		searchMode := util.IfZero(options.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+		mm := es.NewMultiMatchQuery(options.Keyword, "title", "content", "comments")
 		if searchMode == indexer.SearchModeExact {
-			query.Must(es.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(es.MultiMatchTypePhrasePrefix))
-		} else /* words */ {
-			query.Must(es.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(es.MultiMatchTypeBestFields).Operator("and"))
+			mm = mm.Type(es.MultiMatchTypePhrasePrefix)
+		} else {
+			mm = mm.Type(es.MultiMatchTypeBestFields).Operator("and")
 		}
+		query.Must(mm)
 	}
 
 	if len(options.RepoIDs) > 0 {

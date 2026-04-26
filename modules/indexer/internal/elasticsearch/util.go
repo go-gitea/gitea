@@ -24,7 +24,7 @@ func versionedIndexName(indexName string, version int) string {
 }
 
 func (i *Indexer) checkOldIndexes(ctx context.Context) {
-	for v := 0; v < i.version; v++ {
+	for v := range i.version {
 		indexName := versionedIndexName(i.indexName, v)
 		exists, err := i.indexExists(ctx, indexName)
 		if err == nil && exists {

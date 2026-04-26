@@ -322,12 +322,10 @@ func extractAggs(searchResult *es.SearchResponse) []*internal.SearchResultLangua
 
 // Search searches for codes and language stats by given conditions.
 func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
-	var contentQuery es.Query
 	searchMode := util.IfZero(opts.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+	contentQuery := es.Query(es.NewMultiMatchQuery(opts.Keyword, "content").Type(es.MultiMatchTypeBestFields).Operator("and"))
 	if searchMode == indexer.SearchModeExact {
 		contentQuery = es.MatchPhraseQuery("content", opts.Keyword)
-	} else /* words */ {
-		contentQuery = es.NewMultiMatchQuery(opts.Keyword, "content").Type(es.MultiMatchTypeBestFields).Operator("and")
 	}
 	kwQuery := es.NewBoolQuery().Should(
 		contentQuery,

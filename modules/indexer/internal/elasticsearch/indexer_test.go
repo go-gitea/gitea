@@ -11,16 +11,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// newRealIndexer connects to the ES instance pointed at by TEST_INDEXER_CODE_ES_URL,
-// creating a fresh per-test index. Tests are skipped when the env var is unset.
 func newRealIndexer(t *testing.T) *Indexer {
 	t.Helper()
-	u := os.Getenv("TEST_INDEXER_CODE_ES_URL")
-	if u == "" {
-		t.Skip("TEST_INDEXER_CODE_ES_URL not set")
+	url := "http://elasticsearch:9200"
+	if os.Getenv("CI") == "" {
+		url = os.Getenv("TEST_ELASTICSEARCH_URL")
+		if url == "" {
+			t.Skip("TEST_ELASTICSEARCH_URL not set and not running in CI")
+		}
 	}
-	indexName := "gitea_test_" + strings.ToLower(t.Name())
-	ix := NewIndexer(u, indexName, 1, `{"mappings":{"properties":{"x":{"type":"keyword"}}}}`)
+	indexName := "gitea_test_" + strings.ReplaceAll(strings.ToLower(t.Name()), "/", "_")
+	ix := NewIndexer(url, indexName, 1, `{"mappings":{"properties":{"x":{"type":"keyword"}}}}`)
 	_, err := ix.Init(t.Context())
 	require.NoError(t, err)
 	t.Cleanup(ix.Close)

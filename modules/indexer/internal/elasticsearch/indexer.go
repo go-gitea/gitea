@@ -6,7 +6,6 @@ package elasticsearch
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -48,13 +47,6 @@ func NewIndexer(rawURL, indexName string, version int, mapping string) *Indexer 
 
 // Init connects and creates the versioned index if missing, returning true if it already existed.
 func (i *Indexer) Init(ctx context.Context) (bool, error) {
-	if i == nil {
-		return false, errors.New("cannot init nil indexer")
-	}
-	if i.client != nil {
-		return false, errors.New("indexer is already initialized")
-	}
-
 	parsed, err := url.Parse(i.base)
 	if err != nil {
 		return false, fmt.Errorf("parse elasticsearch url: %w", err)
@@ -102,13 +94,6 @@ func (i *Indexer) Init(ctx context.Context) (bool, error) {
 
 // Ping returns an error when the cluster is unusable (status != green/yellow).
 func (i *Indexer) Ping(ctx context.Context) error {
-	if i == nil {
-		return errors.New("cannot ping nil indexer")
-	}
-	if i.client == nil {
-		return errors.New("indexer is not initialized")
-	}
-
 	var body struct {
 		Status string `json:"status"`
 	}
@@ -140,8 +125,9 @@ func (i *Indexer) Bulk(ctx context.Context, ops []BulkOp) error {
 
 	index := i.VersionedIndexName()
 	var buf bytes.Buffer
+	buf.Grow(len(ops) * 256)
 	for _, op := range ops {
-		meta := map[string]any{string(op.action): map[string]any{"_index": index, "_id": op.id}}
+		meta := map[string]any{op.action: map[string]any{"_index": index, "_id": op.id}}
 		if err := writeJSONLine(&buf, meta); err != nil {
 			return err
 		}
@@ -168,17 +154,27 @@ func (i *Indexer) Bulk(ctx context.Context, ops []BulkOp) error {
 	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
 		return err
 	}
-	if body.Errors {
-		// Each item is a single-key map ({"index": {...}} or {"delete": {...}}).
-		for _, item := range body.Items {
-			for action, result := range item {
-				// Delete-of-missing returns 404; that's idempotent.
-				if action == string(bulkActionDelete) && result.Status == http.StatusNotFound {
-					continue
-				}
-				if result.Status >= 300 {
-					return fmt.Errorf("bulk %s failed (status %d): %s", action, result.Status, string(result.Error))
-				}
+	if !body.Errors {
+		return nil
+	}
+	return firstBulkError(body.Items)
+}
+
+// firstBulkError returns the first item-level failure in a bulk response.
+// Each items entry is a single-key map ({"index": {...}} or {"delete": {...}}).
+// Delete-of-missing (404) is idempotent and not reported.
+func firstBulkError(items []map[string]struct {
+	Status int        `json:"status"`
+	Error  json.Value `json:"error"`
+},
+) error {
+	for _, item := range items {
+		for action, result := range item {
+			if action == bulkActionDelete && result.Status == http.StatusNotFound {
+				continue
+			}
+			if result.Status >= 300 {
+				return fmt.Errorf("bulk %s failed (status %d): %s", action, result.Status, string(result.Error))
 			}
 		}
 	}
