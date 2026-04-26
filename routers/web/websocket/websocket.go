@@ -6,7 +6,6 @@ package websocket
 import (
 	"bytes"
 	gocontext "context"
-	"net/http"
 	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
@@ -23,6 +22,11 @@ import (
 const (
 	pingInterval = 30 * time.Second
 	pingTimeout  = 10 * time.Second
+
+	// Sent in the WebSocket close frame so the SharedWorker can tell
+	// "your cookie is gone" apart from a transient network failure
+	// and stop reconnecting in a tight loop.
+	closeCodeUnauthenticated gitea_ws.StatusCode = 4401
 )
 
 type logoutBrokerMsg struct {
@@ -59,14 +63,7 @@ func rewriteLogout(msg []byte, connSessionID string) []byte {
 	return out
 }
 
-// Rejects unauthenticated requests with 401 directly; reqSignIn middleware
-// would return a 303 redirect which breaks the WebSocket upgrade handshake.
 func Serve(ctx *context.Context) {
-	if !ctx.IsSigned {
-		ctx.HTTPError(http.StatusUnauthorized)
-		return
-	}
-
 	routing.MarkLongPolling(ctx.Resp, ctx.Req)
 
 	conn, err := gitea_ws.Accept(ctx.Resp, ctx.Req, nil)
@@ -75,6 +72,11 @@ func Serve(ctx *context.Context) {
 		return
 	}
 	defer conn.CloseNow() //nolint:errcheck // best-effort close
+
+	if !ctx.IsSigned {
+		_ = conn.Close(closeCodeUnauthenticated, "unauthenticated")
+		return
+	}
 
 	sessionID := ctx.Session.ID()
 	ch, cancel := pubsub.DefaultBroker.Subscribe(pubsub.UserTopic(ctx.Doer.ID))

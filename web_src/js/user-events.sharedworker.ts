@@ -82,9 +82,14 @@ class WsSource {
       this.ws = null;
     });
 
-    this.ws.addEventListener('close', () => {
+    this.ws.addEventListener('close', (event: CloseEvent) => {
       this.ws = null;
       if (this.closed) return;
+      // Server signals an expired/missing session via 4401; reconnecting can't recover that.
+      if (event.code === 4401) {
+        this.closed = true;
+        return;
+      }
       this.failuresWithoutConnect++;
       this.maybeSignalFallback();
       this.scheduleReconnect();
@@ -100,7 +105,8 @@ class WsSource {
 
   scheduleReconnect() {
     if (this.reconnectTimer !== null) return;
-    const delay = this.reconnectDelay;
+    // Jitter 50%–150% of base delay to prevent thundering-herd reconnects after a server restart.
+    const delay = this.reconnectDelay * (0.5 + Math.random());
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.connect();
