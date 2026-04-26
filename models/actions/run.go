@@ -115,7 +115,7 @@ func (run *ActionRun) RefTooltip() string {
 }
 
 // LoadAttributes load Repo TriggerUser if not loaded
-func (run *ActionRun) LoadAttributes(ctx context.Context) error {
+func (run *ActionRun) LoadAttributes(ctx context.Context) (err error) {
 	if run == nil {
 		return nil
 	}
@@ -129,11 +129,10 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 	}
 
 	if run.TriggerUser == nil {
-		u, err := user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
+		run.TriggerUserID, run.TriggerUser, err = user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
 		if err != nil {
 			return err
 		}
-		run.TriggerUser = u
 	}
 
 	return nil
