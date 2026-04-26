@@ -433,6 +433,10 @@ func ListPageRevisions(ctx *context.APIContext) {
 	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 
 	page := max(ctx.FormInt("page"), 1)
+	limit := ctx.FormInt("limit")
+	if limit <= 1 {
+		limit = setting.API.DefaultPagingNum
+	}
 
 	// get Commit Count
 	commitsHistory, err := wikiRepo.CommitsByFileAndRange(
@@ -446,7 +450,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 		return
 	}
 
-	// FIXME: SetLinkHeader missing
+	ctx.SetLinkHeader(commitsCount, len(commitsHistory))
 	ctx.SetTotalCountHeader(commitsCount)
 	ctx.JSON(http.StatusOK, convert.ToWikiCommitList(commitsHistory, commitsCount))
 }
