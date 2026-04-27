@@ -574,7 +574,7 @@ func EditProjectColumn(ctx *context.APIContext) {
 		column.Color = *form.Color
 	}
 	if form.Sorting != nil {
-		column.Sorting = *form.Sorting
+		column.Sorting = int8(*form.Sorting)
 	}
 
 	if err := project_model.UpdateColumn(ctx, column); err != nil {
