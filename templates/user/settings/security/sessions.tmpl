@@ -3,6 +3,14 @@
 
 <h4 class="ui top attached header">
 	{{ctx.Locale.Tr "settings.sessions"}}
+	{{if gt .OtherActiveCount 0}}
+	<div class="ui right">
+		<form class="tw-inline" action="{{AppSubUrl}}/user/settings/security/sessions/revoke_all" method="post">
+			{{.CsrfTokenHtml}}
+			<button class="ui red tiny button">{{ctx.Locale.Tr "settings.sessions.revoke_all"}}</button>
+		</form>
+	</div>
+	{{end}}
 </h4>
 <div class="ui attached segment">
 	<p>{{ctx.Locale.Tr "settings.sessions_desc"}}</p>
@@ -50,14 +58,6 @@
 			</div>
 		{{end}}
 	</div>
-	{{if gt .OtherActiveCount 0}}
-	<div class="tw-mt-4">
-		<form action="{{AppSubUrl}}/user/settings/security/sessions/revoke_all" method="post">
-			{{.CsrfTokenHtml}}
-			<button class="ui red button">{{ctx.Locale.Tr "settings.sessions.revoke_all"}}</button>
-		</form>
-	</div>
-	{{end}}
 	{{else}}
 	<p>{{ctx.Locale.Tr "settings.sessions.none"}}</p>
 	{{end}}
