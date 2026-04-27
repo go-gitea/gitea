@@ -42,7 +42,7 @@ type Column struct {
 	ID      int64 `xorm:"pk autoincr"`
 	Title   string
 	Default bool   `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific column will be assigned to this column
-	Sorting int    `xorm:"NOT NULL DEFAULT 0"`
+	Sorting int8   `xorm:"NOT NULL DEFAULT 0"`
 	Color   string `xorm:"VARCHAR(7)"`
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
@@ -128,7 +128,8 @@ func createDefaultColumnsForProject(ctx context.Context, project *Project) error
 	})
 }
 
-// maxProjectColumns is the maximum number of columns allowed in a project.
+// maxProjectColumns max columns allowed in a project, this should not bigger than 127
+// because sorting is int8 in database
 const maxProjectColumns = 20
 
 // NewColumn adds a new project column to a given project
@@ -148,7 +149,7 @@ func NewColumn(ctx context.Context, column *Column) error {
 	if res.ColumnCount >= maxProjectColumns {
 		return errors.New("NewBoard: maximum number of columns reached")
 	}
-	column.Sorting = int(util.Iif(res.ColumnCount > 0, res.MaxSorting+1, 0))
+	column.Sorting = int8(util.Iif(res.ColumnCount > 0, res.MaxSorting+1, 0))
 	_, err := db.GetEngine(ctx).Insert(column)
 	return err
 }

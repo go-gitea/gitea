@@ -150,7 +150,7 @@ func toProjectColumn(ctx context.Context, column *project_model.Column, doer *us
 		ID:        column.ID,
 		Title:     column.Title,
 		Default:   column.Default,
-		Sorting:   column.Sorting,
+		Sorting:   int(column.Sorting),
 		Color:     column.Color,
 		ProjectID: column.ProjectID,
 		NumIssues: column.NumIssues,
