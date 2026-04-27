@@ -118,8 +118,8 @@ func TestServeSetHeaderContentRelated(t *testing.T) {
 		{"any", serveHeaderCspDefault},
 		{"application/pdf", serveHeaderCspPdf},
 		{"application/pdf; other", serveHeaderCspPdf},
-		{"audio/mp4", serveHeaderCspMedia},
-		{"video/ogg; other", serveHeaderCspMedia},
+		{"audio/mp4", serveHeaderCspAudioVideo},
+		{"video/ogg; other", serveHeaderCspAudioVideo},
 		{typesniffer.MimeTypeImageSvg, serveHeaderCspDefault},
 	}
 	for _, c := range cases {
@@ -129,7 +129,6 @@ func TestServeSetHeaderContentRelated(t *testing.T) {
 		assert.Equal(t, c.csp, csp, "content-type: %s", c.contentType)
 	}
 
-	// make sure they are sandboxed
+	// make sure sandboxed
 	require.Contains(t, serveHeaderCspDefault, "; sandbox")
-	require.Contains(t, serveHeaderCspMedia, "; sandbox")
 }

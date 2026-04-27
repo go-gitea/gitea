@@ -49,9 +49,8 @@ const (
 	// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
 	serveHeaderCspPdf = "default-src 'none'; style-src 'unsafe-inline'"
 
-	// For audios and videos
-	// Sandboxed "allow-scripts" is needed for Chrome to play media (e.g.: mp4 video)
-	serveHeaderCspMedia = "default-src 'self'; sandbox allow-scripts"
+	// For audios and videos, actually it doesn't really need CSP (just like Gitea <= 1.25)
+	serveHeaderCspAudioVideo = ""
 )
 
 func serveSetHeaderContentRelated(w http.ResponseWriter, contentType string) {
@@ -60,12 +59,17 @@ func serveSetHeaderContentRelated(w http.ResponseWriter, contentType string) {
 	header.Set("Content-Type", contentType)
 	header.Set("X-Content-Type-Options", "nosniff")
 
-	header.Set("Content-Security-Policy", serveHeaderCspDefault)
+	csp := serveHeaderCspDefault
 	if strings.HasPrefix(contentType, "application/pdf") {
-		header.Set("Content-Security-Policy", serveHeaderCspPdf)
+		csp = serveHeaderCspPdf
 	}
 	if strings.HasPrefix(contentType, "video/") || strings.HasPrefix(contentType, "audio/") {
-		header.Set("Content-Security-Policy", serveHeaderCspMedia)
+		csp = serveHeaderCspAudioVideo
+	}
+	if csp != "" {
+		header.Set("Content-Security-Policy", csp)
+	} else {
+		header.Del("Content-Security-Policy")
 	}
 }
 
