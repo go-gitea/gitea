@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 )
 
-// CountColumns returns the total number of columns for a project
+// CountProjectColumns returns the total number of columns for a project
 func CountProjectColumns(ctx context.Context, projectID int64) (int64, error) {
 	return db.GetEngine(ctx).Where("project_id=?", projectID).Count(&Column{})
 }
@@ -28,7 +28,7 @@ func GetProjectColumns(ctx context.Context, projectID int64, opts db.ListOptions
 }
 
 func GetColumnsByIDs(ctx context.Context, projectID int64, columnsIDs []int64) (ColumnList, error) {
-	columns := make([]*Column, 0, 5)
+	columns := make([]*Column, 0, len(columnsIDs))
 	if len(columnsIDs) == 0 {
 		return columns, nil
 	}

@@ -118,6 +118,9 @@ func ListProjects(ctx *context.APIContext) {
 		return
 	}
 
+	for _, p := range projects {
+		p.Repo = ctx.Repo.Repository
+	}
 	apiProjects := convert.ToProjectList(ctx, projects)
 
 	ctx.SetLinkHeader(count, listOptions.PageSize)
@@ -217,6 +220,7 @@ func CreateProject(ctx *context.APIContext) {
 		return
 	}
 
+	p.Repo = ctx.Repo.Repository
 	ctx.JSON(http.StatusCreated, convert.ToProject(ctx, p))
 }
 

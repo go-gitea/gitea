@@ -35,15 +35,11 @@ func ToProject(ctx context.Context, p *project_model.Project) *api.Project {
 		project.ClosedDate = &t
 	}
 
-	// Generate project URL
-	if p.Type == project_model.TypeRepository && p.RepoID > 0 {
-		if err := p.LoadRepo(ctx); err == nil && p.Repo != nil {
-			project.URL = project_model.ProjectLinkForRepo(p.Repo, p.ID)
-		}
-	} else if p.OwnerID > 0 {
-		if err := p.LoadOwner(ctx); err == nil && p.Owner != nil {
-			project.URL = project_model.ProjectLinkForOrg(p.Owner, p.ID)
-		}
+	// Repo/Owner are expected to be preloaded by the caller to avoid N+1 lookups.
+	if p.Type == project_model.TypeRepository && p.Repo != nil {
+		project.URL = project_model.ProjectLinkForRepo(p.Repo, p.ID)
+	} else if p.Owner != nil {
+		project.URL = project_model.ProjectLinkForOrg(p.Owner, p.ID)
 	}
 
 	return project
