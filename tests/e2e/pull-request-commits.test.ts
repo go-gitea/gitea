@@ -67,11 +67,11 @@ test('PR should not list commits already present in the target branch via anothe
         .then(() => page.screenshot({path: 'test-results/pr-commits-tab.png'})),
     ]);
 
-    // M2 is genuinely new in develop and must appear.
-    // B must NOT appear — it is already reachable from staging via M1.
-    // Buggy Gitea returns [M2, B] (len 2); fixed Gitea returns [M2] (len 1).
-    expect(commits, 'PR develop→staging must not list commits already present in staging').toHaveLength(1);
-    expect(commits[0].commit.message, 'Only the develop merge commit should appear — not the feature file commit').toContain('feature into develop');
+    // Neither B nor M2 should appear: B's content is already in staging via M1, and M2 is a
+    // pure merge commit whose only change (B) is likewise already present. GitHub and GitLab
+    // both return 0 commits in this situation — Gitea should do the same.
+    // Buggy Gitea returns [M2, B] (len 2) or [M2] (len 1); fixed Gitea returns [] (len 0).
+    expect(commits, 'PR develop→staging must not list commits already present in staging').toHaveLength(0);
   } finally {
     await apiDeleteRepo(request, owner, repo);
   }

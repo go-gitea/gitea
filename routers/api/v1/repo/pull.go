@@ -1431,6 +1431,16 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), false, false)
 	} else {
 		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefNameFromBranch(pr.BaseBranch), git.RefName(pr.GetGitHeadRefName()), false, false)
+		if err == nil {
+			// Filter out commits whose patch content is already reachable from the base branch via another merge path
+			// e.g. a commit merged into staging via feature→staging that then also appears in develop→staging)
+			// This matches GitHub/GitLab behaviour: only commits whose changes are genuinely new to the target branch are listed.
+			compareInfo.Commits, err = baseGitRepo.ShowPrettyFormatLogToListCherryPick(ctx, git.RefNameFromBranch(pr.BaseBranch).String(), compareInfo.HeadCommitID)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+		}
 	}
 
 	if gitcmd.StderrHasPrefix(err, "fatal: bad revision") {
