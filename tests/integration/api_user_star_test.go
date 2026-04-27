@@ -52,8 +52,7 @@ func TestAPIStar(t *testing.T) {
 
 		assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
 
-		var repos []api.Repository
-		DecodeJSON(t, resp, &repos)
+		repos := DecodeJSON(t, resp, []api.Repository{})
 		assert.Len(t, repos, 1)
 		assert.Equal(t, repo, repos[0].FullName)
 	})
@@ -67,8 +66,7 @@ func TestAPIStar(t *testing.T) {
 
 		assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
 
-		var repos []api.Repository
-		DecodeJSON(t, resp, &repos)
+		repos := DecodeJSON(t, resp, []api.Repository{})
 		assert.Len(t, repos, 1)
 		assert.Equal(t, repo, repos[0].FullName)
 	})

@@ -6,11 +6,14 @@ package project
 import (
 	"context"
 	"errors"
+	"slices"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 )
 
@@ -84,6 +87,31 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 		}
 		return nil
 	})
+}
+
+func LoadIssuesAssigneesForProject(ctx context.Context, issuesMap map[int64]issues_model.IssueList) ([]*user_model.User, error) {
+	var issueList issues_model.IssueList
+	for _, colIssues := range issuesMap {
+		issueList = append(issueList, colIssues...)
+	}
+	err := issueList.LoadAssignees(ctx)
+	if err != nil {
+		return nil, err
+	}
+	users := make([]*user_model.User, 0, len(issueList))
+	usersAdded := container.Set[int64]{}
+	for _, issue := range issueList {
+		for _, assignee := range issue.Assignees {
+			if !usersAdded.Contains(assignee.ID) {
+				usersAdded.Add(assignee.ID)
+				users = append(users, assignee)
+			}
+		}
+	}
+	slices.SortFunc(users, func(a, b *user_model.User) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	return users, nil
 }
 
 // LoadIssuesFromProject load issues assigned to each project column inside the given project

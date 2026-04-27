@@ -74,8 +74,7 @@ description: ` + packageDescription
 			Fields map[string]string `json:"fields"`
 		}
 
-		var result UploadRequest
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &UploadRequest{})
 
 		assert.Empty(t, result.Fields)
 
@@ -136,8 +135,7 @@ description: ` + packageDescription
 			Pubspec    any       `json:"pubspec,omitempty"`
 		}
 
-		var result VersionMetadata
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &VersionMetadata{})
 
 		assert.Equal(t, packageVersion, result.Version)
 		assert.NotNil(t, result.Pubspec)
@@ -167,8 +165,7 @@ description: ` + packageDescription
 			Versions []*VersionMetadata `json:"versions"`
 		}
 
-		var result PackageVersions
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &PackageVersions{})
 
 		assert.Equal(t, packageName, result.Name)
 		assert.NotNil(t, result.Latest)

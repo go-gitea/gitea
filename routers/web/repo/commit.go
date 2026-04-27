@@ -384,7 +384,7 @@ func Diff(ctx *context.Context) {
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
-	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
 		git_model.CommitStatusesHideActionsURL(ctx, statuses)
 	}
 
@@ -466,7 +466,7 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 	if err != nil {
 		return nil, err
 	}
-	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
 		for _, commit := range commits {
 			if commit.Status == nil {
 				continue

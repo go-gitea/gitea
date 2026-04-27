@@ -70,10 +70,9 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
 
-		var repository api.Repository
-		DecodeJSON(t, resp, &repository)
+		repository := DecodeJSON(t, resp, &api.Repository{})
 		if len(callback) > 0 {
-			callback[0](t, repository)
+			callback[0](t, *repository)
 		}
 	}
 }
@@ -88,10 +87,9 @@ func doAPIEditRepository(ctx APITestContext, editRepoOption *api.EditRepoOption,
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
-		var repository api.Repository
-		DecodeJSON(t, resp, &repository)
+		repository := DecodeJSON(t, resp, &api.Repository{})
 		if len(callback) > 0 {
-			callback[0](t, repository)
+			callback[0](t, *repository)
 		}
 	}
 }
@@ -128,10 +126,9 @@ func doAPIForkRepository(ctx APITestContext, username string, callback ...func(*
 			return
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusAccepted)
-		var repository api.Repository
-		DecodeJSON(t, resp, &repository)
+		repository := DecodeJSON(t, resp, &api.Repository{})
 		if len(callback) > 0 {
-			callback[0](t, repository)
+			callback[0](t, *repository)
 		}
 	}
 }
@@ -146,10 +143,9 @@ func doAPIGetRepository(ctx APITestContext, callback ...func(*testing.T, api.Rep
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
-		var repository api.Repository
-		DecodeJSON(t, resp, &repository)
+		repository := DecodeJSON(t, resp, &api.Repository{})
 		if len(callback) > 0 {
-			callback[0](t, repository)
+			callback[0](t, *repository)
 		}
 	}
 }
@@ -179,10 +175,9 @@ func doAPICreateUserKey(ctx APITestContext, keyname, keyFile string, callback ..
 			return
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
-		var publicKey api.PublicKey
-		DecodeJSON(t, resp, &publicKey)
+		publicKey := DecodeJSON(t, resp, &api.PublicKey{})
 		if len(callback) > 0 {
-			callback[0](t, publicKey)
+			callback[0](t, *publicKey)
 		}
 	}
 }
@@ -274,8 +269,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			if resp.Code != http.StatusMethodNotAllowed {
 				break
 			}
-			err := api.APIError{}
-			DecodeJSON(t, resp, &err)
+			err := DecodeJSON(t, resp, &api.APIError{})
 			assert.Equal(t, "Please try again later", err.Message)
 			queue.GetManager().FlushAll(t.Context(), 5*time.Second)
 			<-time.After(1 * time.Second)
@@ -348,10 +342,9 @@ func doAPIGetBranch(ctx APITestContext, branch string, callback ...func(*testing
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
-		var branch api.Branch
-		DecodeJSON(t, resp, &branch)
+		branch := DecodeJSON(t, resp, &api.Branch{})
 		if len(callback) > 0 {
-			callback[0](t, branch)
+			callback[0](t, *branch)
 		}
 	}
 }
@@ -366,10 +359,9 @@ func doAPICreateFile(ctx APITestContext, treepath string, options *api.CreateFil
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
 
-		var contents api.FileResponse
-		DecodeJSON(t, resp, &contents)
+		contents := DecodeJSON(t, resp, &api.FileResponse{})
 		if len(callback) > 0 {
-			callback[0](t, contents)
+			callback[0](t, *contents)
 		}
 	}
 }
@@ -384,10 +376,9 @@ func doAPICreateOrganization(ctx APITestContext, options *api.CreateOrgOption, c
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
 
-		var contents api.Organization
-		DecodeJSON(t, resp, &contents)
+		contents := DecodeJSON(t, resp, &api.Organization{})
 		if len(callback) > 0 {
-			callback[0](t, contents)
+			callback[0](t, *contents)
 		}
 	}
 }
@@ -402,10 +393,9 @@ func doAPICreateOrganizationRepository(ctx APITestContext, orgName string, optio
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
 
-		var contents api.Repository
-		DecodeJSON(t, resp, &contents)
+		contents := DecodeJSON(t, resp, &api.Repository{})
 		if len(callback) > 0 {
-			callback[0](t, contents)
+			callback[0](t, *contents)
 		}
 	}
 }
@@ -420,10 +410,9 @@ func doAPICreateOrganizationTeam(ctx APITestContext, orgName string, options *ap
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
 
-		var contents api.Team
-		DecodeJSON(t, resp, &contents)
+		contents := DecodeJSON(t, resp, &api.Team{})
 		if len(callback) > 0 {
-			callback[0](t, contents)
+			callback[0](t, *contents)
 		}
 	}
 }

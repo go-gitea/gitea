@@ -94,6 +94,11 @@ type CreatePullReviewComment struct {
 	NewLineNum int64 `json:"new_position"`
 }
 
+// CreatePullReviewCommentReplyOptions are options to reply to a pull request review comment
+type CreatePullReviewCommentReplyOptions struct {
+	Body string `json:"body" binding:"Required"`
+}
+
 // SubmitPullReviewOptions are options to submit a pending pull request review
 type SubmitPullReviewOptions struct {
 	Event ReviewStateType `json:"event"`

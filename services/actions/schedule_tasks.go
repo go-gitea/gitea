@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
@@ -67,7 +68,7 @@ func startTasks(ctx context.Context) error {
 				continue
 			}
 
-			if err := CreateScheduleTask(ctx, row.Schedule); err != nil {
+			if err := CreateScheduleTask(ctx, row); err != nil {
 				log.Error("CreateScheduleTask: %v", err)
 				return err
 			}
@@ -97,9 +98,12 @@ func startTasks(ctx context.Context) error {
 	return nil
 }
 
-// CreateScheduleTask creates a scheduled task from a cron action schedule.
+// CreateScheduleTask creates a scheduled task from a cron action schedule spec.
 // It creates an action run based on the schedule, inserts it into the database, and creates commit statuses for each job.
-func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule) error {
+func CreateScheduleTask(ctx context.Context, spec *actions_model.ActionScheduleSpec) error {
+	cron := spec.Schedule
+	eventPayload := withScheduleInEventPayload(cron.EventPayload, spec.Spec)
+
 	// Create a new action run based on the schedule
 	run := &actions_model.ActionRun{
 		Title:         cron.Title,
@@ -110,7 +114,7 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		Ref:           cron.Ref,
 		CommitSHA:     cron.CommitSHA,
 		Event:         cron.Event,
-		EventPayload:  cron.EventPayload,
+		EventPayload:  eventPayload,
 		TriggerEvent:  string(webhook_module.HookEventSchedule),
 		ScheduleID:    cron.ID,
 		Status:        actions_model.StatusWaiting,
@@ -125,4 +129,25 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 
 	// Return nil if no errors occurred
 	return nil
+}
+
+func withScheduleInEventPayload(eventPayload, schedule string) string {
+	if schedule == "" || eventPayload == "" {
+		return eventPayload
+	}
+
+	event := map[string]any{}
+	if err := json.Unmarshal([]byte(eventPayload), &event); err != nil {
+		log.Error("withScheduleInEventPayload: unmarshal: %v", err)
+		return eventPayload
+	}
+
+	event["schedule"] = schedule
+	updatedPayload, err := json.Marshal(event)
+	if err != nil {
+		log.Error("withScheduleInEventPayload: marshal: %v", err)
+		return eventPayload
+	}
+
+	return string(updatedPayload)
 }

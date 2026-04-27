@@ -1,4 +1,4 @@
-import {execPseudoSelectorCommands} from './common-fetch-action.ts';
+import {execPseudoSelectorCommands, handleFetchActionSuccessJson} from './common-fetch-action.ts';
 
 test('execPseudoSelectorCommands', () => {
   window.document.body.innerHTML = `
@@ -36,4 +36,24 @@ test('execPseudoSelectorCommands', () => {
   ret = execPseudoSelectorCommands(document.querySelector('#u1 .x')!, '$closest(div) .x');
   expect(ret.targets.length).toEqual(2);
   expect(ret.targets).toEqual(Array.from(document.querySelectorAll('#d1 .x')));
+});
+
+test('handleFetchActionSuccessJson', async () => {
+  const spyAssign = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
+  const spyReload = vi.spyOn(window.location, 'reload').mockImplementation(() => {});
+
+  await handleFetchActionSuccessJson(document.body, {redirect: '/'});
+  expect(spyAssign).toHaveBeenCalledTimes(1);
+  expect(spyReload).toHaveBeenCalledTimes(0);
+  vi.resetAllMocks();
+
+  await handleFetchActionSuccessJson(document.body, {redirect: ''});
+  expect(spyAssign).toHaveBeenCalledTimes(0);
+  expect(spyReload).toHaveBeenCalledTimes(1);
+  vi.resetAllMocks();
+
+  await handleFetchActionSuccessJson(document.body, {});
+  expect(spyAssign).toHaveBeenCalledTimes(0);
+  expect(spyReload).toHaveBeenCalledTimes(1);
+  vi.resetAllMocks();
 });

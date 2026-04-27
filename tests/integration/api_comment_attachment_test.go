@@ -50,8 +50,7 @@ func TestAPIGetCommentAttachment(t *testing.T) {
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	var apiAttachment api.Attachment
-	DecodeJSON(t, resp, &apiAttachment)
+	apiAttachment := DecodeJSON(t, resp, &api.Attachment{})
 
 	expect := convert.ToAPIAttachment(repo, attachment)
 	assert.Equal(t, expect.ID, apiAttachment.ID)
@@ -75,8 +74,7 @@ func TestAPIListCommentAttachments(t *testing.T) {
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	var apiAttachments []*api.Attachment
-	DecodeJSON(t, resp, &apiAttachments)
+	apiAttachments := DecodeJSON(t, resp, []*api.Attachment{})
 	expectedCount := unittest.GetCount(t, &repo_model.Attachment{CommentID: comment.ID})
 	assert.Len(t, apiAttachments, expectedCount)
 
@@ -110,9 +108,7 @@ func TestAPICreateCommentAttachment(t *testing.T) {
 		SetHeader("Content-Type", writer.FormDataContentType())
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 
-	apiAttachment := new(api.Attachment)
-	DecodeJSON(t, resp, &apiAttachment)
-
+	apiAttachment := DecodeJSON(t, resp, &api.Attachment{})
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, CommentID: comment.ID})
 }
 
@@ -163,9 +159,7 @@ func TestAPIEditCommentAttachment(t *testing.T) {
 		"name": newAttachmentName,
 	}).AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusCreated)
-	apiAttachment := new(api.Attachment)
-	DecodeJSON(t, resp, &apiAttachment)
-
+	apiAttachment := DecodeJSON(t, resp, &api.Attachment{})
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, CommentID: comment.ID, Name: apiAttachment.Name})
 }
 

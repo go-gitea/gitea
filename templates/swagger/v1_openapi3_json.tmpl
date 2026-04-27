@@ -2338,6 +2338,12 @@
             "type": "string",
             "x-go-name": "Path"
           },
+          "previous_attempt_url": {
+            "description": "PreviousAttemptURL is the API URL of the previous attempt of this run, e.g. \".../actions/runs/{run_id}/attempts/{attempt-1}\".\nIt is set only when the current attempt is \u003e 1 (i.e. a rerun). For the first attempt, or for legacy runs that pre-date ActionRunAttempt, it is null.",
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "PreviousAttemptURL"
+          },
           "repository": {
             "$ref": "#/components/schemas/Repository"
           },
@@ -2347,6 +2353,7 @@
             "x-go-name": "RepositoryID"
           },
           "run_attempt": {
+            "description": "RunAttempt is 1-based for runs created after ActionRunAttempt was introduced.\nA value of 0 is a legacy-only sentinel for runs created before attempts existed\nand indicates no corresponding /attempts/{n} resource is available.",
             "format": "int64",
             "type": "integer",
             "x-go-name": "RunAttempt"
@@ -4405,6 +4412,17 @@
             "description": "the tree path",
             "type": "string",
             "x-go-name": "Path"
+          }
+        },
+        "type": "object",
+        "x-go-package": "code.gitea.io/gitea/modules/structs"
+      },
+      "CreatePullReviewCommentReplyOptions": {
+        "description": "CreatePullReviewCommentReplyOptions are options to reply to a pull request review comment",
+        "properties": {
+          "body": {
+            "type": "string",
+            "x-go-name": "Body"
           }
         },
         "type": "object",
@@ -7721,7 +7739,7 @@
             "x-go-name": "Title"
           },
           "type": {
-            "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue  NotifySubjectIssue an issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull an pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit an commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository an repository is subject of an notification",
+            "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue  NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository a repository is subject of an notification",
             "enum": [
               "Issue",
               "Pull",
@@ -7729,7 +7747,7 @@
               "Repository"
             ],
             "type": "string",
-            "x-go-enum-desc": "Issue NotifySubjectIssue  NotifySubjectIssue an issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull an pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit an commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository an repository is subject of an notification",
+            "x-go-enum-desc": "Issue NotifySubjectIssue  NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository a repository is subject of an notification",
             "x-go-name": "Type"
           },
           "url": {
@@ -16208,6 +16226,146 @@
         ]
       }
     },
+    "/repos/{owner}/{repo}/actions/runs/{run}/attempts/{attempt}": {
+      "get": {
+        "operationId": "getWorkflowRunAttempt",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the run",
+            "in": "path",
+            "name": "run",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "logical attempt number of the run",
+            "in": "path",
+            "name": "attempt",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Gets a specific workflow run attempt",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/attempts/{attempt}/jobs": {
+      "get": {
+        "operationId": "listWorkflowRunAttemptJobs",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the workflow run",
+            "in": "path",
+            "name": "run",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "logical attempt number of the run",
+            "in": "path",
+            "name": "attempt",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/WorkflowJobsList"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Lists all jobs for a workflow run attempt",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
     "/repos/{owner}/{repo}/actions/runs/{run}/jobs": {
       "get": {
         "operationId": "listWorkflowRunJobs",
@@ -16335,6 +16493,9 @@
           "404": {
             "$ref": "#/components/responses/notFound"
           },
+          "409": {
+            "$ref": "#/components/responses/error"
+          },
           "422": {
             "$ref": "#/components/responses/validationError"
           }
@@ -16390,6 +16551,9 @@
           "404": {
             "$ref": "#/components/responses/notFound"
           },
+          "409": {
+            "$ref": "#/components/responses/error"
+          },
           "422": {
             "$ref": "#/components/responses/validationError"
           }
@@ -16444,6 +16608,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/error"
           },
           "422": {
             "$ref": "#/components/responses/validationError"
@@ -25805,6 +25972,80 @@
         ]
       }
     },
+    "/repos/{owner}/{repo}/pulls/{index}/comments/{id}/replies": {
+      "post": {
+        "operationId": "repoCreatePullReviewCommentReply",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "index of the pull request",
+            "in": "path",
+            "name": "index",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "id of the review comment to reply to",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePullReviewCommentReplyOptions"
+              }
+            }
+          },
+          "required": true,
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/PullReviewComment"
+          },
+          "400": {
+            "$ref": "#/components/responses/validationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Reply to a pull request review comment",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
     "/repos/{owner}/{repo}/pulls/{index}/commits": {
       "get": {
         "operationId": "repoGetPullRequestCommits",
@@ -26373,7 +26614,7 @@
             "$ref": "#/components/responses/validationError"
           }
         },
-        "summary": "Create a review to an pull request",
+        "summary": "Create a review to a pull request",
         "tags": [
           "repository"
         ]
@@ -26557,7 +26798,7 @@
             "$ref": "#/components/responses/validationError"
           }
         },
-        "summary": "Submit a pending review to an pull request",
+        "summary": "Submit a pending review to a pull request",
         "tags": [
           "repository"
         ]
@@ -30594,7 +30835,7 @@
             "$ref": "#/components/responses/RegistrationToken"
           }
         },
-        "summary": "Get an user's actions runner registration token",
+        "summary": "Get a user's actions runner registration token",
         "tags": [
           "user"
         ]
@@ -31176,6 +31417,9 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/OAuth2Application"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
           },
           "404": {
             "$ref": "#/components/responses/notFound"

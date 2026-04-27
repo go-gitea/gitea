@@ -34,8 +34,7 @@ func TestAPIRepoTeams(t *testing.T) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/teams", publicOrgRepo.FullName())).
 		AddTokenAuth(token)
 	res := MakeRequest(t, req, http.StatusOK)
-	var teams []*api.Team
-	DecodeJSON(t, res, &teams)
+	teams := DecodeJSON(t, res, []*api.Team{})
 	if assert.Len(t, teams, 2) {
 		assert.Equal(t, "Owners", teams[0].Name)
 		assert.True(t, teams[0].CanCreateOrgRepo)
