@@ -1592,6 +1592,7 @@ func Routes() *web.Router {
 							m.Post("/issues/{issue_id}", reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.AddIssueToProjectColumn)
 							m.Delete("/issues/{issue_id}", reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.RemoveIssueFromProjectColumn)
 						})
+						m.Post("/issues/{issue_id}/move", reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.MoveProjectIssueOption{}), repo.MoveProjectIssue)
 					})
 				}, reqRepoReader(unit.TypeProjects))
 			}, repoAssignment(), checkTokenPublicOnly())

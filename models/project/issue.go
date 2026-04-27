@@ -33,6 +33,14 @@ func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error 
 	return err
 }
 
+func IsIssueInColumn(ctx context.Context, issueID, projectID, columnID int64) (bool, error) {
+	return db.GetEngine(ctx).Exist(&ProjectIssue{
+		IssueID:         issueID,
+		ProjectID:       projectID,
+		ProjectColumnID: columnID,
+	})
+}
+
 // GetColumnIssueNextSorting returns the sorting value to append an issue at the end of the column.
 func GetColumnIssueNextSorting(ctx context.Context, projectID, columnID int64) (int64, error) {
 	res := struct {

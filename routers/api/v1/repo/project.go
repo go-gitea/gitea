@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -33,7 +34,7 @@ func getRepoProjectByID(ctx *context.APIContext) *project_model.Project {
 	return project
 }
 
-func getRepoProjectColumn(ctx *context.APIContext) *project_model.Column {
+func getRepoProjectColumn(ctx *context.APIContext) (*project_model.Project, *project_model.Column) {
 	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("column_id"))
 	if err != nil {
 		if project_model.IsErrProjectColumnNotExist(err) {
@@ -41,23 +42,42 @@ func getRepoProjectColumn(ctx *context.APIContext) *project_model.Column {
 		} else {
 			ctx.APIErrorInternal(err)
 		}
-		return nil
+		return nil, nil
 	}
-	p, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, column.ProjectID)
+	project, err := project_model.GetProjectForRepoByID(ctx, ctx.Repo.Repository.ID, column.ProjectID)
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
 			ctx.APIErrorInternal(err)
 		}
-		return nil
+		return nil, nil
 	}
-	if p.ID != ctx.PathParamInt64("id") {
+	if project.ID != ctx.PathParamInt64("id") {
 		ctx.APIErrorNotFound()
-		return nil
+		return nil, nil
 	}
+	project.Repo = ctx.Repo.Repository
+	return project, column
+}
 
-	return column
+func rejectIfClosed(ctx *context.APIContext, project *project_model.Project) bool {
+	if project.IsClosed {
+		ctx.APIError(http.StatusForbidden, "project is closed")
+		return true
+	}
+	return false
+}
+
+func validateColumnColor(ctx *context.APIContext, color string) bool {
+	if color == "" {
+		return true
+	}
+	if !project_model.ColumnColorPattern.MatchString(color) {
+		ctx.APIError(http.StatusUnprocessableEntity, "color must be a 6-digit hex string like #FF0000")
+		return false
+	}
+	return true
 }
 
 // ListProjects lists all projects in a repository
@@ -65,6 +85,7 @@ func ListProjects(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/projects repository repoListProjects
 	// ---
 	// summary: List projects in a repository
+	// description: Gitea projects only contain issues — note cards and pull requests are not modeled as project items.
 	// produces:
 	// - application/json
 	// parameters:
@@ -80,7 +101,7 @@ func ListProjects(ctx *context.APIContext) {
 	//   required: true
 	// - name: state
 	//   in: query
-	//   description: State of the project (open, closed)
+	//   description: State of the project (open, closed, all)
 	//   type: string
 	//   enum: [open, closed, all]
 	//   default: open
@@ -121,11 +142,10 @@ func ListProjects(ctx *context.APIContext) {
 	for _, p := range projects {
 		p.Repo = ctx.Repo.Repository
 	}
-	apiProjects := convert.ToProjectList(ctx, projects)
 
 	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, apiProjects)
+	ctx.JSON(http.StatusOK, convert.ToProjectList(ctx, projects, ctx.Doer))
 }
 
 // GetProject gets a single project
@@ -133,6 +153,7 @@ func GetProject(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/projects/{id} repository repoGetProject
 	// ---
 	// summary: Get a single project
+	// description: Gitea projects only contain issues — note cards and pull requests are not modeled as project items.
 	// produces:
 	// - application/json
 	// parameters:
@@ -168,7 +189,7 @@ func GetProject(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToProject(ctx, project))
+	ctx.JSON(http.StatusOK, convert.ToProject(ctx, project, ctx.Doer))
 }
 
 // CreateProject creates a new project
@@ -205,13 +226,24 @@ func CreateProject(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.CreateProjectOption)
 
+	templateType, err := convert.ProjectTemplateTypeFromString(form.TemplateType)
+	if err != nil {
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+	cardType, err := convert.ProjectCardTypeFromString(form.CardType)
+	if err != nil {
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
 	p := &project_model.Project{
 		RepoID:       ctx.Repo.Repository.ID,
 		Title:        form.Title,
 		Description:  form.Description,
 		CreatorID:    ctx.Doer.ID,
-		TemplateType: project_model.TemplateType(form.TemplateType),
-		CardType:     project_model.CardType(form.CardType),
+		TemplateType: templateType,
+		CardType:     cardType,
 		Type:         project_model.TypeRepository,
 	}
 
@@ -221,7 +253,7 @@ func CreateProject(ctx *context.APIContext) {
 	}
 
 	p.Repo = ctx.Repo.Repository
-	ctx.JSON(http.StatusCreated, convert.ToProject(ctx, p))
+	ctx.JSON(http.StatusCreated, convert.ToProject(ctx, p, ctx.Doer))
 }
 
 // EditProject updates a project
@@ -274,10 +306,15 @@ func EditProject(ctx *context.APIContext) {
 		Description: optional.FromPtr(form.Description),
 	}
 	if form.CardType != nil {
-		opts.CardType = optional.Some(project_model.CardType(*form.CardType))
+		cardType, err := convert.ProjectCardTypeFromString(*form.CardType)
+		if err != nil {
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+			return
+		}
+		opts.CardType = optional.Some(cardType)
 	}
 	if form.State != nil {
-		switch api.StateType(*form.State) {
+		switch *form.State {
 		case api.StateOpen:
 			opts.IsClosed = optional.Some(false)
 		case api.StateClosed:
@@ -297,7 +334,7 @@ func EditProject(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToProject(ctx, project))
+	ctx.JSON(http.StatusOK, convert.ToProject(ctx, project, ctx.Doer))
 }
 
 // DeleteProject deletes a project
@@ -399,7 +436,7 @@ func ListProjectColumns(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToProjectColumnList(ctx, columns))
+	ctx.JSON(http.StatusOK, convert.ToProjectColumnList(ctx, columns, ctx.Doer))
 }
 
 // CreateProjectColumn creates a new column in a project
@@ -435,6 +472,8 @@ func CreateProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/ProjectColumn"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
@@ -444,8 +483,14 @@ func CreateProjectColumn(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
+	if rejectIfClosed(ctx, project) {
+		return
+	}
 
 	form := web.GetForm(ctx).(*api.CreateProjectColumnOption)
+	if !validateColumnColor(ctx, form.Color) {
+		return
+	}
 
 	column := &project_model.Column{
 		Title:     form.Title,
@@ -459,7 +504,7 @@ func CreateProjectColumn(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToProjectColumn(ctx, column))
+	ctx.JSON(http.StatusCreated, convert.ToProjectColumn(ctx, column, ctx.Doer))
 }
 
 // EditProjectColumn updates a column
@@ -501,17 +546,26 @@ func EditProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectColumn"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	column := getRepoProjectColumn(ctx)
+	project, column := getRepoProjectColumn(ctx)
 	if ctx.Written() {
+		return
+	}
+	if rejectIfClosed(ctx, project) {
 		return
 	}
 
 	form := web.GetForm(ctx).(*api.EditProjectColumnOption)
+
+	if form.Color != nil && !validateColumnColor(ctx, *form.Color) {
+		return
+	}
 
 	if form.Title != nil {
 		column.Title = *form.Title
@@ -528,7 +582,7 @@ func EditProjectColumn(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToProjectColumn(ctx, column))
+	ctx.JSON(http.StatusOK, convert.ToProjectColumn(ctx, column, ctx.Doer))
 }
 
 // DeleteProjectColumn deletes a column
@@ -562,11 +616,16 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	column := getRepoProjectColumn(ctx)
+	project, column := getRepoProjectColumn(ctx)
 	if ctx.Written() {
+		return
+	}
+	if rejectIfClosed(ctx, project) {
 		return
 	}
 
@@ -583,6 +642,7 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues repository repoListProjectColumnIssues
 	// ---
 	// summary: List issues in a project column
+	// description: Gitea projects only contain issues — note cards and pull requests are not modeled as project items.
 	// produces:
 	// - application/json
 	// parameters:
@@ -622,7 +682,7 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	column := getRepoProjectColumn(ctx)
+	_, column := getRepoProjectColumn(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -658,6 +718,7 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues/{issue_id} repository repoAddIssueToProjectColumn
 	// ---
 	// summary: Add an issue to a project column
+	// description: Gitea projects only contain issues — note cards and pull requests cannot be added.
 	// consumes:
 	// - application/json
 	// produces:
@@ -758,8 +819,11 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 // assignIssueToProjectColumn assigns an issue to a project column when add is true,
 // or removes the issue from any project assignment when add is false.
 func assignIssueToProjectColumn(ctx *context.APIContext, add bool) {
-	column := getRepoProjectColumn(ctx)
+	project, column := getRepoProjectColumn(ctx)
 	if ctx.Written() {
+		return
+	}
+	if rejectIfClosed(ctx, project) {
 		return
 	}
 
@@ -778,11 +842,7 @@ func assignIssueToProjectColumn(ctx *context.APIContext, add bool) {
 		// Confirm the issue is currently in this specific column before removing,
 		// since IssueAssignOrRemoveProject(projectID=0) clears the issue's project
 		// assignment unconditionally.
-		exists, err := db.GetEngine(ctx).Exist(&project_model.ProjectIssue{
-			IssueID:         issue.ID,
-			ProjectID:       column.ProjectID,
-			ProjectColumnID: column.ID,
-		})
+		exists, err := project_model.IsIssueInColumn(ctx, issue.ID, column.ProjectID, column.ID)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -803,4 +863,109 @@ func assignIssueToProjectColumn(ctx *context.APIContext, add bool) {
 	} else {
 		ctx.Status(http.StatusNoContent)
 	}
+}
+
+// MoveProjectIssue moves an issue between columns of the same project (and optionally sets sorting).
+func MoveProjectIssue(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/projects/{id}/issues/{issue_id}/move repository repoMoveProjectIssue
+	// ---
+	// summary: Move an issue between columns of a project
+	// description: Atomically moves an existing project issue into a different column, optionally setting its sorting position.
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the project
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: issue_id
+	//   in: path
+	//   description: id of the issue
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/MoveProjectIssueOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	project := getRepoProjectByID(ctx)
+	if ctx.Written() {
+		return
+	}
+	if rejectIfClosed(ctx, project) {
+		return
+	}
+
+	form := web.GetForm(ctx).(*api.MoveProjectIssueOption)
+
+	column, err := project_model.GetColumn(ctx, form.ColumnID)
+	if err != nil {
+		if project_model.IsErrProjectColumnNotExist(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, "target column does not exist")
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+	if column.ProjectID != project.ID {
+		ctx.APIError(http.StatusUnprocessableEntity, "target column does not belong to this project")
+		return
+	}
+
+	issue, err := issues_model.GetIssueByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("issue_id"))
+	if err != nil {
+		if issues_model.IsErrIssueNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	var sorting int64
+	if form.Sorting != nil {
+		sorting = *form.Sorting
+	} else {
+		next, err := project_model.GetColumnIssueNextSorting(ctx, project.ID, column.ID)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		sorting = next
+	}
+
+	if err := project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, map[int64]int64{sorting: issue.ID}); err != nil {
+		if errors.Is(err, project_service.ErrIssueNotInProject) {
+			ctx.APIErrorNotFound()
+			return
+		}
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
