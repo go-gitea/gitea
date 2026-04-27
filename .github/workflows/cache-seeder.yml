@@ -1,0 +1,75 @@
+# Populates the go module, build, and golangci-lint caches under the default
+# branch's cache scope so that PR runs have a warm fallback to restore from.
+#
+# GitHub Actions caches are scoped per ref: a PR run can only write to its own
+# branch's scope, but can read from the base branch's scope as a fallback.
+# PRs therefore cannot seed main's scope themselves. Running the same cache
+# steps on push-to-main is the only opportunity to populate that fallback
+# scope so fresh PR branches start with a useful cache on first run.
+
+# A PR job's exact key lives in its own PR-scope (empty on first run, filled
+# by later runs of the same PR); on miss, actions/cache's restore-keys fall
+# back to prefix matches against entries this seeder saves in main's scope.
+
+name: cache-seeder
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "go.sum"
+      - ".golangci.yml"
+      - ".github/actions/go-cache/action.yml"
+      - ".github/workflows/cache-seeder.yml"
+
+concurrency:
+  group: cache-seeder
+  cancel-in-progress: true
+
+jobs:
+  gobuild:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+      - uses: ./.github/actions/go-cache
+        with:
+          cache-name: seed
+      - run: make deps-backend
+      - run: TAGS="bindata" make backend
+      - run: TAGS="bindata sqlite sqlite_unlock_notify" make backend
+      - run: TAGS="bindata gogit sqlite sqlite_unlock_notify" GOEXPERIMENT="" make backend
+
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { job: lint-backend, tags: "bindata sqlite sqlite_unlock_notify", target: "lint-backend" }
+          - { job: lint-go-windows, tags: "bindata sqlite sqlite_unlock_notify", target: "lint-go-windows" }
+          - { job: lint-go-gogit, tags: "bindata sqlite sqlite_unlock_notify gogit", target: "lint-go" }
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+      - uses: ./.github/actions/go-cache
+        with:
+          cache-name: ${{ matrix.job }}
+          lint-cache: "true"
+      - run: make deps-backend deps-tools
+      - run: make ${{ matrix.target }}
+        env:
+          TAGS: ${{ matrix.tags }}

@@ -47,8 +47,7 @@ func testAPIOrgCreateRename(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &org).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var apiOrg api.Organization
-	DecodeJSON(t, resp, &apiOrg)
+	apiOrg := DecodeJSON(t, resp, &api.Organization{})
 
 	assert.Equal(t, org.UserName, apiOrg.Name)
 	assert.Equal(t, org.FullName, apiOrg.FullName)
@@ -66,7 +65,7 @@ func testAPIOrgCreateRename(t *testing.T) {
 	// check org name
 	req = NewRequestf(t, "GET", "/api/v1/orgs/%s", org.UserName).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiOrg)
+	apiOrg = DecodeJSON(t, resp, &api.Organization{})
 	assert.Equal(t, org.UserName, apiOrg.Name)
 
 	t.Run("CheckPermission", func(t *testing.T) {
@@ -91,8 +90,7 @@ func testAPIOrgCreateRename(t *testing.T) {
 		resp = MakeRequest(t, req, http.StatusOK)
 
 		// user1 on this org is public
-		var users []*api.User
-		DecodeJSON(t, resp, &users)
+		users := DecodeJSON(t, resp, []*api.User{})
 		assert.Len(t, users, 1)
 		assert.Equal(t, "user1", users[0].UserName)
 	})
@@ -110,8 +108,7 @@ func testAPIOrgCreateRename(t *testing.T) {
 		// FIXME: this test is wrong, there is no repository at all, so the for-loop is empty
 		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", org.UserName).AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusOK)
-		var repos []*api.Repository
-		DecodeJSON(t, resp, &repos)
+		repos := DecodeJSON(t, resp, []*api.Repository{})
 		for _, repo := range repos {
 			assert.False(t, repo.Private)
 		}
@@ -126,9 +123,8 @@ func testAPIOrgGeneral(t *testing.T) {
 		// accessing with a token will return all orgs
 		req := NewRequest(t, "GET", "/api/v1/orgs").AddTokenAuth(user1Token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var apiOrgList []*api.Organization
 
-		DecodeJSON(t, resp, &apiOrgList)
+		apiOrgList := DecodeJSON(t, resp, []*api.Organization{})
 		assert.Len(t, apiOrgList, 13)
 		assert.Equal(t, "Limited Org 36", apiOrgList[1].FullName)
 		assert.Equal(t, "limited", apiOrgList[1].Visibility)
@@ -137,7 +133,7 @@ func testAPIOrgGeneral(t *testing.T) {
 		req = NewRequest(t, "GET", "/api/v1/orgs")
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		DecodeJSON(t, resp, &apiOrgList)
+		apiOrgList = DecodeJSON(t, resp, []*api.Organization{})
 		assert.Len(t, apiOrgList, 9)
 		assert.Equal(t, "org 17", apiOrgList[0].FullName)
 		assert.Equal(t, "public", apiOrgList[0].Visibility)
@@ -223,11 +219,10 @@ func testAPIOrgGeneral(t *testing.T) {
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/%s/teams/search?q=%s", orgName, "empty")).
 			AddTokenAuth(user1Token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		data := struct {
+		data := DecodeJSON(t, resp, &struct {
 			Ok   bool
 			Data []*api.Team
-		}{}
-		DecodeJSON(t, resp, &data)
+		}{})
 		assert.True(t, data.Ok)
 		if assert.Len(t, data.Data, 1) {
 			assert.Equal(t, "Empty", data.Data[0].Name)

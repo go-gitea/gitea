@@ -39,10 +39,10 @@ const (
 func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
 	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls(ctx)
-	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(unit.TypeCode)
+	ctx.Data["IsWriter"] = ctx.Repo.Permission.CanWrite(unit.TypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
 	// TODO: Can be replaced by ctx.Repo.PullRequestCtx.CanCreateNewPull()
-	ctx.Data["CanPull"] = ctx.Repo.CanWrite(unit.TypeCode) ||
+	ctx.Data["CanPull"] = ctx.Repo.Permission.CanWrite(unit.TypeCode) ||
 		(ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID))
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
@@ -68,7 +68,7 @@ func Branches(ctx *context.Context) {
 		ctx.ServerError("LoadBranches", err)
 		return
 	}
-	if !ctx.Repo.CanRead(unit.TypeActions) {
+	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
 		for key := range commitStatuses {
 			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
 		}

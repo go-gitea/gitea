@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -15,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/testlogger"
@@ -25,8 +25,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func InitTest() {
+func InitTest() error {
 	testlogger.Init()
+
 	if os.Getenv("GITEA_TEST_CONF") == "" {
 		// By default, use sqlite.ini for testing, then IDE like GoLand can start the test process with debugger.
 		// It's easier for developers to debug bugs step by step with a debugger.
@@ -39,101 +40,102 @@ func InitTest() {
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 
 	if err := git.InitFull(); err != nil {
-		log.Fatal("git.InitOnceWithSync: %v", err)
+		return err
 	}
 
 	setting.LoadDBSetting()
 	if err := storage.Init(); err != nil {
-		testlogger.Panicf("Init storage failed: %v\n", err)
+		return err
 	}
 
 	switch {
 	case setting.Database.Type.IsMySQL():
-		connType := "tcp"
-		if len(setting.Database.Host) > 0 && setting.Database.Host[0] == '/' { // looks like a unix socket
-			connType = "unix"
-		}
-
-		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@%s(%s)/",
-			setting.Database.User, setting.Database.Passwd, connType, setting.Database.Host))
-		defer db.Close()
-		if err != nil {
-			log.Fatal("sql.Open: %v", err)
-		}
-		if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + setting.Database.Name); err != nil {
-			log.Fatal("db.Exec: %v", err)
-		}
-	case setting.Database.Type.IsPostgreSQL():
-		var db *sql.DB
-		var err error
-		if setting.Database.Host[0] == '/' {
-			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
-				setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
-		} else {
-			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
-				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
-		}
-
-		defer db.Close()
-		if err != nil {
-			log.Fatal("sql.Open: %v", err)
-		}
-		dbrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", setting.Database.Name))
-		if err != nil {
-			log.Fatal("db.Query: %v", err)
-		}
-		defer dbrows.Close()
-
-		if !dbrows.Next() {
-			if _, err = db.Exec("CREATE DATABASE " + setting.Database.Name); err != nil {
-				log.Fatal("db.Exec: CREATE DATABASE: %v", err)
+		{
+			connType := util.Iif(strings.HasPrefix(setting.Database.Host, "/"), "unix", "tcp")
+			db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@%s(%s)/",
+				setting.Database.User, setting.Database.Passwd, connType, setting.Database.Host))
+			if err != nil {
+				return err
+			}
+			defer db.Close()
+			if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + setting.Database.Name); err != nil {
+				return err
 			}
 		}
-		// Check if we need to setup a specific schema
-		if len(setting.Database.Schema) == 0 {
-			break
-		}
-		db.Close()
-
-		if setting.Database.Host[0] == '/' {
-			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
-				setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
-		} else {
-			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+	case setting.Database.Type.IsPostgreSQL():
+		openPostgreSQL := func() (*sql.DB, error) {
+			if strings.HasPrefix(setting.Database.Host, "/") {
+				return sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
+					setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
+			}
+			return sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
 				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
 		}
-		// This is a different db object; requires a different Close()
-		defer db.Close()
-		if err != nil {
-			log.Fatal("sql.Open: %v", err)
-		}
-		schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
-		if err != nil {
-			log.Fatal("db.Query: %v", err)
-		}
-		defer schrows.Close()
 
-		if !schrows.Next() {
-			// Create and setup a DB schema
-			if _, err = db.Exec("CREATE SCHEMA " + setting.Database.Schema); err != nil {
-				log.Fatal("db.Exec: CREATE SCHEMA: %v", err)
+		// create database
+		{
+			db, err := openPostgreSQL()
+			if err != nil {
+				return err
+			}
+			defer db.Close()
+			dbRows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", setting.Database.Name))
+			if err != nil {
+				return err
+			}
+			defer dbRows.Close()
+
+			if !dbRows.Next() {
+				if _, err = db.Exec("CREATE DATABASE " + setting.Database.Name); err != nil {
+					return err
+				}
+			}
+			// Check if we need to set up a specific schema
+			if setting.Database.Schema == "" {
+				break
+			}
+			db.Close()
+		}
+
+		// create schema
+		{
+			db, err := openPostgreSQL()
+			if err != nil {
+				return err
+			}
+			defer db.Close()
+
+			schemaRows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
+			if err != nil {
+				return err
+			}
+			defer schemaRows.Close()
+
+			if !schemaRows.Next() {
+				// Create and set up a DB schema
+				if _, err = db.Exec("CREATE SCHEMA " + setting.Database.Schema); err != nil {
+					return err
+				}
 			}
 		}
 
 	case setting.Database.Type.IsMSSQL():
-		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
-		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
-			host, port, "master", setting.Database.User, setting.Database.Passwd))
-		if err != nil {
-			log.Fatal("sql.Open: %v", err)
+		{
+			host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
+			db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
+				host, port, "master", setting.Database.User, setting.Database.Passwd))
+			if err != nil {
+				return err
+			}
+			defer db.Close()
+			if _, err = db.Exec(fmt.Sprintf("If(db_id(N'%s') IS NULL) BEGIN CREATE DATABASE %s; END;", setting.Database.Name, setting.Database.Name)); err != nil {
+				return err
+			}
 		}
-		if _, err := db.Exec(fmt.Sprintf("If(db_id(N'%s') IS NULL) BEGIN CREATE DATABASE %s; END;", setting.Database.Name, setting.Database.Name)); err != nil {
-			log.Fatal("db.Exec: %v", err)
-		}
-		defer db.Close()
 	}
 
 	routers.InitWebInstalled(graceful.GetManager().HammerContext())
+	return nil
 }
 
 func PrepareAttachmentsStorage(t testing.TB) {
@@ -154,7 +156,7 @@ func PrepareGitRepoDirectory(t testing.TB) {
 	if !assert.NotEmpty(t, setting.RepoRootPath) {
 		return
 	}
-	assert.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 }
 
 func PrepareArtifactsStorage(t testing.TB) {

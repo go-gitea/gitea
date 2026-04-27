@@ -289,8 +289,7 @@ func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
 			Readme:        "Default",
 		}).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusCreated)
-		var baseRepo api.Repository
-		DecodeJSON(t, resp, &baseRepo)
+		baseRepo := DecodeJSON(t, resp, &api.Repository{})
 		assert.Equal(t, "main", baseRepo.DefaultBranch)
 
 		forkIntoOrg := func(srcOrg, dstOrg string) api.Repository {
@@ -298,13 +297,12 @@ func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
 				Organization: new(dstOrg),
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusAccepted)
-			var forkRepo api.Repository
-			DecodeJSON(t, resp, &forkRepo)
+			forkRepo := DecodeJSON(t, resp, &api.Repository{})
 			assert.NotNil(t, forkRepo.Owner)
 			if forkRepo.Owner != nil {
 				assert.Equal(t, dstOrg, forkRepo.Owner.UserName)
 			}
-			return forkRepo
+			return *forkRepo
 		}
 
 		forkIntoOrg(baseOrg, midForkOrg)
@@ -327,8 +325,7 @@ func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
 		}
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/pulls", baseOrg, repoName), prPayload).AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusCreated)
-		var pr api.PullRequest
-		DecodeJSON(t, resp, &pr)
+		pr := DecodeJSON(t, resp, &api.PullRequest{})
 		assert.Equal(t, prPayload["title"], pr.Title)
 		if assert.NotNil(t, pr.Head) {
 			assert.Equal(t, patchBranch, pr.Head.Ref)
