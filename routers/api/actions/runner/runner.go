@@ -122,6 +122,14 @@ type declareRequest interface {
 	GetLabels() []string
 }
 
+// TODO: This fallback is only for actions-proto-go v0.4.x, where capabilities
+// still arrive as unknown fields. Once the upstream proto publishes typed
+// accessors for RegisterRequest/DeclareRequest, keep using the typed path above
+// and delete this field-8 wire parser after old runners are no longer supported.
+// capabilitiesFieldNumber is the protobuf field number used by legacy runner
+// requests to encode capabilities as unknown repeated string fields.
+const capabilitiesFieldNumber = 8
+
 func runnerRequestHasCapability(req proto.Message, capability string) (bool, bool) {
 	if req == nil {
 		return false, false
@@ -138,12 +146,6 @@ func runnerRequestHasCapability(req proto.Message, capability string) (bool, boo
 }
 
 func legacyRunnerRequestHasCapability(req proto.Message, capability string) (bool, bool) {
-	// TODO: This fallback is only for actions-proto-go v0.4.x, where capabilities
-	// still arrive as unknown fields. Once the upstream proto publishes typed
-	// accessors for RegisterRequest/DeclareRequest, keep using the typed path above
-	// and delete this field-8 wire parser after old runners are no longer supported.
-	const goCapabilitiesFieldNumber = 8
-
 	b := req.ProtoReflect().GetUnknown()
 	hasCapabilitiesField := false
 	for len(b) > 0 {
@@ -159,7 +161,7 @@ func legacyRunnerRequestHasCapability(req proto.Message, capability string) (boo
 			if m < 0 {
 				return false, false
 			}
-			if num == goCapabilitiesFieldNumber {
+			if num == capabilitiesFieldNumber {
 				hasCapabilitiesField = true
 				if string(v) == capability {
 					return true, true

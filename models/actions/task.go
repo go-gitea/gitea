@@ -378,6 +378,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 		// state.Result is not unspecified means the task is finished
 		if state.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 			if task.Status == StatusCancelling {
+				// The runner may report SUCCESS/FAILURE for the cleanup phase; preserve user intent.
 				task.Status = StatusCancelled
 			} else {
 				task.Status = StatusFromResult(state.Result)
