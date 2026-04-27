@@ -18,6 +18,10 @@ import (
 // default is reapplied for MySQL afterwards. Postgres and MSSQL keep the existing
 // DEFAULT constraint independently of the type change.
 func WidenProjectBoardSorting(x *xorm.Engine) error {
+	// SQLite uses type affinity rather than strict types: a column declared TINYINT
+	// already stores any 64-bit int, so the widening is a no-op. Updating the
+	// declared type would require recreating the table (no ALTER COLUMN in SQLite)
+	// for no behavioral gain.
 	if setting.Database.Type.IsSQLite3() {
 		return nil
 	}
