@@ -1085,7 +1085,7 @@ func UnDismissPullReview(ctx *context.APIContext) {
 }
 
 func dismissReview(ctx *context.APIContext, msg string, isDismiss, dismissPriors bool) {
-	if !ctx.Repo.IsAdmin() {
+	if !ctx.Repo.Permission.IsAdmin() {
 		ctx.APIError(http.StatusForbidden, "Must be repo admin")
 		return
 	}

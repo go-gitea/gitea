@@ -417,10 +417,10 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		resp.State.Run.Duration = run.Duration().String()
 		resp.State.Run.TriggeredAt = run.Created.AsTime().Unix()
 	}
-	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && ctx.Repo.CanWrite(unit.TypeActions)
-	resp.State.Run.CanApprove = isLatestAttempt && run.NeedApproval && ctx.Repo.CanWrite(unit.TypeActions)
-	resp.State.Run.CanRerun = isLatestAttempt && resp.State.Run.Done && ctx.Repo.CanWrite(unit.TypeActions)
-	resp.State.Run.CanDeleteArtifact = resp.State.Run.Done && ctx.Repo.CanWrite(unit.TypeActions)
+	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	resp.State.Run.CanApprove = isLatestAttempt && run.NeedApproval && ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	resp.State.Run.CanRerun = isLatestAttempt && resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	resp.State.Run.CanDeleteArtifact = resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	if resp.State.Run.CanRerun {
 		for _, job := range jobs {
 			if job.Status == actions_model.StatusFailure || job.Status == actions_model.StatusCancelled {
