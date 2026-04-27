@@ -127,6 +127,7 @@ func TestServeSetHeaderContentRelated(t *testing.T) {
 		serveSetHeaderContentRelated(w, c.contentType)
 		csp := w.Header().Get("Content-Security-Policy")
 		assert.Equal(t, c.csp, csp, "content-type: %s", c.contentType)
+		assert.Equal(t, "nosniff", w.Header().Get("X-Content-Type-Options")) // it should always be there
 	}
 
 	// make sure sandboxed
