@@ -3,9 +3,11 @@ import {computed, onMounted, onUnmounted, shallowRef, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {toggleElem} from '../utils/dom.ts';
 
-const {pageData} = window.config;
+const props = defineProps<{
+  mergeFormProps: any, // TODO: this is a huge object, need to be refactored in the future
+}>();
 
-const mergeForm = pageData.pullRequestMergeForm!;
+const mergeForm = props.mergeFormProps;
 
 const mergeTitleFieldValue = shallowRef('');
 const mergeMessageFieldValue = shallowRef('');
