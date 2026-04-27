@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -79,12 +80,12 @@ func Test_MoveColumnsOnProject(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	project1 := unittest.AssertExistsAndLoadBean(t, &Project{ID: 1})
-	columns, err := project1.GetColumns(t.Context())
+	columns, err := GetProjectColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
-	assert.EqualValues(t, 0, columns[0].Sorting) // even if there is no default sorting, the code should also work
-	assert.EqualValues(t, 0, columns[1].Sorting)
-	assert.EqualValues(t, 0, columns[2].Sorting)
+	assert.Equal(t, 0, columns[0].Sorting) // even if there is no default sorting, the code should also work
+	assert.Equal(t, 0, columns[1].Sorting)
+	assert.Equal(t, 0, columns[2].Sorting)
 
 	err = MoveColumnsOnProject(t.Context(), project1, map[int64]int64{
 		0: columns[1].ID,
@@ -93,7 +94,7 @@ func Test_MoveColumnsOnProject(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	columnsAfter, err := project1.GetColumns(t.Context())
+	columnsAfter, err := GetProjectColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columnsAfter, 3)
 	assert.Equal(t, columns[1].ID, columnsAfter[0].ID)
@@ -105,7 +106,7 @@ func Test_NewColumn(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	project1 := unittest.AssertExistsAndLoadBean(t, &Project{ID: 1})
-	columns, err := project1.GetColumns(t.Context())
+	columns, err := GetProjectColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
 

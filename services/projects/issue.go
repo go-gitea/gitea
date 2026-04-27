@@ -17,6 +17,10 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 )
 
+// ErrIssueNotInProject is returned when MoveIssuesOnProjectColumn is asked to move
+// issues that aren't yet attached to the column's project.
+var ErrIssueNotInProject = errors.New("all issues have to be added to a project first")
+
 // MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
 func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
@@ -32,7 +36,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 			return err
 		}
 		if int(count) != len(sortedIssueIDs) {
-			return errors.New("all issues have to be added to a project first")
+			return ErrIssueNotInProject
 		}
 
 		issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
@@ -118,7 +122,7 @@ func LoadIssuesAssigneesForProject(ctx context.Context, issuesMap map[int64]issu
 func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (results map[int64]issues_model.IssueList, _ error) {
 	issueList, err := issues_model.Issues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
 		o.ProjectID = project.ID
-		o.SortType = "project-column-sorting"
+		o.SortType = issues_model.SortTypeProjectColumnSorting
 	}))
 	if err != nil {
 		return nil, err
