@@ -10,8 +10,3 @@
   white-space: nowrap;
   color: var(--color-text-light-3);
 }
-
-.organization.invite .ui.avatar {
-  width: 100%;
-  height: 100%;
-}
