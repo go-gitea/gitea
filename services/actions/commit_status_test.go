@@ -11,6 +11,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/gitrepo"
 
@@ -73,6 +74,61 @@ func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	statuses = findCommitStatusesForContext(t, repo.ID, commit.ID.String(), expectedContext)
 	require.Len(t, statuses, 3)
 	assert.Equal(t, commitstatus.CommitStatusSuccess, statuses[2].State)
+}
+
+func TestGetCommitStatusInfo(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+	require.NoError(t, err)
+	sha := commit.ID.String()
+
+	run := &actions_model.ActionRun{
+		RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID, TriggerUserID: repo.OwnerID,
+		WorkflowID: "test.yaml", CommitSHA: sha,
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+
+	cases := []struct {
+		jobName string
+		status  actions_model.Status
+	}{
+		{"running-job", actions_model.StatusRunning},
+		{"waiting-job", actions_model.StatusWaiting},
+		{"unknown-job", actions_model.StatusUnknown},
+	}
+	for _, tc := range cases {
+		job := &actions_model.ActionRunJob{
+			RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID, Name: tc.jobName, Status: tc.status,
+		}
+		require.NoError(t, db.Insert(t.Context(), job))
+		require.NoError(t, createCommitStatus(t.Context(), repo, "push", sha, run, job))
+	}
+
+	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
+	require.NoError(t, err)
+
+	info := actions_module.GetCommitStatusInfo(t.Context(), statuses)
+	got := map[string]string{}
+	for _, s := range statuses {
+		got[s.Context] = info.IconStatus(s)
+	}
+	for _, tc := range cases {
+		key := "test.yaml / " + tc.jobName + " (push)"
+		want := tc.status.String()
+		if tc.status.IsUnknown() {
+			want = "" // unknown jobs are not enriched; caller falls back to commit_status.tmpl
+		}
+		assert.Equal(t, want, got[key], "icon status for %s", tc.jobName)
+	}
+
+	// Nil receiver returns "" without panicking — used by callers that skip enrichment.
+	var nilInfo actions_module.CommitStatusInfo
+	assert.Empty(t, nilInfo.IconStatus(statuses[0]))
 }
 
 func findCommitStatusesForContext(t *testing.T, repoID int64, sha, context string) []*git_model.CommitStatus {

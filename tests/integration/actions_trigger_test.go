@@ -1809,67 +1809,6 @@ jobs:
 	})
 }
 
-// Verify GetCommitStatusInfo surfaces the live ActionRunJob.Status so the
-// icon reflects Waiting/Running/Blocked — all three share State=Pending in the
-// stored CommitStatus row.
-func TestActionsCommitStatusRunning(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
-			Name: "repo-cs-running", AutoInit: true, Readme: "Default", DefaultBranch: "main",
-		})
-		require.NoError(t, err)
-
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
-		require.NoError(t, err)
-		defer gitRepo.Close()
-		commit, err := gitRepo.GetBranchCommit("main")
-		require.NoError(t, err)
-		sha := commit.ID.String()
-
-		payload, err := json.Marshal(&api.PushPayload{HeadCommit: &api.PayloadCommit{ID: sha}})
-		require.NoError(t, err)
-		run := &actions_model.ActionRun{
-			RepoID: repo.ID, OwnerID: user2.ID, TriggerUserID: user2.ID,
-			WorkflowID: "test.yml", CommitSHA: sha,
-			Event: webhook_module.HookEventPush, TriggerEvent: "push",
-			EventPayload: string(payload),
-		}
-		require.NoError(t, db.Insert(t.Context(), run))
-		job := &actions_model.ActionRunJob{
-			RunID: run.ID, RepoID: repo.ID, OwnerID: user2.ID, Name: "test",
-			Status: actions_model.StatusRunning,
-		}
-		require.NoError(t, db.Insert(t.Context(), job))
-
-		actions_service.CreateCommitStatusForRunJobs(t.Context(), run, job)
-
-		statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
-		require.NoError(t, err)
-		require.Len(t, statuses, 1)
-		assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
-
-		info := actions_module.GetCommitStatusInfo(t.Context(), statuses)
-		assert.Equal(t, actions_model.StatusRunning.String(), info.IconStatus(statuses[0]))
-
-		// No enrichment available → IconStatus is empty.
-		empty := actions_module.CommitStatusInfo{}
-		assert.Empty(t, empty.IconStatus(statuses[0]))
-
-		// The commits-list tippy tooltip renders status.tmpl too: verify the live
-		// action icon and description reach it (covers every page that embeds
-		// repo/commit_statuses.tmpl, not just the PR merge box).
-		session := loginUser(t, user2.Name)
-		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/commits/branch/main", user2.Name, repo.Name))
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		tippy := NewHTMLParser(t, resp.Body).doc.Find("#commits-table .tippy-target .commit-status-item").First()
-		require.Equal(t, 1, tippy.Length())
-		svgClass, _ := tippy.Find("svg").First().Attr("class")
-		assert.Contains(t, svgClass, "gitea-running")
-		assert.Contains(t, tippy.Find(".status-context").Text(), "In progress")
-	})
-}
-
 // Verify the PR merge box renders the correct icon and description for every action status.
 func TestActionsCommitStatusIcons(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {

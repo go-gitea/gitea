@@ -1,25 +1,26 @@
 {{/* Template Attributes:
-* status: one of success, skipped, waiting, blocked, running, failure, cancelled, unknown
-* size: icon size in pixels (default 16)
-* className: additional CSS classes
-* fill: use filled-circle icons for success/failure (default false: bare icons matching repo/commit_status)
+* Status: one of success, skipped, waiting, blocked, running, failure, cancelled, unknown
+* Size: icon size in pixels (default 16)
+* ClassName: additional CSS classes
+* IconVariant: "circle-fill" to use circle-fill icons for success/failure (default: bare icons matching repo/commit_status)
 
 Keep this template in sync with web_src/js/components/ActionRunStatus.vue.
 */}}
-{{- $size := Iif .size .size 16 -}}
-{{- $className := Iif .className .className "" -}}
-{{if eq .status "success"}}
-	{{svg (Iif .fill "octicon-check-circle-fill" "octicon-check") $size (printf "tw-text-green %s" $className)}}
-{{else if eq .status "skipped"}}
+{{- $size := Iif .Size .Size 16 -}}
+{{- $className := Iif .ClassName .ClassName "" -}}
+{{- $filled := eq .IconVariant "circle-fill" -}}
+{{if eq .Status "success"}}
+	{{svg (Iif $filled "octicon-check-circle-fill" "octicon-check") $size (printf "tw-text-green %s" $className)}}
+{{else if eq .Status "skipped"}}
 	{{svg "octicon-skip" $size (printf "tw-text-text-light %s" $className)}}
-{{else if eq .status "cancelled"}}
+{{else if eq .Status "cancelled"}}
 	{{svg "octicon-stop" $size (printf "tw-text-text-light %s" $className)}}
-{{else if eq .status "waiting"}}
+{{else if eq .Status "waiting"}}
 	{{svg "octicon-circle" $size (printf "tw-text-text-light %s" $className)}}
-{{else if eq .status "blocked"}}
+{{else if eq .Status "blocked"}}
 	{{svg "octicon-blocked" $size (printf "tw-text-yellow %s" $className)}}
-{{else if eq .status "running"}}
+{{else if eq .Status "running"}}
 	{{svg "gitea-running" $size (printf "tw-text-yellow rotate-clockwise %s" $className)}}
 {{else}}{{/*failure, unknown*/}}
-	{{svg (Iif .fill "octicon-x-circle-fill" "octicon-x") $size (printf "tw-text-red %s" $className)}}
+	{{svg (Iif $filled "octicon-x-circle-fill" "octicon-x") $size (printf "tw-text-red %s" $className)}}
 {{end}}

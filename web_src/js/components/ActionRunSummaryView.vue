@@ -49,7 +49,7 @@ onBeforeUnmount(() => {
         <relative-time :datetime="run.triggeredAt || ''" prefix=""/>
       </div>
       <div class="flex-text-block">
-        <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="16" :fill="true"/>
+        <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="16" icon-variant="circle-fill"/>
         <span>{{ locale.status[run.status] }}</span> • <span>{{ locale.totalDuration }} {{ run.duration || '–' }}</span>
       </div>
     </div>
