@@ -9,6 +9,7 @@ import (
 
 	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -74,33 +75,21 @@ func ProjectTypeToString(t project_model.Type) string {
 // skipped (their creator field stays nil), matching the convention of other list
 // converters that tolerate deleted users.
 func loadProjectCreators(ctx context.Context, projects []*project_model.Project, columns []*project_model.Column) (map[int64]*user_model.User, error) {
-	idSet := make(map[int64]struct{})
+	idSet := container.Set[int64]{}
 	for _, p := range projects {
 		if p.CreatorID > 0 {
-			idSet[p.CreatorID] = struct{}{}
+			idSet.Add(p.CreatorID)
 		}
 	}
 	for _, c := range columns {
 		if c.CreatorID > 0 {
-			idSet[c.CreatorID] = struct{}{}
+			idSet.Add(c.CreatorID)
 		}
 	}
 	if len(idSet) == 0 {
 		return map[int64]*user_model.User{}, nil
 	}
-	ids := make([]int64, 0, len(idSet))
-	for id := range idSet {
-		ids = append(ids, id)
-	}
-	users, err := user_model.GetUserByIDs(ctx, ids)
-	if err != nil {
-		return nil, err
-	}
-	result := make(map[int64]*user_model.User, len(users))
-	for _, u := range users {
-		result[u.ID] = u
-	}
-	return result, nil
+	return user_model.GetUsersMapByIDs(ctx, idSet.Values())
 }
 
 // ToProject converts a project_model.Project to api.Project.
