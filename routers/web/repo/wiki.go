@@ -47,8 +47,8 @@ const (
 
 // MustEnableWiki check if wiki is enabled, if external then redirect
 func MustEnableWiki(ctx *context.Context) {
-	if !ctx.Repo.CanRead(unit.TypeWiki) &&
-		!ctx.Repo.CanRead(unit.TypeExternalWiki) {
+	if !ctx.Repo.Permission.CanRead(unit.TypeWiki) &&
+		!ctx.Repo.Permission.CanRead(unit.TypeExternalWiki) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User %-v cannot read %-v or %-v of repo %-v\n"+
 				"User in repo has Permissions: %-+v",
@@ -423,14 +423,14 @@ func renderEditPage(ctx *context.Context) {
 func WikiPost(ctx *context.Context) {
 	switch ctx.FormString("action") {
 	case "_new":
-		if !ctx.Repo.CanWrite(unit.TypeWiki) {
+		if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
 			ctx.NotFound(nil)
 			return
 		}
 		NewWikiPost(ctx)
 		return
 	case "_delete":
-		if !ctx.Repo.CanWrite(unit.TypeWiki) {
+		if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
 			ctx.NotFound(nil)
 			return
 		}
@@ -438,7 +438,7 @@ func WikiPost(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.CanWrite(unit.TypeWiki) {
+	if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
 		ctx.NotFound(nil)
 		return
 	}
@@ -447,7 +447,7 @@ func WikiPost(ctx *context.Context) {
 
 // Wiki renders single wiki page
 func Wiki(ctx *context.Context) {
-	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
+	ctx.Data["CanWriteWiki"] = ctx.Repo.Permission.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	switch ctx.FormString("action") {
 	case "_pages":
@@ -457,14 +457,14 @@ func Wiki(ctx *context.Context) {
 		WikiRevision(ctx)
 		return
 	case "_edit":
-		if !ctx.Repo.CanWrite(unit.TypeWiki) {
+		if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
 			ctx.NotFound(nil)
 			return
 		}
 		EditWiki(ctx)
 		return
 	case "_new":
-		if !ctx.Repo.CanWrite(unit.TypeWiki) {
+		if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
 			ctx.NotFound(nil)
 			return
 		}
@@ -506,7 +506,7 @@ func Wiki(ctx *context.Context) {
 
 // WikiRevision renders file revision list of wiki page
 func WikiRevision(ctx *context.Context) {
-	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
+	ctx.Data["CanWriteWiki"] = ctx.Repo.Permission.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
@@ -544,7 +544,7 @@ func WikiPages(ctx *context.Context) {
 	}
 
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.pages")
-	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
+	ctx.Data["CanWriteWiki"] = ctx.Repo.Permission.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	_, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {

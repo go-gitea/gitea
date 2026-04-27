@@ -175,17 +175,10 @@ func (issue *Issue) IsTimetrackerEnabled(ctx context.Context) bool {
 
 // LoadPoster loads poster
 func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
-	if issue.Poster == nil && issue.PosterID != 0 {
-		issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
-		if err != nil {
-			issue.PosterID = user_model.GhostUserID
-			issue.Poster = user_model.NewGhostUser()
-			if !user_model.IsErrUserNotExist(err) {
-				return fmt.Errorf("getUserByID.(poster) [%d]: %w", issue.PosterID, err)
-			}
-			return nil
-		}
+	if issue.Poster != nil {
+		return nil
 	}
+	issue.PosterID, issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
 	return err
 }
 

@@ -53,7 +53,7 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 		if resp.Code != http.StatusOK {
 			return nil
 		}
-		DecodeJSON(t, resp, &ret)
+		ret = DecodeJSON(t, resp, []*api.ContentsResponse{})
 		return ret
 	}
 
@@ -62,8 +62,7 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 		reqBodyParam, _ := json.Marshal(reqBodyOpt)
 		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/file-contents?body="+url.QueryEscape(string(reqBodyParam)))
 		resp := MakeRequest(t, req, http.StatusOK)
-		var ret []*api.ContentsResponse
-		DecodeJSON(t, resp, &ret)
+		ret := DecodeJSON(t, resp, []*api.ContentsResponse{})
 		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents(repo1.DefaultBranch, "branch", lastCommit.ID.String())}
 		assert.Equal(t, expected, ret)
 	})

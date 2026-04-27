@@ -57,7 +57,7 @@ func MustEnableActions(ctx *context.Context) {
 	}
 
 	if ctx.Repo.Repository != nil {
-		if !ctx.Repo.CanRead(unit.TypeActions) {
+		if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
 			ctx.NotFound(nil)
 			return
 		}
@@ -181,7 +181,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 
 	ctx.Data["workflows"] = workflows
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
-	ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.IsAdmin()
+	ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.Permission.IsAdmin()
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 	ctx.Data["ActionsConfig"] = actionsConfig
 	ctx.Data["CurWorkflow"] = curWorkflowID
@@ -192,7 +192,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 
 func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []WorkflowInfo, curWorkflowID string) {
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-	if curWorkflowID == "" || !ctx.Repo.CanWrite(unit.TypeActions) || actionsConfig.IsWorkflowDisabled(curWorkflowID) {
+	if curWorkflowID == "" || !ctx.Repo.Permission.CanWrite(unit.TypeActions) || actionsConfig.IsWorkflowDisabled(curWorkflowID) {
 		return
 	}
 
@@ -355,7 +355,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 	ctx.Data["Page"] = pager
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 
-	ctx.Data["CanWriteRepoUnitActions"] = ctx.Repo.CanWrite(unit.TypeActions)
+	ctx.Data["CanWriteRepoUnitActions"] = ctx.Repo.Permission.CanWrite(unit.TypeActions)
 }
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.

@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateRepo, apiCreateIssue, apiDeleteRepo, createProjectColumn, randomString} from './utils.ts';
+import {login, apiCreateRepo, apiCreateIssue, createProjectColumn, randomString} from './utils.ts';
 
 test('assign issue to project and change column', async ({page}) => {
   const repoName = `e2e-issue-project-${randomString(8)}`;
@@ -26,5 +26,4 @@ test('assign issue to project and change column', async ({page}) => {
   await columnCombo.locator('.ui.dropdown').click();
   await columnCombo.locator('.menu a.item', {hasText: 'In Progress'}).click();
   await expect(columnCombo.getByTestId('sidebar-project-column-text')).toHaveText('In Progress');
-  await apiDeleteRepo(page.request, user, repoName);
 });

@@ -7,6 +7,7 @@ package user
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"html/template"
 	"mime"
@@ -1013,17 +1014,22 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, err
 }
 
-// GetPossibleUserByID returns the user if id > 0 or returns system user if id < 0
-func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
+// GetPossibleUserByID returns the possible user and its ID. If the user  doesn't exist, it returns Ghost user
+func GetPossibleUserByID(ctx context.Context, id int64) (_ int64, u *User, err error) {
 	if id < 0 {
 		if newFunc, ok := globalVars().systemUserNewFuncs[id]; ok {
-			return newFunc(), nil
+			u = newFunc()
 		}
-		return nil, ErrUserNotExist{UID: id}
-	} else if id == 0 {
-		return nil, ErrUserNotExist{}
 	}
-	return GetUserByID(ctx, id)
+	if u == nil {
+		u, err = GetUserByID(ctx, id)
+		if errors.Is(err, util.ErrNotExist) {
+			u = NewGhostUser()
+		} else if err != nil {
+			return 0, nil, err
+		}
+	}
+	return u.ID, u, nil
 }
 
 // GetPossibleUserByIDs returns the users if id > 0 or returns system users if id < 0
