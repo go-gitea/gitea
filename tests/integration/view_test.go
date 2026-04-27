@@ -125,6 +125,7 @@ func testViewPageCurrentURL(t *testing.T) {
 		// Some custom template users need this template variable to construct links in their templates
 		currentURL, _ = ctx.Data["CurrentURL"].(string)
 	})
+	defer web.RouteMockReset()
 	MakeRequest(t, NewRequest(t, "GET", "/any-page?k=v"), http.StatusNotFound)
 	assert.Equal(t, "/subpath/any-page?k=v", currentURL)
 }
