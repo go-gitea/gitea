@@ -7,6 +7,10 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -64,4 +68,16 @@ func TestCommitListActions(t *testing.T) {
 		AssertHTMLElement(t, htmlDoc, `.commit-list .view-single-diff`, true)
 		AssertHTMLElement(t, htmlDoc, `.commit-list .view-commit-path`, true)
 	})
+}
+
+func TestViewPageCurrentURL(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppSubURL, "/subpath")()
+	var currentURL string
+	web.RouteMock(web.MockAfterMiddlewares, func(ctx *context.Context) {
+		// Some custom template users need this template variable to construct links in their templates
+		currentURL, _ = ctx.Data["CurrentURL"].(string)
+	})
+	defer web.RouteMockReset()
+	MakeRequest(t, NewRequest(t, "GET", "/any-page?k=v"), http.StatusNotFound)
+	assert.Equal(t, "/subpath/any-page?k=v", currentURL)
 }
