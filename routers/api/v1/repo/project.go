@@ -277,7 +277,15 @@ func EditProject(ctx *context.APIContext) {
 		opts.CardType = optional.Some(project_model.CardType(*form.CardType))
 	}
 	if form.State != nil {
-		opts.IsClosed = optional.Some(*form.State == string(api.StateClosed))
+		switch api.StateType(*form.State) {
+		case api.StateOpen:
+			opts.IsClosed = optional.Some(false)
+		case api.StateClosed:
+			opts.IsClosed = optional.Some(true)
+		default:
+			ctx.APIError(http.StatusUnprocessableEntity, "state must be 'open' or 'closed'")
+			return
+		}
 	}
 	if err := project_service.UpdateProject(ctx, project, opts); err != nil {
 		ctx.APIErrorInternal(err)
@@ -765,9 +773,25 @@ func assignIssueToProjectColumn(ctx *context.APIContext, add bool) {
 		return
 	}
 
-	projectID := int64(0)
-	if add {
-		projectID = column.ProjectID
+	projectID := column.ProjectID
+	if !add {
+		// Confirm the issue is currently in this specific column before removing,
+		// since IssueAssignOrRemoveProject(projectID=0) clears the issue's project
+		// assignment unconditionally.
+		exists, err := db.GetEngine(ctx).Exist(&project_model.ProjectIssue{
+			IssueID:         issue.ID,
+			ProjectID:       column.ProjectID,
+			ProjectColumnID: column.ID,
+		})
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !exists {
+			ctx.APIErrorNotFound()
+			return
+		}
+		projectID = 0
 	}
 	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, column.ID); err != nil {
 		ctx.APIErrorInternal(err)

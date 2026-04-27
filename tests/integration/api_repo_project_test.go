@@ -230,6 +230,13 @@ func testAPIChangeProjectStatus(t *testing.T) {
 
 	DecodeJSON(t, resp, &updatedProject)
 	assert.False(t, updatedProject.IsClosed)
+
+	// Invalid state value must be rejected
+	bogus := "reopen"
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d", owner.Name, repo.Name, project.ID), &api.EditProjectOption{
+		State: &bogus,
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 }
 
 func testAPIDeleteProject(t *testing.T) {
@@ -528,7 +535,7 @@ func testAPIAddIssueToProjectColumn(t *testing.T) {
 
 	// Test adding non-existent issue
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/%d/issues/%d", owner.Name, repo.Name, project.ID, column1.ID, 99999), nil).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test adding to non-existent column
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/99999/issues/%d", owner.Name, repo.Name, project.ID, issue.ID), nil).AddTokenAuth(token)
@@ -605,12 +612,29 @@ func testAPIRemoveIssueFromProjectColumn(t *testing.T) {
 	err = project_model.NewColumn(t.Context(), column)
 	assert.NoError(t, err)
 
+	otherColumn := &project_model.Column{
+		Title:     "Other Column",
+		ProjectID: project.ID,
+		CreatorID: owner.ID,
+	}
+	err = project_model.NewColumn(t.Context(), otherColumn)
+	assert.NoError(t, err)
+
 	err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue, owner, project.ID, column.ID)
 	assert.NoError(t, err)
 
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteIssue)
 
-	req := NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/%d/issues/%d", owner.Name, repo.Name, project.ID, column.ID, issue.ID), nil).
+	// Removing via a column the issue does not live in must 404 and not detach the issue
+	req := NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/%d/issues/%d", owner.Name, repo.Name, project.ID, otherColumn.ID, issue.ID), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+	unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{
+		ProjectID: project.ID,
+		IssueID:   issue.ID,
+	})
+
+	req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d/columns/%d/issues/%d", owner.Name, repo.Name, project.ID, column.ID, issue.ID), nil).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
