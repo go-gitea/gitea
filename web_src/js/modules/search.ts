@@ -1,6 +1,7 @@
 import {debounce} from 'throttle-debounce';
 import {GET} from './fetch.ts';
 import {html, htmlRaw} from '../utils/html.ts';
+import {urlQueryEscape} from '../utils/url.ts';
 
 export type SearchResult = {
   title: string;
@@ -34,8 +35,10 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
   }
   const itemResults = new Map<HTMLElement, SearchResult>();
   let fetchController: AbortController | null = null;
+  let search: ReturnType<typeof debounce<(query: string) => Promise<void>>> | null = null;
 
   const hide = () => {
+    search?.cancel();
     fetchController?.abort();
     resultsEl.style.display = 'none';
     resultsEl.replaceChildren();
@@ -59,12 +62,12 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
     hide();
   };
 
-  const search = debounce(200, async (query: string) => {
+  search = debounce(200, async (query: string) => {
     fetchController?.abort();
     if (query.length < minCharacters) return hide();
     const ctrl = (fetchController = new AbortController());
     try {
-      const response = await GET(url.replaceAll('{query}', encodeURIComponent(query)), {signal: ctrl.signal});
+      const response = await GET(url.replaceAll('{query}', urlQueryEscape(query)), {signal: ctrl.signal});
       if (!response.ok) return hide();
       const results = parse(await response.json(), query);
       // hide() ran (signal aborted) or a newer keystroke landed before the response did
