@@ -34,7 +34,7 @@ func (r *RepoComment) ResolveLink(link, preferLinkType string) string {
 	case markup.LinkTypeRoot:
 		return r.ctx.ResolveLinkRoot(link)
 	default:
-		return r.ctx.ResolveLinkRelative(r.repoLink, r.opts.CurrentRefPath, link)
+		return r.ctx.ResolveLinkRelative(r.repoLink, r.opts.CurrentRefSubURL, link)
 	}
 }
 
@@ -43,7 +43,7 @@ var _ markup.RenderHelper = (*RepoComment)(nil)
 type RepoCommentOptions struct {
 	DeprecatedRepoName  string // it is only a patch for the non-standard "markup" api
 	DeprecatedOwnerName string // it is only a patch for the non-standard "markup" api
-	CurrentRefPath      string // eg: "branch/main" or "commit/11223344"
+	CurrentRefSubURL    string // eg: "branch/main" or "commit/11223344"
 	FootnoteContextID   string // the extra context ID for footnotes, used to avoid conflicts with other footnotes in the same page
 }
 
