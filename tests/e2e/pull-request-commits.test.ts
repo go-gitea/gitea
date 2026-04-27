@@ -1,7 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import {
-  login,
   randomString,
   apiCreateRepo,
   apiCreateBranch,
@@ -29,7 +28,7 @@ import {
  *   git log staging..develop = [M2]     correct: M2 is new; B is already in staging via M1
  *   git log staging..develop = [M2, B]  buggy: B incorrectly listed as new for staging
  */
-test('PR should not list commits already present in the target branch via another merge path', async ({page, request}) => {
+test('PR should not list commits already present in the target branch via another merge path', async ({request}) => {
   const owner = env.GITEA_TEST_E2E_USER;
   const repo = `e2e-pr-commits-${randomString(6)}`;
 
@@ -41,7 +40,6 @@ test('PR should not list commits already present in the target branch via anothe
       apiCreateBranch(request, owner, repo, 'staging'),
       apiCreateBranch(request, owner, repo, 'develop'),
       apiCreateBranch(request, owner, repo, 'feature'),
-      login(page),
     ]);
 
     // Add a commit on the feature branch (commit B in the diagram above)
@@ -59,13 +57,7 @@ test('PR should not list commits already present in the target branch via anothe
     // PR3: develop → staging — the one being tested
     const pr3 = await apiCreatePR(request, owner, repo, 'develop', 'staging', 'develop into staging');
 
-    // Fetch commits via API and navigate to the PR page concurrently
-    const [commits] = await Promise.all([
-      apiGetPullRequestCommits(request, owner, repo, pr3),
-      page.goto(`/${owner}/${repo}/pulls/${pr3}/commits`)
-        .then(() => page.waitForLoadState('load'))
-        .then(() => page.screenshot({path: 'test-results/pr-commits-tab.png'})),
-    ]);
+    const commits = await apiGetPullRequestCommits(request, owner, repo, pr3);
 
     // Neither B nor M2 should appear: B's content is already in staging via M1, and M2 is a
     // pure merge commit whose only change (B) is likewise already present. GitHub and GitLab

@@ -110,7 +110,7 @@ func TestAPIPullCommitsNotDuplicatedViaMergePaths(t *testing.T) {
 		// pure merge commit whose only change (B) is likewise already present in staging.
 		// GitHub and GitLab both return 0 commits in this situation — Gitea should do the same.
 		// Buggy Gitea returns [M2, B] (len 2) or [M2] (len 1); fixed Gitea returns [] (len 0).
-		require.Len(t, commits, 0, "PR develop→staging must not list commits already present in staging")
+		require.Empty(t, commits, "PR develop→staging must not list commits already present in staging")
 	})
 }
 
