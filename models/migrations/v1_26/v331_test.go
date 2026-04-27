@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
+
 	"github.com/stretchr/testify/require"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"

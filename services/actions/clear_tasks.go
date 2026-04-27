@@ -180,35 +180,35 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		return err
 	}
 
-	now := timeutil.TimeStampNow()
+	type runAttemptKey struct {
+		runID        int64
+		runAttemptID int64
+	}
 
-	updatedJobs := []*actions_model.ActionRunJob{}
-
+	jobsByAttempt := make(map[runAttemptKey]actions_model.ActionJobList, len(jobs))
 	for _, job := range jobs {
-		job.Status = actions_model.StatusCancelled
-		job.Stopped = now
-		updated := false
-		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			n, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
-			if err != nil {
-				return err
-			}
-			if err := job.LoadAttributes(ctx); err != nil {
-				return err
-			}
-			updated = n > 0
-			return nil
-		}); err != nil {
-			log.Warn("cancel abandoned job %v: %v", job.ID, err)
-			// go on
+		key := runAttemptKey{runID: job.RunID, runAttemptID: job.RunAttemptID}
+		if _, ok := jobsByAttempt[key]; ok {
+			continue
 		}
-		if job.Run == nil || job.Run.Repo == nil {
-			continue // error occurs during loading attributes, the following code that depends on "Run.Repo" will fail, so ignore and skip
+
+		var runJobs actions_model.ActionJobList
+		runJobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
+		if err != nil {
+			log.Warn("load run %d attempt %d jobs for abandoned cleanup: %v", job.RunID, job.RunAttemptID, err)
+			continue
 		}
-		if updated {
-			CreateCommitStatusForRunJobs(ctx, job.Run, job)
-			updatedJobs = append(updatedJobs, job)
+		jobsByAttempt[key] = runJobs
+	}
+
+	updatedJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
+	for key, runJobs := range jobsByAttempt {
+		cancelledJobs, err := actions_model.CancelJobs(ctx, runJobs)
+		if err != nil {
+			log.Warn("cancel abandoned run %d attempt %d: %v", key.runID, key.runAttemptID, err)
+			continue
 		}
+		updatedJobs = append(updatedJobs, cancelledJobs...)
 	}
 
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, updatedJobs)
