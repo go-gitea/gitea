@@ -22,6 +22,14 @@ func TestWithScheduleInEventPayload(t *testing.T) {
 		assert.Equal(t, "refs/heads/main", event["ref"])
 	})
 
+	t.Run("adds schedule to null payload", func(t *testing.T) {
+		updated := withScheduleInEventPayload("null", "37 12 5 1 2")
+
+		event := map[string]any{}
+		assert.NoError(t, json.Unmarshal([]byte(updated), &event))
+		assert.Equal(t, "37 12 5 1 2", event["schedule"])
+	})
+
 	t.Run("keeps empty payload", func(t *testing.T) {
 		updated := withScheduleInEventPayload("", "37 12 5 1 2")
 		assert.Empty(t, updated)

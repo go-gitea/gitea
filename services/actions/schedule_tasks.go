@@ -141,6 +141,9 @@ func withScheduleInEventPayload(eventPayload, schedule string) string {
 		log.Error("withScheduleInEventPayload: unmarshal: %v", err)
 		return eventPayload
 	}
+	if event == nil {
+		event = map[string]any{}
+	}
 
 	event["schedule"] = schedule
 	updatedPayload, err := json.Marshal(event)
