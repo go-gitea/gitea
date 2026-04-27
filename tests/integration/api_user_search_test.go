@@ -31,8 +31,7 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var results SearchResults
-	DecodeJSON(t, resp, &results)
+	results := DecodeJSON(t, resp, &SearchResults{})
 	assert.NotEmpty(t, results.Data)
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
@@ -43,8 +42,7 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 	req = NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query).
 		AddTokenAuth(publicToken)
 	resp = MakeRequest(t, req, http.StatusOK)
-	results = SearchResults{}
-	DecodeJSON(t, resp, &results)
+	results = DecodeJSON(t, resp, &SearchResults{})
 	assert.NotEmpty(t, results.Data)
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
@@ -59,8 +57,7 @@ func TestAPIUserSearchNotLoggedIn(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var results SearchResults
-	DecodeJSON(t, resp, &results)
+	results := DecodeJSON(t, resp, &SearchResults{})
 	assert.NotEmpty(t, results.Data)
 	var modelUser *user_model.User
 	for _, user := range results.Data {
@@ -80,8 +77,7 @@ func TestAPIUserSearchSystemUsers(t *testing.T) {
 			req := NewRequestf(t, "GET", "/api/v1/users/search?uid=%d", systemUser.ID)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var results SearchResults
-			DecodeJSON(t, resp, &results)
+			results := DecodeJSON(t, resp, &SearchResults{})
 			assert.NotEmpty(t, results.Data)
 			if assert.Len(t, results.Data, 1) {
 				user := results.Data[0]
@@ -102,8 +98,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var results SearchResults
-	DecodeJSON(t, resp, &results)
+	results := DecodeJSON(t, resp, &SearchResults{})
 	assert.NotEmpty(t, results.Data)
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
@@ -118,8 +113,7 @@ func TestAPIUserSearchNotLoggedInUserHidden(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var results SearchResults
-	DecodeJSON(t, resp, &results)
+	results := DecodeJSON(t, resp, &SearchResults{})
 	assert.Empty(t, results.Data)
 }
 
@@ -135,15 +129,14 @@ func TestAPIUserSearchByEmail(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var results SearchResults
-	DecodeJSON(t, resp, &results)
+	results := DecodeJSON(t, resp, &SearchResults{})
 	assert.Len(t, results.Data, 1)
 	assert.Equal(t, query, results.Data[0].Email)
 
 	// no login user can not search user with private email
 	req = NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &results)
+	results = DecodeJSON(t, resp, &SearchResults{})
 	assert.Empty(t, results.Data)
 
 	// user can search self with private email
@@ -154,7 +147,7 @@ func TestAPIUserSearchByEmail(t *testing.T) {
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &results)
+	results = DecodeJSON(t, resp, &SearchResults{})
 	assert.Len(t, results.Data, 1)
 	assert.Equal(t, query, results.Data[0].Email)
 }

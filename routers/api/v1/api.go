@@ -394,7 +394,7 @@ func reqSiteAdmin() func(ctx *context.APIContext) {
 // reqOwner user should be the owner of the repo or site admin.
 func reqOwner() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.Repo.IsOwner() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.Permission.IsOwner() && !ctx.IsUserSiteAdmin() {
 			ctx.APIError(http.StatusForbidden, "user should be the owner of the repo")
 			return
 		}
@@ -434,7 +434,7 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.Repo.CanRead(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.Permission.CanRead(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.APIError(http.StatusForbidden, "user should have specific read permission or be a repo admin or a site admin")
 			return
 		}
@@ -633,7 +633,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 }
 
 func mustEnableIssues(ctx *context.APIContext) {
-	if !ctx.Repo.CanRead(unit.TypeIssues) {
+	if !ctx.Repo.Permission.CanRead(unit.TypeIssues) {
 		if log.IsTrace() {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
@@ -656,7 +656,7 @@ func mustEnableIssues(ctx *context.APIContext) {
 }
 
 func mustAllowPulls(ctx *context.APIContext) {
-	if !(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(unit.TypePullRequests)) {
+	if !(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.Permission.CanRead(unit.TypePullRequests)) {
 		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
@@ -679,8 +679,8 @@ func mustAllowPulls(ctx *context.APIContext) {
 }
 
 func mustEnableIssuesOrPulls(ctx *context.APIContext) {
-	if !ctx.Repo.CanRead(unit.TypeIssues) &&
-		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(unit.TypePullRequests)) {
+	if !ctx.Repo.Permission.CanRead(unit.TypeIssues) &&
+		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.Permission.CanRead(unit.TypePullRequests)) {
 		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v and %-v in Repo %-v\n"+
@@ -705,7 +705,7 @@ func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 }
 
 func mustEnableWiki(ctx *context.APIContext) {
-	if !(ctx.Repo.CanRead(unit.TypeWiki)) {
+	if !(ctx.Repo.Permission.CanRead(unit.TypeWiki)) {
 		ctx.APIErrorNotFound()
 		return
 	}
@@ -865,7 +865,6 @@ func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 func Routes() *web.Router {
 	m := web.NewRouter()
 
-	m.BeforeRouting(securityHeaders())
 	if setting.CORSConfig.Enabled {
 		m.BeforeRouting(cors.Handler(cors.Options{
 			AllowedOrigins:   setting.CORSConfig.AllowDomain,
@@ -1255,6 +1254,10 @@ func Routes() *web.Router {
 					m.Group("/runs", func() {
 						m.Group("/{run}", func() {
 							m.Get("", repo.GetWorkflowRun)
+							m.Group("/attempts/{attempt}", func() {
+								m.Get("", repo.GetWorkflowRunAttempt)
+								m.Get("/jobs", repo.ListWorkflowRunAttemptJobs)
+							})
 							m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
 							m.Post("/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowRun)
 							m.Post("/rerun-failed-jobs", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunFailedWorkflowRun)
@@ -1366,6 +1369,7 @@ func Routes() *web.Router {
 						m.Combo("/requested_reviewers", reqToken()).
 							Delete(bind(api.PullReviewRequestOptions{}), repo.DeleteReviewRequests).
 							Post(bind(api.PullReviewRequestOptions{}), repo.CreateReviewRequests)
+						m.Post("/comments/{id}/replies", reqToken(), mustNotBeArchived, bind(api.CreatePullReviewCommentReplyOptions{}), repo.CreatePullReviewCommentReply)
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
@@ -1744,15 +1748,4 @@ func Routes() *web.Router {
 	}, sudo())
 
 	return m
-}
-
-func securityHeaders() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			// CORB: https://www.chromium.org/Home/chromium-security/corb-for-developers
-			// http://stackoverflow.com/a/3146618/244009
-			resp.Header().Set("x-content-type-options", "nosniff")
-			next.ServeHTTP(resp, req)
-		})
-	}
 }

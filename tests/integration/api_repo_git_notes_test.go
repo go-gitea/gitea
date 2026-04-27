@@ -37,8 +37,7 @@ func TestAPIReposGitNotes(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiData api.Note
-		DecodeJSON(t, resp, &apiData)
+		apiData := DecodeJSON(t, resp, &api.Note{})
 		assert.Equal(t, "This is a test note\n", apiData.Message)
 		assert.NotEmpty(t, apiData.Commit.Files)
 		assert.NotNil(t, apiData.Commit.RepoCommit.Verification)

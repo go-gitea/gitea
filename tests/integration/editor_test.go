@@ -227,8 +227,7 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 		req.Header.Add("Content-Type", uploadForm.FormDataContentType())
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
-		respMap := map[string]string{}
-		DecodeJSON(t, resp, &respMap)
+		respMap := DecodeJSON(t, resp, map[string]string{})
 		return respMap["uuid"]
 	}
 
@@ -372,7 +371,8 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 				"action":    "convert_fork",
 			},
 		)
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.NotNil(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
 	})
 
 	// Fork repository again, and check the existence of the forked repo with unique name

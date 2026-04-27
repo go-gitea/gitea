@@ -18,39 +18,17 @@
   margin-bottom: 10px;
 }
 
-.page-content.organization #org-info .meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+.page-content.organization .team-item-box > .team-item-header {
+  min-height: 50px; /* the header sometimes contains a mini button, sometimes not, so we set a min-height to make sure the layout is consistent */
 }
 
-.page-content.organization .ui.top.header .ui.right {
-  margin-top: 0;
-}
-
-.page-content.organization .teams .item {
-  padding: 10px 15px;
-}
-
-.page-content.organization .members .ui.avatar {
-  margin-right: 5px;
-  margin-bottom: 5px;
-}
-
-.organization.invite #invite-box {
-  margin: 50px auto auto;
-  width: 500px !important;
-}
-
-.organization.invite #invite-box #search-user-box input {
-  margin-left: 0;
-  width: 300px;
-}
-
-.organization.invite #invite-box .ui.button {
-  margin-left: 5px;
-  margin-top: -3px;
+.page-content.organization .team-item-box .team-item-description {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-light-3);
 }
 
 .organization.invite .ui.avatar {

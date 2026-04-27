@@ -38,12 +38,15 @@ func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runI
 	apiRunsURL := fmt.Sprintf("%s/%s", apiRootURL, "runs")
 	req := NewRequest(t, "GET", apiRunsURL).AddTokenAuth(token)
 	runnerListResp := MakeRequest(t, req, http.StatusOK)
-	runnerList := api.ActionWorkflowRunsResponse{}
-	DecodeJSON(t, runnerListResp, &runnerList)
+	runnerList := DecodeJSON(t, runnerListResp, &api.ActionWorkflowRunsResponse{})
 
 	foundRun := false
 
 	for _, run := range runnerList.Entries {
+		if run.ID == 802 {
+			// Fixture stores registration event (push) and schedule as trigger; API must expose the trigger as Event.
+			assert.Equal(t, "schedule", run.Event)
+		}
 		// Verify filtering works
 		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", run.Status, "", "", "", "")
 		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, run.Conclusion, "", "", "", "", "")
@@ -55,8 +58,7 @@ func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runI
 		// Verify run url works
 		req := NewRequest(t, "GET", run.URL).AddTokenAuth(token)
 		runResp := MakeRequest(t, req, http.StatusOK)
-		apiRun := api.ActionWorkflowRun{}
-		DecodeJSON(t, runResp, &apiRun)
+		apiRun := DecodeJSON(t, runResp, &api.ActionWorkflowRun{})
 		assert.Equal(t, run.ID, apiRun.ID)
 		assert.Equal(t, run.Status, apiRun.Status)
 		assert.Equal(t, run.Conclusion, apiRun.Conclusion)
@@ -65,8 +67,7 @@ func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runI
 		// Verify jobs list works
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s", run.URL, "jobs")).AddTokenAuth(token)
 		jobsResp := MakeRequest(t, req, http.StatusOK)
-		jobList := api.ActionWorkflowJobsResponse{}
-		DecodeJSON(t, jobsResp, &jobList)
+		jobList := DecodeJSON(t, jobsResp, &api.ActionWorkflowJobsResponse{})
 
 		if run.ID == runID {
 			foundRun = true
@@ -82,8 +83,7 @@ func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runI
 				// Verify job url works
 				req := NewRequest(t, "GET", job.URL).AddTokenAuth(token)
 				jobsResp := MakeRequest(t, req, http.StatusOK)
-				apiJob := api.ActionWorkflowJob{}
-				DecodeJSON(t, jobsResp, &apiJob)
+				apiJob := DecodeJSON(t, jobsResp, &api.ActionWorkflowJob{})
 				assert.Equal(t, job.ID, apiJob.ID)
 				assert.Equal(t, job.RunID, apiJob.RunID)
 				assert.Equal(t, job.Status, apiJob.Status)
@@ -116,8 +116,7 @@ func verifyWorkflowRunCanbeFoundWithStatusFilter(t *testing.T, runAPIURL, token 
 	}
 	req := NewRequest(t, "GET", runAPIURL+"?"+filter.Encode()).AddTokenAuth(token)
 	runResp := MakeRequest(t, req, http.StatusOK)
-	runList := api.ActionWorkflowRunsResponse{}
-	DecodeJSON(t, runResp, &runList)
+	runList := DecodeJSON(t, runResp, &api.ActionWorkflowRunsResponse{})
 
 	found := false
 	for _, run := range runList.Entries {
@@ -151,8 +150,7 @@ func verifyWorkflowJobCanbeFoundWithStatusFilter(t *testing.T, runAPIURL, token 
 	}
 	req := NewRequest(t, "GET", runAPIURL+"?status="+filter).AddTokenAuth(token)
 	jobListResp := MakeRequest(t, req, http.StatusOK)
-	jobList := api.ActionWorkflowJobsResponse{}
-	DecodeJSON(t, jobListResp, &jobList)
+	jobList := DecodeJSON(t, jobListResp, &api.ActionWorkflowJobsResponse{})
 
 	found := false
 	for _, job := range jobList.Entries {
