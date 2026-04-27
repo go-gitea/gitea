@@ -187,7 +187,7 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 	if !ctx.Repo.Owner.IsOrganization() {
 		ctx.APIError(http.StatusMethodNotAllowed, "repo is not owned by an organization")
 	}
-	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.IsOwner() {
+	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.Permission.IsOwner() {
 		ctx.APIError(http.StatusForbidden, "user is nor repo admin nor owner")
 		return
 	}

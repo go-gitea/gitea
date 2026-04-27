@@ -185,7 +185,7 @@ func deleteColumnByID(ctx context.Context, columnID int64) error {
 		return err
 	}
 
-	if err = column.moveIssuesToAnotherColumn(ctx, defaultColumn); err != nil {
+	if err = moveIssuesToAnotherColumn(ctx, column, defaultColumn); err != nil {
 		return err
 	}
 

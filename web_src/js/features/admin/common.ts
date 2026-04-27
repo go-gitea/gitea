@@ -1,8 +1,8 @@
 import {checkAppUrl} from '../common-page.ts';
 import {hideElem, queryElems, showElem, toggleElem} from '../../utils/dom.ts';
 import {POST} from '../../modules/fetch.ts';
-import {fomanticQuery} from '../../modules/fomantic/base.ts';
-import {urlQueryEscape} from '../../utils.ts';
+import {showFomanticModal} from '../../modules/fomantic/modal.ts';
+import {pathEscape} from '../../utils/url.ts';
 
 const {appSubUrl} = window.config;
 
@@ -78,7 +78,7 @@ function initAdminAuthentication() {
   }
 
   function onOAuth2Change(applyDefaultValues: boolean) {
-    hideElem('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url');
+    hideElem('.open_id_connect_auto_discovery_url, .open_id_connect_external_id_claim, .oauth2_use_custom_url');
     for (const input of document.querySelectorAll<HTMLInputElement>('.open_id_connect_auto_discovery_url input[required]')) {
       input.removeAttribute('required');
     }
@@ -88,6 +88,7 @@ function initAdminAuthentication() {
       case 'openidConnect':
         document.querySelector<HTMLInputElement>('.open_id_connect_auto_discovery_url input')!.setAttribute('required', 'required');
         showElem('.open_id_connect_auto_discovery_url');
+        showElem('.open_id_connect_external_id_claim');
         break;
       default: {
         const elProviderCustomUrlSettings = document.querySelector<HTMLInputElement>(`#${provider}_customURLSettings`);
@@ -231,7 +232,7 @@ function initAdminAuthentication() {
   const elAuthName = document.querySelector<HTMLInputElement>('#auth_name')!;
   const onAuthNameChange = function () {
     // appSubUrl is either empty or is a path that starts with `/` and doesn't have a trailing slash.
-    document.querySelector('#oauth2-callback-url')!.textContent = `${window.location.origin}${appSubUrl}/user/oauth2/${urlQueryEscape(elAuthName.value)}/callback`;
+    document.querySelector('#oauth2-callback-url')!.textContent = `${window.location.origin}${appSubUrl}/user/oauth2/${pathEscape(elAuthName.value)}/callback`;
   };
   elAuthName.addEventListener('input', onAuthNameChange);
   onAuthNameChange();
@@ -249,7 +250,7 @@ function initAdminNotice() {
     const elNoticeDesc = el.closest('tr')!.querySelector('.notice-description')!;
     const elModalDesc = detailModal.querySelector('.content pre')!;
     elModalDesc.textContent = elNoticeDesc.textContent;
-    fomanticQuery(detailModal).modal('show');
+    showFomanticModal(detailModal);
   }));
 
   // Select actions
@@ -285,6 +286,6 @@ function initAdminNotice() {
       }
     }
     await POST(this.getAttribute('data-link')!, {data});
-    window.location.href = this.getAttribute('data-redirect')!;
+    window.location.reload();
   });
 }

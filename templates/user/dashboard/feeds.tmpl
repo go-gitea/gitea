@@ -1,4 +1,4 @@
-<div id="activity-feed" class="flex-list">
+<div id="activity-feed" class="flex-list" data-ref-issue-container>
 	{{range .Feeds}}
 		<div class="flex-item">
 			<div class="flex-item-leading">
@@ -107,7 +107,7 @@
 				{{else if .GetOpType.InActions "create_pull_request"}}
 					<span class="tw-inline-block tw-truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "comment_issue" "approve_pull_request" "reject_pull_request" "comment_pull"}}
-					<a href="{{.GetCommentLink ctx}}" class="tw-inline-block tw-truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
+					<a href="{{.GetCommentLink ctx}}" class="tw-inline-block tw-truncate tw-self-start issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 					{{$comment := index .GetIssueInfos 1}}
 					{{if $comment}}
 						<div class="render-content markup truncated-markup">{{ctx.RenderUtils.MarkdownToHtml $comment}}</div>

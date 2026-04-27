@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -24,8 +26,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAPIOrgCreateRename(t *testing.T) {
+func TestAPIOrg(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("General", testAPIOrgGeneral)
+	t.Run("CreateAndRename", testAPIOrgCreateRename)
+	t.Run("DeleteOrgRepos", testAPIDeleteOrgRepos)
+}
+
+func testAPIOrgCreateRename(t *testing.T) {
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteOrganization)
 
 	org := api.CreateOrgOption{
@@ -39,8 +47,7 @@ func TestAPIOrgCreateRename(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &org).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var apiOrg api.Organization
-	DecodeJSON(t, resp, &apiOrg)
+	apiOrg := DecodeJSON(t, resp, &api.Organization{})
 
 	assert.Equal(t, org.UserName, apiOrg.Name)
 	assert.Equal(t, org.FullName, apiOrg.FullName)
@@ -58,7 +65,7 @@ func TestAPIOrgCreateRename(t *testing.T) {
 	// check org name
 	req = NewRequestf(t, "GET", "/api/v1/orgs/%s", org.UserName).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiOrg)
+	apiOrg = DecodeJSON(t, resp, &api.Organization{})
 	assert.Equal(t, org.UserName, apiOrg.Name)
 
 	t.Run("CheckPermission", func(t *testing.T) {
@@ -83,8 +90,7 @@ func TestAPIOrgCreateRename(t *testing.T) {
 		resp = MakeRequest(t, req, http.StatusOK)
 
 		// user1 on this org is public
-		var users []*api.User
-		DecodeJSON(t, resp, &users)
+		users := DecodeJSON(t, resp, []*api.User{})
 		assert.Len(t, users, 1)
 		assert.Equal(t, "user1", users[0].UserName)
 	})
@@ -102,16 +108,14 @@ func TestAPIOrgCreateRename(t *testing.T) {
 		// FIXME: this test is wrong, there is no repository at all, so the for-loop is empty
 		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", org.UserName).AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusOK)
-		var repos []*api.Repository
-		DecodeJSON(t, resp, &repos)
+		repos := DecodeJSON(t, resp, []*api.Repository{})
 		for _, repo := range repos {
 			assert.False(t, repo.Private)
 		}
 	})
 }
 
-func TestAPIOrgGeneral(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testAPIOrgGeneral(t *testing.T) {
 	user1Session := loginUser(t, "user1")
 	user1Token := getTokenForLoggedInUser(t, user1Session, auth_model.AccessTokenScopeWriteOrganization)
 
@@ -119,9 +123,8 @@ func TestAPIOrgGeneral(t *testing.T) {
 		// accessing with a token will return all orgs
 		req := NewRequest(t, "GET", "/api/v1/orgs").AddTokenAuth(user1Token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var apiOrgList []*api.Organization
 
-		DecodeJSON(t, resp, &apiOrgList)
+		apiOrgList := DecodeJSON(t, resp, []*api.Organization{})
 		assert.Len(t, apiOrgList, 13)
 		assert.Equal(t, "Limited Org 36", apiOrgList[1].FullName)
 		assert.Equal(t, "limited", apiOrgList[1].Visibility)
@@ -130,7 +133,7 @@ func TestAPIOrgGeneral(t *testing.T) {
 		req = NewRequest(t, "GET", "/api/v1/orgs")
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		DecodeJSON(t, resp, &apiOrgList)
+		apiOrgList = DecodeJSON(t, resp, []*api.Organization{})
 		assert.Len(t, apiOrgList, 9)
 		assert.Equal(t, "org 17", apiOrgList[0].FullName)
 		assert.Equal(t, "public", apiOrgList[0].Visibility)
@@ -216,11 +219,10 @@ func TestAPIOrgGeneral(t *testing.T) {
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/%s/teams/search?q=%s", orgName, "empty")).
 			AddTokenAuth(user1Token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		data := struct {
+		data := DecodeJSON(t, resp, &struct {
 			Ok   bool
 			Data []*api.Team
-		}{}
-		DecodeJSON(t, resp, &data)
+		}{})
 		assert.True(t, data.Ok)
 		if assert.Len(t, data.Data, 1) {
 			assert.Equal(t, "Empty", data.Data[0].Name)
@@ -258,5 +260,35 @@ func TestAPIOrgGeneral(t *testing.T) {
 		MakeRequest(t, req, http.StatusForbidden)
 		req = NewRequest(t, "DELETE", "/api/v1/orgs/org3/public_members/user1").AddTokenAuth(user4Token)
 		MakeRequest(t, req, http.StatusForbidden)
+	})
+}
+
+func testAPIDeleteOrgRepos(t *testing.T) {
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
+	orgRepos, err := repo_model.GetOrgRepositories(t.Context(), org3.ID)
+	require.NoError(t, err)
+	assert.NotEmpty(t, orgRepos) // this org contains repositories, so we can test the deletion of all org repos
+
+	t.Run("NoPermission", func(t *testing.T) {
+		nonOwnerSession := loginUser(t, "user4")
+		nonOwnerToken := getTokenForLoggedInUser(t, nonOwnerSession, auth_model.AccessTokenScopeWriteOrganization)
+		req := NewRequest(t, "DELETE", "/api/v1/orgs/org3/repos").AddTokenAuth(nonOwnerToken)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
+
+	t.Run("DeleteAllOrgRepos", func(t *testing.T) {
+		session := loginUser(t, "user1")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", org3.Name)).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusAccepted)
+
+		assert.Eventually(t, func() bool {
+			repos, err := repo_model.GetOrgRepositories(t.Context(), org3.ID)
+			require.NoError(t, err)
+			return len(repos) == 0
+		}, 2*time.Second, 50*time.Millisecond)
+
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", org3.Name)).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent) // The org contains no repositories, so the API should return StatusNoContent
 	})
 }

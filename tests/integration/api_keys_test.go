@@ -65,8 +65,7 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var newDeployKey api.DeployKey
-	DecodeJSON(t, resp, &newDeployKey)
+	newDeployKey := DecodeJSON(t, resp, &api.DeployKey{})
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		ID:      newDeployKey.ID,
 		Name:    rawKeyBody.Title,
@@ -104,8 +103,7 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var newDeployKey api.DeployKey
-	DecodeJSON(t, resp, &newDeployKey)
+	newDeployKey := DecodeJSON(t, resp, &api.DeployKey{})
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		ID:      newDeployKey.ID,
 		Name:    rawKeyBody.Title,
@@ -130,8 +128,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var newPublicKey api.PublicKey
-	DecodeJSON(t, resp, &newPublicKey)
+	newPublicKey := DecodeJSON(t, resp, &api.PublicKey{})
 	fingerprint, err := asymkey_model.CalcFingerprint(rawKeyBody.Key)
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.PublicKey{
@@ -147,8 +144,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	var fingerprintPublicKeys []api.PublicKey
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys := DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
 	assert.Equal(t, newPublicKey.ID, fingerprintPublicKeys[0].ID)
 	assert.Equal(t, user.ID, fingerprintPublicKeys[0].Owner.ID)
@@ -157,7 +153,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
 	assert.Equal(t, newPublicKey.ID, fingerprintPublicKeys[0].ID)
 	assert.Equal(t, user.ID, fingerprintPublicKeys[0].Owner.ID)
@@ -167,7 +163,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Empty(t, fingerprintPublicKeys)
 
 	// Fail searching for wrong users key
@@ -175,7 +171,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Empty(t, fingerprintPublicKeys)
 
 	// Now login as user 2
@@ -187,7 +183,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token2)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
 	assert.Equal(t, newPublicKey.ID, fingerprintPublicKeys[0].ID)
 	assert.Nil(t, fingerprintPublicKeys[0].Owner)
@@ -197,7 +193,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token2)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
 	assert.Equal(t, newPublicKey.ID, fingerprintPublicKeys[0].ID)
 	assert.Nil(t, fingerprintPublicKeys[0].Owner)
@@ -207,6 +203,6 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token2)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Empty(t, fingerprintPublicKeys)
 }

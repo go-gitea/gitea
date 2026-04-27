@@ -98,19 +98,13 @@ func init() {
 
 // NewAccessToken creates new access token.
 func NewAccessToken(ctx context.Context, t *AccessToken) error {
-	salt, err := util.CryptoRandomString(10)
-	if err != nil {
-		return err
-	}
-	token, err := util.CryptoRandomBytes(20)
-	if err != nil {
-		return err
-	}
+	salt := util.CryptoRandomString(10)
+	token := util.CryptoRandomBytes(20)
 	t.TokenSalt = salt
 	t.Token = hex.EncodeToString(token)
 	t.TokenHash = HashToken(t.Token, t.TokenSalt)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
-	_, err = db.GetEngine(ctx).Insert(t)
+	_, err := db.GetEngine(ctx).Insert(t)
 	return err
 }
 
