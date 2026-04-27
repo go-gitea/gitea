@@ -7,32 +7,36 @@ import (
 	"time"
 )
 
-// Project represents a project
+// Project represents a project.
+//
+// Gitea projects can only contain issues — note cards and pull requests are
+// not modeled as project items.
+//
 // swagger:model
 type Project struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	OwnerID     int64  `json:"owner_id,omitempty"`
-	RepoID      int64  `json:"repo_id,omitempty"`
-	CreatorID   int64  `json:"creator_id"`
-	IsClosed    bool   `json:"is_closed"`
-	// Template type: 0=none, 1=basic_kanban, 2=bug_triage
-	TemplateType int `json:"template_type"`
-	// Card type: 0=text_only, 1=images_and_text
-	CardType int `json:"card_type"`
-	// Project type: 1=individual, 2=repository, 3=organization
-	Type            int   `json:"type"`
-	NumOpenIssues   int64 `json:"num_open_issues,omitempty"`
-	NumClosedIssues int64 `json:"num_closed_issues,omitempty"`
-	NumIssues       int64 `json:"num_issues,omitempty"`
+	ID          int64     `json:"id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	OwnerID     int64     `json:"owner_id,omitempty"`
+	RepoID      int64     `json:"repo_id,omitempty"`
+	Creator     *User     `json:"creator,omitempty"`
+	State       StateType `json:"state"`
+	// Template type: "none", "basic_kanban" or "bug_triage"
+	TemplateType string `json:"template_type"`
+	// Card type: "text_only" or "images_and_text"
+	CardType string `json:"card_type"`
+	// Project type: "individual", "repository" or "organization"
+	Type            string `json:"type"`
+	NumOpenIssues   int64  `json:"num_open_issues,omitempty"`
+	NumClosedIssues int64  `json:"num_closed_issues,omitempty"`
+	NumIssues       int64  `json:"num_issues,omitempty"`
 	// swagger:strfmt date-time
-	Created time.Time `json:"created"`
+	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated time.Time `json:"updated"`
+	UpdatedAt time.Time `json:"updated_at"`
 	// swagger:strfmt date-time
-	ClosedDate *time.Time `json:"closed_date,omitempty"`
-	URL        string     `json:"url,omitempty"`
+	ClosedAt *time.Time `json:"closed_at,omitempty"`
+	HTMLURL  string     `json:"html_url,omitempty"`
 }
 
 // CreateProjectOption represents options for creating a project
@@ -41,10 +45,10 @@ type CreateProjectOption struct {
 	// required: true
 	Title       string `json:"title" binding:"Required"`
 	Description string `json:"description"`
-	// Template type: 0=none, 1=basic_kanban, 2=bug_triage
-	TemplateType int `json:"template_type"`
-	// Card type: 0=text_only, 1=images_and_text
-	CardType int `json:"card_type"`
+	// Template type: "none", "basic_kanban" or "bug_triage"
+	TemplateType string `json:"template_type"`
+	// Card type: "text_only" or "images_and_text"
+	CardType string `json:"card_type"`
 }
 
 // EditProjectOption represents options for editing a project
@@ -52,10 +56,9 @@ type CreateProjectOption struct {
 type EditProjectOption struct {
 	Title       *string `json:"title,omitempty"`
 	Description *string `json:"description,omitempty"`
-	// Card type: 0=text_only, 1=images_and_text
-	CardType *int `json:"card_type,omitempty"`
-	// State of the project (open or closed)
-	State *string `json:"state,omitempty"`
+	// Card type: "text_only" or "images_and_text"
+	CardType *string    `json:"card_type,omitempty"`
+	State    *StateType `json:"state,omitempty"`
 }
 
 // ProjectColumn represents a project column (board)
@@ -67,12 +70,12 @@ type ProjectColumn struct {
 	Sorting   int    `json:"sorting"`
 	Color     string `json:"color,omitempty"`
 	ProjectID int64  `json:"project_id"`
-	CreatorID int64  `json:"creator_id"`
+	Creator   *User  `json:"creator,omitempty"`
 	NumIssues int64  `json:"num_issues,omitempty"`
 	// swagger:strfmt date-time
-	Created time.Time `json:"created"`
+	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated time.Time `json:"updated"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // CreateProjectColumnOption represents options for creating a project column
@@ -80,7 +83,7 @@ type ProjectColumn struct {
 type CreateProjectColumnOption struct {
 	// required: true
 	Title string `json:"title" binding:"Required"`
-	// Column color (hex format, e.g. #FF0000)
+	// Column color in 6-digit hex format, e.g. #FF0000
 	Color string `json:"color,omitempty"`
 }
 
@@ -88,7 +91,17 @@ type CreateProjectColumnOption struct {
 // swagger:model
 type EditProjectColumnOption struct {
 	Title *string `json:"title,omitempty"`
-	// Column color (hex format)
+	// Column color in 6-digit hex format, e.g. #FF0000
 	Color   *string `json:"color,omitempty"`
 	Sorting *int    `json:"sorting,omitempty"`
+}
+
+// MoveProjectIssueOption represents options for moving an issue between columns
+// swagger:model
+type MoveProjectIssueOption struct {
+	// Target column to move the issue into
+	// required: true
+	ColumnID int64 `json:"column_id" binding:"Required"`
+	// Optional sorting position within the target column
+	Sorting *int64 `json:"sorting,omitempty"`
 }

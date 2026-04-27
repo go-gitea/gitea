@@ -58,7 +58,7 @@ func testAPIListProjects(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &projects)
 	for _, project := range projects {
-		assert.False(t, project.IsClosed, "Project should be open")
+		assert.Equal(t, api.StateOpen, project.State, "Project should be open")
 	}
 
 	// Test state filter - all
@@ -99,7 +99,7 @@ func testAPIGetProject(t *testing.T) {
 	assert.Equal(t, project.Title, apiProject.Title)
 	assert.Equal(t, project.ID, apiProject.ID)
 	assert.Equal(t, repo.ID, apiProject.RepoID)
-	assert.NotEmpty(t, apiProject.URL)
+	assert.NotEmpty(t, apiProject.HTMLURL)
 
 	// Test getting non-existent project
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/projects/99999", owner.Name, repo.Name).
@@ -117,8 +117,8 @@ func testAPICreateProject(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects", owner.Name, repo.Name), &api.CreateProjectOption{
 		Title:        "API Created Project",
 		Description:  "This is a test project created via API",
-		TemplateType: 1, // basic_kanban
-		CardType:     1, // images_and_text
+		TemplateType: "basic_kanban",
+		CardType:     "images_and_text",
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
@@ -126,9 +126,9 @@ func testAPICreateProject(t *testing.T) {
 	DecodeJSON(t, resp, &project)
 	assert.Equal(t, "API Created Project", project.Title)
 	assert.Equal(t, "This is a test project created via API", project.Description)
-	assert.Equal(t, 1, project.TemplateType)
-	assert.Equal(t, 1, project.CardType)
-	assert.False(t, project.IsClosed)
+	assert.Equal(t, "basic_kanban", project.TemplateType)
+	assert.Equal(t, "images_and_text", project.CardType)
+	assert.Equal(t, api.StateOpen, project.State)
 
 	// Test creating with minimal data
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/projects", owner.Name, repo.Name), &api.CreateProjectOption{
@@ -209,8 +209,7 @@ func testAPIChangeProjectStatus(t *testing.T) {
 
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteIssue)
 
-	// Close via PATCH with state=closed
-	closed := "closed"
+	closed := api.StateClosed
 	req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d", owner.Name, repo.Name, project.ID), &api.EditProjectOption{
 		State: &closed,
 	}).AddTokenAuth(token)
@@ -218,21 +217,19 @@ func testAPIChangeProjectStatus(t *testing.T) {
 
 	var updatedProject api.Project
 	DecodeJSON(t, resp, &updatedProject)
-	assert.True(t, updatedProject.IsClosed)
-	assert.NotNil(t, updatedProject.ClosedDate)
+	assert.Equal(t, api.StateClosed, updatedProject.State)
+	assert.NotNil(t, updatedProject.ClosedAt)
 
-	// Reopen via PATCH with state=open
-	open := "open"
+	open := api.StateOpen
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d", owner.Name, repo.Name, project.ID), &api.EditProjectOption{
 		State: &open,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &updatedProject)
-	assert.False(t, updatedProject.IsClosed)
+	assert.Equal(t, api.StateOpen, updatedProject.State)
 
-	// Invalid state value must be rejected
-	bogus := "reopen"
+	bogus := api.StateType("reopen")
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/projects/%d", owner.Name, repo.Name, project.ID), &api.EditProjectOption{
 		State: &bogus,
 	}).AddTokenAuth(token)

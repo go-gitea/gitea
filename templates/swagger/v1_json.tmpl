@@ -13527,6 +13527,7 @@
     },
     "/repos/{owner}/{repo}/projects": {
       "get": {
+        "description": "Gitea projects only contain issues — note cards and pull requests are not modeled as project items.",
         "produces": [
           "application/json"
         ],
@@ -13558,7 +13559,7 @@
             ],
             "type": "string",
             "default": "open",
-            "description": "State of the project (open, closed)",
+            "description": "State of the project (open, closed, all)",
             "name": "state",
             "in": "query"
           },
@@ -13634,6 +13635,7 @@
     },
     "/repos/{owner}/{repo}/projects/{id}": {
       "get": {
+        "description": "Gitea projects only contain issues — note cards and pull requests are not modeled as project items.",
         "produces": [
           "application/json"
         ],
@@ -13872,6 +13874,9 @@
           "201": {
             "$ref": "#/responses/ProjectColumn"
           },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           },
@@ -13923,6 +13928,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -13984,6 +13992,9 @@
           "200": {
             "$ref": "#/responses/ProjectColumn"
           },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           },
@@ -13995,6 +14006,7 @@
     },
     "/repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues": {
       "get": {
+        "description": "Gitea projects only contain issues — note cards and pull requests are not modeled as project items.",
         "produces": [
           "application/json"
         ],
@@ -14059,6 +14071,7 @@
     },
     "/repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues/{issue_id}": {
       "post": {
+        "description": "Gitea projects only contain issues — note cards and pull requests cannot be added.",
         "consumes": [
           "application/json"
         ],
@@ -14175,6 +14188,75 @@
             "name": "issue_id",
             "in": "path",
             "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{id}/issues/{issue_id}/move": {
+      "post": {
+        "description": "Atomically moves an existing project issue into a different column, optionally setting its sorting position.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Move an issue between columns of a project",
+        "operationId": "repoMoveProjectIssue",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the issue",
+            "name": "issue_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/MoveProjectIssueOption"
+            }
           }
         ],
         "responses": {
@@ -24160,7 +24242,7 @@
       ],
       "properties": {
         "color": {
-          "description": "Column color (hex format, e.g. #FF0000)",
+          "description": "Column color in 6-digit hex format, e.g. #FF0000",
           "type": "string",
           "x-go-name": "Color"
         },
@@ -24179,9 +24261,8 @@
       ],
       "properties": {
         "card_type": {
-          "description": "Card type: 0=text_only, 1=images_and_text",
-          "type": "integer",
-          "format": "int64",
+          "description": "Card type: \"text_only\" or \"images_and_text\"",
+          "type": "string",
           "x-go-name": "CardType"
         },
         "description": {
@@ -24189,9 +24270,8 @@
           "x-go-name": "Description"
         },
         "template_type": {
-          "description": "Template type: 0=none, 1=basic_kanban, 2=bug_triage",
-          "type": "integer",
-          "format": "int64",
+          "description": "Template type: \"none\", \"basic_kanban\" or \"bug_triage\"",
+          "type": "string",
           "x-go-name": "TemplateType"
         },
         "title": {
@@ -25326,7 +25406,7 @@
       "type": "object",
       "properties": {
         "color": {
-          "description": "Column color (hex format)",
+          "description": "Column color in 6-digit hex format, e.g. #FF0000",
           "type": "string",
           "x-go-name": "Color"
         },
@@ -25347,9 +25427,8 @@
       "type": "object",
       "properties": {
         "card_type": {
-          "description": "Card type: 0=text_only, 1=images_and_text",
-          "type": "integer",
-          "format": "int64",
+          "description": "Card type: \"text_only\" or \"images_and_text\"",
+          "type": "string",
           "x-go-name": "CardType"
         },
         "description": {
@@ -25357,8 +25436,12 @@
           "x-go-name": "Description"
         },
         "state": {
-          "description": "State of the project (open or closed)",
           "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
           "x-go-name": "State"
         },
         "title": {
@@ -27403,6 +27486,28 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "MoveProjectIssueOption": {
+      "description": "MoveProjectIssueOption represents options for moving an issue between columns",
+      "type": "object",
+      "required": [
+        "column_id"
+      ],
+      "properties": {
+        "column_id": {
+          "description": "Target column to move the issue into",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ColumnID"
+        },
+        "sorting": {
+          "description": "Optional sorting position within the target column",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sorting"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "NewIssuePinsAllowed": {
       "description": "NewIssuePinsAllowed represents an API response that says if new Issue Pins are allowed",
       "type": "object",
@@ -28066,42 +28171,40 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "Project": {
-      "description": "Project represents a project",
+      "description": "Gitea projects can only contain issues — note cards and pull requests are\nnot modeled as project items.",
       "type": "object",
+      "title": "Project represents a project.",
       "properties": {
         "card_type": {
-          "description": "Card type: 0=text_only, 1=images_and_text",
-          "type": "integer",
-          "format": "int64",
+          "description": "Card type: \"text_only\" or \"images_and_text\"",
+          "type": "string",
           "x-go-name": "CardType"
         },
-        "closed_date": {
+        "closed_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-name": "ClosedDate"
+          "x-go-name": "ClosedAt"
         },
-        "created": {
+        "created_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-name": "Created"
+          "x-go-name": "CreatedAt"
         },
-        "creator_id": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "CreatorID"
+        "creator": {
+          "$ref": "#/definitions/User"
         },
         "description": {
           "type": "string",
           "x-go-name": "Description"
         },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
         "id": {
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
-        },
-        "is_closed": {
-          "type": "boolean",
-          "x-go-name": "IsClosed"
         },
         "num_closed_issues": {
           "type": "integer",
@@ -28128,10 +28231,18 @@
           "format": "int64",
           "x-go-name": "RepoID"
         },
+        "state": {
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-name": "State"
+        },
         "template_type": {
-          "description": "Template type: 0=none, 1=basic_kanban, 2=bug_triage",
-          "type": "integer",
-          "format": "int64",
+          "description": "Template type: \"none\", \"basic_kanban\" or \"bug_triage\"",
+          "type": "string",
           "x-go-name": "TemplateType"
         },
         "title": {
@@ -28139,19 +28250,14 @@
           "x-go-name": "Title"
         },
         "type": {
-          "description": "Project type: 1=individual, 2=repository, 3=organization",
-          "type": "integer",
-          "format": "int64",
+          "description": "Project type: \"individual\", \"repository\" or \"organization\"",
+          "type": "string",
           "x-go-name": "Type"
         },
-        "updated": {
+        "updated_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-name": "Updated"
-        },
-        "url": {
-          "type": "string",
-          "x-go-name": "URL"
+          "x-go-name": "UpdatedAt"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -28164,15 +28270,13 @@
           "type": "string",
           "x-go-name": "Color"
         },
-        "created": {
+        "created_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-name": "Created"
+          "x-go-name": "CreatedAt"
         },
-        "creator_id": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "CreatorID"
+        "creator": {
+          "$ref": "#/definitions/User"
         },
         "default": {
           "type": "boolean",
@@ -28202,10 +28306,10 @@
           "type": "string",
           "x-go-name": "Title"
         },
-        "updated": {
+        "updated_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-name": "Updated"
+          "x-go-name": "UpdatedAt"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -31499,7 +31603,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/EditProjectColumnOption"
+        "$ref": "#/definitions/MoveProjectIssueOption"
       }
     },
     "redirect": {
