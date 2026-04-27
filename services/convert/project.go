@@ -55,7 +55,7 @@ func ToProjectColumn(ctx context.Context, column *project_model.Column) *api.Pro
 		ID:        column.ID,
 		Title:     column.Title,
 		Default:   column.Default,
-		Sorting:   int(column.Sorting),
+		Sorting:   column.Sorting,
 		Color:     column.Color,
 		ProjectID: column.ProjectID,
 		CreatorID: column.CreatorID,

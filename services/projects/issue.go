@@ -118,7 +118,7 @@ func LoadIssuesAssigneesForProject(ctx context.Context, issuesMap map[int64]issu
 func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (results map[int64]issues_model.IssueList, _ error) {
 	issueList, err := issues_model.Issues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
 		o.ProjectID = project.ID
-		o.SortType = "project-column-sorting"
+		o.SortType = issues_model.SortTypeProjectColumnSorting
 	}))
 	if err != nil {
 		return nil, err

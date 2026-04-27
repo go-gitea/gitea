@@ -64,9 +64,9 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	columns, err := project_model.GetProjectColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
-	assert.EqualValues(t, 0, columns[0].Sorting)
-	assert.EqualValues(t, 1, columns[1].Sorting)
-	assert.EqualValues(t, 2, columns[2].Sorting)
+	assert.Equal(t, 0, columns[0].Sorting)
+	assert.Equal(t, 1, columns[1].Sorting)
+	assert.Equal(t, 2, columns[2].Sorting)
 
 	sess := loginUser(t, "user1")
 	req := NewRequest(t, "GET", fmt.Sprintf("/%s/projects/%d", repo2.FullName(), project1.ID))
@@ -139,7 +139,7 @@ func TestUpdateIssueProjectColumn(t *testing.T) {
 			Title:     "other column",
 			ProjectID: project2.ID,
 		}))
-		columns, err := project2.GetColumns(t.Context())
+		columns, err := project_model.GetProjectColumns(t.Context(), project2.ID, db.ListOptionsAll)
 		require.NoError(t, err)
 		require.NotEmpty(t, columns)
 

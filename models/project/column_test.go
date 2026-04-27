@@ -83,9 +83,9 @@ func Test_MoveColumnsOnProject(t *testing.T) {
 	columns, err := GetProjectColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
-	assert.EqualValues(t, 0, columns[0].Sorting) // even if there is no default sorting, the code should also work
-	assert.EqualValues(t, 0, columns[1].Sorting)
-	assert.EqualValues(t, 0, columns[2].Sorting)
+	assert.Equal(t, 0, columns[0].Sorting) // even if there is no default sorting, the code should also work
+	assert.Equal(t, 0, columns[1].Sorting)
+	assert.Equal(t, 0, columns[2].Sorting)
 
 	err = MoveColumnsOnProject(t.Context(), project1, map[int64]int64{
 		0: columns[1].ID,
