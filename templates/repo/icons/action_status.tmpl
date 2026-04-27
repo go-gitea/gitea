@@ -2,15 +2,15 @@
 * Status: one of success, skipped, waiting, blocked, running, failure, cancelled, unknown
 * Size: icon size in pixels (default 16)
 * ClassName: additional CSS classes
-* IconVariant: "circle-fill" to use circle-fill icons for success/failure (default: bare icons matching repo/commit_status)
+* IconSuffix: optional suffix appended to the icon name for status icons that ship variants (e.g. "-circle-fill" → octicon-check-circle-fill / octicon-x-circle-fill)
 
 Keep this template in sync with web_src/js/components/ActionRunStatus.vue.
 */}}
 {{- $size := Iif .Size .Size 16 -}}
 {{- $className := Iif .ClassName .ClassName "" -}}
-{{- $filled := eq .IconVariant "circle-fill" -}}
+{{- $suffix := Iif .IconSuffix .IconSuffix "" -}}
 {{if eq .Status "success"}}
-	{{svg (Iif $filled "octicon-check-circle-fill" "octicon-check") $size (printf "tw-text-green %s" $className)}}
+	{{svg (printf "octicon-check%s" $suffix) $size (printf "tw-text-green %s" $className)}}
 {{else if eq .Status "skipped"}}
 	{{svg "octicon-skip" $size (printf "tw-text-text-light %s" $className)}}
 {{else if eq .Status "cancelled"}}
@@ -22,5 +22,5 @@ Keep this template in sync with web_src/js/components/ActionRunStatus.vue.
 {{else if eq .Status "running"}}
 	{{svg "gitea-running" $size (printf "tw-text-yellow rotate-clockwise %s" $className)}}
 {{else}}{{/*failure, unknown*/}}
-	{{svg (Iif $filled "octicon-x-circle-fill" "octicon-x") $size (printf "tw-text-red %s" $className)}}
+	{{svg (printf "octicon-x%s" $suffix) $size (printf "tw-text-red %s" $className)}}
 {{end}}

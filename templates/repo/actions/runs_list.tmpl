@@ -9,7 +9,7 @@
 		<div class="flex-item tw-items-center">
 			<div class="flex-item-leading">
 				<span data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" $run.Status.String)}}">
-					{{template "repo/icons/action_status" (dict "Status" $run.Status.String "IconVariant" "circle-fill")}}
+					{{template "repo/icons/action_status" (dict "Status" $run.Status.String "IconSuffix" "-circle-fill")}}
 				</span>
 			</div>
 			<div class="flex-item-main">
