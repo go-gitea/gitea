@@ -59,7 +59,7 @@
 						<strong>{{ctx.Locale.Tr "org.members"}}</strong>
 						<a class="tw-text-text-light flex-text-inline" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
 					</h4>
-					{{/* gap 8px below is specially chosen to make sure a full line of avatars can exactly fit the segment width */}}
+					{{/* gap 8px below is specifically chosen to make sure a full line of avatars can exactly fit the segment width */}}
 					<div class="ui attached segment flex-text-block tw-flex-wrap tw-gap-[8px]">
 						{{range $memberUser := .OrgOverviewMembers}}
 							{{if or $.IsOrganizationMember (call $.IsPublicMember $memberUser.ID)}}
