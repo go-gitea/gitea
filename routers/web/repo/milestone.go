@@ -265,8 +265,8 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ret := issue.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.Data["NewIssueChooseTemplate"] = len(ret.IssueTemplates) > 0
 
-	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWriteIssuesOrPulls(false)
-	ctx.Data["CanWritePulls"] = ctx.Repo.CanWriteIssuesOrPulls(true)
+	ctx.Data["CanWriteIssues"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(false)
+	ctx.Data["CanWritePulls"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(true)
 
 	ctx.HTML(http.StatusOK, tplMilestoneIssues)
 }

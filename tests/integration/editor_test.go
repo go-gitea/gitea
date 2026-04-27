@@ -227,8 +227,7 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 		req.Header.Add("Content-Type", uploadForm.FormDataContentType())
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
-		respMap := map[string]string{}
-		DecodeJSON(t, resp, &respMap)
+		respMap := DecodeJSON(t, resp, map[string]string{})
 		return respMap["uuid"]
 	}
 

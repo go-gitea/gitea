@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-var giteaTestSourceRoot *string
+var giteaTestSourceRoot *string // intentionally use a pointer to make sure the uninitialized access panics
 
 func GetGiteaTestSourceRoot() string {
 	return *giteaTestSourceRoot
@@ -30,7 +30,9 @@ func SetupGiteaTestEnv() {
 
 	log.OsExiter = func(code int) {
 		if code != 0 {
-			// non-zero exit code (log.Fatal) shouldn't occur during testing, if it happens, show a full stacktrace for more details
+			// Non-zero exit code (log.Fatal) shouldn't occur during testing, if it happens:
+			// * Show a full stacktrace for more details.
+			// * If the "log.Fatal" is abused in tests, should fix.
 			panic(fmt.Errorf("non-zero exit code during testing: %d", code))
 		}
 		os.Exit(0)
@@ -49,12 +51,14 @@ func SetupGiteaTestEnv() {
 		giteaTestSourceRoot = &giteaRoot
 		return giteaRoot
 	}
+	giteaRoot := initGiteaRoot()
 
 	initGiteaPaths := func() {
-		appWorkPathBuiltin = *giteaTestSourceRoot
-		AppWorkPath = appWorkPathBuiltin
-		AppPath = filepath.Join(AppWorkPath, "gitea") + util.Iif(IsWindows, ".exe", "")
-		StaticRootPath = AppWorkPath // need to load assets (options, public) from the source code directory for testing
+		// need to load assets (options, public) from the source code directory for testing
+		StaticRootPath = giteaRoot
+		// during testing, the AppPath must point to the pre-built Gitea binary in the source root
+		// it needs to be called by git hooks
+		AppPath = filepath.Join(giteaRoot, "gitea") + util.Iif(IsWindows, ".exe", "")
 	}
 
 	initGiteaConf := func() string {
@@ -62,13 +66,15 @@ func SetupGiteaTestEnv() {
 		giteaConf := os.Getenv("GITEA_TEST_CONF")
 		if giteaConf == "" {
 			// if no GITEA_TEST_CONF, then it is in unit test, use a temp (non-existing / empty) config file
+			// do not really use such config file, the test can run concurrently, using the same config file will cause data-race between tests
 			giteaConf = "custom/conf/app-test-tmp.ini"
 			customConfBuiltin = filepath.Join(AppWorkPath, giteaConf)
 			CustomConf = customConfBuiltin
 			_ = os.Remove(CustomConf)
 		} else {
-			// CustomConf must be absolute path to make tests pass,
-			CustomConf = filepath.Join(AppWorkPath, giteaConf)
+			// CustomConf must be absolute path to make tests pass.
+			// At the moment, GITEA_TEST_CONF is always in Gitea's source root
+			CustomConf = filepath.Join(giteaRoot, giteaConf)
 		}
 		return giteaConf
 	}
@@ -98,11 +104,14 @@ func SetupGiteaTestEnv() {
 		PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
 	}
 
-	giteaRoot := initGiteaRoot()
 	initGiteaPaths()
 	giteaConf := initGiteaConf()
 	cleanUpEnv()
 	initWorkPathAndConfig()
+
+	if RepoRootPath == "" || AppDataPath == "" {
+		panic("SetupGiteaTestEnv failed, paths are not initialized")
+	}
 
 	// TODO: some git repo hooks (test fixtures) still use these env variables, need to be refactored in the future
 	_ = os.Setenv("GITEA_ROOT", giteaRoot)

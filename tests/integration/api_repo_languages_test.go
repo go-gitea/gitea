@@ -43,8 +43,7 @@ func TestRepoLanguages(t *testing.T) {
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/languages")
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		var languages map[string]int64
-		DecodeJSON(t, resp, &languages)
+		languages := DecodeJSON(t, resp, map[string]int64{})
 
 		assert.InDeltaMapValues(t, map[string]int64{"Go": 12}, languages, 0)
 	})

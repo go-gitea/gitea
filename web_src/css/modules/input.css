@@ -38,7 +38,7 @@
 .ui.input.error > input {
   background: var(--color-error-bg);
   border-color: var(--color-error-border);
-  color: var(--color-error-text);
+  color: var(--color-input-text);
 }
 
 .ui.icon.input > i.icon {
