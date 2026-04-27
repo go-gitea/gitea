@@ -596,6 +596,12 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		return nil
 	}
 
+	compareInfo.Commits, err = baseGitRepo.ShowPrettyFormatLogToListCherryPick(ctx, git.RefNameFromBranch(pull.BaseBranch).String(), compareInfo.HeadCommitID)
+	if err != nil {
+		ctx.ServerError("ShowPrettyFormatLogToListCherryPick", err)
+		return nil
+	}
+
 	if compareInfo.HeadCommitID == compareInfo.MergeBase {
 		ctx.Data["IsNothingToCompare"] = true
 	}
