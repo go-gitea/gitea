@@ -59,12 +59,10 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 				continue
 			}
 
-			projectColumnMap, err := curIssue.ProjectColumnMap(ctx)
+			projectColumnID, err := curIssue.ProjectColumnID(ctx)
 			if err != nil {
 				return err
 			}
-
-			projectColumnID := projectColumnMap[column.ProjectID]
 
 			if projectColumnID != column.ID {
 				// add timeline to issue
@@ -82,16 +80,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 				}
 			}
 
-			// Update the column and sorting for this specific issue in this specific project.
-			// IMPORTANT: The WHERE clause must include both issue_id AND project_id to ensure
-			// that moving an issue's column in one project doesn't affect its column in other
-			// projects when the issue is assigned to multiple projects.
-			_, err = db.GetEngine(ctx).Table("project_issue").
-				Where("issue_id = ? AND project_id = ?", issueID, column.ProjectID).
-				Update(map[string]any{
-					"project_board_id": column.ID,
-					"sorting":          sorting,
-				})
+			_, err = db.Exec(ctx, "UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", column.ID, sorting, issueID)
 			if err != nil {
 				return err
 			}
@@ -128,8 +117,8 @@ func LoadIssuesAssigneesForProject(ctx context.Context, issuesMap map[int64]issu
 // LoadIssuesFromProject load issues assigned to each project column inside the given project
 func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (results map[int64]issues_model.IssueList, _ error) {
 	issueList, err := issues_model.Issues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
-		o.ProjectIDs = []int64{project.ID}
-		o.SortType = "project-column-sorting"
+		o.ProjectID = project.ID
+		o.SortType = issues_model.SortTypeProjectColumnSorting
 	}))
 	if err != nil {
 		return nil, err
@@ -222,10 +211,10 @@ func LoadIssueNumbersForProject(ctx context.Context, project *project_model.Proj
 
 	// for user or org projects, we need to check access permissions
 	opts := issues_model.IssuesOptions{
-		ProjectIDs: []int64{project.ID},
-		Doer:       doer,
-		AllPublic:  doer == nil,
-		Owner:      project.Owner,
+		ProjectID: project.ID,
+		Doer:      doer,
+		AllPublic: doer == nil,
+		Owner:     project.Owner,
 	}
 
 	var err error

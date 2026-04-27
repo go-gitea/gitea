@@ -469,7 +469,7 @@ type CreateProjectForm struct {
 // EditProjectColumnForm is a form for editing a project column
 type EditProjectColumnForm struct {
 	Title   string `binding:"Required;MaxSize(100)"`
-	Sorting int8
+	Sorting int
 	Color   string `binding:"MaxSize(7)"`
 }
 

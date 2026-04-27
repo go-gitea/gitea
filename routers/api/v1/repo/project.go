@@ -13,6 +13,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	project_service "code.gitea.io/gitea/services/projects"
@@ -97,18 +98,7 @@ func ListProjects(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	state := ctx.FormTrim("state")
-	var isClosed optional.Option[bool]
-	switch state {
-	case "closed":
-		isClosed = optional.Some(true)
-	case "open":
-		isClosed = optional.Some(false)
-	case "all":
-		isClosed = optional.None[bool]()
-	default:
-		isClosed = optional.Some(false)
-	}
+	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormTrim("state"))
 
 	listOptions := utils.GetListOptions(ctx)
 
@@ -275,28 +265,19 @@ func EditProject(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditProjectOption)
 
-	if form.Title != nil {
-		project.Title = *form.Title
-	}
-	if form.Description != nil {
-		project.Description = *form.Description
+	opts := project_service.UpdateProjectOptions{
+		Title:       optional.FromPtr(form.Title),
+		Description: optional.FromPtr(form.Description),
 	}
 	if form.CardType != nil {
-		project.CardType = project_model.CardType(*form.CardType)
+		opts.CardType = optional.Some(project_model.CardType(*form.CardType))
 	}
-	if err := project_model.UpdateProject(ctx, project); err != nil {
+	if form.State != nil {
+		opts.IsClosed = optional.Some(*form.State == string(api.StateClosed))
+	}
+	if err := project_service.UpdateProject(ctx, project, opts); err != nil {
 		ctx.APIErrorInternal(err)
 		return
-	}
-
-	if form.State != nil {
-		isClosed := *form.State == string(api.StateClosed)
-		if isClosed != project.IsClosed {
-			if err := project_model.ChangeProjectStatus(ctx, project, isClosed); err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-		}
 	}
 
 	if err := project_service.LoadIssueNumbersForProject(ctx, project, ctx.Doer); err != nil {
@@ -527,12 +508,7 @@ func EditProjectColumn(ctx *context.APIContext) {
 		column.Color = *form.Color
 	}
 	if form.Sorting != nil {
-		sorting := int8(*form.Sorting)
-		if int(sorting) != *form.Sorting {
-			ctx.APIError(http.StatusUnprocessableEntity, "sorting out of range")
-			return
-		}
-		column.Sorting = sorting
+		column.Sorting = *form.Sorting
 	}
 
 	if err := project_model.UpdateColumn(ctx, column); err != nil {
@@ -645,7 +621,7 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 		RepoIDs:         []int64{ctx.Repo.Repository.ID},
 		ProjectID:       column.ProjectID,
 		ProjectColumnID: column.ID,
-		SortType:        "project-column-sorting",
+		SortType:        issues_model.SortTypeProjectColumnSorting,
 	}
 
 	count, err := issues_model.CountIssues(ctx, issuesOpts)
@@ -713,32 +689,7 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	column := getRepoProjectColumn(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	issue, err := issues_model.GetIssueByID(ctx, ctx.PathParamInt64("issue_id"))
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, "issue not found")
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return
-	}
-
-	if issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIError(http.StatusUnprocessableEntity, "issue does not belong to this repository")
-		return
-	}
-
-	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, column.ProjectID, column.ID); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	ctx.Status(http.StatusCreated)
+	assignIssueToProjectColumn(ctx, true)
 }
 
 // RemoveIssueFromProjectColumn remove an issue from a project column
@@ -789,31 +740,39 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	assignIssueToProjectColumn(ctx, false)
+}
+
+// assignIssueToProjectColumn assigns an issue to a project column when add is true,
+// or removes the issue from any project assignment when add is false.
+func assignIssueToProjectColumn(ctx *context.APIContext, add bool) {
 	column := getRepoProjectColumn(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	issue, err := issues_model.GetIssueByID(ctx, ctx.PathParamInt64("issue_id"))
+	issue, err := issues_model.GetIssueByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("issue_id"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, "issue not found")
+			ctx.APIErrorNotFound()
 		} else {
 			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
-	if issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIError(http.StatusUnprocessableEntity, "issue does not belong to this repository")
-		return
+	projectID := int64(0)
+	if add {
+		projectID = column.ProjectID
 	}
-
-	// 0 means remove
-	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, 0, column.ID); err != nil {
+	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, column.ID); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	if add {
+		ctx.Status(http.StatusCreated)
+	} else {
+		ctx.Status(http.StatusNoContent)
+	}
 }
