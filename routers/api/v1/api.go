@@ -1369,6 +1369,7 @@ func Routes() *web.Router {
 						m.Combo("/requested_reviewers", reqToken()).
 							Delete(bind(api.PullReviewRequestOptions{}), repo.DeleteReviewRequests).
 							Post(bind(api.PullReviewRequestOptions{}), repo.CreateReviewRequests)
+						m.Post("/comments/{id}/replies", reqToken(), mustNotBeArchived, bind(api.CreatePullReviewCommentReplyOptions{}), repo.CreatePullReviewCommentReply)
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
