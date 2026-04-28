@@ -62,48 +62,46 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 		}
 	}
 
-	title, content := prepareNewPullRequestTitleContent(ci, nil, setting.RepoPRTitleSourceFirstCommit)
-	assert.Equal(t, "head-branch", title)
+	// no commit
+	title, content := prepareNewPullRequestTitleContent(ci, nil, setting.RepoPRTitleSourceAuto)
+	assert.Equal(t, "Head branch", title)
 	assert.Empty(t, content)
 
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title-only")}, setting.RepoPRTitleSourceFirstCommit)
-	assert.Equal(t, "title-only", title)
+	title, content = prepareNewPullRequestTitleContent(ci, nil, setting.RepoPRTitleSourceFirstCommit)
+	assert.Equal(t, "Head branch", title)
 	assert.Empty(t, content)
 
+	// single commit
+	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("single-commit-title\nbody")}, setting.RepoPRTitleSourceAuto)
+	assert.Equal(t, "Head branch", title)
+	assert.Equal(t, "body", content)
+
+	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("single-commit-title\nbody")}, setting.RepoPRTitleSourceFirstCommit)
+	assert.Equal(t, "single-commit-title", title)
+	assert.Equal(t, "body", content)
+
+	// multiple commits
+	commits := []*git_model.SignCommitWithStatuses{
+		// ordered from newest to oldest
+		mockCommit("title2\nbody2"),
+		mockCommit("title1\nbody1"),
+	}
+	title, content = prepareNewPullRequestTitleContent(ci, commits, setting.RepoPRTitleSourceAuto)
+	assert.Equal(t, "Head branch", title)
+	assert.Empty(t, content)
+
+	title, content = prepareNewPullRequestTitleContent(ci, commits, setting.RepoPRTitleSourceFirstCommit)
+	assert.Equal(t, "title1", title)
+	assert.Empty(t, content)
+
+	// title string handling
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title-" + strings.Repeat("a", 255))}, setting.RepoPRTitleSourceFirstCommit)
 	assert.Equal(t, "title-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…", title)
 	assert.Equal(t, "…aaaaaaaaa\n", content)
 
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title\nbody")}, setting.RepoPRTitleSourceFirstCommit)
-	assert.Equal(t, "title", title)
-	assert.Equal(t, "body", content)
-
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("a\xf0\xf0\xf0\nb\xf0\xf0\xf0")}, setting.RepoPRTitleSourceFirstCommit)
 	assert.Equal(t, "a?", title) // FIXME: GIT-COMMIT-MESSAGE-ENCODING: "title" doesn't use the same charset converting logic as "content"
 	assert.Equal(t, "b"+string(utf8.RuneError)+string(utf8.RuneError), content)
-
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{
-		// ordered from newest to oldest
-		mockCommit("title2\nbody2"),
-		mockCommit("title1\nbody1"),
-	}, setting.RepoPRTitleSourceFirstCommit)
-	assert.Equal(t, "title1", title)
-	assert.Empty(t, content)
-
-	title, content = prepareNewPullRequestTitleContent(ci, nil, setting.RepoPRTitleSourceAuto)
-	assert.Equal(t, "Head branch", title)
-	assert.Empty(t, content)
-
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("single-commit-title\nbody")}, setting.RepoPRTitleSourceAuto)
-	assert.Equal(t, "single-commit-title", title)
-	assert.Equal(t, "body", content)
-
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{
-		mockCommit("title2\nbody2"),
-		mockCommit("title1\nbody1"),
-	}, setting.RepoPRTitleSourceAuto)
-	assert.Equal(t, "Head branch", title)
-	assert.Empty(t, content)
 }
 
 func TestAutoTitleFromBranchName(t *testing.T) {
