@@ -49,15 +49,16 @@ else ifeq ($(patsubst Windows%,Windows,$(OS)),Windows)
 		IS_WINDOWS := yes
 	endif
 endif
+
+# GOFLAGS and EXTRA_GOFLAGS are for the 'go build' command only
 ifeq ($(IS_WINDOWS),yes)
 	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
-	EXECUTABLE_E2E ?= gitea-e2e.exe
 else
 	GOFLAGS := -v
 	EXECUTABLE ?= gitea
-	EXECUTABLE_E2E ?= gitea-e2e
 endif
+EXTRA_GOFLAGS ?=
 
 ifeq ($(shell sed --version 2>/dev/null | grep -q GNU && echo gnu),gnu)
 	SED_INPLACE := sed -i
@@ -65,15 +66,10 @@ else
 	SED_INPLACE := sed -i ''
 endif
 
-EXTRA_GOFLAGS ?=
-
 MAKE_EVIDENCE_DIR := .make_evidence
 
-GOTESTFLAGS ?=
-ifeq ($(RACE_ENABLED),true)
-	GOFLAGS += -race
-	GOTESTFLAGS += -race
-endif
+# GOTEST_FLAGS is for unit test and integration test
+GOTEST_FLAGS ?= -timeout 40m
 
 STORED_VERSION_FILE := VERSION
 
@@ -171,6 +167,9 @@ TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 # Makefile.local is listed in .gitignore
 sinclude Makefile.local
 
+$(foreach v, $(filter TEST_%, $(.VARIABLES)), $(eval MAKEFILE_VARS+=$v=$($v)))
+export MAKEFILE_VARS
+
 .PHONY: all
 all: build
 
@@ -181,20 +180,13 @@ help: Makefile ## print Makefile help information.
 	@printf "  \033[36m%-46s\033[0m %s\n" "test[#TestSpecificName]" "run unit test"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-sqlite[#TestSpecificName]" "run integration test for sqlite"
 
-.PHONY: git-check
-git-check:
-	@if git lfs >/dev/null 2>&1 ; then : ; else \
-		echo "Gitea requires git with lfs support to run tests." ; \
-		exit 1; \
-	fi
-
 .PHONY: clean-all
 clean-all: clean ## delete backend, frontend and integration files
 	rm -rf $(FRONTEND_DEST_ENTRIES) node_modules
 
 .PHONY: clean
 clean: ## delete backend and integration files
-	rm -rf $(EXECUTABLE) $(EXECUTABLE_E2E) $(DIST) $(BINDATA_DEST_WILDCARD) \
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST_WILDCARD) \
 		integrations*.test migrations*.test \
 		tests/integration/gitea-integration-* \
 		tests/integration/indexers-* \
@@ -378,8 +370,8 @@ test: test-frontend test-backend ## test everything
 
 .PHONY: test-backend
 test-backend: ## test backend files
-	@echo "Running go test with $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
-	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' $(GO_TEST_PACKAGES)
+	@echo "Running go test with $(GOTEST_FLAGS) -tags '$(TEST_TAGS)'..."
+	@$(GO) test $(GOTEST_FLAGS) -tags='$(TEST_TAGS)' $(GO_TEST_PACKAGES)
 
 .PHONY: test-frontend
 test-frontend: node_modules ## test frontend files
@@ -400,7 +392,7 @@ test-check:
 .PHONY: test\#%
 test\#%:
 	@echo "Running go test with -tags '$(TEST_TAGS)'..."
-	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_TEST_PACKAGES)
+	@$(GO) test $(GOTEST_FLAGS) -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_TEST_PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -410,8 +402,8 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	@echo "Running unit-test-coverage $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
-	@$(GO) test $(GOTESTFLAGS) -timeout=20m -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_TEST_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	@echo "Running unit-test-coverage $(GOTEST_FLAGS) -tags '$(TEST_TAGS)'..."
+	@$(GO) test $(GOTEST_FLAGS) -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_TEST_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: tidy
 tidy: ## run go mod tidy
@@ -438,72 +430,28 @@ go-licenses: $(GO_LICENSE_FILE) ## regenerate go licenses
 $(GO_LICENSE_FILE): go.mod go.sum
 	GO=$(GO) $(GO) run build/generate-go-licenses.go $(GO_LICENSE_FILE)
 
-generate-ini-sqlite:
-	sed -e 's|{{WORK_PATH}}|$(CURDIR)/tests/$(or $(TEST_TYPE),integration)/gitea-$(or $(TEST_TYPE),integration)-sqlite|g' \
-		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
-		-e 's|{{GITEA_TEST_ROOT}}|$(or $(GITEA_TEST_ROOT),$(CURDIR))|g' \
-			tests/sqlite.ini.tmpl > tests/sqlite.ini
+.PHONY: test-integration
+test-integration:
+	$$(GO) test $$(GOTEST_FLAGS) code.gitea.io/gitea/tests/integration
 
-generate-ini-mysql:
-	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
-		-e 's|{{TEST_MYSQL_DBNAME}}|${TEST_MYSQL_DBNAME}|g' \
-		-e 's|{{TEST_MYSQL_USERNAME}}|${TEST_MYSQL_USERNAME}|g' \
-		-e 's|{{TEST_MYSQL_PASSWORD}}|${TEST_MYSQL_PASSWORD}|g' \
-		-e 's|{{WORK_PATH}}|$(CURDIR)/tests/$(or $(TEST_TYPE),integration)/gitea-$(or $(TEST_TYPE),integration)-mysql|g' \
-		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
-			tests/mysql.ini.tmpl > tests/mysql.ini
+.PHONY: test-integration\#%
+test-integration\#%:
+	$$(GO) test $$(GOTEST_FLAGS) -run $$(subst .,/,$$*) code.gitea.io/gitea/tests/integration
 
-generate-ini-pgsql:
-	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
-		-e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
-		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
-		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
-		-e 's|{{TEST_PGSQL_SCHEMA}}|${TEST_PGSQL_SCHEMA}|g' \
-		-e 's|{{TEST_MINIO_ENDPOINT}}|${TEST_MINIO_ENDPOINT}|g' \
-		-e 's|{{WORK_PATH}}|$(CURDIR)/tests/$(or $(TEST_TYPE),integration)/gitea-$(or $(TEST_TYPE),integration)-pgsql|g' \
-		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
-			tests/pgsql.ini.tmpl > tests/pgsql.ini
+.PHONY: test-migration
+test-integration-migration: migrations.integration.test migrations.individual.test
 
-generate-ini-mssql:
-	sed -e 's|{{TEST_MSSQL_HOST}}|${TEST_MSSQL_HOST}|g' \
-		-e 's|{{TEST_MSSQL_DBNAME}}|${TEST_MSSQL_DBNAME}|g' \
-		-e 's|{{TEST_MSSQL_USERNAME}}|${TEST_MSSQL_USERNAME}|g' \
-		-e 's|{{TEST_MSSQL_PASSWORD}}|${TEST_MSSQL_PASSWORD}|g' \
-		-e 's|{{WORK_PATH}}|$(CURDIR)/tests/$(or $(TEST_TYPE),integration)/gitea-$(or $(TEST_TYPE),integration)-mssql|g' \
-		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
-			tests/mssql.ini.tmpl > tests/mssql.ini
+.PHONY: migrations.integration.test
+migrations.integration.test:
+	$$(GO) test $$(GOTEST_FLAGS) code.gitea.io/gitea/tests/integration/migration-test
 
-# Generate per-DB integration test/migration targets.
-# args: $(1)=db (sqlite|mysql|pgsql|mssql), $(2)=optional extra flags (e.g. -tags '...')
-define DB_INTEGRATION_TARGETS
-.PHONY: test-$(1)
-test-$(1): git-check generate-ini-$(1)
-	GITEA_TEST_CONF=tests/$(1).ini $$(GO) test $$(GOTESTFLAGS) -timeout 50m $(2) code.gitea.io/gitea/tests/integration
+.PHONY: migrations.individual.test
+migrations.individual.test:
+	$$(GO) test $$(GOTEST_FLAGS) $$(MIGRATE_TEST_PACKAGES)
 
-.PHONY: test-$(1)\#%
-test-$(1)\#%: git-check generate-ini-$(1)
-	GITEA_TEST_CONF=tests/$(1).ini $$(GO) test $$(GOTESTFLAGS) -timeout 50m $(2) -run $$(subst .,/,$$*) code.gitea.io/gitea/tests/integration
-
-.PHONY: test-$(1)-migration
-test-$(1)-migration: migrations.$(1).test migrations.individual.$(1).test
-
-.PHONY: migrations.$(1).test
-migrations.$(1).test: git-check generate-ini-$(1)
-	GITEA_TEST_CONF=tests/$(1).ini $$(GO) test $$(GOTESTFLAGS) -timeout 50m $(2) code.gitea.io/gitea/tests/integration/migration-test
-
-.PHONY: migrations.individual.$(1).test
-migrations.individual.$(1).test: generate-ini-$(1)
-	GITEA_TEST_CONF=tests/$(1).ini $$(GO) test $$(GOTESTFLAGS) -tags '$$(TEST_TAGS)' -p 1 $$(MIGRATE_TEST_PACKAGES)
-
-.PHONY: migrations.individual.$(1).test\#%
-migrations.individual.$(1).test\#%: generate-ini-$(1)
-	GITEA_TEST_CONF=tests/$(1).ini $$(GO) test $$(GOTESTFLAGS) -tags '$$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$$*
-endef
-
-$(eval $(call DB_INTEGRATION_TARGETS,sqlite,-tags '$(TEST_TAGS)'))
-$(eval $(call DB_INTEGRATION_TARGETS,mysql,))
-$(eval $(call DB_INTEGRATION_TARGETS,pgsql,))
-$(eval $(call DB_INTEGRATION_TARGETS,mssql,))
+.PHONY: migrations.individual.test\#%
+migrations.individual.test\#%:
+	$$(GO) test $$(GOTEST_FLAGS) code.gitea.io/gitea/models/migrations/$$*
 
 .PHONY: playwright
 playwright: deps-frontend
@@ -511,16 +459,8 @@ playwright: deps-frontend
 	@pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium firefox $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e
-test-e2e: playwright $(EXECUTABLE_E2E)
-	@EXECUTABLE=$(EXECUTABLE_E2E) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
-
-.PHONY: integration-test-coverage
-integration-test-coverage: git-check generate-ini-mysql
-	GITEA_TEST_CONF=tests/mysql.ini $(GO) test $(GOTESTFLAGS) -timeout 50m -coverpkg $(shell echo $(GO_TEST_PACKAGES) | tr ' ' ',') -coverprofile=integration.coverage.out code.gitea.io/gitea/tests/integration
-
-.PHONY: integration-test-coverage-sqlite
-integration-test-coverage-sqlite: git-check generate-ini-sqlite
-	GITEA_TEST_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -timeout 50m -tags '$(TEST_TAGS)' -coverpkg $(shell echo $(GO_TEST_PACKAGES) | tr ' ' ',') -coverprofile=integration.coverage.out code.gitea.io/gitea/tests/integration
+test-e2e: playwright $(EXECUTABLE)
+	@EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: check
 check: test
@@ -559,9 +499,6 @@ ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)
   $(error pam support set via TAGS does not support static builds)
 endif
 	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
-
-$(EXECUTABLE_E2E): $(GO_SOURCES) $(FRONTEND_DEST)
-	CGO_ENABLED=1 $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TEST_TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
 
 .PHONY: release
 release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-check
