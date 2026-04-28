@@ -58,7 +58,6 @@ cpu.out
 /gitea-e2e
 /gitea-vet
 /debug
-/integrations.test
 
 /bin
 /dist
