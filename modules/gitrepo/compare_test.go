@@ -4,12 +4,9 @@
 package gitrepo
 
 import (
-	"bytes"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/util"
@@ -26,57 +23,28 @@ func (r *mockRepository) RelativePath() string {
 	return r.path
 }
 
-func commitRootTree(t *testing.T, repoDir, fileName, content, message string) string {
-	t.Helper()
-
-	require.NoError(t, gitcmd.NewCommand("read-tree", "--empty").WithDir(repoDir).Run(t.Context()))
-
-	stdout, _, err := gitcmd.NewCommand("hash-object", "-w", "--stdin").
-		WithDir(repoDir).
-		WithStdinBytes([]byte(content)).
-		RunStdString(t.Context())
-	require.NoError(t, err)
-	blobSHA := strings.TrimSpace(stdout)
-
-	_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
-		AddDynamicArguments("100644", blobSHA, fileName).
-		WithDir(repoDir).
-		RunStdString(t.Context())
-	require.NoError(t, err)
-
-	stdout, _, err = gitcmd.NewCommand("write-tree").WithDir(repoDir).RunStdString(t.Context())
-	require.NoError(t, err)
-	treeSHA := strings.TrimSpace(stdout)
-
-	commitTimeStr := time.Now().Format(time.RFC3339)
-	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME=Test",
-		"GIT_AUTHOR_EMAIL=test@example.com",
-		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME=Test",
-		"GIT_COMMITTER_EMAIL=test@example.com",
-		"GIT_COMMITTER_DATE="+commitTimeStr,
-	)
-
-	messageBytes := bytes.NewBufferString(message + "\n")
-	stdout, _, err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSHA).
-		WithEnv(env).
-		WithDir(repoDir).
-		WithStdinBytes(messageBytes.Bytes()).
-		RunStdString(t.Context())
-	require.NoError(t, err)
-
-	return strings.TrimSpace(stdout)
-}
-
 func TestMergeBaseNoCommonHistory(t *testing.T) {
 	repoDir := filepath.Join(t.TempDir(), "repo.git")
 	require.NoError(t, gitcmd.NewCommand("init").AddDynamicArguments(repoDir).Run(t.Context()))
+	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinBytes([]byte(strings.TrimSpace(`
+commit refs/heads/branch1
+committer User <user@example.com> 1714310400 +0000
+data 12
+First commit
+M 100644 inline file1.txt
+data 12
+Hello from 1
 
-	baseCommit := commitRootTree(t, repoDir, "base.txt", "base", "base")
-	headCommit := commitRootTree(t, repoDir, "head.txt", "head", "head")
-
-	mergeBase, err := MergeBase(t.Context(), &mockRepository{path: repoDir}, baseCommit, headCommit)
+commit refs/heads/branch2
+committer User <user@example.com> 1714310400 +0000
+data 13
+Second commit
+M 100644 inline file2.txt
+data 12
+Hello from 2
+`))).RunStdString(t.Context())
+	require.NoError(t, runErr)
+	mergeBase, err := MergeBase(t.Context(), &mockRepository{path: repoDir}, "branch1", "branch2")
 	assert.Empty(t, mergeBase)
 	assert.ErrorIs(t, err, util.ErrNotExist)
 }
