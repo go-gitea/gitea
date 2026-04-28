@@ -9,7 +9,7 @@ GO ?= go
 SHASUM ?= shasum -a 256
 COMMA := ,
 
-XGO_VERSION := go-1.25.x # FIXME: outdated xgo
+XGO_VERSION := go-1.26.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1 # renovate: datasource=go
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3 # renovate: datasource=go
