@@ -430,8 +430,9 @@ $(GO_LICENSE_FILE): go.mod go.sum
 
 .PHONY: test-integration
 test-integration:
-	@# TODO: it seems that "go test" doesn't have the same behavior as the compiled test binary
-	@# e.g.: log output (no Stdout output, no progress), strange deadlock with sqlite tests
+	@# Use a compiled binary: testlogger forwards gitea logs to t.Log, so `go test -v`
+	@# would flood output per passing test. testcache can't help these tests anyway —
+	@# they mutate the work directory, so cache inputs change between runs.
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c code.gitea.io/gitea/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
 	./test-integration-$(GITEA_TEST_DATABASE).test
 

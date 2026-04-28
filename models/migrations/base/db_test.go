@@ -17,13 +17,11 @@ func TestMain(m *testing.M) {
 
 func Test_DropTableColumns(t *testing.T) {
 	x, deferable := PrepareTestEnv(t, 0)
+	defer deferable()
 	// FIXME: this logic seems wrong. Need to add an assertion here in the future, but it seems causing failure.
 	if x == nil || t.Failed() {
-		t.Log("Test_DropTableColumns is skipped")
-		defer deferable()
-		return
+		t.Skip("PrepareTestEnv did not yield a usable engine")
 	}
-	defer deferable()
 
 	type DropTest struct {
 		ID            int64 `xorm:"pk autoincr"`
