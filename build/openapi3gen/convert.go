@@ -248,6 +248,7 @@ func extractSharedEnums(doc *openapi3.T, astEnumMap map[string]string) error {
 						},
 						Description: old.Description,
 						Deprecated:  old.Deprecated,
+						Format:      old.Format,
 					}
 				}
 			}
