@@ -381,6 +381,9 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 
 // prepareCompareDiff renders compare diff page. TODO: need to refactor it and other "compare diff" related functions together
 func prepareCompareDiff(ctx *context.Context, ci *git_service.CompareInfo, whitespaceBehavior gitcmd.TrustedCmdArgs) (nothingToCompare bool) {
+	if ci.MergeBase == "" {
+		return true
+	}
 	repo := ctx.Repo.Repository
 	headCommitID := ci.HeadCommitID
 
