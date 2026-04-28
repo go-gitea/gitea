@@ -82,33 +82,25 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 	}
 }
 
-func newTestActionRun(t *testing.T) *ActionRun {
-	t.Helper()
-
-	run := &ActionRun{
-		Title:         "cancelling-test-run",
-		RepoID:        1,
-		OwnerID:       2,
-		WorkflowID:    "test.yaml",
-		Index:         999,
-		TriggerUserID: 2,
-		Ref:           "refs/heads/master",
-		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:         "push",
-		TriggerEvent:  "push",
-		Status:        StatusRunning,
-		Started:       timeutil.TimeStampNow(),
-	}
-	require.NoError(t, db.Insert(t.Context(), run))
-
-	return run
-}
-
 func TestTaskCancellingFinalizesToCancelled(t *testing.T) {
 	newRunningTask := func(t *testing.T) (*ActionTask, *ActionRunJob) {
 		t.Helper()
 
-		run := newTestActionRun(t)
+		run := &ActionRun{
+			Title:         "cancelling-test-run",
+			RepoID:        1,
+			OwnerID:       2,
+			WorkflowID:    "test.yaml",
+			Index:         999,
+			TriggerUserID: 2,
+			Ref:           "refs/heads/master",
+			CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+			Event:         "push",
+			TriggerEvent:  "push",
+			Status:        StatusRunning,
+			Started:       timeutil.TimeStampNow(),
+		}
+		require.NoError(t, db.Insert(t.Context(), run))
 
 		job := &ActionRunJob{
 			RunID:     run.ID,
@@ -185,7 +177,21 @@ func TestTaskCancellingFinalizesToCancelled(t *testing.T) {
 func TestStopTaskCancellingFallsBackForLegacyRunner(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	run := newTestActionRun(t)
+	run := &ActionRun{
+		Title:         "cancelling-test-run",
+		RepoID:        1,
+		OwnerID:       2,
+		WorkflowID:    "test.yaml",
+		Index:         999,
+		TriggerUserID: 2,
+		Ref:           "refs/heads/master",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "push",
+		TriggerEvent:  "push",
+		Status:        StatusRunning,
+		Started:       timeutil.TimeStampNow(),
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
 
 	job := &ActionRunJob{
 		RunID:     run.ID,
@@ -236,7 +242,21 @@ func TestStopTaskCancellingFallsBackForLegacyRunner(t *testing.T) {
 func TestStopTaskCancellingFallsBackForMissingRunner(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	run := newTestActionRun(t)
+	run := &ActionRun{
+		Title:         "cancelling-test-run",
+		RepoID:        1,
+		OwnerID:       2,
+		WorkflowID:    "test.yaml",
+		Index:         999,
+		TriggerUserID: 2,
+		Ref:           "refs/heads/master",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "push",
+		TriggerEvent:  "push",
+		Status:        StatusRunning,
+		Started:       timeutil.TimeStampNow(),
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
 
 	job := &ActionRunJob{
 		RunID:     run.ID,

@@ -334,12 +334,14 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 		return StatusRunning
 	case hasWaiting:
 		return StatusWaiting
+	case hasBlocked:
+		// Blocked is still a pending state, so it should outrank terminal
+		// statuses like cancelled/failure when no job is waiting or running.
+		return StatusBlocked
 	case hasCancelled:
 		return StatusCancelled
 	case hasFailure:
 		return StatusFailure
-	case hasBlocked:
-		return StatusBlocked
 	default:
 		return StatusUnknown // it shouldn't happen
 	}

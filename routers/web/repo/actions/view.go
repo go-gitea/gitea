@@ -568,10 +568,14 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 	steps := actions.FullSteps(task)
 
 	for _, v := range steps {
+		status := v.Status
+		if task.Status == actions_model.StatusCancelling && status.IsRunning() {
+			status = actions_model.StatusCancelling
+		}
 		viewJobs = append(viewJobs, &ViewJobStep{
 			Summary:  v.Name,
 			Duration: v.Duration().String(),
-			Status:   v.Status.String(),
+			Status:   status.String(),
 		})
 	}
 

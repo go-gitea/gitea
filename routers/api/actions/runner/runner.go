@@ -23,7 +23,6 @@ import (
 	gouuid "github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -122,14 +121,6 @@ type declareRequest interface {
 	GetLabels() []string
 }
 
-// TODO: This fallback is only for actions-proto-go v0.4.x, where capabilities
-// still arrive as unknown fields. Once the upstream proto publishes typed
-// accessors for RegisterRequest/DeclareRequest, keep using the typed path above
-// and delete this field-8 wire parser after old runners are no longer supported.
-// capabilitiesFieldNumber is the protobuf field number used by legacy runner
-// requests to encode capabilities as unknown repeated string fields.
-const capabilitiesFieldNumber = 8
-
 func runnerRequestHasCapability(req proto.Message, capability string) (bool, bool) {
 	if req == nil {
 		return false, false
@@ -142,56 +133,7 @@ func runnerRequestHasCapability(req proto.Message, capability string) (bool, boo
 		return false, true
 	}
 
-	return legacyRunnerRequestHasCapability(req, capability)
-}
-
-func legacyRunnerRequestHasCapability(req proto.Message, capability string) (bool, bool) {
-	b := req.ProtoReflect().GetUnknown()
-	hasCapabilitiesField := false
-	for len(b) > 0 {
-		num, typ, n := protowire.ConsumeTag(b)
-		if n < 0 {
-			return false, false
-		}
-		b = b[n:]
-
-		switch typ {
-		case protowire.BytesType:
-			v, m := protowire.ConsumeBytes(b)
-			if m < 0 {
-				return false, false
-			}
-			if num == capabilitiesFieldNumber {
-				hasCapabilitiesField = true
-				if string(v) == capability {
-					return true, true
-				}
-			}
-			b = b[m:]
-		case protowire.VarintType:
-			_, m := protowire.ConsumeVarint(b)
-			if m < 0 {
-				return false, false
-			}
-			b = b[m:]
-		case protowire.Fixed32Type:
-			_, m := protowire.ConsumeFixed32(b)
-			if m < 0 {
-				return false, false
-			}
-			b = b[m:]
-		case protowire.Fixed64Type:
-			_, m := protowire.ConsumeFixed64(b)
-			if m < 0 {
-				return false, false
-			}
-			b = b[m:]
-		default:
-			return false, false
-		}
-	}
-
-	return false, hasCapabilitiesField
+	return false, false
 }
 
 func applyDeclareRequestToRunner(runner *actions_model.ActionRunner, req declareRequest) []string {
