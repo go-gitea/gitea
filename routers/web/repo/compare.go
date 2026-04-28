@@ -458,7 +458,7 @@ func autoTitleFromBranchName(name string) string {
 }
 
 func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses, defaultTitleSource string) (title, content string) {
-	useFirstCommitAsTitle := defaultTitleSource == setting.RepoPRTitleSourceFirstCommit && len(commits) > 0
+	useFirstCommitAsTitle := len(commits) == 1 || (defaultTitleSource == setting.RepoPRTitleSourceFirstCommit && len(commits) > 0)
 	if useFirstCommitAsTitle {
 		// the "commits" are from "ShowPrettyFormatLogToList", which is ordered from newest to oldest, here take the oldest one
 		c := commits[len(commits)-1]

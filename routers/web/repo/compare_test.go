@@ -73,7 +73,7 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 
 	// single commit
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("single-commit-title\nbody")}, setting.RepoPRTitleSourceAuto)
-	assert.Equal(t, "Head branch", title)
+	assert.Equal(t, "single-commit-title", title)
 	assert.Equal(t, "body", content)
 
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("single-commit-title\nbody")}, setting.RepoPRTitleSourceFirstCommit)
