@@ -53,6 +53,13 @@ func SetupGiteaTestEnv() {
 	}
 	giteaRoot := initGiteaRoot()
 
+	// Anchor the working directory to the source root so test files using
+	// repo-relative paths (e.g. "tests/integration/avatar.png") work whether
+	// invoked via `go test` (cwd = package dir) or a pre-built test binary.
+	if err := os.Chdir(giteaRoot); err != nil {
+		panic("failed to chdir to gitea source root for testing: " + err.Error())
+	}
+
 	initGiteaPaths := func() {
 		// need to load assets (options, public) from the source code directory for testing
 		StaticRootPath = giteaRoot
