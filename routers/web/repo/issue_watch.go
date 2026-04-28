@@ -23,7 +23,7 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull)) {
 		if log.IsTrace() {
 			if ctx.IsSigned {
 				issueType := "issues"

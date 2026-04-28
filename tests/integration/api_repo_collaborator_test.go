@@ -36,8 +36,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 			AddTokenAuth(testCtx.Token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var repoPermission api.RepoCollaboratorPermission
-		DecodeJSON(t, resp, &repoPermission)
+		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
 		assert.Equal(t, "owner", repoPermission.Permission)
 	})
@@ -49,8 +48,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 			AddTokenAuth(testCtx.Token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var repoPermission api.RepoCollaboratorPermission
-		DecodeJSON(t, resp, &repoPermission)
+		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
 		assert.Equal(t, "read", repoPermission.Permission)
 	})
@@ -62,8 +60,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 			AddTokenAuth(testCtx.Token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var repoPermission api.RepoCollaboratorPermission
-		DecodeJSON(t, resp, &repoPermission)
+		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
 		assert.Equal(t, "write", repoPermission.Permission)
 	})
@@ -75,8 +72,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 			AddTokenAuth(testCtx.Token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var repoPermission api.RepoCollaboratorPermission
-		DecodeJSON(t, resp, &repoPermission)
+		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
 		assert.Equal(t, "admin", repoPermission.Permission)
 	})
@@ -103,8 +99,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 			AddTokenAuth(_testCtx.Token)
 		resp := _session.MakeRequest(t, req, http.StatusOK)
 
-		var repoPermission api.RepoCollaboratorPermission
-		DecodeJSON(t, resp, &repoPermission)
+		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
 		assert.Equal(t, "read", repoPermission.Permission)
 
@@ -115,8 +110,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 			req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/collaborators/%s/permission", repo2Owner.Name, repo2.Name, user5.Name).AddTokenAuth(token)
 			resp = MakeRequest(t, req, http.StatusOK)
 
-			repoCollPerm := api.RepoCollaboratorPermission{}
-			DecodeJSON(t, resp, &repoCollPerm)
+			repoCollPerm := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
 			assert.Equal(t, "read", repoCollPerm.Permission)
 		})
@@ -132,8 +126,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 			AddTokenAuth(_testCtx.Token)
 		resp := _session.MakeRequest(t, req, http.StatusOK)
 
-		var repoPermission api.RepoCollaboratorPermission
-		DecodeJSON(t, resp, &repoPermission)
+		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
 		assert.Equal(t, "read", repoPermission.Permission)
 	})
@@ -149,8 +142,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 			AddTokenAuth(_testCtx.Token)
 		resp := _session.MakeRequest(t, req, http.StatusOK)
 
-		var repoPermission api.RepoCollaboratorPermission
-		DecodeJSON(t, resp, &repoPermission)
+		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
 		assert.Equal(t, "read", repoPermission.Permission)
 	})

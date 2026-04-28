@@ -10,6 +10,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -21,6 +24,7 @@ func TestView(t *testing.T) {
 	t.Run("CommitListActions", testCommitListActions)
 	t.Run("SecurityHeadersDefaults", testSecurityHeadersDefaults)
 	t.Run("SiteManifest", testSiteManifest)
+	t.Run("CurrentURL", testViewPageCurrentURL)
 }
 
 func testRenderFileSVGIsInImgTag(t *testing.T) {
@@ -112,4 +116,16 @@ func testSiteManifest(t *testing.T) {
 		assetBase+"/assets/img/logo.svg",
 	)
 	assert.JSONEq(t, expectedJSON, resp.Body.String())
+}
+
+func testViewPageCurrentURL(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppSubURL, "/subpath")()
+	var currentURL string
+	web.RouteMock(web.MockAfterMiddlewares, func(ctx *context.Context) {
+		// Some custom template users need this template variable to construct links in their templates
+		currentURL, _ = ctx.Data["CurrentURL"].(string)
+	})
+	defer web.RouteMockReset()
+	MakeRequest(t, NewRequest(t, "GET", "/any-page?k=v"), http.StatusNotFound)
+	assert.Equal(t, "/subpath/any-page?k=v", currentURL)
 }

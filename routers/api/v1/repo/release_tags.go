@@ -60,7 +60,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 	}
 
 	if release.IsDraft { // only the users with write access can see draft releases
-		if !ctx.IsSigned || !ctx.Repo.CanWrite(unit_model.TypeReleases) {
+		if !ctx.IsSigned || !ctx.Repo.Permission.CanWrite(unit_model.TypeReleases) {
 			ctx.APIErrorNotFound()
 			return
 		}

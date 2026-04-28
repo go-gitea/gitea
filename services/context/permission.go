@@ -15,7 +15,7 @@ import (
 // RequireRepoAdmin returns a middleware for requiring repository admin permission
 func RequireRepoAdmin() func(ctx *Context) {
 	return func(ctx *Context) {
-		if !ctx.IsSigned || !ctx.Repo.IsAdmin() {
+		if !ctx.IsSigned || !ctx.Repo.Permission.IsAdmin() {
 			ctx.NotFound(nil)
 			return
 		}
@@ -35,7 +35,7 @@ func CanWriteToBranch() func(ctx *Context) {
 // RequireUnitWriter returns a middleware for requiring repository write to one of the unit permission
 func RequireUnitWriter(unitTypes ...unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
-		if slices.ContainsFunc(unitTypes, ctx.Repo.CanWrite) {
+		if slices.ContainsFunc(unitTypes, ctx.Repo.Permission.CanWrite) {
 			return
 		}
 		ctx.NotFound(nil)
@@ -46,7 +46,7 @@ func RequireUnitWriter(unitTypes ...unit.Type) func(ctx *Context) {
 func RequireUnitReader(unitTypes ...unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		for _, unitType := range unitTypes {
-			if ctx.Repo.CanRead(unitType) {
+			if ctx.Repo.Permission.CanRead(unitType) {
 				return
 			}
 			if unitType == unit.TypeCode && canWriteAsMaintainer(ctx) {
