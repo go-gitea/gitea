@@ -12,9 +12,9 @@ import (
 )
 
 func TestParseIssueFilterStateIsClosed(t *testing.T) {
-	assert.EqualValues(t, optional.None[bool](), ParseIssueFilterStateIsClosed(""))
-	assert.EqualValues(t, optional.None[bool](), ParseIssueFilterStateIsClosed("all"))
-	assert.EqualValues(t, optional.Some(true), ParseIssueFilterStateIsClosed("closed"))
-	assert.EqualValues(t, optional.Some(false), ParseIssueFilterStateIsClosed("open"))
-	assert.EqualValues(t, optional.Some(false), ParseIssueFilterStateIsClosed("unknown"))
+	assert.Equal(t, optional.None[bool](), ParseIssueFilterStateIsClosed(""))
+	assert.Equal(t, optional.None[bool](), ParseIssueFilterStateIsClosed("all"))
+	assert.Equal(t, optional.Some(true), ParseIssueFilterStateIsClosed("closed"))
+	assert.Equal(t, optional.Some(false), ParseIssueFilterStateIsClosed("open"))
+	assert.Equal(t, optional.Some(false), ParseIssueFilterStateIsClosed("unknown"))
 }
