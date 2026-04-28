@@ -430,7 +430,10 @@ $(GO_LICENSE_FILE): go.mod go.sum
 
 .PHONY: test-integration
 test-integration:
-	$(GO) test $(GOTEST_FLAGS) -v -tags '$(TAGS)' code.gitea.io/gitea/tests/integration
+	@# `-v` is needed so progress markers and init logs stream through go test's
+	@# stdout buffer. The grep strips driver-injected `=== RUN` / `--- PASS:`
+	@# lines so output matches the legacy compiled-binary path.
+	@bash -ec 'set -o pipefail; $(GO) test $(GOTEST_FLAGS) -v -tags "$(TAGS)" code.gitea.io/gitea/tests/integration | grep -vE "^=== (RUN|NAME|PAUSE|CONT)|^[[:space:]]*--- PASS"'
 
 .PHONY: test-integration\#%
 test-integration\#%:
