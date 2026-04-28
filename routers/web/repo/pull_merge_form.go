@@ -20,7 +20,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 
 	// Check correct values and select default
 	var mergeStyle repo_model.MergeStyle
-	if prConfig.IsMergeStyleAllowed(mergeStyle) {
+	if prConfig.IsMergeStyleAllowed(prConfig.DefaultMergeStyle) {
 		mergeStyle = prConfig.DefaultMergeStyle
 	} else if prConfig.AllowMerge {
 		mergeStyle = repo_model.MergeStyleMerge
