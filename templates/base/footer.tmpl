@@ -11,5 +11,8 @@
 	{{template "base/footer_content" .}}
 	{{ctx.ScriptImport "js/index.js" "module"}}
 	{{template "custom/footer" .}}
+	<script nonce="{{ctx.CspScriptNonce}}" type="module">
+	if (!window.config?.frontendInited) alert("Frontend is not initialized, check console errors or asset files.")
+	</script>
 </body>
 </html>
