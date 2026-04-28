@@ -532,6 +532,12 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["CompareInfo"] = ci
 
+	// TODO: need to refactor "prepare compare" related functions together
+	nothingToCompare := prepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
+	if ctx.Written() {
+		return
+	}
+
 	baseTags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetTagNamesByRepoID", err)
@@ -560,7 +566,7 @@ func CompareDiff(ctx *context.Context) {
 	}
 
 	if ci.MergeBase != "" {
-		prepareCreatePullRequestPage(ctx, ci)
+		prepareCreatePullRequestPage(ctx, ci, nothingToCompare)
 		if ctx.Written() {
 			return
 		}
@@ -572,13 +578,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 
-func prepareCreatePullRequestPage(ctx *context.Context, ci *git_service.CompareInfo) {
-	// TODO: need to refactor "prepare compare" related functions together
-	nothingToCompare := prepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
-	if ctx.Written() {
-		return
-	}
-
+func prepareCreatePullRequestPage(ctx *context.Context, ci *git_service.CompareInfo, nothingToCompare bool) {
 	if ctx.Data["PageIsComparePull"] == true {
 		pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadRef.ShortName(), ci.BaseRef.ShortName(), issues_model.PullRequestFlowGithub)
 		if err != nil {
