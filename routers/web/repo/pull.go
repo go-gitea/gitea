@@ -1294,7 +1294,10 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		ctx.ServerError("ParseCompareInfo", err)
 		return
 	}
-
+	if ci.MergeBase == "" {
+		ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
+		return
+	}
 	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, true)
 	if ctx.Written() {
 		return

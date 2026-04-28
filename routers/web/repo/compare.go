@@ -332,19 +332,15 @@ func parseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, error) {
 		}
 	}
 
-	// Treat as pull request if both references are branches
-	willCreatePullRequest := baseRef.IsBranch() && headRef.IsBranch() && permBase.CanReadIssuesOrPulls(true)
-	if willCreatePullRequest && !permBase.CanReadIssuesOrPulls(true) {
-		return nil, util.NewNotExistErrorf("") // permission: no error message for end users
-	}
-
 	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), fileOnly)
 	if err != nil {
 		return nil, err
 	}
 
-	willCreatePullRequest = willCreatePullRequest && compareInfo.MergeBase != ""
-	ctx.Data["PageIsComparePull"] = willCreatePullRequest
+	// Treat as pull request if both references are branches
+	allowCreatePullRequest := baseRef.IsBranch() && headRef.IsBranch() && permBase.CanReadIssuesOrPulls(true)
+	allowCreatePullRequest = allowCreatePullRequest && compareInfo.MergeBase != ""
+	ctx.Data["PageIsComparePull"] = allowCreatePullRequest
 	if compareReq.DirectComparison() {
 		ctx.Data["BeforeCommitID"] = compareInfo.BaseCommitID
 	} else {
