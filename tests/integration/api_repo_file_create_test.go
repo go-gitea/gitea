@@ -124,35 +124,6 @@ func getExpectedFileResponseForCreate(info apiFileResponseInfo) *api.FileRespons
 	return ret
 }
 
-func BenchmarkAPICreateFileSmall(b *testing.B) {
-	onGiteaRun(b, func(b *testing.B, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(b, &user_model.User{ID: 2})       // owner of the repo1 & repo16
-		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
-
-		b.ResetTimer()
-		for n := 0; b.Loop(); n++ {
-			treePath := fmt.Sprintf("update/file%d.txt", n)
-			_, _ = createFile(user2, repo1, treePath)
-		}
-	})
-}
-
-func BenchmarkAPICreateFileMedium(b *testing.B) {
-	data := make([]byte, 10*1024*1024)
-
-	onGiteaRun(b, func(b *testing.B, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(b, &user_model.User{ID: 2})       // owner of the repo1 & repo16
-		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
-
-		b.ResetTimer()
-		for n := 0; b.Loop(); n++ {
-			treePath := fmt.Sprintf("update/file%d.txt", n)
-			copy(data, treePath)
-			_, _ = createFile(user2, repo1, treePath)
-		}
-	})
-}
-
 func TestAPICreateFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16

@@ -473,7 +473,7 @@ generate-ini-mssql:
 		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
 			tests/mssql.ini.tmpl > tests/mssql.ini
 
-# Generate per-DB integration test/bench/migration targets.
+# Generate per-DB integration test/migration targets.
 # args: $(1)=db (sqlite|mysql|pgsql|mssql), $(2)=optional extra flags (e.g. -tags '...')
 define DB_INTEGRATION_TARGETS
 .PHONY: test-$(1)
@@ -486,10 +486,6 @@ test-$(1)\#%: git-check generate-ini-$(1)
 
 .PHONY: test-$(1)-migration
 test-$(1)-migration: migrations.$(1).test migrations.individual.$(1).test
-
-.PHONY: bench-$(1)
-bench-$(1): git-check generate-ini-$(1)
-	GITEA_TEST_CONF=tests/$(1).ini $$(GO) test $$(GOTESTFLAGS) -timeout 50m $(2) -cpuprofile=cpu.out -run DontRunTests -bench . code.gitea.io/gitea/tests/integration
 
 .PHONY: migrations.$(1).test
 migrations.$(1).test: git-check generate-ini-$(1)
