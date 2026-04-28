@@ -40,7 +40,7 @@ func initMigrationTest(t *testing.T) func() {
 	setting.SetupGiteaTestEnv()
 	// `go test` runs tests with cwd = package dir, but the migration fixtures
 	// in this package are referenced as "tests/integration/migration-test/...".
-	require.NoError(t, os.Chdir(setting.GetGiteaTestSourceRoot()))
+	t.Chdir(setting.GetGiteaTestSourceRoot())
 
 	assert.NotEmpty(t, setting.RepoRootPath)
 	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/gitea-repositories-meta"), setting.RepoRootPath))
