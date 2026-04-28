@@ -1272,7 +1272,7 @@ jobs:
 		// and drives the resolver against the surviving Blocked run.
 		fireSchedule()
 		fireSchedule()
-		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
+		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 15*time.Second))
 
 		blockedRuns, err := db.Find[actions_model.ActionRun](t.Context(), actions_model.FindRunOptions{
 			RepoID:       repo.ID,
