@@ -535,17 +535,6 @@ func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context)
 		return
 	}
 
-	// filter out commits whose patch content is already reachable from the base branch via another merge path
-	if !prInfo.IsPullRequestBroken {
-		var err error
-		prInfo.CompareInfo.Commits, err = ctx.Repo.GitRepo.ShowPrettyFormatLogToListCherryPick(ctx, git.RefNameFromBranch(pull.BaseBranch).String(), prInfo.CompareInfo.HeadCommitID)
-		if err != nil {
-			ctx.ServerError("ShowPrettyFormatLogToListCherryPick", err)
-			return
-		}
-		ctx.Data["NumCommits"] = len(prInfo.CompareInfo.Commits)
-	}
-
 	ctx.Data["PullHeadCommitID"] = prInfo.CompareInfo.HeadCommitID
 
 	if prInfo.CompareInfo.HeadCommitID == prInfo.CompareInfo.MergeBase {

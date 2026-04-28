@@ -80,14 +80,14 @@ func buildCherryPickTestRepo(t *testing.T) (repoPath, m1SHA, m2SHA string) {
 	return repoPath, m1SHA, m2SHA
 }
 
-// TestShowPrettyFormatLogToListCherryPick tests the cherry-pick aware log against
+// TestShowPrettyFormatLogToListSkipEquivalent tests the patch-equivalence aware log against
 // the scenario described in issue #37383:
 //
 //   - Commit B's patch lands in staging via M1 (a merge commit).
 //   - M2 merges the same feature branch into develop.
-//   - ShowPrettyFormatLogToListCherryPick("staging", M2) must return an empty list because
-//     B is already present in staging and M2 itself is a merge commit with no own patch.
-func TestShowPrettyFormatLogToListCherryPick(t *testing.T) {
+//   - ShowPrettyFormatLogToListSkipEquivalent("staging", M2) must return only M2:
+//     B is already present in staging so it is skipped; M2 is a merge commit and is kept.
+func TestShowPrettyFormatLogToListSkipEquivalent(t *testing.T) {
 	repoPath, _, m2SHA := buildCherryPickTestRepo(t)
 
 	ctx := t.Context()
@@ -95,17 +95,15 @@ func TestShowPrettyFormatLogToListCherryPick(t *testing.T) {
 	require.NoError(t, err)
 	defer repo.Close()
 
-	// Primary assertion: cherry-pick aware log must return an empty list because
-	// Commit B's patch is already present in staging via M1, and M2 itself is a
-	// merge commit (no own patch) → nothing new to report.
-	cherryPickCommits, err := repo.ShowPrettyFormatLogToListCherryPick(ctx, "staging", m2SHA)
+	// Primary assertion: B's patch is already present in staging via M1, so it must be
+	// skipped. M2 is a merge commit with no equivalent on the base side, so it is kept.
+	filteredCommits, err := repo.ShowPrettyFormatLogToListSkipEquivalent(ctx, "staging", m2SHA)
 	require.NoError(t, err)
-	assert.Empty(t, cherryPickCommits,
-		"expected no commits: B is already in staging via M1, M2 is a merge commit")
+	require.Len(t, filteredCommits, 1, "expected only M2: B is already in staging via M1")
+	assert.Equal(t, m2SHA, filteredCommits[0].ID.String(), "the remaining commit must be M2")
 
-	// Contrast assertion: a plain log over the same range must return at least
-	// M2, so we know the range itself is non-empty and the cherry-pick filter is
-	// what produces the empty result — not an empty range.
+	// Contrast assertion: a plain log over the same range returns both M2 and B,
+	// confirming that the filter is what removes B — not an empty range.
 	mergeBaseCmd := exec.CommandContext(ctx, "git", "merge-base", "staging", m2SHA)
 	mergeBaseCmd.Dir = repoPath
 	mergeBaseOut, err := mergeBaseCmd.Output()
@@ -114,6 +112,5 @@ func TestShowPrettyFormatLogToListCherryPick(t *testing.T) {
 
 	plainCommits, err := repo.ShowPrettyFormatLogToList(ctx, mergeBase+".."+m2SHA)
 	require.NoError(t, err)
-	assert.NotEmpty(t, plainCommits,
-		"expected at least M2 in the plain log range %s..%s", mergeBase, m2SHA)
+	assert.NotEmpty(t, plainCommits, "plain log must be non-empty")
 }

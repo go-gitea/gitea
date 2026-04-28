@@ -105,11 +105,11 @@ func TestAPIPullCommitsNotDuplicatedViaMergePaths(t *testing.T) {
 		var commits []*api.Commit
 		DecodeJSON(t, resp, &commits)
 
-		// Neither B nor M2 should appear: B's content is already in staging via M1, and M2 is a
-		// pure merge commit whose only change (B) is likewise already present in staging.
-		// GitHub and GitLab both return 0 commits in this situation — Gitea should do the same.
-		// Buggy Gitea returns [M2, B] (len 2) or [M2] (len 1); fixed Gitea returns [] (len 0).
-		require.Empty(t, commits, "PR develop→staging must not list commits already present in staging")
+		// B must not appear — its patch is already in staging via M1.
+		// M2 (the merge commit "feature into develop") is genuinely new and must appear.
+		// Buggy Gitea returns [M2, B] (len 2); fixed Gitea returns [M2] (len 1).
+		require.Len(t, commits, 1, "PR develop→staging must not list commits already present in staging")
+		assert.Contains(t, commits[0].RepoCommit.Message, "feature into develop", "the one commit must be the merge commit M2")
 	})
 }
 

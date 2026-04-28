@@ -84,13 +84,20 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 
 	// We have a common base - therefore we know that ... should work
 	if !fileOnly {
-		// In git log/rev-list, the "..." syntax represents the symmetric difference between two references,
-		// which is different from the meaning of "..." in git diff (where it implies diffing from the merge base).
-		// For listing PR commits, we must use merge-base..head to include only the commits introduced by the head branch.
-		// Otherwise, commits newly pushed to the base branch would also be included, which is incorrect.
-		compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, compareInfo.MergeBase+".."+compareInfo.HeadCommitID)
-		if err != nil {
-			return compareInfo, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
+		// For listing commits, use cherry-pick equivalence when a merge base is available (i.e. not a
+		// direct ".." comparison): git log --cherry-pick --right-only filters out commits whose patch
+		// content is already present on the base side, matching GitHub/GitLab behaviour.
+		// For directComparison (".." range) no merge base is computed, so fall back to the plain range.
+		if !directComparison {
+			compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToListSkipEquivalent(ctx, compareInfo.BaseCommitID, compareInfo.HeadCommitID)
+			if err != nil {
+				return compareInfo, fmt.Errorf("ShowPrettyFormatLogToListSkipEquivalent: %w", err)
+			}
+		} else {
+			compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, compareInfo.MergeBase+".."+compareInfo.HeadCommitID)
+			if err != nil {
+				return compareInfo, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
+			}
 		}
 	} else {
 		compareInfo.Commits = []*git.Commit{}
