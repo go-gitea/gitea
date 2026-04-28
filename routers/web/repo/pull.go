@@ -1281,24 +1281,26 @@ func PullsNewRedirect(ctx *context.Context) {
 // CompareAndPullRequestPost response for creating pull request
 func CompareAndPullRequestPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateIssueForm)
-	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
-	ctx.Data["PageIsComparePull"] = true
-	ctx.Data["IsDiffCompare"] = true
-	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	upload.AddUploadContext(ctx, "comment")
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypePullRequests)
+	repo := ctx.Repo.Repository
 
-	var (
-		repo        = ctx.Repo.Repository
-		attachments []string
-	)
-
-	ci := ParseCompareInfo(ctx)
+	ci, err := parseCompareInfo(ctx)
 	if ctx.Written() {
 		return
 	}
-
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.JSONErrorNotFound()
+		return
+	} else if errors.Is(err, util.ErrInvalidArgument) {
+		ctx.JSONError(err.Error())
+		return
+	} else if err != nil {
+		ctx.ServerError("ParseCompareInfo", err)
+		return
+	}
+	if ci.MergeBase == "" {
+		ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
+		return
+	}
 	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, true)
 	if ctx.Written() {
 		return
@@ -1306,6 +1308,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	labelIDs, assigneeIDs, milestoneID, projectID := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.MilestoneID, validateRet.ProjectID
 
+	var attachments []string
 	if setting.Attachment.Enabled {
 		attachments = form.Files
 	}
