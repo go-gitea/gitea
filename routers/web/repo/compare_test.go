@@ -90,9 +90,9 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	assert.Equal(t, "title1", title)
 	assert.Empty(t, content)
 
-	// source: "branch-name": multi-commit uses branch name, single-commit uses commit title
+	// source: "branch-name": multi-commit uses branch name with hyphens/underscores replaced by spaces and first letter capitalized (GitHub behavior); single-commit uses commit title
 	title, content = prepareNewPullRequestTitleContent(ci, nil, "branch-name")
-	assert.Equal(t, "head-branch", title)
+	assert.Equal(t, "Head branch", title)
 	assert.Empty(t, content)
 
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("single-commit-title\nbody")}, "branch-name")
@@ -100,27 +100,10 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	assert.Equal(t, "body", content)
 
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{
-		// ordered from newest to oldest; multi-commit should use branch name
-		mockCommit("title2\nbody2"),
-		mockCommit("title1\nbody1"),
-	}, "branch-name")
-	assert.Equal(t, "head-branch", title)
-	assert.Empty(t, content)
-
-	// source: "branch-name-transform": multi-commit uses branch name with hyphens/underscores replaced by spaces and first letter capitalized
-	title, content = prepareNewPullRequestTitleContent(ci, nil, "branch-name-transform")
-	assert.Equal(t, "Head branch", title)
-	assert.Empty(t, content)
-
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("single-commit-title\nbody")}, "branch-name-transform")
-	assert.Equal(t, "single-commit-title", title)
-	assert.Equal(t, "body", content)
-
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{
 		// ordered from newest to oldest; multi-commit should use transformed branch name
 		mockCommit("title2\nbody2"),
 		mockCommit("title1\nbody1"),
-	}, "branch-name-transform")
+	}, "branch-name")
 	assert.Equal(t, "Head branch", title)
 	assert.Empty(t, content)
 }
