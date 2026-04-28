@@ -425,6 +425,38 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	return &compareInfo
 }
 
+// autoTitleFromBranchName converts a branch name to a PR title following GitHub's algorithm:
+// split camelCase, replace hyphens/underscores with spaces, lowercase everything, left-trim,
+// then capitalize the first letter. Slashes and other characters are preserved as-is.
+func autoTitleFromBranchName(name string) string {
+	// Step 1: insert a space before each uppercase letter that directly follows a lowercase letter (camelCase split)
+	var buf strings.Builder
+	runes := []rune(name)
+	for i, r := range runes {
+		if i > 0 && unicode.IsUpper(r) && unicode.IsLower(runes[i-1]) {
+			buf.WriteRune(' ')
+		}
+		buf.WriteRune(r)
+	}
+	name = buf.String()
+
+	// Step 2: replace hyphens and underscores with spaces (consecutive separators stay consecutive)
+	name = strings.NewReplacer("-", " ", "_", " ").Replace(name)
+
+	// Step 3: lowercase everything
+	name = strings.ToLower(name)
+
+	// Step 4: left-trim spaces, then capitalize the first letter
+	name = strings.TrimLeft(name, " ")
+	if name != "" {
+		runes := []rune(name)
+		runes[0] = unicode.ToUpper(runes[0])
+		name = string(runes)
+	}
+
+	return name
+}
+
 func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses, defaultTitleSource string) (title, content string) {
 	title = ci.HeadRef.ShortName()
 
@@ -438,15 +470,10 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 		}
 	}
 
-	// For "auto", apply GitHub-style transformation to the branch name: replace hyphens and underscores with spaces, capitalize first letter.
+	// For "auto", apply GitHub-style transformation to the branch name.
 	// Only applies when the branch name is used (not for single-commit PRs which always use the commit title).
 	if defaultTitleSource == "auto" && len(commits) != 1 {
-		title = strings.NewReplacer("-", " ", "_", " ").Replace(title)
-		if title != "" {
-			runes := []rune(title)
-			runes[0] = unicode.ToUpper(runes[0])
-			title = string(runes)
-		}
+		title = autoTitleFromBranchName(title)
 	}
 
 	if len(commits) == 1 {

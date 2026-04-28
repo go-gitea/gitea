@@ -90,7 +90,7 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	assert.Equal(t, "title1", title)
 	assert.Empty(t, content)
 
-	// source: "auto": multi-commit uses branch name with hyphens/underscores replaced by spaces and first letter capitalized (GitHub behavior); single-commit uses commit title
+	// source: "auto": multi-commit uses transformed branch name; single-commit uses commit title
 	title, content = prepareNewPullRequestTitleContent(ci, nil, "auto")
 	assert.Equal(t, "Head branch", title)
 	assert.Empty(t, content)
@@ -100,19 +100,43 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	assert.Equal(t, "body", content)
 
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{
-		// ordered from newest to oldest; multi-commit should use transformed branch name
 		mockCommit("title2\nbody2"),
 		mockCommit("title1\nbody1"),
 	}, "auto")
 	assert.Equal(t, "Head branch", title)
 	assert.Empty(t, content)
+}
 
-	// slashes are preserved; only hyphens and underscores become spaces
-	ciSlash := &git_service.CompareInfo{HeadRef: "refs/heads/fix/the-bug"}
-	title, content = prepareNewPullRequestTitleContent(ciSlash, []*git_model.SignCommitWithStatuses{
-		mockCommit("title2\nbody2"),
-		mockCommit("title1\nbody1"),
-	}, "auto")
-	assert.Equal(t, "Fix/the bug", title)
-	assert.Empty(t, content)
+func TestAutoTitleFromBranchName(t *testing.T) {
+	cases := []struct {
+		branch string
+		want   string
+	}{
+		// basic hyphen/underscore replacement
+		{"fix/the-bug", "Fix/the bug"},
+		{"head-branch", "Head branch"},
+		// already-capitalized letters are lowercased
+		{"Already-Capitalized", "Already capitalized"},
+		// all-caps words are lowercased
+		{"ALL-CAPS-BRANCH", "All caps branch"},
+		// mixed case with hyphen separator
+		{"MixedCase-Name", "Mixed case name"},
+		// camelCase within a segment
+		{"fooBar-baz", "Foo bar baz"},
+		// slash preserved; uppercase after slash is lowercased
+		{"foo/BAR", "Foo/bar"},
+		// leading underscore is trimmed
+		{"_leading-underscore", "Leading underscore"},
+		// leading hyphen is trimmed
+		{"-leading-hyphen", "Leading hyphen"},
+		// PascalCase without separators
+		{"CamelCase", "Camel case"},
+		// consecutive separators produce consecutive spaces (not collapsed)
+		{"foo--bar", "Foo  bar"},
+		// trailing separator preserved (not right-trimmed)
+		{"trailing-", "Trailing "},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.want, autoTitleFromBranchName(c.branch), "branch: %q", c.branch)
+	}
 }
