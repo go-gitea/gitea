@@ -9,11 +9,11 @@ import (
 
 func ParseIssueFilterStateIsClosed(state string) optional.Option[bool] {
 	switch state {
-	case "all":
+	case "all", "":
 		return optional.None[bool]()
 	case "closed":
 		return optional.Some(true)
-	case "", "open":
+	case "open":
 		return optional.Some(false)
 	default:
 		return optional.Some(false) // unknown state, undefined behavior
