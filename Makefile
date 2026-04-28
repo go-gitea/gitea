@@ -195,7 +195,7 @@ clean-all: clean ## delete backend, frontend and integration files
 .PHONY: clean
 clean: ## delete backend and integration files
 	rm -rf $(EXECUTABLE) $(EXECUTABLE_E2E) $(DIST) $(BINDATA_DEST_WILDCARD) \
-		integrations*.test \
+		integrations*.test migrations*.test \
 		tests/integration/gitea-integration-* \
 		tests/integration/indexers-* \
 		tests/sqlite.ini tests/mysql.ini tests/pgsql.ini tests/mssql.ini man/ \
@@ -443,17 +443,6 @@ generate-ini-sqlite:
 		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
 			tests/sqlite.ini.tmpl > tests/sqlite.ini
 
-.PHONY: test-sqlite
-test-sqlite: integrations.sqlite.test generate-ini-sqlite
-	GITEA_TEST_CONF=tests/sqlite.ini ./integrations.sqlite.test
-
-.PHONY: test-sqlite\#%
-test-sqlite\#%: integrations.sqlite.test generate-ini-sqlite
-	GITEA_TEST_CONF=tests/sqlite.ini ./integrations.sqlite.test -test.run $(subst .,/,$*)
-
-.PHONY: test-sqlite-migration
-test-sqlite-migration:  migrations.sqlite.test migrations.individual.sqlite.test
-
 generate-ini-mysql:
 	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
 		-e 's|{{TEST_MYSQL_DBNAME}}|${TEST_MYSQL_DBNAME}|g' \
@@ -462,17 +451,6 @@ generate-ini-mysql:
 		-e 's|{{WORK_PATH}}|$(CURDIR)/tests/$(or $(TEST_TYPE),integration)/gitea-$(or $(TEST_TYPE),integration)-mysql|g' \
 		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
 			tests/mysql.ini.tmpl > tests/mysql.ini
-
-.PHONY: test-mysql
-test-mysql: integrations.mysql.test generate-ini-mysql
-	GITEA_TEST_CONF=tests/mysql.ini ./integrations.mysql.test
-
-.PHONY: test-mysql\#%
-test-mysql\#%: integrations.mysql.test generate-ini-mysql
-	GITEA_TEST_CONF=tests/mysql.ini ./integrations.mysql.test -test.run $(subst .,/,$*)
-
-.PHONY: test-mysql-migration
-test-mysql-migration: migrations.mysql.test migrations.individual.mysql.test
 
 generate-ini-pgsql:
 	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
@@ -485,17 +463,6 @@ generate-ini-pgsql:
 		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
 			tests/pgsql.ini.tmpl > tests/pgsql.ini
 
-.PHONY: test-pgsql
-test-pgsql: integrations.pgsql.test generate-ini-pgsql
-	GITEA_TEST_CONF=tests/pgsql.ini ./integrations.pgsql.test
-
-.PHONY: test-pgsql\#%
-test-pgsql\#%: integrations.pgsql.test generate-ini-pgsql
-	GITEA_TEST_CONF=tests/pgsql.ini ./integrations.pgsql.test -test.run $(subst .,/,$*)
-
-.PHONY: test-pgsql-migration
-test-pgsql-migration: migrations.pgsql.test migrations.individual.pgsql.test
-
 generate-ini-mssql:
 	sed -e 's|{{TEST_MSSQL_HOST}}|${TEST_MSSQL_HOST}|g' \
 		-e 's|{{TEST_MSSQL_DBNAME}}|${TEST_MSSQL_DBNAME}|g' \
@@ -505,16 +472,41 @@ generate-ini-mssql:
 		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
 			tests/mssql.ini.tmpl > tests/mssql.ini
 
-.PHONY: test-mssql
-test-mssql: integrations.mssql.test generate-ini-mssql
-	GITEA_TEST_CONF=tests/mssql.ini ./integrations.mssql.test
+# Generate per-DB integration test/bench/migration targets.
+# args: $(1)=db (sqlite|mysql|pgsql|mssql), $(2)=optional extra flags (e.g. -tags '...')
+define DB_INTEGRATION_TARGETS
+.PHONY: test-$(1)
+test-$(1): git-check generate-ini-$(1)
+	GITEA_TEST_CONF=tests/$(1).ini $$(GO) test $$(GOTESTFLAGS) -timeout 50m $(2) code.gitea.io/gitea/tests/integration
 
-.PHONY: test-mssql\#%
-test-mssql\#%: integrations.mssql.test generate-ini-mssql
-	GITEA_TEST_CONF=tests/mssql.ini ./integrations.mssql.test -test.run $(subst .,/,$*)
+.PHONY: test-$(1)\#%
+test-$(1)\#%: git-check generate-ini-$(1)
+	GITEA_TEST_CONF=tests/$(1).ini $$(GO) test $$(GOTESTFLAGS) -timeout 50m $(2) -run $$(subst .,/,$$*) code.gitea.io/gitea/tests/integration
 
-.PHONY: test-mssql-migration
-test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
+.PHONY: test-$(1)-migration
+test-$(1)-migration: migrations.$(1).test migrations.individual.$(1).test
+
+.PHONY: bench-$(1)
+bench-$(1): git-check generate-ini-$(1)
+	GITEA_TEST_CONF=tests/$(1).ini $$(GO) test $$(GOTESTFLAGS) -timeout 50m $(2) -cpuprofile=cpu.out -run DontRunTests -bench . code.gitea.io/gitea/tests/integration
+
+.PHONY: migrations.$(1).test
+migrations.$(1).test: git-check generate-ini-$(1)
+	GITEA_TEST_CONF=tests/$(1).ini $$(GO) test $$(GOTESTFLAGS) -timeout 50m $(2) code.gitea.io/gitea/tests/integration/migration-test
+
+.PHONY: migrations.individual.$(1).test
+migrations.individual.$(1).test: generate-ini-$(1)
+	GITEA_TEST_CONF=tests/$(1).ini $$(GO) test $$(GOTESTFLAGS) -tags '$$(TEST_TAGS)' -p 1 $$(MIGRATE_TEST_PACKAGES)
+
+.PHONY: migrations.individual.$(1).test\#%
+migrations.individual.$(1).test\#%: generate-ini-$(1)
+	GITEA_TEST_CONF=tests/$(1).ini $$(GO) test $$(GOTESTFLAGS) -tags '$$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$$*
+endef
+
+$(eval $(call DB_INTEGRATION_TARGETS,sqlite,-tags '$(TEST_TAGS)'))
+$(eval $(call DB_INTEGRATION_TARGETS,mysql,))
+$(eval $(call DB_INTEGRATION_TARGETS,pgsql,))
+$(eval $(call DB_INTEGRATION_TARGETS,mssql,))
 
 .PHONY: playwright
 playwright: deps-frontend
@@ -525,99 +517,13 @@ playwright: deps-frontend
 test-e2e: playwright $(EXECUTABLE_E2E)
 	@EXECUTABLE=$(EXECUTABLE_E2E) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
-.PHONY: bench-sqlite
-bench-sqlite: integrations.sqlite.test generate-ini-sqlite
-	GITEA_TEST_CONF=tests/sqlite.ini ./integrations.sqlite.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
-
-.PHONY: bench-mysql
-bench-mysql: integrations.mysql.test generate-ini-mysql
-	GITEA_TEST_CONF=tests/mysql.ini ./integrations.mysql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
-
-.PHONY: bench-mssql
-bench-mssql: integrations.mssql.test generate-ini-mssql
-	GITEA_TEST_CONF=tests/mssql.ini ./integrations.mssql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
-
-.PHONY: bench-pgsql
-bench-pgsql: integrations.pgsql.test generate-ini-pgsql
-	GITEA_TEST_CONF=tests/pgsql.ini ./integrations.pgsql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
-
 .PHONY: integration-test-coverage
-integration-test-coverage: integrations.cover.test generate-ini-mysql
-	GITEA_TEST_CONF=tests/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
+integration-test-coverage: git-check generate-ini-mysql
+	GITEA_TEST_CONF=tests/mysql.ini $(GO) test $(GOTESTFLAGS) -timeout 50m -coverpkg $(shell echo $(GO_TEST_PACKAGES) | tr ' ' ',') -coverprofile=integration.coverage.out code.gitea.io/gitea/tests/integration
 
 .PHONY: integration-test-coverage-sqlite
-integration-test-coverage-sqlite: integrations.cover.sqlite.test generate-ini-sqlite
-	GITEA_TEST_CONF=tests/sqlite.ini ./integrations.cover.sqlite.test -test.coverprofile=integration.coverage.out
-
-integrations.mysql.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.mysql.test
-
-integrations.pgsql.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.pgsql.test
-
-integrations.mssql.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.mssql.test
-
-integrations.sqlite.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.sqlite.test -tags '$(TEST_TAGS)'
-
-integrations.cover.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -coverpkg $(shell echo $(GO_TEST_PACKAGES) | tr ' ' ',') -o integrations.cover.test
-
-integrations.cover.sqlite.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -coverpkg $(shell echo $(GO_TEST_PACKAGES) | tr ' ' ',') -o integrations.cover.sqlite.test -tags '$(TEST_TAGS)'
-
-.PHONY: migrations.mysql.test
-migrations.mysql.test: $(GO_SOURCES) generate-ini-mysql
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.mysql.test
-	GITEA_TEST_CONF=tests/mysql.ini ./migrations.mysql.test
-
-.PHONY: migrations.pgsql.test
-migrations.pgsql.test: $(GO_SOURCES) generate-ini-pgsql
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.pgsql.test
-	GITEA_TEST_CONF=tests/pgsql.ini ./migrations.pgsql.test
-
-.PHONY: migrations.mssql.test
-migrations.mssql.test: $(GO_SOURCES) generate-ini-mssql
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.mssql.test
-	GITEA_TEST_CONF=tests/mssql.ini ./migrations.mssql.test
-
-.PHONY: migrations.sqlite.test
-migrations.sqlite.test: $(GO_SOURCES) generate-ini-sqlite
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.sqlite.test -tags '$(TEST_TAGS)'
-	GITEA_TEST_CONF=tests/sqlite.ini ./migrations.sqlite.test
-
-.PHONY: migrations.individual.mysql.test
-migrations.individual.mysql.test: $(GO_SOURCES) generate-ini-mysql
-	GITEA_TEST_CONF=tests/mysql.ini $(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -p 1 $(MIGRATE_TEST_PACKAGES)
-
-.PHONY: migrations.individual.sqlite.test\#%
-migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite
-	GITEA_TEST_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
-
-.PHONY: migrations.individual.pgsql.test
-migrations.individual.pgsql.test: $(GO_SOURCES) generate-ini-pgsql
-	GITEA_TEST_CONF=tests/pgsql.ini $(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -p 1 $(MIGRATE_TEST_PACKAGES)
-
-.PHONY: migrations.individual.pgsql.test\#%
-migrations.individual.pgsql.test\#%: $(GO_SOURCES) generate-ini-pgsql
-	GITEA_TEST_CONF=tests/pgsql.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
-
-.PHONY: migrations.individual.mssql.test
-migrations.individual.mssql.test: $(GO_SOURCES) generate-ini-mssql
-	GITEA_TEST_CONF=tests/mssql.ini $(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -p 1 $(MIGRATE_TEST_PACKAGES)
-
-.PHONY: migrations.individual.mssql.test\#%
-migrations.individual.mssql.test\#%: $(GO_SOURCES) generate-ini-mssql
-	GITEA_TEST_CONF=tests/mssql.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
-
-.PHONY: migrations.individual.sqlite.test
-migrations.individual.sqlite.test: $(GO_SOURCES) generate-ini-sqlite
-	GITEA_TEST_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -p 1 $(MIGRATE_TEST_PACKAGES)
-
-.PHONY: migrations.individual.sqlite.test\#%
-migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite
-	GITEA_TEST_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
+integration-test-coverage-sqlite: git-check generate-ini-sqlite
+	GITEA_TEST_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -timeout 50m -tags '$(TEST_TAGS)' -coverpkg $(shell echo $(GO_TEST_PACKAGES) | tr ' ' ',') -coverprofile=integration.coverage.out code.gitea.io/gitea/tests/integration
 
 .PHONY: check
 check: test
