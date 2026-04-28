@@ -13,6 +13,7 @@
 				{{ctx.Locale.Tr "action.compare_commits_general"}}
 			{{end}}
 		</h2>
+		{{template "base/alert" .}}
 		{{$BaseCompareName := $.Repository.FullName -}}
 		{{$HeadCompareName := $.HeadRepo.FullName -}}
 		{{$OwnForkCompareName := "" -}}
@@ -168,11 +169,7 @@
 		</div>
 
 		{{$showDiffBox := and .CommitCount (not .IsNothingToCompare)}}
-		{{if .NoMergeBase}}
-			<div class="ui warning message">
-				{{ctx.Locale.Tr "repo.pulls.no_common_history"}}
-			</div>
-		{{else if and .IsSigned .PageIsComparePull}}
+		{{if and .IsSigned .PageIsComparePull}}
 			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (not $.CompareInfo.DirectComparison) (or $.AllowEmptyPr (not .IsNothingToCompare))}}
 			{{if .IsNothingToCompare}}
 				<div class="ui segment">
@@ -214,7 +211,7 @@
 				</div>
 			{{end}}
 		{{else}}{{/* not singed-in or not for pull-request */}}
-			{{if not .CommitCount}}
+			{{if and (not .CommitCount) (not .HideCompareNothingMessage)}}
 				<div class="ui segment">{{ctx.Locale.Tr "repo.commits.nothing_to_compare"}}</div>
 			{{end}}
 		{{end}}

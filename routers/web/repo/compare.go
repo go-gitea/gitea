@@ -413,10 +413,9 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 
 	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), fileOnly)
 	if err != nil {
-		if gitrepo.IsErrNoMergeBase(err) {
+		var noMergeBase gitrepo.ErrNoMergeBase
+		if errors.As(err, &noMergeBase) {
 			ctx.Data["NoMergeBase"] = true
-			ctx.Data["BeforeCommitID"] = compareInfo.BaseCommitID
-			ctx.Data["AfterCommitID"] = compareInfo.HeadCommitID
 			return &compareInfo
 		}
 		ctx.ServerError("GetCompareInfo", err)
@@ -428,6 +427,13 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 		ctx.Data["BeforeCommitID"] = compareInfo.MergeBase
 	}
 	return &compareInfo
+}
+
+func prepareNoMergeBaseCompare(ctx *context.Context) {
+	ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
+	ctx.Data["PageIsComparePull"] = false
+	ctx.Data["CommitCount"] = 0
+	ctx.Data["HideCompareNothingMessage"] = true
 }
 
 func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses) (title, content string) {
@@ -478,12 +484,6 @@ func PrepareCompareDiff(
 	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand") || ctx.FormBool("quick_pull") || newPrFormTitle != "" || newPrFormBody != ""
 	ctx.Data["TitleQuery"] = newPrFormTitle
 	ctx.Data["BodyQuery"] = newPrFormBody
-
-	if ctx.Data["NoMergeBase"] == true {
-		ctx.Data["CommitCount"] = 0
-		ctx.Data["Commits"] = []*git_model.SignCommitWithStatuses{}
-		return true
-	}
 
 	if (headCommitID == ci.MergeBase && !ci.DirectComparison()) ||
 		headCommitID == ci.BaseCommitID {
@@ -615,9 +615,14 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["CompareInfo"] = ci
 
-	nothingToCompare := PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
-	if ctx.Written() {
-		return
+	nothingToCompare := true
+	if ctx.Data["NoMergeBase"] == true {
+		prepareNoMergeBaseCompare(ctx)
+	} else {
+		nothingToCompare = PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
+		if ctx.Written() {
+			return
+		}
 	}
 
 	baseTags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
@@ -656,6 +661,11 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 	ctx.Data["HeadTags"] = headTags
+
+	if ctx.Data["NoMergeBase"] == true {
+		ctx.HTML(http.StatusOK, tplCompare)
+		return
+	}
 
 	if ctx.Data["PageIsComparePull"] == true {
 		pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadRef.ShortName(), ci.BaseRef.ShortName(), issues_model.PullRequestFlowGithub)

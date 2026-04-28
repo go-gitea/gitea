@@ -5,7 +5,6 @@ package gitrepo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -16,11 +15,6 @@ type ErrNoMergeBase struct {
 	BaseCommitID string
 	HeadCommitID string
 	Err          error
-}
-
-func IsErrNoMergeBase(err error) bool {
-	var noMergeBase ErrNoMergeBase
-	return errors.As(err, &noMergeBase)
 }
 
 func (err ErrNoMergeBase) Error() string {

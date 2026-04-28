@@ -76,8 +76,9 @@ func TestMergeBaseNoCommonHistory(t *testing.T) {
 	headCommit := commitRootTree(t, repoDir, "head.txt", "head", "head")
 
 	mergeBase, err := MergeBase(t.Context(), &mockRepository{path: repoDir}, baseCommit, headCommit)
+	var noMergeBase ErrNoMergeBase
 	assert.Empty(t, mergeBase)
-	assert.True(t, IsErrNoMergeBase(err), "expected no merge base error, got %v", err)
+	assert.ErrorAs(t, err, &noMergeBase)
 }
 
 func TestRepoGetDivergingCommits(t *testing.T) {
