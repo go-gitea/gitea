@@ -425,54 +425,39 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	return &compareInfo
 }
 
-// autoTitleFromBranchName converts a branch name to a PR title following GitHub's algorithm:
-// split camelCase, replace hyphens/underscores with spaces, lowercase everything, left-trim,
-// then capitalize the first letter. Slashes and other characters are preserved as-is.
+// autoTitleFromBranchName humanizes a branch name into a PR title.
 func autoTitleFromBranchName(name string) string {
-	// Step 1: insert a space before each uppercase letter that directly follows a lowercase letter (camelCase split)
 	var buf strings.Builder
 	runes := []rune(name)
 	for i, r := range runes {
 		if i > 0 && unicode.IsUpper(r) && unicode.IsLower(runes[i-1]) {
 			buf.WriteRune(' ')
 		}
-		buf.WriteRune(r)
+		if r == '-' || r == '_' {
+			buf.WriteRune(' ')
+		} else {
+			buf.WriteRune(unicode.ToLower(r))
+		}
 	}
-	name = buf.String()
-
-	// Step 2: replace hyphens and underscores with spaces (consecutive separators stay consecutive)
-	name = strings.NewReplacer("-", " ", "_", " ").Replace(name)
-
-	// Step 3: lowercase everything
-	name = strings.ToLower(name)
-
-	// Step 4: left-trim spaces, then capitalize the first letter
-	name = strings.TrimLeft(name, " ")
-	if name != "" {
-		runes := []rune(name)
-		runes[0] = unicode.ToUpper(runes[0])
-		name = string(runes)
+	out := strings.Trim(buf.String(), " ")
+	if out == "" {
+		return out
 	}
-
-	return name
+	outRunes := []rune(out)
+	outRunes[0] = unicode.ToUpper(outRunes[0])
+	return string(outRunes)
 }
 
 func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses, defaultTitleSource string) (title, content string) {
 	title = ci.HeadRef.ShortName()
 
-	if len(commits) > 0 {
-		// When defaultTitleSource is "auto", keep the branch name for multi-commit PRs.
-		// For single-commit PRs, always use the commit title regardless of the setting.
-		if defaultTitleSource != "auto" || len(commits) == 1 {
-			// the "commits" are from "ShowPrettyFormatLogToList", which is ordered from newest to oldest, here take the oldest one
-			c := commits[len(commits)-1]
-			title = strings.TrimSpace(c.UserCommit.Summary())
-		}
+	useBranchName := defaultTitleSource == setting.RepoPRTitleSourceAuto && len(commits) != 1
+	if !useBranchName && len(commits) > 0 {
+		// the "commits" are from "ShowPrettyFormatLogToList", which is ordered from newest to oldest, here take the oldest one
+		c := commits[len(commits)-1]
+		title = strings.TrimSpace(c.UserCommit.Summary())
 	}
-
-	// For "auto", apply GitHub-style transformation to the branch name.
-	// Only applies when the branch name is used (not for single-commit PRs which always use the commit title).
-	if defaultTitleSource == "auto" && len(commits) != 1 {
+	if useBranchName {
 		title = autoTitleFromBranchName(title)
 	}
 

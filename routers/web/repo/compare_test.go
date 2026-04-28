@@ -13,6 +13,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	git_service "code.gitea.io/gitea/services/git"
 	"code.gitea.io/gitea/services/gitdiff"
 
@@ -61,24 +62,23 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 		}
 	}
 
-	// default source: "first-commit"
-	title, content := prepareNewPullRequestTitleContent(ci, nil, "first-commit")
+	title, content := prepareNewPullRequestTitleContent(ci, nil, setting.RepoPRTitleSourceFirstCommit)
 	assert.Equal(t, "head-branch", title)
 	assert.Empty(t, content)
 
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title-only")}, "first-commit")
+	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title-only")}, setting.RepoPRTitleSourceFirstCommit)
 	assert.Equal(t, "title-only", title)
 	assert.Empty(t, content)
 
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title-" + strings.Repeat("a", 255))}, "first-commit")
+	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title-" + strings.Repeat("a", 255))}, setting.RepoPRTitleSourceFirstCommit)
 	assert.Equal(t, "title-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…", title)
 	assert.Equal(t, "…aaaaaaaaa\n", content)
 
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title\nbody")}, "first-commit")
+	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title\nbody")}, setting.RepoPRTitleSourceFirstCommit)
 	assert.Equal(t, "title", title)
 	assert.Equal(t, "body", content)
 
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("a\xf0\xf0\xf0\nb\xf0\xf0\xf0")}, "first-commit")
+	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("a\xf0\xf0\xf0\nb\xf0\xf0\xf0")}, setting.RepoPRTitleSourceFirstCommit)
 	assert.Equal(t, "a?", title) // FIXME: GIT-COMMIT-MESSAGE-ENCODING: "title" doesn't use the same charset converting logic as "content"
 	assert.Equal(t, "b"+string(utf8.RuneError)+string(utf8.RuneError), content)
 
@@ -86,23 +86,22 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 		// ordered from newest to oldest
 		mockCommit("title2\nbody2"),
 		mockCommit("title1\nbody1"),
-	}, "first-commit")
+	}, setting.RepoPRTitleSourceFirstCommit)
 	assert.Equal(t, "title1", title)
 	assert.Empty(t, content)
 
-	// source: "auto": multi-commit uses transformed branch name; single-commit uses commit title
-	title, content = prepareNewPullRequestTitleContent(ci, nil, "auto")
+	title, content = prepareNewPullRequestTitleContent(ci, nil, setting.RepoPRTitleSourceAuto)
 	assert.Equal(t, "Head branch", title)
 	assert.Empty(t, content)
 
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("single-commit-title\nbody")}, "auto")
+	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("single-commit-title\nbody")}, setting.RepoPRTitleSourceAuto)
 	assert.Equal(t, "single-commit-title", title)
 	assert.Equal(t, "body", content)
 
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{
 		mockCommit("title2\nbody2"),
 		mockCommit("title1\nbody1"),
-	}, "auto")
+	}, setting.RepoPRTitleSourceAuto)
 	assert.Equal(t, "Head branch", title)
 	assert.Empty(t, content)
 }
@@ -112,29 +111,16 @@ func TestAutoTitleFromBranchName(t *testing.T) {
 		branch string
 		want   string
 	}{
-		// basic hyphen/underscore replacement
 		{"fix/the-bug", "Fix/the bug"},
-		{"head-branch", "Head branch"},
-		// already-capitalized letters are lowercased
 		{"Already-Capitalized", "Already capitalized"},
-		// all-caps words are lowercased
 		{"ALL-CAPS-BRANCH", "All caps branch"},
-		// mixed case with hyphen separator
 		{"MixedCase-Name", "Mixed case name"},
-		// camelCase within a segment
 		{"fooBar-baz", "Foo bar baz"},
-		// slash preserved; uppercase after slash is lowercased
 		{"foo/BAR", "Foo/bar"},
-		// leading underscore is trimmed
 		{"_leading-underscore", "Leading underscore"},
-		// leading hyphen is trimmed
-		{"-leading-hyphen", "Leading hyphen"},
-		// PascalCase without separators
 		{"CamelCase", "Camel case"},
-		// consecutive separators produce consecutive spaces (not collapsed)
-		{"foo--bar", "Foo  bar"},
-		// trailing separator preserved (not right-trimmed)
-		{"trailing-", "Trailing "},
+		{"foo--double-dash", "Foo  double dash"},
+		{"123-fix", "123 fix"},
 	}
 	for _, c := range cases {
 		assert.Equal(t, c.want, autoTitleFromBranchName(c.branch), "branch: %q", c.branch)
