@@ -1287,7 +1287,10 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.JSONErrorNotFound()
+		return
+	} else if errors.Is(err, util.ErrInvalidArgument) {
 		ctx.JSONError(err.Error())
 		return
 	} else if err != nil {
