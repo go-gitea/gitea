@@ -37,6 +37,11 @@ func InitTest() error {
 		_, _ = fmt.Fprintf(os.Stderr, "Environment variable GITEA_TEST_CONF not set - defaulting to %s\n", giteaConf)
 	}
 	setting.SetupGiteaTestEnv()
+	// `go test` runs tests with cwd = package dir, but several test fixtures
+	// use paths relative to the source root ("tests/integration/avatar.png" etc).
+	if err := os.Chdir(setting.GetGiteaTestSourceRoot()); err != nil {
+		return err
+	}
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 
 	if err := git.InitFull(); err != nil {
