@@ -189,8 +189,8 @@ func setCsvCompareContext(ctx *context.Context) {
 	}
 }
 
-// ParseCompareInfo parse compare info between two commit for preparing comparing references
-func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
+// parseCompareInfo parse compare info between two commit for preparing comparing references
+func parseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, error) {
 	baseRepo := ctx.Repo.Repository
 	fileOnly := ctx.FormBool("file-only")
 
@@ -199,47 +199,29 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 
 	// remove the check when we support compare with carets
 	if compareReq.BaseOriRefSuffix != "" {
-		ctx.HTTPError(http.StatusBadRequest, "Unsupported comparison syntax: ref with suffix")
-		return nil, false
+		return nil, util.NewInvalidArgumentErrorf("unsupported comparison syntax: ref with suffix")
 	}
 
 	// 2 get repository and owner for head
 	headOwner, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
-	switch {
-	case errors.Is(err, util.ErrInvalidArgument):
-		ctx.HTTPError(http.StatusBadRequest, err.Error())
-		return nil, false
-	case errors.Is(err, util.ErrNotExist):
-		ctx.NotFound(nil)
-		return nil, false
-	case err != nil:
-		ctx.ServerError("GetHeadOwnerAndRepo", err)
-		return nil, false
+	if err != nil {
+		return nil, err
 	}
-
-	isSameRepo := baseRepo.ID == headRepo.ID
 
 	// 3 permission check
 	// base repository's code unit read permission check has been done on web.go
 	permBase := ctx.Repo.Permission
 
 	// If we're not merging from the same repo:
+	isSameRepo := baseRepo.ID == headRepo.ID
 	if !isSameRepo {
 		// Assert ctx.Doer has permission to read headRepo's codes
 		permHead, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetDoerRepoPermission", err)
-			return nil, false
+			return nil, err
 		}
 		if !permHead.CanRead(unit.TypeCode) {
-			if log.IsTrace() {
-				log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
-					ctx.Doer,
-					headRepo,
-					permHead)
-			}
-			ctx.NotFound(nil)
-			return nil, false
+			return nil, util.NewNotExistErrorf("") // permission: no error message for end users
 		}
 		ctx.Data["CanWriteToHeadRepo"] = permHead.CanWrite(unit.TypeCode)
 	}
@@ -250,24 +232,17 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 
 	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefName)
 	if baseRef == "" {
-		ctx.NotFound(nil)
-		return nil, false
+		return nil, util.NewNotExistErrorf("no base ref: %s", baseRefName)
 	}
-	var headGitRepo *git.Repository
-	if isSameRepo {
-		headGitRepo = ctx.Repo.GitRepo
-	} else {
-		headGitRepo, err = gitrepo.OpenRepository(ctx, headRepo)
-		if err != nil {
-			ctx.ServerError("OpenRepository", err)
-			return nil, false
-		}
-		defer headGitRepo.Close()
+	headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, headRepo)
+	if err != nil {
+		ctx.ServerError("OpenRepository", err)
+		return nil, err
 	}
+
 	headRef := headGitRepo.UnstableGuessRefByShortName(headRefName)
 	if headRef == "" {
-		ctx.NotFound(nil)
-		return nil, false
+		return nil, util.NewNotExistErrorf("no head ref: %s", headRefName)
 	}
 
 	ctx.Data["BaseName"] = baseRepo.OwnerName
@@ -291,12 +266,9 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 	var rootRepo *repo_model.Repository
 	if baseRepo.IsFork {
 		err = baseRepo.GetBaseRepo(ctx)
-		if err != nil {
-			if !repo_model.IsErrRepoNotExist(err) {
-				ctx.ServerError("Unable to find root repo", err)
-				return nil, false
-			}
-		} else {
+		if err != nil && !repo_model.IsErrRepoNotExist(err) {
+			return nil, err
+		} else if err == nil {
 			rootRepo = baseRepo.BaseRepo
 		}
 	}
@@ -313,42 +285,10 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 		}
 	}
 
-	has := headRepo != nil
-	// 3. If the base is a forked from "RootRepo" and the owner of
-	// the "RootRepo" is the :headUser - set headRepo to that
-	if !has && rootRepo != nil && rootRepo.OwnerID == headOwner.ID {
-		headRepo = rootRepo
-		has = true
-	}
-
-	// 4. If the ctx.Doer has their own fork of the baseRepo and the headUser is the ctx.Doer
-	// set the headRepo to the ownFork
-	if !has && ownForkRepo != nil && ownForkRepo.OwnerID == headOwner.ID {
-		headRepo = ownForkRepo
-		has = true
-	}
-
-	// 5. If the headOwner has a fork of the baseRepo - use that
-	if !has {
-		headRepo = repo_model.GetForkedRepo(ctx, headOwner.ID, baseRepo.ID)
-		has = headRepo != nil
-	}
-
-	// 6. If the baseRepo is a fork and the headUser has a fork of that use that
-	if !has && baseRepo.IsFork {
-		headRepo = repo_model.GetForkedRepo(ctx, headOwner.ID, baseRepo.ForkID)
-		has = headRepo != nil
-	}
-
-	// 7. Otherwise if we're not the same repo and haven't found a repo give up
-	if !isSameRepo && !has {
-		ctx.Data["PageIsComparePull"] = false
-	}
-
 	ctx.Data["HeadRepo"] = headRepo
 	ctx.Data["BaseCompareRepo"] = ctx.Repo.Repository
 
-	// If we have a rootRepo and it's different from:
+	// If we have a rootRepo, and it's different from:
 	// 1. the computed base
 	// 2. the computed head
 	// then get the branches of it
@@ -361,17 +301,15 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 			if !fileOnly {
 				branches, tags, err := getBranchesAndTagsForRepo(ctx, rootRepo)
 				if err != nil {
-					ctx.ServerError("GetBranchesForRepo", err)
-					return nil, false
+					return nil, err
 				}
-
 				ctx.Data["RootRepoBranches"] = branches
 				ctx.Data["RootRepoTags"] = tags
 			}
 		}
 	}
 
-	// If we have a ownForkRepo and it's different from:
+	// If we have a ownForkRepo, and it's different from:
 	// 1. The computed base
 	// 2. The computed head
 	// 3. The rootRepo (if we have one)
@@ -386,8 +324,7 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 			if !fileOnly {
 				branches, tags, err := getBranchesAndTagsForRepo(ctx, ownForkRepo)
 				if err != nil {
-					ctx.ServerError("GetBranchesForRepo", err)
-					return nil, false
+					return nil, err
 				}
 				ctx.Data["OwnForkRepoBranches"] = branches
 				ctx.Data["OwnForkRepoTags"] = tags
@@ -396,36 +333,24 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 	}
 
 	// Treat as pull request if both references are branches
-	if ctx.Data["PageIsComparePull"] == nil {
-		ctx.Data["PageIsComparePull"] = baseRef.IsBranch() && headRef.IsBranch() && permBase.CanReadIssuesOrPulls(true)
-	}
-
-	if ctx.Data["PageIsComparePull"] == true && !permBase.CanReadIssuesOrPulls(true) {
-		if log.IsTrace() {
-			log.Trace("Permission Denied: User: %-v cannot create/read pull requests in Repo: %-v\nUser in baseRepo has Permissions: %-+v",
-				ctx.Doer,
-				baseRepo,
-				permBase)
-		}
-		ctx.NotFound(nil)
-		return nil, false
+	willCreatePullRequest := baseRef.IsBranch() && headRef.IsBranch() && permBase.CanReadIssuesOrPulls(true)
+	if willCreatePullRequest && !permBase.CanReadIssuesOrPulls(true) {
+		return nil, util.NewNotExistErrorf("") // permission: no error message for end users
 	}
 
 	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), fileOnly)
 	if err != nil {
-		var noMergeBase gitrepo.ErrNoMergeBase
-		if errors.As(err, &noMergeBase) {
-			return &compareInfo, true
-		}
-		ctx.ServerError("GetCompareInfo", err)
-		return nil, false
+		return nil, err
 	}
+
+	willCreatePullRequest = willCreatePullRequest && compareInfo.MergeBase != ""
+	ctx.Data["PageIsComparePull"] = willCreatePullRequest
 	if compareReq.DirectComparison() {
 		ctx.Data["BeforeCommitID"] = compareInfo.BaseCommitID
 	} else {
 		ctx.Data["BeforeCommitID"] = compareInfo.MergeBase
 	}
-	return &compareInfo, false
+	return &compareInfo, nil
 }
 
 func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses) (title, content string) {
@@ -598,8 +523,15 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
-	ci, noMergeBase := ParseCompareInfo(ctx)
+	ci, err := parseCompareInfo(ctx)
 	if ctx.Written() {
+		return
+	}
+	if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
+		ctx.NotFound(nil)
+		return
+	} else if err != nil {
+		ctx.ServerError("ParseCompareInfo", err)
 		return
 	}
 
@@ -607,18 +539,20 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["CompareInfo"] = ci
 
-	nothingToCompare := true
-	if noMergeBase {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
-		ctx.Data["PageIsComparePull"] = false
-		ctx.Data["CommitCount"] = 0
-	} else {
-		nothingToCompare = PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
+	if ci.MergeBase != "" {
+		prepareCreatePullRequestPage(ctx, ci)
 		if ctx.Written() {
 			return
 		}
+	} else {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
+		ctx.Data["PageIsComparePull"] = false
+		ctx.Data["CommitCount"] = 0
 	}
+	ctx.HTML(http.StatusOK, tplCompare)
+}
 
+func prepareCreatePullRequestPage(ctx *context.Context, ci *git_service.CompareInfo) {
 	baseTags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetTagNamesByRepoID", err)
@@ -646,8 +580,8 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	if noMergeBase {
-		ctx.HTML(http.StatusOK, tplCompare)
+	nothingToCompare := PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
+	if ctx.Written() {
 		return
 	}
 
@@ -691,7 +625,7 @@ func CompareDiff(ctx *context.Context) {
 	if content, ok := ctx.Data["content"].(string); ok && content != "" {
 		// If a template content is set, prepend the "content". In this case that's only
 		// applicable if you have one commit to compare and that commit has a message.
-		// In that case the commit message will be prepend to the template body.
+		// In that case the commit message will be prepended to the template body.
 		if templateContent, ok := ctx.Data[pullRequestTemplateKey].(string); ok && templateContent != "" {
 			// Re-use the same key as that's prioritized over the "content" key.
 			// Add two new lines between the content to ensure there's always at least
@@ -719,14 +653,8 @@ func CompareDiff(ctx *context.Context) {
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypePullRequests)
 
-	if unit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests); err == nil {
-		config := unit.PullRequestsConfig()
-		ctx.Data["AllowMaintainerEdit"] = config.DefaultAllowMaintainerEdit
-	} else {
-		ctx.Data["AllowMaintainerEdit"] = false
-	}
-
-	ctx.HTML(http.StatusOK, tplCompare)
+	prConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
+	ctx.Data["AllowMaintainerEdit"] = prConfig.DefaultAllowMaintainerEdit
 }
 
 // attachCommentsToLines attaches comments to their corresponding diff lines

@@ -45,6 +45,7 @@ func (ci *CompareInfo) DirectComparison() bool {
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
 // It does its best to fill the fields as many as it can.
+// MergeBase can be empty if the base and head are unrelated.
 func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Repository, headGitRepo *git.Repository, baseRef, headRef git.RefName, directComparison, fileOnly bool) (compareInfo CompareInfo, err error) {
 	baseCommitID, err1 := gitrepo.GetFullCommitID(ctx, baseRepo, baseRef.String())
 	headCommitID, err2 := gitrepo.GetFullCommitID(ctx, headRepo, headRef.String())
@@ -75,7 +76,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 
 	if !directComparison {
 		compareInfo.MergeBase, err = gitrepo.MergeBase(ctx, headRepo, compareInfo.BaseCommitID, compareInfo.HeadCommitID)
-		if err != nil {
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return compareInfo, fmt.Errorf("MergeBase: %w", err)
 		}
 	} else {

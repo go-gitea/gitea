@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -76,9 +77,8 @@ func TestMergeBaseNoCommonHistory(t *testing.T) {
 	headCommit := commitRootTree(t, repoDir, "head.txt", "head", "head")
 
 	mergeBase, err := MergeBase(t.Context(), &mockRepository{path: repoDir}, baseCommit, headCommit)
-	var noMergeBase ErrNoMergeBase
 	assert.Empty(t, mergeBase)
-	assert.ErrorAs(t, err, &noMergeBase)
+	assert.ErrorIs(t, err, util.ErrNotExist)
 }
 
 func TestRepoGetDivergingCommits(t *testing.T) {
