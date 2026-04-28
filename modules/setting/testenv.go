@@ -153,7 +153,10 @@ func PrepareIntegrationTestConfig() error {
 		return err
 	}
 	tmpl := string(tmplBuf)
-	envVars, _ := shellquote.Split(os.Getenv("MAKEFILE_VARS"))
+	envVars, err := shellquote.Split(os.Getenv("MAKEFILE_VARS"))
+	if err != nil {
+		return err
+	}
 	envVarMap := map[string]string{
 		"TEST_WORK_PATH": workPath,
 		"TEST_LOGGER":    "test,file",

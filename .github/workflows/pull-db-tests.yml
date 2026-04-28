@@ -85,7 +85,7 @@ jobs:
       - run: make deps-backend
       - run: make backend
         env:
-          TAGS: bindata gogit
+          TAGS: bindata gogit sqlite sqlite_unlock_notify
           GOEXPERIMENT:
       - name: run migration tests
         run: GITEA_TEST_DATABASE=sqlite make test-migration
@@ -158,13 +158,13 @@ jobs:
       - name: unit-tests
         run: make test-backend test-check
         env:
-          TAGS: bindata
+          TAGS: bindata sqlite sqlite_unlock_notify
           GOTEST_FLAGS: -race -timeout=20m
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
       - name: unit-tests-gogit
         run: make test-backend test-check
         env:
-          TAGS: bindata gogit
+          TAGS: bindata gogit sqlite sqlite_unlock_notify
           GOEXPERIMENT:
           GOTEST_FLAGS: -race -timeout=20m
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
