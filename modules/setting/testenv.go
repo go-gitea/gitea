@@ -21,6 +21,16 @@ func GetGiteaTestSourceRoot() string {
 	return *giteaTestSourceRoot
 }
 
+func DetectGiteaTestRoot() string {
+	_, filename, _, _ := runtime.Caller(0)
+	giteaRoot := filepath.Dir(filepath.Dir(filepath.Dir(filename)))
+	fixturesDir := filepath.Join(giteaRoot, "models", "fixtures")
+	if _, err := os.Stat(fixturesDir); err != nil {
+		panic("in gitea source code directory, fixtures directory not found: " + fixturesDir)
+	}
+	return giteaRoot
+}
+
 func SetupGiteaTestEnv() {
 	if giteaTestSourceRoot != nil {
 		return // already initialized
@@ -41,12 +51,7 @@ func SetupGiteaTestEnv() {
 	initGiteaRoot := func() string {
 		giteaRoot := os.Getenv("GITEA_TEST_ROOT")
 		if giteaRoot == "" {
-			_, filename, _, _ := runtime.Caller(0)
-			giteaRoot = filepath.Dir(filepath.Dir(filepath.Dir(filename)))
-			fixturesDir := filepath.Join(giteaRoot, "models", "fixtures")
-			if _, err := os.Stat(fixturesDir); err != nil {
-				panic("in gitea source code directory, fixtures directory not found: " + fixturesDir)
-			}
+			giteaRoot = DetectGiteaTestRoot()
 		}
 		giteaTestSourceRoot = &giteaRoot
 		return giteaRoot
