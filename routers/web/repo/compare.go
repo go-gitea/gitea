@@ -428,12 +428,6 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 	return &compareInfo, false
 }
 
-func prepareNoMergeBaseCompare(ctx *context.Context) {
-	ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
-	ctx.Data["PageIsComparePull"] = false
-	ctx.Data["CommitCount"] = 0
-}
-
 func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses) (title, content string) {
 	title = ci.HeadRef.ShortName()
 
@@ -615,7 +609,9 @@ func CompareDiff(ctx *context.Context) {
 
 	nothingToCompare := true
 	if noMergeBase {
-		prepareNoMergeBaseCompare(ctx)
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
+		ctx.Data["PageIsComparePull"] = false
+		ctx.Data["CommitCount"] = 0
 	} else {
 		nothingToCompare = PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 		if ctx.Written() {
@@ -636,29 +632,19 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	headBranches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID:          ci.HeadRepo.ID,
-		ListOptions:     db.ListOptionsAll,
-		IsDeletedBranch: optional.Some(false),
-	})
+	headBranches, headTags, err := getBranchesAndTagsForRepo(ctx, ci.HeadRepo)
 	if err != nil {
-		ctx.ServerError("GetBranches", err)
+		ctx.ServerError("GetBranchesAndTagsForRepo", err)
 		return
 	}
 	ctx.Data["HeadBranches"] = headBranches
+	ctx.Data["HeadTags"] = headTags
 
 	// For compare repo branches
 	PrepareBranchList(ctx)
 	if ctx.Written() {
 		return
 	}
-
-	headTags, err := repo_model.GetTagNamesByRepoID(ctx, ci.HeadRepo.ID)
-	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
-		return
-	}
-	ctx.Data["HeadTags"] = headTags
 
 	if noMergeBase {
 		ctx.HTML(http.StatusOK, tplCompare)
