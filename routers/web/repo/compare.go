@@ -383,12 +383,8 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 	return title, content
 }
 
-// PrepareCompareDiff renders compare diff page
-func PrepareCompareDiff(
-	ctx *context.Context,
-	ci *git_service.CompareInfo,
-	whitespaceBehavior gitcmd.TrustedCmdArgs,
-) (nothingToCompare bool) {
+// prepareCompareDiff renders compare diff page. TODO: need to refactor it and other "compare diff" related functions together
+func prepareCompareDiff(ctx *context.Context, ci *git_service.CompareInfo, whitespaceBehavior gitcmd.TrustedCmdArgs) (nothingToCompare bool) {
 	repo := ctx.Repo.Repository
 	headCommitID := ci.HeadCommitID
 
@@ -497,9 +493,6 @@ func PrepareCompareDiff(
 	ctx.Data["CommitCount"] = len(commits)
 
 	ctx.Data["title"], ctx.Data["content"] = prepareNewPullRequestTitleContent(ci, commits)
-	ctx.Data["Username"] = ci.HeadRepo.OwnerName
-	ctx.Data["Reponame"] = ci.HeadRepo.Name
-
 	setCompareContext(ctx, beforeCommit, headCommit, ci.HeadRepo.OwnerName, repo.Name)
 
 	return false
@@ -539,20 +532,6 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["CompareInfo"] = ci
 
-	if ci.MergeBase != "" {
-		prepareCreatePullRequestPage(ctx, ci)
-		if ctx.Written() {
-			return
-		}
-	} else {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
-		ctx.Data["PageIsComparePull"] = false
-		ctx.Data["CommitCount"] = 0
-	}
-	ctx.HTML(http.StatusOK, tplCompare)
-}
-
-func prepareCreatePullRequestPage(ctx *context.Context, ci *git_service.CompareInfo) {
 	baseTags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetTagNamesByRepoID", err)
@@ -580,7 +559,22 @@ func prepareCreatePullRequestPage(ctx *context.Context, ci *git_service.CompareI
 		return
 	}
 
-	nothingToCompare := PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
+	if ci.MergeBase != "" {
+		prepareCreatePullRequestPage(ctx, ci)
+		if ctx.Written() {
+			return
+		}
+	} else {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
+		ctx.Data["PageIsComparePull"] = false
+		ctx.Data["CommitCount"] = 0
+	}
+	ctx.HTML(http.StatusOK, tplCompare)
+}
+
+func prepareCreatePullRequestPage(ctx *context.Context, ci *git_service.CompareInfo) {
+	// TODO: need to refactor "prepare compare" related functions together
+	nothingToCompare := prepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if ctx.Written() {
 		return
 	}
