@@ -21,6 +21,22 @@ func TestPullDiff_SingleCommitPRDiff(t *testing.T) {
 	doTestPRDiff(t, "/user2/commitsonpr/pulls/1/commits/c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", true, []string{"test3.txt"})
 }
 
+func TestPullDiff_SingleHeadCommitReviewFormAction(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/commits/1978192d98bb1b65e11c2cf37da854fbf94bffd6")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+
+	assert.False(t, doc.doc.Find(".js-btn-review").HasClass("disabled"))
+	form := doc.doc.Find(".review-box-panel form")
+	assert.Equal(t, 1, form.Length())
+	action, exists := form.Attr("action")
+	assert.True(t, exists)
+	assert.Equal(t, "/user2/commitsonpr/pulls/1/files/reviews/submit", action)
+}
+
 func TestPullDiff_CommitRangePRDiff(t *testing.T) {
 	doTestPRDiff(t, "/user2/commitsonpr/pulls/1/files/4ca8bcaf27e28504df7bf996819665986b01c847..23576dd018294e476c06e569b6b0f170d0558705", true, []string{"test2.txt", "test3.txt", "test4.txt"})
 }
