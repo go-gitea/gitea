@@ -61,14 +61,12 @@ func TestEventSourceManagerRun(t *testing.T) {
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteNotification, auth_model.AccessTokenScopeWriteRepository)
 
-	var apiNL []api.NotificationThread
-
 	// -- mark notifications as read --
 	req := NewRequest(t, "GET", "/api/v1/notifications?status-types=unread").
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &apiNL)
+	apiNL := DecodeJSON(t, resp, []api.NotificationThread{})
 	assert.Len(t, apiNL, 2)
 
 	lastReadAt := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801 <- only Notification 4 is in this filter ...
@@ -79,7 +77,7 @@ func TestEventSourceManagerRun(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/notifications?status-types=unread").
 		AddTokenAuth(token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiNL)
+	apiNL = DecodeJSON(t, resp, []api.NotificationThread{})
 	assert.Len(t, apiNL, 1)
 
 	assert.Eventually(t, expectNotificationCountEvent(1), 30*time.Second, 1*time.Second)

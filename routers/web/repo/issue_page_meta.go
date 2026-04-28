@@ -33,12 +33,15 @@ type issueSidebarAssigneesData struct {
 	CandidateAssignees  []*user_model.User
 }
 
+type issueSidebarProjectCardData struct {
+	Project        *project_model.Project
+	Columns        []*project_model.Column
+	SelectedColumn *project_model.Column
+}
+
 type issueSidebarProjectsData struct {
 	SelectedProjectIDs []int64 // TODO: support multiple projects in the future
-
-	// the "selected" fields are only valid when len(SelectedProjectIDs)==1
-	SelectedProjectColumns []*project_model.Column
-	SelectedProjectColumn  *project_model.Column
+	ProjectCards       []*issueSidebarProjectCardData
 
 	OpenProjects   []*project_model.Project
 	ClosedProjects []*project_model.Project
@@ -107,7 +110,7 @@ func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository
 	// A reader(creator) could update some meta (eg: target branch), but can't change assignees anymore.
 	// For non-creator users, only writers could update some meta (eg: assignees, milestone, project)
 	// Need to clarify the logic and add some tests in the future
-	data.CanModifyIssueOrPull = ctx.Repo.CanWriteIssuesOrPulls(isPull) && !ctx.Repo.Repository.IsArchived
+	data.CanModifyIssueOrPull = ctx.Repo.Permission.CanWriteIssuesOrPulls(isPull) && !ctx.Repo.Repository.IsArchived
 	if !data.CanModifyIssueOrPull {
 		return data
 	}
@@ -172,30 +175,37 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 	if d.Issue == nil || d.Issue.Project == nil {
 		return
 	}
-	d.ProjectsData.SelectedProjectIDs = []int64{d.Issue.Project.ID}
 	columns, err := d.Issue.Project.GetColumns(ctx)
 	if err != nil {
 		ctx.ServerError("GetProjectColumns", err)
 		return
 	}
-	d.ProjectsData.SelectedProjectColumns = columns
 	columnID, err := d.Issue.ProjectColumnID(ctx)
 	if err != nil {
 		ctx.ServerError("ProjectColumnID", err)
 		return
 	}
+	var selectedColumn *project_model.Column
 	for _, col := range columns {
 		if col.ID == columnID {
-			d.ProjectsData.SelectedProjectColumn = col
+			selectedColumn = col
 			break
 		}
+	}
+	d.ProjectsData.ProjectCards = []*issueSidebarProjectCardData{
+		{
+			Project:        d.Issue.Project,
+			Columns:        columns,
+			SelectedColumn: selectedColumn,
+		},
+	}
+	d.ProjectsData.SelectedProjectIDs = make([]int64, 0, len(d.ProjectsData.ProjectCards))
+	for _, card := range d.ProjectsData.ProjectCards {
+		d.ProjectsData.SelectedProjectIDs = append(d.ProjectsData.SelectedProjectIDs, card.Project.ID)
 	}
 }
 
 func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {
-	if d.Issue != nil && d.Issue.Project != nil {
-		d.ProjectsData.SelectedProjectIDs = []int64{d.Issue.Project.ID}
-	}
 	d.ProjectsData.OpenProjects, d.ProjectsData.ClosedProjects = retrieveProjectsInternal(ctx, ctx.Repo.Repository)
 }
 

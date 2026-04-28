@@ -45,7 +45,6 @@ import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActionView} from './features/repo-actions.ts';
 import {initGlobalTooltips} from './modules/tippy.ts';
 import {initGiteaFomantic} from './modules/fomantic.ts';
-import {initSubmitEventPolyfill} from './utils/dom.ts';
 import {initRepoIssueList} from './features/repo-issue-list.ts';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.ts';
 import {initRepoContributors} from './features/contributors.ts';
@@ -64,12 +63,12 @@ import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFor
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
+import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initDevtest} from './modules/devtest.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
-  initSubmitEventPolyfill,
   initGiteaFomantic,
 
   initGlobalComponent,
@@ -100,6 +99,7 @@ const initPerformanceTracer = callInitFunctions([
   initImageDiff,
   initMarkupAnchors,
   initMarkupContent,
+  initRefIssueContextPopup,
   initSshKeyFormParser,
   initStopwatch,
   initTableSort,
@@ -171,3 +171,5 @@ const initDur = performance.now() - initStartTime;
 if (initDur > 500) {
   console.error(`slow init functions took ${initDur.toFixed(3)}ms`);
 }
+
+window.config.frontendInited = true;

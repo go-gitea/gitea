@@ -50,8 +50,7 @@ func sampleTest(t *testing.T, auoptc apiUserOrgPermTestCase) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var apiOP api.OrganizationPermissions
-	DecodeJSON(t, resp, &apiOP)
+	apiOP := DecodeJSON(t, resp, &api.OrganizationPermissions{})
 	assert.Equal(t, auoptc.ExpectedOrganizationPermissions.IsOwner, apiOP.IsOwner)
 	assert.Equal(t, auoptc.ExpectedOrganizationPermissions.IsAdmin, apiOP.IsAdmin)
 	assert.Equal(t, auoptc.ExpectedOrganizationPermissions.CanWrite, apiOP.CanWrite)
@@ -142,8 +141,7 @@ func testUnknownUser(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusNotFound)
 
-	var apiError api.APIError
-	DecodeJSON(t, resp, &apiError)
+	apiError := DecodeJSON(t, resp, &api.APIError{})
 	assert.Equal(t, "user redirect does not exist [name: unknown]", apiError.Message)
 }
 
@@ -154,8 +152,7 @@ func testUnknownOrganization(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/v1/users/user1/orgs/unknown/permissions").
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusNotFound)
-	var apiError api.APIError
-	DecodeJSON(t, resp, &apiError)
+	apiError := DecodeJSON(t, resp, &api.APIError{})
 	assert.Equal(t, "GetUserByName", apiError.Message)
 }
 
@@ -174,9 +171,8 @@ func testHiddenMemberPermissionsForbidden(t *testing.T) {
 		AddTokenAuth(adminToken)
 	resp := MakeRequest(t, adminReq, http.StatusOK)
 
-	var apiOP api.OrganizationPermissions
-	DecodeJSON(t, resp, &apiOP)
-	assert.Equal(t, api.OrganizationPermissions{
+	apiOP := DecodeJSON(t, resp, &api.OrganizationPermissions{})
+	assert.Equal(t, &api.OrganizationPermissions{
 		IsOwner:             false,
 		IsAdmin:             false,
 		CanWrite:            true,

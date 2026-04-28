@@ -67,7 +67,7 @@ func (err ErrNotValidReviewRequest) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
-// ErrReviewRequestOnClosedPR represents an error when an user tries to request a re-review on a closed or merged PR.
+// ErrReviewRequestOnClosedPR represents an error when a user tries to request a re-review on a closed or merged PR.
 type ErrReviewRequestOnClosedPR struct{}
 
 // IsErrReviewRequestOnClosedPR checks if an error is an ErrReviewRequestOnClosedPR.
@@ -176,15 +176,7 @@ func (r *Review) LoadReviewer(ctx context.Context) (err error) {
 	if r.ReviewerID == 0 || r.Reviewer != nil {
 		return err
 	}
-	r.Reviewer, err = user_model.GetPossibleUserByID(ctx, r.ReviewerID)
-	if err != nil {
-		if !user_model.IsErrUserNotExist(err) {
-			return fmt.Errorf("GetPossibleUserByID [%d]: %w", r.ReviewerID, err)
-		}
-		r.ReviewerID = user_model.GhostUserID
-		r.Reviewer = user_model.NewGhostUser()
-		return nil
-	}
+	r.ReviewerID, r.Reviewer, err = user_model.GetPossibleUserByID(ctx, r.ReviewerID)
 	return err
 }
 
@@ -908,8 +900,8 @@ func MarkConversation(ctx context.Context, comment *Comment, doer *user_model.Us
 // CanMarkConversation  Add or remove Conversation mark for a code comment permission check
 // the PR writer , official reviewer and poster can do it
 func CanMarkConversation(ctx context.Context, issue *Issue, doer *user_model.User) (permResult bool, err error) {
-	if doer == nil || issue == nil {
-		return false, errors.New("issue or doer is nil")
+	if doer == nil {
+		return false, nil
 	}
 
 	if err = issue.LoadRepo(ctx); err != nil {

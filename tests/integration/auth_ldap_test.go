@@ -4,8 +4,10 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -14,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
@@ -46,12 +47,29 @@ type ldapTestEnv struct {
 	serverPort     string
 }
 
-func prepareLdapTestEnv(t *testing.T) *ldapTestEnv {
-	if os.Getenv("TEST_LDAP") != "1" {
-		t.Skip()
-		return nil
-	}
+func TestAuthLDAP(t *testing.T) {
+	// To test it locally:
+	// $ docker run --rm gitea/test-openldap:latest -p 389:389
+	// $ TEST_LDAP=1 TEST_LDAP_HOST=localhost make "test-sqlite#TestAuthLDAP"
+	defer tests.PrepareTestEnv(t)()
+	t.Run("PreventInvalidGroupTeamMap", testLDAPPreventInvalidGroupTeamMap)
+	t.Run("AuthChange", testLDAPAuthChange)
+	t.Run("EmailSignin", testLDAPEmailSignin)
 
+	hasRealServer, _ := strconv.ParseBool(os.Getenv("TEST_LDAP"))
+	if hasRealServer {
+		t.Run("UserSignin", testLDAPUserSignin)
+		t.Run("UserSyncWithAttributeUsername", testLDAPUserSyncWithAttributeUsername)
+		t.Run("UserSyncWithoutAttributeUsername", testLDAPUserSyncWithoutAttributeUsername)
+		t.Run("UserSyncSSHKeys", testLDAPUserSyncSSHKeys)
+		t.Run("UserSyncWithGroupFilter", testLDAPUserSyncWithGroupFilter)
+
+		t.Run("GroupTeamSyncAddMember", testLDAPGroupTeamSyncAddMember)
+		t.Run("GroupTeamSyncRemoveMember", testLDAPGroupTeamSyncRemoveMember)
+	}
+}
+
+func prepareLdapTestServerEnv() *ldapTestEnv {
 	gitLDAPUsers := []ldapUser{
 		{
 			UserName:    "professor",
@@ -117,23 +135,8 @@ func prepareLdapTestEnv(t *testing.T) *ldapTestEnv {
 	}
 }
 
-type ldapAuthOptions struct {
-	attributeUID          optional.Option[string] // defaults to "uid"
-	attributeSSHPublicKey string
-	groupFilter           string
-	groupTeamMap          string
-	groupTeamMapRemoval   string
-}
-
-func (te *ldapTestEnv) buildAuthSourcePayload(opts ...ldapAuthOptions) map[string]string {
-	opt := util.OptionalArg(opts)
-	// Modify user filter to test group filter explicitly
-	userFilter := "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))"
-	if opt.groupFilter != "" {
-		userFilter = "(&(objectClass=inetOrgPerson)(uid=%s))"
-	}
-
-	return map[string]string{
+func (te *ldapTestEnv) buildAuthSourcePayload(m map[string]string) map[string]string {
+	ret := map[string]string{
 		"type":                     "2",
 		"name":                     "ldap",
 		"host":                     te.serverHost,
@@ -141,107 +144,119 @@ func (te *ldapTestEnv) buildAuthSourcePayload(opts ...ldapAuthOptions) map[strin
 		"bind_dn":                  "uid=gitea,ou=service,dc=planetexpress,dc=com",
 		"bind_password":            "password",
 		"user_base":                "ou=people,dc=planetexpress,dc=com",
-		"filter":                   userFilter,
+		"filter":                   "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))",
 		"admin_filter":             "(memberOf=cn=admin_staff,ou=people,dc=planetexpress,dc=com)",
 		"restricted_filter":        "(uid=leela)",
-		"attribute_username":       util.Iif(opt.attributeUID.Has(), opt.attributeUID.Value(), "uid"),
+		"attribute_username":       "uid",
 		"attribute_name":           "givenName",
 		"attribute_surname":        "sn",
 		"attribute_mail":           "mail",
-		"attribute_ssh_public_key": opt.attributeSSHPublicKey,
+		"attribute_ssh_public_key": "",
 		"is_sync_enabled":          "on",
 		"is_active":                "on",
 		"groups_enabled":           "on",
 		"group_dn":                 "ou=people,dc=planetexpress,dc=com",
 		"group_member_uid":         "member",
-		"group_filter":             opt.groupFilter,
-		"group_team_map":           opt.groupTeamMap,
-		"group_team_map_removal":   opt.groupTeamMapRemoval,
+		"group_filter":             "",
+		"group_team_map":           "",
+		"group_team_map_removal":   "",
 		"user_uid":                 "DN",
 	}
+	for k, v := range m {
+		if _, ok := ret[k]; !ok {
+			panic("invalid key: " + k)
+		}
+		ret[k] = v
+	}
+	return ret
 }
 
-func (te *ldapTestEnv) addAuthSource(t *testing.T, opts ...ldapAuthOptions) {
+func (te *ldapTestEnv) setupAuthSource(t *testing.T, params map[string]string) {
 	session := loginUser(t, "user1")
-	req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", te.buildAuthSourcePayload(opts...))
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	existing := &auth_model.Source{Name: params["name"]}
+	if ok, _ := db.GetEngine(t.Context()).Get(existing); ok {
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/-/admin/auths/%d", existing.ID), params)
+		session.MakeRequest(t, req, http.StatusSeeOther)
+	} else {
+		req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", params)
+		session.MakeRequest(t, req, http.StatusSeeOther)
+	}
 }
 
-func TestLDAPUserSignin(t *testing.T) {
-	te := prepareLdapTestEnv(t)
-	if te == nil {
-		return
-	}
-	defer tests.PrepareTestEnv(t)()
-	te.addAuthSource(t)
+func testLDAPUserSignin(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
+	te := prepareLdapTestServerEnv()
+	te.setupAuthSource(t, te.buildAuthSourcePayload(nil))
 
-	u := te.gitLDAPUsers[0]
-
-	session := loginUserWithPassword(t, u.UserName, u.Password)
-	req := NewRequest(t, "GET", "/user/settings")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-
-	htmlDoc := NewHTMLParser(t, resp.Body)
-
-	assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
-	assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
-	assert.Equal(t, u.Email, htmlDoc.Find("#signed-user-email").Text())
+	t.Run("Success", func(t *testing.T) {
+		u := te.gitLDAPUsers[0]
+		session := loginUserWithPassword(t, u.UserName, u.Password)
+		req := NewRequest(t, "GET", "/user/settings")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
+		assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
+		assert.Equal(t, u.Email, htmlDoc.Find("#signed-user-email").Text())
+	})
+	t.Run("Failed", func(t *testing.T) {
+		u := te.otherLDAPUsers[0]
+		testLoginFailed(t, u.UserName, u.Password, translation.NewLocale("en-US").TrString("form.username_password_incorrect"))
+	})
 }
 
-func TestLDAPAuthChange(t *testing.T) {
-	te := prepareLdapTestEnv(t)
-	if te == nil {
-		return
-	}
-
-	defer tests.PrepareTestEnv(t)()
-	te.addAuthSource(t)
+func testLDAPAuthChange(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
+	te := prepareLdapTestServerEnv()
+	te.setupAuthSource(t, te.buildAuthSourcePayload(nil))
 
 	session := loginUser(t, "user1")
 	req := NewRequest(t, "GET", "/-/admin/auths")
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-	href, exists := doc.Find("table.table td a").Attr("href")
-	if !exists {
-		assert.True(t, exists, "No authentication source found")
+	respStr := resp.Body.String()
+	doc := NewHTMLParser(t, strings.NewReader(respStr))
+	hrefAuthSource, exists := doc.Find("table.table td a").Attr("href")
+	if !assert.True(t, exists, "No authentication source found") {
+		t.Logf("response: %s", respStr)
 		return
 	}
 
-	req = NewRequest(t, "GET", href)
+	req = NewRequest(t, "GET", hrefAuthSource)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	doc = NewHTMLParser(t, resp.Body)
 	host, _ := doc.Find(`input[name="host"]`).Attr("value")
 	assert.Equal(t, te.serverHost, host)
-	binddn, _ := doc.Find(`input[name="bind_dn"]`).Attr("value")
-	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", binddn)
+	bindDN, _ := doc.Find(`input[name="bind_dn"]`).Attr("value")
+	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", bindDN)
 
-	req = NewRequestWithValues(t, "POST", href, te.buildAuthSourcePayload(ldapAuthOptions{groupTeamMapRemoval: "off"}))
+	req = NewRequestWithValues(t, "POST", hrefAuthSource, te.buildAuthSourcePayload(map[string]string{"group_team_map_removal": "off"}))
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
-	req = NewRequest(t, "GET", href)
+	req = NewRequest(t, "GET", hrefAuthSource)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	doc = NewHTMLParser(t, resp.Body)
 	host, _ = doc.Find(`input[name="host"]`).Attr("value")
 	assert.Equal(t, te.serverHost, host)
-	binddn, _ = doc.Find(`input[name="bind_dn"]`).Attr("value")
-	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", binddn)
+	bindDN, _ = doc.Find(`input[name="bind_dn"]`).Attr("value")
+	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", bindDN)
 }
 
-func TestLDAPUserSync(t *testing.T) {
-	te := prepareLdapTestEnv(t)
-	if te == nil {
-		return
-	}
+func testLDAPUserSyncWithAttributeUsername(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
+	te := prepareLdapTestServerEnv()
+	te.setupAuthSource(t, te.buildAuthSourcePayload(map[string]string{"attribute_username": "uid"}))
 
-	defer tests.PrepareTestEnv(t)()
-	te.addAuthSource(t)
+	// reset user and email table
+	_, _ = db.GetEngine(t.Context()).Where("`name` != 'user1'").Delete(&user_model.User{})
+	_ = db.TruncateBeans(t.Context(), &user_model.EmailAddress{})
+	unittest.AssertCount(t, &user_model.User{}, 1)
+
 	err := auth.SyncExternalUsers(t.Context(), true)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Check if users exists
 	for _, gitLDAPUser := range te.gitLDAPUsers {
 		dbUser, err := user_model.GetUserByName(t.Context(), gitLDAPUser.UserName)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, gitLDAPUser.UserName, dbUser.Name)
 		assert.Equal(t, gitLDAPUser.Email, dbUser.Email)
 		assert.Equal(t, gitLDAPUser.IsAdmin, dbUser.IsAdmin)
@@ -255,23 +270,21 @@ func TestLDAPUserSync(t *testing.T) {
 	}
 }
 
-func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
-	te := prepareLdapTestEnv(t)
-	if te == nil {
-		return
-	}
+func testLDAPUserSyncWithoutAttributeUsername(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
+	te := prepareLdapTestServerEnv()
+	authParams := te.buildAuthSourcePayload(map[string]string{"attribute_username": ""})
+	te.setupAuthSource(t, authParams)
 
-	defer tests.PrepareTestEnv(t)()
+	// reset user and email table
+	_, _ = db.GetEngine(t.Context()).Where("`name` != 'user1'").Delete(&user_model.User{})
+	_ = db.TruncateBeans(t.Context(), &user_model.EmailAddress{})
+	unittest.AssertCount(t, &user_model.User{}, 1)
 
-	session := loginUser(t, "user1")
-	payload := te.buildAuthSourcePayload()
-	payload["attribute_username"] = ""
-	req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", payload)
-	session.MakeRequest(t, req, http.StatusSeeOther)
-
+	adminSession := loginUser(t, "user1")
 	for _, u := range te.gitLDAPUsers {
 		req := NewRequest(t, "GET", "/-/admin/users?q="+u.UserName)
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		resp := adminSession.MakeRequest(t, req, http.StatusOK)
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
@@ -289,9 +302,7 @@ func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
 
 	require.NoError(t, auth.SyncExternalUsers(t.Context(), true))
 
-	authSource := unittest.AssertExistsAndLoadBean(t, &auth_model.Source{
-		Name: payload["name"],
-	})
+	authSource := unittest.AssertExistsAndLoadBean(t, &auth_model.Source{Name: authParams["name"]})
 	unittest.AssertCount(t, &user_model.User{
 		LoginType:   auth_model.LDAP,
 		LoginSource: authSource.ID,
@@ -305,14 +316,13 @@ func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
 	}
 }
 
-func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
-	te := prepareLdapTestEnv(t)
-	if te == nil {
-		return
-	}
-
-	defer tests.PrepareTestEnv(t)()
-	te.addAuthSource(t, ldapAuthOptions{groupFilter: "(cn=git)"})
+func testLDAPUserSyncWithGroupFilter(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
+	te := prepareLdapTestServerEnv()
+	te.setupAuthSource(t, te.buildAuthSourcePayload(map[string]string{
+		"filter":       "(&(objectClass=inetOrgPerson)(uid=%s))",
+		"group_filter": "(cn=git)",
+	}))
 
 	// Assert a user not a member of the LDAP group "cn=git" cannot login
 	// This test may look like TestLDAPUserSigninFailed but it is not.
@@ -365,64 +375,43 @@ func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
 	}
 }
 
-func TestLDAPUserSigninFailed(t *testing.T) {
-	te := prepareLdapTestEnv(t)
-	if te == nil {
-		return
-	}
-
-	defer tests.PrepareTestEnv(t)()
-	te.addAuthSource(t)
-
-	u := te.otherLDAPUsers[0]
-	testLoginFailed(t, u.UserName, u.Password, translation.NewLocale("en-US").TrString("form.username_password_incorrect"))
-}
-
-func TestLDAPUserSSHKeySync(t *testing.T) {
-	te := prepareLdapTestEnv(t)
-	if te == nil {
-		return
-	}
-
-	defer tests.PrepareTestEnv(t)()
-	te.addAuthSource(t, ldapAuthOptions{attributeSSHPublicKey: "sshPublicKey"})
+func testLDAPUserSyncSSHKeys(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
+	te := prepareLdapTestServerEnv()
+	te.setupAuthSource(t, te.buildAuthSourcePayload(map[string]string{"attribute_ssh_public_key": "sshPublicKey"}))
 
 	require.NoError(t, auth.SyncExternalUsers(t.Context(), true))
 
 	// Check if users has SSH keys synced
+	count := 0
 	for _, u := range te.gitLDAPUsers {
 		if len(u.SSHKeys) == 0 {
 			continue
 		}
-		session := loginUserWithPassword(t, u.UserName, u.Password)
+		count++
 
+		session := loginUserWithPassword(t, u.UserName, u.Password)
 		req := NewRequest(t, "GET", "/user/settings/keys")
 		resp := session.MakeRequest(t, req, http.StatusOK)
-
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
 		divs := htmlDoc.doc.Find("#keys-ssh .flex-item .flex-item-body:not(:last-child)")
-
 		syncedKeys := make([]string, divs.Length())
 		for i := 0; i < divs.Length(); i++ {
 			syncedKeys[i] = strings.TrimSpace(divs.Eq(i).Text())
 		}
-
 		assert.ElementsMatch(t, u.SSHKeys, syncedKeys, "Unequal number of keys synchronized for user: %s", u.UserName)
 	}
+	assert.NotZero(t, count)
 }
 
-func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
-	te := prepareLdapTestEnv(t)
-	if te == nil {
-		return
-	}
-
+func testLDAPGroupTeamSyncAddMember(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	te.addAuthSource(t, ldapAuthOptions{
-		groupTeamMap:        `{"cn=ship_crew,ou=people,dc=planetexpress,dc=com":{"org26": ["team11"]},"cn=admin_staff,ou=people,dc=planetexpress,dc=com": {"non-existent": ["non-existent"]}}`,
-		groupTeamMapRemoval: "on",
-	})
+	te := prepareLdapTestServerEnv()
+	te.setupAuthSource(t, te.buildAuthSourcePayload(map[string]string{
+		"group_team_map":         `{"cn=ship_crew,ou=people,dc=planetexpress,dc=com":{"org26": ["team11"]},"cn=admin_staff,ou=people,dc=planetexpress,dc=com": {"non-existent": ["non-existent"]}}`,
+		"group_team_map_removal": "on",
+	}))
 	org, err := organization.GetOrgByName(t.Context(), "org26")
 	assert.NoError(t, err)
 	team, err := organization.GetTeam(t.Context(), org.ID, "team11")
@@ -461,16 +450,14 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 	}
 }
 
-func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
-	te := prepareLdapTestEnv(t)
-	if te == nil {
-		return
-	}
+func testLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	te.addAuthSource(t, ldapAuthOptions{
-		groupTeamMap:        `{"cn=dispatch,ou=people,dc=planetexpress,dc=com": {"org26": ["team11"]}}`,
-		groupTeamMapRemoval: "on",
-	})
+	te := prepareLdapTestServerEnv()
+	te.setupAuthSource(t, te.buildAuthSourcePayload(map[string]string{
+		"group_team_map":         `{"cn=dispatch,ou=people,dc=planetexpress,dc=com": {"org26": ["team11"]}}`,
+		"group_team_map_removal": "on",
+	}))
+
 	org, err := organization.GetOrgByName(t.Context(), "org26")
 	assert.NoError(t, err)
 	team, err := organization.GetTeam(t.Context(), org.ID, "team11")
@@ -499,20 +486,18 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	assert.False(t, isMember, "User membership should have been removed from team")
 }
 
-func TestLDAPPreventInvalidGroupTeamMap(t *testing.T) {
-	te := prepareLdapTestEnv(t)
-	if te == nil {
-		return
-	}
-	defer tests.PrepareTestEnv(t)()
+func testLDAPPreventInvalidGroupTeamMap(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
+	te := prepareLdapTestServerEnv()
 
 	session := loginUser(t, "user1")
-	payload := te.buildAuthSourcePayload(ldapAuthOptions{groupTeamMap: `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, groupTeamMapRemoval: "off"})
+	payload := te.buildAuthSourcePayload(map[string]string{"group_team_map": `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "group_team_map_removal": "off"})
 	req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", payload)
 	session.MakeRequest(t, req, http.StatusOK) // StatusOK = failed, StatusSeeOther = ok
 }
 
-func TestLDAPEmailSignin(t *testing.T) {
+func testLDAPEmailSignin(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 	te := ldapTestEnv{
 		gitLDAPUsers: []ldapUser{
 			{
@@ -549,7 +534,7 @@ func TestLDAPEmailSignin(t *testing.T) {
 		return result
 	})()
 	defer tests.PrepareTestEnv(t)()
-	te.addAuthSource(t)
+	te.setupAuthSource(t, te.buildAuthSourcePayload(nil))
 
 	u := te.gitLDAPUsers[0]
 

@@ -217,7 +217,7 @@ func (app *OAuth2Application) GetGrantByUserID(ctx context.Context, userID int64
 	return grant, nil
 }
 
-// CreateGrant generates a grant for an user
+// CreateGrant generates a grant for a user
 func (app *OAuth2Application) CreateGrant(ctx context.Context, userID int64, scope string) (*OAuth2Grant, error) {
 	grant := &OAuth2Grant{
 		ApplicationID: app.ID,
@@ -461,7 +461,7 @@ func GetOAuth2AuthorizationByCode(ctx context.Context, code string) (auth *OAuth
 
 //////////////////////////////////////////////////////
 
-// OAuth2Grant represents the permission of an user for a specific application to access resources
+// OAuth2Grant represents the permission of a user for a specific application to access resources
 type OAuth2Grant struct {
 	ID            int64              `xorm:"pk autoincr"`
 	UserID        int64              `xorm:"INDEX unique(user_application)"`
@@ -627,7 +627,7 @@ func GetActiveOAuth2SourceByAuthName(ctx context.Context, name string) (*Source,
 	}
 
 	if !has {
-		return nil, fmt.Errorf("oauth2 source not found, name: %q", name)
+		return nil, util.NewNotExistErrorf("oauth2 source not found, name: %q", name)
 	}
 
 	return authSource, nil

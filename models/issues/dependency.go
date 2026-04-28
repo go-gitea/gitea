@@ -89,12 +89,6 @@ type ErrUnknownDependencyType struct {
 	Type DependencyType
 }
 
-// IsErrUnknownDependencyType checks if an error is ErrUnknownDependencyType
-func IsErrUnknownDependencyType(err error) bool {
-	_, ok := err.(ErrUnknownDependencyType)
-	return ok
-}
-
 func (err ErrUnknownDependencyType) Error() string {
 	return fmt.Sprintf("unknown dependency type [type: %d]", err.Type)
 }
