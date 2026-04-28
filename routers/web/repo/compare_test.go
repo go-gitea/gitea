@@ -114,6 +114,7 @@ func TestAutoTitleFromBranchName(t *testing.T) {
 		{"fix/the-bug", "Fix/the bug"},
 		{"Already-Capitalized", "Already capitalized"},
 		{"ALL-CAPS-BRANCH", "All caps branch"},
+		{"FixHTMLBug", "Fix html bug"},
 		{"MixedCase-Name", "Mixed case name"},
 		{"fooBar-baz", "Foo bar baz"},
 		{"foo/BAR", "Foo/bar"},

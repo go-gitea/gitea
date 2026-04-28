@@ -439,8 +439,9 @@ func autoTitleFromBranchName(name string) string {
 			prevIsSpace = true
 			continue
 		}
-		if i > 0 && unicode.IsUpper(r) && unicode.IsLower(runes[i-1]) {
-			if !prevIsSpace {
+		if !prevIsSpace && unicode.IsUpper(r) {
+			needSpace := i > 0 && unicode.IsLower(runes[i-1]) || i < len(runes)-1 && unicode.IsLower(runes[i+1])
+			if needSpace {
 				buf.WriteRune(' ')
 			}
 		}
