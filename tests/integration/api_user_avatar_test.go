@@ -24,7 +24,7 @@ func TestAPIUpdateUserAvatar(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
 
 	// Test what happens if you use a valid image
-	avatar, err := os.ReadFile("tests/integration/avatar.png")
+	avatar, err := os.ReadFile("avatar.png")
 	assert.NoError(t, err)
 	if err != nil {
 		assert.FailNow(t, "Unable to open avatar.png")
@@ -48,7 +48,7 @@ func TestAPIUpdateUserAvatar(t *testing.T) {
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test what happens if you use a file that is not an image
-	text, err := os.ReadFile("tests/integration/README.md")
+	text, err := os.ReadFile("README.md")
 	assert.NoError(t, err)
 	if err != nil {
 		assert.FailNow(t, "Unable to open README.md")

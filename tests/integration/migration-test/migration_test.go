@@ -38,9 +38,6 @@ var currentEngine *xorm.Engine
 func initMigrationTest(t *testing.T) func() {
 	testlogger.Init()
 	setting.SetupGiteaTestEnv()
-	// `go test` runs tests with cwd = package dir, but the migration fixtures
-	// in this package are referenced as "tests/integration/migration-test/...".
-	t.Chdir(setting.GetGiteaTestSourceRoot())
 
 	assert.NotEmpty(t, setting.RepoRootPath)
 	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/gitea-repositories-meta"), setting.RepoRootPath))
@@ -52,7 +49,7 @@ func initMigrationTest(t *testing.T) func() {
 }
 
 func availableVersions() ([]string, error) {
-	migrationsDir, err := os.Open("tests/integration/migration-test")
+	migrationsDir, err := os.Open(".")
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +75,7 @@ func availableVersions() ([]string, error) {
 }
 
 func readSQLFromFile(version string) (string, error) {
-	filename := fmt.Sprintf("tests/integration/migration-test/gitea-v%s.%s.sql.gz", version, setting.Database.Type)
+	filename := fmt.Sprintf("gitea-v%s.%s.sql.gz", version, setting.Database.Type)
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return "", nil
