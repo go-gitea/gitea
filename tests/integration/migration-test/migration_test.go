@@ -37,6 +37,7 @@ var currentEngine *xorm.Engine
 
 func initMigrationTest(t *testing.T) func() {
 	testlogger.Init()
+	require.NoError(t, setting.PrepareIntegrationTestConfig())
 	setting.SetupGiteaTestEnv()
 
 	assert.NotEmpty(t, setting.RepoRootPath)
@@ -54,7 +55,7 @@ func availableVersions() ([]string, error) {
 		return nil, err
 	}
 	defer migrationsDir.Close()
-	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)\\." + regexp.QuoteMeta(setting.Database.Type.String()) + "\\.sql.gz")
+	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)" + regexp.QuoteMeta("."+setting.Database.Type.String()+".sql.gz"))
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +98,7 @@ func readSQLFromFile(version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(bytes.TrimPrefix(buf, []byte{'\xef', '\xbb', '\xbf'})), nil
+	return string(bytes.TrimPrefix(buf, []byte("\xef\xbb\xbf"))), nil
 }
 
 func restoreOldDB(t *testing.T, version string) {
@@ -230,6 +231,8 @@ func restoreOldDB(t *testing.T, version string) {
 			assert.NoError(t, err, "Failure whilst running: %s\nError: %v", statement, err)
 		}
 		db.Close()
+	default:
+		assert.Failf(t, "unsupported database type", "setting.Database.Type=%v", setting.Database.Type)
 	}
 }
 

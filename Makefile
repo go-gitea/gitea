@@ -7,10 +7,9 @@ export GOEXPERIMENT ?= jsonv2
 
 GO ?= go
 SHASUM ?= shasum -a 256
-HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
-XGO_VERSION := go-1.25.x
+XGO_VERSION := go-1.25.x # FIXME: outdated xgo
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1 # renovate: datasource=go
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3 # renovate: datasource=go
@@ -22,14 +21,27 @@ XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.11 # renovate: datasource=go
 
-DOCKER_IMAGE ?= gitea/gitea
-DOCKER_TAG ?= latest
-DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
-
+HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 ifeq ($(HAS_GO), yes)
 	CGO_EXTRA_CFLAGS := -DSQLITE_MAX_VARIABLE_NUMBER=32766
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
 endif
+
+MAKE_EVIDENCE_DIR := .make_evidence
+
+# Use sqlite as default database if running tests, only do so for local tests, not in CI.
+# CI should explicitly set the database to avoid unexpected results.
+ifneq ($(findstring test-,$(MAKECMDGOALS)),)
+	ifeq ($(CI),)
+		GITEA_TEST_DATABASE ?= sqlite
+	endif
+endif
+
+TAGS ?=
+ifeq ($(GITEA_TEST_DATABASE),sqlite)
+	TAGS += sqlite sqlite_unlock_notify
+endif
+TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 CGO_ENABLED ?= 0
 ifneq (,$(findstring sqlite,$(TAGS))$(findstring pam,$(TAGS)))
@@ -65,8 +77,6 @@ ifeq ($(shell sed --version 2>/dev/null | grep -q GNU && echo gnu),gnu)
 else
 	SED_INPLACE := sed -i ''
 endif
-
-MAKE_EVIDENCE_DIR := .make_evidence
 
 # GOTEST_FLAGS is for unit test and integration test
 GOTEST_FLAGS ?= -timeout 40m
@@ -122,12 +132,6 @@ AIR_TMP_DIR := .air
 
 GO_LICENSE_FILE := assets/go-licenses.json
 
-TAGS ?=
-TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
-TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
-
-TEST_TAGS ?= $(TAGS_SPLIT) sqlite sqlite_unlock_notify
-
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR)
 
 GO_DIRS := build cmd models modules routers services tests tools
@@ -165,9 +169,12 @@ TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
 # Include local Makefile
 # Makefile.local is listed in .gitignore
-sinclude Makefile.local
+ifneq ("$(wildcard Makefile.local)","")
+	include Makefile.local
+endif
 
 $(foreach v, $(filter TEST_%, $(.VARIABLES)), $(eval MAKEFILE_VARS+=$v=$($v)))
+$(foreach v, $(filter GITEA_TEST_%, $(.VARIABLES)), $(eval MAKEFILE_VARS+=$v=$($v)))
 export MAKEFILE_VARS
 
 .PHONY: all
@@ -177,8 +184,8 @@ all: build
 help: Makefile ## print Makefile help information.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m[TARGETS] default target: build\033[0m\n\n\033[35mTargets:\033[0m\n"} /^[0-9A-Za-z._-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 }' Makefile #$(MAKEFILE_LIST)
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-e2e" "test end to end using playwright"
-	@printf "  \033[36m%-46s\033[0m %s\n" "test[#TestSpecificName]" "run unit test"
-	@printf "  \033[36m%-46s\033[0m %s\n" "test-sqlite[#TestSpecificName]" "run integration test for sqlite"
+	@printf "  \033[36m%-46s\033[0m %s\n" "test-backend[#TestSpecificName]" "run unit test (sqlite only)"
+	@printf "  \033[36m%-46s\033[0m %s\n" "test-integration[#TestSpecificName]" "run integration test for GITEA_TEST_DATABASE (sqlite, mysql, pgsql, mssql)"
 
 .PHONY: clean-all
 clean-all: clean ## delete backend, frontend and integration files
@@ -186,14 +193,8 @@ clean-all: clean ## delete backend, frontend and integration files
 
 .PHONY: clean
 clean: ## delete backend and integration files
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST_WILDCARD) \
-		integrations*.test migrations*.test \
-		tests/integration/gitea-integration-* \
-		tests/integration/indexers-* \
-		tests/sqlite.ini tests/mysql.ini tests/pgsql.ini tests/mssql.ini man/ \
-		tests/e2e/gitea-e2e-*/ \
-		tests/e2e/indexers-*/ \
-		tests/e2e/reports/ tests/e2e/test-artifacts/ tests/e2e/test-snapshots/
+	rm -f $(EXECUTABLE) test-*.test tests/*.ini
+	rm -rf  $(DIST) $(BINDATA_DEST_WILDCARD) man tests/integration/gitea-integration-*
 
 .PHONY: fmt
 fmt: ## format the Go and template code
@@ -365,13 +366,10 @@ watch-frontend: node_modules ## start vite dev server for frontend
 watch-backend: ## watch backend files and continuously rebuild
 	GITEA_RUN_MODE=dev $(GO) run $(AIR_PACKAGE) -c .air.toml
 
-.PHONY: test
-test: test-frontend test-backend ## test everything
-
 .PHONY: test-backend
 test-backend: ## test backend files
-	@echo "Running go test with $(GOTEST_FLAGS) -tags '$(TEST_TAGS)'..."
-	@$(GO) test $(GOTEST_FLAGS) -tags='$(TEST_TAGS)' $(GO_TEST_PACKAGES)
+	@echo "Running go test with $(GOTEST_FLAGS) -tags '$(TAGS)'..."
+	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $(GO_TEST_PACKAGES)
 
 .PHONY: test-frontend
 test-frontend: node_modules ## test frontend files
@@ -389,10 +387,10 @@ test-check:
 		exit 1; \
 	fi
 
-.PHONY: test\#%
-test\#%:
-	@echo "Running go test with -tags '$(TEST_TAGS)'..."
-	@$(GO) test $(GOTEST_FLAGS) -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_TEST_PACKAGES)
+.PHONY: test-backend\#%
+test-backend\#%:
+	@echo "Running go test with -tags '$(TAGS)'..."
+	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' -run $(subst .,/,$*) $(GO_TEST_PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -402,8 +400,8 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	@echo "Running unit-test-coverage $(GOTEST_FLAGS) -tags '$(TEST_TAGS)'..."
-	@$(GO) test $(GOTEST_FLAGS) -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_TEST_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	@echo "Running unit-test-coverage $(GOTEST_FLAGS) -tags '$(TAGS)'..."
+	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' -cover -coverprofile coverage.out $(GO_TEST_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: tidy
 tidy: ## run go mod tidy
@@ -432,26 +430,30 @@ $(GO_LICENSE_FILE): go.mod go.sum
 
 .PHONY: test-integration
 test-integration:
-	$$(GO) test $$(GOTEST_FLAGS) code.gitea.io/gitea/tests/integration
+	@# TODO: it seems that "go test" doesn't have the same behavior as the compiled test binary
+	@# e.g.: log output (no Stdout output, no progress), strange deadlock with sqlite tests
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c code.gitea.io/gitea/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
+	./test-integration-$(GITEA_TEST_DATABASE).test
 
 .PHONY: test-integration\#%
 test-integration\#%:
-	$$(GO) test $$(GOTEST_FLAGS) -run $$(subst .,/,$$*) code.gitea.io/gitea/tests/integration
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run $(subst .,/,$*) code.gitea.io/gitea/tests/integration
 
 .PHONY: test-migration
-test-integration-migration: migrations.integration.test migrations.individual.test
+test-migration: migrations.integration.test migrations.individual.test
 
 .PHONY: migrations.integration.test
 migrations.integration.test:
-	$$(GO) test $$(GOTEST_FLAGS) code.gitea.io/gitea/tests/integration/migration-test
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' code.gitea.io/gitea/tests/integration/migration-test
 
 .PHONY: migrations.individual.test
 migrations.individual.test:
-	$$(GO) test $$(GOTEST_FLAGS) $$(MIGRATE_TEST_PACKAGES)
+	@# tests of multiple packages use the same database, don't run in parallel
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -p 1 $(MIGRATE_TEST_PACKAGES)
 
 .PHONY: migrations.individual.test\#%
 migrations.individual.test\#%:
-	$$(GO) test $$(GOTEST_FLAGS) code.gitea.io/gitea/models/migrations/$$*
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' code.gitea.io/gitea/models/migrations/$*
 
 .PHONY: playwright
 playwright: deps-frontend
@@ -459,15 +461,8 @@ playwright: deps-frontend
 	@pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium firefox $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e
-test-e2e: playwright $(EXECUTABLE)
+test-e2e: playwright backend
 	@EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
-
-.PHONY: check
-check: test
-
-.PHONY: install $(TAGS_PREREQ)
-install: $(wildcard *.go)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
 .PHONY: build
 build: frontend backend ## build everything
@@ -656,11 +651,6 @@ generate-manpage: ## generate manpage
 	@./gitea docs --man > man/man1/gitea.1
 	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
 	@#TODO A small script that formats config-cheat-sheet.en-us.md nicely for use as a config man page
-
-.PHONY: docker
-docker:
-	docker build --disable-content-trust=false -t $(DOCKER_REF) .
-# support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
 
 # Disable parallel execution because it would break some targets that don't
 # specify exact dependencies like 'backend' which does currently not depend

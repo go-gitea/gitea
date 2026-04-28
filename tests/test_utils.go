@@ -6,9 +6,7 @@ package tests
 import (
 	"database/sql"
 	"fmt"
-	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -22,58 +20,14 @@ import (
 	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
-	"github.com/kballard/go-shellquote"
-	"github.com/syndtr/goleveldb/leveldb/errors"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func prepareIntegrationTestConfig(giteaRoot, testDatabase string) error {
-	_ = os.Setenv("GITEA_TEST_ROOT", giteaRoot)
-	_ = os.Setenv("GITEA_TEST_CONF", filepath.Join("tests", testDatabase+".ini"))
-
-	workPath := filepath.Join(giteaRoot, "tests/integration/gitea-integration-"+testDatabase)
-	if err := os.MkdirAll(workPath, 0755); err != nil {
-		return err
-	}
-
-	confFile := filepath.Join(giteaRoot, "tests", testDatabase+".ini")
-	tmplBuf, err := os.ReadFile(confFile + ".tmpl")
-	if err != nil {
-		return err
-	}
-	tmpl := string(tmplBuf)
-	envVars, _ := shellquote.Split(os.Getenv("MAKEFILE_VARS"))
-	envVarMap := map[string]string{
-		"TEST_WORK_PATH": workPath,
-		"TEST_LOGGER":    "test,file",
-	}
-	for _, env := range append(os.Environ(), envVars...) {
-		k, v, _ := strings.Cut(env, "=")
-		k = strings.TrimSpace(k)
-		v = strings.TrimSpace(v)
-		envVarMap[k] = v
-	}
-	for k, v := range envVarMap {
-		tmpl = strings.ReplaceAll(tmpl, fmt.Sprintf("{{%s}}", k), v)
-	}
-	err = os.WriteFile(confFile, []byte(tmpl), 0644)
-	return err
-}
-
 func InitIntegrationTest() error {
 	testlogger.Init()
 
-	isInCI, _ := strconv.ParseBool("CI")
-	testDatabase := os.Getenv("GITEA_TEST_DATABASE")
-	if testDatabase == "" {
-		if isInCI {
-			return errors.New("GITEA_TEST_DATABASE environment variable not set")
-		}
-		testDatabase = "sqlite" // for local development, default to sqlite
-		_, _ = fmt.Fprintf(os.Stderr, "Environment variable GITEA_TEST_DATABASE not set - defaulting to %s\n", testDatabase)
-	}
-	err := prepareIntegrationTestConfig(setting.DetectGiteaTestRoot(), testDatabase)
+	err := setting.PrepareIntegrationTestConfig()
 	if err != nil {
 		return err
 	}
@@ -174,6 +128,9 @@ func InitIntegrationTest() error {
 				return err
 			}
 		}
+	case setting.Database.Type.IsSQLite3():
+	default:
+		return fmt.Errorf("unsupported database type: %s", setting.Database.Type)
 	}
 
 	routers.InitWebInstalled(graceful.GetManager().HammerContext())
