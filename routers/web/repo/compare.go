@@ -428,18 +428,26 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 // autoTitleFromBranchName humanizes a branch name into a PR title.
 func autoTitleFromBranchName(name string) string {
 	var buf strings.Builder
+	var prevIsSpace bool
 	runes := []rune(name)
 	for i, r := range runes {
+		isSpace := unicode.IsSpace(r)
+		if r == '-' || r == '_' || isSpace {
+			if !prevIsSpace {
+				buf.WriteRune(' ')
+			}
+			prevIsSpace = true
+			continue
+		}
 		if i > 0 && unicode.IsUpper(r) && unicode.IsLower(runes[i-1]) {
-			buf.WriteRune(' ')
+			if !prevIsSpace {
+				buf.WriteRune(' ')
+			}
 		}
-		if r == '-' || r == '_' {
-			buf.WriteRune(' ')
-		} else {
-			buf.WriteRune(unicode.ToLower(r))
-		}
+		buf.WriteRune(unicode.ToLower(r))
+		prevIsSpace = isSpace
 	}
-	out := strings.Trim(buf.String(), " ")
+	out := strings.TrimSpace(buf.String())
 	if out == "" {
 		return out
 	}

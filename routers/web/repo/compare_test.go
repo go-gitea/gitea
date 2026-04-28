@@ -119,7 +119,7 @@ func TestAutoTitleFromBranchName(t *testing.T) {
 		{"foo/BAR", "Foo/bar"},
 		{"_leading-underscore", "Leading underscore"},
 		{"CamelCase", "Camel case"},
-		{"foo--double-dash", "Foo  double dash"},
+		{"foo--double-dash", "Foo double dash"},
 		{"123-fix", "123 fix"},
 	}
 	for _, c := range cases {
