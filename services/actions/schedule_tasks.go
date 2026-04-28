@@ -136,7 +136,10 @@ func withScheduleInEventPayload(eventPayload, schedule string) string {
 		return eventPayload
 	}
 
-	event := map[string]any{}
+	// eventPayload originates from json.Marshal(input.Payload) in handleSchedules,
+	// so a nil payload is stored as the literal "null" and pre-existing rows may be
+	// empty. Both cases start from a fresh map so the schedule field can still be set.
+	var event map[string]any
 	if eventPayload != "" {
 		if err := json.Unmarshal([]byte(eventPayload), &event); err != nil {
 			log.Error("withScheduleInEventPayload: unmarshal: %v", err)
