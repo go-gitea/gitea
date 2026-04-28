@@ -25,41 +25,28 @@ var (
 	TestSlowFlush = 1 * time.Second
 )
 
-var WriterCloser = &testLoggerWriterCloser{captures: map[testing.TB]*[]byte{}}
+var WriterCloser = &testLoggerWriterCloser{}
 
-// testLoggerWriterCloser receives log lines and captures them per-test instead
-// of forwarding to t.Log. The captured logs are dumped on test failure (see
-// PrintCurrentTest); for passing tests they are dropped. This keeps `go test
-// -v` output readable: progress markers and init logs still stream through
-// os.Stdout, but per-test log noise stays out of the way unless something
-// fails.
 type testLoggerWriterCloser struct {
-	sync.Mutex
-	stack    []testing.TB
-	captures map[testing.TB]*[]byte
+	sync.RWMutex
+	t []testing.TB
 }
 
 func (w *testLoggerWriterCloser) pushT(t testing.TB) {
 	w.Lock()
-	w.stack = append(w.stack, t)
-	if _, ok := w.captures[t]; !ok {
-		buf := make([]byte, 0, 1024)
-		w.captures[t] = &buf
-	}
+	w.t = append(w.t, t)
 	w.Unlock()
 }
 
 func (w *testLoggerWriterCloser) Write(p []byte) (int, error) {
 	// There was a data race problem: the logger system could still try to output logs after the runner is finished.
 	// So we must ensure that the "t" in stack is still valid.
-	w.Lock()
-	defer w.Unlock()
+	w.RLock()
+	defer w.RUnlock()
 
 	var t testing.TB
-	var buf *[]byte
-	if len(w.stack) > 0 {
-		t = w.stack[len(w.stack)-1]
-		buf = w.captures[t]
+	if len(w.t) > 0 {
+		t = w.t[len(w.t)-1]
 	}
 
 	if len(p) > 0 && p[len(p)-1] == '\n' {
@@ -72,28 +59,16 @@ func (w *testLoggerWriterCloser) Write(p []byte) (int, error) {
 		return fmt.Fprintf(os.Stdout, "??? [TestLogger] %s\n", p)
 	}
 
-	if buf != nil {
-		*buf = append(*buf, p...)
-		*buf = append(*buf, '\n')
-	}
+	t.Log(string(p))
 	return len(p), nil
 }
 
-// popT pops the topmost test off the stack and returns its captured log
-// lines. The capture is cleared.
-func (w *testLoggerWriterCloser) popT() []byte {
+func (w *testLoggerWriterCloser) popT() {
 	w.Lock()
-	defer w.Unlock()
-	if len(w.stack) == 0 {
-		return nil
+	if len(w.t) > 0 {
+		w.t = w.t[:len(w.t)-1]
 	}
-	t := w.stack[len(w.stack)-1]
-	w.stack = w.stack[:len(w.stack)-1]
-	if buf, ok := w.captures[t]; ok {
-		delete(w.captures, t)
-		return *buf
-	}
-	return nil
+	w.Unlock()
 }
 
 func (w *testLoggerWriterCloser) Close() error {
@@ -102,15 +77,16 @@ func (w *testLoggerWriterCloser) Close() error {
 
 func (w *testLoggerWriterCloser) Reset() {
 	w.Lock()
-	for _, t := range w.stack {
-		if t == nil {
-			continue
+	if len(w.t) > 0 {
+		for _, t := range w.t {
+			if t == nil {
+				continue
+			}
+			_, _ = fmt.Fprintf(os.Stdout, "Unclosed logger writer in test: %s", t.Name())
+			t.Errorf("Unclosed logger writer in test: %s", t.Name())
 		}
-		_, _ = fmt.Fprintf(os.Stdout, "Unclosed logger writer in test: %s", t.Name())
-		t.Errorf("Unclosed logger writer in test: %s", t.Name())
+		w.t = nil
 	}
-	w.stack = nil
-	w.captures = map[testing.TB]*[]byte{}
 	w.Unlock()
 }
 
@@ -169,10 +145,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 		if runDuration > TestSlowRun {
 			stdoutPrintf("+++ %s is a slow test (run: %v, flush: %v)\n", log.NewColoredValue(t.Name(), log.Bold, log.FgYellow), runDuration, flushDuration)
 		}
-		captured := WriterCloser.popT()
-		if t.Failed() && len(captured) > 0 {
-			stdoutPrintf("!!! %s captured logs:\n%s", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), captured)
-		}
+		WriterCloser.popT()
 	}
 }
 
