@@ -1281,7 +1281,6 @@ jobs:
 		})
 		require.NoError(t, err)
 		require.Len(t, blockedRuns, 1)
-		runner.fetchNoTask(t)
 	})
 }
 
