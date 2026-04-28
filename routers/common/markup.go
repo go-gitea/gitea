@@ -71,7 +71,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 	case "gfm": // legacy mode
 		rctx = renderhelper.NewRenderContextRepoFile(ctx, repoModel, renderhelper.RepoFileOptions{
 			DeprecatedOwnerName: repoOwnerName, DeprecatedRepoName: repoName,
-			CurrentRefPath: refPath, CurrentTreePath: treePath,
+			CurrentRefSubURL: refPath, CurrentTreePath: treePath,
 		})
 		rctx = rctx.WithMarkupType(markdown.MarkupName)
 	case "comment":
@@ -87,7 +87,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 	case "file":
 		rctx = renderhelper.NewRenderContextRepoFile(ctx, repoModel, renderhelper.RepoFileOptions{
 			DeprecatedOwnerName: repoOwnerName, DeprecatedRepoName: repoName,
-			CurrentRefPath: refPath, CurrentTreePath: treePath,
+			CurrentRefSubURL: refPath, CurrentTreePath: treePath,
 		})
 		rctx = rctx.WithMarkupType("").WithRelativePath(filePath) // render the repo file content by its extension
 	default:

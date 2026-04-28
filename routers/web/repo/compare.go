@@ -707,11 +707,11 @@ func CompareDiff(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanWrite(unit.TypeProjects)
+	ctx.Data["IsProjectsEnabled"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypePullRequests)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypePullRequests)
 
 	if unit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
@@ -802,7 +802,7 @@ func ExcerptBlob(ctx *context.Context) {
 
 	diffBlobExcerptData.PullIssueIndex = ctx.FormInt64("pull_issue_index")
 	if diffBlobExcerptData.PullIssueIndex > 0 {
-		if !ctx.Repo.CanRead(unit.TypePullRequests) {
+		if !ctx.Repo.Permission.CanRead(unit.TypePullRequests) {
 			ctx.NotFound(nil)
 			return
 		}

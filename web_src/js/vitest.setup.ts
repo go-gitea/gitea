@@ -12,6 +12,7 @@ window.config = {
   enableTimeTracking: true,
   mermaidMaxSourceCharacters: 5000,
   i18n: {},
+  frontendInited: false,
 };
 
 window.testModules = {};

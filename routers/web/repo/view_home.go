@@ -31,7 +31,7 @@ import (
 )
 
 func checkOutdatedBranch(ctx *context.Context) {
-	if !(ctx.Repo.IsAdmin() || ctx.Repo.IsOwner()) {
+	if !(ctx.Repo.Permission.IsAdmin() || ctx.Repo.Permission.IsOwner()) {
 		return
 	}
 
