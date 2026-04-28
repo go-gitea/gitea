@@ -53,6 +53,7 @@ interface Window {
     enableTimeTracking: boolean,
     mermaidMaxSourceCharacters: number,
     i18n: Record<string, string>,
+    frontendInited: boolean,
   },
   $: JQueryStatic,
   jQuery: JQueryStatic,

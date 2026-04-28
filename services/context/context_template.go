@@ -5,13 +5,11 @@ package context
 
 import (
 	"context"
-	"fmt"
 	"html"
 	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/httplib"
@@ -91,31 +89,14 @@ func (c TemplateContext) AppFullLink(link ...string) template.URL {
 	return template.URL(s + "/" + strings.TrimPrefix(link[0], "/"))
 }
 
-var globalVars = sync.OnceValue(func() (ret struct {
-	scriptImportRemainingPart string
-},
-) {
-	// add onerror handler to alert users when the script fails to load:
-	// * for end users: there were many users reporting that "UI doesn't work", actually they made mistakes in their config
-	// * for developers: help them to remember to run "make watch-frontend" to build frontend assets
-	// the message will be directly put in the onerror JS code's string
-	onScriptErrorPrompt := `Please make sure the asset files can be accessed.`
-	if !setting.IsProd {
-		onScriptErrorPrompt += `\n\nFor development, run: make watch-frontend.`
-	}
-	onScriptErrorJS := fmt.Sprintf(`alert('Failed to load asset file from ' + this.src + '. %s')`, onScriptErrorPrompt)
-	ret.scriptImportRemainingPart = `onerror="` + html.EscapeString(onScriptErrorJS) + `"></script>`
-	return ret
-})
-
 func (c TemplateContext) ScriptImport(path string, typ ...string) template.HTML {
 	if len(typ) > 0 {
 		if typ[0] == "module" {
-			return template.HTML(`<script nonce="` + c.CspScriptNonce() + `" type="module" src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
+			return template.HTML(`<script nonce="` + c.CspScriptNonce() + `" type="module" src="` + html.EscapeString(public.AssetURI(path)) + `"></script>`)
 		}
 		panic("unsupported script type: " + typ[0])
 	}
-	return template.HTML(`<script nonce="` + c.CspScriptNonce() + `" src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
+	return template.HTML(`<script nonce="` + c.CspScriptNonce() + `" src="` + html.EscapeString(public.AssetURI(path)) + `"></script>`)
 }
 
 func (c TemplateContext) CspScriptNonce() (ret string) {
