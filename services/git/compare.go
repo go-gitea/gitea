@@ -83,6 +83,10 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		compareInfo.MergeBase = compareInfo.BaseCommitID
 	}
 
+	if compareInfo.MergeBase == "" {
+		return compareInfo, nil
+	}
+
 	// We have a common base - therefore we know that ... should work
 	if !fileOnly {
 		// In git log/rev-list, the "..." syntax represents the symmetric difference between two references,
@@ -93,12 +97,10 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		if err != nil {
 			return compareInfo, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
 		}
-	} else {
-		compareInfo.Commits = []*git.Commit{}
 	}
 
 	// Count number of changed files.
-	// This probably should be removed as we need to use shortstat elsewhere
+	// TODO: This probably should be removed as we need to use shortstat elsewhere
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
 	compareInfo.NumFiles, err = headGitRepo.GetDiffNumChangedFiles(compareInfo.BaseCommitID, compareInfo.HeadCommitID, directComparison)
 	return compareInfo, err
