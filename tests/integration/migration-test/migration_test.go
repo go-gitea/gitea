@@ -49,7 +49,7 @@ func initMigrationTest(t *testing.T) func() {
 }
 
 func availableVersions() ([]string, error) {
-	migrationsDir, err := os.Open(".")
+	migrationsDir, err := os.Open(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/migration-test"))
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func availableVersions() ([]string, error) {
 }
 
 func readSQLFromFile(version string) (string, error) {
-	filename := fmt.Sprintf("gitea-v%s.%s.sql.gz", version, setting.Database.Type)
+	filename := filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/migration-test", fmt.Sprintf("gitea-v%s.%s.sql.gz", version, setting.Database.Type))
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return "", nil
