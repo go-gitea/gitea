@@ -168,7 +168,11 @@
 		</div>
 
 		{{$showDiffBox := and .CommitCount (not .IsNothingToCompare)}}
-		{{if and .IsSigned .PageIsComparePull}}
+		{{if .NoMergeBase}}
+			<div class="ui warning message">
+				{{ctx.Locale.Tr "repo.pulls.no_common_history"}}
+			</div>
+		{{else if and .IsSigned .PageIsComparePull}}
 			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (not $.CompareInfo.DirectComparison) (or $.AllowEmptyPr (not .IsNothingToCompare))}}
 			{{if .IsNothingToCompare}}
 				<div class="ui segment">

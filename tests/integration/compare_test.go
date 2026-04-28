@@ -4,19 +4,25 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
+	"time"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCompareTag(t *testing.T) {
@@ -122,6 +128,76 @@ func TestCompareBranches(t *testing.T) {
 	diffChanges = []string{"test.txt"}
 
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
+}
+
+func createUnrelatedBranch(t *testing.T, repo *repo_model.Repository, user *user_model.User, branchName string) {
+	t.Helper()
+
+	repoPath := repo_model.RepoPath(user.Name, repo.Name)
+	require.NoError(t, gitcmd.NewCommand("read-tree", "--empty").WithDir(repoPath).Run(t.Context()))
+
+	stdout, _, err := gitcmd.NewCommand("hash-object", "-w", "--stdin").
+		WithDir(repoPath).
+		WithStdinBytes([]byte("Unrelated File")).
+		RunStdString(t.Context())
+	require.NoError(t, err)
+	blobSHA := strings.TrimSpace(stdout)
+
+	_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
+		AddDynamicArguments("100644", blobSHA, "unrelated.txt").
+		WithDir(repoPath).
+		RunStdString(t.Context())
+	require.NoError(t, err)
+
+	stdout, _, err = gitcmd.NewCommand("write-tree").WithDir(repoPath).RunStdString(t.Context())
+	require.NoError(t, err)
+	treeSHA := strings.TrimSpace(stdout)
+
+	commitTimeStr := time.Now().Format(time.RFC3339)
+	doerSig := user.NewGitSig()
+	env := append(os.Environ(),
+		"GIT_AUTHOR_NAME="+doerSig.Name,
+		"GIT_AUTHOR_EMAIL="+doerSig.Email,
+		"GIT_AUTHOR_DATE="+commitTimeStr,
+		"GIT_COMMITTER_NAME="+doerSig.Name,
+		"GIT_COMMITTER_EMAIL="+doerSig.Email,
+		"GIT_COMMITTER_DATE="+commitTimeStr,
+	)
+
+	messageBytes := bytes.NewBufferString("Unrelated\n")
+	stdout, _, err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSHA).
+		WithEnv(env).
+		WithDir(repoPath).
+		WithStdinBytes(messageBytes.Bytes()).
+		RunStdString(t.Context())
+	require.NoError(t, err)
+	commitSHA := strings.TrimSpace(stdout)
+
+	_, _, err = gitcmd.NewCommand("branch").AddDynamicArguments(branchName, commitSHA).
+		WithDir(repoPath).
+		RunStdString(t.Context())
+	require.NoError(t, err)
+}
+
+func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "repo1"})
+	createUnrelatedBranch(t, repo1, user2, "unrelated-history")
+
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2/repo1/compare/master...unrelated-history")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	body := resp.Body.String()
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
+	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
+	assert.Contains(t, body, "These branches do not share a common merge base")
+	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...unrelated-history"]`).Length())
+	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...master"]`).Length())
+	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
 }
 
 func TestCompareCodeExpand(t *testing.T) {

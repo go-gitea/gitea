@@ -413,6 +413,12 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 
 	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), fileOnly)
 	if err != nil {
+		if gitrepo.IsErrNoMergeBase(err) {
+			ctx.Data["NoMergeBase"] = true
+			ctx.Data["BeforeCommitID"] = compareInfo.BaseCommitID
+			ctx.Data["AfterCommitID"] = compareInfo.HeadCommitID
+			return &compareInfo
+		}
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
@@ -472,6 +478,12 @@ func PrepareCompareDiff(
 	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand") || ctx.FormBool("quick_pull") || newPrFormTitle != "" || newPrFormBody != ""
 	ctx.Data["TitleQuery"] = newPrFormTitle
 	ctx.Data["BodyQuery"] = newPrFormBody
+
+	if ctx.Data["NoMergeBase"] == true {
+		ctx.Data["CommitCount"] = 0
+		ctx.Data["Commits"] = []*git_model.SignCommitWithStatuses{}
+		return true
+	}
 
 	if (headCommitID == ci.MergeBase && !ci.DirectComparison()) ||
 		headCommitID == ci.BaseCommitID {
