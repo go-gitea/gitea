@@ -429,18 +429,18 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 	title = ci.HeadRef.ShortName()
 
 	if len(commits) > 0 {
-		// When defaultTitleSource is "branch-name", keep the branch name for multi-commit PRs.
+		// When defaultTitleSource is "auto", keep the branch name for multi-commit PRs.
 		// For single-commit PRs, always use the commit title regardless of the setting.
-		if defaultTitleSource != "branch-name" || len(commits) == 1 {
+		if defaultTitleSource != "auto" || len(commits) == 1 {
 			// the "commits" are from "ShowPrettyFormatLogToList", which is ordered from newest to oldest, here take the oldest one
 			c := commits[len(commits)-1]
 			title = strings.TrimSpace(c.UserCommit.Summary())
 		}
 	}
 
-	// For branch-name, apply GitHub-style transformation: replace hyphens and underscores with spaces, capitalize first letter.
+	// For "auto", apply GitHub-style transformation to the branch name: replace hyphens and underscores with spaces, capitalize first letter.
 	// Only applies when the branch name is used (not for single-commit PRs which always use the commit title).
-	if defaultTitleSource == "branch-name" && len(commits) != 1 {
+	if defaultTitleSource == "auto" && len(commits) != 1 {
 		title = strings.NewReplacer("-", " ", "_", " ").Replace(title)
 		if title != "" {
 			runes := []rune(title)

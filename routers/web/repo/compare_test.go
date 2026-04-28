@@ -90,12 +90,12 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	assert.Equal(t, "title1", title)
 	assert.Empty(t, content)
 
-	// source: "branch-name": multi-commit uses branch name with hyphens/underscores replaced by spaces and first letter capitalized (GitHub behavior); single-commit uses commit title
-	title, content = prepareNewPullRequestTitleContent(ci, nil, "branch-name")
+	// source: "auto": multi-commit uses branch name with hyphens/underscores replaced by spaces and first letter capitalized (GitHub behavior); single-commit uses commit title
+	title, content = prepareNewPullRequestTitleContent(ci, nil, "auto")
 	assert.Equal(t, "Head branch", title)
 	assert.Empty(t, content)
 
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("single-commit-title\nbody")}, "branch-name")
+	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("single-commit-title\nbody")}, "auto")
 	assert.Equal(t, "single-commit-title", title)
 	assert.Equal(t, "body", content)
 
@@ -103,7 +103,16 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 		// ordered from newest to oldest; multi-commit should use transformed branch name
 		mockCommit("title2\nbody2"),
 		mockCommit("title1\nbody1"),
-	}, "branch-name")
+	}, "auto")
 	assert.Equal(t, "Head branch", title)
+	assert.Empty(t, content)
+
+	// slashes are preserved; only hyphens and underscores become spaces
+	ciSlash := &git_service.CompareInfo{HeadRef: "refs/heads/fix/the-bug"}
+	title, content = prepareNewPullRequestTitleContent(ciSlash, []*git_model.SignCommitWithStatuses{
+		mockCommit("title2\nbody2"),
+		mockCommit("title1\nbody1"),
+	}, "auto")
+	assert.Equal(t, "Fix/the bug", title)
 	assert.Empty(t, content)
 }
