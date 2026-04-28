@@ -39,6 +39,9 @@ jobs:
       - run: make deps-frontend
       - run: make frontend
       - run: make deps-backend
+      - run: make backend
+        env:
+          TAGS: bindata sqlite sqlite_unlock_notify
       - run: make playwright
       - run: make test-e2e
         timeout-minutes: 10
