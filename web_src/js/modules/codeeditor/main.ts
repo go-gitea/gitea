@@ -296,7 +296,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
 }
 
 // files that the JSON parser is too strict for (comments, trailing commas)
-const jsoncFilesRegex = /^([jt]sconfig.*|devcontainer)\.json$|\.(jsonc|json5)$/;
+const jsoncFilesRegex = /^([jt]sconfig.*|devcontainer)\.json$|\.(jsonc|json5)$/i;
 
 async function getLinterExtension(cm: CodemirrorModules, filename: string, loadedLang: LanguageSupport | null): Promise<Extension> {
   if (!loadedLang) return [];
