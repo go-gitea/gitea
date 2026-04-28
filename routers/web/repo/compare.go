@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"unicode"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -424,13 +425,29 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	return &compareInfo
 }
 
-func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses) (title, content string) {
+func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses, defaultPRTitleSource string) (title, content string) {
 	title = ci.HeadRef.ShortName()
 
 	if len(commits) > 0 {
-		// the "commits" are from "ShowPrettyFormatLogToList", which is ordered from newest to oldest, here take the oldest one
-		c := commits[len(commits)-1]
-		title = strings.TrimSpace(c.UserCommit.Summary())
+		// When defaultPRTitleSource is "branch-name" or "branch-name-transform", keep the branch name for multi-commit PRs (pre-v1.26 behavior).
+		// For single-commit PRs, always use the commit title regardless of the setting.
+		if (defaultPRTitleSource != "branch-name" && defaultPRTitleSource != "branch-name-transform") || len(commits) == 1 {
+			// the "commits" are from "ShowPrettyFormatLogToList", which is ordered from newest to oldest, here take the oldest one
+			c := commits[len(commits)-1]
+			title = strings.TrimSpace(c.UserCommit.Summary())
+		}
+	}
+
+	// For branch-name-transform, apply GitHub-style transformation to the branch name:
+	// replace hyphens and underscores with spaces, capitalize first letter.
+	// Only applies when the branch name is used (not for single-commit PRs which always use the commit title).
+	if defaultPRTitleSource == "branch-name-transform" && len(commits) != 1 {
+		title = strings.NewReplacer("-", " ", "_", " ").Replace(title)
+		if title != "" {
+			runes := []rune(title)
+			runes[0] = unicode.ToUpper(runes[0])
+			title = string(runes)
+		}
 	}
 
 	if len(commits) == 1 {
@@ -567,7 +584,7 @@ func PrepareCompareDiff(
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
-	ctx.Data["title"], ctx.Data["content"] = prepareNewPullRequestTitleContent(ci, commits)
+	ctx.Data["title"], ctx.Data["content"] = prepareNewPullRequestTitleContent(ci, commits, setting.Repository.PullRequest.DefaultPRTitleSource)
 	ctx.Data["Username"] = ci.HeadRepo.OwnerName
 	ctx.Data["Reponame"] = ci.HeadRepo.Name
 

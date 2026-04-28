@@ -89,6 +89,7 @@ var (
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
 			DefaultDeleteBranchAfterMerge            bool
+			DefaultPRTitleSource                     string
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -213,6 +214,7 @@ var (
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
 			DefaultDeleteBranchAfterMerge            bool
+			DefaultPRTitleSource                     string
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -229,6 +231,7 @@ var (
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
 			DelayCheckForInactiveDays:                7,
+			DefaultPRTitleSource:                     "first-commit",
 		},
 
 		// Issue settings
