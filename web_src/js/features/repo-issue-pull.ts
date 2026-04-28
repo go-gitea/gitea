@@ -63,27 +63,10 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
   const el = box.querySelector('#pull-request-merge-form');
   if (!el) return;
 
+  const data = JSON.parse(el.getAttribute('data-merge-form-props')!);
   const {default: PullRequestMergeForm} = await import('../components/PullRequestMergeForm.vue');
-  const view = createApp(PullRequestMergeForm);
-  view.mount(el);
-}
-
-function executeScripts(elem: Element) {
-  // find any existing nonce value from the current page and apply it to the new script
-  const scriptNonce = document.querySelector('script[nonce]')!.getAttribute('nonce')!;
-  for (const oldScript of elem.querySelectorAll('script')) {
-    // TODO: that's the only way to load the data for the merge form. In the future
-    //  we need to completely decouple the page data and embedded script
-    // eslint-disable-next-line github/no-dynamic-script-tag
-    const newScript = document.createElement('script');
-    for (const attr of oldScript.attributes) {
-      if (attr.name === 'type' && attr.value === 'module') continue;
-      newScript.setAttribute(attr.name, attr.value);
-    }
-    newScript.setAttribute('nonce', scriptNonce);
-    newScript.text = oldScript.text;
-    document.body.append(newScript);
-  }
+  const view = createApp(PullRequestMergeForm, {mergeFormProps: data});
+  view.mount(el); // TODO: can unmount when reloaded?
 }
 
 export function initRepoPullMergeBox(el: HTMLElement) {
@@ -124,7 +107,6 @@ export function initRepoPullMergeBox(el: HTMLElement) {
     }
     document.removeEventListener('visibilitychange', onVisibilityChange);
     const newElem = createElementFromHTML(await resp.text());
-    executeScripts(newElem);
     el.replaceWith(newElem);
   };
 
