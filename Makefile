@@ -441,7 +441,7 @@ $(GO_LICENSE_FILE): go.mod go.sum
 generate-ini-sqlite:
 	sed -e 's|{{WORK_PATH}}|$(CURDIR)/tests/$(or $(TEST_TYPE),integration)/gitea-$(or $(TEST_TYPE),integration)-sqlite|g' \
 		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
-		-e 's|{{REPO_ROOT}}|$(CURDIR)|g' \
+		-e 's|{{GITEA_TEST_ROOT}}|$(or $(GITEA_TEST_ROOT),$(CURDIR))|g' \
 			tests/sqlite.ini.tmpl > tests/sqlite.ini
 
 generate-ini-mysql:
