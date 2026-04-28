@@ -211,7 +211,7 @@
 				</div>
 			{{end}}
 		{{else}}{{/* not singed-in or not for pull-request */}}
-			{{if and (not .CommitCount) (not .HideCompareNothingMessage)}}
+			{{if not .CommitCount}}
 				<div class="ui segment">{{ctx.Locale.Tr "repo.commits.nothing_to_compare"}}</div>
 			{{end}}
 		{{end}}

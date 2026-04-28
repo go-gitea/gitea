@@ -1294,7 +1294,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		attachments []string
 	)
 
-	ci := ParseCompareInfo(ctx)
+	ci, _ := ParseCompareInfo(ctx)
 	if ctx.Written() {
 		return
 	}
