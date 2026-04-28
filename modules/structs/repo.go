@@ -229,6 +229,12 @@ type EditRepoOption struct {
 	MirrorInterval *string `json:"mirror_interval,omitempty"`
 	// enable prune - remove obsolete remote-tracking references when mirroring
 	EnablePrune *bool `json:"enable_prune,omitempty"`
+	// authentication username for the remote repository (mirrors)
+	AuthUsername *string `json:"auth_username,omitempty"`
+	// authentication password for the remote repository (mirrors)
+	AuthPassword *string `json:"auth_password,omitempty"`
+	// authentication token for the remote repository (mirrors)
+	AuthToken *string `json:"auth_token,omitempty"`
 }
 
 // GenerateRepoOption options when creating a repository using a template
