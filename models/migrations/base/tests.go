@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/tempdir"
 	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 
@@ -120,6 +119,8 @@ func deleteDB() error {
 		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE [%s]", setting.Database.Name)); err != nil {
 			return err
 		}
+	default:
+		return fmt.Errorf("unsupported database type: %s", setting.Database.Type)
 	}
 
 	return nil
@@ -203,14 +204,10 @@ func LoadTableSchemasMap(t *testing.T, x *xorm.Engine) map[string]*schemas.Table
 
 func mainTest(m *testing.M) int {
 	testlogger.Init()
-
-	tempWorkPath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("migration-test-data-")
+	err := setting.PrepareIntegrationTestConfig()
 	if err != nil {
-		return testlogger.MainErrorf("Unable to create temporary dir for migration test: %v", err)
+		return testlogger.MainErrorf("Unable to prepare integration test config: %v", err)
 	}
-	defer cleanup()
-
-	setting.MockBuiltinPaths(tempWorkPath, "", "")
 	setting.SetupGiteaTestEnv()
 
 	if err = git.InitFull(); err != nil {
