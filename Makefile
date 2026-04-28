@@ -193,7 +193,7 @@ clean-all: clean ## delete backend, frontend and integration files
 
 .PHONY: clean
 clean: ## delete backend and integration files
-	rm -f $(EXECUTABLE) tests/*.ini
+	rm -f $(EXECUTABLE) test-*.test tests/*.ini
 	rm -rf  $(DIST) $(BINDATA_DEST_WILDCARD) man tests/integration/gitea-integration-*
 
 .PHONY: fmt
@@ -430,7 +430,10 @@ $(GO_LICENSE_FILE): go.mod go.sum
 
 .PHONY: test-integration
 test-integration:
-	$(GO) test $(GOTEST_FLAGS) -v -tags '$(TAGS)' code.gitea.io/gitea/tests/integration
+	@# TODO: it seems that "go test" doesn't have the same behavior as the compiled test binary
+	@# e.g.: log output (no Stdout output, no progress), strange deadlock with sqlite tests
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c code.gitea.io/gitea/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
+	./test-integration-$(GITEA_TEST_DATABASE).test
 
 .PHONY: test-integration\#%
 test-integration\#%:
