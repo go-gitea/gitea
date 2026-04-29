@@ -51,10 +51,9 @@ func (runs RunList) LoadRepos(ctx context.Context) error {
 		return err
 	}
 	for _, run := range runs {
-		if run.Repo != nil {
-			continue
+		if run.Repo == nil {
+			run.Repo = repos[run.RepoID]
 		}
-		run.Repo = repos[run.RepoID]
 	}
 	return nil
 }

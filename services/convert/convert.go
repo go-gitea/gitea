@@ -225,11 +225,16 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 
 // ToActionTask convert an actions_model.ActionTask to an api.ActionTask
 func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.ActionTask, error) {
-	// don't need Steps here, only need to load Job attributes
-	if err := t.LoadJobAttributes(ctx); err != nil {
+	// don't need Steps here, only need to load job and its run
+	if err := t.LoadJob(ctx); err != nil {
 		return nil, err
 	}
-
+	if err := t.Job.LoadRun(ctx); err != nil {
+		return nil, err
+	}
+	if err := t.Job.Run.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
 	return &api.ActionTask{
 		ID:           t.ID,
 		Name:         t.Job.Name,
@@ -240,7 +245,7 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 		DisplayTitle: t.Job.Run.Title,
 		Status:       t.Status.String(),
 		WorkflowID:   t.Job.Run.WorkflowID,
-		URL:          httplib.MakeAbsoluteURL(ctx, t.GetRunLink()),
+		URL:          httplib.MakeAbsoluteURL(ctx, t.Job.Run.Link()),
 		CreatedAt:    t.Created.AsLocalTime(),
 		UpdatedAt:    t.Updated.AsLocalTime(),
 		RunStartedAt: t.Started.AsLocalTime(),
