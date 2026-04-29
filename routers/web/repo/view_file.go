@@ -59,8 +59,8 @@ func prepareFileViewLfsAttrs(ctx *context.Context) (*attribute.Attributes, bool)
 
 func handleFileViewRenderMarkup(ctx *context.Context, prefetchBuf []byte, utf8Reader io.Reader) bool {
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
-		CurrentTreePath: path.Dir(ctx.Repo.TreePath),
+		CurrentRefSubURL: ctx.Repo.RefTypeNameSubURL(),
+		CurrentTreePath:  path.Dir(ctx.Repo.TreePath),
 	}).WithRelativePath(ctx.Repo.TreePath)
 
 	renderer := rctx.DetectMarkupRenderer(prefetchBuf)
