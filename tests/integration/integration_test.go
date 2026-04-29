@@ -87,7 +87,7 @@ func testMain(m *testing.M) int {
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
-	err := tests.InitTest()
+	err := tests.InitIntegrationTest()
 	if err != nil {
 		return testlogger.MainErrorf("InitTest error: %v", err)
 	}
