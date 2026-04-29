@@ -104,7 +104,8 @@ func canMaintainerWriteToBranch(ctx context.Context, headPerm access_model.Permi
 		}
 
 		// check the PR's poster's permissions
-		// If a "reader" poster created the PR, even if it is allowed to be edited by maintainers, it can't allow so
+		// If a "reader" poster created the PR in base repo from head repo, even if it is allowed to be edited by maintainers,
+		// the maintainers should not be allowed to write, because they don't really have "write" permission in the head repo
 		if err := pr.Issue.LoadPoster(ctx); err != nil {
 			return false, err
 		}
