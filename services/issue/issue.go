@@ -15,7 +15,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -131,55 +130,6 @@ func ChangeIssueRef(ctx context.Context, issue *issues_model.Issue, doer *user_m
 	return nil
 }
 
-// UpdateAssignees is a helper function to add or delete one or multiple issue assignee(s)
-// Deleting is done the GitHub way (quote from their api documentation):
-// https://developer.github.com/v3/issues/#edit-an-issue
-// "assignees" (array): Logins for Users to assign to this issue.
-// Pass one or more user logins to replace the set of assignees on this Issue.
-// Send an empty array ([]) to clear all assignees from the Issue.
-func UpdateAssignees(ctx context.Context, issue *issues_model.Issue, oneAssignee string, multipleAssignees []string, doer *user_model.User) (err error) {
-	uniqueAssignees := container.SetOf(multipleAssignees...)
-
-	// Keep the old assignee thingy for compatibility reasons
-	if oneAssignee != "" {
-		uniqueAssignees.Add(oneAssignee)
-	}
-
-	// Loop through all assignees to add them
-	allNewAssignees := make([]*user_model.User, 0, len(uniqueAssignees))
-	for _, assigneeName := range uniqueAssignees.Values() {
-		assignee, err := user_model.GetUserByName(ctx, assigneeName)
-		if err != nil {
-			return err
-		}
-
-		if user_model.IsUserBlockedBy(ctx, doer, assignee.ID) {
-			return user_model.ErrBlockedUser
-		}
-
-		allNewAssignees = append(allNewAssignees, assignee)
-	}
-
-	// Delete all old assignees not passed
-	if err = DeleteNotPassedAssignee(ctx, issue, doer, allNewAssignees); err != nil {
-		return err
-	}
-
-	// Add all new assignees
-	// Update the assignee. The function will check if the user exists, is already
-	// assigned (which he shouldn't as we deleted all assignees before) and
-	// has access to the repo.
-	for _, assignee := range allNewAssignees {
-		// Extra method to prevent double adding (which would result in removing)
-		_, err = AddAssigneeIfNotAssigned(ctx, issue, doer, assignee.ID, true)
-		if err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
 // DeleteIssue deletes an issue
 func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) error {
 	// load issue before deleting it
@@ -212,40 +162,6 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model
 	notify_service.DeleteIssue(ctx, doer, issue)
 
 	return nil
-}
-
-// AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
-// Also checks for access of assigned user
-func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeID int64, notify bool) (comment *issues_model.Comment, err error) {
-	assignee, err := user_model.GetUserByID(ctx, assigneeID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Check if the user is already assigned
-	isAssigned, err := issues_model.IsUserAssignedToIssue(ctx, issue, assignee)
-	if err != nil {
-		return nil, err
-	}
-	if isAssigned {
-		// nothing to do
-		return nil, nil //nolint:nilnil // return nil because the user is already assigned
-	}
-
-	valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo, issue.IsPull)
-	if err != nil {
-		return nil, err
-	}
-	if !valid {
-		return nil, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name}
-	}
-
-	if notify {
-		_, comment, err = ToggleAssigneeWithNotify(ctx, issue, doer, assigneeID)
-		return comment, err
-	}
-	_, comment, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assigneeID)
-	return comment, err
 }
 
 // GetRefEndNamesAndURLs retrieves the ref end names (e.g. refs/heads/branch-name -> branch-name)

@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/translation"
@@ -98,12 +97,6 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	}
 	if opts.CommitSHA != "" {
 		cond = cond.And(builder.Eq{"`action_run`.commit_sha": opts.CommitSHA})
-	}
-	if len(opts.ConcurrencyGroup) > 0 {
-		if opts.RepoID == 0 {
-			panic("Invalid FindRunOptions: repo_id is required")
-		}
-		cond = cond.And(builder.Eq{"`action_run`.concurrency_group": opts.ConcurrencyGroup})
 	}
 	return cond
 }

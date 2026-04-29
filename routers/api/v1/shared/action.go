@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/webhook"
@@ -28,8 +29,9 @@ import (
 // ownerID != 0 and repoID != 0 undefined behavior
 // runID == 0 means all jobs
 // runID is used as an additional filter together with ownerID and repoID to only return jobs for the given run
+// runAttemptID, when set, additionally limits the result to jobs of the specified run attempt. Only takes effect when runID > 0.
 // Access rights are checked at the API route level
-func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
+func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptID optional.Option[int64]) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
@@ -39,6 +41,9 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 		RepoID:      repoID,
 		RunID:       runID,
 		ListOptions: listOptions,
+	}
+	if runID > 0 {
+		opts.RunAttemptID = runAttemptID
 	}
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)

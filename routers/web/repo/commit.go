@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"path"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -384,7 +383,7 @@ func Diff(ctx *context.Context) {
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
-	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
 		git_model.CommitStatusesHideActionsURL(ctx, statuses)
 	}
 
@@ -409,7 +408,7 @@ func Diff(ctx *context.Context) {
 	if err == nil {
 		ctx.Data["NoteCommit"] = note.Commit
 		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(ctx, note.Commit)
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{CurrentRefPath: path.Join("commit", util.PathEscapeSegments(commitID))})
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{CurrentRefSubURL: "commit/" + util.PathEscapeSegments(commitID)})
 		htmlMessage := template.HTML(template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
 		ctx.Data["NoteRendered"], err = markup.PostProcessCommitMessage(rctx, htmlMessage)
 		if err != nil {
@@ -466,7 +465,7 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 	if err != nil {
 		return nil, err
 	}
-	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
 		for _, commit := range commits {
 			if commit.Status == nil {
 				continue

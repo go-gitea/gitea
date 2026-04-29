@@ -653,7 +653,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if !issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.CanWrite(unit.TypePullRequests) {
+	if !issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.Permission.CanWrite(unit.TypePullRequests) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -715,7 +715,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.CanWrite(unit.TypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
+	if ctx.Repo.Permission.CanWrite(unit.TypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
 		err = issue_service.UpdateAssignees(ctx, issue, form.Assignee, form.Assignees, ctx.Doer)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
@@ -729,7 +729,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if ctx.Repo.CanWrite(unit.TypePullRequests) && form.Milestone != 0 &&
+	if ctx.Repo.Permission.CanWrite(unit.TypePullRequests) && form.Milestone != 0 &&
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
@@ -744,7 +744,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if ctx.Repo.CanWrite(unit.TypePullRequests) && form.Labels != nil {
+	if ctx.Repo.Permission.CanWrite(unit.TypePullRequests) && form.Labels != nil {
 		labels, err := issues_model.GetLabelsInRepoByIDs(ctx, ctx.Repo.Repository.ID, form.Labels)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -965,7 +965,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	// start with merging by checking
-	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, form.ForceMerge); err != nil {
+	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, repo_model.MergeStyle(form.Do), form.ForceMerge); err != nil {
 		if errors.Is(err, pull_service.ErrIsClosed) {
 			ctx.APIErrorNotFound()
 		} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
@@ -979,6 +979,8 @@ func MergePullRequest(ctx *context.APIContext) {
 		} else if errors.Is(err, pull_service.ErrNotReadyToMerge) {
 			ctx.APIError(http.StatusMethodNotAllowed, err)
 		} else if asymkey_service.IsErrWontSign(err) {
+			ctx.APIError(http.StatusMethodNotAllowed, err)
+		} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) {
 			ctx.APIError(http.StatusMethodNotAllowed, err)
 		} else {
 			ctx.APIErrorInternal(err)
@@ -1173,7 +1175,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		return nil, nil
 	}
 
-	return compareInfo, closer
+	return &compareInfo, closer
 }
 
 // UpdatePullRequest merge PR's baseBranch into headBranch
@@ -1417,7 +1419,6 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		return
 	}
 
-	var compareInfo *git_service.CompareInfo
 	baseGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1425,6 +1426,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	}
 	defer closer.Close()
 
+	var compareInfo git_service.CompareInfo
 	if pr.HasMerged {
 		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), false, false)
 	} else {
@@ -1550,7 +1552,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	baseGitRepo := ctx.Repo.GitRepo
 
-	var compareInfo *git_service.CompareInfo
+	var compareInfo git_service.CompareInfo
 	if pr.HasMerged {
 		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), false, false)
 	} else {

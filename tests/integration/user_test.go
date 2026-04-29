@@ -333,8 +333,7 @@ func testUserListStopWatches(t *testing.T) {
 	session := loginUser(t, owner.Name)
 	req := NewRequest(t, "GET", "/user/stopwatches")
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	var apiWatches []*api.StopWatch
-	DecodeJSON(t, resp, &apiWatches)
+	apiWatches := DecodeJSON(t, resp, []*api.StopWatch{})
 	stopwatch := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: owner.ID})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: stopwatch.IssueID})
 	if assert.Len(t, apiWatches, 1) {

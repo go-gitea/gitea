@@ -48,21 +48,6 @@ func (err ErrIssueNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrNewIssueInsert is used when the INSERT statement in newIssue fails
-type ErrNewIssueInsert struct {
-	OriginalError error
-}
-
-// IsErrNewIssueInsert checks if an error is a ErrNewIssueInsert.
-func IsErrNewIssueInsert(err error) bool {
-	_, ok := err.(ErrNewIssueInsert)
-	return ok
-}
-
-func (err ErrNewIssueInsert) Error() string {
-	return err.OriginalError.Error()
-}
-
 var ErrIssueAlreadyChanged = util.NewInvalidArgumentErrorf("the issue is already changed")
 
 // Issue represents an issue or pull request of repository.
@@ -190,17 +175,10 @@ func (issue *Issue) IsTimetrackerEnabled(ctx context.Context) bool {
 
 // LoadPoster loads poster
 func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
-	if issue.Poster == nil && issue.PosterID != 0 {
-		issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
-		if err != nil {
-			issue.PosterID = user_model.GhostUserID
-			issue.Poster = user_model.NewGhostUser()
-			if !user_model.IsErrUserNotExist(err) {
-				return fmt.Errorf("getUserByID.(poster) [%d]: %w", issue.PosterID, err)
-			}
-			return nil
-		}
+	if issue.Poster != nil {
+		return nil
 	}
+	issue.PosterID, issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
 	return err
 }
 

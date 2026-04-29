@@ -48,7 +48,7 @@ DEFAULT CONFIGURATION:
 	}
 }
 
-func prepareSubcommandWithGlobalFlags(originCmd *cli.Command) {
+func PrepareSubcommandWithGlobalFlags(originCmd *cli.Command) {
 	originBefore := originCmd.Before
 	originCmd.Before = func(ctxOrig context.Context, cmd *cli.Command) (ctx context.Context, err error) {
 		ctx = ctxOrig
@@ -145,7 +145,7 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 
 	app.Before = PrepareConsoleLoggerLevel(log.INFO)
 	for i := range subCmdWithConfig {
-		prepareSubcommandWithGlobalFlags(subCmdWithConfig[i])
+		PrepareSubcommandWithGlobalFlags(subCmdWithConfig[i])
 	}
 	app.Commands = append(app.Commands, subCmdWithConfig...)
 	app.Commands = append(app.Commands, subCmdStandalone...)

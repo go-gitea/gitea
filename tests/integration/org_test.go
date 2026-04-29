@@ -182,11 +182,9 @@ func testOrgRestrictedUser(t *testing.T) {
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", orgName), teamToCreate).
 		AddTokenAuth(token)
 
-	var apiTeam api.Team
-
 	resp := adminSession.MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, "CreateTeam_codereader", &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
+	apiTeam := DecodeJSON(t, resp, &api.Team{})
+	checkTeamResponse(t, "CreateTeam_codereader", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
 		"none", teamToCreate.Units, nil)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
 		"none", teamToCreate.Units, nil)
@@ -209,12 +207,10 @@ func testTeamSearch(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
-	var results TeamSearchResults
-
 	session := loginUser(t, user.Name)
 	req := NewRequestf(t, "GET", "/org/%s/teams/-/search?q=%s", org.Name, "_team")
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &results)
+	results := DecodeJSON(t, resp, &TeamSearchResults{})
 	assert.NotEmpty(t, results.Data)
 	assert.Len(t, results.Data, 2)
 	assert.Equal(t, "review_team", results.Data[0].Name)
