@@ -15,7 +15,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/tests"
@@ -75,13 +74,9 @@ func testAPIActionsGetWorkflowRun(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs", repo.FullName())).
-			AddTokenAuth(token)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs", repo.FullName())).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-
-		var jobList api.ActionWorkflowJobsResponse
-		err = json.Unmarshal(resp.Body.Bytes(), &jobList)
-		require.NoError(t, err)
+		jobList := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
 
 		job198Idx := slices.IndexFunc(jobList.Entries, func(job *api.ActionWorkflowJob) bool { return job.ID == 198 })
 		require.NotEqual(t, -1, job198Idx, "expected to find job 198 in run 795 jobs list")
@@ -149,22 +144,17 @@ func testAPIActionsDeleteRun(t *testing.T, repo *repo_model.Repository, token st
 }
 
 func testAPIActionsDeleteRunListArtifacts(t *testing.T, repo *repo_model.Repository, token string, artifacts int) {
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/artifacts", repo.FullName())).
-		AddTokenAuth(token)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/artifacts", repo.FullName())).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var listResp api.ActionArtifactsResponse
-	err := json.Unmarshal(resp.Body.Bytes(), &listResp)
-	assert.NoError(t, err)
+	listResp := DecodeJSON(t, resp, &api.ActionArtifactsResponse{})
 	assert.Len(t, listResp.Entries, artifacts)
 }
 
 func testAPIActionsDeleteRunListTasks(t *testing.T, repo *repo_model.Repository, token string, expected bool) {
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/tasks", repo.FullName())).
-		AddTokenAuth(token)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/tasks", repo.FullName())).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var listResp api.ActionTaskResponse
-	err := json.Unmarshal(resp.Body.Bytes(), &listResp)
-	assert.NoError(t, err)
+	listResp := DecodeJSON(t, resp, &api.ActionTaskResponse{})
+
 	findTask1 := false
 	findTask2 := false
 	for _, entry := range listResp.Entries {
@@ -201,13 +191,10 @@ func testAPIActionsRerunWorkflowRun(t *testing.T) {
 	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	t.Run("Success", func(t *testing.T) {
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/rerun", repo.FullName())).AddTokenAuth(writeToken)
 		resp := MakeRequest(t, req, http.StatusCreated)
+		rerunResp := DecodeJSON(t, resp, &api.ActionWorkflowRun{})
 
-		var rerunResp api.ActionWorkflowRun
-		err := json.Unmarshal(resp.Body.Bytes(), &rerunResp)
-		require.NoError(t, err)
 		assert.Equal(t, int64(795), rerunResp.ID)
 		assert.Equal(t, "queued", rerunResp.Status)
 		assert.Equal(t, "c2d72f548424103f01ee1dc02889c1e2bff816b0", rerunResp.HeadSha)
@@ -265,13 +252,10 @@ func testAPIActionsRerunWorkflowJob(t *testing.T) {
 	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	t.Run("Success", func(t *testing.T) {
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/199/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/199/rerun", repo.FullName())).AddTokenAuth(writeToken)
 		resp := MakeRequest(t, req, http.StatusCreated)
+		rerunResp := DecodeJSON(t, resp, &api.ActionWorkflowJob{})
 
-		var rerunResp api.ActionWorkflowJob
-		err := json.Unmarshal(resp.Body.Bytes(), &rerunResp)
-		require.NoError(t, err)
 		job199Rerun := getLatestAttemptJobByTemplateJobID(t, 795, 199)
 		assert.Equal(t, job199Rerun.ID, rerunResp.ID)
 		assert.Equal(t, "queued", rerunResp.Status)
@@ -315,13 +299,9 @@ func testAPIActionsListUserWorkflows(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 
 	t.Run("Runs", func(t *testing.T) {
-		req := NewRequest(t, "GET", "/api/v1/user/actions/runs").
-			AddTokenAuth(token)
+		req := NewRequest(t, "GET", "/api/v1/user/actions/runs").AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-
-		var runs api.ActionWorkflowRunsResponse
-		err := json.Unmarshal(resp.Body.Bytes(), &runs)
-		require.NoError(t, err)
+		runs := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
 
 		assert.Positive(t, runs.TotalCount)
 		assert.NotEmpty(t, runs.Entries)
@@ -335,13 +315,9 @@ func testAPIActionsListUserWorkflows(t *testing.T) {
 	})
 
 	t.Run("Jobs", func(t *testing.T) {
-		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs").
-			AddTokenAuth(token)
+		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs").AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-
-		var jobs api.ActionWorkflowJobsResponse
-		err := json.Unmarshal(resp.Body.Bytes(), &jobs)
-		require.NoError(t, err)
+		jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
 
 		assert.Positive(t, jobs.TotalCount)
 		assert.NotEmpty(t, jobs.Entries)
@@ -359,13 +335,9 @@ func testAPIActionsListRepoWorkflows(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs", repo.FullName())).
-		AddTokenAuth(token)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs", repo.FullName())).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-
-	var runs api.ActionWorkflowRunsResponse
-	err := json.Unmarshal(resp.Body.Bytes(), &runs)
-	require.NoError(t, err)
+	runs := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
 
 	assert.Positive(t, runs.TotalCount)
 	assert.NotEmpty(t, runs.Entries)
