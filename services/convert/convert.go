@@ -252,18 +252,19 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	}, nil
 }
 
-func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (*api.ActionWorkflowRun, error) {
-	if run.Repo == nil || run.TriggerUser == nil {
-		if err := run.LoadAttributes(ctx); err != nil {
-			return nil, err
-		}
+func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (_ *api.ActionWorkflowRun, err error) {
+	if err := run.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+
+	if err := run.LoadTriggerUser(ctx); err != nil {
+		return nil, err
 	}
 
 	if attempt == nil {
-		if latestAttempt, has, err := run.GetLatestAttempt(ctx); err != nil {
+		attempt, _, err = run.GetLatestAttempt(ctx)
+		if err != nil {
 			return nil, err
-		} else if has {
-			attempt = latestAttempt
 		}
 	}
 
