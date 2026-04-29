@@ -1728,6 +1728,11 @@ tbody.commit-list {
   margin-left: 0 !important;
 }
 
+.diff-file-header .tw-text-diff-added-fg,
+.diff-file-header .tw-text-diff-removed-fg {
+  font-weight: var(--font-weight-semibold);
+}
+
 .diff-stats-bar {
   display: inline-block;
   background-color: var(--color-diff-removed-fg); /* the background is used as "text foreground color" */
