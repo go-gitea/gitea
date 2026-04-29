@@ -58,13 +58,12 @@ jobs:
         env:
           TAGS: bindata
       - name: run migration tests
-        run: make test-pgsql-migration
+        run: GITEA_TEST_DATABASE=pgsql make test-migration
       - name: run tests
-        run: make test-pgsql
+        run: GITEA_TEST_DATABASE=pgsql make test-integration
         timeout-minutes: 50
         env:
           TAGS: bindata gogit
-          TEST_TAGS: gogit
           TEST_LDAP: 1
 
   test-sqlite:
@@ -84,18 +83,21 @@ jobs:
         with:
           cache-name: sqlite
       - run: make deps-backend
-      - run: GOEXPERIMENT='' make backend
+      - run: make backend
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
+          GOEXPERIMENT:
       - name: run migration tests
-        run: make test-sqlite-migration
+        run: GITEA_TEST_DATABASE=sqlite make test-migration
+        env:
+          TAGS: bindata gogit
       - name: run tests
-        run: GOEXPERIMENT='' make test-sqlite
+        run: GITEA_TEST_DATABASE=sqlite make test-integration
         timeout-minutes: 50
         env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
-          RACE_ENABLED: true
-          TEST_TAGS: gogit sqlite sqlite_unlock_notify
+          TAGS: bindata gogit
+          GOEXPERIMENT:
+          GOTEST_FLAGS: -race -timeout=40m
 
   test-unit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -156,16 +158,15 @@ jobs:
       - name: unit-tests
         run: make test-backend test-check
         env:
-          TAGS: bindata
-          RACE_ENABLED: true
-          GOTESTFLAGS: -timeout=20m
+          TAGS: bindata sqlite sqlite_unlock_notify
+          GOTEST_FLAGS: -race -timeout=20m
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
       - name: unit-tests-gogit
-        run: GOEXPERIMENT='' make test-backend test-check
+        run: make test-backend test-check
         env:
-          TAGS: bindata gogit
-          RACE_ENABLED: true
-          GOTESTFLAGS: -timeout=20m
+          TAGS: bindata gogit sqlite sqlite_unlock_notify
+          GOEXPERIMENT:
+          GOTEST_FLAGS: -race -timeout=20m
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
   test-mysql:
@@ -215,10 +216,9 @@ jobs:
         env:
           TAGS: bindata
       - name: run migration tests
-        run: make test-mysql-migration
+        run: GITEA_TEST_DATABASE=mysql make test-migration
       - name: run tests
-        # run: make integration-test-coverage (at the moment, no coverage is really handled)
-        run: make test-mysql
+        run: GITEA_TEST_DATABASE=mysql make test-integration
         env:
           TAGS: bindata
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
@@ -258,9 +258,9 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-      - run: make test-mssql-migration
+      - run: GITEA_TEST_DATABASE=mssql make test-migration
       - name: run tests
-        run: make test-mssql
+        run: GITEA_TEST_DATABASE=mssql make test-integration
         timeout-minutes: 50
         env:
           TAGS: bindata

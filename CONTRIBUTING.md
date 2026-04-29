@@ -139,11 +139,11 @@ Here's how to run the test suite:
 
 - run tests (we suggest running them on Linux)
 
-|  Command                                    | Action                                                   |                                             |
-| :------------------------------------------ | :------------------------------------------------------- | ------------------------------------------- |
-|``make test[\#SpecificTestName]``            |  run unit test(s)                                        |                                             |
-|``make test-sqlite[\#SpecificTestName]``     |  run [integration](tests/integration) test(s) for SQLite | [More details](tests/integration/README.md) |
-|``make test-e2e``                            |  run [end-to-end](tests/e2e) test(s) using Playwright    |                                             |
+| Command                                       | Action                                               |                                             |
+|:----------------------------------------------|:-----------------------------------------------------| ------------------------------------------- |
+| ``make test-backend[\#SpecificTestName]``     | run unit test(s)                                     |                                             |
+| ``make test-integration[\#SpecificTestName]`` | run [integration](tests/integration) test(s)         | [More details](tests/integration/README.md) |
+| ``make test-e2e``                             | run [end-to-end](tests/e2e) test(s) using Playwright |                                             |
 
 - E2E test environment variables
 
