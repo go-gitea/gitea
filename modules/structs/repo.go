@@ -8,6 +8,15 @@ import (
 	"time"
 )
 
+// ObjectFormatName is the git hash algorithm used by a repository.
+// swagger:enum ObjectFormatName
+type ObjectFormatName string
+
+const (
+	ObjectFormatSHA1   ObjectFormatName = "sha1"
+	ObjectFormatSHA256 ObjectFormatName = "sha256"
+)
+
 // Permission represents a set of permissions
 type Permission struct {
 	Admin bool `json:"admin"` // Admin indicates if the user is an administrator of the repository.
@@ -114,8 +123,7 @@ type Repository struct {
 	Internal                      bool             `json:"internal"`
 	MirrorInterval                string           `json:"mirror_interval"`
 	// ObjectFormatName of the underlying git repository
-	// enum: ["sha1","sha256"]
-	ObjectFormatName string `json:"object_format_name"`
+	ObjectFormatName ObjectFormatName `json:"object_format_name"`
 	// swagger:strfmt date-time
 	MirrorUpdated time.Time     `json:"mirror_updated"`
 	RepoTransfer  *RepoTransfer `json:"repo_transfer,omitempty"`
@@ -153,8 +161,7 @@ type CreateRepoOption struct {
 	// enum: ["default","collaborator","committer","collaboratorcommitter"]
 	TrustModel string `json:"trust_model"`
 	// ObjectFormatName of the underlying git repository, empty string for default (sha1)
-	// enum: ["sha1","sha256"]
-	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6)"`
+	ObjectFormatName ObjectFormatName `json:"object_format_name" binding:"MaxSize(6)"`
 }
 
 // EditRepoOption options when editing a repository's properties

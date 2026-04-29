@@ -711,7 +711,7 @@ func ToOrganization(ctx context.Context, org *organization.Organization) *api.Or
 		Description:               org.Description,
 		Website:                   org.Website,
 		Location:                  org.Location,
-		Visibility:                org.Visibility.String(),
+		Visibility:                api.UserVisibility(org.Visibility.String()),
 		RepoAdminChangeTeamAccess: org.RepoAdminChangeTeamAccess,
 	}
 }
@@ -740,7 +740,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			Description:             t.Description,
 			IncludesAllRepositories: t.IncludesAllRepositories,
 			CanCreateOrgRepo:        t.CanCreateOrgRepo,
-			Permission:              t.AccessMode.ToString(),
+			Permission:              api.AccessLevelName(t.AccessMode.ToString()),
 			Units:                   t.GetUnitNames(),
 			UnitsMap:                t.GetUnitsMap(),
 		}
