@@ -182,27 +182,21 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 		return
 	}
 
-	isRepoLevel := repoID != 0 && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repoID
-	if isRepoLevel {
-		for i := range runs {
-			runs[i].Repo = ctx.Repo.Repository
-		}
-	} else {
-		if err := runList.LoadRepos(ctx); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		repos := repo_model.RepositoryList(container.FilterSlice(runs, func(r *actions_model.ActionRun) (*repo_model.Repository, bool) {
-			return r.Repo, r.Repo != nil
-		}))
-		if err := repos.LoadOwners(ctx); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
+	if err := runList.LoadRepos(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	repos := repo_model.RepositoryList(container.FilterSlice(runs, func(r *actions_model.ActionRun) (*repo_model.Repository, bool) {
+		return r.Repo, r.Repo != nil
+	}))
+	if err := repos.LoadOwners(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
 	}
 
 	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
 	for i := range runs {
+		// TODO: load run attempts in batch
 		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], nil)
 		if err != nil {
 			ctx.APIErrorInternal(err)

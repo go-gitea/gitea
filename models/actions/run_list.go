@@ -30,13 +30,11 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 		if run.TriggerUser != nil {
 			continue
 		}
-		if run.TriggerUserID == user_model.ActionsUserID {
-			run.TriggerUser = user_model.NewActionsUser()
-		} else {
-			run.TriggerUser = users[run.TriggerUserID]
-			if run.TriggerUser == nil {
-				run.TriggerUser = user_model.NewGhostUser()
-			}
+		run.TriggerUser = users[run.TriggerUserID]
+		if run.TriggerUserID < 0 {
+			run.TriggerUserID, run.TriggerUser, _ = user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
+		} else if run.TriggerUser == nil {
+			run.TriggerUserID, run.TriggerUser, _ = user_model.GetPossibleUserByID(ctx, user_model.GhostUserID)
 		}
 	}
 	return nil

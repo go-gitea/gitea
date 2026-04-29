@@ -256,7 +256,6 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 	if err := run.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
-
 	if err := run.LoadTriggerUser(ctx); err != nil {
 		return nil, err
 	}
