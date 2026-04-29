@@ -110,7 +110,7 @@ func NewIssue(ctx *context.Context) {
 	body := ctx.FormString("body")
 	ctx.Data["BodyQuery"] = body
 
-	isProjectsEnabled := ctx.Repo.CanRead(unit.TypeProjects)
+	isProjectsEnabled := ctx.Repo.Permission.CanRead(unit.TypeProjects)
 	ctx.Data["IsProjectsEnabled"] = isProjectsEnabled
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
@@ -144,7 +144,7 @@ func NewIssue(ctx *context.Context) {
 		ctx.Flash.Warning(renderErrorOfTemplates(ctx, ret.TemplateErrors), true)
 	}
 
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypeIssues)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypeIssues)
 
 	if !issueConfig.BlankIssuesEnabled && hasTemplates && !templateLoaded {
 		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if blank issues are disabled, just redirect to the "issues/choose" page with these parameters.
@@ -344,7 +344,7 @@ func NewIssuePost(ctx *context.Context) {
 	labelIDs, assigneeIDs, milestoneID, projectID := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.MilestoneID, validateRet.ProjectID
 
 	if projectID > 0 {
-		if !ctx.Repo.CanRead(unit.TypeProjects) {
+		if !ctx.Repo.Permission.CanRead(unit.TypeProjects) {
 			// User must also be able to see the project.
 			ctx.HTTPError(http.StatusBadRequest, "user hasn't permissions to read projects")
 			return

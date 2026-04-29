@@ -40,9 +40,7 @@ cpu.out
 *.log
 
 /gitea
-/gitea-vet
 /debug
-/integrations.test
 
 /bin
 /dist
@@ -54,12 +52,6 @@ cpu.out
 /indexers
 /log
 /tests/integration/gitea-integration-*
-/tests/integration/indexers-*
-/tests/e2e/gitea-e2e-*
-/tests/e2e/indexers-*
-/tests/e2e/reports
-/tests/e2e/test-artifacts
-/tests/e2e/test-snapshots
 /tests/*.ini
 /node_modules
 /yarn.lock

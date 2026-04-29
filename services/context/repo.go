@@ -58,7 +58,7 @@ func (prc *PullRequestContext) CanCreateNewPull() bool {
 	ctx := prc.ctx
 	// People who have push access or have forked repository can propose a new pull request.
 	can := prc.baseRepo.CanContentChange() &&
-		(ctx.Repo.CanWrite(unit_model.TypeCode) || (ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)))
+		(ctx.Repo.Permission.CanWrite(unit_model.TypeCode) || (ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)))
 	prc.canCreateNewPull = &can
 	return can
 }
@@ -81,7 +81,7 @@ func (prc *PullRequestContext) DefaultTargetBranch() string {
 
 // Repository contains information to operate a repository
 type Repository struct {
-	access_model.Permission
+	Permission access_model.Permission
 
 	Repository *repo_model.Repository
 	Owner      *user_model.User
@@ -597,7 +597,7 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 	}
 	ctx.Data["NumReleases"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
-		IncludeDrafts: ctx.Repo.CanWrite(unit_model.TypeReleases),
+		IncludeDrafts: ctx.Repo.Permission.CanWrite(unit_model.TypeReleases),
 		RepoID:        ctx.Repo.Repository.ID,
 	})
 	if err != nil {
@@ -609,10 +609,10 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 	ctx.Data["PageTitleCommon"] = repo.Name + " - " + setting.AppName
 	ctx.Data["Repository"] = repo
 	ctx.Data["Owner"] = ctx.Repo.Repository.Owner
-	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)
-	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
-	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
-	ctx.Data["CanWriteActions"] = ctx.Repo.CanWrite(unit_model.TypeActions)
+	ctx.Data["CanWriteCode"] = ctx.Repo.Permission.CanWrite(unit_model.TypeCode)
+	ctx.Data["CanWriteIssues"] = ctx.Repo.Permission.CanWrite(unit_model.TypeIssues)
+	ctx.Data["CanWritePulls"] = ctx.Repo.Permission.CanWrite(unit_model.TypePullRequests)
+	ctx.Data["CanWriteActions"] = ctx.Repo.Permission.CanWrite(unit_model.TypeActions)
 
 	canSignedUserFork, err := repo_module.CanUserForkRepo(ctx, ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
