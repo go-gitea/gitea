@@ -498,6 +498,7 @@ func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUs
 		sess = keywordSess.Select("org_user.*")
 	}
 
+	sess = sess.OrderBy("org_user.uid ASC")
 	if opts.ListOptions.PageSize > 0 {
 		sess = db.SetSessionPagination(sess, opts)
 
