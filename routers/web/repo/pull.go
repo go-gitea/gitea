@@ -544,7 +544,7 @@ func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context)
 
 	ctx.Data["PullHeadCommitID"] = prInfo.CompareInfo.HeadCommitID
 
-	if prInfo.CompareInfo.HeadCommitID == prInfo.CompareInfo.MergeBase {
+	if prInfo.CompareInfo.HeadCommitID == prInfo.CompareInfo.CompareBase {
 		ctx.Data["IsNothingToCompare"] = true
 	}
 
@@ -622,9 +622,6 @@ func ViewPullCommits(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-
 	commits, err := processGitCommits(ctx, prCompareInfo.Commits)
 	if err != nil {
 		ctx.ServerError("processGitCommits", err)
@@ -680,7 +677,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	headCommitID := prCompareInfo.HeadCommitID
 	isSingleCommit := beforeCommitID == "" && afterCommitID != ""
 	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
-	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prCompareInfo.MergeBase) && (afterCommitID == "" || afterCommitID == headCommitID)
+	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase) && (afterCommitID == "" || afterCommitID == headCommitID)
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
 
 	if afterCommitID == "" || afterCommitID == headCommitID {
@@ -695,8 +692,8 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	var beforeCommit *git.Commit
 	var err error
 	if !isSingleCommit {
-		if beforeCommitID == "" || beforeCommitID == prCompareInfo.MergeBase {
-			beforeCommitID = prCompareInfo.MergeBase
+		if beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase {
+			beforeCommitID = prCompareInfo.CompareBase
 			// merge base commit is not in the list of the pull request commits
 			beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
 			if err != nil {
@@ -719,7 +716,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		beforeCommitID = beforeCommit.ID.String()
 	}
 
-	ctx.Data["MergeBase"] = prCompareInfo.MergeBase
+	ctx.Data["MergeBase"] = prCompareInfo.CompareBase
 	ctx.Data["AfterCommitID"] = afterCommitID
 	ctx.Data["BeforeCommitID"] = beforeCommitID
 
@@ -737,7 +734,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		MaxLines:           maxLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:           maxFiles,
-		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(GetWhitespaceBehavior(ctx)),
 	}
 
 	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, diffOptions, files...)
@@ -776,7 +773,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		"numberOfViewedFiles": numViewedFiles,
 	}
 
-	if err = diff.LoadComments(ctx, issue, ctx.Doer, ctx.Data["ShowOutdatedComments"].(bool)); err != nil {
+	if err = diff.LoadComments(ctx, issue, ctx.Doer, GetShowOutdatedComments(ctx)); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
 	}
@@ -1282,11 +1279,8 @@ func PullsNewRedirect(ctx *context.Context) {
 func CompareAndPullRequestPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateIssueForm)
 	repo := ctx.Repo.Repository
-
-	ci, err := parseCompareInfo(ctx)
-	if ctx.Written() {
-		return
-	}
+	comparePageInfo := newComparePageInfo()
+	err := comparePageInfo.parseCompareInfo(ctx)
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.JSONErrorNotFound()
 		return
@@ -1297,7 +1291,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		ctx.ServerError("ParseCompareInfo", err)
 		return
 	}
-	if ci.MergeBase == "" {
+	ci := comparePageInfo.compareInfo
+	if ci.CompareBase == "" {
 		ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
 		return
 	}
@@ -1358,7 +1353,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		BaseBranch:          ci.BaseRef.ShortName(),
 		HeadRepo:            ci.HeadRepo,
 		BaseRepo:            repo,
-		MergeBase:           ci.MergeBase,
+		MergeBase:           ci.CompareBase,
 		Type:                issues_model.PullRequestGitea,
 		AllowMaintainerEdit: form.AllowMaintainerEdit,
 	}
