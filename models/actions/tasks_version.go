@@ -73,7 +73,7 @@ func increaseTasksVersionByScope(ctx context.Context, ownerID, repoID int64) err
 }
 
 func IncreaseTaskVersion(ctx context.Context, ownerID, repoID int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// 1. increase global
 		if err := increaseTasksVersionByScope(ctx, 0, 0); err != nil {
 			log.Error("IncreaseTasksVersionByScope(Global): %v", err)
@@ -97,5 +97,9 @@ func IncreaseTaskVersion(ctx context.Context, ownerID, repoID int64) error {
 		}
 
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+	signalTaskVersionWake()
+	return nil
 }
