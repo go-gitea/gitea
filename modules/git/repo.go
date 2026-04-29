@@ -32,6 +32,30 @@ func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionR
 	return repo.parsePrettyFormatLogToList(logs)
 }
 
+// ShowPrettyFormatLogToListSkipEquivalent returns commits reachable from headCommitID but not from
+// baseCommitID, skipping commits whose patch content is already present on the base side
+// (patch-equivalence). This matches the behaviour of GitHub and GitLab when listing PR commits:
+// if a commit's content already landed in the target branch via another merge path it is not shown again.
+//
+// Internally this runs:
+//
+//	git log --cherry-pick --right-only baseBranch...headCommitID
+//
+// The "..." (triple-dot / symmetric-difference) range combined with --right-only restricts output
+// to commits on the right side (headCommitID side) only, while --cherry-pick drops any commit
+// whose patch is equivalent to a commit on the left side (baseBranch).
+func (repo *Repository) ShowPrettyFormatLogToListSkipEquivalent(ctx context.Context, baseBranch, headCommitID string) ([]*Commit, error) {
+	revisionRange := baseBranch + "..." + headCommitID
+	logs, _, err := gitcmd.NewCommand("log").AddArguments(prettyLogFormat).
+		AddArguments("--cherry-pick", "--right-only").
+		AddDynamicArguments(revisionRange).AddArguments("--").WithDir(repo.Path).
+		RunStdBytes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return repo.parsePrettyFormatLogToList(logs)
+}
+
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, error) {
 	var commits []*Commit
 	if len(logs) == 0 {
