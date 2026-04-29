@@ -87,10 +87,7 @@ func main() {
 
 	result := strings.ReplaceAll(string(out), appSubUrlPlaceholder, appSubUrlVar)
 	result = strings.ReplaceAll(result, appVerPlaceholder, appVerVar)
-
-	if !strings.HasSuffix(result, "\n") {
-		result += "\n"
-	}
+	result = strings.TrimSpace(result)
 
 	if err := os.WriteFile(openapi3OutPath, []byte(result), 0o644); err != nil {
 		log.Fatalf("writing openapi 3.0 spec: %v", err)
