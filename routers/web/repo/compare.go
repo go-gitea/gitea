@@ -438,16 +438,14 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	ctx.Data["TitleQuery"] = newPrFormTitle
 	ctx.Data["BodyQuery"] = newPrFormBody
 
-	if (headCommitID == ci.CompareBase && !ci.DirectComparison()) ||
-		headCommitID == ci.BaseCommitID {
-		ctx.Data["IsNothingToCompare"] = true
+	if headCommitID == ci.CompareBase {
 		config := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
+		// if auto-detect manual merge, an empty PR will be closed immediately because it is already on base branch
+		supportEmptyPr := !config.AutodetectManualMerge
+		acrossRepoPr := !ci.IsSameRef()
+		ctx.Data["AllowEmptyPr"] = supportEmptyPr && acrossRepoPr
 
-		ctx.Data["AllowEmptyPr"] = false
-		if !config.AutodetectManualMerge {
-			ctx.Data["AllowEmptyPr"] = !ci.IsSameRef()
-			cpi.nothingToCompare = ci.IsSameRef()
-		}
+		cpi.nothingToCompare = true
 		return
 	}
 
@@ -606,6 +604,7 @@ func CompareDiff(ctx *context.Context) {
 		ctx.Data["CommitCount"] = 0
 	}
 	ctx.Data["PageIsComparePull"] = comparePageInfo.allowCreatePull
+	ctx.Data["IsNothingToCompare"] = comparePageInfo.nothingToCompare
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 

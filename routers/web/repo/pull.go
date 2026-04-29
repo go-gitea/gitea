@@ -716,7 +716,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		beforeCommitID = beforeCommit.ID.String()
 	}
 
-	ctx.Data["MergeBase"] = prCompareInfo.CompareBase
+	ctx.Data["CompareInfo"] = prCompareInfo
 	ctx.Data["AfterCommitID"] = afterCommitID
 	ctx.Data["BeforeCommitID"] = beforeCommitID
 
