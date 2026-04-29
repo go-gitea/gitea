@@ -120,7 +120,7 @@ func (run *ActionRun) RefTooltip() string {
 }
 
 // LoadAttributes load Repo TriggerUser if not loaded
-func (run *ActionRun) LoadAttributes(ctx context.Context) error {
+func (run *ActionRun) LoadAttributes(ctx context.Context) (err error) {
 	if err := run.LoadRepo(ctx); err != nil {
 		return err
 	}

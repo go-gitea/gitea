@@ -247,9 +247,11 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	}, nil
 }
 
-func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (*api.ActionWorkflowRun, error) {
-	if err := run.LoadAttributes(ctx); err != nil {
-		return nil, err
+func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (*api.ActionWorkflowRun, error) {
+	if run.Repo == nil || run.TriggerUser == nil {
+		if err := run.LoadAttributes(ctx); err != nil {
+			return nil, err
+		}
 	}
 
 	if attempt == nil {
@@ -272,6 +274,7 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 	var previousAttemptURL *string
 
 	if attempt != nil {
+		attempt.Run = run
 		if err := attempt.LoadAttributes(ctx); err != nil {
 			return nil, err
 		}
@@ -281,14 +284,13 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		completedAt = attempt.Stopped.AsLocalTime()
 		triggerUser = attempt.TriggerUser
 		if attempt.Attempt > 1 {
-			url := fmt.Sprintf("%s/actions/runs/%d/attempts/%d", repo.APIURL(), run.ID, attempt.Attempt-1)
-			previousAttemptURL = &url
+			previousAttemptURL = new(fmt.Sprintf("%s/actions/runs/%d/attempts/%d", run.Repo.APIURL(ctx), run.ID, attempt.Attempt-1))
 		}
 	}
 
 	return &api.ActionWorkflowRun{
 		ID:                 run.ID,
-		URL:                fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
+		URL:                fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID),
 		PreviousAttemptURL: previousAttemptURL,
 		HTMLURL:            run.HTMLURL(),
 		RunNumber:          run.Index,
@@ -302,7 +304,7 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		Status:             status,
 		Conclusion:         conclusion,
 		Path:               fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
-		Repository:         ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Repository:         ToRepo(ctx, run.Repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		TriggerActor:       ToUser(ctx, triggerUser, nil),
 		Actor:              ToUser(ctx, actor, nil),
 	}, nil
