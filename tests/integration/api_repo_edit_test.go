@@ -472,7 +472,7 @@ func TestAPIRepoEditMirrorPasswordPreservesExistingUsername(t *testing.T) {
 	})
 }
 
-func TestAPIRepoEditMirrorTokenUsesOAuth2Username(t *testing.T) {
+func TestAPIRepoEditMirrorTokenDoesNotGuessUsername(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		ctx := t.Context()
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -497,7 +497,7 @@ func TestAPIRepoEditMirrorTokenUsesOAuth2Username(t *testing.T) {
 		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
 		require.NoError(t, err)
 		require.NotNil(t, remoteURL.User)
-		assert.Equal(t, "oauth2", remoteURL.User.Username())
+		assert.Empty(t, remoteURL.User.Username())
 		password, ok := remoteURL.User.Password()
 		require.True(t, ok)
 		assert.Equal(t, token, password)

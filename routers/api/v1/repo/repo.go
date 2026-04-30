@@ -1095,9 +1095,6 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 
 		if authToken != "" {
-			if authUsername == "" {
-				authUsername = "oauth2"
-			}
 			authPassword = authToken
 		}
 
