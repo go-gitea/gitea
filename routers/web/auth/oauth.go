@@ -433,9 +433,15 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 
 	// Make sure that the response is not an error response.
 	errorName := request.FormValue("error")
+	if len(errorName) > 128 {
+		errorName = errorName[:128]
+	}
 
 	if len(errorName) > 0 {
 		errorDescription := request.FormValue("error_description")
+		if len(errorDescription) > 256 {
+			errorDescription = errorDescription[:256]
+		}
 
 		// Delete the goth session
 		err := gothic.Logout(response, request)
