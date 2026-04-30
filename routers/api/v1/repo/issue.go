@@ -691,10 +691,10 @@ func CreateIssue(ctx *context.APIContext) {
 	}
 
 	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, form.Projects); err != nil {
-		if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusBadRequest, err)
-		} else if errors.Is(err, user_model.ErrBlockedUser) {
+		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.APIError(http.StatusForbidden, err)
+		} else if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
+			ctx.APIError(http.StatusBadRequest, err)
 		} else {
 			ctx.APIErrorInternal(err)
 		}

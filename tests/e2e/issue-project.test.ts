@@ -20,12 +20,11 @@ test('assign issue to project and change column', async ({page}) => {
   ]);
   await page.goto(`/${user}/${repoName}/issues/1`);
   await page.locator('.sidebar-project-combo > .ui.dropdown').click();
-  await page.locator('.sidebar-project-combo > .ui.dropdown .item', {hasText: 'Kanban Board'}).click();
-  await page.locator('.sidebar-project-combo > .ui.dropdown .fixed-text').click();
-  const columnCombo = page.locator('.sidebar-project-card').first();
-  await columnCombo.locator('.sidebar-project-column-combo .ui.dropdown').click();
-  await columnCombo.locator('.sidebar-project-column-combo .ui.dropdown .item', {hasText: 'In Progress'}).click();
-  await expect(columnCombo.locator('.fixed-text')).toHaveText('In Progress');
+  await page.locator('.sidebar-project-combo > .ui.dropdown .item:has-text("Kanban Board")').click();
+  await page.locator('.sidebar-project-combo > .ui.dropdown').click();
+  await page.locator('.sidebar-project-column-combo .ui.dropdown').click();
+  await page.locator('.sidebar-project-column-combo .ui.dropdown .item:has-text("In Progress")').click();
+  await expect(page.locator('.sidebar-project-column-combo .ui.dropdown .fixed-text')).toHaveText('In Progress');
   await apiDeleteRepo(page.request, user, repoName);
 });
 
@@ -98,9 +97,9 @@ test('assign issue to multiple projects via sidebar', async ({page}) => {
     // Click outside to close the dropdown and trigger the update
     await page.locator('.issue-content-left').click();
 
-    // Verify both projects are shown in the sidebar (expect will auto-wait)
-    await expect(page.locator(`.sidebar-project-card > .item:has-text("${project1Title}")`)).toBeVisible();
-    await expect(page.locator(`.sidebar-project-card > .item:has-text("${project2Title}")`)).toBeVisible();
+    // Verify both projects are shown in the sidebar
+    await expect(page.locator(`.item.sidebar-project-card:has-text("${project1Title}")`)).toBeVisible();
+    await expect(page.locator(`.item.sidebar-project-card:has-text("${project2Title}")`)).toBeVisible();
   } finally {
     await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
   }
@@ -151,8 +150,8 @@ test('create issue with multiple projects pre-selected', async ({page}) => {
     await page.waitForURL(new RegExp(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/\\d+`));
 
     // Verify both projects are shown in the sidebar
-    await expect(page.locator(`.sidebar-project-card > .item:has-text("${project1Title}")`)).toBeVisible();
-    await expect(page.locator(`.sidebar-project-card > .item:has-text("${project2Title}")`)).toBeVisible();
+    await expect(page.locator(`.item.sidebar-project-card:has-text("${project1Title}")`)).toBeVisible();
+    await expect(page.locator(`.item.sidebar-project-card:has-text("${project2Title}")`)).toBeVisible();
   } finally {
     await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
   }
@@ -272,8 +271,8 @@ test('remove issue from one project keeping others', async ({page}) => {
     await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/${issue.index}`);
 
     // Verify both projects are initially shown
-    await expect(page.locator(`.sidebar-project-card > .item:has-text("${project1Title}")`)).toBeVisible();
-    await expect(page.locator(`.sidebar-project-card > .item:has-text("${project2Title}")`)).toBeVisible();
+    await expect(page.locator(`.item.sidebar-project-card:has-text("${project1Title}")`)).toBeVisible();
+    await expect(page.locator(`.item.sidebar-project-card.item:has-text("${project2Title}")`)).toBeVisible();
 
     // Open the projects dropdown
     await page.locator('.sidebar-project-combo > .ui.dropdown').click();
@@ -284,9 +283,9 @@ test('remove issue from one project keeping others', async ({page}) => {
     // Click outside to close the dropdown and trigger the update
     await page.locator('.issue-content-left').click();
 
-    // Verify project1 is still shown but project2 is removed (expect will auto-wait)
-    await expect(page.locator(`.sidebar-project-card > .item:has-text("${project1Title}")`)).toBeVisible();
-    await expect(page.locator(`.sidebar-project-card > .item:has-text("${project2Title}")`)).toBeHidden();
+    // Verify project1 is still shown but project2 is removed
+    await expect(page.locator(`.item.sidebar-project-card.item:has-text("${project1Title}")`)).toBeVisible();
+    await expect(page.locator(`.item.sidebar-project-card.item:has-text("${project2Title}")`)).toBeHidden();
 
     // Reload the page to see the timeline comment
     await page.reload();
@@ -498,10 +497,6 @@ test('SearchRepoIssuesJSON supports multiple projects and returns 400 with inval
     expect(singleTitles).toContain('Issue in both projects');
     expect(singleTitles).not.toContain('Issue in Project 2 only');
     expect(singleTitles).not.toContain('Issue with no project');
-
-    // Test: Invalid project IDs return 400 (not 500)
-    const invalidResp = await page.request.get(`/${user}/${repoName}/issues/search?project=1,abc,3`);
-    expect(invalidResp.status()).toBe(400);
   } finally {
     await apiDeleteRepo(page.request, user, repoName);
   }

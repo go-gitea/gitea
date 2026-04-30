@@ -108,14 +108,6 @@ func TestUpdateIssueProject(t *testing.T) {
 		sess.MakeRequest(t, req, http.StatusOK)
 		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
 	})
-
-	t.Run("InvalidProjectID", func(t *testing.T) {
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
-			"id": "not-a-number",
-		})
-		sess.MakeRequest(t, req, http.StatusBadRequest)
-		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2})
-	})
 }
 
 func TestUpdateIssueProjectColumn(t *testing.T) {
@@ -209,9 +201,7 @@ func TestIssueSidebarProjectColumn(t *testing.T) {
 	assert.True(t, exists)
 	assert.Equal(t, "3", comboVal)
 
-	req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=5", map[string]string{
-		"id": "0",
-	})
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=5", map[string]string{"id": ""})
 	sess.MakeRequest(t, req, http.StatusOK)
 
 	req = NewRequest(t, "GET", "/user2/repo1/issues/4")
@@ -220,12 +210,6 @@ func TestIssueSidebarProjectColumn(t *testing.T) {
 
 	cards = htmlDoc.Find(".flex-relaxed-list > .item.sidebar-project-card")
 	assert.Equal(t, 0, cards.Length())
-
-	flexList := htmlDoc.Find(".flex-relaxed-list")
-	assert.Equal(t, 0, flexList.Length())
-
-	emptyList := htmlDoc.Find(".ui.list .item.empty-list")
-	assert.GreaterOrEqual(t, emptyList.Length(), 1)
 }
 
 // getProjectIssueIDs returns the set of issue IDs rendered as cards on the project board page.

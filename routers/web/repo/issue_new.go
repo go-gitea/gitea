@@ -251,7 +251,7 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 		return ret
 	}
 
-	inputLabelIDs, _ := base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
+	inputLabelIDs := ctx.FormStringInt64s("label_ids")
 	candidateLabels := toSet(pageMetaData.LabelsData.AllLabels, func(label *issues_model.Label) int64 { return label.ID })
 	if len(inputLabelIDs) > 0 && !candidateLabels.Contains(inputLabelIDs...) {
 		ctx.NotFound(nil)
@@ -267,7 +267,7 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 	}
 	pageMetaData.MilestonesData.SelectedMilestoneID = form.MilestoneID
 
-	inputProjectIDs := parseProjectIDsFromQuery(ctx)
+	inputProjectIDs := ctx.FormStringInt64s("project_ids")
 	pageMetaData.SetSelectedProjectIDs(inputProjectIDs)
 
 	// prepare assignees

@@ -193,17 +193,8 @@ func (d *IssuePageMetaData) retrieveProjectCardsForExistingIssue(ctx *context.Co
 			return
 		}
 
-		defaultColumn, err := project.MustDefaultColumn(ctx)
-		if err != nil {
-			ctx.ServerError("MustDefaultColumn", err)
-			return
-		}
-
 		var selectedColumn *project_model.Column
 		columnID := projectColumnMap[project.ID]
-		if columnID == 0 {
-			columnID = defaultColumn.ID
-		}
 		for _, col := range columns {
 			if col.ID == columnID {
 				selectedColumn = col
@@ -211,6 +202,13 @@ func (d *IssuePageMetaData) retrieveProjectCardsForExistingIssue(ctx *context.Co
 			}
 		}
 
+		if selectedColumn == nil {
+			selectedColumn, err = project.MustDefaultColumn(ctx)
+			if err != nil {
+				ctx.ServerError("MustDefaultColumn", err)
+				return
+			}
+		}
 		d.ProjectsData.ProjectCards = append(d.ProjectsData.ProjectCards, &issueSidebarProjectCardData{
 			Project:        project,
 			Columns:        columns,

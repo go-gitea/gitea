@@ -35,6 +35,7 @@ func TestAPIIssue(t *testing.T) {
 	t.Run("IssueContentVersion", testAPIIssueContentVersion)
 	t.Run("CreateIssue", testAPICreateIssue)
 	t.Run("CreateIssueParallel", testAPICreateIssueParallel)
+	t.Run("IssueProjects", testAPIIssueProjects)
 }
 
 func testAPIListIssues(t *testing.T) {
@@ -497,9 +498,7 @@ func testAPIIssueContentVersion(t *testing.T) {
 	})
 }
 
-func TestAPIIssueProjects(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIIssueProjects(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -551,7 +550,7 @@ func TestAPIIssueProjects(t *testing.T) {
 		Body:     "test body",
 		Projects: []int64{99999},
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test project from different repo (project 2 is for repo 3)
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
@@ -559,5 +558,5 @@ func TestAPIIssueProjects(t *testing.T) {
 		Body:     "test body",
 		Projects: []int64{2},
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusBadRequest)
 }
