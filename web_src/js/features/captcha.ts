@@ -34,22 +34,24 @@ export async function initCaptcha() {
       break;
     }
     case 'm-captcha': {
-      const mCaptcha = await import('@mcaptcha/vanilla-glue');
-
-      // FIXME: the mCaptcha code is not right, it's a miracle that the wrong code could run
-      // * the "vanilla-glue" has some problems with es6 module.
-      // * the INPUT_NAME is a "const", it should not be changed.
-      // * the "mCaptcha.default" is actually the "Widget".
-
-      mCaptcha.INPUT_NAME = 'm-captcha-response';
+      // @mcaptcha/vanilla-glue is published as a UMD/CJS bundle. Vite's interop sometimes
+      // exposes the Widget constructor at `module.default` and sometimes (when the whole
+      // CJS exports object gets wrapped) at `module.default.default`, so probe both.
+      // INPUT_NAME is a read-only ES module binding and cannot be reassigned, so we let
+      // the widget create its input and then rename it to match Gitea's expected field.
+      const mCaptcha = await import('@mcaptcha/vanilla-glue') as any;
+      const Widget: new (config: unknown) => {inputElement: HTMLInputElement} =
+        typeof mCaptcha.default === 'function' ? mCaptcha.default : mCaptcha.default.default;
       const instanceURL = captchaEl.getAttribute('data-instance-url')!;
 
-      new mCaptcha.default({
+      const widget = new Widget({
         siteKey: {
           instanceUrl: new URL(instanceURL),
           key: siteKey,
         },
       });
+      widget.inputElement.name = 'm-captcha-response';
+      widget.inputElement.id = 'm-captcha-response';
       break;
     }
     default:
