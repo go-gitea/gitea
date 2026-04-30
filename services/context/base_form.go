@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -33,6 +34,11 @@ func (b *Base) FormStrings(key string) []string {
 		return v
 	}
 	return nil
+}
+
+func (b *Base) FormStringInt64s(key string) []int64 {
+	vals, _ := base.StringsToInt64s(strings.Split(b.FormString(key), ","))
+	return vals
 }
 
 // FormTrim returns the first value for the provided key in the form as a space trimmed string
