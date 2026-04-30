@@ -420,18 +420,6 @@ func searchIssueInProject(t *testing.T) {
 			},
 			[]int64{5, 3, 2, 1},
 		},
-		{
-			SearchOptions{
-				ProjectColumnIDs: []int64{1},
-			},
-			[]int64{1},
-		},
-		{
-			SearchOptions{
-				ProjectColumnIDs: []int64{0}, // issue with in default column
-			},
-			[]int64{2},
-		},
 	}
 	for _, test := range tests {
 		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)

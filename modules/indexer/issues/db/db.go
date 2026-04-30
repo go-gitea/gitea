@@ -110,14 +110,6 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		return nil, err
 	}
 
-	if len(options.ProjectColumnIDs) > 0 {
-		columnCond := builder.In("project_board_id", options.ProjectColumnIDs)
-		if len(options.ProjectIDs) > 0 {
-			columnCond = builder.And(columnCond, builder.In("project_id", options.ProjectIDs))
-		}
-		cond = cond.And(builder.In("issue.id", builder.Select("issue_id").From("project_issue").Where(columnCond)))
-	}
-
 	// If pagesize == 0, return total count only. It's a special case for search count.
 	if options.Paginator != nil && options.Paginator.PageSize == 0 {
 		total, err := issue_model.CountIssues(ctx, opt, cond)

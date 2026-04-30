@@ -319,42 +319,6 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
-		Name: "ProjectColumnIDs",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			ProjectColumnIDs: []int64{1},
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Len(t, result.Hits, 5)
-			for _, v := range result.Hits {
-				assert.Contains(t, data[v.ID].ProjectColumnIDs, int64(1))
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return slices.Contains(v.ProjectColumnIDs, int64(1))
-			}), result.Total)
-		},
-	},
-	{
-		Name: "no ProjectColumnIDs",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			ProjectColumnIDs: []int64{0},
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Len(t, result.Hits, 5)
-			for _, v := range result.Hits {
-				assert.Contains(t, data[v.ID].ProjectColumnIDs, int64(0))
-			}
-			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return slices.Contains(v.ProjectColumnIDs, int64(0))
-			}), result.Total)
-		},
-	},
-	{
 		Name: "no ProjectIDs (empty array)",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
@@ -372,41 +336,6 @@ var cases = []*testIndexerCase{
 				return len(v.ProjectIDs) == 0
 			})
 			assert.Equal(t, expectedCount, result.Total, "Should return all %d issues with no project", expectedCount)
-		},
-	},
-	{
-		Name: "ProjectColumnMap consistency",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 50,
-			},
-			ProjectIDs: []int64{1, 2},
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			// Verify ProjectColumnMap is populated and consistent with ProjectIDs
-			for _, v := range result.Hits {
-				issue := data[v.ID]
-				if len(issue.ProjectIDs) > 0 {
-					// If issue has projects, it should have a ProjectColumnMap
-					assert.NotNil(t, issue.ProjectColumnMap, "Issue %d should have ProjectColumnMap", v.ID)
-					// Every project in ProjectIDs should have an entry in ProjectColumnMap
-					for _, projectID := range issue.ProjectIDs {
-						_, exists := issue.ProjectColumnMap[projectID]
-						assert.True(t, exists, "Issue %d should have column mapping for project %d", v.ID, projectID)
-					}
-					// ProjectColumnMap should only contain projects from ProjectIDs
-					assert.Len(t, issue.ProjectColumnMap, len(issue.ProjectIDs),
-						"Issue %d: ProjectColumnMap size should match ProjectIDs size", v.ID)
-					// ProjectColumnIDs should cover all map values
-					for _, columnID := range issue.ProjectColumnMap {
-						assert.Contains(t, issue.ProjectColumnIDs, columnID,
-							"Issue %d: ProjectColumnIDs should include column %d", v.ID, columnID)
-					}
-				} else {
-					assert.Empty(t, issue.ProjectColumnIDs,
-						"Issue %d: ProjectColumnIDs should be empty when no projects", v.ID)
-				}
-			}
 		},
 	},
 	{
@@ -748,19 +677,6 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				projectIDs[i] = int64(i) + 1 // projectID should not be 0
 			}
 
-			// Build ProjectColumnMap: map each project to a column
-			projectColumnMap := make(map[int64]int64, len(projectIDs))
-			for _, projectID := range projectIDs {
-				projectColumnMap[projectID] = issueIndex % 6
-			}
-
-			projectColumnIDs := make([]int64, 0, len(projectColumnMap))
-			for _, columnID := range projectColumnMap {
-				projectColumnIDs = append(projectColumnIDs, columnID)
-			}
-			slices.Sort(projectColumnIDs)
-			projectColumnIDs = slices.Compact(projectColumnIDs)
-
 			data = append(data, &internal.IndexerData{
 				ID:                 id,
 				RepoID:             repoID,
@@ -775,8 +691,6 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				MilestoneID:        issueIndex % 4,
 				ProjectIDs:         projectIDs,
 				NoProject:          len(projectIDs) == 0,
-				ProjectColumnIDs:   projectColumnIDs,
-				ProjectColumnMap:   projectColumnMap,
 				PosterID:           id%10 + 1, // PosterID should not be 0
 				AssigneeID:         issueIndex % 10,
 				MentionIDs:         mentionIDs,

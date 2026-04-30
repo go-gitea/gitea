@@ -721,7 +721,7 @@ func CreateIssue(ctx *context.APIContext) {
 
 	// Validate project IDs if provided
 	projectIDs := make([]int64, 0)
-	if ctx.Repo.CanWrite(unit.TypeIssues) && len(form.Projects) > 0 {
+	if ctx.Repo.Permission.CanWrite(unit.TypeIssues) && len(form.Projects) > 0 {
 		if err := validateProjectAccess(ctx, form.Projects, ctx.Repo.Repository); err != nil {
 			return
 		}

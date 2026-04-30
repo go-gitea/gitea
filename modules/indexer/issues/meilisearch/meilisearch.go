@@ -73,7 +73,6 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"milestone_id",
 			"project_ids",
 			"no_project",
-			"project_column_ids",
 			"poster_id",
 			"assignee_id",
 			"mention_ids",
@@ -187,9 +186,6 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(inner_meilisearch.NewFilterEq("no_project", true))
 	} else if len(options.ProjectIDs) > 0 {
 		query.And(inner_meilisearch.NewFilterIn("project_ids", options.ProjectIDs...))
-	}
-	if len(options.ProjectColumnIDs) > 0 {
-		query.And(inner_meilisearch.NewFilterIn("project_column_ids", options.ProjectColumnIDs...))
 	}
 
 	if options.PosterID != "" {
