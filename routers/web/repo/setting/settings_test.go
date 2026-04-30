@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -434,28 +433,22 @@ func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
 func createTestPullMirror(t *testing.T, user *user_model.User, sourceRepo *repo_model.Repository, mirrorName string) (*repo_model.Repository, *repo_model.Mirror) {
 	t.Helper()
 
-	opts := migration.MigrateOptions{
-		RepoName:    mirrorName,
-		Description: "Mirror settings test repository",
-		Private:     false,
-		Mirror:      true,
-		CloneAddr:   repo_model.RepoPath(user.Name, sourceRepo.Name),
-	}
-
 	mirrorRepo, err := repo_service.CreateRepositoryDirectly(t.Context(), user, user, repo_service.CreateRepoOptions{
-		Name:          opts.RepoName,
-		Description:   opts.Description,
-		IsPrivate:     opts.Private,
-		IsMirror:      opts.Mirror,
+		Name:          mirrorName,
+		Description:   "Mirror settings test repository",
+		IsMirror:      true,
 		DefaultBranch: sourceRepo.DefaultBranch,
 		Status:        repo_model.RepositoryBeingMigrated,
 	}, false)
 	require.NoError(t, err)
 
-	mirrorRepo, err = repo_service.MigrateRepositoryGitData(t.Context(), user, mirrorRepo, opts, nil)
-	require.NoError(t, err)
+	mirror := &repo_model.Mirror{
+		RepoID:      mirrorRepo.ID,
+		EnablePrune: true,
+	}
+	require.NoError(t, repo_model.InsertMirror(t.Context(), mirror))
 
-	mirror, err := repo_model.GetMirrorByRepoID(t.Context(), mirrorRepo.ID)
+	mirror, err = repo_model.GetMirrorByRepoID(t.Context(), mirrorRepo.ID)
 	require.NoError(t, err)
 	return mirrorRepo, mirror
 }
