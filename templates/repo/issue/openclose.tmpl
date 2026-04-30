@@ -4,7 +4,7 @@
 {{if .PageIsMilestones}}
 	{{$allStatesLink = QueryBuild "?" "q" $.Keyword "sort" $.SortType "state" "all"}}
 {{else}}
-	{{$allStatesLink = QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" "all" "labels" $.SelectLabels "milestone" $.MilestoneID "project" (Iif (ne $projectIDsQuery "") $projectIDsQuery NIL) "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
+	{{$allStatesLink = QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" "all" "labels" $.SelectLabels "milestone" $.MilestoneID "project" $projectIDsQuery "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
 {{end}}
 {{$openLink = QueryBuild $allStatesLink "state" "open"}}
 {{$closedLink = QueryBuild $allStatesLink "state" "closed"}}

@@ -1,6 +1,6 @@
 {{$projectIDs := $.ProjectIDs}}
 {{$projectIDsQuery := SliceUtils.JoinInt64 $projectIDs}}
-{{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" (Iif (ne $projectIDsQuery "") $projectIDsQuery NIL) "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
+{{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" $projectIDsQuery "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
 {{$showAllProjects := not $projectIDs}}
 {{$showNoProjectSelected := and (eq (len $projectIDs) 1) (eq (index $projectIDs 0) -1)}}
 
