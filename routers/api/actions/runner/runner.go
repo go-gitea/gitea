@@ -69,7 +69,7 @@ func (s *Service) Register(
 	}
 
 	labels := req.Msg.Labels
-	hasCancellingSupport, _ := runnerRequestHasCapability(req.Msg, "cancelling")
+	hasCancellingSupport, _ := runnerRequestHasCancellingCapability(req.Msg)
 
 	// create new runner
 	name := util.EllipsisDisplayString(req.Msg.Name, 255)
@@ -121,16 +121,13 @@ type declareRequest interface {
 	GetLabels() []string
 }
 
-func runnerRequestHasCapability(req proto.Message, capability string) (bool, bool) {
+func runnerRequestHasCancellingCapability(req proto.Message) (bool, bool) {
 	if req == nil {
 		return false, false
 	}
 
 	if typedReq, ok := any(req).(capabilityGetter); ok {
-		if slices.Contains(typedReq.GetCapabilities(), capability) {
-			return true, true
-		}
-		return false, true
+		return slices.Contains(typedReq.GetCapabilities(), "cancelling"), true
 	}
 
 	return false, false
@@ -141,7 +138,7 @@ func applyDeclareRequestToRunner(runner *actions_model.ActionRunner, req declare
 	runner.Version = req.GetVersion()
 
 	cols := []string{"agent_labels", "version"}
-	hasCancellingSupport, capabilityStateKnown := runnerRequestHasCapability(req, "cancelling")
+	hasCancellingSupport, capabilityStateKnown := runnerRequestHasCancellingCapability(req)
 	if capabilityStateKnown && runner.HasCancellingSupport != hasCancellingSupport {
 		runner.HasCancellingSupport = hasCancellingSupport
 		cols = append(cols, "has_cancelling_support")

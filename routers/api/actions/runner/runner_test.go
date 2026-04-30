@@ -30,12 +30,12 @@ func (r *capabilityDeclareRequest) GetCapabilities() []string {
 	return r.capabilities
 }
 
-func TestRunnerRequestHasCapabilityTypedAccessor(t *testing.T) {
+func TestRunnerRequestHasCancellingCapabilityTypedAccessor(t *testing.T) {
 	registerReq := &capabilityRegisterRequest{
 		RegisterRequest: &runnerv1.RegisterRequest{},
 		capabilities:    []string{"cancelling", "other"},
 	}
-	hasCapability, known := runnerRequestHasCapability(registerReq, "cancelling")
+	hasCapability, known := runnerRequestHasCancellingCapability(registerReq)
 	assert.True(t, hasCapability)
 	assert.True(t, known)
 
@@ -43,11 +43,11 @@ func TestRunnerRequestHasCapabilityTypedAccessor(t *testing.T) {
 		DeclareRequest: &runnerv1.DeclareRequest{},
 		capabilities:   nil,
 	}
-	hasCapability, known = runnerRequestHasCapability(declareReq, "cancelling")
+	hasCapability, known = runnerRequestHasCancellingCapability(declareReq)
 	assert.False(t, hasCapability)
 	assert.True(t, known)
 
-	hasCapability, known = runnerRequestHasCapability(nil, "cancelling")
+	hasCapability, known = runnerRequestHasCancellingCapability(nil)
 	assert.False(t, hasCapability)
 	assert.False(t, known)
 }
