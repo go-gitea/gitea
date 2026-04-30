@@ -431,4 +431,3 @@ func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, "updated-password", password)
 }
-
