@@ -196,7 +196,7 @@ export class IssueSidebarComboList {
         const elItem = this.elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${CSS.escape(value)}"]`);
         elItem?.classList.add('checked');
       }
-      if (this.elList?.getAttribute('data-combo-list-inited') !== 'true') {
+      if (this.elList && this.elList.getAttribute('data-combo-list-inited') !== 'true') {
         this.updateUiList(values);
       }
     }

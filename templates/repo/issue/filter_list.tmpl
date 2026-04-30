@@ -1,7 +1,8 @@
 {{$projectIDs := $.ProjectIDs}}
 {{$projectIDsQuery := SliceUtils.JoinInt64 $projectIDs}}
 {{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" (Iif (ne $projectIDsQuery "") $projectIDsQuery NIL) "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
-{{$noProjectSelected := and (eq (len $projectIDs) 1) (SliceUtils.Contains $projectIDs -1)}}
+{{$showAllProjects := not $projectIDs}}
+{{$showNoProjectSelected := and (eq (len $projectIDs) 1) (eq (index $projectIDs 0) -1)}}
 
 {{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
 
@@ -20,21 +21,21 @@
 		{{ctx.Locale.Tr "repo.issues.filter_project"}}
 	</span>
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu">
+	<div class="menu flex-items-menu">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-search" 16}}</i>
 			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_project"}}">
 		</div>
-		<a class="{{if eq (len $projectIDs) 0}}active selected {{end}}item" data-project-filter-all href="{{QueryBuild $queryLink "project" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_project_all"}}</a>
-		<a class="{{if $noProjectSelected}}active selected {{end}}item" data-project-filter-none href="{{QueryBuild $queryLink "project" -1}}">{{ctx.Locale.Tr "repo.issues.filter_project_none"}}</a>
+		<a class="item {{if $showAllProjects}}selected{{end}}" data-project-id="" href="{{QueryBuild $queryLink "project" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_project_all"}}</a>
+		<a class="item {{if $showNoProjectSelected}}selected{{end}}" data-project-id="-1" href="{{QueryBuild $queryLink "project" -1}}">{{ctx.Locale.Tr "repo.issues.filter_project_none"}}</a>
 		{{if .OpenProjects}}
 			<div class="divider"></div>
 			<div class="header">
 				{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
 			</div>
-			{{range .OpenProjects}}
-				<a class="{{if SliceUtils.Contains $projectIDs .ID}}active selected{{end}} item tw-flex" data-project-id="{{.ID}}" href="{{QueryBuild $queryLink "project" .ID}}">
-					{{svg .IconName 18 "tw-mr-2 tw-shrink-0"}}<span class="gt-ellipsis">{{.Title}}</span>
+			{{range $project := .OpenProjects}}
+				<a class="item {{if SliceUtils.Contains $projectIDs $project.ID}}selected{{end}}" data-project-id="{{$project.ID}}" href="{{QueryBuild $queryLink "project" $project.ID}}">
+					{{svg $project.IconName}}<span class="gt-ellipsis">{{$project.Title}}</span>
 				</a>
 			{{end}}
 		{{end}}
@@ -43,9 +44,9 @@
 			<div class="header">
 				{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}
 			</div>
-			{{range .ClosedProjects}}
-				<a class="{{if SliceUtils.Contains $projectIDs .ID}}active selected{{end}} item" data-project-id="{{.ID}}" href="{{QueryBuild $queryLink "project" .ID}}">
-					{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
+			{{range $project := .ClosedProjects}}
+				<a class="item {{if SliceUtils.Contains $projectIDs $project.ID}}selected{{end}}" data-project-id="{{$project.ID}}" href="{{QueryBuild $queryLink "project" $project.ID}}">
+					{{svg $project.IconName}}<span class="gt-ellipsis">{{$project.Title}}</span>
 				</a>
 			{{end}}
 		{{end}}
