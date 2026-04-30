@@ -6,8 +6,11 @@ package templates
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 type SliceUtils struct{}
@@ -46,4 +49,18 @@ func (su *SliceUtils) JoinInt64(values []int64) string {
 		strs[i] = strconv.FormatInt(v, 10)
 	}
 	return strings.Join(strs, ",")
+}
+
+func (su *SliceUtils) JoinToggleIDs(values []int64, target int64) (ret struct {
+	IsIncluded bool
+	ToggledIDs string
+},
+) {
+	ret.IsIncluded = slices.Contains(values, target)
+	if ret.IsIncluded {
+		ret.ToggledIDs = su.JoinInt64(util.SliceRemoveAll(slices.Clone(values), target))
+	} else {
+		ret.ToggledIDs = su.JoinInt64(append(values, target))
+	}
+	return ret
 }

@@ -26,15 +26,16 @@
 			<i class="icon">{{svg "octicon-search" 16}}</i>
 			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_project"}}">
 		</div>
-		<a class="item {{if $showAllProjects}}selected{{end}}" data-project-id="" href="{{QueryBuild $queryLink "project" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_project_all"}}</a>
-		<a class="item {{if $showNoProjectSelected}}selected{{end}}" data-project-id="-1" href="{{QueryBuild $queryLink "project" -1}}">{{ctx.Locale.Tr "repo.issues.filter_project_none"}}</a>
+		<a class="item {{if $showAllProjects}}selected{{end}}" href="{{QueryBuild $queryLink "project" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_project_all"}}</a>
+		<a class="item {{if $showNoProjectSelected}}selected{{end}}" href="{{QueryBuild $queryLink "project" -1}}">{{ctx.Locale.Tr "repo.issues.filter_project_none"}}</a>
 		{{if .OpenProjects}}
 			<div class="divider"></div>
 			<div class="header">
 				{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
 			</div>
 			{{range $project := .OpenProjects}}
-				<a class="item {{if SliceUtils.Contains $projectIDs $project.ID}}selected{{end}}" data-project-id="{{$project.ID}}" href="{{QueryBuild $queryLink "project" $project.ID}}">
+				{{$toggle := SliceUtils.JoinToggleIDs $projectIDs $project.ID}}
+				<a class="item {{if $toggle.IsIncluded}}selected{{end}}" href="{{QueryBuild $queryLink "project" $toggle.ToggledIDs}}">
 					{{svg $project.IconName}}<span class="gt-ellipsis">{{$project.Title}}</span>
 				</a>
 			{{end}}
@@ -45,7 +46,8 @@
 				{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}
 			</div>
 			{{range $project := .ClosedProjects}}
-				<a class="item {{if SliceUtils.Contains $projectIDs $project.ID}}selected{{end}}" data-project-id="{{$project.ID}}" href="{{QueryBuild $queryLink "project" $project.ID}}">
+				{{$toggle := SliceUtils.JoinToggleIDs $projectIDs $project.ID}}
+				<a class="item {{if $toggle.IsIncluded}}selected{{end}}" href="{{QueryBuild $queryLink "project" $toggle.ToggledIDs}}">
 					{{svg $project.IconName}}<span class="gt-ellipsis">{{$project.Title}}</span>
 				</a>
 			{{end}}
