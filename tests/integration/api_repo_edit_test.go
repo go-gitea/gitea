@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	mirror_service "code.gitea.io/gitea/services/mirror"
-	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -436,90 +435,56 @@ func TestAPIRepoEdit(t *testing.T) {
 			DefaultDeleteBranchAfterMerge: &bFalse,
 		}).AddTokenAuth(token2)
 		_ = MakeRequest(t, req, http.StatusOK)
+
+		// Test updating mirror password without changing the existing username
+		ctx := t.Context()
+		mirrorRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
+		mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5})
+		newPassword := "updated-password"
+
+		require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, "https://existing-user:existing-password@example.com/user2/repo1.git"))
+
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", mirrorRepo.OwnerName, mirrorRepo.Name), &api.EditRepoOption{
+			MirrorPassword: &newPassword,
+		}).AddTokenAuth(token2)
+		MakeRequest(t, req, http.StatusOK)
+
+		updatedMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+		assert.Equal(t, "https://example.com/user2/repo1.git", updatedMirror.RemoteAddress)
+
+		updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
+		assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
+
+		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
+		require.NoError(t, err)
+		require.NotNil(t, remoteURL.User)
+		assert.Equal(t, "existing-user", remoteURL.User.Username())
+		password, ok := remoteURL.User.Password()
+		require.True(t, ok)
+		assert.Equal(t, newPassword, password)
+
+		// Test updating mirror token without guessing a username
+		token := "mirror-token-value"
+
+		require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, "https://example.com/user2/repo1.git"))
+
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", mirrorRepo.OwnerName, mirrorRepo.Name), &api.EditRepoOption{
+			MirrorToken: &token,
+		}).AddTokenAuth(token2)
+		MakeRequest(t, req, http.StatusOK)
+
+		updatedMirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+		assert.Equal(t, "https://example.com/user2/repo1.git", updatedMirror.RemoteAddress)
+
+		updatedRepo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
+		assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
+
+		remoteURL, err = gitrepo.GitRemoteGetURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
+		require.NoError(t, err)
+		require.NotNil(t, remoteURL.User)
+		assert.Empty(t, remoteURL.User.Username())
+		password, ok = remoteURL.User.Password()
+		require.True(t, ok)
+		assert.Equal(t, token, password)
 	})
-}
-
-func TestAPIRepoEditMirrorPasswordPreservesExistingUsername(t *testing.T) {
-	ctx := t.Context()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	mirrorRepo, mirror := createTestPullMirror(t, user, "mirror-password")
-
-	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, "https://existing-user:existing-password@example.com/user2/repo1.git"))
-
-	apiCtx := NewAPITestContext(t, user.Name, mirrorRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-	newPassword := "updated-password"
-	req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", user.Name, mirrorRepo.Name), &api.EditRepoOption{
-		MirrorPassword: &newPassword,
-	}).AddTokenAuth(apiCtx.Token)
-	apiCtx.Session.MakeRequest(t, req, http.StatusOK)
-
-	updatedMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
-	assert.Equal(t, "https://example.com/user2/repo1.git", updatedMirror.RemoteAddress)
-
-	updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
-	assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
-
-	remoteURL, err := gitrepo.GitRemoteGetURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
-	require.NoError(t, err)
-	require.NotNil(t, remoteURL.User)
-	assert.Equal(t, "existing-user", remoteURL.User.Username())
-	password, ok := remoteURL.User.Password()
-	require.True(t, ok)
-	assert.Equal(t, newPassword, password)
-}
-
-func TestAPIRepoEditMirrorTokenDoesNotGuessUsername(t *testing.T) {
-	ctx := t.Context()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	mirrorRepo, mirror := createTestPullMirror(t, user, "mirror-token")
-
-	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, "https://example.com/user2/repo1.git"))
-
-	apiCtx := NewAPITestContext(t, user.Name, mirrorRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-	token := "mirror-token-value"
-	req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", user.Name, mirrorRepo.Name), &api.EditRepoOption{
-		MirrorToken: &token,
-	}).AddTokenAuth(apiCtx.Token)
-	apiCtx.Session.MakeRequest(t, req, http.StatusOK)
-
-	updatedMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
-	assert.Equal(t, "https://example.com/user2/repo1.git", updatedMirror.RemoteAddress)
-
-	updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
-	assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
-
-	remoteURL, err := gitrepo.GitRemoteGetURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
-	require.NoError(t, err)
-	require.NotNil(t, remoteURL.User)
-	assert.Empty(t, remoteURL.User.Username())
-	password, ok := remoteURL.User.Password()
-	require.True(t, ok)
-	assert.Equal(t, token, password)
-}
-
-func createTestPullMirror(t *testing.T, user *user_model.User, mirrorName string) (*repo_model.Repository, *repo_model.Mirror) {
-	t.Helper()
-
-	ctx := t.Context()
-	repoName := fmt.Sprintf("%s-%d", mirrorName, tokenCounter.Add(1))
-	mirrorRepo, err := repo_service.CreateRepositoryDirectly(ctx, user, user, repo_service.CreateRepoOptions{
-		Name:        repoName,
-		Description: "Mirror auth test repository",
-		IsPrivate:   false,
-		IsMirror:    true,
-	}, false)
-	require.NoError(t, err)
-
-	mirror := &repo_model.Mirror{
-		RepoID:      mirrorRepo.ID,
-		Repo:        mirrorRepo,
-		EnablePrune: true,
-	}
-	err = repo_model.InsertMirror(ctx, mirror)
-	require.NoError(t, err)
-
-	mirror, err = repo_model.GetMirrorByRepoID(ctx, mirrorRepo.ID)
-	require.NoError(t, err)
-	mirror.Repo = mirrorRepo
-	return mirrorRepo, mirror
 }
