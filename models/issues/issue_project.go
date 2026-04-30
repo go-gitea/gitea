@@ -5,7 +5,6 @@ package issues
 
 import (
 	"context"
-	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -28,33 +27,21 @@ func (issue *Issue) LoadProjects(ctx context.Context) (err error) {
 	return err
 }
 
-func (issue *Issue) projectIDs(ctx context.Context) ([]int64, error) {
-	var pis []project_model.ProjectIssue
-	if err := db.GetEngine(ctx).Table("project_issue").Where("issue_id = ?", issue.ID).Cols("project_id").Find(&pis); err != nil {
-		return nil, err
-	}
-
-	if len(pis) == 0 {
-		return []int64{}, nil
-	}
-
-	ids := make([]int64, 0, len(pis))
-	for _, pi := range pis {
-		ids = append(ids, pi.ProjectID)
-	}
-	return ids, nil
+func (issue *Issue) projectIDs(ctx context.Context) (projectIDs []int64, _ error) {
+	err := db.GetEngine(ctx).Table("project_issue").Where("issue_id = ?", issue.ID).Cols("project_id").Find(&projectIDs)
+	return projectIDs, err
 }
 
 // ProjectColumnMap returns a map of project ID to column ID for this issue.
 func (issue *Issue) ProjectColumnMap(ctx context.Context) (map[int64]int64, error) {
-	var pis []project_model.ProjectIssue
-	if err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Find(&pis); err != nil {
+	var projIssues []project_model.ProjectIssue
+	if err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Find(&projIssues); err != nil {
 		return nil, err
 	}
 
-	result := make(map[int64]int64, len(pis))
-	for _, pi := range pis {
-		result[pi.ProjectID] = pi.ProjectColumnID
+	result := make(map[int64]int64, len(projIssues))
+	for _, projIssue := range projIssues {
+		result[projIssue.ProjectID] = projIssue.ProjectColumnID
 	}
 	return result, nil
 }
@@ -74,57 +61,6 @@ func LoadProjectIssueColumnMap(ctx context.Context, projectID, defaultColumnID i
 	return result, nil
 }
 
-// LoadIssuesFromColumn load issues assigned to this column
-func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *IssuesOptions) (IssueList, error) {
-	issueList, err := loadIssuesForProjectColumn(ctx, b.ProjectID, b.ID, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	if b.Default {
-		issues, err := loadIssuesForProjectColumn(ctx, b.ProjectID, 0, opts)
-		if err != nil {
-			return nil, err
-		}
-		issueList = append(issueList, issues...)
-	}
-
-	if err := issueList.LoadComments(ctx); err != nil {
-		return nil, err
-	}
-
-	return issueList, nil
-}
-
-func loadIssuesForProjectColumn(ctx context.Context, projectID, columnID int64, opts *IssuesOptions) (IssueList, error) {
-	var columnOpts *IssuesOptions
-	if opts == nil {
-		columnOpts = &IssuesOptions{ProjectIDs: []int64{projectID}, SortType: "project-column-sorting"}
-	} else {
-		columnOpts = opts.Copy(func(o *IssuesOptions) {
-			o.ProjectIDs = []int64{projectID}
-			o.SortType = "project-column-sorting"
-		})
-	}
-
-	sess := db.GetEngine(ctx).
-		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-	applyLimit(sess, columnOpts)
-	applyConditions(sess, columnOpts)
-	sess.And("project_issue.project_board_id = ?", columnID)
-	applySorts(sess, columnOpts.SortType, columnOpts.PriorityRepoID)
-
-	issueList := IssueList{}
-	if err := sess.Find(&issueList); err != nil {
-		return nil, err
-	}
-	if err := issueList.LoadAttributes(ctx); err != nil {
-		return nil, err
-	}
-
-	return issueList, nil
-}
-
 // IssueAssignOrRemoveProject updates the projects associated with an issue.
 // It adds projects that are in newProjectIDs but not currently assigned, and removes
 // projects that are currently assigned but not in newProjectIDs. If newProjectIDs is
@@ -132,20 +68,18 @@ func loadIssuesForProjectColumn(ctx context.Context, projectID, columnID int64, 
 // When adding an issue to a project, it is placed in the project's default column.
 func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectIDs []int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := issue.LoadRepo(ctx); err != nil {
+			return err
+		}
+
 		oldProjectIDs, err := issue.projectIDs(ctx)
 		if err != nil {
 			return err
 		}
 
-		if err := issue.LoadRepo(ctx); err != nil {
-			return err
-		}
-
 		projectsToAdd, projectsToRemove := util.DiffSlice(oldProjectIDs, newProjectIDs)
-		resetCache := func() {
-			issue.isProjectsLoaded = false
-			issue.Projects = nil
-		}
+		issue.isProjectsLoaded = false
+		issue.Projects = nil
 
 		if len(projectsToRemove) > 0 {
 			if _, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).In("project_id", projectsToRemove).Delete(&project_model.ProjectIssue{}); err != nil {
@@ -163,78 +97,55 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 					return err
 				}
 			}
-			resetCache()
 		}
 
-		if len(projectsToAdd) == 0 {
-			return nil
-		}
-
-		projectMap, err := project_model.GetProjectsMapByIDs(ctx, projectsToAdd)
-		if err != nil {
-			return err
-		}
-
-		defaultColumns, err := project_model.GetDefaultColumnsByProjectIDs(ctx, projectsToAdd)
-		if err != nil {
-			return err
-		}
-
-		pi := make([]*project_model.ProjectIssue, 0, len(projectsToAdd))
-
-		for _, projectID := range projectsToAdd {
-			if projectID == 0 {
-				continue
-			}
-
-			newProject, ok := projectMap[projectID]
-			if !ok {
-				return fmt.Errorf("project %d not found", projectID)
-			}
-			if !newProject.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo) {
-				return util.NewPermissionDeniedErrorf("issue %d can't be accessed by project %d", issue.ID, newProject.ID)
-			}
-
-			defaultColumn, ok := defaultColumns[projectID]
-			if !ok {
-				defaultColumn, err = newProject.MustDefaultColumn(ctx)
-				if err != nil {
-					return err
-				}
-			}
-			projectColumnID := defaultColumn.ID
-
-			newSorting, err := project_model.GetColumnIssueNextSorting(ctx, projectID, projectColumnID)
+		if len(projectsToAdd) > 0 {
+			projectMap, err := project_model.GetProjectsMapByIDs(ctx, projectsToAdd)
 			if err != nil {
 				return err
 			}
 
-			pi = append(pi, &project_model.ProjectIssue{
-				IssueID:         issue.ID,
-				ProjectID:       projectID,
-				ProjectColumnID: projectColumnID,
-				Sorting:         newSorting,
-			})
+			for _, projectID := range projectsToAdd {
+				newProject, ok := projectMap[projectID]
+				if !ok {
+					return util.NewNotExistErrorf("project %d not found", projectID)
+				}
+				if !newProject.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo) {
+					return util.NewPermissionDeniedErrorf("issue %d can't be accessed by project %d", issue.ID, newProject.ID)
+				}
 
-			if _, err := CreateComment(ctx, &CreateCommentOptions{
-				Type:         CommentTypeProject,
-				Doer:         doer,
-				Repo:         issue.Repo,
-				Issue:        issue,
-				OldProjectID: 0,
-				ProjectID:    projectID,
-			}); err != nil {
-				return err
+				defaultColumn, err := newProject.MustDefaultColumn(ctx)
+				if err != nil {
+					return err
+				}
+
+				newSorting, err := project_model.GetColumnIssueNextSorting(ctx, projectID, defaultColumn.ID)
+				if err != nil {
+					return err
+				}
+
+				err = db.Insert(ctx, &project_model.ProjectIssue{
+					IssueID:         issue.ID,
+					ProjectID:       projectID,
+					ProjectColumnID: defaultColumn.ID,
+					Sorting:         newSorting,
+				})
+				if err != nil {
+					return err
+				}
+
+				if _, err := CreateComment(ctx, &CreateCommentOptions{
+					Type:         CommentTypeProject,
+					Doer:         doer,
+					Repo:         issue.Repo,
+					Issue:        issue,
+					OldProjectID: 0,
+					ProjectID:    projectID,
+				}); err != nil {
+					return err
+				}
 			}
 		}
-
-		if len(pi) > 0 {
-			if err := db.Insert(ctx, pi); err != nil {
-				return err
-			}
-			resetCache()
-		}
-
 		return nil
 	})
 }

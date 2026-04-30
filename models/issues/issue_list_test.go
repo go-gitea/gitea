@@ -68,7 +68,7 @@ func TestIssueList_LoadAttributes(t *testing.T) {
 			assert.NotEmpty(t, issue.Projects)
 			assert.Equal(t, int64(1), issue.Projects[0].ID)
 		} else {
-			assert.Nil(t, issue.Projects)
+			assert.Empty(t, issue.Projects)
 		}
 	}
 }
