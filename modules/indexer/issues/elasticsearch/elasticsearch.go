@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-const issueIndexerLatestVersion = 2
+const issueIndexerLatestVersion = 3
 
 var _ internal.Indexer = &Indexer{}
 
@@ -54,8 +54,8 @@ const (
 			"label_ids": { "type": "integer", "index": true },
 			"no_label": { "type": "boolean", "index": true },
 			"milestone_id": { "type": "integer", "index": true },
-			"project_id": { "type": "integer", "index": true },
-			"project_board_id": { "type": "integer", "index": true },
+			"project_ids": { "type": "integer", "index": true },
+			"no_project": { "type": "boolean", "index": true },
 			"poster_id": { "type": "integer", "index": true },
 			"assignee_id": { "type": "integer", "index": true },
 			"mention_ids": { "type": "integer", "index": true },
@@ -164,11 +164,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(es.TermsQuery("milestone_id", es.ToAnySlice(options.MilestoneIDs)...))
 	}
 
-	if options.ProjectID.Has() {
-		query.Must(es.TermQuery("project_id", options.ProjectID.Value()))
-	}
-	if options.ProjectColumnID.Has() {
-		query.Must(es.TermQuery("project_board_id", options.ProjectColumnID.Value()))
+	if options.NoProjectOnly {
+		query.Must(es.TermQuery("no_project", true))
+	} else if len(options.ProjectIDs) > 0 {
+		// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: this logic is not right, it should use "AND" but not "OR"
+		query.Must(es.TermsQuery("project_ids", es.ToAnySlice(options.ProjectIDs)...))
 	}
 
 	if options.PosterID != "" {

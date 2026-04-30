@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -62,6 +63,12 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 	res := new(api.ActionWorkflowJobsResponse)
 	res.TotalCount = total
 
+	jobList := actions_model.ActionJobList(jobs)
+	if err := jobList.LoadAttributes(ctx, true); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	res.Entries = make([]*api.ActionWorkflowJob, len(jobs))
 
 	isRepoLevel := repoID != 0 && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repoID
@@ -70,11 +77,11 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		if isRepoLevel {
 			repository = ctx.Repo.Repository
 		} else {
-			repository, err = repo_model.GetRepositoryByID(ctx, jobs[i].RepoID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
+			if jobs[i].Run == nil || jobs[i].Run.Repo == nil {
+				ctx.APIErrorInternal(fmt.Errorf("job %d is missing its run or repository", jobs[i].ID))
 				return
 			}
+			repository = jobs[i].Run.Repo
 		}
 
 		convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, repository, nil, jobs[i])
@@ -169,21 +176,28 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	res := new(api.ActionWorkflowRunsResponse)
 	res.TotalCount = total
 
-	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
-	isRepoLevel := repoID != 0 && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repoID
-	for i := range runs {
-		var repository *repo_model.Repository
-		if isRepoLevel {
-			repository = ctx.Repo.Repository
-		} else {
-			repository, err = repo_model.GetRepositoryByID(ctx, runs[i].RepoID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-		}
+	runList := actions_model.RunList(runs)
+	if err := runList.LoadTriggerUser(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, repository, runs[i], nil)
+	if err := runList.LoadRepos(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	repos := repo_model.RepositoryList(container.FilterSlice(runs, func(r *actions_model.ActionRun) (*repo_model.Repository, bool) {
+		return r.Repo, r.Repo != nil
+	}))
+	if err := repos.LoadOwners(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
+	for i := range runs {
+		// TODO: load run attempts in batch
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], nil)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
