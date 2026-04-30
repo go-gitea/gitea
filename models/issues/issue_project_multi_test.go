@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/models/unittest"
@@ -15,13 +14,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"xorm.io/builder"
 )
 
 func TestIssueMultipleProjects(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	t.Run("LoadMultipleProjects", func(t *testing.T) {
+	t.Run("GeneralTest", func(t *testing.T) {
 		// Get test data
 		issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -39,137 +37,57 @@ func TestIssueMultipleProjects(t *testing.T) {
 			_ = project_model.DeleteProjectByID(t.Context(), project2.ID)
 		}()
 
-		// Assign issue to both projects (each project uses its own default column)
-		err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project1.ID, project2.ID})
+		err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
 		require.NoError(t, err)
-
-		// Clear the projects field to force reload
-		issue1.Projects = nil
-
-		// Load projects for the issue
 		err = issue1.LoadProjects(t.Context())
 		require.NoError(t, err)
+		require.Empty(t, issue1.Projects)
 
-		// Verify issue is associated with both projects
-		assert.Len(t, issue1.Projects, 2)
-		projectIDs := make(map[int64]bool)
-		for _, p := range issue1.Projects {
-			projectIDs[p.ID] = true
-		}
-		assert.True(t, projectIDs[project1.ID], "Issue should be in project1")
-		assert.True(t, projectIDs[project2.ID], "Issue should be in project2")
-
-		// Clean up - remove issue from both projects
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
+		// assign issue to both projects (each project uses its own default column)
+		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project1.ID})
 		require.NoError(t, err)
-	})
-
-	t.Run("AssignMultipleProjectsSimultaneously", func(t *testing.T) {
-		// Get test data
-		issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-		// Create three projects for the same repository
-		var projects []*project_model.Project
-		for i := 1; i <= 3; i++ {
-			project := &project_model.Project{
-				Title:        fmt.Sprintf("Test Project %d", i),
-				RepoID:       issue1.RepoID,
-				Type:         project_model.TypeRepository,
-				TemplateType: project_model.TemplateTypeBasicKanban,
-			}
-			require.NoError(t, project_model.NewProject(t.Context(), project))
-			projects = append(projects, project)
-			defer func(id int64) {
-				_ = project_model.DeleteProjectByID(t.Context(), id)
-			}(project.ID)
-		}
-
-		// Assign issue to all three projects at once
-		projectIDs := make([]int64, len(projects))
-		for i, p := range projects {
-			projectIDs[i] = p.ID
-		}
-		err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, projectIDs)
-		require.NoError(t, err)
-
-		// Reload the issue and verify it's in all three projects
-		issue1.Projects = nil
+		assert.Nilf(t, issue1.Projects, "Issue's Projects should be nil after IssueAssignOrRemoveProject to ensure it reloads fresh data")
 		err = issue1.LoadProjects(t.Context())
 		require.NoError(t, err)
+		require.Len(t, issue1.Projects, 1)
 
-		assert.Len(t, issue1.Projects, 3, "Issue should be assigned to all 3 projects")
-
-		// Verify all project IDs are present
-		foundProjectIDs := make(map[int64]bool)
-		for _, p := range issue1.Projects {
-			foundProjectIDs[p.ID] = true
-		}
-		for _, p := range projects {
-			assert.True(t, foundProjectIDs[p.ID], "Issue should be in project %d", p.ID)
-		}
-
-		// Clean up
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
+		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project1.ID, project2.ID})
 		require.NoError(t, err)
-	})
-
-	t.Run("RemoveFromOneProjectKeepOthers", func(t *testing.T) {
-		// Get test data
-		issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-		// Create three projects
-		var projects []*project_model.Project
-		for i := 1; i <= 3; i++ {
-			project := &project_model.Project{
-				Title:        fmt.Sprintf("Test Project %d", i),
-				RepoID:       issue1.RepoID,
-				Type:         project_model.TypeRepository,
-				TemplateType: project_model.TemplateTypeBasicKanban,
-			}
-			require.NoError(t, project_model.NewProject(t.Context(), project))
-			projects = append(projects, project)
-			defer func(id int64) {
-				_ = project_model.DeleteProjectByID(t.Context(), id)
-			}(project.ID)
-		}
-
-		// Assign issue to all three projects
-		allProjectIDs := []int64{projects[0].ID, projects[1].ID, projects[2].ID}
-		err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, allProjectIDs)
-		require.NoError(t, err)
-
-		// Verify issue is in all three projects
-		issue1.Projects = nil
+		assert.Nilf(t, issue1.Projects, "Issue's Projects should be nil after IssueAssignOrRemoveProject to ensure it reloads fresh data")
 		err = issue1.LoadProjects(t.Context())
 		require.NoError(t, err)
-		assert.Len(t, issue1.Projects, 3, "Issue should initially be in all 3 projects")
+		require.Len(t, issue1.Projects, 2)
+		assert.ElementsMatch(t, []int64{project1.ID, project2.ID}, []int64{issue1.Projects[0].ID, issue1.Projects[1].ID}, "Issue should be in both projects")
 
-		// Remove issue from project 2 (middle one), keep it in projects 1 and 3
-		remainingProjectIDs := []int64{projects[0].ID, projects[2].ID}
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, remainingProjectIDs)
+		// test issue's project column map
+		projectColumnMap, err := issue1.ProjectColumnMap(t.Context())
+		p1Col, _ := project1.MustDefaultColumn(t.Context())
+		p2Col, _ := project2.MustDefaultColumn(t.Context())
 		require.NoError(t, err)
+		assert.Equal(t, p1Col.ID, projectColumnMap[project1.ID])
+		assert.Equal(t, p2Col.ID, projectColumnMap[project2.ID])
 
-		// Reload and verify issue is only in projects 1 and 3
+		// only keep project2
+		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project2.ID})
+		err = issue1.LoadProjects(t.Context())
+		require.NoError(t, err)
+		require.Len(t, issue1.Projects, 1)
+		assert.Equal(t, project2.ID, issue1.Projects[0].ID)
+
+		// also test ResetAttributesLoaded
 		issue1.Projects = nil
 		issue1.ResetAttributesLoaded()
 		err = issue1.LoadProjects(t.Context())
 		require.NoError(t, err)
-		assert.Len(t, issue1.Projects, 2, "Issue should be in only 2 projects after removal")
+		require.Len(t, issue1.Projects, 1)
+		assert.Equal(t, project2.ID, issue1.Projects[0].ID)
 
-		// Verify the correct projects remain
-		foundProjectIDs := make(map[int64]bool)
-		for _, p := range issue1.Projects {
-			foundProjectIDs[p.ID] = true
-		}
-		assert.True(t, foundProjectIDs[projects[0].ID], "Issue should still be in project 1")
-		assert.False(t, foundProjectIDs[projects[1].ID], "Issue should NOT be in project 2")
-		assert.True(t, foundProjectIDs[projects[2].ID], "Issue should still be in project 3")
-
-		// Clean up
+		// remove issue's projects
 		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
 		require.NoError(t, err)
+		err = issue1.LoadProjects(t.Context())
+		require.NoError(t, err)
+		require.Empty(t, issue1.Projects)
 	})
 
 	t.Run("QueryByMultipleProjectIDs", func(t *testing.T) {
@@ -202,26 +120,8 @@ func TestIssueMultipleProjects(t *testing.T) {
 		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue2, user2, []int64{projects[2].ID})
 		require.NoError(t, err)
 
-		// Query for issues in projects 1 and 2 (should find issue1)
-		issues, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
-			RepoIDs:    []int64{issue1.RepoID},
-			ProjectIDs: []int64{projects[0].ID, projects[1].ID},
-		})
-		require.NoError(t, err)
-		assert.NotEmpty(t, issues, "Should find issues in projects 1 and 2")
-
-		// Verify issue1 is in the results
-		foundIssue1 := false
-		for _, issue := range issues {
-			if issue.ID == issue1.ID {
-				foundIssue1 = true
-				break
-			}
-		}
-		assert.True(t, foundIssue1, "Issue 1 should be found when querying projects 1 and 2")
-
 		// Query for issues in project 3 only (should find issue2)
-		issues, err = issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
+		issues, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
 			RepoIDs:    []int64{issue1.RepoID},
 			ProjectIDs: []int64{projects[2].ID},
 		})
@@ -238,302 +138,7 @@ func TestIssueMultipleProjects(t *testing.T) {
 		}
 		assert.True(t, foundIssue2, "Issue 2 should be found when querying project 3")
 
-		// Query for all three projects (should find both issues)
-		issues, err = issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
-			RepoIDs:    []int64{issue1.RepoID},
-			ProjectIDs: []int64{projects[0].ID, projects[1].ID, projects[2].ID},
-		})
-		require.NoError(t, err)
-		assert.NotEmpty(t, issues, "Should find issues in all three projects")
-
-		foundIssue1 = false
-		foundIssue2 = false
-		for _, issue := range issues {
-			if issue.ID == issue1.ID {
-				foundIssue1 = true
-			}
-			if issue.ID == issue2.ID {
-				foundIssue2 = true
-			}
-		}
-		assert.True(t, foundIssue1, "Issue 1 should be found when querying all projects")
-		assert.True(t, foundIssue2, "Issue 2 should be found when querying all projects")
-
-		// Clean up
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
-		require.NoError(t, err)
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue2, user2, []int64{})
-		require.NoError(t, err)
-	})
-
-	t.Run("BackwardCompatibilitySingleProject", func(t *testing.T) {
-		// Get test data
-		issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-		// Create a single project
-		project := &project_model.Project{
-			Title:        "Backward Compat Test Project",
-			RepoID:       issue1.RepoID,
-			Type:         project_model.TypeRepository,
-			TemplateType: project_model.TemplateTypeBasicKanban,
-		}
-		require.NoError(t, project_model.NewProject(t.Context(), project))
-		defer func() {
-			_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-		}()
-
-		// Test assigning to a single project (old style behavior with single ID in array)
-		err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project.ID})
-		require.NoError(t, err)
-
-		// Load projects and verify issue is in exactly one project
-		issue1.Projects = nil
-		err = issue1.LoadProjects(t.Context())
-		require.NoError(t, err)
-		assert.Len(t, issue1.Projects, 1, "Issue should be in exactly 1 project")
-		assert.Equal(t, project.ID, issue1.Projects[0].ID, "Issue should be in the correct project")
-
-		// Test removing from a single project
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
-		require.NoError(t, err)
-
-		// Verify issue is no longer in any project
-		issue1.Projects = nil
-		err = issue1.LoadProjects(t.Context())
-		require.NoError(t, err)
-		assert.Empty(t, issue1.Projects, "Issue should not be in any project after removal")
-
-		// Test querying with a single project ID
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project.ID})
-		require.NoError(t, err)
-
-		issues, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
-			RepoIDs:    []int64{issue1.RepoID},
-			ProjectIDs: []int64{project.ID},
-		})
-		require.NoError(t, err)
-		assert.NotEmpty(t, issues, "Should find issues when querying a single project")
-
-		foundIssue1 := false
-		for _, issue := range issues {
-			if issue.ID == issue1.ID {
-				foundIssue1 = true
-				break
-			}
-		}
-		assert.True(t, foundIssue1, "Issue should be found when querying single project")
-
-		// Clean up
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
-		require.NoError(t, err)
-	})
-
-	t.Run("AssignOrRemoveProjectResetsLoadedState", func(t *testing.T) {
-		// Get test data - use issue 6 which has no project association in fixtures
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-		// Create a project
-		project := &project_model.Project{
-			Title:        "Test Reset Loaded State Project",
-			RepoID:       issue.RepoID,
-			Type:         project_model.TypeRepository,
-			TemplateType: project_model.TemplateTypeBasicKanban,
-		}
-		require.NoError(t, project_model.NewProject(t.Context(), project))
-		defer func() {
-			_ = project_model.DeleteProjectByID(t.Context(), project.ID)
-		}()
-
-		// Load projects initially (should be empty for issue 6)
-		err := issue.LoadProjects(t.Context())
-		require.NoError(t, err)
-		assert.Empty(t, issue.Projects, "Issue 6 should have no projects initially")
-
-		// Assign issue to project
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue, user2, []int64{project.ID})
-		require.NoError(t, err)
-
-		// Load projects again - should get fresh data without needing to manually reset
-		// This tests that IssueAssignOrRemoveProject properly resets isProjectsLoaded
-		err = issue.LoadProjects(t.Context())
-		require.NoError(t, err)
-		assert.Len(t, issue.Projects, 1, "LoadProjects should fetch fresh data after IssueAssignOrRemoveProject adds a project")
-
-		// Find the new project in the list
-		assert.Equal(t, project.ID, issue.Projects[0].ID, "New project should be in the reloaded projects list")
-
-		// Remove project and verify LoadProjects still gets fresh data
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue, user2, []int64{})
-		require.NoError(t, err)
-
-		err = issue.LoadProjects(t.Context())
-		require.NoError(t, err)
-		assert.Empty(t, issue.Projects, "LoadProjects should fetch fresh data after IssueAssignOrRemoveProject removes projects")
-	})
-
-	t.Run("AssignMultipleProjectsUsesCorrectDefaultColumn", func(t *testing.T) {
-		// Verifies that when assigning an issue to multiple projects, each project uses
-		// its own default column (not a shared column from another project).
-
-		// Get test data
-		issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-		// Create two projects for the same repository
-		project1 := &project_model.Project{
-			Title:        "Default Column Test Project 1",
-			RepoID:       issue1.RepoID,
-			Type:         project_model.TypeRepository,
-			TemplateType: project_model.TemplateTypeBasicKanban,
-		}
-		require.NoError(t, project_model.NewProject(t.Context(), project1))
-		defer func() {
-			_ = project_model.DeleteProjectByID(t.Context(), project1.ID)
-		}()
-
-		project2 := &project_model.Project{
-			Title:        "Default Column Test Project 2",
-			RepoID:       issue1.RepoID,
-			Type:         project_model.TypeRepository,
-			TemplateType: project_model.TemplateTypeBasicKanban,
-		}
-		require.NoError(t, project_model.NewProject(t.Context(), project2))
-		defer func() {
-			_ = project_model.DeleteProjectByID(t.Context(), project2.ID)
-		}()
-
-		// Get each project's default column
-		columns1, err := project1.GetColumns(t.Context())
-		require.NoError(t, err)
-		require.NotEmpty(t, columns1)
-		defaultColumn1 := columns1[0]
-
-		columns2, err := project2.GetColumns(t.Context())
-		require.NoError(t, err)
-		require.NotEmpty(t, columns2)
-		defaultColumn2 := columns2[0]
-
-		// Verify the columns are different (they belong to different projects)
-		assert.NotEqual(t, defaultColumn1.ID, defaultColumn2.ID, "Each project should have its own default column")
-		assert.Equal(t, project1.ID, defaultColumn1.ProjectID, "Column 1 should belong to project 1")
-		assert.Equal(t, project2.ID, defaultColumn2.ProjectID, "Column 2 should belong to project 2")
-
-		// Assign issue to both projects
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project1.ID, project2.ID})
-		require.NoError(t, err)
-
-		// Verify each project_issue entry uses the correct project's default column
-		var projectIssues []project_model.ProjectIssue
-		err = db.GetEngine(t.Context()).Where("issue_id = ?", issue1.ID).
-			In("project_id", []int64{project1.ID, project2.ID}).
-			Find(&projectIssues)
-		require.NoError(t, err)
-		assert.Len(t, projectIssues, 2, "Issue should be in both projects")
-
-		columnByProject := make(map[int64]int64)
-		for _, pi := range projectIssues {
-			columnByProject[pi.ProjectID] = pi.ProjectColumnID
-		}
-
-		assert.Equal(t, defaultColumn1.ID, columnByProject[project1.ID],
-			"Issue in project 1 should use project 1's default column")
-		assert.Equal(t, defaultColumn2.ID, columnByProject[project2.ID],
-			"Issue in project 2 should use project 2's default column")
-
-		// Clean up
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
-		require.NoError(t, err)
-	})
-
-	t.Run("QueryByMultipleProjectsAndColumn", func(t *testing.T) {
-		// Verifies that filtering by both multiple projects and a specific column ID
-		// works correctly without double-filtering.
-
-		// Get test data
-		issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-		issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-		// Create two projects
-		project1 := &project_model.Project{
-			Title:        "Column Filter Test Project 1",
-			RepoID:       issue1.RepoID,
-			Type:         project_model.TypeRepository,
-			TemplateType: project_model.TemplateTypeBasicKanban,
-		}
-		require.NoError(t, project_model.NewProject(t.Context(), project1))
-		defer func() {
-			_ = project_model.DeleteProjectByID(t.Context(), project1.ID)
-		}()
-
-		project2 := &project_model.Project{
-			Title:        "Column Filter Test Project 2",
-			RepoID:       issue1.RepoID,
-			Type:         project_model.TypeRepository,
-			TemplateType: project_model.TemplateTypeBasicKanban,
-		}
-		require.NoError(t, project_model.NewProject(t.Context(), project2))
-		defer func() {
-			_ = project_model.DeleteProjectByID(t.Context(), project2.ID)
-		}()
-
-		// Get the default columns
-		columns1, err := project1.GetColumns(t.Context())
-		require.NoError(t, err)
-		require.NotEmpty(t, columns1)
-
-		columns2, err := project2.GetColumns(t.Context())
-		require.NoError(t, err)
-		require.NotEmpty(t, columns2)
-
-		// Assign issues to projects (they go to default columns)
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project1.ID})
-		require.NoError(t, err)
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue2, user2, []int64{project2.ID})
-		require.NoError(t, err)
-
-		// Query for issues in both projects with no column filter - should find both
-		issues, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
-			RepoIDs:    []int64{issue1.RepoID},
-			ProjectIDs: []int64{project1.ID, project2.ID},
-		})
-		require.NoError(t, err)
-		assert.Len(t, issues, 2, "Should find both issues when filtering by both projects without column filter")
-
-		projectColumnCond := func(columnID int64, projectIDs []int64) builder.Cond {
-			cond := builder.NewCond().And(builder.Eq{"project_board_id": columnID})
-			if len(projectIDs) > 0 {
-				cond = cond.And(builder.In("project_id", projectIDs))
-			}
-			return builder.In("issue.id", builder.Select("issue_id").From("project_issue").Where(cond))
-		}
-
-		projectIDs := []int64{project1.ID, project2.ID}
-
-		// Query for issues in both projects with project1's default column - should only find issue1
-		issueIDs, _, err := issues_model.IssueIDs(t.Context(), &issues_model.IssuesOptions{
-			RepoIDs:    []int64{issue1.RepoID},
-			ProjectIDs: projectIDs,
-		}, projectColumnCond(columns1[0].ID, projectIDs))
-		require.NoError(t, err)
-		assert.Len(t, issueIDs, 1, "Should find only 1 issue when filtering by specific column")
-		if len(issueIDs) > 0 {
-			assert.Equal(t, issue1.ID, issueIDs[0], "Should find issue1 in project1's default column")
-		}
-
-		// Query for issues in both projects with project2's default column - should only find issue2
-		issueIDs, _, err = issues_model.IssueIDs(t.Context(), &issues_model.IssuesOptions{
-			RepoIDs:    []int64{issue1.RepoID},
-			ProjectIDs: projectIDs,
-		}, projectColumnCond(columns2[0].ID, projectIDs))
-		require.NoError(t, err)
-		assert.Len(t, issueIDs, 1, "Should find only 1 issue when filtering by specific column")
-		if len(issueIDs) > 0 {
-			assert.Equal(t, issue2.ID, issueIDs[0], "Should find issue2 in project2's default column")
-		}
-
+		// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet. Search logic is wrong. It should use "AND" but not "OR".
 		// Clean up
 		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
 		require.NoError(t, err)

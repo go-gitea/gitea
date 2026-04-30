@@ -204,30 +204,15 @@ test('filter issues by multiple projects in issue list', async ({page}) => {
       title: 'Issue with no project',
     });
 
-    // Test filtering with multiple projects using "projects" parameter (new)
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues?projects=${project1.id},${project2.id}`);
-
-    // Verify all project-related issues are visible
-    await expect(page.locator('#issue-list')).toContainText('Issue in Project A only');
-    await expect(page.locator('#issue-list')).toContainText('Issue in Project B only');
-    await expect(page.locator('#issue-list')).toContainText('Issue in both projects');
-
-    // Verify the issue with no project is NOT visible
-    await expect(page.locator('#issue-list')).not.toContainText('Issue with no project');
-
-    // Test filtering with single project using "projects" parameter
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues?projects=${project1.id}`);
-
     // Verify only project1 issues are visible
+    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues?project=${project1.id}`);
     await expect(page.locator('#issue-list')).toContainText('Issue in Project A only');
     await expect(page.locator('#issue-list')).toContainText('Issue in both projects');
     await expect(page.locator('#issue-list')).not.toContainText('Issue in Project B only');
     await expect(page.locator('#issue-list')).not.toContainText('Issue with no project');
 
-    // Test backward compatibility: single project using "project" parameter (legacy)
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues?project=${project2.id}`);
-
     // Verify only project2 issues are visible
+    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues?project=${project2.id}`);
     await expect(page.locator('#issue-list')).toContainText('Issue in Project B only');
     await expect(page.locator('#issue-list')).toContainText('Issue in both projects');
     await expect(page.locator('#issue-list')).not.toContainText('Issue in Project A only');
@@ -454,50 +439,5 @@ test('select projects on new issue page shows in sidebar', async ({page}) => {
     await expect(projectList.locator(`.item:has-text("${project2Title}")`).first()).toBeVisible();
   } finally {
     await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
-  }
-});
-
-test('SearchRepoIssuesJSON supports multiple projects and returns 400 with invalid project id', async ({page}) => {
-  const repoName = `e2e-search-api-${Date.now()}`;
-  const user = env.GITEA_TEST_E2E_USER;
-
-  await login(page);
-  await apiCreateRepo(page.request, {name: repoName});
-
-  try {
-    // Create two projects
-    const project1 = await createProject(page, {owner: user, repo: repoName, title: 'API Project 1'});
-    const project2 = await createProject(page, {owner: user, repo: repoName, title: 'API Project 2'});
-
-    // Create issues in different projects
-    await apiCreateIssue(page.request, {owner: user, repo: repoName, title: 'Issue in Project 1 only', projects: [project1.id]});
-    await apiCreateIssue(page.request, {owner: user, repo: repoName, title: 'Issue in Project 2 only', projects: [project2.id]});
-    await apiCreateIssue(page.request, {owner: user, repo: repoName, title: 'Issue in both projects', projects: [project1.id, project2.id]});
-    await apiCreateIssue(page.request, {owner: user, repo: repoName, title: 'Issue with no project'});
-
-    // Test: Multiple projects using comma-separated IDs
-    const multiResp = await page.request.get(`/${user}/${repoName}/issues/search?projects=${project1.id},${project2.id}`);
-    expect(multiResp.ok()).toBeTruthy();
-    const multiData = await multiResp.json();
-
-    // Verify all 3 project-related issues are returned
-    const multiTitles = multiData.map((issue: any) => issue.title);
-    expect(multiTitles).toContain('Issue in Project 1 only');
-    expect(multiTitles).toContain('Issue in Project 2 only');
-    expect(multiTitles).toContain('Issue in both projects');
-    expect(multiTitles).not.toContain('Issue with no project');
-
-    // Test: Single project filter
-    const singleResp = await page.request.get(`/${user}/${repoName}/issues/search?project=${project1.id}`);
-    expect(singleResp.ok()).toBeTruthy();
-    const singleData = await singleResp.json();
-
-    const singleTitles = singleData.map((issue: any) => issue.title);
-    expect(singleTitles).toContain('Issue in Project 1 only');
-    expect(singleTitles).toContain('Issue in both projects');
-    expect(singleTitles).not.toContain('Issue in Project 2 only');
-    expect(singleTitles).not.toContain('Issue with no project');
-  } finally {
-    await apiDeleteRepo(page.request, user, repoName);
   }
 });
