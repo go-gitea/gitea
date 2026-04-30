@@ -633,9 +633,9 @@ func Edit(ctx *context.APIContext) {
 
 	if opts.MirrorInterval != nil ||
 		opts.EnablePrune != nil ||
-		opts.AuthUsername != nil ||
-		opts.AuthPassword != nil ||
-		opts.AuthToken != nil {
+		opts.MirrorUsername != nil ||
+		opts.MirrorPassword != nil ||
+		opts.MirrorToken != nil {
 		if err := updateMirror(ctx, opts); err != nil {
 			return
 		}
@@ -1066,7 +1066,7 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 		log.Trace("Repository %s Mirror[%d] Set EnablePrune: %t", repo.FullName(), mirror.ID, mirror.EnablePrune)
 	}
 
-	authUpdateRequested := opts.AuthPassword != nil || opts.AuthToken != nil || opts.AuthUsername != nil
+	authUpdateRequested := opts.MirrorPassword != nil || opts.MirrorToken != nil || opts.MirrorUsername != nil
 	if authUpdateRequested {
 		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, repo, mirror.GetRemoteName())
 		if err != nil {
@@ -1075,22 +1075,22 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 
 		authUsername := ""
-		if opts.AuthUsername != nil {
-			authUsername = *opts.AuthUsername
+		if opts.MirrorUsername != nil {
+			authUsername = *opts.MirrorUsername
 		} else if remoteURL.User != nil {
 			authUsername = remoteURL.User.Username()
 		}
 
 		authPassword := ""
 		authToken := ""
-		if opts.AuthPassword != nil {
-			authPassword = *opts.AuthPassword
+		if opts.MirrorPassword != nil {
+			authPassword = *opts.MirrorPassword
 		}
-		if opts.AuthToken != nil {
-			authToken = *opts.AuthToken
+		if opts.MirrorToken != nil {
+			authToken = *opts.MirrorToken
 		}
 
-		if opts.AuthPassword == nil && opts.AuthToken == nil && remoteURL.User != nil && (authUsername == "" || authUsername == remoteURL.User.Username()) {
+		if opts.MirrorPassword == nil && opts.MirrorToken == nil && remoteURL.User != nil && (authUsername == "" || authUsername == remoteURL.User.Username()) {
 			authPassword, _ = remoteURL.User.Password()
 		}
 

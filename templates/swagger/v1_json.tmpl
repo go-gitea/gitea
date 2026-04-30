@@ -25398,21 +25398,6 @@
           "type": "boolean",
           "x-go-name": "Archived"
         },
-        "auth_password": {
-          "description": "authentication password for the remote repository (mirrors)",
-          "type": "string",
-          "x-go-name": "AuthPassword"
-        },
-        "auth_token": {
-          "description": "authentication token for the remote repository (mirrors)",
-          "type": "string",
-          "x-go-name": "AuthToken"
-        },
-        "auth_username": {
-          "description": "authentication username for the remote repository (mirrors)",
-          "type": "string",
-          "x-go-name": "AuthUsername"
-        },
         "autodetect_manual_merge": {
           "description": "either `true` to enable AutodetectManualMerge, or `false` to prevent it. Note: In some special cases, misjudgments can occur.",
           "type": "boolean",
@@ -25506,6 +25491,21 @@
           "description": "set to a string like `8h30m0s` to set the mirror interval time",
           "type": "string",
           "x-go-name": "MirrorInterval"
+        },
+        "mirror_password": {
+          "description": "authentication password for the remote repository (mirrors)",
+          "type": "string",
+          "x-go-name": "MirrorPassword"
+        },
+        "mirror_token": {
+          "description": "authentication token for the remote repository (mirrors)",
+          "type": "string",
+          "x-go-name": "MirrorToken"
+        },
+        "mirror_username": {
+          "description": "authentication username for the remote repository (mirrors)",
+          "type": "string",
+          "x-go-name": "MirrorUsername"
         },
         "name": {
           "description": "name of the repository",

@@ -440,19 +440,19 @@ func TestAPIRepoEdit(t *testing.T) {
 	})
 }
 
-func TestAPIRepoEditMirrorAuthPasswordPreservesExistingUsername(t *testing.T) {
+func TestAPIRepoEditMirrorPasswordPreservesExistingUsername(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		ctx := t.Context()
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		sourceRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		mirrorRepo, mirror := createTestPullMirror(t, user, sourceRepo, "mirror-auth-password")
+		mirrorRepo, mirror := createTestPullMirror(t, user, sourceRepo, "mirror-password")
 
 		require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, "https://existing-user:existing-password@example.com/user2/repo1.git"))
 
 		apiCtx := NewAPITestContext(t, user.Name, mirrorRepo.Name, auth_model.AccessTokenScopeWriteRepository)
 		newPassword := "updated-password"
 		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", user.Name, mirrorRepo.Name), &api.EditRepoOption{
-			AuthPassword: &newPassword,
+			MirrorPassword: &newPassword,
 		}).AddTokenAuth(apiCtx.Token)
 		apiCtx.Session.MakeRequest(t, req, http.StatusOK)
 
@@ -472,19 +472,19 @@ func TestAPIRepoEditMirrorAuthPasswordPreservesExistingUsername(t *testing.T) {
 	})
 }
 
-func TestAPIRepoEditMirrorAuthTokenUsesOAuth2Username(t *testing.T) {
+func TestAPIRepoEditMirrorTokenUsesOAuth2Username(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		ctx := t.Context()
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		sourceRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		mirrorRepo, mirror := createTestPullMirror(t, user, sourceRepo, "mirror-auth-token")
+		mirrorRepo, mirror := createTestPullMirror(t, user, sourceRepo, "mirror-token")
 
 		require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, "https://example.com/user2/repo1.git"))
 
 		apiCtx := NewAPITestContext(t, user.Name, mirrorRepo.Name, auth_model.AccessTokenScopeWriteRepository)
 		token := "mirror-token-value"
 		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", user.Name, mirrorRepo.Name), &api.EditRepoOption{
-			AuthToken: &token,
+			MirrorToken: &token,
 		}).AddTokenAuth(apiCtx.Token)
 		apiCtx.Session.MakeRequest(t, req, http.StatusOK)
 
