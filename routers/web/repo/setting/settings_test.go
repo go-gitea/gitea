@@ -395,11 +395,13 @@ func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
 
 	unittest.PrepareTestEnv(t)
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	sourceRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	mirrorRepo, mirror := createTestPullMirror(t, user, sourceRepo, "mirror-web-auth")
+	// Use the existing fixture mirror repo (org3/repo5) which has a git repo on disk.
+	mirrorRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
+	mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5})
 
 	require.NoError(t, mirror_service.UpdateAddress(t.Context(), mirror, "https://existing-user:existing-password@example.com/user2/repo1.git"))
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	ctx, _ := contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
 	contexttest.LoadUser(t, ctx, user.ID)
@@ -430,25 +432,3 @@ func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
 	assert.Equal(t, "updated-password", password)
 }
 
-func createTestPullMirror(t *testing.T, user *user_model.User, sourceRepo *repo_model.Repository, mirrorName string) (*repo_model.Repository, *repo_model.Mirror) {
-	t.Helper()
-
-	mirrorRepo, err := repo_service.CreateRepositoryDirectly(t.Context(), user, user, repo_service.CreateRepoOptions{
-		Name:          mirrorName,
-		Description:   "Mirror settings test repository",
-		IsMirror:      true,
-		DefaultBranch: sourceRepo.DefaultBranch,
-		Status:        repo_model.RepositoryBeingMigrated,
-	}, false)
-	require.NoError(t, err)
-
-	mirror := &repo_model.Mirror{
-		RepoID:      mirrorRepo.ID,
-		EnablePrune: true,
-	}
-	require.NoError(t, repo_model.InsertMirror(t.Context(), mirror))
-
-	mirror, err = repo_model.GetMirrorByRepoID(t.Context(), mirrorRepo.ID)
-	require.NoError(t, err)
-	return mirrorRepo, mirror
-}
