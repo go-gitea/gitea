@@ -173,7 +173,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -295,7 +295,7 @@ func ClearIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -319,7 +319,7 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return nil, nil, err
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.APIError(http.StatusForbidden, "write permission is required")
 		return nil, nil, errors.New("permission denied")
 	}

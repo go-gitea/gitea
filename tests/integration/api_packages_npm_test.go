@@ -165,8 +165,7 @@ func TestPackageNpm(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result npm.PackageMetadata
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &npm.PackageMetadata{})
 
 		assert.Equal(t, packageName, result.ID)
 		assert.Equal(t, packageName, result.Name)
@@ -213,8 +212,7 @@ func TestPackageNpm(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result map[string]string
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, map[string]string{})
 
 		assert.Len(t, result, 2)
 		assert.Contains(t, result, packageTag)
@@ -230,8 +228,7 @@ func TestPackageNpm(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result npm.PackageMetadata
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &npm.PackageMetadata{})
 
 		assert.Len(t, result.DistTags, 2)
 		assert.Contains(t, result.DistTags, packageTag)
@@ -278,8 +275,7 @@ func TestPackageNpm(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("%s?text=%s&from=%d&size=%d", url, c.Query, c.Skip, c.Take))
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result npm.PackageSearch
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &npm.PackageSearch{})
 
 			assert.Equal(t, c.ExpectedTotal, result.Total, "case %d: unexpected total hits", i)
 			assert.Len(t, result.Objects, c.ExpectedResults, "case %d: unexpected result count", i)

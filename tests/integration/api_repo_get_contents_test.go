@@ -105,50 +105,49 @@ func testAPIGetContents(t *testing.T, _ *url.URL) {
 	refType := "branch"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
-	var contentsResponse api.ContentsResponse
-	DecodeJSON(t, resp, &contentsResponse)
+	contentsResponse := DecodeJSON(t, resp, &api.ContentsResponse{})
 	lastCommit, _ := gitRepo.GetCommitByPath("README.md")
 	expectedContentsResponse := getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
-	assert.Equal(t, *expectedContentsResponse, contentsResponse)
+	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 
 	// No ref
 	refType = "branch"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &contentsResponse)
+	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
 	expectedContentsResponse = getExpectedContentsResponseForContents(repo1.DefaultBranch, refType, lastCommit.ID.String())
-	assert.Equal(t, *expectedContentsResponse, contentsResponse)
+	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 
 	// ref is the branch we created above in setup
 	ref = newBranch
 	refType = "branch"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &contentsResponse)
+	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
 	branchCommit, _ := gitRepo.GetBranchCommit(ref)
 	lastCommit, _ = branchCommit.GetCommitByPath("README.md")
 	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
-	assert.Equal(t, *expectedContentsResponse, contentsResponse)
+	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 
 	// ref is the new tag we created above in setup
 	ref = newTag
 	refType = "tag"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &contentsResponse)
+	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
 	tagCommit, _ := gitRepo.GetTagCommit(ref)
 	lastCommit, _ = tagCommit.GetCommitByPath("README.md")
 	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
-	assert.Equal(t, *expectedContentsResponse, contentsResponse)
+	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 
 	// ref is a commit
 	ref = commitID
 	refType = "commit"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &contentsResponse)
+	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
 	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, commitID)
-	assert.Equal(t, *expectedContentsResponse, contentsResponse)
+	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 
 	// Test file contents a file with a bad ref
 	ref = "badref"
@@ -211,22 +210,19 @@ func testAPIGetContentsExt(t *testing.T) {
 	t.Run("DirContents", func(t *testing.T) {
 		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext?ref=sub-home-md-img-check")
 		resp := MakeRequest(t, req, http.StatusOK)
-		var contentsResponse api.ContentsExtResponse
-		DecodeJSON(t, resp, &contentsResponse)
+		contentsResponse := DecodeJSON(t, resp, &api.ContentsExtResponse{})
 		assert.Nil(t, contentsResponse.FileContents)
 		assert.NotNil(t, contentsResponse.DirContents)
 
 		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/.?ref=sub-home-md-img-check")
 		resp = MakeRequest(t, req, http.StatusOK)
-		contentsResponse = api.ContentsExtResponse{}
-		DecodeJSON(t, resp, &contentsResponse)
+		contentsResponse = DecodeJSON(t, resp, &api.ContentsExtResponse{})
 		assert.Nil(t, contentsResponse.FileContents)
 		assert.NotNil(t, contentsResponse.DirContents)
 
 		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs?ref=sub-home-md-img-check")
 		resp = MakeRequest(t, req, http.StatusOK)
-		contentsResponse = api.ContentsExtResponse{}
-		DecodeJSON(t, resp, &contentsResponse)
+		contentsResponse = DecodeJSON(t, resp, &api.ContentsExtResponse{})
 		assert.Nil(t, contentsResponse.FileContents)
 		assert.Equal(t, "README.md", contentsResponse.DirContents[0].Name)
 		assert.Nil(t, contentsResponse.DirContents[0].Encoding)
@@ -237,8 +233,7 @@ func testAPIGetContentsExt(t *testing.T) {
 		// "includes=file_content" shouldn't affect directory listing
 		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs?ref=sub-home-md-img-check&includes=file_content")
 		resp = MakeRequest(t, req, http.StatusOK)
-		contentsResponse = api.ContentsExtResponse{}
-		DecodeJSON(t, resp, &contentsResponse)
+		contentsResponse = DecodeJSON(t, resp, &api.ContentsExtResponse{})
 		assert.Nil(t, contentsResponse.FileContents)
 		assert.Equal(t, "README.md", contentsResponse.DirContents[0].Name)
 		assert.Nil(t, contentsResponse.DirContents[0].Encoding)
@@ -246,8 +241,7 @@ func testAPIGetContentsExt(t *testing.T) {
 
 		req = NewRequestf(t, "GET", "/api/v1/repos/user2/lfs/contents-ext?includes=file_content,lfs_metadata").AddTokenAuth(token2)
 		resp = session.MakeRequest(t, req, http.StatusOK)
-		contentsResponse = api.ContentsExtResponse{}
-		DecodeJSON(t, resp, &contentsResponse)
+		contentsResponse = DecodeJSON(t, resp, &api.ContentsExtResponse{})
 		assert.Nil(t, contentsResponse.FileContents)
 		respFileIdx := slices.IndexFunc(contentsResponse.DirContents, func(response *api.ContentsResponse) bool { return response.Name == "jpeg.jpg" })
 		require.NotEqual(t, -1, respFileIdx)
@@ -262,8 +256,7 @@ func testAPIGetContentsExt(t *testing.T) {
 		// by default, no file content or commit info is returned
 		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs/README.md?ref=sub-home-md-img-check")
 		resp := MakeRequest(t, req, http.StatusOK)
-		var contentsResponse api.ContentsExtResponse
-		DecodeJSON(t, resp, &contentsResponse)
+		contentsResponse := DecodeJSON(t, resp, &api.ContentsExtResponse{})
 		assert.Nil(t, contentsResponse.DirContents)
 		assert.Equal(t, "README.md", contentsResponse.FileContents.Name)
 		assert.Nil(t, contentsResponse.FileContents.Encoding)
@@ -274,8 +267,7 @@ func testAPIGetContentsExt(t *testing.T) {
 		// file content is only returned when `includes=file_content`
 		req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/contents-ext/docs/README.md?ref=sub-home-md-img-check&includes=file_content,commit_metadata,commit_message")
 		resp = MakeRequest(t, req, http.StatusOK)
-		contentsResponse = api.ContentsExtResponse{}
-		DecodeJSON(t, resp, &contentsResponse)
+		contentsResponse = DecodeJSON(t, resp, &api.ContentsExtResponse{})
 		assert.Nil(t, contentsResponse.DirContents)
 		assert.Equal(t, "README.md", contentsResponse.FileContents.Name)
 		assert.NotNil(t, contentsResponse.FileContents.Encoding)
@@ -285,8 +277,7 @@ func testAPIGetContentsExt(t *testing.T) {
 
 		req = NewRequestf(t, "GET", "/api/v1/repos/user2/lfs/contents-ext/jpeg.jpg?includes=file_content").AddTokenAuth(token2)
 		resp = session.MakeRequest(t, req, http.StatusOK)
-		contentsResponse = api.ContentsExtResponse{}
-		DecodeJSON(t, resp, &contentsResponse)
+		contentsResponse = DecodeJSON(t, resp, &api.ContentsExtResponse{})
 		assert.Nil(t, contentsResponse.DirContents)
 		assert.NotNil(t, contentsResponse.FileContents)
 		respFile := contentsResponse.FileContents

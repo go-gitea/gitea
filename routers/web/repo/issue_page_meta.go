@@ -110,7 +110,7 @@ func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository
 	// A reader(creator) could update some meta (eg: target branch), but can't change assignees anymore.
 	// For non-creator users, only writers could update some meta (eg: assignees, milestone, project)
 	// Need to clarify the logic and add some tests in the future
-	data.CanModifyIssueOrPull = ctx.Repo.CanWriteIssuesOrPulls(isPull) && !ctx.Repo.Repository.IsArchived
+	data.CanModifyIssueOrPull = ctx.Repo.Permission.CanWriteIssuesOrPulls(isPull) && !ctx.Repo.Repository.IsArchived
 	if !data.CanModifyIssueOrPull {
 		return data
 	}

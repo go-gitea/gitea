@@ -47,7 +47,7 @@ func MustEnableRepoProjects(ctx *context.Context) {
 
 	if ctx.Repo.Repository != nil {
 		projectsUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeProjects)
-		if !ctx.Repo.CanRead(unit.TypeProjects) || !projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
+		if !ctx.Repo.Permission.CanRead(unit.TypeProjects) || !projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
 			ctx.NotFound(nil)
 			return
 		}
@@ -530,7 +530,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.Permission.IsOwner() && !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -577,7 +577,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 // AddColumnToProjectPost allows a new column to be added to a project.
 func AddColumnToProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.Permission.IsOwner() && !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -615,7 +615,7 @@ func checkProjectColumnChangePermissions(ctx *context.Context) (*project_model.P
 		return nil, nil
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.Permission.IsOwner() && !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -701,7 +701,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.Permission.IsOwner() && !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})

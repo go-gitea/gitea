@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,12 +14,24 @@ import (
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/kballard/go-shellquote"
 )
 
 var giteaTestSourceRoot *string // intentionally use a pointer to make sure the uninitialized access panics
 
 func GetGiteaTestSourceRoot() string {
 	return *giteaTestSourceRoot
+}
+
+func detectGiteaTestRoot() string {
+	_, filename, _, _ := runtime.Caller(0)
+	giteaRoot := filepath.Dir(filepath.Dir(filepath.Dir(filename)))
+	fixturesDir := filepath.Join(giteaRoot, "models", "fixtures")
+	if _, err := os.Stat(fixturesDir); err != nil {
+		panic("in gitea source code directory, fixtures directory not found: " + fixturesDir)
+	}
+	return giteaRoot
 }
 
 func SetupGiteaTestEnv() {
@@ -41,12 +54,7 @@ func SetupGiteaTestEnv() {
 	initGiteaRoot := func() string {
 		giteaRoot := os.Getenv("GITEA_TEST_ROOT")
 		if giteaRoot == "" {
-			_, filename, _, _ := runtime.Caller(0)
-			giteaRoot = filepath.Dir(filepath.Dir(filepath.Dir(filename)))
-			fixturesDir := filepath.Join(giteaRoot, "models", "fixtures")
-			if _, err := os.Stat(fixturesDir); err != nil {
-				panic("in gitea source code directory, fixtures directory not found: " + fixturesDir)
-			}
+			giteaRoot = detectGiteaTestRoot()
 		}
 		giteaTestSourceRoot = &giteaRoot
 		return giteaRoot
@@ -116,4 +124,52 @@ func SetupGiteaTestEnv() {
 	// TODO: some git repo hooks (test fixtures) still use these env variables, need to be refactored in the future
 	_ = os.Setenv("GITEA_ROOT", giteaRoot)
 	_ = os.Setenv("GITEA_CONF", giteaConf) // test fixture git hooks use "$GITEA_ROOT/$GITEA_CONF" in their scripts
+}
+
+func PrepareIntegrationTestConfig() error {
+	giteaTestRoot := detectGiteaTestRoot()
+	isInCI := os.Getenv("CI") != ""
+	testDatabase := os.Getenv("GITEA_TEST_DATABASE")
+	if testDatabase == "" {
+		if isInCI {
+			return errors.New("GITEA_TEST_DATABASE environment variable not set")
+		}
+		// for local development, default to sqlite. CI needs to explicitly set a database to avoid unexpected results
+		testDatabase = "sqlite"
+		_, _ = fmt.Fprintf(os.Stderr, "Environment variable GITEA_TEST_DATABASE not set - defaulting to %s\n", testDatabase)
+	}
+
+	_ = os.Setenv("GITEA_TEST_ROOT", giteaTestRoot)
+	_ = os.Setenv("GITEA_TEST_CONF", filepath.Join("tests", testDatabase+".ini"))
+
+	workPath := filepath.Join(giteaTestRoot, "tests/integration/gitea-integration-"+testDatabase)
+	if err := os.MkdirAll(workPath, 0o755); err != nil {
+		return err
+	}
+
+	confFile := filepath.Join(giteaTestRoot, "tests", testDatabase+".ini")
+	tmplBuf, err := os.ReadFile(confFile + ".tmpl")
+	if err != nil {
+		return err
+	}
+	tmpl := string(tmplBuf)
+	envVars, err := shellquote.Split(os.Getenv("MAKEFILE_VARS"))
+	if err != nil {
+		return err
+	}
+	envVarMap := map[string]string{
+		"TEST_WORK_PATH": workPath,
+		"TEST_LOGGER":    "test,file",
+	}
+	for _, env := range append(os.Environ(), envVars...) {
+		k, v, _ := strings.Cut(env, "=")
+		k = strings.TrimSpace(k)
+		v = strings.TrimSpace(v)
+		envVarMap[k] = v
+	}
+	for k, v := range envVarMap {
+		tmpl = strings.ReplaceAll(tmpl, fmt.Sprintf("{{%s}}", k), v)
+	}
+	err = os.WriteFile(confFile, []byte(tmpl), 0o644)
+	return err
 }
