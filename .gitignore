@@ -55,10 +55,7 @@ cpu.out
 *.log.*.gz
 
 /gitea
-/gitea-e2e
-/gitea-vet
 /debug
-/integrations.test
 
 /bin
 /dist
@@ -68,7 +65,6 @@ cpu.out
 /indexers
 /log
 /public/assets/img/avatar
-/tests/e2e-output
 /tests/integration/gitea-integration-*
 /tests/integration/indexers-*
 /tests/*.ini

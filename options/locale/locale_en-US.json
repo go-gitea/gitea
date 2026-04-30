@@ -1784,6 +1784,7 @@
   "repo.pulls.review_only_possible_for_full_diff": "Review is only possible when viewing the full diff",
   "repo.pulls.filter_changes_by_commit": "Filter by commit",
   "repo.pulls.nothing_to_compare": "These branches are equal. There is no need to create a pull request.",
+  "repo.pulls.no_common_history": "These branches do not share a common merge base. Select a different base or compare branch.",
   "repo.pulls.nothing_to_compare_have_tag": "The selected branches/tags are equal.",
   "repo.pulls.nothing_to_compare_and_allow_empty_pr": "These branches are equal. This PR will be empty.",
   "repo.pulls.has_pull_request": "A pull request between these branches already exists: <a href=\"%[1]s\">%[2]s#%[3]d</a>",

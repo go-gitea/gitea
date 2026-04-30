@@ -848,6 +848,12 @@ func ListActionTasks(ctx *context.APIContext) {
 	res := new(api.ActionTaskResponse)
 	res.TotalCount = total
 
+	taskList := actions_model.TaskList(tasks)
+	if err := taskList.LoadAttributes(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	res.Entries = make([]*api.ActionTask, len(tasks))
 	for i := range tasks {
 		convertedTask, err := convert.ToActionTask(ctx, tasks[i])
@@ -859,7 +865,7 @@ func ListActionTasks(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(total, listOptions.PageSize)
-	ctx.SetTotalCountHeader(total) // Duplicates api response field but it's better to set it for consistency
+	ctx.SetTotalCountHeader(total) // Duplicates api response field, but it's better to set it for consistency
 	ctx.JSON(http.StatusOK, &res)
 }
 
@@ -1155,6 +1161,7 @@ func getCurrentRepoActionRunByID(ctx *context.APIContext) *actions_model.ActionR
 		ctx.APIErrorInternal(err)
 		return nil
 	}
+	run.Repo = ctx.Repo.Repository
 	return run
 }
 
@@ -1226,7 +1233,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, nil)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1275,7 +1282,7 @@ func GetWorkflowRunAttempt(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, attempt)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, attempt)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1330,7 +1337,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, nil)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
