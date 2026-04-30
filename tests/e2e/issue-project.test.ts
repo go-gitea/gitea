@@ -19,13 +19,13 @@ test('assign issue to project and change column', async ({page}) => {
     apiCreateIssue(page.request, {owner: user, repo: repoName, title: 'Column picker test'}),
   ]);
   await page.goto(`/${user}/${repoName}/issues/1`);
-  await page.locator('.sidebar-project-combo .ui.dropdown').click();
-  await page.locator('.sidebar-project-combo .ui.dropdown .item', {hasText: 'Kanban Board'}).click();
-  await page.locator('.sidebar-project-combo .ui.dropdown .fixed-text').click();
+  await page.locator('.sidebar-project-combo > .ui.dropdown').click();
+  await page.locator('.sidebar-project-combo > .ui.dropdown .item', {hasText: 'Kanban Board'}).click();
+  await page.locator('.sidebar-project-combo > .ui.dropdown .fixed-text').click();
   const columnCombo = page.locator('.sidebar-project-card').first();
-  await columnCombo.locator('.sidebar-project-column-combo .ui.dropdown]').click();
-  await columnCombo.locator('.sidebar-project-column-combo .ui.dropdown .item]', {hasText: 'In Progress'}).click();
-  await expect(columnCombo.locator('.sidebar-project-column-text')).toHaveText('In Progress');
+  await columnCombo.locator('.sidebar-project-column-combo .ui.dropdown').click();
+  await columnCombo.locator('.sidebar-project-column-combo .ui.dropdown .item', {hasText: 'In Progress'}).click();
+  await expect(columnCombo.locator('.fixed-text')).toHaveText('In Progress');
   await apiDeleteRepo(page.request, user, repoName);
 });
 
@@ -89,11 +89,11 @@ test('assign issue to multiple projects via sidebar', async ({page}) => {
     await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/${issue.index}`);
 
     // Open the projects dropdown in the sidebar
-    await page.locator('.sidebar-project-combo .ui.dropdown').click();
+    await page.locator('.sidebar-project-combo > .ui.dropdown').click();
 
     // Select both projects
-    await page.locator(`.sidebar-project-combo .ui.dropdown .item[data-value="${project1.id}"]`).click();
-    await page.locator(`.sidebar-project-combo .ui.dropdown .item[data-value="${project2.id}"]`).click();
+    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project1.id}"]`).click();
+    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project2.id}"]`).click();
 
     // Click outside to close the dropdown and trigger the update
     await page.locator('.issue-content-left').click();
@@ -135,11 +135,11 @@ test('create issue with multiple projects pre-selected', async ({page}) => {
     await page.locator('input[name="title"]').fill(issueTitle);
 
     // Open the projects dropdown
-    await page.locator('.sidebar-project-combo .ui.dropdown').click();
+    await page.locator('.sidebar-project-combo > .ui.dropdown').click();
 
     // Select both projects
-    await page.locator(`.sidebar-project-combo .ui.dropdown .item[data-value="${project1.id}"]`).click();
-    await page.locator(`.sidebar-project-combo .ui.dropdown .item[data-value="${project2.id}"]`).click();
+    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project1.id}"]`).click();
+    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project2.id}"]`).click();
 
     // Click outside to close the dropdown
     await page.locator('.issue-content-left').click();
@@ -276,10 +276,10 @@ test('remove issue from one project keeping others', async ({page}) => {
     await expect(page.locator(`.sidebar-project-card > .item:has-text("${project2Title}")`)).toBeVisible();
 
     // Open the projects dropdown
-    await page.locator('.sidebar-project-combo .ui.dropdown').click();
+    await page.locator('.sidebar-project-combo > .ui.dropdown').click();
 
     // Deselect project2 (click on the already selected item to deselect)
-    await page.locator(`.sidebar-project-combo .ui.dropdown .item[data-value="${project2.id}"]`).click();
+    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project2.id}"]`).click();
 
     // Click outside to close the dropdown and trigger the update
     await page.locator('.issue-content-left').click();
@@ -439,20 +439,20 @@ test('select projects on new issue page shows in sidebar', async ({page}) => {
     await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/new`);
 
     // Open the projects dropdown in the sidebar
-    await page.locator('.sidebar-project-combo .ui.dropdown').click();
+    await page.locator('.sidebar-project-combo > .ui.dropdown').click();
 
     // Select both projects
-    await page.locator(`.sidebar-project-combo .ui.dropdown .item[data-value="${project1.id}"]`).click();
-    await page.locator(`.sidebar-project-combo .ui.dropdown .item[data-value="${project2.id}"]`).click();
+    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project1.id}"]`).click();
+    await page.locator(`.sidebar-project-combo > .ui.dropdown .item[data-value="${project2.id}"]`).click();
 
     // Click outside to close dropdown
     await page.locator('.issue-content-left').click();
 
     // Verify both projects appear in the sidebar list below the dropdown
     // On new issue page, these are simple cloned items rendered in the list container
-    const projectList = page.locator('.issue-sidebar-project-cards');
-    await expect(projectList.locator(`.sidebar-project-card:has-text("${project1Title}")`).first()).toBeVisible();
-    await expect(projectList.locator(`.sidebar-project-card:has-text("${project2Title}")`).first()).toBeVisible();
+    const projectList = page.locator('.sidebar-project-combo > .ui.list');
+    await expect(projectList.locator(`.item:has-text("${project1Title}")`).first()).toBeVisible();
+    await expect(projectList.locator(`.item:has-text("${project2Title}")`).first()).toBeVisible();
   } finally {
     await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
   }

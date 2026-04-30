@@ -62,7 +62,15 @@
   visibility: hidden;
 }
 
-.sidebar-project-card {
+.ui.list.issue-sidebar-project-cards > .item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-block);
+}
+
+.ui.list.issue-sidebar-project-cards > .item.sidebar-project-card {
+  flex-direction: column;
+  align-items: flex-start;
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
   padding: 8px;
@@ -72,10 +80,6 @@
   display: flex;
   gap: var(--gap-inline);
   flex-wrap: wrap;
-}
-
-.issue-content-right .issue-sidebar-project-cards {
-  margin-top: 0.5rem;
 }
 
 .issue-content-right .empty-list {

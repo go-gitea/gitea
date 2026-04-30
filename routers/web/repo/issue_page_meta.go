@@ -171,8 +171,9 @@ func (d *IssuePageMetaData) retrieveAssigneesData(ctx *context.Context) {
 	ctx.Data["Assignees"] = d.AssigneesData.CandidateAssignees
 }
 
-func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
-	if d.Issue == nil || len(d.Issue.Projects) == 0 {
+func (d *IssuePageMetaData) retrieveProjectCardsForExistingIssue(ctx *context.Context) {
+	if err := d.Issue.LoadProjects(ctx); err != nil {
+		ctx.ServerError("LoadProjects", err)
 		return
 	}
 
@@ -216,11 +217,33 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 			SelectedColumn: selectedColumn,
 		})
 	}
-
 	d.ProjectsData.SelectedProjectIDs = make([]int64, 0, len(d.ProjectsData.ProjectCards))
 	for _, card := range d.ProjectsData.ProjectCards {
 		d.ProjectsData.SelectedProjectIDs = append(d.ProjectsData.SelectedProjectIDs, card.Project.ID)
 	}
+}
+
+func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
+	if d.Issue == nil {
+		return
+	}
+	d.retrieveProjectCardsForExistingIssue(ctx)
+}
+
+func (d *IssuePageMetaData) SetSelectedProjectIDs(ids []int64) {
+	allProjects := map[int64]*project_model.Project{}
+	for _, p := range d.ProjectsData.OpenProjects {
+		allProjects[p.ID] = p
+	}
+	for _, p := range d.ProjectsData.ClosedProjects {
+		allProjects[p.ID] = p
+	}
+	for _, id := range ids {
+		if project, ok := allProjects[id]; ok {
+			d.ProjectsData.ProjectCards = append(d.ProjectsData.ProjectCards, &issueSidebarProjectCardData{Project: project})
+		}
+	}
+	d.ProjectsData.SelectedProjectIDs = ids
 }
 
 func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {

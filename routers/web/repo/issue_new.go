@@ -121,7 +121,8 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	pageMetaData.MilestonesData.SelectedMilestoneID = ctx.FormInt64("milestone")
-	pageMetaData.ProjectsData.SelectedProjectIDs, _ = base.StringsToInt64s(strings.Split(ctx.FormString("project"), ","))
+
+	pageMetaData.SetSelectedProjectIDs(parseProjectIDsFromQuery(ctx))
 	if len(pageMetaData.ProjectsData.SelectedProjectIDs) == 1 {
 		ctx.Data["redirect_after_creation"] = "project"
 	}
@@ -266,27 +267,8 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 	}
 	pageMetaData.MilestonesData.SelectedMilestoneID = form.MilestoneID
 
-	allProjects := append(slices.Clone(pageMetaData.ProjectsData.OpenProjects), pageMetaData.ProjectsData.ClosedProjects...)
-	candidateProjects := toSet(allProjects, func(project *project_model.Project) int64 { return project.ID })
-	inputProjectIDs, err := base.StringsToInt64s(strings.Split(form.ProjectIDs, ","))
-	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, "Invalid project IDs")
-		return ret
-	}
-
-	// Validate all project IDs - return error if any are invalid
-	var invalidProjectIDs []int64
-	for _, id := range inputProjectIDs {
-		if id > 0 && !candidateProjects.Contains(id) {
-			invalidProjectIDs = append(invalidProjectIDs, id)
-		}
-	}
-	if len(invalidProjectIDs) > 0 {
-		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid project IDs: %v", invalidProjectIDs))
-		return ret
-	}
-
-	pageMetaData.ProjectsData.SelectedProjectIDs = inputProjectIDs
+	inputProjectIDs := parseProjectIDsFromQuery(ctx)
+	pageMetaData.SetSelectedProjectIDs(inputProjectIDs)
 
 	// prepare assignees
 	candidateAssignees := toSet(pageMetaData.AssigneesData.CandidateAssignees, func(user *user_model.User) int64 { return user.ID })
@@ -340,17 +322,8 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 // NewIssuePost response for creating new issue
 func NewIssuePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateIssueForm)
-	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
-	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	upload.AddUploadContext(ctx, "comment")
 
-	var (
-		repo        = ctx.Repo.Repository
-		attachments []string
-	)
+	repo := ctx.Repo.Repository
 
 	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, false)
 	if ctx.Written() {
@@ -367,6 +340,7 @@ func NewIssuePost(ctx *context.Context) {
 		}
 	}
 
+	var attachments []string
 	if setting.Attachment.Enabled {
 		attachments = form.Files
 	}
