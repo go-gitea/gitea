@@ -15,17 +15,35 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestAPIActionsGetWorkflowRun(t *testing.T) {
+func TestAPIActionsWorkflowRun(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
+	t.Run("GetWorkflowRun", testAPIActionsGetWorkflowRun)
+	t.Run("GetWorkflowJob", testAPIActionsGetWorkflowJob)
+	t.Run("ListUserWorkflows", testAPIActionsListUserWorkflows)
+	t.Run("ListRepoWorkflows", testAPIActionsListRepoWorkflows)
+	t.Run("DeleteRunCheckPermission", testAPIActionsDeleteRunCheckPermission)
+	t.Run("DeleteRunRunning", testAPIActionsDeleteRunRunning)
+	t.Run("DeleteRunGeneral", testAPIActionsDeleteRunGeneral)
 
+	t.Run("RerunWorkflowRun", func(t *testing.T) {
+		defer tests.PrepareTestEnv(t)()
+		testAPIActionsRerunWorkflowRun(t)
+	})
+	t.Run("RerunWorkflowJob", func(t *testing.T) {
+		defer tests.PrepareTestEnv(t)()
+		testAPIActionsRerunWorkflowJob(t)
+	})
+}
+
+func testAPIActionsGetWorkflowRun(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, user.Name)
@@ -56,13 +74,9 @@ func TestAPIActionsGetWorkflowRun(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs", repo.FullName())).
-			AddTokenAuth(token)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs", repo.FullName())).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-
-		var jobList api.ActionWorkflowJobsResponse
-		err = json.Unmarshal(resp.Body.Bytes(), &jobList)
-		require.NoError(t, err)
+		jobList := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
 
 		job198Idx := slices.IndexFunc(jobList.Entries, func(job *api.ActionWorkflowJob) bool { return job.ID == 198 })
 		require.NotEqual(t, -1, job198Idx, "expected to find job 198 in run 795 jobs list")
@@ -72,9 +86,7 @@ func TestAPIActionsGetWorkflowRun(t *testing.T) {
 	})
 }
 
-func TestAPIActionsGetWorkflowJob(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsGetWorkflowJob(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, user.Name)
@@ -91,9 +103,7 @@ func TestAPIActionsGetWorkflowJob(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestAPIActionsDeleteRunCheckPermission(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsDeleteRunCheckPermission(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, user.Name)
@@ -101,9 +111,7 @@ func TestAPIActionsDeleteRunCheckPermission(t *testing.T) {
 	testAPIActionsDeleteRun(t, repo, token, http.StatusNotFound)
 }
 
-func TestAPIActionsDeleteRun(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsDeleteRunGeneral(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, user.Name)
@@ -118,9 +126,7 @@ func TestAPIActionsDeleteRun(t *testing.T) {
 	testAPIActionsDeleteRun(t, repo, token, http.StatusNotFound)
 }
 
-func TestAPIActionsDeleteRunRunning(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsDeleteRunRunning(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, user.Name)
@@ -138,22 +144,17 @@ func testAPIActionsDeleteRun(t *testing.T, repo *repo_model.Repository, token st
 }
 
 func testAPIActionsDeleteRunListArtifacts(t *testing.T, repo *repo_model.Repository, token string, artifacts int) {
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/artifacts", repo.FullName())).
-		AddTokenAuth(token)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/artifacts", repo.FullName())).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var listResp api.ActionArtifactsResponse
-	err := json.Unmarshal(resp.Body.Bytes(), &listResp)
-	assert.NoError(t, err)
+	listResp := DecodeJSON(t, resp, &api.ActionArtifactsResponse{})
 	assert.Len(t, listResp.Entries, artifacts)
 }
 
 func testAPIActionsDeleteRunListTasks(t *testing.T, repo *repo_model.Repository, token string, expected bool) {
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/tasks", repo.FullName())).
-		AddTokenAuth(token)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/tasks", repo.FullName())).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var listResp api.ActionTaskResponse
-	err := json.Unmarshal(resp.Body.Bytes(), &listResp)
-	assert.NoError(t, err)
+	listResp := DecodeJSON(t, resp, &api.ActionTaskResponse{})
+
 	findTask1 := false
 	findTask2 := false
 	for _, entry := range listResp.Entries {
@@ -170,9 +171,7 @@ func testAPIActionsDeleteRunListTasks(t *testing.T, repo *repo_model.Repository,
 	assert.Equal(t, expected, findTask2)
 }
 
-func TestAPIActionsRerunWorkflowRun(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsRerunWorkflowRun(t *testing.T) {
 	t.Run("NotDone", func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -192,13 +191,10 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	t.Run("Success", func(t *testing.T) {
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/rerun", repo.FullName())).AddTokenAuth(writeToken)
 		resp := MakeRequest(t, req, http.StatusCreated)
+		rerunResp := DecodeJSON(t, resp, &api.ActionWorkflowRun{})
 
-		var rerunResp api.ActionWorkflowRun
-		err := json.Unmarshal(resp.Body.Bytes(), &rerunResp)
-		require.NoError(t, err)
 		assert.Equal(t, int64(795), rerunResp.ID)
 		assert.Equal(t, "queued", rerunResp.Status)
 		assert.Equal(t, "c2d72f548424103f01ee1dc02889c1e2bff816b0", rerunResp.HeadSha)
@@ -236,9 +232,7 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 	})
 }
 
-func TestAPIActionsRerunWorkflowJob(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsRerunWorkflowJob(t *testing.T) {
 	t.Run("NotDone", func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -258,13 +252,10 @@ func TestAPIActionsRerunWorkflowJob(t *testing.T) {
 	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	t.Run("Success", func(t *testing.T) {
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/199/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/199/rerun", repo.FullName())).AddTokenAuth(writeToken)
 		resp := MakeRequest(t, req, http.StatusCreated)
+		rerunResp := DecodeJSON(t, resp, &api.ActionWorkflowJob{})
 
-		var rerunResp api.ActionWorkflowJob
-		err := json.Unmarshal(resp.Body.Bytes(), &rerunResp)
-		require.NoError(t, err)
 		job199Rerun := getLatestAttemptJobByTemplateJobID(t, 795, 199)
 		assert.Equal(t, job199Rerun.ID, rerunResp.ID)
 		assert.Equal(t, "queued", rerunResp.Status)
@@ -300,4 +291,60 @@ func TestAPIActionsRerunWorkflowJob(t *testing.T) {
 			AddTokenAuth(writeToken)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
+}
+
+func testAPIActionsListUserWorkflows(t *testing.T) {
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
+
+	t.Run("Runs", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/user/actions/runs").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		runs := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
+
+		assert.Positive(t, runs.TotalCount)
+		assert.NotEmpty(t, runs.Entries)
+
+		for _, run := range runs.Entries {
+			assert.NotEmpty(t, run.DisplayTitle, "display_title should be populated")
+			assert.NotNil(t, run.Repository, "repository should be populated via batch loading")
+			assert.NotEmpty(t, run.Repository.FullName, "repository full_name should be populated")
+			assert.NotNil(t, run.TriggerActor, "trigger_actor should be populated via batch loading")
+		}
+	})
+
+	t.Run("Jobs", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
+
+		assert.Positive(t, jobs.TotalCount)
+		assert.NotEmpty(t, jobs.Entries)
+
+		for _, job := range jobs.Entries {
+			assert.NotEmpty(t, job.Name, "job name should be populated")
+			assert.NotEmpty(t, job.HTMLURL, "html_url should be populated via batch-loaded repo")
+		}
+	})
+}
+
+func testAPIActionsListRepoWorkflows(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs", repo.FullName())).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	runs := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
+
+	assert.Positive(t, runs.TotalCount)
+	assert.NotEmpty(t, runs.Entries)
+
+	for _, run := range runs.Entries {
+		assert.NotNil(t, run.Repository, "repository should be populated from ctx.Repo")
+		assert.Equal(t, repo.FullName(), run.Repository.FullName, "repository full_name should match")
+		assert.NotNil(t, run.TriggerActor, "trigger_actor should be populated")
+	}
 }

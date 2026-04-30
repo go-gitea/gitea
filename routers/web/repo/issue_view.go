@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
-	pull_model "code.gitea.io/gitea/models/pull"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -826,6 +825,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		panic("impossible, issue must be the same")
 	}
 
+	pull := issue.PullRequest
 	data := &pullMergeBoxData{}
 	prInfo.MergeBoxData = data
 
@@ -834,14 +834,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		statusCheckData = &pullCommitStatusCheckData{} // make the following logic easier, no need to keep checking "nil"
 	}
 
-	pull := issue.PullRequest
 	canDelete := false
 	allowMerge := false
 	canWriteToHeadRepo := false
 
 	pull_service.StartPullRequestCheckOnView(ctx, pull)
 
-	ctx.Data["GetCommitMessages"] = ""
 	if !prInfo.IsPullRequestBroken {
 		var err error
 		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(ctx, pull, ctx.Doer)
@@ -849,7 +847,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return
 		}
-		ctx.Data["GetCommitMessages"] = pull_service.GetSquashMergeCommitMessages(ctx, pull)
 	}
 
 	if pull.IsFilesConflicted() {
@@ -903,58 +900,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		}
 	}
 
-	data.ReloadingInterval = util.Iif(pull != nil && pull.IsChecking(), 2000, 0)
-	ctx.Data["CanWriteToHeadRepo"] = canWriteToHeadRepo
-	ctx.Data["ShowMergeInstructions"] = canWriteToHeadRepo
+	data.ReloadingInterval = util.Iif(pull.IsChecking(), 2000, 0)
+	data.ShowMergeInstructions = canWriteToHeadRepo
+	data.ShowPullCommands = pull.HeadRepo != nil && !pull.HasMerged && !issue.IsClosed
 	ctx.Data["AllowMerge"] = allowMerge
-
-	prUnit, err := issue.Repo.GetUnit(ctx, unit.TypePullRequests)
-	if err != nil {
-		ctx.ServerError("GetUnit", err)
-		return
-	}
-	prConfig := prUnit.PullRequestsConfig()
-
-	ctx.Data["AutodetectManualMerge"] = prConfig.AutodetectManualMerge
-
-	var mergeStyle repo_model.MergeStyle
-	// Check correct values and select default
-	if ms, ok := ctx.Data["MergeStyle"].(repo_model.MergeStyle); !ok ||
-		!prConfig.IsMergeStyleAllowed(ms) {
-		if prConfig.IsMergeStyleAllowed(prConfig.DefaultMergeStyle) && !ok {
-			mergeStyle = prConfig.DefaultMergeStyle
-		} else if prConfig.AllowMerge {
-			mergeStyle = repo_model.MergeStyleMerge
-		} else if prConfig.AllowRebase {
-			mergeStyle = repo_model.MergeStyleRebase
-		} else if prConfig.AllowRebaseMerge {
-			mergeStyle = repo_model.MergeStyleRebaseMerge
-		} else if prConfig.AllowSquash {
-			mergeStyle = repo_model.MergeStyleSquash
-		} else if prConfig.AllowFastForwardOnly {
-			mergeStyle = repo_model.MergeStyleFastForwardOnly
-		} else if prConfig.AllowManualMerge {
-			mergeStyle = repo_model.MergeStyleManuallyMerged
-		}
-	}
-
-	ctx.Data["MergeStyle"] = mergeStyle
-
-	defaultMergeMessage, defaultMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
-	if err != nil {
-		ctx.ServerError("GetDefaultMergeMessage", err)
-		return
-	}
-	ctx.Data["DefaultMergeMessage"] = defaultMergeMessage
-	ctx.Data["DefaultMergeBody"] = defaultMergeBody
-
-	defaultSquashMergeMessage, defaultSquashMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
-	if err != nil {
-		ctx.ServerError("GetDefaultSquashMergeMessage", err)
-		return
-	}
-	ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
-	ctx.Data["DefaultSquashMergeBody"] = defaultSquashMergeBody
 
 	pb := prInfo.ProtectedBranchRule
 	if pb != nil {
@@ -995,6 +944,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		return
 	}
 
+	prConfig := issue.Repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
+	data.AutodetectManualMerge = prConfig.AutodetectManualMerge
+
 	stillCanManualMerge := func() bool {
 		if pull.HasMerged || issue.IsClosed || !ctx.IsSigned {
 			return false
@@ -1006,13 +958,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	}
 
 	ctx.Data["StillCanManualMerge"] = stillCanManualMerge()
-
-	// Check if there is a pending pr merge
-	ctx.Data["HasPendingPullRequestMerge"], ctx.Data["PendingPullRequestMerge"], err = pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
-	if err != nil {
-		ctx.ServerError("GetScheduledMergeByPullID", err)
-		return
-	}
 
 	enableStatusCheck := pb != nil && pb.EnableStatusCheck
 	ctx.Data["EnableStatusCheck"] = enableStatusCheck
@@ -1043,6 +988,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		(!data.requireSigned || data.willSign) // signing requirement is satisfied
 
 	ctx.Data["PullMergeBoxData"] = prInfo.MergeBoxData
+	prInfo.prepareMergeBoxFormProps(ctx)
 }
 
 func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {

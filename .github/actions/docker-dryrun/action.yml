@@ -1,0 +1,29 @@
+name: docker-dryrun
+description: Composite action that performs the container build steps for a single platform.
+
+inputs:
+  platform:
+    description: "The target platform: linux/amd64, linux/arm64, linux/riscv64."
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+    - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+    - name: Build regular image
+      uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+      with:
+        context: .
+        platforms: ${{ inputs.platform }}
+        push: false
+        file: Dockerfile
+        cache-from: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache-rootful
+    - name: Build rootless image
+      uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+      with:
+        context: .
+        platforms: ${{ inputs.platform }}
+        push: false
+        file: Dockerfile.rootless
+        cache-from: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache-rootless
