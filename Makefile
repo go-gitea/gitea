@@ -274,7 +274,7 @@ checks-frontend: lockfile-check svg-check ## check frontend files
 checks-backend: tidy-check swagger-check openapi3-check fmt-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
-lint: lint-frontend lint-backend lint-spell ## lint everything
+lint: lint-frontend lint-backend lint-templates lint-swagger lint-spell lint-md lint-actions lint-json lint-yaml ## lint everything
 
 .PHONY: lint-fix
 lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix ## lint everything and fix issues

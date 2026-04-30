@@ -13,27 +13,35 @@ permissions:
 jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
-    permissions:
-      contents: read
 
-  # dryrun build is slow, so run them in parallel per-platform
+  # QEMU-based build is slow, so run the native amd64 build by default
+  # Other platforms (linux/arm64, linux/riscv64) can be tested on demand
   container-amd64:
     if: needs.files-changed.outputs.docker == 'true'
     needs: [files-changed]
-    uses: ./.github/workflows/part-docker-dryrun.yml
-    with:
-      platform: linux/amd64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/docker-dryrun
+        with:
+          platform: linux/amd64
 
   container-arm64:
-    if: needs.files-changed.outputs.docker == 'true'
+    if: ${{ ! always() }}
     needs: [files-changed]
-    uses: ./.github/workflows/part-docker-dryrun.yml
-    with:
-      platform: linux/arm64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/docker-dryrun
+        with:
+          platform: linux/arm64
 
   container-riscv64:
-    if: needs.files-changed.outputs.docker == 'true'
+    if: ${{ ! always() }}
     needs: [files-changed]
-    uses: ./.github/workflows/part-docker-dryrun.yml
-    with:
-      platform: linux/riscv64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/docker-dryrun
+        with:
+          platform: linux/riscv64
