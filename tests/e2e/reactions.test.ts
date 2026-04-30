@@ -7,7 +7,7 @@ test('toggle issue reactions', async ({page, request}) => {
   const owner = env.GITEA_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName});
   await Promise.all([
-    apiCreateIssue(request, owner, repoName, {title: 'Reaction test'}),
+    apiCreateIssue(request, {owner, repo: repoName, title: 'Reaction test'}),
     login(page),
   ]);
   await page.goto(`/${owner}/${repoName}/issues/1`);
