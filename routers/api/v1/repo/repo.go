@@ -1090,7 +1090,7 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 			authToken = *opts.AuthToken
 		}
 
-		if authPassword == "" && authToken == "" && remoteURL.User != nil && (authUsername == "" || authUsername == remoteURL.User.Username()) {
+		if opts.AuthPassword == nil && opts.AuthToken == nil && remoteURL.User != nil && (authUsername == "" || authUsername == remoteURL.User.Username()) {
 			authPassword, _ = remoteURL.User.Password()
 		}
 
@@ -1106,7 +1106,7 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 			err = migrations.IsMigrateURLAllowed(composedAddress, ctx.Doer)
 		}
 		if err != nil {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			handleRemoteAddrError(ctx, err)
 			return err
 		}
 
