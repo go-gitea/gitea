@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -449,11 +448,7 @@ func UpdateIssueProject(ctx *context.Context) {
 		return
 	}
 
-	projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormString("id"), ","))
-	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, "invalid project IDs")
-		return
-	}
+	projectIDs := ctx.FormStringInt64s("id")
 	var failedIssues []int64
 	for _, issue := range issues {
 		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectIDs); err != nil {
