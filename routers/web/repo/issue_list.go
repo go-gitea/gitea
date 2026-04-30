@@ -39,10 +39,11 @@ func retrieveProjectsForIssueList(ctx *context.Context, repo *repo_model.Reposit
 	ctx.Data["OpenProjects"], ctx.Data["ClosedProjects"] = retrieveProjectsInternal(ctx, repo)
 }
 
-// parseFormProjectIDs parses the comma-separated `project` (preferred) or `projects`
-// query parameter into a slice of int64 IDs. Returns an error suitable for a 400 response.
-func parseFormProjectIDs(ctx *context.Context) ([]int64, error) {
-	return base.StringsToInt64s(strings.Split(ctx.FormString("project", ctx.FormString("projects")), ","))
+// parseProjectIDsFromQuery parses the comma-separated `project` (preferred) or `projects`
+// query parameter into a slice of int64 IDs.
+func parseProjectIDsFromQuery(ctx *context.Context) []int64 {
+	vals, _ := base.StringsToInt64s(strings.Split(ctx.FormString("project", ctx.FormString("projects")), ","))
+	return vals
 }
 
 // SearchIssues searches for issues across the repositories that the user has access to
@@ -163,11 +164,7 @@ func SearchIssues(ctx *context.Context) {
 		}
 	}
 
-	includedProjectIDs, err := parseFormProjectIDs(ctx)
-	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, "Invalid project parameter", err.Error())
-		return
-	}
+	includedProjectIDs := parseProjectIDsFromQuery(ctx)
 
 	// this api is also used in UI,
 	// so the default limit is set to fit UI needs
@@ -340,12 +337,7 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		SortBy:   issue_indexer.SortByCreatedDesc,
 	}
 
-	projectIDs, err := parseFormProjectIDs(ctx)
-	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, "Invalid project parameter", err.Error())
-		return
-	}
-
+	projectIDs := parseProjectIDsFromQuery(ctx)
 	if len(projectIDs) == 1 && projectIDs[0] == -1 {
 		searchOpt.NoProjectOnly = true
 	} else if len(projectIDs) > 0 {
@@ -765,12 +757,7 @@ func Issues(ctx *context.Context) {
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	}
 
-	projectIDs, err := parseFormProjectIDs(ctx)
-	if err != nil {
-		ctx.HTTPError(http.StatusBadRequest, "Invalid project parameter", err.Error())
-		return
-	}
-	projectIDs = slices.DeleteFunc(projectIDs, func(id int64) bool { return id == 0 })
+	projectIDs := parseProjectIDsFromQuery(ctx)
 
 	prepareIssueFilterAndList(ctx, ctx.FormInt64("milestone"), projectIDs, optional.Some(isPullList))
 	if ctx.Written() {

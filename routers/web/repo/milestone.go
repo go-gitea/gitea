@@ -6,7 +6,6 @@ package repo
 import (
 	"net/http"
 	"net/url"
-	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -239,12 +238,7 @@ func DeleteMilestone(ctx *context.Context) {
 // MilestoneIssuesAndPulls lists all the issues and pull requests of the milestone
 func MilestoneIssuesAndPulls(ctx *context.Context) {
 	milestoneID := ctx.PathParamInt64("id")
-	projectIDs, err := parseFormProjectIDs(ctx)
-	if err != nil {
-		ctx.ServerError("Invalid project parameter", err)
-		return
-	}
-	projectIDs = slices.DeleteFunc(projectIDs, func(id int64) bool { return id == 0 })
+	projectIDs := parseProjectIDsFromQuery(ctx)
 	milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 	if err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
