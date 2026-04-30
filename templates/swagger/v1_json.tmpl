@@ -23841,6 +23841,15 @@
           "format": "int64",
           "x-go-name": "Milestone"
         },
+        "projects": {
+          "description": "list of project ids",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Projects"
+        },
         "ref": {
           "type": "string",
           "x-go-name": "Ref"
@@ -25097,6 +25106,15 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
+        },
+        "projects": {
+          "description": "list of project ids to set (replaces existing projects)",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Projects"
         },
         "ref": {
           "type": "string",
@@ -26622,6 +26640,13 @@
           "format": "int64",
           "x-go-name": "PinOrder"
         },
+        "projects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Project"
+          },
+          "x-go-name": "Projects"
+        },
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
         },
@@ -27970,6 +27995,67 @@
         "push": {
           "type": "boolean",
           "x-go-name": "Push"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "Project": {
+      "description": "Project represents a project",
+      "type": "object",
+      "properties": {
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "creator_id": {
+          "description": "CreatorID is the user who created the project",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CreatorID"
+        },
+        "description": {
+          "description": "Description provides details about the project",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "id": {
+          "description": "ID is the unique identifier for the project",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "is_closed": {
+          "description": "IsClosed indicates if the project is closed",
+          "type": "boolean",
+          "x-go-name": "IsClosed"
+        },
+        "owner_id": {
+          "description": "OwnerID is the owner of the project (for org-level projects)",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OwnerID"
+        },
+        "repo_id": {
+          "description": "RepoID is the repository this project belongs to (for repo-level projects)",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepoID"
+        },
+        "title": {
+          "description": "Title is the title of the project",
+          "type": "string",
+          "x-go-name": "Title"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
