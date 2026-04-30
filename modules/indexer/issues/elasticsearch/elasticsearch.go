@@ -207,6 +207,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.NoProjectOnly {
 		query.Must(elastic.NewTermQuery("no_project", true))
 	} else if len(options.ProjectIDs) > 0 {
+		// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: this logic is not right, it should use "AND" but not "OR"
 		query.Must(elastic.NewTermsQuery("project_ids", toAnySlice(options.ProjectIDs)...))
 	}
 

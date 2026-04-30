@@ -95,7 +95,7 @@ type SearchOptions struct {
 
 	MilestoneIDs []int64 // milestones the issues have
 
-	ProjectIDs    []int64 // project the issues belong to
+	ProjectIDs    []int64 // project the issues belong to. FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet. Search logic is wrong.
 	NoProjectOnly bool    // if the issues have no project, if true, ProjectIDs will be ignored
 
 	PosterID   string // poster of the issues, "(none)" or "(any)" or a user ID

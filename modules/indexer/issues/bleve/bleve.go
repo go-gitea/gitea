@@ -248,6 +248,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		for _, projectID := range options.ProjectIDs {
 			projectQueries = append(projectQueries, inner_bleve.NumericEqualityQuery(projectID, "project_ids"))
 		}
+		// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: this logic is not right, it should use "AND" but not "OR"
 		queries = append(queries, bleve.NewDisjunctionQuery(projectQueries...))
 	}
 

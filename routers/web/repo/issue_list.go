@@ -19,7 +19,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	db_indexer "code.gitea.io/gitea/modules/indexer/issues/db"
 	"code.gitea.io/gitea/modules/log"
@@ -42,8 +41,9 @@ func retrieveProjectsForIssueList(ctx *context.Context, repo *repo_model.Reposit
 // parseProjectIDsFromQuery parses the comma-separated `project` (preferred) or `projects`
 // query parameter into a slice of int64 IDs.
 func parseProjectIDsFromQuery(ctx *context.Context) []int64 {
-	vals, _ := base.StringsToInt64s(strings.Split(ctx.FormString("project", ctx.FormString("projects")), ","))
-	return vals
+	// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet
+	// Although here parses the project parameter as a slice, the "search" logic is wrong
+	return ctx.FormStringInt64s("project")
 }
 
 // SearchIssues searches for issues across the repositories that the user has access to

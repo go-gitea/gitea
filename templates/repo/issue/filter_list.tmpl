@@ -35,7 +35,8 @@
 			</div>
 			{{range $project := .OpenProjects}}
 				{{$toggle := SliceUtils.JoinToggleIDs $projectIDs $project.ID}}
-				<a class="item {{if $toggle.IsIncluded}}selected{{end}}" href="{{QueryBuild $queryLink "project" $toggle.ToggledIDs}}">
+				{{/* FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet. If the support comes, here it should use "&project=${toggle.ToggledIDs}" */}}
+				<a class="item {{if $toggle.IsIncluded}}selected{{end}}" href="{{QueryBuild $queryLink "project" $project.ID}}">
 					{{svg $project.IconName}}<span class="gt-ellipsis">{{$project.Title}}</span>
 				</a>
 			{{end}}
@@ -47,7 +48,8 @@
 			</div>
 			{{range $project := .ClosedProjects}}
 				{{$toggle := SliceUtils.JoinToggleIDs $projectIDs $project.ID}}
-				<a class="item {{if $toggle.IsIncluded}}selected{{end}}" href="{{QueryBuild $queryLink "project" $toggle.ToggledIDs}}">
+				{{/* FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet. If the support comes, here it should use "&project=${toggle.ToggledIDs}" */}}
+				<a class="item {{if $toggle.IsIncluded}}selected{{end}}" href="{{QueryBuild $queryLink "project" $project.ID}}">
 					{{svg $project.IconName}}<span class="gt-ellipsis">{{$project.Title}}</span>
 				</a>
 			{{end}}

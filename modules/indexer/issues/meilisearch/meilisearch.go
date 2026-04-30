@@ -185,6 +185,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.NoProjectOnly {
 		query.And(inner_meilisearch.NewFilterEq("no_project", true))
 	} else if len(options.ProjectIDs) > 0 {
+		// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: this logic is not right, it should use "AND" but not "OR"
 		query.And(inner_meilisearch.NewFilterIn("project_ids", options.ProjectIDs...))
 	}
 
