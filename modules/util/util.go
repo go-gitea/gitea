@@ -305,8 +305,8 @@ func DiffSlice[T comparable](oldSlice, newSlice []T) (added, removed []T) {
 		}
 	}
 	for _, v := range oldSlice {
-		if !newSet.Contains(v) && removedSet.Add(v){
-		removed = append(removed, v)
+		if !newSet.Contains(v) && removedSet.Add(v) {
+			removed = append(removed, v)
 		}
 	}
 	return added, removed

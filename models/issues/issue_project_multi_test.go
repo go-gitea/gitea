@@ -69,6 +69,7 @@ func TestIssueMultipleProjects(t *testing.T) {
 
 		// only keep project2
 		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{project2.ID})
+		require.NoError(t, err)
 		err = issue1.LoadProjects(t.Context())
 		require.NoError(t, err)
 		require.Len(t, issue1.Projects, 1)
