@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/container"
+
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -293,33 +295,19 @@ func NormalizeStringEOL(input string) string {
 }
 
 func DiffSlice[T comparable](oldSlice, newSlice []T) (added, removed []T) {
-	oldSet := make(map[T]struct{}, len(oldSlice))
-	newSet := make(map[T]struct{}, len(newSlice))
+	oldSet := container.SetOf(oldSlice...)
+	newSet := container.SetOf(newSlice...)
 
-	for _, v := range oldSlice {
-		oldSet[v] = struct{}{}
-	}
+	addedSet, removedSet := container.Set[T]{}, container.Set[T]{}
 	for _, v := range newSlice {
-		newSet[v] = struct{}{}
-	}
-
-	addedSet := make(map[T]struct{})
-	for _, v := range newSlice {
-		if _, found := oldSet[v]; !found {
-			if _, alreadyAdded := addedSet[v]; !alreadyAdded {
-				added = append(added, v)
-				addedSet[v] = struct{}{}
-			}
+		if !oldSet.Contains(v) {
+			addedSet.Add(v)
 		}
 	}
-	removedSet := make(map[T]struct{})
 	for _, v := range oldSlice {
-		if _, found := newSet[v]; !found {
-			if _, alreadyRemoved := removedSet[v]; !alreadyRemoved {
-				removed = append(removed, v)
-				removedSet[v] = struct{}{}
-			}
+		if !newSet.Contains(v) {
+			removedSet.Add(v)
 		}
 	}
-	return added, removed
+	return addedSet.Values(), removedSet.Values()
 }
