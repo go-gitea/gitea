@@ -300,6 +300,8 @@ type ViewResponse struct {
 			Duration     string `json:"duration"`
 			TriggeredAt  int64  `json:"triggeredAt"`  // unix seconds for relative time
 			TriggerEvent string `json:"triggerEvent"` // e.g. pull_request, push, schedule
+
+			JobSummaries []*ViewJobSummary `json:"jobSummaries,omitempty"`
 		} `json:"run"`
 		CurrentJob struct {
 			Title  string         `json:"title"`
@@ -321,6 +323,13 @@ type ViewJob struct {
 	CanRerun bool     `json:"canRerun"`
 	Duration string   `json:"duration"`
 	Needs    []string `json:"needs,omitempty"`
+}
+
+type ViewJobSummary struct {
+	JobID       int64         `json:"jobId"`
+	JobName     string        `json:"jobName"`
+	ContentType string        `json:"contentType"`
+	SummaryHTML template.HTML `json:"summaryHTML"`
 }
 
 type ViewRunAttempt struct {
@@ -496,6 +505,35 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		Branch:   branch,
 	}
 	resp.State.Run.TriggerEvent = run.TriggerEvent
+
+	// Job summaries (GITHUB_STEP_SUMMARY). Only show when present.
+	{
+		var runAttemptID int64
+		if attempt != nil {
+			runAttemptID = attempt.ID
+		}
+		summaries, err := actions_model.ListActionRunJobSummariesByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
+		if err != nil {
+			ctx.ServerError("ListActionRunJobSummariesByRunAttempt", err)
+			return
+		}
+		if len(summaries) > 0 {
+			jobNameByID := make(map[int64]string, len(jobs))
+			for _, j := range jobs {
+				jobNameByID[j.ID] = j.Name
+			}
+			resp.State.Run.JobSummaries = make([]*ViewJobSummary, 0, len(summaries))
+			renderUtils := templates.NewRenderUtils(ctx)
+			for _, s := range summaries {
+				resp.State.Run.JobSummaries = append(resp.State.Run.JobSummaries, &ViewJobSummary{
+					JobID:       s.JobID,
+					JobName:     jobNameByID[s.JobID],
+					ContentType: s.ContentType,
+					SummaryHTML: renderUtils.MarkdownToHtml(s.Content),
+				})
+			}
+		}
+	}
 
 	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts all share run_attempt_id=0,
 	// so passing 0 here scopes to this run's legacy artifacts only.

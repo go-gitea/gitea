@@ -15,6 +15,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -90,6 +91,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.WorkflowID = "workflow-id"
 	resp.State.Run.WorkflowLink = "./workflow-link"
 	resp.State.Run.TriggerEvent = "push"
+	renderUtils := templates.NewRenderUtils(ctx)
 	resp.State.Run.Commit = actions.ViewCommit{
 		ShortSha: "ccccdddd",
 		Link:     "./commit-link",
@@ -184,6 +186,22 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.CanApprove = runID == 20 && isLatestAttempt
 	resp.State.Run.CanRerun = runID == 30 && isLatestAttempt
 	resp.State.Run.CanRerunFailed = runID == 30 && isLatestAttempt
+
+	// Mock job summaries so the devtest page can preview the Summary panel rendering.
+	resp.State.Run.JobSummaries = []*actions.ViewJobSummary{
+		{
+			JobID:       runID * 10,
+			JobName:     "job 100 (testsubname)",
+			ContentType: "text/markdown",
+			SummaryHTML: renderUtils.MarkdownToHtml("### Devtest job summary\n\n- Markdown rendering\n- Links: [example](https://example.com)\n\n```sh\necho hello\n```\n"),
+		},
+		{
+			JobID:       runID*10 + 2,
+			JobName:     "ULTRA LOOOOOOOOOOOONG job name 102 that exceeds the limit",
+			ContentType: "text/markdown",
+			SummaryHTML: renderUtils.MarkdownToHtml("### Another summary\n\nThis demonstrates multiple job summaries in one run.\n\n- Item A\n- Item B\n"),
+		},
+	}
 
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:        "artifact-a",
