@@ -34,24 +34,24 @@ export async function initCaptcha() {
       break;
     }
     case 'm-captcha': {
-      // @mcaptcha/vanilla-glue is published as a UMD/CJS bundle. Vite's interop sometimes
-      // exposes the Widget constructor at `module.default` and sometimes (when the whole
-      // CJS exports object gets wrapped) at `module.default.default`, so probe both.
-      // INPUT_NAME is a read-only ES module binding and cannot be reassigned, so we let
-      // the widget create its input and then rename it to match Gitea's expected field.
-      const mCaptcha = await import('@mcaptcha/vanilla-glue') as any;
-      const Widget: new (config: unknown) => {inputElement: HTMLInputElement} =
-        typeof mCaptcha.default === 'function' ? mCaptcha.default : mCaptcha.default.default;
+      // @mcaptcha/vanilla-glue 0.1.0-rc2 auto-runs on module evaluation: it reads the
+      // widget URL from #mcaptcha__token-label's data-mcaptcha_url attribute and binds
+      // to the existing #mcaptcha__token input (both rendered by the captcha template).
+      // The widget names the input "mcaptcha__token"; rename it after import so the form
+      // submits the field name that services/context/captcha.go reads.
       const instanceURL = captchaEl.getAttribute('data-instance-url')!;
+      const widgetURL = new URL(instanceURL);
+      widgetURL.pathname = '/widget/';
+      widgetURL.search = `?sitekey=${siteKey}`;
 
-      const widget = new Widget({
-        siteKey: {
-          instanceUrl: new URL(instanceURL),
-          key: siteKey,
-        },
-      });
-      widget.inputElement.name = 'm-captcha-response';
-      widget.inputElement.id = 'm-captcha-response';
+      const label = document.querySelector('#mcaptcha__token-label')!;
+      label.setAttribute('data-mcaptcha_url', widgetURL.toString());
+
+      await import('@mcaptcha/vanilla-glue');
+
+      const input = document.querySelector<HTMLInputElement>('#mcaptcha__token')!;
+      input.name = 'm-captcha-response';
+      input.id = 'm-captcha-response';
       break;
     }
     default:

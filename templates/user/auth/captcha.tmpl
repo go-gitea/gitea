@@ -19,6 +19,8 @@
 {{else if eq .CaptchaType "mcaptcha"}}
 	<div class="inline field tw-text-center">
 		<div class="m-captcha-style" id="mcaptcha__widget-container"></div>
+		<label id="mcaptcha__token-label" hidden></label>
+		<input id="mcaptcha__token">
 		<div id="captcha" data-captcha-type="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
 	</div>
 {{else if eq .CaptchaType "cfturnstile"}}
