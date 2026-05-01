@@ -34,24 +34,9 @@ export async function initCaptcha() {
       break;
     }
     case 'm-captcha': {
-      // @mcaptcha/vanilla-glue 0.1.0-rc2 auto-runs on module evaluation: it reads the
-      // widget URL from #mcaptcha__token-label's data-mcaptcha_url attribute and binds
-      // to the existing #mcaptcha__token input (both rendered by the captcha template).
-      // The widget names the input "mcaptcha__token"; rename it after import so the form
-      // submits the field name that services/context/captcha.go reads.
-      const instanceURL = captchaEl.getAttribute('data-instance-url')!;
-      const widgetURL = new URL(instanceURL);
-      widgetURL.pathname = '/widget/';
-      widgetURL.search = `?sitekey=${siteKey}`;
-
-      const label = document.querySelector('#mcaptcha__token-label')!;
-      label.setAttribute('data-mcaptcha_url', widgetURL.toString());
-
+      // ref: https://github.com/mCaptcha/glue/blob/master/packages/vanilla/README.md
+      // @mcaptcha/vanilla-glue 0.1.0-rc2 auto-runs on module load, use the existing elements to render.
       await import('@mcaptcha/vanilla-glue');
-
-      const input = document.querySelector<HTMLInputElement>('#mcaptcha__token')!;
-      input.name = 'm-captcha-response';
-      input.id = 'm-captcha-response';
       break;
     }
     default:
