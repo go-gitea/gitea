@@ -35,6 +35,7 @@ export async function initCaptcha() {
     }
     case 'm-captcha': {
       // ref: https://github.com/mCaptcha/glue/blob/master/packages/vanilla/README.md
+      // sample: https://github.com/mCaptcha/glue/blob/master/packages/vanilla/static/embeded.html
       // @mcaptcha/vanilla-glue 0.1.0-rc2 auto-runs on module load, use the existing elements to render.
       await import('@mcaptcha/vanilla-glue');
       break;
