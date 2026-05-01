@@ -8,7 +8,7 @@ import (
 	"slices"
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,7 +49,7 @@ func (actionArtifactBeforeV331) TableName() string {
 }
 
 func Test_AddActionRunAttemptModel(t *testing.T) {
-	x, deferable := base.PrepareTestEnv(t, 0,
+	x, deferable := migrationtest.PrepareTestEnv(t, 0,
 		new(actionRunBeforeV331),
 		new(actionRunJobBeforeV331),
 		new(actionArtifactBeforeV331),
@@ -69,7 +69,7 @@ func Test_AddActionRunAttemptModel(t *testing.T) {
 
 	require.NoError(t, AddActionRunAttemptModel(x))
 
-	tableMap := base.LoadTableSchemasMap(t, x)
+	tableMap := migrationtest.LoadTableSchemasMap(t, x)
 
 	attemptTable := tableMap["action_run_attempt"]
 	require.NotNil(t, attemptTable)

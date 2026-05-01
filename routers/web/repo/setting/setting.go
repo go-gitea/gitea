@@ -265,8 +265,13 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		handleSettingRemoteAddrError(ctx, err, form)
 		return
 	}
-	if u.User != nil && form.MirrorPassword == "" && form.MirrorUsername == u.User.Username() {
-		form.MirrorPassword, _ = u.User.Password()
+	if u.User != nil {
+		if form.MirrorUsername == "" {
+			form.MirrorUsername = u.User.Username()
+		}
+		if form.MirrorPassword == "" && form.MirrorUsername == u.User.Username() {
+			form.MirrorPassword, _ = u.User.Password()
+		}
 	}
 
 	address, err := git.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
