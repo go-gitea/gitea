@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package setting
+package db
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_parsePostgreSQLHostPort(t *testing.T) {
+func TestParsePgSQLHostPort(t *testing.T) {
 	tests := map[string]struct {
 		HostPort string
 		Host     string
@@ -49,14 +49,14 @@ func Test_parsePostgreSQLHostPort(t *testing.T) {
 	for k, test := range tests {
 		t.Run(k, func(t *testing.T) {
 			t.Log(test.HostPort)
-			host, port := parsePostgreSQLHostPort(test.HostPort)
+			host, port := parsePgSQLHostPort(test.HostPort)
 			assert.Equal(t, test.Host, host)
 			assert.Equal(t, test.Port, port)
 		})
 	}
 }
 
-func Test_getPostgreSQLConnectionString(t *testing.T) {
+func TestMakePgSQLConnStr(t *testing.T) {
 	tests := []struct {
 		Host    string
 		User    string
@@ -103,7 +103,7 @@ func Test_getPostgreSQLConnectionString(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		connStr := getPostgreSQLConnectionString(test.Host, test.User, test.Passwd, test.Name, test.SSLMode)
+		connStr := makePgSQLConnStr(test.Host, test.User, test.Passwd, test.Name, test.SSLMode)
 		assert.Equal(t, test.Output, connStr)
 	}
 }

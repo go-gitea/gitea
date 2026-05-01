@@ -6,7 +6,7 @@ package v1_14
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -34,7 +34,7 @@ func Test_DeleteOrphanedIssueLabels(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(IssueLabel), new(Label))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(IssueLabel), new(Label))
 	if x == nil || t.Failed() {
 		defer deferable()
 		return
