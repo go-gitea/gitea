@@ -321,6 +321,10 @@ lint-md: node_modules ## lint markdown files
 lint-md-fix: node_modules ## lint markdown files and fix issues
 	pnpm exec markdownlint --fix *.md
 
+.PHONY: lint-pr-title
+lint-pr-title: node_modules ## lint PR title against Conventional Commits (set PR_TITLE=...)
+	node tools/lint-pr-title.js "$(PR_TITLE)"
+
 .PHONY: lint-spell
 lint-spell: ## lint spelling
 	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error

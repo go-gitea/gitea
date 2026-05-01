@@ -5,6 +5,9 @@
     "node": ">= 22.18.0",
     "pnpm": ">= 10.0.0"
   },
+  "scripts": {
+    "lint:pr-title": "node tools/lint-pr-title.js"
+  },
   "dependencies": {
     "@citation-js/core": "0.7.21",
     "@citation-js/plugin-bibtex": "0.7.21",
@@ -74,6 +77,8 @@
     "vue-chartjs": "5.3.3"
   },
   "devDependencies": {
+    "@commitlint/cli": "20.5.3",
+    "@commitlint/config-conventional": "20.5.3",
     "@eslint-community/eslint-plugin-eslint-comments": "4.7.1",
     "@eslint/json": "1.2.0",
     "@playwright/test": "1.59.1",
