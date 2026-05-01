@@ -1,0 +1,84 @@
+/* --- GitHub-like LIGHT overrides --- */
+:root {
+  /* base backgrounds */
+  --color-body: #ffffff;
+  --color-box-header: #f6f8fa;
+  --color-box-body: #ffffff;
+  --color-box-body-highlight: #f6f8fa;
+
+  /* cards / panels */
+  --color-card: #ffffff;
+  --color-menu: #f6f8fa;
+  --color-code-bg: #f6f8fa;
+
+  /* navigation */
+  --color-nav-bg: #f6f8fa;
+  --color-secondary-nav-bg: #ffffff;
+  --color-nav-hover-bg: #eaeef2;
+
+  /* inputs */
+  --color-input-background: #ffffff;
+  --color-input-border: #d0d7de;
+  --color-input-toggle-background: #eaeef2;
+
+  /* borders & separators */
+  --color-secondary: #d0d7de;
+  --color-secondary-bg: #f6f8fa;
+  --color-secondary-light-1: #f6f8fa;
+  --color-secondary-light-2: #ffffff;
+
+  /* hover / active */
+  --color-hover: #d0d7de33;
+  --color-hover-opaque: #eaeef2;
+  --color-active: #d0d7de66;
+
+  /* text */
+  --color-text-dark: #24292f;
+  --color-text: #24292f;
+  --color-text-light: #57606a;
+  --color-text-light-1: #6e7781;
+  --color-text-light-2: #6e7781;
+  --color-text-light-3: #8c959f;
+
+  /* buttons */
+  --color-button: #f6f8fa;
+  --color-expand-button: #f6f8fa;
+
+  /* subtle UI */
+  --color-timeline: #d0d7de;
+  --color-placeholder-text: #6e7781;
+  --color-label-bg: #eaeef2;
+  --color-label-hover-bg: #d0d7de;
+  --color-label-active-bg: #afb8c1;
+
+  /* shadows */
+  --color-shadow: #00000014;
+  --color-shadow-opaque: #00000033;
+
+  /* markup / tables */
+  --color-markup-table-row: #f6f8fa;
+  --color-markup-code-block: #f6f8fa;
+  --color-markup-code-inline: #eaeef2;
+
+  /* console */
+  --color-console-bg: #ffffff;
+  --color-console-border: #d0d7de;
+  --color-console-hover-bg: #f6f8fa;
+  --color-console-active-bg: #eaeef2;
+
+  /* diff colors */
+  --color-diff-added-row-bg: #dafbe1;
+  --color-diff-added-row-border: #2da44e;
+  --color-diff-removed-row-bg: #ffebe9;
+  --color-diff-removed-row-border: #cf222e;
+
+  /* accent (same blue) */
+  --color-accent: #4183c4;
+  --color-small-accent: #254f77;
+
+  /* tooltip */
+  --color-tooltip-bg: #fffffff0;
+
+  /* overlays */
+  --color-overlay-backdrop: #00000033;
+}

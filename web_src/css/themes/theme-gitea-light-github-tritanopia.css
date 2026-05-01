@@ -1,0 +1,20 @@
+@import "./theme-gitea-light-github.css";
+
+gitea-theme-meta-info {
+  --theme-display-name: "GitHub Light (Tritanopia)";
+  --theme-colorblind-type: "blue-yellow";
+  --theme-color-scheme: "light";
+}
+
+/* magenta / teal mapped to github light */
+:root {
+  --color-diff-added-fg: #1b7f83;
+  --color-diff-added-linenum-bg: #e6fffb;
+  --color-diff-added-row-bg: #e6fffb;
+  --color-diff-added-word-bg: #a6f0f2;
+
+  --color-diff-removed-fg: #bf3989;
+  --color-diff-removed-linenum-bg: #fde6f3;
+  --color-diff-removed-row-bg: #fde6f3;
+  --color-diff-removed-word-bg: #ffd6ec;
+}
