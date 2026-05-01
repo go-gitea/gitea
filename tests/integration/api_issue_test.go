@@ -35,6 +35,7 @@ func TestAPIIssue(t *testing.T) {
 	t.Run("IssueContentVersion", testAPIIssueContentVersion)
 	t.Run("CreateIssue", testAPICreateIssue)
 	t.Run("CreateIssueParallel", testAPICreateIssueParallel)
+	t.Run("IssueProjects", testAPIIssueProjects)
 }
 
 func testAPIListIssues(t *testing.T) {
@@ -495,4 +496,67 @@ func testAPIIssueContentVersion(t *testing.T) {
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 	})
+}
+
+func testAPIIssueProjects(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repo.Name)
+
+	// Create issue with a project
+	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
+		Title:    "issue with project",
+		Body:     "test body",
+		Projects: []int64{1},
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusCreated)
+	var apiIssue api.Issue
+	DecodeJSON(t, resp, &apiIssue)
+	assert.Len(t, apiIssue.Projects, 1)
+	assert.EqualValues(t, 1, apiIssue.Projects[0].ID)
+
+	// Get issue should include projects
+	req = NewRequest(t, "GET", fmt.Sprintf("%s/%d", urlStr, apiIssue.Index)).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssue)
+	assert.Len(t, apiIssue.Projects, 1)
+	assert.EqualValues(t, 1, apiIssue.Projects[0].ID)
+
+	// Edit issue to remove projects
+	emptyProjects := []int64{}
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", urlStr, apiIssue.Index), &api.EditIssueOption{
+		Projects: &emptyProjects,
+	}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, &apiIssue)
+	assert.Empty(t, apiIssue.Projects)
+
+	// Edit issue to add project back
+	projects := []int64{1}
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", urlStr, apiIssue.Index), &api.EditIssueOption{
+		Projects: &projects,
+	}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, &apiIssue)
+	assert.Len(t, apiIssue.Projects, 1)
+	assert.EqualValues(t, 1, apiIssue.Projects[0].ID)
+
+	// Test invalid project ID
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
+		Title:    "issue with invalid project",
+		Body:     "test body",
+		Projects: []int64{99999},
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusBadRequest)
+
+	// Test project from different repo (project 2 is for repo 3)
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
+		Title:    "issue with inaccessible project",
+		Body:     "test body",
+		Projects: []int64{2},
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusBadRequest)
 }

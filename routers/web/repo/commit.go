@@ -96,8 +96,6 @@ func Commits(ctx *context.Context) {
 	} else {
 		ctx.Data["CommitsTagsMap"] = commitsTagsMap
 	}
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
 
 	pager := context.NewPagination(commitsCount, pageSize, page, 5)
@@ -163,9 +161,6 @@ func Graph(ctx *context.Context) {
 
 	ctx.Data["AllRefs"] = gitRefs
 
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-
 	divOnly := ctx.FormBool("div-only")
 	queryParams := ctx.Req.URL.Query()
 	queryParams.Del("div-only")
@@ -209,8 +204,6 @@ func SearchCommits(ctx *context.Context) {
 	if all {
 		ctx.Data["All"] = true
 	}
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
@@ -248,8 +241,6 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
 	ctx.Data["CommitCount"] = commitsCount
 
@@ -321,7 +312,7 @@ func Diff(ctx *context.Context) {
 		MaxLines:           maxLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:           maxFiles,
-		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(GetWhitespaceBehavior(ctx)),
 	}, files...)
 	if err != nil {
 		ctx.NotFound(err)
@@ -346,8 +337,6 @@ func Diff(ctx *context.Context) {
 
 	ctx.Data["CommitID"] = commitID
 	ctx.Data["AfterCommitID"] = commitID
-	ctx.Data["Username"] = userName
-	ctx.Data["Reponame"] = repoName
 
 	var parentCommit *git.Commit
 	var parentCommitID string
