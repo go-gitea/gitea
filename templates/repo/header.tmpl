@@ -57,59 +57,12 @@
 						{{svg "octicon-rss" 16}}
 					</a>
 					{{end}}
-					{{template "repo/watch_unwatch" $}}
+					{{template "repo/header/watch" $}}
 					{{if not $.DisableStars}}
-					{{template "repo/star_unstar" $}}
+					{{template "repo/header/star" $}}
 					{{end}}
 					{{if and (not .IsEmpty) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
-						<div class="ui labeled button
-							{{if or (not $.IsSigned) (and (not $.CanSignedUserFork) (not $.UserAndOrgForks))}}
-								disabled
-							{{end}}"
-							{{if not $.IsSigned}}
-								data-tooltip-content="{{ctx.Locale.Tr "repo.fork_guest_user"}}"
-							{{else if and (not $.CanSignedUserFork) (not $.UserAndOrgForks)}}
-								data-tooltip-content="{{ctx.Locale.Tr "repo.fork_from_self"}}"
-							{{end}}
-						>
-							<a class="ui compact{{if $.ShowForkModal}} show-modal{{end}} small basic button"
-								{{if not $.CanSignedUserFork}}
-									{{if gt (len $.UserAndOrgForks) 1}}
-										href="#" data-modal="#fork-repo-modal"
-									{{else if eq (len $.UserAndOrgForks) 1}}
-										href="{{AppSubUrl}}/{{(index $.UserAndOrgForks 0).FullName}}"
-									{{/*else is not required here, because the button shouldn't link to any site if you can't create a fork*/}}
-									{{end}}
-								{{else if not $.UserAndOrgForks}}
-									href="{{$.RepoLink}}/fork"
-								{{else}}
-									href="#" data-modal="#fork-repo-modal"
-								{{end}}
-							>
-								{{svg "octicon-repo-forked"}}<span class="text not-mobile">{{ctx.Locale.Tr "repo.fork"}}</span>
-							</a>
-							<a class="ui basic label" href="{{.Link}}/forks">
-								{{CountFmt .NumForks}}
-							</a>
-						</div>
-						<div class="ui small modal" id="fork-repo-modal">
-							<div class="header">
-								{{ctx.Locale.Tr "repo.already_forked" .Name}}
-							</div>
-							<div class="content tw-text-left">
-								<div class="ui list">
-									{{range $.UserAndOrgForks}}
-										<div class="ui item tw-py-2">
-											<a href="{{.Link}}">{{svg "octicon-repo-forked" 16 "tw-mr-2"}}{{.FullName}}</a>
-										</div>
-									{{end}}
-								</div>
-								{{if $.CanSignedUserFork}}
-								<div class="divider"></div>
-								<a href="{{$.RepoLink}}/fork">{{ctx.Locale.Tr "repo.fork_to_different_account"}}</a>
-								{{end}}
-							</div>
-						</div>
+						{{template "repo/header/fork" $}}
 					{{end}}
 				</div>
 			{{end}}
