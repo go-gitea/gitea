@@ -205,7 +205,7 @@ gitea-theme-meta-info {
   --color-priority-bg: #f5edff;
   --color-priority-text: #8250df;
 
-    /* target-based colors */
+  /* target-based colors */
   --color-body: #ffffff;
   --color-box-header: #f6f8fa;
   --color-box-body: #ffffff;
