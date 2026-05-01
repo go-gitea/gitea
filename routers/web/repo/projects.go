@@ -17,6 +17,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -45,7 +46,7 @@ func MustEnableRepoProjects(ctx *context.Context) {
 
 	if ctx.Repo.Repository != nil {
 		projectsUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeProjects)
-		if !ctx.Repo.CanRead(unit.TypeProjects) || !projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
+		if !ctx.Repo.Permission.CanRead(unit.TypeProjects) || !projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
 			ctx.NotFound(nil)
 			return
 		}
@@ -447,18 +448,21 @@ func UpdateIssueProject(ctx *context.Context) {
 		return
 	}
 
-	projectID := ctx.FormInt64("id")
+	projectIDs := ctx.FormStringInt64s("id")
+	var failedIssues []int64
 	for _, issue := range issues {
-		if issue.Project != nil && issue.Project.ID == projectID {
-			continue
-		}
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, 0); err != nil {
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectIDs); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) {
+				failedIssues = append(failedIssues, issue.ID)
 				continue
 			}
 			ctx.ServerError("IssueAssignOrRemoveProject", err)
 			return
 		}
+	}
+
+	if len(failedIssues) > 0 {
+		log.Warn("Failed to assign projects to %d issues due to permission denied: %v", len(failedIssues), failedIssues)
 	}
 
 	ctx.JSONOK()
@@ -477,12 +481,12 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	if err := issue.LoadProject(ctx); err != nil {
-		ctx.ServerError("LoadProject", err)
+	if err := issue.LoadProjects(ctx); err != nil {
+		ctx.ServerError("LoadProjects", err)
 		return
 	}
 
-	issueProjects := []*project_model.Project{issue.Project} // TODO: this is for the multiple project support in the future
+	issueProjects := issue.Projects
 
 	// it must make sure the requested column is in this issue's projects
 	var columnProject *project_model.Project
@@ -521,7 +525,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.Permission.IsOwner() && !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -568,7 +572,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 // AddColumnToProjectPost allows a new column to be added to a project.
 func AddColumnToProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.Permission.IsOwner() && !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -606,7 +610,7 @@ func checkProjectColumnChangePermissions(ctx *context.Context) (*project_model.P
 		return nil, nil
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.Permission.IsOwner() && !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -692,7 +696,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.Permission.IsOwner() && !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})

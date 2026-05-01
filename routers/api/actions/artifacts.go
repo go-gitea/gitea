@@ -74,6 +74,7 @@ import (
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -310,7 +311,7 @@ func (ar artifactRoutes) confirmUploadArtifact(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusBadRequest, "Error artifact name is empty")
 		return
 	}
-	if err := mergeChunksForRun(ctx, ar.fs, runID, artifactName); err != nil {
+	if err := mergeChunksForRun(ctx, ar.fs, runID, ctx.ActionTask.Job.RunAttemptID, artifactName); err != nil {
 		log.Error("Error merge chunks: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
 		return
@@ -338,8 +339,9 @@ func (ar artifactRoutes) listArtifacts(ctx *ArtifactContext) {
 	}
 
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
-		RunID:  runID,
-		Status: int(actions.ArtifactStatusUploadConfirmed),
+		RunID:        runID,
+		RunAttemptID: optional.Some(ctx.ActionTask.Job.RunAttemptID),
+		Status:       int(actions.ArtifactStatusUploadConfirmed),
 	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
@@ -404,6 +406,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
 		RunID:        runID,
+		RunAttemptID: optional.Some(ctx.ActionTask.Job.RunAttemptID),
 		ArtifactName: itemPath,
 		Status:       int(actions.ArtifactStatusUploadConfirmed),
 	})
@@ -474,6 +477,11 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 	}
 	if artifact.RunID != runID {
 		log.Error("Error mismatch runID and artifactID, task: %v, artifact: %v", runID, artifactID)
+		ctx.HTTPError(http.StatusBadRequest)
+		return
+	}
+	if ctx.ActionTask.Job.RunAttemptID > 0 && artifact.RunAttemptID != ctx.ActionTask.Job.RunAttemptID {
+		log.Error("Error mismatch runAttemptID and artifactID, task: %v, artifact: %v", ctx.ActionTask.Job.RunAttemptID, artifactID)
 		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
