@@ -154,7 +154,7 @@ func CheckIssueAssignee(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
 		ctx.APIErrorNotFound()
 		return
 	}
@@ -193,7 +193,7 @@ func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption
 		return
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
