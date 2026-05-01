@@ -4,10 +4,7 @@
 package base
 
 import (
-	"database/sql"
-	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 
@@ -16,115 +13,12 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/testlogger"
-	"code.gitea.io/gitea/modules/util"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
-
-// FIXME: this file shouldn't be in a normal package, it should only be compiled for tests
-
-func newXORMEngine(t *testing.T) (*xorm.Engine, error) {
-	if err := db.InitEngine(t.Context()); err != nil {
-		return nil, err
-	}
-	x := unittest.GetXORMEngine()
-	return x, nil
-}
-
-func deleteDB() error {
-	switch {
-	case setting.Database.Type.IsSQLite3():
-		if err := util.Remove(setting.Database.Path); err != nil {
-			return err
-		}
-		return os.MkdirAll(path.Dir(setting.Database.Path), os.ModePerm)
-
-	case setting.Database.Type.IsMySQL():
-		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
-		if err != nil {
-			return err
-		}
-		defer db.Close()
-
-		if _, err = db.Exec("DROP DATABASE IF EXISTS " + setting.Database.Name); err != nil {
-			return err
-		}
-
-		if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + setting.Database.Name); err != nil {
-			return err
-		}
-		return nil
-	case setting.Database.Type.IsPostgreSQL():
-		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
-		if err != nil {
-			return err
-		}
-		defer db.Close()
-
-		if _, err = db.Exec("DROP DATABASE IF EXISTS " + setting.Database.Name); err != nil {
-			return err
-		}
-
-		if _, err = db.Exec("CREATE DATABASE " + setting.Database.Name); err != nil {
-			return err
-		}
-		db.Close()
-
-		// Check if we need to set up a specific schema
-		if len(setting.Database.Schema) != 0 {
-			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
-				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
-			if err != nil {
-				return err
-			}
-			defer db.Close()
-
-			schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
-			if err != nil {
-				return err
-			}
-			defer schrows.Close()
-
-			if !schrows.Next() {
-				// Create and set up a DB schema
-				_, err = db.Exec("CREATE SCHEMA " + setting.Database.Schema)
-				if err != nil {
-					return err
-				}
-			}
-
-			// Make the user's default search path the created schema; this will affect new connections
-			_, err = db.Exec(fmt.Sprintf(`ALTER USER "%s" SET search_path = %s`, setting.Database.User, setting.Database.Schema))
-			if err != nil {
-				return err
-			}
-			return nil
-		}
-	case setting.Database.Type.IsMSSQL():
-		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
-		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
-			host, port, "master", setting.Database.User, setting.Database.Passwd))
-		if err != nil {
-			return err
-		}
-		defer db.Close()
-
-		if _, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS [%s]", setting.Database.Name)); err != nil {
-			return err
-		}
-		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE [%s]", setting.Database.Name)); err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unsupported database type: %s", setting.Database.Type)
-	}
-
-	return nil
-}
 
 // PrepareTestEnv prepares the test environment and reset the database. The skip parameter should usually be 0.
 // Provide models to be sync'd with the database - in particular any models you expect fixtures to be loaded from.
@@ -138,27 +32,30 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, fu
 	giteaRoot := setting.GetGiteaTestSourceRoot()
 	require.NoError(t, unittest.SyncDirs(filepath.Join(giteaRoot, "tests/gitea-repositories-meta"), setting.RepoRootPath))
 
-	if err := deleteDB(); err != nil {
+	cleanup, err := unittest.ResetTestDatabase()
+	if err != nil {
 		t.Fatalf("unable to reset database: %v", err)
 		return nil, deferFn
 	}
-
-	x, err := newXORMEngine(t)
-	require.NoError(t, err)
-	if x != nil {
+	{
 		oldDefer := deferFn
 		deferFn = func() {
+			cleanup()
 			oldDefer()
-			if err := x.Close(); err != nil {
-				t.Errorf("error during close: %v", err)
-			}
-			if err := deleteDB(); err != nil {
-				t.Errorf("unable to reset database: %v", err)
-			}
 		}
 	}
-	if err != nil {
-		return x, deferFn
+
+	err = db.InitEngine(t.Context())
+	if !assert.NoError(t, err) {
+		return nil, deferFn
+	}
+	x := unittest.GetXORMEngine()
+	{
+		oldDefer := deferFn
+		deferFn = func() {
+			_ = x.Close()
+			oldDefer()
+		}
 	}
 
 	if len(syncModels) > 0 {
