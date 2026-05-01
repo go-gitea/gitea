@@ -6,9 +6,9 @@
 
 Keep this template in sync with web_src/js/components/ActionRunStatus.vue.
 */}}
-{{- $size := Iif .Size .Size 16 -}}
-{{- $className := Iif .ClassName .ClassName "" -}}
-{{- $suffix := Iif .IconSuffix .IconSuffix "" -}}
+{{- $size := or .Size 16 -}}
+{{- $className := or .ClassName "" -}}
+{{- $suffix := or .IconSuffix "" -}}
 {{if eq .Status "success"}}
 	{{svg (printf "octicon-check%s" $suffix) $size (printf "tw-text-green %s" $className)}}
 {{else if eq .Status "skipped"}}
