@@ -690,11 +690,11 @@ func CreateIssue(ctx *context.APIContext) {
 		form.Labels = make([]int64, 0)
 	}
 
-	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, 0); err != nil {
-		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.APIError(http.StatusBadRequest, err)
-		} else if errors.Is(err, user_model.ErrBlockedUser) {
+	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, form.Projects); err != nil {
+		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.APIError(http.StatusForbidden, err)
+		} else if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
+			ctx.APIError(http.StatusBadRequest, err)
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -909,6 +909,18 @@ func EditIssue(ctx *context.APIContext) {
 		state := api.StateType(*form.State)
 		closeOrReopenIssue(ctx, issue, state)
 		if ctx.Written() {
+			return
+		}
+	}
+
+	// Update projects if provided
+	if canWrite && form.Projects != nil {
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, *form.Projects); err != nil {
+			if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
+				ctx.APIError(http.StatusBadRequest, err)
+			} else {
+				ctx.APIErrorInternal(err)
+			}
 			return
 		}
 	}

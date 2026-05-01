@@ -78,6 +78,7 @@ func TestOAuth2(t *testing.T) {
 		t.Run("RefreshTokenInvalidation", testRefreshTokenInvalidation)
 		t.Run("OAuthIntrospection", testOAuthIntrospection)
 		t.Run("OAuthGrantScopesReadUserFailRepos", testOAuthGrantScopesReadUserFailRepos)
+		t.Run("OAuthGrantScopesBasicRespectsWriteUser", testOAuthGrantScopesBasicRespectsWriteUser)
 		t.Run("OAuthGrantScopesReadRepositoryFailOrganization", testOAuthGrantScopesReadRepositoryFailOrganization)
 		t.Run("OAuthGrantScopesClaimPublicOnlyGroups", testOAuthGrantScopesClaimPublicOnlyGroups)
 		t.Run("OAuthGrantScopesClaimAllGroups", testOAuthGrantScopesClaimAllGroups)
@@ -582,6 +583,67 @@ func testOAuthIntrospection(t *testing.T) {
 
 func testOAuthGrantScopesReadUserFailRepos(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	accessToken := issueOAuthAccessTokenForScope(t, user, "openid read:user")
+	userReq := NewRequest(t, "GET", "/api/v1/user")
+	userReq.SetHeader("Authorization", "Bearer "+accessToken)
+	userResp := MakeRequest(t, userReq, http.StatusOK)
+
+	type userResponse struct {
+		Login string `json:"login"`
+		Email string `json:"email"`
+	}
+
+	userParsed := new(userResponse)
+	require.NoError(t, json.Unmarshal(userResp.Body.Bytes(), userParsed))
+	assert.Contains(t, userParsed.Email, "user2@example.com")
+
+	errorReq := NewRequest(t, "GET", "/api/v1/users/user2/repos")
+	errorReq.SetHeader("Authorization", "Bearer "+accessToken)
+	errorResp := MakeRequest(t, errorReq, http.StatusForbidden)
+
+	type errorResponse struct {
+		Message string `json:"message"`
+	}
+
+	errorParsed := new(errorResponse)
+	require.NoError(t, json.Unmarshal(errorResp.Body.Bytes(), errorParsed))
+	assert.Contains(t, errorParsed.Message, "token does not have at least one of required scope(s), required=[read:repository]")
+}
+
+func testOAuthGrantScopesBasicRespectsWriteUser(t *testing.T) {
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	accessToken := issueOAuthAccessTokenForScope(t, user, "openid read:user")
+	fullName := "oauth2-basic-scope-test"
+
+	updateBody := &api.UserSettingsOptions{
+		FullName: &fullName,
+	}
+
+	bearerReq := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", updateBody)
+	bearerReq.SetHeader("Authorization", "Bearer "+accessToken)
+	bearerResp := MakeRequest(t, bearerReq, http.StatusForbidden)
+
+	type errorResponse struct {
+		Message string `json:"message"`
+	}
+
+	bearerError := new(errorResponse)
+	require.NoError(t, json.Unmarshal(bearerResp.Body.Bytes(), bearerError))
+	assert.Contains(t, bearerError.Message, "required=[write:user]")
+
+	basicReq := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", updateBody)
+	basicAuth := base64.StdEncoding.EncodeToString([]byte(accessToken + ":x-oauth-basic"))
+	basicReq.SetHeader("Authorization", "Basic "+basicAuth)
+	basicResp := MakeRequest(t, basicReq, http.StatusForbidden)
+
+	basicError := new(errorResponse)
+	require.NoError(t, json.Unmarshal(basicResp.Body.Bytes(), basicError))
+	assert.Contains(t, basicError.Message, "required=[write:user]")
+}
+
+func issueOAuthAccessTokenForScope(t *testing.T, user *user_model.User, scope string) string {
+	t.Helper()
+
 	appBody := api.CreateOAuth2ApplicationOptions{
 		Name: "oauth-provider-scopes-test",
 		RedirectURIs: []string{
@@ -599,20 +661,14 @@ func testOAuthGrantScopesReadUserFailRepos(t *testing.T) {
 	grant := &auth_model.OAuth2Grant{
 		ApplicationID: app.ID,
 		UserID:        user.ID,
-		Scope:         "openid read:user",
+		Scope:         scope,
 	}
-
-	err := db.Insert(t.Context(), grant)
-	require.NoError(t, err)
-
-	assert.Contains(t, grant.Scope, "openid read:user")
+	require.NoError(t, db.Insert(t.Context(), grant))
 
 	ctx := loginUser(t, user.Name)
-
 	authorizeURL := fmt.Sprintf("/login/oauth/authorize?client_id=%s&redirect_uri=https://example.com&response_type=code&state=thestate", app.ClientID)
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
-
 	authcode := strings.Split(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")[0]
 
 	accessTokenReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
@@ -622,7 +678,7 @@ func testOAuthGrantScopesReadUserFailRepos(t *testing.T) {
 		"redirect_uri":  "https://example.com",
 		"code":          authcode,
 	})
-	accessTokenResp := ctx.MakeRequest(t, accessTokenReq, 200)
+	accessTokenResp := ctx.MakeRequest(t, accessTokenReq, http.StatusOK)
 	type response struct {
 		AccessToken  string `json:"access_token"`
 		TokenType    string `json:"token_type"`
@@ -630,32 +686,8 @@ func testOAuthGrantScopesReadUserFailRepos(t *testing.T) {
 		RefreshToken string `json:"refresh_token"`
 	}
 	parsed := new(response)
-
 	require.NoError(t, json.Unmarshal(accessTokenResp.Body.Bytes(), parsed))
-	userReq := NewRequest(t, "GET", "/api/v1/user")
-	userReq.SetHeader("Authorization", "Bearer "+parsed.AccessToken)
-	userResp := MakeRequest(t, userReq, http.StatusOK)
-
-	type userResponse struct {
-		Login string `json:"login"`
-		Email string `json:"email"`
-	}
-
-	userParsed := new(userResponse)
-	require.NoError(t, json.Unmarshal(userResp.Body.Bytes(), userParsed))
-	assert.Contains(t, userParsed.Email, "user2@example.com")
-
-	errorReq := NewRequest(t, "GET", "/api/v1/users/user2/repos")
-	errorReq.SetHeader("Authorization", "Bearer "+parsed.AccessToken)
-	errorResp := MakeRequest(t, errorReq, http.StatusForbidden)
-
-	type errorResponse struct {
-		Message string `json:"message"`
-	}
-
-	errorParsed := new(errorResponse)
-	require.NoError(t, json.Unmarshal(errorResp.Body.Bytes(), errorParsed))
-	assert.Contains(t, errorParsed.Message, "token does not have at least one of required scope(s), required=[read:repository]")
+	return parsed.AccessToken
 }
 
 func testOAuthGrantScopesReadRepositoryFailOrganization(t *testing.T) {
