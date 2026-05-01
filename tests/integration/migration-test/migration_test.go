@@ -106,41 +106,46 @@ func restoreOldDB(t *testing.T, version string) {
 	_ = cleanup // no clean up yet (not needed at the moment)
 
 	connOpts := db.GlobalConnOptions()
-	if connOpts.Type.IsMySQL() {
-		connOpts.Database += "?multiStatements=true"
-	} else if connOpts.Type.IsMSSQL() {
-		connOpts.Database = "" // MSSQL needs to open default database, because it needs to drop the "testgitea" database ahead
-	}
-	driver, connStr, err := db.ConnStr(connOpts)
-	require.NoError(t, err)
 
-	sqlDB, err := sql.Open(driver, connStr)
-	require.NoError(t, err)
-	defer sqlDB.Close()
-
-	if connOpts.Type.IsMSSQL() {
-		// the test fixture will create the [testgitea] database again, so drop it ahead if it exists
-		_, err = sqlDB.Exec("DROP DATABASE IF EXISTS [testgitea]")
-		require.NoError(t, err, "drop existing database testgitea")
-
-		for statement := range strings.SplitSeq(data, "\nGO\n") {
-			if useStmtAfter, ok := strings.CutPrefix(statement, "USE ["); ok {
-				_ = sqlDB.Close()
-				dbname := strings.TrimSuffix(useStmtAfter, "]") // extract the database name from "USE [dbname]"
-				connOpts.Database = dbname
-				driver, connStr, err := db.ConnStr(connOpts)
-				require.NoError(t, err)
-				sqlDB, err = sql.Open(driver, connStr)
-				require.NoError(t, err)
-			}
-			_, err = sqlDB.Exec(statement)
-			require.NoError(t, err, "SQL Exec failed when running: %s\nError: %v", statement, err)
+	if !connOpts.Type.IsMSSQL() {
+		if connOpts.Type.IsMySQL() {
+			connOpts.Database += "?multiStatements=true"
 		}
+		driver, connStr, err := db.ConnStr(connOpts)
+		require.NoError(t, err)
+
+		sqlDB, err := sql.Open(driver, connStr)
+		require.NoError(t, err)
+		defer sqlDB.Close()
+
+		_, err = sqlDB.Exec(data)
+		require.NoError(t, err)
 		return
 	}
 
-	_, err = sqlDB.Exec(data)
+	// MSSQL is special. the test fixture will create the [testgitea] database again, so drop it ahead if it exists
+	driver, connStr, err := db.ConnStrDefaultDatabase(connOpts)
 	require.NoError(t, err)
+	sqlDB, err := sql.Open(driver, connStr)
+	require.NoError(t, err)
+
+	_, err = sqlDB.Exec("DROP DATABASE IF EXISTS [testgitea]")
+	require.NoError(t, err, "drop existing database testgitea")
+
+	for statement := range strings.SplitSeq(data, "\nGO\n") {
+		if useStmtAfter, ok := strings.CutPrefix(statement, "USE ["); ok {
+			_ = sqlDB.Close()
+			dbname := strings.TrimSuffix(useStmtAfter, "]") // extract the database name from "USE [dbname]"
+			connOpts.Database = dbname
+			driver, connStr, err := db.ConnStr(connOpts)
+			require.NoError(t, err)
+			sqlDB, err = sql.Open(driver, connStr)
+			require.NoError(t, err)
+		}
+		_, err = sqlDB.Exec(statement)
+		require.NoError(t, err, "SQL Exec failed when running: %s\nError: %v", statement, err)
+	}
+	_ = sqlDB.Close()
 }
 
 func wrappedMigrate(ctx context.Context, x *xorm.Engine) error {

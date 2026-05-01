@@ -25,7 +25,7 @@ var (
 		SSLMode string
 		Path    string
 
-		SQLiteTimeout     int // seconds
+		SQLiteBusyTimeout int
 		SQLiteJournalMode string
 
 		LogSQL             bool
@@ -39,7 +39,7 @@ var (
 		AutoMigration      bool
 		SlowQueryThreshold time.Duration
 	}{
-		SQLiteTimeout:     500,
+		SQLiteBusyTimeout: 500,
 		IterateBufferSize: 50,
 	}
 )
@@ -63,7 +63,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	Database.CharsetCollation = sec.Key("CHARSET_COLLATION").String()
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
-	Database.SQLiteTimeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
+	Database.SQLiteBusyTimeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 	Database.SQLiteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("")
 
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)

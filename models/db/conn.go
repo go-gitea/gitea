@@ -26,7 +26,7 @@ type ConnOptions struct {
 	SSLMode  string
 
 	SQLitePath        string
-	SQLiteTimeout     int // seconds
+	SQLiteBusyTimeout int
 	SQLiteJournalMode string
 }
 
@@ -47,7 +47,7 @@ func GlobalConnOptions() ConnOptions {
 		SSLMode:  setting.Database.SSLMode,
 
 		SQLitePath:        setting.Database.Path,
-		SQLiteTimeout:     setting.Database.SQLiteTimeout,
+		SQLiteBusyTimeout: setting.Database.SQLiteBusyTimeout,
 		SQLiteJournalMode: setting.Database.SQLiteJournalMode,
 	}
 }
@@ -99,7 +99,7 @@ func ConnStr(opts ConnOptions) (string, string, error) {
 		return makeSQLiteConnStr(SQLiteConnStrOptions{
 			FilePath:    opts.SQLitePath,
 			JournalMode: opts.SQLiteJournalMode,
-			BusyTimeout: opts.SQLiteTimeout,
+			BusyTimeout: opts.SQLiteBusyTimeout,
 		})
 	}
 	return "", "", fmt.Errorf("unknown database type: %s", opts.Type)
