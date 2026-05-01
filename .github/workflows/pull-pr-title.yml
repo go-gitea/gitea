@@ -34,4 +34,3 @@ jobs:
       - run: pnpm run lint:pr-title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
-
