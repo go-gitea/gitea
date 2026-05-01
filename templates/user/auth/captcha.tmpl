@@ -20,7 +20,7 @@
 	<div class="inline field tw-text-center">
 		<div class="m-captcha-style" id="mcaptcha__widget-container"></div>
 		<label id="mcaptcha__token-label" hidden data-mcaptcha_url="{{.McaptchaURL}}/widget/?sitekey={{.McaptchaSitekey}}"></label>
-		<input id="mcaptcha__token" name="m-captcha-response">
+		<input id="mcaptcha__token">
 		<div id="captcha" data-captcha-type="m-captcha"></div>
 	</div>
 {{else if eq .CaptchaType "cfturnstile"}}
