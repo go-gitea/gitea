@@ -62,10 +62,17 @@
   visibility: hidden;
 }
 
-.sidebar-project-card {
+.ui.list.issue-sidebar-project-cards > .item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-block);
+}
+
+.ui.list.issue-sidebar-project-cards > .item.sidebar-project-card {
+  flex-direction: column;
+  align-items: flex-start;
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
-  margin-top: var(--gap-block);
   padding: 8px;
 }
 

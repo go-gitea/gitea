@@ -46,10 +46,10 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		searchOpt.MilestoneIDs = opts.MilestoneIDs
 	}
 
-	if opts.ProjectID > 0 {
-		searchOpt.ProjectID = optional.Some(opts.ProjectID)
-	} else if opts.ProjectID == db.NoConditionID { // FIXME: this is inconsistent from other places
-		searchOpt.ProjectID = optional.Some[int64](0) // Those issues with no project(projectid==0)
+	if len(opts.ProjectIDs) == 1 && opts.ProjectIDs[0] == db.NoConditionID {
+		searchOpt.NoProjectOnly = true
+	} else {
+		searchOpt.ProjectIDs = opts.ProjectIDs
 	}
 
 	searchOpt.AssigneeID = opts.AssigneeID
@@ -65,7 +65,6 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		return nil
 	}
 
-	searchOpt.ProjectColumnID = convertID(opts.ProjectColumnID)
 	searchOpt.PosterID = opts.PosterID
 	searchOpt.MentionID = convertID(opts.MentionedID)
 	searchOpt.ReviewedID = convertID(opts.ReviewedID)

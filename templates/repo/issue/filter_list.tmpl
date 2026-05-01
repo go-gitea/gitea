@@ -1,4 +1,8 @@
-{{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" $.ProjectID "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
+{{$projectIDs := $.ProjectIDs}}
+{{$projectIDsQuery := SliceUtils.JoinInt64 $projectIDs}}
+{{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" $projectIDsQuery "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
+{{$showAllProjects := not $projectIDs}}
+{{$showNoProjectSelected := and (eq (len $projectIDs) 1) (eq (index $projectIDs 0) -1)}}
 
 {{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
 
@@ -12,26 +16,28 @@
 {{end}}
 
 <!-- Project -->
-<div class="item ui dropdown jump {{if not (or .OpenProjects .ClosedProjects)}}disabled{{end}}">
+<div class="item ui dropdown jump project-filter {{if not (or .OpenProjects .ClosedProjects)}}disabled{{end}}">
 	<span class="text">
 		{{ctx.Locale.Tr "repo.issues.filter_project"}}
 	</span>
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu">
+	<div class="menu flex-items-menu">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-search" 16}}</i>
 			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_project"}}">
 		</div>
-		<a class="{{if not .ProjectID}}active selected {{end}}item" href="{{QueryBuild $queryLink "project" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_project_all"}}</a>
-		<a class="{{if eq .ProjectID -1}}active selected {{end}}item" href="{{QueryBuild $queryLink "project" -1}}">{{ctx.Locale.Tr "repo.issues.filter_project_none"}}</a>
+		<a class="item {{if $showAllProjects}}selected{{end}}" href="{{QueryBuild $queryLink "project" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_project_all"}}</a>
+		<a class="item {{if $showNoProjectSelected}}selected{{end}}" href="{{QueryBuild $queryLink "project" -1}}">{{ctx.Locale.Tr "repo.issues.filter_project_none"}}</a>
 		{{if .OpenProjects}}
 			<div class="divider"></div>
 			<div class="header">
 				{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
 			</div>
-			{{range .OpenProjects}}
-				<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item tw-flex" href="{{QueryBuild $queryLink "project" .ID}}">
-					{{svg .IconName 18 "tw-mr-2 tw-shrink-0"}}<span class="gt-ellipsis">{{.Title}}</span>
+			{{range $project := .OpenProjects}}
+				{{$toggle := SliceUtils.JoinToggleIDs $projectIDs $project.ID}}
+				{{/* FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet. If the support comes, here it should use "&project=${toggle.ToggledIDs}" */}}
+				<a class="item {{if $toggle.IsIncluded}}selected{{end}}" href="{{QueryBuild $queryLink "project" $project.ID}}">
+					{{svg $project.IconName}}<span class="gt-ellipsis">{{$project.Title}}</span>
 				</a>
 			{{end}}
 		{{end}}
@@ -40,9 +46,11 @@
 			<div class="header">
 				{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}
 			</div>
-			{{range .ClosedProjects}}
-				<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{QueryBuild $queryLink "project" .ID}}">
-					{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
+			{{range $project := .ClosedProjects}}
+				{{$toggle := SliceUtils.JoinToggleIDs $projectIDs $project.ID}}
+				{{/* FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet. If the support comes, here it should use "&project=${toggle.ToggledIDs}" */}}
+				<a class="item {{if $toggle.IsIncluded}}selected{{end}}" href="{{QueryBuild $queryLink "project" $project.ID}}">
+					{{svg $project.IconName}}<span class="gt-ellipsis">{{$project.Title}}</span>
 				</a>
 			{{end}}
 		{{end}}

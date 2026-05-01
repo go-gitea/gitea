@@ -15,6 +15,8 @@ on:
         value: ${{ jobs.detect.outputs.templates }}
       docker:
         value: ${{ jobs.detect.outputs.docker }}
+      dockerfile:
+        value: ${{ jobs.detect.outputs.dockerfile }}
       swagger:
         value: ${{ jobs.detect.outputs.swagger }}
       yaml:
@@ -24,12 +26,13 @@ on:
       e2e:
         value: ${{ jobs.detect.outputs.e2e }}
 
+permissions:
+  contents: read
+
 jobs:
   detect:
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    permissions:
-      contents: read
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
@@ -37,6 +40,7 @@ jobs:
       actions: ${{ steps.changes.outputs.actions }}
       templates: ${{ steps.changes.outputs.templates }}
       docker: ${{ steps.changes.outputs.docker }}
+      dockerfile: ${{ steps.changes.outputs.dockerfile }}
       swagger: ${{ steps.changes.outputs.swagger }}
       yaml: ${{ steps.changes.outputs.yaml }}
       json: ${{ steps.changes.outputs.json }}
@@ -93,6 +97,10 @@ jobs:
               - "Dockerfile.rootless"
               - "docker/**"
               - "Makefile"
+
+            dockerfile:
+                - "Dockerfile"
+                - "Dockerfile.rootless"
 
             swagger:
               - "templates/swagger/v1_json.tmpl"
