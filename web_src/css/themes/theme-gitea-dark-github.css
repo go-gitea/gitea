@@ -1,38 +1,62 @@
-/* --- GitHub-like darker overrides --- */
+gitea-theme-meta-info {
+  --theme-display-name: "GitHub Dark";
+  --theme-color-scheme: "dark";
+}
+
 :root {
-  /* deeper base backgrounds */
+  --is-dark-theme: true;
+
+  /* GitHub dark primary */
+  --color-primary: #2f81f7;
+  --color-primary-hover: #1f6feb;
+  --color-primary-active: #1158c7;
+  --color-primary-contrast: #ffffff;
+
+  --color-primary-dark-1: #388bfd;
+  --color-primary-dark-2: #58a6ff;
+  --color-primary-dark-3: #79c0ff;
+  --color-primary-dark-4: #a5d6ff;
+  --color-primary-dark-5: #c9e6ff;
+
+  --color-primary-light-1: #1f6feb;
+  --color-primary-light-2: #1158c7;
+  --color-primary-light-3: #0d419d;
+  --color-primary-light-4: #0c2d6b;
+  --color-primary-light-5: #051d4d;
+
+  --color-primary-alpha-10: #2f81f719;
+  --color-primary-alpha-20: #2f81f733;
+  --color-primary-alpha-30: #2f81f74d;
+  --color-primary-alpha-40: #2f81f766;
+  --color-primary-alpha-50: #2f81f780;
+
+  /* backgrounds */
   --color-body: #0d1117;
   --color-box-header: #161b22;
-  --color-box-body: #0d1117;
-  --color-box-body-highlight: #161b22;
+  --color-box-body: #161b22;
+  --color-box-body-highlight: #1c2128;
 
-  /* cards / panels */
-  --color-card: #0d1117;
-  --color-menu: #161b22;
-  --color-code-bg: #0d1117;
-
-  /* navigation */
-  --color-nav-bg: #010409;
+  --color-nav-bg: #161b22;
   --color-secondary-nav-bg: #0d1117;
-  --color-nav-hover-bg: #161b22;
+  --color-nav-hover-bg: #21262d;
 
-  /* inputs */
-  --color-input-background: #0d1117;
+  --color-menu: #161b22;
+  --color-card: #161b22;
+  --color-code-bg: #0d1117;
+  --color-console-bg: #0d1117;
+
+  /* borders */
+  --color-secondary: #30363d;
+  --color-secondary-dark-1: #3d444d;
+  --color-secondary-dark-2: #484f58;
+  --color-secondary-light-1: #21262d;
+  --color-secondary-light-2: #1c2128;
+
   --color-input-border: #30363d;
-  --color-input-toggle-background: #21262d;
+  --color-light-border: #30363d;
+  --color-console-border: #30363d;
 
-  /* borders & separators */
-  --color-secondary: #21262d;
-  --color-secondary-bg: #161b22;
-  --color-secondary-light-1: #161b22;
-  --color-secondary-light-2: #0d1117;
-
-  /* hover / active */
-  --color-hover: #30363d33;
-  --color-hover-opaque: #161b22;
-  --color-active: #30363d55;
-
-  /* text — GitHub-like */
+  /* text */
   --color-text-dark: #f0f6fc;
   --color-text: #c9d1d9;
   --color-text-light: #8b949e;
@@ -40,45 +64,78 @@
   --color-text-light-2: #6e7681;
   --color-text-light-3: #484f58;
 
-  /* buttons */
-  --color-button: #21262d;
-  --color-expand-button: #21262d;
-
-  /* subtle UI */
-  --color-timeline: #30363d;
+  --color-nav-text: #c9d1d9;
   --color-placeholder-text: #6e7681;
-  --color-label-bg: #30363d;
-  --color-label-hover-bg: #484f58;
-  --color-label-active-bg: #6e7681;
 
-  /* shadows (flatter modern look) */
-  --color-shadow: #00000055;
+  /* inputs/buttons */
+  --color-input-background: #0d1117;
+  --color-button: #21262d;
+  --color-secondary-button: #21262d;
+  --color-secondary-hover: #30363d;
+  --color-secondary-active: #3d444d;
+
+  /* hover states */
+  --color-hover: #30363d66;
+  --color-hover-opaque: #21262d;
+  --color-active: #484f5866;
+
+  /* timeline */
+  --color-timeline: #30363d;
+
+  /* labels */
+  --color-label-bg: #1f6feb33;
+  --color-label-hover-bg: #1f6feb55;
+  --color-label-active-bg: #1f6feb88;
+  --color-label-text: #c9d1d9;
+
+  /* alerts */
+  --color-success-text: #3fb950;
+  --color-success-bg: #132a1f;
+  --color-success-border: #238636;
+
+  --color-warning-text: #d29922;
+  --color-warning-bg: #2d2100;
+  --color-warning-border: #9e6a03;
+
+  --color-error-text: #f85149;
+  --color-error-bg: #2d1117;
+  --color-error-border: #da3633;
+
+  --color-info-text: #58a6ff;
+  --color-info-bg: #0c2d6b;
+  --color-info-border: #1f6feb;
+
+  /* diffs */
+  --color-diff-added-fg: #3fb950;
+  --color-diff-added-row-bg: #132a1f;
+  --color-diff-added-row-border: #238636;
+  --color-diff-added-word-bg: #1f4428;
+
+  --color-diff-removed-fg: #f85149;
+  --color-diff-removed-row-bg: #2d1117;
+  --color-diff-removed-row-border: #da3633;
+  --color-diff-removed-word-bg: #462c32;
+
+  /* syntax highlighting */
+  --color-syntax-keyword: #ff7b72;
+  --color-syntax-string: #a5d6ff;
+  --color-syntax-number: #79c0ff;
+  --color-syntax-comment: #8b949e;
+  --color-syntax-name: #d2a8ff;
+  --color-syntax-type: #ffa657;
+  --color-syntax-function: #d2a8ff;
+  --color-syntax-variable: #ffa657;
+  --color-syntax-text: #c9d1d9;
+  --color-syntax-link: #58a6ff;
+
+  /* misc */
+  --color-shadow: #00000066;
   --color-shadow-opaque: #000000;
+  --color-overlay-backdrop: #00000080;
 
-  /* markup / tables */
-  --color-markup-table-row: #161b22;
-  --color-markup-code-block: #161b22;
-  --color-markup-code-inline: #21262d;
+  --color-accent: #2f81f7;
+  --color-small-accent: #1f6feb;
 
-  /* console */
-  --color-console-bg: #0d1117;
-  --color-console-border: #30363d;
-  --color-console-hover-bg: #161b22;
-  --color-console-active-bg: #21262d;
-
-  /* diff colors (GitHub-like) */
-  --color-diff-added-row-bg: #0f2a1d;
-  --color-diff-added-row-border: #1f6f4a;
-  --color-diff-removed-row-bg: #2d0f12;
-  --color-diff-removed-row-border: #8b2a2f;
-
-  /* accent remains your blue */
-  --color-accent: #4183c4;
-  --color-small-accent: #254f77;
-
-  /* tooltip */
-  --color-tooltip-bg: #010409f0;
-
-  /* overlays */
-  --color-overlay-backdrop: #000000cc;
+  accent-color: var(--color-accent);
+  color-scheme: dark;
 }
