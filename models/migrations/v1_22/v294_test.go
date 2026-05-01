@@ -6,7 +6,7 @@ package v1_22
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm/schemas"
@@ -20,7 +20,7 @@ func Test_AddUniqueIndexForProjectIssue(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(ProjectIssue))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ProjectIssue))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
