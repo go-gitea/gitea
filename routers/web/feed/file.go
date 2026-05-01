@@ -4,6 +4,7 @@
 package feed
 
 import (
+	"html"
 	"strings"
 	"time"
 
@@ -44,6 +45,7 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 	}
 
 	for _, commit := range commits {
+		message := html.EscapeString(commit.Message())
 		feed.Items = append(feed.Items, &feeds.Item{
 			Id:    commit.ID.String(),
 			Title: strings.TrimSpace(strings.Split(commit.Message(), "\n")[0]),
@@ -52,8 +54,8 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 				Name:  commit.Author.Name,
 				Email: commit.Author.Email,
 			},
-			Description: commit.Message(),
-			Content:     commit.Message(),
+			Description: message,
+			Content:     message,
 			Created:     commit.Committer.When,
 		})
 	}

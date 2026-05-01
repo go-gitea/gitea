@@ -4,6 +4,7 @@
 package feed
 
 import (
+	"html"
 	"strings"
 	"time"
 
@@ -37,6 +38,7 @@ func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType stri
 	}
 
 	for _, commit := range commits {
+		message := html.EscapeString(commit.Message())
 		feed.Items = append(feed.Items, &feeds.Item{
 			Id:    commit.ID.String(),
 			Title: strings.TrimSpace(strings.Split(commit.Message(), "\n")[0]),
@@ -45,8 +47,8 @@ func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType stri
 				Name:  commit.Author.Name,
 				Email: commit.Author.Email,
 			},
-			Description: commit.Message(),
-			Content:     commit.Message(),
+			Description: message,
+			Content:     message,
 			Created:     commit.Committer.When,
 		})
 	}
