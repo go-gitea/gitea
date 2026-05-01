@@ -21,6 +21,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
@@ -37,6 +38,8 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	feed_service "code.gitea.io/gitea/services/feed"
 	"code.gitea.io/gitea/services/issue"
+	"code.gitea.io/gitea/services/migrations"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -628,7 +631,11 @@ func Edit(ctx *context.APIContext) {
 		}
 	}
 
-	if opts.MirrorInterval != nil || opts.EnablePrune != nil {
+	if opts.MirrorInterval != nil ||
+		opts.EnablePrune != nil ||
+		opts.MirrorUsername != nil ||
+		opts.MirrorPassword != nil ||
+		opts.MirrorToken != nil {
 		if err := updateMirror(ctx, opts); err != nil {
 			return
 		}
@@ -1057,6 +1064,57 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 	if opts.EnablePrune != nil {
 		mirror.EnablePrune = *opts.EnablePrune
 		log.Trace("Repository %s Mirror[%d] Set EnablePrune: %t", repo.FullName(), mirror.ID, mirror.EnablePrune)
+	}
+
+	authUpdateRequested := opts.MirrorPassword != nil || opts.MirrorToken != nil || opts.MirrorUsername != nil
+	if authUpdateRequested {
+		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, repo, mirror.GetRemoteName())
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return err
+		}
+
+		authUsername := ""
+		if opts.MirrorUsername != nil {
+			authUsername = *opts.MirrorUsername
+		} else if remoteURL.User != nil {
+			authUsername = remoteURL.User.Username()
+		}
+
+		authPassword := ""
+		authToken := ""
+		if opts.MirrorPassword != nil {
+			authPassword = *opts.MirrorPassword
+		}
+		if opts.MirrorToken != nil {
+			authToken = *opts.MirrorToken
+		}
+
+		if opts.MirrorPassword == nil && opts.MirrorToken == nil && remoteURL.User != nil && (authUsername == "" || authUsername == remoteURL.User.Username()) {
+			authPassword, _ = remoteURL.User.Password()
+		}
+
+		if authToken != "" {
+			authPassword = authToken
+		}
+
+		composedAddress, err := git.ParseRemoteAddr(repo.OriginalURL, authUsername, authPassword)
+		if err == nil {
+			err = migrations.IsMigrateURLAllowed(composedAddress, ctx.Doer)
+		}
+		if err != nil {
+			handleRemoteAddrError(ctx, err)
+			return err
+		}
+
+		if err := mirror_service.UpdateAddress(ctx, mirror, composedAddress); err != nil {
+			ctx.APIErrorInternal(err)
+			return err
+		}
+
+		if sanitized, err := util.SanitizeURL(repo.OriginalURL); err == nil {
+			mirror.RemoteAddress = sanitized
+		}
 	}
 
 	// finally update the mirror in the DB
