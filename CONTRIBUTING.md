@@ -195,12 +195,14 @@ PR titles must follow the [Conventional Commits](https://www.conventionalcommits
 type(scope)!: subject
 ```
 
+The allowed types are `build`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, and `test`. The generic `chore` type is intentionally not accepted; pick a more descriptive type instead.
+
 Examples:
 
 ```text
 fix(web): prevent avatar upload crash on empty file
 feat(api): add pagination to repo hooks list
-chore(ci): lint PR titles with commitlint
+ci(workflows): lint PR titles with commitlint
 ```
 
 Keep this summary up-to-date as the PR evolves. \

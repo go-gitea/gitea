@@ -30,7 +30,6 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
-      - run: make deps-frontend
-      - run: pnpm run lint:pr-title
+      - run: make deps-frontend lint-pr-title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
