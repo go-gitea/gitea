@@ -7,18 +7,17 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
-    permissions:
-      contents: read
 
   lint-backend:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -35,93 +34,40 @@ jobs:
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
 
-  lint-templates:
-    if: needs.files-changed.outputs.templates == 'true'
+  lint-on-demand:
     needs: files-changed
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-      - run: uv python install 3.14
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-      - run: make deps-py
-      - run: make deps-frontend
-      - run: make lint-templates
-
-  lint-yaml:
-    if: needs.files-changed.outputs.yaml == 'true'
-    needs: files-changed
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-      - run: uv python install 3.14
-      - run: make deps-py
-      - run: make lint-yaml
-
-  lint-json:
-    if: needs.files-changed.outputs.json == 'true'
-    needs: files-changed
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-      - run: make deps-frontend
-      - run: make lint-json
-
-  lint-swagger:
-    if: needs.files-changed.outputs.swagger == 'true'
-    needs: files-changed
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-      - run: make deps-frontend
-      - run: make lint-swagger
-
-  lint-spell:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true' || needs.files-changed.outputs.actions == 'true' || needs.files-changed.outputs.docs == 'true' || needs.files-changed.outputs.templates == 'true'
-    needs: files-changed
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
       - run: make lint-spell
+
+      - if: needs.files-changed.outputs.templates == 'true' || needs.files-changed.outputs.yaml == 'true'
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+      - if: needs.files-changed.outputs.templates == 'true' || needs.files-changed.outputs.yaml == 'true'
+        run: uv python install 3.14 && make deps-py lint-templates lint-yaml
+
+      - if: needs.files-changed.outputs.docs == 'true' || needs.files-changed.outputs.swagger == 'true' || needs.files-changed.outputs.json == 'true'
+        run: make deps-frontend lint-md lint-swagger lint-json
+
+      - if: needs.files-changed.outputs.actions == 'true'
+        run: make lint-actions
 
   lint-go-windows:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -144,8 +90,6 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -166,8 +110,6 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -186,8 +128,6 @@ jobs:
     if: needs.files-changed.outputs.frontend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
@@ -206,8 +146,6 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -217,13 +155,12 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          cache-name: backend
-      # no frontend build here as backend should be able to build
-      # even without any frontend files
-      - run: make deps-backend
-      - run: go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
+          cache-name: compliance-backend
+      - run: make deps-backend generate-go
+      # no frontend build here as backend should be able to build, even without any frontend files
+      # CGO is not used when cross-compile, so these steps also test if the code is compatible with CGO disabled
       - name: build-backend-arm64
-        run: make backend # test cross compile
+        run: go build -o gitea_linux_arm64
         env:
           GOOS: linux
           GOARCH: arm64
@@ -235,38 +172,7 @@ jobs:
           GOARCH: amd64
           TAGS: bindata gogit
       - name: build-backend-386
-        run: go build -o gitea_linux_386 # test if compatible with 32 bit
+        run: go build -o gitea_linux_386
         env:
           GOOS: linux
           GOARCH: 386
-
-  docs:
-    if: needs.files-changed.outputs.docs == 'true' || needs.files-changed.outputs.actions == 'true'
-    needs: files-changed
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-      - run: make deps-frontend
-      - run: make lint-md
-
-  actions:
-    if: needs.files-changed.outputs.actions == 'true' || needs.files-changed.outputs.actions == 'true'
-    needs: files-changed
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-      - run: make lint-actions

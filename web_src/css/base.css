@@ -897,7 +897,7 @@ table th[data-sortt-desc] .svg {
   display: flex;
   align-items: center;
   gap: var(--gap-block);
-  min-width: 0;
+  max-width: 100%;
 }
 
 .flex-left-right > .ui.button,

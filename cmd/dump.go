@@ -203,8 +203,8 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 			}
 		}()
 
-		targetDBType := cmd.String("database")
-		if len(targetDBType) > 0 && targetDBType != setting.Database.Type.String() {
+		targetDBType := setting.DatabaseType(cmd.String("database"))
+		if targetDBType != "" && targetDBType != setting.Database.Type {
 			log.Info("Dumping database %s => %s...", setting.Database.Type, targetDBType)
 		} else {
 			log.Info("Dumping database...")
