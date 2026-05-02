@@ -83,7 +83,7 @@ func SetConsoleLogger(loggerName, writerName string, level Level) {
 		// Stderr must be true: this logger is installed early (app.Before), before subcommands
 		// like "dump" redirect logging to stderr. If set to false, log output goes to stdout and
 		// corrupts any command that writes data to stdout (e.g. "gitea dump --file -").
-		// It is inconsistent with the default console logger (which will be initialized later and use Stdout),
+		// It is inconsistent with the default console logger (which will be initialized later and might use Stdout by default),
 		// but there is no other way than this patch at the moment.
 		WriterOption: WriterConsoleOption{Stderr: true},
 	})
