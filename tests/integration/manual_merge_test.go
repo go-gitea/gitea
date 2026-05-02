@@ -106,12 +106,13 @@ func TestManualMergeAutodetectMultiplePRs(t *testing.T) {
 			AutodetectManualMerge: new(true),
 		})(t)
 
-		// Create three branches from the default branch, each touching its own file,
-		// and open a PR for each of them targeting the default branch.
+		// Create three branches from the default branch, each adding its own file,
+		// and open a PR for each of them targeting the default branch. Each branch
+		// touches a distinct file so the sequential merges don't conflict.
 		branchNames := []string{"fix-1", "fix-2", "fix-3"}
 		apiPulls := make([]api.PullRequest, len(branchNames))
 		for i, branchName := range branchNames {
-			testEditFileToNewBranch(t, session2, user2.Name, repoName, defaultBranch, branchName,
+			testCreateFile(t, session2, user2.Name, repoName, defaultBranch, branchName,
 				fmt.Sprintf("file-%d.txt", i+1), fmt.Sprintf("manual merge multi-PR test %d", i+1))
 
 			pr, err := doAPICreatePullRequest(
