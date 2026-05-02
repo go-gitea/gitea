@@ -339,17 +339,22 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 
 	objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 
-	// Get the commit from BaseBranch where the pull request got merged
+	// Get the commit from BaseBranch where the pull request got merged.
+	// When several PRs targeting the same base are merged in a single push,
+	// rev-list returns one line per merge commit on the ancestry path, so we
+	// must take only the first hash. Passing a multi-line value to GetCommit
+	// breaks the repository's cached "git cat-file --batch-command" process.
 	mergeCommit, _, err := gitrepo.RunCmdString(ctx, pr.BaseRepo,
-		gitcmd.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse").
+		gitcmd.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse", "--max-count=1").
 			AddDynamicArguments(prHeadCommitID+".."+pr.BaseBranch))
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
-	} else if len(mergeCommit) < objectFormat.FullLength() {
+	}
+	mergeCommit = strings.TrimSpace(mergeCommit)
+	if len(mergeCommit) < objectFormat.FullLength() {
 		// PR was maybe fast-forwarded, so just use last commit of PR
 		mergeCommit = prHeadCommitID
 	}
-	mergeCommit = strings.TrimSpace(mergeCommit)
 
 	commit, err := gitRepo.GetCommit(mergeCommit)
 	if err != nil {
