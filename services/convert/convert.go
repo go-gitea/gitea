@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -227,18 +226,14 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 	}
 }
 
-// ToActionTask convert an actions_model.ActionTask to an api.ActionTask
+// ToActionTask convert a actions_model.ActionTask to an api.ActionTask
 func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.ActionTask, error) {
-	// don't need Steps here, only need to load job and its run
-	if err := t.LoadJob(ctx); err != nil {
+	if err := t.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
-	if err := t.Job.LoadRun(ctx); err != nil {
-		return nil, err
-	}
-	if err := t.Job.Run.LoadRepo(ctx); err != nil {
-		return nil, err
-	}
+
+	url := strings.TrimSuffix(setting.AppURL, "/") + t.GetRunLink()
+
 	return &api.ActionTask{
 		ID:           t.ID,
 		Name:         t.Job.Name,
@@ -249,25 +244,23 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 		DisplayTitle: t.Job.Run.Title,
 		Status:       t.Status.String(),
 		WorkflowID:   t.Job.Run.WorkflowID,
-		URL:          httplib.MakeAbsoluteURL(ctx, t.Job.Run.Link()),
+		URL:          url,
 		CreatedAt:    t.Created.AsLocalTime(),
 		UpdatedAt:    t.Updated.AsLocalTime(),
 		RunStartedAt: t.Started.AsLocalTime(),
 	}, nil
 }
 
-func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (_ *api.ActionWorkflowRun, err error) {
-	if err := run.LoadRepo(ctx); err != nil {
-		return nil, err
-	}
-	if err := run.LoadTriggerUser(ctx); err != nil {
+func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (*api.ActionWorkflowRun, error) {
+	if err := run.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
 
 	if attempt == nil {
-		attempt, _, err = run.GetLatestAttempt(ctx)
-		if err != nil {
+		if latestAttempt, has, err := run.GetLatestAttempt(ctx); err != nil {
 			return nil, err
+		} else if has {
+			attempt = latestAttempt
 		}
 	}
 
@@ -283,7 +276,6 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 	var previousAttemptURL *string
 
 	if attempt != nil {
-		attempt.Run = run
 		if err := attempt.LoadAttributes(ctx); err != nil {
 			return nil, err
 		}
@@ -293,17 +285,19 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		completedAt = attempt.Stopped.AsLocalTime()
 		triggerUser = attempt.TriggerUser
 		if attempt.Attempt > 1 {
-			previousAttemptURL = new(fmt.Sprintf("%s/actions/runs/%d/attempts/%d", run.Repo.APIURL(ctx), run.ID, attempt.Attempt-1))
+			url := fmt.Sprintf("%s/actions/runs/%d/attempts/%d", repo.APIURL(), run.ID, attempt.Attempt-1)
+			previousAttemptURL = &url
 		}
 	}
 
 	return &api.ActionWorkflowRun{
 		ID:                 run.ID,
-		URL:                fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID),
+		URL:                fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
 		PreviousAttemptURL: previousAttemptURL,
-		HTMLURL:            run.HTMLURL(ctx),
+		HTMLURL:            run.HTMLURL(),
 		RunNumber:          run.Index,
 		RunAttempt:         runAttempt,
+		CreatedAt:          run.Created.AsLocalTime(),
 		StartedAt:          startedAt,
 		CompletedAt:        completedAt,
 		Event:              run.TriggerEvent,
@@ -313,7 +307,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		Status:             status,
 		Conclusion:         conclusion,
 		Path:               fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
-		Repository:         ToRepo(ctx, run.Repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Repository:         ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		TriggerActor:       ToUser(ctx, triggerUser, nil),
 		Actor:              ToUser(ctx, actor, nil),
 	}, nil
@@ -411,11 +405,11 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 	return &api.ActionWorkflowJob{
 		ID: job.ID,
 		// missing api endpoint for this location
-		URL:     fmt.Sprintf("%s/actions/jobs/%d", repo.APIURL(ctx), job.ID),
-		HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(ctx), job.ID),
+		URL:     fmt.Sprintf("%s/actions/jobs/%d", repo.APIURL(), job.ID),
+		HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), job.ID),
 		RunID:   job.RunID,
 		// Missing api endpoint for this location, artifacts are available under a nested url
-		RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(ctx), job.RunID),
+		RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), job.RunID),
 		Name:        job.Name,
 		Labels:      job.RunsOn,
 		RunAttempt:  job.Attempt,
@@ -715,7 +709,7 @@ func ToOrganization(ctx context.Context, org *organization.Organization) *api.Or
 		Description:               org.Description,
 		Website:                   org.Website,
 		Location:                  org.Location,
-		Visibility:                api.UserVisibility(org.Visibility.String()),
+		Visibility:                org.Visibility.String(),
 		RepoAdminChangeTeamAccess: org.RepoAdminChangeTeamAccess,
 	}
 }
@@ -744,7 +738,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			Description:             t.Description,
 			IncludesAllRepositories: t.IncludesAllRepositories,
 			CanCreateOrgRepo:        t.CanCreateOrgRepo,
-			Permission:              api.AccessLevelName(t.AccessMode.ToString()),
+			Permission:              t.AccessMode.ToString(),
 			Units:                   t.GetUnitNames(),
 			UnitsMap:                t.GetUnitsMap(),
 		}

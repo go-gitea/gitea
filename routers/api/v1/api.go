@@ -1261,8 +1261,17 @@ func Routes() *web.Router {
 							m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
 							m.Post("/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowRun)
 							m.Post("/rerun-failed-jobs", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunFailedWorkflowRun)
-							m.Get("/jobs", repo.ListWorkflowRunJobs)
-							m.Post("/jobs/{job_id}/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowJob)
+							m.Post("/cancel", reqToken(), reqRepoWriter(unit.TypeActions), repo.CancelWorkflowRun)
+							m.Post("/approve", reqToken(), reqRepoWriter(unit.TypeActions), repo.ApproveWorkflowRun)
+							m.Group("/jobs", func() {
+								m.Get("", repo.ListWorkflowRunJobs)
+								m.Get("/{job_id}/logs", repo.GetWorkflowJobLogs)
+								m.Post("/{job_id}/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowJob)
+							})
+							m.Group("/logs", func() {
+								m.Get("", repo.GetWorkflowRunLogs)
+								m.Post("", reqToken(), reqRepoReader(unit.TypeActions), repo.GetWorkflowRunLogsStream)
+							})
 							m.Get("/artifacts", repo.GetArtifactsOfRun)
 						})
 					})
@@ -1272,7 +1281,7 @@ func Routes() *web.Router {
 						m.Delete("", reqRepoWriter(unit.TypeActions), repo.DeleteArtifact)
 					})
 					m.Get("/artifacts/{artifact_id}/zip", repo.DownloadArtifact)
-				}, reqRepoReader(unit.TypeActions))
+				}, reqRepoReader(unit.TypeActions), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
