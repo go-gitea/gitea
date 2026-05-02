@@ -256,7 +256,7 @@ func initLoggerByName(manager *log.LoggerManager, rootCfg ConfigProvider, logger
 }
 
 func InitSQLLoggersForCli(level log.Level) {
-	log.SetConsoleLogger("xorm", "console", level)
+	log.SetupStderrLogger("xorm", "console", level)
 }
 
 func IsAccessLogEnabled() bool {
