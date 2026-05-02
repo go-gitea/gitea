@@ -10,19 +10,19 @@
 		</h4>
 		<div class="ui attached segment orgs">
 			{{if .Orgs}}
-				<div class="flex-list">
+				<div class="flex-divided-list items-with-main">
 					{{range .Orgs}}
-					<div class="flex-item">
-						<div class="flex-item-leading">
+					<div class="item">
+						<div class="item-leading">
 							{{ctx.AvatarUtils.Avatar . 28 "mini"}}
 						</div>
-						<div class="flex-item-main">
-							<div class="flex-item-title">{{template "shared/user/name" .}}</div>
+						<div class="item-main">
+							<div class="item-title">{{template "shared/user/name" .}}</div>
 							<div class="flex-text-body">
 								{{.Description}}
 							</div>
 						</div>
-						<div class="flex-item-trailing">
+						<div class="item-trailing">
 							<form>
 								<button class="ui red button delete-button" data-modal-id="leave-organization"
 												data-url="{{.OrganisationLink}}/members/action/leave" data-datauid="{{$.SignedUser.ID}}"
