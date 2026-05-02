@@ -343,22 +343,14 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	// When several PRs targeting the same base are merged in a single push,
 	// rev-list returns one line per merge commit on the ancestry path; we
 	// only want the first one (the oldest, with --reverse, i.e. the merge
-	// commit that actually introduced this PR). Passing a multi-line value
-	// to GetCommit breaks the repository's cached "git cat-file
-	// --batch-command" process. Note: combining --max-count=1 with --reverse
-	// is wrong — git applies --max-count during the natural newest-to-oldest
-	// traversal, so it would yield the newest merge — so we take the first
-	// line in Go instead.
+	// commit that actually introduced this PR).
 	mergeCommit, _, err := gitrepo.RunCmdString(ctx, pr.BaseRepo,
 		gitcmd.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse").
 			AddDynamicArguments(prHeadCommitID+".."+pr.BaseBranch))
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
 	}
-	mergeCommit = strings.TrimSpace(mergeCommit)
-	if idx := strings.IndexByte(mergeCommit, '\n'); idx >= 0 {
-		mergeCommit = mergeCommit[:idx]
-	}
+	mergeCommit, _, _ = strings.Cut(strings.TrimSpace(mergeCommit), "\n")
 	if len(mergeCommit) < objectFormat.FullLength() {
 		// PR was maybe fast-forwarded, so just use last commit of PR
 		mergeCommit = prHeadCommitID
