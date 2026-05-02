@@ -68,7 +68,7 @@ func (b *Basic) parseAuthBasic(req *http.Request) (ret struct{ authToken, uname,
 
 // VerifyAuthToken only the access token provided as parameter, used by other auth methods that want to reuse access token verification logic
 func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore, authToken string) (*user_model.User, error) {
-	// get oauth2 token's user's ID
+	// get oauth2 token's user's ID and access scope
 	accessTokenScope, uid := GetOAuthAccessTokenScopeAndUserID(req.Context(), authToken)
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
