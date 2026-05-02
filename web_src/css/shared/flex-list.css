@@ -1,29 +1,50 @@
-.flex-divided-list.items-with-main {
+/* can be used to replace "ui relaxed list" or "tw-flex tw-flex-col tw-gap-xxx" when we need more flexible layout */
+.flex-relaxed-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-block);
+}
+
+.flex-relaxed-list > .divider {
+  margin: 0;
+}
+
+/* items have dividers between them, the dividers align with items (use parent padding) */
+.flex-divided-list {
   list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-divided-list > .item {
+  padding: 10px 0;
+}
+
+.flex-divided-list > .item + .item {
+  border-top: 1px solid var(--color-secondary);
 }
 
 .items-with-main > .item {
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  padding: 10px 0;
 }
 
-.items-with-main > .item .flex-item-leading {
+.items-with-main > .item .item-leading {
   display: flex;
   align-items: flex-start;
 }
 
-.items-with-main > .item .flex-item-main {
+.items-with-main > .item .item-main {
   display: flex;
   flex-direction: column;
   gap: 0.25em;
   flex-grow: 1;
-  flex-basis: 60%; /* avoid wrapping the "flex-item-trailing" too aggressively */
+  flex-basis: 60%; /* avoid wrapping the "item-trailing" too aggressively */
   min-width: 0; /* make the "text truncate" work, otherwise the flex axis is not limited and the text just overflows */
 }
 
-.items-with-main > .item .flex-item-header {
+.items-with-main > .item .item-header {
   display: flex;
   gap: .25rem;
   justify-content: space-between;
@@ -34,7 +55,7 @@
   color: var(--color-primary) !important;
 }
 
-.items-with-main > .item .flex-item-trailing {
+.items-with-main > .item .item-trailing {
   display: flex;
   gap: 0.5rem;
   align-items: center;
@@ -43,7 +64,7 @@
   justify-content: end;
 }
 
-.items-with-main > .item .flex-item-title {
+.items-with-main > .item .item-title {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
@@ -58,12 +79,12 @@
   min-width: 0;
 }
 
-.items-with-main > .item .flex-item-title a {
+.items-with-main > .item .item-title a {
   color: var(--color-text);
   overflow-wrap: anywhere;
 }
 
-.items-with-main > .item .flex-item-body {
+.items-with-main > .item .item-body {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -72,30 +93,40 @@
   overflow-wrap: anywhere;
 }
 
-.items-with-main > .item .flex-item-body a {
+.items-with-main > .item .item-body a {
   color: inherit;
   overflow-wrap: anywhere;
 }
 
-.items-with-main > .item + .item {
-  border-top: 1px solid var(--color-secondary);
+/* special rules to make the list work with existing UI elements */
+.container-segmented > .flex-divided-list > .item {
+  padding-left: 1em;
+  padding-right: 1em;
 }
 
-.items-with-main.flex-space-fitted > .item:first-child,
-.ui.segment > .items-with-main > .item:first-child {
+.ui.segment.fitted > .flex-divided-list > .item {
+  padding: 1em;
+}
+
+.container-padded > .flex-divided-list > .item:first-child,
+.ui.segment:not(.fitted) > .flex-divided-list > .item:first-child {
   padding-top: 0;
 }
 
-.items-with-main.flex-space-fitted > .item:last-child,
-.ui.segment > .items-with-main > .item:last-child {
+.container-padded > .flex-divided-list > .item:last-child,
+.ui.segment:not(.fitted) > .flex-divided-list > .item:last-child {
   padding-bottom: 0;
 }
 
 /* If there is a divider besides the flex-list, some padding/margin are not needs */
-.divider + .items-with-main > .item:first-child {
+.divider + .flex-divided-list > .item:first-child {
   padding-top: 0;
 }
 
-.items-with-main + .divider {
+.flex-divided-list + .divider {
   margin-top: 0;
+}
+
+.container-padded > .flex-divided-list + .divider {
+  margin-top: 10px;
 }

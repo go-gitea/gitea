@@ -34,15 +34,15 @@
 					<div class="flex-divided-list items-with-main">
 						{{range $.TeamRepos}}
 							<div class="item tw-items-center">
-								<div class="flex-item-leading">
+								<div class="item-leading">
 									{{template "repo/icon" .}}
 								</div>
-								<div class="flex-item-main">
-									<a class="flex-item-title tw-text-primary" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
+								<div class="item-main">
+									<a class="item-title tw-text-primary" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
 										{{$.Org.Name}}/{{.Name}}
 									</a>
 								</div>
-								<div class="flex-item-trailing">
+								<div class="item-trailing">
 									{{if $canAddRemove}}
 										<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/remove">
 											<button type="submit" class="ui red small button" name="repoid" value="{{.ID}}">{{ctx.Locale.Tr "remove"}}</button>

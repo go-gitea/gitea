@@ -22,9 +22,9 @@
 	{{range .PackageDescriptors}}
 	<div class="flex-divided-list items-with-main">
 		<div class="item">
-			<div class="flex-item-main">
-				<a class="flex-item-title" href="{{.VersionWebLink}}">{{.Version.LowerVersion}}</a>
-				<div class="flex-item-body">
+			<div class="item-main">
+				<a class="item-title" href="{{.VersionWebLink}}">{{.Version.LowerVersion}}</a>
+				<div class="item-body">
 					{{ctx.Locale.Tr "packages.published_by" (DateUtils.TimeSince .Version.CreatedUnix) .Creator.HomeLink .Creator.GetDisplayName}}
 				</div>
 			</div>

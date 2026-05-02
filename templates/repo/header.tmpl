@@ -5,10 +5,10 @@
 			{{/* left part */}}
 			<div class="flex-text-block">
 				{{template "repo/icon" .}}
-				<div class="flex-text-block flex-wrap tw-text-18">
+				<div class="flex-text-block tw-flex-wrap tw-text-18">
 					<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
 				</div>
-				<div class="flex-text-block flex-wrap">
+				<div class="flex-text-block tw-flex-wrap">
 					{{if .IsArchived}}
 						<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 						<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.archived"}}">{{svg "octicon-archive" 18}}</div>
