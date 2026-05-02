@@ -16,7 +16,7 @@ const branchesHTML = `
     <div class="item" data-id="1">
       <div class="drag-handle"></div>
     </div>
-    <div class="flex-item tw-items-center item" data-id="2">
+    <div class="item" data-id="2">
       <div class="drag-handle"></div>
     </div>
     <div class="item" data-id="3">

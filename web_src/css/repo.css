@@ -1,3 +1,12 @@
+.repo-header {
+  margin: 1em 0 0.5em;
+}
+
+.repo-header .secondary-info {
+  margin-top: 0.5rem;
+  font-size: 12px;
+}
+
 .repository .data-table .line-num,
 .repository .diff-file-box .file-body.file-code .lines-num,
 .repository .diff-file-box .code-diff tbody tr .lines-type-marker {

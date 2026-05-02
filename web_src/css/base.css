@@ -879,6 +879,10 @@ table th[data-sortt-desc] .svg {
   gap: var(--gap-block);
 }
 
+.flex-relaxed-list > .divider {
+  margin: 0;
+}
+
 /* this is useful to make a left-right (e.g.: title .... operations) layout with default gap, and it wrap for small widths */
 .flex-left-right {
   display: flex;
