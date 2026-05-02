@@ -26,7 +26,7 @@
     "@github/paste-markdown": "1.5.3",
     "@github/text-expander-element": "2.9.4",
     "@lezer/highlight": "1.2.3",
-    "@mcaptcha/vanilla-glue": "0.1.0-alpha-3",
+    "@mcaptcha/vanilla-glue": "0.1.0-rc2",
     "@mermaid-js/layout-elk": "0.2.1",
     "@primer/octicons": "19.24.1",
     "@replit/codemirror-indentation-markers": "6.5.3",
