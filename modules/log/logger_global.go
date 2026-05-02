@@ -80,7 +80,10 @@ func SetConsoleLogger(loggerName, writerName string, level Level) {
 		Level:        level,
 		Flags:        FlagsFromBits(LstdFlags),
 		Colorize:     CanColorStdout,
-		WriterOption: WriterConsoleOption{},
+		// Stderr must be true: this logger is installed early (app.Before), before subcommands
+		// like "dump" redirect logging to stderr. If set to false, log output goes to stdout and
+		// corrupts any command that writes data to stdout (e.g. "gitea dump --file -").
+		WriterOption: WriterConsoleOption{Stderr: true},
 	})
 	GetManager().GetLogger(loggerName).ReplaceAllWriters(writer)
 }
