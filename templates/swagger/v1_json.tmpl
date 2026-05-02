@@ -5451,6 +5451,55 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runs/{run}/approve": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Approve a workflow run that requires approval",
+        "operationId": "approveWorkflowRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "run ID",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/runs/{run}/artifacts": {
       "get": {
         "produces": [
@@ -5627,6 +5676,55 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runs/{run}/cancel": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Cancel a workflow run and its jobs",
+        "operationId": "cancelWorkflowRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "run ID",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/runs/{run}/jobs": {
       "get": {
         "produces": [
@@ -5706,6 +5804,56 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runs/{run}/jobs/{job_id}/logs": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Download job logs as plain text",
+        "operationId": "getWorkflowJobLogs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "run ID",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the job",
+            "name": "job_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job logs"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/runs/{run}/jobs/{job_id}/rerun": {
       "post": {
         "produces": [
@@ -5764,6 +5912,164 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/logs": {
+      "get": {
+        "produces": [
+          "application/zip"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Download workflow run logs as archive",
+        "operationId": "getWorkflowRunLogs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "run ID",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logs archive"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get streaming workflow run logs with cursor support",
+        "operationId": "getWorkflowRunLogsStream",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "run ID",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "job index (0-based), defaults to first job",
+            "name": "job",
+            "in": "query"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "logCursors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "cursor": {
+                        "type": "integer"
+                      },
+                      "expanded": {
+                        "type": "boolean"
+                      },
+                      "step": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Streaming logs",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "stepsLog": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "cursor": {
+                        "type": "integer"
+                      },
+                      "lines": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "index": {
+                              "type": "integer"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "timestamp": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      },
+                      "started": {
+                        "type": "integer"
+                      },
+                      "step": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -22126,6 +22432,11 @@
           "type": "string",
           "x-go-name": "Conclusion"
         },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
         "display_title": {
           "type": "string",
           "x-go-name": "DisplayTitle"
@@ -22359,14 +22670,12 @@
       "type": "object",
       "properties": {
         "permission": {
-          "description": "Permission level to grant the collaborator\nread RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "type": "string",
           "enum": [
             "read",
             "write",
             "admin"
           ],
-          "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "x-go-name": "Permission"
         }
       },
@@ -23937,15 +24246,6 @@
           "format": "int64",
           "x-go-name": "Milestone"
         },
-        "projects": {
-          "description": "list of project ids",
-          "type": "array",
-          "items": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "x-go-name": "Projects"
-        },
         "ref": {
           "type": "string",
           "x-go-name": "Ref"
@@ -24138,14 +24438,13 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "description": "possible values are `public` (default), `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "possible values are `public` (default), `limited` or `private`",
           "type": "string",
           "enum": [
             "public",
             "limited",
             "private"
           ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -24430,13 +24729,12 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
-          "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
+          "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)",
           "type": "string",
           "enum": [
             "sha1",
             "sha256"
           ],
-          "x-go-enum-desc": "sha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
           "x-go-name": "ObjectFormatName"
         },
         "private": {
@@ -24589,7 +24887,6 @@
             "write",
             "admin"
           ],
-          "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "x-go-name": "Permission"
         },
         "units": {
@@ -24684,14 +24981,8 @@
           "x-go-name": "Username"
         },
         "visibility": {
-          "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "User visibility level: public, limited, or private",
           "type": "string",
-          "enum": [
-            "public",
-            "limited",
-            "private"
-          ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         }
       },
@@ -25221,15 +25512,6 @@
           "format": "int64",
           "x-go-name": "Milestone"
         },
-        "projects": {
-          "description": "list of project ids to set (replaces existing projects)",
-          "type": "array",
-          "items": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "x-go-name": "Projects"
-        },
         "ref": {
           "type": "string",
           "x-go-name": "Ref"
@@ -25343,14 +25625,13 @@
           "x-go-name": "RepoAdminChangeTeamAccess"
         },
         "visibility": {
-          "description": "possible values are `public`, `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "possible values are `public`, `limited` or `private`",
           "type": "string",
           "enum": [
             "public",
             "limited",
             "private"
           ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -25634,21 +25915,6 @@
           "type": "string",
           "x-go-name": "MirrorInterval"
         },
-        "mirror_password": {
-          "description": "authentication password for the remote repository (mirrors)",
-          "type": "string",
-          "x-go-name": "MirrorPassword"
-        },
-        "mirror_token": {
-          "description": "authentication token for the remote repository (mirrors)",
-          "type": "string",
-          "x-go-name": "MirrorToken"
-        },
-        "mirror_username": {
-          "description": "authentication username for the remote repository (mirrors)",
-          "type": "string",
-          "x-go-name": "MirrorUsername"
-        },
         "name": {
           "description": "name of the repository",
           "type": "string",
@@ -25739,7 +26005,6 @@
             "write",
             "admin"
           ],
-          "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "x-go-name": "Permission"
         },
         "units": {
@@ -25870,14 +26135,8 @@
           "x-go-name": "SourceID"
         },
         "visibility": {
-          "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "User visibility level: public, limited, or private",
           "type": "string",
-          "enum": [
-            "public",
-            "limited",
-            "private"
-          ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -26778,13 +27037,6 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "PinOrder"
-        },
-        "projects": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Project"
-          },
-          "x-go-name": "Projects"
         },
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
@@ -27835,14 +28087,8 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "description": "The visibility level of the organization (public, limited, private)\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "The visibility level of the organization (public, limited, private)",
           "type": "string",
-          "enum": [
-            "public",
-            "limited",
-            "private"
-          ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -28134,67 +28380,6 @@
         "push": {
           "type": "boolean",
           "x-go-name": "Push"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "Project": {
-      "description": "Project represents a project",
-      "type": "object",
-      "properties": {
-        "closed_at": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-name": "Closed"
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-name": "Created"
-        },
-        "creator_id": {
-          "description": "CreatorID is the user who created the project",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "CreatorID"
-        },
-        "description": {
-          "description": "Description provides details about the project",
-          "type": "string",
-          "x-go-name": "Description"
-        },
-        "id": {
-          "description": "ID is the unique identifier for the project",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ID"
-        },
-        "is_closed": {
-          "description": "IsClosed indicates if the project is closed",
-          "type": "boolean",
-          "x-go-name": "IsClosed"
-        },
-        "owner_id": {
-          "description": "OwnerID is the owner of the project (for org-level projects)",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "OwnerID"
-        },
-        "repo_id": {
-          "description": "RepoID is the repository this project belongs to (for repo-level projects)",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "RepoID"
-        },
-        "title": {
-          "description": "Title is the title of the project",
-          "type": "string",
-          "x-go-name": "Title"
-        },
-        "updated_at": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-name": "Updated"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -28887,16 +29072,8 @@
       "type": "object",
       "properties": {
         "permission": {
-          "description": "Permission level of the collaborator\nnone AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
+          "description": "Permission level of the collaborator",
           "type": "string",
-          "enum": [
-            "none",
-            "read",
-            "write",
-            "admin",
-            "owner"
-          ],
-          "x-go-enum-desc": "none AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
           "x-go-name": "Permission"
         },
         "role_name": {
@@ -29186,13 +29363,12 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
-          "description": "ObjectFormatName of the underlying git repository\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
+          "description": "ObjectFormatName of the underlying git repository",
           "type": "string",
           "enum": [
             "sha1",
             "sha256"
           ],
-          "x-go-enum-desc": "sha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
           "x-go-name": "ObjectFormatName"
         },
         "open_issues_count": {
@@ -29566,7 +29742,6 @@
             "admin",
             "owner"
           ],
-          "x-go-enum-desc": "none AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
           "x-go-name": "Permission"
         },
         "units": {
@@ -30113,14 +30288,8 @@
           "x-go-name": "StarredRepos"
         },
         "visibility": {
-          "description": "User visibility level option: public, limited, private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "User visibility level option: public, limited, private",
           "type": "string",
-          "enum": [
-            "public",
-            "limited",
-            "private"
-          ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
