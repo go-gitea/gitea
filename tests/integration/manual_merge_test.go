@@ -30,6 +30,7 @@ func TestManualMergeAutodetect(t *testing.T) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
+		// Create a repo owned by user2
 		repoName := "manual-merge-autodetect"
 		defaultBranch := setting.Repository.DefaultBranch
 		user2Ctx := NewAPITestContext(t, user2.Name, repoName, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
@@ -45,7 +46,7 @@ func TestManualMergeAutodetect(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: repoName})
 		user1Ctx := NewAPITestContext(t, user1.Name, repoName, auth_model.AccessTokenScopeWriteRepository)
 
-		// multiple PRs should be able to be closed together if a commit contains their branch commits.
+		// multiple PRs should be able to be closed together if a push contains their branch commits.
 		branchNames := []string{"fix-1", "fix-2"}
 		apiPulls := make([]api.PullRequest, len(branchNames))
 		for i, branchName := range branchNames {
@@ -60,7 +61,7 @@ func TestManualMergeAutodetect(t *testing.T) {
 
 		// user1 clones, then merges every branch sequentially, then pushes once.
 		// The first merge fast-forwards; the rest produce real merge commits,
-		// which generates multiple commits for "git ancestry-path --merges --reverse".
+		// which generates multiple commits for "git rev-list --ancestry-path --merges ...".
 		dstPath := t.TempDir()
 		u, _ := url.Parse(giteaURL.String())
 		u.Path = fmt.Sprintf("%s/%s.git", user2.Name, repoName)
