@@ -77,9 +77,9 @@ func IsLoggerEnabled(name string) bool {
 
 func SetConsoleLogger(loggerName, writerName string, level Level) {
 	writer := NewEventWriterConsole(writerName, WriterMode{
-		Level:        level,
-		Flags:        FlagsFromBits(LstdFlags),
-		Colorize:     CanColorStdout,
+		Level:    level,
+		Flags:    FlagsFromBits(LstdFlags),
+		Colorize: CanColorStderr,
 		// Stderr must be true: this logger is installed early (app.Before), before subcommands
 		// like "dump" redirect logging to stderr. If set to false, log output goes to stdout and
 		// corrupts any command that writes data to stdout (e.g. "gitea dump --file -").
