@@ -43,7 +43,7 @@ func init() {
 
 	// FIXME: the logger shouldn't be initialized here, the app entry should initialize the logger
 	// By default set this logger at Info - we'll change it later, but we need to start with something.
-	log.SetupStderrLogger(log.DEFAULT, "console", log.INFO)
+	log.SetupStderrLogger(log.DEFAULT, "console-stderr", log.INFO)
 }
 
 // IsRunUserMatchCurrentUser returns false if configured run user does not match
