@@ -202,7 +202,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
 	for i := range runs {
 		// TODO: load run attempts in batch
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], nil)
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i].Repo, runs[i], nil)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
