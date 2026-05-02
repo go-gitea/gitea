@@ -350,12 +350,14 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
 	}
-	mergeCommit, _, _ = strings.Cut(strings.TrimSpace(mergeCommit), "\n")
+
+	// only use the latest commit as merge commit if the output contains multiple commits
+	mergeCommit = strings.TrimSpace(mergeCommit)
+	mergeCommit, _, _ = strings.Cut(mergeCommit, "\n")
 	if len(mergeCommit) < objectFormat.FullLength() {
 		// PR was maybe fast-forwarded, so just use last commit of PR
 		mergeCommit = prHeadCommitID
 	}
-
 	commit, err := gitRepo.GetCommit(mergeCommit)
 	if err != nil {
 		return nil, fmt.Errorf("GetMergeCommit[%s]: %w", mergeCommit, err)
