@@ -1,7 +1,7 @@
-<div id="issue-list" class="flex-list">
+<div id="issue-list" class="flex-divided-list items-with-main">
 	{{$approvalCounts := .ApprovalCounts}}
-	{{range .Issues}}
-		<div class="flex-item">
+	  {{range .Issues}}
+		<div class="item">
 
 			<div class="flex-item-leading">
 				{{/* using some tw helpers is the only way to align the checkbox */}}

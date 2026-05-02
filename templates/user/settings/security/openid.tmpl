@@ -2,12 +2,12 @@
 	{{ctx.Locale.Tr "settings.manage_openid"}}
 </h4>
 <div class="ui attached segment">
-	<div class="flex-list">
-		<div class="flex-item">
+	<div class="flex-divided-list items-with-main">
+		<div class="item">
 			{{ctx.Locale.Tr "settings.openid_desc"}}
 		</div>
 		{{range .OpenIDs}}
-			<div class="flex-item tw-items-center">
+			<div class="item tw-items-center">
 				<div class="flex-item-leading">
 					{{svg "fontawesome-openid" 20}}
 				</div>

@@ -42,9 +42,9 @@
 				</form>
 			</div>
 			{{if .Deploykeys}}
-				<div class="flex-list">
+				<div class="flex-divided-list items-with-main">
 					{{range .Deploykeys}}
-						<div class="flex-item">
+						<div class="item">
 							<div class="flex-item-leading">
 								<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
 							</div>

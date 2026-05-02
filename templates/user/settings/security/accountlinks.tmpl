@@ -21,12 +21,12 @@
 </h4>
 
 <div class="ui attached segment">
-	<div class="flex-list">
-		<div class="flex-item">
+	<div class="flex-divided-list items-with-main">
+		<div class="item">
 			{{ctx.Locale.Tr "settings.manage_account_links_desc"}}
 		</div>
 		{{range $loginSource, $provider := .AccountLinks}}
-			<div class="flex-item">
+			<div class="item">
 				{{$providerData := index $.OAuth2Providers $loginSource.Name}}
 				<div class="flex-item-leading">
 					{{$providerData.IconHTML 20}}

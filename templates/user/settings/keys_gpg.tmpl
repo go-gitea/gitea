@@ -38,15 +38,15 @@
 			</button>
 		</form>
 	</div>
-	<div class="flex-list">
-		<div class="flex-item">
+	<div class="flex-divided-list items-with-main">
+		<div class="item">
 			<p>
 				{{ctx.Locale.Tr "settings.gpg_desc"}}<br>
 				{{ctx.Locale.Tr "settings.gpg_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/about-commit-signature-verification#gpg-commit-signature-verification"}}
 			</p>
 		</div>
 		{{range .GPGKeys}}
-			<div class="flex-item">
+			<div class="item">
 				<div class="flex-item-leading">
 					<span class="{{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}tw-text-green{{end}}">{{svg "octicon-key" 32}}</span>
 				</div>

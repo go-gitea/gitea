@@ -10,9 +10,9 @@
 		</h4>
 		<div class="ui attached segment orgs">
 			{{if .Orgs}}
-				<div class="flex-list">
+				<div class="flex-divided-list items-with-main">
 					{{range .Orgs}}
-					<div class="flex-item">
+					<div class="item">
 						<div class="flex-item-leading">
 							{{ctx.AvatarUtils.Avatar . 28 "mini"}}
 						</div>

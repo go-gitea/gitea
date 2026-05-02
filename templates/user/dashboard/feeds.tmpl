@@ -1,6 +1,6 @@
-<div id="activity-feed" class="flex-list" data-ref-issue-container>
-	{{range .Feeds}}
-		<div class="flex-item">
+<div id="activity-feed" class="flex-divided-list items-with-main" data-ref-issue-container>
+ 	{{range .Feeds}}
+ 		<div class="item">
 			<div class="flex-item-leading">
 				{{ctx.AvatarUtils.AvatarByAction .}}
 			</div>

@@ -62,9 +62,9 @@
 	</h4>
 	{{if len .CollaborativeOwners}}
 	<div class="ui attached segment">
-		<div class="flex-list">
+		<div class="flex-divided-list items-with-main">
 			{{range .CollaborativeOwners}}
-			<div class="flex-item tw-items-center">
+			<div class="item tw-items-center">
 				<div class="flex-item-leading">
 					<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 				</div>

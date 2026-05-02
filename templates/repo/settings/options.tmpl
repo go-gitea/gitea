@@ -761,9 +761,9 @@
 			{{ctx.Locale.Tr "repo.settings.danger_zone"}}
 		</h4>
 		<div class="ui attached error danger segment">
-			<div class="flex-list">
+ 			<div class="flex-divided-list items-with-main">
 				{{if not .Repository.IsFork}}
-					<div class="flex-item tw-items-center">
+					<div class="item tw-items-center">
 						<div class="flex-item-main">
 							<div class="flex-item-title">{{ctx.Locale.Tr "repo.visibility"}}</div>
 							{{if .Repository.IsPrivate}}
@@ -784,7 +784,7 @@
 					</div>
 				{{end}}
 				{{if .Repository.IsMirror}}
-					<div class="flex-item">
+					<div class="item">
 						<div class="flex-item-main">
 							<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.convert"}}</div>
 							<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.convert_desc"}}</div>
@@ -795,7 +795,7 @@
 					</div>
 				{{end}}
 				{{if .CanConvertFork}}
-					<div class="flex-item">
+					<div class="item">
 						<div class="flex-item-main">
 							<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.convert_fork"}}</div>
 							<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.convert_fork_desc"}}</div>
@@ -805,7 +805,7 @@
 						</div>
 					</div>
 				{{end}}
-				<div class="flex-item">
+				<div class="item">
 					<div class="flex-item-main">
 						<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.transfer"}}</div>
 						<div class="flex-item-body">
@@ -828,7 +828,7 @@
 					</div>
 				</div>
 				{{if .Permission.CanRead ctx.Consts.RepoUnitTypeWiki}}
-					<div class="flex-item">
+					<div class="item">
 						<div class="flex-item-main">
 							<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.wiki_delete"}}</div>
 							<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.wiki_delete_desc"}}</div>
@@ -838,7 +838,7 @@
 						</div>
 					</div>
 				{{end}}
-				<div class="flex-item">
+				<div class="item">
 					<div class="flex-item-main">
 						<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.delete"}}</div>
 						<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.delete_desc"}}</div>
@@ -848,7 +848,7 @@
 					</div>
 				</div>
 				{{if not .Repository.IsMirror}}
-					<div class="flex-item tw-items-center">
+					<div class="item tw-items-center">
 						<div class="flex-item-main">
 							{{if .Repository.IsArchived}}
 								<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.unarchive.header"}}</div>

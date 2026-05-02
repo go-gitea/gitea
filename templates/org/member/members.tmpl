@@ -11,10 +11,10 @@
 			</div>
 			<div class="divider"></div>
 		{{end}}
-		<div class="flex-list">
+		<div class="flex-divided-list items-with-main">
 			{{range .Members}}
 				{{$isPublic := index $.MembersIsPublicMember .ID}}
-				<div class="flex-item {{if $.PublicOnly}}tw-items-center{{end}}">
+				<div class="item {{if $.PublicOnly}}tw-items-center{{end}}">
 					<div class="flex-item-leading">
 						<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
 					</div>

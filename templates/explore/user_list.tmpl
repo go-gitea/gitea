@@ -1,6 +1,6 @@
-<div class="flex-list">
+<div class="flex-divided-list items-with-main">
 	{{range .Users}}
-		<div class="flex-item tw-items-center">
+		<div class="item tw-items-center">
 			<div class="flex-item-leading">
 				{{ctx.AvatarUtils.Avatar . 48}}
 			</div>
@@ -26,7 +26,7 @@
 			</div>
 		</div>
 	{{else}}
-		<div class="flex-item">
+		<div class="item">
 			{{ctx.Locale.Tr "search.no_results"}}
 		</div>
 	{{end}}

@@ -5,9 +5,9 @@
 		</h4>
 		{{if .Collaborators}}
 		<div class="ui attached segment">
-			<div class="flex-list">
+			<div class="flex-divided-list items-with-main">
 				{{range .Collaborators}}
-					<div class="flex-item tw-items-center">
+					<div class="item tw-items-center">
 						<div class="flex-item-leading">
 							<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 						</div>
@@ -54,9 +54,9 @@
 			{{$allowedToChangeTeams := (or (.Org.RepoAdminChangeTeamAccess) (.Permission.IsOwner))}}
 			{{if .Teams}}
 			<div class="ui attached segment">
-				<div class="flex-list">
+				<div class="flex-divided-list items-with-main">
 					{{range $t, $team := .Teams}}
-						<div class="flex-item">
+						<div class="item">
 							<div class="flex-item-main">
 								<a class="flex-item-title tw-text-primary" href="{{AppSubUrl}}/org/{{$.OrgName|PathEscape}}/teams/{{.LowerName|PathEscape}}">
 									{{.Name}}
@@ -80,7 +80,7 @@
 								</div>
 								{{if or (eq .AccessMode 0) (eq .AccessMode 1) (eq .AccessMode 2)}}
 									{{$first := true}}
-									<div class="flex-item-body" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.change_team_permission_tip"}}">
+												<div class="flex-item-body" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.change_team_permission_tip"}}">
 										Units:
 										{{range $u, $unit := $.Units}}
 											{{- if and ($.Repo.UnitEnabled ctx $unit.Type) ($team.UnitEnabled ctx $unit.Type) -}}

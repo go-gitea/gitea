@@ -31,9 +31,9 @@
 					<div class="ui top attached segment">{{ctx.Locale.Tr "org.teams.all_repositories"}}</div>
 				{{end}}
 				<div class="ui {{if not $hasTopAttachedSegment}}top{{end}} attached segment">
-					<div class="flex-list">
+					<div class="flex-divided-list items-with-main">
 						{{range $.TeamRepos}}
-							<div class="flex-item tw-items-center">
+							<div class="item tw-items-center">
 								<div class="flex-item-leading">
 									{{template "repo/icon" .}}
 								</div>
@@ -51,7 +51,7 @@
 								</div>
 							</div>
 						{{else}}
-							<div class="flex-item">
+							<div class="item">
 								<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "org.teams.repos.none"}}</span>
 							</div>
 						{{end}}

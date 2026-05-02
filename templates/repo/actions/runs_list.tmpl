@@ -1,4 +1,4 @@
-<div class="flex-list run-list">
+<div class="flex-divided-list items-with-main run-list">
 	{{if not .Runs}}
 	<div class="empty-placeholder">
 		{{svg "octicon-no-entry" 48}}
@@ -6,7 +6,7 @@
 	</div>
 	{{end}}
 	{{range $run := .Runs}}
-		<div class="flex-item tw-items-center">
+		<div class="item tw-items-center">
 			<div class="flex-item-leading">
 				{{template "repo/actions/status" (dict "status" $run.Status.String)}}
 			</div>

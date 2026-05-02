@@ -22,9 +22,9 @@
 	{{ctx.Locale.Tr "user.block.list"}}
 </h4>
 <div class="ui attached segment">
-	<div class="flex-list">
+	<div class="flex-divided-list items-with-main">
 		{{range .UserBlocks}}
-			<div class="flex-item">
+			<div class="item">
 				<div class="flex-item-leading">
 					{{ctx.AvatarUtils.Avatar .Blockee}}
 				</div>

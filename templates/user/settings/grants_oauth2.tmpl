@@ -2,12 +2,12 @@
 	{{ctx.Locale.Tr "settings.authorized_oauth2_applications"}}
 </h4>
 <div class="ui attached segment">
-	<div class="flex-list">
-		<div class="flex-item">
+	<div class="flex-divided-list items-with-main">
+		<div class="item">
 			{{ctx.Locale.Tr "settings.authorized_oauth2_applications_description"}}
 		</div>
 		{{range .Grants}}
-			<div class="flex-item">
+			<div class="item">
 				<div class="flex-item-leading">
 					{{svg "octicon-key" 32}}
 				</div>
