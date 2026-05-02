@@ -1243,7 +1243,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, nil)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1292,7 +1292,7 @@ func GetWorkflowRunAttempt(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, attempt)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, attempt)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1347,7 +1347,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, nil)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
