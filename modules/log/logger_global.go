@@ -88,7 +88,8 @@ func SetupStderrLogger(loggerName, writerName string, level Level) {
 		//
 		// It is inconsistent with the web server's default console logger from config
 		// (which will be initialized later and use Stdout by default), but there is no other way at the moment:
-		// and many existing users depend on such behavior to collect web logs (e.g. fail2ban).
+		// many existing users depend on such behavior to collect web logs (e.g. fail2ban).
+		//
 		// Maybe need to refactor the logger system again in the future.
 		WriterOption: WriterConsoleOption{Stderr: true},
 	})
