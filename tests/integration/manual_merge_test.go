@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -141,8 +142,17 @@ func TestManualMergeAutodetectMultiplePRs(t *testing.T) {
 			WithDir(dstPath).RunStdString(t.Context())
 		require.NoError(t, err)
 
-		for _, branchName := range branchNames {
+		// Capture each branch's expected merge commit hash from the local clone,
+		// so we can assert that Gitea recorded the correct merge commit per PR
+		// (and not just "some merge commit" — see the regression where every PR
+		// was attributed to the last merge in the push).
+		expectedMergeCommits := make([]string, len(branchNames))
+		for i, branchName := range branchNames {
 			doGitMerge(dstPath, "--no-ff", "-m", "merge "+branchName, "origin/"+branchName)(t)
+			head, _, cmdErr := gitcmd.NewCommand("rev-parse", "HEAD").
+				WithDir(dstPath).RunStdString(t.Context())
+			require.NoError(t, cmdErr)
+			expectedMergeCommits[i] = strings.TrimSpace(head)
 		}
 		doGitPushTestRepository(dstPath, "origin", defaultBranch)(t)
 
@@ -165,6 +175,8 @@ func TestManualMergeAutodetectMultiplePRs(t *testing.T) {
 				"PR %d (%s) should have ManuallyMerged status", i+1, branchNames[i])
 			assert.Equalf(t, user1.ID, pr.MergerID,
 				"PR %d (%s) merger should be the pusher", i+1, branchNames[i])
+			assert.Equalf(t, expectedMergeCommits[i], pr.MergedCommitID,
+				"PR %d (%s) should be attributed to its own merge commit, not another PR's", i+1, branchNames[i])
 		}
 	})
 }
