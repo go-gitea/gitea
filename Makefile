@@ -38,8 +38,11 @@ ifneq ($(findstring test-,$(MAKECMDGOALS)),)
 endif
 
 TAGS ?=
-ifeq ($(GITEA_TEST_DATABASE),sqlite)
-	TAGS += sqlite sqlite_unlock_notify
+ifeq ($(CI)$(TAGS),)
+	# if no CI, no TAGS, add default sqlite tags for local development
+	ifeq ($(GITEA_TEST_DATABASE),sqlite)
+		TAGS += sqlite sqlite_unlock_notify
+	endif
 endif
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
