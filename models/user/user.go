@@ -7,6 +7,7 @@ package user
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"html/template"
 	"mime"
@@ -19,8 +20,6 @@ import (
 	"sync"
 	"time"
 	"unicode"
-
-	_ "image/jpeg" // Needed for jpeg support
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -38,6 +37,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
+
+	_ "image/jpeg" // Needed for jpeg support
 
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
@@ -524,10 +525,7 @@ const SaltByteLength = 16
 
 // GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
-	rBytes, err := util.CryptoRandomBytes(SaltByteLength)
-	if err != nil {
-		return "", err
-	}
+	rBytes := util.CryptoRandomBytes(SaltByteLength)
 	// Returns a 32-byte long string.
 	return hex.EncodeToString(rBytes), nil
 }
@@ -617,6 +615,7 @@ var (
 		"sitemap.xml",   // search engine sitemap
 		"ssh_info",      // agit info
 		"swagger.v1.json",
+		"openapi3.v1.json",
 
 		"ghost",         // reserved name for deleted users (id: -1)
 		"gitea-actions", // gitea builtin user (id: -2)
@@ -1016,17 +1015,22 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, err
 }
 
-// GetPossibleUserByID returns the user if id > 0 or returns system user if id < 0
-func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
+// GetPossibleUserByID returns the possible user and its ID. If the user  doesn't exist, it returns Ghost user
+func GetPossibleUserByID(ctx context.Context, id int64) (_ int64, u *User, err error) {
 	if id < 0 {
 		if newFunc, ok := globalVars().systemUserNewFuncs[id]; ok {
-			return newFunc(), nil
+			u = newFunc()
 		}
-		return nil, ErrUserNotExist{UID: id}
-	} else if id == 0 {
-		return nil, ErrUserNotExist{}
 	}
-	return GetUserByID(ctx, id)
+	if u == nil {
+		u, err = GetUserByID(ctx, id)
+		if errors.Is(err, util.ErrNotExist) {
+			u = NewGhostUser()
+		} else if err != nil {
+			return 0, nil, err
+		}
+	}
+	return u.ID, u, nil
 }
 
 // GetPossibleUserByIDs returns the users if id > 0 or returns system users if id < 0

@@ -6,12 +6,10 @@ package templates
 
 import (
 	"fmt"
-	"html"
 	"html/template"
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
@@ -32,13 +30,12 @@ func newFuncMapWebPage() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// html/template related functions
-		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
-		"Iif":          iif,
-		"Eval":         evalTokens,
-		"HTMLFormat":   htmlFormat,
-		"QueryEscape":  queryEscape,
-		"QueryBuild":   QueryBuild,
-		"SanitizeHTML": SanitizeHTML,
+		"dict":        dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
+		"Iif":         iif,
+		"Eval":        evalTokens,
+		"HTMLFormat":  htmlFormat,
+		"QueryEscape": queryEscape,
+		"QueryBuild":  QueryBuild,
 
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,
@@ -70,8 +67,7 @@ func newFuncMapWebPage() template.FuncMap {
 			return strconv.FormatInt(time.Since(startTime).Nanoseconds()/1e6, 10) + "ms"
 		},
 
-		"AssetURI":     public.AssetURI,
-		"ScriptImport": scriptImport,
+		"AssetURI": public.AssetURI,
 
 		// -----------------------------------------------------------------
 		// setting
@@ -146,9 +142,8 @@ func newFuncMapWebPage() template.FuncMap {
 	}
 }
 
-// SanitizeHTML sanitizes the input by default sanitization rules.
-func SanitizeHTML(s string) template.HTML {
-	return markup.Sanitize(s)
+func sanitizeHTML(msg string) template.HTML {
+	return markup.Sanitize(msg)
 }
 
 func htmlFormat(s any, args ...any) template.HTML {
@@ -291,31 +286,4 @@ func QueryBuild(a ...any) template.URL {
 		}
 	}
 	return template.URL(s)
-}
-
-var globalVars = sync.OnceValue(func() (ret struct {
-	scriptImportRemainingPart string
-},
-) {
-	// add onerror handler to alert users when the script fails to load:
-	// * for end users: there were many users reporting that "UI doesn't work", actually they made mistakes in their config
-	// * for developers: help them to remember to run "make watch-frontend" to build frontend assets
-	// the message will be directly put in the onerror JS code's string
-	onScriptErrorPrompt := `Please make sure the asset files can be accessed.`
-	if !setting.IsProd {
-		onScriptErrorPrompt += `\n\nFor development, run: make watch-frontend.`
-	}
-	onScriptErrorJS := fmt.Sprintf(`alert('Failed to load asset file from ' + this.src + '. %s')`, onScriptErrorPrompt)
-	ret.scriptImportRemainingPart = `onerror="` + html.EscapeString(onScriptErrorJS) + `"></script>`
-	return ret
-})
-
-func scriptImport(path string, typ ...string) template.HTML {
-	if len(typ) > 0 {
-		if typ[0] == "module" {
-			return template.HTML(`<script type="module" src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
-		}
-		panic("unsupported script type: " + typ[0])
-	}
-	return template.HTML(`<script src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
 }

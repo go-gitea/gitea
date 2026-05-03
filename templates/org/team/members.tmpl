@@ -21,18 +21,18 @@
 					</div>
 				{{end}}
 				<div class="ui{{if not .IsOrganizationOwner}} top{{end}} attached segment">
-					<div class="flex-list">
-						{{range .Team.Members}}
-							<div class="flex-item tw-items-center">
-								<div class="flex-item-leading">
+								<div class="flex-divided-list items-with-main">
+										{{range .Team.Members}}
+											<div class="item tw-items-center">
+								<div class="item-leading">
 									<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 								</div>
-								<div class="flex-item-main">
-									<div class="flex-item-title">
+								<div class="item-main">
+									<div class="item-title">
 										{{template "shared/user/name" .}}
 									</div>
 								</div>
-								<div class="flex-item-trailing">
+								<div class="item-trailing">
 									{{if and $.IsOrganizationOwner (not (and ($.Team.IsOwnerTeam) (eq (len $.Team.Members) 1)))}}
 										<form>
 											<button class="ui red button delete-button" data-modal-id="remove-team-member"
@@ -44,7 +44,7 @@
 								</div>
 							</div>
 						{{else}}
-							<div class="flex-item">
+							<div class="item">
 								<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "org.teams.members.none"}}</span>
 							</div>
 						{{end}}
@@ -53,13 +53,13 @@
 				{{if and .Invites $.IsOrganizationOwner}}
 				<h4 class="ui top attached header">{{ctx.Locale.Tr "org.teams.invite_team_member.list"}}</h4>
 				<div class="ui attached segment">
-					<div class="flex-list">
+					<div class="flex-divided-list items-with-main">
 						{{range .Invites}}
-							<div class="flex-item tw-items-center">
-								<div class="flex-item-main">
+							<div class="item tw-items-center">
+								<div class="item-main">
 									{{.Email}}
 								</div>
-								<div class="flex-item-trailing">
+								<div class="item-trailing">
 									<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
 										<input type="hidden" name="iid" value="{{.ID}}">
 										<button class="ui red button">{{ctx.Locale.Tr "org.members.remove"}}</button>

@@ -143,7 +143,7 @@ func DeleteCommitComment(ctx *context.Context) {
 		return
 	}
 
-	if comment.PosterID != ctx.Doer.ID && !ctx.Repo.IsAdmin() {
+	if comment.PosterID != ctx.Doer.ID && !ctx.Repo.Permission.IsAdmin() {
 		ctx.JSONError("permission denied")
 		return
 	}

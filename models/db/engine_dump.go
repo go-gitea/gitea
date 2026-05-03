@@ -3,10 +3,14 @@
 
 package db
 
-import "xorm.io/xorm/schemas"
+import (
+	"code.gitea.io/gitea/modules/setting"
+
+	"xorm.io/xorm/schemas"
+)
 
 // DumpDatabase dumps all data from database according the special database SQL syntax to file system.
-func DumpDatabase(filePath, dbType string) error {
+func DumpDatabase(filePath string, dbType setting.DatabaseType) error {
 	var tbs []*schemas.Table
 	for _, t := range registeredModels {
 		t, err := xormEngine.TableInfo(t)

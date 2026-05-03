@@ -17,6 +17,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -45,7 +46,7 @@ func MustEnableRepoProjects(ctx *context.Context) {
 
 	if ctx.Repo.Repository != nil {
 		projectsUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeProjects)
-		if !ctx.Repo.CanRead(unit.TypeProjects) || !projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
+		if !ctx.Repo.Permission.CanRead(unit.TypeProjects) || !projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
 			ctx.NotFound(nil)
 			return
 		}
@@ -447,18 +448,69 @@ func UpdateIssueProject(ctx *context.Context) {
 		return
 	}
 
-	projectID := ctx.FormInt64("id")
+	projectIDs := ctx.FormStringInt64s("id")
+	var failedIssues []int64
 	for _, issue := range issues {
-		if issue.Project != nil && issue.Project.ID == projectID {
-			continue
-		}
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, 0); err != nil {
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectIDs); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) {
+				failedIssues = append(failedIssues, issue.ID)
 				continue
 			}
 			ctx.ServerError("IssueAssignOrRemoveProject", err)
 			return
 		}
+	}
+
+	if len(failedIssues) > 0 {
+		log.Warn("Failed to assign projects to %d issues due to permission denied: %v", len(failedIssues), failedIssues)
+	}
+
+	ctx.JSONOK()
+}
+
+// UpdateIssueProjectColumn moves an issue to a different column within its project
+func UpdateIssueProjectColumn(ctx *context.Context) {
+	issue, err := issues_model.GetIssueByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("issue_id"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetIssueByID", issues_model.IsErrIssueNotExist, err)
+		return
+	}
+	column, err := project_model.GetColumn(ctx, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetColumn", project_model.IsErrProjectColumnNotExist, err)
+		return
+	}
+
+	if err := issue.LoadProjects(ctx); err != nil {
+		ctx.ServerError("LoadProjects", err)
+		return
+	}
+
+	issueProjects := issue.Projects
+
+	// it must make sure the requested column is in this issue's projects
+	var columnProject *project_model.Project
+	for _, project := range issueProjects {
+		if column.ProjectID == project.ID {
+			columnProject = project
+			break
+		}
+	}
+	if columnProject == nil {
+		ctx.NotFound(nil)
+		return
+	}
+
+	// append to the end of the target column so we don't collide with existing sorting values
+	newSorting, err := project_model.GetColumnIssueNextSorting(ctx, columnProject.ID, column.ID)
+	if err != nil {
+		ctx.ServerError("GetColumnIssueNextSorting", err)
+		return
+	}
+
+	if err := project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, map[int64]int64{newSorting: issue.ID}); err != nil {
+		ctx.ServerError("MoveIssuesOnProjectColumn", err)
+		return
 	}
 
 	ctx.JSONOK()
@@ -473,7 +525,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.Permission.IsOwner() && !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -520,7 +572,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 // AddColumnToProjectPost allows a new column to be added to a project.
 func AddColumnToProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.Permission.IsOwner() && !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -558,7 +610,7 @@ func checkProjectColumnChangePermissions(ctx *context.Context) (*project_model.P
 		return nil, nil
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.Permission.IsOwner() && !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -644,7 +696,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.Permission.IsOwner() && !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})

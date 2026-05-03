@@ -8,7 +8,7 @@
 					{{svg "octicon-sidebar-collapse" 20 "icon tw-hidden"}}
 					{{svg "octicon-sidebar-expand" 20 "icon tw-hidden"}}
 				</button>
-				<script>
+				<script nonce="{{ctx.CspScriptNonce}}">
 					// Default to true if unset
 					const diffTreeVisible = window.localUserSettings.getBoolean('diff_file_tree_visible', true);
 					const diffTreeBtn = document.querySelector('.diff-toggle-file-tree-button');
@@ -35,7 +35,7 @@
 			{{template "repo/diff/whitespace_dropdown" .}}
 			{{template "repo/diff/options_dropdown" .}}
 			{{if .PageIsPullFiles}}
-				<div id="diff-commit-select" data-merge-base="{{.MergeBase}}" data-issuelink="{{$.Issue.Link}}" data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}" data-filter_changes_by_commit="{{ctx.Locale.Tr "repo.pulls.filter_changes_by_commit"}}">
+				<div id="diff-commit-select" data-merge-base="{{$.CompareInfo.CompareBase}}" data-issuelink="{{$.Issue.Link}}" data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}" data-filter_changes_by_commit="{{ctx.Locale.Tr "repo.pulls.filter_changes_by_commit"}}">
 					{{/* the following will be replaced by vue component, but this avoids any loading artifacts till the vue component is initialized */}}
 					<div class="ui jump dropdown tiny basic button custom">
 						{{svg "octicon-git-commit"}}
@@ -62,7 +62,7 @@
 		{{if $showFileTree}}
 			{{$.FileIconPoolHTML}}
 			<div id="diff-file-tree" class="tw-hidden not-mobile"></div>
-			<script>
+			<script nonce="{{ctx.CspScriptNonce}}">
 				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('tw-hidden');
 			</script>
 		{{end}}
@@ -211,7 +211,7 @@
 
 				{{if .Diff.IsIncomplete}}
 					<div class="diff-file-box file-content tw-mt-2" id="diff-incomplete">
-						<h4 class="ui top attached header tw-font-normal tw-flex tw-items-center tw-justify-between">
+						<h4 class="ui top attached header tw-font-normal flex-left-right">
 							{{ctx.Locale.Tr "repo.diff.too_many_files"}}
 							<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
 						</h4>

@@ -1,0 +1,29 @@
+@import "swagger-render.css";
+
+body {
+  margin: 0;
+}
+
+.swagger-back-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.swagger-back-link:hover {
+  text-decoration: underline;
+}
+
+.swagger-back-link svg {
+  color: inherit;
+  fill: currentcolor;
+  margin-right: 0.5rem;
+}
+
+.swagger-spec-content {
+  display: none;
+}

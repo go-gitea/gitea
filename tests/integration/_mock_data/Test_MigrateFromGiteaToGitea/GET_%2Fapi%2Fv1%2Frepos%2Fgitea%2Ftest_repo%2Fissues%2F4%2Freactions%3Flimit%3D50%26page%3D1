@@ -1,0 +1,3 @@
+Content-Type: application/json
+
+[{"user":{"id":-1,"login":"Ghost","full_name":"","email":"","avatar_url":"","username":"Ghost"},"content":"gitea"},{"user":{"id":689,"login":"6543","full_name":"","email":"6543@obermui.de","avatar_url":"","username":"6543"},"content":"laugh"}]

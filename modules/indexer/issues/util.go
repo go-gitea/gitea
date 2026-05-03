@@ -87,14 +87,9 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		return nil, false, err
 	}
 
-	var projectID int64
-	if issue.Project != nil {
-		projectID = issue.Project.ID
-	}
-
-	projectColumnID, err := issue.ProjectColumnID(ctx)
-	if err != nil {
-		return nil, false, err
+	projectIDs := make([]int64, 0, len(issue.Projects))
+	for _, project := range issue.Projects {
+		projectIDs = append(projectIDs, project.ID)
 	}
 
 	if err := issue.Repo.LoadOwner(ctx); err != nil {
@@ -114,8 +109,8 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		LabelIDs:           labels,
 		NoLabel:            len(labels) == 0,
 		MilestoneID:        issue.MilestoneID,
-		ProjectID:          projectID,
-		ProjectColumnID:    projectColumnID,
+		ProjectIDs:         projectIDs,
+		NoProject:          len(projectIDs) == 0,
 		PosterID:           issue.PosterID,
 		AssigneeID:         issue.AssigneeID,
 		MentionIDs:         mentionIDs,
