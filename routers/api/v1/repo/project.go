@@ -6,6 +6,7 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
