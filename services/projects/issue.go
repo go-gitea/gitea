@@ -63,10 +63,11 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 				continue
 			}
 
-			projectColumnID, err := curIssue.ProjectColumnID(ctx)
+			projectColumnMap, err := curIssue.ProjectColumnMap(ctx)
 			if err != nil {
 				return err
 			}
+			projectColumnID := projectColumnMap[column.ProjectID]
 
 			if projectColumnID != column.ID {
 				// add timeline to issue
@@ -121,7 +122,7 @@ func LoadIssuesAssigneesForProject(ctx context.Context, issuesMap map[int64]issu
 // LoadIssuesFromProject load issues assigned to each project column inside the given project
 func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (results map[int64]issues_model.IssueList, _ error) {
 	issueList, err := issues_model.Issues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
-		o.ProjectID = project.ID
+		o.ProjectIDs = []int64{project.ID}
 		o.SortType = issues_model.SortTypeProjectColumnSorting
 	}))
 	if err != nil {
@@ -215,7 +216,7 @@ func LoadIssueNumbersForProject(ctx context.Context, project *project_model.Proj
 
 	// for user or org projects, we need to check access permissions
 	opts := issues_model.IssuesOptions{
-		ProjectID: project.ID,
+		ProjectIDs: []int64{project.ID},
 		Doer:      doer,
 		AllPublic: doer == nil,
 		Owner:     project.Owner,

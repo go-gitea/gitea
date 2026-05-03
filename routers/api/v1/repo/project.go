@@ -689,11 +689,10 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 	issuesOpts := &issues_model.IssuesOptions{
-		Paginator:       &listOptions,
-		RepoIDs:         []int64{ctx.Repo.Repository.ID},
-		ProjectID:       column.ProjectID,
-		ProjectColumnID: column.ID,
-		SortType:        issues_model.SortTypeProjectColumnSorting,
+		Paginator:  &listOptions,
+		RepoIDs:    []int64{ctx.Repo.Repository.ID},
+		ProjectIDs: []int64{column.ProjectID},
+		SortType:   issues_model.SortTypeProjectColumnSorting,
 	}
 
 	count, err := issues_model.CountIssues(ctx, issuesOpts)
@@ -853,7 +852,7 @@ func assignIssueToProjectColumn(ctx *context.APIContext, add bool) {
 		}
 		projectID = 0
 	}
-	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, column.ID); err != nil {
+	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, []int64{projectID}); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
