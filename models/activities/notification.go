@@ -115,7 +115,7 @@ func init() {
 	db.RegisterModel(new(Notification))
 }
 
-// CreateRepoTransferNotification creates  notification for the user a repository was transferred to
+// CreateRepoTransferNotification creates notification for the user a repository was transferred to
 func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		var notify []*Notification

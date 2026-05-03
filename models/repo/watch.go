@@ -26,14 +26,25 @@ const (
 	WatchModeAuto // 3
 )
 
+type WatchType int8
+
+const (
+	WatchPullRequests WatchType = iota // 0
+	WatchIssues                        // 1
+	WatchReleases                      // 2
+)
+
 // Watch is connection request for receiving repository notification.
 type Watch struct {
-	ID          int64              `xorm:"pk autoincr"`
-	UserID      int64              `xorm:"UNIQUE(watch)"`
-	RepoID      int64              `xorm:"UNIQUE(watch)"`
-	Mode        WatchMode          `xorm:"SMALLINT NOT NULL DEFAULT 1"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	ID           int64              `xorm:"pk autoincr"`
+	UserID       int64              `xorm:"UNIQUE(watch)"`
+	RepoID       int64              `xorm:"UNIQUE(watch)"`
+	Mode         WatchMode          `xorm:"SMALLINT NOT NULL DEFAULT 1"`
+	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
+	PullRequests bool               `xorm:"NOT NULL DEFAULT true"`
+	Issues       bool               `xorm:"NOT NULL DEFAULT true"`
+	Releases     bool               `xorm:"NOT NULL DEFAULT true"`
 }
 
 func init() {
@@ -120,11 +131,37 @@ func WatchRepo(ctx context.Context, doer *user_model.User, repo *Repository, doW
 		return user_model.ErrBlockedUser
 	}
 
+	watch.PullRequests = true
+	watch.Issues = true
+	watch.Releases = true
 	return watchRepoMode(ctx, watch, WatchModeNormal)
 }
 
-// GetWatchers returns all watchers of given repository.
-func GetWatchers(ctx context.Context, repoID int64) ([]*Watch, error) {
+type WatchOptions struct {
+	PullRequests bool
+	Issues       bool
+	Releases     bool
+}
+
+func WatchRepoOptions(ctx context.Context, doer *user_model.User, repo *Repository, opts WatchOptions) error {
+	watch := Watch{UserID: doer.ID, RepoID: repo.ID}
+	if _, err := db.GetEngine(ctx).Get(&watch); err != nil {
+		return err
+	}
+
+	watch.PullRequests = opts.PullRequests
+	watch.Issues = opts.Issues
+	watch.Releases = opts.Releases
+
+	if _, err := db.GetEngine(ctx).ID(watch.ID).Cols("pull_requests", "issues", "releases").Update(&watch); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetRepoWatches returns all watches of given repository.
+func GetRepoWatches(ctx context.Context, repoID int64) ([]*Watch, error) {
 	watches := make([]*Watch, 0, 10)
 	return watches, db.GetEngine(ctx).Where("`watch`.repo_id=?", repoID).
 		And("`watch`.mode<>?", WatchModeDont).
@@ -137,13 +174,45 @@ func GetWatchers(ctx context.Context, repoID int64) ([]*Watch, error) {
 // GetRepoWatchersIDs returns IDs of watchers for a given repo ID
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
-func GetRepoWatchersIDs(ctx context.Context, repoID int64) ([]int64, error) {
+func GetRepoWatchersIDs(ctx context.Context, repoID int64, watchType WatchType) ([]int64, error) {
 	ids := make([]int64, 0, 64)
-	return ids, db.GetEngine(ctx).Table("watch").
+	sess := db.GetEngine(ctx).Table("watch").
 		Where("watch.repo_id=?", repoID).
+		And("watch.mode<>?", WatchModeDont)
+
+	switch watchType {
+	case WatchPullRequests:
+		sess = sess.And("watch.pull_requests=?", true)
+	case WatchIssues:
+		sess = sess.And("watch.issues=?", true)
+	case WatchReleases:
+		sess = sess.And("watch.releases=?", true)
+	}
+
+	return ids, sess.Select("user_id").Find(&ids)
+}
+
+func GetWatches(ctx context.Context, repos []*Repository) (map[int64]*Watch, error) {
+	repoIDs := make([]int64, 0, len(repos))
+	for i := range repos {
+		repoIDs = append(repoIDs, repos[i].ID)
+	}
+
+	var watches []*Watch
+	err := db.GetEngine(ctx).Table("watch").
+		In("watch.repo_id", repoIDs).
 		And("watch.mode<>?", WatchModeDont).
-		Select("user_id").
-		Find(&ids)
+		Find(&watches)
+	if err != nil {
+		return nil, err
+	}
+
+	watchesByRepo := make(map[int64]*Watch, len(watches))
+	for _, w := range watches {
+		watchesByRepo[w.RepoID] = w
+	}
+
+	return watchesByRepo, nil
 }
 
 // GetRepoWatchers returns range of users watching given repository.

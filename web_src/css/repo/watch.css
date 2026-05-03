@@ -1,0 +1,9 @@
+.ui.buttons .ui.watch-label {
+  font-size: 1rem !important;
+  font-weight: var(--font-weight-medium);
+  padding: 2px 6px;
+}
+
+.ui.buttons .ui.watch-icon {
+  padding: 0.42em;
+}

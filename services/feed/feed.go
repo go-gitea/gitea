@@ -115,16 +115,16 @@ func NotifyWatchers(ctx context.Context, acts ...*activities_model.Action) error
 
 		actUserID := acts[0].ActUserID
 
-		// Add feeds for user self and all watchers.
-		watchers, err := repo_model.GetWatchers(ctx, repoID)
+		// Add feeds for user self and all watches.
+		watches, err := repo_model.GetRepoWatches(ctx, repoID)
 		if err != nil {
 			return fmt.Errorf("get watchers: %w", err)
 		}
 
-		permCode := make([]bool, len(watchers))
-		permIssue := make([]bool, len(watchers))
-		permPR := make([]bool, len(watchers))
-		for i, watcher := range watchers {
+		permCode := make([]bool, len(watches))
+		permIssue := make([]bool, len(watches))
+		permPR := make([]bool, len(watches))
+		for i, watcher := range watches {
 			user, err := user_model.GetUserByID(ctx, watcher.UserID)
 			if err != nil {
 				permCode[i] = false
@@ -153,7 +153,7 @@ func NotifyWatchers(ctx context.Context, acts ...*activities_model.Action) error
 			}
 
 			act.Repo = repo
-			if err := notifyWatchers(ctx, act, watchers, permCode, permIssue, permPR); err != nil {
+			if err := notifyWatchers(ctx, act, watches, permCode, permIssue, permPR); err != nil {
 				return err
 			}
 		}

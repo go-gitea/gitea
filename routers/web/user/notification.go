@@ -373,6 +373,13 @@ func NotificationWatching(ctx *context.Context) {
 	ctx.Data["Total"] = count
 	ctx.Data["Repos"] = repos
 
+	watches, err := repo_model.GetWatches(ctx, repos)
+	if err != nil {
+		ctx.ServerError("GetWatches", err)
+		return
+	}
+	ctx.Data["Watches"] = watches
+
 	// redirect to last page if request page is more than total pages
 	pager := context.NewPagination(count, setting.UI.User.RepoPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)

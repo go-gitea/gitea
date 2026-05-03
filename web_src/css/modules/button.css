@@ -400,9 +400,19 @@ It needs some tricks to tweak the left/right borders with active state */
   border-left: 1px solid var(--color-light-border);
 }
 
+.ui.buttons .button:first-child:hover,
+.ui.buttons .button.tw-hidden:first-child + .button:hover {
+  border-left-color: var(--color-secondary-dark-2);
+}
+
 .ui.buttons .button:last-child,
 .ui.buttons .button:nth-last-child(2):has(+ .button.tw-hidden) {
   border-right: 1px solid var(--color-light-border);
+}
+
+.ui.buttons .button:last-child:hover,
+.ui.buttons .button:nth-last-child(2):has(+ .button.tw-hidden):hover {
+  border-right-color: var(--color-secondary-dark-2);
 }
 
 .ui.buttons .button.active {

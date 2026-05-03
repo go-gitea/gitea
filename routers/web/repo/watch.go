@@ -20,11 +20,33 @@ func ActionWatch(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
+	watch, err := repo_model.GetWatch(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetWatch", err)
+		return
+	}
+	ctx.Data["Watch"] = watch
+	ctx.Data["IsWatchingRepo"] = repo_model.IsWatchMode(watch.Mode)
+
 	ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
 	if err != nil {
 		ctx.ServerError("GetRepositoryByName", err)
 		return
 	}
+
 	ctx.HTML(http.StatusOK, tplWatchUnwatch)
+}
+
+func ActionWatchOptions(ctx *context.Context) {
+	err := repo_model.WatchRepoOptions(ctx, ctx.Doer, ctx.Repo.Repository, repo_model.WatchOptions{
+		PullRequests: ctx.FormBool("pull_requests"),
+		Issues:       ctx.FormBool("issues"),
+		Releases:     ctx.FormBool("releases"),
+	})
+	if err != nil {
+		handleActionError(ctx, err)
+		return
+	}
+
+	ctx.JSONOK()
 }

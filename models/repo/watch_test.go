@@ -32,7 +32,7 @@ func TestGetWatchers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	watches, err := repo_model.GetWatchers(t.Context(), repo.ID)
+	watches, err := repo_model.GetRepoWatches(t.Context(), repo.ID)
 	assert.NoError(t, err)
 	// One watchers are inactive, thus minus 1
 	assert.Len(t, watches, repo.NumWatches-1)
@@ -40,7 +40,7 @@ func TestGetWatchers(t *testing.T) {
 		assert.Equal(t, repo.ID, watch.RepoID)
 	}
 
-	watches, err = repo_model.GetWatchers(t.Context(), unittest.NonexistentID)
+	watches, err = repo_model.GetRepoWatches(t.Context(), unittest.NonexistentID)
 	assert.NoError(t, err)
 	assert.Empty(t, watches)
 }

@@ -1728,6 +1728,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/search", reqUnitCodeReader, repo.Search)
 		m.Post("/action/{action:star|unstar}", reqSignIn, starsEnabled, repo.ActionStar)
 		m.Post("/action/{action:watch|unwatch}", reqSignIn, repo.ActionWatch)
+		m.Post("/action/watch/options", reqSignIn, repo.ActionWatchOptions)
 		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.ActionTransfer)
 	}, optSignIn, context.RepoAssignment)
 
