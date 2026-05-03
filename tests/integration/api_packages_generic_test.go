@@ -194,7 +194,7 @@ func TestPackageGeneric(t *testing.T) {
 			disposition, params, err := mime.ParseMediaType(resp.Header().Get("Content-Disposition"))
 			assert.NoError(t, err)
 			assert.Equal(t, "attachment", disposition)
-			assert.Equal(t, filename, params["filename"])
+			assert.Equal(t, pfs[0].Name, params["filename"])
 		})
 	})
 
