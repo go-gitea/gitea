@@ -563,9 +563,9 @@ func testAPIListProjectColumnIssues(t *testing.T) {
 	err = project_model.NewColumn(t.Context(), column)
 	assert.NoError(t, err)
 
-	err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue, owner, project.ID, column.ID)
+	err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue, owner, []int64{project.ID})
 	assert.NoError(t, err)
-	err = issues_model.IssueAssignOrRemoveProject(t.Context(), pull, owner, project.ID, column.ID)
+	err = issues_model.IssueAssignOrRemoveProject(t.Context(), pull, owner, []int64{project.ID})
 	assert.NoError(t, err)
 
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeReadIssue)
@@ -617,7 +617,7 @@ func testAPIRemoveIssueFromProjectColumn(t *testing.T) {
 	err = project_model.NewColumn(t.Context(), otherColumn)
 	assert.NoError(t, err)
 
-	err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue, owner, project.ID, column.ID)
+	err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue, owner, []int64{project.ID})
 	assert.NoError(t, err)
 
 	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteIssue)

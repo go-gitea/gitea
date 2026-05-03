@@ -298,11 +298,10 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 	columns, err := project_model.GetProjectColumns(t.Context(), project.ID, db.ListOptionsAll)
 	require.NoError(t, err)
 	require.NotEmpty(t, columns)
-	defaultColumnID := columns[0].ID
 
 	// Add issues to the project
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user1, project.ID, defaultColumnID))
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue17, user1, project.ID, defaultColumnID))
+	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user1, []int64{project.ID}))
+	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue17, user1, []int64{project.ID}))
 
 	sess := loginUser(t, "user1")
 	projectURL := fmt.Sprintf("/org3/-/projects/%d", project.ID)

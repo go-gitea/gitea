@@ -836,11 +836,15 @@ func assignIssueToProjectColumn(ctx *context.APIContext, add bool) {
 		return
 	}
 
-	projectID := column.ProjectID
+	if err := issue.LoadProjects(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	currentProjectIDs := make([]int64, 0, len(issue.Projects))
+	for _, p := range issue.Projects {
+		currentProjectIDs = append(currentProjectIDs, p.ID)
+	}
 	if !add {
-		// Confirm the issue is currently in this specific column before removing,
-		// since IssueAssignOrRemoveProject(projectID=0) clears the issue's project
-		// assignment unconditionally.
 		exists, err := project_model.IsIssueInColumn(ctx, issue.ID, column.ProjectID, column.ID)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -850,11 +854,38 @@ func assignIssueToProjectColumn(ctx *context.APIContext, add bool) {
 			ctx.APIErrorNotFound()
 			return
 		}
-		projectID = 0
-	}
-	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, []int64{projectID}); err != nil {
-		ctx.APIErrorInternal(err)
-		return
+		newProjectIDs := make([]int64, 0, len(currentProjectIDs))
+		for _, id := range currentProjectIDs {
+			if id != column.ProjectID {
+				newProjectIDs = append(newProjectIDs, id)
+			}
+		}
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, newProjectIDs); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	} else {
+		// Check if issue is already in this project
+		alreadyInProject := false
+		for _, id := range currentProjectIDs {
+			if id == column.ProjectID {
+				alreadyInProject = true
+				break
+			}
+		}
+		if !alreadyInProject {
+			// Add to project first (lands in default column)
+			newProjectIDs := append(currentProjectIDs, column.ProjectID)
+			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, newProjectIDs); err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+		}
+		// Move to target column
+		if err := project_model.MoveIssueToColumn(ctx, issue.ID, column.ProjectID, column.ID); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
 	}
 
 	if add {
