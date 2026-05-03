@@ -16,6 +16,8 @@
 	<img alt width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/telegram.png">
 {{else if eq .HookType "msteams"}}
 	<img alt width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/msteams.png">
+{{else if eq .HookType "googlechat"}}
+	{{svg "gitea-google" $size "img"}}
 {{else if eq .HookType "feishu"}}
 	{{svg "gitea-feishu" $size "img"}}
 {{else if eq .HookType "matrix"}}

@@ -286,6 +286,7 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 		webhook_module.DINGTALK:   {},
 		webhook_module.TELEGRAM:   {},
 		webhook_module.MSTEAMS:    {},
+		webhook_module.GOOGLECHAT: {},
 		webhook_module.FEISHU:     {},
 		webhook_module.MATRIX:     {httpMethod: "PUT"},
 		webhook_module.WECHATWORK: {},

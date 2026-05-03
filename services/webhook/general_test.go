@@ -366,6 +366,13 @@ func TestGetIssuesPayloadInfo(t *testing.T) {
 			redColor,
 		},
 		{
+			api.HookIssueDeleted,
+			"[test/repo] Issue deleted: #2 crash by user1",
+			"#2 crash",
+			"",
+			redColor,
+		},
+		{
 			api.HookIssueReOpened,
 			"[test/repo] Issue re-opened: #2 crash by user1",
 			"#2 crash",
@@ -460,6 +467,13 @@ func TestGetPullRequestPayloadInfo(t *testing.T) {
 		{
 			api.HookIssueClosed,
 			"[test/repo] Pull request closed: #12 Fix bug by user1",
+			"#12 Fix bug",
+			"",
+			redColor,
+		},
+		{
+			api.HookIssueDeleted,
+			"[test/repo] Pull request deleted: #12 Fix bug by user1",
 			"#12 Fix bug",
 			"",
 			redColor,

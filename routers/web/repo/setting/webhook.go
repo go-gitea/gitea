@@ -497,6 +497,30 @@ func mSTeamsHookParams(ctx *context.Context) webhookParams {
 	}
 }
 
+// GoogleChatHooksNewPost response for creating Google Chat webhook
+func GoogleChatHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, googleChatHookParams(ctx))
+}
+
+// GoogleChatHooksEditPost response for editing Google Chat webhook
+func GoogleChatHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, googleChatHookParams(ctx))
+}
+
+func googleChatHookParams(ctx *context.Context) webhookParams {
+	form := web.GetForm(ctx).(*forms.NewGoogleChatHookForm)
+
+	return webhookParams{
+		Type:        webhook_module.GOOGLECHAT,
+		URL:         form.PayloadURL,
+		ContentType: webhook.ContentTypeJSON,
+		WebhookForm: form.WebhookForm,
+		Meta: &webhook_service.GoogleChatMeta{
+			IconURL: form.IconURL,
+		},
+	}
+}
+
 // SlackHooksNewPost response for creating Slack webhook
 func SlackHooksNewPost(ctx *context.Context) {
 	createWebhook(ctx, slackHookParams(ctx))
@@ -622,6 +646,8 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 	switch w.Type {
 	case webhook_module.SLACK:
 		ctx.Data["SlackHook"] = webhook_service.GetSlackHook(w)
+	case webhook_module.GOOGLECHAT:
+		ctx.Data["GoogleChatHook"] = webhook_service.GetGoogleChatHook(w)
 	case webhook_module.DISCORD:
 		ctx.Data["DiscordHook"] = webhook_service.GetDiscordHook(w)
 	case webhook_module.TELEGRAM:

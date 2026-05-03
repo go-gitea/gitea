@@ -367,6 +367,19 @@ func (f *NewMSTeamsHookForm) Validate(req *http.Request, errs binding.Errors) bi
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewGoogleChatHookForm form for creating Google Chat hook
+type NewGoogleChatHookForm struct {
+	PayloadURL string `binding:"Required;ValidUrl"`
+	IconURL    string
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewGoogleChatHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // NewFeishuHookForm form for creating feishu hook
 type NewFeishuHookForm struct {
 	PayloadURL string `binding:"Required;ValidUrl"`
