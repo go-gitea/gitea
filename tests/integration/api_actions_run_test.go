@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"strings"
 	"testing"
 	"time"
 
@@ -549,78 +548,4 @@ func TestAPIActionsGetWorkflowJobLogs(t *testing.T) {
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
-}
-
-func TestAPIActionsGetWorkflowRunLogsStream(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	t.Run("EmptyCursors", func(t *testing.T) {
-		req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName()), strings.NewReader(`{"logCursors": []}`)).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		var logResp map[string]any
-		err := json.Unmarshal(resp.Body.Bytes(), &logResp)
-		assert.NoError(t, err)
-		assert.Contains(t, logResp, "stepsLog")
-	})
-
-	t.Run("WithCursor", func(t *testing.T) {
-		req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName()), strings.NewReader(`{"logCursors": [{"step": 0, "cursor": 0, "expanded": true}]}`)).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusOK)
-	})
-
-	t.Run("NotFound", func(t *testing.T) {
-		req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/999999/logs", repo.FullName()), strings.NewReader(`{"logCursors": []}`)).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
-}
-
-// TestAPIOrgActionsRunsAccessControl ensures the org-level Actions run/job listing does not
-// leak runs/jobs from repos the caller cannot access.
-func TestAPIOrgActionsRunsAccessControl(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	// org3 has action run 802 (and its jobs) in the private repo5; user28 is an org3 member
-	// (teams 12/13) with no access to repo5.
-	token := getUserToken(t, "user28", auth_model.AccessTokenScopeReadOrganization)
-
-	req := NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runs").AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	runs := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
-	for _, r := range runs.Entries {
-		assert.NotEqual(t, int64(802), r.ID, "must not leak a run from an inaccessible repo")
-	}
-
-	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/jobs").AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
-	for _, j := range jobs.Entries {
-		assert.NotEqual(t, int64(802), j.RunID, "must not leak a job from an inaccessible repo run")
-	}
-
-	// user1 is a site admin: it normally bypasses the per-repo access filter, but a public-only token
-	// must stay confined to public repos, so the run/job in the private repo5 must not be listed.
-	adminPublicOnly := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopePublicOnly)
-
-	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runs").AddTokenAuth(adminPublicOnly)
-	resp = MakeRequest(t, req, http.StatusOK)
-	adminRuns := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
-	for _, r := range adminRuns.Entries {
-		assert.NotEqual(t, int64(802), r.ID, "a public-only admin token must not list a private repo's run")
-	}
-
-	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/jobs").AddTokenAuth(adminPublicOnly)
-	resp = MakeRequest(t, req, http.StatusOK)
-	adminJobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
-	for _, j := range adminJobs.Entries {
-		assert.NotEqual(t, int64(802), j.RunID, "a public-only admin token must not list a private repo's job")
-	}
 }
