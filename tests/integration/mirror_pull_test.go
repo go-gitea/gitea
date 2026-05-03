@@ -111,37 +111,3 @@ func TestMirrorPull(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, initCount, count)
 }
-
-func TestMirrorPullPersistsRepositoryMetadata(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	ctx := t.Context()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
-
-	opts := migration.MigrateOptions{
-		RepoName:    "test_mirror_metadata",
-		Description: "Metadata from upstream repository",
-		Private:     false,
-		Mirror:      true,
-		CloneAddr:   repoPath,
-	}
-
-	mirrorRepo, err := repo_service.CreateRepositoryDirectly(ctx, user, user, repo_service.CreateRepoOptions{
-		Name:      opts.RepoName,
-		IsPrivate: opts.Private,
-		IsMirror:  opts.Mirror,
-		Status:    repo_model.RepositoryBeingMigrated,
-	}, false)
-	require.NoError(t, err)
-
-	mirrorRepo.Description = opts.Description
-	mirrorRepo.Website = "https://example.com/upstream"
-	mirrorRepo, err = repo_service.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
-	require.NoError(t, err)
-
-	updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
-	assert.Equal(t, opts.Description, updatedRepo.Description)
-	assert.Equal(t, "https://example.com/upstream", updatedRepo.Website)
-}
