@@ -95,8 +95,6 @@ func DeleteAllProjectIssueByIssueIDsAndProjectIDs(ctx context.Context, issueIDs,
 	_, err := db.GetEngine(ctx).In("project_id", projectIDs).In("issue_id", issueIDs).Delete(&ProjectIssue{})
 	return err
 }
-
-
 // MoveIssueToColumn moves a single issue to a specific column within a project.
 func MoveIssueToColumn(ctx context.Context, issueID, projectID, columnID int64) error {
 	nextSorting, err := GetColumnIssueNextSorting(ctx, projectID, columnID)

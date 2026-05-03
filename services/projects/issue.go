@@ -217,9 +217,9 @@ func LoadIssueNumbersForProject(ctx context.Context, project *project_model.Proj
 	// for user or org projects, we need to check access permissions
 	opts := issues_model.IssuesOptions{
 		ProjectIDs: []int64{project.ID},
-		Doer:      doer,
-		AllPublic: doer == nil,
-		Owner:     project.Owner,
+		Doer:       doer,
+		AllPublic:  doer == nil,
+		Owner:      project.Owner,
 	}
 
 	var err error

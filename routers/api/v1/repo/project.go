@@ -870,16 +870,12 @@ func assignIssueToProjectColumn(ctx *context.APIContext, add bool) {
 		}
 	} else {
 		// Check if issue is already in this project
-		alreadyInProject := false
-		for _, id := range currentProjectIDs {
-			if id == column.ProjectID {
-				alreadyInProject = true
-				break
-			}
-		}
+		alreadyInProject := slices.Contains(currentProjectIDs, column.ProjectID)
 		if !alreadyInProject {
 			// Add to project first (lands in default column)
-			newProjectIDs := append(currentProjectIDs, column.ProjectID)
+			newProjectIDs := make([]int64, len(currentProjectIDs)+1)
+			copy(newProjectIDs, currentProjectIDs)
+			newProjectIDs[len(currentProjectIDs)] = column.ProjectID
 			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, newProjectIDs); err != nil {
 				ctx.APIErrorInternal(err)
 				return
