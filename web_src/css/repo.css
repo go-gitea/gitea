@@ -1929,6 +1929,7 @@ tbody.commit-list {
   max-height: 240px; /* fit exactly 6 items, commit-status-item.height * 6 */
   overflow-x: hidden;
   transition: max-height .2s;
+  width: 100%;
 }
 
 .commit-status-item {

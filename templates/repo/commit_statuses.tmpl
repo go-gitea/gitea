@@ -9,10 +9,8 @@
 		</span>
 	{{end}}
 	<div class="tippy-target">
-		<div class="ui segment">
-			<div class="flex-divided-list">
-				{{template "repo/pulls/status" (dict "CommitStatuses" .Statuses "CommitStatus" .Status)}}
-			</div>
+		<div class="flex-divided-list items-px-default">
+			{{template "repo/pulls/status_items" (dict "CommitStatuses" .Statuses)}}
 		</div>
 	</div>
 {{end}}

@@ -27,13 +27,11 @@
 	{{- else if .Issue.PullRequest.IsStatusMergeable}}tw-text-green
 	{{- else}}tw-text-red{{end}}">{{svg "octicon-git-merge" 40}}</div>
 	<div class="content">
-		<div class="ui segment fitted avatar-content-left-arrow container-divided">
-			<div class="merge-section flex-divided-list flex-items-block container-divided">
+		<div class="ui segment fitted avatar-content-left-arrow">
+			<div class="merge-section flex-divided-list flex-items-block items-px-default">
 			{{if .LatestCommitStatus}}
-				{{template "repo/pulls/status" (dict
-					"CommitStatus" .LatestCommitStatus
+				{{template "repo/issue/view_content/pull_merge_status_checks" (dict
 					"CommitStatuses" .LatestCommitStatuses
-					"ShowHideChecks" true
 					"StatusCheckData" $statusCheckData
 				)}}
 			{{end}}

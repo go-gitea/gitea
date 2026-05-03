@@ -9,7 +9,7 @@
   margin: 0;
 }
 
-/* items have dividers between them, the dividers align with items (use parent padding) */
+/* items have dividers between them, the dividers align with items */
 .flex-divided-list,
 .flex-divided-list > .item.flex-divided-list {
   display: flex;
@@ -20,6 +20,10 @@
 
 .flex-divided-list > .item {
   padding: 10px 0;
+}
+
+.flex-divided-list > .divider {
+  margin: 0;
 }
 
 .flex-divided-list > .item + .item {
@@ -101,21 +105,16 @@
 }
 
 /* special rules to make the list work with existing UI elements */
-.container-divided > .flex-divided-list > .item {
-  padding-left: 1em;
+.flex-divided-list.items-px-default > .item {
+  padding-left: 1em; /* matches ".ui.segment" padding */
   padding-right: 1em;
 }
-.container-divided > .flex-divided-list > .item.flex-divided-list {
-  padding: 0;
-}
 
-.container-padded > .flex-divided-list > .item:first-child,
-.ui.segment:not(.container-divided) > .flex-divided-list > .item:first-child {
+.ui.segment:not(.fitted) > .flex-divided-list > .item:first-child {
   padding-top: 0;
 }
 
-.container-padded > .flex-divided-list > .item:last-child,
-.ui.segment:not(.container-divided) > .flex-divided-list > .item:last-child {
+.ui.segment:not(.fitted) > .flex-divided-list > .item:last-child {
   padding-bottom: 0;
 }
 
@@ -126,8 +125,4 @@
 
 .flex-divided-list + .divider {
   margin-top: 0;
-}
-
-.container-padded > .flex-divided-list + .divider {
-  margin-top: 10px;
 }
