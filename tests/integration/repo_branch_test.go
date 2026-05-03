@@ -21,7 +21,7 @@ import (
 )
 
 func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubURL, newBranchName string, expectedStatus int) string {
-	req := NewRequestWithValues(t, "POST", path.Join(user, repo, "branches/_new", oldRefSubURL), map[string]string{
+	req := NewRequestWithValues(t, "POST", "/"+path.Join(user, repo, "branches/_new", oldRefSubURL), map[string]string{
 		"new_branch_name": newBranchName,
 	})
 	resp := session.MakeRequest(t, req, expectedStatus)

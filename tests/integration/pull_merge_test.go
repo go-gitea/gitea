@@ -80,7 +80,7 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 }
 
 func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum string) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
+	req := NewRequest(t, "GET", "/"+path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the little button to create a pull
