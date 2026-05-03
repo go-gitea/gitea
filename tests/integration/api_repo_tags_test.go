@@ -31,8 +31,7 @@ func TestAPIRepoTags(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var tags []*api.Tag
-	DecodeJSON(t, resp, &tags)
+	tags := DecodeJSON(t, resp, []*api.Tag{})
 
 	assert.Len(t, tags, 1)
 	assert.Equal(t, "v1.1", tags[0].Name)
@@ -44,7 +43,7 @@ func TestAPIRepoTags(t *testing.T) {
 
 	newTag := createNewTagUsingAPI(t, token, user.Name, repoName, "gitea/22", "", "nice!\nand some text")
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &tags)
+	tags = DecodeJSON(t, resp, []*api.Tag{})
 	assert.Len(t, tags, 2)
 	for _, tag := range tags {
 		if tag.Name != "v1.1" {
@@ -80,7 +79,6 @@ func createNewTagUsingAPI(t *testing.T, token, ownerName, repoName, name, target
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var respObj api.Tag
-	DecodeJSON(t, resp, &respObj)
-	return &respObj
+	respObj := DecodeJSON(t, resp, &api.Tag{})
+	return respObj
 }

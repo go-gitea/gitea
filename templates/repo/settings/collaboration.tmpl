@@ -5,18 +5,18 @@
 		</h4>
 		{{if .Collaborators}}
 		<div class="ui attached segment">
-			<div class="flex-list">
+			<div class="flex-divided-list items-with-main">
 				{{range .Collaborators}}
-					<div class="flex-item tw-items-center">
-						<div class="flex-item-leading">
+					<div class="item tw-items-center">
+						<div class="item-leading">
 							<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 						</div>
-						<div class="flex-item-main">
-							<div class="flex-item-title">
+						<div class="item-main">
+							<div class="item-title">
 								{{template "shared/user/name" .}}
 							</div>
 						</div>
-						<div class="flex-item-trailing">
+						<div class="item-trailing">
 							<div class="flex-text-block">
 								{{svg "octicon-shield-lock"}}
 								<div class="ui dropdown custom access-mode" data-url="{{$.Link}}/access_mode" data-uid="{{.ID}}" data-last-value="{{.Collaboration.Mode}}">
@@ -54,14 +54,14 @@
 			{{$allowedToChangeTeams := (or (.Org.RepoAdminChangeTeamAccess) (.Permission.IsOwner))}}
 			{{if .Teams}}
 			<div class="ui attached segment">
-				<div class="flex-list">
+				<div class="flex-divided-list items-with-main">
 					{{range $t, $team := .Teams}}
-						<div class="flex-item">
-							<div class="flex-item-main">
-								<a class="flex-item-title tw-text-primary" href="{{AppSubUrl}}/org/{{$.OrgName|PathEscape}}/teams/{{.LowerName|PathEscape}}">
+						<div class="item">
+							<div class="item-main">
+								<a class="item-title tw-text-primary" href="{{AppSubUrl}}/org/{{$.OrgName|PathEscape}}/teams/{{.LowerName|PathEscape}}">
 									{{.Name}}
 								</a>
-								<div class="flex-item-body flex-text-block">
+								<div class="item-body flex-text-block">
 									{{/*FIXME: TEAM-UNIT-PERMISSION this display is not right, search the fixme keyword to see more details */}}
 									{{svg "octicon-shield-lock"}}
 									{{if eq .AccessMode 0}}
@@ -80,7 +80,7 @@
 								</div>
 								{{if or (eq .AccessMode 0) (eq .AccessMode 1) (eq .AccessMode 2)}}
 									{{$first := true}}
-									<div class="flex-item-body" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.change_team_permission_tip"}}">
+												<div class="item-body" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.change_team_permission_tip"}}">
 										Units:
 										{{range $u, $unit := $.Units}}
 											{{- if and ($.Repo.UnitEnabled ctx $unit.Type) ($team.UnitEnabled ctx $unit.Type) -}}
@@ -93,7 +93,7 @@
 								{{end}}
 							</div>
 							{{if $allowedToChangeTeams}}
-								<div class="flex-item-trailing" {{if .IncludesAllRepositories}} data-tooltip-content="{{ctx.Locale.Tr "repo.settings.delete_team_tip"}}"{{end}}>
+								<div class="item-trailing" {{if .IncludesAllRepositories}} data-tooltip-content="{{ctx.Locale.Tr "repo.settings.delete_team_tip"}}"{{end}}>
 									<button class="ui red tiny button link-action {{if .IncludesAllRepositories}}disabled{{end}}" data-modal-confirm="#repo-collaborator-delete-modal" data-url="{{$.Link}}/team/delete?id={{.ID}}">
 											{{ctx.Locale.Tr "repo.settings.delete_collaborator"}}
 									</button>

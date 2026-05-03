@@ -22,23 +22,23 @@
 	{{ctx.Locale.Tr "user.block.list"}}
 </h4>
 <div class="ui attached segment">
-	<div class="flex-list">
+	<div class="flex-divided-list items-with-main">
 		{{range .UserBlocks}}
-			<div class="flex-item">
-				<div class="flex-item-leading">
+			<div class="item">
+				<div class="item-leading">
 					{{ctx.AvatarUtils.Avatar .Blockee}}
 				</div>
-				<div class="flex-item-main">
-					<div class="flex-item-title">
+				<div class="item-main">
+					<div class="item-title">
 						<a class="item" href="{{.Blockee.HomeLink}}">{{.Blockee.GetDisplayName}}</a>
 					</div>
 					{{if .Note}}
-					<div class="flex-item-body">
+					<div class="item-body">
 						<i>{{ctx.Locale.Tr "user.block.note"}}:</i> {{.Note}}
 					</div>
 					{{end}}
 				</div>
-				<div class="flex-item-trailing">
+				<div class="item-trailing">
 					<button class="ui compact mini button show-modal" data-modal="#block-user-note-modal" data-modal-modal-blockee="{{.Blockee.Name}}" data-modal-modal-note="{{.Note}}">{{ctx.Locale.Tr "user.block.note.edit"}}</button>
 					<form class="form-fetch-action" action="{{$.Link}}" method="post">
 						<input type="hidden" name="action" value="unblock">

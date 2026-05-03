@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +20,7 @@ func Test_AddPrimaryEmail2EmailAddress(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(User))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(User))
 	if x == nil || t.Failed() {
 		defer deferable()
 		return

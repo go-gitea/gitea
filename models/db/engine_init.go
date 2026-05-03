@@ -6,7 +6,6 @@ package db
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -24,31 +23,23 @@ func init() {
 
 // newXORMEngine returns a new XORM engine from the configuration
 func newXORMEngine() (*xorm.Engine, error) {
-	connStr, err := setting.DBConnStr()
+	connOpts := GlobalConnOptions()
+	driver, connStr, err := ConnStr(connOpts)
 	if err != nil {
 		return nil, err
 	}
 
-	var engine *xorm.Engine
-
-	if setting.Database.Type.IsPostgreSQL() && len(setting.Database.Schema) > 0 {
-		// OK whilst we sort out our schema issues - create a schema aware postgres
-		registerPostgresSchemaDriver()
-		engine, err = xorm.NewEngine("postgresschema", connStr)
-	} else {
-		engine, err = xorm.NewEngine(setting.Database.Type.String(), connStr)
-	}
-
+	engine, err := xorm.NewEngine(driver, connStr)
 	if err != nil {
 		return nil, err
 	}
-	switch setting.Database.Type {
-	case "mysql":
+	switch {
+	case connOpts.Type.IsMySQL():
 		engine.Dialect().SetParams(map[string]string{"rowFormat": "DYNAMIC"})
-	case "mssql":
+	case connOpts.Type.IsMSSQL():
 		engine.Dialect().SetParams(map[string]string{"DEFAULT_VARCHAR": "nvarchar"})
 	}
-	engine.SetSchema(setting.Database.Schema)
+	engine.SetSchema(connOpts.Schema)
 	return engine, nil
 }
 
@@ -56,10 +47,7 @@ func newXORMEngine() (*xorm.Engine, error) {
 func InitEngine(ctx context.Context) error {
 	xe, err := newXORMEngine()
 	if err != nil {
-		if strings.Contains(err.Error(), "SQLite3 support") {
-			return fmt.Errorf("sqlite3 requires: -tags sqlite,sqlite_unlock_notify\n%w", err)
-		}
-		return fmt.Errorf("failed to connect to database: %w", err)
+		return fmt.Errorf("failed to init database engine: %w", err)
 	}
 
 	xe.SetMapper(names.GonicMapper{})

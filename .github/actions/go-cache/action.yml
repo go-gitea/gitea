@@ -1,0 +1,47 @@
+name: go-caches
+description: Restore and save go module, build, and golangci-lint caches
+
+inputs:
+  cache-name:
+    description: Short identifier used in the per-caller build cache key
+    required: true
+  build-cache:
+    description: Whether to include ~/.cache/go-build
+    default: "true"
+  build-cache-rotate:
+    description: Whether to rotate the build cache key per run so Go's test result cache can accumulate across runs
+    default: "false"
+  lint-cache:
+    description: Whether to include ~/.cache/golangci-lint
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ~/go/pkg/mod
+        key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
+        restore-keys: gomod-${{ runner.os }}-${{ runner.arch }}
+    - if: ${{ inputs.build-cache == 'true' && inputs.build-cache-rotate == 'true' }}
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ~/.cache/go-build
+        key: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}-${{ hashFiles('go.sum') }}-${{ github.run_id }}
+        restore-keys: |
+          gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}-${{ hashFiles('go.sum') }}
+          gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}
+          gobuild-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
+          gobuild-${{ runner.os }}-${{ runner.arch }}
+    - if: ${{ inputs.build-cache == 'true' && inputs.build-cache-rotate != 'true' }}
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ~/.cache/go-build
+        key: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
+        restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}
+    - if: ${{ inputs.lint-cache == 'true' }}
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ~/.cache/golangci-lint
+        key: golangci-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}-${{ hashFiles('go.sum', '.golangci.yml') }}
+        restore-keys: golangci-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}

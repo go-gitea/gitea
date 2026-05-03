@@ -1,7 +1,7 @@
 import {checkAppUrl} from '../common-page.ts';
 import {hideElem, queryElems, showElem, toggleElem} from '../../utils/dom.ts';
 import {POST} from '../../modules/fetch.ts';
-import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {showFomanticModal} from '../../modules/fomantic/modal.ts';
 import {pathEscape} from '../../utils/url.ts';
 
 const {appSubUrl} = window.config;
@@ -250,7 +250,7 @@ function initAdminNotice() {
     const elNoticeDesc = el.closest('tr')!.querySelector('.notice-description')!;
     const elModalDesc = detailModal.querySelector('.content pre')!;
     elModalDesc.textContent = elNoticeDesc.textContent;
-    fomanticQuery(detailModal).modal('show');
+    showFomanticModal(detailModal);
   }));
 
   // Select actions

@@ -38,6 +38,7 @@ import (
 type CreateRepoOptions struct {
 	Name             string
 	Description      string
+	Website          string
 	OriginalURL      string
 	GitServiceType   api.GitServiceType
 	Gitignores       string
@@ -242,6 +243,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		Name:                            opts.Name,
 		LowerName:                       strings.ToLower(opts.Name),
 		Description:                     opts.Description,
+		Website:                         opts.Website,
 		OriginalURL:                     opts.OriginalURL,
 		OriginalServiceType:             opts.GitServiceType,
 		IsPrivate:                       opts.IsPrivate,

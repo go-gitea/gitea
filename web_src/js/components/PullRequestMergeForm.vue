@@ -3,9 +3,11 @@ import {computed, onMounted, onUnmounted, shallowRef, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {toggleElem} from '../utils/dom.ts';
 
-const {pageData} = window.config;
+const props = defineProps<{
+  mergeFormProps: any, // TODO: this is a huge object, need to be refactored in the future
+}>();
 
-const mergeForm = pageData.pullRequestMergeForm!;
+const mergeForm = props.mergeFormProps;
 
 const mergeTitleFieldValue = shallowRef('');
 const mergeMessageFieldValue = shallowRef('');
@@ -230,7 +232,7 @@ function clearMergeMessage() {
   bottom: -1px;
   position: absolute;
   align-items: center;
-  color: var(--color-info-text);
+  color: var(--color-text);
   background-color: var(--color-info-bg);
   border: 1px solid var(--color-info-border);
   border-left: none;
@@ -238,7 +240,7 @@ function clearMergeMessage() {
 }
 
 .auto-merge-small:hover {
-  color: var(--color-info-text);
+  color: var(--color-text);
   background-color: var(--color-info-bg);
   border: 1px solid var(--color-info-border);
 }
