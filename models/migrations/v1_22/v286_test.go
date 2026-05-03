@@ -6,7 +6,7 @@ package v1_22
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
@@ -64,7 +64,7 @@ func PrepareOldRepository(t *testing.T) (*xorm.Engine, func()) {
 	}
 
 	// Prepare and load the testing database
-	return base.PrepareTestEnv(t, 0,
+	return migrationtest.PrepareTestEnv(t, 0,
 		new(Repository),
 		new(CommitStatus),
 		new(RepoArchiver),

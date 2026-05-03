@@ -131,8 +131,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 			resp := MakeRequest(t, req, http.StatusOK)
 			checkFileContent("fork-branch", "test-content-2")
 
-			var mergeResp api.MergeUpstreamResponse
-			DecodeJSON(t, resp, &mergeResp)
+			mergeResp := DecodeJSON(t, resp, &api.MergeUpstreamResponse{})
 			assert.Equal(t, "merge", mergeResp.MergeStyle)
 
 			// after merge, there should be no "sync fork" button anymore
@@ -160,8 +159,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var mergeResp api.MergeUpstreamResponse
-			DecodeJSON(t, resp, &mergeResp)
+			mergeResp := DecodeJSON(t, resp, &api.MergeUpstreamResponse{})
 			assert.Equal(t, "fast-forward", mergeResp.MergeStyle)
 
 			// ff_only=true when fast-forward is not possible (should fail)

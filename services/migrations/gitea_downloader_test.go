@@ -38,6 +38,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		Owner:         "gitea",
 		IsPrivate:     false,
 		Description:   "Test repository for testing migration from gitea to gitea",
+		Website:       mockServer.URL + "/test-repo",
 		CloneURL:      mockServer.URL + "/gitea/test_repo.git",
 		OriginalURL:   mockServer.URL + "/gitea/test_repo",
 		DefaultBranch: "master",

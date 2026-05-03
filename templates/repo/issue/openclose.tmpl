@@ -1,9 +1,10 @@
 {{/* this tmpl is quite dirty, it should not mix unrelated things together .... need to split it in the future*/}}
 {{$allStatesLink := ""}}{{$openLink := ""}}{{$closedLink := ""}}
+{{$projectIDsQuery := SliceUtils.JoinInt64 $.ProjectIDs}}
 {{if .PageIsMilestones}}
 	{{$allStatesLink = QueryBuild "?" "q" $.Keyword "sort" $.SortType "state" "all"}}
 {{else}}
-	{{$allStatesLink = QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" "all" "labels" $.SelectLabels "milestone" $.MilestoneID "project" $.ProjectID "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
+	{{$allStatesLink = QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" "all" "labels" $.SelectLabels "milestone" $.MilestoneID "project" $projectIDsQuery "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
 {{end}}
 {{$openLink = QueryBuild $allStatesLink "state" "open"}}
 {{$closedLink = QueryBuild $allStatesLink "state" "closed"}}
