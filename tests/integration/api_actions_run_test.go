@@ -358,6 +358,11 @@ jobs:
 			assert.Equal(t, actions_model.StatusWaiting, job.Status)
 		}
 
+		// Test approve already approved run (idempotency)
+		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/approve", baseRepo.FullName(), run.ID)).
+			AddTokenAuth(user2Token)
+		MakeRequest(t, req, http.StatusBadRequest)
+
 		// Test approve non-existent run
 		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/999999/approve", baseRepo.FullName())).
 			AddTokenAuth(user2Token)
@@ -434,6 +439,72 @@ func TestAPIActionsRerunWorkflowJob(t *testing.T) {
 			AddTokenAuth(writeToken)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
+}
+
+func TestAPIActionsListUserWorkflows(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
+
+	t.Run("Runs", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/user/actions/runs").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var runs api.ActionWorkflowRunsResponse
+		err := json.Unmarshal(resp.Body.Bytes(), &runs)
+		require.NoError(t, err)
+
+		assert.Positive(t, runs.TotalCount)
+		assert.NotEmpty(t, runs.Entries)
+
+		for _, run := range runs.Entries {
+			assert.NotEmpty(t, run.DisplayTitle, "display_title should be populated")
+			assert.NotNil(t, run.Repository, "repository should be populated via batch loading")
+			assert.NotEmpty(t, run.Repository.FullName, "repository full_name should be populated")
+			assert.NotNil(t, run.TriggerActor, "trigger_actor should be populated via batch loading")
+		}
+	})
+
+	t.Run("Jobs", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var jobs api.ActionWorkflowJobsResponse
+		err := json.Unmarshal(resp.Body.Bytes(), &jobs)
+		require.NoError(t, err)
+
+		assert.Positive(t, jobs.TotalCount)
+		assert.NotEmpty(t, jobs.Entries)
+
+		for _, job := range jobs.Entries {
+			assert.NotEmpty(t, job.Name, "job name should be populated")
+			assert.NotEmpty(t, job.HTMLURL, "html_url should be populated via batch-loaded repo")
+		}
+	})
+}
+
+func TestAPIActionsListRepoWorkflows(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs", repo.FullName())).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var runs api.ActionWorkflowRunsResponse
+	err := json.Unmarshal(resp.Body.Bytes(), &runs)
+	require.NoError(t, err)
+
+	assert.Positive(t, runs.TotalCount)
+	assert.NotEmpty(t, runs.Entries)
+
+	for _, run := range runs.Entries {
+		assert.NotNil(t, run.Repository, "repository should be populated from ctx.Repo")
+		assert.Equal(t, repo.FullName(), run.Repository.FullName, "repository full_name should match")
+		assert.NotNil(t, run.TriggerActor, "trigger_actor should be populated")
+	}
 }
 
 func TestAPIActionsGetWorkflowRunLogs(t *testing.T) {
