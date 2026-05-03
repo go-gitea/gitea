@@ -596,8 +596,10 @@ td .commit-summary {
   }
 }
 
-.repository.view.issue .comment-list .comment .merge-section {
-  background-color: var(--color-box-body);
+.repository.view.issue .comment-list .comment .merge-section .item + ul.item {
+  border-top: 0;
+  padding: 0 1em 0 52px;
+  margin-top: -0.5em;
 }
 
 .repository.view.issue .comment-list .comment .merge-section .item-section {
@@ -605,13 +607,7 @@ td .commit-summary {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  padding: 0;
   gap: 0.5em;
-}
-
-.repository.view.issue .comment-list .comment .merge-section .divider {
-  margin-left: -1rem;
-  width: calc(100% + 2rem);
 }
 
 .merge-section-info code {
@@ -1937,42 +1933,11 @@ tbody.commit-list {
 
 .commit-status-item {
   height: 40px;
-  padding: 0 10px;
   display: flex;
-  gap: 8px;
+  gap: var(--gap-block);
   align-items: center;
-}
-
-.commit-status-item + .commit-status-item {
-  border-top: 1px solid var(--color-secondary);
-}
-
-.commit-status-item .commit-status {
-  flex-shrink: 0;
-}
-
-.commit-status-item .status-context {
-  color: var(--color-text);
-  flex: 1;
-}
-
-.commit-status-item .status-details {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-@media (max-width: 767.98px) {
-  .commit-status-item .status-details {
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: center;
-  }
-}
-
-.commit-status-item .status-details > span {
-  padding-right: 0.5em; /* To match the alignment with the "required" label */
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 .username-display {

@@ -27,18 +27,18 @@
 	{{- else if .Issue.PullRequest.IsStatusMergeable}}tw-text-green
 	{{- else}}tw-text-red{{end}}">{{svg "octicon-git-merge" 40}}</div>
 	<div class="content">
-		{{if .LatestCommitStatus}}
-		<div class="ui attached segment fitted">
-		{{template "repo/pulls/status" (dict
-			"CommitStatus" .LatestCommitStatus
-			"CommitStatuses" .LatestCommitStatuses
-			"ShowHideChecks" true
-			"StatusCheckData" $statusCheckData
-		)}}
-		</div>
-		{{end}}
-		{{$showGeneralMergeForm := false}}
-		<div class="ui attached segment merge-section {{if not $.LatestCommitStatus}}avatar-content-left-arrow{{end}} flex-items-block">
+		<div class="ui segment fitted avatar-content-left-arrow container-divided">
+			<div class="merge-section flex-divided-list flex-items-block container-divided">
+			{{if .LatestCommitStatus}}
+				{{template "repo/pulls/status" (dict
+					"CommitStatus" .LatestCommitStatus
+					"CommitStatuses" .LatestCommitStatuses
+					"ShowHideChecks" true
+					"StatusCheckData" $statusCheckData
+				)}}
+			{{end}}
+
+			{{$showGeneralMergeForm := false}}
 			{{if .Issue.PullRequest.HasMerged}}
 				{{if .IsPullBranchDeletable}}
 					<div class="item item-section text tw-flex-1">
@@ -78,7 +78,7 @@
 					{{svg "octicon-x"}}
 					{{ctx.Locale.Tr "repo.pulls.files_conflicted"}}
 				</div>
-				<ul>
+				<ul class="item">
 					{{range .ConflictedFiles}}
 					<li>{{.}}</li>
 					{{else}}
@@ -143,7 +143,7 @@
 						{{svg "octicon-x"}}
 						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n"}}
 					</div>
-					<ul>
+					<ul class="item">
 						{{range .ChangedProtectedFiles}}
 						<li>{{.}}</li>
 						{{end}}
@@ -200,7 +200,6 @@
 				{{template "repo/issue/view_content/update_branch_by_merge" $}}
 
 				{{if .Issue.PullRequest.IsEmpty}}
-					<div class="divider"></div>
 					<div class="item">
 						{{svg "octicon-alert"}}
 						{{ctx.Locale.Tr "repo.pulls.is_empty"}}
@@ -209,13 +208,13 @@
 
 				{{if .AllowMerge}} {{/* user is allowed to merge */}}
 					{{if $data.MergeFormProps}}
-						<div class="divider"></div>
 						{{$showGeneralMergeForm = true}}
 						{{/* The merge form is a Vue component. After mounted, it has a button for choosing merge style, so make it have min-height to avoid layout shifting */}}
-						<div id="pull-request-merge-form" class="tw-min-h-[40px]" data-merge-form-props="{{JsonUtils.EncodeToString $data.MergeFormProps}}"></div>
+						<div class="item">
+							<div id="pull-request-merge-form" class="tw-min-h-[40px]" data-merge-form-props="{{JsonUtils.EncodeToString $data.MergeFormProps}}"></div>
+						</div>
 					{{else}}
 						{{/* no merge style was set in repo setting: not or ($prUnit.PullRequestsConfig.AllowMerge ...) */}}
-						<div class="divider"></div>
 						<div class="item tw-text-red">
 							{{svg "octicon-x"}}
 							{{ctx.Locale.Tr "repo.pulls.no_merge_desc"}}
@@ -227,7 +226,6 @@
 					{{end}} {{/* end if the repo was set to use any merge style */}}
 				{{else}}
 					{{/* user is not allowed to merge */}}
-					<div class="divider"></div>
 					<div class="item">
 						{{svg "octicon-info"}}
 						{{ctx.Locale.Tr "repo.pulls.no_merge_access"}}
@@ -260,7 +258,7 @@
 						{{svg "octicon-x"}}
 						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n"}}
 					</div>
-					<ul>
+					<ul class="item">
 						{{range .ChangedProtectedFiles}}
 						<li>{{.}}</li>
 						{{end}}
@@ -296,20 +294,24 @@
 			* Then the Manually Merged form will be shown in the merge form
 			*/}}
 			{{if and $.StillCanManualMerge (not $showGeneralMergeForm)}}
-				<div class="divider"></div>
-				<form class="ui form form-fetch-action" action="{{.Issue.Link}}/merge" method="post">{{/* another similar form is in PullRequestMergeForm.vue*/}}
-					<div class="field">
-						<input type="text" name="merge_commit_id" placeholder="{{ctx.Locale.Tr "repo.pulls.merge_commit_id"}}">
-					</div>
-					<button class="ui red button" type="submit" name="do" value="manually-merged">
-						{{ctx.Locale.Tr "repo.pulls.merge_manually"}}
-					</button>
-				</form>
+				<div class="item">
+					<form class="ui form form-fetch-action tw-flex-1" action="{{.Issue.Link}}/merge" method="post">{{/* another similar form is in PullRequestMergeForm.vue*/}}
+						<div class="field">
+							<input type="text" name="merge_commit_id" placeholder="{{ctx.Locale.Tr "repo.pulls.merge_commit_id"}}">
+						</div>
+						<button class="ui red button" type="submit" name="do" value="manually-merged">
+							{{ctx.Locale.Tr "repo.pulls.merge_manually"}}
+						</button>
+					</form>
+				</div>
 			{{end}}
 
 			{{if $data.ShowPullCommands}}
-				{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "MergeBoxData" $data}}
+				<div class="item">
+					{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "MergeBoxData" $data}}
+				</div>
 			{{end}}
+			</div>
 		</div>
 	</div>
 </div>
