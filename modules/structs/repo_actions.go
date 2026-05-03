@@ -228,35 +228,3 @@ type RunDetails struct {
 	RunURL        string `json:"run_url"`
 	HTMLURL       string `json:"html_url"`
 }
-
-// ActionLogCursor represents a cursor position within a step's log
-type ActionLogCursor struct {
-	Step     int   `json:"step"`
-	Cursor   int64 `json:"cursor"`
-	Expanded bool  `json:"expanded"`
-}
-
-// ActionLogRequest is the request body for the streaming log endpoint
-type ActionLogRequest struct {
-	LogCursors []ActionLogCursor `json:"logCursors"`
-}
-
-// ActionLogStepLine represents a single log line within a step
-type ActionLogStepLine struct {
-	Index     int64   `json:"index"`
-	Message   string  `json:"message"`
-	Timestamp float64 `json:"timestamp"`
-}
-
-// ActionLogStep represents log lines for a single step with cursor state
-type ActionLogStep struct {
-	Step    int                  `json:"step"`
-	Cursor  int64                `json:"cursor"`
-	Lines   []*ActionLogStepLine `json:"lines"`
-	Started int64                `json:"started"`
-}
-
-// ActionLogResponse is the response body for the streaming log endpoint
-type ActionLogResponse struct {
-	StepsLog []*ActionLogStep `json:"stepsLog"`
-}

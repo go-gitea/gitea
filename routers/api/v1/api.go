@@ -1268,10 +1268,7 @@ func Routes() *web.Router {
 								m.Get("/{job_id}/logs", reqToken(), reqRepoReader(unit.TypeActions), repo.GetWorkflowJobLogs)
 								m.Post("/{job_id}/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowJob)
 							})
-							m.Group("/logs", func() {
-								m.Get("", reqToken(), reqRepoReader(unit.TypeActions), repo.GetWorkflowRunLogs)
-								m.Post("", reqToken(), reqRepoReader(unit.TypeActions), repo.GetWorkflowRunLogsStream)
-							})
+							m.Get("/logs", reqToken(), reqRepoReader(unit.TypeActions), repo.GetWorkflowRunLogs)
 							m.Get("/artifacts", repo.GetArtifactsOfRun)
 						})
 					})

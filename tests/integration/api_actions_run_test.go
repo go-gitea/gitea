@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"strings"
 	"testing"
 	"time"
 
@@ -545,38 +544,6 @@ func TestAPIActionsGetWorkflowJobLogs(t *testing.T) {
 
 	t.Run("JobNotFound", func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/999999/logs", repo.FullName())).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
-}
-
-func TestAPIActionsGetWorkflowRunLogsStream(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	t.Run("EmptyCursors", func(t *testing.T) {
-		req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName()), strings.NewReader(`{"logCursors": []}`)).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		var logResp map[string]any
-		err := json.Unmarshal(resp.Body.Bytes(), &logResp)
-		assert.NoError(t, err)
-		assert.Contains(t, logResp, "stepsLog")
-	})
-
-	t.Run("WithCursor", func(t *testing.T) {
-		req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName()), strings.NewReader(`{"logCursors": [{"step": 0, "cursor": 0, "expanded": true}]}`)).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusOK)
-	})
-
-	t.Run("NotFound", func(t *testing.T) {
-		req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/999999/logs", repo.FullName()), strings.NewReader(`{"logCursors": []}`)).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
