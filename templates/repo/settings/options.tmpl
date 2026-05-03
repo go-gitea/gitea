@@ -761,18 +761,18 @@
 			{{ctx.Locale.Tr "repo.settings.danger_zone"}}
 		</h4>
 		<div class="ui attached error danger segment">
-			<div class="flex-list">
+			<div class="flex-divided-list items-with-main">
 				{{if not .Repository.IsFork}}
-					<div class="flex-item tw-items-center">
-						<div class="flex-item-main">
-							<div class="flex-item-title">{{ctx.Locale.Tr "repo.visibility"}}</div>
+					<div class="item tw-items-center">
+						<div class="item-main">
+							<div class="item-title">{{ctx.Locale.Tr "repo.visibility"}}</div>
 							{{if .Repository.IsPrivate}}
-								<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.visibility.public.text"}}</div>
+								<div class="item-body">{{ctx.Locale.Tr "repo.settings.visibility.public.text"}}</div>
 							{{else}}
-								<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.visibility.private.text"}}</div>
+								<div class="item-body">{{ctx.Locale.Tr "repo.settings.visibility.private.text"}}</div>
 							{{end}}
 						</div>
-						<div class="flex-item-trailing">
+						<div class="item-trailing">
 							<button class="ui basic red show-modal button" data-modal="#visibility-repo-modal">
 								{{if .Repository.IsPrivate}}
 									{{ctx.Locale.Tr "repo.settings.visibility.public.button"}}
@@ -784,31 +784,31 @@
 					</div>
 				{{end}}
 				{{if .Repository.IsMirror}}
-					<div class="flex-item">
-						<div class="flex-item-main">
-							<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.convert"}}</div>
-							<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.convert_desc"}}</div>
+					<div class="item">
+						<div class="item-main">
+							<div class="item-title">{{ctx.Locale.Tr "repo.settings.convert"}}</div>
+							<div class="item-body">{{ctx.Locale.Tr "repo.settings.convert_desc"}}</div>
 						</div>
-						<div class="flex-item-trailing">
+						<div class="item-trailing">
 							<button class="ui basic red show-modal button" data-modal="#convert-mirror-repo-modal">{{ctx.Locale.Tr "repo.settings.convert"}}</button>
 						</div>
 					</div>
 				{{end}}
 				{{if .CanConvertFork}}
-					<div class="flex-item">
-						<div class="flex-item-main">
-							<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.convert_fork"}}</div>
-							<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.convert_fork_desc"}}</div>
+					<div class="item">
+						<div class="item-main">
+							<div class="item-title">{{ctx.Locale.Tr "repo.settings.convert_fork"}}</div>
+							<div class="item-body">{{ctx.Locale.Tr "repo.settings.convert_fork_desc"}}</div>
 						</div>
-						<div class="flex-item-trailing">
+						<div class="item-trailing">
 							<button class="ui basic red show-modal button" data-modal="#convert-fork-repo-modal">{{ctx.Locale.Tr "repo.settings.convert_fork"}}</button>
 						</div>
 					</div>
 				{{end}}
-				<div class="flex-item">
-					<div class="flex-item-main">
-						<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.transfer"}}</div>
-						<div class="flex-item-body">
+				<div class="item">
+					<div class="item-main">
+						<div class="item-title">{{ctx.Locale.Tr "repo.settings.transfer"}}</div>
+						<div class="item-body">
 							{{if .RepoTransfer}}
 								{{ctx.Locale.Tr "repo.settings.transfer_started" .RepoTransfer.Recipient.DisplayName}}
 							{{else}}
@@ -816,7 +816,7 @@
 							{{end}}
 						</div>
 					</div>
-					<div class="flex-item-trailing">
+					<div class="item-trailing">
 						{{if .RepoTransfer}}
 							<form class="ui form" action="{{.Link}}" method="post">
 								<input type="hidden" name="action" value="cancel_transfer">
@@ -828,37 +828,37 @@
 					</div>
 				</div>
 				{{if .Permission.CanRead ctx.Consts.RepoUnitTypeWiki}}
-					<div class="flex-item">
-						<div class="flex-item-main">
-							<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.wiki_delete"}}</div>
-							<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.wiki_delete_desc"}}</div>
+					<div class="item">
+						<div class="item-main">
+							<div class="item-title">{{ctx.Locale.Tr "repo.settings.wiki_delete"}}</div>
+							<div class="item-body">{{ctx.Locale.Tr "repo.settings.wiki_delete_desc"}}</div>
 						</div>
-						<div class="flex-item-trailing">
+						<div class="item-trailing">
 							<button class="ui basic red show-modal button" data-modal="#delete-wiki-modal">{{ctx.Locale.Tr "repo.settings.wiki_delete"}}</button>
 						</div>
 					</div>
 				{{end}}
-				<div class="flex-item">
-					<div class="flex-item-main">
-						<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.delete"}}</div>
-						<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.delete_desc"}}</div>
+				<div class="item">
+					<div class="item-main">
+						<div class="item-title">{{ctx.Locale.Tr "repo.settings.delete"}}</div>
+						<div class="item-body">{{ctx.Locale.Tr "repo.settings.delete_desc"}}</div>
 					</div>
-					<div class="flex-item-trailing">
+					<div class="item-trailing">
 						<button class="ui basic red show-modal button" data-modal="#delete-repo-modal">{{ctx.Locale.Tr "repo.settings.delete"}}</button>
 					</div>
 				</div>
 				{{if not .Repository.IsMirror}}
-					<div class="flex-item tw-items-center">
-						<div class="flex-item-main">
+					<div class="item tw-items-center">
+						<div class="item-main">
 							{{if .Repository.IsArchived}}
-								<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.unarchive.header"}}</div>
-								<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.unarchive.text"}}</div>
+								<div class="item-title">{{ctx.Locale.Tr "repo.settings.unarchive.header"}}</div>
+								<div class="item-body">{{ctx.Locale.Tr "repo.settings.unarchive.text"}}</div>
 							{{else}}
-								<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.archive.header"}}</div>
-								<div class="flex-item-body">{{ctx.Locale.Tr "repo.settings.archive.text"}}</div>
+								<div class="item-title">{{ctx.Locale.Tr "repo.settings.archive.header"}}</div>
+								<div class="item-body">{{ctx.Locale.Tr "repo.settings.archive.text"}}</div>
 							{{end}}
 						</div>
-						<div class="flex-item-trailing">
+						<div class="item-trailing">
 							<button class="ui basic red show-modal button" data-modal="#archive-repo-modal">
 								{{if .Repository.IsArchived}}
 									{{ctx.Locale.Tr "repo.settings.unarchive.button"}}
