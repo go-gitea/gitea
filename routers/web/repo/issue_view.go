@@ -835,14 +835,14 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	}
 
 	canDelete := false
-	allowMerge := false
 	canWriteToHeadRepo := false
 
 	pull_service.StartPullRequestCheckOnView(ctx, pull)
 
 	if !prInfo.IsPullRequestBroken {
+		data.ShowUpdatePullInfo = pull.CommitsBehind > 0 && !issue.IsClosed && !pull.IsChecking() && !pull.IsFilesConflicted() && !prInfo.IsPullRequestBroken
 		var err error
-		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(ctx, pull, ctx.Doer)
+		data.UpdateAllowed, data.UpdateByRebaseAllowed, err = pull_service.IsUserAllowedToUpdate(ctx, pull, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return
@@ -888,7 +888,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		if !canWriteToHeadRepo { // maintainers maybe allowed to push to head repo even if they can't write to it
 			canWriteToHeadRepo = pull.AllowMaintainerEdit && perm.CanWrite(unit.TypeCode)
 		}
-		allowMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
+		data.allowMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToMerge", err)
 			return
@@ -903,7 +903,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	data.ReloadingInterval = util.Iif(pull.IsChecking(), 2000, 0)
 	data.ShowMergeInstructions = canWriteToHeadRepo
 	data.ShowPullCommands = pull.HeadRepo != nil && !pull.HasMerged && !issue.IsClosed
-	ctx.Data["AllowMerge"] = allowMerge
+	ctx.Data["AllowMerge"] = data.allowMerge
 
 	pb := prInfo.ProtectedBranchRule
 	if pb != nil {
@@ -947,18 +947,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	prConfig := issue.Repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
 	data.AutodetectManualMerge = prConfig.AutodetectManualMerge
 
-	stillCanManualMerge := func() bool {
-		if pull.HasMerged || issue.IsClosed || !ctx.IsSigned {
-			return false
-		}
-		if pull.IsStatusMergeable() || pull.IsWorkInProgress(ctx) || pull.IsChecking() {
-			return false
-		}
-		return allowMerge && prConfig.AllowManualMerge
-	}
-
-	ctx.Data["StillCanManualMerge"] = stillCanManualMerge()
-
 	enableStatusCheck := pb != nil && pb.EnableStatusCheck
 	ctx.Data["EnableStatusCheck"] = enableStatusCheck
 
@@ -989,6 +977,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	ctx.Data["PullMergeBoxData"] = prInfo.MergeBoxData
 	prInfo.prepareMergeBoxFormProps(ctx)
+	prInfo.prepareMergeBoxIconColor()
 }
 
 func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {

@@ -1,6 +1,6 @@
 {{/* Template Attributes:
 * CommitStatuses: all commit status elements
-* StatusCheckData: additional status check data, see backend pullCommitStatusCheckData struct
+* StatusCheckData: optional, additional status check data, see backend pullCommitStatusCheckData struct
 */}}
 {{$statusCheckData := $.StatusCheckData}}
 {{range $cs := $.CommitStatuses}}

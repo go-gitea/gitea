@@ -9,23 +9,7 @@
 >
 	{{$statusCheckData := .StatusCheckData}}
 	{{$requiredStatusCheckState := $statusCheckData.RequiredChecksState}}
-	<div class="timeline-avatar {{if .Issue.PullRequest.HasMerged}}tw-text-purple
-	{{- else if .Issue.IsClosed}}tw-text-text-light
-	{{- else if .IsPullWorkInProgress}}tw-text-text-light
-	{{- else if .IsFilesConflicted}}tw-text-text-light
-	{{- else if .IsPullRequestBroken}}tw-text-red
-	{{- else if .IsBlockedByApprovals}}tw-text-red
-	{{- else if .IsBlockedByRejection}}tw-text-red
-	{{- else if .IsBlockedByOfficialReviewRequests}}tw-text-red
-	{{- else if .IsBlockedByOutdatedBranch}}tw-text-red
-	{{- else if .IsBlockedByChangedProtectedFiles}}tw-text-red
-	{{- else if and .EnableStatusCheck (or $requiredStatusCheckState.IsFailure $requiredStatusCheckState.IsError)}}tw-text-red
-	{{- else if and .EnableStatusCheck (or (not $.LatestCommitStatus) $requiredStatusCheckState.IsPending $requiredStatusCheckState.IsWarning)}}tw-text-yellow
-	{{- else if and .AllowMerge .RequireSigned (not .WillSign)}}tw-text-red
-	{{- else if .Issue.PullRequest.IsChecking}}tw-text-yellow
-	{{- else if .Issue.PullRequest.IsEmpty}}tw-text-text-light
-	{{- else if .Issue.PullRequest.IsStatusMergeable}}tw-text-green
-	{{- else}}tw-text-red{{end}}">{{svg "octicon-git-merge" 40}}</div>
+	<div class="timeline-avatar {{$data.TimelineIconClass}}">{{svg "octicon-git-merge" 40}}</div>
 	<div class="content">
 		<div class="ui segment fitted avatar-content-left-arrow">
 			<div class="merge-section flex-divided-list flex-items-block items-px-default">
@@ -36,7 +20,6 @@
 				)}}
 			{{end}}
 
-			{{$showGeneralMergeForm := false}}
 			{{if .Issue.PullRequest.HasMerged}}
 				{{if .IsPullBranchDeletable}}
 					<div class="item item-section text tw-flex-1">
@@ -111,7 +94,7 @@
 					{{svg "octicon-alert"}}
 					{{ctx.Locale.Tr "repo.pulls.is_ancestor"}}
 				</div>
-			{{else if or .Issue.PullRequest.IsStatusMergeable .Issue.PullRequest.IsEmpty}}
+			{{else}}
 				{{if .IsBlockedByApprovals}}
 					<div class="item">
 						{{svg "octicon-x"}}
@@ -165,6 +148,15 @@
 						{{svg "octicon-unlock"}}
 						{{ctx.Locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason)}}
 					</div>
+				{{else if not .Issue.PullRequest.IsStatusMergeable}}
+					<div class="item tw-text-red">
+						{{svg "octicon-x"}}
+						{{ctx.Locale.Tr "repo.pulls.cannot_auto_merge_desc"}}
+					</div>
+					<div class="item">
+						{{svg "octicon-info"}}
+						{{ctx.Locale.Tr "repo.pulls.cannot_auto_merge_helper"}}
+					</div>
 				{{end}}
 
 				{{$notAllOverridableChecksOk := $data.HasOverridableBlockers}}
@@ -195,112 +187,38 @@
 					{{end}}
 				{{end}}
 
-				{{template "repo/issue/view_content/update_branch_by_merge" $}}
-
 				{{if .Issue.PullRequest.IsEmpty}}
-					<div class="item">
-						{{svg "octicon-alert"}}
-						{{ctx.Locale.Tr "repo.pulls.is_empty"}}
-					</div>
+				<div class="item">
+					{{svg "octicon-alert"}}
+					{{ctx.Locale.Tr "repo.pulls.is_empty"}}
+				</div>
 				{{end}}
 
-				{{if .AllowMerge}} {{/* user is allowed to merge */}}
-					{{if $data.MergeFormProps}}
-						{{$showGeneralMergeForm = true}}
-						{{/* The merge form is a Vue component. After mounted, it has a button for choosing merge style, so make it have min-height to avoid layout shifting */}}
-						<div class="item">
-							<div id="pull-request-merge-form" class="tw-min-h-[40px]" data-merge-form-props="{{JsonUtils.EncodeToString $data.MergeFormProps}}"></div>
-						</div>
-					{{else}}
-						{{/* no merge style was set in repo setting: not or ($prUnit.PullRequestsConfig.AllowMerge ...) */}}
-						<div class="item tw-text-red">
-							{{svg "octicon-x"}}
-							{{ctx.Locale.Tr "repo.pulls.no_merge_desc"}}
-						</div>
-						<div class="item">
-							{{svg "octicon-info"}}
-							{{ctx.Locale.Tr "repo.pulls.no_merge_helper"}}
-						</div>
-					{{end}} {{/* end if the repo was set to use any merge style */}}
-				{{else}}
+				{{template "repo/issue/view_content/update_branch_by_merge" (dict "MergeBoxData" $data "Issue" $.Issue)}}
+
+				{{if not .AllowMerge}} {{/* user is allowed to merge */}}
 					{{/* user is not allowed to merge */}}
 					<div class="item">
 						{{svg "octicon-info"}}
 						{{ctx.Locale.Tr "repo.pulls.no_merge_access"}}
 					</div>
-				{{end}} {{/* end if user is allowed to merge or not */}}
-			{{else}}
-				{{/* Merge conflict without specific file. Suggest manual merge, only if all reviews and status checks OK. */}}
-				{{if .IsBlockedByApprovals}}
-					<div class="item tw-text-red">
-						{{svg "octicon-x"}}
-						{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
-					</div>
-				{{else if .IsBlockedByRejection}}
-					<div class="item tw-text-red">
-						{{svg "octicon-x"}}
-						{{ctx.Locale.Tr "repo.pulls.blocked_by_rejection"}}
-					</div>
-				{{else if .IsBlockedByOfficialReviewRequests}}
-					<div class="item tw-text-red">
-						{{svg "octicon-x"}}
-						{{ctx.Locale.Tr "repo.pulls.blocked_by_official_review_requests"}}
-					</div>
-				{{else if .IsBlockedByOutdatedBranch}}
-					<div class="item tw-text-red">
-						{{svg "octicon-x"}}
-						{{ctx.Locale.Tr "repo.pulls.blocked_by_outdated_branch"}}
-					</div>
-				{{else if .IsBlockedByChangedProtectedFiles}}
-					<div class="item tw-text-red">
-						{{svg "octicon-x"}}
-						{{ctx.Locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n"}}
-					</div>
-					<ul class="item">
-						{{range .ChangedProtectedFiles}}
-						<li>{{.}}</li>
-						{{end}}
-					</ul>
-				{{else if and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess)}}
-					<div class="item tw-text-red">
-						{{svg "octicon-x"}}
-						{{ctx.Locale.Tr "repo.pulls.required_status_check_failed"}}
-					</div>
-				{{else if and .RequireSigned (not .WillSign)}}
-					<div class="item tw-text-red">
-						{{svg "octicon-x"}}
-						{{ctx.Locale.Tr "repo.pulls.require_signed_wont_sign"}}
-					</div>
-				{{else}}
-					<div class="item tw-text-red">
-						{{svg "octicon-x"}}
-						{{ctx.Locale.Tr "repo.pulls.cannot_auto_merge_desc"}}
-					</div>
-					<div class="item">
-						{{svg "octicon-info"}}
-						{{ctx.Locale.Tr "repo.pulls.cannot_auto_merge_helper"}}
-					</div>
 				{{end}}
 			{{end}}{{/* end if: pull request status */}}
 
-			{{/* Manually Merged is not a well-known feature, it is used to mark a non-mergeable PR (already merged, conflicted) as merged
-			To test it:
-			* Enable "Manually Merged" feature in the Repository Settings
-			* Create a pull request, either:
-			* - Merge the pull request branch locally and push the merged commit to Gitea
-			* - Make some conflicts between the base branch and the pull request branch
-			* Then the Manually Merged form will be shown in the merge form
-			*/}}
-			{{if and $.StillCanManualMerge (not $showGeneralMergeForm)}}
+			{{if $data.MergeFormProps}}
+				{{/* The merge form is a Vue component. After mounted, it has a button for choosing merge style, so make it have min-height to avoid layout shifting */}}
 				<div class="item">
-					<form class="ui form form-fetch-action tw-flex-1" action="{{.Issue.Link}}/merge" method="post">{{/* another similar form is in PullRequestMergeForm.vue*/}}
-						<div class="field">
-							<input type="text" name="merge_commit_id" placeholder="{{ctx.Locale.Tr "repo.pulls.merge_commit_id"}}">
-						</div>
-						<button class="ui red button" type="submit" name="do" value="manually-merged">
-							{{ctx.Locale.Tr "repo.pulls.merge_manually"}}
-						</button>
-					</form>
+					<div id="pull-request-merge-form" class="tw-min-h-[40px] tw-w-full" data-merge-form-props="{{JsonUtils.EncodeToString $data.MergeFormProps}}"></div>
+				</div>
+			{{else if and .AllowMerge .Issue.PullRequest.IsStatusMergeable}}
+				{{/* no merge style was set in repo setting */}}
+				<div class="item tw-text-red">
+					{{svg "octicon-x"}}
+					{{ctx.Locale.Tr "repo.pulls.no_merge_desc"}}
+				</div>
+				<div class="item">
+					{{svg "octicon-info"}}
+					{{ctx.Locale.Tr "repo.pulls.no_merge_helper"}}
 				</div>
 			{{end}}
 

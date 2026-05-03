@@ -23,6 +23,7 @@ function initRepoPullRequestUpdate(el: HTMLElement) {
     }
     let data: Record<string, any> | undefined;
     try {
+      // TODO: the response is indeed not JSON, need to fix (see backend UpdatePullRequest)
       data = await response?.json(); // the response is probably not a JSON
     } catch (error) {
       console.error(error);
