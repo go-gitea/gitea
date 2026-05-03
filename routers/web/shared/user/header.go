@@ -4,6 +4,7 @@
 package user
 
 import (
+	"errors"
 	"net/url"
 
 	"code.gitea.io/gitea/models/db"
@@ -83,10 +84,9 @@ func prepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 
 	if ctx.Doer != nil {
-		if block, err := user_model.GetBlocking(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
+		ctx.Data["UserBlocking"], err = user_model.GetBlocking(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			ctx.ServerError("GetBlocking", err)
-		} else {
-			ctx.Data["UserBlocking"] = block
 		}
 	}
 }

@@ -3,12 +3,12 @@
 	<div class="flex-text-block tw-justify-center tw-gap-5">
 		<a href="/devtest/repo-action-view/runs/10">Run:CanCancel</a>
 		<a href="/devtest/repo-action-view/runs/20">Run:CanApprove</a>
-		<a href="/devtest/repo-action-view/runs/30">Run:CanRerun</a>
+		<a href="/devtest/repo-action-view/runs/30">Run:CanRerunLatest</a>
+		<a href="/devtest/repo-action-view/runs/10/attempts/2">Run:PreviousAttempt</a>
 	</div>
 	{{template "repo/actions/view_component" (dict
-		"RunID" (or .RunID 10)
 		"JobID" (or .JobID 0)
-		"ActionsURL" (print AppSubUrl "/devtest/repo-action-view")
+		"ActionsViewURL" $.ActionsViewURL
 	)}}
 </div>
 {{template "base/footer" .}}

@@ -139,7 +139,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
-		if !ctx.Repo.CanRead(unit_model.TypeActions) {
+		if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
 			git_model.CommitStatusesHideActionsURL(ctx, statuses)
 		}
 
@@ -174,12 +174,11 @@ func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, r
 }
 
 func checkHomeCodeViewable(ctx *context.Context) {
-	if ctx.Repo.HasUnits() {
+	if ctx.Repo.Permission.HasUnits() {
 		if ctx.Repo.Repository.IsBeingCreated() {
 			task, err := admin_model.GetMigratingTask(ctx, ctx.Repo.Repository.ID)
 			if err != nil {
 				if admin_model.IsErrTaskDoesNotExist(err) {
-					ctx.Data["Repo"] = ctx.Repo
 					ctx.Data["CloneAddr"] = ""
 					ctx.Data["Failed"] = true
 					ctx.HTML(http.StatusOK, tplMigrating)
@@ -194,7 +193,6 @@ func checkHomeCodeViewable(ctx *context.Context) {
 				return
 			}
 
-			ctx.Data["Repo"] = ctx.Repo
 			ctx.Data["MigrateTask"] = task
 			ctx.Data["CloneAddr"], _ = util.SanitizeURL(cfg.CloneAddr)
 			ctx.Data["Failed"] = task.Status == structs.TaskStatusFailed

@@ -125,9 +125,6 @@ func (task *ActionTask) LoadJob(ctx context.Context) error {
 
 // LoadAttributes load Job Steps if not loaded
 func (task *ActionTask) LoadAttributes(ctx context.Context) error {
-	if task == nil {
-		return nil
-	}
 	if err := task.LoadJob(ctx); err != nil {
 		return err
 	}
@@ -272,7 +269,6 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 
 	now := timeutil.TimeStampNow()
-	job.Attempt++
 	job.Started = now
 	job.Status = StatusRunning
 

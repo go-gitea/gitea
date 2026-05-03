@@ -9,6 +9,10 @@
 		</span>
 	{{end}}
 	<div class="tippy-target">
-		{{template "repo/pulls/status" (dict "CommitStatuses" .Statuses "CommitStatus" .Status)}}
+		<div class="ui segment">
+			<div class="flex-divided-list">
+				{{template "repo/pulls/status" (dict "CommitStatuses" .Statuses "CommitStatus" .Status)}}
+			</div>
+		</div>
 	</div>
 {{end}}

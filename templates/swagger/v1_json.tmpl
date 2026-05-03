@@ -5473,6 +5473,130 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runs/{run}/attempts/{attempt}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets a specific workflow run attempt",
+        "operationId": "getWorkflowRunAttempt",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "logical attempt number of the run",
+            "name": "attempt",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/attempts/{attempt}/jobs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Lists all jobs for a workflow run attempt",
+        "operationId": "listWorkflowRunAttemptJobs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the workflow run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "logical attempt number of the run",
+            "name": "attempt",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowJobsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/runs/{run}/jobs": {
       "get": {
         "produces": [
@@ -5590,6 +5714,9 @@
           "404": {
             "$ref": "#/responses/notFound"
           },
+          "409": {
+            "$ref": "#/responses/error"
+          },
           "422": {
             "$ref": "#/responses/validationError"
           }
@@ -5642,6 +5769,9 @@
           "404": {
             "$ref": "#/responses/notFound"
           },
+          "409": {
+            "$ref": "#/responses/error"
+          },
           "422": {
             "$ref": "#/responses/validationError"
           }
@@ -5690,6 +5820,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -14337,6 +14470,75 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/{index}/comments/{id}/replies": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reply to a pull request review comment",
+        "operationId": "repoCreatePullReviewCommentReply",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment to reply to",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreatePullReviewCommentReplyOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/PullReviewComment"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/{index}/commits": {
       "get": {
         "produces": [
@@ -14805,7 +15007,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Create a review to an pull request",
+        "summary": "Create a review to a pull request",
         "operationId": "repoCreatePullReview",
         "parameters": [
           {
@@ -14910,7 +15112,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Submit a pending review to an pull request",
+        "summary": "Submit a pending review to a pull request",
         "operationId": "repoSubmitPullReview",
         "parameters": [
           {
@@ -18763,7 +18965,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Get an user's actions runner registration token",
+        "summary": "Get a user's actions runner registration token",
         "operationId": "userCreateRunnerRegistrationToken",
         "responses": {
           "200": {
@@ -19353,6 +19555,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/OAuth2Application"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -21893,6 +22098,11 @@
           "type": "string",
           "x-go-name": "Path"
         },
+        "previous_attempt_url": {
+          "description": "PreviousAttemptURL is the API URL of the previous attempt of this run, e.g. \".../actions/runs/{run_id}/attempts/{attempt-1}\".\nIt is set only when the current attempt is \u003e 1 (i.e. a rerun). For the first attempt, or for legacy runs that pre-date ActionRunAttempt, it is null.",
+          "type": "string",
+          "x-go-name": "PreviousAttemptURL"
+        },
         "repository": {
           "$ref": "#/definitions/Repository"
         },
@@ -21902,6 +22112,7 @@
           "x-go-name": "RepositoryID"
         },
         "run_attempt": {
+          "description": "RunAttempt is 1-based for runs created after ActionRunAttempt was introduced.\nA value of 0 is a legacy-only sentinel for runs created before attempts existed\nand indicates no corresponding /attempts/{n} resource is available.",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RunAttempt"
@@ -22088,12 +22299,14 @@
       "type": "object",
       "properties": {
         "permission": {
+          "description": "Permission level to grant the collaborator\nread RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "type": "string",
           "enum": [
             "read",
             "write",
             "admin"
           ],
+          "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "x-go-name": "Permission"
         }
       },
@@ -23628,6 +23841,15 @@
           "format": "int64",
           "x-go-name": "Milestone"
         },
+        "projects": {
+          "description": "list of project ids",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Projects"
+        },
         "ref": {
           "type": "string",
           "x-go-name": "Ref"
@@ -23820,13 +24042,14 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "description": "possible values are `public` (default), `limited` or `private`",
+          "description": "possible values are `public` (default), `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "type": "string",
           "enum": [
             "public",
             "limited",
             "private"
           ],
+          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -23942,6 +24165,17 @@
           "description": "the tree path",
           "type": "string",
           "x-go-name": "Path"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreatePullReviewCommentReplyOptions": {
+      "description": "CreatePullReviewCommentReplyOptions are options to reply to a pull request review comment",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -24100,12 +24334,13 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
-          "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)",
+          "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
           "type": "string",
           "enum": [
             "sha1",
             "sha256"
           ],
+          "x-go-enum-desc": "sha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
           "x-go-name": "ObjectFormatName"
         },
         "private": {
@@ -24258,6 +24493,7 @@
             "write",
             "admin"
           ],
+          "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "x-go-name": "Permission"
         },
         "units": {
@@ -24352,8 +24588,14 @@
           "x-go-name": "Username"
         },
         "visibility": {
-          "description": "User visibility level: public, limited, or private",
+          "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         }
       },
@@ -24865,6 +25107,15 @@
           "format": "int64",
           "x-go-name": "Milestone"
         },
+        "projects": {
+          "description": "list of project ids to set (replaces existing projects)",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Projects"
+        },
         "ref": {
           "type": "string",
           "x-go-name": "Ref"
@@ -24978,13 +25229,14 @@
           "x-go-name": "RepoAdminChangeTeamAccess"
         },
         "visibility": {
-          "description": "possible values are `public`, `limited` or `private`",
+          "description": "possible values are `public`, `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "type": "string",
           "enum": [
             "public",
             "limited",
             "private"
           ],
+          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -25258,6 +25510,21 @@
           "type": "string",
           "x-go-name": "MirrorInterval"
         },
+        "mirror_password": {
+          "description": "authentication password for the remote repository (mirrors)",
+          "type": "string",
+          "x-go-name": "MirrorPassword"
+        },
+        "mirror_token": {
+          "description": "authentication token for the remote repository (mirrors)",
+          "type": "string",
+          "x-go-name": "MirrorToken"
+        },
+        "mirror_username": {
+          "description": "authentication username for the remote repository (mirrors)",
+          "type": "string",
+          "x-go-name": "MirrorUsername"
+        },
         "name": {
           "description": "name of the repository",
           "type": "string",
@@ -25348,6 +25615,7 @@
             "write",
             "admin"
           ],
+          "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "x-go-name": "Permission"
         },
         "units": {
@@ -25478,8 +25746,14 @@
           "x-go-name": "SourceID"
         },
         "visibility": {
-          "description": "User visibility level: public, limited, or private",
+          "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -26381,6 +26655,13 @@
           "format": "int64",
           "x-go-name": "PinOrder"
         },
+        "projects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Project"
+          },
+          "x-go-name": "Projects"
+        },
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
         },
@@ -27268,7 +27549,7 @@
           "x-go-name": "Title"
         },
         "type": {
-          "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue  NotifySubjectIssue an issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull an pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit an commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository an repository is subject of an notification",
+          "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue  NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository a repository is subject of an notification",
           "type": "string",
           "enum": [
             "Issue",
@@ -27276,7 +27557,7 @@
             "Commit",
             "Repository"
           ],
-          "x-go-enum-desc": "Issue NotifySubjectIssue  NotifySubjectIssue an issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull an pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit an commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository an repository is subject of an notification",
+          "x-go-enum-desc": "Issue NotifySubjectIssue  NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository a repository is subject of an notification",
           "x-go-name": "Type"
         },
         "url": {
@@ -27430,8 +27711,14 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "description": "The visibility level of the organization (public, limited, private)",
+          "description": "The visibility level of the organization (public, limited, private)\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -27723,6 +28010,67 @@
         "push": {
           "type": "boolean",
           "x-go-name": "Push"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "Project": {
+      "description": "Project represents a project",
+      "type": "object",
+      "properties": {
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "creator_id": {
+          "description": "CreatorID is the user who created the project",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CreatorID"
+        },
+        "description": {
+          "description": "Description provides details about the project",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "id": {
+          "description": "ID is the unique identifier for the project",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "is_closed": {
+          "description": "IsClosed indicates if the project is closed",
+          "type": "boolean",
+          "x-go-name": "IsClosed"
+        },
+        "owner_id": {
+          "description": "OwnerID is the owner of the project (for org-level projects)",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OwnerID"
+        },
+        "repo_id": {
+          "description": "RepoID is the repository this project belongs to (for repo-level projects)",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepoID"
+        },
+        "title": {
+          "description": "Title is the title of the project",
+          "type": "string",
+          "x-go-name": "Title"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -28415,8 +28763,16 @@
       "type": "object",
       "properties": {
         "permission": {
-          "description": "Permission level of the collaborator",
+          "description": "Permission level of the collaborator\nnone AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
           "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write",
+            "admin",
+            "owner"
+          ],
+          "x-go-enum-desc": "none AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
           "x-go-name": "Permission"
         },
         "role_name": {
@@ -28693,12 +29049,13 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
-          "description": "ObjectFormatName of the underlying git repository",
+          "description": "ObjectFormatName of the underlying git repository\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
           "type": "string",
           "enum": [
             "sha1",
             "sha256"
           ],
+          "x-go-enum-desc": "sha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
           "x-go-name": "ObjectFormatName"
         },
         "open_issues_count": {
@@ -29072,6 +29429,7 @@
             "admin",
             "owner"
           ],
+          "x-go-enum-desc": "none AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
           "x-go-name": "Permission"
         },
         "units": {
@@ -29618,8 +29976,14 @@
           "x-go-name": "StarredRepos"
         },
         "visibility": {
-          "description": "User visibility level option: public, limited, private",
+          "description": "User visibility level option: public, limited, private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {

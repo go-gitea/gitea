@@ -10,28 +10,28 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestListSystemWebhookOptions(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	hookSystem := unittest.AssertExistsAndLoadBean(t, &Webhook{URL: "https://www.example.com/system"})
+	hookDefault := unittest.AssertExistsAndLoadBean(t, &Webhook{URL: "https://www.example.com/default"})
 	opts := ListSystemWebhookOptions{IsSystem: optional.None[bool]()}
 	hooks, _, err := GetGlobalWebhooks(t.Context(), &opts)
-	assert.NoError(t, err)
-	if assert.Len(t, hooks, 2) {
-		assert.Equal(t, int64(5), hooks[0].ID)
-		assert.Equal(t, int64(6), hooks[1].ID)
-	}
+	require.NoError(t, err)
+	require.Len(t, hooks, 2)
+	assert.Equal(t, hookSystem.ID, hooks[0].ID)
+	assert.Equal(t, hookDefault.ID, hooks[1].ID)
+
 	opts.IsSystem = optional.Some(true)
 	hooks, _, err = GetGlobalWebhooks(t.Context(), &opts)
-	assert.NoError(t, err)
-	if assert.Len(t, hooks, 1) {
-		assert.Equal(t, int64(5), hooks[0].ID)
-	}
+	require.NoError(t, err)
+	require.Len(t, hooks, 1)
+	assert.Equal(t, hookSystem.ID, hooks[0].ID)
 
 	opts.IsSystem = optional.Some(false)
 	hooks, _, err = GetGlobalWebhooks(t.Context(), &opts)
-	assert.NoError(t, err)
-	if assert.Len(t, hooks, 1) {
-		assert.Equal(t, int64(6), hooks[0].ID)
-	}
+	require.NoError(t, err)
+	require.Len(t, hooks, 1)
+	assert.Equal(t, hookDefault.ID, hooks[0].ID)
 }

@@ -1,3 +1,12 @@
+.repo-header {
+  margin: 1em 0 0.5em;
+}
+
+.repo-header .secondary-info {
+  margin-top: 0.5rem;
+  font-size: 12px;
+}
+
 .repository .data-table .line-num,
 .repository .diff-file-box .file-body.file-code .lines-num,
 .repository .diff-file-box .code-diff tbody tr .lines-type-marker {
@@ -62,10 +71,17 @@
   visibility: hidden;
 }
 
-.sidebar-project-card {
+.ui.list.issue-sidebar-project-cards > .item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-block);
+}
+
+.ui.list.issue-sidebar-project-cards > .item.sidebar-project-card {
+  flex-direction: column;
+  align-items: flex-start;
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
-  margin-top: var(--gap-block);
   padding: 8px;
 }
 
@@ -199,18 +215,19 @@ td .commit-summary {
 }
 
 .repo-editor-header {
+  /* it should match ".repo-button-row" so the tree toggle button stays aligned */
+  margin: 8px 0;
   display: flex;
-  margin: 1rem 0;
-  padding: 3px 0;
-  width: 100%;
-  gap: 0.5em;
   align-items: center;
+  gap: 8px;
+  width: 100%;
 }
 
 .repo-editor-header input {
   vertical-align: middle !important;
   width: auto !important;
-  padding: 7px 8px !important;
+  height: 30px !important;
+  padding: 5px 8px !important;
   margin-right: 5px !important;
 }
 
@@ -579,8 +596,10 @@ td .commit-summary {
   }
 }
 
-.repository.view.issue .comment-list .comment .merge-section {
-  background-color: var(--color-box-body);
+.repository.view.issue .comment-list .comment .merge-section .item + ul.item {
+  border-top: 0;
+  padding: 0 1em 0 52px;
+  margin-top: -0.5em;
 }
 
 .repository.view.issue .comment-list .comment .merge-section .item-section {
@@ -588,13 +607,7 @@ td .commit-summary {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  padding: 0;
   gap: 0.5em;
-}
-
-.repository.view.issue .comment-list .comment .merge-section .divider {
-  margin-left: -1rem;
-  width: calc(100% + 2rem);
 }
 
 .merge-section-info code {
@@ -1920,42 +1933,11 @@ tbody.commit-list {
 
 .commit-status-item {
   height: 40px;
-  padding: 0 10px;
   display: flex;
-  gap: 8px;
+  gap: var(--gap-block);
   align-items: center;
-}
-
-.commit-status-item + .commit-status-item {
-  border-top: 1px solid var(--color-secondary);
-}
-
-.commit-status-item .commit-status {
-  flex-shrink: 0;
-}
-
-.commit-status-item .status-context {
-  color: var(--color-text);
-  flex: 1;
-}
-
-.commit-status-item .status-details {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-@media (max-width: 767.98px) {
-  .commit-status-item .status-details {
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: center;
-  }
-}
-
-.commit-status-item .status-details > span {
-  padding-right: 0.5em; /* To match the alignment with the "required" label */
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 .username-display {
