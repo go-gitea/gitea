@@ -574,6 +574,10 @@ func EditProjectColumn(ctx *context.APIContext) {
 		column.Color = *form.Color
 	}
 	if form.Sorting != nil {
+		if *form.Sorting < -128 || *form.Sorting > 127 {
+			ctx.APIError(http.StatusBadRequest, "sorting value out of range, must be between -128 and 127")
+			return
+		}
 		column.Sorting = int8(*form.Sorting)
 	}
 
