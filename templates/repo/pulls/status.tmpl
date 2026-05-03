@@ -6,22 +6,19 @@
 */}}
 {{$statusCheckData := .StatusCheckData}}
 {{if .CommitStatus}}
-<div class="commit-status-panel">
-	<div class="ui top attached header commit-status-header">
-		{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}
-
+	{{if $statusCheckData}}
+	<div class="item flex-left-right commit-status-toggle">
+		<div>{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}</div>
 		{{if .ShowHideChecks}}
-		<div class="ui right">
-			<button class="commit-status-hide-checks btn interact-fg"
+		<button data-global-click="onCommitStatusChecksToggle" class="btn interact-fg"
 			data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
-			data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}">
-			{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
-		</div>
+			data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}"
+		>{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
 		{{end}}
 	</div>
-
+	{{end}}
 	{{if and $statusCheckData $statusCheckData.RequireApprovalRunCount}}
-		<div class="ui attached segment flex-left-right" id="approve-status-checks">
+		<div class="item flex-left-right" id="approve-status-checks">
 			<div>
 				<strong>
 					{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals" $statusCheckData.RequireApprovalRunCount}}
@@ -36,28 +33,31 @@
 		</div>
 	{{end}}
 
-	<div class="commit-status-list">
+	<div class="item flex-divided-list commit-status-list">
 		{{range .CommitStatuses}}
-			<div class="commit-status-item">
-				{{template "repo/commit_status" .}}
-				<div class="status-context gt-ellipsis">{{.Context}} <span class="tw-text-text-light-2">{{.Description}}</span></div>
-				<div class="ui status-details">
+			<div class="item commit-status-item">
+				<div class="flex-text-block">
+					{{template "repo/commit_status" .}}
+					<div class="status-context gt-ellipsis">{{.Context}} <span class="tw-text-text-light-2">{{.Description}}</span></div>
+				</div>
+				<div class="status-details">
 					{{if and $statusCheckData $statusCheckData.IsContextRequired}}
 						{{if (call $statusCheckData.IsContextRequired .Context)}}<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
 					{{end}}
-					<span>{{if .TargetURL}}<a href="{{.TargetURL}}">{{ctx.Locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
+					{{if .TargetURL}}<a href="{{.TargetURL}}">{{ctx.Locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}
 				</div>
 			</div>
 		{{end}}
 		{{if $statusCheckData}}
 			{{range $statusCheckData.MissingRequiredChecks}}
-				<div class="commit-status-item">
-					{{svg "octicon-dot-fill" 18 "commit-status icon tw-text-yellow"}}
-					<div class="status-context gt-ellipsis">{{.}}</div>
+				<div class="item commit-status-item">
+					<div class="flex-text-block">
+						{{svg "octicon-dot-fill" 16 "commit-status icon tw-text-yellow"}}
+						<div class="status-context gt-ellipsis">{{.}}</div>
+					</div>
 					<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>
 				</div>
 			{{end}}
 		{{end}}
 	</div>
-</div>
 {{end}}

@@ -10,10 +10,12 @@
 }
 
 /* items have dividers between them, the dividers align with items (use parent padding) */
-.flex-divided-list {
-  list-style: none;
+.flex-divided-list,
+.flex-divided-list > .item.flex-divided-list {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  gap: 0;
 }
 
 .flex-divided-list > .item {
@@ -99,22 +101,21 @@
 }
 
 /* special rules to make the list work with existing UI elements */
-.container-segmented > .flex-divided-list > .item {
+.container-divided > .flex-divided-list > .item {
   padding-left: 1em;
   padding-right: 1em;
 }
-
-.ui.segment.fitted > .flex-divided-list > .item {
-  padding: 1em;
+.container-divided > .flex-divided-list > .item.flex-divided-list {
+  padding: 0;
 }
 
 .container-padded > .flex-divided-list > .item:first-child,
-.ui.segment:not(.fitted) > .flex-divided-list > .item:first-child {
+.ui.segment:not(.container-divided) > .flex-divided-list > .item:first-child {
   padding-top: 0;
 }
 
 .container-padded > .flex-divided-list > .item:last-child,
-.ui.segment:not(.fitted) > .flex-divided-list > .item:last-child {
+.ui.segment:not(.container-divided) > .flex-divided-list > .item:last-child {
   padding-bottom: 0;
 }
 

@@ -326,13 +326,17 @@ func NewRequestWithJSON(t testing.TB, method, urlStr string, v any) *RequestWrap
 
 func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *RequestWrapper {
 	t.Helper()
-	if !strings.HasPrefix(urlStr, "http") && !strings.HasPrefix(urlStr, "/") {
-		urlStr = "/" + urlStr
+	if !strings.HasPrefix(urlStr, "http:") && !strings.HasPrefix(urlStr, "https:") && !strings.HasPrefix(urlStr, "/") {
+		t.Fatalf("invalid url str: %s", urlStr)
 	}
 	req, err := http.NewRequest(method, urlStr, body)
 	require.NoError(t, err)
 	if req.URL.User != nil {
 		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(req.URL.User.String())))
+	}
+	req.RequestURI = req.URL.Path
+	if req.URL.RawQuery != "" {
+		req.RequestURI += "?" + req.URL.RawQuery
 	}
 	return &RequestWrapper{req}
 }

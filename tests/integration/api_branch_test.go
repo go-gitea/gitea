@@ -348,7 +348,7 @@ func TestAPIUpdateBranchReference(t *testing.T) {
 
 func testAPIRenameBranch(t *testing.T, doerName, ownerName, repoName, from, to string, expectedHTTPStatus int) *httptest.ResponseRecorder {
 	token := getUserToken(t, doerName, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, "PATCH", "api/v1/repos/"+ownerName+"/"+repoName+"/branches/"+from, &api.RenameBranchRepoOption{
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/"+ownerName+"/"+repoName+"/branches/"+from, &api.RenameBranchRepoOption{
 		Name: to,
 	}).AddTokenAuth(token)
 	return MakeRequest(t, req, expectedHTTPStatus)
