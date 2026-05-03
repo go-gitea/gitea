@@ -96,18 +96,18 @@ func testUploadAttachmentDeleteTemp(t *testing.T) {
 	defer web.RouteMock(route_web.RouterMockPointBeforeWebRoutes, func(resp http.ResponseWriter, req *http.Request) {
 		tmpFileCountDuringUpload = countTmpFile()
 	})()
-	_ = testCreateIssueAttachment(t, session, "user2/repo1", "image.png", testGeneratePngBytes(), http.StatusOK)
+	_ = testCreateIssueAttachment(t, session, "/user2/repo1", "image.png", testGeneratePngBytes(), http.StatusOK)
 	assert.Equal(t, 1, tmpFileCountDuringUpload, "the temp file should exist when uploaded size exceeds the parse form's max memory")
 	assert.Equal(t, 0, countTmpFile(), "the temp file should be deleted after upload")
 }
 
 func testCreateAnonymousAttachment(t *testing.T) {
 	session := emptyTestSession(t)
-	testCreateIssueAttachment(t, session, "user2/repo1", "image.png", testGeneratePngBytes(), http.StatusSeeOther)
+	testCreateIssueAttachment(t, session, "/user2/repo1", "image.png", testGeneratePngBytes(), http.StatusSeeOther)
 }
 
 func testCreateUser2IssueAttachment(t *testing.T) {
-	const repoURL = "user2/repo1"
+	const repoURL = "/user2/repo1"
 	session := loginUser(t, "user2")
 	uuid := testCreateIssueAttachment(t, session, repoURL, "image.png", testGeneratePngBytes(), http.StatusOK)
 
@@ -177,7 +177,7 @@ func testGetAttachment(t *testing.T) {
 }
 
 func testDeleteAttachmentPermissions(t *testing.T) {
-	const repoURL = "user2/repo1"
+	const repoURL = "/user2/repo1"
 
 	ownerSession := loginUser(t, "user2")
 	readonlySession := loginUser(t, "user5")
@@ -191,12 +191,12 @@ func testDeleteAttachmentPermissions(t *testing.T) {
 	testCreateReleaseAttachment(t, readonlySession, repoURL, "reader-release.png", testGeneratePngBytes(), http.StatusNotFound)
 
 	crossRepoUUID := testCreateIssueAttachment(t, ownerSession, repoURL, "cross-repo.png", testGeneratePngBytes(), http.StatusOK)
-	testDeleteIssueAttachment(t, ownerSession, "user2/repo2", crossRepoUUID, http.StatusBadRequest)
+	testDeleteIssueAttachment(t, ownerSession, "/user2/repo2", crossRepoUUID, http.StatusBadRequest)
 	testDeleteIssueAttachment(t, ownerSession, repoURL, crossRepoUUID, http.StatusOK)
 
 	releaseUUID := testCreateReleaseAttachment(t, ownerSession, repoURL, "reader-release.png", testGeneratePngBytes(), http.StatusOK)
 	testDeleteReleaseAttachment(t, ownerSession, repoURL, releaseUUID, http.StatusOK)
 
 	// test deleting release attachment from another repo
-	testDeleteReleaseAttachment(t, ownerSession, "user2/repo2", crossRepoUUID, http.StatusBadRequest)
+	testDeleteReleaseAttachment(t, ownerSession, "/user2/repo2", crossRepoUUID, http.StatusBadRequest)
 }
