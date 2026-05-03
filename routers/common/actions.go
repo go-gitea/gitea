@@ -35,9 +35,6 @@ func DownloadActionsRunAllJobLogs(ctx *context.Base, ctxRepo *repo_model.Reposit
 	if err != nil {
 		return fmt.Errorf("GetLatestAttemptJobsByRepoAndRunID: %w", err)
 	}
-	if err = runJobs.LoadRepos(ctx); err != nil {
-		return fmt.Errorf("LoadRepos: %w", err)
-	}
 
 	if len(runJobs) == 0 {
 		return util.NewNotExistErrorf("no jobs found for run %d", runID)
@@ -77,27 +74,27 @@ func DownloadActionsRunAllJobLogs(ctx *context.Base, ctxRepo *repo_model.Reposit
 			continue
 		}
 
-		reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
-		if err != nil {
-			return fmt.Errorf("OpenLogs for job %d: %w", job.ID, err)
-		}
-
 		// Create file in zip with job name and task ID; sanitize to prevent Zip Slip
 		safeJobName := strings.NewReplacer("/", "-", `\`, "-", "..", "__").Replace(job.Name)
 		fileName := fmt.Sprintf("%s-%s-%d.log", safeWorkflowName, safeJobName, task.ID)
-		zipFile, err := zipWriter.Create(fileName)
-		if err != nil {
-			reader.Close()
-			return fmt.Errorf("Create zip file %s: %w", fileName, err)
-		}
 
-		// Copy log content to zip file
-		if _, err := io.Copy(zipFile, reader); err != nil {
-			reader.Close()
-			return fmt.Errorf("Copy logs for job %d: %w", job.ID, err)
-		}
+		if err := func() error {
+			reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
+			if err != nil {
+				return err
+			}
+			defer reader.Close()
 
-		reader.Close()
+			zipFile, err := zipWriter.Create(fileName)
+			if err != nil {
+				return err
+			}
+
+			_, err = io.Copy(zipFile, reader)
+			return err
+		}(); err != nil {
+			return fmt.Errorf("job %d: %w", job.ID, err)
+		}
 	}
 
 	return nil
