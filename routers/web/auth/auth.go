@@ -64,7 +64,7 @@ func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
 		ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 		ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 		ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-		ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+		ctx.Data["McaptchaURL"] = strings.TrimSuffix(setting.Service.McaptchaURL, "/")
 		ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 		if setting.Service.CaptchaType == setting.ImageCaptcha {
 			ctx.Data["Captcha"] = context.GetImageCaptcha()
@@ -230,7 +230,7 @@ func performAutoLoginOAuth2(ctx *context.Context, data *preparedSignInData) bool
 		return false
 	}
 
-	skipToOAuthURL := setting.AppSubURL + "/user/oauth2/" + url.QueryEscape(data.oauth2Providers[0].DisplayName())
+	skipToOAuthURL := setting.AppSubURL + "/user/oauth2/" + url.PathEscape(data.oauth2Providers[0].DisplayName())
 	if redirectTo := ctx.FormString("redirect_to"); redirectTo != "" {
 		skipToOAuthURL += "?redirect_to=" + url.QueryEscape(redirectTo)
 	}
@@ -314,15 +314,6 @@ func SignInPost(ctx *context.Context) {
 			log.Warn("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
-		} else if user_model.IsErrUserInactive(err) {
-			if setting.Service.RegisterEmailConfirm {
-				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.HTML(http.StatusOK, TplActivate)
-			} else {
-				log.Warn("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
-				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
-			}
 		} else {
 			ctx.ServerError("UserSignIn", err)
 		}
@@ -493,11 +484,16 @@ func SignOut(ctx *context.Context) {
 }
 
 func buildSignOutRedirectURL(ctx *context.Context) string {
-	// TODO: can also support REVERSE_PROXY_AUTHENTICATION logout URL in the future
 	if ctx.Doer != nil && ctx.Doer.LoginType == auth.OAuth2 {
 		if s := buildOIDCEndSessionURL(ctx, ctx.Doer); s != "" {
 			return s
 		}
+	}
+
+	// The assumption is: if reverse proxy auth is enabled, then the users should only sign-in via reverse proxy auth.
+	// TODO: in the future, if we need to distinguish different sign-in methods, we need to save the sign-in method in session and check here
+	if setting.Service.EnableReverseProxyAuth && setting.ReverseProxyLogoutRedirect != "" {
+		return setting.ReverseProxyLogoutRedirect
 	}
 	return setting.AppSubURL + "/"
 }

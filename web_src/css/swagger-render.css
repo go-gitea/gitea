@@ -1,0 +1,13 @@
+@import "../../node_modules/swagger-ui-dist/swagger-ui.css";
+
+html,
+html body,
+html .swagger-ui,
+html .swagger-ui .scheme-container {
+  background: var(--gitea-iframe-bgcolor, var(--color-box-body)) !important;
+}
+
+/* swagger's bug: the selector was incorrectly written in "thead": "html.dark-mode .swagger-ui .opblock.opblock-get thead tr td" */
+html.dark-mode .swagger-ui table.headers td {
+  color: var(--color-text) !important;
+}

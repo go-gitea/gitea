@@ -1,5 +1,4 @@
 {{if and (gt $.Issue.PullRequest.CommitsBehind 0) (not $.Issue.IsClosed) (not $.Issue.PullRequest.IsChecking) (not $.IsPullFilesConflicted) (not $.IsPullRequestBroken)}}
-	<div class="divider"></div>
 	<div class="item item-section">
 		<div class="item-section-left flex-text-inline">
 			{{svg "octicon-alert"}}
@@ -9,7 +8,7 @@
 			{{if and $.UpdateAllowed $.UpdateByRebaseAllowed}}
 				<div class="tw-inline-block">
 					<div id="update-pr-branch-with-base" class="ui buttons">
-						<button class="ui button" data-do="{{$.Issue.Link}}/update" data-redirect="{{$.Issue.Link}}">
+						<button class="ui button" data-do="{{$.Issue.Link}}/update">
 							<span class="button-text">
 								{{ctx.Locale.Tr "repo.pulls.update_branch"}}
 							</span>

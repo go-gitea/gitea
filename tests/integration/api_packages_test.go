@@ -53,8 +53,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiPackages []*api.Package
-		DecodeJSON(t, resp, &apiPackages)
+		apiPackages := DecodeJSON(t, resp, []*api.Package{})
 
 		assert.Len(t, apiPackages, 1)
 		assert.Equal(t, string(packages_model.TypeGeneric), apiPackages[0].Type)
@@ -75,8 +74,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var p *api.Package
-		DecodeJSON(t, resp, &p)
+		p := DecodeJSON(t, resp, &api.Package{})
 
 		assert.Equal(t, string(packages_model.TypeGeneric), p.Type)
 		assert.Equal(t, packageName, p.Name)
@@ -136,8 +134,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiPackages []*api.Package
-		DecodeJSON(t, resp, &apiPackages)
+		apiPackages := DecodeJSON(t, resp, []*api.Package{})
 
 		assert.Len(t, apiPackages, 1)
 		assert.Equal(t, string(packages_model.TypeGeneric), apiPackages[0].Type)
@@ -152,8 +149,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiPackage *api.Package
-		DecodeJSON(t, resp, &apiPackage)
+		apiPackage := DecodeJSON(t, resp, &api.Package{})
 
 		assert.Equal(t, string(packages_model.TypeGeneric), apiPackage.Type)
 		assert.Equal(t, packageName, apiPackage.Name)
@@ -171,8 +167,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var ap1 *api.Package
-		DecodeJSON(t, resp, &ap1)
+		ap1 := DecodeJSON(t, resp, &api.Package{})
 		assert.Nil(t, ap1.Repository)
 
 		// create a repository
@@ -189,8 +184,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		var ap2 *api.Package
-		DecodeJSON(t, resp, &ap2)
+		ap2 := DecodeJSON(t, resp, &api.Package{})
 		assert.NotNil(t, ap2.Repository)
 		assert.Equal(t, newRepo.ID, ap2.Repository.ID)
 
@@ -206,8 +200,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		var ap3 *api.Package
-		DecodeJSON(t, resp, &ap3)
+		ap3 := DecodeJSON(t, resp, &api.Package{})
 		assert.Nil(t, ap3.Repository)
 
 		// force link to a repository the currently logged-in user doesn't have access to
@@ -217,8 +210,7 @@ func TestPackageAPI(t *testing.T) {
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).AddTokenAuth(tokenReadPackage)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		var ap4 *api.Package
-		DecodeJSON(t, resp, &ap4)
+		ap4 := DecodeJSON(t, resp, &api.Package{})
 		assert.Nil(t, ap4.Repository)
 
 		assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(t.Context(), privateRepoID))
@@ -235,8 +227,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var files []*api.PackageFile
-		DecodeJSON(t, resp, &files)
+		files := DecodeJSON(t, resp, []*api.PackageFile{})
 
 		assert.Len(t, files, 1)
 		assert.Equal(t, int64(0), files[0].Size)
@@ -562,7 +553,7 @@ func TestPackageCleanup(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		// Upload and delete a generic package and upload a container blob
-		data, _ := util.CryptoRandomBytes(5)
+		data := util.CryptoRandomBytes(5)
 		url := fmt.Sprintf("/api/packages/%s/generic/cleanup-test/1.1.1/file.bin", user.Name)
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(data)).
 			AddBasicAuth(user.Name)
@@ -572,7 +563,7 @@ func TestPackageCleanup(t *testing.T) {
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		data, _ = util.CryptoRandomBytes(5)
+		data = util.CryptoRandomBytes(5)
 		url = fmt.Sprintf("/v2/%s/cleanup-test/blobs/uploads?digest=sha256:%x", user.Name, sha256.Sum256(data))
 		req = NewRequestWithBody(t, "POST", url, bytes.NewReader(data)).
 			AddBasicAuth(user.Name)

@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-const tplStarUnstar templates.TplName = "repo/star_unstar"
+const tplStarUnstar templates.TplName = "repo/header/star"
 
 func ActionStar(ctx *context.Context) {
 	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.PathParam("action") == "star")
@@ -26,6 +26,5 @@ func ActionStar(ctx *context.Context) {
 		ctx.ServerError("GetRepositoryByName", err)
 		return
 	}
-	ctx.RespHeader().Add("hx-trigger", "refreshUserCards") // see the `hx-trigger="refreshUserCards ..."` comments in tmpl
 	ctx.HTML(http.StatusOK, tplStarUnstar)
 }

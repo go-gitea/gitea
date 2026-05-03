@@ -32,6 +32,7 @@ import octiconFile from '../../public/assets/img/svg/octicon-file.svg';
 import octiconFileCode from '../../public/assets/img/svg/octicon-file-code.svg';
 import octiconFileDirectoryFill from '../../public/assets/img/svg/octicon-file-directory-fill.svg';
 import octiconFileDirectoryOpenFill from '../../public/assets/img/svg/octicon-file-directory-open-fill.svg';
+import octiconFileRemoved from '../../public/assets/img/svg/octicon-file-removed.svg';
 import octiconFileSubmodule from '../../public/assets/img/svg/octicon-file-submodule.svg';
 import octiconFileSymlinkFile from '../../public/assets/img/svg/octicon-file-symlink-file.svg';
 import octiconFilter from '../../public/assets/img/svg/octicon-filter.svg';
@@ -44,7 +45,9 @@ import octiconGitPullRequestClosed from '../../public/assets/img/svg/octicon-git
 import octiconGitPullRequestDraft from '../../public/assets/img/svg/octicon-git-pull-request-draft.svg';
 import octiconGrabber from '../../public/assets/img/svg/octicon-grabber.svg';
 import octiconHeading from '../../public/assets/img/svg/octicon-heading.svg';
+import octiconHistory from '../../public/assets/img/svg/octicon-history.svg';
 import octiconHorizontalRule from '../../public/assets/img/svg/octicon-horizontal-rule.svg';
+import octiconHome from '../../public/assets/img/svg/octicon-home.svg';
 import octiconImage from '../../public/assets/img/svg/octicon-image.svg';
 import octiconIssueClosed from '../../public/assets/img/svg/octicon-issue-closed.svg';
 import octiconIssueOpened from '../../public/assets/img/svg/octicon-issue-opened.svg';
@@ -116,6 +119,7 @@ const svgs = {
   'octicon-file-code': octiconFileCode,
   'octicon-file-directory-fill': octiconFileDirectoryFill,
   'octicon-file-directory-open-fill': octiconFileDirectoryOpenFill,
+  'octicon-file-removed': octiconFileRemoved,
   'octicon-file-submodule': octiconFileSubmodule,
   'octicon-file-symlink-file': octiconFileSymlinkFile,
   'octicon-filter': octiconFilter,
@@ -128,7 +132,9 @@ const svgs = {
   'octicon-git-pull-request-draft': octiconGitPullRequestDraft,
   'octicon-grabber': octiconGrabber,
   'octicon-heading': octiconHeading,
+  'octicon-history': octiconHistory,
   'octicon-horizontal-rule': octiconHorizontalRule,
+  'octicon-home': octiconHome,
   'octicon-image': octiconImage,
   'octicon-issue-closed': octiconIssueClosed,
   'octicon-issue-opened': octiconIssueOpened,

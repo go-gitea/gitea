@@ -90,8 +90,8 @@ func (w *testLoggerWriterCloser) Reset() {
 	w.Unlock()
 }
 
-// Printf takes a format and args and prints the string to os.Stdout
-func Printf(format string, args ...any) {
+// stdoutPrintf takes a format and args and prints the string to os.Stdout
+func stdoutPrintf(format string, args ...any) {
 	if !log.CanColorStdout {
 		for i := range args {
 			if c, ok := args[i].(*log.ColoredValue); ok {
@@ -118,20 +118,20 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	deferHasRun := false
 	t.Cleanup(func() {
 		if !deferHasRun {
-			Printf("!!! %s defer function hasn't been run but Cleanup is called, usually caused by panic", t.Name())
+			stdoutPrintf("!!! %s: defer function hasn't been run but Cleanup is called, usually caused by panic\n", t.Name())
 		}
 	})
-	Printf("=== %s (%s:%d)\n", log.NewColoredValue(t.Name()), strings.TrimPrefix(filename, prefix), line)
+	stdoutPrintf("=== %s (%s:%d)\n", log.NewColoredValue(t.Name()), strings.TrimPrefix(filename, prefix), line)
 
 	WriterCloser.pushT(t)
 	timeoutChecker := time.AfterFunc(TestTimeout, func() {
-		Printf("!!! %s ... timeout: %v ... stacktrace:\n%s\n\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestTimeout, getRuntimeStackAll())
+		stdoutPrintf("!!! %s ... timeout: %v ... stacktrace:\n%s\n\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestTimeout, getRuntimeStackAll())
 	})
 	return func() {
 		deferHasRun = true
 		flushStart := time.Now()
 		slowFlushChecker := time.AfterFunc(TestSlowFlush, func() {
-			Printf("+++ %s ... still flushing after %v ...\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestSlowFlush)
+			stdoutPrintf("+++ %s ... still flushing after %v ...\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestSlowFlush)
 		})
 		if err := queue.GetManager().FlushAll(t.Context(), -1); err != nil {
 			// if panic occurs, then the t.Context() is also cancelled ahead, so here it shows "context canceled" error.
@@ -143,7 +143,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 		runDuration := time.Since(runStart)
 		flushDuration := time.Since(flushStart)
 		if runDuration > TestSlowRun {
-			Printf("+++ %s is a slow test (run: %v, flush: %v)\n", log.NewColoredValue(t.Name(), log.Bold, log.FgYellow), runDuration, flushDuration)
+			stdoutPrintf("+++ %s is a slow test (run: %v, flush: %v)\n", log.NewColoredValue(t.Name(), log.Bold, log.FgYellow), runDuration, flushDuration)
 		}
 		WriterCloser.popT()
 	}
@@ -173,7 +173,8 @@ func Init() {
 	log.RegisterEventWriter("test", newTestLoggerWriter)
 }
 
-func Panicf(format string, args ...any) {
-	// don't call os.Exit, otherwise the "defer" functions won't be executed
-	panic(fmt.Sprintf(format, args...))
+// MainErrorf is used to report an error from TestMain and return a non-zero value to indicate the failure
+func MainErrorf(msg string, a ...any) int {
+	_, _ = fmt.Fprintf(os.Stderr, msg+"\n", a...)
+	return 1
 }

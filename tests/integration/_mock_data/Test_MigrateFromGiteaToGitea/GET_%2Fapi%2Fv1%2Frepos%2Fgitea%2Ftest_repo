@@ -1,0 +1,3 @@
+Content-Type: application/json
+
+{"id":1,"name":"test_repo","full_name":"gitea/test_repo","owner":{"id":1,"login":"gitea","username":"gitea"},"private":false,"html_url":"https://gitea.com/gitea/test_repo","clone_url":"https://gitea.com/gitea/test_repo.git","default_branch":"master","description":"test repo for migration"}

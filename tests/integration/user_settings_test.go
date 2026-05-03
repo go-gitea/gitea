@@ -5,10 +5,12 @@ package integration
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -309,17 +311,23 @@ func TestUserSettingsApplications(t *testing.T) {
 				})
 				resp := session.MakeRequest(t, req, http.StatusOK)
 				doc := NewHTMLParser(t, resp.Body)
-
-				msg := doc.Find(".flash-error p").Text()
-				assert.Equal(t, `form.RedirectURIs"ftp://127.0.0.1" is not a valid URL.`, msg)
+				msg := strings.TrimSpace(doc.Find(".ui.message.flash-message").Text())
+				assert.Equal(t, `RedirectURIs: "ftp://127.0.0.1" is not a valid URL.`, msg)
 			})
 
 			t.Run("OK", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
-
+				defer test.MockVariableValue(&setting.OAuth2.CustomSchemes, []string{"my-app"})()
 				req := NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/2", map[string]string{
 					"application_name":    "Test native app",
 					"redirect_uris":       "http://127.0.0.1",
+					"confidential_client": "false",
+				})
+				session.MakeRequest(t, req, http.StatusSeeOther)
+
+				req = NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/2", map[string]string{
+					"application_name":    "Test native app",
+					"redirect_uris":       "my-app://127.0.0.1",
 					"confidential_client": "false",
 				})
 				session.MakeRequest(t, req, http.StatusSeeOther)

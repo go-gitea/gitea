@@ -26,8 +26,7 @@ func TestAPIPullCommits(t *testing.T) {
 	req := NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/commits", repo.OwnerName, repo.Name, pr.Index)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var commits []*api.Commit
-	DecodeJSON(t, resp, &commits)
+	commits := DecodeJSON(t, resp, []*api.Commit{})
 
 	require.Len(t, commits, 2)
 

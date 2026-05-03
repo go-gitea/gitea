@@ -2,10 +2,14 @@
 - Run `make fmt` to format `.go` files, and run `make lint-go` to lint them
 - Run `make lint-js` to lint `.ts` files
 - Run `make tidy` after any `go.mod` changes
+- Run single go tests with `go test -tags 'sqlite sqlite_unlock_notify' -run '^TestName$' ./modulepath/`
+- Run single js test files with `pnpm exec vitest <path-filter>`
+- Run single playwright e2e test files with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e`
 - Add the current year into the copyright header of new `.go` files
 - Ensure no trailing whitespace in edited files
 - Never force-push, amend, or squash unless asked. Use new commits and normal push for pull request updates
 - Preserve existing code comments, do not remove or rewrite comments that are still relevant
 - In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
+- For CSS layout, prefer `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins; fall back to `tw-*` utilities when specificity requires `!important`
 - Include authorship attribution in issue and pull request comments
 - Add `Co-Authored-By` lines to all commits, indicating name and model used

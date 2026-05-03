@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-const tplWatchUnwatch templates.TplName = "repo/watch_unwatch"
+const tplWatchUnwatch templates.TplName = "repo/header/watch"
 
 func ActionWatch(ctx *context.Context) {
 	err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.PathParam("action") == "watch")
@@ -26,6 +26,5 @@ func ActionWatch(ctx *context.Context) {
 		ctx.ServerError("GetRepositoryByName", err)
 		return
 	}
-	ctx.RespHeader().Add("hx-trigger", "refreshUserCards") // see the `hx-trigger="refreshUserCards ..."` comments in tmpl
 	ctx.HTML(http.StatusOK, tplWatchUnwatch)
 }
