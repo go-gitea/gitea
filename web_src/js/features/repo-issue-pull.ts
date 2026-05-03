@@ -2,6 +2,7 @@ import {createApp} from 'vue';
 import {GET, POST} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
+import {registerGlobalEventFunc} from '../modules/observer.ts';
 
 function initRepoPullRequestUpdate(el: HTMLElement) {
   const prUpdateButtonContainer = el.querySelector('#update-pr-branch-with-base');
@@ -48,15 +49,11 @@ function initRepoPullRequestUpdate(el: HTMLElement) {
   });
 }
 
-function initRepoPullRequestCommitStatus(el: HTMLElement) {
-  for (const btn of el.querySelectorAll('.commit-status-hide-checks')) {
-    const panel = btn.closest('.commit-status-panel')!;
-    const list = panel.querySelector<HTMLElement>('.commit-status-list')!;
-    btn.addEventListener('click', () => {
-      list.style.maxHeight = list.style.maxHeight ? '' : '0px'; // toggle
-      btn.textContent = btn.getAttribute(list.style.maxHeight ? 'data-show-all' : 'data-hide-all');
-    });
-  }
+function onCommitStatusChecksToggle(btn: HTMLElement) {
+  const panel = btn.closest('.commit-status-toggle')!.parentElement!;
+  const list = panel.querySelector<HTMLElement>('.commit-status-list')!;
+  list.style.maxHeight = list.style.maxHeight ? '' : '0px'; // toggle
+  btn.textContent = btn.getAttribute(list.style.maxHeight ? 'data-show-all' : 'data-hide-all');
 }
 
 async function initRepoPullRequestMergeForm(box: HTMLElement) {
@@ -70,7 +67,7 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
 }
 
 export function initRepoPullMergeBox(el: HTMLElement) {
-  initRepoPullRequestCommitStatus(el);
+  registerGlobalEventFunc('click', 'onCommitStatusChecksToggle', onCommitStatusChecksToggle);
   initRepoPullRequestUpdate(el);
   initRepoPullRequestMergeForm(el);
 

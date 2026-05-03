@@ -117,6 +117,16 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
+		// Exercises the single-doc Index/Delete fast path in backends that have one (e.g. Elasticsearch).
+		Name: "single-doc index",
+		ExtraData: []*internal.IndexerData{
+			{ID: 999, Title: "solo-issue-marker"},
+		},
+		SearchOptions: &internal.SearchOptions{Keyword: "solo-issue-marker"},
+		ExpectedIDs:   []int64{999},
+		ExpectedTotal: 1,
+	},
+	{
 		Name: "Keyword",
 		ExtraData: []*internal.IndexerData{
 			{ID: 1000, Title: "hi hello world"},

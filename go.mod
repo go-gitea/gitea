@@ -87,7 +87,6 @@ require (
 	github.com/msteinert/pam/v2 v2.1.0
 	github.com/nektos/act v0.2.63
 	github.com/niklasfasching/go-org v1.9.1
-	github.com/olivere/elastic/v7 v7.0.32
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/pquerna/otp v1.5.0
@@ -222,7 +221,7 @@ require (
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/libdns/libdns v1.1.1 // indirect
-	github.com/mailru/easyjson v0.9.2 // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/markbates/going v1.0.3 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-runewidth v0.0.21 // indirect
