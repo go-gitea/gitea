@@ -114,13 +114,17 @@
 			</div>
 		</div>
 
-		<h3>If parent provides padding or items need their own padding:</h3>
+		<h3>If parent provides padding or items need their own flex and/or padding:</h3>
 		<div class="container-divided tw-border tw-border-secondary">
 			<div class="tw-m-3">before divider</div>
 			<div class="divider"></div>
-			<div class="flex-divided-list">
+			<div class="flex-divided-list container-divided flex-items-block">
 				<div class="item">item 1</div>
 				<div class="item">item 2</div>
+				<div class="item flex-divided-list">
+					<div class="item">item nested 1</div>
+					<div class="item">item nested 2</div>
+				</div>
 			</div>
 			<div class="divider"></div>
 			<div class="tw-m-3">after divider</div>

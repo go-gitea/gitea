@@ -10,15 +10,16 @@
 }
 
 /* items have dividers between them, the dividers align with items (use parent padding) */
-.flex-divided-list {
-  list-style: none;
+.flex-divided-list,
+.flex-divided-list > .item.flex-divided-list {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  gap: 0;
 }
 
 .flex-divided-list > .item {
   padding: 10px 0;
-  width: 100%;
 }
 
 .flex-divided-list > .item + .item {
