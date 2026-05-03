@@ -149,7 +149,7 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 }
 
 func testIssueDelete(t *testing.T, session *TestSession, issueURL string) {
-	req := NewRequest(t, "POST", "/"+path.Join(issueURL, "delete"))
+	req := NewRequest(t, "POST", path.Join(issueURL, "delete"))
 	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
