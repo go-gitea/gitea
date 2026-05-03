@@ -164,12 +164,13 @@ func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 func (prInfo *pullRequestViewInfo) setTemplateDataMergeTarget(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
 	if ctx.Repo.Owner.Name == pull.MustHeadUserName(ctx) {
-		ctx.Data["HeadTarget"] = pull.HeadBranch
+		prInfo.headTarget = pull.HeadBranch
 	} else if pull.HeadRepo == nil {
-		ctx.Data["HeadTarget"] = ctx.Locale.Tr("repo.pull.deleted_branch", pull.HeadBranch)
+		prInfo.headTarget = ctx.Locale.TrString("repo.pull.deleted_branch", pull.HeadBranch)
 	} else {
-		ctx.Data["HeadTarget"] = pull.MustHeadUserName(ctx) + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
+		prInfo.headTarget = pull.MustHeadUserName(ctx) + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
 	}
+	ctx.Data["HeadTarget"] = prInfo.headTarget
 	ctx.Data["BaseTarget"] = pull.BaseBranch
 	headBranchLink := ""
 	if pull.Flow == issues_model.PullRequestFlowGithub {
@@ -268,6 +269,11 @@ type pullMergeBoxData struct {
 	HasOverridableBlockers bool
 	CanMergeNow            bool
 
+	MergeFormProps        map[string]any
+	ShowPullCommands      bool
+	ShowMergeInstructions bool
+	AutodetectManualMerge bool
+
 	// don't expose unneeded fields to templates, need more refactoring changes
 	hasStatusCheckBlocker bool
 	isPullBranchDeletable bool
@@ -289,6 +295,7 @@ type pullRequestViewInfo struct {
 
 	IsPullRequestBroken bool
 	HeadBranchCommitID  string
+	headTarget          string // for display purpose only
 
 	CompareInfo         git_service.CompareInfo
 	ProtectedBranchRule *git_model.ProtectedBranch
@@ -537,7 +544,7 @@ func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context)
 
 	ctx.Data["PullHeadCommitID"] = prInfo.CompareInfo.HeadCommitID
 
-	if prInfo.CompareInfo.HeadCommitID == prInfo.CompareInfo.MergeBase {
+	if prInfo.CompareInfo.HeadCommitID == prInfo.CompareInfo.CompareBase {
 		ctx.Data["IsNothingToCompare"] = true
 	}
 
@@ -615,9 +622,6 @@ func ViewPullCommits(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-
 	commits, err := processGitCommits(ctx, prCompareInfo.Commits)
 	if err != nil {
 		ctx.ServerError("processGitCommits", err)
@@ -673,7 +677,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	headCommitID := prCompareInfo.HeadCommitID
 	isSingleCommit := beforeCommitID == "" && afterCommitID != ""
 	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
-	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prCompareInfo.MergeBase) && (afterCommitID == "" || afterCommitID == headCommitID)
+	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase) && (afterCommitID == "" || afterCommitID == headCommitID)
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
 
 	if afterCommitID == "" || afterCommitID == headCommitID {
@@ -688,8 +692,8 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	var beforeCommit *git.Commit
 	var err error
 	if !isSingleCommit {
-		if beforeCommitID == "" || beforeCommitID == prCompareInfo.MergeBase {
-			beforeCommitID = prCompareInfo.MergeBase
+		if beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase {
+			beforeCommitID = prCompareInfo.CompareBase
 			// merge base commit is not in the list of the pull request commits
 			beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
 			if err != nil {
@@ -712,7 +716,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		beforeCommitID = beforeCommit.ID.String()
 	}
 
-	ctx.Data["MergeBase"] = prCompareInfo.MergeBase
+	ctx.Data["CompareInfo"] = prCompareInfo
 	ctx.Data["AfterCommitID"] = afterCommitID
 	ctx.Data["BeforeCommitID"] = beforeCommitID
 
@@ -730,7 +734,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		MaxLines:           maxLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:           maxFiles,
-		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(GetWhitespaceBehavior(ctx)),
 	}
 
 	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, diffOptions, files...)
@@ -769,7 +773,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		"numberOfViewedFiles": numViewedFiles,
 	}
 
-	if err = diff.LoadComments(ctx, issue, ctx.Doer, ctx.Data["ShowOutdatedComments"].(bool)); err != nil {
+	if err = diff.LoadComments(ctx, issue, ctx.Doer, GetShowOutdatedComments(ctx)); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
 	}
@@ -881,13 +885,13 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 		if pull.HeadRepo != nil {
 			if !pull.HasMerged && ctx.Doer != nil {
-				perm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
+				headPerm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 				if err != nil {
 					ctx.ServerError("GetDoerRepoPermission", err)
 					return
 				}
 
-				if perm.CanWrite(unit.TypeCode) || issues_model.CanMaintainerWriteToBranch(ctx, perm, pull.HeadBranch, ctx.Doer) {
+				if issues_model.CanMaintainerWriteToBranch(ctx, headPerm, pull.HeadBranch, ctx.Doer) {
 					ctx.Data["CanEditFile"] = true
 					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
 					ctx.Data["HeadRepoLink"] = pull.HeadRepo.Link()
@@ -1274,31 +1278,32 @@ func PullsNewRedirect(ctx *context.Context) {
 // CompareAndPullRequestPost response for creating pull request
 func CompareAndPullRequestPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateIssueForm)
-	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
-	ctx.Data["PageIsComparePull"] = true
-	ctx.Data["IsDiffCompare"] = true
-	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	upload.AddUploadContext(ctx, "comment")
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypePullRequests)
-
-	var (
-		repo        = ctx.Repo.Repository
-		attachments []string
-	)
-
-	ci := ParseCompareInfo(ctx)
-	if ctx.Written() {
+	repo := ctx.Repo.Repository
+	comparePageInfo := newComparePageInfo()
+	err := comparePageInfo.parseCompareInfo(ctx)
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.JSONErrorNotFound()
+		return
+	} else if errors.Is(err, util.ErrInvalidArgument) {
+		ctx.JSONError(err.Error())
+		return
+	} else if err != nil {
+		ctx.ServerError("ParseCompareInfo", err)
 		return
 	}
-
+	ci := comparePageInfo.compareInfo
+	if ci.CompareBase == "" {
+		ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
+		return
+	}
 	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, true)
 	if ctx.Written() {
 		return
 	}
 
-	labelIDs, assigneeIDs, milestoneID, projectID := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.MilestoneID, validateRet.ProjectID
+	labelIDs, assigneeIDs, milestoneID, projectIDs := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.MilestoneID, validateRet.ProjectIDs
 
+	var attachments []string
 	if setting.Attachment.Enabled {
 		attachments = form.Files
 	}
@@ -1348,7 +1353,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		BaseBranch:          ci.BaseRef.ShortName(),
 		HeadRepo:            ci.HeadRepo,
 		BaseRepo:            repo,
-		MergeBase:           ci.MergeBase,
+		MergeBase:           ci.CompareBase,
 		Type:                issues_model.PullRequestGitea,
 		AllowMaintainerEdit: form.AllowMaintainerEdit,
 	}
@@ -1363,7 +1368,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		AssigneeIDs:     assigneeIDs,
 		Reviewers:       validateRet.Reviewers,
 		TeamReviewers:   validateRet.TeamReviewers,
-		ProjectID:       projectID,
+		ProjectIDs:      projectIDs,
 	}
 	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 		switch {

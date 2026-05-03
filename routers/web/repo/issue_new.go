@@ -121,7 +121,8 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	pageMetaData.MilestonesData.SelectedMilestoneID = ctx.FormInt64("milestone")
-	pageMetaData.ProjectsData.SelectedProjectIDs, _ = base.StringsToInt64s(strings.Split(ctx.FormString("project"), ","))
+
+	pageMetaData.SetSelectedProjectIDs(parseProjectIDsFromQuery(ctx))
 	if len(pageMetaData.ProjectsData.SelectedProjectIDs) == 1 {
 		ctx.Data["redirect_after_creation"] = "project"
 	}
@@ -237,8 +238,9 @@ func toSet[ItemType any, KeyType comparable](slice []ItemType, keyFunc func(Item
 
 // ValidateRepoMetasForNewIssue check and returns repository's meta information
 func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueForm, isPull bool) (ret struct {
-	LabelIDs, AssigneeIDs  []int64
-	MilestoneID, ProjectID int64
+	LabelIDs, AssigneeIDs []int64
+	MilestoneID           int64
+	ProjectIDs            []int64
 
 	Reviewers     []*user_model.User
 	TeamReviewers []*organization.Team
@@ -249,7 +251,7 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 		return ret
 	}
 
-	inputLabelIDs, _ := base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
+	inputLabelIDs := ctx.FormStringInt64s("label_ids")
 	candidateLabels := toSet(pageMetaData.LabelsData.AllLabels, func(label *issues_model.Label) int64 { return label.ID })
 	if len(inputLabelIDs) > 0 && !candidateLabels.Contains(inputLabelIDs...) {
 		ctx.NotFound(nil)
@@ -265,13 +267,8 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 	}
 	pageMetaData.MilestonesData.SelectedMilestoneID = form.MilestoneID
 
-	allProjects := append(slices.Clone(pageMetaData.ProjectsData.OpenProjects), pageMetaData.ProjectsData.ClosedProjects...)
-	candidateProjects := toSet(allProjects, func(project *project_model.Project) int64 { return project.ID })
-	if form.ProjectID > 0 && !candidateProjects.Contains(form.ProjectID) {
-		ctx.NotFound(nil)
-		return ret
-	}
-	pageMetaData.ProjectsData.SelectedProjectIDs = util.Iif(form.ProjectID > 0, []int64{form.ProjectID}, nil)
+	inputProjectIDs := ctx.FormStringInt64s("project_ids")
+	pageMetaData.SetSelectedProjectIDs(inputProjectIDs)
 
 	// prepare assignees
 	candidateAssignees := toSet(pageMetaData.AssigneesData.CandidateAssignees, func(user *user_model.User) int64 { return user.ID })
@@ -316,7 +313,8 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 		}
 	}
 
-	ret.LabelIDs, ret.AssigneeIDs, ret.MilestoneID, ret.ProjectID = inputLabelIDs, inputAssigneeIDs, form.MilestoneID, form.ProjectID
+	// Return only the validated IDs.
+	ret.LabelIDs, ret.AssigneeIDs, ret.MilestoneID, ret.ProjectIDs = inputLabelIDs, inputAssigneeIDs, form.MilestoneID, inputProjectIDs
 	ret.Reviewers, ret.TeamReviewers = reviewers, teamReviewers
 	return ret
 }
@@ -324,26 +322,17 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 // NewIssuePost response for creating new issue
 func NewIssuePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateIssueForm)
-	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
-	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	upload.AddUploadContext(ctx, "comment")
 
-	var (
-		repo        = ctx.Repo.Repository
-		attachments []string
-	)
+	repo := ctx.Repo.Repository
 
 	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, false)
 	if ctx.Written() {
 		return
 	}
 
-	labelIDs, assigneeIDs, milestoneID, projectID := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.MilestoneID, validateRet.ProjectID
+	labelIDs, assigneeIDs, milestoneID, projectIDs := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.MilestoneID, validateRet.ProjectIDs
 
-	if projectID > 0 {
+	if len(projectIDs) > 0 {
 		if !ctx.Repo.Permission.CanRead(unit.TypeProjects) {
 			// User must also be able to see the project.
 			ctx.HTTPError(http.StatusBadRequest, "user hasn't permissions to read projects")
@@ -351,6 +340,7 @@ func NewIssuePost(ctx *context.Context) {
 		}
 	}
 
+	var attachments []string
 	if setting.Attachment.Enabled {
 		attachments = form.Files
 	}
@@ -383,7 +373,7 @@ func NewIssuePost(ctx *context.Context) {
 		Ref:         form.Ref,
 	}
 
-	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs, projectID); err != nil {
+	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs, projectIDs); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.HTTPError(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
@@ -395,8 +385,9 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
-	if ctx.FormString("redirect_after_creation") == "project" && projectID > 0 {
-		project, err := project_model.GetProjectByID(ctx, projectID)
+	if ctx.FormString("redirect_after_creation") == "project" && len(projectIDs) > 0 {
+		// When issue is in multiple projects, redirect to first project from form order.
+		project, err := project_model.GetProjectByID(ctx, projectIDs[0])
 		if err == nil {
 			if project.Type == project_model.TypeOrganization {
 				ctx.JSONRedirect(project_model.ProjectLinkForOrg(ctx.Repo.Owner, project.ID))

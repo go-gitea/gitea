@@ -11,15 +11,15 @@
 			</div>
 			<div class="divider"></div>
 		{{end}}
-		<div class="flex-list">
+		<div class="flex-divided-list items-with-main">
 			{{range .Members}}
 				{{$isPublic := index $.MembersIsPublicMember .ID}}
-				<div class="flex-item {{if $.PublicOnly}}tw-items-center{{end}}">
-					<div class="flex-item-leading">
+				<div class="item {{if $.PublicOnly}}tw-items-center{{end}}">
+					<div class="item-leading">
 						<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
 					</div>
-					<div class="flex-item-main">
-						<div class="flex-item-title">
+					<div class="item-main">
+						<div class="item-title">
 							{{template "shared/user/name" .}}
 							{{if not $isPublic}}
 								<span class="ui basic small label">{{ctx.Locale.Tr "org.members.private"}}</span>
@@ -44,7 +44,7 @@
 							{{end}}
 						</div>
 					</div>
-					<div class="flex-item-trailing">
+					<div class="item-trailing">
 						{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}
 							{{if $isPublic}}
 								<a class="ui tiny button link-action" href data-url="{{$.OrgLink}}/members/action/private?uid={{.ID}}">{{svg "octicon-eye-closed" 12 "icon"}}{{ctx.Locale.Tr "org.members.public_helper"}}</a>

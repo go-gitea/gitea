@@ -1,28 +1,28 @@
 {{template "devtest/devtest-header"}}
 <div class="page-content devtest">
 	<div class="ui container">
-		<h1>Flex List (standalone)</h1>
+		<h3>Flex List (standalone)</h3>
 		<div class="divider"></div>
-		<div class="flex-list">
-			<div class="flex-item">
-				<div class="flex-item-leading">
+		<div class="flex-divided-list items-with-main">
+			<div class="item">
+				<div class="item-leading">
 					{{svg "octicon-info" 32}}
 				</div>
-				<div class="flex-item-main">
-					<div class="flex-item-title">
+				<div class="item-main">
+					<div class="item-title">
 						Flex Item
 						<span class="ui basic label">
 							with label
 						</span>
 					</div>
-					<div class="flex-item-body">
+					<div class="item-body">
 						consists of leading/main/trailing part
 					</div>
-					<div class="flex-item-body">
+					<div class="item-body">
 						main part contains title and (multiple) body lines
 					</div>
 				</div>
-				<div class="flex-item-trailing">
+				<div class="item-trailing">
 					<button class="ui tiny red button">
 						{{svg "octicon-alert" 14}} CJK文本测试
 					</button>
@@ -35,42 +35,42 @@
 				</div>
 			</div>
 
-			<div class="flex-item">
-				<div class="flex-item-leading">
+			<div class="item">
+				<div class="item-leading">
 					{{svg "octicon-info" 32}}
 				</div>
-				<div class="flex-item-main">
-					<div class="flex-item-title">
+				<div class="item-main">
+					<div class="item-title">
 						Very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong title
 					</div>
-					<div class="flex-item-body">
+					<div class="item-body">
 						consists of leading/main/trailing part
 					</div>
-					<div class="flex-item-body">
+					<div class="item-body">
 						Very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong content
 						<span class="tw-inline-block tw-truncate">Truncate very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong content</span>
 					</div>
 				</div>
-				<div class="flex-item-trailing">
+				<div class="item-trailing">
 					<button class="ui tiny red button">
 						{{svg "octicon-alert" 12}} CJK文本测试 <!-- single CJK text test, it shouldn't be horizontal -->
 					</button>
 				</div>
 			</div>
 
-			<div class="flex-item">
-				<div class="flex-item-leading">
+			<div class="item">
+				<div class="item-leading">
 					{{svg "octicon-repo" 32}}
 				</div>
-				<div class="flex-item-main">
-					<div class="flex-item-header">
-						<div class="flex-item-title">
+				<div class="item-main">
+					<div class="item-header">
+						<div class="item-title">
 							<a class="tw-text-primary" href="{{$.Link}}">
 								gitea-org / gitea
 							</a>
 							<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
 						</div>
-						<div class="flex-item-trailing">
+						<div class="item-trailing">
 							<a class="muted" href="{{$.Link}}">
 								<span class="flex-text-inline"><i class="color-icon tw-mr-2 tw-bg-blue"></i>Go</span>
 							</a>
@@ -78,7 +78,7 @@
 							<a class="tw-text-text-light flex-text-inline" href="{{$.Link}}">{{svg "octicon-git-branch" 16}}1234</a>
 						</div>
 					</div>
-					<div class="flex-item-body">
+					<div class="item-body">
 						when inside header, the trailing part will wrap below the title
 					</div>
 				</div>
@@ -87,27 +87,48 @@
 
 		<div class="divider"></div>
 
-		<h1>Flex List (with "ui segment")</h1>
+		<h3>Flex List (with "ui segment")</h3>
 		<div class="ui attached segment">
-			<div class="flex-list">
-				<div class="flex-item">item 1</div>
-				<div class="flex-item">item 2</div>
+			<div class="flex-divided-list">
+				<div class="item">item 1</div>
+				<div class="item">item 2</div>
 			</div>
 		</div>
 		<div class="ui attached segment">
-			<h1>Flex List (with "ui segment")</h1>
-			<div class="flex-list">
-				<div class="flex-item">item 1</div>
-				<div class="flex-item">item 2</div>
+			<h4>segment header</h4>
+			<div class="flex-divided-list">
+				<div class="item">item 1</div>
+				<div class="item">item 2</div>
+			</div>
+		</div>
+		<h3>Flex List (with "ui segment fitted")</h3>
+		<div class="ui attached segment fitted">
+			<div class="flex-divided-list">
+				<div class="item">item 1</div>
+				<div class="item">item 2</div>
 			</div>
 		</div>
 
-		<h1>If parent provides the padding/margin space:</h1>
-		<div class="tw-border tw-border-secondary tw-py-4">
-			<div class="flex-list flex-space-fitted">
-				<div class="flex-item">item 1 (no padding top)</div>
-				<div class="flex-item">item 2 (no padding bottom)</div>
+		<h3>If parent provides border or padding:</h3>
+		<div class="container-segmented tw-border tw-border-secondary">
+			<div class="tw-m-3">before divider</div>
+			<div class="divider"></div>
+			<div class="flex-divided-list">
+				<div class="item">item 1</div>
+				<div class="item">item 2</div>
 			</div>
+			<div class="divider"></div>
+			<div class="tw-m-3">after divider</div>
+		</div>
+		<div class="container-padded tw-border tw-border-secondary tw-p-4 tw-my-2">
+			<div>before divider</div>
+			<div class="divider"></div>
+			<div class="flex-divided-list">
+				<div class="item">item 1</div>
+				<div class="item">item 2</div>
+			</div>
+			<div class="divider"></div>
+			<div>after divider</div>
 		</div>
 	</div>
 </div>
