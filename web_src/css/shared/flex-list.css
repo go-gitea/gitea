@@ -5,10 +5,6 @@
   gap: var(--gap-block);
 }
 
-.flex-relaxed-list > .item {
-  width: 100%;
-}
-
 .flex-relaxed-list > .divider {
   margin: 0;
 }
