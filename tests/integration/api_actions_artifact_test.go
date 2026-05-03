@@ -380,7 +380,7 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 		assert.Equal(t, "artifact-download", uploadedItem.Name)
 
 		idx := strings.Index(uploadedItem.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-		url := uploadedItem.FileContainerResourceURL[idx+1:] + "?itemPath=artifact-download"
+		url := uploadedItem.FileContainerResourceURL[idx:] + "?itemPath=artifact-download"
 		req = NewRequest(t, "GET", url).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp = MakeRequest(t, req, http.StatusOK)
