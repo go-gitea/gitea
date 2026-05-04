@@ -26,18 +26,6 @@ export default {
   ],
   overrides: [
     {
-      files: ['**/chroma/*', '**/codemirror/*', '**/console.css', 'font_i18n.css'],
-      rules: {
-        'scale-unlimited/declaration-strict-value': null,
-      },
-    },
-    {
-      files: ['**/chroma/*', '**/codemirror/*'],
-      rules: {
-        'block-no-empty': null,
-      },
-    },
-    {
       files: ['**/*.vue'],
       customSyntax: 'postcss-html',
     },
@@ -139,7 +127,7 @@ export default {
     'no-unknown-custom-media': null, // disabled until stylelint supports multi-file linting
     'no-unknown-custom-properties': null,  // disabled until stylelint supports multi-file linting
     'plugin/declaration-block-no-ignored-properties': true,
-    'scale-unlimited/declaration-strict-value': [['/color$/', 'font-weight'], {ignoreValues: '/^(inherit|transparent|unset|initial|currentcolor|none)$/', ignoreFunctions: true, disableFix: true, expandShorthand: true}],
+    'scale-unlimited/declaration-strict-value': [['/color$/', 'fill', 'stroke', 'font-weight'], {ignoreValues: '/^(inherit|transparent|unset|initial|currentcolor|none)$/', ignoreFunctions: true, disableFix: true, expandShorthand: true}],
     'selector-attribute-quotes': 'always',
     'selector-no-vendor-prefix': true,
     'selector-pseudo-element-colon-notation': 'double',

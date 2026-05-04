@@ -1,3 +1,5 @@
+/* stylelint-disable scale-unlimited/declaration-strict-value -- branch flow palette needs distinct literal colors */
+
 #git-graph-container {
   overflow-x: auto;
   width: 100%;

@@ -1,3 +1,5 @@
+/* stylelint-disable scale-unlimited/declaration-strict-value -- numeric font-weight values for @font-face */
+
 :root :lang(ja) {
   --fonts-override: var(--fonts-default-override-ja);
 }

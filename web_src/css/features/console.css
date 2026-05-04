@@ -1,4 +1,5 @@
 /* Based on https://github.com/buildkite/terminal-to-html/blob/697ff23bd8dc48b9d23f11f259f5256dae2455f0/assets/terminal.css */
+/* stylelint-disable scale-unlimited/declaration-strict-value -- terminal ANSI palette uses literal hex values */
 
 .console {
   background: var(--color-console-bg);
