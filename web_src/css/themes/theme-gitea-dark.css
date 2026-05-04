@@ -158,6 +158,22 @@ gitea-theme-meta-info {
   --color-series-16-13: #439d73;
   --color-series-16-14: #103aad;
   --color-series-16-15: #982e85;
+  --color-series-16-highlight-0: color-mix(in srgb, var(--color-series-16-0), white 13%);
+  --color-series-16-highlight-1: color-mix(in srgb, var(--color-series-16-1), white 13%);
+  --color-series-16-highlight-2: color-mix(in srgb, var(--color-series-16-2), white 13%);
+  --color-series-16-highlight-3: color-mix(in srgb, var(--color-series-16-3), white 13%);
+  --color-series-16-highlight-4: color-mix(in srgb, var(--color-series-16-4), white 13%);
+  --color-series-16-highlight-5: color-mix(in srgb, var(--color-series-16-5), white 13%);
+  --color-series-16-highlight-6: color-mix(in srgb, var(--color-series-16-6), white 13%);
+  --color-series-16-highlight-7: color-mix(in srgb, var(--color-series-16-7), white 13%);
+  --color-series-16-highlight-8: color-mix(in srgb, var(--color-series-16-8), white 13%);
+  --color-series-16-highlight-9: color-mix(in srgb, var(--color-series-16-9), white 13%);
+  --color-series-16-highlight-10: color-mix(in srgb, var(--color-series-16-10), white 13%);
+  --color-series-16-highlight-11: color-mix(in srgb, var(--color-series-16-11), white 13%);
+  --color-series-16-highlight-12: color-mix(in srgb, var(--color-series-16-12), white 13%);
+  --color-series-16-highlight-13: color-mix(in srgb, var(--color-series-16-13), white 13%);
+  --color-series-16-highlight-14: color-mix(in srgb, var(--color-series-16-14), white 13%);
+  --color-series-16-highlight-15: color-mix(in srgb, var(--color-series-16-15), white 13%);
   /* other colors */
   --color-grey: #3d3f44;
   --color-grey-light: #898d96;

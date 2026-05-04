@@ -165,81 +165,81 @@
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-0 {
-  stroke: color-mix(in srgb, var(--color-series-16-0), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-0), white 13%);
+  stroke: var(--color-series-16-highlight-0);
+  fill: var(--color-series-16-highlight-0);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-1 {
-  stroke: color-mix(in srgb, var(--color-series-16-1), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-1), white 13%);
+  stroke: var(--color-series-16-highlight-1);
+  fill: var(--color-series-16-highlight-1);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-2 {
-  stroke: color-mix(in srgb, var(--color-series-16-2), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-2), white 13%);
+  stroke: var(--color-series-16-highlight-2);
+  fill: var(--color-series-16-highlight-2);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-3 {
-  stroke: color-mix(in srgb, var(--color-series-16-3), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-3), white 13%);
+  stroke: var(--color-series-16-highlight-3);
+  fill: var(--color-series-16-highlight-3);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-4 {
-  stroke: color-mix(in srgb, var(--color-series-16-4), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-4), white 13%);
+  stroke: var(--color-series-16-highlight-4);
+  fill: var(--color-series-16-highlight-4);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-5 {
-  stroke: color-mix(in srgb, var(--color-series-16-5), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-5), white 13%);
+  stroke: var(--color-series-16-highlight-5);
+  fill: var(--color-series-16-highlight-5);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-6 {
-  stroke: color-mix(in srgb, var(--color-series-16-6), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-6), white 13%);
+  stroke: var(--color-series-16-highlight-6);
+  fill: var(--color-series-16-highlight-6);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-7 {
-  stroke: color-mix(in srgb, var(--color-series-16-7), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-7), white 13%);
+  stroke: var(--color-series-16-highlight-7);
+  fill: var(--color-series-16-highlight-7);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-8 {
-  stroke: color-mix(in srgb, var(--color-series-16-8), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-8), white 13%);
+  stroke: var(--color-series-16-highlight-8);
+  fill: var(--color-series-16-highlight-8);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-9 {
-  stroke: color-mix(in srgb, var(--color-series-16-9), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-9), white 13%);
+  stroke: var(--color-series-16-highlight-9);
+  fill: var(--color-series-16-highlight-9);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-10 {
-  stroke: color-mix(in srgb, var(--color-series-16-10), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-10), white 13%);
+  stroke: var(--color-series-16-highlight-10);
+  fill: var(--color-series-16-highlight-10);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-11 {
-  stroke: color-mix(in srgb, var(--color-series-16-11), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-11), white 13%);
+  stroke: var(--color-series-16-highlight-11);
+  fill: var(--color-series-16-highlight-11);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-12 {
-  stroke: color-mix(in srgb, var(--color-series-16-12), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-12), white 13%);
+  stroke: var(--color-series-16-highlight-12);
+  fill: var(--color-series-16-highlight-12);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-13 {
-  stroke: color-mix(in srgb, var(--color-series-16-13), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-13), white 13%);
+  stroke: var(--color-series-16-highlight-13);
+  fill: var(--color-series-16-highlight-13);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-14 {
-  stroke: color-mix(in srgb, var(--color-series-16-14), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-14), white 13%);
+  stroke: var(--color-series-16-highlight-14);
+  fill: var(--color-series-16-highlight-14);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-15 {
-  stroke: color-mix(in srgb, var(--color-series-16-15), white 13%);
-  fill: color-mix(in srgb, var(--color-series-16-15), white 13%);
+  stroke: var(--color-series-16-highlight-15);
+  fill: var(--color-series-16-highlight-15);
 }
