@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"strconv"
 	"strings"
 	"time"
 
@@ -37,6 +38,14 @@ func (du *DateUtils) FullTime(time any) template.HTML {
 
 func (du *DateUtils) TimeSince(time any) template.HTML {
 	return TimeSince(time)
+}
+
+func (du *DateUtils) TimeSinceHeat(datetime any) string {
+	return timeSinceHeatTo(datetime, time.Now())
+}
+
+func (du *DateUtils) TimeSinceOpacityClass(datetime any) string {
+	return timeSinceOpacityClassTo(datetime, time.Now())
 }
 
 // ParseLegacy parses the datetime in legacy format, eg: "2016-01-02" in server's timezone.
@@ -122,6 +131,58 @@ func timeSinceTo(then any, now time.Time) template.HTML {
 	htm := fmt.Sprintf(`<relative-time prefix="" %s datetime="%s" data-tooltip-content data-tooltip-interactive="true">%s</relative-time>`,
 		attrs, thenTime.Format(time.RFC3339), friendlyText)
 	return template.HTML(htm)
+}
+
+func inverseLinearInterpolation(low, high, value float64) float64 {
+	if low == high {
+		return 0
+	}
+	return (value - low) / (high - low)
+}
+
+func timeSinceHeatTo(then any, now time.Time) string {
+	thenTime, isZero := anyToTime(then)
+	if isZero {
+		return ""
+	}
+
+	const maxHeatWindow = 2_000_000_000.0
+	const month = 30 * 24 * time.Hour
+
+	age := now.Sub(thenTime)
+	if age > 4*month {
+		return ""
+	}
+
+	value := -float64(age.Milliseconds())
+	interp := inverseLinearInterpolation(-maxHeatWindow, 0, value)
+	if interp < 0 {
+		interp = 0
+	} else if interp > 1 {
+		interp = 1
+	}
+
+	heatIndex := max(1, 10-int(interp*10))
+	return strconv.Itoa(heatIndex)
+}
+
+func timeSinceOpacityClassTo(then any, now time.Time) string {
+	thenTime, isZero := anyToTime(then)
+	if isZero {
+		return ""
+	}
+
+	const month = 30 * 24 * time.Hour
+	age := now.Sub(thenTime)
+
+	switch {
+	case age > 12*month:
+		return "repo-file-age--very-faded"
+	case age > 4*month:
+		return "repo-file-age--faded"
+	default:
+		return ""
+	}
 }
 
 // TimeSince renders relative time HTML given a time

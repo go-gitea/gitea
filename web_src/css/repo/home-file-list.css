@@ -54,6 +54,11 @@
   background: var(--color-box-header);
 }
 
+#repo-files-table .repo-file-age {
+  white-space: nowrap;
+  color: var(--color-text-light-1);
+}
+
 #repo-files-table .repo-file-cell.name {
   display: flex;
   align-items: center;
@@ -90,7 +95,58 @@
 #repo-files-table .repo-file-cell.age {
   text-align: right;
   white-space: nowrap;
-  color: var(--color-text-light-1);
+}
+
+#repo-files-table [data-repo-age-heat] {
+  --repo-file-age-heat-color: #c24e00;
+}
+
+#repo-files-table [data-repo-age-heat='1'] {
+  color: color-mix(in srgb, var(--repo-file-age-heat-color) 100%, var(--color-text-light-1)) !important;
+}
+
+#repo-files-table [data-repo-age-heat='2'] {
+  color: color-mix(in srgb, var(--repo-file-age-heat-color) 90%, var(--color-text-light-1)) !important;
+}
+
+#repo-files-table [data-repo-age-heat='3'] {
+  color: color-mix(in srgb, var(--repo-file-age-heat-color) 80%, var(--color-text-light-1)) !important;
+}
+
+#repo-files-table [data-repo-age-heat='4'] {
+  color: color-mix(in srgb, var(--repo-file-age-heat-color) 70%, var(--color-text-light-1)) !important;
+}
+
+#repo-files-table [data-repo-age-heat='5'] {
+  color: color-mix(in srgb, var(--repo-file-age-heat-color) 60%, var(--color-text-light-1)) !important;
+}
+
+#repo-files-table [data-repo-age-heat='6'] {
+  color: color-mix(in srgb, var(--repo-file-age-heat-color) 50%, var(--color-text-light-1)) !important;
+}
+
+#repo-files-table [data-repo-age-heat='7'] {
+  color: color-mix(in srgb, var(--repo-file-age-heat-color) 40%, var(--color-text-light-1)) !important;
+}
+
+#repo-files-table [data-repo-age-heat='8'] {
+  color: color-mix(in srgb, var(--repo-file-age-heat-color) 30%, var(--color-text-light-1)) !important;
+}
+
+#repo-files-table [data-repo-age-heat='9'] {
+  color: color-mix(in srgb, var(--repo-file-age-heat-color) 20%, var(--color-text-light-1)) !important;
+}
+
+#repo-files-table [data-repo-age-heat='10'] {
+  color: color-mix(in srgb, var(--repo-file-age-heat-color) 0%, var(--color-text-light-1)) !important;
+}
+
+#repo-files-table .repo-file-age--faded {
+  opacity: 0.8;
+}
+
+#repo-files-table .repo-file-age--very-faded {
+  opacity: 0.6;
 }
 
 #repo-files-table .repo-file-cell.is-loading::after {

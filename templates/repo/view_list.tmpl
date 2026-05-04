@@ -8,7 +8,7 @@
 >
 	<div class="repo-file-line repo-file-last-commit">
 		{{template "repo/latest_commit" .}}
-		<div>{{if and .LatestCommit .LatestCommit.Committer}}{{DateUtils.TimeSince .LatestCommit.Committer.When}}{{end}}</div>
+		<div class="repo-file-age {{if and .LatestCommit .LatestCommit.Committer}}{{DateUtils.TimeSinceOpacityClass .LatestCommit.Committer.When}}{{end}}"{{if and .LatestCommit .LatestCommit.Committer}}{{with DateUtils.TimeSinceHeat .LatestCommit.Committer.When}} data-repo-age-heat="{{.}}"{{end}}{{end}}>{{if and .LatestCommit .LatestCommit.Committer}}{{DateUtils.TimeSince .LatestCommit.Committer.When}}{{end}}</div>
 	</div>
 	{{$.FileIconPoolHTML}}
 	{{if .HasParentPath}}
@@ -61,7 +61,7 @@
 					… {{/* will be loaded again by LastCommitLoaderURL */}}
 				{{end}}
 			</div>
-			<div class="repo-file-cell age">{{if $commit}}{{DateUtils.TimeSince $commit.Committer.When}}{{end}}</div>
+			<div class="repo-file-cell age {{if $commit}}{{DateUtils.TimeSinceOpacityClass $commit.Committer.When}}{{end}}"{{if $commit}}{{with DateUtils.TimeSinceHeat $commit.Committer.When}} data-repo-age-heat="{{.}}"{{end}}{{end}}>{{if $commit}}{{DateUtils.TimeSince $commit.Committer.When}}{{end}}</div>
 		</div>
 	{{end}}
 </div>

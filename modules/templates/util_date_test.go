@@ -62,3 +62,25 @@ func TestTimeSince(t *testing.T) {
 	actual = du.TimeSince(timeutil.TimeStampNano(refTime.UnixNano()))
 	assert.EqualValues(t, `<relative-time prefix="" tense="past" datetime="2017-12-31T19:00:00-05:00" data-tooltip-content data-tooltip-interactive="true">2017-12-31 19:00:00 -05:00</relative-time>`, actual)
 }
+
+func TestTimeSinceHeat(t *testing.T) {
+	refTime, err := time.Parse(time.RFC3339, "2024-01-31T12:00:00Z")
+	assert.NoError(t, err)
+
+	assert.Empty(t, timeSinceHeatTo(nil, refTime))
+	assert.Equal(t, "1", timeSinceHeatTo(refTime.Add(2*time.Hour), refTime))
+	assert.Equal(t, "1", timeSinceHeatTo(refTime.Add(-12*time.Hour), refTime))
+	assert.Equal(t, "6", timeSinceHeatTo(refTime.Add(-12*24*time.Hour), refTime))
+	assert.Equal(t, "10", timeSinceHeatTo(refTime.Add(-23*24*time.Hour), refTime))
+	assert.Empty(t, timeSinceHeatTo(refTime.Add(-5*30*24*time.Hour), refTime))
+}
+
+func TestTimeSinceOpacityClass(t *testing.T) {
+	refTime, err := time.Parse(time.RFC3339, "2024-01-31T12:00:00Z")
+	assert.NoError(t, err)
+
+	assert.Empty(t, timeSinceOpacityClassTo(nil, refTime))
+	assert.Empty(t, timeSinceOpacityClassTo(refTime.Add(-2*30*24*time.Hour), refTime))
+	assert.Equal(t, "repo-file-age--faded", timeSinceOpacityClassTo(refTime.Add(-6*30*24*time.Hour), refTime))
+	assert.Equal(t, "repo-file-age--very-faded", timeSinceOpacityClassTo(refTime.Add(-13*30*24*time.Hour), refTime))
+}
