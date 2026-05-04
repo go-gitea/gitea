@@ -75,6 +75,7 @@ func (r *RepositoryRestorer) GetRepoInfo(_ context.Context) (*base.Repository, e
 		Name:          r.repoName,
 		IsPrivate:     isPrivate,
 		Description:   opts["description"],
+		Website:       opts["website"],
 		OriginalURL:   opts["original_url"],
 		CloneURL:      filepath.Join(r.baseDir, "git"),
 		DefaultBranch: opts["default_branch"],

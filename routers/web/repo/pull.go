@@ -266,8 +266,15 @@ type pullMergeBoxData struct {
 	ShowMergeBox      bool
 	ReloadingInterval int
 
+	TimelineIconClass string
+
 	HasOverridableBlockers bool
-	CanMergeNow            bool
+	CanMergeNow            bool // PR is mergeable, either no blocker, or doer is admin and can bypass the blockers
+	allowMerge             bool // doer has permission to merge
+
+	ShowUpdatePullInfo    bool
+	UpdateAllowed         bool
+	UpdateByRebaseAllowed bool
 
 	MergeFormProps        map[string]any
 	ShowPullCommands      bool
@@ -302,6 +309,9 @@ type pullRequestViewInfo struct {
 	StatusCheckData     *pullCommitStatusCheckData
 	CommitStatuses      []*git_model.CommitStatus
 	MergeBoxData        *pullMergeBoxData
+
+	enableStatusCheck    bool
+	workInProgressPrefix string
 }
 
 func newPullRequestViewInfo() *pullRequestViewInfo {
@@ -430,8 +440,8 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfoForOpen(ctx *c
 	}
 
 	pb := prInfo.ProtectedBranchRule
-	enableStatusCheck := pb != nil && pb.EnableStatusCheck
-	if !enableStatusCheck {
+	prInfo.enableStatusCheck = pb != nil && pb.EnableStatusCheck
+	if !prInfo.enableStatusCheck {
 		return
 	}
 
@@ -549,9 +559,10 @@ func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context)
 	}
 
 	// this one is used by both sidebar and merge-box
+	prInfo.workInProgressPrefix = pull.GetWorkInProgressPrefix(ctx)
 	if pull.IsWorkInProgress(ctx) {
-		ctx.Data["IsPullWorkInProgress"] = true
-		ctx.Data["WorkInProgressPrefix"] = pull.GetWorkInProgressPrefix(ctx)
+		ctx.Data["IsPullWorkInProgress"] = prInfo.workInProgressPrefix != ""
+		ctx.Data["WorkInProgressPrefix"] = prInfo.workInProgressPrefix
 	}
 }
 
