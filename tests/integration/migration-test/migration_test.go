@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -26,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/testlogger"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,7 +53,7 @@ func availableVersions() ([]string, error) {
 		return nil, err
 	}
 	defer migrationsDir.Close()
-	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)" + regexp.QuoteMeta("."+setting.Database.Type.String()+".sql.gz"))
+	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)" + regexp.QuoteMeta("."+string(setting.Database.Type)+".sql.gz"))
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +62,7 @@ func availableVersions() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	versions := []string{}
+	var versions []string
 	for _, filename := range filenames {
 		if versionRE.MatchString(filename) {
 			substrings := versionRE.FindStringSubmatch(filename)
@@ -76,11 +74,8 @@ func availableVersions() ([]string, error) {
 }
 
 func readSQLFromFile(version string) (string, error) {
-	filename := filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/migration-test", fmt.Sprintf("gitea-v%s.%s.sql.gz", version, setting.Database.Type))
-
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return "", nil
-	}
+	filename := fmt.Sprintf("tests/integration/migration-test/gitea-v%s.%s.sql.gz", version, setting.Database.Type)
+	filename = filepath.Join(setting.GetGiteaTestSourceRoot(), filename)
 
 	file, err := os.Open(filename)
 	if err != nil {
@@ -106,134 +101,51 @@ func restoreOldDB(t *testing.T, version string) {
 	require.NoError(t, err)
 	require.NotEmpty(t, data, "No data found for %s version: %s", setting.Database.Type, version)
 
-	switch {
-	case setting.Database.Type.IsSQLite3():
-		util.Remove(setting.Database.Path)
-		err := os.MkdirAll(path.Dir(setting.Database.Path), os.ModePerm)
-		assert.NoError(t, err)
+	cleanup, err := unittest.ResetTestDatabase()
+	require.NoError(t, err)
+	_ = cleanup // no clean up yet (not needed at the moment)
 
-		db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate", setting.Database.Path, setting.Database.Timeout))
-		assert.NoError(t, err)
-		defer db.Close()
+	connOpts := db.GlobalConnOptions()
 
-		_, err = db.Exec(data)
-		assert.NoError(t, err)
-		db.Close()
-
-	case setting.Database.Type.IsMySQL():
-		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
-		assert.NoError(t, err)
-		defer db.Close()
-
-		_, err = db.Exec("DROP DATABASE IF EXISTS " + setting.Database.Name)
-		assert.NoError(t, err)
-
-		_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + setting.Database.Name)
-		assert.NoError(t, err)
-		db.Close()
-
-		db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s?multiStatements=true",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name))
-		assert.NoError(t, err)
-		defer db.Close()
-
-		_, err = db.Exec(data)
-		assert.NoError(t, err)
-		db.Close()
-
-	case setting.Database.Type.IsPostgreSQL():
-		var db *sql.DB
-		var err error
-		if setting.Database.Host[0] == '/' {
-			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/?sslmode=%s&host=%s",
-				setting.Database.User, setting.Database.Passwd, setting.Database.SSLMode, setting.Database.Host))
-			assert.NoError(t, err)
-		} else {
-			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
-				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
-			assert.NoError(t, err)
+	if !connOpts.Type.IsMSSQL() {
+		if connOpts.Type.IsMySQL() {
+			connOpts.Database += "?multiStatements=true"
 		}
-		defer db.Close()
+		driver, connStr, err := db.ConnStr(connOpts)
+		require.NoError(t, err)
 
-		_, err = db.Exec("DROP DATABASE IF EXISTS " + setting.Database.Name)
-		assert.NoError(t, err)
+		sqlDB, err := sql.Open(driver, connStr)
+		require.NoError(t, err)
+		defer sqlDB.Close()
 
-		_, err = db.Exec("CREATE DATABASE " + setting.Database.Name)
-		assert.NoError(t, err)
-		db.Close()
-
-		// Check if we need to setup a specific schema
-		if len(setting.Database.Schema) != 0 {
-			if setting.Database.Host[0] == '/' {
-				db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
-					setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
-			} else {
-				db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
-					setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
-			}
-			require.NoError(t, err)
-			defer db.Close()
-
-			schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
-			require.NoError(t, err)
-			require.NotEmpty(t, schrows)
-
-			if !schrows.Next() {
-				// Create and setup a DB schema
-				_, err = db.Exec("CREATE SCHEMA " + setting.Database.Schema)
-				assert.NoError(t, err)
-			}
-			schrows.Close()
-
-			// Make the user's default search path the created schema; this will affect new connections
-			_, err = db.Exec(fmt.Sprintf(`ALTER USER "%s" SET search_path = %s`, setting.Database.User, setting.Database.Schema))
-			assert.NoError(t, err)
-
-			db.Close()
-		}
-
-		if setting.Database.Host[0] == '/' {
-			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
-				setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
-		} else {
-			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
-				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
-		}
-		assert.NoError(t, err)
-		defer db.Close()
-
-		_, err = db.Exec(data)
-		assert.NoError(t, err)
-		db.Close()
-
-	case setting.Database.Type.IsMSSQL():
-		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
-		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
-			host, port, "master", setting.Database.User, setting.Database.Passwd))
-		assert.NoError(t, err)
-		defer db.Close()
-
-		_, err = db.Exec("DROP DATABASE IF EXISTS [gitea]")
-		assert.NoError(t, err)
-
-		statements := strings.Split(data, "\nGO\n")
-		for _, statement := range statements {
-			if len(statement) > 5 && statement[:5] == "USE [" {
-				dbname := statement[5 : len(statement)-1]
-				db.Close()
-				db, err = sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
-					host, port, dbname, setting.Database.User, setting.Database.Passwd))
-				assert.NoError(t, err)
-				defer db.Close()
-			}
-			_, err = db.Exec(statement)
-			assert.NoError(t, err, "Failure whilst running: %s\nError: %v", statement, err)
-		}
-		db.Close()
-	default:
-		assert.Failf(t, "unsupported database type", "setting.Database.Type=%v", setting.Database.Type)
+		_, err = sqlDB.Exec(data)
+		require.NoError(t, err)
+		return
 	}
+
+	// MSSQL is special. the test fixture will create the [testgitea] database again, so drop it ahead if it exists
+	driver, connStr, err := db.ConnStrDefaultDatabase(connOpts)
+	require.NoError(t, err)
+	sqlDB, err := sql.Open(driver, connStr)
+	require.NoError(t, err)
+
+	_, err = sqlDB.Exec("DROP DATABASE IF EXISTS [testgitea]")
+	require.NoError(t, err, "drop existing database testgitea")
+
+	for statement := range strings.SplitSeq(data, "\nGO\n") {
+		if useStmtAfter, ok := strings.CutPrefix(statement, "USE ["); ok {
+			_ = sqlDB.Close()
+			dbname := strings.TrimSuffix(useStmtAfter, "]") // extract the database name from "USE [dbname]"
+			connOpts.Database = dbname
+			driver, connStr, err := db.ConnStr(connOpts)
+			require.NoError(t, err)
+			sqlDB, err = sql.Open(driver, connStr)
+			require.NoError(t, err)
+		}
+		_, err = sqlDB.Exec(statement)
+		require.NoError(t, err, "SQL Exec failed when running: %s\nError: %v", statement, err)
+	}
+	_ = sqlDB.Close()
 }
 
 func wrappedMigrate(ctx context.Context, x *xorm.Engine) error {

@@ -11,27 +11,18 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
-	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
+	es "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/olivere/elastic/v7"
 )
 
-const (
-	issueIndexerLatestVersion = 3
-	// multi-match-types, currently only 2 types are used
-	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
-	esMultiMatchTypeBestFields   = "best_fields"
-	esMultiMatchTypePhrasePrefix = "phrase_prefix"
-)
+const issueIndexerLatestVersion = 3
 
 var _ internal.Indexer = &Indexer{}
 
 // Indexer implements Indexer interface
 type Indexer struct {
-	inner                    *inner_elasticsearch.Indexer
-	indexer_internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
+	*es.Indexer
 }
 
 func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
@@ -41,12 +32,7 @@ func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
 
 // NewIndexer creates a new elasticsearch indexer
 func NewIndexer(url, indexerName string) *Indexer {
-	inner := inner_elasticsearch.NewIndexer(url, indexerName, issueIndexerLatestVersion, defaultMapping)
-	indexer := &Indexer{
-		inner:   inner,
-		Indexer: inner,
-	}
-	return indexer
+	return &Indexer{Indexer: es.NewIndexer(url, indexerName, issueIndexerLatestVersion, defaultMapping)}
 }
 
 const (
@@ -93,29 +79,14 @@ func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) er
 		return nil
 	} else if len(issues) == 1 {
 		issue := issues[0]
-		_, err := b.inner.Client.Index().
-			Index(b.inner.VersionedIndexName()).
-			Id(strconv.FormatInt(issue.ID, 10)).
-			BodyJson(issue).
-			Do(ctx)
-		return err
+		return b.Indexer.Index(ctx, strconv.FormatInt(issue.ID, 10), issue)
 	}
 
-	reqs := make([]elastic.BulkableRequest, 0)
+	ops := make([]es.BulkOp, 0, len(issues))
 	for _, issue := range issues {
-		reqs = append(reqs,
-			elastic.NewBulkIndexRequest().
-				Index(b.inner.VersionedIndexName()).
-				Id(strconv.FormatInt(issue.ID, 10)).
-				Doc(issue),
-		)
+		ops = append(ops, es.IndexOp(strconv.FormatInt(issue.ID, 10), issue))
 	}
-
-	_, err := b.inner.Client.Bulk().
-		Index(b.inner.VersionedIndexName()).
-		Add(reqs...).
-		Do(graceful.GetManager().HammerContext())
-	return err
+	return b.Bulk(graceful.GetManager().HammerContext(), ops)
 }
 
 // Delete deletes indexes by ids
@@ -123,129 +94,116 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 	if len(ids) == 0 {
 		return nil
 	} else if len(ids) == 1 {
-		_, err := b.inner.Client.Delete().
-			Index(b.inner.VersionedIndexName()).
-			Id(strconv.FormatInt(ids[0], 10)).
-			Do(ctx)
-		return err
+		return b.Indexer.Delete(ctx, strconv.FormatInt(ids[0], 10))
 	}
 
-	reqs := make([]elastic.BulkableRequest, 0)
+	ops := make([]es.BulkOp, 0, len(ids))
 	for _, id := range ids {
-		reqs = append(reqs,
-			elastic.NewBulkDeleteRequest().
-				Index(b.inner.VersionedIndexName()).
-				Id(strconv.FormatInt(id, 10)),
-		)
+		ops = append(ops, es.DeleteOp(strconv.FormatInt(id, 10)))
 	}
-
-	_, err := b.inner.Client.Bulk().
-		Index(b.inner.VersionedIndexName()).
-		Add(reqs...).
-		Do(graceful.GetManager().HammerContext())
-	return err
+	return b.Bulk(graceful.GetManager().HammerContext(), ops)
 }
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
 func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
-	query := elastic.NewBoolQuery()
+	query := es.NewBoolQuery()
 
 	if options.Keyword != "" {
 		searchMode := util.IfZero(options.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+		mm := es.NewMultiMatchQuery(options.Keyword, "title", "content", "comments")
 		if searchMode == indexer.SearchModeExact {
-			query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(esMultiMatchTypePhrasePrefix))
-		} else /* words */ {
-			query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(esMultiMatchTypeBestFields).Operator("and"))
+			mm = mm.Type(es.MultiMatchTypePhrasePrefix)
+		} else {
+			mm = mm.Type(es.MultiMatchTypeBestFields).Operator("and")
 		}
+		query.Must(mm)
 	}
 
 	if len(options.RepoIDs) > 0 {
-		q := elastic.NewBoolQuery()
-		q.Should(elastic.NewTermsQuery("repo_id", toAnySlice(options.RepoIDs)...))
+		q := es.NewBoolQuery()
+		q.Should(es.TermsQuery("repo_id", es.ToAnySlice(options.RepoIDs)...))
 		if options.AllPublic {
-			q.Should(elastic.NewTermQuery("is_public", true))
+			q.Should(es.TermQuery("is_public", true))
 		}
 		query.Must(q)
 	}
 
 	if options.IsPull.Has() {
-		query.Must(elastic.NewTermQuery("is_pull", options.IsPull.Value()))
+		query.Must(es.TermQuery("is_pull", options.IsPull.Value()))
 	}
 	if options.IsClosed.Has() {
-		query.Must(elastic.NewTermQuery("is_closed", options.IsClosed.Value()))
+		query.Must(es.TermQuery("is_closed", options.IsClosed.Value()))
 	}
 	if options.IsArchived.Has() {
-		query.Must(elastic.NewTermQuery("is_archived", options.IsArchived.Value()))
+		query.Must(es.TermQuery("is_archived", options.IsArchived.Value()))
 	}
 
 	if options.NoLabelOnly {
-		query.Must(elastic.NewTermQuery("no_label", true))
+		query.Must(es.TermQuery("no_label", true))
 	} else {
 		if len(options.IncludedLabelIDs) > 0 {
-			q := elastic.NewBoolQuery()
+			q := es.NewBoolQuery()
 			for _, labelID := range options.IncludedLabelIDs {
-				q.Must(elastic.NewTermQuery("label_ids", labelID))
+				q.Must(es.TermQuery("label_ids", labelID))
 			}
 			query.Must(q)
 		} else if len(options.IncludedAnyLabelIDs) > 0 {
-			query.Must(elastic.NewTermsQuery("label_ids", toAnySlice(options.IncludedAnyLabelIDs)...))
+			query.Must(es.TermsQuery("label_ids", es.ToAnySlice(options.IncludedAnyLabelIDs)...))
 		}
 		if len(options.ExcludedLabelIDs) > 0 {
-			q := elastic.NewBoolQuery()
+			q := es.NewBoolQuery()
 			for _, labelID := range options.ExcludedLabelIDs {
-				q.MustNot(elastic.NewTermQuery("label_ids", labelID))
+				q.MustNot(es.TermQuery("label_ids", labelID))
 			}
 			query.Must(q)
 		}
 	}
 
 	if len(options.MilestoneIDs) > 0 {
-		query.Must(elastic.NewTermsQuery("milestone_id", toAnySlice(options.MilestoneIDs)...))
+		query.Must(es.TermsQuery("milestone_id", es.ToAnySlice(options.MilestoneIDs)...))
 	}
 
 	if options.NoProjectOnly {
-		query.Must(elastic.NewTermQuery("no_project", true))
+		query.Must(es.TermQuery("no_project", true))
 	} else if len(options.ProjectIDs) > 0 {
 		// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: this logic is not right, it should use "AND" but not "OR"
-		query.Must(elastic.NewTermsQuery("project_ids", toAnySlice(options.ProjectIDs)...))
+		query.Must(es.TermsQuery("project_ids", es.ToAnySlice(options.ProjectIDs)...))
 	}
 
 	if options.PosterID != "" {
 		// "(none)" becomes 0, it means no poster
 		posterIDInt64, _ := strconv.ParseInt(options.PosterID, 10, 64)
-		query.Must(elastic.NewTermQuery("poster_id", posterIDInt64))
+		query.Must(es.TermQuery("poster_id", posterIDInt64))
 	}
 
 	if options.AssigneeID != "" {
 		if options.AssigneeID == "(any)" {
-			q := elastic.NewRangeQuery("assignee_id")
-			q.Gte(1)
-			query.Must(q)
+			query.Must(es.NewRangeQuery("assignee_id").Gte(1))
 		} else {
 			// "(none)" becomes 0, it means no assignee
 			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
-			query.Must(elastic.NewTermQuery("assignee_id", assigneeIDInt64))
+			query.Must(es.TermQuery("assignee_id", assigneeIDInt64))
 		}
 	}
 
 	if options.MentionID.Has() {
-		query.Must(elastic.NewTermQuery("mention_ids", options.MentionID.Value()))
+		query.Must(es.TermQuery("mention_ids", options.MentionID.Value()))
 	}
 
 	if options.ReviewedID.Has() {
-		query.Must(elastic.NewTermQuery("reviewed_ids", options.ReviewedID.Value()))
+		query.Must(es.TermQuery("reviewed_ids", options.ReviewedID.Value()))
 	}
 	if options.ReviewRequestedID.Has() {
-		query.Must(elastic.NewTermQuery("review_requested_ids", options.ReviewRequestedID.Value()))
+		query.Must(es.TermQuery("review_requested_ids", options.ReviewRequestedID.Value()))
 	}
 
 	if options.SubscriberID.Has() {
-		query.Must(elastic.NewTermQuery("subscriber_ids", options.SubscriberID.Value()))
+		query.Must(es.TermQuery("subscriber_ids", options.SubscriberID.Value()))
 	}
 
 	if options.UpdatedAfterUnix.Has() || options.UpdatedBeforeUnix.Has() {
-		q := elastic.NewRangeQuery("updated_unix")
+		q := es.NewRangeQuery("updated_unix")
 		if options.UpdatedAfterUnix.Has() {
 			q.Gte(options.UpdatedAfterUnix.Value())
 		}
@@ -258,9 +216,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.SortBy == "" {
 		options.SortBy = internal.SortByCreatedAsc
 	}
-	sortBy := []elastic.Sorter{
+	sortBy := []es.SortField{
 		parseSortBy(options.SortBy),
-		elastic.NewFieldSort("id").Desc(),
+		{Field: "id", Desc: true},
 	}
 
 	// See https://stackoverflow.com/questions/35206409/elasticsearch-2-1-result-window-is-too-large-index-max-result-window/35221900
@@ -268,43 +226,30 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	const maxPageSize = 10000
 
 	skip, limit := indexer_internal.ParsePaginator(options.Paginator, maxPageSize)
-	searchResult, err := b.inner.Client.Search().
-		Index(b.inner.VersionedIndexName()).
-		Query(query).
-		SortBy(sortBy...).
-		From(skip).Size(limit).
-		Do(ctx)
+	resp, err := b.Indexer.Search(ctx, es.SearchRequest{
+		Query:      query,
+		Sort:       sortBy,
+		From:       skip,
+		Size:       limit,
+		TrackTotal: true,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	hits := make([]internal.Match, 0, limit)
-	for _, hit := range searchResult.Hits.Hits {
-		id, _ := strconv.ParseInt(hit.Id, 10, 64)
-		hits = append(hits, internal.Match{
-			ID: id,
-		})
+	hits := make([]internal.Match, 0, len(resp.Hits))
+	for _, hit := range resp.Hits {
+		id, _ := strconv.ParseInt(hit.ID, 10, 64)
+		hits = append(hits, internal.Match{ID: id})
 	}
 
 	return &internal.SearchResult{
-		Total: searchResult.TotalHits(),
+		Total: resp.Total,
 		Hits:  hits,
 	}, nil
 }
 
-func toAnySlice[T any](s []T) []any {
-	ret := make([]any, 0, len(s))
-	for _, item := range s {
-		ret = append(ret, item)
-	}
-	return ret
-}
-
-func parseSortBy(sortBy internal.SortBy) elastic.Sorter {
-	field := strings.TrimPrefix(string(sortBy), "-")
-	ret := elastic.NewFieldSort(field)
-	if strings.HasPrefix(string(sortBy), "-") {
-		ret.Desc()
-	}
-	return ret
+func parseSortBy(sortBy internal.SortBy) es.SortField {
+	field, desc := strings.CutPrefix(string(sortBy), "-")
+	return es.SortField{Field: field, Desc: desc}
 }

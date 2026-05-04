@@ -624,7 +624,6 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 				return
 			}
 			ctx.Data["PullRequest"] = pr
-			ctx.HTML(http.StatusOK, tplCompareDiff)
 			return
 		}
 

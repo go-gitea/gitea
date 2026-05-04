@@ -10,22 +10,22 @@
 		</div>
 	</h4>
 	<div class="ui attached segment">
-		<div class="flex-list">
-			<div class="flex-item">
+		<div class="flex-divided-list items-with-main">
+			<div class="item">
 				{{ctx.Locale.Tr "settings.principal_desc"}}
 			</div>
 			{{range .Principals}}
-				<div class="flex-item">
-					<div class="flex-item-leading">
+				<div class="item">
+					<div class="item-leading">
 						<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
 					</div>
-					<div class="flex-item-main">
-						<div class="flex-item-title">{{.Name}}</div>
-						<div class="flex-item-body">
+					<div class="item-main">
+						<div class="item-title">{{.Name}}</div>
+						<div class="item-body">
 							<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} —  {{svg "octicon-info" 16}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>
 					</div>
-					<div class="flex-item-trailing">
+					<div class="item-trailing">
 						<button class="ui red tiny button delete-button" data-modal-id="delete-principal" data-url="{{$.Link}}/delete?type=principal" data-id="{{.ID}}">
 							{{ctx.Locale.Tr "settings.delete_key"}}
 						</button>
