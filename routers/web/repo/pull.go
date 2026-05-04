@@ -479,12 +479,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 
 	if data.enableStatusCheck {
 		if statusCheckData.RequiredChecksState.IsError() || statusCheckData.RequiredChecksState.IsFailure() {
-			data.infoProtectionBlockers.AddInfoItem(
+			data.infoProtectionBlockers.AddErrorItem(
 				svg.RenderHTML("octicon-x"),
 				ctx.Locale.Tr("repo.pulls.required_status_check_failed"),
 			)
 		} else if !statusCheckData.RequiredChecksState.IsSuccess() {
-			data.infoProtectionBlockers.AddInfoItem(
+			data.infoProtectionBlockers.AddErrorItem(
 				svg.RenderHTML("octicon-x"),
 				ctx.Locale.Tr("repo.pulls.required_status_check_missing"),
 			)

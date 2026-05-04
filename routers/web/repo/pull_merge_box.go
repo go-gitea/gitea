@@ -13,6 +13,7 @@ import (
 )
 
 type pullMergeBoxInfoItem struct {
+	ItemClass   string
 	SvgIconHTML template.HTML
 	InfoHTML    template.HTML
 	ListItems   []template.HTML
@@ -35,6 +36,15 @@ func escapeStringSliceToHTML(s []string) (ret []template.HTML) {
 
 func (c *pullMergeBoxInfoItemCollection) AddInfoItem(svg, info template.HTML, optItems ...[]template.HTML) {
 	c.items = append(c.items, &pullMergeBoxInfoItem{
+		SvgIconHTML: svg,
+		InfoHTML:    info,
+		ListItems:   util.OptionalArg(optItems),
+	})
+}
+
+func (c *pullMergeBoxInfoItemCollection) AddErrorItem(svg, info template.HTML, optItems ...[]template.HTML) {
+	c.items = append(c.items, &pullMergeBoxInfoItem{
+		ItemClass:   "tw-text-red",
 		SvgIconHTML: svg,
 		InfoHTML:    info,
 		ListItems:   util.OptionalArg(optItems),
@@ -141,7 +151,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 				ctx.Locale.Tr("repo.pulls.is_empty"),
 			)
 		} else {
-			prInfo.MergeBoxData.infoProtectionBlockers.AddInfoItem(
+			prInfo.MergeBoxData.infoProtectionBlockers.AddErrorItem(
 				svg.RenderHTML("octicon-x"),
 				ctx.Locale.Tr("repo.pulls.cannot_auto_merge_desc"),
 			)
