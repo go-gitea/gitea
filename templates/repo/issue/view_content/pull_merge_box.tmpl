@@ -7,48 +7,22 @@
 		data-pull-link="{{$.Issue.Link}}"
 	{{end}}
 >
-	{{$statusCheckData := .StatusCheckData}}
-	{{$requiredStatusCheckState := $statusCheckData.RequiredChecksState}}
+	{{$requiredStatusCheckState := $.StatusCheckData.RequiredChecksState}}
 	<div class="timeline-avatar {{$data.TimelineIconClass}}">{{svg "octicon-git-merge" 40}}</div>
 	<div class="content">
 		<div class="ui segment fitted avatar-content-left-arrow">
 			<div class="merge-section flex-divided-list flex-items-block items-px-default">
-			{{if .LatestCommitStatus}}
-				{{template "repo/issue/view_content/pull_merge_status_checks" (dict
-					"CommitStatuses" .LatestCommitStatuses
-					"StatusCheckData" $statusCheckData
-				)}}
+			{{if $.StatusCheckData}}
+				{{template "repo/issue/view_content/pull_merge_status_checks" (dict "StatusCheckData" $.StatusCheckData)}}
 			{{end}}
 
-			{{if .Issue.PullRequest.HasMerged}}
-				{{if .IsPullBranchDeletable}}
-					<div class="item item-section text tw-flex-1">
-						<div class="item-section-left">
-							<h3 class="tw-mb-2">
-								{{ctx.Locale.Tr "repo.pulls.merged_success"}}
-							</h3>
-							<div class="merge-section-info">
-								{{ctx.Locale.Tr "repo.pulls.merged_info_text" (HTMLFormat "<code>%s</code>" .HeadTarget)}}
-							</div>
-						</div>
-						<div class="item-section-right">
-							<button class="ui button link-action delete-branch-after-merge" data-url="{{.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
-						</div>
+			{{if $data.ClosedInfoTitle}}
+				<div class="item flex-left-right">
+					<div>
+						<h3 class="tw-mb-2">{{$data.ClosedInfoTitle}}</h3>
+						<div>{{$data.ClosedInfoBody}}</div>
 					</div>
-				{{end}}
-			{{else if .Issue.IsClosed}}
-				<div class="item item-section text tw-flex-1">
-					<div class="item-section-left">
-						<h3 class="tw-mb-2">{{ctx.Locale.Tr "repo.pulls.closed"}}</h3>
-						<div class="merge-section-info">
-							{{if .IsPullRequestBroken}}
-								{{ctx.Locale.Tr "repo.pulls.cant_reopen_deleted_branch"}}
-							{{else}}
-								{{ctx.Locale.Tr "repo.pulls.reopen_to_merge"}}
-							{{end}}
-						</div>
-					</div>
-					{{if and .IsPullBranchDeletable (not .IsPullRequestBroken)}}
+					{{if $data.IsPullBranchDeletable}}
 						<div class="item-section-right">
 							<button class="ui button link-action delete-branch-after-merge" data-url="{{.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
 						</div>

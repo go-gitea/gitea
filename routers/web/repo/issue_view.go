@@ -571,8 +571,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxDeleteBranch(ctx *context.Cont
 
 		isPullBranchDeletable = !exist
 	}
-	ctx.Data["IsPullBranchDeletable"] = isPullBranchDeletable
-	prInfo.MergeBoxData.isPullBranchDeletable = isPullBranchDeletable
+	prInfo.MergeBoxData.IsPullBranchDeletable = isPullBranchDeletable
 }
 
 func prepareIssueViewSidebarPin(ctx *context.Context, issue *issues_model.Issue) {
@@ -952,7 +951,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	// Only show the merge box if the PR is not merged, or the branch is deletable.
 	// Otherwise, there is nothing to do, because the PR view page already contains enough information.
-	data.ShowMergeBox = !pull.HasMerged || data.isPullBranchDeletable
+	data.ShowMergeBox = !pull.HasMerged || data.IsPullBranchDeletable
 
 	isRepoAdmin := ctx.IsSigned && (ctx.Repo.Permission.IsAdmin() || ctx.Doer.IsAdmin)
 
@@ -978,6 +977,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	ctx.Data["PullMergeBoxData"] = prInfo.MergeBoxData
 	prInfo.prepareMergeBoxFormProps(ctx)
 	prInfo.prepareMergeBoxIconColor()
+	prInfo.prepareMergeBoxInfoItems(ctx)
 }
 
 func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {

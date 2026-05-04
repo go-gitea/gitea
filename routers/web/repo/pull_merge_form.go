@@ -91,7 +91,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"allOverridableChecksOk":        allOverridableChecksOk,
 		"emptyCommit":                   pull.IsEmpty(),
 		"pullHeadCommitID":              prInfo.CompareInfo.HeadCommitID,
-		"isPullBranchDeletable":         prInfo.MergeBoxData.isPullBranchDeletable,
+		"isPullBranchDeletable":         prInfo.MergeBoxData.IsPullBranchDeletable,
 		"defaultMergeStyle":             mergeStyle,
 		"defaultDeleteBranchAfterMerge": prConfig.DefaultDeleteBranchAfterMerge,
 		"mergeMessageFieldPlaceHolder":  ctx.Locale.Tr("repo.editor.commit_message_desc"),

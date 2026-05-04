@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
@@ -268,6 +269,9 @@ type pullMergeBoxData struct {
 
 	TimelineIconClass string
 
+	ClosedInfoTitle template.HTML
+	ClosedInfoBody  template.HTML
+
 	HasOverridableBlockers bool
 	CanMergeNow            bool // PR is mergeable, either no blocker, or doer is admin and can bypass the blockers
 	allowMerge             bool // doer has permission to merge
@@ -283,7 +287,7 @@ type pullMergeBoxData struct {
 
 	// don't expose unneeded fields to templates, need more refactoring changes
 	hasStatusCheckBlocker bool
-	isPullBranchDeletable bool
+	IsPullBranchDeletable bool
 
 	isBlockedByApprovals              bool
 	isBlockedByRejection              bool
@@ -392,9 +396,6 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfo(ctx *context.
 	}
 
 	repo := ctx.Repo.Repository
-	statusCheckData := &pullCommitStatusCheckData{}
-	prInfo.StatusCheckData = statusCheckData
-
 	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, prInfo.CompareInfo.HeadCommitID, db.ListOptionsAll)
 	if err != nil {
 		ctx.ServerError("GetLatestCommitStatus", err)
@@ -404,13 +405,15 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfo(ctx *context.
 		git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
 	}
 
-	prInfo.CommitStatuses = commitStatuses
-	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", repo.Link(), headCommitID)
-	statusCheckData.LatestCommitStatus = git_model.CalcCommitStatus(commitStatuses)
-	ctx.Data["LatestCommitStatuses"] = commitStatuses
-	ctx.Data["LatestCommitStatus"] = statusCheckData.LatestCommitStatus
-	ctx.Data["StatusCheckData"] = prInfo.StatusCheckData
+	statusCheckData := &pullCommitStatusCheckData{}
 
+	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", repo.Link(), headCommitID)
+	statusCheckData.PullCommitStatus = git_model.CalcCommitStatus(commitStatuses)
+	statusCheckData.PullCommitStatuses = commitStatuses
+	ctx.Data["StatusCheckData"] = statusCheckData
+
+	prInfo.CommitStatuses = commitStatuses
+	prInfo.StatusCheckData = statusCheckData
 	prInfo.ProtectedBranchRule, err = git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, prInfo.issue.PullRequest.BaseBranch)
 	if err != nil {
 		ctx.ServerError("GetFirstMatchProtectedBranchRule", err)
@@ -495,14 +498,15 @@ type pullCommitStatusCheckData struct {
 	CanApprove              bool              // whether the user can approve workflow runs
 	ApproveLink             string            // link to approve all checks
 	RequiredChecksState     commitstatus.CommitStatusState
-	LatestCommitStatus      *git_model.CommitStatus
+	PullCommitStatuses      []*git_model.CommitStatus
+	PullCommitStatus        *git_model.CommitStatus
 }
 
 func (d *pullCommitStatusCheckData) CommitStatusCheckPrompt(locale translation.Locale) string {
 	if d.RequiredChecksState.IsPending() || len(d.MissingRequiredChecks) > 0 {
 		return locale.TrString("repo.pulls.status_checking")
 	} else if d.RequiredChecksState.IsSuccess() {
-		if d.LatestCommitStatus != nil && d.LatestCommitStatus.State.IsFailure() {
+		if d.PullCommitStatus != nil && d.PullCommitStatus.State.IsFailure() {
 			return locale.TrString("repo.pulls.status_checks_failure_optional")
 		}
 		return locale.TrString("repo.pulls.status_checks_success")
