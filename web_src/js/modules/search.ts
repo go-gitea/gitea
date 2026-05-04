@@ -1,5 +1,6 @@
 import {debounce} from 'throttle-debounce';
 import {GET} from './fetch.ts';
+import {errorName} from './errors.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {urlQueryEscape} from '../utils/url.ts';
 
@@ -73,7 +74,7 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
       // only render if the fetch wasn't aborted (e.g. by hide()) and the input still matches
       if (!ctrl.signal.aborted && input.value === query) render(results);
     } catch (err) {
-      if ((err as Error).name !== 'AbortError') hide();
+      if (errorName(err) !== 'AbortError') hide();
     }
   });
 

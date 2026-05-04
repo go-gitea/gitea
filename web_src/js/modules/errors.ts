@@ -6,6 +6,10 @@ export function errorMessage(err: unknown): string {
   return (err as Error)?.message || String(err);
 }
 
+export function errorName(err: unknown): string {
+  return (err as Error)?.name ?? '';
+}
+
 export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', details?: string) {
   const parentContainer = document.querySelector('.page-content') ?? document.body;
   if (!parentContainer) {
