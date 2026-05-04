@@ -2,10 +2,12 @@
 import {html} from '../utils/html.ts';
 import type {Intent} from '../types.ts';
 
+/** Extract a message string from an unknown caught value. */
 export function errorMessage(err: unknown): string {
   return (err as Error)?.message || String(err);
 }
 
+/** Extract a name string from an unknown caught value. */
 export function errorName(err: unknown): string {
   return (err as Error)?.name ?? '';
 }
