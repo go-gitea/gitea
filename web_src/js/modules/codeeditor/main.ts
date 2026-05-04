@@ -7,7 +7,7 @@ import type {PaletteCommand} from './command-palette.ts';
 import {contextMenu, collectSymbols, selectAllOccurrences} from './context-menu.ts';
 import {createJsonLinter, createSyntaxErrorLinter} from './linter.ts';
 import {clickableUrls, goToDefinitionAt, trimTrailingWhitespaceFromView} from './utils.ts';
-import type {LanguageDescription} from '@codemirror/language';
+import type {LanguageDescription, LanguageSupport} from '@codemirror/language';
 import type {Compartment, Extension} from '@codemirror/state';
 import type {EditorView, ViewUpdate} from '@codemirror/view';
 
@@ -295,16 +295,19 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   return editor;
 }
 
-// files that are JSONC despite having a .json extension
-const jsoncFilesRegex = /^([jt]sconfig.*|devcontainer)\.json$/;
+// files that the JSON parser is too strict for (comments, trailing commas)
+const jsoncFilesRegex = /^([jt]sconfig.*|devcontainer)\.json$|\.(jsonc|json5)$/i;
 
-async function getLinterExtension(cm: CodemirrorModules, filename: string, loadedLang: {language: unknown} | null): Promise<Extension> {
-  const ext = extname(filename).toLowerCase();
-  if (ext === '.json' || ext === '.map') {
+async function getLinterExtension(cm: CodemirrorModules, filename: string, loadedLang: LanguageSupport | null): Promise<Extension> {
+  if (!loadedLang) return [];
+  const lang = loadedLang.language;
+  // StreamLanguage (legacy modes) don't produce Lezer error nodes
+  if (lang instanceof cm.language.StreamLanguage) return [];
+  if (lang.name === 'json') {
     return jsoncFilesRegex.test(filename) ? [] : [cm.lint.lintGutter(), await createJsonLinter(cm)];
   }
-  // StreamLanguage (legacy modes) don't produce Lezer error nodes
-  if (!loadedLang || loadedLang.language instanceof cm.language.StreamLanguage) return [];
+  // markdown's parser emits no error nodes, and nested code-fence overlays aren't traversed
+  if (lang.name === 'markdown') return [];
   return [cm.lint.lintGutter(), createSyntaxErrorLinter(cm)];
 }
 

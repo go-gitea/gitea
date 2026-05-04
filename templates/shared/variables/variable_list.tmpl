@@ -15,24 +15,24 @@
 </h4>
 <div class="ui attached segment">
 	{{if .Variables}}
-	<div class="flex-list">
+	<div class="flex-divided-list items-with-main">
 		{{range .Variables}}
-		<div class="flex-item tw-items-center">
-			<div class="flex-item-leading">
+		<div class="item tw-items-center">
+			<div class="item-leading">
 				{{svg "octicon-pencil" 32}}
 			</div>
-			<div class="flex-item-main">
-				<div class="flex-item-title">
+			<div class="item-main">
+				<div class="item-title">
 					{{.Name}}
 				</div>
-				<div class="flex-item-body">
+				<div class="item-body">
 					{{if .Description}}{{.Description}}{{else}}-{{end}}
 				</div>
-				<div class="flex-item-body">
+				<div class="item-body">
 					{{.Data}}
 				</div>
 			</div>
-			<div class="flex-item-trailing">
+			<div class="item-trailing">
 				<span class="color-text-light-2">
 					{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}}
 				</span>

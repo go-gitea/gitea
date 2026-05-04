@@ -89,8 +89,8 @@ importers:
         specifier: 1.2.3
         version: 1.2.3
       '@mcaptcha/vanilla-glue':
-        specifier: 0.1.0-alpha-3
-        version: 0.1.0-alpha-3
+        specifier: 0.1.0-rc2
+        version: 0.1.0-rc2
       '@mermaid-js/layout-elk':
         specifier: 0.2.1
         version: 0.2.1(mermaid@11.14.0)
@@ -978,11 +978,11 @@ packages:
   '@marijn/find-cluster-break@1.0.2':
     resolution: {integrity: sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g==}
 
-  '@mcaptcha/core-glue@0.1.0-alpha-5':
-    resolution: {integrity: sha512-16qWm5O5X0Y9LXULULaAks8Vf9FNlUUBcR5KDt49aWhFhG5++JzxNmCwQM9EJSHNU7y0U+FdyAWcGmjfKlkRLA==}
+  '@mcaptcha/core-glue@0.1.0-rc1':
+    resolution: {integrity: sha512-P4SgUioJDR38QpnP9sPY72NyaYex8MXD6RbzrfKra+ngamT26XjqVZEHBiZU2RT7u0SsWhuko4N1ntNOghsgpg==}
 
-  '@mcaptcha/vanilla-glue@0.1.0-alpha-3':
-    resolution: {integrity: sha512-GT6TJBgmViGXcXiT5VOr+h/6iOnThSlZuCoOWncubyTZU9R3cgU5vWPkF7G6Ob6ee2CBe3yqBxxk24CFVGTVXw==}
+  '@mcaptcha/vanilla-glue@0.1.0-rc2':
+    resolution: {integrity: sha512-LDjn9lrKioJ3zwaQOfql7PXsnxCAHg7b1rPw7G0OxpvVE7xLB/a40SHfIIiocce2VS9TPI4MbcKm5pcuy8fU5g==}
 
   '@mermaid-js/layout-elk@0.2.1':
     resolution: {integrity: sha512-MX9jwhMyd5zDcFsYcl3duDUkKhjVRUCGEQrdCeNV5hCIR6+3FuDDbRbFmvVbAu15K1+juzsYGG+K8MDvCY1Amg==}
@@ -4856,11 +4856,11 @@ snapshots:
 
   '@marijn/find-cluster-break@1.0.2': {}
 
-  '@mcaptcha/core-glue@0.1.0-alpha-5': {}
+  '@mcaptcha/core-glue@0.1.0-rc1': {}
 
-  '@mcaptcha/vanilla-glue@0.1.0-alpha-3':
+  '@mcaptcha/vanilla-glue@0.1.0-rc2':
     dependencies:
-      '@mcaptcha/core-glue': 0.1.0-alpha-5
+      '@mcaptcha/core-glue': 0.1.0-rc1
 
   '@mermaid-js/layout-elk@0.2.1(mermaid@11.14.0)':
     dependencies:

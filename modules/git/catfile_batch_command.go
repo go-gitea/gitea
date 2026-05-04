@@ -7,8 +7,10 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -39,6 +41,9 @@ func (b *catFileBatchCommand) getBatch() *catFileBatchCommunicator {
 }
 
 func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
+	if strings.Contains(obj, "\n") {
+		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)
+	}
 	_, err := b.getBatch().reqWriter.Write([]byte("contents " + obj + "\n"))
 	if err != nil {
 		return nil, nil, err
@@ -51,6 +56,9 @@ func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, Buffered
 }
 
 func (b *catFileBatchCommand) QueryInfo(obj string) (*CatFileObject, error) {
+	if strings.Contains(obj, "\n") {
+		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)
+	}
 	_, err := b.getBatch().reqWriter.Write([]byte("info " + obj + "\n"))
 	if err != nil {
 		return nil, err
