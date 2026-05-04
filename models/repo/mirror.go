@@ -24,6 +24,7 @@ type Mirror struct {
 	Repo        *Repository `xorm:"-"`
 	Interval    time.Duration
 	EnablePrune bool `xorm:"NOT NULL DEFAULT true"`
+	IsSynced    bool `xorm:"NOT NULL DEFAULT false"`
 
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
 	NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`
@@ -88,6 +89,12 @@ func GetMirrorByRepoID(ctx context.Context, repoID int64) (*Mirror, error) {
 // UpdateMirror updates the mirror
 func UpdateMirror(ctx context.Context, m *Mirror) error {
 	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
+	return err
+}
+
+// UpdateMirrorSyncStatus updates the mirror sync status.
+func UpdateMirrorSyncStatus(ctx context.Context, m *Mirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("is_synced").Update(m)
 	return err
 }
 

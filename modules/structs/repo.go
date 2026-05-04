@@ -122,6 +122,7 @@ type Repository struct {
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
 	MirrorInterval                string           `json:"mirror_interval"`
+	IsSynced                      bool             `json:"is_synced"`
 	// ObjectFormatName of the underlying git repository
 	ObjectFormatName ObjectFormatName `json:"object_format_name"`
 	// swagger:strfmt date-time

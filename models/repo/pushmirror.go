@@ -25,6 +25,7 @@ type PushMirror struct {
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
 
 	SyncOnCommit   bool `xorm:"NOT NULL DEFAULT true"`
+	IsSynced       bool `xorm:"NOT NULL DEFAULT false"`
 	Interval       time.Duration
 	CreatedUnix    timeutil.TimeStamp `xorm:"created"`
 	LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
@@ -83,6 +84,12 @@ func UpdatePushMirror(ctx context.Context, m *PushMirror) error {
 // UpdatePushMirrorInterval updates the push-mirror
 func UpdatePushMirrorInterval(ctx context.Context, m *PushMirror) error {
 	_, err := db.GetEngine(ctx).ID(m.ID).Cols("interval").Update(m)
+	return err
+}
+
+// UpdatePushMirrorSyncStatus updates the push-mirror sync status.
+func UpdatePushMirrorSyncStatus(ctx context.Context, m *PushMirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("is_synced").Update(m)
 	return err
 }
 

@@ -250,6 +250,7 @@ func TestAPIViewRepo(t *testing.T) {
 	repo := DecodeJSON(t, resp, &api.Repository{})
 	assert.EqualValues(t, 1, repo.ID)
 	assert.Equal(t, "repo1", repo.Name)
+	assert.False(t, repo.IsSynced)
 	assert.Equal(t, 2, repo.Releases)
 	assert.Equal(t, 1, repo.OpenIssues)
 	assert.Equal(t, 3, repo.OpenPulls)
@@ -268,6 +269,12 @@ func TestAPIViewRepo(t *testing.T) {
 	assert.EqualValues(t, 4, repo.ID)
 	assert.Equal(t, "repo4", repo.Name)
 	assert.Equal(t, 1, repo.Stars)
+
+	req = NewRequest(t, "GET", "/api/v1/repos/org3/repo5")
+	resp = MakeRequest(t, req, http.StatusOK)
+	repo = DecodeJSON(t, resp, &api.Repository{})
+	assert.True(t, repo.Mirror)
+	assert.False(t, repo.IsSynced)
 }
 
 func TestAPIOrgRepos(t *testing.T) {

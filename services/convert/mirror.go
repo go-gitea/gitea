@@ -20,6 +20,7 @@ func ToPushMirror(ctx context.Context, pm *repo_model.PushMirror) (*api.PushMirr
 		CreatedUnix:    pm.CreatedUnix.AsTime(),
 		LastUpdateUnix: pm.LastUpdateUnix.AsTimePtr(),
 		LastError:      pm.LastError,
+		IsSynced:       pm.IsSynced,
 		Interval:       pm.Interval.String(),
 		SyncOnCommit:   pm.SyncOnCommit,
 	}, nil

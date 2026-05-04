@@ -105,6 +105,9 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 	if err != nil {
 		log.Error("SyncPushMirror [mirror: %d][repo: %-v]: %v", m.ID, m.Repo, err)
 		m.LastError = stripExitStatus.ReplaceAllLiteralString(err.Error(), "")
+		m.IsSynced = false
+	} else {
+		m.IsSynced = true
 	}
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()

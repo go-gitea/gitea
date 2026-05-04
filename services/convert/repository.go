@@ -152,11 +152,13 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 
 	mirrorInterval := ""
 	var mirrorUpdated time.Time
+	isSynced := false
 	if repo.IsMirror {
 		pullMirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
 		if err == nil {
 			mirrorInterval = pullMirror.Interval.String()
 			mirrorUpdated = pullMirror.UpdatedUnix.AsTime()
+			isSynced = pullMirror.IsSynced
 		}
 	}
 
@@ -248,6 +250,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		AvatarURL:                     repo.AvatarLink(ctx),
 		Internal:                      !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		MirrorInterval:                mirrorInterval,
+		IsSynced:                      isSynced,
 		MirrorUpdated:                 mirrorUpdated,
 		RepoTransfer:                  transfer,
 		Topics:                        util.SliceNilAsEmpty(repo.Topics),

@@ -53,6 +53,8 @@ func TestMirrorPull(t *testing.T) {
 
 	mirrorRepo, err = repo_service.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
 	assert.NoError(t, err)
+	mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+	assert.True(t, mirror.IsSynced)
 
 	// these units should have been enabled
 	mirrorRepo.Units = nil
@@ -92,6 +94,8 @@ func TestMirrorPull(t *testing.T) {
 
 	ok := mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
 	assert.True(t, ok)
+	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+	assert.True(t, mirror.IsSynced)
 
 	// actually there is a tag in the source repo, so after "sync", that tag will also come into the mirror
 	initCount++
@@ -106,6 +110,14 @@ func TestMirrorPull(t *testing.T) {
 
 	ok = mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
 	assert.True(t, ok)
+	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+	assert.True(t, mirror.IsSynced)
+
+	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, repoPath+"-missing"))
+	ok = mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
+	assert.False(t, ok)
+	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+	assert.False(t, mirror.IsSynced)
 
 	count, err = db.Count[repo_model.Release](t.Context(), findOptions)
 	assert.NoError(t, err)

@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
@@ -58,6 +59,8 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	ok := mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID)
 	assert.True(t, ok)
+	pushMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: mirrors[0].ID})
+	assert.True(t, pushMirror.IsSynced)
 
 	srcGitRepo, err := gitrepo.OpenRepository(t.Context(), srcRepo)
 	assert.NoError(t, err)
@@ -74,6 +77,14 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, srcCommit.ID, mirrorCommit.ID)
+
+	_, _, err = gitrepo.RunCmdString(t.Context(), srcRepo,
+		gitcmd.NewCommand("remote", "set-url", pushMirror.RemoteName, pushMirrorURL+"-missing"))
+	assert.NoError(t, err)
+	ok = mirror_service.SyncPushMirror(t.Context(), pushMirror.ID)
+	assert.False(t, ok)
+	pushMirror = unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: pushMirror.ID})
+	assert.False(t, pushMirror.IsSynced)
 
 	// Cleanup
 	assert.True(t, doRemovePushMirror(t, session, user.Name, srcRepo.Name, mirrors[0].ID))

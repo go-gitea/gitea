@@ -297,6 +297,10 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
 	results, ok := runSync(ctx, m)
 	if !ok {
+		m.IsSynced = false
+		if err = repo_model.UpdateMirrorSyncStatus(ctx, m); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to UpdateMirrorSyncStatus: %v", m.Repo, err)
+		}
 		if err = repo_model.TouchMirror(ctx, m); err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
 		}
@@ -304,6 +308,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
+	m.IsSynced = true
 	m.ScheduleNextUpdate()
 	if err = repo_model.UpdateMirror(ctx, m); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to UpdateMirror with next update date: %v", m.Repo, err)

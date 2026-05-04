@@ -1672,6 +1672,7 @@
   "repo.settings.mirror_settings.direction.pull": "Отправка",
   "repo.settings.mirror_settings.direction.push": "Отправка",
   "repo.settings.mirror_settings.last_update": "Последнее обновление",
+  "repo.settings.mirror_settings.sync_status": "Синхронизировано",
   "repo.settings.mirror_settings.push_mirror.none": "Push-зеркало не добавлено",
   "repo.settings.mirror_settings.push_mirror.remote_url": "URL удалённого хранилища",
   "repo.settings.mirror_settings.push_mirror.add": "Добавить Push-зеркало",

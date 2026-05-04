@@ -97,6 +97,7 @@
 								<th class="tw-w-2/5">{{ctx.Locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
 								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction"}}</th>
 								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.last_update"}}</th>
+								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.sync_status"}}</th>
 								<th></th>
 							</tr>
 						</thead>
@@ -104,7 +105,7 @@
 							{{/* even if a repo is a pull mirror (IsMirror=true), the PullMirror might still be nil if the mirror migration is broken */}}
 							<tbody>
 								<tr>
-									<td colspan="4">
+									<td colspan="5">
 										<div class="tw-text-red tw-py-4">{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}: {{ctx.Locale.Tr "error.occurred"}}</div>
 									</td>
 								</tr>
@@ -115,6 +116,9 @@
 								<td>{{.PullMirror.RemoteAddress}}</td>
 								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 								<td>{{DateUtils.FullTime .PullMirror.UpdatedUnix}}</td>
+								<td>
+									<span class="ui {{if .PullMirror.IsSynced}}green{{else}}red{{end}} basic label">{{if .PullMirror.IsSynced}}{{ctx.Locale.Tr "modal.yes"}}{{else}}{{ctx.Locale.Tr "modal.no"}}{{end}}</span>
+								</td>
 								<td class="tw-text-right">
 									<form method="post" class="tw-inline-block">
 										<input type="hidden" name="action" value="mirror-sync">
@@ -123,7 +127,7 @@
 								</td>
 							</tr>
 							<tr>
-								<td colspan="4">
+								<td colspan="5">
 									<form class="ui form" method="post">
 										{{template "base/disable_form_autofill"}}
 										<input type="hidden" name="action" value="mirror">
@@ -192,6 +196,7 @@
 								<th class="tw-w-2/5">{{ctx.Locale.Tr "repo.settings.mirror_settings.pushed_repository"}}</th>
 								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction"}}</th>
 								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.last_update"}}</th>
+								<th>{{ctx.Locale.Tr "repo.settings.mirror_settings.sync_status"}}</th>
 								<th></th>
 							</tr>
 						</thead>
@@ -209,6 +214,9 @@
 										{{end}}
 										{{if .LastError}}<span class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error_title"}}</span>{{end}}
 									</span>
+								</td>
+								<td>
+									<span class="ui {{if .IsSynced}}green{{else}}red{{end}} basic label">{{if .IsSynced}}{{ctx.Locale.Tr "modal.yes"}}{{else}}{{ctx.Locale.Tr "modal.no"}}{{end}}</span>
 								</td>
 								<td class="tw-text-right">
 									<button
@@ -240,7 +248,7 @@
 							{{end}}
 							{{if (not .DisableNewPushMirrors)}}
 								<tr>
-									<td colspan="4">
+									<td colspan="5">
 										<form class="ui form" method="post">
 											{{template "base/disable_form_autofill"}}
 											<input type="hidden" name="action" value="push-mirror-add">

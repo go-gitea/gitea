@@ -3,6 +3,7 @@
   repo_id: 5
   interval: 3600
   enable_prune: false
+  is_synced: false
   updated_unix: 0
   next_update_unix: 0
   lfs_enabled: false
@@ -13,6 +14,7 @@
   repo_id: 25
   interval: 3600
   enable_prune: false
+  is_synced: false
   updated_unix: 0
   next_update_unix: 0
   lfs_enabled: false
@@ -23,6 +25,7 @@
   repo_id: 26
   interval: 3600
   enable_prune: false
+  is_synced: false
   updated_unix: 0
   next_update_unix: 0
   lfs_enabled: false
@@ -33,6 +36,7 @@
   repo_id: 27
   interval: 3600
   enable_prune: false
+  is_synced: false
   updated_unix: 0
   next_update_unix: 0
   lfs_enabled: false
@@ -43,6 +47,7 @@
   repo_id: 28
   interval: 3600
   enable_prune: false
+  is_synced: false
   updated_unix: 0
   next_update_unix: 0
   lfs_enabled: false

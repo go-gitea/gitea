@@ -34,6 +34,8 @@ type PushMirror struct {
 	LastUpdateUnix *time.Time `json:"last_update"`
 	// The last error message encountered during sync
 	LastError string `json:"last_error"`
+	// Whether the most recent sync completed successfully
+	IsSynced bool `json:"is_synced"`
 	// The sync interval for automatic updates
 	Interval string `json:"interval"`
 	// Whether to sync on every commit
