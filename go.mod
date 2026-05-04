@@ -85,7 +85,7 @@ require (
 	github.com/microsoft/go-mssqldb v1.9.6
 	github.com/minio/minio-go/v7 v7.0.100
 	github.com/msteinert/pam/v2 v2.1.0
-	github.com/nektos/act v0.2.63
+	github.com/nektos/act v0.2.86
 	github.com/niklasfasching/go-org v1.9.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
