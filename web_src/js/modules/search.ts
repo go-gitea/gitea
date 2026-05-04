@@ -70,7 +70,7 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
       const response = await GET(url.replaceAll('{query}', urlQueryEscape(query)), {signal: ctrl.signal});
       if (!response.ok) return hide();
       const results = parse(await response.json(), query);
-      // hide() ran (signal aborted) or a newer keystroke landed before the response did
+      // only render if the fetch wasn't aborted (e.g. by hide()) and the input still matches
       if (!ctrl.signal.aborted && input.value === query) render(results);
     } catch (err) {
       if ((err as Error).name !== 'AbortError') hide();
@@ -81,17 +81,17 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
   input.addEventListener('focus', () => { if (itemResults.size) resultsEl.style.display = 'block'; });
   input.addEventListener('blur', () => setTimeout(hide, 150)); // deferred so a result mousedown can land first
   input.addEventListener('keydown', (event) => {
-    const all = Array.from(resultsEl.querySelectorAll<HTMLElement>('.result'));
-    if (!all.length) return;
-    const index = all.findIndex((item) => item.classList.contains('active'));
+    const resultEls = Array.from(resultsEl.querySelectorAll<HTMLElement>('.result'));
+    if (!resultEls.length) return;
+    const index = resultEls.findIndex((item) => item.classList.contains('active'));
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
-      all[index]?.classList.remove('active');
-      const next = event.key === 'ArrowDown' ? (index + 1) % all.length : index <= 0 ? all.length - 1 : index - 1;
-      all[next].classList.add('active');
+      resultEls[index]?.classList.remove('active');
+      const next = event.key === 'ArrowDown' ? (index + 1) % resultEls.length : index <= 0 ? resultEls.length - 1 : index - 1;
+      resultEls[next].classList.add('active');
     } else if (event.key === 'Enter' && index >= 0) {
       event.preventDefault();
-      select(all[index]);
+      select(resultEls[index]);
     } else if (event.key === 'Escape') {
       hide();
     }
