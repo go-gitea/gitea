@@ -331,6 +331,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		repo_module.EnvRepoUsername+"="+results.OwnerName,
 		repo_module.EnvPusherName+"="+results.UserName,
 		repo_module.EnvPusherEmail+"="+results.UserEmail,
+		repo_module.EnvRepoGroupID+"="+strconv.FormatInt(groupID, 10),
 		repo_module.EnvPusherID+"="+strconv.FormatInt(results.UserID, 10),
 		repo_module.EnvRepoID+"="+strconv.FormatInt(results.RepoID, 10),
 		repo_module.EnvPRID+"="+strconv.Itoa(0),

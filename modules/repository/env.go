@@ -64,6 +64,7 @@ func DoerPushingEnvironment(doer *user_model.User, repo *repo_model.Repository, 
 		EnvRepoID + "=" + strconv.FormatInt(repo.ID, 10),
 		EnvRepoIsWiki + "=" + strconv.FormatBool(isWiki),
 		EnvPusherName + "=" + doer.Name,
+		EnvRepoGroupID + "=" + strconv.FormatInt(repo.GroupID, 10),
 		EnvPusherID + "=" + strconv.FormatInt(doer.ID, 10),
 	}
 	if !doer.KeepEmailPrivate {
