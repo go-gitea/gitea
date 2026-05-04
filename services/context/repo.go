@@ -468,9 +468,10 @@ func InitRepoPullRequestCtx(ctx *Context, base, head *repo_model.Repository) {
 }
 
 type repoAssignmentPrepareDataStruct struct {
-	ownerName string
-	repoName  string
-	repo      *repo_model.Repository
+	ownerName  string
+	repoName   string
+	rawGroupID string
+	repo       *repo_model.Repository
 }
 
 func repoAssignmentPreCheck(ctx *Context) {
@@ -489,26 +490,14 @@ func repoAssignmentPrepareData(ctx *Context) *repoAssignmentPrepareDataStruct {
 	userName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
 	group := ctx.PathParam("group_id")
-	var gid int64
-	if group != "" {
-		gid, _ = strconv.ParseInt(group, 10, 64)
-		if gid == 0 {
-			q := ctx.Req.URL.RawQuery
-			if q != "" {
-				q = "?" + q
-			}
-			ctx.Redirect(strings.Replace(ctx.Link, "/0/", "/", 1)+q, 307)
-			return
-		}
-		group += "/"
-	}
+
 	repoName = strings.TrimSuffix(repoName, ".git")
 	if setting.Other.EnableFeed {
 		ctx.Data["EnableFeed"] = true
 		repoName = strings.TrimSuffix(repoName, ".rss")
 		repoName = strings.TrimSuffix(repoName, ".atom")
 	}
-	return &repoAssignmentPrepareDataStruct{ownerName: userName, repoName: repoName}
+	return &repoAssignmentPrepareDataStruct{ownerName: userName, repoName: repoName, rawGroupID: group}
 }
 
 func repoAssignmentPrepareOwner(ctx *Context, data *repoAssignmentPrepareDataStruct) {
@@ -546,7 +535,21 @@ func repoAssignmentPrepareOwner(ctx *Context, data *repoAssignmentPrepareDataStr
 }
 
 func repoAssignmentAutoRedirectWiki(ctx *Context, data *repoAssignmentPrepareDataStruct) {
-	userName, repoName := data.ownerName, data.repoName
+	userName, repoName, rawGroupID := data.ownerName, data.repoName, data.rawGroupID
+	var group string
+	if rawGroupID != "" {
+		gid, _ := strconv.ParseInt(rawGroupID, 10, 64)
+		if gid == 0 {
+			q := ctx.Req.URL.RawQuery
+			if q != "" {
+				q = "?" + q
+			}
+			ctx.Redirect(strings.Replace(ctx.Link, "/0/", "/", 1)+q, 307)
+			return
+		}
+		group += "/"
+	}
+
 	// redirect link to wiki
 	if strings.HasSuffix(repoName, ".wiki") {
 		// ctx.Req.URL.Path does not have the preceding appSubURL - any redirect must have this added
@@ -571,6 +574,7 @@ func repoAssignmentAutoRedirectWiki(ctx *Context, data *repoAssignmentPrepareDat
 func repoAssignmentPrepareRepo(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 	repoName := data.repoName
 	// Get repository.
+	gid, _ := strconv.ParseInt(data.rawGroupID, 10, 64)
 	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Repo.Owner.ID, gid, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
