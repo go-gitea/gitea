@@ -84,7 +84,7 @@ func TestRepoCommitsWithStatus(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
-	ctx := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeWriteRepository)
+	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
 
 	requestCommitStatuses := func(t *testing.T, linkList, linkCombined string) (statuses []*api.CommitStatus, status api.CombinedStatus) {
 		assert.NoError(t, json.Unmarshal(session.MakeRequest(t, NewRequest(t, "GET", linkList), http.StatusOK).Body.Bytes(), &statuses))
