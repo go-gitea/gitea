@@ -1,3 +1,6 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package integration
 
 import (
@@ -48,7 +51,7 @@ func TestNonOrgMemberWontSeeHiddenTopLevelGroups(t *testing.T) {
 			ParentGroupID: 0,
 			OwnerID:       43,
 		}.ToConds())
-	assert.NotEqual(t, len(groups), expectedLen)
+	assert.NotEqual(t, expectedLen, len(groups))
 }
 
 func TestGroupNotAccessibleWhenParentIsPrivate(t *testing.T) {
