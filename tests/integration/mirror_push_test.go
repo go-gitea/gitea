@@ -79,7 +79,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.Equal(t, srcCommit.ID, mirrorCommit.ID)
 
 	_, _, err = gitrepo.RunCmdString(t.Context(), srcRepo,
-		gitcmd.NewCommand("remote", "set-url", pushMirror.RemoteName, pushMirrorURL+"-missing"))
+		gitcmd.NewCommand("remote", "set-url").AddDynamicArguments(pushMirror.RemoteName, pushMirrorURL+"-missing"))
 	assert.NoError(t, err)
 	ok = mirror_service.SyncPushMirror(t.Context(), pushMirror.ID)
 	assert.False(t, ok)
