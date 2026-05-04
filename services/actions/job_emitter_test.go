@@ -202,49 +202,36 @@ func Test_checkRunConcurrency_NoDuplicateConcurrencyGroupCheck(t *testing.T) {
 	}
 }
 
-// Test_checkJobsOfCurrentRunAttempt_RunLevelConcurrencyKeepsJobsBlocked verifies that
+// Test_checkJobsOfRun_RunLevelConcurrencyKeepsJobsBlocked verifies that
 // the resolver does not transition a job out of Blocked while another run still holds
 // the workflow-level concurrency group. Regression for #37446.
-func Test_checkJobsOfCurrentRunAttempt_RunLevelConcurrencyKeepsJobsBlocked(t *testing.T) {
+func Test_checkJobsOfRun_RunLevelConcurrencyKeepsJobsBlocked(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
 	const group = "test-run-level-concurrency-keeps-blocked"
 
-	// Holder run: Running attempt in the concurrency group.
+	// Holder run: Running run in the concurrency group.
 	holderRun := &actions_model.ActionRun{
 		RepoID: 4, OwnerID: 1, TriggerUserID: 1,
 		WorkflowID: "test.yml", Index: 9911, Ref: "refs/heads/main",
-		Status: actions_model.StatusRunning,
+		Status:           actions_model.StatusRunning,
+		ConcurrencyGroup: group,
 	}
 	assert.NoError(t, db.Insert(ctx, holderRun))
-	holderAttempt := &actions_model.ActionRunAttempt{
-		RepoID: 4, RunID: holderRun.ID, Attempt: 1,
-		Status: actions_model.StatusRunning, ConcurrencyGroup: group,
-	}
-	assert.NoError(t, db.Insert(ctx, holderAttempt))
-	_, err := db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", holderAttempt.ID, holderRun.ID)
-	assert.NoError(t, err)
 
-	// Blocked run: Blocked attempt in the same group, with one Blocked job that has
+	// Blocked run: Blocked run in the same group, with one Blocked job that has
 	// no needs and no job-level concurrency. Without the run-level guard in
-	// checkJobsOfCurrentRunAttempt, the resolver would transition this job to Waiting.
+	// checkJobsOfRun, the resolver would transition this job to Waiting.
 	blockedRun := &actions_model.ActionRun{
 		RepoID: 4, OwnerID: 1, TriggerUserID: 1,
 		WorkflowID: "test.yml", Index: 9912, Ref: "refs/heads/main",
-		Status: actions_model.StatusBlocked,
+		Status:           actions_model.StatusBlocked,
+		ConcurrencyGroup: group,
 	}
 	assert.NoError(t, db.Insert(ctx, blockedRun))
-	blockedAttempt := &actions_model.ActionRunAttempt{
-		RepoID: 4, RunID: blockedRun.ID, Attempt: 1,
-		Status: actions_model.StatusBlocked, ConcurrencyGroup: group,
-	}
-	assert.NoError(t, db.Insert(ctx, blockedAttempt))
-	_, err = db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", blockedAttempt.ID, blockedRun.ID)
-	assert.NoError(t, err)
-	blockedRun.LatestAttemptID = blockedAttempt.ID
 	blockedJob := &actions_model.ActionRunJob{
-		RunID: blockedRun.ID, RunAttemptID: blockedAttempt.ID, AttemptJobID: 1,
+		RunID:  blockedRun.ID,
 		RepoID: 4, OwnerID: 1, JobID: "job1", Name: "job1",
 		Status: actions_model.StatusBlocked,
 		WorkflowPayload: []byte(`
@@ -259,7 +246,7 @@ jobs:
 	}
 	assert.NoError(t, db.Insert(ctx, blockedJob))
 
-	_, updated, _, err := checkJobsOfCurrentRunAttempt(ctx, blockedRun)
+	_, updated, err := checkJobsOfRun(ctx, blockedRun)
 	assert.NoError(t, err)
 	assert.Empty(t, updated)
 
