@@ -16,6 +16,7 @@ import (
 	"strings"
 	"testing"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -42,6 +43,67 @@ func prepareTestEnvActionsArtifacts(t *testing.T) func() {
 	f := tests.PrepareTestEnv(t, 1)
 	tests.PrepareArtifactsStorage(t)
 	return f
+}
+
+func getArtifactFixtureTask(t *testing.T) *actions_model.ActionTask {
+	t.Helper()
+
+	task, err := actions_model.GetRunningTaskByToken(t.Context(), "8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	require.NoError(t, err)
+	require.NoError(t, task.LoadJob(t.Context()))
+	return task
+}
+
+func TestActionsJobSummaryUpload(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	task := getArtifactFixtureTask(t)
+	summaryURL := fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/summary", task.Job.RunID, task.Job.ID)
+
+	t.Run("success", func(t *testing.T) {
+		body := "### Uploaded summary\n\n- line one\n"
+		req := NewRequestWithBody(t, "PUT", summaryURL, strings.NewReader(body)).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Type", "text/markdown; charset=utf-8")
+		MakeRequest(t, req, http.StatusOK)
+
+		summary, err := actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID)
+		require.NoError(t, err)
+		assert.Equal(t, actions_model.JobSummaryContentTypeMarkdown, summary.ContentType)
+		assert.Equal(t, body, summary.Content)
+	})
+
+	t.Run("invalid-content-type", func(t *testing.T) {
+		req := NewRequestWithBody(t, "PUT", summaryURL, strings.NewReader("summary")).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Type", "text/html")
+		resp := MakeRequest(t, req, http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "invalid summary content type")
+	})
+
+	t.Run("size-limit", func(t *testing.T) {
+		req := NewRequestWithBody(t, "PUT", summaryURL, strings.NewReader(strings.Repeat("a", actions_model.MaxJobSummarySize+1))).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		resp := MakeRequest(t, req, http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "invalid summary")
+	})
+
+	t.Run("job-mismatch", func(t *testing.T) {
+		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/summary", task.Job.RunID, task.Job.ID+1), strings.NewReader("summary")).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		resp := MakeRequest(t, req, http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "job_id mismatch")
+	})
+
+	t.Run("run-mismatch", func(t *testing.T) {
+		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/summary", task.Job.RunID+1, task.Job.ID), strings.NewReader("summary")).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		resp := MakeRequest(t, req, http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "run-id does not match")
+	})
 }
 
 func TestActionsArtifactUploadSingleFile(t *testing.T) {

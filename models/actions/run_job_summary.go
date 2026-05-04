@@ -16,12 +16,15 @@ const (
 	// JobSummaryCapability is the runner-declare capability string for job summaries.
 	JobSummaryCapability = "job-summary"
 
+	// JobSummaryContentTypeMarkdown is the only accepted content type for job summaries.
+	JobSummaryContentTypeMarkdown = "text/markdown"
+
 	// MaxJobSummarySize is the maximum accepted summary payload size in bytes.
 	// This is intentionally conservative to avoid DB bloat and UI abuse.
 	MaxJobSummarySize = 1024 * 1024 // 1 MiB
 )
 
-// ActionRunJobSummary stores the rendered job summary markdown uploaded by the runner.
+// ActionRunJobSummary stores the raw job summary markdown uploaded by the runner.
 // It is internal state (not a downloadable artifact).
 type ActionRunJobSummary struct {
 	ID int64 `xorm:"pk autoincr"`
@@ -68,7 +71,10 @@ func UpsertActionRunJobSummary(ctx context.Context, repoID, runID, runAttemptID,
 		return util.ErrInvalidArgument
 	}
 	if contentType == "" {
-		contentType = "text/markdown"
+		contentType = JobSummaryContentTypeMarkdown
+	}
+	if contentType != JobSummaryContentTypeMarkdown {
+		return util.ErrInvalidArgument
 	}
 
 	engine := db.GetEngine(ctx)

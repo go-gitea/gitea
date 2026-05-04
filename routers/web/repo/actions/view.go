@@ -525,6 +525,10 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			resp.State.Run.JobSummaries = make([]*ViewJobSummary, 0, len(summaries))
 			renderUtils := templates.NewRenderUtils(ctx)
 			for _, s := range summaries {
+				if s.ContentType != actions_model.JobSummaryContentTypeMarkdown {
+					log.Warn("Skip unsupported job summary content type %q for run %d job %d", s.ContentType, s.RunID, s.JobID)
+					continue
+				}
 				resp.State.Run.JobSummaries = append(resp.State.Run.JobSummaries, &ViewJobSummary{
 					JobID:       s.JobID,
 					JobName:     jobNameByID[s.JobID],

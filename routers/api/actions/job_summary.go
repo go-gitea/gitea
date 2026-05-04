@@ -6,25 +6,16 @@ package actions
 import (
 	"errors"
 	"io"
+	"mime"
 	"net/http"
 	"strconv"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
 )
 
 const jobSummaryRouteBase = "/_apis/pipelines/workflows/{run_id}/jobs/{job_id}/summary"
-
-func JobSummaryRoutes(prefix string) *web.Router {
-	m := web.NewRouter()
-	m.AfterRouting(ArtifactContexter())
-
-	m.Put(jobSummaryRouteBase, uploadJobSummary)
-	return m
-}
 
 func uploadJobSummary(ctx *ArtifactContext) {
 	task, runID, ok := validateRunID(ctx)
@@ -53,6 +44,7 @@ func uploadJobSummary(ctx *ArtifactContext) {
 
 	body, err := io.ReadAll(io.LimitReader(ctx.Req.Body, actions_model.MaxJobSummarySize+1))
 	if err != nil {
+		log.Error("Error reading job summary request body: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "read request body")
 		return
 	}
@@ -61,14 +53,10 @@ func uploadJobSummary(ctx *ArtifactContext) {
 		return
 	}
 
-	contentType := ctx.Req.Header.Get("Content-Type")
-	if contentType == "" || strings.HasPrefix(contentType, "application/octet-stream") {
-		contentType = "text/markdown"
-	} else {
-		// Strip charset to keep storage normalized; we only store UTF-8 text content.
-		if i := strings.Index(contentType, ";"); i > 0 {
-			contentType = strings.TrimSpace(contentType[:i])
-		}
+	contentType, ok := normalizeJobSummaryContentType(ctx.Req.Header.Get("Content-Type"))
+	if !ok {
+		ctx.HTTPError(http.StatusBadRequest, "invalid summary content type")
+		return
 	}
 
 	if err := actions_model.UpsertActionRunJobSummary(ctx, task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, contentType, body); err != nil {
@@ -90,4 +78,19 @@ func uploadJobSummary(ctx *ArtifactContext) {
 
 func errorsIsInvalidArg(err error) bool {
 	return errors.Is(err, util.ErrInvalidArgument)
+}
+
+func normalizeJobSummaryContentType(contentType string) (string, bool) {
+	if contentType == "" || contentType == "application/octet-stream" {
+		return actions_model.JobSummaryContentTypeMarkdown, true
+	}
+
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return "", false
+	}
+	if mediaType != actions_model.JobSummaryContentTypeMarkdown {
+		return "", false
+	}
+	return actions_model.JobSummaryContentTypeMarkdown, true
 }
