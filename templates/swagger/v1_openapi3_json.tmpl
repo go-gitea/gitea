@@ -8787,15 +8787,15 @@
             "type": "string",
             "x-go-name": "Interval"
           },
-          "last_error": {
-            "description": "The last error message encountered during sync",
-            "type": "string",
-            "x-go-name": "LastError"
-          },
           "is_synced": {
             "description": "Whether the most recent sync completed successfully",
             "type": "boolean",
             "x-go-name": "IsSynced"
+          },
+          "last_error": {
+            "description": "The last error message encountered during sync",
+            "type": "string",
+            "x-go-name": "LastError"
           },
           "last_update": {
             "format": "date-time",
@@ -9269,6 +9269,10 @@
           "internal_tracker": {
             "$ref": "#/components/schemas/InternalTracker"
           },
+          "is_synced": {
+            "type": "boolean",
+            "x-go-name": "IsSynced"
+          },
           "language": {
             "type": "string",
             "x-go-name": "Language"
@@ -9296,10 +9300,6 @@
           "mirror_interval": {
             "type": "string",
             "x-go-name": "MirrorInterval"
-          },
-          "is_synced": {
-            "type": "boolean",
-            "x-go-name": "IsSynced"
           },
           "mirror_updated": {
             "format": "date-time",

@@ -270,9 +270,11 @@ func TestAPIViewRepo(t *testing.T) {
 	assert.Equal(t, "repo4", repo.Name)
 	assert.Equal(t, 1, repo.Stars)
 
-	req = NewRequest(t, "GET", "/api/v1/repos/org3/repo5")
+	req = NewRequest(t, "GET", "/api/v1/repos/user20/big_test_public_mirror_5")
 	resp = MakeRequest(t, req, http.StatusOK)
 	repo = DecodeJSON(t, resp, &api.Repository{})
+	assert.EqualValues(t, 25, repo.ID)
+	assert.Equal(t, "big_test_public_mirror_5", repo.Name)
 	assert.True(t, repo.Mirror)
 	assert.False(t, repo.IsSynced)
 }
