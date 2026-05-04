@@ -108,6 +108,7 @@ const options: SortableOptions = {
       const repos = arr
         .filter((a) => a.startsWith('repo'))
         .map((a) => orepos.value.filter(Boolean).find((b) => b.id === parseInt(a.split('-')[1])))
+        .filter(Boolean)
         .map((a, i) => ({...a, group_sort_order: i + 1}))
         .filter((a, pos, arr) => arr.findIndex((b) => b.id === a.id) === pos);
 
