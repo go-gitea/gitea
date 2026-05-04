@@ -74,8 +74,6 @@
     "vue-chartjs": "5.3.3"
   },
   "devDependencies": {
-    "@commitlint/cli": "20.5.3",
-    "@commitlint/config-conventional": "20.5.3",
     "@eslint-community/eslint-plugin-eslint-comments": "4.7.1",
     "@eslint/json": "1.2.0",
     "@playwright/test": "1.59.1",
