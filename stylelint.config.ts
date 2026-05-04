@@ -1,6 +1,5 @@
-// @ts-check
-// TODO: Move to .ts after https://github.com/stylelint/stylelint/issues/8893 is fixed
 import {fileURLToPath} from 'node:url';
+import type {Config} from 'stylelint';
 
 const cssVarFiles = [
   fileURLToPath(new URL('web_src/css/base.css', import.meta.url)),
@@ -8,7 +7,6 @@ const cssVarFiles = [
   fileURLToPath(new URL('web_src/css/themes/theme-gitea-dark.css', import.meta.url)),
 ];
 
-/** @type {import('stylelint').Config} */
 export default {
   extends: 'stylelint-config-recommended',
   reportUnscopedDisables: true,
@@ -136,4 +134,4 @@ export default {
     'shorthand-property-no-redundant-values': true,
     'value-no-vendor-prefix': [true, {ignoreValues: ['box', 'inline-box']}],
   },
-};
+} satisfies Config;
