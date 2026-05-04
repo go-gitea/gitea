@@ -5,6 +5,7 @@
   "enabledManagers": ["github-actions", "gomod", "npm", "pep621", "nix"],
   "labels": ["dependencies"],
   "branchPrefix": "renovate/",
+  "gitAuthor": "GiteaBot <teabot@gitea.io>",
   "schedule": ["* * * * 1"], // dependency update PRs weekly, vulnerabilityAlerts bypasses this
   "minimumReleaseAge": "5 days",
   "semanticCommits": "enabled",
