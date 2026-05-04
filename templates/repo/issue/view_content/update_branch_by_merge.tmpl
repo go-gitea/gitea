@@ -1,35 +1,33 @@
 {{$data := $.MergeBoxData}}
 {{$issue := $.Issue}}
-{{if $data.ShowUpdatePullInfo}}
-	<div class="item flex-left-right">
-		<div class="flex-text-block">
-			{{svg "octicon-alert"}}
-			{{ctx.Locale.Tr "repo.pulls.outdated_with_base_branch"}}
-		</div>
-		<div>
-			{{if and $data.UpdateAllowed $data.UpdateByRebaseAllowed}}
-				<div id="update-pr-branch-with-base" class="ui buttons">
-					<button class="ui button" data-do="{{$issue.Link}}/update">
-						<span class="button-text">
-							{{ctx.Locale.Tr "repo.pulls.update_branch"}}
-						</span>
-					</button>
-					<div class="ui dropdown icon button">
-						{{svg "octicon-triangle-down"}}
-						<div class="menu">
-							<a class="item active selected" data-do="{{$issue.Link}}/update">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</a>
-							<a class="item" data-do="{{$issue.Link}}/update?style=rebase">{{ctx.Locale.Tr "repo.pulls.update_branch_rebase"}}</a>
-						</div>
+<div class="tw-w-full flex-left-right">
+	<div class="flex-text-block">
+		{{svg "octicon-alert"}}
+		{{ctx.Locale.Tr "repo.pulls.outdated_with_base_branch"}}
+	</div>
+	<div>
+		{{if and $data.UpdateAllowed $data.UpdateByRebaseAllowed}}
+			<div id="update-pr-branch-with-base" class="ui buttons">
+				<button class="ui button" data-do="{{$issue.Link}}/update">
+					<span class="button-text">
+						{{ctx.Locale.Tr "repo.pulls.update_branch"}}
+					</span>
+				</button>
+				<div class="ui dropdown icon button">
+					{{svg "octicon-triangle-down"}}
+					<div class="menu">
+						<a class="item active selected" data-do="{{$issue.Link}}/update">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</a>
+						<a class="item" data-do="{{$issue.Link}}/update?style=rebase">{{ctx.Locale.Tr "repo.pulls.update_branch_rebase"}}</a>
 					</div>
 				</div>
-			{{end}}
-			{{if and $data.UpdateAllowed (not $data.UpdateByRebaseAllowed)}}
-				<form action="{{$issue.Link}}/update" method="post">
-					<button class="ui compact button">
-						<span class="ui text">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</span>
-					</button>
-				</form>
-			{{end}}
-		</div>
+			</div>
+		{{end}}
+		{{if and $data.UpdateAllowed (not $data.UpdateByRebaseAllowed)}}
+			<form action="{{$issue.Link}}/update" method="post">
+				<button class="ui compact button">
+					<span class="ui text">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</span>
+				</button>
+			</form>
+		{{end}}
 	</div>
-{{end}}
+</div>
