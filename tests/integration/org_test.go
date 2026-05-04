@@ -41,33 +41,25 @@ func TestOrg(t *testing.T) {
 func testOrgRepos(t *testing.T) {
 	var (
 		users = []string{"user1", "user2"}
-		cases = map[string]map[string][]string{
-			"129": {
-				"alphabetically":        {"repo21", "repo3"},
-				"reversealphabetically": {"repo3", "repo21"},
-			},
-			"139": {
-				"alphabetically":        {"repo5"},
-				"reversealphabetically": {"repo5"},
-			},
+		cases = map[string][]string{
+			"alphabetically":        {"repo21", "repo3", "repo5"},
+			"reversealphabetically": {"repo5", "repo3", "repo21"},
 		}
 	)
 
 	for _, user := range users {
 		t.Run(user, func(t *testing.T) {
 			session := loginUser(t, user)
-			for group, groupCases := range cases {
-				for sortBy, repos := range groupCases {
-					req := NewRequest(t, "GET", "/org3/groups/"+group+"?sort="+sortBy)
-					resp := session.MakeRequest(t, req, http.StatusOK)
+			for sortBy, repos := range cases {
+				req := NewRequest(t, "GET", "/org3?sort="+sortBy)
+				resp := session.MakeRequest(t, req, http.StatusOK)
 
-					htmlDoc := NewHTMLParser(t, resp.Body)
+				htmlDoc := NewHTMLParser(t, resp.Body)
 
-					sel := htmlDoc.doc.Find("a.name")
-					assert.Len(t, repos, len(sel.Nodes))
-					for i := range repos {
-						assert.Equal(t, repos[i], strings.TrimSpace(sel.Eq(i).Text()))
-					}
+				sel := htmlDoc.doc.Find("a.name")
+				assert.Len(t, repos, len(sel.Nodes))
+				for i := range repos {
+					assert.Equal(t, repos[i], strings.TrimSpace(sel.Eq(i).Text()))
 				}
 			}
 		})
@@ -78,27 +70,27 @@ func testLimitedOrg(t *testing.T) {
 	// not logged-in user
 	req := NewRequest(t, "GET", "/limited_org")
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/limited_org/231/public_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/public_repo_on_limited_org")
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/limited_org/221/private_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/private_repo_on_limited_org")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// login non-org member user
 	session := loginUser(t, "user2")
 	req = NewRequest(t, "GET", "/limited_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/limited_org/group/231/public_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/public_repo_on_limited_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/limited_org/group/221/private_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/private_repo_on_limited_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// site admin
 	session = loginUser(t, "user1")
 	req = NewRequest(t, "GET", "/limited_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/limited_org/group/231/public_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/public_repo_on_limited_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/limited_org/group/221/private_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/private_repo_on_limited_org")
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
@@ -106,36 +98,36 @@ func testPrivateOrg(t *testing.T) {
 	// not logged-in user
 	req := NewRequest(t, "GET", "/privated_org")
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/privated_org/group/340/public_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org")
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/privated_org/group/352/private_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// login non-org member user
 	session := loginUser(t, "user2")
 	req = NewRequest(t, "GET", "/privated_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/privated_org/group/340/public_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/privated_org/group/352/private_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// non-org member who is collaborator on repo in private org
 	session = loginUser(t, "user4")
 	req = NewRequest(t, "GET", "/privated_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/privated_org/group/340/public_repo_on_private_org") // colab of this repo
+	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org") // colab of this repo
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/privated_org/group/352/private_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// site admin
 	session = loginUser(t, "user1")
 	req = NewRequest(t, "GET", "/privated_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/privated_org/group/340/public_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/privated_org/group/352/private_repo_on_private_org")
+	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
@@ -162,8 +154,6 @@ func testOrgRestrictedUser(t *testing.T) {
 	// public_repo_on_private_org is a public repo on privated_org
 	repoName := "public_repo_on_private_org"
 
-	repoGroup := 340
-
 	// user29 is a restricted user who is not a member of the organization
 	restrictedUser := "user29"
 
@@ -174,7 +164,7 @@ func testOrgRestrictedUser(t *testing.T) {
 	req := NewRequest(t, "GET", "/"+orgName)
 	restrictedSession.MakeRequest(t, req, http.StatusNotFound)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("/%s/group/%d/%s", orgName, repoGroup, repoName))
+	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))
 	restrictedSession.MakeRequest(t, req, http.StatusNotFound)
 
 	// Therefore create a read-only team
