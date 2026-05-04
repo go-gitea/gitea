@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"path"
 	"strconv"
-	"strings"
 	"time"
 
 	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
@@ -33,6 +32,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -231,13 +231,18 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 	}
 }
 
-// ToActionTask convert a actions_model.ActionTask to an api.ActionTask
+// ToActionTask convert an actions_model.ActionTask to an api.ActionTask
 func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.ActionTask, error) {
-	if err := t.LoadAttributes(ctx); err != nil {
+	// don't need Steps here, only need to load job and its run
+	if err := t.LoadJob(ctx); err != nil {
 		return nil, err
 	}
-
-	url := strings.TrimSuffix(setting.AppURL, "/") + t.GetRunLink()
+	if err := t.Job.LoadRun(ctx); err != nil {
+		return nil, err
+	}
+	if err := t.Job.Run.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
 
 	return &api.ActionTask{
 		ID:           t.ID,
@@ -249,7 +254,7 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 		DisplayTitle: t.Job.Run.Title,
 		Status:       t.Status.String(),
 		WorkflowID:   t.Job.Run.WorkflowID,
-		URL:          url,
+		URL:          httplib.MakeAbsoluteURL(ctx, t.GetRunLink()),
 		CreatedAt:    t.Created.AsLocalTime(),
 		UpdatedAt:    t.Updated.AsLocalTime(),
 		RunStartedAt: t.Started.AsLocalTime(),
@@ -281,6 +286,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 	var previousAttemptURL *string
 
 	if attempt != nil {
+		attempt.Run = run
 		if err := attempt.LoadAttributes(ctx); err != nil {
 			return nil, err
 		}
@@ -306,7 +312,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		ID:                 run.ID,
 		URL:                fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID),
 		PreviousAttemptURL: previousAttemptURL,
-		HTMLURL:            run.HTMLURL(),
+		HTMLURL:            run.HTMLURL(ctx),
 		RunNumber:          run.Index,
 		RunAttempt:         runAttempt,
 		CreatedAt:          run.Created.AsLocalTime(),
@@ -500,11 +506,11 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 	return &api.ActionWorkflowJob{
 		ID: job.ID,
 		// missing api endpoint for this location
-		URL:     fmt.Sprintf("%s/actions/jobs/%d", repo.APIURL(), job.ID),
-		HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), job.ID),
+		URL:     fmt.Sprintf("%s/actions/jobs/%d", repo.APIURL(ctx), job.ID),
+		HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(ctx), job.ID),
 		RunID:   job.RunID,
 		// Missing api endpoint for this location, artifacts are available under a nested url
-		RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), job.RunID),
+		RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(ctx), job.RunID),
 		Name:        job.Name,
 		Labels:      job.RunsOn,
 		RunAttempt:  job.Attempt,
