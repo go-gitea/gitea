@@ -202,10 +202,6 @@ func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) bin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-type ProtectBranchPriorityForm struct {
-	IDs []int64
-}
-
 // WebhookForm form for changing web hook
 type WebhookForm struct {
 	Name                     string `binding:"MaxSize(255)"`
@@ -412,12 +408,10 @@ func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) 
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {
 	Title               string `binding:"Required;MaxSize(255)"`
-	LabelIDs            string `form:"label_ids"`
 	AssigneeIDs         string `form:"assignee_ids"`
 	ReviewerIDs         string `form:"reviewer_ids"`
 	Ref                 string `form:"ref"`
 	MilestoneID         int64
-	ProjectID           int64
 	Content             string
 	Files               []string
 	AllowMaintainerEdit bool

@@ -1,10 +1,10 @@
-<div id="activity-feed" class="flex-list" data-ref-issue-container>
+<div id="activity-feed" class="flex-divided-list items-with-main" data-ref-issue-container>
 	{{range .Feeds}}
-		<div class="flex-item">
-			<div class="flex-item-leading">
+		<div class="item">
+			<div class="item-leading">
 				{{ctx.AvatarUtils.AvatarByAction .}}
 			</div>
-			<div class="flex-item-main tw-gap-2">
+			<div class="item-main tw-gap-2">
 				<div>
 					{{if gt .ActUser.ID 0}}
 						<a href="{{AppSubUrl}}/{{(.GetActUserName ctx) | PathEscape}}" title="{{.GetActDisplayNameTitle ctx}}">{{.GetActDisplayName ctx}}</a>
@@ -113,15 +113,15 @@
 						<div class="render-content markup truncated-markup">{{ctx.RenderUtils.MarkdownToHtml $comment}}</div>
 					{{end}}
 				{{else if .GetOpType.InActions "merge_pull_request"}}
-					<div class="flex-item-body tw-text-text">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</div>
+					<div class="item-body tw-text-text">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</div>
 				{{else if .GetOpType.InActions "close_issue" "reopen_issue" "close_pull_request" "reopen_pull_request"}}
 					<span class="tw-inline-block tw-truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "pull_review_dismissed"}}
-				<div class="flex-item-body tw-text-text">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</div>
-				<div class="flex-item-body tw-text-text">{{index .GetIssueInfos 2 | ctx.RenderUtils.RenderEmoji}}</div>
+				<div class="item-body tw-text-text">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</div>
+				<div class="item-body tw-text-text">{{index .GetIssueInfos 2 | ctx.RenderUtils.RenderEmoji}}</div>
 				{{end}}
 			</div>
-			<div class="flex-item-trailing">
+			<div class="item-trailing">
 				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32 "tw-text-text-light tw-mr-1"}}
 			</div>
 		</div>

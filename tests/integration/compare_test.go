@@ -10,13 +10,16 @@ import (
 	"strings"
 	"testing"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCompareTag(t *testing.T) {
@@ -122,6 +125,38 @@ func TestCompareBranches(t *testing.T) {
 	diffChanges = []string{"test.txt"}
 
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
+}
+
+func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "repo1"})
+
+	repoPath := repo_model.RepoPath(user2.Name, repo1.Name)
+	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(strings.TrimSpace(`
+commit refs/heads/unrelated-history
+committer User <user@example.com> 1714310400 +0000
+data 13
+Second commit
+M 100644 inline file2.txt
+data 12
+Hello from 2
+`))).RunStdString(t.Context())
+	require.NoError(t, runErr)
+
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2/repo1/compare/master...unrelated-history")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	body := resp.Body.String()
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
+	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
+	assert.Contains(t, body, "These branches do not share a common merge base")
+	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...unrelated-history"]`).Length())
+	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...master"]`).Length())
+	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
 }
 
 func TestCompareCodeExpand(t *testing.T) {

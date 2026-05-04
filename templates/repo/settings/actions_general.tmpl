@@ -62,18 +62,18 @@
 	</h4>
 	{{if len .CollaborativeOwners}}
 	<div class="ui attached segment">
-		<div class="flex-list">
+		<div class="flex-divided-list items-with-main">
 			{{range .CollaborativeOwners}}
-			<div class="flex-item tw-items-center">
-				<div class="flex-item-leading">
+			<div class="item tw-items-center">
+				<div class="item-leading">
 					<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 				</div>
-				<div class="flex-item-main">
-					<div class="flex-item-title">
+				<div class="item-main">
+					<div class="item-title">
 						{{template "shared/user/name" .}}
 					</div>
 				</div>
-				<div class="flex-item-trailing">
+				<div class="item-trailing">
 					<button class="ui red tiny button inline link-action"
 						data-url="{{$.Link}}/collaborative_owner/delete?id={{.ID}}"
 						data-modal-confirm-header="{{ctx.Locale.Tr "actions.general.remove_collaborative_owner"}}"

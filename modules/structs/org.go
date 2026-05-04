@@ -22,7 +22,7 @@ type Organization struct {
 	// The location of the organization
 	Location string `json:"location"`
 	// The visibility level of the organization (public, limited, private)
-	Visibility string `json:"visibility"`
+	Visibility UserVisibility `json:"visibility"`
 	// Whether repository administrators can change team access
 	RepoAdminChangeTeamAccess bool `json:"repo_admin_change_team_access"`
 	// username of the organization
@@ -60,8 +60,7 @@ type CreateOrgOption struct {
 	// The location of the organization
 	Location string `json:"location" binding:"MaxSize(50)"`
 	// possible values are `public` (default), `limited` or `private`
-	// enum: ["public","limited","private"]
-	Visibility string `json:"visibility" binding:"In(,public,limited,private)"`
+	Visibility UserVisibility `json:"visibility" binding:"In(,public,limited,private)"`
 	// Whether repository administrators can change team access
 	RepoAdminChangeTeamAccess bool `json:"repo_admin_change_team_access"`
 }
@@ -79,8 +78,7 @@ type EditOrgOption struct {
 	// The location of the organization
 	Location *string `json:"location" binding:"MaxSize(50)"`
 	// possible values are `public`, `limited` or `private`
-	// enum: ["public","limited","private"]
-	Visibility *string `json:"visibility" binding:"In(,public,limited,private)"`
+	Visibility *UserVisibility `json:"visibility" binding:"In(,public,limited,private)"`
 	// Whether repository administrators can change team access
 	RepoAdminChangeTeamAccess *bool `json:"repo_admin_change_team_access"`
 }

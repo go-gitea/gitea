@@ -13,6 +13,7 @@
 				{{ctx.Locale.Tr "action.compare_commits_general"}}
 			{{end}}
 		</h2>
+		{{template "base/alert" .}}
 		{{$BaseCompareName := $.Repository.FullName -}}
 		{{$HeadCompareName := $.HeadRepo.FullName -}}
 		{{$OwnForkCompareName := "" -}}
