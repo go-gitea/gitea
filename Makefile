@@ -323,7 +323,8 @@ lint-md-fix: node_modules ## lint markdown files and fix issues
 
 .PHONY: lint-pr-title
 lint-pr-title: node_modules ## lint PR title against Conventional Commits (set PR_TITLE=...)
-	node tools/lint-pr-title.js "$(PR_TITLE)"
+	@test -n "$(PR_TITLE)" || (echo "Missing PR_TITLE" && exit 1)
+	@printf '%s\n' "$(PR_TITLE)" | pnpm exec commitlint --config .commitlintrc.ts
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
