@@ -1,123 +1,51 @@
 {{template "devtest/devtest-header"}}
 <div class="page-content devtest ui container">
 	<h1>Series Colors</h1>
-	<p>16-color categorical palette plus matching highlight variants. Used by the git graph view, available for any future categorical visualization.</p>
-
-	<h2>Pairs</h2>
 	<div class="series-grid">
-		<div class="series-row series-head">
-			<span>idx</span>
-			<span>base</span>
-			<span>--color-series-16-N</span>
-			<span>highlight</span>
-			<span>--color-series-16-highlight-N</span>
-		</div>
-		<div class="series-row"><span class="series-idx">0</span><span class="series-swatch" style="background-color: var(--color-series-16-0)"></span><code>--color-series-16-0</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-0)"></span><code>--color-series-16-highlight-0</code></div>
-		<div class="series-row"><span class="series-idx">1</span><span class="series-swatch" style="background-color: var(--color-series-16-1)"></span><code>--color-series-16-1</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-1)"></span><code>--color-series-16-highlight-1</code></div>
-		<div class="series-row"><span class="series-idx">2</span><span class="series-swatch" style="background-color: var(--color-series-16-2)"></span><code>--color-series-16-2</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-2)"></span><code>--color-series-16-highlight-2</code></div>
-		<div class="series-row"><span class="series-idx">3</span><span class="series-swatch" style="background-color: var(--color-series-16-3)"></span><code>--color-series-16-3</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-3)"></span><code>--color-series-16-highlight-3</code></div>
-		<div class="series-row"><span class="series-idx">4</span><span class="series-swatch" style="background-color: var(--color-series-16-4)"></span><code>--color-series-16-4</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-4)"></span><code>--color-series-16-highlight-4</code></div>
-		<div class="series-row"><span class="series-idx">5</span><span class="series-swatch" style="background-color: var(--color-series-16-5)"></span><code>--color-series-16-5</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-5)"></span><code>--color-series-16-highlight-5</code></div>
-		<div class="series-row"><span class="series-idx">6</span><span class="series-swatch" style="background-color: var(--color-series-16-6)"></span><code>--color-series-16-6</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-6)"></span><code>--color-series-16-highlight-6</code></div>
-		<div class="series-row"><span class="series-idx">7</span><span class="series-swatch" style="background-color: var(--color-series-16-7)"></span><code>--color-series-16-7</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-7)"></span><code>--color-series-16-highlight-7</code></div>
-		<div class="series-row"><span class="series-idx">8</span><span class="series-swatch" style="background-color: var(--color-series-16-8)"></span><code>--color-series-16-8</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-8)"></span><code>--color-series-16-highlight-8</code></div>
-		<div class="series-row"><span class="series-idx">9</span><span class="series-swatch" style="background-color: var(--color-series-16-9)"></span><code>--color-series-16-9</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-9)"></span><code>--color-series-16-highlight-9</code></div>
-		<div class="series-row"><span class="series-idx">10</span><span class="series-swatch" style="background-color: var(--color-series-16-10)"></span><code>--color-series-16-10</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-10)"></span><code>--color-series-16-highlight-10</code></div>
-		<div class="series-row"><span class="series-idx">11</span><span class="series-swatch" style="background-color: var(--color-series-16-11)"></span><code>--color-series-16-11</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-11)"></span><code>--color-series-16-highlight-11</code></div>
-		<div class="series-row"><span class="series-idx">12</span><span class="series-swatch" style="background-color: var(--color-series-16-12)"></span><code>--color-series-16-12</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-12)"></span><code>--color-series-16-highlight-12</code></div>
-		<div class="series-row"><span class="series-idx">13</span><span class="series-swatch" style="background-color: var(--color-series-16-13)"></span><code>--color-series-16-13</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-13)"></span><code>--color-series-16-highlight-13</code></div>
-		<div class="series-row"><span class="series-idx">14</span><span class="series-swatch" style="background-color: var(--color-series-16-14)"></span><code>--color-series-16-14</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-14)"></span><code>--color-series-16-highlight-14</code></div>
-		<div class="series-row"><span class="series-idx">15</span><span class="series-swatch" style="background-color: var(--color-series-16-15)"></span><code>--color-series-16-15</code><span class="series-swatch" style="background-color: var(--color-series-16-highlight-15)"></span><code>--color-series-16-highlight-15</code></div>
-	</div>
-
-	<h2>Strip (base on top, highlight below)</h2>
-	<div class="series-strip">
-		<div class="series-strip-row">
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-0)">0</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-1)">1</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-2)">2</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-3)">3</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-4)">4</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-5)">5</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-6)">6</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-7)">7</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-8)">8</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-9)">9</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-10)">10</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-11)">11</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-12)">12</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-13)">13</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-14)">14</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-15)">15</span>
-		</div>
-		<div class="series-strip-row">
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-0)">0</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-1)">1</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-2)">2</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-3)">3</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-4)">4</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-5)">5</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-6)">6</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-7)">7</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-8)">8</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-9)">9</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-10)">10</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-11)">11</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-12)">12</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-13)">13</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-14)">14</span>
-			<span class="series-strip-cell" style="background-color: var(--color-series-16-highlight-15)">15</span>
-		</div>
+		<span class="series-cell" style="background-color: var(--color-series-16-0)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-1)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-2)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-3)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-4)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-5)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-6)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-7)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-8)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-9)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-10)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-11)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-12)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-13)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-14)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-15)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-0)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-1)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-2)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-3)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-4)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-5)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-6)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-7)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-8)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-9)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-10)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-11)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-12)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-13)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-14)"></span>
+		<span class="series-cell" style="background-color: var(--color-series-16-highlight-15)"></span>
 	</div>
 </div>
 
 <style>
 .series-grid {
 	display: grid;
-	gap: 4px;
-	margin-bottom: 24px;
-}
-.series-row {
-	display: grid;
-	grid-template-columns: 32px 80px 240px 80px 280px;
-	gap: 12px;
-	align-items: center;
-}
-.series-head {
-	font-weight: var(--font-weight-medium);
-	color: var(--color-text-light-2);
-	border-bottom: 1px solid var(--color-secondary);
-	padding-bottom: 4px;
-	margin-bottom: 4px;
-}
-.series-idx {
-	font-variant-numeric: tabular-nums;
-	color: var(--color-text-light-2);
-}
-.series-swatch {
-	display: inline-block;
-	width: 100%;
-	height: 32px;
-	border-radius: var(--border-radius);
-}
-.series-strip {
-	display: grid;
-	gap: 2px;
-	margin-bottom: 24px;
-}
-.series-strip-row {
-	display: grid;
-	grid-template-columns: repeat(16, 1fr);
+	grid-template-columns: repeat(16, 12px);
 	gap: 2px;
 }
-.series-strip-cell {
-	height: 48px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	color: var(--color-white);
-	font-variant-numeric: tabular-nums;
-	text-shadow: 0 1px 1px rgb(0 0 0 / 50%);
+.series-cell {
+	width: 12px;
+	height: 12px;
 }
 </style>
 {{template "devtest/devtest-footer"}}
