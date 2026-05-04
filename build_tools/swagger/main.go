@@ -52,6 +52,8 @@ func (o OrderedMap) Iter() iter.Seq2[string, any] {
 	}
 }
 
+var errNilSentinel = errors.New("nil sentinel")
+
 func (o *OrderedMap) UnmarshalJSON(data []byte) error {
 	trimmed := bytes.TrimSpace(data)
 	if bytes.Equal(trimmed, []byte("null")) {
@@ -128,7 +130,7 @@ func (o *OrderedMap) UnmarshalJSON(data []byte) error {
 func decodeJSONValue(raw encjson.RawMessage) (any, error) {
 	t := bytes.TrimSpace(raw)
 	if bytes.Equal(t, []byte("null")) {
-		return nil, nil
+		return nil, errNilSentinel
 	}
 
 	d := encjson.NewDecoder(bytes.NewReader(raw))
@@ -156,7 +158,7 @@ func decodeJSONValue(raw encjson.RawMessage) (any, error) {
 					return nil, err
 				}
 				v, err := decodeJSONValue(elemRaw)
-				if err != nil {
+				if err != nil && !errors.Is(err, errNilSentinel) {
 					return nil, err
 				}
 				arr = append(arr, v)
@@ -278,12 +280,12 @@ func generatePaths(root string) *OrderedMap {
 }
 
 func writeMapToFile(filename string, data *OrderedMap) {
-	bytes, err := json.MarshalIndent(data, "", "  ")
+	marshaledBytes, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		log.Fatal(err)
 	}
-	bytes = append(bytes, '\n')
-	err = os.WriteFile(filename, bytes, 0o666)
+	marshaledBytes = append(marshaledBytes, '\n')
+	err = os.WriteFile(filename, marshaledBytes, 0o666)
 	if err != nil {
 		log.Fatal(err)
 	}

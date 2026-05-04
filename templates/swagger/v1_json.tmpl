@@ -5569,6 +5569,12 @@
             "required": true
           },
           {
+            "type": "boolean",
+            "description": "filter by disabled status (true or false)",
+            "name": "disabled",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "format": "int64",
             "description": "group ID of the repo",
@@ -5579,7 +5585,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunnersResponse"
+            "$ref": "#/responses/RunnerList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5591,45 +5597,6 @@
       }
     },
     "/repos/{owner}/group/{group_id}/{repo}/actions/runners/registration-token": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Get a repository's actions runner registration token",
-        "operationId": "repoGetRunnerRegistrationTokenMixin0",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "group ID of the repo",
-            "name": "group_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/RegistrationToken"
-          }
-        }
-      },
       "post": {
         "produces": [
           "application/json"
@@ -5678,7 +5645,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get an repo-level runner",
+        "summary": "Get a repo-level runner",
         "operationId": "getRepoRunnerMixin0",
         "parameters": [
           {
@@ -5713,7 +5680,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/ActionRunner"
+            "$ref": "#/responses/Runner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5730,7 +5697,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Delete an repo-level runner",
+        "summary": "Delete a repo-level runner",
         "operationId": "deleteRepoRunnerMixin0",
         "parameters": [
           {
@@ -5772,6 +5739,71 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update a repo-level runner",
+        "operationId": "updateRepoRunnerMixin0",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditActionRunnerOption"
+            }
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "group ID of the repo",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Runner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -5891,7 +5923,7 @@
             "required": true
           },
           {
-            "type": "string",
+            "type": "integer",
             "description": "id of the run",
             "name": "run",
             "in": "path",
@@ -6031,6 +6063,146 @@
         }
       }
     },
+    "/repos/{owner}/group/{group_id}/{repo}/actions/runs/{run}/attempts/{attempt}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets a specific workflow run attempt",
+        "operationId": "getWorkflowRunAttemptMixin0",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "logical attempt number of the run",
+            "name": "attempt",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "group ID of the repo",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/group/{group_id}/{repo}/actions/runs/{run}/attempts/{attempt}/jobs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Lists all jobs for a workflow run attempt",
+        "operationId": "listWorkflowRunAttemptJobsMixin0",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the workflow run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "logical attempt number of the run",
+            "name": "attempt",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "group ID of the repo",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowJobsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/group/{group_id}/{repo}/actions/runs/{run}/jobs": {
       "get": {
         "produces": [
@@ -6099,6 +6271,199 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/group/{group_id}/{repo}/actions/runs/{run}/jobs/{job_id}/rerun": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reruns a specific workflow job in a run",
+        "operationId": "rerunWorkflowJobMixin0",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the job",
+            "name": "job_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "group ID of the repo",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/WorkflowJob"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/group/{group_id}/{repo}/actions/runs/{run}/rerun": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reruns an entire workflow run",
+        "operationId": "rerunWorkflowRunMixin0",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "group ID of the repo",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/group/{group_id}/{repo}/actions/runs/{run}/rerun-failed-jobs": {
+      "post": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reruns all failed jobs in a workflow run",
+        "operationId": "rerunFailedWorkflowRunMixin0",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "group ID of the repo",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -6863,6 +7228,12 @@
             }
           },
           {
+            "type": "boolean",
+            "description": "Whether the response should include the workflow run ID and URLs.",
+            "name": "return_run_details",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "format": "int64",
             "description": "group ID of the repo",
@@ -6872,8 +7243,11 @@
           }
         ],
         "responses": {
+          "200": {
+            "$ref": "#/responses/RunDetails"
+          },
           "204": {
-            "description": "No Content"
+            "description": "No Content, if return_run_details is missing or false"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -7047,6 +7421,16 @@
             "name": "archive",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "subpath of the repository to download",
+            "name": "path",
+            "in": "query"
           },
           {
             "type": "integer",
@@ -11399,7 +11783,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "$ref": "#/responses/empty"
           },
           "403": {
@@ -11557,6 +11941,7 @@
         }
       },
       "patch": {
+        "description": "Pass `content_version` to enable optimistic locking on body edits.\nIf the version doesn't match the current value, the request fails with 409 Conflict.\n",
         "consumes": [
           "application/json"
         ],
@@ -13402,7 +13787,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "$ref": "#/responses/empty"
           },
           "403": {
@@ -15632,6 +16017,122 @@
         }
       }
     },
+    "/repos/{owner}/group/{group_id}/{repo}/pulls/comments/{id}/resolve": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Resolve a pull request review comment",
+        "operationId": "repoResolvePullReviewCommentMixin0",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "group ID of the repo",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/group/{group_id}/{repo}/pulls/comments/{id}/unresolve": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Unresolve a pull request review comment",
+        "operationId": "repoUnresolvePullReviewCommentMixin0",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "group ID of the repo",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/group/{group_id}/{repo}/pulls/pinned": {
       "get": {
         "produces": [
@@ -15927,6 +16428,83 @@
         }
       }
     },
+    "/repos/{owner}/group/{group_id}/{repo}/pulls/{index}/comments/{id}/replies": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reply to a pull request review comment",
+        "operationId": "repoCreatePullReviewCommentReplyMixin0",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment to reply to",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreatePullReviewCommentReplyOptions"
+            }
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "group ID of the repo",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/PullReviewComment"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/group/{group_id}/{repo}/pulls/{index}/commits": {
       "get": {
         "produces": [
@@ -16187,6 +16765,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -16456,7 +17037,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Create a review to an pull request",
+        "summary": "Create a review to a pull request",
         "operationId": "repoCreatePullReviewMixin0",
         "parameters": [
           {
@@ -16577,7 +17158,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Submit a pending review to an pull request",
+        "summary": "Submit a pending review to a pull request",
         "operationId": "repoSubmitPullReviewMixin0",
         "parameters": [
           {
@@ -17338,7 +17919,7 @@
           },
           {
             "type": "boolean",
-            "description": "filter (exclude / include) drafts, if you dont have repo write access none will show",
+            "description": "filter (exclude / include) drafts, if you don't have repo write access none will show",
             "name": "draft",
             "in": "query"
           },
