@@ -1278,7 +1278,7 @@ func Routes() *web.Router {
 						m.Delete("", reqRepoWriter(unit.TypeActions), repo.DeleteArtifact)
 					})
 					m.Get("/artifacts/{artifact_id}/zip", repo.DownloadArtifact)
-				}, reqRepoReader(unit.TypeActions), context.ReferencesGitRepo(true))
+				}, reqRepoReader(unit.TypeActions))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
