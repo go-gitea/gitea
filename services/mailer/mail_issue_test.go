@@ -1,3 +1,6 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package mailer
 
 import (
@@ -36,7 +39,7 @@ func TestMailNewIssueAndPullRequest(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	watcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	var didSend = false
+	didSend := false
 	origSend := SendAsync
 	SendAsync = func(msgs ...*sender_service.Message) {
 		for _, msg := range msgs {

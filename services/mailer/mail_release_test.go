@@ -90,7 +90,7 @@ func TestMailNewReleaseWithWatchOptions(t *testing.T) {
 		Releases:     false,
 	}))
 
-	var didSend = false
+	didSend := false
 	origSend := SendAsync
 	SendAsync = func(msgs ...*sender_service.Message) {
 		didSend = true
