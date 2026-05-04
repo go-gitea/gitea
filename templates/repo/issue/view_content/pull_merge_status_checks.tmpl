@@ -1,0 +1,35 @@
+{{/* Template Attributes:
+* CommitStatuses: all commit status elements
+* StatusCheckData: additional status check data, see backend pullCommitStatusCheckData struct
+*/}}
+{{$commitStatuses := $.CommitStatuses}}
+{{$statusCheckData := $.StatusCheckData}}
+{{if $statusCheckData}}
+	<div class="item flex-left-right commit-status-toggle">
+		<div>{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}</div>
+		<button data-global-click="onCommitStatusChecksToggle" class="btn interact-fg"
+						data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
+						data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}"
+		>{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
+	</div>
+
+	{{if $statusCheckData.RequireApprovalRunCount}}
+	<div class="item flex-left-right" id="approve-status-checks">
+		<div>
+			<strong>{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals" $statusCheckData.RequireApprovalRunCount}}</strong>
+			<p>{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals_helper"}}</p>
+		</div>
+		{{if $statusCheckData.CanApprove}}
+		<button class="ui basic button link-action" data-url="{{$statusCheckData.ApproveLink}}">
+			{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
+		</button>
+		{{end}}
+	</div>
+	{{end}}
+
+	<div class="item tw-p-0">
+		<div class="commit-status-list flex-divided-list items-px-default">
+			{{template "repo/pulls/status_items" (dict "CommitStatuses" $commitStatuses "StatusCheckData" $statusCheckData)}}
+		</div>
+	</div>
+{{end}}

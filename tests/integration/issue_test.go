@@ -123,7 +123,7 @@ func TestNoLoginViewIssue(t *testing.T) {
 }
 
 func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content string) string {
-	req := NewRequest(t, "GET", path.Join(user, repo, "issues", "new"))
+	req := NewRequest(t, "GET", "/"+path.Join(user, repo, "issues", "new"))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -667,7 +667,7 @@ func TestUpdateIssueDeadline(t *testing.T) {
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 
 	session := loginUser(t, owner.Name)
-	urlStr := fmt.Sprintf("%s/%s/issues/%d/deadline", owner.Name, repoBefore.Name, issueBefore.Index)
+	urlStr := fmt.Sprintf("/%s/%s/issues/%d/deadline", owner.Name, repoBefore.Name, issueBefore.Index)
 
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{"deadline": "2022-04-06"})
 	session.MakeRequest(t, req, http.StatusOK)
@@ -687,7 +687,7 @@ func TestIssueReferenceURL(t *testing.T) {
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 
-	req := NewRequest(t, "GET", fmt.Sprintf("%s/issues/%d", repo.FullName(), issue.Index))
+	req := NewRequest(t, "GET", fmt.Sprintf("%s/issues/%d", repo.Link(), issue.Index))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
