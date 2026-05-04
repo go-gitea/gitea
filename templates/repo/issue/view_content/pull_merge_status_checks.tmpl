@@ -1,10 +1,9 @@
 {{/* Template Attributes:
-* CommitStatuses: all commit status elements
-* StatusCheckData: additional status check data, see backend pullCommitStatusCheckData struct
+* StatusCheckData: see backend pullCommitStatusCheckData struct
 */}}
-{{$commitStatuses := $.CommitStatuses}}
 {{$statusCheckData := $.StatusCheckData}}
 {{if $statusCheckData}}
+	{{$commitStatuses := $statusCheckData.PullCommitStatuses}}
 	<div class="item flex-left-right commit-status-toggle">
 		<div>{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}</div>
 		<button data-global-click="onCommitStatusChecksToggle" class="btn interact-fg"
