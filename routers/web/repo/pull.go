@@ -58,7 +58,6 @@ import (
 )
 
 const (
-	tplCompareDiff templates.TplName = "repo/diff/compare"
 	tplPullCommits templates.TplName = "repo/pulls/commits"
 	tplPullFiles   templates.TplName = "repo/pulls/files"
 
