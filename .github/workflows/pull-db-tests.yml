@@ -32,12 +32,10 @@ jobs:
           - "389:389"
           - "636:636"
       minio:
-        # as github actions doesn't support "entrypoint", we need to use a non-official image
-        # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2023.12.23
+        image: rustfs/rustfs:1.0.0-beta.1
         env:
-          MINIO_ROOT_USER: 123456
-          MINIO_ROOT_PASSWORD: 12345678
+          RUSTFS_ACCESS_KEY: 123456
+          RUSTFS_SECRET_KEY: 12345678
         ports:
           - "9000:9000"
     steps:
@@ -124,10 +122,10 @@ jobs:
         ports:
           - 6379:6379
       minio:
-        image: bitnamilegacy/minio:2021.12.29
+        image: rustfs/rustfs:1.0.0-beta.1
         env:
-          MINIO_ACCESS_KEY: 123456
-          MINIO_SECRET_KEY: 12345678
+          RUSTFS_ACCESS_KEY: 123456
+          RUSTFS_SECRET_KEY: 12345678
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
