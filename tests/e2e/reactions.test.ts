@@ -12,7 +12,7 @@ test('toggle issue reactions', async ({page, request}) => {
   ]);
   await page.goto(`/${owner}/${repoName}/issues/1`);
 
-  const issueComment = page.locator('.timeline-item.comment.first');
+  const issueComment = page.locator('.timeline-item.comment.issue-content-comment');
 
   const reactionPicker = issueComment.locator('.select-reaction');
   await reactionPicker.click();
