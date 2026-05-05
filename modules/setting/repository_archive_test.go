@@ -19,8 +19,8 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", RepoArchive.Storage.Type)
+	assert.Equal(t, "repo-archive/", RepoArchive.Storage.S3Config.BasePath)
 
 	// we can also configure packages storage directly
 	iniStr = `
@@ -31,8 +31,8 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", RepoArchive.Storage.Type)
+	assert.Equal(t, "repo-archive/", RepoArchive.Storage.S3Config.BasePath)
 
 	// or we can indicate the storage type in the packages section
 	iniStr = `
@@ -46,8 +46,8 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", RepoArchive.Storage.Type)
+	assert.Equal(t, "repo-archive/", RepoArchive.Storage.S3Config.BasePath)
 
 	// or we can indicate the storage type  and minio base path in the packages section
 	iniStr = `
@@ -62,8 +62,8 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "my_archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", RepoArchive.Storage.Type)
+	assert.Equal(t, "my_archive/", RepoArchive.Storage.S3Config.BasePath)
 }
 
 func Test_RepoArchiveStorage(t *testing.T) {
@@ -84,8 +84,8 @@ S3_SECRET_ACCESS_KEY = correct_key
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 	storage := RepoArchive.Storage
 
-	assert.EqualValues(t, "minio", storage.Type)
-	assert.Equal(t, "gitea", storage.MinioConfig.Bucket)
+	assert.EqualValues(t, "s3", storage.Type)
+	assert.Equal(t, "gitea", storage.S3Config.Bucket)
 
 	iniStr = `
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -106,6 +106,6 @@ S3_SECRET_ACCESS_KEY = correct_key
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 	storage = RepoArchive.Storage
 
-	assert.EqualValues(t, "minio", storage.Type)
-	assert.Equal(t, "gitea", storage.MinioConfig.Bucket)
+	assert.EqualValues(t, "s3", storage.Type)
+	assert.Equal(t, "gitea", storage.S3Config.Bucket)
 }

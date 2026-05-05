@@ -26,16 +26,16 @@ S3_BUCKET = gitea-storage
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
-	assert.Equal(t, "gitea-attachment", Attachment.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "attachments/", Attachment.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "gitea-attachment", Attachment.Storage.S3Config.Bucket)
+	assert.Equal(t, "attachments/", Attachment.Storage.S3Config.BasePath)
 
 	assert.NoError(t, loadLFSFrom(cfg))
-	assert.Equal(t, "gitea-lfs", LFS.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "gitea-lfs", LFS.Storage.S3Config.Bucket)
+	assert.Equal(t, "lfs/", LFS.Storage.S3Config.BasePath)
 
 	assert.NoError(t, loadAvatarsFrom(cfg))
-	assert.Equal(t, "gitea-storage", Avatar.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "avatars/", Avatar.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "gitea-storage", Avatar.Storage.S3Config.Bucket)
+	assert.Equal(t, "avatars/", Avatar.Storage.S3Config.BasePath)
 }
 
 func Test_getStorageUseOtherNameAsType(t *testing.T) {
@@ -51,12 +51,12 @@ S3_BUCKET = gitea-storage
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
-	assert.Equal(t, "gitea-storage", Attachment.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "attachments/", Attachment.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "gitea-storage", Attachment.Storage.S3Config.Bucket)
+	assert.Equal(t, "attachments/", Attachment.Storage.S3Config.BasePath)
 
 	assert.NoError(t, loadLFSFrom(cfg))
-	assert.Equal(t, "gitea-storage", LFS.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "gitea-storage", LFS.Storage.S3Config.Bucket)
+	assert.Equal(t, "lfs/", LFS.Storage.S3Config.BasePath)
 }
 
 func Test_getStorageInheritStorageType(t *testing.T) {
@@ -68,33 +68,33 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadPackagesFrom(cfg))
-	assert.EqualValues(t, "minio", Packages.Storage.Type)
-	assert.Equal(t, "gitea", Packages.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "packages/", Packages.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", Packages.Storage.Type)
+	assert.Equal(t, "gitea", Packages.Storage.S3Config.Bucket)
+	assert.Equal(t, "packages/", Packages.Storage.S3Config.BasePath)
 
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "gitea", RepoArchive.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", RepoArchive.Storage.Type)
+	assert.Equal(t, "gitea", RepoArchive.Storage.S3Config.Bucket)
+	assert.Equal(t, "repo-archive/", RepoArchive.Storage.S3Config.BasePath)
 
 	assert.NoError(t, loadActionsFrom(cfg))
-	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
-	assert.Equal(t, "gitea", Actions.LogStorage.MinioConfig.Bucket)
-	assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", Actions.LogStorage.Type)
+	assert.Equal(t, "gitea", Actions.LogStorage.S3Config.Bucket)
+	assert.Equal(t, "actions_log/", Actions.LogStorage.S3Config.BasePath)
 
-	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "gitea", Actions.ArtifactStorage.MinioConfig.Bucket)
-	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", Actions.ArtifactStorage.Type)
+	assert.Equal(t, "gitea", Actions.ArtifactStorage.S3Config.Bucket)
+	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.S3Config.BasePath)
 
 	assert.NoError(t, loadAvatarsFrom(cfg))
-	assert.EqualValues(t, "minio", Avatar.Storage.Type)
-	assert.Equal(t, "gitea", Avatar.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "avatars/", Avatar.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", Avatar.Storage.Type)
+	assert.Equal(t, "gitea", Avatar.Storage.S3Config.Bucket)
+	assert.Equal(t, "avatars/", Avatar.Storage.S3Config.BasePath)
 
 	assert.NoError(t, loadRepoAvatarFrom(cfg))
-	assert.EqualValues(t, "minio", RepoAvatar.Storage.Type)
-	assert.Equal(t, "gitea", RepoAvatar.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "repo-avatars/", RepoAvatar.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", RepoAvatar.Storage.Type)
+	assert.Equal(t, "gitea", RepoAvatar.Storage.S3Config.Bucket)
+	assert.Equal(t, "repo-avatars/", RepoAvatar.Storage.S3Config.BasePath)
 }
 
 func Test_getStorageInheritStorageTypeAzureBlob(t *testing.T) {
@@ -389,8 +389,8 @@ S3_SECRET_ACCESS_KEY = my_secret_key
 
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 	cp := RepoArchive.Storage.ToShadowCopy()
-	assert.Equal(t, "******", cp.MinioConfig.AccessKeyID)
-	assert.Equal(t, "******", cp.MinioConfig.SecretAccessKey)
+	assert.Equal(t, "******", cp.S3Config.AccessKeyID)
+	assert.Equal(t, "******", cp.S3Config.SecretAccessKey)
 }
 
 func Test_getStorageConfiguration24(t *testing.T) {
@@ -445,10 +445,10 @@ S3_USE_SSL = true
 `)
 	assert.NoError(t, err)
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.Equal(t, "my_access_key", RepoArchive.Storage.MinioConfig.AccessKeyID)
-	assert.Equal(t, "my_secret_key", RepoArchive.Storage.MinioConfig.SecretAccessKey)
-	assert.True(t, RepoArchive.Storage.MinioConfig.UseSSL)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "my_access_key", RepoArchive.Storage.S3Config.AccessKeyID)
+	assert.Equal(t, "my_secret_key", RepoArchive.Storage.S3Config.SecretAccessKey)
+	assert.True(t, RepoArchive.Storage.S3Config.UseSSL)
+	assert.Equal(t, "repo-archive/", RepoArchive.Storage.S3Config.BasePath)
 }
 
 func Test_getStorageConfiguration28(t *testing.T) {
@@ -462,10 +462,10 @@ S3_BASE_PATH = /prefix
 `)
 	assert.NoError(t, err)
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.Equal(t, "my_access_key", RepoArchive.Storage.MinioConfig.AccessKeyID)
-	assert.Equal(t, "my_secret_key", RepoArchive.Storage.MinioConfig.SecretAccessKey)
-	assert.True(t, RepoArchive.Storage.MinioConfig.UseSSL)
-	assert.Equal(t, "/prefix/repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "my_access_key", RepoArchive.Storage.S3Config.AccessKeyID)
+	assert.Equal(t, "my_secret_key", RepoArchive.Storage.S3Config.SecretAccessKey)
+	assert.True(t, RepoArchive.Storage.S3Config.UseSSL)
+	assert.Equal(t, "/prefix/repo-archive/", RepoArchive.Storage.S3Config.BasePath)
 
 	cfg, err = NewConfigProviderFromData(`
 [storage]
@@ -476,9 +476,9 @@ S3_BASE_PATH = /prefix
 `)
 	assert.NoError(t, err)
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.Equal(t, "127.0.0.1", RepoArchive.Storage.MinioConfig.IamEndpoint)
-	assert.True(t, RepoArchive.Storage.MinioConfig.UseSSL)
-	assert.Equal(t, "/prefix/repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "127.0.0.1", RepoArchive.Storage.S3Config.IamEndpoint)
+	assert.True(t, RepoArchive.Storage.S3Config.UseSSL)
+	assert.Equal(t, "/prefix/repo-archive/", RepoArchive.Storage.S3Config.BasePath)
 
 	cfg, err = NewConfigProviderFromData(`
 [storage]
@@ -493,10 +493,10 @@ S3_BASE_PATH = /lfs
 `)
 	assert.NoError(t, err)
 	assert.NoError(t, loadLFSFrom(cfg))
-	assert.Equal(t, "my_access_key", LFS.Storage.MinioConfig.AccessKeyID)
-	assert.Equal(t, "my_secret_key", LFS.Storage.MinioConfig.SecretAccessKey)
-	assert.True(t, LFS.Storage.MinioConfig.UseSSL)
-	assert.Equal(t, "/lfs", LFS.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "my_access_key", LFS.Storage.S3Config.AccessKeyID)
+	assert.Equal(t, "my_secret_key", LFS.Storage.S3Config.SecretAccessKey)
+	assert.True(t, LFS.Storage.S3Config.UseSSL)
+	assert.Equal(t, "/lfs", LFS.Storage.S3Config.BasePath)
 
 	cfg, err = NewConfigProviderFromData(`
 [storage]
@@ -511,10 +511,10 @@ S3_BASE_PATH = /lfs
 `)
 	assert.NoError(t, err)
 	assert.NoError(t, loadLFSFrom(cfg))
-	assert.Equal(t, "my_access_key", LFS.Storage.MinioConfig.AccessKeyID)
-	assert.Equal(t, "my_secret_key", LFS.Storage.MinioConfig.SecretAccessKey)
-	assert.True(t, LFS.Storage.MinioConfig.UseSSL)
-	assert.Equal(t, "/lfs", LFS.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "my_access_key", LFS.Storage.S3Config.AccessKeyID)
+	assert.Equal(t, "my_secret_key", LFS.Storage.S3Config.SecretAccessKey)
+	assert.True(t, LFS.Storage.S3Config.UseSSL)
+	assert.Equal(t, "/lfs", LFS.Storage.S3Config.BasePath)
 }
 
 func Test_getStorageConfiguration29(t *testing.T) {
@@ -605,12 +605,12 @@ MINIO_USE_SSL = true
 `)
 		assert.NoError(t, err)
 		assert.NoError(t, loadLFSFrom(cfg))
-		assert.Equal(t, "minio.example.com:9000", LFS.Storage.MinioConfig.Endpoint)
-		assert.Equal(t, "old_access", LFS.Storage.MinioConfig.AccessKeyID)
-		assert.Equal(t, "old_secret", LFS.Storage.MinioConfig.SecretAccessKey)
-		assert.Equal(t, "old-bucket", LFS.Storage.MinioConfig.Bucket)
-		assert.True(t, LFS.Storage.MinioConfig.UseSSL)
-		assert.Equal(t, "/old-prefix/lfs/", LFS.Storage.MinioConfig.BasePath)
+		assert.Equal(t, "minio.example.com:9000", LFS.Storage.S3Config.Endpoint)
+		assert.Equal(t, "old_access", LFS.Storage.S3Config.AccessKeyID)
+		assert.Equal(t, "old_secret", LFS.Storage.S3Config.SecretAccessKey)
+		assert.Equal(t, "old-bucket", LFS.Storage.S3Config.Bucket)
+		assert.True(t, LFS.Storage.S3Config.UseSSL)
+		assert.Equal(t, "/old-prefix/lfs/", LFS.Storage.S3Config.BasePath)
 	})
 
 	t.Run("S3_ takes precedence when both are set", func(t *testing.T) {
@@ -622,6 +622,6 @@ S3_BUCKET = new-bucket
 `)
 		assert.NoError(t, err)
 		assert.NoError(t, loadLFSFrom(cfg))
-		assert.Equal(t, "new-bucket", LFS.Storage.MinioConfig.Bucket)
+		assert.Equal(t, "new-bucket", LFS.Storage.S3Config.Bucket)
 	})
 }

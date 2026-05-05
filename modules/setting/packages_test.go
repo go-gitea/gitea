@@ -40,8 +40,8 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 	assert.NoError(t, loadPackagesFrom(cfg))
 
-	assert.EqualValues(t, "minio", Packages.Storage.Type)
-	assert.Equal(t, "packages/", Packages.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", Packages.Storage.Type)
+	assert.Equal(t, "packages/", Packages.Storage.S3Config.BasePath)
 
 	// we can also configure packages storage directly
 	iniStr = `
@@ -52,8 +52,8 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 	assert.NoError(t, loadPackagesFrom(cfg))
 
-	assert.EqualValues(t, "minio", Packages.Storage.Type)
-	assert.Equal(t, "packages/", Packages.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", Packages.Storage.Type)
+	assert.Equal(t, "packages/", Packages.Storage.S3Config.BasePath)
 
 	// or we can indicate the storage type in the packages section
 	iniStr = `
@@ -67,8 +67,8 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 	assert.NoError(t, loadPackagesFrom(cfg))
 
-	assert.EqualValues(t, "minio", Packages.Storage.Type)
-	assert.Equal(t, "packages/", Packages.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", Packages.Storage.Type)
+	assert.Equal(t, "packages/", Packages.Storage.S3Config.BasePath)
 
 	// or we can indicate the storage type  and minio base path in the packages section
 	iniStr = `
@@ -83,8 +83,8 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 	assert.NoError(t, loadPackagesFrom(cfg))
 
-	assert.EqualValues(t, "minio", Packages.Storage.Type)
-	assert.Equal(t, "my_packages/", Packages.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", Packages.Storage.Type)
+	assert.Equal(t, "my_packages/", Packages.Storage.S3Config.BasePath)
 }
 
 func Test_PackageStorage1(t *testing.T) {
@@ -108,10 +108,10 @@ S3_SECRET_ACCESS_KEY = correct_key
 	assert.NoError(t, loadPackagesFrom(cfg))
 	storage := Packages.Storage
 
-	assert.EqualValues(t, "minio", storage.Type)
-	assert.Equal(t, "gitea", storage.MinioConfig.Bucket)
-	assert.Equal(t, "packages/", storage.MinioConfig.BasePath)
-	assert.True(t, storage.MinioConfig.ServeDirect)
+	assert.EqualValues(t, "s3", storage.Type)
+	assert.Equal(t, "gitea", storage.S3Config.Bucket)
+	assert.Equal(t, "packages/", storage.S3Config.BasePath)
+	assert.True(t, storage.S3Config.ServeDirect)
 }
 
 func Test_PackageStorage2(t *testing.T) {
@@ -135,10 +135,10 @@ S3_SECRET_ACCESS_KEY = correct_key
 	assert.NoError(t, loadPackagesFrom(cfg))
 	storage := Packages.Storage
 
-	assert.EqualValues(t, "minio", storage.Type)
-	assert.Equal(t, "gitea", storage.MinioConfig.Bucket)
-	assert.Equal(t, "packages/", storage.MinioConfig.BasePath)
-	assert.True(t, storage.MinioConfig.ServeDirect)
+	assert.EqualValues(t, "s3", storage.Type)
+	assert.Equal(t, "gitea", storage.S3Config.Bucket)
+	assert.Equal(t, "packages/", storage.S3Config.BasePath)
+	assert.True(t, storage.S3Config.ServeDirect)
 }
 
 func Test_PackageStorage3(t *testing.T) {
@@ -163,10 +163,10 @@ S3_SECRET_ACCESS_KEY = correct_key
 	assert.NoError(t, loadPackagesFrom(cfg))
 	storage := Packages.Storage
 
-	assert.EqualValues(t, "minio", storage.Type)
-	assert.Equal(t, "gitea", storage.MinioConfig.Bucket)
-	assert.Equal(t, "my_packages/", storage.MinioConfig.BasePath)
-	assert.True(t, storage.MinioConfig.ServeDirect)
+	assert.EqualValues(t, "s3", storage.Type)
+	assert.Equal(t, "gitea", storage.S3Config.Bucket)
+	assert.Equal(t, "my_packages/", storage.S3Config.BasePath)
+	assert.True(t, storage.S3Config.ServeDirect)
 }
 
 func Test_PackageStorage4(t *testing.T) {
@@ -191,8 +191,8 @@ S3_SECRET_ACCESS_KEY = correct_key
 	assert.NoError(t, loadPackagesFrom(cfg))
 	storage := Packages.Storage
 
-	assert.EqualValues(t, "minio", storage.Type)
-	assert.Equal(t, "gitea", storage.MinioConfig.Bucket)
-	assert.Equal(t, "my_packages/", storage.MinioConfig.BasePath)
-	assert.True(t, storage.MinioConfig.ServeDirect)
+	assert.EqualValues(t, "s3", storage.Type)
+	assert.Equal(t, "gitea", storage.S3Config.Bucket)
+	assert.Equal(t, "my_packages/", storage.S3Config.BasePath)
+	assert.True(t, storage.S3Config.ServeDirect)
 }

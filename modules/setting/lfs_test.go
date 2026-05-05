@@ -18,8 +18,8 @@ func Test_getStorageInheritNameSectionTypeForLFS(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, loadLFSFrom(cfg))
 
-	assert.EqualValues(t, "minio", LFS.Storage.Type)
-	assert.Equal(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", LFS.Storage.Type)
+	assert.Equal(t, "lfs/", LFS.Storage.S3Config.BasePath)
 
 	iniStr = `
 [server]
@@ -53,8 +53,8 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 	assert.NoError(t, loadLFSFrom(cfg))
 
-	assert.EqualValues(t, "minio", LFS.Storage.Type)
-	assert.Equal(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", LFS.Storage.Type)
+	assert.Equal(t, "lfs/", LFS.Storage.S3Config.BasePath)
 
 	iniStr = `
 [lfs]
@@ -67,8 +67,8 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 	assert.NoError(t, loadLFSFrom(cfg))
 
-	assert.EqualValues(t, "minio", LFS.Storage.Type)
-	assert.Equal(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", LFS.Storage.Type)
+	assert.Equal(t, "lfs/", LFS.Storage.S3Config.BasePath)
 
 	iniStr = `
 [lfs]
@@ -82,8 +82,8 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 	assert.NoError(t, loadLFSFrom(cfg))
 
-	assert.EqualValues(t, "minio", LFS.Storage.Type)
-	assert.Equal(t, "my_lfs/", LFS.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", LFS.Storage.Type)
+	assert.Equal(t, "my_lfs/", LFS.Storage.S3Config.BasePath)
 }
 
 func Test_LFSStorage1(t *testing.T) {
@@ -95,9 +95,9 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 
 	assert.NoError(t, loadLFSFrom(cfg))
-	assert.EqualValues(t, "minio", LFS.Storage.Type)
-	assert.Equal(t, "gitea", LFS.Storage.MinioConfig.Bucket)
-	assert.Equal(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", LFS.Storage.Type)
+	assert.Equal(t, "gitea", LFS.Storage.S3Config.Bucket)
+	assert.Equal(t, "lfs/", LFS.Storage.S3Config.BasePath)
 }
 
 func Test_LFSClientServerConfigs(t *testing.T) {

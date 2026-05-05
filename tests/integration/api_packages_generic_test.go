@@ -143,12 +143,12 @@ func TestPackageGeneric(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			switch setting.Packages.Storage.Type {
-			case setting.MinioStorageType:
-				defer test.MockVariableValue(&setting.Packages.Storage.MinioConfig.ServeDirect, true)()
+			case setting.S3StorageType:
+				defer test.MockVariableValue(&setting.Packages.Storage.S3Config.ServeDirect, true)()
 			case setting.AzureBlobStorageType:
 				defer test.MockVariableValue(&setting.Packages.Storage.AzureBlobConfig.ServeDirect, true)()
 			default:
-				t.Skip("Test skipped for non-Minio-storage and non-AzureBlob-storage.")
+				t.Skip("Test skipped for non-S3-storage and non-AzureBlob-storage.")
 			}
 
 			req = NewRequest(t, "HEAD", url+"/"+filename)

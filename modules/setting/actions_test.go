@@ -20,10 +20,10 @@ func Test_getStorageInheritNameSectionTypeForActions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, loadActionsFrom(cfg))
 
-	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
-	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", Actions.LogStorage.Type)
+	assert.Equal(t, "actions_log/", Actions.LogStorage.S3Config.BasePath)
+	assert.EqualValues(t, "s3", Actions.ArtifactStorage.Type)
+	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.S3Config.BasePath)
 
 	iniStr = `
 [storage.actions_log]
@@ -33,8 +33,8 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 	assert.NoError(t, loadActionsFrom(cfg))
 
-	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", Actions.LogStorage.Type)
+	assert.Equal(t, "actions_log/", Actions.LogStorage.S3Config.BasePath)
 	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
 	assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
 
@@ -49,8 +49,8 @@ STORAGE_TYPE = minio
 	assert.NoError(t, err)
 	assert.NoError(t, loadActionsFrom(cfg))
 
-	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", Actions.LogStorage.Type)
+	assert.Equal(t, "actions_log/", Actions.LogStorage.S3Config.BasePath)
 	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
 	assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
 
@@ -67,8 +67,8 @@ STORAGE_TYPE = minio
 
 	assert.EqualValues(t, "local", Actions.LogStorage.Type)
 	assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
-	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", Actions.ArtifactStorage.Type)
+	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.S3Config.BasePath)
 
 	iniStr = `
 [storage.actions_artifacts]
@@ -83,8 +83,8 @@ STORAGE_TYPE = minio
 
 	assert.EqualValues(t, "local", Actions.LogStorage.Type)
 	assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
-	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
+	assert.EqualValues(t, "s3", Actions.ArtifactStorage.Type)
+	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.S3Config.BasePath)
 
 	iniStr = ``
 	cfg, err = NewConfigProviderFromData(iniStr)
