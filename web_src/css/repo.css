@@ -423,28 +423,14 @@ td .commit-summary {
   margin-right: 5px;
 }
 
-.repository.view.issue .comment-list:not(.prevent-before-timeline)::before {
-  display: block;
-  content: "";
-  position: absolute;
-  margin-top: 12px;
-  margin-bottom: 14px;
-  top: 0;
-  bottom: 0;
-  left: 96px;
-  width: 2px;
-  background-color: var(--color-timeline);
-  z-index: -1;
-}
-
-.repository.view.issue .comment-list .timeline {
+.repository.view.issue .comment-list {
   position: relative;
   display: block;
   margin-left: 40px;
   padding-left: 16px;
 }
 
-.repository.view.issue .comment-list .timeline::before { /* ciara */
+.repository.view.issue .comment-list::before {
   display: block;
   content: "";
   position: absolute;
@@ -1318,6 +1304,7 @@ td .commit-summary {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .comment-header-right {
@@ -1844,26 +1831,23 @@ tbody.commit-list {
 }
 
 @media (max-width: 767.98px) {
-  .repository.view.issue .comment-list .timeline,
+  .repository.view.issue .comment-list,
   .repository.view.issue .comment-list .timeline-item {
     margin-left: 0;
   }
-  .repository.view.issue .comment-list .timeline::before {
+  .repository.view.issue .comment-list::before {
     left: 14px;
   }
-  .repository.view.issue .comment-list .timeline .inline-timeline-avatar {
+  .repository.view.issue .comment-list .inline-timeline-avatar {
     display: flex;
     margin-bottom: auto;
     margin-left: 6px;
     margin-right: 2px;
   }
-  .repository.view.issue .comment-list .timeline .comment-header {
-    padding-left: 4px;
-  }
   /* Don't show the general avatar, we show the inline avatar on mobile.
    * And don't show the role labels, there's no place for that. */
-  .repository.view.issue .comment-list .timeline .timeline-avatar,
-  .repository.view.issue .comment-list .timeline .comment-header-right .role-label {
+  .repository.view.issue .comment-list .timeline-avatar,
+  .repository.view.issue .comment-list .comment-header-right .role-label {
     display: none;
   }
   .commit-header h3 {

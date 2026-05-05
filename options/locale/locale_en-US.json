@@ -1306,7 +1306,7 @@
   "repo.editor.upload_file_is_locked": "File \"%s\" is locked by %s.",
   "repo.editor.upload_files_to_dir": "Upload files to \"%s\"",
   "repo.editor.cannot_commit_to_protected_branch": "Cannot commit to protected branch \"%s\".",
-  "repo.editor.no_commit_to_branch": "Unable to commit directly to branch because:",
+  "repo.editor.no_commit_to_branch": "Not allowed to commit directly to branch because:",
   "repo.editor.user_no_push_to_branch": "User cannot push to branch",
   "repo.editor.require_signed_commit": "Branch requires a signed commit",
   "repo.editor.cherry_pick": "Cherry-pick %s onto:",
