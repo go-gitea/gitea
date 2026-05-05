@@ -52,40 +52,37 @@ type MinioStorageConfig struct {
 	BucketLookUpType   string `ini:"S3_BUCKET_LOOKUP_TYPE" json:",omitempty"`
 }
 
-// minioToS3KeyRenames maps the deprecated MINIO_* ini keys to their new S3_*
-// equivalents. The old keys are still accepted on read with a deprecation
-// warning and are scheduled for removal in a future release.
-var minioToS3KeyRenames = map[string]string{
-	"MINIO_ENDPOINT":             "S3_ENDPOINT",
-	"MINIO_ACCESS_KEY_ID":        "S3_ACCESS_KEY_ID",
-	"MINIO_SECRET_ACCESS_KEY":    "S3_SECRET_ACCESS_KEY",
-	"MINIO_IAM_ENDPOINT":         "S3_IAM_ENDPOINT",
-	"MINIO_BUCKET":               "S3_BUCKET",
-	"MINIO_LOCATION":             "S3_LOCATION",
-	"MINIO_BASE_PATH":            "S3_BASE_PATH",
-	"MINIO_USE_SSL":              "S3_USE_SSL",
-	"MINIO_INSECURE_SKIP_VERIFY": "S3_INSECURE_SKIP_VERIFY",
-	"MINIO_CHECKSUM_ALGORITHM":   "S3_CHECKSUM_ALGORITHM",
-	"MINIO_BUCKET_LOOKUP_TYPE":   "S3_BUCKET_LOOKUP_TYPE",
+// minioToS3KeyRenames lists deprecated MINIO_* ini keys and their S3_*
+// replacements, ordered for stable startup-log output.
+var minioToS3KeyRenames = []struct{ oldKey, newKey string }{
+	{"MINIO_ACCESS_KEY_ID", "S3_ACCESS_KEY_ID"},
+	{"MINIO_BASE_PATH", "S3_BASE_PATH"},
+	{"MINIO_BUCKET", "S3_BUCKET"},
+	{"MINIO_BUCKET_LOOKUP_TYPE", "S3_BUCKET_LOOKUP_TYPE"},
+	{"MINIO_CHECKSUM_ALGORITHM", "S3_CHECKSUM_ALGORITHM"},
+	{"MINIO_ENDPOINT", "S3_ENDPOINT"},
+	{"MINIO_IAM_ENDPOINT", "S3_IAM_ENDPOINT"},
+	{"MINIO_INSECURE_SKIP_VERIFY", "S3_INSECURE_SKIP_VERIFY"},
+	{"MINIO_LOCATION", "S3_LOCATION"},
+	{"MINIO_SECRET_ACCESS_KEY", "S3_SECRET_ACCESS_KEY"},
+	{"MINIO_USE_SSL", "S3_USE_SSL"},
 }
 
-// migrateDeprecatedMinioKeys copies any legacy MINIO_* keys present in sec
-// to their S3_* equivalents (without overwriting an explicit S3_* value),
-// deletes the old key, and emits a deprecation warning. Safe to call
-// repeatedly on the same section.
+const minioToS3RemovalVersion = "v1.27.0"
+
 func migrateDeprecatedMinioKeys(sec ConfigSection) {
 	if sec == nil {
 		return
 	}
-	for oldKey, newKey := range minioToS3KeyRenames {
-		if !sec.HasKey(oldKey) {
+	for _, r := range minioToS3KeyRenames {
+		if !sec.HasKey(r.oldKey) {
 			continue
 		}
-		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead because this fallback will be removed in a future release", sec.Name(), oldKey, sec.Name(), newKey)
-		if !sec.HasKey(newKey) {
-			sec.Key(newKey).SetValue(sec.Key(oldKey).String())
+		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead because this fallback will be removed in %s", sec.Name(), r.oldKey, sec.Name(), r.newKey, minioToS3RemovalVersion)
+		if !sec.HasKey(r.newKey) {
+			sec.Key(r.newKey).SetValue(sec.Key(r.oldKey).String())
 		}
-		sec.DeleteKey(oldKey)
+		sec.DeleteKey(r.oldKey)
 	}
 }
 

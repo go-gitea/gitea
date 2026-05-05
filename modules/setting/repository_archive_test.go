@@ -71,11 +71,11 @@ func Test_RepoArchiveStorage(t *testing.T) {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [storage]
 STORAGE_TYPE            = minio
-S3_ENDPOINT          = s3.my-domain.net
-S3_BUCKET            = gitea
-S3_LOCATION          = homenet
-S3_USE_SSL           = true
-S3_ACCESS_KEY_ID     = correct_key
+S3_ENDPOINT = s3.my-domain.net
+S3_BUCKET = gitea
+S3_LOCATION = homenet
+S3_USE_SSL = true
+S3_ACCESS_KEY_ID = correct_key
 S3_SECRET_ACCESS_KEY = correct_key
 `
 	cfg, err := NewConfigProviderFromData(iniStr)
@@ -93,11 +93,11 @@ S3_SECRET_ACCESS_KEY = correct_key
 STORAGE_TYPE = s3
 [storage.s3]
 STORAGE_TYPE            = minio
-S3_ENDPOINT          = s3.my-domain.net
-S3_BUCKET            = gitea
-S3_LOCATION          = homenet
-S3_USE_SSL           = true
-S3_ACCESS_KEY_ID     = correct_key
+S3_ENDPOINT = s3.my-domain.net
+S3_BUCKET = gitea
+S3_LOCATION = homenet
+S3_USE_SSL = true
+S3_ACCESS_KEY_ID = correct_key
 S3_SECRET_ACCESS_KEY = correct_key
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
