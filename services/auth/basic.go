@@ -24,10 +24,11 @@ var (
 
 // BasicMethodName is the constant name of the basic authentication method
 const (
-	BasicMethodName       = "basic"
-	AccessTokenMethodName = "access_token"
-	OAuth2TokenMethodName = "oauth2_token"
-	ActionTokenMethodName = "action_token"
+	BasicMethodName            = "basic"
+	AccessTokenMethodName      = "access_token"
+	OAuth2TokenMethodName      = "oauth2_token"
+	ActionTokenMethodName      = "action_token"
+	HTTPSDeployTokenMethodName = "https_deploy_token"
 )
 
 // Basic implements the Auth interface and authenticates requests (API requests

@@ -157,6 +157,48 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			return nil
 		}
 
+		// HTTPS deploy tokens authenticate as the repo owner but must be
+		// constrained to the single bound repository and mode. We do this
+		// before the other basic-auth checks so a deploy token bypasses
+		// PAT-scope verification, 2FA, and unit-permission lookup — those
+		// all assume the doer's own permissions should drive the outcome,
+		// which is not what a deploy token is supposed to do.
+		if ctx.Data["IsDeployToken"] == true {
+			boundRepoID, _ := ctx.Data["DeployTokenRepoID"].(int64)
+			if !repoExist || boundRepoID != repo.ID {
+				ctx.PlainText(http.StatusNotFound, "Repository not found")
+				return nil
+			}
+			tokenMode, _ := ctx.Data["DeployTokenMode"].(perm.AccessMode)
+			if accessMode > tokenMode {
+				ctx.PlainText(http.StatusForbidden, "Deploy token does not grant write access")
+				return nil
+			}
+			if !isPull && repo.IsMirror {
+				ctx.PlainText(http.StatusForbidden, "mirror repository is read-only")
+				return nil
+			}
+			// Enforce the per-unit enablement check. Without this a deploy
+			// token could push to or clone a wiki whose TypeWiki unit has
+			// been disabled, bypassing the same check applied to the
+			// user-password and PAT paths further down.
+			if isWiki {
+				if _, err := repo.GetUnit(ctx, unit.TypeWiki); err != nil {
+					if repo_model.IsErrUnitTypeNotExist(err) {
+						ctx.PlainText(http.StatusForbidden, "repository wiki is disabled")
+						return nil
+					}
+					ctx.ServerError("GetUnit(UnitTypeWiki) for "+repo.FullName(), err)
+					return nil
+				}
+			}
+			var environ []string
+			if !isPull {
+				environ = repo_module.DoerPushingEnvironment(ctx.Doer, repo, isWiki)
+			}
+			return &serviceHandler{serviceType, repo, isWiki, environ}
+		}
+
 		context.CheckRepoScopedToken(ctx, repo, auth_model.GetScopeLevelFromAccessMode(accessMode))
 		if ctx.Written() {
 			return nil
