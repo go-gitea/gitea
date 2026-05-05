@@ -1,5 +1,5 @@
 import {GET, request} from '../modules/fetch.ts';
-import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
+import {hideToastsAll, showErrorToast, showWarningToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {confirmModal, createConfirmModal} from './comp/ConfirmModal.ts';
@@ -90,10 +90,16 @@ async function handleFetchActionSuccess(el: HTMLElement, opt: FetchActionOpts, r
   }
 }
 
-async function handleFetchActionError(resp: Response) {
+async function handleFetchActionError(el: HTMLElement, resp: Response) {
   const isRespJson = resp.headers.get('content-type')?.includes('application/json');
   const respText = await resp.text();
   const respJson = isRespJson ? JSON.parse(respText) : null;
+  const requiredParam = el.getAttribute('data-require-param');
+  const requiredMessage = el.getAttribute('data-require-message');
+  if (resp.status === 400 && requiredParam && requiredMessage && respText.trim() === `${requiredParam} is required`) {
+    showWarningToast(requiredMessage);
+    return;
+  }
   if (respJson?.errorMessage) {
     // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
     // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
@@ -119,16 +125,31 @@ function buildFetchActionUrl(el: HTMLElement, opt: FetchActionOpts) {
   return url;
 }
 
+function ensureRequiredQueryParam(el: HTMLElement, url: string): boolean {
+  const requiredParam = el.getAttribute('data-require-param');
+  if (!requiredParam) return true;
+
+  const parsedUrl = new URL(url, window.location.href);
+  const value = parsedUrl.searchParams.get(requiredParam);
+  if (value?.trim()) return true;
+
+  const message = el.getAttribute('data-require-message') || `Missing required parameter: ${requiredParam}`;
+  showWarningToast(message);
+  return false;
+}
+
 async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
   const attrIsLoading = 'data-fetch-is-loading';
   if (el.getAttribute(attrIsLoading)) return;
+
+  const url = buildFetchActionUrl(el, opt);
+  if (!ensureRequiredQueryParam(el, url)) return;
   if (!await confirmFetchAction(el)) return;
 
   el.setAttribute(attrIsLoading, 'true');
   toggleLoadingIndicator(el, opt, true);
 
   try {
-    const url = buildFetchActionUrl(el, opt);
     const headers = new Headers(opt.headers);
     headers.set('X-Gitea-Fetch-Action', '1');
     const resp = await request(url, {method: opt.method, body: opt.body, headers});
@@ -136,7 +157,7 @@ async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
       await handleFetchActionSuccess(el, opt, resp);
       return;
     }
-    await handleFetchActionError(resp);
+    await handleFetchActionError(el, resp);
   } catch (err) {
     if ((err as Error).name !== 'AbortError') {
       console.error(`Fetch action request error:`, err);
