@@ -6,6 +6,7 @@ package elasticsearch
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -17,19 +18,36 @@ import (
 
 func TestElasticsearchIndexer(t *testing.T) {
 	// The elasticsearch instance started by pull-db-tests.yml > test-unit > services > elasticsearch
-	url := "http://elastic:changeme@elasticsearch:9200"
+	rawURL := "http://elastic:changeme@elasticsearch:9200"
 
 	if os.Getenv("CI") == "" {
 		// Make it possible to run tests against a local elasticsearch instance
-		url = os.Getenv("TEST_ELASTICSEARCH_URL")
-		if url == "" {
+		rawURL = os.Getenv("TEST_ELASTICSEARCH_URL")
+		if rawURL == "" {
 			t.Skip("TEST_ELASTICSEARCH_URL not set and not running in CI")
 			return
 		}
 	}
 
+	// Go's net/http does not auto-attach URL userinfo as Basic Auth, so extract
+	// it and set the header explicitly; otherwise auth-enforced clusters answer
+	// 401 and the probe never reports ready.
+	parsed, err := url.Parse(rawURL)
+	require.NoError(t, err)
+	user := parsed.User
+	parsed.User = nil
+	probeURL := parsed.String()
+
 	require.Eventually(t, func() bool {
-		resp, err := http.Get(url)
+		req, err := http.NewRequest(http.MethodGet, probeURL, nil)
+		if err != nil {
+			return false
+		}
+		if user != nil {
+			pass, _ := user.Password()
+			req.SetBasicAuth(user.Username(), pass)
+		}
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return false
 		}
@@ -37,7 +55,7 @@ func TestElasticsearchIndexer(t *testing.T) {
 		return resp.StatusCode == http.StatusOK
 	}, time.Minute, time.Second, "Expected elasticsearch to be up")
 
-	indexer := NewIndexer(url, fmt.Sprintf("test_elasticsearch_indexer_%d", time.Now().Unix()))
+	indexer := NewIndexer(rawURL, fmt.Sprintf("test_elasticsearch_indexer_%d", time.Now().Unix()))
 	defer indexer.Close()
 
 	tests.TestIndexer(t, indexer)

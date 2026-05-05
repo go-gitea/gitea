@@ -8,6 +8,7 @@ import (
 	"os"
 	"slices"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
@@ -39,6 +40,16 @@ func TestMain(m *testing.M) {
 func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 	t.Run(name, func(t *testing.T) {
 		assert.NoError(t, setupRepositoryIndexes(t.Context(), indexer))
+		// Wait for the index to catch up: ES/OpenSearch make writes visible
+		// only after a refresh (default interval: 1s). Bleve is synchronous
+		// and passes on the first iteration.
+		require.Eventually(t, func() bool {
+			total, _, _, err := indexer.Search(t.Context(), &internal.SearchOptions{
+				Keyword:   "Description",
+				Paginator: &db.ListOptions{Page: 1, PageSize: 1},
+			})
+			return err == nil && total > 0
+		}, 10*time.Second, 100*time.Millisecond, "index did not become searchable")
 
 		keywords := []struct {
 			RepoIDs    []int64

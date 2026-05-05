@@ -615,6 +615,7 @@ var (
 		"sitemap.xml",   // search engine sitemap
 		"ssh_info",      // agit info
 		"swagger.v1.json",
+		"openapi3.v1.json",
 
 		"ghost",         // reserved name for deleted users (id: -1)
 		"gitea-actions", // gitea builtin user (id: -2)

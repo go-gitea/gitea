@@ -94,7 +94,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
 function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, commentId: string) {
   const elHeaderLeft = elCommentItem.querySelector('.comment-header-left')!;
   const menuHtml = `
-  <div class="ui dropdown interact-fg content-history-menu" data-comment-id="${commentId}">
+  <div class="ui dropdown interact-fg content-history-menu tw-flex-shrink-0" data-comment-id="${commentId}">
     &bull; ${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon')}
     <div class="menu">
     </div>
@@ -127,7 +127,7 @@ export async function initRepoIssueContentHistory() {
   const issuePageInfo = parseIssuePageInfo();
   if (!issuePageInfo.issueNumber) return;
 
-  const elIssueDescription = document.querySelector('.repository.issue .timeline-item.comment.first'); // issue(PR) main content
+  const elIssueDescription = document.querySelector('.repository.issue .timeline-item.comment.issue-content-comment'); // issue(PR) main content
   const elComments = document.querySelectorAll('.repository.issue .comment-list .comment'); // includes: issue(PR) comments, review comments, code comments
   if (!elIssueDescription && !elComments.length) return;
 

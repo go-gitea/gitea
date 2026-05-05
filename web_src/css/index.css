@@ -37,7 +37,6 @@
 
 @import "./shared/flex-list.css";
 @import "./shared/milestone.css";
-@import "./shared/repoorg.css";
 @import "./shared/settings.css";
 
 @import "./features/dropzone.css";
@@ -68,7 +67,6 @@
 @import "./repo/list-header.css";
 @import "./repo/file-view.css";
 @import "./repo/wiki.css";
-@import "./repo/header.css";
 @import "./repo/home.css";
 @import "./repo/home-file-list.css";
 @import "./repo/reactions.css";
