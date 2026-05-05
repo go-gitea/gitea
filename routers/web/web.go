@@ -94,12 +94,14 @@ func optionsCorsHandler() func(next http.Handler) http.Handler {
 type AuthMiddleware struct {
 	AllowOAuth2       types.PreMiddlewareProvider
 	AllowBasic        types.PreMiddlewareProvider
+	AllowDeployToken  types.PreMiddlewareProvider
 	MiddlewareHandler func(*context.Context)
 }
 
 func newWebAuthMiddleware() *AuthMiddleware {
 	type keyAllowOAuth2 struct{}
 	type keyAllowBasic struct{}
+	type keyAllowDeployToken struct{}
 	webAuth := &AuthMiddleware{}
 
 	middlewareSetContextValue := func(key, val any) types.PreMiddlewareProvider {
@@ -114,11 +116,17 @@ func newWebAuthMiddleware() *AuthMiddleware {
 
 	webAuth.AllowBasic = middlewareSetContextValue(keyAllowBasic{}, true)
 	webAuth.AllowOAuth2 = middlewareSetContextValue(keyAllowOAuth2{}, true)
+	// AllowDeployToken narrows HTTPS deploy-token authentication to the
+	// request contexts that need it (git smart-HTTP). Without this gate, a
+	// deploy token would authenticate as the repo owner on every Basic-auth
+	// endpoint — REST API, attachments, feeds — and act as a full-owner PAT.
+	webAuth.AllowDeployToken = middlewareSetContextValue(keyAllowDeployToken{}, true)
 
 	enableSSPI := setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
 	webAuth.MiddlewareHandler = func(ctx *context.Context) {
 		allowBasic := ctx.GetContextValue(keyAllowBasic{}) == true
 		allowOAuth2 := ctx.GetContextValue(keyAllowOAuth2{}) == true
+		allowDeployToken := ctx.GetContextValue(keyAllowDeployToken{}) == true
 
 		group := auth_service.NewGroup()
 
@@ -126,6 +134,12 @@ func newWebAuthMiddleware() *AuthMiddleware {
 		// If the auth succeeds, it must use the user id from the auth method to make sure the new login succeeds.
 		if allowOAuth2 {
 			group.Add(&auth_service.OAuth2{})
+		}
+		if allowDeployToken {
+			// Must come before Basic so a valid deploy token short-circuits
+			// the fall-through into username/password sign-in (which would
+			// reject the 40-hex token and leave the caller with a 401).
+			group.Add(&auth_service.HTTPSDeployToken{})
 		}
 		if allowBasic {
 			group.Add(&auth_service.Basic{})
@@ -1209,6 +1223,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("").Get(repo_setting.DeployKeys).
 				Post(web.Bind(forms.AddKeyForm{}), repo_setting.DeployKeysPost)
 			m.Post("/delete", repo_setting.DeleteDeployKey)
+			m.Post("/https", web.Bind(forms.HTTPSDeployKeyForm{}), repo_setting.HTTPSDeployKeysPost)
+			m.Post("/https/delete", repo_setting.DeleteHTTPSDeployKey)
 		})
 
 		m.Group("/lfs", func() {
@@ -1740,7 +1756,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// Some users want to use "web-based git client" to access Gitea's repositories,
 	// so the CORS handler and OPTIONS method are used.
 	// pattern: "/{username}/{reponame}/{git-paths}": git http support
-	addOwnerRepoGitHTTPRouters(m, repo.HTTPGitEnabledHandler, webAuth.AllowBasic, webAuth.AllowOAuth2, repo.CorsHandler(), optSignInFromAnyOrigin, context.UserAssignmentWeb())
+	addOwnerRepoGitHTTPRouters(m, repo.HTTPGitEnabledHandler, webAuth.AllowBasic, webAuth.AllowOAuth2, webAuth.AllowDeployToken, repo.CorsHandler(), optSignInFromAnyOrigin, context.UserAssignmentWeb())
 
 	m.Group("/notifications", func() {
 		m.Get("", user.Notifications)
