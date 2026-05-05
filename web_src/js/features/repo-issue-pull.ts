@@ -5,9 +5,9 @@ import {createElementFromHTML} from '../utils/dom.ts';
 import {registerGlobalEventFunc} from '../modules/observer.ts';
 
 export function initRepoPullRequestUpdate(el: HTMLElement) {
-  const elButton = el.querySelector<HTMLButtonElement>(':scope > button')!;
   const elDropdown = el.querySelector(':scope > .ui.dropdown');
   if (!elDropdown) return;
+  const elButton = el.querySelector<HTMLButtonElement>(':scope > button')!;
 
   fomanticQuery(elDropdown).dropdown({
     onChange(_text: string, _value: string, $choice: any) {
