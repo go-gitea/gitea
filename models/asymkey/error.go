@@ -276,6 +276,48 @@ func (err ErrDeployKeyNameAlreadyUsed) Unwrap() error {
 	return util.ErrNotExist
 }
 
+// ErrHTTPSDeployKeyNotExist is returned when a lookup of an HTTPS deploy key
+// fails. Either of ID or RepoID may be zero depending on the call site.
+type ErrHTTPSDeployKeyNotExist struct {
+	ID     int64
+	RepoID int64
+}
+
+// IsErrHTTPSDeployKeyNotExist checks if an error is an ErrHTTPSDeployKeyNotExist.
+func IsErrHTTPSDeployKeyNotExist(err error) bool {
+	_, ok := err.(ErrHTTPSDeployKeyNotExist)
+	return ok
+}
+
+func (err ErrHTTPSDeployKeyNotExist) Error() string {
+	return fmt.Sprintf("HTTPS deploy key does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
+}
+
+func (err ErrHTTPSDeployKeyNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
+// ErrHTTPSDeployKeyNameAlreadyUsed is returned when creating an HTTPS deploy
+// key would collide with an existing name under the same repository.
+type ErrHTTPSDeployKeyNameAlreadyUsed struct {
+	RepoID int64
+	Name   string
+}
+
+// IsErrHTTPSDeployKeyNameAlreadyUsed checks if an error is an ErrHTTPSDeployKeyNameAlreadyUsed.
+func IsErrHTTPSDeployKeyNameAlreadyUsed(err error) bool {
+	_, ok := err.(ErrHTTPSDeployKeyNameAlreadyUsed)
+	return ok
+}
+
+func (err ErrHTTPSDeployKeyNameAlreadyUsed) Error() string {
+	return fmt.Sprintf("HTTPS deploy key with name already exists [repo_id: %d, name: %s]", err.RepoID, err.Name)
+}
+
+func (err ErrHTTPSDeployKeyNameAlreadyUsed) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrSSHInvalidTokenSignature represents a "ErrSSHInvalidTokenSignature" kind of error.
 type ErrSSHInvalidTokenSignature struct {
 	Wrapped     error

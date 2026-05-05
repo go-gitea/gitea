@@ -5,9 +5,11 @@ package setting
 
 import (
 	"net/http"
+	"strconv"
 	"testing"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
@@ -430,4 +432,44 @@ func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
 	password, ok := remoteURL.User.Password()
 	require.True(t, ok)
 	assert.Equal(t, "updated-password", password)
+}
+
+func TestHTTPSDeployKeyCreateAndDelete(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys/https")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+
+	web.SetForm(ctx, &forms.HTTPSDeployKeyForm{
+		Title:      "ci-writable",
+		IsWritable: true,
+	})
+	HTTPSDeployKeysPost(ctx)
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+
+	keys, err := db.Find[asymkey_model.HTTPSDeployKey](ctx,
+		asymkey_model.ListHTTPSDeployKeysOptions{RepoID: 1})
+	require.NoError(t, err)
+	require.Len(t, keys, 1)
+	assert.Equal(t, "ci-writable", keys[0].Name)
+	assert.False(t, keys[0].IsReadOnly())
+
+	// The plaintext token must be stashed on the flash for one-time display.
+	flash := ctx.Flash
+	require.NotNil(t, flash)
+	assert.Contains(t, flash.SuccessMsg, "ci-writable")
+
+	// Now delete it.
+	delCtx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys/https/delete")
+	contexttest.LoadUser(t, delCtx, 2)
+	contexttest.LoadRepo(t, delCtx, 1)
+	delCtx.Req.Form.Set("id", strconv.FormatInt(keys[0].ID, 10))
+	DeleteHTTPSDeployKey(delCtx)
+	assert.NotEqual(t, http.StatusInternalServerError, delCtx.Resp.WrittenStatus())
+
+	keys, err = db.Find[asymkey_model.HTTPSDeployKey](ctx,
+		asymkey_model.ListHTTPSDeployKeysOptions{RepoID: 1})
+	require.NoError(t, err)
+	assert.Empty(t, keys)
 }
