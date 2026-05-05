@@ -29,6 +29,14 @@ func DeployKeys(ctx *context.Context) {
 	}
 	ctx.Data["Deploykeys"] = keys
 
+	httpsKeys, err := db.Find[asymkey_model.HTTPSDeployKey](ctx,
+		asymkey_model.ListHTTPSDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
+	if err != nil {
+		ctx.ServerError("ListHTTPSDeployKeys", err)
+		return
+	}
+	ctx.Data["HTTPSDeploykeys"] = httpsKeys
+
 	ctx.HTML(http.StatusOK, tplDeployKeys)
 }
 
@@ -101,6 +109,49 @@ func DeployKeysPost(ctx *context.Context) {
 func DeleteDeployKey(ctx *context.Context) {
 	if err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteDeployKey: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))
+	}
+
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
+}
+
+// HTTPSDeployKeysPost handles creation of an HTTPS deploy key for the current
+// repository. The plaintext token is surfaced to the user exactly once via
+// the flash system.
+func HTTPSDeployKeysPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.HTTPSDeployKeyForm)
+	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
+	ctx.Data["PageIsSettingsKeys"] = true
+
+	if ctx.HasError() {
+		DeployKeys(ctx)
+		return
+	}
+
+	key, token, err := asymkey_model.AddHTTPSDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, !form.IsWritable)
+	if err != nil {
+		switch {
+		case asymkey_model.IsErrHTTPSDeployKeyNameAlreadyUsed(err):
+			ctx.Flash.Error(ctx.Tr("repo.settings.key_name_used"))
+		default:
+			ctx.ServerError("AddHTTPSDeployKey", err)
+			return
+		}
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
+		return
+	}
+
+	log.Trace("HTTPS deploy key added: %d", key.ID)
+	ctx.Flash.Success(ctx.Tr("repo.settings.https_deploy_key_created", key.Name, token))
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
+}
+
+// DeleteHTTPSDeployKey deletes a single HTTPS deploy key scoped to the
+// current repository.
+func DeleteHTTPSDeployKey(ctx *context.Context) {
+	if err := asymkey_model.DeleteHTTPSDeployKey(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
+		ctx.Flash.Error("DeleteHTTPSDeployKey: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))
 	}
