@@ -74,7 +74,7 @@ STORAGE_TYPE = minio
 	iniStr = `
 [packages]
 STORAGE_TYPE = my_minio
-MINIO_BASE_PATH = my_packages/
+S3_BASE_PATH = my_packages/
 
 [storage.my_minio]
 STORAGE_TYPE = minio
@@ -91,16 +91,16 @@ func Test_PackageStorage1(t *testing.T) {
 	iniStr := `
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [packages]
-MINIO_BASE_PATH = packages/
+S3_BASE_PATH = packages/
 SERVE_DIRECT = true
 [storage]
 STORAGE_TYPE            = minio
-MINIO_ENDPOINT          = s3.my-domain.net
-MINIO_BUCKET            = gitea
-MINIO_LOCATION          = homenet
-MINIO_USE_SSL           = true
-MINIO_ACCESS_KEY_ID     = correct_key
-MINIO_SECRET_ACCESS_KEY = correct_key
+S3_ENDPOINT          = s3.my-domain.net
+S3_BUCKET            = gitea
+S3_LOCATION          = homenet
+S3_USE_SSL           = true
+S3_ACCESS_KEY_ID     = correct_key
+S3_SECRET_ACCESS_KEY = correct_key
 `
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -118,16 +118,16 @@ func Test_PackageStorage2(t *testing.T) {
 	iniStr := `
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [storage.packages]
-MINIO_BASE_PATH = packages/
+S3_BASE_PATH = packages/
 SERVE_DIRECT = true
 [storage]
 STORAGE_TYPE            = minio
-MINIO_ENDPOINT          = s3.my-domain.net
-MINIO_BUCKET            = gitea
-MINIO_LOCATION          = homenet
-MINIO_USE_SSL           = true
-MINIO_ACCESS_KEY_ID     = correct_key
-MINIO_SECRET_ACCESS_KEY = correct_key
+S3_ENDPOINT          = s3.my-domain.net
+S3_BUCKET            = gitea
+S3_LOCATION          = homenet
+S3_USE_SSL           = true
+S3_ACCESS_KEY_ID     = correct_key
+S3_SECRET_ACCESS_KEY = correct_key
 `
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -146,16 +146,16 @@ func Test_PackageStorage3(t *testing.T) {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [packages]
 STORAGE_TYPE            = my_cfg
-MINIO_BASE_PATH = my_packages/
+S3_BASE_PATH = my_packages/
 SERVE_DIRECT = true
 [storage.my_cfg]
 STORAGE_TYPE            = minio
-MINIO_ENDPOINT          = s3.my-domain.net
-MINIO_BUCKET            = gitea
-MINIO_LOCATION          = homenet
-MINIO_USE_SSL           = true
-MINIO_ACCESS_KEY_ID     = correct_key
-MINIO_SECRET_ACCESS_KEY = correct_key
+S3_ENDPOINT          = s3.my-domain.net
+S3_BUCKET            = gitea
+S3_LOCATION          = homenet
+S3_USE_SSL           = true
+S3_ACCESS_KEY_ID     = correct_key
+S3_SECRET_ACCESS_KEY = correct_key
 `
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -174,16 +174,16 @@ func Test_PackageStorage4(t *testing.T) {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [storage.packages]
 STORAGE_TYPE            = my_cfg
-MINIO_BASE_PATH = my_packages/
+S3_BASE_PATH = my_packages/
 SERVE_DIRECT = true
 [storage.my_cfg]
 STORAGE_TYPE            = minio
-MINIO_ENDPOINT          = s3.my-domain.net
-MINIO_BUCKET            = gitea
-MINIO_LOCATION          = homenet
-MINIO_USE_SSL           = true
-MINIO_ACCESS_KEY_ID     = correct_key
-MINIO_SECRET_ACCESS_KEY = correct_key
+S3_ENDPOINT          = s3.my-domain.net
+S3_BUCKET            = gitea
+S3_LOCATION          = homenet
+S3_USE_SSL           = true
+S3_ACCESS_KEY_ID     = correct_key
+S3_SECRET_ACCESS_KEY = correct_key
 `
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)

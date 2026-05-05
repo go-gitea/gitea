@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // StorageType is a type of Storage
@@ -36,18 +38,55 @@ func IsValidStorageType(storageType StorageType) bool {
 
 // MinioStorageConfig represents the configuration for a minio storage
 type MinioStorageConfig struct {
-	Endpoint           string `ini:"MINIO_ENDPOINT" json:",omitempty"`
-	AccessKeyID        string `ini:"MINIO_ACCESS_KEY_ID" json:",omitempty"`
-	SecretAccessKey    string `ini:"MINIO_SECRET_ACCESS_KEY" json:",omitempty"`
-	IamEndpoint        string `ini:"MINIO_IAM_ENDPOINT" json:",omitempty"`
-	Bucket             string `ini:"MINIO_BUCKET" json:",omitempty"`
-	Location           string `ini:"MINIO_LOCATION" json:",omitempty"`
-	BasePath           string `ini:"MINIO_BASE_PATH" json:",omitempty"`
-	UseSSL             bool   `ini:"MINIO_USE_SSL"`
-	InsecureSkipVerify bool   `ini:"MINIO_INSECURE_SKIP_VERIFY"`
-	ChecksumAlgorithm  string `ini:"MINIO_CHECKSUM_ALGORITHM" json:",omitempty"`
+	Endpoint           string `ini:"S3_ENDPOINT" json:",omitempty"`
+	AccessKeyID        string `ini:"S3_ACCESS_KEY_ID" json:",omitempty"`
+	SecretAccessKey    string `ini:"S3_SECRET_ACCESS_KEY" json:",omitempty"`
+	IamEndpoint        string `ini:"S3_IAM_ENDPOINT" json:",omitempty"`
+	Bucket             string `ini:"S3_BUCKET" json:",omitempty"`
+	Location           string `ini:"S3_LOCATION" json:",omitempty"`
+	BasePath           string `ini:"S3_BASE_PATH" json:",omitempty"`
+	UseSSL             bool   `ini:"S3_USE_SSL"`
+	InsecureSkipVerify bool   `ini:"S3_INSECURE_SKIP_VERIFY"`
+	ChecksumAlgorithm  string `ini:"S3_CHECKSUM_ALGORITHM" json:",omitempty"`
 	ServeDirect        bool   `ini:"SERVE_DIRECT"`
-	BucketLookUpType   string `ini:"MINIO_BUCKET_LOOKUP_TYPE" json:",omitempty"`
+	BucketLookUpType   string `ini:"S3_BUCKET_LOOKUP_TYPE" json:",omitempty"`
+}
+
+// minioToS3KeyRenames maps the deprecated MINIO_* ini keys to their new S3_*
+// equivalents. The old keys are still accepted on read with a deprecation
+// warning and are scheduled for removal in a future release.
+var minioToS3KeyRenames = map[string]string{
+	"MINIO_ENDPOINT":             "S3_ENDPOINT",
+	"MINIO_ACCESS_KEY_ID":        "S3_ACCESS_KEY_ID",
+	"MINIO_SECRET_ACCESS_KEY":    "S3_SECRET_ACCESS_KEY",
+	"MINIO_IAM_ENDPOINT":         "S3_IAM_ENDPOINT",
+	"MINIO_BUCKET":               "S3_BUCKET",
+	"MINIO_LOCATION":             "S3_LOCATION",
+	"MINIO_BASE_PATH":            "S3_BASE_PATH",
+	"MINIO_USE_SSL":              "S3_USE_SSL",
+	"MINIO_INSECURE_SKIP_VERIFY": "S3_INSECURE_SKIP_VERIFY",
+	"MINIO_CHECKSUM_ALGORITHM":   "S3_CHECKSUM_ALGORITHM",
+	"MINIO_BUCKET_LOOKUP_TYPE":   "S3_BUCKET_LOOKUP_TYPE",
+}
+
+// migrateDeprecatedMinioKeys copies any legacy MINIO_* keys present in sec
+// to their S3_* equivalents (without overwriting an explicit S3_* value),
+// deletes the old key, and emits a deprecation warning. Safe to call
+// repeatedly on the same section.
+func migrateDeprecatedMinioKeys(sec ConfigSection) {
+	if sec == nil {
+		return
+	}
+	for oldKey, newKey := range minioToS3KeyRenames {
+		if !sec.HasKey(oldKey) {
+			continue
+		}
+		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` present, please use `[%s].%s` instead because this fallback will be removed in a future release", sec.Name(), oldKey, sec.Name(), newKey)
+		if !sec.HasKey(newKey) {
+			sec.Key(newKey).SetValue(sec.Key(oldKey).String())
+		}
+		sec.DeleteKey(oldKey)
+	}
 }
 
 func (cfg *MinioStorageConfig) ToShadow() {
@@ -103,17 +142,18 @@ const storageSectionName = "storage"
 
 func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
 	storageSec := rootCfg.Section(storageSectionName)
+	migrateDeprecatedMinioKeys(storageSec)
 	// Global Defaults
 	storageSec.Key("STORAGE_TYPE").MustString("local")
-	storageSec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
-	storageSec.Key("MINIO_ACCESS_KEY_ID").MustString("")
-	storageSec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")
-	storageSec.Key("MINIO_BUCKET").MustString("gitea")
-	storageSec.Key("MINIO_LOCATION").MustString("us-east-1")
-	storageSec.Key("MINIO_USE_SSL").MustBool(false)
-	storageSec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)
-	storageSec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default")
-	storageSec.Key("MINIO_BUCKET_LOOKUP_TYPE").MustString("auto")
+	storageSec.Key("S3_ENDPOINT").MustString("localhost:9000")
+	storageSec.Key("S3_ACCESS_KEY_ID").MustString("")
+	storageSec.Key("S3_SECRET_ACCESS_KEY").MustString("")
+	storageSec.Key("S3_BUCKET").MustString("gitea")
+	storageSec.Key("S3_LOCATION").MustString("us-east-1")
+	storageSec.Key("S3_USE_SSL").MustBool(false)
+	storageSec.Key("S3_INSECURE_SKIP_VERIFY").MustBool(false)
+	storageSec.Key("S3_CHECKSUM_ALGORITHM").MustString("default")
+	storageSec.Key("S3_BUCKET_LOOKUP_TYPE").MustString("auto")
 	storageSec.Key("AZURE_BLOB_ENDPOINT").MustString("")
 	storageSec.Key("AZURE_BLOB_ACCOUNT_NAME").MustString("")
 	storageSec.Key("AZURE_BLOB_ACCOUNT_KEY").MustString("")
@@ -226,7 +266,7 @@ func getStorageTargetSection(rootCfg ConfigProvider, name, typ string, sec Confi
 	return getDefaultStorageSection(rootCfg), targetSecIsDefault, nil
 }
 
-// getStorageOverrideSection override section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH, MINIO_BUCKET to override the targetsec when possible
+// getStorageOverrideSection override section will be read SERVE_DIRECT, PATH, S3_BASE_PATH, S3_BUCKET to override the targetsec when possible
 func getStorageOverrideSection(rootConfig ConfigProvider, sec ConfigSection, targetSecType targetSecType, name string) ConfigSection {
 	if targetSecType == targetSecIsSec {
 		return nil
@@ -283,9 +323,11 @@ func getStorageForLocal(targetSec, overrideSec ConfigSection, tp targetSecType, 
 	return &storage, nil
 }
 
-func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) { //nolint:dupl // duplicates azure setup
+func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) {
 	var storage Storage
 	storage.Type = StorageType(targetSec.Key("STORAGE_TYPE").String())
+	migrateDeprecatedMinioKeys(targetSec)
+	migrateDeprecatedMinioKeys(overrideSec)
 	if err := targetSec.MapTo(&storage.MinioConfig); err != nil {
 		return nil, fmt.Errorf("map minio config failed: %v", err)
 	}
@@ -304,15 +346,15 @@ func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, 
 
 	if overrideSec != nil {
 		storage.MinioConfig.ServeDirect = ConfigSectionKeyBool(overrideSec, "SERVE_DIRECT", storage.MinioConfig.ServeDirect)
-		storage.MinioConfig.BasePath = ConfigSectionKeyString(overrideSec, "MINIO_BASE_PATH", defaultPath)
-		storage.MinioConfig.Bucket = ConfigSectionKeyString(overrideSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
+		storage.MinioConfig.BasePath = ConfigSectionKeyString(overrideSec, "S3_BASE_PATH", defaultPath)
+		storage.MinioConfig.Bucket = ConfigSectionKeyString(overrideSec, "S3_BUCKET", storage.MinioConfig.Bucket)
 	} else {
 		storage.MinioConfig.BasePath = defaultPath
 	}
 	return &storage, nil
 }
 
-func getStorageForAzureBlob(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) { //nolint:dupl // duplicates minio setup
+func getStorageForAzureBlob(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) {
 	var storage Storage
 	storage.Type = StorageType(targetSec.Key("STORAGE_TYPE").String())
 	if err := targetSec.MapTo(&storage.AzureBlobConfig); err != nil {

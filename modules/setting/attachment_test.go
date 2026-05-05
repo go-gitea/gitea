@@ -13,11 +13,11 @@ func Test_getStorageCustomType(t *testing.T) {
 	iniStr := `
 [attachment]
 STORAGE_TYPE = my_minio
-MINIO_BUCKET = gitea-attachment
+S3_BUCKET = gitea-attachment
 
 [storage.my_minio]
 STORAGE_TYPE = minio
-MINIO_ENDPOINT = my_minio:9000
+S3_ENDPOINT = my_minio:9000
 `
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -36,10 +36,10 @@ func Test_getStorageTypeSectionOverridesStorageSection(t *testing.T) {
 STORAGE_TYPE = minio
 
 [storage.minio]
-MINIO_BUCKET = gitea-minio
+S3_BUCKET = gitea-minio
 
 [storage]
-MINIO_BUCKET = gitea
+S3_BUCKET = gitea
 `
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -55,10 +55,10 @@ func Test_getStorageSpecificOverridesStorage(t *testing.T) {
 	iniStr := `
 [attachment]
 STORAGE_TYPE = minio
-MINIO_BUCKET = gitea-attachment
+S3_BUCKET = gitea-attachment
 
 [storage.attachments]
-MINIO_BUCKET = gitea
+S3_BUCKET = gitea
 
 [storage]
 STORAGE_TYPE = local
@@ -101,12 +101,12 @@ func Test_AttachmentStorage(t *testing.T) {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [storage]
 STORAGE_TYPE            = minio
-MINIO_ENDPOINT          = s3.my-domain.net
-MINIO_BUCKET            = gitea
-MINIO_LOCATION          = homenet
-MINIO_USE_SSL           = true
-MINIO_ACCESS_KEY_ID     = correct_key
-MINIO_SECRET_ACCESS_KEY = correct_key
+S3_ENDPOINT          = s3.my-domain.net
+S3_BUCKET            = gitea
+S3_LOCATION          = homenet
+S3_USE_SSL           = true
+S3_ACCESS_KEY_ID     = correct_key
+S3_SECRET_ACCESS_KEY = correct_key
 `
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)

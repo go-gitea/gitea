@@ -73,7 +73,7 @@ STORAGE_TYPE = minio
 	iniStr = `
 [lfs]
 STORAGE_TYPE = my_minio
-MINIO_BASE_PATH = my_lfs/
+S3_BASE_PATH = my_lfs/
 
 [storage.my_minio]
 STORAGE_TYPE = minio
