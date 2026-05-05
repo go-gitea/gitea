@@ -12,12 +12,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
 )
-
-// group 12 is private
-// team 23 are owners
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m)
@@ -73,22 +71,22 @@ func TestMoveGroup(t *testing.T) {
 	})
 	testfn := func(gid int64) {
 		cond := &group_model.FindGroupsOptions{
-			ParentGroupID: 123,
+			ParentGroupID: 9,
 			OwnerID:       orgWithGroups.ID,
 		}
 		origCount := unittest.GetCount(t, new(group_model.Group), cond.ToConds())
 
 		assert.NoError(t, MoveGroupItem(t.Context(), MoveGroupOptions{
-			NewParent: 123,
+			NewParent: 9,
 			ItemID:    gid,
 			IsGroup:   true,
 			NewPos:    -1,
 		}, doer))
 		unittest.AssertCountByCond(t, "repo_group", cond.ToConds(), origCount+1)
 	}
-	testfn(124)
-	testfn(132)
-	testfn(150)
+	testfn(23)
+	testfn(22)
+	testfn(4)
 }
 
 func TestMoveRepo(t *testing.T) {
@@ -96,14 +94,20 @@ func TestMoveRepo(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		ID: 2,
 	})
+	orgWithGroups := getOrCreateOrgWithGroups(t)
+	repoToMove, err := repo_service.CreateRepository(t.Context(), doer, orgWithGroups, repo_service.CreateRepoOptions{
+		GroupID: 2,
+		Name:    "Repo-to-move",
+	})
+	assert.NoError(t, err)
 	cond := repo_model.SearchRepositoryCondition(repo_model.SearchRepoOptions{
-		GroupID: 123,
+		GroupID: 1,
 	})
 	origCount := unittest.GetCount(t, new(repo_model.Repository), cond)
 
 	assert.NoError(t, MoveGroupItem(t.Context(), MoveGroupOptions{
-		NewParent: 123,
-		ItemID:    32,
+		NewParent: 1,
+		ItemID:    repoToMove.ID,
 		IsGroup:   false,
 		NewPos:    -1,
 	}, doer))
