@@ -217,9 +217,11 @@
 						</h4>
 					</div>
 				{{end}}
-				<div id="diff-no-matches" class="empty-placeholder tw-hidden">
-					<h2>{{ctx.Locale.Tr "repo.diff.no_files_matched"}}</h2>
-				</div>
+				{{if .PageIsPullFiles}}
+					<div id="diff-no-matches" class="empty-placeholder tw-hidden">
+						<h2>{{ctx.Locale.Tr "repo.diff.no_files_matched"}}</h2>
+					</div>
+				{{end}}
 			</div>
 		{{end}}
 	</div>

@@ -200,10 +200,6 @@ function updateState(visible: boolean) {
   padding: 0;
 }
 
-.diff-file-search-clear :deep(svg) {
-  display: block;
-}
-
 .diff-file-search-clear:hover {
   color: var(--color-text);
 }
