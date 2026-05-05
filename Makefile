@@ -323,12 +323,7 @@ lint-md-fix: node_modules ## lint markdown files and fix issues
 
 .PHONY: lint-pr-title
 lint-pr-title: ## lint PR title against Conventional Commits (set PR_TITLE=...)
-	@test -n "$(PR_TITLE)" || (echo "Missing PR_TITLE" && exit 1)
-	@printf '%s\n' "$(PR_TITLE)" | grep -Eq '^(build|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([[:alnum:]_.-]+\))?(!)?: .+$$' || \
-		(echo "Invalid PR title: $(PR_TITLE)"; \
-		echo "Expected format: type(scope): subject"; \
-		echo "Allowed types: build, ci, docs, feat, fix, perf, refactor, revert, style, test"; \
-		exit 1)
+	@node ./tools/lint-pr-title.js
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
