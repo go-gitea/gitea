@@ -56,6 +56,14 @@ func StderrHasPrefix(err error, prefix string) bool {
 	return strings.HasPrefix(stderr, prefix)
 }
 
+func StderrContains(err error, sub string) bool {
+	stderr, ok := ErrorAsStderr(err)
+	if !ok {
+		return false
+	}
+	return strings.Contains(stderr, sub)
+}
+
 func IsErrorExitCode(err error, code int) bool {
 	var exitError *exec.ExitError
 	if errors.As(err, &exitError) {

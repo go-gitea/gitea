@@ -116,11 +116,12 @@ func dial(source *Source) (*ldap.Conn, error) {
 		InsecureSkipVerify: source.SkipVerify,
 	}
 
+	hostPort := net.JoinHostPort(source.Host, strconv.Itoa(source.Port))
 	if source.SecurityProtocol == SecurityProtocolLDAPS {
-		return ldap.DialTLS("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)), tlsConfig) //nolint:staticcheck // DialTLS is deprecated
+		return ldap.DialURL("ldaps://"+hostPort, ldap.DialWithTLSConfig(tlsConfig))
 	}
 
-	conn, err := ldap.Dial("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port))) //nolint:staticcheck // Dial is deprecated
+	conn, err := ldap.DialURL("ldap://" + hostPort)
 	if err != nil {
 		return nil, fmt.Errorf("error during Dial: %w", err)
 	}

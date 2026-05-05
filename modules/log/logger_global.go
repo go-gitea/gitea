@@ -75,12 +75,23 @@ func IsLoggerEnabled(name string) bool {
 	return GetManager().GetLogger(name).IsEnabled()
 }
 
-func SetConsoleLogger(loggerName, writerName string, level Level) {
+func SetupStderrLogger(loggerName, writerName string, level Level) {
 	writer := NewEventWriterConsole(writerName, WriterMode{
-		Level:        level,
-		Flags:        FlagsFromBits(LstdFlags),
-		Colorize:     CanColorStdout,
-		WriterOption: WriterConsoleOption{},
+		Level:    level,
+		Flags:    FlagsFromBits(LstdFlags),
+		Colorize: CanColorStderr,
+
+		// For most CLI commands, it's better to use Stderr as log output:
+		// this logger is installed early (app.Before), before subcommands like "dump" redirect logging to stderr.
+		// If Stdout, early log output (e.g.: warning during config loading) goes to stdout
+		// and corrupts any command that writes data to stdout (e.g. "gitea dump --file -").
+		//
+		// It is inconsistent with the web server's default console logger from config
+		// (which will be initialized later and use Stdout by default), but there is no other way at the moment:
+		// many existing users depend on such behavior to collect web logs (e.g. fail2ban).
+		//
+		// Maybe need to refactor the logger system again in the future.
+		WriterOption: WriterConsoleOption{Stderr: true},
 	})
 	GetManager().GetLogger(loggerName).ReplaceAllWriters(writer)
 }

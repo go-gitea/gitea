@@ -5,6 +5,7 @@ import {toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
+import type {ActionsRunAttempt} from '../modules/gitea-actions.ts';
 import {createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 
@@ -13,15 +14,27 @@ defineOptions({
 });
 
 const props = defineProps<{
-  runId: number;
   jobId: number;
-  actionsUrl: string;
+  actionsViewUrl: string;
   locale: Record<string, any>;
 }>();
 
 const locale = props.locale;
-const store = createActionRunViewStore(props.actionsUrl, props.runId);
+const store = createActionRunViewStore(props.actionsViewUrl);
 const {currentRun: run, runArtifacts: artifacts} = toRefs(store.viewData);
+
+function formatAttemptTitle(attempt: ActionsRunAttempt) {
+  return attempt.latest ? `${locale.latestAttempt} #${attempt.attempt}` : `${locale.attempt} #${attempt.attempt}`;
+}
+
+function formatCurrentAttemptTitle(attempt: ActionsRunAttempt) {
+  return attempt.latest ? `${locale.latest} #${attempt.attempt}` : formatAttemptTitle(attempt);
+}
+
+function buildArtifactLink(name: string) {
+  const searchString = run.value.runAttempt > 0 ? `?attempt=${run.value.runAttempt}` : '';
+  return `${run.value.link}/artifacts/${encodeURIComponent(name)}${searchString}`;
+}
 
 function cancelRun() {
   POST(`${run.value.link}/cancel`);
@@ -33,7 +46,7 @@ function approveRun() {
 
 async function deleteArtifact(name: string) {
   if (!window.confirm(locale.confirmDeleteArtifact.replace('%s', name))) return;
-  await DELETE(`${run.value.link}/artifacts/${encodeURIComponent(name)}`);
+  await DELETE(buildArtifactLink(name));
   await store.forceReloadCurrentRun();
 }
 </script>
@@ -51,10 +64,10 @@ async function deleteArtifact(name: string) {
           <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
             {{ locale.approve }}
           </button>
-          <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
+          <button class="ui small compact button tw-text-red" @click="cancelRun()" v-else-if="run.canCancel">
             {{ locale.cancel }}
           </button>
-          <template v-else-if="run.canRerun">
+          <template v-if="run.canRerun">
             <div v-if="run.canRerunFailed" class="ui small compact buttons">
               <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun-failed`">
                 {{ locale.rerun_failed }}
@@ -72,10 +85,45 @@ async function deleteArtifact(name: string) {
               {{ locale.rerun_all }}
             </button>
           </template>
+          <div v-if="run.attempts.length > 1" class="ui dropdown basic small compact button">
+            <div class="flex-text-inline">
+              <SvgIcon name="octicon-history" :size="14"/>
+              <span>{{ formatCurrentAttemptTitle(run.attempts.find((attempt) => attempt.current)!) }}</span>
+            </div>
+            <SvgIcon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
+            <div class="menu">
+              <a
+                v-for="attempt in run.attempts"
+                :key="attempt.attempt"
+                class="item tw-flex tw-flex-col tw-gap-2"
+                :class="attempt.current ? 'selected' : ''"
+                :href="attempt.link"
+              >
+                <div class="flex-text-block">
+                  <SvgIcon name="octicon-check" :size="14" :class="{'tw-invisible': !Boolean(attempt.current)}"/>
+                  <strong class="tw-text-sm gt-ellipsis">{{ formatAttemptTitle(attempt) }}</strong>
+                </div>
+                <div class="flex-text-block tw-pl-[20px]">
+                  <span class="flex-text-inline tw-flex-shrink-0">
+                    <ActionRunStatus :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" class="flex-text-block"/>
+                    <span>{{ locale.status[attempt.status] }}</span>
+                  </span>
+                  <span>•</span>
+                  <relative-time :datetime="attempt.triggeredAt" prefix=""/>
+                  <span>•</span>
+                  <span class="gt-ellipsis">{{ attempt.triggerUserName }}</span>
+                </div>
+              </a>
+            </div>
+          </div>
         </div>
       </div>
       <div class="action-commit-summary">
-        <span><a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:</span>
+        <span>
+          <a v-if="run.workflowLink" class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>
+          <b v-else>{{ run.workflowID }}</b>
+          :
+        </span>
         <template v-if="run.isSchedule">
           {{ locale.scheduled }}
         </template>
@@ -94,7 +142,7 @@ async function deleteArtifact(name: string) {
     <div class="action-view-body">
       <div class="action-view-left">
         <!-- summary -->
-        <a class="job-brief-item silenced" :href="run.link" :class="!props.jobId ? 'selected' : ''">
+        <a class="job-brief-item silenced" :href="run.viewLink" :class="!props.jobId ? 'selected' : ''">
           <SvgIcon name="octicon-home"/>
           <span class="gt-ellipsis">{{ locale.summary }}</span>
         </a>
@@ -105,7 +153,7 @@ async function deleteArtifact(name: string) {
         <!-- unlike other lists, the items have paddings already -->
         <ul class="ui relaxed list flex-items-block tw-p-0">
           <li class="item job-brief-item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
-            <a class="tw-contents silenced" :href="run.link+'/jobs/'+job.id">
+            <a class="tw-contents silenced" :href="job.link">
               <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
               <span class="tw-flex-1 gt-ellipsis">{{ job.name }}</span>
               <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
@@ -123,7 +171,7 @@ async function deleteArtifact(name: string) {
               <template v-if="artifact.status !== 'expired'">
                 <a
                   class="tw-flex-1 flex-text-block muted" target="_blank"
-                  :href="run.link+'/artifacts/'+encodeURIComponent(artifact.name)"
+                  :href="buildArtifactLink(artifact.name)"
                   :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
                   data-tooltip-render="html"
                   data-tooltip-placement="top-end"
@@ -167,9 +215,8 @@ async function deleteArtifact(name: string) {
           v-else
           :store="store"
           :locale="locale"
-          :run-id="props.runId"
+          :actions-view-url="props.actionsViewUrl"
           :job-id="props.jobId"
-          :actions-url="props.actionsUrl"
         />
       </div>
     </div>

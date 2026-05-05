@@ -47,8 +47,7 @@ func TestAPIViewPulls(t *testing.T) {
 		AddTokenAuth(ctx.Token)
 	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
-	var pulls []*api.PullRequest
-	DecodeJSON(t, resp, &pulls)
+	pulls := DecodeJSON(t, resp, []*api.PullRequest{})
 	expectedLen := unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}, unittest.Cond("is_pull = ?", true))
 	assert.Len(t, pulls, expectedLen)
 
@@ -550,8 +549,7 @@ func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, callback func(*t
 		}
 		resp := ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 
-		files := make([]*api.ChangedFile, 0, 1)
-		DecodeJSON(t, resp, &files)
+		files := DecodeJSON(t, resp, []*api.ChangedFile{})
 
 		if callback != nil {
 			callback(t, files)

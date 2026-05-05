@@ -18,8 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
-	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
-	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
+	es "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -28,23 +27,15 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-enry/go-enry/v2"
-	"github.com/olivere/elastic/v7"
 )
 
-const (
-	esRepoIndexerLatestVersion = 3
-	// multi-match-types, currently only 2 types are used
-	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
-	esMultiMatchTypeBestFields   = "best_fields"
-	esMultiMatchTypePhrasePrefix = "phrase_prefix"
-)
+const esRepoIndexerLatestVersion = 3
 
 var _ internal.Indexer = &Indexer{}
 
 // Indexer implements Indexer interface
 type Indexer struct {
-	inner                    *inner_elasticsearch.Indexer
-	indexer_internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
+	*es.Indexer
 }
 
 func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
@@ -53,12 +44,7 @@ func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
 
 // NewIndexer creates a new elasticsearch indexer
 func NewIndexer(url, indexerName string) *Indexer {
-	inner := inner_elasticsearch.NewIndexer(url, indexerName, esRepoIndexerLatestVersion, defaultMapping)
-	indexer := &Indexer{
-		inner:   inner,
-		Indexer: inner,
-	}
-	return indexer
+	return &Indexer{Indexer: es.NewIndexer(url, indexerName, esRepoIndexerLatestVersion, defaultMapping)}
 }
 
 const (
@@ -138,7 +124,7 @@ const (
 	}`
 )
 
-func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
+func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]es.BulkOp, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -157,8 +143,9 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 		}
 	}
 
+	id := internal.FilenameIndexerID(repo.ID, update.Filename)
 	if size > setting.Indexer.MaxIndexerFileSize {
-		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
+		return []es.BulkOp{es.DeleteOp(id)}, nil
 	}
 
 	info, batchReader, err := catFileBatch.QueryContent(update.BlobSha)
@@ -177,33 +164,24 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 	if _, err = batchReader.Discard(1); err != nil {
 		return nil, err
 	}
-	id := internal.FilenameIndexerID(repo.ID, update.Filename)
 
-	return []elastic.BulkableRequest{
-		elastic.NewBulkIndexRequest().
-			Index(b.inner.VersionedIndexName()).
-			Id(id).
-			Doc(map[string]any{
-				"repo_id":    repo.ID,
-				"filename":   update.Filename,
-				"content":    string(charset.ToUTF8DropErrors(fileContents)),
-				"commit_id":  sha,
-				"language":   analyze.GetCodeLanguage(update.Filename, fileContents),
-				"updated_at": timeutil.TimeStampNow(),
-			}),
-	}, nil
+	return []es.BulkOp{es.IndexOp(id, map[string]any{
+		"repo_id":    repo.ID,
+		"filename":   update.Filename,
+		"content":    string(charset.ToUTF8DropErrors(fileContents)),
+		"commit_id":  sha,
+		"language":   analyze.GetCodeLanguage(update.Filename, fileContents),
+		"updated_at": timeutil.TimeStampNow(),
+	})}, nil
 }
 
-func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
-	id := internal.FilenameIndexerID(repo.ID, filename)
-	return elastic.NewBulkDeleteRequest().
-		Index(b.inner.VersionedIndexName()).
-		Id(id)
+func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) es.BulkOp {
+	return es.DeleteOp(internal.FilenameIndexerID(repo.ID, filename))
 }
 
 // Index will save the index data
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
-	reqs := make([]elastic.BulkableRequest, 0)
+	ops := make([]es.BulkOp, 0)
 	if len(changes.Updates) > 0 {
 		batch, err := gitrepo.NewBatch(ctx, repo)
 		if err != nil {
@@ -212,29 +190,25 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 		defer batch.Close()
 
 		for _, update := range changes.Updates {
-			updateReqs, err := b.addUpdate(ctx, batch, sha, update, repo)
+			updateOps, err := b.addUpdate(ctx, batch, sha, update, repo)
 			if err != nil {
 				return err
 			}
-			if len(updateReqs) > 0 {
-				reqs = append(reqs, updateReqs...)
+			if len(updateOps) > 0 {
+				ops = append(ops, updateOps...)
 			}
 		}
 	}
 
 	for _, filename := range changes.RemovedFilenames {
-		reqs = append(reqs, b.addDelete(filename, repo))
+		ops = append(ops, b.addDelete(filename, repo))
 	}
 
-	if len(reqs) > 0 {
+	if len(ops) > 0 {
 		esBatchSize := 50
 
-		for i := 0; i < len(reqs); i += esBatchSize {
-			_, err := b.inner.Client.Bulk().
-				Index(b.inner.VersionedIndexName()).
-				Add(reqs[i:min(i+esBatchSize, len(reqs))]...).
-				Do(ctx)
-			if err != nil {
+		for i := 0; i < len(ops); i += esBatchSize {
+			if err := b.Bulk(ctx, ops[i:min(i+esBatchSize, len(ops))]); err != nil {
 				return err
 			}
 		}
@@ -246,33 +220,21 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 func (b *Indexer) Delete(ctx context.Context, repoID int64) error {
 	if err := b.doDelete(ctx, repoID); err != nil {
 		// Maybe there is a conflict during the delete operation, so we should retry after a refresh
-		log.Warn("Deletion of entries of repo %v within index %v was erroneous. Trying to refresh index before trying again", repoID, b.inner.VersionedIndexName(), err)
-		if err := b.refreshIndex(ctx); err != nil {
+		log.Warn("Deletion of entries of repo %v within index %v was erroneous: %v. Trying to refresh index before trying again", repoID, b.VersionedIndexName(), err)
+		if err := b.Refresh(ctx); err != nil {
 			return err
 		}
 		if err := b.doDelete(ctx, repoID); err != nil {
-			log.Error("Could not delete entries of repo %v within index %v", repoID, b.inner.VersionedIndexName())
+			log.Error("Could not delete entries of repo %v within index %v", repoID, b.VersionedIndexName())
 			return err
 		}
 	}
-	return nil
-}
-
-func (b *Indexer) refreshIndex(ctx context.Context) error {
-	if _, err := b.inner.Client.Refresh(b.inner.VersionedIndexName()).Do(ctx); err != nil {
-		log.Error("Error while trying to refresh index %v", b.inner.VersionedIndexName(), err)
-		return err
-	}
-
 	return nil
 }
 
 // Delete entries by repoId
 func (b *Indexer) doDelete(ctx context.Context, repoID int64) error {
-	_, err := b.inner.Client.DeleteByQuery(b.inner.VersionedIndexName()).
-		Query(elastic.NewTermsQuery("repo_id", repoID)).
-		Do(ctx)
-	return err
+	return b.DeleteByQuery(ctx, es.TermsQuery("repo_id", repoID))
 }
 
 // contentMatchIndexPos find words positions for start and the following end on content. It will
@@ -291,10 +253,10 @@ func contentMatchIndexPos(content, start, end string) (int, int) {
 	return startIdx, (startIdx + len(start) + endIdx + len(end)) - 9 // remove the length <em></em> since we give Content the original data
 }
 
-func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
+func convertResult(searchResult *es.SearchResponse, kw string, pageSize int) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	hits := make([]*internal.SearchResult, 0, pageSize)
-	for _, hit := range searchResult.Hits.Hits {
-		repoID, fileName := internal.ParseIndexerID(hit.Id)
+	for _, hit := range searchResult.Hits {
+		repoID, fileName := internal.ParseIndexerID(hit.ID)
 		res := make(map[string]any)
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
@@ -333,111 +295,111 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 		})
 	}
 
-	return searchResult.TotalHits(), hits, extractAggs(searchResult), nil
+	return searchResult.Total, hits, extractAggs(searchResult), nil
 }
 
-func extractAggs(searchResult *elastic.SearchResult) []*internal.SearchResultLanguages {
-	var searchResultLanguages []*internal.SearchResultLanguages
-	agg, found := searchResult.Aggregations.Terms("language")
-	if found {
-		searchResultLanguages = make([]*internal.SearchResultLanguages, 0, 10)
-
-		for _, bucket := range agg.Buckets {
-			searchResultLanguages = append(searchResultLanguages, &internal.SearchResultLanguages{
-				Language: bucket.Key.(string),
-				Color:    enry.GetColor(bucket.Key.(string)),
-				Count:    int(bucket.DocCount),
-			})
+func extractAggs(searchResult *es.SearchResponse) []*internal.SearchResultLanguages {
+	buckets, found := searchResult.Aggregations["language"]
+	if !found {
+		return nil
+	}
+	searchResultLanguages := make([]*internal.SearchResultLanguages, 0, 10)
+	for _, bucket := range buckets {
+		// language is mapped as keyword so the key is always a string; if the
+		// mapping ever changes, skip rather than emit an empty-language bucket.
+		key, ok := bucket.Key.(string)
+		if !ok {
+			continue
 		}
+		searchResultLanguages = append(searchResultLanguages, &internal.SearchResultLanguages{
+			Language: key,
+			Color:    enry.GetColor(key),
+			Count:    int(bucket.DocCount),
+		})
 	}
 	return searchResultLanguages
 }
 
 // Search searches for codes and language stats by given conditions.
 func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
-	var contentQuery elastic.Query
 	searchMode := util.IfZero(opts.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+	contentQuery := es.Query(es.NewMultiMatchQuery(opts.Keyword, "content").Type(es.MultiMatchTypeBestFields).Operator("and"))
 	if searchMode == indexer.SearchModeExact {
-		// 1.21 used NewMultiMatchQuery().Type(esMultiMatchTypePhrasePrefix), but later releases changed to NewMatchPhraseQuery
-		contentQuery = elastic.NewMatchPhraseQuery("content", opts.Keyword)
-	} else /* words */ {
-		contentQuery = elastic.NewMultiMatchQuery("content", opts.Keyword).Type(esMultiMatchTypeBestFields).Operator("and")
+		contentQuery = es.MatchPhraseQuery("content", opts.Keyword)
 	}
-	kwQuery := elastic.NewBoolQuery().Should(
+	kwQuery := es.NewBoolQuery().Should(
 		contentQuery,
-		elastic.NewMultiMatchQuery(opts.Keyword, "filename^10").Type(esMultiMatchTypePhrasePrefix),
+		es.NewMultiMatchQuery(opts.Keyword, "filename^10").Type(es.MultiMatchTypePhrasePrefix),
 	)
-	query := elastic.NewBoolQuery()
-	query = query.Must(kwQuery)
+	query := es.NewBoolQuery().Must(kwQuery)
 	if len(opts.RepoIDs) > 0 {
-		repoStrs := make([]any, 0, len(opts.RepoIDs))
-		for _, repoID := range opts.RepoIDs {
-			repoStrs = append(repoStrs, repoID)
-		}
-		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
-		query = query.Must(repoQuery)
+		query.Must(es.TermsQuery("repo_id", es.ToAnySlice(opts.RepoIDs)...))
 	}
 
-	var (
-		start, pageSize = opts.GetSkipTake()
-		kw              = "<em>" + opts.Keyword + "</em>"
-		aggregation     = elastic.NewTermsAggregation().Field("language").Size(10).OrderByCountDesc()
-	)
+	start, pageSize := opts.GetSkipTake()
+	kw := "<em>" + opts.Keyword + "</em>"
+	languageAggs := map[string]any{
+		"language": map[string]any{
+			"terms": map[string]any{
+				"field": "language",
+				"size":  10,
+				"order": map[string]any{"_count": "desc"},
+			},
+		},
+	}
+	// number_of_fragments=0 returns the full highlighted content (no fragmentation).
+	highlight := map[string]any{
+		"fields": map[string]any{
+			"content":  map[string]any{},
+			"filename": map[string]any{},
+		},
+		"number_of_fragments": 0,
+		"type":                "fvh",
+	}
+	sort := []es.SortField{
+		{Field: "_score", Desc: true},
+		{Field: "updated_at", Desc: false},
+	}
 
 	if len(opts.Language) == 0 {
-		searchResult, err := b.inner.Client.Search().
-			Index(b.inner.VersionedIndexName()).
-			Aggregation("language", aggregation).
-			Query(query).
-			Highlight(
-				elastic.NewHighlight().
-					Field("content").
-					Field("filename").
-					NumOfFragments(0). // return all highlighting content on fragments
-					HighlighterType("fvh"),
-			).
-			Sort("_score", false).
-			Sort("updated_at", true).
-			From(start).Size(pageSize).
-			Do(ctx)
+		resp, err := b.Indexer.Search(ctx, es.SearchRequest{
+			Query:        query,
+			Sort:         sort,
+			From:         start,
+			Size:         pageSize,
+			TrackTotal:   true,
+			Aggregations: languageAggs,
+			Highlight:    highlight,
+		})
 		if err != nil {
 			return 0, nil, nil, err
 		}
-
-		return convertResult(searchResult, kw, pageSize)
+		return convertResult(resp, kw, pageSize)
 	}
 
-	langQuery := elastic.NewMatchQuery("language", opts.Language)
-	countResult, err := b.inner.Client.Search().
-		Index(b.inner.VersionedIndexName()).
-		Aggregation("language", aggregation).
-		Query(query).
-		Size(0). // We only need stats information
-		Do(ctx)
+	countResp, err := b.Indexer.Search(ctx, es.SearchRequest{
+		Query:        query,
+		Size:         0, // stats only
+		TrackTotal:   true,
+		Aggregations: languageAggs,
+	})
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
-	query = query.Must(langQuery)
-	searchResult, err := b.inner.Client.Search().
-		Index(b.inner.VersionedIndexName()).
-		Query(query).
-		Highlight(
-			elastic.NewHighlight().
-				Field("content").
-				Field("filename").
-				NumOfFragments(0). // return all highlighting content on fragments
-				HighlighterType("fvh"),
-		).
-		Sort("_score", false).
-		Sort("updated_at", true).
-		From(start).Size(pageSize).
-		Do(ctx)
+	query.Must(es.MatchQuery("language", opts.Language))
+	resp, err := b.Indexer.Search(ctx, es.SearchRequest{
+		Query:      query,
+		Sort:       sort,
+		From:       start,
+		Size:       pageSize,
+		TrackTotal: true,
+		Highlight:  highlight,
+	})
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
-	total, hits, _, err := convertResult(searchResult, kw, pageSize)
-
-	return total, hits, extractAggs(countResult), err
+	total, hits, _, err := convertResult(resp, kw, pageSize)
+	return total, hits, extractAggs(countResp), err
 }

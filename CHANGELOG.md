@@ -4,6 +4,28 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.26.1](https://github.com/go-gitea/gitea/releases/tag/v1.26.1) - 2026-04-21
+
+* BUGFIXES
+  * Add event.schedule context for schedule actions task (#37320) (#37348)
+  * Fix an issue where changing an organization's visibility caused problems when users had forked its repositories. (#37324) (#37344)
+  * Use modern "git update-index --cacheinfo" syntax to support more file names (#37338) (#37343)
+  * Fix URL related escaping for oauth2 (#37334) (#37340)
+  * When the requested arch rpm is missing fall back to noarch (#37236) (#37339)
+  * Fix actions concurrency groups cross-branch leak (#37311) (#37331)
+  * Fix bug when accessing user badges (#37321) (#37329)
+  * Fix AppFullLink (#37325) (#37328)
+  * Fix container auth for public instance (#37290) (#37294)
+  * Enhance GetActionWorkflow to support fallback references (#37189) (#37283)
+  * Fix vite manifest update masking build errors (#37279) (#37310)
+  * Fix Mermaid diagrams failing when node labels contain line breaks (#37296) (#37299)
+  * Use TriggerEvent instead of Event in workflow runs API response for scheduled runs (#37288) #37360
+  * Add URL to Learn more about blocking a user. (#37355) #37367
+  * Fix button layout shift when collapsing file tree in editor (#37363) #37375
+  * Fix org team assignee/reviewer lookups for team member permissions (#37365) #37391
+  * Fix repo init README EOL (#37388) #37399
+  * Fix: dump with default zip type produces uncompressed zip (#37401) #37402
+
 ## [1.26.0](https://github.com/go-gitea/gitea/releases/tag/v1.26.0) - 2026-04-17
 
 * BREAKING
@@ -1361,7 +1383,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix mCaptcha bug (#33659) (#33661)
   * Git graph: don't show detached commits (#33645) (#33650)
   * Use MatchPhraseQuery for bleve code search (#33628)
-  * Adjust appearence of commit status webhook (#33778) #33789
+  * Adjust appearance of commit status webhook (#33778) #33789
   * Upgrade golang net from 0.35.0 -> 0.36.0 (#33795) #33796
 
 ## [1.23.4](https://github.com/go-gitea/gitea/releases/tag/v1.23.4) - 2025-02-16
@@ -2092,7 +2114,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Optimize repo-list layout to enhance visual experience (#31272) (#31276)
   * fixed the dropdown menu for the top New button to expand to the left (#31273) (#31275)
   * Fix Activity Page Contributors dropdown (#31264) (#31269)
-  * fix: allow actions artifacts storage migration to complete succesfully (#31251) (#31257)
+  * fix: allow actions artifacts storage migration to complete successfully (#31251) (#31257)
   * Make blockquote attention recognize more syntaxes (#31240) (#31250)
   * Remove .segment from .project-column (#31204) (#31239)
   * Ignore FindRecentlyPushedNewBranches err (#31164) (#31171)
@@ -2276,7 +2298,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Performance optimization for git push and check permissions for push options (#30104) (#30354)
 * BUGFIXES
   * Fix close file in the Upload func (#30262) (#30269)
-  * Fix inline math blocks can't be preceeded/followed by alphanumerical characters (#30175) (#30250)
+  * Fix inline math blocks can't be preceded/followed by alphanumerical characters (#30175) (#30250)
   * Fix missing 0 prefix of GPG key id (#30245) (#30247)
   * Include encoding in signature payload (#30174) (#30181)
   * Move from `max( id )` to `max( index )` for latest commit statuses (#30076) (#30155)
@@ -5568,7 +5590,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Fix navbar on project view (#17749)
   * More pleasantly handle broken or missing git repositories (#17747)
   * Use `*PushUpdateOptions` as receiver (#17724)
-  * Remove unused `user` paramater (#17723)
+  * Remove unused `user` parameter (#17723)
   * Better builtin avatar generator (#17707)
   * Cleanup and use global style on popups (#17674)
   * Move user/org deletion to services (#17673)
