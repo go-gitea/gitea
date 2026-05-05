@@ -303,8 +303,6 @@ replace github.com/jaytaylor/html2text => github.com/Necoro/html2text v0.0.0-202
 
 replace github.com/nektos/act => gitea.com/gitea/act v0.261.10 // gitea maintains its own package
 
-replace github.com/urfave/cli/v3 => github.com/urfave/cli/v3 v3.4.1 // v3.6.2 breaks -c flag parsing in help commands
-
 replace go.yaml.in/yaml/v4 => go.yaml.in/yaml/v4 v4.0.0-rc.3 // rc.4 changes block scalar serialization, wait for stable release
 
 replace github.com/Azure/azure-sdk-for-go/sdk/azcore => github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.0 // v1.21.0+ uses API version unsupported by Azurite in CI
