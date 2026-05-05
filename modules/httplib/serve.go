@@ -87,8 +87,9 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	if opts.ContentLength != nil {
 		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))
 	}
-	if opts.Filename != "" && opts.ContentDisposition != "" {
-		header.Set("Content-Disposition", encodeContentDisposition(opts.ContentDisposition, path.Base(opts.Filename)))
+	if opts.Filename != "" {
+		contentDisposition := util.IfZero(opts.ContentDisposition, ContentDispositionAttachment)
+		header.Set("Content-Disposition", encodeContentDisposition(contentDisposition, path.Base(opts.Filename)))
 		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 

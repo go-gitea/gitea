@@ -76,7 +76,7 @@ func Install(ctx *context.Context) {
 	form.DbSchema = setting.Database.Schema
 	form.SSLMode = setting.Database.SSLMode
 
-	curDBType := setting.Database.Type.String()
+	curDBType := string(setting.Database.Type)
 	if !slices.Contains(setting.SupportedDatabaseTypes, curDBType) {
 		curDBType = "mysql"
 	}
@@ -328,7 +328,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
 	cfg.Section("").Key("RUN_MODE").SetValue("prod")
 
-	cfg.Section("database").Key("DB_TYPE").SetValue(setting.Database.Type.String())
+	cfg.Section("database").Key("DB_TYPE").SetValue(string(setting.Database.Type))
 	cfg.Section("database").Key("HOST").SetValue(setting.Database.Host)
 	cfg.Section("database").Key("NAME").SetValue(setting.Database.Name)
 	cfg.Section("database").Key("USER").SetValue(setting.Database.User)
