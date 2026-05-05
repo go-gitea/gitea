@@ -145,9 +145,4 @@ onUnmounted(() => {
 .diff-ext-filter-trigger:hover {
   background: var(--color-hover);
 }
-
-/* divider sits inside the tippy menu's vertical padding; trim its margin */
-.divider {
-  margin: 4px 0;
-}
 </style>

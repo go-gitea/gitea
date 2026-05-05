@@ -61,7 +61,17 @@
 	<div id="diff-container">
 		{{if $showFileTree}}
 			{{$.FileIconPoolHTML}}
-			<div id="diff-file-tree" class="tw-hidden not-mobile" data-filter-files="{{ctx.Locale.Tr "repo.diff.filter_files"}}" data-filter-files-no-results="{{ctx.Locale.Tr "repo.diff.no_files_matched"}}" data-filter-files-clear="{{ctx.Locale.Tr "repo.diff.filter_files_clear"}}" data-filter-by-file-extension="{{ctx.Locale.Tr "repo.diff.filter_by_file_extension"}}" data-file-extensions="{{ctx.Locale.Tr "repo.diff.file_extensions"}}" data-no-file-extension="{{ctx.Locale.Tr "repo.diff.no_file_extension"}}" data-select-all-file-extensions="{{ctx.Locale.Tr "repo.diff.select_all_file_extensions"}}" data-select-none-file-extensions="{{ctx.Locale.Tr "repo.diff.select_none_file_extensions"}}"></div>
+			<div id="diff-file-tree"
+				class="tw-hidden not-mobile"
+				data-filter-files="{{ctx.Locale.Tr "repo.diff.filter_files"}}"
+				data-filter-files-no-results="{{ctx.Locale.Tr "repo.diff.no_files_matched"}}"
+				data-filter-files-clear="{{ctx.Locale.Tr "repo.diff.filter_files_clear"}}"
+				data-filter-by-file-extension="{{ctx.Locale.Tr "repo.diff.filter_by_file_extension"}}"
+				data-file-extensions="{{ctx.Locale.Tr "repo.diff.file_extensions"}}"
+				data-no-file-extension="{{ctx.Locale.Tr "repo.diff.no_file_extension"}}"
+				data-select-all-file-extensions="{{ctx.Locale.Tr "repo.diff.select_all_file_extensions"}}"
+				data-select-none-file-extensions="{{ctx.Locale.Tr "repo.diff.select_none_file_extensions"}}"
+			></div>
 			<script nonce="{{ctx.CspScriptNonce}}">
 				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('tw-hidden');
 			</script>
