@@ -24,7 +24,7 @@ func TestMinioStorage(t *testing.T) {
 	storageType := setting.MinioStorageType
 	config := &setting.Storage{
 		MinioConfig: setting.MinioStorageConfig{
-			Endpoint:        "minio:9000",
+			Endpoint:        "s3:9000",
 			AccessKeyID:     "123456",
 			SecretAccessKey: "12345678",
 			Bucket:          "gitea",
@@ -92,7 +92,7 @@ func TestS3StorageBadRequest(t *testing.T) {
 	}
 	cfg := &setting.Storage{
 		MinioConfig: setting.MinioStorageConfig{
-			Endpoint:        "minio:9000",
+			Endpoint:        "s3:9000",
 			AccessKeyID:     "123456",
 			SecretAccessKey: "12345678",
 			Bucket:          "bucket",

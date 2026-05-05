@@ -46,7 +46,7 @@ docker run --rm -p 9000:9000 -e RUSTFS_ACCESS_KEY=123456 -e RUSTFS_SECRET_KEY=12
 Start tests based on the database container:
 
 ```
-GITEA_TEST_DATABASE=pgsql TEST_MINIO_ENDPOINT=localhost:9000 TEST_PGSQL_HOST=localhost:5432 TEST_PGSQL_DBNAME=postgres TEST_PGSQL_USERNAME=postgres TEST_PGSQL_PASSWORD=postgres make test-integration
+GITEA_TEST_DATABASE=pgsql TEST_S3_ENDPOINT=localhost:9000 TEST_PGSQL_HOST=localhost:5432 TEST_PGSQL_DBNAME=postgres TEST_PGSQL_USERNAME=postgres TEST_PGSQL_PASSWORD=postgres make test-integration
 ```
 
 ## Run mssql integration tests
