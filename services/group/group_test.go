@@ -6,7 +6,9 @@ package group
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
+	organization_model "code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -21,12 +23,43 @@ func TestMain(m *testing.M) {
 	unittest.MainTest(m)
 }
 
+func getOrCreateOrgWithGroups(t *testing.T) *user_model.User {
+	e := db.GetEngine(t.Context())
+	norg := &user_model.User{
+		LowerName: "org-with-groups",
+		FullName:  "Org With Groups",
+		Name:      "Org-With-Groups",
+		Type:      user_model.UserTypeOrganization,
+	}
+
+	hasOrgWithGroups, err := e.Exist(&user_model.User{
+		LowerName: norg.LowerName,
+		Type:      norg.Type,
+	})
+	assert.NoError(t, err)
+	if !hasOrgWithGroups {
+		ownerBean := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			ID: 2,
+		})
+		assert.NoError(t, organization_model.CreateOrganization(t.Context(), organization_model.OrgFromUser(norg), ownerBean))
+		_, err = e.Table(&group_model.Group{}).Update(&group_model.Group{
+			OwnerName: norg.Name,
+			OwnerID:   norg.ID,
+		})
+		assert.NoError(t, err)
+	}
+	norg = unittest.AssertExistsAndLoadBean(t, norg)
+	return norg
+}
+
 func TestNewGroup(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	orgWithGroups := getOrCreateOrgWithGroups(t)
+
 	const groupName = "group x"
 	group := &group_model.Group{
 		Name:    groupName,
-		OwnerID: 3,
+		OwnerID: orgWithGroups.ID,
 	}
 	assert.NoError(t, NewGroup(t.Context(), group))
 	unittest.AssertExistsAndLoadBean(t, &group_model.Group{Name: groupName})
@@ -34,13 +67,14 @@ func TestNewGroup(t *testing.T) {
 
 func TestMoveGroup(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	orgWithGroups := getOrCreateOrgWithGroups(t)
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{
-		ID: 28,
+		ID: 2,
 	})
 	testfn := func(gid int64) {
 		cond := &group_model.FindGroupsOptions{
 			ParentGroupID: 123,
-			OwnerID:       3,
+			OwnerID:       orgWithGroups.ID,
 		}
 		origCount := unittest.GetCount(t, new(group_model.Group), cond.ToConds())
 
@@ -60,7 +94,7 @@ func TestMoveGroup(t *testing.T) {
 func TestMoveRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{
-		ID: 28,
+		ID: 2,
 	})
 	cond := repo_model.SearchRepositoryCondition(repo_model.SearchRepoOptions{
 		GroupID: 123,
