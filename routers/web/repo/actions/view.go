@@ -1072,7 +1072,7 @@ func EnableWorkflowFile(ctx *context_module.Context) {
 func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 	workflow := ctx.FormString("workflow")
 	if len(workflow) == 0 {
-		ctx.HTTPError(http.StatusBadRequest, "workflow is required")
+		ctx.JSONError("workflow is required")
 		return
 	}
 
