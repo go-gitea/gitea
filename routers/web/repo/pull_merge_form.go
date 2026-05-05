@@ -9,6 +9,7 @@ import (
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -91,7 +92,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"allOverridableChecksOk":        allOverridableChecksOk,
 		"emptyCommit":                   pull.IsEmpty(),
 		"pullHeadCommitID":              prInfo.CompareInfo.HeadCommitID,
-		"isPullBranchDeletable":         prInfo.MergeBoxData.isPullBranchDeletable,
+		"isPullBranchDeletable":         prInfo.MergeBoxData.IsPullBranchDeletable,
 		"defaultMergeStyle":             mergeStyle,
 		"defaultDeleteBranchAfterMerge": prConfig.DefaultDeleteBranchAfterMerge,
 		"mergeMessageFieldPlaceHolder":  ctx.Locale.Tr("repo.editor.commit_message_desc"),
@@ -148,12 +149,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		}
 	}
 
-	canUseManualMerge := func() bool {
-		if pull.IsWorkInProgress(ctx) || pull.IsChecking() {
-			return false
-		}
-		return prConfig.AllowManualMerge
-	}
 	// Manually Merged is not a well-known feature, it is used to mark a non-mergeable PR (already merged, conflicted) as merged
 	// To test it:
 	//  Enable "Manually Merged" feature in the Repository Settings
@@ -161,7 +156,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	//  - Merge the pull request branch locally and push the merged commit to Gitea
 	//  - Make some conflicts between the base branch and the pull request branch
 	//  Then the Manually Merged form will be shown in the merge form
-	if canUseManualMerge() {
+	canUseManualMerge := !pull.IsWorkInProgress(ctx) && !pull.IsChecking() && prConfig.AllowManualMerge
+	if canUseManualMerge {
 		mergeStyles = append(mergeStyles, map[string]any{
 			"name":                  "manually-merged",
 			"allowed":               prConfig.AllowManualMerge,
@@ -174,5 +170,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	if len(mergeStyles) > 0 {
 		mergeFormProps["mergeStyles"] = mergeStyles
 		prInfo.MergeBoxData.MergeFormProps = mergeFormProps
+	} else if pull.IsStatusMergeable() {
+		// no merge style was set in repo setting
+		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
+			svg.RenderHTML("octicon-x", 16, "tw-text-red"),
+			ctx.Locale.Tr("repo.pulls.no_merge_desc"),
+		)
+		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
+			svg.RenderHTML("octicon-info"),
+			ctx.Locale.Tr("repo.pulls.no_merge_helper"),
+		)
 	}
 }

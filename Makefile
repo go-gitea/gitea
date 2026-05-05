@@ -606,6 +606,11 @@ update-js: node_modules ## update js dependencies
 	pnpm exec updates -u -f package.json
 	rm -rf node_modules pnpm-lock.yaml
 	pnpm install
+	@touch node_modules
+	$(MAKE) --no-print-directory nolyfill
+
+.PHONY: nolyfill
+nolyfill: node_modules ## apply nolyfill overrides to package.json and relock
 	pnpm exec nolyfill install
 	pnpm install
 	@touch node_modules
