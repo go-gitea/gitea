@@ -128,9 +128,9 @@ async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
   toggleLoadingIndicator(el, opt, true);
 
   try {
+    const url = buildFetchActionUrl(el, opt);
     const headers = new Headers(opt.headers);
     headers.set('X-Gitea-Fetch-Action', '1');
-    const url = buildFetchActionUrl(el, opt);
     const resp = await request(url, {method: opt.method, body: opt.body, headers});
     if (resp.ok) {
       await handleFetchActionSuccess(el, opt, resp);
