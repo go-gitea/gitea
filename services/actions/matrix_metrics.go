@@ -18,6 +18,8 @@ type MatrixMetrics struct {
 	FailedReevaluations     int64
 	JobsCreatedTotal        int64
 	DeferredReevaluations   int64
+	CacheHits               int64
+	CacheMisses             int64
 
 	// Timing
 	TotalReevaluationTime time.Duration
@@ -101,6 +103,20 @@ func (m *MatrixMetrics) RecordInsertTime(duration time.Duration) {
 	appendToHistogram(&m.InsertTimes, duration)
 }
 
+// RecordCacheHit records a cache hit for workflow parsing
+func (m *MatrixMetrics) RecordCacheHit() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.CacheHits++
+}
+
+// RecordCacheMiss records a cache miss for workflow parsing
+func (m *MatrixMetrics) RecordCacheMiss() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.CacheMisses++
+}
+
 // GetStats returns a snapshot of the current metrics
 func (m *MatrixMetrics) GetStats() map[string]any {
 	m.mu.RLock()
@@ -139,6 +155,8 @@ func (m *MatrixMetrics) GetStats() map[string]any {
 		"avg_parse_time_ms":          avgParseTime.Milliseconds(),
 		"total_insert_time_ms":       m.TotalInsertTime.Milliseconds(),
 		"avg_insert_time_ms":         avgInsertTime.Milliseconds(),
+		"total_cache_hits":           m.CacheHits,
+		"total_cache_misses":         m.CacheMisses,
 	}
 }
 
@@ -152,6 +170,8 @@ func (m *MatrixMetrics) Reset() {
 	m.FailedReevaluations = 0
 	m.JobsCreatedTotal = 0
 	m.DeferredReevaluations = 0
+	m.CacheHits = 0
+	m.CacheMisses = 0
 	m.TotalReevaluationTime = 0
 	m.TotalParseTime = 0
 	m.TotalInsertTime = 0

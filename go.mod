@@ -295,7 +295,7 @@ ignore (
 
 replace github.com/jaytaylor/html2text => github.com/Necoro/html2text v0.0.0-20250804200300-7bf1ce1c7347 // jaytaylor/html2text is unmaintained
 
-replace github.com/nektos/act => gitea.com/gitea/act v0.261.10 // gitea maintains its own package
+replace github.com/nektos/act => gitea.com/gitea/act v0.262.0 // gitea maintains its own package
 
 replace github.com/urfave/cli/v3 => github.com/urfave/cli/v3 v3.4.1 // v3.6.2 breaks -c flag parsing in help commands
 
