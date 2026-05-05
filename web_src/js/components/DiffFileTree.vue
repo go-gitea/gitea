@@ -130,6 +130,7 @@ function updateState(visible: boolean) {
   display: flex;
   align-items: center;
   gap: 0.375rem;
+  padding-top: 1px; /* match .diff-file-box's top border so this row aligns with .diff-file-header */
   padding-bottom: 0.25rem;
 }
 
