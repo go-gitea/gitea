@@ -3,7 +3,7 @@ import {SvgIcon} from '../svg.ts';
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import DiffFileExtensionFilter from './DiffFileExtensionFilter.vue';
 import {toggleElem} from '../utils/dom.ts';
-import {diffTreeStore, isDiffTreeEntryVisible, applyFiltersToFileBoxes, buildFilterPredicate} from '../modules/diff-file.ts';
+import {diffTreeStore, filterDiffTree, applyFiltersToFileBoxes} from '../modules/diff-file.ts';
 import {setFileFolding} from '../features/file-fold.ts';
 import {onMounted, onUnmounted, computed, watch} from 'vue';
 import {localUserSettings} from '../modules/user-settings.ts';
@@ -18,20 +18,7 @@ const filterFilesPlaceholder = el.getAttribute('data-filter-files')!;
 const filterFilesNoResults = el.getAttribute('data-filter-files-no-results')!;
 const filterFilesClearLabel = el.getAttribute('data-filter-files-clear')!;
 
-const extensionFilterLocale = el.hasAttribute('data-filter-by-file-extension') ? {
-  filter_by_file_extension: el.getAttribute('data-filter-by-file-extension')!,
-  file_extensions: el.getAttribute('data-file-extensions')!,
-  select_all: el.getAttribute('data-select-all')!,
-  deselect_all: el.getAttribute('data-deselect-all')!,
-  no_file_extension: el.getAttribute('data-no-file-extension')!,
-} : null;
-
-const treeMatcher = computed(() => buildFilterPredicate(store));
-const visibleTreeItems = computed(() => {
-  return (store.diffFileTree.TreeRoot.Children ?? []).filter((item) => isDiffTreeEntryVisible(item, treeMatcher.value));
-});
-
-const hasSearchQuery = computed(() => Boolean(store.filenameFilterQuery.trim()));
+const visibleTreeItems = computed(() => filterDiffTree(store)?.Children ?? []);
 
 watch(
   () => [store.filenameFilterQuery, store.activeExtensions] as const,
@@ -42,17 +29,14 @@ function clearSearch() {
   store.filenameFilterQuery = '';
 }
 
-let fileBoxesObserver: MutationObserver | null = null;
+let fileBoxesObserver: MutationObserver;
 
 onMounted(() => {
   store.fileTreeIsVisible = localUserSettings.getBoolean(LOCAL_STORAGE_KEY, true);
   document.querySelector('.diff-toggle-file-tree-button')!.addEventListener('click', toggleVisibility);
 
-  const fileBoxes = document.querySelector('#diff-file-boxes');
-  if (fileBoxes) {
-    fileBoxesObserver = new MutationObserver(() => applyFiltersToFileBoxes(store));
-    fileBoxesObserver.observe(fileBoxes, {childList: true});
-  }
+  fileBoxesObserver = new MutationObserver(() => applyFiltersToFileBoxes(store));
+  fileBoxesObserver.observe(document.querySelector('#diff-file-boxes')!, {childList: true});
 
   hashChangeListener();
   window.addEventListener('hashchange', hashChangeListener);
@@ -61,7 +45,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.querySelector('.diff-toggle-file-tree-button')!.removeEventListener('click', toggleVisibility);
   window.removeEventListener('hashchange', hashChangeListener);
-  fileBoxesObserver?.disconnect();
+  fileBoxesObserver.disconnect();
 });
 
 function hashChangeListener() {
@@ -112,7 +96,7 @@ function updateState(visible: boolean) {
           :placeholder="filterFilesPlaceholder"
         >
         <button
-          v-if="hasSearchQuery"
+          v-if="store.filenameFilterQuery"
           type="button"
           class="diff-file-search-clear"
           @click="clearSearch"
@@ -121,10 +105,10 @@ function updateState(visible: boolean) {
           <SvgIcon name="octicon-x" :size="14"/>
         </button>
       </div>
-      <DiffFileExtensionFilter v-if="extensionFilterLocale" :locale="extensionFilterLocale"/>
+      <DiffFileExtensionFilter/>
     </div>
     <div class="diff-file-tree-items">
-      <DiffFileTreeItem v-for="item in visibleTreeItems" :key="item.FullName" :item="item" :is-visible="(entry) => isDiffTreeEntryVisible(entry, treeMatcher)"/>
+      <DiffFileTreeItem v-for="item in visibleTreeItems" :key="item.FullName" :item="item"/>
       <div v-if="visibleTreeItems.length === 0" class="tw-py-4 tw-text-center tw-text-text-light-2">
         {{ filterFilesNoResults }}
       </div>
@@ -138,16 +122,14 @@ function updateState(visible: boolean) {
   flex-direction: column;
   gap: 0.5rem;
   margin-right: .5rem;
+  flex: 1;
+  min-height: 0;
 }
 
 .diff-file-tree-search-row {
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  position: sticky;
-  top: 0;
-  background: var(--color-body);
-  z-index: 1;
   padding-bottom: 0.25rem;
 }
 
@@ -208,5 +190,8 @@ function updateState(visible: boolean) {
   display: flex;
   flex-direction: column;
   gap: 1px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 </style>

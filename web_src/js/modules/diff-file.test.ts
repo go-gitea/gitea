@@ -1,4 +1,4 @@
-import {buildFilterPredicate, diffTreeStoreSetViewed, getDiffTreeExtensionStats, isDiffTreeEntryVisible, reactiveDiffTreeStore, type DiffTreeEntry} from './diff-file.ts';
+import {diffTreeStoreSetViewed, filterDiffTree, getDiffTreeExtensionStats, reactiveDiffTreeStore, type DiffTreeEntry} from './diff-file.ts';
 
 function file(name: string): DiffTreeEntry {
   return {
@@ -29,10 +29,21 @@ function dir(name: string, children: DiffTreeEntry[]): DiffTreeEntry {
 function makeStore(children: DiffTreeEntry[]) {
   return reactiveDiffTreeStore({
     TreeRoot: {
-      FullName: '', DisplayName: '', EntryMode: '', IsViewed: false,
+      FullName: '', DisplayName: '', EntryMode: 'tree', IsViewed: false,
       NameHash: 'root', DiffStatus: '', FileIcon: '', Children: children,
     },
   }, '', '');
+}
+
+function visibleNames(root: DiffTreeEntry | null): string[] {
+  if (!root) return [];
+  const out: string[] = [];
+  const visit = (e: DiffTreeEntry) => {
+    if (e.EntryMode !== 'tree') out.push(e.FullName);
+    for (const c of e.Children ?? []) visit(c);
+  };
+  visit(root);
+  return out;
 }
 
 test('diff-tree', () => {
@@ -45,30 +56,27 @@ test('diff-tree', () => {
   expect(store.fullNameMap['dir1'].IsViewed).toBe(true);
 });
 
-test('diff-tree visibility keeps directories for matching files', () => {
+test('filterDiffTree keeps directories that contain matching files', () => {
   const store = makeStore([
     dir('dir1', [file('dir1/test.txt')]),
     file('other.ts'),
   ]);
-  const isVisible = (entry: DiffTreeEntry) => isDiffTreeEntryVisible(entry, buildFilterPredicate(store));
 
   store.filenameFilterQuery = 'test';
-  expect(isVisible(store.fullNameMap.dir1)).toBe(true);
-  expect(isVisible(store.fullNameMap['dir1/test.txt'])).toBe(true);
-  expect(isVisible(store.fullNameMap['other.ts'])).toBe(false);
+  expect(visibleNames(filterDiffTree(store))).toEqual(['dir1/test.txt']);
 
   store.filenameFilterQuery = '';
   store.activeExtensions = ['.ts'];
-  expect(isVisible(store.fullNameMap.dir1)).toBe(false);
-  expect(isVisible(store.fullNameMap['other.ts'])).toBe(true);
+  expect(visibleNames(filterDiffTree(store))).toEqual(['other.ts']);
 
   store.activeExtensions = [];
-  expect(isVisible(store.fullNameMap.dir1)).toBe(false);
-  expect(isVisible(store.fullNameMap['dir1/test.txt'])).toBe(false);
-  expect(isVisible(store.fullNameMap['other.ts'])).toBe(false);
+  expect(visibleNames(filterDiffTree(store))).toEqual([]);
+
+  store.activeExtensions = 'all';
+  expect(visibleNames(filterDiffTree(store))).toEqual(['dir1/test.txt', 'other.ts']);
 });
 
-test('diff-tree extension stats include files not yet loaded in diff boxes', () => {
+test('getDiffTreeExtensionStats counts every file in the diff tree', () => {
   const store = makeStore([
     dir('dir1', [file('dir1/test.txt'), file('dir1/Makefile')]),
     file('other.ts'),

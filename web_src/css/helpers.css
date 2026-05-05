@@ -30,6 +30,29 @@ Gitea's private styles use `g-` prefix.
 .interact-bg:hover { background: var(--color-hover) !important; }
 .interact-bg:active { background: var(--color-active) !important; }
 
+/* mask cuts a 2px transparent ring through the host so the dot reads on any background;
+   mask-clip:no-clip lets the dot's translated overflow render outside the host's border-box.
+   the opaque inner radius (4.5px) is half a pixel beyond the dot's edge so the two AA boundaries don't clash */
+.indicator-dot {
+  position: relative;
+  -webkit-mask-image: radial-gradient(circle at 100% 0%, #000 4.5px, transparent 4.5px, transparent 6.5px, #000 6.5px);
+  mask-image: radial-gradient(circle at 100% 0%, #000 4.5px, transparent 4.5px, transparent 6.5px, #000 6.5px);
+  -webkit-mask-clip: no-clip;
+  mask-clip: no-clip;
+}
+
+.indicator-dot::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  transform: translate(50%, -50%);
+}
+
 @media (max-width: 767.98px) {
   /* double selector so it wins over .tw-flex (old .gt-df) etc */
   .not-mobile.not-mobile {
