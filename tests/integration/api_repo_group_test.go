@@ -4,8 +4,8 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -25,7 +25,7 @@ import (
 func seedOrgWithGroups(t *testing.T) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteOrganization)
 	const orgName = "org-with-groups"
-	baseOrgUrl := fmt.Sprintf("/api/v1/orgs/%s", orgName)
+	baseOrgURL := "/api/v1/orgs/" + orgName
 
 	org := api.CreateOrgOption{
 		UserName:    orgName,
@@ -58,9 +58,9 @@ func seedOrgWithGroups(t *testing.T) {
 	}
 	var teams []*api.Team
 
-	userIds := []int64{4, 5, 8, 9, 10}
+	userIDs := []int64{4, 5, 8, 9, 10}
 
-	userIdIdx := 0
+	userIDIdx := 0
 	for k, v := range teamPrivs {
 		perm := api.RepoWritePermissionRead
 		if v >= perm_model.AccessModeAdmin {
@@ -80,16 +80,16 @@ func seedOrgWithGroups(t *testing.T) {
 		for _, nunit := range unit_model.AllUnitKeyNames() {
 			reqBody.UnitsMap[nunit] = v.ToString()
 		}
-		treq := NewRequestWithJSON(t, "POST", baseOrgUrl+"/teams", reqBody).AddTokenAuth(token)
+		treq := NewRequestWithJSON(t, "POST", baseOrgURL+"/teams", reqBody).AddTokenAuth(token)
 		tresp := MakeRequest(t, treq, http.StatusCreated)
 		team := DecodeJSON(t, tresp, &api.Team{})
 		teams = append(teams, team)
 
-		teamUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userIds[userIdIdx]})
+		teamUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userIDs[userIDIdx]})
 
 		mreq := NewRequestf(t, "PUT", "/teams/%d/members/%s", team.ID, teamUser.Name)
 		MakeRequest(t, mreq, http.StatusNoContent)
-		userIdIdx++
+		userIDIdx++
 	}
 	allPrivateGroups, err := group_model.FindGroupsByCond(t.Context(), &group_model.FindGroupsOptions{
 		OwnerID: apiOrg.ID,
@@ -97,9 +97,9 @@ func seedOrgWithGroups(t *testing.T) {
 	assert.NoError(t, err)
 
 	for _, group := range allPrivateGroups {
-		baseTeamUrl := fmt.Sprintf("/api/v1/groups/%d/teams", group.ID)
+		baseTeamURL := "/api/v1/groups/" + strconv.FormatInt(group.ID, 10) + "/teams"
 		for _, team := range teams {
-			trq := NewRequestWithJSON(t, "PUT", baseTeamUrl+"/"+team.Name, &api.CreateOrUpdateRepoGroupTeamOption{
+			trq := NewRequestWithJSON(t, "PUT", baseTeamURL+"/"+team.Name, &api.CreateOrUpdateRepoGroupTeamOption{
 				CanCreateIn: new(group.ID%int64(2) == int64(0) && perm_model.ParseAccessMode(string(team.Permission)) > perm_model.AccessModeRead),
 			}).AddTokenAuth(token)
 			MakeRequest(t, trq, http.StatusNoContent)
@@ -158,5 +158,5 @@ func testNonOrgMemberWontSeeHiddenTopLevelGroups(t *testing.T) {
 	assert.NotEqual(t, expectedLen, len(groups))
 }
 
-func testGroupNotAccessibleWhenParentIsPrivate(t *testing.T) {
-}
+/*func testGroupNotAccessibleWhenParentIsPrivate(t *testing.T) {
+}*/

@@ -129,6 +129,9 @@ func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew boo
 		}
 	} else {
 		teams, err = org_model.GetTeamsWithAccessToGroup(ctx, g.OwnerID, g.ParentGroupID, perm.AccessModeRead)
+		if err != nil {
+			return err
+		}
 	}
 	for _, t := range teams {
 		var gt *group_model.RepoGroupTeam
