@@ -242,4 +242,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	MoveGroupOption api.MoveGroupOption
+
+	// in:body
+	CreateOrUpdateGroupTeamOption api.CreateOrUpdateRepoGroupTeamOption
 }
