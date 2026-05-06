@@ -10,14 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
-
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func init() {
-	setting.SupportedDatabaseTypes = append(setting.SupportedDatabaseTypes, "sqlite3")
-	makeSQLiteConnStr = makeSQLiteConnStrMattnCGO
+	registerSQLiteConnStrMaker(makeSQLiteConnStrMattnCGO)
 }
 
 func makeSQLiteConnStrMattnCGO(opts SQLiteConnStrOptions) (string, string, error) {

@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -57,7 +58,15 @@ func GlobalConnOptions() ConnOptions {
 const sqlDriverPostgresSchema = "postgresschema"
 
 var makeSQLiteConnStr = func(opts SQLiteConnStrOptions) (string, string, error) {
-	return "", "", errors.New(`this Gitea binary was not built with SQLite3 support, get an official release or rebuild with: -tags sqlite_xxx`)
+	return "", "", errors.New(`this Gitea binary was not built with SQLite3 support, get an official release or rebuild with correct "-tags"`)
+}
+
+func registerSQLiteConnStrMaker(fn func(opts SQLiteConnStrOptions) (string, string, error)) {
+	if slices.Contains(setting.SupportedDatabaseTypes, "sqlite3") {
+		panic("another sqlite3 driver has been registered")
+	}
+	setting.SupportedDatabaseTypes = append(setting.SupportedDatabaseTypes, "sqlite3")
+	makeSQLiteConnStr = fn
 }
 
 func ConnStrDefaultDatabase(opts ConnOptions) (string, string, error) {

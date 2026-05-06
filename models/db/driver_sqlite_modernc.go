@@ -16,22 +16,19 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
-
 	"modernc.org/sqlite"
 )
 
 func init() {
 	// this driver contains huge amount of Golang code, so it is much slower when "-race" check is enabled.
-	setting.SupportedDatabaseTypes = append(setting.SupportedDatabaseTypes, "sqlite3")
-	makeSQLiteConnStr = makeSQLiteConnStrModerncCCGO
+	registerSQLiteConnStrMaker(makeSQLiteConnStrModerncCCGO)
 	sql.Register("sqlite3", &sqlite.Driver{})
 }
 
 func makeSQLiteConnStrModerncCCGO(opts SQLiteConnStrOptions) (string, string, error) {
 	var params []string
 	// TODO: there is a changed behavior from mattn driver:
-	// * mattn driver can wait for pretty long time for cocurrent accesses (not limited by the busy timeout)
+	// * mattn driver can wait for pretty long time for concurrent accesses (not limited by the busy timeout)
 	// * but other drivers will report something like "database is locked (5) (SQLITE_BUSY)" if the timeout is reached
 	// Maybe we need to relax the busy timeout to a reasonable long time in the future
 	params = append(params, fmt.Sprintf("_pragma=busy_timeout(%d)", opts.BusyTimeout))
