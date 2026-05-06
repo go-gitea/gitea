@@ -1655,6 +1655,201 @@
         }
       }
     },
+    "/groups/{group_id}/teams": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository-group"
+        ],
+        "summary": "List a repository group's teams",
+        "operationId": "repoGroupListTeams",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the group",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TeamList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/groups/{group_id}/teams/{team}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository-group"
+        ],
+        "summary": "Check if a team is assigned to a repository group",
+        "operationId": "repoGroupCheckTeam",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the group",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "team name",
+            "name": "team",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Team"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository-group"
+        ],
+        "summary": "Add a team to a repository group",
+        "operationId": "repoGroupAddTeam",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the group",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "team name",
+            "name": "team",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateOrUpdateRepoGroupTeamOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository-group"
+        ],
+        "summary": "Add a team to a repository group",
+        "operationId": "repoGroupDeleteTeam",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the group",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "team name",
+            "name": "team",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository-group"
+        ],
+        "summary": "Update a team assigned to a repository group",
+        "operationId": "repoGroupEditTeam",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the group",
+            "name": "group_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "team name",
+            "name": "team",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateOrUpdateRepoGroupTeamOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/label/templates": {
       "get": {
         "produces": [
@@ -40104,6 +40299,45 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateOrUpdateRepoGroupTeamOption": {
+      "description": "CreateOrUpdateRepoGroupTeamOption options for adding a team to a repo group",
+      "type": "object",
+      "properties": {
+        "can_create_in": {
+          "description": "Whether the team can create repositories and subgroups in the group",
+          "type": "boolean",
+          "x-go-name": "CanCreateIn"
+        },
+        "permission": {
+          "type": "string",
+          "enum": [
+            "read",
+            "write",
+            "admin"
+          ],
+          "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
+          "x-go-name": "Permission"
+        },
+        "units_map": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "UnitsMap",
+          "example": {
+            "repo.code": "read",
+            "repo.ext_issues": "none",
+            "repo.ext_wiki": "none",
+            "repo.issues": "write",
+            "repo.projects": "none",
+            "repo.pulls": "owner",
+            "repo.releases": "none",
+            "repo.wiki": "admin"
+          }
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateOrUpdateSecretOption": {
       "description": "CreateOrUpdateSecretOption options when creating or updating secret",
       "type": "object",
@@ -47654,7 +47888,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/MoveGroupOption"
+        "$ref": "#/definitions/CreateOrUpdateRepoGroupTeamOption"
       }
     },
     "redirect": {
