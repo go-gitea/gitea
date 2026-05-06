@@ -127,7 +127,7 @@ type Repository struct {
 	// swagger:strfmt date-time
 	MirrorUpdated time.Time     `json:"mirror_updated"`
 	// swagger:strfmt date-time
-	LastMirrorSync time.Time     `json:"last_mirror_sync"`
+	LastSync time.Time           `json:"last_sync"`
 	RepoTransfer   *RepoTransfer `json:"repo_transfer,omitempty"`
 	Topics         []string      `json:"topics"`
 	Licenses       []string      `json:"licenses"`

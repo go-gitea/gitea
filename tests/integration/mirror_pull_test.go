@@ -94,7 +94,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.True(t, ok)
 
 	mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
-	assert.Equal(t, mirror.UpdatedUnix, mirror.LastMirrorSyncUnix)
+	assert.Equal(t, mirror.UpdatedUnix, mirror.LastSyncUnix)
 
 	// actually there is a tag in the source repo, so after "sync", that tag will also come into the mirror
 	initCount++
@@ -115,7 +115,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.Equal(t, initCount, count)
 
 	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
-	lastMirrorSync := mirror.LastMirrorSyncUnix
+	lastMirrorSync := mirror.LastSyncUnix
 	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	assert.NoError(t, mirror_service.UpdateAddress(ctx, mirror, repoPath+"-missing"))
 
@@ -123,5 +123,5 @@ func TestMirrorPull(t *testing.T) {
 	assert.False(t, ok)
 
 	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
-	assert.Equal(t, lastMirrorSync, mirror.LastMirrorSyncUnix)
+	assert.Equal(t, lastMirrorSync, mirror.LastSyncUnix)
 }

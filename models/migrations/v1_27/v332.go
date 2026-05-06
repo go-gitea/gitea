@@ -5,17 +5,14 @@ package v1_27
 
 import "xorm.io/xorm"
 
-type mirrorWithLastMirrorSyncUnix struct {
-	LastMirrorSyncUnix int64 `xorm:"INDEX"`
+type mirrorWithLastSyncUnix struct {
+	LastSyncUnix int64 `xorm:"last_sync_unix INDEX"`
 }
 
-func (mirrorWithLastMirrorSyncUnix) TableName() string {
+func (mirrorWithLastSyncUnix) TableName() string {
 	return "mirror"
 }
 
-func AddLastMirrorSyncUnixToMirror(x *xorm.Engine) error {
-	if err := x.Sync(new(mirrorWithLastMirrorSyncUnix)); err != nil {
-		return err
-	}
-	return nil
+func AddLastSyncUnixToMirror(x *xorm.Engine) error {
+	return x.Sync(new(mirrorWithLastSyncUnix))
 }

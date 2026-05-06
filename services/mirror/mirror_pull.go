@@ -420,7 +420,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 	if err = repo_model.UpdateMirrorLastSyncTime(ctx, m, m.UpdatedUnix); err != nil {
-		log.Error("SyncMirrors [repo: %-v]: failed to update mirror last_mirror_sync_unix: %v", m.Repo, err)
+		log.Error("SyncMirrors [repo: %-v]: failed to update mirror last_sync_unix: %v", m.Repo, err)
 		return false
 	}
 
