@@ -30,8 +30,8 @@ func (groups RepoGroupList) LoadOwners(ctx context.Context) error {
 
 func universalGroupPermBuilder(idStr string, userID, orgID int64) builder.Cond {
 	adminSubquery := builder.Select("1").
-		From("user").
-		Where(builder.Eq{"`user`.is_admin": true, "`user`.id": userID})
+		From("`user`").
+		Where(builder.Eq{"`user`.is_admin": true, "`user`.`id`": userID})
 	eqCond := builder.Eq{"`team_user`.uid": userID}
 	teamUserSubquery := builder.Select("`team_user`.uid").
 		From("team_user").
