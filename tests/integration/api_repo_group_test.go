@@ -87,7 +87,7 @@ func seedOrgWithGroups(t *testing.T) {
 
 		teamUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userIDs[userIDIdx]})
 
-		mreq := NewRequestf(t, "PUT", "/teams/%d/members/%s", team.ID, teamUser.Name)
+		mreq := NewRequestf(t, "PUT", "/teams/%d/members/%s", team.ID, teamUser.Name).AddTokenAuth(token)
 		MakeRequest(t, mreq, http.StatusNoContent)
 		userIDIdx++
 	}
