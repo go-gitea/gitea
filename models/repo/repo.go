@@ -216,10 +216,9 @@ type Repository struct {
 	// Avatar: ID(10-20)-md5(32) - must fit into 64 symbols
 	Avatar string `xorm:"VARCHAR(64)"`
 
-	CreatedUnix             timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix             timeutil.TimeStamp `xorm:"INDEX updated"`
-	ArchivedUnix            timeutil.TimeStamp `xorm:"DEFAULT 0"`
-	LastPullSyncSuccessUnix timeutil.TimeStamp `xorm:"INDEX"`
+	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
+	ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
 }
 
 func init() {

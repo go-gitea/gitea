@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -31,14 +30,6 @@ func UpdateRepositoryOwnerNames(ctx context.Context, ownerID int64, ownerName st
 // UpdateRepositoryUpdatedTime updates a repository's updated time
 func UpdateRepositoryUpdatedTime(ctx context.Context, repoID int64, updateTime time.Time) error {
 	_, err := db.GetEngine(ctx).Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
-	return err
-}
-
-// UpdateRepositoryLastPullSyncSuccess updates a repository's last successful pull mirror sync time.
-func UpdateRepositoryLastPullSyncSuccess(ctx context.Context, repoID int64, syncTime timeutil.TimeStamp) error {
-	_, err := db.GetEngine(ctx).ID(repoID).Cols("last_pull_sync_success_unix").NoAutoTime().Update(&Repository{
-		LastPullSyncSuccessUnix: syncTime,
-	})
 	return err
 }
 

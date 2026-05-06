@@ -25,8 +25,9 @@ type Mirror struct {
 	Interval    time.Duration
 	EnablePrune bool `xorm:"NOT NULL DEFAULT true"`
 
-	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
-	NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`
+	UpdatedUnix             timeutil.TimeStamp `xorm:"INDEX"`
+	NextUpdateUnix          timeutil.TimeStamp `xorm:"INDEX"`
+	LastPullSyncSuccessUnix timeutil.TimeStamp `xorm:"INDEX"`
 
 	LFS         bool   `xorm:"lfs_enabled NOT NULL DEFAULT false"`
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
@@ -95,6 +96,13 @@ func UpdateMirror(ctx context.Context, m *Mirror) error {
 func TouchMirror(ctx context.Context, m *Mirror) error {
 	m.UpdatedUnix = timeutil.TimeStampNow()
 	_, err := db.GetEngine(ctx).ID(m.ID).Cols("updated_unix").Update(m)
+	return err
+}
+
+// UpdateMirrorLastPullSyncSuccess updates the mirror's last successful pull mirror sync time.
+func UpdateMirrorLastPullSyncSuccess(ctx context.Context, m *Mirror, syncTime timeutil.TimeStamp) error {
+	m.LastPullSyncSuccessUnix = syncTime
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("last_pull_sync_success_unix").NoAutoTime().Update(m)
 	return err
 }
 
