@@ -152,13 +152,13 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 
 	mirrorInterval := ""
 	var mirrorUpdated time.Time
-	var lastPullSyncSuccess time.Time
+	var lastMirrorSync time.Time
 	if repo.IsMirror {
 		pullMirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
 		if err == nil {
 			mirrorInterval = pullMirror.Interval.String()
 			mirrorUpdated = pullMirror.UpdatedUnix.AsTime()
-			lastPullSyncSuccess = pullMirror.LastPullSyncSuccessUnix.AsTime()
+			lastMirrorSync = pullMirror.LastMirrorSyncUnix.AsTime()
 		}
 	}
 
@@ -249,7 +249,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		DefaultTargetBranch:           defaultTargetBranch,
 		AvatarURL:                     repo.AvatarLink(ctx),
 		Internal:                      !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
-		LastPullSyncSuccess:           lastPullSyncSuccess,
+		LastMirrorSync:                lastMirrorSync,
 		MirrorInterval:                mirrorInterval,
 		MirrorUpdated:                 mirrorUpdated,
 		RepoTransfer:                  transfer,
