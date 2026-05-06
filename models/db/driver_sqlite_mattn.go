@@ -1,4 +1,4 @@
-//go:build sqlite
+//go:build sqlite_mattn && sqlite_unlock_notify
 
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT

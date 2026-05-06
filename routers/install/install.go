@@ -135,13 +135,8 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	defer db.UnsetDefaultEngine()
 
 	if err = db.InitEngine(ctx); err != nil {
-		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
-			ctx.Data["Err_DbType"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.com/installation/install-from-binary"), tplInstall, form)
-		} else {
-			ctx.Data["Err_DbSetting"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
-		}
+		ctx.Data["Err_DbSetting"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
 		return false
 	}
 

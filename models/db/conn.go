@@ -32,7 +32,7 @@ type ConnOptions struct {
 
 type SQLiteConnStrOptions struct {
 	FilePath    string
-	BusyTimeout int
+	BusyTimeout int // how long a query can wait for others (milliseconds), if timeout is reached, the error is something like "database is deadlocked"
 	JournalMode string
 }
 
@@ -55,7 +55,7 @@ func GlobalConnOptions() ConnOptions {
 const sqlDriverPostgresSchema = "postgresschema"
 
 var makeSQLiteConnStr = func(opts SQLiteConnStrOptions) (string, string, error) {
-	return "", "", errors.New(`this Gitea binary was not built with SQLite3 support, get an official release or rebuild with: -tags sqlite,sqlite_unlock_notify`)
+	return "", "", errors.New(`this Gitea binary was not built with SQLite3 support, get an official release or rebuild with: -tags sqlite_xxx`)
 }
 
 func ConnStrDefaultDatabase(opts ConnOptions) (string, string, error) {

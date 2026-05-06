@@ -149,7 +149,7 @@ func testAPICreateIssue(t *testing.T) {
 }
 
 func testAPICreateIssueParallel(t *testing.T) {
-	// FIXME: There seems to be a bug in github.com/mattn/go-sqlite3 with sqlite_unlock_notify, when doing concurrent writes to the same database,
+	// HINT: There seems to be a bug in github.com/mattn/go-sqlite3 with sqlite_unlock_notify, when doing concurrent writes to the same database,
 	// some requests may get stuck in "go-sqlite3.(*SQLiteRows).Next", "go-sqlite3.(*SQLiteStmt).exec" and "go-sqlite3.unlock_notify_wait",
 	// because the "unlock_notify_wait" never returns and the internal lock never gets releases.
 	//
@@ -158,7 +158,7 @@ func testAPICreateIssueParallel(t *testing.T) {
 	// To reproduce: make a new test run these 2 tests enough times:
 	// > func testBug() { for i := 0; i < 100; i++ { testAPICreateIssue(t); testAPICreateIssueParallel(t) } }
 	// Usually the test gets stuck in fewer than 10 iterations without this "sleep".
-	time.Sleep(time.Second)
+	time.Sleep(100 * time.Millisecond)
 
 	const body, title = "apiTestBody", "apiTestTitle"
 
