@@ -32,7 +32,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	results := map[string]*JobResult{}
 	for id, job := range origin.Jobs {
 		if job == nil {
-			return nil, fmt.Errorf("Error while parsing: %q", id)
+			return nil, fmt.Errorf("Needed job not found: %q", id)
 		}
 		results[id] = &JobResult{
 			Needs:   job.Needs(),
