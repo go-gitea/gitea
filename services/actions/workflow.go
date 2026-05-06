@@ -22,7 +22,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 

@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/nektos/act/pkg/exprparser"
+	"gitea.com/gitea/runner/act/exprparser"
 	"go.yaml.in/yaml/v4"
 )
 
