@@ -189,6 +189,22 @@ In the PR title, describe the problem you are fixing, not how you are fixing it.
 Use the first comment as a summary of your PR. \
 In the PR summary, you can describe exactly how you are fixing this problem.
 
+PR titles must follow the [Conventional Commits](https://www.conventionalcommits.org/) format, because PRs are squash-merged and the PR title becomes the resulting commit message:
+
+```text
+type(scope)!: subject
+```
+
+The allowed types are `build`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, and `test`. The generic `chore` type is intentionally not accepted; pick a more descriptive type instead.
+
+Examples:
+
+```text
+fix(web): prevent avatar upload crash on empty file
+feat(api): add pagination to repo hooks list
+ci(workflows): lint PR titles with commitlint
+```
+
 Keep this summary up-to-date as the PR evolves. \
 If your PR changes the UI, you must add **after** screenshots in the PR summary. \
 If you are not implementing a new feature, you should also post **before** screenshots for comparison.

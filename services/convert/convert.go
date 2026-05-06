@@ -38,7 +38,7 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/model"
 )
 
 // ToEmail convert models.EmailAddress to api.Email

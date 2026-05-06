@@ -7,6 +7,7 @@
 - Run single playwright e2e test files with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e`
 - Add the current year into the copyright header of new `.go` files
 - Ensure no trailing whitespace in edited files
+- Use Conventional Commits format for commit messages and PR titles (e.g. `type(scope): subject`)
 - Never force-push, amend, or squash unless asked. Use new commits and normal push for pull request updates
 - Preserve existing code comments, do not remove or rewrite comments that are still relevant
 - In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
