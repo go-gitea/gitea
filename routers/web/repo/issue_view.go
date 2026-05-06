@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -484,26 +485,57 @@ func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model
 	ctx.Data["BlockingDependencies"], ctx.Data["BlockingDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blocking)
 }
 
-func (prInfo *pullRequestViewInfo) prepareMergeBoxRequireSigning(ctx *context.Context) {
+func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
-	willSign := false
+	data := prInfo.MergeBoxData
+
+	pb := prInfo.ProtectedBranchRule
+	data.requireSigned = pb != nil && pb.RequireSignedCommits
+
+	wontSignReason := ""
 	if ctx.Doer != nil {
 		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo)
-		willSign = sign
-		ctx.Data["SigningKeyMergeDisplay"] = asymkey_model.GetDisplaySigningKey(key)
+		data.willSign = sign
+		data.signingKeyMergeDisplay = asymkey_model.GetDisplaySigningKey(key)
 		if err != nil {
 			if asymkey_service.IsErrWontSign(err) {
-				ctx.Data["WontSignReason"] = err.(*asymkey_service.ErrWontSign).Reason
+				wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
 			} else {
-				ctx.Data["WontSignReason"] = "error"
+				wontSignReason = "error"
 				log.Error("Error whilst checking if could sign pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), err)
 			}
 		}
-	} else {
-		ctx.Data["WontSignReason"] = "not_signed_in"
 	}
-	ctx.Data["WillSign"] = willSign
-	prInfo.MergeBoxData.willSign = willSign
+
+	if data.willSign {
+		prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
+			svg.RenderHTML("octicon-lock", 16, "tw-text-green"),
+			ctx.Locale.Tr("repo.signing.will_sign", data.signingKeyMergeDisplay),
+		)
+	}
+
+	if !data.requireSigned {
+		if wontSignReason != "" {
+			data.infoMergePrompts.AddInfoItem(
+				svg.RenderHTML("octicon-unlock"),
+				ctx.Locale.Tr("repo.signing.wont_sign."+wontSignReason),
+			)
+		}
+		return
+	}
+
+	if data.requireSigned && !data.willSign {
+		data.infoProtectionBlockers.AddErrorItem(
+			svg.RenderHTML("octicon-x"),
+			ctx.Locale.Tr("repo.pulls.require_signed_wont_sign"),
+		)
+		if wontSignReason != "" {
+			data.infoProtectionBlockers.AddInfoItem(
+				svg.RenderHTML("octicon-unlock"),
+				ctx.Locale.Tr("repo.signing.wont_sign."+wontSignReason),
+			)
+		}
+	}
 }
 
 func prepareIssueViewSidebarWatch(ctx *context.Context, issue *issues_model.Issue) {
@@ -571,8 +603,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxDeleteBranch(ctx *context.Cont
 
 		isPullBranchDeletable = !exist
 	}
-	ctx.Data["IsPullBranchDeletable"] = isPullBranchDeletable
-	prInfo.MergeBoxData.isPullBranchDeletable = isPullBranchDeletable
+	prInfo.MergeBoxData.IsPullBranchDeletable = isPullBranchDeletable
 }
 
 func prepareIssueViewSidebarPin(ctx *context.Context, issue *issues_model.Issue) {
@@ -829,11 +860,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	data := &pullMergeBoxData{}
 	prInfo.MergeBoxData = data
 
-	statusCheckData := prInfo.StatusCheckData
-	if statusCheckData == nil {
-		statusCheckData = &pullCommitStatusCheckData{} // make the following logic easier, no need to keep checking "nil"
-	}
-
 	canDelete := false
 	canWriteToHeadRepo := false
 
@@ -847,11 +873,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return
 		}
-	}
-
-	if pull.IsFilesConflicted() {
-		ctx.Data["IsPullFilesConflicted"] = true
-		ctx.Data["ConflictedFiles"] = pull.ConflictedFiles
 	}
 
 	if ctx.IsSigned {
@@ -903,38 +924,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	data.ReloadingInterval = util.Iif(pull.IsChecking(), 2000, 0)
 	data.ShowMergeInstructions = canWriteToHeadRepo
 	data.ShowPullCommands = pull.HeadRepo != nil && !pull.HasMerged && !issue.IsClosed
-	ctx.Data["AllowMerge"] = data.allowMerge
 
-	pb := prInfo.ProtectedBranchRule
-	if pb != nil {
-		pb.Repo = pull.BaseRepo
-		ctx.Data["ProtectedBranch"] = pb
-
-		data.isBlockedByApprovals = !issues_model.HasEnoughApprovals(ctx, pb, pull)
-		ctx.Data["IsBlockedByApprovals"] = data.isBlockedByApprovals
-
-		data.isBlockedByRejection = issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
-		ctx.Data["IsBlockedByRejection"] = data.isBlockedByRejection
-
-		data.isBlockedByOfficialReviewRequests = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
-		ctx.Data["IsBlockedByOfficialReviewRequests"] = data.isBlockedByOfficialReviewRequests
-
-		data.isBlockedByOutdatedBranch = issues_model.MergeBlockedByOutdatedBranch(pb, pull)
-		ctx.Data["IsBlockedByOutdatedBranch"] = data.isBlockedByOutdatedBranch
-
-		data.isBlockedByChangedProtectedFiles = len(pull.ChangedProtectedFiles) != 0
-		ctx.Data["IsBlockedByChangedProtectedFiles"] = data.isBlockedByChangedProtectedFiles
-
-		data.requireSigned = pb.RequireSignedCommits
-		ctx.Data["RequireSigned"] = data.requireSigned
-
-		ctx.Data["GrantedApprovals"] = issues_model.GetGrantedApprovalsCount(ctx, pb, pull)
-		ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
-		ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)
-		ctx.Data["RequireApprovalsWhitelist"] = pb.EnableApprovalsWhitelist
+	prInfo.prepareMergeBoxProtectionChecks(ctx)
+	if ctx.Written() {
+		return
 	}
 
-	prInfo.prepareMergeBoxRequireSigning(ctx)
+	prInfo.prepareMergeBoxCommitSigning(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -947,18 +943,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	prConfig := issue.Repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
 	data.AutodetectManualMerge = prConfig.AutodetectManualMerge
 
-	enableStatusCheck := pb != nil && pb.EnableStatusCheck
-	ctx.Data["EnableStatusCheck"] = enableStatusCheck
-
 	// Only show the merge box if the PR is not merged, or the branch is deletable.
 	// Otherwise, there is nothing to do, because the PR view page already contains enough information.
-	data.ShowMergeBox = !pull.HasMerged || data.isPullBranchDeletable
+	data.ShowMergeBox = !pull.HasMerged || data.IsPullBranchDeletable
 
 	isRepoAdmin := ctx.IsSigned && (ctx.Repo.Permission.IsAdmin() || ctx.Doer.IsAdmin)
 
 	// admin can merge without checks, writer can merge when checks succeed
 	// admin and writer both can make an auto merge schedule (not affected by overridable blockers)
-	data.hasStatusCheckBlocker = enableStatusCheck && !statusCheckData.RequiredChecksState.IsSuccess()
+	data.hasStatusCheckBlocker = data.enableStatusCheck && !data.StatusCheckData.RequiredChecksState.IsSuccess()
 
 	// this logic is from:
 	// {{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
@@ -971,13 +964,82 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	// {{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
 	// HINT: legacy "(not .AllowMerge)" is not right (always false, does nothing), fixed here
 	// CanMergeNow means: if the doer has write permission, whether the PR can be merged now
-	adminCanOverrideBlockers := (pb == nil || !pb.BlockAdminMergeOverride) && isRepoAdmin
+	adminCanOverrideBlockers := (prInfo.ProtectedBranchRule == nil || !prInfo.ProtectedBranchRule.BlockAdminMergeOverride) && isRepoAdmin
 	data.CanMergeNow = (!data.HasOverridableBlockers || adminCanOverrideBlockers) && // status checks are satisfied
 		(!data.requireSigned || data.willSign) // signing requirement is satisfied
 
-	ctx.Data["PullMergeBoxData"] = prInfo.MergeBoxData
 	prInfo.prepareMergeBoxFormProps(ctx)
+	prInfo.prepareMergeBoxInfoItems(ctx)
 	prInfo.prepareMergeBoxIconColor()
+
+	ctx.Data["PullMergeBoxData"] = prInfo.MergeBoxData
+}
+
+func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectionChecks(ctx *context.Context) {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, prInfo.issue.PullRequest.BaseBranch)
+	if err != nil {
+		ctx.ServerError("GetFirstMatchProtectedBranchRule", err)
+		return
+	}
+	if pb != nil {
+		pb.Repo = prInfo.issue.PullRequest.BaseRepo
+		prInfo.ProtectedBranchRule = pb
+	}
+
+	prInfo.prepareMergeBoxStatusCheckData(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	prInfo.prepareMergeBoxProtectedRules(ctx)
+	if ctx.Written() {
+		return
+	}
+}
+
+func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Context) {
+	pb := prInfo.ProtectedBranchRule
+	if pb == nil {
+		return
+	}
+
+	pull := prInfo.issue.PullRequest
+	data := prInfo.MergeBoxData
+
+	data.isBlockedByApprovals = !issues_model.HasEnoughApprovals(ctx, pb, pull)
+	if data.isBlockedByApprovals {
+		grantedApprovals := issues_model.GetGrantedApprovalsCount(ctx, pb, pull)
+		blockerInfo := ctx.Locale.Tr("repo.pulls.blocked_by_approvals", grantedApprovals, pb.RequiredApprovals)
+		if pb.EnableApprovalsWhitelist {
+			blockerInfo = ctx.Locale.Tr("repo.pulls.blocked_by_approvals_whitelisted", grantedApprovals, pb.RequiredApprovals)
+		}
+		data.infoProtectionBlockers.AddErrorItem(svg.RenderHTML("octicon-x"), blockerInfo)
+	}
+
+	data.isBlockedByRejection = issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
+	if data.isBlockedByRejection {
+		data.infoProtectionBlockers.AddErrorItem(svg.RenderHTML("octicon-x"), ctx.Locale.Tr("repo.pulls.blocked_by_rejection"))
+	}
+
+	data.isBlockedByOfficialReviewRequests = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
+	if data.isBlockedByOfficialReviewRequests {
+		data.infoProtectionBlockers.AddErrorItem(svg.RenderHTML("octicon-x"), ctx.Locale.Tr("repo.pulls.blocked_by_official_review_requests"))
+	}
+
+	data.isBlockedByOutdatedBranch = issues_model.MergeBlockedByOutdatedBranch(pb, pull)
+	if data.isBlockedByOutdatedBranch {
+		data.infoProtectionBlockers.AddErrorItem(svg.RenderHTML("octicon-x"), ctx.Locale.Tr("repo.pulls.blocked_by_outdated_branch"))
+	}
+
+	data.isBlockedByChangedProtectedFiles = len(pull.ChangedProtectedFiles) != 0
+	if data.isBlockedByChangedProtectedFiles {
+		detailItems := escapeStringSliceToHTML(pull.ChangedProtectedFiles)
+		data.infoProtectionBlockers.AddErrorItem(
+			svg.RenderHTML("octicon-x"),
+			ctx.Locale.TrN(len(pull.ChangedProtectedFiles), "repo.pulls.blocked_by_changed_protected_files_1", "repo.pulls.blocked_by_changed_protected_files_n"),
+			detailItems,
+		)
+	}
 }
 
 func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {

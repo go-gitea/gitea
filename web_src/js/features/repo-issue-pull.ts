@@ -1,51 +1,19 @@
 import {createApp} from 'vue';
-import {GET, POST} from '../modules/fetch.ts';
+import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {registerGlobalEventFunc} from '../modules/observer.ts';
 
-function initRepoPullRequestUpdate(el: HTMLElement) {
-  const prUpdateButtonContainer = el.querySelector('#update-pr-branch-with-base');
-  if (!prUpdateButtonContainer) return;
+export function initRepoPullRequestUpdate(el: HTMLElement) {
+  const elDropdown = el.querySelector(':scope > .ui.dropdown');
+  if (!elDropdown) return;
+  const elButton = el.querySelector<HTMLButtonElement>(':scope > button')!;
 
-  const prUpdateButton = prUpdateButtonContainer.querySelector<HTMLButtonElement>(':scope > button')!;
-  const prUpdateDropdown = prUpdateButtonContainer.querySelector(':scope > .ui.dropdown')!;
-  prUpdateButton.addEventListener('click', async function (e) {
-    e.preventDefault();
-    this.classList.add('is-loading');
-    let response: Response | undefined;
-    try {
-      response = await POST(this.getAttribute('data-do')!);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      this.classList.remove('is-loading');
-    }
-    let data: Record<string, any> | undefined;
-    try {
-      // TODO: the response is indeed not JSON, need to fix (see backend UpdatePullRequest)
-      data = await response?.json(); // the response is probably not a JSON
-    } catch (error) {
-      console.error(error);
-    }
-    if (data?.redirect) {
-      window.location.href = data.redirect;
-    } else {
-      window.location.reload();
-    }
-  });
-
-  fomanticQuery(prUpdateDropdown).dropdown({
+  fomanticQuery(elDropdown).dropdown({
     onChange(_text: string, _value: string, $choice: any) {
       const choiceEl = $choice[0];
-      const url = choiceEl.getAttribute('data-do');
-      if (url) {
-        const buttonText = prUpdateButton.querySelector('.button-text');
-        if (buttonText) {
-          buttonText.textContent = choiceEl.textContent;
-        }
-        prUpdateButton.setAttribute('data-do', url);
-      }
+      elButton.textContent = choiceEl.textContent;
+      elButton.setAttribute('data-url', choiceEl.getAttribute('data-update-url'));
     },
   });
 }
@@ -69,7 +37,6 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
 
 export function initRepoPullMergeBox(el: HTMLElement) {
   registerGlobalEventFunc('click', 'onCommitStatusChecksToggle', onCommitStatusChecksToggle);
-  initRepoPullRequestUpdate(el);
   initRepoPullRequestMergeForm(el);
 
   const reloadingIntervalValue = el.getAttribute('data-pull-merge-box-reloading-interval');
