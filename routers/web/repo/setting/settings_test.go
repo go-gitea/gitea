@@ -446,7 +446,10 @@ func TestHTTPSDeployKeyCreateAndDelete(t *testing.T) {
 		IsWritable: true,
 	})
 	HTTPSDeployKeysPost(ctx)
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+
+	// Handler must render the template directly (200), not redirect (303).
+	// This avoids putting the plaintext token in a cookie-backed flash.
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
 
 	keys, err := db.Find[asymkey_model.HTTPSDeployKey](ctx,
 		asymkey_model.ListHTTPSDeployKeysOptions{RepoID: 1})
@@ -455,10 +458,10 @@ func TestHTTPSDeployKeyCreateAndDelete(t *testing.T) {
 	assert.Equal(t, "ci-writable", keys[0].Name)
 	assert.False(t, keys[0].IsReadOnly())
 
-	// The plaintext token must be stashed on the flash for one-time display.
-	flash := ctx.Flash
-	require.NotNil(t, flash)
-	assert.Contains(t, flash.SuccessMsg, "ci-writable")
+	// The plaintext token must be on ctx.Data, NOT in flash/cookies.
+	assert.NotEmpty(t, ctx.Data["HTTPSDeployKeyToken"], "token must be in ctx.Data")
+	assert.NotContains(t, ctx.Flash.SuccessMsg, ctx.Data["HTTPSDeployKeyToken"],
+		"token must NOT be in flash — it is a secret credential")
 
 	// Now delete it.
 	delCtx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys/https/delete")
@@ -469,6 +472,34 @@ func TestHTTPSDeployKeyCreateAndDelete(t *testing.T) {
 	assert.NotEqual(t, http.StatusInternalServerError, delCtx.Resp.WrittenStatus())
 
 	keys, err = db.Find[asymkey_model.HTTPSDeployKey](ctx,
+		asymkey_model.ListHTTPSDeployKeysOptions{RepoID: 1})
+	require.NoError(t, err)
+	assert.Empty(t, keys)
+}
+
+func TestHTTPSDeployKeysPostValidationError(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys/https")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+
+	// Empty title should fail the Required binding validation.
+	web.SetForm(ctx, &forms.HTTPSDeployKeyForm{
+		Title:      "",
+		IsWritable: false,
+	})
+	HTTPSDeployKeysPost(ctx)
+
+	// Must render template inline (200), not redirect — so error state is preserved.
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+
+	// Error state must be set so the template can show the panel with errors.
+	hasError, ok := ctx.Data["HasError"].(bool)
+	assert.True(t, ok && hasError, "HasError must be set on validation failure")
+
+	// No HTTPS deploy key should have been created.
+	keys, err := db.Find[asymkey_model.HTTPSDeployKey](ctx,
 		asymkey_model.ListHTTPSDeployKeysOptions{RepoID: 1})
 	require.NoError(t, err)
 	assert.Empty(t, keys)
