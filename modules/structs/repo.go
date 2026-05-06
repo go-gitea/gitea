@@ -124,7 +124,7 @@ type Repository struct {
 	// swagger:strfmt date-time
 	LastPullSyncSuccess time.Time `json:"last_pull_sync_success"`
 	Licenses            []string  `json:"licenses"`
-	MirrorInterval                string           `json:"mirror_interval"`
+	MirrorInterval      string    `json:"mirror_interval"`
 	// ObjectFormatName of the underlying git repository
 	ObjectFormatName ObjectFormatName `json:"object_format_name"`
 	// swagger:strfmt date-time
