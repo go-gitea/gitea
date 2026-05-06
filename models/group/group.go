@@ -97,7 +97,7 @@ func (g *Group) LoadSubgroups(ctx context.Context, recursive bool) error {
 }
 
 func (g *Group) LoadAccessibleSubgroups(ctx context.Context, recursive bool, doer *user_model.User) error {
-	return g.doLoadSubgroups(ctx, recursive, AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead), 0)
+	return g.doLoadSubgroups(ctx, recursive, AccessibleGroupCondition(doer, g.OwnerID, unit.TypeInvalid, perm.AccessModeRead), 0)
 }
 
 func (g *Group) LoadAttributes(ctx context.Context) error {
@@ -137,7 +137,7 @@ func (g *Group) CanAccess(ctx context.Context, user *user_model.User) (bool, err
 }
 
 func (g *Group) CanAccessAtLevel(ctx context.Context, user *user_model.User, level perm.AccessMode) (bool, error) {
-	orCond := builder.Or(AccessibleGroupCondition(user, unit.TypeInvalid, level))
+	orCond := builder.Or(AccessibleGroupCondition(user, g.OwnerID, unit.TypeInvalid, level))
 	if level == perm.AccessModeRead {
 		orCond = orCond.Or(builder.Eq{"`repo_group`.visibility": structs.VisibleTypePublic})
 	}
