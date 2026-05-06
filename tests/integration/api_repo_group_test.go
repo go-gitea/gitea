@@ -50,7 +50,6 @@ func seedOrgWithGroups(t *testing.T) {
 
 	// seed teams
 	teamPrivs := map[string]perm_model.AccessMode{
-		"Owners":  perm_model.AccessModeOwner,
 		"Admins":  perm_model.AccessModeAdmin,
 		"Writers": perm_model.AccessModeWrite,
 		"Readers": perm_model.AccessModeRead,
@@ -147,7 +146,7 @@ func testOwnersAndAdminsCanSeeAllTopLevelGroups(t *testing.T) {
 
 func testNonOrgMemberWontSeeHiddenTopLevelGroups(t *testing.T) {
 	org := getOrgWithGroups(t)
-	req := NewRequestf(t, "GET", "/api/v1/orgs/org-with-groups/groups").AddBasicAuth("user4")
+	req := NewRequestf(t, "GET", "/api/v1/orgs/org-with-groups/groups").AddBasicAuth("user12")
 	resp := MakeRequest(t, req, http.StatusOK)
 	groups := DecodeJSON(t, resp, []api.Group{})
 	expectedLen := unittest.GetCount(t, new(group_model.Group),
