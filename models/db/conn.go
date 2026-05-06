@@ -31,8 +31,10 @@ type ConnOptions struct {
 }
 
 type SQLiteConnStrOptions struct {
-	FilePath    string
-	BusyTimeout int // how long a query can wait for others (milliseconds), if timeout is reached, the error is something like "database is deadlocked"
+	FilePath string
+	// how long a concurrent query can wait for others (milliseconds),
+	// if timeout is reached, the error is something like "database is locked (SQLITE_BUSY)"
+	BusyTimeout int
 	JournalMode string
 }
 
