@@ -261,6 +261,9 @@ func runMigrateStorage(ctx context.Context, cmd *cli.Command) error {
 			&setting.Storage{
 				Path: p,
 			})
+	case "minio":
+		log.Warn("Deprecation: --storage=minio is deprecated, please use --storage=s3 instead because this fallback will be removed in a future release")
+		fallthrough
 	case string(setting.S3StorageType):
 		dstStorage, err = storage.NewS3Storage(
 			ctx,
