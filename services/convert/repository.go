@@ -248,12 +248,12 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		AvatarURL:                     repo.AvatarLink(ctx),
 		Internal:                      !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		LastPullSyncSuccess:           repo.LastPullSyncSuccessUnix.AsTime(),
-		Licenses:                      util.SliceNilAsEmpty(repoLicenses.StringList()),
 		MirrorInterval:                mirrorInterval,
 		MirrorUpdated:                 mirrorUpdated,
 		RepoTransfer:                  transfer,
 		Topics:                        util.SliceNilAsEmpty(repo.Topics),
 		ObjectFormatName:              api.ObjectFormatName(repo.ObjectFormatName),
+		Licenses:                      util.SliceNilAsEmpty(repoLicenses.StringList()),
 	}
 }
 
