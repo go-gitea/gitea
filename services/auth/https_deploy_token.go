@@ -19,7 +19,7 @@ var _ Method = &HTTPSDeployToken{}
 // HTTPSDeployToken authenticates HTTP Basic-auth credentials whose token half
 // matches a row in the https_deploy_key table. It is deliberately *not*
 // registered globally: callers add it to an auth group only for request
-// contexts where a repo-scoped bearer token makes sense (currently the git
+// contexts where a repo-scoped deploy token makes sense (currently the git
 // smart-HTTP router). See routers/web/web.go for the gating flag.
 type HTTPSDeployToken struct{}
 
