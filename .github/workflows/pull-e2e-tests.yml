@@ -40,11 +40,11 @@ jobs:
       - run: make deps-backend
       - run: make backend
         env:
-          TAGS: bindata sqlite sqlite_unlock_notify
+          TAGS: bindata
       - run: make playwright
       - run: make test-e2e
         timeout-minutes: 10
         env:
-          TAGS: bindata sqlite sqlite_unlock_notify
+          TAGS: bindata
           FORCE_COLOR: 1
           GITEA_TEST_E2E_DEBUG: 1

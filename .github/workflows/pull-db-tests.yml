@@ -62,6 +62,8 @@ jobs:
         run: GITEA_TEST_DATABASE=pgsql make test-integration
         timeout-minutes: 50
         env:
+          # pgsql is chosen to be the unlucky one to run with the slow "race detector", it is about 60% slower.
+          GOTEST_FLAGS: -race -timeout=40m
           TAGS: bindata gogit
           TEST_LDAP: 1
 
@@ -82,7 +84,7 @@ jobs:
       - run: make deps-backend
       - run: make backend
         env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
+          TAGS: bindata gogit
           GOEXPERIMENT:
       - name: run migration tests
         run: GITEA_TEST_DATABASE=sqlite make test-migration
@@ -92,9 +94,10 @@ jobs:
         run: GITEA_TEST_DATABASE=sqlite make test-integration
         timeout-minutes: 50
         env:
+          # sqlite driver can contain large amount of Golang code, so don't use race detector for it, otherwise, extremely slow
+          GOTEST_FLAGS: -timeout=40m
           TAGS: bindata gogit
           GOEXPERIMENT:
-          GOTEST_FLAGS: -race -timeout=40m
 
   test-unit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -154,15 +157,15 @@ jobs:
       - name: unit-tests
         run: make test-backend test-check
         env:
-          TAGS: bindata sqlite sqlite_unlock_notify
           GOTEST_FLAGS: -race -timeout=20m
+          TAGS: bindata
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
       - name: unit-tests-gogit
         run: make test-backend test-check
         env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
-          GOEXPERIMENT:
           GOTEST_FLAGS: -race -timeout=20m
+          TAGS: bindata gogit
+          GOEXPERIMENT:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
   test-mysql:
