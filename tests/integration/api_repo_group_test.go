@@ -17,9 +17,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
-	"xorm.io/builder"
 
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 func seedOrgWithGroups(t *testing.T) {
