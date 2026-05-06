@@ -13,7 +13,7 @@
 		</h2>
 		{{template "base/alert" .}}
 
-		<form class="ui form" action="{{.Link}}" method="post" data-global-init="initReleaseEditForm"
+		<form class="ui form" action="{{.Link}}" id="new-release" method="post" data-global-init="initReleaseEditForm"
 			data-existing-tags="{{JsonUtils.EncodeToString .Tags}}"
 			data-tag-helper="{{ctx.Locale.Tr "repo.release.tag_helper"}}"
 			data-tag-helper-new="{{ctx.Locale.Tr "repo.release.tag_helper_new"}}"
