@@ -792,6 +792,21 @@ func ToDeployKey(apiLink string, key *asymkey_model.DeployKey) *api.DeployKey {
 	}
 }
 
+// ToHTTPSDeployKey convert asymkey_model.HTTPSDeployKey to api.HTTPSDeployKey
+func ToHTTPSDeployKey(apiLink string, key *asymkey_model.HTTPSDeployKey) *api.HTTPSDeployKey {
+	return &api.HTTPSDeployKey{
+		ID:                key.ID,
+		Name:              key.Name,
+		URL:               fmt.Sprintf("%s%d", apiLink, key.ID),
+		TokenLastEight:    key.TokenLastEight,
+		ReadOnly:          key.Mode == perm.AccessModeRead,
+		HasUsed:           key.HasUsed,
+		HasRecentActivity: key.HasRecentActivity,
+		Created:           key.CreatedUnix.AsTime(),
+		Updated:           key.UpdatedUnix.AsTime(),
+	}
+}
+
 // ToOrganization convert user_model.User to api.Organization
 func ToOrganization(ctx context.Context, org *organization.Organization) *api.Organization {
 	return &api.Organization{

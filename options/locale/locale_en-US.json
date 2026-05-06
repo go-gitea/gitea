@@ -2389,6 +2389,7 @@
   "repo.settings.add_https_deploy_key": "Add HTTPS Deploy Key",
   "repo.settings.no_https_deploy_keys": "There are no HTTPS deploy keys yet.",
   "repo.settings.https_deploy_key_created": "The HTTPS deploy key \"%s\" has been created. Copy the token now — it will not be shown again: %s",
+  "repo.settings.https_deploy_key_created_info": "Your HTTPS deploy key \"%s\" was created successfully. Copy the token below — it will not be shown again:",
   "repo.settings.branches": "Branches",
   "repo.settings.protected_branch": "Branch Protection",
   "repo.settings.protected_branch.save_rule": "Save Rule",
