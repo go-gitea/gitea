@@ -11,11 +11,17 @@ import (
 	group_model "code.gitea.io/gitea/models/group"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 
 	"xorm.io/builder"
 )
 
-func AddTeamToGroup(ctx context.Context, group *group_model.Group, tname string) error {
+func AddTeamToGroup(ctx context.Context, group *group_model.Group, tname string, unitMap map[string]string, canCreateIn *bool, accessMode *perm.AccessMode) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
 	t, err := org_model.GetTeam(ctx, group.OwnerID, tname)
 	if err != nil {
 		return err
@@ -29,31 +35,54 @@ func AddTeamToGroup(ctx context.Context, group *group_model.Group, tname string)
 		return err
 	}
 	mode := t.AccessMode
-	canCreateIn := t.CanCreateOrgRepo
+	canCreateInRepo := t.CanCreateOrgRepo
 	if parentGroup != nil {
 		mode = max(t.AccessMode, parentGroup.AccessMode)
-		canCreateIn = parentGroup.CanCreateIn || t.CanCreateOrgRepo
+		canCreateInRepo = parentGroup.CanCreateIn || t.CanCreateOrgRepo
+	}
+	if accessMode != nil {
+		mode = max(mode, *accessMode)
+	}
+	if canCreateIn != nil {
+		canCreateInRepo = *canCreateIn
 	}
 	if err = group.LoadParentGroup(ctx); err != nil {
 		return err
 	}
-	err = group_model.AddTeamGroup(ctx, group.ID, t.ID, group.ID, mode, canCreateIn)
+	err = group_model.AddTeamGroup(ctx, group.ID, t.ID, group.ID, mode, canCreateInRepo)
 	if err != nil {
 		return err
 	}
-
-	return nil
+	for unitName, unitPerm := range unitMap {
+		err = UpdateOrCreateGroupUnit(ctx, true, group, t, unit.Units[unit.TypeFromKey(unitName)], perm.ParseAccessMode(unitPerm))
+		if err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
 }
 
 func DeleteTeamFromGroup(ctx context.Context, group *group_model.Group, org int64, teamName string) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
 	team, err := org_model.GetTeam(ctx, org, teamName)
 	if err != nil {
 		return err
 	}
-	return group_model.RemoveTeamGroup(ctx, org, team.ID, group.ID)
+	err = group_model.RemoveTeamGroup(ctx, org, team.ID, group.ID)
+	if err != nil {
+		return err
+	}
+	if _, err = db.GetEngine(ctx).Where("group_id = ?", group.ID).Delete(new(group_model.RepoGroupUnit)); err != nil {
+		return err
+	}
+	return committer.Commit()
 }
 
-func UpdateGroupTeam(ctx context.Context, gt *group_model.RepoGroupTeam) (err error) {
+func UpdateGroupTeam(ctx context.Context, gt *group_model.RepoGroupTeam, unitMap map[string]string) (err error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -64,13 +93,17 @@ func UpdateGroupTeam(ctx context.Context, gt *group_model.RepoGroupTeam) (err er
 	if _, err = sess.ID(gt.ID).AllCols().Update(gt); err != nil {
 		return fmt.Errorf("update: %w", err)
 	}
-	for _, unit := range gt.Units {
-		unit.TeamID = gt.TeamID
+	for _, groupUnit := range gt.Units {
+		groupUnit.TeamID = gt.TeamID
+		if v, ok := unitMap[groupUnit.Unit().NameKey]; ok {
+			actualPerm := perm.ParseAccessMode(v)
+			groupUnit.AccessMode = actualPerm
+		}
 		if _, err = sess.
 			Where("team_id=?", gt.TeamID).
 			And("group_id=?", gt.GroupID).
-			And("type = ?", unit.Type).
-			Update(unit); err != nil {
+			And("type = ?", groupUnit.Type).
+			Update(groupUnit); err != nil {
 			return err
 		}
 	}
@@ -80,8 +113,11 @@ func UpdateGroupTeam(ctx context.Context, gt *group_model.RepoGroupTeam) (err er
 // RecalculateGroupAccess recalculates team access to a group.
 // should only be called if and only if a group was moved from another group.
 func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew bool) error {
-	var err error
-	sess := db.GetEngine(ctx)
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
 	if err = g.LoadParentGroup(ctx); err != nil {
 		return err
 	}
@@ -119,29 +155,40 @@ func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew boo
 				if err != nil {
 					return err
 				}
-				newAccessMode = min(newAccessMode, gu.AccessMode)
+				if gu != nil {
+					newAccessMode = min(newAccessMode, gu.AccessMode)
+				}
 			}
-			if isNew {
-				if _, err = sess.Table("repo_group_unit").Insert(&group_model.RepoGroupUnit{
-					Type:       u.Type,
-					TeamID:     t.ID,
-					GroupID:    g.ID,
-					AccessMode: newAccessMode,
-				}); err != nil {
-					return err
-				}
-			} else {
-				if _, err = sess.Table("repo_group_unit").Where(builder.Eq{
-					"type":     u.Type,
-					"team_id":  t.ID,
-					"group_id": g.ID,
-				}).Cols("access_mode").Update(&group_model.RepoGroupUnit{
-					AccessMode: newAccessMode,
-				}); err != nil {
-					return err
-				}
+			err = UpdateOrCreateGroupUnit(ctx, isNew, g, t, u.Unit(), newAccessMode)
+			if err != nil {
+				return err
 			}
 		}
 	}
-	return err
+	return committer.Commit()
+}
+
+func UpdateOrCreateGroupUnit(ctx context.Context, isNew bool, group *group_model.Group, team *org_model.Team, unit unit.Unit, mode perm.AccessMode) error {
+	sess := db.GetEngine(ctx)
+	if isNew {
+		if _, err := sess.Table("repo_group_unit").Insert(&group_model.RepoGroupUnit{
+			Type:       unit.Type,
+			TeamID:     team.ID,
+			GroupID:    group.ID,
+			AccessMode: mode,
+		}); err != nil {
+			return err
+		}
+	} else {
+		if _, err := sess.Table("repo_group_unit").Where(builder.Eq{
+			"type":     unit.Type,
+			"team_id":  team.ID,
+			"group_id": group.ID,
+		}).Cols("access_mode").Update(&group_model.RepoGroupUnit{
+			AccessMode: mode,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
