@@ -318,13 +318,9 @@ func TestCorrectIssueStats(t *testing.T) {
 	defer test.MockVariableValue(&issues_model.MaxQueryParameters, 25)()
 	issueAmount := issues_model.MaxQueryParameters + 10
 
-	var wg sync.WaitGroup
 	for i := range issueAmount {
-		wg.Go(func() {
-			testInsertIssue(t, fmt.Sprintf("Issue %d", i+1), "Bugs are nasty", 0)
-		})
+		testInsertIssue(t, fmt.Sprintf("Issue %d", i+1), "Bugs are nasty", 0)
 	}
-	wg.Wait()
 
 	// Now we will get all issueID's that match the "Bugs are nasty" query.
 	issues, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
