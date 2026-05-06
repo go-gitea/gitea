@@ -13,19 +13,6 @@
       },
       "args": ["web"],
       "showLog": true
-    },
-    {
-      "name": "Launch (with SQLite3)",
-      "type": "go",
-      "request": "launch",
-      "mode": "debug",
-      "buildFlags": "-tags='sqlite sqlite_unlock_notify'",
-      "program": "${workspaceRoot}/main.go",
-      "env": {
-        "GITEA_WORK_DIR": "${workspaceRoot}",
-      },
-      "args": ["web"],
-      "showLog": true
     }
   ]
 }

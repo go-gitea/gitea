@@ -1,4 +1,4 @@
-//go:build sqlite
+//go:build sqlite_mattn && sqlite_unlock_notify
 
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
@@ -10,14 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
-
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func init() {
-	setting.SupportedDatabaseTypes = append(setting.SupportedDatabaseTypes, "sqlite3")
-	makeSQLiteConnStr = makeSQLiteConnStrMattnCGO
+	registerSQLiteConnStrMaker(makeSQLiteConnStrMattnCGO)
 }
 
 func makeSQLiteConnStrMattnCGO(opts SQLiteConnStrOptions) (string, string, error) {
@@ -30,5 +27,5 @@ func makeSQLiteConnStrMattnCGO(opts SQLiteConnStrOptions) (string, string, error
 		params = append(params, "_journal_mode="+opts.JournalMode)
 	}
 	connStr := fmt.Sprintf("file:%s?%s", opts.FilePath, strings.Join(params, "&"))
-	return "sqlite3", connStr, nil
+	return sqlDriverSQLite3, connStr, nil
 }
