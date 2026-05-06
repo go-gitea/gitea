@@ -121,16 +121,16 @@ type Repository struct {
 	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
-	// swagger:strfmt date-time
-	LastPullSyncSuccess time.Time `json:"last_pull_sync_success"`
-	Licenses            []string  `json:"licenses"`
 	MirrorInterval      string    `json:"mirror_interval"`
 	// ObjectFormatName of the underlying git repository
 	ObjectFormatName ObjectFormatName `json:"object_format_name"`
 	// swagger:strfmt date-time
 	MirrorUpdated time.Time     `json:"mirror_updated"`
+	// swagger:strfmt date-time
+	LastPullSyncSuccess time.Time `json:"last_pull_sync_success"`
 	RepoTransfer  *RepoTransfer `json:"repo_transfer,omitempty"`
 	Topics        []string      `json:"topics"`
+	Licenses            []string  `json:"licenses"`
 }
 
 // CreateRepoOption options when creating repository
