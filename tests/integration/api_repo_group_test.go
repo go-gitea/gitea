@@ -57,7 +57,7 @@ func seedOrgWithGroups(t *testing.T) {
 	}
 	var teams []*api.Team
 
-	userIDs := []int64{4, 5, 8, 9, 10}
+	userIDs := []int64{4, 5, 8, 9}
 
 	userIDIdx := 0
 	for k, v := range teamPrivs {
@@ -98,8 +98,11 @@ func seedOrgWithGroups(t *testing.T) {
 	for _, group := range allPrivateGroups {
 		baseTeamURL := "/api/v1/groups/" + strconv.FormatInt(group.ID, 10) + "/teams"
 		for _, team := range teams {
+			if team.Permission == api.AccessLevelNameNone {
+				continue
+			}
 			trq := NewRequestWithJSON(t, "PUT", baseTeamURL+"/"+team.Name, &api.CreateOrUpdateRepoGroupTeamOption{
-				CanCreateIn: new(group.ID%int64(2) == int64(0) && perm_model.ParseAccessMode(string(team.Permission)) > perm_model.AccessModeRead),
+				CanCreateIn: new(group.ID%int64(2) == int64(1) && perm_model.ParseAccessMode(string(team.Permission)) > perm_model.AccessModeRead),
 			}).AddTokenAuth(token)
 			MakeRequest(t, trq, http.StatusNoContent)
 			assert.NoError(t, err)
