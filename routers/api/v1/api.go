@@ -1864,9 +1864,9 @@ func Routes() *web.Router {
 				m.Get("", group.ListTeams)
 				m.Combo("/{team}").
 					Get(group.IsTeam).
-					Put(group.AddTeam, reqGroupMembership(perm.AccessModeAdmin, false)).
-					Patch(group.EditTeam, reqGroupMembership(perm.AccessModeAdmin, false)).
-					Delete(group.DeleteTeam, reqGroupMembership(perm.AccessModeAdmin, false))
+					Put(reqGroupMembership(perm.AccessModeAdmin, false), bind(api.CreateOrUpdateRepoGroupTeamOption{}), group.AddTeam).
+					Patch(reqGroupMembership(perm.AccessModeAdmin, false), bind(api.CreateOrUpdateRepoGroupTeamOption{}), group.EditTeam).
+					Delete(reqGroupMembership(perm.AccessModeAdmin, false), group.DeleteTeam)
 			}, reqToken(), reqGroupMembership(perm.AccessModeRead, false))
 		}, checkTokenPublicOnly())
 	})
