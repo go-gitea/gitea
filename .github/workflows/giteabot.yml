@@ -24,9 +24,6 @@ on:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
-  statuses: write
 
 concurrency:
   group: ${{ format('{0}-{1}', github.workflow, (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review') && format('pr-{0}', github.event.pull_request.number) || 'maintenance') }}
