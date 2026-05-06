@@ -27,5 +27,5 @@ func makeSQLiteConnStrMattnCGO(opts SQLiteConnStrOptions) (string, string, error
 		params = append(params, "_journal_mode="+opts.JournalMode)
 	}
 	connStr := fmt.Sprintf("file:%s?%s", opts.FilePath, strings.Join(params, "&"))
-	return "sqlite3", connStr, nil
+	return sqlDriverSQLite3, connStr, nil
 }

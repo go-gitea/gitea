@@ -22,7 +22,7 @@ import (
 func init() {
 	// this driver contains huge amount of Golang code, so it is much slower when "-race" check is enabled.
 	registerSQLiteConnStrMaker(makeSQLiteConnStrModerncCCGO)
-	sql.Register("sqlite3", &sqlite.Driver{})
+	sql.Register(sqlDriverSQLite3, &sqlite.Driver{})
 }
 
 func makeSQLiteConnStrModerncCCGO(opts SQLiteConnStrOptions) (string, string, error) {
@@ -37,5 +37,5 @@ func makeSQLiteConnStrModerncCCGO(opts SQLiteConnStrOptions) (string, string, er
 		params = append(params, fmt.Sprintf("_pragma=journal_mode(%s)", opts.JournalMode))
 	}
 	connStr := fmt.Sprintf("file:%s?%s", opts.FilePath, strings.Join(params, "&"))
-	return "sqlite3", connStr, nil
+	return sqlDriverSQLite3, connStr, nil
 }

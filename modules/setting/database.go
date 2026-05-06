@@ -14,7 +14,7 @@ var (
 	// SupportedDatabaseTypes includes all XORM supported databases type, sqlite3 maybe added by the tag-controlled drivers
 	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql"}
 	// DatabaseTypeNames contains the friendly names for all database types
-	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3"}
+	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", DatabaseTypeSQLite3: "SQLite3"}
 
 	// Database holds the database settings
 	Database = struct {
@@ -92,8 +92,10 @@ func loadDBSetting(rootCfg ConfigProvider) {
 // DatabaseType FIXME: it is also used directly with "schemas.DBType", so the names must be consistent
 type DatabaseType string
 
+const DatabaseTypeSQLite3 = "sqlite3"
+
 func (t DatabaseType) IsSQLite3() bool {
-	return t == "sqlite3"
+	return t == DatabaseTypeSQLite3
 }
 
 func (t DatabaseType) IsMySQL() bool {
