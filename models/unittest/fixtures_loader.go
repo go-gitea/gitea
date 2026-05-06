@@ -4,6 +4,7 @@
 package unittest
 
 import (
+	"context"
 	"database/sql"
 	"encoding/hex"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/models/db"
 
@@ -32,7 +34,7 @@ type FixtureItem struct {
 
 type fixturesLoaderInternal struct {
 	xormEngine       *xorm.Engine
-	xormTableNames   map[string]bool
+	tableSyncMap     sync.Map
 	db               *sql.DB
 	dbType           schemas.DBType
 	fixtures         map[string]*FixtureItem
@@ -148,23 +150,34 @@ func (f *fixturesLoaderInternal) Load() error {
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	ctx := context.WithValue(context.Background(), db.ContextKeyTestFixtures, true)
+
 	for _, fixture := range f.fixtures {
-		if !f.xormTableNames[fixture.tableName] {
+		synced, existing := f.tableSyncMap.Load(fixture.tableName)
+		if synced == true || !existing {
 			continue
 		}
 		if err := f.loadFixtures(tx, fixture); err != nil {
 			return fmt.Errorf("failed to load fixtures from %s: %w", fixture.fileFullPath, err)
 		}
+		f.tableSyncMap.Store(fixture.tableName, true)
 	}
 	if err = tx.Commit(); err != nil {
 		return err
 	}
-	for xormTableName := range f.xormTableNames {
-		if f.fixtures[xormTableName] == nil {
-			_, _ = f.xormEngine.Exec("DELETE FROM `" + xormTableName + "`")
+	f.tableSyncMap.Range(func(k, v any) bool {
+		tableName, synced := k.(string), v.(bool)
+		if !synced && f.fixtures[tableName] == nil {
+			_, _ = f.xormEngine.Context(ctx).Exec("DELETE FROM `" + tableName + "`")
 		}
-	}
+		f.tableSyncMap.Store(tableName, true)
+		return true
+	})
 	return nil
+}
+
+func (f *fixturesLoaderInternal) MarkTableChanged(tableName string) {
+	f.tableSyncMap.Store(tableName, false)
 }
 
 func FixturesFileFullPaths(dir string, files []string) (map[string]*FixtureItem, error) {
@@ -215,11 +228,12 @@ func NewFixturesLoader(x *xorm.Engine, opts FixturesOptions) (FixturesLoader, er
 		f.paramPlaceholder = func(idx int) string { return "?" }
 	}
 
+	// If a model is not imported in a package (no bean is registered), the table won't exist in database.
+	// So only use tables of registered models (beans).
 	xormBeans, _ := db.NamesToBean()
-	f.xormTableNames = map[string]bool{}
 	for _, bean := range xormBeans {
-		f.xormTableNames[x.TableName(bean)] = true
+		beanTableName := x.TableName(bean)
+		f.tableSyncMap.Store(trimTableNameQuotes(beanTableName), false)
 	}
-
 	return f, nil
 }

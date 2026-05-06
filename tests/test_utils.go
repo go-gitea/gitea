@@ -36,6 +36,7 @@ func InitIntegrationTest() error {
 		return err
 	}
 
+	setting.Database.SlowQueryThreshold = 0
 	setting.LoadDBSetting()
 	cleanupDb, err := unittest.ResetTestDatabase()
 	if err != nil {

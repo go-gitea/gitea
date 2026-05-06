@@ -41,7 +41,8 @@ var (
 		AutoMigration      bool
 		SlowQueryThreshold time.Duration
 	}{
-		IterateBufferSize: 50,
+		IterateBufferSize:  50,
+		SlowQueryThreshold: 5 * time.Second,
 	}
 )
 
@@ -86,7 +87,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	Database.DBConnectRetries = sec.Key("DB_RETRIES").MustInt(10)
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
-	Database.SlowQueryThreshold = sec.Key("SLOW_QUERY_THRESHOLD").MustDuration(5 * time.Second)
+	Database.SlowQueryThreshold = sec.Key("SLOW_QUERY_THRESHOLD").MustDuration(Database.SlowQueryThreshold)
 }
 
 // DatabaseType FIXME: it is also used directly with "schemas.DBType", so the names must be consistent

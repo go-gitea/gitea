@@ -22,11 +22,17 @@ type EngineHook struct {
 var _ contexts.Hook = (*EngineHook)(nil)
 
 func (*EngineHook) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
+	if c.Ctx.Value(ContextKeyTestFixtures) != nil {
+		return c.Ctx, nil
+	}
 	ctx, _ := gtprof.GetTracer().Start(c.Ctx, gtprof.TraceSpanDatabase)
 	return ctx, nil
 }
 
 func (h *EngineHook) AfterProcess(c *contexts.ContextHook) error {
+	if c.Ctx.Value(ContextKeyTestFixtures) != nil {
+		return nil
+	}
 	span := gtprof.GetContextSpan(c.Ctx)
 	if span != nil {
 		// Do not record SQL parameters here:

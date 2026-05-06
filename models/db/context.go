@@ -17,12 +17,15 @@ import (
 	"xorm.io/xorm"
 )
 
-type engineContextKeyType struct{}
+type contextKey struct{ key string }
 
-var engineContextKey = engineContextKeyType{}
+var (
+	contextKeyEngine       = contextKey{"engine"}
+	ContextKeyTestFixtures = contextKey{"test-fixtures"}
+)
 
 func withContextEngine(ctx context.Context, e Engine) context.Context {
-	return context.WithValue(ctx, engineContextKey, e)
+	return context.WithValue(ctx, contextKeyEngine, e)
 }
 
 var (
@@ -68,7 +71,7 @@ func contextSafetyCheck(e Engine) {
 
 // GetEngine gets an existing db Engine/Statement or creates a new Session
 func GetEngine(ctx context.Context) Engine {
-	if engine, ok := ctx.Value(engineContextKey).(Engine); ok {
+	if engine, ok := ctx.Value(contextKeyEngine).(Engine); ok {
 		// if reusing the existing session, need to do "contextSafetyCheck" because the Iterate creates a "autoResetStatement=false" session
 		contextSafetyCheck(engine)
 		return engine
@@ -309,7 +312,7 @@ func InTransaction(ctx context.Context) bool {
 }
 
 func getTransactionSession(ctx context.Context) *xorm.Session {
-	e, _ := ctx.Value(engineContextKey).(Engine)
+	e, _ := ctx.Value(contextKeyEngine).(Engine)
 	if sess, ok := e.(*xorm.Session); ok && sess.IsInTx() {
 		return sess
 	}
