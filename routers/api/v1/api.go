@@ -467,6 +467,37 @@ func reqAnyRepoReader() func(ctx *context.APIContext) {
 	}
 }
 
+// reqOrgAdmin user should be an organization or site-wide admin
+func reqOrgAdmin() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.IsUserSiteAdmin() {
+			return
+		}
+		var orgID int64
+		if ctx.Org.Organization != nil {
+			orgID = ctx.Org.Organization.ID
+		} else if ctx.Org.Team != nil {
+			orgID = ctx.Org.Team.OrgID
+		} else {
+			setting.PanicInDevOrTesting("reqOrgOwnership: unprepared context")
+			ctx.APIErrorInternal(errors.New("reqOrgOwnership: unprepared context"))
+			return
+		}
+		isAdmin, err := organization.IsOrganizationAdmin(ctx, orgID, ctx.Doer.ID)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		} else if !isAdmin {
+			if ctx.Org.Organization != nil {
+				ctx.APIError(http.StatusForbidden, "Must be an organization owner")
+			} else {
+				ctx.APIErrorNotFound()
+			}
+			return
+		}
+	}
+}
+
 // reqOrgOwnership user should be an organization owner, or a site admin
 func reqOrgOwnership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
@@ -1760,7 +1791,7 @@ func Routes() *web.Router {
 			}, reqToken(), reqOrgOwnership())
 			m.Group("/groups", func() {
 				m.Get("", org.GetOrgGroups)
-				m.Post("/new", reqToken(), reqGroupMembership(perm.AccessModeWrite, true), group.NewGroup)
+				m.Post("/new", reqToken(), reqOrgAdmin(), bind(api.NewGroupOption{}), group.NewGroup)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {
