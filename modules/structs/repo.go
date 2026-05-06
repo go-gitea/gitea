@@ -125,12 +125,12 @@ type Repository struct {
 	// ObjectFormatName of the underlying git repository
 	ObjectFormatName ObjectFormatName `json:"object_format_name"`
 	// swagger:strfmt date-time
-	MirrorUpdated time.Time     `json:"mirror_updated"`
+	MirrorUpdated time.Time `json:"mirror_updated"`
 	// swagger:strfmt date-time
-	LastSync time.Time           `json:"last_sync"`
-	RepoTransfer   *RepoTransfer `json:"repo_transfer,omitempty"`
-	Topics         []string      `json:"topics"`
-	Licenses       []string      `json:"licenses"`
+	LastSync     time.Time     `json:"last_sync"`
+	RepoTransfer *RepoTransfer `json:"repo_transfer,omitempty"`
+	Topics       []string      `json:"topics"`
+	Licenses     []string      `json:"licenses"`
 }
 
 // CreateRepoOption options when creating repository
