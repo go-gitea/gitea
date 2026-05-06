@@ -518,6 +518,25 @@ func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *co
 			ctx.APIErrorInternal(err)
 			return
 		}
+		isOrgOwner := false
+		isOrgAdmin := false
+
+		if ctx.Doer != nil {
+			isOrgOwner, err = organization.IsOrganizationOwner(ctx, g.OwnerID, ctx.Doer.ID)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			isOrgAdmin, err = organization.IsOrganizationAdmin(ctx, g.OwnerID, ctx.Doer.ID)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			if isOrgOwner || isOrgAdmin {
+				return
+			}
+		}
+
 		canAccess, err := g.CanAccessAtLevel(ctx, ctx.Doer, mode)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -541,7 +560,7 @@ func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *co
 					return
 				}
 			}
-			if !canCreateIn {
+			if !(canCreateIn || isOrgOwner || isOrgAdmin) {
 				ctx.APIError(http.StatusForbidden, fmt.Sprintf("User[%d] does not have permission to create new items in group[%d]", ctx.Doer.ID, gid))
 				return
 			}
@@ -1841,6 +1860,14 @@ func Routes() *web.Router {
 			m.Post("/new", reqToken(), reqGroupMembership(perm.AccessModeWrite, true), bind(api.NewGroupOption{}), group.NewSubGroup)
 			m.Get("/subgroups", reqGroupMembership(perm.AccessModeRead, false), group.GetGroupSubGroups)
 			m.Get("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqGroupMembership(perm.AccessModeRead, false), group.GetGroupRepos)
+			m.Group("/teams", func() {
+				m.Get("", group.ListTeams)
+				m.Combo("/{team}").
+					Get(group.IsTeam).
+					Put(group.AddTeam, reqGroupMembership(perm.AccessModeAdmin, false)).
+					Patch(group.EditTeam, reqGroupMembership(perm.AccessModeAdmin, false)).
+					Delete(group.DeleteTeam, reqGroupMembership(perm.AccessModeAdmin, false))
+			}, reqToken(), reqGroupMembership(perm.AccessModeRead, false))
 		}, checkTokenPublicOnly())
 	})
 	return m
