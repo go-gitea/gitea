@@ -18,6 +18,10 @@ import (
 	"xorm.io/builder"
 )
 
+// HTTPSDeployKeyTokenLength is the expected length of a hex-encoded deploy
+// token (20 random bytes → 40 hex chars).
+const HTTPSDeployKeyTokenLength = 40
+
 // HTTPSDeployKey is a per-repository credential that authenticates Git
 // operations over HTTPS without being tied to a user account. It mirrors the
 // semantics of the SSH DeployKey (RepoID + Mode) but carries a hashed bearer
@@ -61,7 +65,7 @@ func init() {
 // (40 lowercase hex chars). We reject everything else early so that an
 // incidental basic-auth password can never collide with the token lookup.
 func tokenIsValidFormat(s string) bool {
-	if len(s) != 40 {
+	if len(s) != HTTPSDeployKeyTokenLength {
 		return false
 	}
 	for i := 0; i < len(s); i++ {
@@ -81,14 +85,6 @@ func AddHTTPSDeployKey(ctx context.Context, repoID int64, name string, readOnly 
 		return nil, "", util.NewInvalidArgumentErrorf("deploy key name must not be empty")
 	}
 
-	has, err := db.GetEngine(ctx).Where("repo_id = ? AND name = ?", repoID, name).Exist(new(HTTPSDeployKey))
-	if err != nil {
-		return nil, "", err
-	}
-	if has {
-		return nil, "", ErrHTTPSDeployKeyNameAlreadyUsed{RepoID: repoID, Name: name}
-	}
-
 	salt := util.CryptoRandomString(10)
 	tokenBytes := util.CryptoRandomBytes(20)
 	token := hex.EncodeToString(tokenBytes)
@@ -98,6 +94,7 @@ func AddHTTPSDeployKey(ctx context.Context, repoID int64, name string, readOnly 
 		mode = perm.AccessModeWrite
 	}
 
+	now := timeutil.TimeStampNow()
 	key := &HTTPSDeployKey{
 		RepoID:         repoID,
 		Name:           name,
@@ -105,9 +102,27 @@ func AddHTTPSDeployKey(ctx context.Context, repoID int64, name string, readOnly 
 		TokenSalt:      salt,
 		TokenLastEight: token[len(token)-8:],
 		Mode:           mode,
+		CreatedUnix:    now,
+		UpdatedUnix:    now,
 	}
-	if err := db.Insert(ctx, key); err != nil {
-		return nil, "", err
+
+	insertErr := db.WithTx(ctx, func(ctx context.Context) error {
+		has, err := db.GetEngine(ctx).Where("repo_id = ? AND name = ?", repoID, name).Exist(new(HTTPSDeployKey))
+		if err != nil {
+			return err
+		}
+		if has {
+			return ErrHTTPSDeployKeyNameAlreadyUsed{RepoID: repoID, Name: name}
+		}
+
+		_, err = db.GetEngine(ctx).NoAutoTime().Insert(key)
+		if err != nil {
+			return ErrHTTPSDeployKeyNameAlreadyUsed{RepoID: repoID, Name: name}
+		}
+		return nil
+	})
+	if insertErr != nil {
+		return nil, "", insertErr
 	}
 
 	key.Token = token
@@ -159,6 +174,7 @@ func DeleteHTTPSDeployKey(ctx context.Context, repoID, id int64) error {
 // authenticates, or ErrHTTPSDeployKeyNotExist if no key matches.
 func VerifyHTTPSDeployToken(ctx context.Context, token string) (*HTTPSDeployKey, error) {
 	if !tokenIsValidFormat(token) {
+		_ = auth_model.HashToken(token, util.CryptoRandomString(10)) // dummy to prevent timing side-channel
 		return nil, ErrHTTPSDeployKeyNotExist{}
 	}
 

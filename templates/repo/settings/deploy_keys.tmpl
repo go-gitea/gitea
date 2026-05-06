@@ -85,17 +85,23 @@
 			</div>
 		</h4>
 		<div class="ui attached segment">
-			<div class="tw-hidden tw-mb-4" id="add-https-deploy-key-panel">
+			<div class="{{if and .HasError (not .HTTPSDeployKeyToken)}}tw-hidden {{end}}tw-mb-4" id="add-https-deploy-key-panel">
+				{{if .HTTPSDeployKeyToken}}
+					<div class="ui warning message">
+						<p>{{ctx.Locale.Tr "repo.settings.https_deploy_key_created_info" .HTTPSDeployKeyName}}</p>
+						<input class="tw-w-full tw-mt-2" readonly value="{{.HTTPSDeployKeyToken}}" onclick="this.select()" />
+					</div>
+				{{end}}
 				<form class="ui form" action="{{.Link}}/https" method="post">
 					<div class="field">
 						{{ctx.Locale.Tr "repo.settings.https_deploy_key_desc"}}
 					</div>
-					<div class="field">
+					<div class="field {{if .Err_Title}}error{{end}}">
 						<label for="https-deploy-key-title">{{ctx.Locale.Tr "repo.settings.title"}}</label>
-						<input id="https-deploy-key-title" name="title" required>
+						<input id="https-deploy-key-title" name="title" value="{{.httpsKeyTitle}}" required>
 					</div>
 					<div class="field">
-						<div class="ui checkbox">
+						<div class="ui checkbox {{if .Err_IsWritable}}error{{end}}">
 							<input id="https-deploy-key-is-writable" name="is_writable" type="checkbox" value="1">
 							<label for="https-deploy-key-is-writable">
 								{{ctx.Locale.Tr "repo.settings.is_writable"}}
