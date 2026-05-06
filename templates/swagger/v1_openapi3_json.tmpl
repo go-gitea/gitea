@@ -1713,7 +1713,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/MoveGroupOption"
+              "$ref": "#/components/schemas/CreateOrUpdateRepoGroupTeamOption"
             }
           }
         },
@@ -4298,6 +4298,38 @@
             "description": "Whether to skip secondary authorization",
             "type": "boolean",
             "x-go-name": "SkipSecondaryAuthorization"
+          }
+        },
+        "type": "object",
+        "x-go-package": "code.gitea.io/gitea/modules/structs"
+      },
+      "CreateOrUpdateRepoGroupTeamOption": {
+        "description": "CreateOrUpdateRepoGroupTeamOption options for adding a team to a repo group",
+        "properties": {
+          "can_create_in": {
+            "description": "Whether the team can create repositories and subgroups in the group",
+            "type": "boolean",
+            "x-go-name": "CanCreateIn"
+          },
+          "permission": {
+            "$ref": "#/components/schemas/RepoWritePermission"
+          },
+          "units_map": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "repo.code": "read",
+              "repo.ext_issues": "none",
+              "repo.ext_wiki": "none",
+              "repo.issues": "write",
+              "repo.projects": "none",
+              "repo.pulls": "owner",
+              "repo.releases": "none",
+              "repo.wiki": "admin"
+            },
+            "type": "object",
+            "x-go-name": "UnitsMap"
           }
         },
         "type": "object",
@@ -12515,6 +12547,210 @@
           }
         },
         "summary": "gets the subgroups contained within a group",
+        "tags": [
+          "repository-group"
+        ]
+      }
+    },
+    "/groups/{group_id}/teams": {
+      "get": {
+        "operationId": "repoGroupListTeams",
+        "parameters": [
+          {
+            "description": "id of the group",
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/TeamList"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "List a repository group's teams",
+        "tags": [
+          "repository-group"
+        ]
+      }
+    },
+    "/groups/{group_id}/teams/{team}": {
+      "delete": {
+        "operationId": "repoGroupDeleteTeam",
+        "parameters": [
+          {
+            "description": "id of the group",
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "team name",
+            "in": "path",
+            "name": "team",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Add a team to a repository group",
+        "tags": [
+          "repository-group"
+        ]
+      },
+      "get": {
+        "operationId": "repoGroupCheckTeam",
+        "parameters": [
+          {
+            "description": "id of the group",
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "team name",
+            "in": "path",
+            "name": "team",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Team"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Check if a team is assigned to a repository group",
+        "tags": [
+          "repository-group"
+        ]
+      },
+      "patch": {
+        "operationId": "repoGroupEditTeam",
+        "parameters": [
+          {
+            "description": "id of the group",
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "team name",
+            "in": "path",
+            "name": "team",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrUpdateRepoGroupTeamOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Update a team assigned to a repository group",
+        "tags": [
+          "repository-group"
+        ]
+      },
+      "put": {
+        "operationId": "repoGroupAddTeam",
+        "parameters": [
+          {
+            "description": "id of the group",
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "team name",
+            "in": "path",
+            "name": "team",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrUpdateRepoGroupTeamOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Add a team to a repository group",
         "tags": [
           "repository-group"
         ]
