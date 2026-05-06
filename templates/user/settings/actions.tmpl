@@ -1,4 +1,4 @@
-{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings actions")}}
+{{template "user/settings/layout_head" (dict "pageClass" "user settings actions")}}
 	<div class="user-setting-content">
 	{{if eq .PageType "secrets"}}
 		{{template "shared/secrets/add_list" .}}
