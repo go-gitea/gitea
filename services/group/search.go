@@ -119,7 +119,7 @@ func (w *WebSearchGroup) doLoadChildren(opts *WebSearchOptions) error {
 		w.LatestCommitStatus = latestCommitStatuses[latestIdx]
 	}
 	w.Subgroups = make([]*WebSearchGroup, 0)
-	groups, err := group_model.FindGroupsByCond(opts.Ctx, opts.GroupOpts, group_model.AccessibleGroupCondition(opts.Actor, unit.TypeInvalid, perm.AccessModeRead))
+	groups, err := group_model.FindGroupsByCond(opts.Ctx, opts.GroupOpts, group_model.AccessibleGroupCondition(opts.Actor, opts.OrgID, unit.TypeInvalid, perm.AccessModeRead))
 	if err != nil {
 		return err
 	}
