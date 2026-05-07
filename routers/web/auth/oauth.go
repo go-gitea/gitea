@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
@@ -301,13 +302,20 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-func oauth2UpdateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User) {
-	if !setting.OAuth2Client.UpdateAvatar || len(url) == 0 {
+func oauth2UpdateAvatarIfNeed(ctx *context.Context, rawURL string, u *user_model.User) {
+	if !setting.OAuth2Client.UpdateAvatar || len(rawURL) == 0 {
 		return
 	}
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	// Compute a redacted URL for log lines BEFORE issuing the request, so we
+	// never accidentally log signed-URL query parameters or userinfo.
+	logURL := util.SanitizeURLForLog(rawURL)
+
+	// Bind the outbound fetch to the inbound request context so the download
+	// is cancelled if the user navigates away / aborts login, and so any
+	// request-level deadline propagates to this fetch.
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
-		log.Warn("oauth2UpdateAvatarIfNeed: invalid avatar URL %q: %v", url, err)
+		log.Warn("oauth2UpdateAvatarIfNeed: invalid avatar URL %q: %v", logURL, err)
 		return
 	}
 	// Some image hosts (e.g. Wikimedia) reject requests using Go's default User-Agent.
@@ -316,22 +324,22 @@ func oauth2UpdateAvatarIfNeed(ctx *context.Context, url string, u *user_model.Us
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Warn("oauth2UpdateAvatarIfNeed: fetch %q failed: %v", url, err)
+		log.Warn("oauth2UpdateAvatarIfNeed: fetch %q failed: %v", logURL, err)
 		return
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Warn("oauth2UpdateAvatarIfNeed: fetch %q returned status %d", url, resp.StatusCode)
+		log.Warn("oauth2UpdateAvatarIfNeed: fetch %q returned status %d", logURL, resp.StatusCode)
 		return
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
 	if err != nil {
-		log.Warn("oauth2UpdateAvatarIfNeed: read body from %q failed: %v", url, err)
+		log.Warn("oauth2UpdateAvatarIfNeed: read body from %q failed: %v", logURL, err)
 		return
 	}
 	if int64(len(data)) > setting.Avatar.MaxFileSize {
-		log.Warn("oauth2UpdateAvatarIfNeed: avatar from %q exceeds max size %d", url, setting.Avatar.MaxFileSize)
+		log.Warn("oauth2UpdateAvatarIfNeed: avatar from %q exceeds max size %d", logURL, setting.Avatar.MaxFileSize)
 		return
 	}
 	if err := user_service.UploadAvatar(ctx, u, data); err != nil {
