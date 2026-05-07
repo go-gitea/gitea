@@ -138,10 +138,10 @@ func ListCommitComments(ctx context.Context, repo *repo_model.Repository, commit
 
 	carrier, err := issues_model.GetCommitCommentIssue(ctx, repo.ID, commitSHA)
 	if err != nil {
+		if errors.Is(err, issues_model.ErrCommitCommentIssueNotFound) {
+			return []*issues_model.Comment{}, nil
+		}
 		return nil, err
-	}
-	if carrier == nil {
-		return []*issues_model.Comment{}, nil
 	}
 
 	comments, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{

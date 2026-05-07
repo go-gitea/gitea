@@ -40,7 +40,9 @@ func TestAPICommitComments(t *testing.T) {
 		assert.Empty(t, comments, "no comments should exist before any are posted")
 	})
 
-	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteRepository)
+	token := getUserToken(t, repoOwner.Name,
+		auth_model.AccessTokenScopeWriteRepository,
+		auth_model.AccessTokenScopeReadIssue)
 
 	t.Run("CreateGeneral", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

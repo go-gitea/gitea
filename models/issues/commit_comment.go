@@ -15,8 +15,16 @@ import (
 	"xorm.io/builder"
 )
 
+// ErrCommitCommentIssueNotFound is returned by GetCommitCommentIssue when no
+// carrier issue exists yet for the given (repo, sha) pair. Callers that want
+// "not found" semantics should check for this with errors.Is; callers that
+// always want a carrier (creating on demand) should use
+// GetOrCreateCommitCommentIssue instead.
+var ErrCommitCommentIssueNotFound = errors.New("commit comment carrier issue not found")
+
 // GetCommitCommentIssue returns the synthetic carrier Issue for a (repo, sha)
-// pair, or `nil, nil` if no comments have been posted on that commit yet.
+// pair, or ErrCommitCommentIssueNotFound if no comments have been posted on
+// that commit yet.
 //
 // The carrier Issue is intentionally hidden from the regular issues UI by the
 // `issue.commit_sha = ''` filter in applyConditions; callers that want to
@@ -33,7 +41,7 @@ func GetCommitCommentIssue(ctx context.Context, repoID int64, commitSHA string) 
 		return nil, err
 	}
 	if !has {
-		return nil, nil
+		return nil, ErrCommitCommentIssueNotFound
 	}
 	return issue, nil
 }
@@ -65,20 +73,23 @@ func GetOrCreateCommitCommentIssue(ctx context.Context, repo *repo_model.Reposit
 		return nil, errors.New("nil doer")
 	}
 
-	if existing, err := GetCommitCommentIssue(ctx, repo.ID, commitSHA); err != nil {
-		return nil, err
-	} else if existing != nil {
+	existing, err := GetCommitCommentIssue(ctx, repo.ID, commitSHA)
+	if err == nil {
 		return existing, nil
+	}
+	if !errors.Is(err, ErrCommitCommentIssueNotFound) {
+		return nil, err
 	}
 
 	var carrier *Issue
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		// Re-check inside the transaction in case another writer beat us.
-		if existing, err := GetCommitCommentIssue(ctx, repo.ID, commitSHA); err != nil {
-			return err
-		} else if existing != nil {
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		existing, err := GetCommitCommentIssue(ctx, repo.ID, commitSHA)
+		if err == nil {
 			carrier = existing
 			return nil
+		}
+		if !errors.Is(err, ErrCommitCommentIssueNotFound) {
+			return err
 		}
 
 		idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
@@ -92,7 +103,7 @@ func GetOrCreateCommitCommentIssue(ctx context.Context, repo *repo_model.Reposit
 			Index:     idx,
 			PosterID:  doer.ID,
 			Poster:    doer,
-			Title:     fmt.Sprintf("Comments on commit %s", commitSHA),
+			Title:     "Comments on commit " + commitSHA,
 			Content:   "",
 			IsClosed:  false,
 			IsPull:    false,

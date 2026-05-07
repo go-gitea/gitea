@@ -11,9 +11,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	commit_service "code.gitea.io/gitea/services/commit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
-	commit_service "code.gitea.io/gitea/services/commit"
 )
 
 // ListCommitComments returns all comments posted on a commit.
