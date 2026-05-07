@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 // nolyfill writes overrides to package.json#pnpm.overrides which pnpm v11 ignores.
 // This moves them to pnpm-workspace.yaml until SukkaW/nolyfill#119 is fixed.
-
 import {readFileSync, writeFileSync} from 'node:fs';
 import {exit} from 'node:process';
 import {fileURLToPath} from 'node:url';
