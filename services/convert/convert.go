@@ -214,7 +214,7 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 
 	return &api.Tag{
 		Name:       t.Name,
-		Message:    strings.ToValidUTF8(t.Message, "?"),
+		Message:    strings.ToValidUTF8(strings.TrimSpace(t.Message), "?"), // the trim is not right, 1.27 won't trim
 		ID:         t.ID.String(),
 		Commit:     ToCommitMeta(repo, t),
 		ZipballURL: zipballURL,
