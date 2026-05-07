@@ -331,12 +331,16 @@ lint-spell-fix: ## lint spelling and fix issues
 	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w
 
 .PHONY: lint-go
-lint-go: ## lint go files
+lint-go: lint-go-header ## lint go files
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) run
 
 .PHONY: lint-go-fix
-lint-go-fix: ## lint go files and fix issues
+lint-go-fix: lint-go-header ## lint go files and fix issues
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
+
+.PHONY: lint-go-header
+lint-go-header: ## check copyright headers on go files
+	@$(GO) run tools/lint-go-header.go
 
 # workaround step for the lint-go-windows CI task because 'go run' can not
 # have distinct GOOS/GOARCH for its build and run steps
