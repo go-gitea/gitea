@@ -1051,19 +1051,28 @@ func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, nil
 }
 
-// GetUserByName returns user by given name.
-func GetUserByName(ctx context.Context, name string) (*User, error) {
-	if len(name) == 0 {
-		return nil, ErrUserNotExist{Name: name}
+func getUserByNameWithTypes(ctx context.Context, name string, types ...UserType) (*User, error) {
+	u := &User{}
+	sess := db.GetEngine(ctx).Where(builder.Eq{"lower_name": strings.ToLower(name)})
+	if len(types) > 0 {
+		sess.In("`type`", types)
 	}
-	u := &User{LowerName: strings.ToLower(name), Type: UserTypeIndividual}
-	has, err := db.GetEngine(ctx).Get(u)
+	has, err := sess.Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrUserNotExist{Name: name}
 	}
 	return u, nil
+}
+
+// GetUserByName returns the user object by given name, any user type.
+func GetUserByName(ctx context.Context, name string) (*User, error) {
+	return getUserByNameWithTypes(ctx, name)
+}
+
+func GetIndividualUserByName(ctx context.Context, name string) (*User, error) {
+	return getUserByNameWithTypes(ctx, name, UserTypeIndividual)
 }
 
 // GetUserEmailsByNames returns a list of e-mails corresponds to names of users
@@ -1106,19 +1115,6 @@ func GetMailableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]
 		And("`is_active` = ?", true).
 		In("`email_notifications_preference`", EmailNotificationsEnabled, EmailNotificationsAndYourOwn).
 		Find(&ous)
-}
-
-// GetUserNameByID returns username for the id
-func GetUserNameByID(ctx context.Context, id int64) (string, error) {
-	var name string
-	has, err := db.GetEngine(ctx).Table("user").Where("id = ?", id).Cols("name").Get(&name)
-	if err != nil {
-		return "", err
-	}
-	if has {
-		return name, nil
-	}
-	return "", nil
 }
 
 // GetUserIDsByNames returns a slice of ids corresponds to names.
@@ -1321,13 +1317,14 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 		if id != 0 {
 			return GetUserByID(ctx, id)
 		}
-		return GetUserByName(ctx, name)
+		return GetIndividualUserByName(ctx, name)
 	}
 
 	return nil, ErrUserNotExist{Name: email}
 }
 
 func GetIndividualUser(ctx context.Context, user *User) (bool, error) {
+	// FIXME: the design is wrong, empty User fields won't apply, this function should be removed in the future
 	has, err := db.GetEngine(ctx).Get(user)
 	if has && user.Type != UserTypeIndividual {
 		has = false
@@ -1491,28 +1488,4 @@ func DisabledFeaturesWithLoginType(user *User) *container.Set[string] {
 		return &setting.Admin.ExternalUserDisableFeatures
 	}
 	return &setting.Admin.UserDisabledFeatures
-}
-
-// GetUserOrOrgIDByName returns the id for a user or an org by name
-func GetUserOrOrgIDByName(ctx context.Context, name string) (int64, error) {
-	var id int64
-	has, err := db.GetEngine(ctx).Table("user").Where("name = ?", name).Cols("id").Get(&id)
-	if err != nil {
-		return 0, err
-	} else if !has {
-		return 0, fmt.Errorf("user or org with name %s: %w", name, util.ErrNotExist)
-	}
-	return id, nil
-}
-
-// GetUserOrOrgByName returns the user or org by name
-func GetUserOrOrgByName(ctx context.Context, name string) (*User, error) {
-	var u User
-	has, err := db.GetEngine(ctx).Where("lower_name = ?", strings.ToLower(name)).Get(&u)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrUserNotExist{Name: name}
-	}
-	return &u, nil
 }
