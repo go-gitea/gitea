@@ -330,7 +330,7 @@ func ToWorkflowRunAction(status actions_model.Status) (action string) {
 	return action
 }
 
-func ToActionsStatus(status actions_model.Status) (action string, conclusion string) {
+func ToActionsStatus(status actions_model.Status) (action, conclusion string) {
 	switch status {
 	case actions_model.StatusWaiting:
 		action = "queued" // "waiting" is a naming conflict of the webhook between Gitea and GitHub Actions
