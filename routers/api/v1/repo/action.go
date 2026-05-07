@@ -31,6 +31,7 @@ import (
 	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	notify_service "code.gitea.io/gitea/services/notify"
 	secret_service "code.gitea.io/gitea/services/secrets"
 
 	"github.com/nektos/act/pkg/model"
@@ -1379,6 +1380,98 @@ func DeleteActionRun(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	ctx.Status(http.StatusNoContent)
+}
+
+func getRunJobsByID(ctx *context.APIContext, runID int64) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob, error) {
+	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
+	if err != nil {
+		return nil, nil, err
+	}
+	run.Repo = ctx.Repo.Repository
+
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(jobs) == 0 {
+		return nil, nil, util.ErrNotExist
+	}
+
+	for _, job := range jobs {
+		job.Run = run
+	}
+
+	return jobs[0], jobs, nil
+}
+
+// CancelActionRun Cancel a workflow run
+func CancelActionRun(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runs/{run}/cancel repository cancelActionRun
+	// ---
+	// summary: Cancel a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: id of the run
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: "No Content"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	runID := ctx.PathParamInt64("run")
+	firstJob, jobs, err := getRunJobsByID(ctx, runID)
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.APIErrorNotFound(err)
+		return
+	}
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	var updatedJobs []*actions_model.ActionRunJob
+	if err := db.WithTx(ctx, func(ctx go_context.Context) error {
+		cancelledJobs, err := actions_model.CancelJobs(ctx, jobs)
+		if err != nil {
+			return fmt.Errorf("cancel jobs: %w", err)
+		}
+		updatedJobs = append(updatedJobs, cancelledJobs...)
+		return nil
+	}); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	actions_service.CreateCommitStatusForRunJobs(ctx, firstJob.Run, jobs...)
+	actions_service.EmitJobsIfReadyByJobs(updatedJobs)
+
+	for _, job := range updatedJobs {
+		if err := job.LoadAttributes(ctx); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+	}
+	if len(updatedJobs) > 0 {
+		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, updatedJobs[0])
+	}
+
 	ctx.Status(http.StatusNoContent)
 }
 

@@ -1271,6 +1271,7 @@ func Routes() *web.Router {
 						m.Group("/{run}", func() {
 							m.Get("", repo.GetWorkflowRun)
 							m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
+							m.Post("/cancel", reqToken(), reqRepoWriter(unit.TypeActions), repo.CancelActionRun)
 							m.Get("/jobs", repo.ListWorkflowRunJobs)
 							m.Get("/artifacts", repo.GetArtifactsOfRun)
 						})
