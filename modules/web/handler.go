@@ -132,8 +132,8 @@ type middlewareProvider = func(next http.Handler) http.Handler
 
 func executeMiddlewaresHandler(w http.ResponseWriter, r *http.Request, middlewares []middlewareProvider, endpoint http.HandlerFunc) {
 	handler := endpoint
-	for _, provider := range slices.Backward(middlewares) {
-		handler = provider(handler).ServeHTTP
+	for _, middleware := range slices.Backward(middlewares) {
+		handler = middleware(handler).ServeHTTP
 	}
 	handler(w, r)
 }
