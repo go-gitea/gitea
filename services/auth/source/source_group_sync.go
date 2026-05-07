@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
 	org_service "code.gitea.io/gitea/services/org"
 )
@@ -94,21 +95,26 @@ func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeam
 				teamCache[orgName+teamName] = team
 			}
 
-			isMember, err := organization.IsTeamMember(ctx, org.ID, team.ID, user.ID)
-			if err != nil {
-				return err
-			}
+			if err := globallock.LockAndDo(ctx, fmt.Sprintf("group_sync_team_%d", team.ID), func(ctx context.Context) error {
+				isMember, err := organization.IsTeamMember(ctx, org.ID, team.ID, user.ID)
+				if err != nil {
+					return err
+				}
 
-			if action == syncAdd && !isMember {
-				if err := org_service.AddTeamMember(ctx, team, user); err != nil {
-					log.Error("group sync: Could not add user to team: %v", err)
-					return err
+				if action == syncAdd && !isMember {
+					if err := org_service.AddTeamMember(ctx, team, user); err != nil {
+						log.Error("group sync: Could not add user to team: %v", err)
+						return err
+					}
+				} else if action == syncRemove && isMember {
+					if err := org_service.RemoveTeamMember(ctx, team, user); err != nil {
+						log.Error("group sync: Could not remove user from team: %v", err)
+						return err
+					}
 				}
-			} else if action == syncRemove && isMember {
-				if err := org_service.RemoveTeamMember(ctx, team, user); err != nil {
-					log.Error("group sync: Could not remove user from team: %v", err)
-					return err
-				}
+				return nil
+			}); err != nil {
+				return err
 			}
 		}
 	}
