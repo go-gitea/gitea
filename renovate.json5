@@ -74,7 +74,7 @@
     {
       "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
-      "matchDepTypes": ["golang"], // bump go.mod go directive
+      "matchDepTypes": ["golang"],
       "rangeStrategy": "bump",
       "schedule": ["at any time"],
       "minimumReleaseAge": "0",
