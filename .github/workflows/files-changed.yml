@@ -73,7 +73,6 @@ jobs:
               - "pnpm-lock.yaml"
               - "pnpm-workspace.yaml"
               - "Makefile"
-              - ".eslintrc.cjs"
 
             docs:
               - "**/*.md"
