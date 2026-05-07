@@ -98,7 +98,10 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 			return err
 		}
 		if !canAccessNewParent {
-			return errors.New("cannot access new parent group")
+			return group_model.ErrUserDoesNotHaveAccessToGroup{
+				GroupID: opts.NewParent,
+				UserID:  doer.ID,
+			}
 		}
 
 		err = parentGroup.LoadSubgroups(ctx, false)
