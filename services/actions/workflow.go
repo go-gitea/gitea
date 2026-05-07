@@ -5,7 +5,6 @@ package actions
 
 import (
 	"fmt"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/perm"
@@ -98,7 +97,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	var entry *git.TreeEntry
 
 	run := &actions_model.ActionRun{
-		Title:             strings.SplitN(runTargetCommit.CommitMessage, "\n", 2)[0],
+		Title:             runTargetCommit.MessageTitle(),
 		RepoID:            repo.ID,
 		Repo:              repo,
 		OwnerID:           repo.OwnerID,

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	db "code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
@@ -123,4 +124,56 @@ func TestToActionWorkflowRun_UsesTriggerEvent(t *testing.T) {
 	apiRun, err := ToActionWorkflowRun(t.Context(), run, nil)
 	require.NoError(t, err)
 	assert.Equal(t, "schedule", apiRun.Event)
+}
+
+func TestToActionWorkflowJob_StepStatusIsIndependentOfJobStatus(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	run := &actions_model.ActionRun{
+		ID:            9001,
+		RepoID:        2,
+		TriggerUserID: 1,
+		WorkflowID:    "test.yaml",
+		Index:         12345,
+		Ref:           "refs/heads/main",
+		Status:        actions_model.StatusFailure,
+	}
+	require.NoError(t, db.Insert(ctx, run))
+
+	task := &actions_model.ActionTask{
+		ID:     900102,
+		JobID:  9001,
+		RepoID: 2,
+		Status: actions_model.StatusFailure,
+	}
+	require.NoError(t, db.Insert(ctx, task))
+
+	job := &actions_model.ActionRunJob{
+		ID:      90010203,
+		RunID:   9001,
+		TaskID:  900102,
+		RepoID:  2,
+		Name:    "test-job-name",
+		Attempt: 1,
+		JobID:   "test-job-id",
+		Status:  actions_model.StatusFailure,
+	}
+	require.NoError(t, db.Insert(ctx, job))
+
+	require.NoError(t, db.Insert(ctx,
+		&actions_model.ActionTaskStep{TaskID: task.ID, RepoID: 2, Index: 0, Name: "step-success", Status: actions_model.StatusSuccess},
+		&actions_model.ActionTaskStep{TaskID: task.ID, RepoID: 2, Index: 1, Name: "step-failure", Status: actions_model.StatusFailure},
+	))
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+
+	apiJob, err := ToActionWorkflowJob(ctx, repo, task, job)
+	require.NoError(t, err)
+	require.Len(t, apiJob.Steps, 2)
+
+	assert.Equal(t, "completed", apiJob.Steps[0].Status, "step 0 status")
+	assert.Equal(t, "success", apiJob.Steps[0].Conclusion, "step 0 conclusion (succeeded before the failure)")
+	assert.Equal(t, "completed", apiJob.Steps[1].Status, "step 1 status")
+	assert.Equal(t, "failure", apiJob.Steps[1].Conclusion, "step 1 conclusion")
 }
