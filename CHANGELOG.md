@@ -4,6 +4,28 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.26.2](https://github.com/go-gitea/gitea/releases/tag/1.26.2) - 2026-05-06
+
+* BUGFIXES
+  * Make ServeSetHeaders default to download attachment if filename exists (#37552) (#37555)
+  * Fix(actions): validate workflow param to prevent 500 error (#37546) (#37554)
+  * Don't unblock run-level-concurrency-blocked runs in the resolver (#37461) (#37538)
+  * Fix(packages): use file names for generic web downloads (#37514) (#37520)
+  * Fix merge autodetect can't close other PRs but only the last one when multiple PRs are pushed at once (#37512) (#37516)
+  * Fix update branch protection order (#37508) (#37513)
+  * Fix mCaptcha broken after Vite migration (#37492) (#37509)
+  * Fix basic auth bug (#37503)
+  * Fix review submission from single-commit PR view (#37475) (#37485)
+  * Fix allow maintainer edit permission check (#37479) (#37484)
+  * Fix URL sanitization to handle schemeless credentials (#37440) (#37471)
+  * Fix scheduled action panic with null event payload (#37459) (#37466)
+  * Make GetPossibleUserByID can handle deleted user (#37430) (#37431)
+  * Remove excessive quote from terraform instructions (#37424) (#37426)
+  * Fix color regressions, add `priority` color (#37417) (#37421)
+  * Fix attachment Content-Security-Policy (#37455) (#37464)
+* MISC
+  * Add CurrentURL template variable back (#37444) (#37449)
+
 ## [1.26.1](https://github.com/go-gitea/gitea/releases/tag/v1.26.1) - 2026-04-21
 
 * BUGFIXES
