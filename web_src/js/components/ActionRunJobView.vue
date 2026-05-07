@@ -195,9 +195,7 @@ function beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd:
   el._stepLogsActiveContainer = elJobLogList;
 }
 
-// end a log group. The ::endgroup:: marker is purely structural — it closes
-// the active group container — so it is not rendered as its own log line;
-// rendering it produced an empty row between collapsible sections.
+// end a log group
 function endLogGroup(stepIndex: number) {
   const el = getJobStepLogsContainer(stepIndex);
   el._stepLogsActiveContainer = undefined;
