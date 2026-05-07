@@ -135,41 +135,35 @@ func TestToActionWorkflowJob_StepStatusIsIndependentOfJobStatus(t *testing.T) {
 		RepoID:        2,
 		TriggerUserID: 1,
 		WorkflowID:    "test.yaml",
-		Index:         9001,
+		Index:         12345,
 		Ref:           "refs/heads/main",
-		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:         "push",
-		TriggerEvent:  "push",
 		Status:        actions_model.StatusFailure,
 	}
 	require.NoError(t, db.Insert(ctx, run))
 
 	task := &actions_model.ActionTask{
-		ID:             9001,
-		JobID:          9001,
-		RepoID:         2,
-		Status:         actions_model.StatusFailure,
-		TokenHash:      "test_token_hash_9001_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		TokenSalt:      "testsalt",
-		TokenLastEight: "testlst1",
+		ID:     900102,
+		JobID:  9001,
+		RepoID: 2,
+		Status: actions_model.StatusFailure,
 	}
 	require.NoError(t, db.Insert(ctx, task))
 
 	job := &actions_model.ActionRunJob{
-		ID:      9001,
+		ID:      90010203,
 		RunID:   9001,
+		TaskID:  900102,
 		RepoID:  2,
-		Name:    "test-job",
+		Name:    "test-job-name",
 		Attempt: 1,
-		JobID:   "test-job",
-		TaskID:  9001,
+		JobID:   "test-job-id",
 		Status:  actions_model.StatusFailure,
 	}
 	require.NoError(t, db.Insert(ctx, job))
 
 	require.NoError(t, db.Insert(ctx,
-		&actions_model.ActionTaskStep{TaskID: 9001, RepoID: 2, Index: 0, Name: "step-success", Status: actions_model.StatusSuccess},
-		&actions_model.ActionTaskStep{TaskID: 9001, RepoID: 2, Index: 1, Name: "step-failure", Status: actions_model.StatusFailure},
+		&actions_model.ActionTaskStep{TaskID: task.ID, RepoID: 2, Index: 0, Name: "step-success", Status: actions_model.StatusSuccess},
+		&actions_model.ActionTaskStep{TaskID: task.ID, RepoID: 2, Index: 1, Name: "step-failure", Status: actions_model.StatusFailure},
 	))
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
