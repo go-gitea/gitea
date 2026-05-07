@@ -9,6 +9,9 @@ import (
 	"net/url"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
@@ -20,6 +23,7 @@ import (
 func TestGitSmartHTTP(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		testGitSmartHTTP(t, u)
+		testGitSmartHTTPTokenScopes(t)
 		testRenamedRepoRedirect(t)
 		testGitArchiveRemote(t, u)
 	})
@@ -78,6 +82,35 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func testGitSmartHTTPTokenScopes(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2, OwnerName: "user2", Name: "repo2"})
+	assert.True(t, repo.IsPrivate)
+
+	session := loginUser(t, "user2")
+	badToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadNotification)
+	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	t.Run("upload-pack requires read repository scope for basic and bearer tokens", func(t *testing.T) {
+		url := "/user2/repo2/info/refs?service=git-upload-pack"
+
+		MakeRequest(t, NewRequest(t, "GET", url).AddBasicAuth(badToken, "x-oauth-basic"), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(badToken), http.StatusForbidden)
+
+		resp := MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(readToken), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "refs/heads/master")
+	})
+
+	t.Run("receive-pack requires write repository scope for bearer tokens", func(t *testing.T) {
+		url := "/user2/repo2/info/refs?service=git-receive-pack"
+
+		MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(readToken), http.StatusForbidden)
+
+		resp := MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(writeToken), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "refs/heads/master")
+	})
 }
 
 func testRenamedRepoRedirect(t *testing.T) {
