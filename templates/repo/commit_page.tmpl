@@ -201,9 +201,8 @@
 
 		{{template "repo/diff/box" .}}
 
-		{{/* Commit comments (#4898). Rendered only when the parent handler set
-		     PageIsCommitFiles, so the same template stays inert on commit-list
-		     and other inclusions of "repo/diff/box". */}}
+		{{/* Commit comments (#4898). Rendered only when the parent handler set PageIsCommitFiles,
+			so the same template stays inert on commit-list and other inclusions of "repo/diff/box". */}}
 		{{if .PageIsCommitFiles}}
 			<div class="commit-comments tw-mt-6">
 				{{if .CommitComments}}

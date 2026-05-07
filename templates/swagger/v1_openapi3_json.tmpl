@@ -3876,6 +3876,40 @@
         "type": "object",
         "x-go-package": "code.gitea.io/gitea/modules/structs"
       },
+      "CreateCommitCommentOption": {
+        "description": "When TreePath and Line are both zero/empty the comment is treated as a\ngeneral comment on the commit; when at least one of them is set the\ncomment is anchored to a specific diff line, exactly like a PR review\ninline comment. Negative Line values reference the old (pre-image) side\nof the diff, positive values reference the new side.",
+        "properties": {
+          "assets": {
+            "description": "Attachments is a list of attachment UUIDs (already uploaded via the\ndedicated attachments endpoint) to bind to the comment.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "Attachments"
+          },
+          "body": {
+            "type": "string",
+            "x-go-name": "Body"
+          },
+          "line": {
+            "description": "Line in the diff this comment is anchored to. Negative for the old\nside, positive for the new side, 0 (default) for general comments.",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Line"
+          },
+          "path": {
+            "description": "Path within the commit that this comment is anchored to. Empty for\ngeneral (commit-wide) comments.",
+            "type": "string",
+            "x-go-name": "Path"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "title": "CreateCommitCommentOption options for creating a comment on a commit.",
+        "type": "object",
+        "x-go-package": "code.gitea.io/gitea/modules/structs"
+      },
       "CreateEmailOption": {
         "description": "CreateEmailOption options when creating email addresses",
         "properties": {
@@ -18911,6 +18945,112 @@
           }
         },
         "summary": "Get a commit's statuses, by branch/tag/commit reference",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/commits/{sha}/comments": {
+      "get": {
+        "operationId": "repoListCommitComments",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "commit SHA to list comments for",
+            "in": "path",
+            "name": "sha",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CommentList"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "List all comments posted on a commit",
+        "tags": [
+          "repository"
+        ]
+      },
+      "post": {
+        "operationId": "repoCreateCommitComment",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "commit SHA to comment on",
+            "in": "path",
+            "name": "sha",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommitCommentOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/Comment"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
+          }
+        },
+        "summary": "Add a comment to a commit",
         "tags": [
           "repository"
         ]
