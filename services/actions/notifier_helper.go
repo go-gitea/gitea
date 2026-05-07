@@ -320,7 +320,7 @@ func handleWorkflows(
 
 	for _, dwf := range detectedWorkflows {
 		run := &actions_model.ActionRun{
-			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+			Title:             commit.Summary(),
 			RepoID:            input.Repo.ID,
 			Repo:              input.Repo,
 			OwnerID:           input.Repo.OwnerID,
@@ -483,7 +483,7 @@ func handleSchedules(
 		}
 
 		run := &actions_model.ActionSchedule{
-			Title:         strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+			Title:         commit.Summary(),
 			RepoID:        input.Repo.ID,
 			Repo:          input.Repo,
 			OwnerID:       input.Repo.OwnerID,
