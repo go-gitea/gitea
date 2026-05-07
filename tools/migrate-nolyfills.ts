@@ -18,7 +18,7 @@ if (!overrides || !Object.keys(overrides).length) {
 
 const block = dump({overrides}, {lineWidth: -1, quotingType: "'"});
 const workspace = readFileSync(workspacePath, 'utf8');
-const overridesRegex = /^overrides:[^\n]*(?:\n[ \t][^\n]*)*\n?/m;
+const overridesRegex = /^overrides:[^\n]*(?:\n(?:[ \t][^\n]*|[ \t]*(?=\n[ \t])))*\n?/m;
 
 if (!overridesRegex.test(workspace)) {
   console.error(`No 'overrides:' block found in pnpm-workspace.yaml`);
