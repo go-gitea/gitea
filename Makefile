@@ -613,6 +613,7 @@ update-js: node_modules ## update js dependencies
 .PHONY: nolyfill
 nolyfill: node_modules ## apply nolyfill overrides to package.json and relock
 	pnpm exec nolyfill install
+	node tools/migrate-nolyfills.ts
 	pnpm install
 	@touch node_modules
 
