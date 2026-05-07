@@ -73,7 +73,7 @@ func avatarTestServer(t *testing.T, requireGiteaUA bool) (srv *httptest.Server, 
 // triggerOAuth2AutoRegisterLogin performs a single OAuth2 callback with
 // EnableAutoRegistration=true and a mocked goth.User. It is the closest
 // integration-test reproduction of a real "first OIDC sign-in".
-func triggerOAuth2AutoRegisterLogin(t *testing.T, sourceName, providerName string, gothUser goth.User) *http.Response {
+func triggerOAuth2AutoRegisterLogin(t *testing.T, sourceName, providerName string, gothUser goth.User) {
 	t.Helper()
 	defer test.MockVariableValue(&setting.OAuth2Client.Username, "")()
 	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
@@ -84,8 +84,7 @@ func triggerOAuth2AutoRegisterLogin(t *testing.T, sourceName, providerName strin
 
 	session := emptyTestSession(t)
 	req := NewRequest(t, "GET", "/user/oauth2/"+sourceName+"/callback?code=XYZ&state=XYZ")
-	resp := session.MakeRequest(t, req, http.StatusSeeOther)
-	return resp.Result()
+	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
 // TestOAuth2AvatarFromPicture verifies the OIDC `picture` claim becomes the
