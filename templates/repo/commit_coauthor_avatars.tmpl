@@ -29,7 +29,8 @@
 			{{- end -}}
 		{{- end -}}
 	{{- else -}}
-		{{- ctx.Locale.TrN $coCount "repo.commits.coauthor_others_1" "repo.commits.coauthor_others_n" $coCount -}}
+		{{- $peopleCount := Eval $coCount "+" 1 -}}
+		{{- ctx.Locale.Tr "repo.commits.coauthor_people" $peopleCount -}}
 	{{- end -}}
 {{- else -}}
 	{{- if .AuthorUser -}}

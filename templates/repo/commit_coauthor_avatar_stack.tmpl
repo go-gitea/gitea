@@ -1,19 +1,19 @@
-{{if or .CoAuthors .CoAuthorSignatures}}
+{{if .CoAuthors}}
 	{{- $additionalClasses := .AdditionalClasses -}}
-	<span class="coauthor-avatar-stack {{$additionalClasses}}">
-		{{- if .AuthorUser -}}
-			<a href="{{.AuthorUser.HomeLink}}" data-tooltip-content="{{.AuthorUser.GetDisplayName}}">{{- ctx.AvatarUtils.Avatar .AuthorUser 20 -}}</a>
-		{{- else -}}
-			{{- ctx.AvatarUtils.AvatarByEmail .AuthorSignature.Email .AuthorSignature.Name 20 -}}
-		{{- end -}}
-		{{- if .CoAuthors -}}
-			{{- $coCount := len .CoAuthors -}}
-			{{- $maxCo := 9 -}}
-			{{- $visibleCo := .CoAuthors -}}
-			{{- $overflow := 0 -}}
-			{{- if gt $coCount $maxCo -}}
-				{{- $visibleCo = slice .CoAuthors 0 $maxCo -}}
-				{{- $overflow = Eval $coCount "-" $maxCo -}}
+	{{- $coCount := len .CoAuthors -}}
+	{{- $maxCo := 9 -}}
+	{{- $visibleCo := .CoAuthors -}}
+	{{- $overflow := 0 -}}
+	{{- if gt $coCount $maxCo -}}
+		{{- $visibleCo = slice .CoAuthors 0 $maxCo -}}
+		{{- $overflow = Eval $coCount "-" $maxCo -}}
+	{{- end -}}
+	<span class="coauthor-avatar-stack-wrapper {{$additionalClasses}}">
+		<span class="coauthor-avatar-stack">
+			{{- if .AuthorUser -}}
+				<a href="{{.AuthorUser.HomeLink}}" data-tooltip-content="{{.AuthorUser.GetDisplayName}}">{{- ctx.AvatarUtils.Avatar .AuthorUser 20 -}}</a>
+			{{- else -}}
+				{{- ctx.AvatarUtils.AvatarByEmail .AuthorSignature.Email .AuthorSignature.Name 20 -}}
 			{{- end -}}
 			{{- range $visibleCo -}}
 				{{- if .GiteaUser -}}
@@ -22,24 +22,10 @@
 					{{- ctx.AvatarUtils.AvatarByEmail .TrailerSignature.Email .TrailerSignature.Name 20 -}}
 				{{- end -}}
 			{{- end -}}
-			{{- if gt $overflow 0 -}}
-				<span class="coauthor-overflow-chip" data-tooltip-content="{{ctx.Locale.TrN $overflow "repo.commits.coauthor_others_1" "repo.commits.coauthor_others_n" $overflow}}">+{{$overflow}}</span>
-			{{- end -}}
-		{{- else -}}
-			{{- $coCount := len .CoAuthorSignatures -}}
-			{{- $maxCo := 9 -}}
-			{{- $visibleCo := .CoAuthorSignatures -}}
-			{{- $overflow := 0 -}}
-			{{- if gt $coCount $maxCo -}}
-				{{- $visibleCo = slice .CoAuthorSignatures 0 $maxCo -}}
-				{{- $overflow = Eval $coCount "-" $maxCo -}}
-			{{- end -}}
-			{{- range $visibleCo -}}
-				{{- ctx.AvatarUtils.AvatarByEmail .Email .Name 20 -}}
-			{{- end -}}
-			{{- if gt $overflow 0 -}}
-				<span class="coauthor-overflow-chip" data-tooltip-content="{{ctx.Locale.TrN $overflow "repo.commits.coauthor_others_1" "repo.commits.coauthor_others_n" $overflow}}">+{{$overflow}}</span>
-			{{- end -}}
+		</span>
+		{{- if gt $overflow 0 -}}
+			{{- $overflowLabel := ctx.Locale.TrN $overflow "repo.commits.coauthor_others_1" "repo.commits.coauthor_others_n" $overflow -}}
+			<span class="coauthor-overflow-chip" role="img" aria-label="{{$overflowLabel}}" data-tooltip-content="{{$overflowLabel}}">+{{$overflow}}</span>
 		{{- end -}}
 	</span>
 {{else if .AuthorUser}}

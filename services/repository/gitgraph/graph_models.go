@@ -132,16 +132,18 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 			c.User = emailUserMap.GetByEmail(c.Commit.Author.Email)
 		}
 		coAuthorSigs := c.Commit.CoAuthorSignatures()
-		c.CoAuthors = make([]*user_model.CoAuthorUser, 0, len(coAuthorSigs))
-		for _, sig := range coAuthorSigs {
-			var giteaUser *user_model.User
-			if emailUserMap != nil {
-				giteaUser = emailUserMap.GetByEmail(sig.Email)
+		if len(coAuthorSigs) > 0 {
+			c.CoAuthors = make([]*user_model.CoAuthorUser, 0, len(coAuthorSigs))
+			for _, sig := range coAuthorSigs {
+				var giteaUser *user_model.User
+				if emailUserMap != nil {
+					giteaUser = emailUserMap.GetByEmail(sig.Email)
+				}
+				c.CoAuthors = append(c.CoAuthors, &user_model.CoAuthorUser{
+					GiteaUser:        giteaUser,
+					TrailerSignature: sig,
+				})
 			}
-			c.CoAuthors = append(c.CoAuthors, &user_model.CoAuthorUser{
-				GiteaUser:        giteaUser,
-				TrailerSignature: sig,
-			})
 		}
 
 		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)

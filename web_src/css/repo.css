@@ -1408,11 +1408,16 @@ tbody.commit-list {
   white-space: nowrap;
 }
 
-.coauthor-avatar-stack {
+.coauthor-avatar-stack-wrapper {
   display: inline-flex;
   align-items: center;
   vertical-align: middle;
   margin-right: 0.25rem;
+}
+
+.coauthor-avatar-stack {
+  display: inline-flex;
+  align-items: center;
 }
 
 /* each direct child of the stack is either <a> (linked user) or <img> (no account) */
