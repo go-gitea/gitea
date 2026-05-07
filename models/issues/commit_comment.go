@@ -26,9 +26,9 @@ var ErrCommitCommentIssueNotFound = errors.New("commit comment carrier issue not
 // pair, or ErrCommitCommentIssueNotFound if no comments have been posted on
 // that commit yet.
 //
-// The carrier Issue is intentionally hidden from the regular issues UI by the
-// `issue.commit_sha = ''` filter in applyConditions; callers that want to
-// surface it must look it up via this helper (or by ID).
+// The carrier Issue is intentionally hidden from the regular issues UI by an
+// "is the empty string" filter on issue.commit_sha in applyConditions; callers
+// that want to surface it must look it up via this helper (or by ID).
 func GetCommitCommentIssue(ctx context.Context, repoID int64, commitSHA string) (*Issue, error) {
 	if commitSHA == "" {
 		return nil, errors.New("empty commit SHA")
@@ -60,8 +60,8 @@ func GetCommitCommentIssue(ctx context.Context, repoID int64, commitSHA string) 
 // normal issue UI — see services/commit/comment.go for the entry points.
 //
 // Counters on Repository.NumIssues / NumClosedIssues are deliberately *not*
-// incremented: this isn't a "real" issue. The `commit_sha != ''` filter in
-// applyConditions hides the row from every list / count query in the codebase.
+// incremented: this isn't a "real" issue. The "commit_sha is non-empty" filter
+// in applyConditions hides the row from every list / count query in the codebase.
 func GetOrCreateCommitCommentIssue(ctx context.Context, repo *repo_model.Repository, commitSHA string, doer *user_model.User) (*Issue, error) {
 	if commitSHA == "" {
 		return nil, errors.New("empty commit SHA")
