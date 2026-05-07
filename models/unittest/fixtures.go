@@ -107,7 +107,6 @@ func (f fixturesHookStruct) BeforeProcess(c *contexts.ContextHook) (context.Cont
 		return ctx, nil
 	}
 
-	cmdRemaining = strings.TrimSpace(cmdRemaining)
 	switch {
 	case util.AsciiEqualFold(cmdPart, "INSERT"):
 		cmdPart, cmdRemaining, _ = cutSpaceForSQL(cmdRemaining)
