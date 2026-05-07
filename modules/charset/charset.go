@@ -89,7 +89,10 @@ func ToUTF8(content []byte, opts ConvertOpts) []byte {
 	encoding, _ := charset.Lookup(charsetLabel)
 	if encoding == nil {
 		setting.PanicInDevOrTesting("unsupported detected charset %q, it shouldn't happen", charsetLabel)
-		return content
+		if opts.ErrorReturnOrigin {
+			return content
+		}
+		return bytes.ToValidUTF8(content, opts.ErrorReplacement)
 	}
 
 	var decoded []byte
