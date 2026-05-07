@@ -7,8 +7,6 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 
@@ -49,53 +47,22 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 func (source *Source) refresh(ctx context.Context, provider goth.Provider, u *user_model.ExternalLoginUser) error {
 	log.Trace("Syncing login_source_id=%d external_id=%s expiration=%s", u.LoginSourceID, u.ExternalID, u.ExpiresAt)
 
-	shouldDisable := false
-
 	token, err := provider.RefreshToken(u.RefreshToken)
 	if err != nil {
-		if err, ok := err.(*oauth2.RetrieveError); ok && err.ErrorCode == "invalid_grant" {
-			// this signals that the token is not valid and the user should be disabled
-			shouldDisable = true
-		} else {
-			return err
-		}
-	}
+		if retrieveErr, ok := err.(*oauth2.RetrieveError); ok && retrieveErr.ErrorCode == "invalid_grant" {
+			log.Info("SyncExternalUsers[%s] dropping invalid refresh token for external login %s", source.AuthSource.Name, u.ExternalID)
 
-	user := &user_model.User{
-		LoginName:   u.ExternalID,
-		LoginType:   auth.OAuth2,
-		LoginSource: u.LoginSourceID,
-	}
-
-	hasUser, err := user_model.GetIndividualUser(ctx, user)
-	if err != nil {
-		return err
-	}
-
-	// If the grant is no longer valid, disable the user and
-	// delete local tokens. If the OAuth2 provider still
-	// recognizes them as a valid user, they will be able to login
-	// via their provider and reactivate their account.
-	if shouldDisable {
-		log.Info("SyncExternalUsers[%s] disabling user %d", source.AuthSource.Name, user.ID)
-
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			if hasUser {
-				user.IsActive = false
-				err := user_model.UpdateUserCols(ctx, user, "is_active")
-				if err != nil {
-					return err
-				}
-			}
-
-			// Delete stored tokens, since they are invalid. This
-			// also provents us from checking this in subsequent runs.
+			// Refresh tokens can expire or be revoked independently from the
+			// upstream account state. Keep the local user active and only clear
+			// the cached tokens until the next successful OAuth sign-in updates them.
 			u.AccessToken = ""
 			u.RefreshToken = ""
 			u.ExpiresAt = time.Time{}
 
 			return user_model.UpdateExternalUserByExternalID(ctx, u)
-		})
+		} else {
+			return err
+		}
 	}
 
 	// Otherwise, update the tokens
