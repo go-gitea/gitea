@@ -7,7 +7,6 @@ import (
 	"context"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/structs"
@@ -30,6 +29,5 @@ func UpdateGroup(ctx context.Context, g *group_model.Group, opts *UpdateOptions)
 	if opts.Visibility.Has() {
 		g.Visibility = opts.Visibility.Value()
 	}
-	_, err := db.GetEngine(ctx).ID(g.ID).Update(g)
-	return err
+	return group_model.UpdateGroup(ctx, g)
 }

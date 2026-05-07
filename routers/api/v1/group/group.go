@@ -11,6 +11,7 @@ import (
 	group_model "code.gitea.io/gitea/models/group"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	shared_group_model "code.gitea.io/gitea/models/shared/group"
+	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -165,6 +166,10 @@ func MoveGroup(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
+	if group_model.IsErrUserDoesNotHaveAccessToGroup(err) {
+		ctx.APIError(http.StatusForbidden, err)
+		return
+	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -232,16 +237,13 @@ func EditGroup(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	if form.Visibility != nil {
-		group.Visibility = *form.Visibility
-	}
-	if form.Description != nil {
-		group.Description = *form.Description
-	}
-	if form.Name != nil {
-		group.Name = *form.Name
-	}
-	err = group_model.UpdateGroup(ctx, group)
+
+	serviceOpts := &group_service.UpdateOptions{}
+	serviceOpts.Visibility = optional.FromPtr(form.Visibility)
+	serviceOpts.Description = optional.FromPtr(form.Description)
+	serviceOpts.Name = optional.FromPtr(form.Name)
+
+	err = group_service.UpdateGroup(ctx, group, serviceOpts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
