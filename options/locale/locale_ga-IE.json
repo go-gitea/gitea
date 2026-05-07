@@ -1958,7 +1958,6 @@
   "repo.signing.wont_sign.headsigned": "Ní shínífear an cumasc toisc nach bhfuil an tiomantas ceann sínithe.",
   "repo.signing.wont_sign.commitssigned": "Ní shínífear an cumasc toisc nach bhfuil na tiomáintí gaolmhara go léir sínithe.",
   "repo.signing.wont_sign.approved": "Ní shíníofar an cumaisc toisc nach bhfuil an PR ceadaithe.",
-  "repo.signing.wont_sign.not_signed_in": "Níl tú sínithe isteach.",
   "repo.ext_wiki": "Rochtain ar Vicí Seachtrach",
   "repo.ext_wiki.desc": "Nasc le vicí seachtrach.",
   "repo.wiki": "Vicí",
