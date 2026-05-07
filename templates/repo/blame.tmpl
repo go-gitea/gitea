@@ -43,7 +43,7 @@
 								<div class="blame-info">
 									<div class="blame-data">
 										<div class="blame-avatar">
-											{{$row.Avatar}}
+											{{template "repo/commit_coauthor_avatar_stack" dict "AuthorUser" $row.AuthorUser "AuthorSignature" $row.Author "CoAuthors" $row.CoAuthors}}
 										</div>
 										<div class="blame-message muted-links" title="{{$row.CommitMessage}}">
 											{{ctx.RenderUtils.RenderCommitMessageLinkSubject $row.CommitMessage $row.CommitURL $.Repository}}

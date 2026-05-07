@@ -145,14 +145,18 @@ func TestCommitToPushCommit(t *testing.T) {
 		ID:            sha1,
 		Author:        sig,
 		Committer:     sig,
-		CommitMessage: git.CommitMessage{MessageRaw: "Commit Message"},
+		CommitMessage: git.CommitMessage{MessageRaw: "Commit Message\n\nCo-authored-by: Jane Doe <jane@example.com>"},
 	})
 	assert.Equal(t, hexString, pushCommit.Sha1)
-	assert.Equal(t, "Commit Message", pushCommit.Message)
+	assert.Equal(t, "Commit Message\n\nCo-authored-by: Jane Doe <jane@example.com>", pushCommit.Message)
 	assert.Equal(t, "example@example.com", pushCommit.AuthorEmail)
 	assert.Equal(t, "John Doe", pushCommit.AuthorName)
 	assert.Equal(t, "example@example.com", pushCommit.CommitterEmail)
 	assert.Equal(t, "John Doe", pushCommit.CommitterName)
+	if assert.Len(t, pushCommit.CoAuthors, 1) {
+		assert.Equal(t, "jane@example.com", pushCommit.CoAuthors[0].Email)
+		assert.Equal(t, "Jane Doe", pushCommit.CoAuthors[0].Name)
+	}
 	assert.Equal(t, now, pushCommit.Timestamp)
 }
 

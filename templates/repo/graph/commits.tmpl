@@ -41,14 +41,7 @@
 					</span>
 
 					<span class="flex-text-inline tw-text-12">
-						{{if $commit.User}}
-							{{ctx.AvatarUtils.Avatar $commit.User 18}}
-							{{$commit.User.GetShortDisplayNameLinkHTML}}
-						{{else}}
-							{{$gitUserName := $commit.Commit.Author.Name}}
-							{{ctx.AvatarUtils.AvatarByEmail $commit.Commit.Author.Email $gitUserName 18}}
-							{{$gitUserName}}
-						{{end}}
+						{{template "repo/commit_coauthor_avatars" dict "AuthorUser" $commit.User "AuthorSignature" $commit.Commit.Author "CoAuthors" $commit.CoAuthors}}
 					</span>
 
 					<span class="time flex-text-inline">{{DateUtils.FullTime $commit.Date}}</span>

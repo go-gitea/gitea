@@ -93,9 +93,7 @@ func (graph *Graph) AddCommit(row, column int, flowID int64, data []byte) error 
 // before finally retrieving the latest status
 func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_model.Repository, gitRepo *git.Repository) error {
 	var err error
-	var ok bool
-
-	emails := map[string]*user_model.User{}
+	emailSet := map[string]struct{}{}
 	keyMap := map[string]bool{}
 
 	for _, c := range graph.Commits {
@@ -106,13 +104,44 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		if err != nil {
 			return fmt.Errorf("GetCommit: %s Error: %w", c.Rev, err)
 		}
-
 		if c.Commit.Author != nil {
-			email := c.Commit.Author.Email
-			if c.User, ok = emails[email]; !ok {
-				c.User, _ = user_model.GetUserByEmail(ctx, email)
-				emails[email] = c.User
+			emailSet[c.Commit.Author.Email] = struct{}{}
+		}
+		for _, sig := range c.Commit.CoAuthorSignatures() {
+			emailSet[sig.Email] = struct{}{}
+		}
+	}
+
+	allEmails := make([]string, 0, len(emailSet))
+	for email := range emailSet {
+		allEmails = append(allEmails, email)
+	}
+	var emailUserMap *user_model.EmailUserMap
+	if len(allEmails) > 0 {
+		emailUserMap, err = user_model.GetUsersByEmails(ctx, allEmails)
+		if err != nil {
+			log.Error("GetUsersByEmails: %v", err)
+		}
+	}
+
+	for _, c := range graph.Commits {
+		if c.Commit == nil {
+			continue
+		}
+		if c.Commit.Author != nil && emailUserMap != nil {
+			c.User = emailUserMap.GetByEmail(c.Commit.Author.Email)
+		}
+		coAuthorSigs := c.Commit.CoAuthorSignatures()
+		c.CoAuthors = make([]*user_model.CoAuthorUser, 0, len(coAuthorSigs))
+		for _, sig := range coAuthorSigs {
+			var giteaUser *user_model.User
+			if emailUserMap != nil {
+				giteaUser = emailUserMap.GetByEmail(sig.Email)
 			}
+			c.CoAuthors = append(c.CoAuthors, &user_model.CoAuthorUser{
+				GiteaUser:        giteaUser,
+				TrailerSignature: sig,
+			})
 		}
 
 		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
@@ -248,6 +277,7 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 type Commit struct {
 	Commit       *git.Commit
 	User         *user_model.User
+	CoAuthors    []*user_model.CoAuthorUser
 	Verification *asymkey_model.CommitVerification
 	Status       *git_model.CommitStatus
 	Flow         int64

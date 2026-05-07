@@ -29,6 +29,7 @@ type PushCommit struct {
 	AuthorName     string
 	CommitterEmail string
 	CommitterName  string
+	CoAuthors      []*git.Signature
 	Timestamp      time.Time
 }
 
@@ -157,6 +158,7 @@ func CommitToPushCommit(commit *git.Commit) *PushCommit {
 		AuthorName:     commit.Author.Name,
 		CommitterEmail: commit.Committer.Email,
 		CommitterName:  commit.Committer.Name,
+		CoAuthors:      commit.CoAuthorSignatures(),
 		Timestamp:      commit.Author.When,
 	}
 }
