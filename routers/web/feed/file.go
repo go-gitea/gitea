@@ -4,7 +4,6 @@
 package feed
 
 import (
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/repo"
@@ -46,14 +45,14 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 	for _, commit := range commits {
 		feed.Items = append(feed.Items, &feeds.Item{
 			Id:    commit.ID.String(),
-			Title: strings.TrimSpace(strings.Split(commit.Message(), "\n")[0]),
+			Title: commit.MessageTitle(),
 			Link:  &feeds.Link{Href: repo.HTMLURL() + "/commit/" + commit.ID.String()},
 			Author: &feeds.Author{
 				Name:  commit.Author.Name,
 				Email: commit.Author.Email,
 			},
-			Description: commit.Message(),
-			Content:     commit.Message(),
+			Description: commit.MessageUTF8(), // TODO: description can be shorten content
+			Content:     commit.MessageUTF8(),
 			Created:     commit.Committer.When,
 		})
 	}

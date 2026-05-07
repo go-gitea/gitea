@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"path"
 	"strconv"
-	"strings"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -38,7 +37,7 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/model"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -215,7 +214,7 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 
 	return &api.Tag{
 		Name:       t.Name,
-		Message:    strings.TrimSpace(t.Message),
+		Message:    t.MessageUTF8(),
 		ID:         t.ID.String(),
 		Commit:     ToCommitMeta(repo, t),
 		ZipballURL: zipballURL,
@@ -769,7 +768,7 @@ func ToAnnotatedTag(ctx context.Context, repo *repo_model.Repository, t *git.Tag
 		Tag:          t.Name,
 		SHA:          t.ID.String(),
 		Object:       ToAnnotatedTagObject(repo, c),
-		Message:      t.Message,
+		Message:      t.MessageUTF8(),
 		URL:          repo.APIURL() + "/git/tags/" + t.ID.String(),
 		Tagger:       ToCommitUser(t.Tagger),
 		Verification: ToVerification(ctx, c),

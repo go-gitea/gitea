@@ -261,7 +261,7 @@ func UpdateBranch(ctx context.Context, repoID, pusherID int64, branchName string
 		Cols("commit_id, commit_message, pusher_id, commit_time, is_deleted, updated_unix").
 		Update(&Branch{
 			CommitID:      commit.ID.String(),
-			CommitMessage: commit.Summary(),
+			CommitMessage: commit.MessageTitle(),
 			PusherID:      pusherID,
 			CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
 			IsDeleted:     false,

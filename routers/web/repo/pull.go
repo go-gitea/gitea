@@ -974,17 +974,15 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	// ToDo: add check if maintainers are allowed to change branch ... (need migration & co)
 	if (!allowedUpdateByMerge && !rebase) || (rebase && !allowedUpdateByRebase) {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
-		ctx.Redirect(issue.Link())
+		ctx.JSONError(ctx.Tr("repo.pulls.update_not_allowed"))
 		return
 	}
 
 	// default merge commit message
 	message := fmt.Sprintf("Merge branch '%s' into %s", issue.PullRequest.BaseBranch, issue.PullRequest.HeadBranch)
 
-	// The update process should not be cancelled by the user
+	// The update process should not be canceled by the user
 	// so we set the context to be a background context
 	if err = pull_service.Update(graceful.GetManager().ShutdownContext(), issue.PullRequest, ctx.Doer, message, rebase); err != nil {
 		if pull_service.IsErrMergeConflicts(err) {
@@ -998,8 +996,7 @@ func UpdatePullRequest(ctx *context.Context) {
 				ctx.ServerError("UpdatePullRequest.HTMLString", err)
 				return
 			}
-			ctx.Flash.Error(flashError)
-			ctx.Redirect(issue.Link())
+			ctx.JSONError(flashError)
 			return
 		} else if pull_service.IsErrRebaseConflicts(err) {
 			conflictError := err.(pull_service.ErrRebaseConflicts)
@@ -1012,19 +1009,18 @@ func UpdatePullRequest(ctx *context.Context) {
 				ctx.ServerError("UpdatePullRequest.HTMLString", err)
 				return
 			}
-			ctx.Flash.Error(flashError)
-			ctx.Redirect(issue.Link())
+			ctx.JSONError(flashError)
 			return
 		}
-		ctx.Flash.Error(err.Error())
-		ctx.Redirect(issue.Link())
+		log.Error("Update pull request failed: %v", err)
+		ctx.JSONError("Unable to update pull request")
 		return
 	}
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(100 * time.Millisecond) // TODO: it is really questionable whether the Sleep is useful here, need to figure out
 
 	ctx.Flash.Success(ctx.Tr("repo.pulls.update_branch_success"))
-	ctx.Redirect(issue.Link())
+	ctx.JSONRedirect(issue.Link())
 }
 
 // MergePullRequest response for merging pull request

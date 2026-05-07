@@ -152,7 +152,7 @@ func (pc *PushCommits) AvatarLink(ctx context.Context, email string) string {
 func CommitToPushCommit(commit *git.Commit) *PushCommit {
 	return &PushCommit{
 		Sha1:           commit.ID.String(),
-		Message:        commit.Message(),
+		Message:        commit.MessageUTF8(),
 		AuthorEmail:    commit.Author.Email,
 		AuthorName:     commit.Author.Name,
 		CommitterEmail: commit.Committer.Email,

@@ -46,7 +46,7 @@
 			{{end}}
 			{{if $data.ShowUpdatePullInfo}}
 				<div class="item">
-					{{template "repo/issue/view_content/update_branch_by_merge" (dict "MergeBoxData" $data "Issue" $.Issue)}}
+					{{template "repo/issue/view_content/update_branch_by_merge" (dict "MergeBoxData" $data "IssueLink" $.Issue.Link)}}
 				</div>
 			{{end}}
 

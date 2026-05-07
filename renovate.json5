@@ -71,8 +71,8 @@
       "groupName": "npm dependencies",
       "matchManagers": ["npm"],
       "postUpgradeTasks": {
-        "commands": ["make svg"],
-        "fileFilters": ["public/assets/img/svg/**"],
+        "commands": ["make svg nolyfill"],
+        "fileFilters": ["package.json", "pnpm-lock.yaml", "public/assets/img/svg/**"],
         "executionMode": "branch",
       },
     },
