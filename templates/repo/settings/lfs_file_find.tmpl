@@ -6,7 +6,7 @@
 			</h4>
 			<table id="lfs-files-find-table" class="ui attached segment single line table">
 				<tbody>
-					{{range .Results}}
+					{{range $lfsItem := .Results}}
 						<tr>
 							<td>
 								{{svg "octicon-file"}}
@@ -14,8 +14,8 @@
 							</td>
 							<td class="message">
 								<span class="truncate">
-									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{.Summary}}">
-										{{.Summary | ctx.RenderUtils.RenderEmoji}}
+									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{$lfsItem.Summary}}">
+										{{$lfsItem.Summary | ctx.RenderUtils.RenderEmoji}}
 									</a>
 								</span>
 							</td>
