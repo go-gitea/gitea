@@ -390,7 +390,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 				runnerName = runner.Name
 			}
 			for i, step := range task.Steps {
-				stepStatus, stepConclusion := ToActionsStatus(job.Status)
+				stepStatus, stepConclusion := ToActionsStatus(step.Status)
 				steps = append(steps, &api.ActionWorkflowStep{
 					Name:        step.Name,
 					Number:      int64(i),
