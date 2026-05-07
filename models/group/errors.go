@@ -42,3 +42,21 @@ func IsErrGroupTooDeep(err error) bool {
 func (err ErrGroupTooDeep) Error() string {
 	return fmt.Sprintf("group has reached or exceeded the subgroup nesting limit [id: %d]", err.ID)
 }
+
+type ErrUserDoesNotHaveAccessToGroup struct {
+	UserID, GroupID int64
+}
+
+func (e ErrUserDoesNotHaveAccessToGroup) Error() string {
+	return fmt.Sprintf("user %d does not have access to group %d", e.UserID, e.GroupID)
+}
+
+func (e ErrUserDoesNotHaveAccessToGroup) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
+func IsErrUserDoesNotHaveAccessToGroup(err error) bool {
+	var eNoAccess ErrUserDoesNotHaveAccessToGroup
+	ok := errors.As(err, &eNoAccess)
+	return ok
+}
