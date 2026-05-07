@@ -108,6 +108,19 @@ type Issue struct {
 
 	// Time estimate
 	TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
+
+	// CommitSHA is non-empty for synthetic "commit comment" issues — one row per
+	// (repo, sha) that is lazily created the first time a user comments on a
+	// commit. Comments on commits then hang off that synthetic Issue, which
+	// keeps the existing comment / attachment infrastructure working unchanged.
+	// Always empty for normal issues and pull requests.
+	CommitSHA string `xorm:"INDEX VARCHAR(64) NOT NULL DEFAULT ''"`
+}
+
+// IsCommitComment reports whether this Issue is a synthetic carrier for
+// inline comments on a commit, rather than a real issue or pull request.
+func (issue *Issue) IsCommitComment() bool {
+	return issue.CommitSHA != ""
 }
 
 var (

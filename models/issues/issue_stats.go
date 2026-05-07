@@ -166,6 +166,10 @@ func applyIssuesOptions(sess *xorm.Session, opts *IssuesOptions, issueIDs []int6
 		sess.And("issue.is_pull=?", opts.IsPull.Value())
 	}
 
+	// Exclude synthetic commit-comment carrier issues from stats — they aren't
+	// real issues / PRs and counting them would distort dashboards.
+	sess.And(builder.Eq{"issue.commit_sha": ""})
+
 	return sess
 }
 

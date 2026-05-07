@@ -47,6 +47,28 @@ type EditIssueCommentOption struct {
 	Body string `json:"body" binding:"Required"`
 }
 
+// CreateCommitCommentOption options for creating a comment on a commit.
+//
+// When TreePath and Line are both zero/empty the comment is treated as a
+// general comment on the commit; when at least one of them is set the
+// comment is anchored to a specific diff line, exactly like a PR review
+// inline comment. Negative Line values reference the old (pre-image) side
+// of the diff, positive values reference the new side.
+type CreateCommitCommentOption struct {
+	// required:true
+	// Body is the comment text content
+	Body string `json:"body" binding:"Required"`
+	// Path within the commit that this comment is anchored to. Empty for
+	// general (commit-wide) comments.
+	Path string `json:"path"`
+	// Line in the diff this comment is anchored to. Negative for the old
+	// side, positive for the new side, 0 (default) for general comments.
+	Line int64 `json:"line"`
+	// Attachments is a list of attachment UUIDs (already uploaded via the
+	// dedicated attachments endpoint) to bind to the comment.
+	Attachments []string `json:"assets"`
+}
+
 // TimelineComment represents a timeline comment (comment of any type) on a commit or issue
 type TimelineComment struct {
 	// ID is the unique identifier for the timeline comment

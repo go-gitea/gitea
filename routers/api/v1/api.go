@@ -1385,6 +1385,14 @@ func Routes() *web.Router {
 						g.MatchPath("GET", "/<ref:*>/status", repo.GetCombinedCommitStatusByRef)
 						g.MatchPath("GET", "/<ref:*>/statuses", repo.GetCommitStatusesByRef)
 						g.MatchPath("GET", "/<sha>/pull", repo.GetCommitPullRequest)
+						// Inline / general comments on a commit (#4898). Listing is open
+						// to anyone who can read the code unit (already gated by
+						// reqRepoReader on the parent group); creation additionally
+						// requires a token and a non-archived repo. The handler also
+						// verifies that the SHA actually resolves in the git repo so a
+						// typo can't materialise an unreachable carrier Issue.
+						g.MatchPath("GET", "/<sha>/comments", repo.ListCommitComments)
+						g.MatchPath("POST", "/<sha>/comments", reqToken(), mustNotBeArchived, bind(api.CreateCommitCommentOption{}), repo.CreateCommitComment)
 					})
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {

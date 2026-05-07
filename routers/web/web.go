@@ -1698,6 +1698,15 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}/load-branches-and-tags", repo.LoadBranchesAndTags)
+			// Commit comments (#4898). Same gating as the issue comment form: signed-in,
+			// repo not archived, code-unit readable. The handler additionally validates
+			// the SHA actually exists and rejects empty bodies via the form binding.
+			m.Post("/commit/{sha:([a-f0-9]{7,64})$}/comments",
+				reqSignIn, context.RepoMustNotBeArchived(),
+				context.RequireUnitReader(unit.TypeCode),
+				web.Bind(forms.CreateCommitCommentForm{}),
+				repo.NewCommitComment,
+			)
 
 			// FIXME: this route `/cherry-pick/{sha}` doesn't seem useful or right, the new code always uses `/_cherrypick/` which could handle branch name correctly
 			m.Get("/cherry-pick/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, context.RepoRefByDefaultBranch(), repo.CherryPick)

@@ -200,6 +200,47 @@
 		{{end}}
 
 		{{template "repo/diff/box" .}}
+
+		{{/* Commit comments (#4898). Rendered only when the parent handler set
+		     PageIsCommitFiles, so the same template stays inert on commit-list
+		     and other inclusions of "repo/diff/box". */}}
+		{{if .PageIsCommitFiles}}
+			<div class="commit-comments tw-mt-6">
+				{{if .CommitComments}}
+					<h3 class="ui top attached header">
+						{{ctx.Locale.Tr "repo.diff.comment.placeholder"}}
+						<span class="ui label">{{len .CommitComments}}</span>
+					</h3>
+					<div class="ui bottom attached segment">
+						{{range .CommitComments}}
+							<div class="commit-comment-item tw-py-2">
+								<a href="{{.Poster.HomeLink}}" class="tw-font-bold">{{.Poster.GetDisplayName}}</a>
+								<span class="tw-text-text-light">{{DateUtils.TimeSince .CreatedUnix.AsTime}}</span>
+								{{if .TreePath}}
+									<span class="ui mini label">{{.TreePath}}{{if .Line}}:{{.Line}}{{end}}</span>
+								{{end}}
+								<div class="markup tw-mt-1">{{.Content}}</div>
+							</div>
+						{{end}}
+					</div>
+				{{end}}
+
+				{{if .IsSigned}}
+					<form class="ui form tw-mt-4" method="post"
+						action="{{.RepoLink}}/commit/{{.CommitID}}/comments"
+						data-commit-comment-form>
+						{{.CsrfTokenHtml}}
+						<div class="field">
+							<textarea name="content" rows="3" required
+								placeholder="{{ctx.Locale.Tr "repo.diff.comment.placeholder"}}"></textarea>
+						</div>
+						<button class="ui primary button" type="submit">
+							{{ctx.Locale.Tr "repo.issues.create_comment"}}
+						</button>
+					</form>
+				{{end}}
+			</div>
+		{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}

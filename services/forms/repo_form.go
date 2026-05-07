@@ -436,6 +436,24 @@ func (f *CreateCommentForm) Validate(req *http.Request, errs binding.Errors) bin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// CreateCommitCommentForm is the web-side form for posting a comment on a
+// commit (general or inline). Path / Line are zero-valued for the simple
+// commit-page comment box; the inline UI sets them when anchoring to a diff
+// line. Files mirrors `CreateCommentForm.Files` and contains attachment
+// UUIDs already uploaded via the dedicated attachment endpoint.
+type CreateCommitCommentForm struct {
+	Content string `binding:"Required"`
+	Path    string
+	Line    int64
+	Files   []string
+}
+
+// Validate validates the fields
+func (f *CreateCommitCommentForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // ReactionForm form for adding and removing reaction
 type ReactionForm struct {
 	Content string `binding:"Required"`

@@ -273,6 +273,12 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) {
 		sess.And("issue.is_pull=?", opts.IsPull.Value())
 	}
 
+	// Synthetic commit-comment carrier issues (created lazily when a user posts
+	// the first inline comment on a commit) must never appear in the regular
+	// issues / pull-request UI. They have a non-empty commit_sha column whereas
+	// all real issues / pull requests have it blank.
+	sess.And(builder.Eq{"issue.commit_sha": ""})
+
 	if opts.IsArchived.Has() {
 		sess.And(builder.Eq{"repository.is_archived": opts.IsArchived.Value()})
 	}

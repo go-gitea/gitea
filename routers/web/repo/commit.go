@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	commit_service "code.gitea.io/gitea/services/commit"
 	"code.gitea.io/gitea/services/context"
 	git_service "code.gitea.io/gitea/services/git"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -412,6 +413,27 @@ func Diff(ctx *context.Context) {
 	if pr != nil {
 		ctx.Data["MergedPRIssueNumber"] = pr.Index
 	}
+
+	// Load any existing commit-level comments so the template can render them
+	// underneath the diff. The list endpoint already does this server-side; we
+	// embed it directly here to avoid an extra round-trip on first paint.
+	commitComments, err := commit_service.ListCommitComments(ctx, ctx.Repo.Repository, commitID)
+	if err != nil {
+		ctx.ServerError("ListCommitComments", err)
+		return
+	}
+	for _, c := range commitComments {
+		if err := c.LoadPoster(ctx); err != nil {
+			ctx.ServerError("LoadPoster", err)
+			return
+		}
+		if err := c.LoadAttachments(ctx); err != nil {
+			ctx.ServerError("LoadAttachments", err)
+			return
+		}
+	}
+	ctx.Data["CommitComments"] = commitComments
+	ctx.Data["PageIsCommitFiles"] = true
 
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }
