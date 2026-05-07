@@ -154,10 +154,10 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 			// create a new pull request
 			if title == "" {
-				title = strings.Split(commit.CommitMessage, "\n")[0]
+				title = commit.Summary()
 			}
 			if description == "" {
-				_, description, _ = strings.Cut(commit.CommitMessage, "\n\n")
+				_, description, _ = strings.Cut(commit.Message(), "\n\n")
 			}
 			if description == "" {
 				description = title

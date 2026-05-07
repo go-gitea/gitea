@@ -11,7 +11,6 @@ import (
 	"encoding/hex"
 	"io"
 	"sort"
-	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -102,7 +101,7 @@ func findLFSFileFunc(repo *git.Repository, objectID git.ObjectID, revListReader 
 						result := LFSResult{
 							Name:         curPath + string(fname),
 							SHA:          curCommit.ID.String(),
-							Summary:      strings.Split(strings.TrimSpace(curCommit.CommitMessage), "\n")[0],
+							Summary:      curCommit.Summary(),
 							When:         curCommit.Author.When,
 							ParentHashes: curCommit.Parents,
 						}
