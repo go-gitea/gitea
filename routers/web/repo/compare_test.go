@@ -6,7 +6,6 @@ package repo
 import (
 	"strings"
 	"testing"
-	"unicode/utf8"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
@@ -55,7 +54,7 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 			SignCommit: &asymkey_model.SignCommit{
 				UserCommit: &user_model.UserCommit{
 					Commit: &git.Commit{
-						CommitMessage: msg,
+						CommitMessage: git.CommitMessage{MessageRaw: msg},
 					},
 				},
 			},
@@ -99,9 +98,9 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	assert.Equal(t, "title-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…", title)
 	assert.Equal(t, "…aaaaaaaaa\n", content)
 
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("a\xf0\xf0\xf0\nb\xf0\xf0\xf0")}, setting.RepoPRTitleSourceFirstCommit)
-	assert.Equal(t, "a?", title) // FIXME: GIT-COMMIT-MESSAGE-ENCODING: "title" doesn't use the same charset converting logic as "content"
-	assert.Equal(t, "b"+string(utf8.RuneError)+string(utf8.RuneError), content)
+	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title \xf0\nbody \xf0")}, setting.RepoPRTitleSourceFirstCommit)
+	assert.Equal(t, "title ð", title)
+	assert.Equal(t, "body ð", content)
 }
 
 func TestAutoTitleFromBranchName(t *testing.T) {
