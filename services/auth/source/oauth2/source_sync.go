@@ -5,6 +5,7 @@ package oauth2
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -49,20 +50,20 @@ func (source *Source) refresh(ctx context.Context, provider goth.Provider, u *us
 
 	token, err := provider.RefreshToken(u.RefreshToken)
 	if err != nil {
-		if retrieveErr, ok := err.(*oauth2.RetrieveError); ok && retrieveErr.ErrorCode == "invalid_grant" {
-			log.Info("SyncExternalUsers[%s] dropping invalid refresh token for external login %s", source.AuthSource.Name, u.ExternalID)
-
-			// Refresh tokens can expire or be revoked independently from the
-			// upstream account state. Keep the local user active and only clear
-			// the cached tokens until the next successful OAuth sign-in updates them.
-			u.AccessToken = ""
-			u.RefreshToken = ""
-			u.ExpiresAt = time.Time{}
-
-			return user_model.UpdateExternalUserByExternalID(ctx, u)
-		} else {
+		var retrieveErr *oauth2.RetrieveError
+		if !errors.As(err, &retrieveErr) || retrieveErr.ErrorCode != "invalid_grant" {
 			return err
 		}
+		log.Info("SyncExternalUsers[%s] dropping invalid refresh token for user %d", source.AuthSource.Name, u.UserID)
+
+		// Refresh tokens can expire or be revoked independently from the
+		// upstream account state. Keep the local user active and only clear
+		// the cached tokens until the next successful OAuth sign-in updates them.
+		u.AccessToken = ""
+		u.RefreshToken = ""
+		u.ExpiresAt = time.Time{}
+
+		return user_model.UpdateExternalUserByExternalID(ctx, u)
 	}
 
 	// Otherwise, update the tokens
