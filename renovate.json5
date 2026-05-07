@@ -2,11 +2,11 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests", "customManagers:githubActionsVersions"],
   "configMigration": true,
-  "enabledManagers": ["github-actions", "gomod", "npm", "pep621", "nix"],
+  "enabledManagers": ["github-actions", "gomod", "npm", "pep621", "nix", "custom.regex"],
   "labels": ["dependencies"],
   "branchPrefix": "renovate/",
   "schedule": ["* * * * 1"], // dependency update PRs weekly, vulnerabilityAlerts bypasses this
-  "minimumReleaseAge": "5 days",
+  "minimumReleaseAge": "3 days",
   "semanticCommits": "enabled",
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
@@ -60,12 +60,24 @@
     },
     {
       "groupName": "go dependencies",
-      "matchDatasources": ["go"], // covers gomod manager + Makefile go-tool customManager
+      "matchManagers": ["gomod"],
       "postUpgradeTasks": {
         "commands": ["make tidy"],
         "fileFilters": ["go.mod", "go.sum", "assets/go-licenses.json"],
         "executionMode": "branch",
       },
+    },
+    {
+      "groupName": "tool dependencies",
+      "matchManagers": ["custom.regex"],
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"], // bump go.mod go directive
+      "rangeStrategy": "bump",
+      "schedule": ["at any time"],
+      "minimumReleaseAge": "0",
     },
     {
       "groupName": "npm dependencies",
