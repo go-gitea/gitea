@@ -195,7 +195,7 @@ PR titles must follow the [Conventional Commits](https://www.conventionalcommits
 type(scope)!: subject
 ```
 
-The accepted types are the standard set from [`@commitlint/config-conventional`](https://github.com/conventional-changelog/commitlint/tree/868983c18efcb6fa835197cc9b2275545e528ad4/%40commitlint/config-conventional#type-enum).
+The allowed types are `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, and `test`. The generic `chore` type is intentionally not accepted; pick a more descriptive type instead.
 
 Examples:
 
