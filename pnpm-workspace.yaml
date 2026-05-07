@@ -1,5 +1,4 @@
-# nolyfill 1.0.44 requires `packages` to be set (SukkaW/nolyfill#119); pnpm itself does not.
-packages: [.]
+packages: [.] # worarkound for https://github.com/SukkaW/nolyfill/issues/119
 savePrefix: ''
 dedupePeerDependents: false
 updateNotifier: false
