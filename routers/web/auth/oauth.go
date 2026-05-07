@@ -302,20 +302,40 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 }
 
 func oauth2UpdateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User) {
-	if setting.OAuth2Client.UpdateAvatar && len(url) > 0 {
-		resp, err := http.Get(url)
-		if err == nil {
-			defer func() {
-				_ = resp.Body.Close()
-			}()
-		}
-		// ignore any error
-		if err == nil && resp.StatusCode == http.StatusOK {
-			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
-			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
-				_ = user_service.UploadAvatar(ctx, u, data)
-			}
-		}
+	if !setting.OAuth2Client.UpdateAvatar || len(url) == 0 {
+		return
+	}
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		log.Warn("oauth2UpdateAvatarIfNeed: invalid avatar URL %q: %v", url, err)
+		return
+	}
+	// Some image hosts (e.g. Wikimedia) reject requests using Go's default User-Agent.
+	// Send a descriptive UA so that fetching public avatars works reliably.
+	req.Header.Set("User-Agent", "Gitea "+setting.AppVer)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Warn("oauth2UpdateAvatarIfNeed: fetch %q failed: %v", url, err)
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Warn("oauth2UpdateAvatarIfNeed: fetch %q returned status %d", url, resp.StatusCode)
+		return
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
+	if err != nil {
+		log.Warn("oauth2UpdateAvatarIfNeed: read body from %q failed: %v", url, err)
+		return
+	}
+	if int64(len(data)) > setting.Avatar.MaxFileSize {
+		log.Warn("oauth2UpdateAvatarIfNeed: avatar from %q exceeds max size %d", url, setting.Avatar.MaxFileSize)
+		return
+	}
+	if err := user_service.UploadAvatar(ctx, u, data); err != nil {
+		log.Warn("oauth2UpdateAvatarIfNeed: UploadAvatar for user %q failed: %v", u.Name, err)
 	}
 }
 
