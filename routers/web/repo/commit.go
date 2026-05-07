@@ -382,6 +382,11 @@ func Diff(ctx *context.Context) {
 	verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(ctx, commit)
+	if coAuthors, err := user_model.CoAuthorsFromCommit(ctx, commit); err != nil {
+		log.Error("CoAuthorsFromCommit: %v", err)
+	} else {
+		ctx.Data["CoAuthors"] = coAuthors
+	}
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 

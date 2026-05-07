@@ -1,0 +1,43 @@
+{{/*
+	Renders the author/co-author avatar stack and name text for a commit.
+	Args (via dict):
+		AuthorUser       - *user_model.User (may be nil if no Gitea account)
+		AuthorSignature  - *git.Signature   (always set: name + email from git)
+		CoAuthors        - []*user_model.CoAuthorUser
+		fields: GiteaUser (*User, may be nil), TrailerSignature (*git.Signature)
+
+	Avatar stack is capped at 10 children (author + up to 9 co-authors); any
+	remainder is collapsed into a trailing "+N" chip. The .coauthor-avatar-stack
+	CSS rules expect at most 10 children to fan out cleanly on hover.
+*/}}
+<span class="author-wrapper">
+{{- if .CoAuthors -}}
+	{{- $coCount := len .CoAuthors -}}
+	{{template "repo/commit_coauthor_avatar_stack" dict "AuthorUser" .AuthorUser "AuthorSignature" .AuthorSignature "CoAuthors" .CoAuthors}}
+	{{- if .AuthorUser -}}
+		{{- .AuthorUser.GetShortDisplayNameLinkHTML -}}
+	{{- else -}}
+		{{.AuthorSignature.Name}}
+	{{- end -}}
+	{{" "}}{{ctx.Locale.Tr "repo.commits.coauthor_and"}}{{" "}}
+	{{- if eq $coCount 1 -}}
+		{{- with index .CoAuthors 0 -}}
+			{{- if .GiteaUser -}}
+				<a class="muted" href="{{.GiteaUser.HomeLink}}">{{.GiteaUser.GetDisplayName}}</a>
+			{{- else -}}
+				{{.TrailerSignature.Name}}
+			{{- end -}}
+		{{- end -}}
+	{{- else -}}
+		{{- ctx.Locale.TrN $coCount "repo.commits.coauthor_others_1" "repo.commits.coauthor_others_n" $coCount -}}
+	{{- end -}}
+{{- else -}}
+	{{- if .AuthorUser -}}
+		{{- template "repo/commit_coauthor_avatar_stack" dict "AuthorUser" .AuthorUser "AuthorSignature" .AuthorSignature "AdditionalClasses" "tw-mr-1" -}}
+		{{- .AuthorUser.GetShortDisplayNameLinkHTML -}}
+	{{- else -}}
+		{{- template "repo/commit_coauthor_avatar_stack" dict "AuthorSignature" .AuthorSignature "AdditionalClasses" "tw-mr-1" -}}
+		{{.AuthorSignature.Name}}
+	{{- end -}}
+{{- end -}}
+</span>

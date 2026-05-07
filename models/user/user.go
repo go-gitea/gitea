@@ -1140,9 +1140,16 @@ func GetUsersBySource(ctx context.Context, s *auth.Source) ([]*User, error) {
 	return users, err
 }
 
+// CoAuthorUser represents a co-author parsed from a commit trailer, with optional Gitea user.
+type CoAuthorUser struct {
+	GiteaUser        *User
+	TrailerSignature *git.Signature
+}
+
 // UserCommit represents a commit with validation of user.
 type UserCommit struct { //revive:disable-line:exported
-	User *User
+	User      *User
+	CoAuthors []*CoAuthorUser
 	*git.Commit
 }
 
@@ -1158,6 +1165,27 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 	return u
 }
 
+// CoAuthorsFromCommit resolves co-author signatures from a commit into CoAuthorUser values.
+func CoAuthorsFromCommit(ctx context.Context, c *git.Commit) ([]*CoAuthorUser, error) {
+	sigs := c.CoAuthorSignatures()
+	if len(sigs) == 0 {
+		return nil, nil
+	}
+	emails := make([]string, len(sigs))
+	for i, sig := range sigs {
+		emails[i] = sig.Email
+	}
+	emailUserMap, err := GetUsersByEmails(ctx, emails)
+	if err != nil {
+		return nil, err
+	}
+	coAuthors := make([]*CoAuthorUser, len(sigs))
+	for i, sig := range sigs {
+		coAuthors[i] = &CoAuthorUser{GiteaUser: emailUserMap.GetByEmail(sig.Email), TrailerSignature: sig}
+	}
+	return coAuthors, nil
+}
+
 // ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
 func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([]*UserCommit, error) {
 	var (
@@ -1168,6 +1196,9 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([
 		if c.Author != nil {
 			emailSet.Add(c.Author.Email)
 		}
+		for _, sig := range c.CoAuthorSignatures() {
+			emailSet.Add(sig.Email)
+		}
 	}
 
 	emailUserMap, err := GetUsersByEmails(ctx, emailSet.Values())
@@ -1177,9 +1208,18 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([
 
 	for _, c := range oldCommits {
 		user := emailUserMap.GetByEmail(c.Author.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
+		coAuthorSigs := c.CoAuthorSignatures()
+		coAuthors := make([]*CoAuthorUser, 0, len(coAuthorSigs))
+		for _, sig := range coAuthorSigs {
+			coAuthors = append(coAuthors, &CoAuthorUser{
+				GiteaUser:        emailUserMap.GetByEmail(sig.Email),
+				TrailerSignature: sig,
+			})
+		}
 		newCommits = append(newCommits, &UserCommit{
-			User:   user,
-			Commit: c,
+			User:      user,
+			CoAuthors: coAuthors,
+			Commit:    c,
 		})
 	}
 	return newCommits, nil

@@ -1,0 +1,49 @@
+{{if or .CoAuthors .CoAuthorSignatures}}
+	{{- $additionalClasses := .AdditionalClasses -}}
+	<span class="coauthor-avatar-stack {{$additionalClasses}}">
+		{{- if .AuthorUser -}}
+			<a href="{{.AuthorUser.HomeLink}}" data-tooltip-content="{{.AuthorUser.GetDisplayName}}">{{- ctx.AvatarUtils.Avatar .AuthorUser 20 -}}</a>
+		{{- else -}}
+			{{- ctx.AvatarUtils.AvatarByEmail .AuthorSignature.Email .AuthorSignature.Name 20 -}}
+		{{- end -}}
+		{{- if .CoAuthors -}}
+			{{- $coCount := len .CoAuthors -}}
+			{{- $maxCo := 9 -}}
+			{{- $visibleCo := .CoAuthors -}}
+			{{- $overflow := 0 -}}
+			{{- if gt $coCount $maxCo -}}
+				{{- $visibleCo = slice .CoAuthors 0 $maxCo -}}
+				{{- $overflow = Eval $coCount "-" $maxCo -}}
+			{{- end -}}
+			{{- range $visibleCo -}}
+				{{- if .GiteaUser -}}
+					<a href="{{.GiteaUser.HomeLink}}" data-tooltip-content="{{.GiteaUser.GetDisplayName}}">{{- ctx.AvatarUtils.Avatar .GiteaUser 20 -}}</a>
+				{{- else -}}
+					{{- ctx.AvatarUtils.AvatarByEmail .TrailerSignature.Email .TrailerSignature.Name 20 -}}
+				{{- end -}}
+			{{- end -}}
+			{{- if gt $overflow 0 -}}
+				<span class="coauthor-overflow-chip" data-tooltip-content="{{ctx.Locale.TrN $overflow "repo.commits.coauthor_others_1" "repo.commits.coauthor_others_n" $overflow}}">+{{$overflow}}</span>
+			{{- end -}}
+		{{- else -}}
+			{{- $coCount := len .CoAuthorSignatures -}}
+			{{- $maxCo := 9 -}}
+			{{- $visibleCo := .CoAuthorSignatures -}}
+			{{- $overflow := 0 -}}
+			{{- if gt $coCount $maxCo -}}
+				{{- $visibleCo = slice .CoAuthorSignatures 0 $maxCo -}}
+				{{- $overflow = Eval $coCount "-" $maxCo -}}
+			{{- end -}}
+			{{- range $visibleCo -}}
+				{{- ctx.AvatarUtils.AvatarByEmail .Email .Name 20 -}}
+			{{- end -}}
+			{{- if gt $overflow 0 -}}
+				<span class="coauthor-overflow-chip" data-tooltip-content="{{ctx.Locale.TrN $overflow "repo.commits.coauthor_others_1" "repo.commits.coauthor_others_n" $overflow}}">+{{$overflow}}</span>
+			{{- end -}}
+		{{- end -}}
+	</span>
+{{else if .AuthorUser}}
+	{{- ctx.AvatarUtils.Avatar .AuthorUser 20 .AdditionalClasses -}}
+{{else}}
+	{{- ctx.AvatarUtils.AvatarByEmail .AuthorSignature.Email .AuthorSignature.Name 20 .AdditionalClasses -}}
+{{end}}

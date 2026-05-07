@@ -1403,10 +1403,71 @@ tbody.commit-list {
 }
 
 .author-wrapper {
-  max-width: 180px;
+  max-width: 240px;
   align-self: center;
   white-space: nowrap;
 }
+
+.coauthor-avatar-stack {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-right: 0.25rem;
+}
+
+/* each direct child of the stack is either <a> (linked user) or <img> (no account) */
+.coauthor-avatar-stack > * {
+  margin-left: -12px;
+  transition: transform 0.15s ease;
+  position: relative;
+  z-index: 0;
+  display: inline-flex;
+  border-radius: 50%;
+}
+
+.coauthor-avatar-stack > *:first-child {
+  margin-left: 0;
+}
+
+.coauthor-avatar-stack .avatar {
+  border: 2px solid var(--color-body);
+  border-radius: 50%;
+}
+
+.coauthor-overflow-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  border: 2px solid var(--color-body);
+  border-radius: 50%;
+  background: var(--color-secondary);
+  color: var(--color-text);
+}
+
+.coauthor-avatar-stack > *:nth-child(1) { z-index: 20; }
+.coauthor-avatar-stack > *:nth-child(2) { z-index: 19; }
+.coauthor-avatar-stack > *:nth-child(3) { z-index: 18; }
+.coauthor-avatar-stack > *:nth-child(4) { z-index: 17; }
+.coauthor-avatar-stack > *:nth-child(5) { z-index: 16; }
+.coauthor-avatar-stack > *:nth-child(6) { z-index: 15; }
+.coauthor-avatar-stack > *:nth-child(7) { z-index: 14; }
+.coauthor-avatar-stack > *:nth-child(8) { z-index: 13; }
+.coauthor-avatar-stack > *:nth-child(9) { z-index: 12; }
+.coauthor-avatar-stack > *:nth-child(10) { z-index: 11; }
+
+.coauthor-avatar-stack:hover > *:nth-child(2) { transform: translateX(12px); }
+.coauthor-avatar-stack:hover > *:nth-child(3) { transform: translateX(24px); }
+.coauthor-avatar-stack:hover > *:nth-child(4) { transform: translateX(36px); }
+.coauthor-avatar-stack:hover > *:nth-child(5) { transform: translateX(48px); }
+.coauthor-avatar-stack:hover > *:nth-child(6) { transform: translateX(60px); }
+.coauthor-avatar-stack:hover > *:nth-child(7) { transform: translateX(72px); }
+.coauthor-avatar-stack:hover > *:nth-child(8) { transform: translateX(84px); }
+.coauthor-avatar-stack:hover > *:nth-child(9) { transform: translateX(96px); }
+.coauthor-avatar-stack:hover > *:nth-child(10) { transform: translateX(108px); }
 
 .latest-commit .message-wrapper {
   max-width: calc(100% - 2.5rem);

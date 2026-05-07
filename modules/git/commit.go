@@ -17,10 +17,11 @@ import (
 )
 
 type CommitMessage struct {
-	MessageRaw   string
-	messageUTF8  *string
-	messageTitle *string
-	messageBody  *string
+	MessageRaw       string
+	messageUTF8      *string
+	messageTitle     *string
+	messageBody      *string
+	messageCoAuthors *[]*Signature
 }
 
 // Commit represents a git commit.
@@ -66,6 +67,50 @@ func (c *CommitMessage) MessageBody() string {
 		c.messageBody = new(strings.TrimSpace(s))
 	}
 	return *c.messageBody
+}
+
+// CoAuthorSignatures parses "Co-authored-by:" and "Co-committed-by:" trailers
+// from the trailing block of the commit message and returns deduplicated
+// Signature values. Only the last paragraph of the body is scanned so that
+// quoted or in-body occurrences (e.g. inside a revert/cherry-pick description)
+// are not misinterpreted as trailers, matching `git interpret-trailers`.
+func (c *CommitMessage) CoAuthorSignatures() []*Signature {
+	if c.messageCoAuthors != nil {
+		return *c.messageCoAuthors
+	}
+	var sigs []*Signature
+	seen := make(map[string]struct{})
+	body := strings.TrimRight(c.MessageBody(), "\n")
+	if idx := strings.LastIndex(body, "\n\n"); idx >= 0 {
+		body = body[idx+2:]
+	}
+	for line := range strings.SplitSeq(body, "\n") {
+		var rest string
+		var ok bool
+		if rest, ok = strings.CutPrefix(line, "Co-authored-by:"); !ok {
+			rest, ok = strings.CutPrefix(line, "Co-committed-by:")
+			if !ok {
+				continue
+			}
+		}
+		rest = strings.TrimSpace(rest)
+		name, emailWithBracket, ok := strings.Cut(rest, " <")
+		if !ok {
+			continue
+		}
+		email, _, ok := strings.Cut(emailWithBracket, ">")
+		if !ok {
+			continue
+		}
+		email = strings.ToLower(strings.TrimSpace(email))
+		if _, exists := seen[email]; exists {
+			continue
+		}
+		seen[email] = struct{}{}
+		sigs = append(sigs, &Signature{Name: strings.TrimSpace(name), Email: email})
+	}
+	c.messageCoAuthors = &sigs
+	return sigs
 }
 
 // ParentID returns oid of n-th parent (0-based index).

@@ -155,6 +155,21 @@
 				{{end}}
 			</div>
 
+			{{if .CoAuthors}}
+				<div class="flex-text-inline">
+					<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.diff.coauthored_by"}}</span>
+					{{range .CoAuthors}}
+						{{if .GiteaUser}}
+							{{ctx.AvatarUtils.Avatar .GiteaUser 20}}
+							<a href="{{.GiteaUser.HomeLink}}"><strong>{{.GiteaUser.GetDisplayName}}</strong></a>
+						{{else}}
+							{{ctx.AvatarUtils.AvatarByEmail .TrailerSignature.Email .TrailerSignature.Name 20}}
+							<strong>{{.TrailerSignature.Name}}</strong>
+						{{end}}
+					{{end}}
+				</div>
+			{{end}}
+
 			{{if .Verification}}
 				{{template "repo/commit_sign_badge" dict "CommitSignVerification" .Verification}}
 			{{end}}
