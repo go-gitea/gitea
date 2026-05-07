@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {env, exit} from 'node:process';
 
-const allowedTypes = 'build, ci, docs, feat, fix, perf, refactor, revert, style, test';
+const allowedTypes = 'build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test';
 const title = env.PR_TITLE;
 
 if (!title) {
