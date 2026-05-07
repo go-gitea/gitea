@@ -76,7 +76,7 @@ func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, level auth_
 			return
 		}
 
-		if publicOnly && repo.IsPrivate {
+		if publicOnly && repo != nil && repo.IsPrivate {
 			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
