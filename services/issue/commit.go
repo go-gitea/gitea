@@ -10,6 +10,7 @@ import (
 	"html"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -123,9 +124,7 @@ func getIssueFromRef(ctx context.Context, repo *repo_model.Repository, index int
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
 func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commits []*repository.PushCommit, branchName string) error {
 	// Commits are appended in the reverse order.
-	for i := len(commits) - 1; i >= 0; i-- {
-		c := commits[i]
-
+	for _, c := range slices.Backward(commits) {
 		type markKey struct {
 			ID     int64
 			Action references.XRefAction

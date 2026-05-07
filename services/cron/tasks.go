@@ -57,7 +57,7 @@ func (t *Task) IsEnabled() bool {
 
 // GetConfig will return a copy of the task's config
 func (t *Task) GetConfig() Config {
-	if reflect.TypeOf(t.config).Kind() == reflect.Ptr {
+	if reflect.TypeOf(t.config).Kind() == reflect.Pointer {
 		// Pointer:
 		return reflect.New(reflect.ValueOf(t.config).Elem().Type()).Interface().(Config)
 	}
