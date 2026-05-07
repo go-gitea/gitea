@@ -69,7 +69,7 @@
     },
     {
       "groupName": "tool dependencies",
-      "matchManagers": ["custom.regex"],
+      "matchManagers": ["custom.makeTools"],
     },
     {
       "matchManagers": ["gomod"],
