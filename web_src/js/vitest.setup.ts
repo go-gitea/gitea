@@ -16,5 +16,3 @@ window.config = {
 };
 
 window.testModules = {};
-
-export {}; // mark as module for top-level await
