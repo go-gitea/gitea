@@ -339,12 +339,10 @@ func TestTeamMemberConcurrentAddRemoveIdempotent(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 
 	var wg sync.WaitGroup
-	for i := 0; i < 8; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 8 {
+		wg.Go(func() {
 			assert.NoError(t, AddTeamMember(ctx, team, user))
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -352,12 +350,10 @@ func TestTeamMemberConcurrentAddRemoveIdempotent(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 
-	for i := 0; i < 8; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 8 {
+		wg.Go(func() {
 			assert.NoError(t, RemoveTeamMember(ctx, team, user))
-		}()
+		})
 	}
 	wg.Wait()
 

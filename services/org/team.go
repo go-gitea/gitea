@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -225,7 +224,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, user *user_mode
 		return err
 	}
 
-	err = withTeamMembershipTxRetry(ctx, func(ctx context.Context) error {
+	err = db.WithTx(ctx, func(ctx context.Context) error {
 		// check in transaction
 		isAlreadyMember, err = organization.IsTeamMember(ctx, team.OrgID, team.ID, user.ID)
 		if err != nil || isAlreadyMember {
@@ -359,38 +358,7 @@ func removeInvalidOrgUser(ctx context.Context, orgID int64, user *user_model.Use
 
 // RemoveTeamMember removes member from given team of given organization.
 func RemoveTeamMember(ctx context.Context, team *organization.Team, user *user_model.User) error {
-	return withTeamMembershipTxRetry(ctx, func(ctx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		return removeTeamMember(ctx, team, user)
 	})
-}
-
-func withTeamMembershipTxRetry(parentCtx context.Context, f func(ctx context.Context) error) error {
-	const maxAttempts = 3
-	var err error
-	for i := 0; i < maxAttempts; i++ {
-		err = db.WithTx(parentCtx, f)
-		if err == nil || !isRetriableTeamMembershipTxError(err) || i == maxAttempts-1 {
-			return err
-		}
-		time.Sleep(time.Duration(i+1) * 10 * time.Millisecond)
-	}
-	return err
-}
-
-func isRetriableTeamMembershipTxError(err error) bool {
-	msg := strings.ToLower(err.Error())
-	if strings.Contains(msg, "deadlock") || strings.Contains(msg, "serialization failure") {
-		return true
-	}
-	// SQLSTATE 40P01
-	if strings.Contains(msg, "40p01") {
-		return true
-	}
-	// MySQL ER_LOCK_DEADLOCK and MSSQL deadlock victim are frequently surfaced as numeric codes in error text.
-	for _, code := range []string{"1213", "1205"} {
-		if strings.Contains(msg, " "+code+" ") || strings.Contains(msg, ":"+code) || strings.Contains(msg, "("+code+")") {
-			return true
-		}
-	}
-	return false
 }

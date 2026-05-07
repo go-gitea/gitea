@@ -32,16 +32,13 @@ func TestSyncGroupsToTeamsConcurrentRuns(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
-		wg.Add(2)
-		go func() {
-			defer wg.Done()
+	for range 10 {
+		wg.Go(func() {
 			assert.NoError(t, auth_source.SyncGroupsToTeams(ctx, user, container.SetOf("ldap-group"), sourceGroupTeamMapping, true))
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			assert.NoError(t, auth_source.SyncGroupsToTeams(ctx, user, container.Set[string]{}, sourceGroupTeamMapping, true))
-		}()
+		})
 	}
 	wg.Wait()
 
