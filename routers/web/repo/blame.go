@@ -231,7 +231,7 @@ func renderBlameFillFirstBlameRow(repoLink string, avatarUtils *templates.Avatar
 	br.PreviousSha = part.PreviousSha
 	br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(part.PreviousSha), util.PathEscapeSegments(part.PreviousPath))
 	br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, url.PathEscape(part.Sha))
-	br.CommitMessage = commit.CommitMessage
+	br.CommitMessage = commit.MessageUTF8()
 	br.CommitSince = templates.TimeSince(commit.Author.When)
 }
 

@@ -36,7 +36,7 @@ func TestAddDeletedBranch(t *testing.T) {
 
 	commit := &git.Commit{
 		ID:            git.MustIDFromString(secondBranch.CommitID),
-		CommitMessage: secondBranch.CommitMessage,
+		CommitMessage: git.CommitMessage{MessageRaw: secondBranch.CommitMessage},
 		Committer: &git.Signature{
 			When: secondBranch.CommitTime.AsLocalTime(),
 		},

@@ -12,12 +12,13 @@ import (
 
 // Tag represents a Git tag.
 type Tag struct {
+	CommitMessage
+
 	Name      string
 	ID        ObjectID
 	Object    ObjectID // The id of this commit object
 	Type      string
 	Tagger    *Signature
-	Message   string
 	Signature *CommitSignature
 }
 
@@ -87,7 +88,7 @@ func parseTagData(objectFormat ObjectFormat, data []byte) (*Tag, error) {
 		pos += eol + 1
 	}
 	payload, msg, sign := parsePayloadSignature(data, pos)
-	tag.Message = msg
+	tag.MessageRaw = msg
 	if len(sign) > 0 {
 		tag.Signature = &CommitSignature{Signature: sign, Payload: payload}
 	}

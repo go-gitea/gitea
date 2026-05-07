@@ -110,7 +110,7 @@ func GetFileCommitResponse(repo *repo_model.Repository, commit *git.Commit) (*ap
 			},
 			Date: commit.Committer.When.UTC().Format(time.RFC3339),
 		},
-		Message: commit.Message(),
+		Message: commit.MessageUTF8(),
 		Tree: &api.CommitMeta{
 			URL: commitTreeURL.String(),
 			SHA: commit.Tree.ID.String(),

@@ -28,7 +28,6 @@ tagger Lucas Michot <lucas@semalead.com> 1484491741 +0100
 				Object:    MustIDFromString("3b114ab800c6432ad42387ccf6bc8d4388a2885a"),
 				Type:      "commit",
 				Tagger:    &Signature{Name: "Lucas Michot", Email: "lucas@semalead.com", When: time.Unix(1484491741, 0).In(time.FixedZone("", 3600))},
-				Message:   "",
 				Signature: nil,
 			},
 		},
@@ -43,13 +42,13 @@ o
 
 ono`,
 			expected: Tag{
-				Name:      "",
-				ID:        Sha1ObjectFormat.EmptyObjectID(),
-				Object:    MustIDFromString("7cdf42c0b1cc763ab7e4c33c47a24e27c66bfccc"),
-				Type:      "commit",
-				Tagger:    &Signature{Name: "Lucas Michot", Email: "lucas@semalead.com", When: time.Unix(1484553735, 0).In(time.FixedZone("", 3600))},
-				Message:   "test message\no\n\nono",
-				Signature: nil,
+				Name:          "",
+				ID:            Sha1ObjectFormat.EmptyObjectID(),
+				Object:        MustIDFromString("7cdf42c0b1cc763ab7e4c33c47a24e27c66bfccc"),
+				Type:          "commit",
+				Tagger:        &Signature{Name: "Lucas Michot", Email: "lucas@semalead.com", When: time.Unix(1484553735, 0).In(time.FixedZone("", 3600))},
+				CommitMessage: CommitMessage{MessageRaw: "test message\no\n\nono"},
+				Signature:     nil,
 			},
 		},
 		{
@@ -64,12 +63,12 @@ dummy signature
 -----END SSH SIGNATURE-----
 `,
 			expected: Tag{
-				Name:    "",
-				ID:      Sha1ObjectFormat.EmptyObjectID(),
-				Object:  MustIDFromString("7cdf42c0b1cc763ab7e4c33c47a24e27c66bfaaa"),
-				Type:    "commit",
-				Tagger:  &Signature{Name: "dummy user", Email: "dummy-email@example.com", When: time.Unix(1484491741, 0).In(time.FixedZone("", 3600))},
-				Message: "dummy message",
+				Name:          "",
+				ID:            Sha1ObjectFormat.EmptyObjectID(),
+				Object:        MustIDFromString("7cdf42c0b1cc763ab7e4c33c47a24e27c66bfaaa"),
+				Type:          "commit",
+				Tagger:        &Signature{Name: "dummy user", Email: "dummy-email@example.com", When: time.Unix(1484491741, 0).In(time.FixedZone("", 3600))},
+				CommitMessage: CommitMessage{MessageRaw: "dummy message"},
 				Signature: &CommitSignature{
 					Signature: `-----BEGIN SSH SIGNATURE-----
 dummy signature
@@ -93,5 +92,5 @@ dummy message`,
 
 	tag, err := parseTagData(Sha1ObjectFormat, []byte("type commit\n\nfoo\n-----BEGIN SSH SIGNATURE-----\ncorrupted..."))
 	assert.NoError(t, err)
-	assert.Equal(t, "foo\n-----BEGIN SSH SIGNATURE-----\ncorrupted...", tag.Message)
+	assert.Equal(t, "foo\n-----BEGIN SSH SIGNATURE-----\ncorrupted...", tag.CommitMessage.MessageRaw)
 }

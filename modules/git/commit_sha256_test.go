@@ -95,7 +95,7 @@ signed commit`, commitFromReader.Signature.Payload)
 
 	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
-	commitFromReader.CommitMessage += "\n\n"
+	commitFromReader.CommitMessage.MessageRaw += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
 	assert.Equal(t, commitFromReader, commitFromReader2)
 }

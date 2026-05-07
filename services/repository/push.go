@@ -402,7 +402,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		}
 
 		rel, has := relMap[lowerTag]
-		title, note := git.SplitCommitTitleBody(tag.Message, 255)
+		title, note := git.SplitCommitTitleBody(tag.MessageUTF8(), 255)
 		if !has {
 			rel = &repo_model.Release{
 				RepoID:       repo.ID,

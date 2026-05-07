@@ -391,17 +391,14 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 	if useFirstCommitAsTitle {
 		// the "commits" are from "ShowPrettyFormatLogToList", which is ordered from newest to oldest, here take the oldest one
 		c := commits[len(commits)-1]
-		title = strings.TrimSpace(c.UserCommit.Summary())
+		title = c.UserCommit.MessageTitle()
 	} else {
 		title = autoTitleFromBranchName(ci.HeadRef.ShortName())
 	}
 
 	if len(commits) == 1 {
-		// FIXME: GIT-COMMIT-MESSAGE-ENCODING: try to convert the encoding for commit message explicitly, ideally it should be done by a git commit struct method
 		c := commits[0]
-		_, content, _ = strings.Cut(strings.TrimSpace(c.UserCommit.CommitMessage), "\n")
-		content = strings.TrimSpace(content)
-		content = string(charset.ToUTF8([]byte(content), charset.ConvertOpts{}))
+		content = c.MessageBody()
 	}
 
 	var titleTrailer string

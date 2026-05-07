@@ -359,7 +359,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 				RepoID:        repoID,
 				Name:          branchName,
 				CommitID:      commit.ID.String(),
-				CommitMessage: commit.Summary(),
+				CommitMessage: commit.MessageTitle(),
 				PusherID:      pusherID,
 				CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
 			})

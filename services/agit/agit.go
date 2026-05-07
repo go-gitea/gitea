@@ -150,17 +150,13 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				if err != nil {
 					return nil, fmt.Errorf("failed to get commit %s in repository: %s Error: %w", opts.NewCommitIDs[i], repo.FullName(), err)
 				}
-			}
-
-			// create a new pull request
-			if title == "" {
-				title = strings.Split(commit.CommitMessage, "\n")[0]
-			}
-			if description == "" {
-				_, description, _ = strings.Cut(commit.CommitMessage, "\n\n")
-			}
-			if description == "" {
-				description = title
+				// create a new pull request
+				if title == "" {
+					title = commit.MessageTitle()
+				}
+				if description == "" {
+					description = commit.MessageBody()
+				}
 			}
 
 			prIssue := &issues_model.Issue{

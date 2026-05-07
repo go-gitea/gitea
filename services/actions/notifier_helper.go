@@ -256,7 +256,7 @@ func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) 
 				log.Debug("repo %s: skipped run for pr %v because of %s string", input.Repo.RelativePath(), input.PullRequest.Issue.ID, s)
 				return true
 			}
-			if strings.Contains(commit.CommitMessage, s) {
+			if strings.Contains(commit.MessageRaw, s) {
 				log.Debug("repo %s with commit %s: skipped run because of %s string", input.Repo.RelativePath(), commit.ID, s)
 				return true
 			}
@@ -320,7 +320,7 @@ func handleWorkflows(
 
 	for _, dwf := range detectedWorkflows {
 		run := &actions_model.ActionRun{
-			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+			Title:             commit.MessageTitle(),
 			RepoID:            input.Repo.ID,
 			Repo:              input.Repo,
 			OwnerID:           input.Repo.OwnerID,
@@ -483,7 +483,7 @@ func handleSchedules(
 		}
 
 		run := &actions_model.ActionSchedule{
-			Title:         strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+			Title:         commit.MessageTitle(),
 			RepoID:        input.Repo.ID,
 			Repo:          input.Repo,
 			OwnerID:       input.Repo.OwnerID,

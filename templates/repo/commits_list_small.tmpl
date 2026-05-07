@@ -1,6 +1,6 @@
 {{$index := 0}}
 <div class="timeline-item commits-list">
-{{range .comment.Commits}}
+{{range $commit := .comment.Commits}}
 	{{$tag := printf "%s-%d" $.comment.HashTag $index}}
 	{{$index = Eval $index "+" 1}}
 	<div class="flex-text-block" id="{{$tag}}">{{/*singular-commit*/}}
@@ -14,11 +14,11 @@
 		{{$commitBaseLink := printf "%s/commit" $.comment.Issue.PullRequest.BaseRepo.Link}}
 		{{$commitLink:= printf "%s/%s" $commitBaseLink (PathEscape .ID.String)}}
 
-		<span class="tw-flex-1 tw-font-mono gt-ellipsis" title="{{.Summary}}">
-			{{- ctx.RenderUtils.RenderCommitMessageLinkSubject .Message $commitLink $.comment.Issue.PullRequest.BaseRepo -}}
+		<span class="tw-flex-1 tw-font-mono gt-ellipsis" title="{{$commit.MessageTitle}}">
+			{{- ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.MessageUTF8 $commitLink $.comment.Issue.PullRequest.BaseRepo -}}
 		</span>
 
-		{{if IsMultilineCommitMessage .Message}}
+		{{if $commit.MessageBody}}
 			<button class="ui button ellipsis-button show-panel toggle" data-panel="[data-singular-commit-body-for='{{$tag}}']">...</button>
 		{{end}}
 
@@ -27,9 +27,9 @@
 			{{template "repo/commit_sign_badge" dict "Commit" . "CommitBaseLink" $commitBaseLink "CommitSignVerification" .Verification}}
 		</span>
 	</div>
-	{{if IsMultilineCommitMessage .Message}}
+	{{if $commit.MessageBody}}
 	<pre class="commit-body tw-ml-[33px] tw-hidden" data-singular-commit-body-for="{{$tag}}">
-		{{- ctx.RenderUtils.RenderCommitBody .Message $.comment.Issue.PullRequest.BaseRepo -}}
+		{{- ctx.RenderUtils.RenderCommitBody $commit.MessageUTF8 $.comment.Issue.PullRequest.BaseRepo -}}
 	</pre>
 	{{end}}
 {{end}}

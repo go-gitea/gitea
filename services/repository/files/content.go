@@ -179,7 +179,7 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 			}
 		}
 		if opts.IncludeCommitMessage {
-			contentsResponse.LastCommitMessage = new(lastCommit.Message())
+			contentsResponse.LastCommitMessage = new(lastCommit.MessageUTF8())
 		}
 	}
 

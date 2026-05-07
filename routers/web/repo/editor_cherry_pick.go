@@ -6,7 +6,6 @@ package repo
 import (
 	"bytes"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -33,10 +32,10 @@ func CherryPick(ctx *context.Context) {
 	if ctx.FormString("cherry-pick-type") == "revert" {
 		ctx.Data["CherryPickType"] = "revert"
 		ctx.Data["commit_summary"] = "revert " + ctx.PathParam("sha")
-		ctx.Data["commit_message"] = "revert " + cherryPickCommit.Message()
+		ctx.Data["commit_message"] = "revert " + cherryPickCommit.MessageUTF8()
 	} else {
 		ctx.Data["CherryPickType"] = "cherry-pick"
-		ctx.Data["commit_summary"], ctx.Data["commit_message"], _ = strings.Cut(cherryPickCommit.Message(), "\n")
+		ctx.Data["commit_summary"], ctx.Data["commit_message"] = cherryPickCommit.MessageTitle(), cherryPickCommit.MessageBody()
 	}
 
 	ctx.HTML(http.StatusOK, tplCherryPick)

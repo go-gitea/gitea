@@ -65,11 +65,12 @@
 		{{end -}}
 		{{if eq .ActionName "push"}}
 			<ul>
-			{{range .Comment.Commits}}
+			{{$repoURL := $.Comment.Issue.PullRequest.BaseRepo.HTMLURL}}
+			{{range $commit := $.Comment.Commits}}
 				<li>
-					<a href="{{$.Comment.Issue.PullRequest.BaseRepo.HTMLURL}}/commit/{{.ID}}">
-						{{ShortSha .ID.String}}
-					</a>  -  {{.Summary}}
+					<a href="{{$repoURL}}/commit/{{$commit.ID}}">
+						{{ShortSha $commit.ID.String}}
+					</a>  -  {{$commit.MessageTitle}}
 				</li>
 			{{end}}
 			</ul>

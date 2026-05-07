@@ -52,11 +52,6 @@ func sortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML 
 	return ""
 }
 
-// isMultilineCommitMessage checks to see if a commit message contains multiple lines.
-func isMultilineCommitMessage(msg string) bool {
-	return strings.Count(strings.TrimSpace(msg), "\n") >= 1
-}
-
 // Actioner describes an action
 type Actioner interface {
 	GetOpType() activities_model.ActionType
