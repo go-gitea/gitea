@@ -6,6 +6,7 @@ package repo
 import (
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
@@ -78,7 +79,7 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("a\xf0\xf0\xf0\nb\xf0\xf0\xf0")})
 	assert.Equal(t, "a?", title)
-	assert.Equal(t, "b??", content)
+	assert.Equal(t, "b"+string(utf8.RuneError)+string(utf8.RuneError), content)
 
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{
 		// ordered from newest to oldest

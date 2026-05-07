@@ -436,8 +436,9 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 
 	if len(commits) == 1 {
 		c := commits[0]
-		_, content, _ = strings.Cut(strings.TrimSpace(c.UserCommit.Message()), "\n")
+		_, content, _ = strings.Cut(strings.TrimSpace(c.UserCommit.CommitMessage), "\n")
 		content = strings.TrimSpace(content)
+		content = string(charset.ToUTF8([]byte(content), charset.ConvertOpts{}))
 	}
 
 	var titleTrailer string
