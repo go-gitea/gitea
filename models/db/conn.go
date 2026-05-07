@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -31,7 +32,9 @@ type ConnOptions struct {
 }
 
 type SQLiteConnStrOptions struct {
-	FilePath    string
+	FilePath string
+	// how long a concurrent query can wait for others (milliseconds),
+	// if timeout is reached, the error is something like "database is locked (SQLITE_BUSY)"
 	BusyTimeout int
 	JournalMode string
 }
@@ -52,10 +55,21 @@ func GlobalConnOptions() ConnOptions {
 	}
 }
 
-const sqlDriverPostgresSchema = "postgresschema"
+const (
+	sqlDriverPostgresSchema = "postgresschema"
+	sqlDriverSQLite3        = "sqlite3" // although database type also has "sqlite3", they are different, for different purposes
+)
 
 var makeSQLiteConnStr = func(opts SQLiteConnStrOptions) (string, string, error) {
-	return "", "", errors.New(`this Gitea binary was not built with SQLite3 support, get an official release or rebuild with: -tags sqlite,sqlite_unlock_notify`)
+	return "", "", errors.New(`this Gitea binary was not built with SQLite3 support, get an official release or rebuild with correct "-tags"`)
+}
+
+func registerSQLiteConnStrMaker(fn func(opts SQLiteConnStrOptions) (string, string, error)) {
+	if slices.Contains(setting.SupportedDatabaseTypes, setting.DatabaseTypeSQLite3) {
+		panic("another sqlite3 driver has been registered")
+	}
+	setting.SupportedDatabaseTypes = append(setting.SupportedDatabaseTypes, setting.DatabaseTypeSQLite3)
+	makeSQLiteConnStr = fn
 }
 
 func ConnStrDefaultDatabase(opts ConnOptions) (string, string, error) {

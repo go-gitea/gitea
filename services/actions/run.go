@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/util"
 
-	act_model "github.com/nektos/act/pkg/model"
+	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 

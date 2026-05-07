@@ -35,12 +35,10 @@ const (
 	FilterModeYourRepositories
 )
 
-const (
-	// MaxQueryParameters represents the max query parameters
-	// When queries are broken down in parts because of the number
-	// of parameters, attempt to break by this amount
-	MaxQueryParameters = 300
-)
+// MaxQueryParameters represents the max query parameters
+// When queries are broken down in parts because of the number
+// of parameters, attempt to break by this amount
+var MaxQueryParameters = 300
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
 func CountIssuesByRepo(ctx context.Context, opts *IssuesOptions) (map[int64]int64, error) {

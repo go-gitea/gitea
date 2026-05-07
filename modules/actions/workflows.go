@@ -17,8 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
-	"github.com/nektos/act/pkg/model"
-	"github.com/nektos/act/pkg/workflowpattern"
+	"gitea.com/gitea/runner/act/model"
+	"gitea.com/gitea/runner/act/workflowpattern"
 	"go.yaml.in/yaml/v4"
 )
 
