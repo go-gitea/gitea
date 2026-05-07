@@ -183,8 +183,7 @@ func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 
 	// annotated tag with GPG signature
 	if tag.Type == "tag" && ref["contents:signature"] != "" {
-		payload := fmt.Sprintf("object %s\ntype commit\ntag %s\ntagger %s\n\n%s\n",
-			tag.Object, tag.Name, ref["creator"], strings.TrimSpace(tag.MessageRaw))
+		payload := fmt.Sprintf("object %s\ntype commit\ntag %s\ntagger %s\n\n%s", tag.Object, tag.Name, ref["creator"], tag.MessageRaw)
 		tag.Signature = &CommitSignature{
 			Signature: ref["contents:signature"],
 			Payload:   payload,
