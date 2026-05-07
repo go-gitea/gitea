@@ -1,10 +1,10 @@
 import {readFile} from 'node:fs/promises';
-import * as path from 'node:path';
+import {join} from 'node:path';
 
 type CssVariables = Record<string, string>;
 
 async function loadThemeVariables(fileName: string, baseVariables: CssVariables = {}): Promise<CssVariables> {
-  const themePath = path.join(import.meta.dirname, '../../css/themes', fileName);
+  const themePath = join(import.meta.dirname, '../../css/themes', fileName);
   const css = await readFile(themePath, 'utf8');
   const variables = {...baseVariables};
   for (const match of css.matchAll(/(--[\w-]+):\s*(#[\dA-Fa-f]{6});/g)) {
