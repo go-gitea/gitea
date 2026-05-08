@@ -6,7 +6,7 @@ import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
 import {initRepoGraphGit} from './features/repo-graph.ts';
 import {initHeatmap} from './features/heatmap.ts';
 import {initImageDiff} from './features/imagediff.ts';
-import {initRepoMigration} from './features/repo-migration.ts';
+import {initRepoMigration, initRepoMigrate, initRepoMigrationStatusChecker} from './features/repo-migration.ts';
 import {initRepoProjectsView} from './features/repo-projects.ts';
 import {initTableSort} from './features/tablesort.ts';
 import {initAdminUserListSearchForm} from './features/admin/users.ts';
@@ -27,7 +27,6 @@ import {initRepoCodeView} from './features/repo-code.ts';
 import {initSshKeyFormParser} from './features/sshkey-helper.ts';
 import {initUserSettings} from './features/user-settings.ts';
 import {initRepoActivityTopAuthorsChart, initRepoArchiveLinks} from './features/repo-common.ts';
-import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
 import {initRepoDiffView} from './features/repo-diff.ts';
 import {initOrgTeam} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
@@ -130,6 +129,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoIssueList,
   initRepoIssueFilterItemLabel,
   initRepoMigration,
+  initRepoMigrate,
   initRepoMigrationStatusChecker,
   initRepoProjectsView,
   initRepoPullRequestReview,

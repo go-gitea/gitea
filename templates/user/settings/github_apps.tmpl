@@ -1,0 +1,101 @@
+{{template "user/settings/layout_head" (dict "pageClass" "user settings github-apps")}}
+	<div class="user-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "settings.manage_github_apps"}}
+		</h4>
+		<div class="ui attached segment">
+			<div class="flex-divided-list items-with-main">
+				<div class="item">
+					{{ctx.Locale.Tr "settings.github_app_desc"}}
+				</div>
+				{{range .Credentials}}
+					<div class="item">
+						<div class="item-leading">
+							<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.github_app_state_desc"}}"{{end}}>
+								{{svg "octicon-key" 32}}
+							</span>
+						</div>
+						<div class="item-main">
+							<details>
+								<summary><span class="item-title">{{.Name}}</span></summary>
+								<p class="tw-my-1">
+									{{ctx.Locale.Tr "settings.github_app_id"}}: {{.AppID}}
+								</p>
+								<p class="tw-my-1">
+									{{ctx.Locale.Tr "settings.github_app_installation_id"}}: {{.InstallationID}}
+								</p>
+								<p class="tw-my-1">
+									{{ctx.Locale.Tr "settings.github_app_base_url"}}: {{.BaseURL}}
+								</p>
+							</details>
+							<div class="item-body">
+								<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} — {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
+							</div>
+						</div>
+						<div class="item-trailing">
+							<button class="ui red tiny button delete-button" data-modal-id="delete-github-app" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+								{{svg "octicon-trash"}}
+								{{ctx.Locale.Tr "settings.delete_github_app"}}
+							</button>
+						</div>
+					</div>
+				{{end}}
+			</div>
+		</div>
+		<div class="ui bottom attached segment">
+			<details {{if or .name (not .Credentials)}}open{{end}}>
+				<summary><h4 class="ui header tw-inline-block tw-my-2">{{ctx.Locale.Tr "settings.add_github_app"}}</h4></summary>
+				<form class="ui form ignore-dirty" action="{{.Link}}" method="post">
+					{{.CsrfTokenHtml}}
+					<div class="field {{if .Err_Name}}error{{end}}">
+						<label for="name">{{ctx.Locale.Tr "settings.github_app_name"}}</label>
+						<input id="name" name="name" value="{{.name}}" required maxlength="255">
+					</div>
+					<div class="field {{if .Err_AppID}}error{{end}}">
+						<label for="app_id">{{ctx.Locale.Tr "settings.github_app_id"}}</label>
+						<input id="app_id" name="app_id" type="number" value="{{.app_id}}" required>
+						<span class="help">
+							{{ctx.Locale.Tr "settings.github_app_id_helper"}}
+						</span>
+					</div>
+					<div class="field {{if .Err_InstallationID}}error{{end}}">
+						<label for="installation_id">{{ctx.Locale.Tr "settings.github_app_installation_id"}}</label>
+						<input id="installation_id" name="installation_id" type="number" value="{{.installation_id}}" required>
+						<span class="help">
+							{{ctx.Locale.Tr "settings.github_app_installation_id_helper"}}
+						</span>
+					</div>
+					<div class="field {{if .Err_PrivateKey}}error{{end}}">
+						<label for="private_key">{{ctx.Locale.Tr "settings.github_app_private_key"}}</label>
+						<textarea id="private_key" name="private_key" rows="10" required placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----">{{.private_key}}</textarea>
+						<span class="help">
+							{{ctx.Locale.Tr "settings.github_app_private_key_helper"}}
+						</span>
+					</div>
+					<div class="field {{if .Err_BaseURL}}error{{end}}">
+						<label for="base_url">{{ctx.Locale.Tr "settings.github_app_base_url"}}</label>
+						<input id="base_url" name="base_url" value="{{.base_url}}" placeholder="https://api.github.com" maxlength="255">
+						<span class="help">
+							{{ctx.Locale.Tr "settings.github_app_base_url_helper"}}
+						</span>
+					</div>
+					<button class="ui primary button">
+						{{ctx.Locale.Tr "settings.add_github_app"}}
+					</button>
+				</form>
+			</details>
+		</div>
+	</div>
+
+<div class="ui g-modal-confirm delete modal" id="delete-github-app">
+	<div class="header">
+		{{svg "octicon-trash"}}
+		{{ctx.Locale.Tr "settings.github_app_deletion"}}
+	</div>
+	<div class="content">
+		<p>{{ctx.Locale.Tr "settings.github_app_deletion_desc"}}</p>
+	</div>
+	{{template "base/modal_actions_confirm"}}
+</div>
+
+{{template "user/settings/layout_footer" .}}

@@ -1,0 +1,125 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package setting
+
+import (
+	"net/http"
+	"strings"
+
+	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/secret"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/forms"
+)
+
+const (
+	tplSettingsGitHubApps templates.TplName = "user/settings/github_apps"
+)
+
+// GitHubApps renders the GitHub App credentials management page
+func GitHubApps(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings.github_apps")
+	ctx.Data["PageIsSettingsGitHubApps"] = true
+
+	loadGitHubAppsData(ctx)
+
+	ctx.HTML(http.StatusOK, tplSettingsGitHubApps)
+}
+
+// GitHubAppsPost handles adding a new GitHub App credential
+func GitHubAppsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewGitHubAppCredentialForm)
+	ctx.Data["Title"] = ctx.Tr("settings.github_apps")
+	ctx.Data["PageIsSettingsGitHubApps"] = true
+
+	if ctx.HasError() {
+		loadGitHubAppsData(ctx)
+		ctx.HTML(http.StatusOK, tplSettingsGitHubApps)
+		return
+	}
+
+	// Normalize and validate the private key
+	privateKey := strings.TrimSpace(form.PrivateKey)
+
+	// Ensure the private key has proper PEM format
+	if !strings.HasPrefix(privateKey, "-----BEGIN") {
+		ctx.Flash.Error(ctx.Tr("settings.github_app_invalid_private_key"))
+		loadGitHubAppsData(ctx)
+		ctx.HTML(http.StatusOK, tplSettingsGitHubApps)
+		return
+	}
+
+	if !strings.HasSuffix(privateKey, "-----") {
+		ctx.Flash.Error(ctx.Tr("settings.github_app_invalid_private_key"))
+		loadGitHubAppsData(ctx)
+		ctx.HTML(http.StatusOK, tplSettingsGitHubApps)
+		return
+	}
+
+	// Encrypt the private key
+	encryptedKey, err := secret.EncryptSecret(setting.SecretKey, privateKey)
+	if err != nil {
+		ctx.ServerError("EncryptSecret", err)
+		return
+	}
+
+	// Set default base URL if empty
+	baseURL := form.BaseURL
+	if baseURL == "" {
+		baseURL = "https://api.github.com"
+	}
+
+	cred := &auth_model.GithubAppCredential{
+		OwnerID:             ctx.Doer.ID,
+		Name:                form.Name,
+		AppID:               form.AppID,
+		InstallationID:      form.InstallationID,
+		PrivateKeyEncrypted: encryptedKey,
+		BaseURL:             baseURL,
+	}
+
+	if err := auth_model.CreateGithubAppCredential(ctx, cred); err != nil {
+		ctx.ServerError("CreateGithubAppCredential", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.add_github_app_success"))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/github_apps")
+}
+
+// DeleteGitHubApp handles deleting a GitHub App credential
+func DeleteGitHubApp(ctx *context.Context) {
+	id := ctx.FormInt64("id")
+
+	// Check ownership
+	owned, err := auth_model.CheckGithubAppCredentialOwnership(ctx, id, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("CheckGithubAppCredentialOwnership", err)
+		return
+	}
+	if !owned {
+		ctx.NotFound(nil)
+		return
+	}
+
+	if err := auth_model.DeleteGithubAppCredential(ctx, id); err != nil {
+		ctx.Flash.Error("DeleteGithubAppCredential: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.delete_github_app_success"))
+	}
+
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/github_apps")
+}
+
+func loadGitHubAppsData(ctx *context.Context) {
+	creds, err := auth_model.GetGithubAppCredentialsByOwnerID(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetGithubAppCredentialsByOwnerID", err)
+		return
+	}
+	ctx.Data["Credentials"] = creds
+}

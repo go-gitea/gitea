@@ -57,11 +57,12 @@ func (f *CreateRepoForm) Validate(req *http.Request, errs binding.Errors) bindin
 // this is used to interact with web ui
 type MigrateRepoForm struct {
 	// required: true
-	CloneAddr    string                 `json:"clone_addr" binding:"Required"`
-	Service      structs.GitServiceType `json:"service"`
-	AuthUsername string                 `json:"auth_username"`
-	AuthPassword string                 `json:"auth_password"`
-	AuthToken    string                 `json:"auth_token"`
+	CloneAddr             string                 `json:"clone_addr" binding:"Required"`
+	Service               structs.GitServiceType `json:"service"`
+	AuthUsername          string                 `json:"auth_username"`
+	AuthPassword          string                 `json:"auth_password"`
+	AuthToken             string                 `json:"auth_token"`
+	GitHubAppCredentialID int64                  `json:"github_app_credential_id" form:"github_app_credential_id"`
 	// required: true
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true

@@ -17,6 +17,8 @@ type MigrateOptions struct {
 	AuthPasswordEncrypted string `json:"auth_password_encrypted,omitempty"`
 	AuthToken             string `json:"-"`
 	AuthTokenEncrypted    string `json:"auth_token_encrypted,omitempty"`
+	// GitHub App authentication
+	GitHubAppCredentialID int64 `json:"github_app_credential_id"`
 	// required: true
 	UID int `json:"uid" binding:"Required"`
 	// required: true
