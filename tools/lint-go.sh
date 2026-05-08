@@ -7,16 +7,15 @@
 
 if [ -n "$LINT_GO_INSTALL" ]; then
 	GOOS= GOARCH= go install "$GOLANGCI_LINT_PACKAGE"
-	host_env=(env GOOS= GOARCH=)
-	linter=(golangci-lint run)
+	GOOS= GOARCH= go run tools/lint-go-header.go
+	header=$?
+	golangci-lint run "$@"
+	lint=$?
 else
-	host_env=()
-	linter=(go run "$GOLANGCI_LINT_PACKAGE" run)
+	go run tools/lint-go-header.go
+	header=$?
+	go run "$GOLANGCI_LINT_PACKAGE" run "$@"
+	lint=$?
 fi
-
-"${host_env[@]}" go run tools/lint-go-header.go
-header=$?
-"${linter[@]}" "$@"
-lint=$?
 
 exit $((lint ? lint : header))
