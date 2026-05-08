@@ -530,7 +530,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 			return util.IsEmptyReader(stdoutReader)
 		}).
 		RunWithStderr(ctx); err != nil {
-		if errors.Is(err, util.ErrNotEmpty) {
+		if errors.Is(err, util.ErrNotExist) {
 			return true, mergeBase, nil
 		}
 
