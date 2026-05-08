@@ -4,8 +4,6 @@ import RepoActionView from '../components/RepoActionView.vue';
 export function initRepositoryActionView() {
   const el = document.querySelector('#repo-action-view');
   if (!el) return;
-  const runId = parseInt(el.getAttribute('data-run-id')!);
-  const jobId = parseInt(el.getAttribute('data-job-id')!);
 
   // TODO: the parent element's full height doesn't work well now,
   // but we can not pollute the global style at the moment, only fix the height problem for pages with this component
@@ -13,25 +11,25 @@ export function initRepositoryActionView() {
   if (parentFullHeight) parentFullHeight.classList.add('tw-pb-0');
 
   const view = createApp(RepoActionView, {
-    runId,
-    jobId,
-    actionsUrl: el.getAttribute('data-actions-url'),
+    jobId: parseInt(el.getAttribute('data-job-id')!),
+    actionsViewUrl: el.getAttribute('data-actions-view-url'),
     locale: {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
       rerun_all: el.getAttribute('data-locale-rerun-all'),
       rerun_failed: el.getAttribute('data-locale-rerun-failed'),
+      latest: el.getAttribute('data-locale-latest'),
+      latestAttempt: el.getAttribute('data-locale-latest-attempt'),
+      attempt: el.getAttribute('data-locale-attempt'),
       scheduled: el.getAttribute('data-locale-runs-scheduled'),
       commit: el.getAttribute('data-locale-runs-commit'),
       pushedBy: el.getAttribute('data-locale-runs-pushed-by'),
-      workflowGraph: el.getAttribute('data-locale-runs-workflow-graph'),
       summary: el.getAttribute('data-locale-summary'),
       allJobs: el.getAttribute('data-locale-all-jobs'),
       triggeredVia: el.getAttribute('data-locale-triggered-via'),
       totalDuration: el.getAttribute('data-locale-total-duration'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
-      areYouSure: el.getAttribute('data-locale-are-you-sure'),
       artifactExpired: el.getAttribute('data-locale-artifact-expired'),
       artifactExpiresAt: el.getAttribute('data-locale-artifact-expires-at'),
       confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),

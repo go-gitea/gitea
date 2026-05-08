@@ -118,7 +118,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	deferHasRun := false
 	t.Cleanup(func() {
 		if !deferHasRun {
-			stdoutPrintf("!!! %s defer function hasn't been run but Cleanup is called, usually caused by panic\n", t.Name())
+			stdoutPrintf("!!! %s: defer function hasn't been run but Cleanup is called, usually caused by panic\n", t.Name())
 		}
 	})
 	stdoutPrintf("=== %s (%s:%d)\n", log.NewColoredValue(t.Name()), strings.TrimPrefix(filename, prefix), line)
@@ -173,7 +173,8 @@ func Init() {
 	log.RegisterEventWriter("test", newTestLoggerWriter)
 }
 
-func Panicf(format string, args ...any) {
-	// don't call os.Exit, otherwise the "defer" functions won't be executed
-	panic(fmt.Sprintf(format, args...))
+// MainErrorf is used to report an error from TestMain and return a non-zero value to indicate the failure
+func MainErrorf(msg string, a ...any) int {
+	_, _ = fmt.Fprintf(os.Stderr, msg+"\n", a...)
+	return 1
 }

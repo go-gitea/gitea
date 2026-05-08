@@ -163,6 +163,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			base := NewBaseContext(resp, req)
 			ctx := NewWebContext(base, rnd, session.GetContextSession(req))
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
+			ctx.Data["CurrentURL"] = setting.AppSubURL + req.URL.RequestURI()
 			ctx.Data["Link"] = ctx.Link
 
 			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
@@ -196,10 +197,6 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
 
-			if setting.Security.XFrameOptions != "unset" {
-				ctx.Resp.Header().Set(`X-Frame-Options`, setting.Security.XFrameOptions)
-			}
-
 			ctx.Data["SystemConfig"] = setting.Config()
 
 			ctx.Data["ShowTwoFactorRequiredMessage"] = ctx.DoerNeedTwoFactorAuth()
@@ -209,7 +206,6 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["DisableStars"] = setting.Repository.DisableStars
 			ctx.Data["EnableActions"] = setting.Actions.Enabled && !unit.TypeActions.UnitGlobalDisabled()
 
-			ctx.Data["ManifestData"] = setting.ManifestData
 			ctx.Data["AllLangs"] = translation.AllLangs()
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)

@@ -76,7 +76,7 @@ func Install(ctx *context.Context) {
 	form.DbSchema = setting.Database.Schema
 	form.SSLMode = setting.Database.SSLMode
 
-	curDBType := setting.Database.Type.String()
+	curDBType := string(setting.Database.Type)
 	if !slices.Contains(setting.SupportedDatabaseTypes, curDBType) {
 		curDBType = "mysql"
 	}
@@ -123,7 +123,7 @@ func Install(ctx *context.Context) {
 func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	var err error
 
-	if (setting.Database.Type == "sqlite3") &&
+	if (setting.Database.Type == setting.DatabaseTypeSQLite3) &&
 		len(setting.Database.Path) == 0 {
 		ctx.Data["Err_DbPath"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.err_empty_db_path"), tplInstall, form)
@@ -135,13 +135,8 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	defer db.UnsetDefaultEngine()
 
 	if err = db.InitEngine(ctx); err != nil {
-		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
-			ctx.Data["Err_DbType"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.com/installation/install-from-binary"), tplInstall, form)
-		} else {
-			ctx.Data["Err_DbSetting"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
-		}
+		ctx.Data["Err_DbSetting"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
 		return false
 	}
 
@@ -328,7 +323,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
 	cfg.Section("").Key("RUN_MODE").SetValue("prod")
 
-	cfg.Section("database").Key("DB_TYPE").SetValue(setting.Database.Type.String())
+	cfg.Section("database").Key("DB_TYPE").SetValue(string(setting.Database.Type))
 	cfg.Section("database").Key("HOST").SetValue(setting.Database.Host)
 	cfg.Section("database").Key("NAME").SetValue(setting.Database.Name)
 	cfg.Section("database").Key("USER").SetValue(setting.Database.User)

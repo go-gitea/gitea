@@ -1,22 +1,22 @@
 <div class="ui attached segment">
-	<div class="flex-list">
-		<div class="flex-item">
+	<div class="flex-divided-list items-with-main">
+		<div class="item">
 			{{ctx.Locale.Tr "settings.oauth2_application_create_description"}}
 		</div>
 		{{range .Applications}}
-			<div class="flex-item tw-items-center">
-				<div class="flex-item-leading">
+			<div class="item tw-items-center">
+				<div class="item-leading">
 					{{svg "octicon-apps" 32}}
 				</div>
-				<div class="flex-item-main">
-					<div class="flex-item-title">{{.Name}}</div>
-					<div class="flex-item-body">
+				<div class="item-main">
+					<div class="item-title">{{.Name}}</div>
+					<div class="item-body">
 						{{ctx.Locale.Tr "settings.oauth2_client_id"}}
 						<span class="ui label">{{.ClientID}}</span>
 					</div>
 				</div>
 				{{$isBuiltin := and $.BuiltinApplications (index $.BuiltinApplications .ClientID)}}
-				<div class="flex-item-trailing">
+				<div class="item-trailing">
 					{{if $isBuiltin}}
 						<span class="ui basic label" data-tooltip-content="{{ctx.Locale.Tr "settings.oauth2_application_locked"}}">{{ctx.Locale.Tr "locked"}}</span>
 					{{else}}

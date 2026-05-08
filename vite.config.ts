@@ -38,10 +38,25 @@ const webComponents = new Set([
   'text-expander',
 ]);
 
+function failOnWarningsPlugin(): Rolldown.Plugin {
+  let warningCount = 0;
+  return {
+    name: 'fail-on-warnings',
+    onLog(level) {
+      if (level === 'warn') warningCount++;
+    },
+    buildEnd() {
+      if (!warningCount) return;
+      throw new Error(`${warningCount} warnings present`);
+    },
+  };
+}
+
 const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
     pluginTimings: false,
   },
+  ...(env.CI ? {plugins: [failOnWarningsPlugin()]} : {}),
 };
 
 function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {

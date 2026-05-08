@@ -77,9 +77,8 @@ defineOptions({
 
 const props = defineProps<{
   store: ActionRunViewStore,
-  runId: number;
   jobId: number;
-  actionsUrl: string;
+  actionsViewUrl: string;
   locale: Record<string, any>;
 }>();
 const store = props.store;
@@ -197,10 +196,9 @@ function beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd:
 }
 
 // end a log group
-function endLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
+function endLogGroup(stepIndex: number) {
   const el = getJobStepLogsContainer(stepIndex);
   el._stepLogsActiveContainer = undefined;
-  el.append(createLogLine(stepIndex, startTime, line, cmd));
 }
 
 // show/hide the step logs for a step
@@ -254,7 +252,7 @@ function appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
         beginLogGroup(stepIndex, startTime, line, cmd);
         continue;
       case 'endgroup':
-        endLogGroup(stepIndex, startTime, line, cmd);
+        endLogGroup(stepIndex);
         continue;
     }
     // the active logs container may change during the loop, for example: entering and leaving a group
@@ -270,8 +268,7 @@ async function fetchJobData(abortController: AbortController): Promise<JobData> 
     // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
     return {step: idx, cursor: it.cursor, expanded: it.expanded};
   });
-  const url = `${props.actionsUrl}/runs/${props.runId}/jobs/${props.jobId}`;
-  const resp = await POST(url, {
+  const resp = await POST(props.actionsViewUrl, {
     signal: abortController.signal,
     data: {logCursors},
   });
@@ -663,6 +660,14 @@ async function hashChangeListener() {
   background: var(--color-warning-bg);
 }
 
+.job-step-logs .log-line-notice {
+  background: var(--color-info-bg);
+}
+
+.job-step-logs .log-line-debug {
+  background: var(--color-secondary-alpha-30);
+}
+
 .job-step-logs .log-cmd-error > .log-msg-label {
   color: var(--color-error-text);
 }
@@ -671,7 +676,11 @@ async function hashChangeListener() {
   color: var(--color-warning-text);
 }
 
-.job-step-logs .log-cmd-debug {
+.job-step-logs .log-cmd-notice > .log-msg-label {
+  color: var(--color-info-text);
+}
+
+.job-step-logs .log-cmd-debug > .log-msg-label {
   color: var(--color-violet);
 }
 

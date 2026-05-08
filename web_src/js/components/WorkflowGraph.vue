@@ -83,9 +83,11 @@ const saveState = () => {
   localUserSettings.setJsonObject(settingKeyStates, Object.fromEntries(sortedStates));
 };
 
+const minNodeWidth = 168;
+const maxNodeWidth = 232;
 const nodeWidth = computed(() => {
-  const maxNameLength = Math.max(...props.jobs.map(j => j.name.length));
-  return Math.min(Math.max(140, maxNameLength * 8), 180);
+  const maxNameLength = Math.max(...props.jobs.map(j => j.name.length), 0);
+  return Math.min(Math.max(minNodeWidth, maxNameLength * 8), maxNodeWidth);
 });
 
 const horizontalSpacing = computed(() => nodeWidth.value + 84);
@@ -342,8 +344,8 @@ const graphMetrics = computed(() => {
   };
 })
 
-const nodeHeight = 48;
-const verticalSpacing = 88;
+const nodeHeight = 52;
+const verticalSpacing = 90;
 const margin = 40;
 
 const minScale = 0.3;
@@ -589,7 +591,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
           :d="edge.path"
           fill="none"
           stroke="var(--color-secondary-alpha-50)"
-          stroke-width="1.75"
+          stroke-width="1.5"
           :class="['node-edge', { 'highlighted-edge': isEdgeHighlighted(edge) }]"
         />
 
@@ -608,10 +610,10 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             :y="job.y"
             :width="nodeWidth"
             :height="nodeHeight"
-            rx="10"
-            fill="var(--color-button)"
-            stroke="var(--color-light-border)"
-            stroke-width="1.25"
+            rx="8"
+            fill="var(--color-box-body)"
+            stroke="var(--color-secondary)"
+            stroke-width="1"
             class="job-rect"
           />
 
@@ -619,7 +621,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             v-if="nodesWithIncomingEdge.has(job.id)"
             :cx="job.x"
             :cy="job.y + nodeHeight / 2"
-            r="6"
+            r="4.5"
             class="node-port"
           />
 
@@ -627,13 +629,13 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             v-if="nodesWithOutgoingEdge.has(job.id)"
             :cx="job.x + nodeWidth"
             :cy="job.y + nodeHeight / 2"
-            r="6"
+            r="4.5"
             class="node-port"
           />
 
           <foreignObject
             :x="job.x + 10"
-            :y="job.y + 14"
+            :y="job.y + 16"
             width="20"
             height="20"
             class="job-status-fg-obj"
@@ -644,10 +646,10 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
           </foreignObject>
 
           <foreignObject
-            :x="job.x + 36"
-            :y="job.y"
-            :width="nodeWidth - 40"
-            :height="nodeHeight"
+            :x="job.x + 38"
+            :y="job.y + 2"
+            :width="nodeWidth - 44"
+            :height="nodeHeight - 4"
           >
             <div class="job-text-wrap">
               <span class="job-name">{{ job.name }}</span>
@@ -707,7 +709,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 .graph-container {
   flex: 1;
   overflow: hidden;
-  padding: 12px 16px 20px;
+  padding: 10px 14px 18px;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
   cursor: grab;
   position: relative;
@@ -730,7 +732,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .highlighted-edge {
-  stroke-width: 2.25 !important;
+  stroke-width: 2 !important;
   stroke: var(--color-workflow-edge-hover) !important;
 }
 
@@ -749,18 +751,20 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   width: 100%;
   height: 100%;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  padding-right: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  padding: 4px 8px 4px 0;
+  overflow: hidden;
 }
 
 .job-name {
-  flex: 1;
+  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   user-select: none;
@@ -768,10 +772,13 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 }
 
 .job-duration {
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1.2;
   color: var(--color-text-light-2);
   white-space: nowrap;
-  flex-shrink: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   user-select: none;
   pointer-events: none;
 }
@@ -792,11 +799,13 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 .node-port {
   fill: var(--color-box-body);
   stroke: var(--color-light-border);
-  stroke-width: 1.5;
+  stroke-width: 1.25;
+  opacity: 0.85;
   pointer-events: none;
 }
 
 .node-edge {
   transition: stroke-width 0.2s ease, opacity 0.2s ease;
+  opacity: 0.75;
 }
 </style>

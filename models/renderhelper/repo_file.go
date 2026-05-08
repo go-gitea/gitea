@@ -35,11 +35,11 @@ func (r *RepoFile) ResolveLink(link, preferLinkType string) (finalLink string) {
 	case markup.LinkTypeRoot:
 		finalLink = r.ctx.ResolveLinkRoot(link)
 	case markup.LinkTypeRaw:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "raw", r.opts.CurrentRefPath), r.opts.CurrentTreePath, link)
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "raw", r.opts.CurrentRefSubURL), r.opts.CurrentTreePath, link)
 	case markup.LinkTypeMedia:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "media", r.opts.CurrentRefPath), r.opts.CurrentTreePath, link)
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "media", r.opts.CurrentRefSubURL), r.opts.CurrentTreePath, link)
 	default:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "src", r.opts.CurrentRefPath), r.opts.CurrentTreePath, link)
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "src", r.opts.CurrentRefSubURL), r.opts.CurrentTreePath, link)
 	}
 	return finalLink
 }
@@ -50,8 +50,8 @@ type RepoFileOptions struct {
 	DeprecatedRepoName  string // it is only a patch for the non-standard "markup" api
 	DeprecatedOwnerName string // it is only a patch for the non-standard "markup" api
 
-	CurrentRefPath  string // eg: "branch/main", it is a sub URL path escaped by callers, TODO: rename to CurrentRefSubURL
-	CurrentTreePath string // eg: "path/to/file" in the repo, it is the tree path without URL path escaping
+	CurrentRefSubURL string // eg: "branch/main" or "branch/my%20branch", it is a sub URL path escaped by callers
+	CurrentTreePath  string // eg: "path/to/file" in the repo, it is the tree path without URL path escaping
 }
 
 func NewRenderContextRepoFile(ctx context.Context, repo *repo_model.Repository, opts ...RepoFileOptions) *markup.RenderContext {
@@ -71,9 +71,8 @@ func NewRenderContextRepoFile(ctx context.Context, repo *repo_model.Repository, 
 		})
 	}
 	// External render's iframe needs this to generate correct links
-	// TODO: maybe need to make it access "CurrentRefPath" directly (but impossible at the moment due to cycle-import)
-	// CurrentRefPath is already path-escaped by callers
-	rctx.RenderOptions.Metas["RefTypeNameSubURL"] = helper.opts.CurrentRefPath
+	// TODO: maybe need to make it access "CurrentRefSubURL" directly (but impossible at the moment due to cycle-import)
+	rctx.RenderOptions.Metas["RefTypeNameSubURL"] = helper.opts.CurrentRefSubURL
 	rctx = rctx.WithHelper(helper).WithEnableHeadingIDGeneration(true)
 	return rctx
 }

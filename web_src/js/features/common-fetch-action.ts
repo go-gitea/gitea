@@ -34,7 +34,7 @@ function fetchActionDoRedirect(redirect: string) {
   // * Also do so in development, to make sure the redirection logic is always tested by real users
   const needBackendHelp = redirect.includes('#');
   if (runModeIsProd && !needBackendHelp) {
-    window.location.href = redirect;
+    window.location.assign(redirect);
     return;
   }
 
@@ -66,11 +66,13 @@ function toggleLoadingIndicator(el: HTMLElement, opt: FetchActionOpts, isLoading
   }
 }
 
-async function handleFetchActionSuccessJson(el: HTMLElement, respJson: any) {
+export async function handleFetchActionSuccessJson(el: HTMLElement, respJson: any) {
   ignoreAreYouSure(el); // ignore the areYouSure check before reloading
-  if (typeof respJson?.redirect === 'string') {
-    fetchActionDoRedirect(respJson.redirect);
+  const redirect = respJson?.redirect;
+  if (typeof redirect === 'string' && redirect) {
+    fetchActionDoRedirect(redirect);
   } else {
+    // reserved behavior, in the future, there can be more fields to introduce more behaviors
     window.location.reload();
   }
 }

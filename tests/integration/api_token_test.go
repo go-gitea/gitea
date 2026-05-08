@@ -544,8 +544,7 @@ func createAPIAccessTokenWithoutCleanUp(t *testing.T, tokenName string, user *us
 		AddBasicAuth(user.Name)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var newAccessToken api.AccessToken
-	DecodeJSON(t, resp, &newAccessToken)
+	newAccessToken := DecodeJSON(t, resp, &api.AccessToken{})
 	unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{
 		ID:    newAccessToken.ID,
 		Name:  newAccessToken.Name,
@@ -553,7 +552,7 @@ func createAPIAccessTokenWithoutCleanUp(t *testing.T, tokenName string, user *us
 		UID:   user.ID,
 	})
 
-	return newAccessToken
+	return *newAccessToken
 }
 
 // deleteAPIAccessToken deletes an API access token and assert that deletion succeeded.

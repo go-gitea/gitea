@@ -48,7 +48,7 @@ func CreateOrg(ctx *context.APIContext) {
 
 	visibility := api.VisibleTypePublic
 	if form.Visibility != "" {
-		visibility = api.VisibilityModes[form.Visibility]
+		visibility = api.VisibilityModes[string(form.Visibility)]
 	}
 
 	org := &organization.Organization{

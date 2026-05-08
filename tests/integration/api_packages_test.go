@@ -53,8 +53,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiPackages []*api.Package
-		DecodeJSON(t, resp, &apiPackages)
+		apiPackages := DecodeJSON(t, resp, []*api.Package{})
 
 		assert.Len(t, apiPackages, 1)
 		assert.Equal(t, string(packages_model.TypeGeneric), apiPackages[0].Type)
@@ -135,8 +134,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiPackages []*api.Package
-		DecodeJSON(t, resp, &apiPackages)
+		apiPackages := DecodeJSON(t, resp, []*api.Package{})
 
 		assert.Len(t, apiPackages, 1)
 		assert.Equal(t, string(packages_model.TypeGeneric), apiPackages[0].Type)
@@ -229,8 +227,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var files []*api.PackageFile
-		DecodeJSON(t, resp, &files)
+		files := DecodeJSON(t, resp, []*api.PackageFile{})
 
 		assert.Len(t, files, 1)
 		assert.Equal(t, int64(0), files[0].Size)

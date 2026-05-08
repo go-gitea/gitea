@@ -24,7 +24,7 @@ func testMain(m *testing.M) int {
 	// "setting.Git.HomePath" is initialized in "git" package but really used in "gitcmd" package
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
-		testlogger.Panicf("failed to create temp dir: %v", err)
+		return testlogger.MainErrorf("failed to create temp dir: %v", err)
 	}
 	defer cleanup()
 
@@ -109,7 +109,10 @@ func TestCommandString(t *testing.T) {
 	assert.Equal(t, cmd.prog+` a "-m msg" "it's a test" "say \"hello\""`, cmd.LogString())
 
 	cmd = NewCommand("url: https://a:b@c/", "/root/dir-a/dir-b")
-	assert.Equal(t, cmd.prog+` "url: https://sanitized-credential@c/" .../dir-a/dir-b`, cmd.LogString())
+	assert.Equal(t, cmd.prog+` "url: https://(masked)@c/" .../dir-a/dir-b`, cmd.LogString())
+
+	cmd = NewCommand("url: a:b@c/", "/root/dir-a/dir-b")
+	assert.Equal(t, cmd.prog+` "url: (masked)@c/" .../dir-a/dir-b`, cmd.LogString())
 }
 
 func TestRunStdError(t *testing.T) {

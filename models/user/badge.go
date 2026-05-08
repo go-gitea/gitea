@@ -64,7 +64,7 @@ type GetBadgeUsersOptions struct {
 func GetBadgeUsers(ctx context.Context, opts *GetBadgeUsersOptions) ([]*User, int64, error) {
 	sess := db.GetEngine(ctx).
 		Select("`user`.*").
-		Join("INNER", "user_badge", "`user_badge`.user_id=user.id").
+		Join("INNER", "user_badge", "`user_badge`.user_id=`user`.id").
 		Join("INNER", "badge", "`user_badge`.badge_id=badge.id").
 		Where("badge.slug=?", opts.BadgeSlug)
 

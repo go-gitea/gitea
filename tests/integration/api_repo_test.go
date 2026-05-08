@@ -30,8 +30,7 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var apiRepos []api.Repository
-	DecodeJSON(t, resp, &apiRepos)
+	apiRepos := DecodeJSON(t, resp, []api.Repository{})
 	expectedLen := unittest.GetCount(t, repo_model.Repository{OwnerID: user.ID},
 		unittest.Cond("is_private = ?", false))
 	assert.Len(t, apiRepos, expectedLen)
@@ -48,8 +47,7 @@ func TestAPISearchRepo(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var body api.SearchResults
-	DecodeJSON(t, resp, &body)
+	body := DecodeJSON(t, resp, &api.SearchResults{})
 	assert.NotEmpty(t, body.Data)
 	for _, repo := range body.Data {
 		assert.Contains(t, repo.Name, keyword)
@@ -201,8 +199,7 @@ func TestAPISearchRepo(t *testing.T) {
 						AddTokenAuth(token)
 					response := MakeRequest(t, request, http.StatusOK)
 
-					var body api.SearchResults
-					DecodeJSON(t, response, &body)
+					body := DecodeJSON(t, response, &api.SearchResults{})
 
 					repoNames := make([]string, 0, len(body.Data))
 					for _, repo := range body.Data {
@@ -248,11 +245,9 @@ func getRepo(t *testing.T, repoID int64) *repo_model.Repository {
 func TestAPIViewRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	var repo api.Repository
-
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
 	resp := MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &repo)
+	repo := DecodeJSON(t, resp, &api.Repository{})
 	assert.EqualValues(t, 1, repo.ID)
 	assert.Equal(t, "repo1", repo.Name)
 	assert.Equal(t, 2, repo.Releases)
@@ -261,7 +256,7 @@ func TestAPIViewRepo(t *testing.T) {
 
 	req = NewRequest(t, "GET", "/api/v1/repos/user12/repo10")
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &repo)
+	repo = DecodeJSON(t, resp, &api.Repository{})
 	assert.EqualValues(t, 10, repo.ID)
 	assert.Equal(t, "repo10", repo.Name)
 	assert.Equal(t, 1, repo.OpenPulls)
@@ -269,7 +264,7 @@ func TestAPIViewRepo(t *testing.T) {
 
 	req = NewRequest(t, "GET", "/api/v1/repos/user5/repo4")
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &repo)
+	repo = DecodeJSON(t, resp, &api.Repository{})
 	assert.EqualValues(t, 4, repo.ID)
 	assert.Equal(t, "repo4", repo.Name)
 	assert.Equal(t, 1, repo.Stars)
@@ -303,8 +298,7 @@ func TestAPIOrgRepos(t *testing.T) {
 				AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var apiRepos []*api.Repository
-			DecodeJSON(t, resp, &apiRepos)
+			apiRepos := DecodeJSON(t, resp, []*api.Repository{})
 			assert.Len(t, apiRepos, expected.count)
 			for _, repo := range apiRepos {
 				if !expected.includesPrivate {
@@ -337,8 +331,7 @@ func TestAPIOrgReposWithCodeUnitDisabled(t *testing.T) {
 		AddTokenAuth(token)
 
 	resp := MakeRequest(t, req, http.StatusOK)
-	var apiRepos []*api.Repository
-	DecodeJSON(t, resp, &apiRepos)
+	apiRepos := DecodeJSON(t, resp, []*api.Repository{})
 
 	var repoNames []string
 	for _, r := range apiRepos {
@@ -385,8 +378,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 		}).AddTokenAuth(token)
 		resp := MakeRequest(t, req, NoExpectedStatus)
 		if resp.Code == http.StatusUnprocessableEntity {
-			respJSON := map[string]string{}
-			DecodeJSON(t, resp, &respJSON)
+			respJSON := DecodeJSON(t, resp, map[string]string{})
 			switch respJSON["message"] {
 			case "Remote visit addressed rate limitation.":
 				t.Log("test hit github rate limitation")
@@ -431,8 +423,7 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 			}).
 			AddTokenAuth(httpContext.Token)
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
-		respJSON := map[string]string{}
-		DecodeJSON(t, resp, &respJSON)
+		respJSON := DecodeJSON(t, resp, map[string]string{})
 		assert.Equal(t, "The repository with the same name already exists.", respJSON["message"])
 	})
 }
@@ -445,17 +436,15 @@ func TestAPIMirrorSyncNonMirrorRepo(t *testing.T) {
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	var repo api.Repository
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
 	resp := MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &repo)
+	repo := DecodeJSON(t, resp, &api.Repository{})
 	assert.False(t, repo.Mirror)
 
 	req = NewRequestf(t, "POST", "/api/v1/repos/user2/repo1/mirror-sync").
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusBadRequest)
-	errRespJSON := map[string]string{}
-	DecodeJSON(t, resp, &errRespJSON)
+	errRespJSON := DecodeJSON(t, resp, map[string]string{})
 	assert.Equal(t, "Repository is not a mirror", errRespJSON["message"])
 }
 
@@ -511,8 +500,7 @@ func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {
 			}).
 			AddTokenAuth(httpContext.Token)
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
-		respJSON := map[string]string{}
-		DecodeJSON(t, resp, &respJSON)
+		respJSON := DecodeJSON(t, resp, map[string]string{})
 		assert.Equal(t, "The repository with the same name already exists.", respJSON["message"])
 	})
 }
@@ -709,8 +697,7 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/reviewers", user.Name, repo.Name).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var reviewers []*api.User
-	DecodeJSON(t, resp, &reviewers)
+	reviewers := DecodeJSON(t, resp, []*api.User{})
 	if assert.Len(t, reviewers, 1) {
 		assert.ElementsMatch(t, []int64{2}, []int64{reviewers[0].ID})
 	}
@@ -726,7 +713,6 @@ func TestAPIRepoGetAssignees(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees", user.Name, repo.Name).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var assignees []*api.User
-	DecodeJSON(t, resp, &assignees)
+	assignees := DecodeJSON(t, resp, []*api.User{})
 	assert.Len(t, assignees, 2)
 }

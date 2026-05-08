@@ -5,6 +5,7 @@ export type ActionsArtifactStatus = 'expired' | 'completed';
 export type ActionsRun = {
   repoId: number,
   link: string,
+  viewLink: string,
   title: string,
   titleHTML: string,
   status: ActionsRunStatus,
@@ -17,6 +18,8 @@ export type ActionsRun = {
   workflowID: string,
   workflowLink: string,
   isSchedule: boolean,
+  runAttempt: number,
+  attempts: Array<ActionsRunAttempt>,
   duration: string,
   triggeredAt: number,
   triggerEvent: string,
@@ -38,8 +41,21 @@ export type ActionsRun = {
   },
 };
 
+export type ActionsRunAttempt = {
+  attempt: number;
+  status: ActionsRunStatus;
+  done: boolean;
+  link: string;
+  current: boolean;
+  latest: boolean;
+  triggeredAt: number;
+  triggerUserName: string;
+  triggerUserLink: string;
+};
+
 export type ActionsJob = {
   id: number;
+  link: string;
   jobId: string;
   name: string;
   status: ActionsRunStatus;

@@ -23,7 +23,7 @@ import {
 } from './EditorMarkdown.ts';
 import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
 import {createTippy} from '../../modules/tippy.ts';
-import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {initTabSwitcher} from '../../modules/fomantic/tab.ts';
 import type EasyMDE from 'easymde';
 import {localUserSettings} from '../../modules/user-settings.ts';
 
@@ -204,30 +204,27 @@ export class ComboMarkdownEditor {
   }
 
   setupTab() {
-    const tabs = this.container.querySelectorAll<HTMLElement>('.tabular.menu > .item');
-    if (!tabs.length) return;
+    const elTabular = this.container.querySelector('.ui.tabular');
+    if (!elTabular) return;
+    this.tabEditor = this.container.querySelector('[data-tab-for="markdown-writer"]')!;
+    this.tabPreviewer = this.container.querySelector('[data-tab-for="markdown-previewer"]')!;
+    const panelEditor = this.container.querySelector('.ui.tab[data-tab-panel="markdown-writer"]')!;
+    const panelPreviewer = this.container.querySelector('.ui.tab[data-tab-panel="markdown-previewer"]')!;
 
     // Fomantic Tab requires the "data-tab" to be globally unique.
     // So here it uses our defined "data-tab-for" and "data-tab-panel" to generate the "data-tab" attribute for Fomantic.
     const tabIdSuffix = generateElemId();
-    const tabsArr = Array.from(tabs);
-    this.tabEditor = tabsArr.find((tab) => tab.getAttribute('data-tab-for') === 'markdown-writer')!;
-    this.tabPreviewer = tabsArr.find((tab) => tab.getAttribute('data-tab-for') === 'markdown-previewer')!;
     this.tabEditor.setAttribute('data-tab', `markdown-writer-${tabIdSuffix}`);
     this.tabPreviewer.setAttribute('data-tab', `markdown-previewer-${tabIdSuffix}`);
-
-    const panelEditor = this.container.querySelector('.ui.tab[data-tab-panel="markdown-writer"]')!;
-    const panelPreviewer = this.container.querySelector('.ui.tab[data-tab-panel="markdown-previewer"]')!;
     panelEditor.setAttribute('data-tab', `markdown-writer-${tabIdSuffix}`);
     panelPreviewer.setAttribute('data-tab', `markdown-previewer-${tabIdSuffix}`);
+    initTabSwitcher(elTabular);
 
     this.tabEditor.addEventListener('click', () => {
       requestAnimationFrame(() => {
         this.focus();
       });
     });
-
-    fomanticQuery(tabs).tab();
 
     this.tabPreviewer.addEventListener('click', async () => {
       const formData = new FormData();
