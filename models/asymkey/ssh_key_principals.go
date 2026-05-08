@@ -36,12 +36,13 @@ func CheckPrincipalKeyString(ctx context.Context, user *user_model.User, content
 			if err != nil {
 				return "", err
 			}
+			lowerContent := strings.ToLower(content)
 			for _, email := range emails {
 				if !email.IsActivated {
 					continue
 				}
 				// EmailAddress.Email preserves the user-input case; only LowerEmail is normalised.
-				if strings.EqualFold(content, email.Email) {
+				if lowerContent == email.LowerEmail {
 					return content, nil
 				}
 			}

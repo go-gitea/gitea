@@ -71,6 +71,13 @@ func TestIncomingEmail(t *testing.T) {
 			assert.Equal(t, token_service.ReplyHandlerType, ht)
 			assert.Equal(t, user.ID, u.ID)
 			assert.Equal(t, payload, p)
+
+			// MTAs may lowercase the local-part of the reply-to address (RFC 5321 §2.4).
+			ht, u, p, err = token_service.ExtractToken(t.Context(), strings.ToLower(token))
+			assert.NoError(t, err)
+			assert.Equal(t, token_service.ReplyHandlerType, ht)
+			assert.Equal(t, user.ID, u.ID)
+			assert.Equal(t, payload, p)
 		})
 
 		t.Run("Handler", func(t *testing.T) {
