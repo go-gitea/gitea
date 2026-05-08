@@ -196,10 +196,9 @@ function beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd:
 }
 
 // end a log group
-function endLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
+function endLogGroup(stepIndex: number) {
   const el = getJobStepLogsContainer(stepIndex);
   el._stepLogsActiveContainer = undefined;
-  el.append(createLogLine(stepIndex, startTime, line, cmd));
 }
 
 // show/hide the step logs for a step
@@ -253,7 +252,7 @@ function appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
         beginLogGroup(stepIndex, startTime, line, cmd);
         continue;
       case 'endgroup':
-        endLogGroup(stepIndex, startTime, line, cmd);
+        endLogGroup(stepIndex);
         continue;
     }
     // the active logs container may change during the loop, for example: entering and leaving a group
