@@ -218,7 +218,7 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 		// We don't actually need to check the OriginalURL as it isn't used anywhere
 	}
 
-	log.Trace("migrating git data from %s", repo.CloneURL)
+	log.Trace("migrating git data from %s", util.SanitizeCredentialURLs(repo.CloneURL))
 	messenger("repo.migrate.migrating_git")
 	if err = uploader.CreateRepo(ctx, repo, opts); err != nil {
 		return err

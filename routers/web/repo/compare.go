@@ -438,7 +438,6 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 	}
 
 	if len(commits) == 1 {
-		// FIXME: GIT-COMMIT-MESSAGE-ENCODING: try to convert the encoding for commit message explicitly, ideally it should be done by a git commit struct method
 		c := commits[0]
 		_, content, _ = strings.Cut(strings.TrimSpace(c.UserCommit.CommitMessage), "\n")
 		content = strings.TrimSpace(content)
