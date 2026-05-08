@@ -14,10 +14,32 @@ import (
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestCommitStatusDescription(t *testing.T) {
+	cases := []struct {
+		status           actions_model.Status
+		started, stopped timeutil.TimeStamp
+		want             string
+	}{
+		{actions_model.StatusSuccess, 100, 102, "Successful in 2s"},
+		{actions_model.StatusFailure, 100, 130, "Failing after 30s"},
+		{actions_model.StatusCancelled, 100, 145, "Cancelled after 45s"},
+		{actions_model.StatusSkipped, 0, 0, "Skipped"},
+		{actions_model.StatusRunning, 0, 0, "In progress"},
+		{actions_model.StatusWaiting, 0, 0, "Waiting to run"},
+		{actions_model.StatusBlocked, 0, 0, "Blocked by required conditions"},
+		{actions_model.StatusUnknown, 0, 0, "Unknown status: 0"},
+	}
+	for _, tc := range cases {
+		job := &actions_model.ActionRunJob{Status: tc.status, Started: tc.started, Stopped: tc.stopped}
+		assert.Equal(t, tc.want, toCommitStatusDescription(job), tc.status.String())
+	}
+}
 
 func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

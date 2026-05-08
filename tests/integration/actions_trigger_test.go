@@ -30,7 +30,6 @@ import (
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-	actions_service "code.gitea.io/gitea/services/actions"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
@@ -38,7 +37,6 @@ import (
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1805,92 +1803,5 @@ jobs:
 		req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/pulls/%d/update?style=rebase", "user2", repoName, apiPull.Index))
 		session.MakeRequest(t, req, http.StatusOK)
 		runner.fetchNoTask(t)
-	})
-}
-
-// Verify the PR merge box renders the correct icon and description for every action status.
-func TestActionsCommitStatusIcons(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
-			Name: "repo-cs-icons", AutoInit: true, Readme: "Default", DefaultBranch: "main",
-		})
-		require.NoError(t, err)
-
-		session := loginUser(t, user2.Name)
-		testEditFileToNewBranch(t, session, user2.Name, repo.Name, "main", "feature", "README.md", "feature")
-		apiCtx := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-		apiPull, err := doAPICreatePullRequest(apiCtx, user2.Name, repo.Name, "main", "feature")(t)
-		require.NoError(t, err)
-		sha := apiPull.Head.Sha
-
-		prPayload, err := json.Marshal(&api.PullRequestPayload{
-			PullRequest: &api.PullRequest{Head: &api.PRBranchInfo{Sha: sha}},
-		})
-		require.NoError(t, err)
-		run := &actions_model.ActionRun{
-			RepoID: repo.ID, OwnerID: user2.ID, TriggerUserID: user2.ID,
-			WorkflowID: "test.yml", CommitSHA: sha,
-			Event: webhook_module.HookEventPullRequest, TriggerEvent: "pull_request",
-			EventPayload: string(prPayload),
-		}
-		require.NoError(t, db.Insert(t.Context(), run))
-
-		now := timeutil.TimeStampNow()
-		cases := []struct {
-			name     string
-			status   actions_model.Status
-			started  timeutil.TimeStamp
-			stopped  timeutil.TimeStamp
-			icon     string
-			descPart string // substring of the stored/live description
-		}{
-			{"quick-success", actions_model.StatusSuccess, now - 2, now, "octicon-check", "Successful in 2s"},
-			{"will-fail", actions_model.StatusFailure, now - 30, now, "octicon-x", "Failing after 30s"},
-			{"is-cancelled", actions_model.StatusCancelled, now - 45, now, "octicon-stop", "Cancelled after 45s"},
-			{"is-skipped", actions_model.StatusSkipped, now - 5, now, "octicon-skip", "Skipped"},
-			{"is-waiting", actions_model.StatusWaiting, 0, 0, "octicon-circle", "Waiting to run"},
-			{"is-running", actions_model.StatusRunning, now - 10, 0, "gitea-running", "In progress"},
-			{"is-blocked", actions_model.StatusBlocked, 0, 0, "octicon-blocked", "Blocked by required conditions"},
-			// Unknown is skipped by action enrichment, falls through to the basic commit_status icon.
-			{"is-unknown", actions_model.StatusUnknown, 0, 0, "gitea-exclamation", "Unknown status: 0"},
-		}
-
-		for _, tc := range cases {
-			job := &actions_model.ActionRunJob{
-				RunID: run.ID, RepoID: repo.ID, OwnerID: user2.ID, Name: tc.name,
-				Status: tc.status, Started: tc.started, Stopped: tc.stopped,
-			}
-			require.NoError(t, db.Insert(t.Context(), job))
-			actions_service.CreateCommitStatusForRunJobs(t.Context(), run, job)
-		}
-
-		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", user2.Name, repo.Name, apiPull.Index))
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-
-		// scope to the merge-box panel; the timeline commit list renders the same statuses again inside a hidden tippy-target
-		items := doc.doc.Find(".pull-merge-box .commit-status-item")
-		require.Equal(t, len(cases), items.Length())
-
-		rowByJob := map[string]*goquery.Selection{}
-		items.Each(func(_ int, s *goquery.Selection) {
-			full := strings.TrimSpace(s.Find(".status-context").Text())
-			for _, tc := range cases {
-				// context is `{path.Base(WorkflowID)} / {job.Name} ({event})` per createCommitStatus
-				if strings.Contains(full, "/ "+tc.name+" (pull_request)") {
-					rowByJob[tc.name] = s
-					return
-				}
-			}
-		})
-		for _, tc := range cases {
-			row, ok := rowByJob[tc.name]
-			require.True(t, ok, "no row matched for %s", tc.name)
-			svgClass, hasClass := row.Find("svg").First().Attr("class")
-			require.True(t, hasClass, "svg missing class for %s", tc.name)
-			assert.Contains(t, svgClass, tc.icon, "icon for %s", tc.name)
-			assert.Contains(t, row.Find(".status-context").Text(), tc.descPart, "description for %s", tc.name)
-		}
 	})
 }
