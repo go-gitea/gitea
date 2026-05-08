@@ -343,10 +343,7 @@ lint-go-fix: ## lint go files and fix issues
 # so pre-compile a binary and run it for different target platforms
 .PHONY: lint-go-all
 lint-go-all:
-	GOOS= $(GO) run tools/lint-go-header.go
-	GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
-	GOOS=linux TAGS=bindata golangci-lint run
-	GOOS=windows TAGS=gogit golangci-lint run
+	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) ./tools/lint-go-all.sh
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
