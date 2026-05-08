@@ -33,6 +33,9 @@
 		</h4>
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "packages.settings.link.description"}}</p>
+			<p>- {{ctx.Locale.Tr "packages.settings.link.notice1"}}</p>
+			<p>- {{ctx.Locale.Tr "packages.settings.link.notice2"}}</p>
+			<p>- {{ctx.Locale.Tr "packages.settings.link.notice3"}}</p>
 			<form class="ui form form-fetch-action ignore-dirty flex-text-block" action="{{.Link}}" method="post">
 				<input type="hidden" name="action" value="link">
 				<div data-global-init="initSearchRepoBox" class="ui search" data-uid="{{.PackageDescriptor.Owner.ID}}">
