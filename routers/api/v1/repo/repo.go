@@ -15,6 +15,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -1365,6 +1366,14 @@ func MoveRepoToGroup(ctx *context.APIContext) {
 		NewParent: form.NewParent,
 	}, ctx.Doer)
 	if err != nil {
+		if group_model.IsErrUserDoesNotHaveAccessToGroup(err) {
+			ctx.APIError(http.StatusForbidden, err)
+			return
+		}
+		if group_model.IsErrGroupNotExist(err) {
+			ctx.APIErrorNotFound()
+			return
+		}
 		ctx.APIErrorInternal(err)
 		return
 	}
