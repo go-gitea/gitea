@@ -450,7 +450,11 @@ test-integration:
 	@# would flood output per passing test. testcache can't help these tests anyway —
 	@# they mutate the work directory, so cache inputs change between runs.
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c code.gitea.io/gitea/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
+ifdef TEST_SHARD
+	./tools/test-integration-shard.sh ./test-integration-$(GITEA_TEST_DATABASE).test
+else
 	./test-integration-$(GITEA_TEST_DATABASE).test
+endif
 
 .PHONY: test-integration\#%
 test-integration\#%:

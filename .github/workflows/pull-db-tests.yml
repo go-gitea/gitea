@@ -14,10 +14,14 @@ jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
 
-  test-pgsql:
+  test-pgsql-shards:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     services:
       pgsql:
         image: postgres:14
@@ -57,6 +61,7 @@ jobs:
         env:
           TAGS: bindata
       - name: run migration tests
+        if: matrix.shard == 1
         run: GITEA_TEST_DATABASE=pgsql make test-migration
       - name: run tests
         run: GITEA_TEST_DATABASE=pgsql make test-integration
@@ -66,11 +71,24 @@ jobs:
           GOTEST_FLAGS: -race -timeout=40m
           TAGS: bindata gogit
           TEST_LDAP: 1
+          TEST_SHARD: ${{ matrix.shard }}
+          TEST_TOTAL_SHARDS: 2
 
-  test-sqlite:
+  test-pgsql:
+    needs: [files-changed, test-pgsql-shards]
+    if: always() && (needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - run: '[ "${{ needs.test-pgsql-shards.result }}" = "success" ]'
+
+  test-sqlite-shards:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -87,6 +105,7 @@ jobs:
           TAGS: bindata gogit
           GOEXPERIMENT:
       - name: run migration tests
+        if: matrix.shard == 1
         run: GITEA_TEST_DATABASE=sqlite make test-migration
         env:
           TAGS: bindata gogit
@@ -98,6 +117,15 @@ jobs:
           GOTEST_FLAGS: -timeout=40m
           TAGS: bindata gogit
           GOEXPERIMENT:
+          TEST_SHARD: ${{ matrix.shard }}
+          TEST_TOTAL_SHARDS: 2
+
+  test-sqlite:
+    needs: [files-changed, test-sqlite-shards]
+    if: always() && (needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - run: '[ "${{ needs.test-sqlite-shards.result }}" = "success" ]'
 
   test-unit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -168,10 +196,14 @@ jobs:
           GOEXPERIMENT:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
-  test-mysql:
+  test-mysql-shards:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     services:
       mysql:
         # the bitnami mysql image has more options than the official one, it's easier to customize
@@ -214,17 +246,31 @@ jobs:
         env:
           TAGS: bindata
       - name: run migration tests
+        if: matrix.shard == 1
         run: GITEA_TEST_DATABASE=mysql make test-migration
       - name: run tests
         run: GITEA_TEST_DATABASE=mysql make test-integration
         env:
           TAGS: bindata
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
+          TEST_SHARD: ${{ matrix.shard }}
+          TEST_TOTAL_SHARDS: 2
 
-  test-mssql:
+  test-mysql:
+    needs: [files-changed, test-mysql-shards]
+    if: always() && (needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - run: '[ "${{ needs.test-mysql-shards.result }}" = "success" ]'
+
+  test-mssql-shards:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2019-latest
@@ -254,9 +300,19 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-      - run: GITEA_TEST_DATABASE=mssql make test-migration
+      - if: matrix.shard == 1
+        run: GITEA_TEST_DATABASE=mssql make test-migration
       - name: run tests
         run: GITEA_TEST_DATABASE=mssql make test-integration
         timeout-minutes: 50
         env:
           TAGS: bindata
+          TEST_SHARD: ${{ matrix.shard }}
+          TEST_TOTAL_SHARDS: 2
+
+  test-mssql:
+    needs: [files-changed, test-mssql-shards]
+    if: always() && (needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - run: '[ "${{ needs.test-mssql-shards.result }}" = "success" ]'
