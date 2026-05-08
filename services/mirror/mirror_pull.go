@@ -414,7 +414,6 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 	if err = repo_model.UpdateMirrorLastSyncTime(ctx, m, m.UpdatedUnix); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to update mirror last_sync_unix: %v", m.Repo, err)
-		return false
 	}
 
 	// Update license metadata after a successful mirror sync.
