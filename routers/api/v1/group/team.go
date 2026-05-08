@@ -133,15 +133,8 @@ func EditTeam(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.CreateOrUpdateRepoGroupTeamOption)
 
-	gid := ctx.PathParamInt64("group_id")
-	group, err := group_model.GetGroupByID(ctx, gid)
-	if err != nil {
-		if group_model.IsErrGroupNotExist(err) {
-			ctx.APIErrorNotFound()
-		}
-		ctx.APIErrorInternal(err)
-		return
-	}
+	group := ctx.RepoGroup.Group
+
 	team := getTeamFromGroup(ctx, group)
 	gt, err := group_model.FindGroupTeamByTeamID(ctx, group.ID, team.ID)
 	if err != nil {
@@ -222,22 +215,13 @@ func IsTeam(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	gid := ctx.PathParamInt64("group_id")
-	group, err := group_model.GetGroupByID(ctx, gid)
-	if err != nil {
-		if group_model.IsErrGroupNotExist(err) {
-			ctx.APIErrorNotFound()
-			return
-		}
-		ctx.APIErrorInternal(err)
-		return
-	}
+	group := ctx.RepoGroup.Group
 	team := getTeamFromGroup(ctx, group)
 	if team == nil {
 		return
 	}
 
-	if group_model.HasTeamGroup(ctx, group.OwnerID, team.ID, gid) {
+	if group_model.HasTeamGroup(ctx, group.OwnerID, team.ID, group.ID) {
 		apiTeam, err := convert.ToTeam(ctx, team)
 		if err != nil {
 			ctx.APIErrorInternal(err)
