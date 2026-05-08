@@ -332,15 +332,15 @@ lint-spell-fix: ## lint spelling and fix issues
 
 .PHONY: lint-go
 lint-go: ## lint go files
-	@GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) tools/lint-go.sh
+	@GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) tools/lint-go.sh
 
 .PHONY: lint-go-fix
 lint-go-fix: ## lint go files and fix issues
-	@GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) tools/lint-go.sh --fix
+	@GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) tools/lint-go.sh --fix
 
 .PHONY: lint-go-windows
 lint-go-windows:
-	@GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) LINT_GO_INSTALL=1 tools/lint-go.sh
+	@GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) LINT_GO_INSTALL=1 tools/lint-go.sh
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
