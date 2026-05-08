@@ -78,7 +78,8 @@ function initCloneSchemeUrlSelection(parent: Element) {
     const isTea = scheme === 'tea';
 
     if (tabHttps) {
-      tabHttps.textContent = window.origin.split(':')[0].toUpperCase(); // show "HTTP" or "HTTPS"
+      const link = tabHttps.getAttribute('data-link')!;
+      tabHttps.textContent = link.split(':')[0].toUpperCase(); // show "HTTP" or "HTTPS"
       tabHttps.classList.toggle('active', isHttps);
     }
     if (tabSsh) {
