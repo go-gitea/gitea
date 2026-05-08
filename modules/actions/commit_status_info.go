@@ -32,9 +32,7 @@ func (m CommitStatusInfo) IconStatus(s *git_model.CommitStatus) string {
 // CommitStatus row backed by Gitea Actions. Rows from other sources (external
 // CIs, API) are left untouched and rendered from their stored State.
 //
-// Side effect: fills in status.Repo for inputs whose Repo is nil, sharing one
-// lookup across entries with the same RepoID — ParseGiteaActionsTargetURL
-// needs Repo loaded and would otherwise lazy-load it per row.
+// Mutates status.Repo for inputs whose Repo is nil — ParseGiteaActionsTargetURL needs it loaded.
 func GetCommitStatusInfo(ctx context.Context, statuses []*git_model.CommitStatus) CommitStatusInfo {
 	if len(statuses) == 0 {
 		return nil

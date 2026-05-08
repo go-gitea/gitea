@@ -121,7 +121,7 @@ func TestGetCommitStatusInfo(t *testing.T) {
 		key := "test.yaml / " + tc.jobName + " (push)"
 		want := tc.status.String()
 		if tc.status.IsUnknown() {
-			want = "" // unknown jobs are not enriched; caller falls back to commit_status.tmpl
+			want = "" // unknown jobs are skipped, caller falls back to the basic icon
 		}
 		assert.Equal(t, want, got[key], "icon status for %s", tc.jobName)
 	}

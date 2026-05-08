@@ -1852,7 +1852,7 @@ func TestActionsCommitStatusIcons(t *testing.T) {
 			{"is-waiting", actions_model.StatusWaiting, 0, 0, "octicon-circle", "Waiting to run"},
 			{"is-running", actions_model.StatusRunning, now - 10, 0, "gitea-running", "In progress"},
 			{"is-blocked", actions_model.StatusBlocked, 0, 0, "octicon-blocked", "Blocked by required conditions"},
-			// Unknown falls through to commit_status.tmpl (action info enrichment skips IsUnknown jobs).
+			// Unknown is skipped by action enrichment, falls through to the basic commit_status icon.
 			{"is-unknown", actions_model.StatusUnknown, 0, 0, "gitea-exclamation", "Unknown status: 0"},
 		}
 
