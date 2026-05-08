@@ -6,9 +6,7 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -47,17 +45,11 @@ func main() {
 		if !strings.HasSuffix(path, ".go") {
 			return nil
 		}
-		f, err := os.Open(path)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
-		defer f.Close()
-		buf := make([]byte, 1024)
-		n, err := f.Read(buf)
-		if err != nil && !errors.Is(err, io.EOF) {
-			return fmt.Errorf("%s: %w", path, err)
-		}
-		if !headerRE.Match(buf[:n]) {
+		if !headerRE.Match(data) {
 			fmt.Printf("%s: missing or invalid copyright header\n", path)
 			bad++
 		}
