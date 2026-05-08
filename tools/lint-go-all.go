@@ -66,16 +66,18 @@ func lintGoHeader() bool {
 func runCmd(env []string, name string, args []string) bool {
 	cmd := exec.Command(name, args...)
 	cmd.Env = append(os.Environ(), env...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	if err := cmd.Run(); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
+		return false
 	}
-	return err == nil
+	return true
 }
 
 func main() {
+	// 'go run' can not have distinct GOOS/GOARCH for its build and run steps,
+	// so install a pre-compiled binary and run it for different target platforms.
+	_, _ = os.Unsetenv("GOOS"), os.Unsetenv("GOARCH")
 	envGolangciLintPackage := os.Getenv("GOLANGCI_LINT_PACKAGE")
 	envGo := os.Getenv("GO")
 	if !runCmd(nil, envGo, []string{"install", envGolangciLintPackage}) {
