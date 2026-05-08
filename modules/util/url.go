@@ -27,7 +27,7 @@ func SanitizeURL(s string) (string, error) {
 	return u.String(), nil
 }
 
-// StripUrl returns the scheme, host, and path portions of s with userinfo,
+// StripURL returns the scheme, host, and path portions of s with userinfo,
 // query string, and fragment removed. Intended for logging URLs whose
 // userinfo or query string may carry credentials (e.g. https://user:pass@…
 // or signed S3/GCS/Cloudinary URLs whose signatures live in the query
@@ -35,8 +35,8 @@ func SanitizeURL(s string) (string, error) {
 //
 // Unlike SanitizeURL (which only strips userinfo and is used by callers
 // such as mirroring/indexing/migrations that still need the query string
-// to actually use the URL), StripUrl is for logging only.
-func StripUrl(s string) string {
+// to actually use the URL), StripURL is for logging only.
+func StripURL(s string) string {
 	u, err := url.Parse(s)
 	if err != nil {
 		return "<unparseable url>"

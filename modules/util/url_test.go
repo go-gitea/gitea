@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStripUrl(t *testing.T) {
+func TestStripURL(t *testing.T) {
 	cases := []struct {
 		name string
 		in   string
@@ -54,7 +54,7 @@ func TestStripUrl(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			assert.Equal(t, c.want, StripUrl(c.in))
+			assert.Equal(t, c.want, StripURL(c.in))
 		})
 	}
 }
