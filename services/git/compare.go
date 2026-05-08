@@ -5,6 +5,7 @@ package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -76,6 +77,10 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	if !directComparison {
 		compareInfo.MergeBase, err = gitrepo.MergeBase(ctx, headRepo, compareInfo.BaseCommitID, compareInfo.HeadCommitID)
 		if err != nil {
+			var noMergeBase gitrepo.ErrNoMergeBase
+			if errors.As(err, &noMergeBase) {
+				return compareInfo, err
+			}
 			return nil, fmt.Errorf("MergeBase: %w", err)
 		}
 	} else {

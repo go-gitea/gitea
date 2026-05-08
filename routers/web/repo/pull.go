@@ -1366,6 +1366,10 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	if noMergeBase, _ := ctx.Data["IsNoMergeBase"].(bool); noMergeBase {
+		ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
+		return
+	}
 
 	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, true)
 	if ctx.Written() {
