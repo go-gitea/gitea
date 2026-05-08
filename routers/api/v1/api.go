@@ -70,12 +70,10 @@ import (
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	shared_group_model "code.gitea.io/gitea/models/shared/group"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -440,7 +438,7 @@ func reqAdmin() func(ctx *context.APIContext) {
 // reqRepoWriter user should have a permission to write to a repo, or be a site admin
 func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() && !(ctx.RepoGroup != nil && ctx.IsUserGroupWriter(unitTypes)) {
 			ctx.APIError(http.StatusForbidden, "user should have a permission to write to a repo")
 			return
 		}
@@ -538,19 +536,10 @@ func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *co
 		if ctx.IsUserSiteAdmin() {
 			return
 		}
-		gid := ctx.PathParamInt64("group_id")
-		g, err := group_model.GetGroupByID(ctx, gid)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		err = g.LoadOwner(ctx)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
+		var err error
 		isOrgOwner := false
 		isOrgAdmin := false
+		g := ctx.RepoGroup.Group
 
 		if ctx.Doer != nil {
 			isOrgOwner, err = organization.IsOrganizationOwner(ctx, g.OwnerID, ctx.Doer.ID)
@@ -568,31 +557,21 @@ func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *co
 			}
 		}
 
-		canAccess, err := g.CanAccessAtLevel(ctx, ctx.Doer, mode)
+		canAccess, err := ctx.RepoGroup.Group.CanAccessAtLevel(ctx, ctx.Doer, mode)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		igm, err := shared_group_model.IsGroupMember(ctx, gid, ctx.Doer)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
+		igm := ctx.RepoGroup.IsMember
+
 		if !igm && !canAccess {
 			ctx.APIErrorNotFound()
 			return
 		}
 		if needsCreatePerm {
-			canCreateIn := false
-			if ctx.IsSigned {
-				canCreateIn, err = g.CanCreateIn(ctx, ctx.Doer.ID)
-				if err != nil {
-					ctx.APIErrorInternal(err)
-					return
-				}
-			}
+			canCreateIn := ctx.RepoGroup.CanCreateRepoOrGroup
 			if !(canCreateIn || isOrgOwner || isOrgAdmin) {
-				ctx.APIError(http.StatusForbidden, fmt.Sprintf("User[%d] does not have permission to create new items in group[%d]", ctx.Doer.ID, gid))
+				ctx.APIError(http.StatusForbidden, fmt.Sprintf("User[%d] does not have permission to create new items in group[%d]", ctx.Doer.ID, g.ID))
 				return
 			}
 		}
@@ -1215,7 +1194,7 @@ func Routes() *web.Router {
 					m.Delete("", user.Unstar)
 				}
 				m.Group("/{username}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
-				m.Group("/{username}/group/{group_id}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
+				m.Group("/{username}/group/{group_id}/{reponame}", fn, context.GroupAssignmentAPI(), repoAssignment(), reqGroupMembership(perm.AccessModeRead, false), checkTokenPublicOnly())
 			}, reqStarsEnabled(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 			m.Get("/times", repo.ListMyTrackedTimes)
 			m.Get("/stopwatches", repo.GetStopwatches)
@@ -1562,7 +1541,7 @@ func Routes() *web.Router {
 				m.Methods("HEAD,GET", "/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.DownloadArchive)
 			}
 			m.Group("/{username}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
-			m.Group("/{username}/group/{group_id}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
+			m.Group("/{username}/group/{group_id}/{reponame}", fn, context.GroupAssignmentAPI(), repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
 		// Artifacts direct download endpoint authenticates via signed url
@@ -1578,7 +1557,7 @@ func Routes() *web.Router {
 					Put(notify.ReadRepoNotifications)
 			}
 			m.Group("/{username}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
-			m.Group("/{username}/group/{group_id}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
+			m.Group("/{username}/group/{group_id}/{reponame}", fn, repoAssignment(), context.GroupAssignmentAPI(), reqGroupMembership(perm.AccessModeRead, false), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
 
 		// Issue (requires issue scope)
@@ -1698,7 +1677,7 @@ func Routes() *web.Router {
 				})
 			}
 			m.Group("/{username}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
-			m.Group("/{username}/group/{group_id}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
+			m.Group("/{username}/group/{group_id}/{reponame}", fn, context.GroupAssignmentAPI(), repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
@@ -1899,7 +1878,7 @@ func Routes() *web.Router {
 					Patch(reqGroupMembership(perm.AccessModeAdmin, false), bind(api.CreateOrUpdateRepoGroupTeamOption{}), group.EditTeam).
 					Delete(reqGroupMembership(perm.AccessModeAdmin, false), group.DeleteTeam)
 			}, reqToken(), reqGroupMembership(perm.AccessModeRead, false))
-		}, checkTokenPublicOnly())
+		}, context.GroupAssignmentAPI(), checkTokenPublicOnly())
 	})
 	return m
 }
