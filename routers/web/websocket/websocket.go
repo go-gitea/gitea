@@ -4,7 +4,6 @@
 package websocket
 
 import (
-	"bytes"
 	gocontext "context"
 	"time"
 
@@ -40,15 +39,9 @@ type logoutClientMsg struct {
 	Data string `json:"data"`
 }
 
-// logoutPrefix lets us skip the full JSON Unmarshal for every non-logout event.
-var logoutPrefix = []byte(`{"type":"` + websocket_service.EventLogout + `"`)
-
 // Translates the raw session ID into "here"/"elsewhere" so the client can tell
 // whether logout originated from this tab. Empty sessionID targets all sessions.
 func rewriteLogout(msg []byte, connSessionID string) []byte {
-	if !bytes.HasPrefix(msg, logoutPrefix) {
-		return msg
-	}
 	var lm logoutBrokerMsg
 	if err := json.Unmarshal(msg, &lm); err != nil || lm.Type != websocket_service.EventLogout {
 		return msg
