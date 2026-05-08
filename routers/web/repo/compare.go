@@ -607,11 +607,12 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["CompareInfo"] = ci
 
 	noMergeBase, _ := ctx.Data["IsNoMergeBase"].(bool)
-	nothingToCompare := true
+	var nothingToCompare bool
 	if noMergeBase {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
 		ctx.Data["PageIsComparePull"] = false
 		ctx.Data["CommitCount"] = 0
+		nothingToCompare = true
 	} else {
 		nothingToCompare = PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 		if ctx.Written() {
