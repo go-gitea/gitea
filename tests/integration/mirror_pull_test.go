@@ -116,7 +116,6 @@ func TestMirrorPull(t *testing.T) {
 
 	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	lastMirrorSync := mirror.LastSyncUnix
-	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	assert.NoError(t, mirror_service.UpdateAddress(ctx, mirror, repoPath+"-missing"))
 
 	ok = mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
