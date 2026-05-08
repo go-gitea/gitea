@@ -332,17 +332,11 @@ lint-spell-fix: ## lint spelling and fix issues
 
 .PHONY: lint-go
 lint-go: ## lint go files
-	$(GO) run tools/lint-go-header.go
-	$(GO) run $(GOLANGCI_LINT_PACKAGE) run
+	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) ./tools/lint-go-all.sh
 
 .PHONY: lint-go-fix
 lint-go-fix: ## lint go files and fix issues
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
-
-# 'go run' can not have distinct GOOS/GOARCH for its build and run steps
-# so pre-compile a binary and run it for different target platforms
-.PHONY: lint-go-all
-lint-go-all:
 	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) ./tools/lint-go-all.sh
 
 .PHONY: lint-editorconfig

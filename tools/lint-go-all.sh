@@ -5,6 +5,8 @@
   exit 1
 }
 
+# 'go run' can not have distinct GOOS/GOARCH for its build and run steps
+# so pre-compile a binary and run it for different target platforms
 echo "installing golangci-lint ..."
 GOOS= GOARCH= "$GO" install "$GOLANGCI_LINT_PACKAGE" || exit $?
 
