@@ -7,6 +7,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -14,15 +15,16 @@ import (
 	"strings"
 )
 
-var headerRE = regexp.MustCompile(`^(// (Copyright [^\n]+|All rights reserved\.)\n)*// Copyright \d{4} (The Gogs Authors|The Gitea Authors|Gitea Authors|Gitea)\.( All rights reserved\.)?\n(// (Copyright [^\n]+|All rights reserved\.)\n)*// SPDX-License-Identifier: [\w.-]+`)
+var (
+	headerRE    = regexp.MustCompile(`^(// (Copyright [^\n]+|All rights reserved\.)\n)*// Copyright \d{4} (The Gogs Authors|The Gitea Authors|Gitea Authors|Gitea)\.( All rights reserved\.)?\n(// (Copyright [^\n]+|All rights reserved\.)\n)*// SPDX-License-Identifier: [\w.-]+`)
+	generatedRE = regexp.MustCompile(`(?m)^// (Code|This file is) [Gg]enerated.*DO NOT EDIT`)
+)
 
 var skipDirs = map[string]bool{
 	".git":         true,
 	".venv":        true,
 	"node_modules": true,
-	"public":       true,
 	"vendor":       true,
-	"web_src":      true,
 }
 
 func main() {
@@ -45,9 +47,17 @@ func main() {
 		if !strings.HasSuffix(path, ".go") {
 			return nil
 		}
-		data, err := os.ReadFile(path)
+		f, err := os.Open(path)
 		if err != nil {
 			return err
+		}
+		data, err := io.ReadAll(io.LimitReader(f, 512))
+		f.Close()
+		if err != nil {
+			return err
+		}
+		if generatedRE.Match(data) {
+			return nil
 		}
 		if !headerRE.Match(data) {
 			fmt.Printf("%s: missing or invalid copyright header\n", path)
