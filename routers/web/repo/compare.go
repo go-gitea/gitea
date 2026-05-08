@@ -607,9 +607,8 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["CompareInfo"] = ci
 
-	noMergeBase, _ := ctx.Data["IsNoMergeBase"].(bool)
 	var nothingToCompare bool
-	if noMergeBase {
+	if ctx.Data["IsNoMergeBase"] == true {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
 		ctx.Data["PageIsComparePull"] = false
 		ctx.Data["CommitCount"] = 0
