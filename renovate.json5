@@ -85,7 +85,7 @@
       "matchManagers": ["npm"],
       "postUpgradeTasks": {
         "commands": ["make svg nolyfill"],
-        "fileFilters": ["package.json", "pnpm-lock.yaml", "public/assets/img/svg/**"],
+        "fileFilters": ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "public/assets/img/svg/**"],
         "executionMode": "branch",
       },
     },
