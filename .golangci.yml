@@ -117,11 +117,6 @@ linters:
       enable:
         - nilness
         - unusedwrite
-    goheader:
-      values:
-        regexp:
-          HEADER: '((Copyright [^\n]+|All rights reserved\.)\n)*Copyright \d{4} (The (Gogs|Gitea) Authors|Gitea Authors|Gitea)\.( All rights reserved\.)?(\n(Copyright [^\n]+|All rights reserved\.))*\nSPDX-License-Identifier: [\w.-]+'
-      template: '{{ HEADER }}'
   exclusions:
     generated: lax
     presets:
