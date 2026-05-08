@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
+	"strings"
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -75,7 +76,9 @@ func CreateToken(ht HandlerType, user *user_model.User, data []byte) (string, er
 
 // ExtractToken extracts the action/user tuple from the token and verifies the content
 func ExtractToken(ctx context.Context, token string) (HandlerType, *user_model.User, []byte, error) {
-	data, err := encodingWithoutPadding.DecodeString(token)
+	// MTAs are permitted to alter the case of the local-part (RFC 5321 §2.4), so normalise
+	// to the base32 alphabet before decoding to survive a lowercased reply-to address.
+	data, err := encodingWithoutPadding.DecodeString(strings.ToUpper(token))
 	if err != nil {
 		return UnknownHandlerType, nil, nil, err
 	}

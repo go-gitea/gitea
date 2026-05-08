@@ -34,17 +34,19 @@ func Init(ctx context.Context) error {
 		return nil
 	}
 
+	// Match case-insensitively: MTAs are permitted to alter the case of the local-part
+	// (RFC 5321 §2.4) and the domain is case-insensitive (RFC 1035).
 	var err error
 	addressTokenRegex, err = regexp.Compile(
 		fmt.Sprintf(
-			`\A%s\z`,
+			`(?i)\A%s\z`,
 			strings.Replace(regexp.QuoteMeta(setting.IncomingEmail.ReplyToAddress), regexp.QuoteMeta(setting.IncomingEmail.TokenPlaceholder), "(.+)", 1),
 		),
 	)
 	if err != nil {
 		return err
 	}
-	referenceTokenRegex, err = regexp.Compile(fmt.Sprintf(`\Areply-(.+)@%s\z`, regexp.QuoteMeta(setting.Domain)))
+	referenceTokenRegex, err = regexp.Compile(fmt.Sprintf(`(?i)\Areply-(.+)@%s\z`, regexp.QuoteMeta(setting.Domain)))
 	if err != nil {
 		return err
 	}
