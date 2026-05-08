@@ -1,4 +1,4 @@
-packages: [.] # worarkound for https://github.com/SukkaW/nolyfill/issues/119
+packages: [.] # workaround for https://github.com/SukkaW/nolyfill/issues/119
 savePrefix: ''
 dedupePeerDependents: false
 updateNotifier: false
