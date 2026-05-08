@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	group_model "code.gitea.io/gitea/models/group"
+	org_model "code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	shared_group_model "code.gitea.io/gitea/models/shared/group"
 	"code.gitea.io/gitea/modules/optional"
@@ -19,14 +20,19 @@ import (
 	group_service "code.gitea.io/gitea/services/group"
 )
 
-func createCommonGroup(ctx *context.APIContext, parentGroupID, ownerID int64) (*api.Group, error) {
+func createCommonGroup(ctx *context.APIContext, parentGroupID, ownerID int64) *api.Group {
 	if ownerID < 1 {
 		if parentGroupID < 1 {
-			return nil, errors.New("cannot determine new group's owner")
+			ctx.APIError(http.StatusUnprocessableEntity,
+				errors.New("cannot determine new group's owner"))
+			return nil
 		}
 		npg, err := group_model.GetGroupByID(ctx, parentGroupID)
 		if err != nil {
-			return nil, err
+			if group_model.IsErrGroupNotExist(err) {
+				ctx.APIErrorNotFound()
+			}
+			return nil
 		}
 		ownerID = npg.OwnerID
 	}
@@ -40,9 +46,19 @@ func createCommonGroup(ctx *context.APIContext, parentGroupID, ownerID int64) (*
 		ParentGroupID: parentGroupID,
 	}
 	if err := group_service.NewGroup(ctx, group); err != nil {
-		return nil, err
+		if group_model.IsErrGroupTooDeep(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, err)
+		} else if org_model.IsErrOrgNotExist(err) {
+			ctx.APIErrorNotFound()
+		}
+		return nil
 	}
-	return convert.ToAPIGroup(ctx, group, ctx.Doer)
+	val, err := convert.ToAPIGroup(ctx, group, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return nil
+	}
+	return val
 }
 
 // NewGroup create a new root-level group in an organization
@@ -72,11 +88,7 @@ func NewGroup(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	ag, err := createCommonGroup(ctx, 0, ctx.Org.Organization.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
+	ag := createCommonGroup(ctx, 0, ctx.Org.Organization.ID)
 	ctx.JSON(http.StatusCreated, ag)
 }
 
@@ -110,14 +122,9 @@ func NewSubGroup(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	var (
 		group *api.Group
-		err   error
 	)
 	gid := ctx.PathParamInt64("group_id")
-	group, err = createCommonGroup(ctx, gid, 0)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
+	group = createCommonGroup(ctx, gid, 0)
 	ctx.JSON(http.StatusCreated, group)
 }
 
@@ -227,16 +234,7 @@ func EditGroup(ctx *context.APIContext) {
 		group *group_model.Group
 	)
 	form := web.GetForm(ctx).(*api.EditGroupOption)
-	gid := ctx.PathParamInt64("group_id")
-	group, err = group_model.GetGroupByID(ctx, gid)
-	if group_model.IsErrGroupNotExist(err) {
-		ctx.APIErrorNotFound()
-		return
-	}
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
+	group = ctx.RepoGroup.Group
 
 	serviceOpts := &group_service.UpdateOptions{}
 	serviceOpts.Visibility = optional.FromPtr(form.Visibility)
@@ -275,20 +273,7 @@ func GetGroup(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Group"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	var (
-		err   error
-		group *group_model.Group
-	)
-	group, err = group_model.GetGroupByID(ctx, ctx.PathParamInt64("group_id"))
-	if group_model.IsErrGroupNotExist(err) {
-		ctx.APIErrorNotFound()
-		return
-	}
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	apiGroup, err := convert.ToAPIGroup(ctx, group, ctx.Doer)
+	apiGroup, err := convert.ToAPIGroup(ctx, ctx.RepoGroup.Group, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -388,16 +373,8 @@ func GetGroupSubGroups(ctx *context.APIContext) {
 	//     "$ref": "#/responses/GroupList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	g, err := group_model.GetGroupByID(ctx, ctx.PathParamInt64("group_id"))
-	if err != nil {
-		if group_model.IsErrGroupNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return
-	}
-	err = g.LoadAccessibleSubgroups(ctx, false, ctx.Doer)
+	g := ctx.RepoGroup.Group
+	err := g.LoadAccessibleSubgroups(ctx, false, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
