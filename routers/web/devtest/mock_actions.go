@@ -271,6 +271,75 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		}
 	}
 
+	if runID == 40 {
+		// Reusable workflow caller demo: same-repo caller (with a nested same-repo caller inside),
+		// alongside a flat cross-repo caller.
+		// Layout:
+		//   prepare           (regular, top-level)
+		//   local_caller      (caller, same-repo, expanded)
+		//     ├ lib_step      (regular)
+		//     └ inner_caller  (caller, same-repo nested, expanded)
+		//       └ deep_job    (regular)
+		//   cross_caller      (caller, cross-repo, expanded)
+		//     └ external_job  (regular)
+		//   final             (regular, needs local_caller + cross_caller)
+		const (
+			prepareID     = int64(400)
+			localCallerID = int64(401)
+			libStepID     = int64(402)
+			innerCallerID = int64(403)
+			deepJobID     = int64(404)
+			crossCallerID = int64(405)
+			externalJobID = int64(406)
+			finalID       = int64(407)
+		)
+
+		resp.State.Run.Jobs = []*actions.ViewJob{
+			{
+				ID: prepareID, Link: jobLink(prepareID), JobID: "prepare", Name: "prepare",
+				Status: actions_model.StatusSuccess.String(), Duration: "30s",
+			},
+			{
+				ID: localCallerID, Link: jobLink(localCallerID), JobID: "local_caller", Name: "local caller",
+				Status: actions_model.StatusRunning.String(), Duration: "5m",
+				Needs:            []string{"prepare"},
+				IsReusableCaller: true, CallUses: "./.gitea/workflows/lib.yml",
+			},
+			{
+				ID: libStepID, Link: jobLink(libStepID), JobID: "lib_step", Name: "lib step",
+				Status: actions_model.StatusSuccess.String(), Duration: "1m",
+				ParentCallerJobID: localCallerID,
+			},
+			{
+				ID: innerCallerID, Link: jobLink(innerCallerID), JobID: "inner_caller", Name: "inner caller (nested)",
+				Status: actions_model.StatusRunning.String(), Duration: "4m",
+				ParentCallerJobID: localCallerID,
+				IsReusableCaller:  true, CallUses: "./.gitea/workflows/inner.yml",
+			},
+			{
+				ID: deepJobID, Link: jobLink(deepJobID), JobID: "deep_job", Name: "deep job",
+				Status: actions_model.StatusRunning.String(), Duration: "2m",
+				ParentCallerJobID: innerCallerID,
+			},
+			{
+				ID: crossCallerID, Link: jobLink(crossCallerID), JobID: "cross_caller", Name: "cross-repo caller",
+				Status: actions_model.StatusWaiting.String(), Duration: "0s",
+				Needs:            []string{"prepare"},
+				IsReusableCaller: true, CallUses: "user2/lib-repo/.gitea/workflows/external.yml@main",
+			},
+			{
+				ID: externalJobID, Link: jobLink(externalJobID), JobID: "external_job", Name: "external job",
+				Status: actions_model.StatusWaiting.String(), Duration: "0s",
+				ParentCallerJobID: crossCallerID,
+			},
+			{
+				ID: finalID, Link: jobLink(finalID), JobID: "final", Name: "final",
+				Status: actions_model.StatusBlocked.String(), Duration: "0s",
+				Needs: []string{"local_caller", "cross_caller"},
+			},
+		}
+	}
+
 	fillViewRunResponseCurrentJob(ctx, resp)
 	ctx.JSON(http.StatusOK, resp)
 }

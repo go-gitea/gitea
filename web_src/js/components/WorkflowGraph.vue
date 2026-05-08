@@ -113,7 +113,7 @@ const jobsWithLayout = computed<JobNode[]>(() => {
     let maxJobsPerLevel = 0;
 
     props.jobs.forEach(job => {
-      const level = levels.get(job.name) || levels.get(job.jobId) || 0;
+      const level = levels.get(scopedKey(job)) || levels.get(job.name) || 0;
 
       if (!jobsByLevel[level]) {
         jobsByLevel[level] = [];
@@ -162,81 +162,86 @@ const jobsWithLayout = computed<JobNode[]>(() => {
   }
 });
 
+// scopedKey identifies a job within its reusable-workflow call scope so that the same
+// JobID in different reusable calls does not collide.
+function scopedKey(job: {parentCallerJobID: number; jobId: string}): string {
+  return `${job.parentCallerJobID || 0}:${job.jobId}`;
+}
+
 function buildDirectNeedsMap(jobs: ActionsJob[]): Map<string, string[]> {
-  const directNeedsByJobId = new Map<string, string[]>();
-  const dependentsByJobId = new Map<string, Set<string>>();
+  // The map keys/values are scoped keys, not bare jobIds, so we keep edge construction
+  // accurate when reusable workflows reuse common job names like "build" / "test".
+  const directNeedsByScopedKey = new Map<string, string[]>();
+  const dependentsByScopedKey = new Map<string, Set<string>>();
 
   for (const job of jobs) {
-    const needs = job.needs || [];
-    directNeedsByJobId.set(job.jobId, needs);
+    const fromKey = scopedKey(job);
+    const needKeys = (job.needs || []).map((n) => `${job.parentCallerJobID || 0}:${n}`);
+    directNeedsByScopedKey.set(fromKey, needKeys);
 
-    for (const need of needs) {
-      if (!dependentsByJobId.has(need)) {
-        dependentsByJobId.set(need, new Set());
+    for (const needKey of needKeys) {
+      if (!dependentsByScopedKey.has(needKey)) {
+        dependentsByScopedKey.set(needKey, new Set());
       }
-      dependentsByJobId.get(need)!.add(job.jobId);
+      dependentsByScopedKey.get(needKey)!.add(fromKey);
     }
   }
 
   const reachabilityCache = new Map<string, boolean>();
 
-  function canReach(fromJobId: string, toJobId: string): boolean {
-    const cacheKey = `${fromJobId}->${toJobId}`;
+  function canReach(fromKey: string, toKey: string): boolean {
+    const cacheKey = `${fromKey}->${toKey}`;
     if (reachabilityCache.has(cacheKey)) {
       return reachabilityCache.get(cacheKey)!;
     }
 
     const visited = new Set<string>();
-    const stack = [...(dependentsByJobId.get(fromJobId) || [])];
+    const stack = [...(dependentsByScopedKey.get(fromKey) || [])];
 
     while (stack.length > 0) {
       const current = stack.pop()!;
-      if (current === toJobId) {
+      if (current === toKey) {
         reachabilityCache.set(cacheKey, true);
         return true;
       }
       if (visited.has(current)) continue;
       visited.add(current);
-      stack.push(...(dependentsByJobId.get(current) || []));
+      stack.push(...(dependentsByScopedKey.get(current) || []));
     }
 
     reachabilityCache.set(cacheKey, false);
     return false;
   }
 
-  const reducedNeedsByJobId = new Map<string, string[]>();
-  for (const [jobId, needs] of directNeedsByJobId.entries()) {
-    reducedNeedsByJobId.set(jobId, needs.filter((need) => {
+  const reducedNeedsByScopedKey = new Map<string, string[]>();
+  for (const [fromKey, needs] of directNeedsByScopedKey.entries()) {
+    reducedNeedsByScopedKey.set(fromKey, needs.filter((need) => {
       return !needs.some((otherNeed) => otherNeed !== need && canReach(need, otherNeed));
     }));
   }
 
-  return reducedNeedsByJobId;
+  return reducedNeedsByScopedKey;
 }
 
-const directNeedsByJobId = computed(() => buildDirectNeedsMap(props.jobs));
+const directNeedsByScopedKey = computed(() => buildDirectNeedsMap(props.jobs));
 
 const edges = computed<Edge[]>(() => {
   const edgesList: Edge[] = [];
-  const jobsByJobId = new Map<string, ActionsJob[]>();
+  const jobsByScopedKey = new Map<string, ActionsJob>();
 
   for (const job of props.jobs) {
-    if (!jobsByJobId.has(job.jobId)) {
-      jobsByJobId.set(job.jobId, []);
-    }
-    jobsByJobId.get(job.jobId)!.push(job);
+    jobsByScopedKey.set(scopedKey(job), job);
   }
 
   for (const job of props.jobs) {
-    for (const need of directNeedsByJobId.value.get(job.jobId) || []) {
-      const upstreamJobs = jobsByJobId.get(need) || [];
-      for (const upstreamJob of upstreamJobs) {
-        edgesList.push({
-          fromId: upstreamJob.id,
-          toId: job.id,
-          key: `${upstreamJob.id}-${job.id}`,
-        });
-      }
+    for (const needKey of directNeedsByScopedKey.value.get(scopedKey(job)) || []) {
+      const upstreamJob = jobsByScopedKey.get(needKey);
+      if (!upstreamJob) continue;
+      edgesList.push({
+        fromId: upstreamJob.id,
+        toId: job.id,
+        key: `${upstreamJob.id}-${job.id}`,
+      });
     }
   }
 
@@ -461,10 +466,11 @@ const nodesWithOutgoingEdge = computed(() => {
 
 
 function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
-  const jobMap = new Map<string, ActionsJob>()
+  // Scope-aware: each job is keyed by `${parentCallerJobID}:${jobId}` so the same JobID
+  // in different reusable workflow calls does not cross-link in the level graph.
+  const jobMap = new Map<string, ActionsJob>();
   jobs.forEach(job => {
-    jobMap.set(job.name, job);
-    if (job.jobId) jobMap.set(job.jobId, job);
+    jobMap.set(scopedKey(job), job);
   });
 
   const levels = new Map<string, number>();
@@ -472,60 +478,60 @@ function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
   const recursionStack = new Set<string>();
   const MAX_DEPTH = 100;
 
-  function dfs(jobNameOrId: string, depth: number = 0): number {
+  function dfs(scoped: string, depth: number = 0): number {
     if (depth > MAX_DEPTH) {
-      console.error(`Max recursion depth (${MAX_DEPTH}) reached for: ${jobNameOrId}`);
+      console.error(`Max recursion depth (${MAX_DEPTH}) reached for: ${scoped}`);
       return 0;
     }
 
-    if (recursionStack.has(jobNameOrId)) {
-      console.error(`Cycle detected involving: ${jobNameOrId}`);
+    if (recursionStack.has(scoped)) {
+      console.error(`Cycle detected involving: ${scoped}`);
       return 0;
     }
 
-    if (visited.has(jobNameOrId)) {
-      return levels.get(jobNameOrId) || 0;
+    if (visited.has(scoped)) {
+      return levels.get(scoped) || 0;
     }
 
-    recursionStack.add(jobNameOrId);
-    visited.add(jobNameOrId);
+    recursionStack.add(scoped);
+    visited.add(scoped);
 
-    const job = jobMap.get(jobNameOrId);
+    const job = jobMap.get(scoped);
     if (!job) {
-      recursionStack.delete(jobNameOrId);
+      recursionStack.delete(scoped);
       return 0;
     }
 
     if (!job.needs?.length) {
-      levels.set(job.jobId, 0);
-      recursionStack.delete(jobNameOrId);
+      levels.set(scoped, 0);
+      recursionStack.delete(scoped);
       return 0;
     }
 
     let maxLevel = -1;
     for (const need of job.needs) {
-      const needJob = jobMap.get(need);
+      const needScoped = `${job.parentCallerJobID || 0}:${need}`;
+      const needJob = jobMap.get(needScoped);
       if (!needJob) continue;
 
-      const needLevel = dfs(need, depth + 1);
+      const needLevel = dfs(needScoped, depth + 1);
       maxLevel = Math.max(maxLevel, needLevel);
     }
 
-    const level = maxLevel + 1
+    const level = maxLevel + 1;
+    levels.set(scoped, level);
     levels.set(job.name, level);
-    if (job.jobId && job.jobId !== job.name) {
-      levels.set(job.jobId, level);
-    }
 
-    recursionStack.delete(jobNameOrId);
+    recursionStack.delete(scoped);
     return level;
   }
 
   jobs.forEach(job => {
-    if (!visited.has(job.name) && !visited.has(job.jobId)) {
-      dfs(job.name);
+    const sk = scopedKey(job);
+    if (!visited.has(sk)) {
+      dfs(sk);
     }
-  })
+  });
 
   return levels;
 }

@@ -62,6 +62,11 @@ export type ActionsJob = {
   canRerun: boolean;
   needs?: string[];
   duration: string;
+
+  // Reusable workflow fields. parentCallerJobID is 0 for top-level jobs.
+  isReusableCaller: boolean;
+  parentCallerJobID: number;
+  callUses?: string;
 };
 
 export type ActionsArtifact = {
