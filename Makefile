@@ -334,13 +334,13 @@ lint-spell-fix: ## lint spelling and fix issues
 lint-go: ## lint go files
 	@$(GO) run tools/lint-go-header.go; header=$$?; \
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) run; lint=$$?; \
-	exit $$((header | lint))
+	exit $$((lint ? lint : header))
 
 .PHONY: lint-go-fix
 lint-go-fix: ## lint go files and fix issues
 	@$(GO) run tools/lint-go-header.go; header=$$?; \
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix; lint=$$?; \
-	exit $$((header | lint))
+	exit $$((lint ? lint : header))
 
 # workaround step for the lint-go-windows CI task because 'go run' can not
 # have distinct GOOS/GOARCH for its build and run steps
