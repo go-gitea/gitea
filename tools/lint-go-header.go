@@ -24,7 +24,9 @@ var skipDirs = map[string]bool{
 	".git":         true,
 	".venv":        true,
 	"node_modules": true,
+	"public":       true,
 	"vendor":       true,
+	"web_src":      true,
 }
 
 func main() {
@@ -39,7 +41,7 @@ func main() {
 			return err
 		}
 		if d.IsDir() {
-			if skipDirs[d.Name()] {
+			if rel, _ := filepath.Rel(root, path); skipDirs[rel] {
 				return fs.SkipDir
 			}
 			return nil
