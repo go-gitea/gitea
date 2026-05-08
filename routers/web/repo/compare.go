@@ -413,8 +413,7 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 
 	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), fileOnly)
 	if err != nil {
-		var noMergeBase gitrepo.ErrNoMergeBase
-		if errors.As(err, &noMergeBase) {
+		if errors.Is(err, util.ErrNotEmpty) {
 			ctx.Data["IsNoMergeBase"] = true
 			return compareInfo
 		}
