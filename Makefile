@@ -337,6 +337,7 @@ lint-go: ## lint go files
 
 .PHONY: lint-go-fix
 lint-go-fix: ## lint go files and fix issues
+	$(GO) run tools/lint-go-header.go
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
 
 # 'go run' can not have distinct GOOS/GOARCH for its build and run steps
