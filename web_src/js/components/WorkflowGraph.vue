@@ -641,7 +641,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             class="job-status-fg-obj"
           >
             <div class="job-status-icon-wrap">
-              <ActionRunStatus :status="job.status" icon-suffix="-circle-fill"/>
+              <ActionRunStatus :status="job.status" icon-variant="circle-fill"/>
             </div>
           </foreignObject>
 
