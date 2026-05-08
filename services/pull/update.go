@@ -108,7 +108,7 @@ func isUserAllowedToPushOrForcePushInRepoBranch(ctx context.Context, user *user_
 	}
 
 	// 1. check user push permission on the given repository
-	repoPerm, err := access_model.GetUserRepoPermission(ctx, repo, user)
+	repoPerm, err := access_model.GetDoerRepoPermission(ctx, repo, user)
 	if err != nil {
 		if repo_model.IsErrUnitTypeNotExist(err) {
 			return false, false, nil
@@ -166,7 +166,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	// 4. if the pull creator allows maintainer to edit, we need to check whether
 	// user is a maintainer (has permission to merge into base branch) and inherit pull request poster's permission
 	if pull.AllowMaintainerEdit && (!pushAllowed || !rebaseAllowed) {
-		baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, user)
+		baseRepoPerm, err := access_model.GetDoerRepoPermission(ctx, pull.BaseRepo, user)
 		if err != nil {
 			return false, false, err
 		}

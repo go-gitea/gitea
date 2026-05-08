@@ -33,11 +33,12 @@ func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_m
 	newLabels := make([]*issues_model.Label, 0, len(templateLabels))
 	for _, templateLabel := range templateLabels {
 		newLabels = append(newLabels, &issues_model.Label{
-			RepoID:      generateRepo.ID,
-			Name:        templateLabel.Name,
-			Exclusive:   templateLabel.Exclusive,
-			Description: templateLabel.Description,
-			Color:       templateLabel.Color,
+			RepoID:         generateRepo.ID,
+			Name:           templateLabel.Name,
+			Exclusive:      templateLabel.Exclusive,
+			ExclusiveOrder: templateLabel.ExclusiveOrder,
+			Description:    templateLabel.Description,
+			Color:          templateLabel.Color,
 		})
 	}
 	return db.Insert(ctx, newLabels)

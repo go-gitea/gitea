@@ -17,6 +17,7 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -36,10 +37,10 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/automergequeue"
+	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
-	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -79,7 +80,7 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 }
 
 func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum string) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
+	req := NewRequest(t, "GET", "/"+path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the little button to create a pull
@@ -92,12 +93,25 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 	return resp
 }
 
+func preparePullMergeWebhook(t *testing.T, repoID int64) {
+	require.NoError(t, db.TruncateBeans(t.Context(), &webhook.Webhook{}, &webhook.HookTask{}))
+	require.NoError(t, db.Insert(t.Context(), &webhook.Webhook{
+		RepoID:      repoID,
+		URL:         "http://localhost/gitea-test-webhook-pull-merge",
+		ContentType: webhook.ContentTypeJSON,
+		Events:      `{"push_only":true,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":false}}`,
+		IsActive:    true,
+	}))
+}
+
+func assertPullMergeWebhookTask(t *testing.T, repoID int64) {
+	hook := unittest.AssertExistsAndLoadBean(t, &webhook.Webhook{RepoID: repoID})
+	unittest.AssertExistsAndLoadBean(t, &webhook.HookTask{HookID: hook.ID})
+}
+
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(t.Context(), 1, 1) // Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
-
+		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -123,18 +137,13 @@ func TestPullMerge(t *testing.T) {
 		assert.Equal(t, 4, repo.NumPulls)
 		assert.Equal(t, 3, repo.NumOpenPulls)
 
-		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		assertPullMergeWebhookTask(t, 1)
 	})
 }
 
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(t.Context(), 1, 1) // Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
-
+		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -160,18 +169,13 @@ func TestPullRebase(t *testing.T) {
 		assert.Equal(t, 4, repo.NumPulls)
 		assert.Equal(t, 3, repo.NumOpenPulls)
 
-		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		assertPullMergeWebhookTask(t, 1)
 	})
 }
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(t.Context(), 1, 1) // Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
-
+		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -197,18 +201,13 @@ func TestPullRebaseMerge(t *testing.T) {
 		assert.Equal(t, 4, repo.NumPulls)
 		assert.Equal(t, 3, repo.NumOpenPulls)
 
-		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		assertPullMergeWebhookTask(t, 1)
 	})
 }
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(t.Context(), 1, 1) // Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
-
+		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -223,18 +222,13 @@ func TestPullSquash(t *testing.T) {
 			DeleteBranch: false,
 		})
 
-		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		assertPullMergeWebhookTask(t, 1)
 	})
 }
 
 func TestPullSquashWithHeadCommitID(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(t.Context(), 1, 1) // Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
-
+		preparePullMergeWebhook(t, 1)
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -267,9 +261,7 @@ func TestPullSquashWithHeadCommitID(t *testing.T) {
 		assert.Equal(t, 4, repo.NumPulls)
 		assert.Equal(t, 3, repo.NumOpenPulls)
 
-		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		assertPullMergeWebhookTask(t, 1)
 	})
 }
 
@@ -303,24 +295,19 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 
 		// Check PR branch deletion
 		resp = testPullCleanUp(t, session, elem[1], elem[2], elem[4])
-		respJSON := struct {
-			Redirect string
-		}{}
-		DecodeJSON(t, resp, &respJSON)
+		respJSON := test.ParseJSONRedirect(resp.Body.Bytes())
+		require.NotEmpty(t, respJSON.Redirect, "Redirected URL is not found")
 
-		assert.NotEmpty(t, respJSON.Redirect, "Redirected URL is not found")
-
-		elem = strings.Split(respJSON.Redirect, "/")
+		elem = strings.Split(*respJSON.Redirect, "/")
 		assert.Equal(t, "pulls", elem[3])
 
 		// Check branch deletion result
-		req := NewRequest(t, "GET", respJSON.Redirect)
+		req := NewRequest(t, "GET", *respJSON.Redirect)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		resultMsg := htmlDoc.doc.Find(".ui.message>p").Text()
-
-		assert.Equal(t, "Branch \"user1/repo1:feature/test\" has been deleted.", resultMsg)
+		resultMsg := strings.TrimSpace(htmlDoc.doc.Find(".ui.message.flash-message").Text())
+		assert.Equal(t, `Branch "user1/repo1:feature/test" has been deleted.`, resultMsg)
 	})
 }
 
@@ -335,11 +322,8 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		req := NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		text := strings.TrimSpace(htmlDoc.doc.Find(".merge-section > .item").Last().Text())
-		assert.NotEmpty(t, text, "Can't find WIP text")
-
-		assert.Contains(t, text, translation.NewLocale("en-US").TrString("repo.pulls.cannot_merge_work_in_progress"), "Unable to find WIP text")
-		assert.Contains(t, text, "[wip]", "Unable to find WIP text")
+		wipToggleButtonCount := htmlDoc.Find(`.merge-section > .item button[data-global-init="initPullRequestWipToggle"]`).Length()
+		assert.Equal(t, 1, wipToggleButtonCount)
 	})
 }
 
@@ -512,6 +496,92 @@ func TestFastForwardOnlyMerge(t *testing.T) {
 	})
 }
 
+func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "update", "README.md", "Hello, signed\n")
+
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		createPRReq := NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user1/repo1/pulls", &api.CreatePullRequestOption{
+			Head:  "update",
+			Base:  "master",
+			Title: "ff-only merge under require-signed-commits",
+		}).AddTokenAuth(token)
+		session.MakeRequest(t, createPRReq, http.StatusCreated)
+
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user1.ID, Name: "repo1"})
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			HeadRepoID: repo1.ID,
+			BaseRepoID: repo1.ID,
+			HeadBranch: "update",
+			BaseBranch: "master",
+		})
+
+		// Enable require-signed-commits on master.
+		require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo1, &git_model.ProtectedBranch{
+			RepoID:               repo1.ID,
+			RuleName:             "master",
+			RequireSignedCommits: true,
+		}, git_model.WhitelistOptions{}))
+
+		prIndex := strconv.FormatInt(pr.Index, 10)
+		mergeURL := "/user1/repo1/pulls/" + prIndex + "/merge"
+
+		notVerifiedMsg := translation.NewLocale("en-US").TrString("repo.pulls.require_signed_head_commits_unverified")
+		apiNotVerifiedMsg := pull_service.ErrHeadCommitsNotAllVerified.Error()
+		// Matches the unexported "wont sign: %s" format and nokey signingMode in
+		// services/asymkey/sign.go; the test config uses SIGNING_KEY = none.
+		const wontSignMsg = "wont sign: nokey"
+
+		for _, style := range []repo_model.MergeStyle{repo_model.MergeStyleFastForwardOnly, repo_model.MergeStyleMerge} {
+			t.Run(string(style)+"/head-commits-unverified", func(t *testing.T) {
+				mergeReq := NewRequestWithValues(t, http.MethodPost, mergeURL, map[string]string{"do": string(style)})
+				resp := session.MakeRequest(t, mergeReq, http.StatusBadRequest)
+				assert.Equal(t, notVerifiedMsg, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+			})
+		}
+
+		for _, style := range []repo_model.MergeStyle{repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge, repo_model.MergeStyleSquash} {
+			t.Run(string(style)+"/wont-sign", func(t *testing.T) {
+				mergeReq := NewRequestWithValues(t, http.MethodPost, mergeURL, map[string]string{"do": string(style)})
+				resp := session.MakeRequest(t, mergeReq, http.StatusBadRequest)
+				assert.Equal(t, wontSignMsg, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+			})
+		}
+
+		// Admin force-merge must not bypass the unverified-head-commits check, since
+		// the pre-receive hook would reject the push regardless.
+		t.Run("fast-forward-only/admin-force-merge-does-not-bypass", func(t *testing.T) {
+			mergeReq := NewRequestWithValues(t, http.MethodPost, mergeURL, map[string]string{
+				"do":          string(repo_model.MergeStyleFastForwardOnly),
+				"force_merge": "true",
+			})
+			resp := session.MakeRequest(t, mergeReq, http.StatusBadRequest)
+			assert.Equal(t, notVerifiedMsg, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+		})
+
+		t.Run("api/fast-forward-only/head-commits-unverified", func(t *testing.T) {
+			apiReq := NewRequestWithJSON(t, http.MethodPost,
+				fmt.Sprintf("/api/v1/repos/user1/repo1/pulls/%s/merge", prIndex),
+				&forms.MergePullRequestForm{Do: string(repo_model.MergeStyleFastForwardOnly)},
+			).AddTokenAuth(token)
+			resp := session.MakeRequest(t, apiReq, http.StatusMethodNotAllowed)
+			apiBody := DecodeJSON(t, resp, &api.APIError{})
+			assert.Equal(t, apiNotVerifiedMsg, apiBody.Message)
+		})
+
+		pb, err := git_model.GetFirstMatchProtectedBranchRule(t.Context(), repo1.ID, "master")
+		require.NoError(t, err)
+		require.NotNil(t, pb)
+		pb.RequireSignedCommits = false
+		require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo1, pb, git_model.WhitelistOptions{}))
+
+		require.NoError(t, pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false))
+	})
+}
+
 func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
@@ -546,86 +616,6 @@ func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
 		err := pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleFastForwardOnly, "", "DIVERGING", false)
 		assert.Error(t, err, "Merge should return an error due to being for a diverging branch")
 		assert.True(t, pull_service.IsErrMergeDivergingFastForwardOnly(err), "Merge error is not a diverging fast-forward-only error")
-	})
-}
-
-func TestConflictChecking(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-		// Create new clean repo to test conflict checking.
-		baseRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
-			Name:          "conflict-checking",
-			Description:   "Tempo repo",
-			AutoInit:      true,
-			Readme:        "Default",
-			DefaultBranch: "main",
-		})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, baseRepo)
-
-		// create a commit on new branch.
-		_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
-			Files: []*files_service.ChangeRepoFile{
-				{
-					Operation:     "create",
-					TreePath:      "important_file",
-					ContentReader: strings.NewReader("Just a non-important file"),
-				},
-			},
-			Message:   "Add a important file",
-			OldBranch: "main",
-			NewBranch: "important-secrets",
-		})
-		assert.NoError(t, err)
-
-		// create a commit on main branch.
-		_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, user, &files_service.ChangeRepoFilesOptions{
-			Files: []*files_service.ChangeRepoFile{
-				{
-					Operation:     "create",
-					TreePath:      "important_file",
-					ContentReader: strings.NewReader("Not the same content :P"),
-				},
-			},
-			Message:   "Add a important file",
-			OldBranch: "main",
-			NewBranch: "main",
-		})
-		assert.NoError(t, err)
-
-		// create Pull to merge the important-secrets branch into main branch.
-		pullIssue := &issues_model.Issue{
-			RepoID:   baseRepo.ID,
-			Title:    "PR with conflict!",
-			PosterID: user.ID,
-			Poster:   user,
-			IsPull:   true,
-		}
-
-		pullRequest := &issues_model.PullRequest{
-			HeadRepoID: baseRepo.ID,
-			BaseRepoID: baseRepo.ID,
-			HeadBranch: "important-secrets",
-			BaseBranch: "main",
-			HeadRepo:   baseRepo,
-			BaseRepo:   baseRepo,
-			Type:       issues_model.PullRequestGitea,
-		}
-		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(t.Context(), prOpts)
-		assert.NoError(t, err)
-
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"})
-		assert.NoError(t, issue.LoadPullRequest(t.Context()))
-		conflictingPR := issue.PullRequest
-
-		// Ensure conflictedFiles is populated.
-		assert.Len(t, conflictingPR.ConflictedFiles, 1)
-		// Check if status is correct.
-		assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
-		// Ensure that mergeable returns false
-		assert.False(t, conflictingPR.Mergeable(t.Context()))
 	})
 }
 
@@ -762,8 +752,7 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 
 		// search issues
 		searchIssuesResp := session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
-		var apiIssuesBefore []*api.Issue
-		DecodeJSON(t, searchIssuesResp, &apiIssuesBefore)
+		apiIssuesBefore := DecodeJSON(t, searchIssuesResp, []*api.Issue{})
 		assert.Empty(t, apiIssuesBefore)
 
 		// merge the pull request
@@ -785,11 +774,9 @@ func TestPullMergeIndexerNotifier(t *testing.T) {
 
 		// search issues again
 		searchIssuesResp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
-		var apiIssuesAfter []*api.Issue
-		DecodeJSON(t, searchIssuesResp, &apiIssuesAfter)
-		if assert.Len(t, apiIssuesAfter, 1) {
-			assert.Equal(t, issue.ID, apiIssuesAfter[0].ID)
-		}
+		apiIssuesAfter := DecodeJSON(t, searchIssuesResp, []*api.Issue{})
+		require.Len(t, apiIssuesAfter, 1)
+		assert.Equal(t, issue.ID, apiIssuesAfter[0].ID)
 	})
 }
 

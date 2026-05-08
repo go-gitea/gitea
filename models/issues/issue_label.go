@@ -356,7 +356,7 @@ func ClearIssueLabels(ctx context.Context, issue *Issue, doer *user_model.User) 
 			return err
 		}
 
-		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+		perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return err
 		}

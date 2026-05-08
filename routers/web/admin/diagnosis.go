@@ -18,10 +18,10 @@ import (
 func MonitorDiagnosis(ctx *context.Context) {
 	seconds := min(max(ctx.FormInt64("seconds"), 1), 300)
 
-	httplib.ServeSetHeaders(ctx.Resp, &httplib.ServeHeaderOptions{
-		ContentType: "application/zip",
-		Disposition: "attachment",
-		Filename:    fmt.Sprintf("gitea-diagnosis-%s.zip", time.Now().Format("20060102-150405")),
+	httplib.ServeSetHeaders(ctx.Resp, httplib.ServeHeaderOptions{
+		ContentType:        "application/zip",
+		Filename:           fmt.Sprintf("gitea-diagnosis-%s.zip", time.Now().Format("20060102-150405")),
+		ContentDisposition: httplib.ContentDispositionAttachment,
 	})
 
 	zipWriter := zip.NewWriter(ctx.Resp)

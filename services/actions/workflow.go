@@ -5,7 +5,6 @@ package actions
 
 import (
 	"fmt"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/perm"
@@ -22,7 +21,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -41,7 +40,7 @@ func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnabl
 		cfg.DisableWorkflow(workflow.ID)
 	}
 
-	return repo_model.UpdateRepoUnit(ctx, cfgUnit)
+	return repo_model.UpdateRepoUnitConfig(ctx, cfgUnit)
 }
 
 func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) (runID int64, _ error) {
@@ -98,7 +97,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	var entry *git.TreeEntry
 
 	run := &actions_model.ActionRun{
-		Title:             strings.SplitN(runTargetCommit.CommitMessage, "\n", 2)[0],
+		Title:             runTargetCommit.MessageTitle(),
 		RepoID:            repo.ID,
 		Repo:              repo,
 		OwnerID:           repo.OwnerID,

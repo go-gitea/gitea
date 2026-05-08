@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -101,6 +102,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 		r, err = repo_service.CreateRepositoryDirectly(ctx, g.doer, owner, repo_service.CreateRepoOptions{
 			Name:           g.repoName,
 			Description:    repo.Description,
+			Website:        repo.Website,
 			OriginalURL:    repo.OriginalURL,
 			GitServiceType: opts.GitServiceType,
 			IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
@@ -115,6 +117,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 	}
 	r.DefaultBranch = repo.DefaultBranch
 	r.Description = repo.Description
+	r.Website = repo.Website
 
 	r, err = repo_service.MigrateRepositoryGitData(ctx, owner, r, base.MigrateOptions{
 		RepoName:       g.repoName,
@@ -987,12 +990,15 @@ func (g *GiteaLocalUploader) remapUser(ctx context.Context, source user_model.Ex
 func (g *GiteaLocalUploader) remapLocalUser(ctx context.Context, source user_model.ExternalUserMigrated) (int64, error) {
 	userid, ok := g.userMap[source.GetExternalID()]
 	if !ok {
-		name, err := user_model.GetUserNameByID(ctx, source.GetExternalID())
-		if err != nil {
+		user, err := user_model.GetUserByID(ctx, source.GetExternalID())
+		if errors.Is(err, util.ErrNotExist) {
+			g.userMap[source.GetExternalID()] = userid
+			return 0, nil
+		} else if err != nil {
 			return 0, err
 		}
-		// let's not reuse an ID when the user was deleted or has a different user name
-		if name != source.GetExternalName() {
+		// let's not reuse an ID when the user was deleted or has a different username
+		if !util.AsciiEqualFold(user.Name, source.GetExternalName()) {
 			userid = 0
 		} else {
 			userid = source.GetExternalID()

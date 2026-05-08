@@ -100,27 +100,34 @@
 			{{end}}
 			{{if .Badges}}
 			<li>
-				<ul class="user-badges">
+				<div class="user-badges">
 				{{range .Badges}}
-					<li>
+					<span class="user-badge-item">
+						{{if .ImageURL}}
 						<img loading="lazy" width="64" height="64" src="{{.ImageURL}}" alt="{{.Description}}" data-tooltip-content="{{.Description}}">
-					</li>
+						{{else}}
+						<span class="ui label user-badge-chip" data-tooltip-content="{{if .Description}}{{.Description}}{{else}}{{.Slug}}{{end}}">{{.Slug}}</span>
+						{{end}}
+					</span>
 				{{end}}
-				</ul>
+				</div>
 			</li>
 			{{end}}
 			{{if and .IsSigned (ne .SignedUserID .ContextUser.ID)}}
 				{{if not .UserBlocking}}
-				<li class="follow" hx-target="#profile-avatar-card" hx-indicator="#profile-avatar-card">
-					{{if $.IsFollowing}}
-						<button hx-post="{{.ContextUser.HomeLink}}?action=unfollow" class="ui basic red button">
+				<li class="follow">
+					{{$buttonExtraClass := Iif $.IsFollowing "" "primary"}}
+					{{$followAction := Iif $.IsFollowing "unfollow" "follow"}}
+					<button class="ui basic {{$buttonExtraClass}} button"
+									data-fetch-method="post" data-fetch-url="{{.ContextUser.HomeLink}}?action={{$followAction}}"
+									data-fetch-sync="$body #profile-avatar-card"
+					>
+						{{if $.IsFollowing}}
 							{{svg "octicon-person"}} {{ctx.Locale.Tr "user.unfollow"}}
-						</button>
-					{{else}}
-						<button hx-post="{{.ContextUser.HomeLink}}?action=follow" class="ui basic primary button">
+						{{else}}
 							{{svg "octicon-person"}} {{ctx.Locale.Tr "user.follow"}}
-						</button>
-					{{end}}
+						{{end}}
+					</button>
 				</li>
 				{{end}}
 				<li>

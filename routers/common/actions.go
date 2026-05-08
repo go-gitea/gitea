@@ -10,6 +10,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
@@ -30,7 +31,8 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 		return util.NewNotExistErrorf("job not found")
 	}
 
-	if curJob.TaskID == 0 {
+	taskID := curJob.EffectiveTaskID()
+	if taskID == 0 {
 		return util.NewNotExistErrorf("job not started")
 	}
 
@@ -38,7 +40,7 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 		return fmt.Errorf("LoadRun: %w", err)
 	}
 
-	task, err := actions_model.GetTaskByID(ctx, curJob.TaskID)
+	task, err := actions_model.GetTaskByID(ctx, taskID)
 	if err != nil {
 		return fmt.Errorf("GetTaskByID: %w", err)
 	}
@@ -57,12 +59,11 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 	if p := strings.Index(workflowName, "."); p > 0 {
 		workflowName = workflowName[0:p]
 	}
-	ctx.ServeContent(reader, &context.ServeHeaderOptions{
+	ctx.ServeContent(reader, context.ServeHeaderOptions{
 		Filename:           fmt.Sprintf("%v-%v-%v.log", workflowName, curJob.Name, task.ID),
 		ContentLength:      &task.LogSize,
-		ContentType:        "text/plain",
-		ContentTypeCharset: "utf-8",
-		Disposition:        "attachment",
+		ContentType:        "text/plain; charset=utf-8",
+		ContentDisposition: httplib.ContentDispositionAttachment,
 	})
 	return nil
 }

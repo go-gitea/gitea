@@ -11,10 +11,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
@@ -23,16 +23,16 @@ import (
 
 // UploadIssueAttachment response for Issue/PR attachments
 func UploadIssueAttachment(ctx *context.Context) {
-	uploadAttachment(ctx, ctx.Repo.Repository.ID, setting.Attachment.AllowedTypes)
+	uploadAttachment(ctx, ctx.Repo.Repository.ID, attachment.UploadAttachmentForIssue)
 }
 
 // UploadReleaseAttachment response for uploading release attachments
 func UploadReleaseAttachment(ctx *context.Context) {
-	uploadAttachment(ctx, ctx.Repo.Repository.ID, setting.Repository.Release.AllowedTypes)
+	uploadAttachment(ctx, ctx.Repo.Repository.ID, attachment.UploadAttachmentForRelease)
 }
 
 // UploadAttachment response for uploading attachments
-func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
+func uploadAttachment(ctx *context.Context, repoID int64, uploadFunc attachment.UploadAttachmentFunc) {
 	if !setting.Attachment.Enabled {
 		ctx.HTTPError(http.StatusNotFound, "attachment is not enabled")
 		return
@@ -46,7 +46,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	defer file.Close()
 
 	uploaderFile := attachment.NewLimitedUploaderKnownSize(file, header.Size)
-	attach, err := attachment.UploadAttachmentReleaseSizeLimit(ctx, uploaderFile, allowedTypes, &repo_model.Attachment{
+	attach, err := uploadFunc(ctx, uploaderFile, &repo_model.Attachment{
 		Name:       header.Filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     repoID,
@@ -56,7 +56,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
 			return
 		}
-		ctx.ServerError("UploadAttachmentReleaseSizeLimit", err)
+		ctx.ServerError("uploadAttachment(uploadFunc)", err)
 		return
 	}
 
@@ -119,7 +119,7 @@ func DeleteAttachment(ctx *context.Context) {
 	})
 }
 
-// GetAttachment serve attachments with the given UUID
+// ServeAttachment serve attachments with the given UUID
 func ServeAttachment(ctx *context.Context, uuid string) {
 	attach, err := repo_model.GetAttachmentByUUID(ctx, uuid)
 	if err != nil {
@@ -157,9 +157,9 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 				ctx.ServerError("GetRepositoryByID", err)
 				return
 			}
-			perm, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			perm, err = access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
-				ctx.ServerError("GetUserRepoPermission", err)
+				ctx.ServerError("GetDoerRepoPermission", err)
 				return
 			}
 		} else {
@@ -179,7 +179,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 
 	if setting.Attachment.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name, ctx.Req.Method, nil)
+		u, err := storage.Attachments.ServeDirectURL(attach.RelativePath(), attach.Name, ctx.Req.Method, nil)
 
 		if u != nil && err == nil {
 			ctx.Redirect(u.String())
@@ -199,7 +199,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	}
 	defer fr.Close()
 
-	common.ServeContentByReadSeeker(ctx.Base, attach.Name, new(attach.CreatedUnix.AsTime()), fr)
+	httplib.ServeUserContentByFile(ctx.Req, ctx.Resp, fr, httplib.ServeHeaderOptions{Filename: attach.Name})
 }
 
 // GetAttachment serve attachments

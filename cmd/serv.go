@@ -35,22 +35,23 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// CmdServ represents the available serv sub-command.
-var CmdServ = &cli.Command{
-	Name:        "serv",
-	Usage:       "(internal) Should only be called by SSH shell",
-	Description: "Serv provides access auth for repositories",
-	Hidden:      true, // Internal commands shouldn't be visible in help
-	Before:      PrepareConsoleLoggerLevel(log.FATAL),
-	Action:      runServ,
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name: "enable-pprof",
+func newServCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "serv",
+		Usage:       "(internal) Should only be called by SSH shell",
+		Description: "Serv provides access auth for repositories",
+		Hidden:      true, // Internal commands shouldn't be visible in help
+		Before:      PrepareConsoleLoggerLevel(log.FATAL),
+		Action:      runServ,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name: "enable-pprof",
+			},
+			&cli.BoolFlag{
+				Name: "debug",
+			},
 		},
-		&cli.BoolFlag{
-			Name: "debug",
-		},
-	},
+	}
 }
 
 func setup(ctx context.Context, debug bool) {

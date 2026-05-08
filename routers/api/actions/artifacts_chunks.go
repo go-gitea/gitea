@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 )
@@ -257,10 +258,11 @@ func listOrderedChunksForArtifact(st storage.ObjectStorage, runID, artifactID in
 	return emptyListAsError(chunks)
 }
 
-func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int64, artifactName string) error {
+func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID, runAttemptID int64, artifactName string) error {
 	// read all db artifacts by name
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
 		RunID:        runID,
+		RunAttemptID: optional.Some(runAttemptID),
 		ArtifactName: artifactName,
 	})
 	if err != nil {
@@ -283,6 +285,17 @@ func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int
 		}
 	}
 	return nil
+}
+
+func generateArtifactStoragePath(artifact *actions.ActionArtifact) string {
+	// if chunk is gzip, use gz as extension
+	// download-artifact action will use content-encoding header to decide if it should decompress the file
+	extension := "chunk"
+	if artifact.ContentEncodingOrType == actions.ContentEncodingV3Gzip {
+		extension = "chunk.gz"
+	}
+
+	return fmt.Sprintf("%d/%d/%d.%s", artifact.RunID%255, artifact.ID%255, time.Now().UnixNano(), extension)
 }
 
 func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st storage.ObjectStorage, artifact *actions.ActionArtifact, checksum string) error {
@@ -335,15 +348,8 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		mergedReader = io.TeeReader(mergedReader, hashSha256)
 	}
 
-	// if chunk is gzip, use gz as extension
-	// download-artifact action will use content-encoding header to decide if it should decompress the file
-	extension := "chunk"
-	if artifact.ContentEncoding == "gzip" {
-		extension = "chunk.gz"
-	}
-
 	// save merged file
-	storagePath := fmt.Sprintf("%d/%d/%d.%s", artifact.RunID%255, artifact.ID%255, time.Now().UnixNano(), extension)
+	storagePath := generateArtifactStoragePath(artifact)
 	written, err := st.Save(storagePath, mergedReader, artifact.FileCompressedSize)
 	if err != nil {
 		return fmt.Errorf("save merged file error: %v", err)

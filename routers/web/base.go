@@ -69,7 +69,7 @@ func avatarStorageHandler(storageSetting *setting.Storage, prefix string, objSto
 			// So in theory, it doesn't work with the non-existing avatar fallback, it just gets the URL and redirects to it.
 			// Checking "stat" requires one more request to the storage, which is inefficient.
 			// Workaround: disable "SERVE_DIRECT". Leave the problem to the future.
-			u, err := objStore.URL(avatarPath, path.Base(avatarPath), req.Method, nil)
+			u, err := objStore.ServeDirectURL(avatarPath, path.Base(avatarPath), req.Method, nil)
 			if handleError(w, req, avatarPath, err) {
 				return
 			}

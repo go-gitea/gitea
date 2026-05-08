@@ -16,12 +16,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMinioStorageIterator(t *testing.T) {
+func TestMinioStorage(t *testing.T) {
 	if os.Getenv("CI") == "" {
 		t.Skip("minioStorage not present outside of CI")
 		return
 	}
-	testStorageIterator(t, setting.MinioStorageType, &setting.Storage{
+	storageType := setting.MinioStorageType
+	config := &setting.Storage{
 		MinioConfig: setting.MinioStorageConfig{
 			Endpoint:        "minio:9000",
 			AccessKeyID:     "123456",
@@ -29,7 +30,25 @@ func TestMinioStorageIterator(t *testing.T) {
 			Bucket:          "gitea",
 			Location:        "us-east-1",
 		},
-	})
+	}
+	table := []struct {
+		name string
+		test func(t *testing.T, typStr Type, cfg *setting.Storage)
+	}{
+		{
+			name: "iterator",
+			test: testStorageIterator,
+		},
+		{
+			name: "testBlobStorageURLContentTypeAndDisposition",
+			test: testBlobStorageURLContentTypeAndDisposition,
+		},
+	}
+	for _, entry := range table {
+		t.Run(entry.name, func(t *testing.T) {
+			entry.test(t, storageType, config)
+		})
+	}
 }
 
 func TestMinioStoragePath(t *testing.T) {

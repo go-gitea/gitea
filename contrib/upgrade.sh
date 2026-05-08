@@ -108,7 +108,9 @@ curl --connect-timeout 10 --silent --show-error --fail --location -O "$binurl{,.
 sha256sum -c "${binname}.xz.sha256"
 if [[ -z "${ignore_gpg:-}" ]]; then
   require gpg
-  gpg --keyserver keys.openpgp.org --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
+  # try to use curl first, it uses standard tcp 443 port and works better behind strict firewall rules
+  curl -fsSL --connect-timeout 10 "https://keys.openpgp.org/vks/v1/by-fingerprint/7C9E68152594688862D62AF62D9AE806EC1592E2" | gpg --import \
+    || gpg --keyserver keys.openpgp.org --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
   gpg --verify "${binname}.xz.asc" "${binname}.xz" || { echo 'Signature does not match'; exit 1; }
 fi
 rm "${binname}".xz.{sha256,asc}
@@ -127,6 +129,8 @@ echo "Creating backup in $giteahome"
 giteacmd dump $backupopts
 echo "Updating binary at $giteabin"
 cp -f "$giteabin" "$giteabin.bak" && mv -f "$binname" "$giteabin"
+# Restore SELinux context if applicable (e.g. RHEL/Fedora)
+command -v restorecon &>/dev/null && restorecon -v "$giteabin" || true
 $service_start
 $service_status
 

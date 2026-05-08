@@ -22,7 +22,6 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -59,7 +58,6 @@ func CorsHandler() func(next http.Handler) http.Handler {
 // httpBase does the common work for git http services,
 // including early response, authentication, repository lookup and permission check.
 func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
-	username := ctx.PathParam("username")
 	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
 
 	if ctx.FormString("go-get") == "1" {
@@ -131,10 +129,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 
 	// Only public pull don't need auth.
 	isPublicPull := repoExist && !repo.IsPrivate && isPull
-	var (
-		askAuth = !isPublicPull || setting.Service.RequireSignInViewStrict
-		environ []string
-	)
+	askAuth := !isPublicPull || setting.Service.RequireSignInViewStrict
 
 	// don't allow anonymous pulls if organization is not public
 	if isPublicPull {
@@ -184,59 +179,27 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			return nil
 		}
 
-		environ = []string{
-			repo_module.EnvRepoUsername + "=" + username,
-			repo_module.EnvRepoName + "=" + reponame,
-			repo_module.EnvPusherName + "=" + ctx.Doer.Name,
-			repo_module.EnvPusherID + fmt.Sprintf("=%d", ctx.Doer.ID),
-			repo_module.EnvAppURL + "=" + setting.AppURL,
-		}
-
 		if repoExist {
 			// Because of special ref "refs/for" (agit) , need delay write permission check
 			if git.DefaultFeatures().SupportProcReceive {
 				accessMode = perm.AccessModeRead
 			}
 
-			if taskID, ok := user_model.GetActionsUserTaskID(ctx.Doer); ok {
-				p, err := access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
-				if err != nil {
-					ctx.ServerError("GetActionsUserRepoPermission", err)
-					return nil
-				}
+			p, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetDoerRepoPermission", err)
+				return nil
+			}
 
-				if !p.CanAccess(accessMode, unitType) {
-					ctx.PlainText(http.StatusNotFound, "Repository not found")
-					return nil
-				}
-				environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionPerm, p.UnitAccessMode(unitType)))
-			} else {
-				p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
-					return nil
-				}
-
-				if !p.CanAccess(accessMode, unitType) {
-					ctx.PlainText(http.StatusNotFound, "Repository not found")
-					return nil
-				}
+			if !p.CanAccess(accessMode, unitType) {
+				ctx.PlainText(http.StatusNotFound, "Repository not found")
+				return nil
 			}
 
 			if !isPull && repo.IsMirror {
 				ctx.PlainText(http.StatusForbidden, "mirror repository is read-only")
 				return nil
 			}
-		}
-
-		if !ctx.Doer.KeepEmailPrivate {
-			environ = append(environ, repo_module.EnvPusherEmail+"="+ctx.Doer.Email)
-		}
-
-		if isWiki {
-			environ = append(environ, repo_module.EnvRepoIsWiki+"=true")
-		} else {
-			environ = append(environ, repo_module.EnvRepoIsWiki+"=false")
 		}
 	}
 
@@ -286,7 +249,11 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		}
 	}
 
-	environ = append(environ, repo_module.EnvRepoID+fmt.Sprintf("=%d", repo.ID))
+	var environ []string
+	if !isPull {
+		// if not "pull", then must be "push", and doer must exist
+		environ = repo_module.DoerPushingEnvironment(ctx.Doer, repo, isWiki)
+	}
 
 	return &serviceHandler{serviceType, repo, isWiki, environ}
 }

@@ -778,3 +778,11 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 	repos := make(RepositoryList, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, &opts).Find(&repos)
 }
+
+func GetOwnerRepositoriesByIDs(ctx context.Context, ownerID int64, repoIDs []int64) (RepositoryList, error) {
+	if len(repoIDs) == 0 {
+		return RepositoryList{}, nil
+	}
+	repos := make(RepositoryList, 0, len(repoIDs))
+	return repos, db.GetEngine(ctx).Where(builder.Eq{"owner_id": ownerID}).In("id", repoIDs).Find(&repos)
+}

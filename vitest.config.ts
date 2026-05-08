@@ -14,6 +14,9 @@ export default defineConfig({
     globals: true,
     watch: false,
     isolate: false,
+    sequence: {
+      concurrent: true,
+    },
   },
   plugins: [
     stringPlugin(),

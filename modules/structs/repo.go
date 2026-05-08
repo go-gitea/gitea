@@ -8,6 +8,15 @@ import (
 	"time"
 )
 
+// ObjectFormatName is the git hash algorithm used by a repository.
+// swagger:enum ObjectFormatName
+type ObjectFormatName string
+
+const (
+	ObjectFormatSHA1   ObjectFormatName = "sha1"
+	ObjectFormatSHA256 ObjectFormatName = "sha256"
+)
+
 // Permission represents a set of permissions
 type Permission struct {
 	Admin bool `json:"admin"` // Admin indicates if the user is an administrator of the repository.
@@ -114,8 +123,7 @@ type Repository struct {
 	Internal                      bool             `json:"internal"`
 	MirrorInterval                string           `json:"mirror_interval"`
 	// ObjectFormatName of the underlying git repository
-	// enum: sha1,sha256
-	ObjectFormatName string `json:"object_format_name"`
+	ObjectFormatName ObjectFormatName `json:"object_format_name"`
 	// swagger:strfmt date-time
 	MirrorUpdated time.Time     `json:"mirror_updated"`
 	RepoTransfer  *RepoTransfer `json:"repo_transfer,omitempty"`
@@ -150,11 +158,10 @@ type CreateRepoOption struct {
 	// DefaultBranch of the repository (used when initializes and in template)
 	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
 	// TrustModel of the repository
-	// enum: default,collaborator,committer,collaboratorcommitter
+	// enum: ["default","collaborator","committer","collaboratorcommitter"]
 	TrustModel string `json:"trust_model"`
 	// ObjectFormatName of the underlying git repository, empty string for default (sha1)
-	// enum: sha1,sha256
-	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6)"`
+	ObjectFormatName ObjectFormatName `json:"object_format_name" binding:"MaxSize(6)"`
 }
 
 // EditRepoOption options when editing a repository's properties
@@ -229,6 +236,12 @@ type EditRepoOption struct {
 	MirrorInterval *string `json:"mirror_interval,omitempty"`
 	// enable prune - remove obsolete remote-tracking references when mirroring
 	EnablePrune *bool `json:"enable_prune,omitempty"`
+	// authentication username for the remote repository (mirrors)
+	MirrorUsername *string `json:"mirror_username,omitempty"`
+	// authentication password for the remote repository (mirrors)
+	MirrorPassword *string `json:"mirror_password,omitempty"`
+	// authentication token for the remote repository (mirrors)
+	MirrorToken *string `json:"mirror_token,omitempty"`
 }
 
 // GenerateRepoOption options when creating a repository using a template
@@ -378,7 +391,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
-	// enum: git,github,gitea,gitlab,gogs,onedev,gitbucket,codebase,codecommit
+	// enum: ["git","github","gitea","gitlab","gogs","onedev","gitbucket","codebase","codecommit"]
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`

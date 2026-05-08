@@ -26,7 +26,7 @@ func TestIsUserAllowedToUpdate(t *testing.T) {
 	setRepoAllowRebaseUpdate := func(t *testing.T, repoID int64, allow bool) {
 		repoUnit := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: repoID, Type: unit.TypePullRequests})
 		repoUnit.PullRequestsConfig().AllowRebaseUpdate = allow
-		require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), repoUnit))
+		require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), repoUnit))
 	}
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})

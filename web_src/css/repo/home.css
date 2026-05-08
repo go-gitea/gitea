@@ -21,8 +21,10 @@
   grid-row: 2;
 }
 
-.repo-home-sidebar-bottom .flex-list > :first-child {
-  border-top: 1px solid var(--color-secondary); /* same to .flex-list > .flex-item + .flex-item */
+.repo-home-sidebar-header {
+  font-weight: var(--font-weight-semibold);
+  font-size: 16px;
+  margin-top: 0.5em;
 }
 
 @media (max-width: 767.98px) {
@@ -87,8 +89,7 @@
   border-radius: 5px;
   overflow: hidden;
   width: 100%;
-  margin-top: 1rem;
-  margin-bottom: 5px;
+  margin: 5px 0;
 }
 
 .language-stats-details {

@@ -4,7 +4,7 @@
 package integration
 
 import (
-	"bytes"
+	"io"
 	"testing"
 
 	"github.com/PuerkitoBio/goquery"
@@ -17,7 +17,7 @@ type HTMLDoc struct {
 }
 
 // NewHTMLParser parse html file
-func NewHTMLParser(t testing.TB, body *bytes.Buffer) *HTMLDoc {
+func NewHTMLParser(t testing.TB, body io.Reader) *HTMLDoc {
 	t.Helper()
 	doc, err := goquery.NewDocumentFromReader(body)
 	assert.NoError(t, err)

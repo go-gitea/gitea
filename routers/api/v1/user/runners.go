@@ -14,7 +14,7 @@ import (
 func CreateRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation POST /user/actions/runners/registration-token user userCreateRunnerRegistrationToken
 	// ---
-	// summary: Get an user's actions runner registration token
+	// summary: Get a user's actions runner registration token
 	// produces:
 	// - application/json
 	// parameters:
@@ -40,7 +40,7 @@ func ListRunners(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/ActionRunnersResponse"
+	//     "$ref": "#/responses/RunnerList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -63,7 +63,7 @@ func GetRunner(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/ActionRunner"
+	//     "$ref": "#/responses/Runner"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -115,7 +115,7 @@ func UpdateRunner(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/EditActionRunnerOption"
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/ActionRunner"
+	//     "$ref": "#/responses/Runner"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":

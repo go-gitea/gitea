@@ -21,7 +21,7 @@ import (
 	"github.com/dimiro1/reply"
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
-	"github.com/jhillyerd/enmime"
+	"github.com/jhillyerd/enmime/v2"
 )
 
 var (

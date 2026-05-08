@@ -42,7 +42,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 	}
 	doer := webCtx.Doer
 
-	perms, err := access.GetUserRepoPermission(ctx, dbRepo, doer)
+	perms, err := access.GetDoerRepoPermission(ctx, dbRepo, doer)
 	if err != nil {
 		return "", err
 	}
@@ -101,7 +101,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 	escapeStatus := &charset.EscapeStatus{}
 	lineEscapeStatus := make([]*charset.EscapeStatus, len(highlightLines))
 	for i, hl := range highlightLines {
-		lineEscapeStatus[i], hl.FormattedContent = charset.EscapeControlHTML(hl.FormattedContent, webCtx.Base.Locale, charset.RuneNBSP)
+		lineEscapeStatus[i], hl.FormattedContent = charset.EscapeControlHTML(hl.FormattedContent, webCtx.Base.Locale, charset.EscapeOptionsForView())
 		escapeStatus = escapeStatus.Or(lineEscapeStatus[i])
 	}
 

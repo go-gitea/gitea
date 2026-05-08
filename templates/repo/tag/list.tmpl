@@ -42,7 +42,7 @@
 									<a class="flex-text-inline" href="{{$.RepoLink}}/releases/new?tag={{.TagName}}">{{svg "octicon-tag"}}{{ctx.Locale.Tr "repo.release.new_release"}}</a>
 								{{end}}
 
-								{{if (and ($.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) $release.IsTag)}}
+								{{if (and $.Repository.CanContentChange ($.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) $release.IsTag)}}
 									<a class="flex-text-inline link-action" data-url="{{$.RepoLink}}/tags/delete?id={{.ID}}" data-modal-confirm="#confirm-delete-tag-modal">
 										{{svg "octicon-trash"}}{{ctx.Locale.Tr "repo.release.delete_tag"}}
 									</a>

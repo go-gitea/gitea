@@ -55,6 +55,7 @@ func (g *RouterPathGroup) MatchPattern(methods string, pattern *RouterPathGroupP
 
 type routerPathParam struct {
 	name         string
+	pathSepEnd   bool
 	captureGroup int
 }
 
@@ -93,7 +94,15 @@ func (p *routerPathMatcher) matchPath(chiCtx *chi.Context, path string) bool {
 	}
 	for i, pm := range paramMatches {
 		groupIdx := p.params[i].captureGroup * 2
-		chiCtx.URLParams.Add(p.params[i].name, path[pm[groupIdx]:pm[groupIdx+1]])
+		if pm[groupIdx] == -1 || pm[groupIdx+1] == -1 {
+			chiCtx.URLParams.Add(p.params[i].name, "")
+			continue
+		}
+		val := path[pm[groupIdx]:pm[groupIdx+1]]
+		if p.params[i].pathSepEnd {
+			val = strings.TrimSuffix(val, "/")
+		}
+		chiCtx.URLParams.Add(p.params[i].name, val)
 	}
 	return true
 }
@@ -145,11 +154,19 @@ func patternRegexp(pattern string, h ...any) *RouterPathGroupPattern {
 		// it is not used so no need to implement it now
 		param := routerPathParam{}
 		if partExp == "*" {
-			re = append(re, "(.*?)/?"...)
+			// "<part:*>" is a shorthand for optionally matching any string (but not greedy)
+			partExp = ".*?"
 			if lastEnd < len(pattern) && pattern[lastEnd] == '/' {
-				lastEnd++ // the "*" pattern is able to handle the last slash, so skip it
+				// if this param part ends with path separator "/", then consider it together: "(.*?/)"
+				partExp += "/"
+				param.pathSepEnd = true
+				lastEnd++
 			}
+			re = append(re, '(')
+			re = append(re, partExp...)
+			re = append(re, ')', '?') // the wildcard matching is optional
 		} else {
+			// the pattern is user-provided regexp, defaults to a path part (separated by "/")
 			partExp = util.IfZero(partExp, "[^/]+")
 			re = append(re, '(')
 			re = append(re, partExp...)

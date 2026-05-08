@@ -5,7 +5,6 @@ package routing
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -36,17 +35,8 @@ var (
 
 func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 	const callerName = "HTTPRequest"
-	logTrace := func(fmt string, args ...any) {
-		logger.Log(2, &log.Event{Level: log.TRACE, Caller: callerName}, fmt, args...)
-	}
-	logInfo := func(fmt string, args ...any) {
-		logger.Log(2, &log.Event{Level: log.INFO, Caller: callerName}, fmt, args...)
-	}
-	logWarn := func(fmt string, args ...any) {
-		logger.Log(2, &log.Event{Level: log.WARN, Caller: callerName}, fmt, args...)
-	}
-	logError := func(fmt string, args ...any) {
-		logger.Log(2, &log.Event{Level: log.ERROR, Caller: callerName}, fmt, args...)
+	logRequest := func(level log.Level, fmt string, args ...any) {
+		logger.Log(2, &log.Event{Level: level, Caller: callerName}, fmt, args...)
 	}
 	return func(trigger Event, record *requestRecord) {
 		if trigger == StartEvent {
@@ -57,7 +47,7 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 			}
 			// when a request starts, we have no information about the handler function information, we only have the request path
 			req := record.request
-			logTrace("router: %s %v %s for %s", startMessage, log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr)
+			logRequest(log.TRACE, "router: %s %v %s for %s", startMessage, log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr)
 			return
 		}
 
@@ -73,12 +63,12 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 
 		if trigger == StillExecutingEvent {
 			message := slowMessage
-			logf := logWarn
+			logLevel := log.WARN
 			if isLongPolling {
-				logf = logInfo
+				logLevel = log.INFO
 				message = pollingMessage
 			}
-			logf("router: %s %v %s for %s, elapsed %v @ %s",
+			logRequest(logLevel, "router: %s %v %s for %s, elapsed %v @ %s",
 				message,
 				log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
 				log.ColoredTime(time.Since(record.startTime)),
@@ -88,7 +78,7 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 		}
 
 		if panicErr != nil {
-			logWarn("router: %s %v %s for %s, panic in %v @ %s, err=%v",
+			logRequest(log.WARN, "router: %s %v %s for %s, panic in %v @ %s, err=%v",
 				failedMessage,
 				log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
 				log.ColoredTime(time.Since(record.startTime)),
@@ -102,21 +92,22 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 		if v, ok := record.responseWriter.(types.ResponseStatusProvider); ok {
 			status = v.WrittenStatus()
 		}
-		logf := logInfo
+		logLevel := record.logLevel
+		if logLevel == log.UNDEFINED {
+			logLevel = log.INFO
+		}
 		// lower the log level for some specific requests, in most cases these logs are not useful
 		if status > 0 && status < 400 &&
-			strings.HasPrefix(req.RequestURI, "/assets/") /* static assets */ ||
-			req.RequestURI == "/user/events" /* Server-Sent Events (SSE) handler */ ||
 			req.RequestURI == "/api/actions/runner.v1.RunnerService/FetchTask" /* Actions Runner polling */ {
-			logf = logTrace
+			logLevel = log.TRACE
 		}
 		message := completedMessage
 		if isUnknownHandler {
-			logf = logError
+			logLevel = log.ERROR
 			message = unknownHandlerMessage
 		}
 
-		logf("router: %s %v %s for %s, %v %v in %v @ %s",
+		logRequest(logLevel, "router: %s %v %s for %s, %v %v in %v @ %s",
 			message,
 			log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
 			log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(status)), log.ColoredTime(time.Since(record.startTime)),

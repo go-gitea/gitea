@@ -13,6 +13,7 @@ linters:
     - forbidigo
     - gocheckcompilerdirectives
     - gocritic
+    - goheader
     - govet
     - ineffassign
     - mirror
@@ -51,6 +52,14 @@ linters:
               desc: do not use the go-chi cache package, use gitea's cache system
             - pkg: github.com/pkg/errors
               desc: use builtin errors package instead
+        migrations:
+          files:
+            - '**/models/migrations/**/*.go'
+          deny:
+            - pkg: code.gitea.io/gitea/models$
+              desc: migrations must not depend on the models package
+            - pkg: code.gitea.io/gitea/modules/structs
+              desc: migrations must not depend on modules/structs (API structures change over time)
     nolintlint:
       allow-unused: false
       require-explanation: true
@@ -109,6 +118,11 @@ linters:
       enable:
         - nilness
         - unusedwrite
+    goheader:
+      values:
+        regexp:
+          HEADER: '((Copyright [^\n]+|All rights reserved\.)\n)*Copyright \d{4} (The (Gogs|Gitea) Authors|Gitea Authors|Gitea)\.( All rights reserved\.)?(\n(Copyright [^\n]+|All rights reserved\.))*\nSPDX-License-Identifier: [\w.-]+'
+      template: '{{ HEADER }}'
   exclusions:
     generated: lax
     presets:
@@ -158,9 +172,16 @@ issues:
   max-same-issues: 0
 formatters:
   enable:
-    - gofmt
+    - gci
     - gofumpt
   settings:
+    gci:
+      custom-order: true
+      sections:
+        - standard
+        - prefix(code.gitea.io/gitea)
+        - blank
+        - default
     gofumpt:
       extra-rules: true
   exclusions:
@@ -170,9 +191,6 @@ formatters:
       - .venv
       - public
       - web_src
-      - third_party$
-      - builtin$
-      - examples$
 
 run:
   timeout: 10m

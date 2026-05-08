@@ -86,22 +86,21 @@ func (r *mockRunner) registerAsRepoRunner(t *testing.T, ownerName, repoName, run
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/registration-token", ownerName, repoName)).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var registrationToken struct {
+	registrationToken := DecodeJSON(t, resp, &struct {
 		Token string `json:"token"`
-	}
-	DecodeJSON(t, resp, &registrationToken)
+	}{})
 	r.doRegister(t, runnerName, registrationToken.Token, labels, ephemeral)
 }
 
 func (r *mockRunner) fetchTask(t *testing.T, timeout ...time.Duration) *runnerv1.Task {
 	task := r.tryFetchTask(t, timeout...)
-	assert.NotNil(t, task, "failed to fetch a task")
+	require.NotNil(t, task, "failed to fetch a task")
 	return task
 }
 
 func (r *mockRunner) fetchNoTask(t *testing.T, timeout ...time.Duration) {
 	task := r.tryFetchTask(t, timeout...)
-	assert.Nil(t, task, "a task is fetched")
+	require.Nil(t, task, "a task is fetched")
 }
 
 const defaultFetchTaskTimeout = 1 * time.Second

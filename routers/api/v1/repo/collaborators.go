@@ -181,7 +181,7 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 
 	p := perm.AccessModeWrite
 	if form.Permission != nil {
-		p = perm.ParseAccessMode(*form.Permission, perm.AccessModeRead, perm.AccessModeWrite, perm.AccessModeAdmin)
+		p = perm.ParseAccessMode(string(*form.Permission), perm.AccessModeRead, perm.AccessModeWrite, perm.AccessModeAdmin)
 	}
 
 	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, collaborator, p); err != nil {
@@ -291,7 +291,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 		return
 	}
 
-	permission, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, collaborator)
+	permission, err := access_model.GetIndividualUserRepoPermission(ctx, ctx.Repo.Repository, collaborator)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

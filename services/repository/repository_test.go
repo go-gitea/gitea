@@ -74,13 +74,13 @@ func TestMakeRepoPrivateClearsWatches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repo.IsPrivate = false
+	assert.False(t, repo.IsPrivate)
 
 	watchers, err := repo_model.GetRepoWatchersIDs(t.Context(), repo.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, watchers)
 
-	assert.NoError(t, MakeRepoPrivate(t.Context(), repo))
+	assert.NoError(t, MakeRepoPrivate(t.Context(), repo, true))
 
 	watchers, err = repo_model.GetRepoWatchersIDs(t.Context(), repo.ID)
 	assert.NoError(t, err)

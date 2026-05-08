@@ -2,33 +2,33 @@
 	{{ctx.Locale.Tr "repo.settings.danger_zone"}}
 </h4>
 <div class="ui attached error danger segment">
-	<div class="flex-list">
-		<div class="flex-item tw-items-center">
-			<div class="flex-item-main">
-				<div class="flex-item-title">{{ctx.Locale.Tr "org.settings.visibility"}}</div>
-				<div class="flex-item-body">{{ctx.Locale.Tr "org.settings.visibility_desc"}}</div>
+	<div class="flex-divided-list items-with-main">
+		<div class="item tw-items-center">
+			<div class="item-main">
+				<div class="item-title">{{ctx.Locale.Tr "org.settings.visibility"}}</div>
+				<div class="item-body">{{ctx.Locale.Tr "org.settings.visibility_desc"}}</div>
 			</div>
-			<div class="flex-item-trailing">
+			<div class="item-trailing">
 				<button class="ui basic red show-modal button" data-modal="#change-visibility-org-modal">{{ctx.Locale.Tr "org.settings.change_visibility"}}</button>
 			</div>
 		</div>
 
-		<div class="flex-item tw-items-center">
-			<div class="flex-item-main">
-				<div class="flex-item-title">{{ctx.Locale.Tr "org.settings.rename"}}</div>
-				<div class="flex-item-body">{{ctx.Locale.Tr "org.settings.rename_desc"}}</div>
+		<div class="item tw-items-center">
+			<div class="item-main">
+				<div class="item-title">{{ctx.Locale.Tr "org.settings.rename"}}</div>
+				<div class="item-body">{{ctx.Locale.Tr "org.settings.rename_desc"}}</div>
 			</div>
-			<div class="flex-item-trailing">
+			<div class="item-trailing">
 				<button class="ui basic red show-modal button" data-modal="#rename-org-modal">{{ctx.Locale.Tr "org.settings.rename"}}</button>
 			</div>
 		</div>
 
-		<div class="flex-item">
-			<div class="flex-item-main">
-				<div class="flex-item-title">{{ctx.Locale.Tr "org.settings.delete_account"}}</div>
-				<div class="flex-item-body">{{ctx.Locale.Tr "org.settings.delete_prompt"}}</div>
+		<div class="item">
+			<div class="item-main">
+				<div class="item-title">{{ctx.Locale.Tr "org.settings.delete_account"}}</div>
+				<div class="item-body">{{ctx.Locale.Tr "org.settings.delete_prompt"}}</div>
 			</div>
-			<div class="flex-item-trailing">
+			<div class="item-trailing">
 				<button class="ui basic red show-modal button" data-modal="#delete-org-modal">{{ctx.Locale.Tr "org.settings.delete_account"}}</button>
 			</div>
 		</div>

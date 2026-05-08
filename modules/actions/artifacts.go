@@ -5,44 +5,61 @@ package actions
 
 import (
 	"net/http"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/services/context"
 )
 
-// Artifacts using the v4 backend are stored as a single combined zip file per artifact on the backend
-// The v4 backend ensures ContentEncoding is set to "application/zip", which is not the case for the old backend
+// IsArtifactV4 detects whether the artifact is likely from v4.
+// V4 backend stores the files as a single combined zip file per artifact, and ensures ContentEncoding contains a slash
+// (otherwise this uses application/zip instead of the custom mime type), which is not the case for the old backend.
 func IsArtifactV4(art *actions_model.ActionArtifact) bool {
-	return art.ArtifactName+".zip" == art.ArtifactPath && art.ContentEncoding == "application/zip"
+	return strings.Contains(art.ContentEncodingOrType, "/")
 }
 
-func DownloadArtifactV4ServeDirectOnly(ctx *context.Base, art *actions_model.ActionArtifact) (bool, error) {
-	if setting.Actions.ArtifactStorage.ServeDirect() {
-		u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, ctx.Req.Method, nil)
-		if u != nil && err == nil {
-			ctx.Redirect(u.String(), http.StatusFound)
-			return true, nil
-		}
+func GetArtifactV4ServeDirectURL(art *actions_model.ActionArtifact, method string) (string, error) {
+	contentType := art.ContentEncodingOrType
+	u, err := storage.ActionsArtifacts.ServeDirectURL(art.StoragePath, art.ArtifactPath, method, &storage.ServeDirectOptions{ContentType: contentType})
+	if err != nil {
+		return "", err
 	}
-	return false, nil
+	return u.String(), nil
 }
 
-func DownloadArtifactV4Fallback(ctx *context.Base, art *actions_model.ActionArtifact) error {
+func DownloadArtifactV4ServeDirect(ctx *context.Base, art *actions_model.ActionArtifact) bool {
+	if !setting.Actions.ArtifactStorage.ServeDirect() {
+		return false
+	}
+	u, err := GetArtifactV4ServeDirectURL(art, ctx.Req.Method)
+	if err != nil {
+		log.Error("GetArtifactV4ServeDirectURL: %v", err)
+		return false
+	}
+	ctx.Redirect(u, http.StatusFound)
+	return true
+}
+
+func DownloadArtifactV4ReadStorage(ctx *context.Base, art *actions_model.ActionArtifact) error {
 	f, err := storage.ActionsArtifacts.Open(art.StoragePath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	http.ServeContent(ctx.Resp, ctx.Req, art.ArtifactName+".zip", art.CreatedUnix.AsLocalTime(), f)
+	httplib.ServeUserContentByFile(ctx.Req, ctx.Resp, f, httplib.ServeHeaderOptions{
+		Filename:    art.ArtifactPath,
+		ContentType: art.ContentEncodingOrType, // v4 guarantees that the field is Content-Type
+	})
 	return nil
 }
 
 func DownloadArtifactV4(ctx *context.Base, art *actions_model.ActionArtifact) error {
-	ok, err := DownloadArtifactV4ServeDirectOnly(ctx, art)
-	if ok || err != nil {
-		return err
+	if DownloadArtifactV4ServeDirect(ctx, art) {
+		return nil
 	}
-	return DownloadArtifactV4Fallback(ctx, art)
+	return DownloadArtifactV4ReadStorage(ctx, art)
 }

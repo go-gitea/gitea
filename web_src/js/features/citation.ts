@@ -1,17 +1,18 @@
 import {getCurrentLocale} from '../utils.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {errorMessage} from '../modules/errors.ts';
+import {showFomanticModal} from '../modules/fomantic/modal.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 
 const {pageData} = window.config;
 
 async function initInputCitationValue(citationCopyApa: HTMLButtonElement, citationCopyBibtex: HTMLButtonElement) {
   const [{Cite, plugins}] = await Promise.all([
-    import(/* webpackChunkName: "citation-js-core" */'@citation-js/core'),
-    import(/* webpackChunkName: "citation-js-formats" */'@citation-js/plugin-software-formats'),
-    import(/* webpackChunkName: "citation-js-bibtex" */'@citation-js/plugin-bibtex'),
-    import(/* webpackChunkName: "citation-js-csl" */'@citation-js/plugin-csl'),
+    import('@citation-js/core'),
+    import('@citation-js/plugin-software-formats'),
+    import('@citation-js/plugin-bibtex'),
+    import('@citation-js/plugin-csl'),
   ]);
-  const {citationFileContent} = pageData;
+  const citationFileContent = pageData.citationFileContent!;
   const config = plugins.config.get('@bibtex');
   config.constants.fieldTypes.doi = ['field', 'literal'];
   config.constants.fieldTypes.version = ['field', 'literal'];
@@ -46,7 +47,7 @@ export async function initCitationFileCopyContent() {
     try {
       await initInputCitationValue(citationCopyApa, citationCopyBibtex);
     } catch (e) {
-      console.error(`initCitationFileCopyContent error: ${e}`, e);
+      console.error(`initCitationFileCopyContent error: ${errorMessage(e)}`, e);
       return;
     }
     updateUi();
@@ -65,6 +66,6 @@ export async function initCitationFileCopyContent() {
       inputContent.select();
     });
 
-    fomanticQuery('#cite-repo-modal').modal('show');
+    showFomanticModal(document.querySelector('#cite-repo-modal'));
   });
 }

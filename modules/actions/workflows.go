@@ -17,8 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
-	"github.com/nektos/act/pkg/model"
-	"github.com/nektos/act/pkg/workflowpattern"
+	"gitea.com/gitea/runner/act/model"
+	"gitea.com/gitea/runner/act/workflowpattern"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -103,8 +103,18 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := ValidateWorkflowContent(content); err != nil {
+		return nil, err
+	}
 
 	return events, nil
+}
+
+// ValidateWorkflowContent catches structural errors (e.g. blank lines in run: | blocks)
+// that model.ReadWorkflow alone does not detect.
+func ValidateWorkflowContent(content []byte) error {
+	_, err := jobparser.Parse(content)
+	return err
 }
 
 func DetectWorkflows(

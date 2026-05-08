@@ -1,0 +1,115 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	<h1>Severity Colors</h1>
+
+	<h2>Messages</h2>
+	<div class="ui error message">
+		<div class="header">Error Message</div>
+		<p>This is an error message using --color-error-* variables.</p>
+	</div>
+	<div class="ui warning message">
+		<div class="header">Warning Message</div>
+		<p>This is a warning message using --color-warning-* variables.</p>
+	</div>
+	<div class="ui success message">
+		<div class="header">Success Message</div>
+		<p>This is a success message using --color-success-* variables.</p>
+	</div>
+	<div class="ui info message">
+		<div class="header">Info Message</div>
+		<p>This is an info message using --color-info-* variables.</p>
+	</div>
+
+	<h2>Markdown Attention Blocks</h2>
+	<div class="markup render-content">
+		<blockquote class="attention-header attention-note"><p>{{svg "octicon-info" 16 "attention-icon attention-note"}}<strong class="attention-note">Note</strong></p>
+			<p>Useful information that users should know, even when skimming content.</p>
+		</blockquote>
+		<blockquote class="attention-header attention-tip"><p>{{svg "octicon-light-bulb" 16 "attention-icon attention-tip"}}<strong class="attention-tip">Tip</strong></p>
+			<p>Helpful advice for doing things better or more easily.</p>
+		</blockquote>
+		<blockquote class="attention-header attention-important"><p>{{svg "octicon-report" 16 "attention-icon attention-important"}}<strong class="attention-important">Important</strong></p>
+			<p>Key information users need to know to achieve their goal.</p>
+		</blockquote>
+		<blockquote class="attention-header attention-warning"><p>{{svg "octicon-alert" 16 "attention-icon attention-warning"}}<strong class="attention-warning">Warning</strong></p>
+			<p>Urgent info that needs immediate user attention to avoid problems.</p>
+		</blockquote>
+		<blockquote class="attention-header attention-caution"><p>{{svg "octicon-stop" 16 "attention-icon attention-caution"}}<strong class="attention-caution">Caution</strong></p>
+			<p>Advises about risks or negative outcomes of certain actions.</p>
+		</blockquote>
+	</div>
+
+	<h2>Form Fields</h2>
+	<div class="ui form">
+		<div class="field error">
+			<label>Error Field</label>
+			<input type="text" value="Invalid input" readonly>
+		</div>
+	</div>
+
+	<h2>Error Input</h2>
+	<div class="ui input error">
+		<input type="text" value="Invalid input" readonly>
+	</div>
+
+	<h2>Attached Section Boxes</h2>
+	<h3 class="ui top attached error header">Error Header</h3>
+	<div class="ui attached error segment">Error section body content.</div>
+	<h3 class="ui top attached warning header tw-mt-3">Warning Header</h3>
+	<div class="ui attached warning segment">Warning section body content.</div>
+
+<h2>Banner Preview (info-tinted)</h2>
+	<div class="web-banner-content-editor">
+		<div class="render-content render-preview">Banner preview content</div>
+	</div>
+
+	<h2>Labels</h2>
+	<div class="flex-text-block tw-gap-2">
+		<div class="ui red label">Red</div>
+		<div class="ui orange label">Orange</div>
+		<div class="ui yellow label">Yellow</div>
+		<div class="ui green label">Green</div>
+		<div class="ui blue label">Blue</div>
+		<div class="ui violet label">Violet</div>
+		<div class="ui purple label">Purple</div>
+	</div>
+
+	<h2>Color Swatches</h2>
+	<h3>Error</h3>
+	<div class="flex-text-block tw-gap-4">
+		<div class="tw-inline-flex tw-flex-col tw-items-center tw-gap-1 tw-min-w-[120px]">
+			<div class="tw-w-[100px] tw-h-[60px] tw-rounded tw-flex tw-items-center tw-justify-center tw-text-xs tw-bg-error-bg tw-text-error-text tw-border tw-border-error-border">Text</div>
+			<code>error-bg</code>
+		</div>
+		<div class="tw-inline-flex tw-flex-col tw-items-center tw-gap-1 tw-min-w-[120px]">
+			<div class="tw-w-[100px] tw-h-[60px] tw-rounded tw-flex tw-items-center tw-justify-center tw-text-xs tw-bg-error-bg-hover tw-text-error-text tw-border tw-border-error-border">Hover</div>
+			<code>error-bg-hover</code>
+		</div>
+		<div class="tw-inline-flex tw-flex-col tw-items-center tw-gap-1 tw-min-w-[120px]">
+			<div class="tw-w-[100px] tw-h-[60px] tw-rounded tw-flex tw-items-center tw-justify-center tw-text-xs tw-bg-error-bg-active tw-text-error-text tw-border tw-border-error-border">Active</div>
+			<code>error-bg-active</code>
+		</div>
+	</div>
+	<h3>Warning</h3>
+	<div class="flex-text-block tw-gap-4">
+		<div class="tw-inline-flex tw-flex-col tw-items-center tw-gap-1 tw-min-w-[120px]">
+			<div class="tw-w-[100px] tw-h-[60px] tw-rounded tw-flex tw-items-center tw-justify-center tw-text-xs tw-bg-warning-bg tw-text-warning-text tw-border tw-border-warning-border">Text</div>
+			<code>warning-bg</code>
+		</div>
+	</div>
+	<h3>Success</h3>
+	<div class="flex-text-block tw-gap-4">
+		<div class="tw-inline-flex tw-flex-col tw-items-center tw-gap-1 tw-min-w-[120px]">
+			<div class="tw-w-[100px] tw-h-[60px] tw-rounded tw-flex tw-items-center tw-justify-center tw-text-xs tw-bg-success-bg tw-text-success-text tw-border tw-border-success-border">Text</div>
+			<code>success-bg</code>
+		</div>
+	</div>
+	<h3>Info</h3>
+	<div class="flex-text-block tw-gap-4">
+		<div class="tw-inline-flex tw-flex-col tw-items-center tw-gap-1 tw-min-w-[120px]">
+			<div class="tw-w-[100px] tw-h-[60px] tw-rounded tw-flex tw-items-center tw-justify-center tw-text-xs tw-bg-info-bg tw-text-info-text tw-border tw-border-info-border">Text</div>
+			<code>info-bg</code>
+		</div>
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}
