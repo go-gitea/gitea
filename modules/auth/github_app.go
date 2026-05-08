@@ -8,8 +8,10 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -51,7 +53,7 @@ func GenerateGitHubAppJWT(appID int64, privateKeyPEM string) (string, error) {
 	// Parse the private key
 	block, _ := pem.Decode([]byte(privateKeyPEM))
 	if block == nil {
-		return "", fmt.Errorf("failed to parse PEM block containing the private key")
+		return "", errors.New("failed to parse PEM block containing the private key")
 	}
 
 	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
@@ -64,7 +66,7 @@ func GenerateGitHubAppJWT(appID int64, privateKeyPEM string) (string, error) {
 		var ok bool
 		privateKey, ok = key.(*rsa.PrivateKey)
 		if !ok {
-			return "", fmt.Errorf("private key is not RSA")
+			return "", errors.New("private key is not RSA")
 		}
 	}
 
@@ -73,7 +75,7 @@ func GenerateGitHubAppJWT(appID int64, privateKeyPEM string) (string, error) {
 	claims := jwt.RegisteredClaims{
 		IssuedAt:  jwt.NewNumericDate(now),
 		ExpiresAt: jwt.NewNumericDate(now.Add(10 * time.Minute)), // GitHub requires max 10 minutes
-		Issuer:    fmt.Sprintf("%d", appID),
+		Issuer:    strconv.FormatInt(appID, 10),
 	}
 
 	// Create token
