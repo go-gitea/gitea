@@ -4,12 +4,12 @@
 package integration
 
 import (
+	"math/rand/v2"
 	"net/http"
 	"strconv"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
 	perm_model "code.gitea.io/gitea/models/perm"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -19,70 +19,69 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
-	"xorm.io/builder"
 )
 
-func seedOrgWithGroups(t *testing.T) {
-	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteOrganization)
-	const orgName = "org-with-groups"
-	baseOrgURL := "/api/v1/orgs/" + orgName
+const groupOrgAdminTeam = "group-admins"
+const groupOrgWriterTeam = "group-writers"
+const groupOrgReaderTeam = "group-readers"
+const groupOrgUnitTeam = "unit-specialists"
 
+type commonGroupRepoTestData struct {
+	fullFeatured          *api.Repository
+	codeOnly              *api.Repository
+	repoLevelTeamOverride *api.Repository
+}
+type commonGroupTestData struct {
+	org                     *api.Organization
+	rootPublic              *api.Group
+	childPublic             *api.Group
+	rootPrivate             *api.Group
+	childPrivate            *api.Group
+	privateGrandchildPublic *api.Group
+	repos                   commonGroupRepoTestData
+}
+
+func createOrgWithGroups(t *testing.T) *commonGroupTestData {
+	const actor = "user2"
+	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
+	const orgName = "org-with-groups"
+	suffix := strconv.FormatInt(rand.Int64N(9999), 10)
 	org := api.CreateOrgOption{
-		UserName:    orgName,
-		FullName:    "Org with groups",
+		UserName:    orgName + "-" + suffix,
+		FullName:    "Org with groups #" + suffix,
 		Description: "This organization has subgroups",
 		Website:     "https://try.gitea.io",
-		Location:    "Shanghai",
+		Location:    "Brian Tatler's walls",
 		Visibility:  "public",
 	}
 	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &org).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-
 	apiOrg := DecodeJSON(t, resp, &api.Organization{})
 
-	e := db.GetEngine(t.Context())
-
-	_, err := e.Table(&group_model.Group{}).Update(&group_model.Group{
-		OwnerName: apiOrg.Name,
-		OwnerID:   apiOrg.ID,
-	})
-	assert.NoError(t, err)
-
-	// seed teams
 	teamPrivs := map[string]perm_model.AccessMode{
-		"Admins":  perm_model.AccessModeAdmin,
-		"Writers": perm_model.AccessModeWrite,
-		"Readers": perm_model.AccessModeRead,
-		"Limited": perm_model.AccessModeNone,
+		groupOrgAdminTeam:  perm_model.AccessModeAdmin,
+		groupOrgWriterTeam: perm_model.AccessModeWrite,
+		groupOrgReaderTeam: perm_model.AccessModeRead,
+		groupOrgUnitTeam:   perm_model.AccessModeRead,
 	}
-	var teams []*api.Team
-
-	userIDs := []int64{4, 5, 8, 9}
+	userIDs := []int64{4, 5, 8, 13}
 
 	userIDIdx := 0
+	baseOrgURL := "/api/v1/orgs/" + apiOrg.Name
+
 	for k, v := range teamPrivs {
-		perm := api.RepoWritePermissionRead
-		if v >= perm_model.AccessModeAdmin {
-			perm = api.RepoWritePermissionAdmin
-		} else if v >= perm_model.AccessModeWrite {
-			perm = api.RepoWritePermissionWrite
-		}
 		reqBody := &api.CreateTeamOption{
 			Name:                    k,
 			CanCreateOrgRepo:        v >= perm_model.AccessModeWrite,
 			UnitsMap:                map[string]string{},
 			IncludesAllRepositories: v >= perm_model.AccessModeWrite,
 		}
-		if v > perm_model.AccessModeNone {
-			reqBody.Permission = perm
-		}
 		for _, nunit := range unit_model.AllUnitKeyNames() {
 			reqBody.UnitsMap[nunit] = v.ToString()
 		}
 		treq := NewRequestWithJSON(t, "POST", baseOrgURL+"/teams", reqBody).AddTokenAuth(token)
-		tresp := MakeRequest(t, treq, http.StatusCreated)
-		team := DecodeJSON(t, tresp, &api.Team{})
-		teams = append(teams, team)
+		tres := MakeRequest(t, treq, http.StatusCreated)
+		team := DecodeJSON(t, tres, &api.Team{})
 
 		teamUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userIDs[userIDIdx]})
 
@@ -90,74 +89,222 @@ func seedOrgWithGroups(t *testing.T) {
 		MakeRequest(t, mreq, http.StatusNoContent)
 		userIDIdx++
 	}
-	allPrivateGroups, err := group_model.FindGroupsByCond(t.Context(), &group_model.FindGroupsOptions{
-		OwnerID: apiOrg.ID,
-	}, builder.Eq{"`repo_group`.visibility": api.VisibleTypePrivate})
-	assert.NoError(t, err)
+	rootPublic := createGroup(t, actor, apiOrg.Name, 0, &api.NewGroupOption{
+		Visibility: api.VisibleTypePublic,
+		Name:       "root public",
+	}, http.StatusCreated)
+	childPublic := createGroup(t, actor, apiOrg.Name, rootPublic.ID, &api.NewGroupOption{
+		Name:       "child public",
+		Visibility: api.VisibleTypePublic,
+	}, http.StatusCreated)
+	rootPrivate := createGroup(t, actor, apiOrg.Name, 0, &api.NewGroupOption{
+		Name:       "root private",
+		Visibility: api.VisibleTypePrivate,
+	}, http.StatusCreated)
+	childPrivate := createGroup(t, actor, apiOrg.Name, rootPrivate.ID, &api.NewGroupOption{
+		Name:       "child private",
+		Visibility: api.VisibleTypePublic,
+	}, http.StatusCreated)
 
-	for _, group := range allPrivateGroups {
-		baseTeamURL := "/api/v1/groups/" + strconv.FormatInt(group.ID, 10) + "/teams"
-		for _, team := range teams {
-			if team.Permission == api.AccessLevelNameNone {
-				continue
-			}
-			trq := NewRequestWithJSON(t, "PUT", baseTeamURL+"/"+team.Name, &api.CreateOrUpdateRepoGroupTeamOption{
-				CanCreateIn: new(group.ID%int64(2) == int64(1) && perm_model.ParseAccessMode(string(team.Permission)) > perm_model.AccessModeRead),
-			}).AddTokenAuth(token)
-			MakeRequest(t, trq, http.StatusNoContent)
-			assert.NoError(t, err)
+	privateGrandchildPublic := createGroup(t, actor, apiOrg.Name, childPrivate.ID, &api.NewGroupOption{
+		Name:       "public grandchild with private ancestors",
+		Visibility: api.VisibleTypePublic,
+	}, http.StatusCreated)
+
+	val := &commonGroupTestData{
+		org:                     apiOrg,
+		rootPublic:              rootPublic,
+		childPublic:             childPublic,
+		rootPrivate:             rootPrivate,
+		childPrivate:            childPrivate,
+		privateGrandchildPublic: privateGrandchildPublic,
+		repos: commonGroupRepoTestData{
+			fullFeatured:          createRepoInGroup(t, apiOrg.Name, actor, childPrivate.ID, "full-featured-repo", http.StatusCreated),
+			codeOnly:              createRepoInGroup(t, apiOrg.Name, actor, privateGrandchildPublic.ID, "code-only-repo", http.StatusCreated),
+			repoLevelTeamOverride: createRepoInGroup(t, apiOrg.Name, actor, childPrivate.ID, "unit-repo", http.StatusCreated),
+		},
+	}
+
+	return val
+}
+
+func getGroupSubgroups(t *testing.T, orgName, actor string, parentGroupID int64) []api.Group {
+	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
+	var endpoint string
+	if parentGroupID <= 0 {
+		endpoint = "/api/v1/orgs/" + orgName + "/groups"
+	} else {
+		endpoint = "/api/v1/groups/" + strconv.FormatInt(parentGroupID, 10) + "/subgroups"
+	}
+	req := NewRequest(t, "GET", endpoint).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	return DecodeJSON(t, resp, []api.Group{})
+}
+
+func createRepoInGroup(t *testing.T, orgName, actor string, parentGroupID int64, name string, expectedStatus int) *api.Repository {
+	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs/"+orgName+"/repos", &api.CreateRepoOption{
+		GroupID: parentGroupID,
+		Name:    name,
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, expectedStatus)
+	return DecodeJSON(t, resp, &api.Repository{})
+}
+
+func createGroup(t *testing.T, actor, orgName string, parentGroupID int64, options *api.NewGroupOption, expectedStatus int) *api.Group {
+	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
+	var endpoint string
+	if parentGroupID <= 0 {
+		endpoint = "/api/v1/orgs/" + orgName + "/groups/new"
+	} else {
+		endpoint = "/api/v1/groups/" + strconv.FormatInt(parentGroupID, 10) + "/new"
+	}
+
+	req := NewRequestWithJSON(t, "POST", endpoint, options).AddTokenAuth(token)
+	resp := MakeRequest(t, req, expectedStatus)
+	return DecodeJSON(t, resp, &api.Group{})
+}
+
+func moveGroup(t *testing.T, actor string, groupID, newGroupID int64, pos *int, expectedStatus int) *api.Group {
+	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/groups/"+strconv.FormatInt(groupID, 10)+"/move", &api.MoveGroupOption{
+		NewPos:    pos,
+		NewParent: newGroupID,
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, expectedStatus)
+	return DecodeJSON(t, resp, &api.Group{})
+}
+
+func editGroupTeam(t *testing.T, actor string, groupID int64, team string, options *api.CreateOrUpdateRepoGroupTeamOption) {
+	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/groups/"+strconv.FormatInt(groupID, 10)+"/teams/"+team, options).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+}
+
+func assertGroupOrderSanity(t *testing.T, actor, orgName string, groupID int64, extraAssertion ...func(g *api.Group, idx int)) {
+	subgroups := getGroupSubgroups(t, orgName, actor, groupID)
+	for i, subgroup := range subgroups {
+		assert.Equal(t, i, subgroup.SortOrder)
+		if len(extraAssertion) > 0 {
+			extraAssertion[0](&subgroup, i)
 		}
 	}
 }
 
-func getOrgWithGroups(t *testing.T) *api.Organization {
-	req := NewRequest(t, "GET", "/api/v1/orgs/org-with-groups")
-	resp := MakeRequest(t, req, http.StatusOK)
-	return DecodeJSON(t, resp, &api.Organization{})
-}
-
 func TestAPIGroup(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	seedOrgWithGroups(t)
-	t.Run("Visibility", func(t *testing.T) {
-		t.Run("OwnersAndSiteAdminsCanSeeAllTopLevelGroups", testOwnersAndAdminsCanSeeAllTopLevelGroups)
-		t.Run("NonOrgMemberWontSeeHiddenTopLevelGroups", testNonOrgMemberWontSeeHiddenTopLevelGroups)
+	t.Run("Creation", testCreateGroup)
+	t.Run("Moving", testMoveGroup)
+	t.Run("Visibility", testGroupVisibility)
+}
+
+func testCreateGroup(t *testing.T) {
+	data := createOrgWithGroups(t)
+	const actor = "user2"
+	t.Run("RootLevelGroup", func(t *testing.T) {
+		ng := createGroup(t, actor, data.org.Name, 0, &api.NewGroupOption{
+			Name: "root level group x",
+		}, http.StatusCreated)
+		assert.Equal(t, int64(0), ng.ParentGroupID)
+		assertGroupOrderSanity(t, actor, data.org.Name, 0)
+	})
+	t.Run("DepthOver20Fails", func(t *testing.T) {
+		var gid int64
+		for i := range int64(20) {
+			ng := createGroup(t, actor, data.org.Name, gid, &api.NewGroupOption{
+				Name:        "nested-group-" + strconv.FormatInt(i+1, 10),
+				Description: "Group nested " + strconv.FormatInt(i+1, 10) + " levels deep",
+			}, http.StatusCreated)
+			gid = ng.ID
+		}
+		createGroup(t, actor, data.org.Name, gid, &api.NewGroupOption{
+			Name:        "too deep",
+			Description: "this should fail",
+		}, http.StatusUnprocessableEntity)
+	})
+	t.Run("DenyCreateSubgroup", func(t *testing.T) {
+		createGroup(t, "user13", data.org.Name, data.rootPublic.ID, &api.NewGroupOption{
+			Name:        "-",
+			Description: "should fail",
+		}, http.StatusForbidden)
 	})
 }
 
-func TestCreateGroup(t *testing.T) {
+func testMoveGroup(t *testing.T) {
+	data := createOrgWithGroups(t)
+	const actor = "user2"
+	t.Run("MoveGroupToOtherGroup", func(t *testing.T) {
+		groupToMove := createGroup(t, actor, data.org.Name, 0, &api.NewGroupOption{
+			Name: "movable group 1",
+		}, http.StatusCreated)
+		ng := moveGroup(t, actor, groupToMove.ID, data.rootPublic.ID, nil, http.StatusOK)
+		assert.Equal(t, data.rootPublic.ID, ng.ParentGroupID)
+		assert.Equal(t, 1, ng.SortOrder)
+	})
+	t.Run("MoveGroupToRoot", func(t *testing.T) {
+		groupToMove := createGroup(t, actor, data.org.Name, data.rootPublic.ID, &api.NewGroupOption{
+			Name: "movable group 2",
+		}, http.StatusCreated)
+		ng := moveGroup(t, actor, groupToMove.ID, 0, new(0), http.StatusOK)
+		assert.Equal(t, int64(0), ng.ParentGroupID)
+		assertGroupOrderSanity(t, actor, data.org.Name, 0, func(g *api.Group, idx int) {
+			if idx == 0 {
+				assert.Equal(t, ng.ID, g.ID)
+			}
+		})
+	})
 }
 
-func testOwnersAndAdminsCanSeeAllTopLevelGroups(t *testing.T) {
-	org := getOrgWithGroups(t)
-	req := NewRequestf(t, "GET", "/api/v1/orgs/org-with-groups/groups").AddBasicAuth("user2")
-	resp := MakeRequest(t, req, http.StatusOK)
-	groups := DecodeJSON(t, resp, []api.Group{})
-	expectedLen := unittest.GetCount(t, new(group_model.Group),
-		group_model.FindGroupsOptions{
-			ParentGroupID: 0,
-			OwnerID:       org.ID,
-		}.ToConds())
-	assert.Len(t, groups, expectedLen)
+func testGroupVisibility(t *testing.T) {
+	data := createOrgWithGroups(t)
+	t.Run("OwnersAndSiteAdminsCanSeeAllTopLevelGroups", func(t *testing.T) {
+		req := NewRequestf(t, "GET", "/api/v1/orgs/%s/groups", data.org.Name).AddBasicAuth("user2")
+		resp := MakeRequest(t, req, http.StatusOK)
+		groups := DecodeJSON(t, resp, []api.Group{})
+		expectedLen := unittest.GetCount(t, new(group_model.Group),
+			group_model.FindGroupsOptions{
+				ParentGroupID: 0,
+				OwnerID:       data.org.ID,
+			}.ToConds())
+		assert.Len(t, groups, expectedLen)
 
-	// now test if site-wide admin can see all groups
-	req = NewRequestf(t, "GET", "/api/v1/orgs/org-with-groups/groups").AddBasicAuth("user1")
-	resp = MakeRequest(t, req, http.StatusOK)
-	groups = DecodeJSON(t, resp, []api.Group{})
-	assert.Len(t, groups, expectedLen)
-}
-
-func testNonOrgMemberWontSeeHiddenTopLevelGroups(t *testing.T) {
-	org := getOrgWithGroups(t)
-	req := NewRequestf(t, "GET", "/api/v1/orgs/org-with-groups/groups").AddBasicAuth("user12")
-	resp := MakeRequest(t, req, http.StatusOK)
-	groups := DecodeJSON(t, resp, []api.Group{})
-	expectedLen := unittest.GetCount(t, new(group_model.Group),
-		group_model.FindGroupsOptions{
-			ParentGroupID: 0,
-			OwnerID:       org.ID,
-		}.ToConds())
-	assert.NotEqual(t, expectedLen, len(groups))
+		// now test if site-wide admin can see all groups
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/groups", data.org.Name).AddBasicAuth("user1")
+		resp = MakeRequest(t, req, http.StatusOK)
+		groups = DecodeJSON(t, resp, []api.Group{})
+		assert.Len(t, groups, expectedLen)
+	})
+	t.Run("NonOrgMemberWontSeeHiddenTopLevelGroups", func(t *testing.T) {
+		req := NewRequestf(t, "GET", "/api/v1/orgs/%s/groups", data.org.Name).AddBasicAuth("user12")
+		resp := MakeRequest(t, req, http.StatusOK)
+		groups := DecodeJSON(t, resp, []api.Group{})
+		expectedLen := unittest.GetCount(t, new(group_model.Group),
+			group_model.FindGroupsOptions{
+				ParentGroupID: 0,
+				OwnerID:       data.org.ID,
+			}.ToConds())
+		assert.NotEqual(t, expectedLen, len(groups))
+	})
+	t.Run("GroupsAndReposNotAccessibleWhenParentIsPrivate", func(t *testing.T) {
+		req := NewRequestf(t, "GET", "/api/v1/groups/%d", data.privateGrandchildPublic.ID)
+		MakeRequest(t, req, http.StatusNotFound)
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s", data.repos.fullFeatured.FullName)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+	t.Run("ReposAndGroupsAccessibleToAdminsWhenParentIsPrivate", func(t *testing.T) {
+		users := []string{"user1", "user2"}
+		for _, u := range users {
+			token := getUserToken(t, u, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeReadRepository)
+			req := NewRequestf(t, "GET", "/api/v1/groups/%d", data.privateGrandchildPublic.ID).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
+			req = NewRequestf(t, "GET", "/api/v1/repos/%s", data.repos.fullFeatured.FullName).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
+		}
+	})
+	t.Run("PublicGroupIsAccessible", func(t *testing.T) {
+		req := NewRequestf(t, "GET", "/api/v1/groups/%d", data.rootPublic.ID)
+		MakeRequest(t, req, http.StatusOK)
+	})
 }
 
 /*func testGroupNotAccessibleWhenParentIsPrivate(t *testing.T) {
