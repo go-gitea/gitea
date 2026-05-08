@@ -5,8 +5,14 @@ package oauth2
 
 import (
 	"testing"
+	"time"
+
+	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsGoogleGroupClaimRequiredForLoginFlow(t *testing.T) {
@@ -59,4 +65,46 @@ func TestIsGoogleGroupClaimRequiredForLoginFlow(t *testing.T) {
 		}
 		assert.False(t, isGoogleGroupClaimRequiredForLoginFlow(source))
 	})
+}
+
+func TestRequiredAdditionalInfoFailureWarningLifecycle(t *testing.T) {
+	c, err := cache.NewStringCache(setting.Cache{Adapter: "memory", Interval: 1})
+	require.NoError(t, err)
+
+	mockNow := time.Unix(1_700_000_000, 0)
+	defer timeutil.MockSet(mockNow)()
+	SetRequiredAdditionalInfoFetchFailureWarning(c, "Google Workspace")
+
+	warning := GetRequiredAdditionalInfoFailureWarning(c)
+	require.NotNil(t, warning)
+	assert.Equal(t, "Google Workspace", warning.SourceName)
+	assert.Equal(t, timeutil.TimeStamp(mockNow.Unix()), warning.LastFailedUnix)
+
+	ClearRequiredAdditionalInfoFetchFailureWarning(c)
+	assert.Nil(t, GetRequiredAdditionalInfoFailureWarning(c))
+}
+
+func TestRequiredAdditionalInfoFailureWarningThrottle(t *testing.T) {
+	c, err := cache.NewStringCache(setting.Cache{Adapter: "memory", Interval: 1})
+	require.NoError(t, err)
+
+	first := time.Unix(1_700_000_000, 0)
+	defer timeutil.MockSet(first)()
+	SetRequiredAdditionalInfoFetchFailureWarning(c, "Google Workspace")
+	initial := GetRequiredAdditionalInfoFailureWarning(c)
+	require.NotNil(t, initial)
+
+	// Within throttle window, keep previous timestamp to avoid cache churn.
+	timeutil.MockSet(first.Add(30 * time.Second))
+	SetRequiredAdditionalInfoFetchFailureWarning(c, "Google Workspace")
+	throttled := GetRequiredAdditionalInfoFailureWarning(c)
+	require.NotNil(t, throttled)
+	assert.Equal(t, initial.LastFailedUnix, throttled.LastFailedUnix)
+
+	// After throttle window, timestamp is refreshed.
+	timeutil.MockSet(first.Add(61 * time.Second))
+	SetRequiredAdditionalInfoFetchFailureWarning(c, "Google Workspace")
+	refreshed := GetRequiredAdditionalInfoFailureWarning(c)
+	require.NotNil(t, refreshed)
+	assert.Equal(t, timeutil.TimeStamp(first.Add(61*time.Second).Unix()), refreshed.LastFailedUnix)
 }

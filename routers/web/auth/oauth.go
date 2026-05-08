@@ -490,12 +490,18 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 		if err != nil {
 			log.Warn("OAuth2: failed to fetch additional info for %s: %v", gothUser.Email, err)
 			if provider.FailLoginOnAdditionalInfoError() {
+				sourceName := authSource.Name
+				if sourceName == "" {
+					sourceName = fmt.Sprintf("source #%d", authSource.ID)
+				}
+				oauth2.SetRequiredAdditionalInfoFetchFailureWarning(ctx.Cache, sourceName)
 				// Fail closed only when login directly depends on the group claim
 				// (for example RequiredClaimName == GroupClaimName). Other
 				// group-based sync features are fail-open and preserve prior state.
 				return nil, goth.User{}, user_model.ErrUserProhibitLogin{Name: gothUser.UserID}
 			}
 		} else {
+			oauth2.ClearRequiredAdditionalInfoFetchFailureWarning(ctx.Cache)
 			gothUser = enriched
 		}
 	}

@@ -68,7 +68,7 @@ func (c *Client) FetchGroups(ctx context.Context, email string) ([]string, error
 	groups := make([]string, 0, 16)
 	pageToken := ""
 
-	for range maxGroupPages {
+	for range make([]struct{}, maxGroupPages) {
 		params := url.Values{}
 		params.Set("query", fmt.Sprintf("member_key_id=='%s'", email))
 		if pageToken != "" {
