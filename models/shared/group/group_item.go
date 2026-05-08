@@ -114,7 +114,7 @@ func GetTopLevelGroupItemList(ctx context.Context, orgID int64, doer *user_model
 		ActorID:       doerID,
 		OwnerID:       orgID,
 	}, group_model.
-		AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead))
+		AccessibleGroupCondition(doer, orgID, unit.TypeInvalid, perm.AccessModeRead))
 	if err != nil {
 		return nil
 	}

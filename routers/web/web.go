@@ -945,15 +945,15 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/{org}", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/dashboard/{team}", user.Dashboard)
-			m.Get("/dashboard/group/{group_id}", ctxDataSet("PageIsGroupDashboard", true), context.GroupAssignment(context.GroupAssignmentOptions{RequireMember: true}), user.Dashboard)
+			m.Get("/dashboard/group/{group_id}", ctxDataSet("PageIsGroupDashboard", true), context.GroupAssignmentWeb(context.GroupAssignmentOptions{RequireMember: true}), user.Dashboard)
 			m.Get("/dashboard/-/heatmap", user.DashboardHeatmap)
 			m.Get("/dashboard/-/heatmap/{team}", user.DashboardHeatmap)
 			m.Get("/issues", user.Issues)
 			m.Get("/issues/{team}", user.Issues)
-			m.Get("/issues/group/{group_id}", context.GroupAssignment(context.GroupAssignmentOptions{RequireMember: true}), user.Issues)
+			m.Get("/issues/group/{group_id}", context.GroupAssignmentWeb(context.GroupAssignmentOptions{RequireMember: true}), user.Issues)
 			m.Get("/pulls", user.Pulls)
 			m.Get("/pulls/{team}", user.Pulls)
-			m.Get("/pulls/group/{group_id}", context.GroupAssignment(context.GroupAssignmentOptions{RequireMember: true}), user.Pulls)
+			m.Get("/pulls/group/{group_id}", context.GroupAssignmentWeb(context.GroupAssignmentOptions{RequireMember: true}), user.Pulls)
 			m.Get("/milestones", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/milestones/{team}", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/milestones/group/{group_id}", reqMilestonesDashboardPageEnabled, user.Milestones)
@@ -978,7 +978,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Post("/avatar", web.Bind(forms.AvatarForm{}), group.SettingsAvatar)
 						m.Post("/avatar/delete", group.SettingsDeleteAvatar)
 					}, ctxDataSet("PageIsGroupSettings", true))
-				}, context.GroupAssignment(context.GroupAssignmentOptions{
+				}, context.GroupAssignmentWeb(context.GroupAssignmentOptions{
 					RequireMember:     true,
 					RequireOwner:      false,
 					RequireGroupAdmin: true,
@@ -1172,7 +1172,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/{username}/groups", func() {
 		m.Group("/{group_id}", func() {
 			m.Get("", group.Home)
-		}, context.GroupAssignment(context.GroupAssignmentOptions{}))
+		}, context.GroupAssignmentWeb(context.GroupAssignmentOptions{}))
 	}, optSignIn, context.UserAssignmentWeb(), context.OrgAssignment(context.OrgAssignmentOptions{}))
 
 	m.Group("/{username}/groups", func() {

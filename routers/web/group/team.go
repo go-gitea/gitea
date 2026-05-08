@@ -126,14 +126,16 @@ func EditTeamPost(ctx *context.Context) {
 	} else {
 		gt.CanCreateIn = true
 	}
+	unitMap := make(map[string]string)
 	units := make([]*group_model.RepoGroupUnit, 0, len(unitPerms))
-	for tp, perm := range unitPerms {
+	for tp, unitPerm := range unitPerms {
 		units = append(units, &group_model.RepoGroupUnit{
 			GroupID:    gt.GroupID,
 			TeamID:     t.ID,
 			Type:       tp,
-			AccessMode: perm,
+			AccessMode: unitPerm,
 		})
+		unitMap[unit_model.Units[tp].NameKey] = unitPerm.ToString()
 	}
 	gt.Units = units
 	if ctx.HasError() {
@@ -144,7 +146,7 @@ func EditTeamPost(ctx *context.Context) {
 		ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamEdit, &form)
 		return
 	}
-	if err := group_service.UpdateGroupTeam(ctx, gt); err != nil {
+	if err := group_service.UpdateGroupTeam(ctx, gt, unitMap); err != nil {
 		ctx.ServerError("UpdateGroupTeam", err)
 		return
 	}
@@ -176,7 +178,11 @@ func TeamAddPost(ctx *context.Context) {
 			ctx.ServerError("LoadParentGroup", err)
 			return
 		}
-		err = group_service.AddTeamToGroup(ctx, group, tname)
+		umap := make(map[string]string)
+		for _, v := range unit_model.Units {
+			umap[v.NameKey] = perm.AccessModeRead.ToString()
+		}
+		err = group_service.AddTeamToGroup(ctx, group, tname, umap, nil, nil)
 		if err != nil {
 			ctx.ServerError("AddTeamGroup", err)
 			return
