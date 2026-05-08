@@ -29,18 +29,20 @@ const maxGroupPages = 20
 
 // Client calls Google Workspace APIs.
 type Client struct {
-	httpClient     *http.Client
-	groupsEndpoint string
-	claimName      string
+	httpClient                     *http.Client
+	groupsEndpoint                 string
+	claimName                      string
+	failLoginOnAdditionalInfoError bool
 }
 
 // NewClient creates a Client using the given authenticated HTTP client.
 // The client should be built from an OAuth2 token carrying IAMScope.
-func NewClient(httpClient *http.Client, claimName string) *Client {
+func NewClient(httpClient *http.Client, claimName string, failLoginOnAdditionalInfoError bool) *Client {
 	return &Client{
-		httpClient:     httpClient,
-		groupsEndpoint: defaultIAMGroupsEndpoint,
-		claimName:      claimName,
+		httpClient:                     httpClient,
+		groupsEndpoint:                 defaultIAMGroupsEndpoint,
+		claimName:                      claimName,
+		failLoginOnAdditionalInfoError: failLoginOnAdditionalInfoError,
 	}
 }
 
@@ -128,4 +130,9 @@ func (c *Client) FetchAdditionalInfo(ctx context.Context, user goth.User) (goth.
 	}
 	user.RawData[c.claimName] = groups
 	return user, nil
+}
+
+// FailLoginOnAdditionalInfoError implements oauth2.AdditionalInfoProvider.
+func (c *Client) FailLoginOnAdditionalInfoError() bool {
+	return c.failLoginOnAdditionalInfoError
 }

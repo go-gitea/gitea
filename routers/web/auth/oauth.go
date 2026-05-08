@@ -232,6 +232,10 @@ func claimValueToStringSet(claimValue any) container.Set[string] {
 }
 
 func syncGroupsToTeams(ctx *context.Context, source *oauth2.Source, gothUser *goth.User, u *user_model.User) error {
+	if !shouldSyncFromGroupClaim(source, gothUser) {
+		return nil
+	}
+
 	if source.GroupTeamMap != "" || source.GroupTeamMapRemoval {
 		groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(source.GroupTeamMap)
 		if err != nil {
@@ -257,7 +261,22 @@ func getClaimedGroups(source *oauth2.Source, gothUser *goth.User) container.Set[
 	return claimValueToStringSet(groupClaims)
 }
 
+func shouldSyncFromGroupClaim(source *oauth2.Source, gothUser *goth.User) bool {
+	// Keep historical behavior for all providers except Google Workspace:
+	// if the claim is missing, group-derived sync still runs on an empty set.
+	if source.Provider != "gplus" {
+		return true
+	}
+
+	_, hasGroupClaim := gothUser.RawData[source.GroupClaimName]
+	return hasGroupClaim
+}
+
 func getUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, gothUser *goth.User) (isAdmin optional.Option[user_service.UpdateOptionField[bool]], isRestricted optional.Option[bool]) {
+	if !shouldSyncFromGroupClaim(source, gothUser) {
+		return isAdmin, isRestricted
+	}
+
 	groups := getClaimedGroups(source, gothUser)
 
 	if source.AdminGroup != "" {
@@ -461,6 +480,26 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 		return nil, goth.User{}, err
 	}
 
+	// Enrichment must run before RequiredClaimName validation so that claims
+	// injected by the provider (e.g. Google Workspace groups fetched via the
+	// Cloud Identity API) are available when the required-claim check executes.
+	// Moving this block after the RequiredClaimName check would cause users to
+	// be incorrectly rejected when RequiredClaimName references an injected claim.
+	if provider := oauth2.GetAdditionalInfoProvider(oauth2Source, &gothUser); provider != nil {
+		enriched, err := provider.FetchAdditionalInfo(ctx, gothUser)
+		if err != nil {
+			log.Warn("OAuth2: failed to fetch additional info for %s: %v", gothUser.Email, err)
+			if provider.FailLoginOnAdditionalInfoError() {
+				// Fail closed only when login directly depends on the group claim
+				// (for example RequiredClaimName == GroupClaimName). Other
+				// group-based sync features are fail-open and preserve prior state.
+				return nil, goth.User{}, user_model.ErrUserProhibitLogin{Name: gothUser.UserID}
+			}
+		} else {
+			gothUser = enriched
+		}
+	}
+
 	if oauth2Source.RequiredClaimName != "" {
 		claimInterface, has := gothUser.RawData[oauth2Source.RequiredClaimName]
 		if !has {
@@ -473,15 +512,6 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 			if !groups.Contains(oauth2Source.RequiredClaimValue) {
 				return nil, goth.User{}, user_model.ErrUserProhibitLogin{Name: gothUser.UserID}
 			}
-		}
-	}
-
-	if provider := oauth2.GetAdditionalInfoProvider(oauth2Source, &gothUser); provider != nil {
-		enriched, err := provider.FetchAdditionalInfo(ctx, gothUser)
-		if err != nil {
-			log.Warn("OAuth2: failed to fetch additional info for %s: %v", gothUser.Email, err)
-		} else {
-			gothUser = enriched
 		}
 	}
 

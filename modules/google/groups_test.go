@@ -11,13 +11,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/markbates/goth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func newTestClient(t *testing.T, server *httptest.Server) *Client {
 	t.Helper()
-	c := NewClient(server.Client(), "groups")
+	c := NewClient(server.Client(), "groups", false)
 	c.groupsEndpoint = server.URL
 	return c
 }
@@ -123,4 +124,51 @@ func TestFetchGoogleGroups_InvalidJSON(t *testing.T) {
 	groups, err := client.FetchGroups(context.Background(), "user@example.com")
 	require.Error(t, err)
 	assert.Nil(t, groups)
+}
+
+func TestFetchAdditionalInfo_InjectsClaimBeforeValidation(t *testing.T) {
+	server := mockGroupsServer(t, "user@example.com", [][]string{
+		{"required-group@example.com"},
+	})
+	defer server.Close()
+
+	c := newTestClient(t, server)
+	c.claimName = "groups"
+
+	user := goth.User{
+		Email:   "user@example.com",
+		RawData: map[string]any{},
+	}
+
+	enriched, err := c.FetchAdditionalInfo(context.Background(), user)
+	require.NoError(t, err)
+
+	// Verify the claim is present and contains the group — simulating what
+	// RequiredClaimName validation would check after enrichment runs.
+	groups, ok := enriched.RawData["groups"]
+	require.True(t, ok, "groups claim must be present in RawData after enrichment")
+	groupSlice, ok := groups.([]string)
+	require.True(t, ok)
+	assert.Contains(t, groupSlice, "required-group@example.com")
+}
+
+func TestFetchAdditionalInfo_ErrorDoesNotInjectClaim(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = fmt.Fprint(w, `{"error":"forbidden"}`)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server)
+	c.claimName = "groups"
+
+	user := goth.User{
+		Email:   "user@example.com",
+		RawData: map[string]any{},
+	}
+
+	enriched, err := c.FetchAdditionalInfo(context.Background(), user)
+	require.Error(t, err)
+	_, hasGroups := enriched.RawData["groups"]
+	assert.False(t, hasGroups)
 }

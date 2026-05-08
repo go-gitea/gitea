@@ -20,6 +20,7 @@ import (
 // with any extra data injected into RawData.
 type AdditionalInfoProvider interface {
 	FetchAdditionalInfo(ctx context.Context, user goth.User) (goth.User, error)
+	FailLoginOnAdditionalInfoError() bool
 }
 
 // GetAdditionalInfoProvider returns an AdditionalInfoProvider for the given
@@ -39,8 +40,21 @@ func GetAdditionalInfoProvider(source *Source, gothUser *goth.User) AdditionalIn
 			// This is intentional — the token is issued moments before this
 			// call during the login flow and is guaranteed to be fresh.
 			authenticatedClient := go_oauth2.NewClient(context.Background(), go_oauth2.StaticTokenSource(oauthToken))
-			return google_module.NewClient(authenticatedClient, claimName)
+			return google_module.NewClient(authenticatedClient, claimName, isGoogleGroupClaimRequiredForLoginFlow(source))
 		}
 	}
 	return nil
+}
+
+func isGoogleGroupClaimRequiredForLoginFlow(source *Source) bool {
+	groupClaimName := source.GroupClaimName
+	if groupClaimName == "" {
+		groupClaimName = "groups"
+	}
+
+	// Fail closed only when login itself depends on the group claim.
+	//
+	// Admin/restricted/team sync can preserve the user's previous state when the
+	// group claim is missing, so those options intentionally stay fail-open.
+	return source.RequiredClaimName == groupClaimName
 }
