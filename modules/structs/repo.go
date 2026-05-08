@@ -127,10 +127,10 @@ type Repository struct {
 	// swagger:strfmt date-time
 	MirrorUpdated time.Time `json:"mirror_updated"`
 	// swagger:strfmt date-time
-	MirrorLastSyncAt time.Time `json:"mirror_last_sync_at"`
-	RepoTransfer *RepoTransfer `json:"repo_transfer,omitempty"`
-	Topics       []string      `json:"topics"`
-	Licenses     []string      `json:"licenses"`
+	MirrorLastSyncAt time.Time     `json:"mirror_last_sync_at"`
+	RepoTransfer     *RepoTransfer `json:"repo_transfer,omitempty"`
+	Topics           []string      `json:"topics"`
+	Licenses         []string      `json:"licenses"`
 }
 
 // CreateRepoOption options when creating repository
