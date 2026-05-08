@@ -1,10 +1,9 @@
 {{/* Template Attributes:
 * CommitStatuses: all commit status elements
 * StatusCheckData: optional, additional status check data, see backend pullCommitStatusCheckData struct
-* ActionInfo: optional CommitStatusInfo to render Actions-aware icons; pass nil/omit to render basic commit_status icons (list-view tippies omit it to avoid N+1).
 */}}
 {{$statusCheckData := $.StatusCheckData}}
-{{$actionInfo := $.ActionInfo}}
+{{$actionInfo := ctx.ActionsUtils.CommitStatusInfo $.CommitStatuses}}
 {{range $cs := $.CommitStatuses}}
 	<div class="item commit-status-item">
 		<div class="flex-text-block">

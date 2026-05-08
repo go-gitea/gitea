@@ -28,7 +28,7 @@
 
 	<div class="item tw-p-0">
 		<div class="commit-status-list flex-divided-list items-px-default">
-			{{template "repo/pulls/status_items" (dict "CommitStatuses" $commitStatuses "StatusCheckData" $statusCheckData "ActionInfo" (ctx.ActionsUtils.CommitStatusInfo $commitStatuses))}}
+			{{template "repo/pulls/status_items" (dict "CommitStatuses" $commitStatuses "StatusCheckData" $statusCheckData)}}
 		</div>
 	</div>
 {{end}}
