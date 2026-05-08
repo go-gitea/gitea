@@ -308,7 +308,7 @@ func oauth2UpdateAvatarIfNeed(ctx *context.Context, rawURL string, u *user_model
 	}
 	// Compute a redacted URL for log lines BEFORE issuing the request, so we
 	// never accidentally log signed-URL query parameters or userinfo.
-	logURL := util.SanitizeURLForLog(rawURL)
+	logURL := util.StripUrl(rawURL)
 
 	// Bind the outbound fetch to the inbound request context so the download
 	// is cancelled if the user navigates away / aborts login, and so any

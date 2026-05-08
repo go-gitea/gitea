@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSanitizeURLForLog(t *testing.T) {
+func TestStripUrl(t *testing.T) {
 	cases := []struct {
 		name string
 		in   string
@@ -54,7 +54,7 @@ func TestSanitizeURLForLog(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			assert.Equal(t, c.want, SanitizeURLForLog(c.in))
+			assert.Equal(t, c.want, StripUrl(c.in))
 		})
 	}
 }

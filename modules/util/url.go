@@ -27,22 +27,20 @@ func SanitizeURL(s string) (string, error) {
 	return u.String(), nil
 }
 
-// SanitizeURLForLog returns a redacted form of a URL safe to include in
-// log lines. It strips userinfo (e.g. https://user:pass@…), the query
-// string (which may contain signed-URL credentials such as AWS S3 / GCS /
-// Cloudinary signatures), and the fragment, leaving only scheme+host+path.
-// On a parse failure the placeholder "<unparseable url>" is returned to
-// avoid leaking the raw URL into logs.
+// StripUrl returns the scheme, host, and path portions of s with userinfo,
+// query string, and fragment removed. Intended for logging URLs whose
+// userinfo or query string may carry credentials (e.g. https://user:pass@…
+// or signed S3/GCS/Cloudinary URLs whose signatures live in the query
+// string). Returns "<unparseable url>" if s cannot be parsed.
 //
-// Unlike SanitizeURL this is intended exclusively for logging: callers
-// that still need to USE the URL (mirroring, indexing, migrations, etc.)
-// should keep using SanitizeURL because they need the query string
-// preserved.
-func SanitizeURLForLog(s string) string {
+// Unlike SanitizeURL (which only strips userinfo and is used by callers
+// such as mirroring/indexing/migrations that still need the query string
+// to actually use the URL), StripUrl is for logging only.
+func StripUrl(s string) string {
 	u, err := url.Parse(s)
 	if err != nil {
 		return "<unparseable url>"
 	}
-	redacted := url.URL{Scheme: u.Scheme, Host: u.Host, Path: u.Path}
-	return redacted.String()
+	stripped := url.URL{Scheme: u.Scheme, Host: u.Host, Path: u.Path}
+	return stripped.String()
 }
