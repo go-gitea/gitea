@@ -38,13 +38,10 @@ ifneq ($(findstring test-,$(MAKECMDGOALS)),)
 endif
 
 TAGS ?=
-ifeq ($(GITEA_TEST_DATABASE),sqlite)
-	TAGS += sqlite sqlite_unlock_notify
-endif
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 CGO_ENABLED ?= 0
-ifneq (,$(findstring sqlite,$(TAGS))$(findstring pam,$(TAGS)))
+ifneq (,$(findstring sqlite_mattn,$(TAGS))$(findstring pam,$(TAGS)))
 	CGO_ENABLED = 1
 endif
 

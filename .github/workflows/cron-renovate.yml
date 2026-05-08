@@ -2,7 +2,7 @@ name: cron-renovate
 
 on:
   schedule:
-    - cron: "0 1 * * *" # daily at 01:00 UTC
+    - cron: "23 * * * *" # hourly at :23
   workflow_dispatch:
 
 concurrency:
@@ -28,5 +28,5 @@ jobs:
           token: ${{ secrets.RENOVATE_TOKEN }}
         env:
           RENOVATE_BINARY_SOURCE: install # auto-install go/node toolchains needed by post-upgrade tasks.
-          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg)$"]'
+          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg nolyfill)$"]'
           RENOVATE_REPOSITORIES: '["go-gitea/gitea"]'

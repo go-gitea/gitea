@@ -56,7 +56,7 @@ func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
 
 	giteaRoot := setting.GetGiteaTestSourceRoot()
 	fixturesOpts := FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: testOpts.FixtureFiles}
-	if err := CreateTestEngine(fixturesOpts); err != nil {
+	if err := CreateTestEngine(filepath.Join(tempWorkPath, "sqlite-test.db"), fixturesOpts); err != nil {
 		return testlogger.MainErrorf("Error creating test database engine: %v", err)
 	}
 
@@ -205,9 +205,9 @@ type FixturesOptions struct {
 	Files []string
 }
 
-// CreateTestEngine creates a memory database and loads the fixture data from fixturesDir
-func CreateTestEngine(opts FixturesOptions) error {
-	driver, connStr, err := db.ConnStr(db.ConnOptions{Type: "sqlite3", SQLitePath: ":memory:"})
+// CreateTestEngine creates a test database and loads the fixture data from fixturesDir
+func CreateTestEngine(testSQLiteFile string, opts FixturesOptions) error {
+	driver, connStr, err := db.ConnStr(db.ConnOptions{Type: setting.DatabaseTypeSQLite3, SQLitePath: testSQLiteFile, SQLiteBusyTimeout: 5000})
 	if err != nil {
 		return err
 	}

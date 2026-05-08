@@ -35,7 +35,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	secret_service "code.gitea.io/gitea/services/secrets"
 
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/model"
 )
 
 // ListActionsSecrets list an repo's actions secrets
