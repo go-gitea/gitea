@@ -78,7 +78,6 @@ jobs:
       - uses: ./.github/actions/go-cache
         with:
           cache-name: checks-backend
-          build-cache: "false"
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
 

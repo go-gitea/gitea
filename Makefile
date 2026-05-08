@@ -112,6 +112,7 @@ LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/r
 
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
+GO_GOGIT_TEST_PACKAGES ?= code.gitea.io/gitea/modules/git/... code.gitea.io/gitea/modules/gitrepo/... code.gitea.io/gitea/modules/lfs/...
 
 FRONTEND_SOURCES := $(shell find web_src/js web_src/css -type f)
 FRONTEND_CONFIGS := vite.config.ts tailwind.config.ts
@@ -380,6 +381,11 @@ watch-backend: ## watch backend files and continuously rebuild
 test-backend: ## test backend files
 	@echo "Running go test with $(GOTEST_FLAGS) -tags '$(TAGS)'..."
 	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $(GO_TEST_PACKAGES)
+
+.PHONY: test-backend-gogit
+test-backend-gogit: ## test gogit-affected packages only
+	@echo "Running go test with $(GOTEST_FLAGS) -tags '$(TAGS)' over gogit-affected packages..."
+	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $(GO_GOGIT_TEST_PACKAGES)
 
 .PHONY: test-frontend
 test-frontend: node_modules ## test frontend files
