@@ -425,6 +425,7 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	} else {
 		ctx.Data["BeforeCommitID"] = compareInfo.MergeBase
 	}
+
 	return compareInfo
 }
 
