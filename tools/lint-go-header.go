@@ -41,7 +41,7 @@ func main() {
 			return err
 		}
 		if d.IsDir() {
-			if rel, _ := filepath.Rel(root, path); skipDirs[rel] {
+			if rel, _ := filepath.Rel(root, path); skipDirs[filepath.ToSlash(rel)] {
 				return fs.SkipDir
 			}
 			return nil
