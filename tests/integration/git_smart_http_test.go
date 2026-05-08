@@ -86,30 +86,37 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 
 func testGitSmartHTTPTokenScopes(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2, OwnerName: "user2", Name: "repo2"})
-	assert.True(t, repo.IsPrivate)
+	require.True(t, repo.IsPrivate)
 
 	session := loginUser(t, "user2")
 	badToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadNotification)
 	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	publicOnlyToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopePublicOnly, auth_model.AccessTokenScopeReadRepository)
 
-	t.Run("upload-pack requires read repository scope for basic and bearer tokens", func(t *testing.T) {
-		url := "/user2/repo2/info/refs?service=git-upload-pack"
+	t.Run("upload-pack requires read repository scope", func(t *testing.T) {
+		path := "/user2/repo2/info/refs?service=git-upload-pack"
 
-		MakeRequest(t, NewRequest(t, "GET", url).AddBasicAuth(badToken, "x-oauth-basic"), http.StatusForbidden)
-		MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(badToken), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", path).AddBasicAuth(badToken, "x-oauth-basic"), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(badToken), http.StatusForbidden)
 
-		resp := MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(readToken), http.StatusOK)
+		resp := MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(readToken), http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "refs/heads/master")
 	})
 
-	t.Run("receive-pack requires write repository scope for bearer tokens", func(t *testing.T) {
-		url := "/user2/repo2/info/refs?service=git-receive-pack"
+	t.Run("receive-pack requires write repository scope", func(t *testing.T) {
+		path := "/user2/repo2/info/refs?service=git-receive-pack"
 
-		MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(readToken), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", path).AddBasicAuth(readToken, "x-oauth-basic"), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(readToken), http.StatusForbidden)
 
-		resp := MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(writeToken), http.StatusOK)
+		resp := MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(writeToken), http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "refs/heads/master")
+	})
+
+	t.Run("public-only scope rejects private repo", func(t *testing.T) {
+		path := "/user2/repo2/info/refs?service=git-upload-pack"
+		MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(publicOnlyToken), http.StatusForbidden)
 	})
 }
 
