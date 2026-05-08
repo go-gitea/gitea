@@ -36,7 +36,7 @@ type MoveGroupOption struct {
 	// the new parent group. can be 0 to specify no parent
 	//
 	// required: true
-	NewParent int64 `json:"newParent" binding:"Required"`
+	NewParent int64 `json:"newParent"`
 	// the position of this group in its new parent
 	NewPos *int `json:"newPos,omitempty"`
 }
