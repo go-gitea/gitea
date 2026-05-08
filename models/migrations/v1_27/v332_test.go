@@ -4,14 +4,11 @@
 package v1_27
 
 import (
-	"path/filepath"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/require"
-	"xorm.io/xorm"
-	"xorm.io/xorm/names"
 )
 
 func Test_AddCancellingSupportToActionRunner(t *testing.T) {
@@ -20,16 +17,13 @@ func Test_AddCancellingSupportToActionRunner(t *testing.T) {
 		Name string
 	}
 
-	x, err := xorm.NewEngine("sqlite3", filepath.Join(t.TempDir(), "test.db"))
-	require.NoError(t, err)
-	defer func() {
-		require.NoError(t, x.Close())
-	}()
-	x.SetMapper(names.GonicMapper{})
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ActionRunner))
+	defer deferable()
+	if x == nil || t.Failed() {
+		return
+	}
 
-	require.NoError(t, x.Sync(new(ActionRunner)))
-
-	_, err = x.Insert(&ActionRunner{Name: "runner"})
+	_, err := x.Insert(&ActionRunner{Name: "runner"})
 	require.NoError(t, err)
 
 	require.NoError(t, AddCancellingSupportToActionRunner(x))
