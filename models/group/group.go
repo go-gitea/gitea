@@ -137,40 +137,68 @@ func (g *Group) CanAccess(ctx context.Context, user *user_model.User) (bool, err
 }
 
 func (g *Group) CanAccessAtLevel(ctx context.Context, user *user_model.User, level perm.AccessMode) (bool, error) {
-	orCond := builder.Or(AccessibleGroupCondition(user, g.OwnerID, unit.TypeInvalid, level))
+	return g.CanAccessUnitAtLevel(ctx, user, unit.TypeInvalid, level)
+}
+
+func (g *Group) CanAccessUnitAtLevel(ctx context.Context, user *user_model.User, u unit.Type, level perm.AccessMode) (bool, error) {
+	if user != nil {
+		ownedBy, err := g.IsOwnedBy(ctx, user.ID)
+		if err != nil {
+			return false, err
+		}
+		if ownedBy {
+			return true, nil
+		}
+	}
+	orCond := builder.Or(AccessibleGroupCondition(user, g.OwnerID, u, level))
 	if level == perm.AccessModeRead {
 		orCond = orCond.Or(builder.Eq{"`repo_group`.visibility": structs.VisibleTypePublic})
 	}
-	return db.GetEngine(ctx).Table(g.TableName()).Where(orCond.And(builder.Eq{"`repo_group`.id": g.ID})).Exist()
+	return db.GetEngine(ctx).Table(g.TableName()).Where(builder.And(builder.Eq{"`repo_group`.id": g.ID}, orCond)).Exist()
 }
 
 func (g *Group) IsOwnedBy(ctx context.Context, userID int64) (bool, error) {
 	return db.GetEngine(ctx).
-		Where("team_user.uid = ?", userID).
-		Join("INNER", "team_user", "team_user.team_id = repo_group_team.team_id").
-		And("repo_group_team.access_mode = ?", perm.AccessModeOwner).
-		And("repo_group_team.group_id = ?", g.ID).
-		Table("repo_group_team").
+		Where(
+			builder.Or(
+				UserOrgTeamPermCond("`repo_group`.id", userID, g.OwnerID, perm.AccessModeOwner),
+				universalGroupPermBuilder("`repo_group`.id", userID, g.OwnerID, false)).
+				And(builder.Eq{"`repo_group`.id": g.ID})).
+		Table(g.TableName()).
 		Exist()
 }
 
 func (g *Group) CanCreateIn(ctx context.Context, userID int64) (bool, error) {
-	return db.GetEngine(ctx).
-		Where("team_user.uid = ?", userID).
+	cond := builder.Eq{
+		"team_user.uid":                 userID,
+		"repo_group_team.group_id":      g.ID,
+		"repo_group_team.can_create_in": true,
+	}
+
+	isAdmin, err := g.IsAdminOf(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	res, err := db.GetEngine(ctx).
 		Join("INNER", "team_user", "team_user.team_id = repo_group_team.team_id").
-		And("repo_group_team.group_id = ?", g.ID).
-		And("repo_group_team.can_create_in = ?", true).
+		Where(cond).
 		Table("repo_group_team").
 		Exist()
+	if err != nil {
+		return false, err
+	}
+	return isAdmin || res, nil
 }
 
 func (g *Group) IsAdminOf(ctx context.Context, userID int64) (bool, error) {
 	return db.GetEngine(ctx).
-		Where("team_user.uid = ?", userID).
-		Join("INNER", "team_user", "team_user.team_id = repo_group_team.team_id").
-		And("repo_group_team.group_id = ?", g.ID).
-		And("repo_group_team.access_mode >= ?", perm.AccessModeAdmin).
-		Table("repo_group_team").
+		Where(
+			builder.Or(
+				UserOrgTeamPermCond("`repo_group`.id", userID, g.OwnerID, perm.AccessModeAdmin),
+				universalGroupPermBuilder("`repo_group`.id", userID, g.OwnerID, false)).
+				And(builder.Eq{"`repo_group`.id": g.ID})).
+		Table(g.TableName()).
 		Exist()
 }
 
@@ -178,10 +206,20 @@ func (g *Group) ShortName(length int) string {
 	return util.EllipsisDisplayString(g.Name, length)
 }
 
-func GetGroupByID(ctx context.Context, id int64) (*Group, error) {
+func (g *Group) IsPrivateBecauseOfParentPermissions(ctx context.Context, user *user_model.User) (bool, error) {
+	cond := AccessibleParentGroupCond(ctx, "`repo_group`.`id`", g.ID, user)
+	has, err := db.GetEngine(ctx).Where(cond.And(builder.Eq{
+		"`repo_group`.id": g.ID,
+	})).Table(g.TableName()).Exist()
+	return !has, err
+}
+
+func GetGroupByIDAndCond(ctx context.Context, id int64, cond builder.Cond) (*Group, error) {
 	group := new(Group)
 
-	has, err := db.GetEngine(ctx).ID(id).Get(group)
+
+	has, err := db.GetEngine(ctx).
+		Where(cond.And(builder.Eq{"`repo_group`.id": id})).Get(group)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -190,13 +228,15 @@ func GetGroupByID(ctx context.Context, id int64) (*Group, error) {
 	return group, nil
 }
 
+func GetGroupByID(ctx context.Context, id int64) (*Group, error) {
+	return GetGroupByIDAndCond(ctx, id, builder.Expr("1 = 1"))
+}
+
 func GetGroupByRepoID(ctx context.Context, repoID int64) (*Group, error) {
 	group := new(Group)
 	_, err := db.GetEngine(ctx).
-		In("id", builder.
-			Select("group_id").
-			From("repo").
-			Where(builder.Eq{"id": repoID})).
+		Join("INNER", "repository", "repository.group_id = repo_group.id").
+		Where(builder.Eq{"repository.`id`": repoID}).
 		Get(group)
 	return group, err
 }
@@ -324,6 +364,45 @@ func GetParentGroupIDChain(ctx context.Context, groupID int64) ([]int64, error) 
 	return ids, err
 }
 
+func groupHierarchyCTEBuilder(cond builder.Cond) builder.Cond {
+	firstPart := builder.Select(fmt.Sprintf("repo_group.*"), "1 as depth").
+		From("repo_group").
+		Where(builder.And(builder.Eq{
+			"parent_group_id": 0,
+		}, cond))
+	secondPart := builder.Select("r.*", "h.depth + 1").
+		From("repo_group", "r").
+		Join("INNER", "group_hierarchy h", "r.parent_group_id = h.id")
+
+	firstSql, _ := firstPart.ToBoundSQL()
+	secondSql, _ := secondPart.ToBoundSQL()
+	return builder.Expr(firstSql + " UNION ALL " + secondSql)
+}
+
+func AccessibleParentGroupCond(ctx context.Context, idStr string, groupID int64, user *user_model.User) builder.Cond {
+	owner, err := GetOwnerByGroupID(ctx, groupID)
+	if err != nil {
+		return builder.Exists(builder.Select("1 as dummy").Where(builder.Eq{
+			"dummy": 1,
+		}))
+	}
+	accessibleCond := AccessibleGroupCondition(user, owner.ID, unit.TypeInvalid, perm.AccessModeRead)
+	unionBldr := groupHierarchyCTEBuilder(accessibleCond)
+	unionSql, err := builder.ToBoundSQL(unionBldr)
+	if err != nil {
+
+	}
+	s := db.GetEngine(ctx)
+	s.SQL("WITH RECURSIVE group_hierarchy AS ("+unionSql+") SELECT id from group_hierarchy", unionSql)
+	var g []*Group
+	err = s.Find(&g)
+	if err != nil {
+		log.Info("%s", err.Error())
+	}
+	return builder.In(idStr, builder.Expr("(WITH RECURSIVE group_hierarchy AS ("+unionSql+") SELECT id from group_hierarchy)"))
+	//db.GetEngine(ctx).SQL()
+}
+
 // ParentGroupCond returns a condition matching a group and its ancestors
 func ParentGroupCond(ctx context.Context, idStr string, groupID int64) builder.Cond {
 	groupList, err := GetParentGroupIDChain(ctx, groupID)
@@ -347,20 +426,49 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 		return err
 	}
 
+	var siblings RepoGroupList
+	var tmpSiblings RepoGroupList
 	if ng != nil {
 		if ng.OwnerID != group.OwnerID {
 			return fmt.Errorf("group[%d]'s ownerID is not equal to new parent group[%d]'s owner ID", group.ID, ng.ID)
+		}
+		if err = ng.LoadSubgroups(ctx, false); err != nil {
+			return err
+		}
+		siblings = append(append(ng.Subgroups[0:min(newSortOrder, len(ng.Subgroups))], group), ng.Subgroups[newSortOrder:]...)
+	} else if newParent <= 0 {
+		tmpSiblings, err = FindGroups(ctx, &FindGroupsOptions{
+			OwnerID:       group.OwnerID,
+			ParentGroupID: 0,
+		})
+		tmpSiblings2 := make(RepoGroupList, newSortOrder)
+		copy(tmpSiblings2, tmpSiblings[0:newSortOrder])
+		tmpSiblings2 = append(tmpSiblings2, group)
+
+		siblings = append(tmpSiblings2, tmpSiblings[newSortOrder:]...)
+	}
+	parentGroupChain, err := GetParentGroupChain(ctx, newParent)
+	if err != nil {
+		return err
+	}
+	if len(parentGroupChain) >= 20 {
+		return ErrGroupTooDeep{
+			ID: group.ID,
 		}
 	}
 
 	group.ParentGroupID = newParent
 	group.SortOrder = newSortOrder
-	if _, err = sess.Table(group.TableName()).
-		ID(group.ID).
-		AllCols().
-		Update(group); err != nil {
-		return err
+	for i, gg := range siblings {
+		gg.SortOrder = i
+		if _, err = sess.Table(group.TableName()).
+			ID(gg.ID).
+			AllCols().
+			Update(gg); err != nil {
+			return err
+		}
 	}
+
 	if group.ParentGroup != nil && newParent != 0 {
 		group.ParentGroup = nil
 		if err = group.LoadParentGroup(ctx); err != nil {
@@ -368,4 +476,16 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 		}
 	}
 	return nil
+}
+
+func GetOwnerByGroupID(ctx context.Context, groupID int64) (*user_model.User, error) {
+	e := db.GetEngine(ctx)
+	tableName := "repo_group"
+	user := new(user_model.User)
+	has, err := e.Join("INNER", tableName, fmt.Sprintf("`%s`.owner_id = `user`.`id`", tableName)).
+		Where(builder.Eq{fmt.Sprintf("`%s`.id", tableName): groupID}).Get(user)
+	if !has {
+		return nil, user_model.ErrUserNotExist{}
+	}
+	return user, err
 }
