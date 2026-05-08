@@ -608,7 +608,8 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["CompareInfo"] = ci
 
 	var nothingToCompare bool
-	if ctx.Data["IsNoMergeBase"] == true {
+	noMergeBase := ctx.Data["IsNoMergeBase"] == true
+	if noMergeBase {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
 		ctx.Data["PageIsComparePull"] = false
 		ctx.Data["CommitCount"] = 0
