@@ -219,7 +219,7 @@ loop:
 					return nil
 				}
 
-				handlerType, user, payload, err := token.ExtractToken(ctx, t)
+				handlerType, user, payload, err := token.DecodeToken(ctx, t)
 				if err != nil {
 					if _, ok := err.(*token.ErrToken); ok {
 						log.Info("Invalid incoming email token: %v", err)
