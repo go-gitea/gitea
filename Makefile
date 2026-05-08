@@ -345,7 +345,7 @@ lint-go-all:
 	GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
 	GOOS=linux TAGS=bindata golangci-lint run
 	GOOS=windows TAGS=gogit golangci-lint run
-	GOOS= @(GO) run tools/lint-go-header.go
+	GOOS= $(GO) run tools/lint-go-header.go
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
