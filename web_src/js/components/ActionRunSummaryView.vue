@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ActionRunStatus from './ActionRunStatus.vue';
+import ActionStatusIcon from './ActionStatusIcon.vue';
 import WorkflowGraph from './WorkflowGraph.vue';
 import type {ActionRunViewStore} from "./ActionRunView.ts";
 import {computed, onBeforeUnmount, onMounted, toRefs} from "vue";
@@ -49,7 +49,7 @@ onBeforeUnmount(() => {
         <relative-time :datetime="run.triggeredAt || ''" prefix=""/>
       </div>
       <div class="flex-text-block">
-        <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="16" icon-variant="circle-fill"/>
+        <ActionStatusIcon :locale-status="locale.status[run.status]" :status="run.status" :size="16" icon-variant="circle-fill"/>
         <span>{{ locale.status[run.status] }}</span> • <span>{{ locale.totalDuration }} {{ run.duration || '–' }}</span>
       </div>
     </div>
