@@ -1,4 +1,4 @@
-packages: [ . ] # workaround for https://github.com/SukkaW/nolyfill/issues/119
+packages: [.] # workaround for https://github.com/SukkaW/nolyfill/issues/119
 savePrefix: ''
 dedupePeerDependents: false
 updateNotifier: false
@@ -30,9 +30,3 @@ overrides:
   object.entries: npm:@nolyfill/object.entries@^1
   abab: npm:@nolyfill/abab@^1
   es-set-tostringtag: npm:@nolyfill/es-set-tostringtag@^1
-
-allowBuilds:
-  '@scarf/scarf': set this to true or false
-  core-js: set this to true or false
-  esbuild: set this to true or false
-  unrs-resolver: set this to true or false
