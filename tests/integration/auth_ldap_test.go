@@ -395,7 +395,7 @@ func testLDAPUserSyncSSHKeys(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		divs := htmlDoc.doc.Find("#keys-ssh .flex-item .flex-item-body:not(:last-child)")
+		divs := htmlDoc.doc.Find("#keys-ssh .item .item-body:not(:last-child)")
 		syncedKeys := make([]string, divs.Length())
 		for i := 0; i < divs.Length(); i++ {
 			syncedKeys[i] = strings.TrimSpace(divs.Eq(i).Text())

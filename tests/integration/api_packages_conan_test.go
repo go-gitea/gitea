@@ -107,8 +107,7 @@ func uploadConanPackageV1(t *testing.T, baseURL, token, name, version, user, cha
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	uploadURLs := make(map[string]string)
-	DecodeJSON(t, resp, &uploadURLs)
+	uploadURLs := DecodeJSON(t, resp, map[string]string{})
 
 	assert.Contains(t, uploadURLs, conanfileName)
 	assert.NotContains(t, uploadURLs, "removed.txt")
@@ -143,8 +142,7 @@ func uploadConanPackageV1(t *testing.T, baseURL, token, name, version, user, cha
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	uploadURLs = make(map[string]string)
-	DecodeJSON(t, resp, &uploadURLs)
+	uploadURLs = DecodeJSON(t, resp, map[string]string{})
 
 	assert.Contains(t, uploadURLs, conaninfoName)
 	assert.NotContains(t, uploadURLs, "removed.txt")
@@ -370,8 +368,7 @@ func TestPackageConan(t *testing.T) {
 			req := NewRequest(t, "GET", recipeURL)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			fileHashes := make(map[string]string)
-			DecodeJSON(t, resp, &fileHashes)
+			fileHashes := DecodeJSON(t, resp, map[string]string{})
 			assert.Len(t, fileHashes, 1)
 			assert.Contains(t, fileHashes, conanfileName)
 			assert.Equal(t, "7abc52241c22090782c54731371847a8", fileHashes[conanfileName])
@@ -379,14 +376,13 @@ func TestPackageConan(t *testing.T) {
 			req = NewRequest(t, "GET", recipeURL+"/digest")
 			resp = MakeRequest(t, req, http.StatusOK)
 
-			downloadURLs := make(map[string]string)
-			DecodeJSON(t, resp, &downloadURLs)
+			downloadURLs := DecodeJSON(t, resp, map[string]string{})
 			assert.Contains(t, downloadURLs, conanfileName)
 
 			req = NewRequest(t, "GET", recipeURL+"/download_urls")
 			resp = MakeRequest(t, req, http.StatusOK)
 
-			DecodeJSON(t, resp, &downloadURLs)
+			downloadURLs = DecodeJSON(t, resp, map[string]string{})
 			assert.Contains(t, downloadURLs, conanfileName)
 
 			req = NewRequest(t, "GET", downloadURLs[conanfileName])
@@ -398,8 +394,7 @@ func TestPackageConan(t *testing.T) {
 			req = NewRequest(t, "GET", packageURL)
 			resp = MakeRequest(t, req, http.StatusOK)
 
-			fileHashes = make(map[string]string)
-			DecodeJSON(t, resp, &fileHashes)
+			fileHashes = DecodeJSON(t, resp, map[string]string{})
 			assert.Len(t, fileHashes, 1)
 			assert.Contains(t, fileHashes, conaninfoName)
 			assert.Equal(t, "7628bfcc5b17f1470c468621a78df394", fileHashes[conaninfoName])
@@ -407,14 +402,13 @@ func TestPackageConan(t *testing.T) {
 			req = NewRequest(t, "GET", packageURL+"/digest")
 			resp = MakeRequest(t, req, http.StatusOK)
 
-			downloadURLs = make(map[string]string)
-			DecodeJSON(t, resp, &downloadURLs)
+			downloadURLs = DecodeJSON(t, resp, map[string]string{})
 			assert.Contains(t, downloadURLs, conaninfoName)
 
 			req = NewRequest(t, "GET", packageURL+"/download_urls")
 			resp = MakeRequest(t, req, http.StatusOK)
 
-			DecodeJSON(t, resp, &downloadURLs)
+			downloadURLs = DecodeJSON(t, resp, map[string]string{})
 			assert.Contains(t, downloadURLs, conaninfoName)
 
 			req = NewRequest(t, "GET", downloadURLs[conaninfoName])
@@ -470,8 +464,7 @@ func TestPackageConan(t *testing.T) {
 				req := NewRequest(t, "GET", fmt.Sprintf("%s/v1/conans/%s/%s/%s/%s/search", url, name, version1, user1, channel2))
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				var result map[string]*conan_module.Conaninfo
-				DecodeJSON(t, resp, &result)
+				result := DecodeJSON(t, resp, map[string]*conan_module.Conaninfo{})
 
 				assert.Contains(t, result, conanPackageReference)
 				info := result[conanPackageReference]
@@ -666,16 +659,14 @@ func TestPackageConan(t *testing.T) {
 			req := NewRequest(t, "GET", recipeURL+"/latest")
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			obj := make(map[string]string)
-			DecodeJSON(t, resp, &obj)
+			obj := DecodeJSON(t, resp, map[string]string{})
 			assert.Contains(t, obj, "revision")
 			assert.Equal(t, revision1, obj["revision"])
 
 			req = NewRequest(t, "GET", fmt.Sprintf("%s/revisions/%s/packages/%s/latest", recipeURL, revision1, conanPackageReference))
 			resp = MakeRequest(t, req, http.StatusOK)
 
-			obj = make(map[string]string)
-			DecodeJSON(t, resp, &obj)
+			obj = DecodeJSON(t, resp, map[string]string{})
 			assert.Contains(t, obj, "revision")
 			assert.Equal(t, revision1, obj["revision"])
 		})
@@ -764,8 +755,7 @@ func TestPackageConan(t *testing.T) {
 				req := NewRequest(t, "GET", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/search", url, name, version1, user1, channel1))
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				var result map[string]*conan_module.Conaninfo
-				DecodeJSON(t, resp, &result)
+				result := DecodeJSON(t, resp, map[string]*conan_module.Conaninfo{})
 
 				assert.Contains(t, result, conanPackageReference)
 				info := result[conanPackageReference]
@@ -774,8 +764,7 @@ func TestPackageConan(t *testing.T) {
 				req = NewRequest(t, "GET", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/revisions/%s/search", url, name, version1, user1, channel1, revision1))
 				resp = MakeRequest(t, req, http.StatusOK)
 
-				result = make(map[string]*conan_module.Conaninfo)
-				DecodeJSON(t, resp, &result)
+				result = DecodeJSON(t, resp, map[string]*conan_module.Conaninfo{})
 
 				assert.Contains(t, result, conanPackageReference)
 				info = result[conanPackageReference]

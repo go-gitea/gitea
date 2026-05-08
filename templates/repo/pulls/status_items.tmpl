@@ -1,0 +1,32 @@
+{{/* Template Attributes:
+* CommitStatuses: all commit status elements
+* StatusCheckData: optional, additional status check data, see backend pullCommitStatusCheckData struct
+*/}}
+{{$statusCheckData := $.StatusCheckData}}
+{{range $cs := $.CommitStatuses}}
+	<div class="item commit-status-item">
+		<div class="flex-text-block">
+			{{template "repo/commit_status" $cs}}
+			<div class="status-context gt-ellipsis">
+				{{$cs.Context}} <span class="tw-text-text-light-2">{{$cs.Description}}</span>
+			</div>
+		</div>
+		<div class="status-details">
+			{{if and $statusCheckData $statusCheckData.IsContextRequired}}
+				{{if (call $statusCheckData.IsContextRequired $cs.Context)}}
+					<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>
+				{{end}}
+			{{end}}
+			{{if $cs.TargetURL}}<a href="{{$cs.TargetURL}}">{{ctx.Locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}
+		</div>
+	</div>
+{{end}}
+{{range $missingCheck := $statusCheckData.MissingRequiredChecks}}
+	<div class="item commit-status-item">
+		<div class="flex-text-block">
+			{{svg "octicon-dot-fill" 16 "commit-status icon tw-text-yellow"}}
+			<div class="status-context gt-ellipsis">{{$missingCheck}}</div>
+		</div>
+		<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>
+	</div>
+{{end}}

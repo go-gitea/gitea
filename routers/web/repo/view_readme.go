@@ -190,8 +190,8 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
-		CurrentTreePath: path.Dir(readmeFullPath),
+		CurrentRefSubURL: ctx.Repo.RefTypeNameSubURL(),
+		CurrentTreePath:  path.Dir(readmeFullPath),
 	}).WithRelativePath(readmeFullPath)
 	renderer := rctx.DetectMarkupRenderer(buf)
 	if renderer != nil {

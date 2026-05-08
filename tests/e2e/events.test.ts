@@ -24,7 +24,7 @@ test.describe('events', () => {
     // the trigger until one lands. Extra notifications are harmless here.
     const commenterHeaders = apiUserHeaders(commenter);
     await expect.poll(async () => {
-      await apiCreateIssue(request, owner, repoName, {title: `events-notif-${Date.now()}`, headers: commenterHeaders});
+      await apiCreateIssue(request, {owner, repo: repoName, title: `events-notif-${Date.now()}`, headers: commenterHeaders});
       await page.waitForTimeout(300 * timeoutFactor); // eslint-disable-line playwright/no-wait-for-timeout
       return await badge.isVisible();
     }, {timeout: 10000 * timeoutFactor, intervals: [0]}).toBe(true);
@@ -39,7 +39,7 @@ test.describe('events', () => {
       loginUser(page, name),
       (async () => {
         await apiCreateRepo(request, {name, headers});
-        await apiCreateIssue(request, name, name, {title: 'events stopwatch test', headers});
+        await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch test', headers});
         await apiStartStopwatch(request, name, name, 1, {headers});
       })(),
     ]);
@@ -55,7 +55,7 @@ test.describe('events', () => {
 
     await apiCreateUser(request, name);
     await apiCreateRepo(request, {name, headers});
-    await apiCreateIssue(request, name, name, {title: 'events stopwatch push test', headers});
+    await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch push test', headers});
 
     // Page loads before the stopwatch starts — the icon is hidden in the rendered HTML
     await loginUser(page, name);
@@ -79,7 +79,7 @@ test.describe('events', () => {
 
     await apiCreateUser(request, name);
     await apiCreateRepo(request, {name, headers});
-    await apiCreateIssue(request, name, name, {title: 'events stopwatch stop test', headers});
+    await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch stop test', headers});
     await apiStartStopwatch(request, name, name, 1, {headers});
 
     await loginUser(page, name);
@@ -105,7 +105,7 @@ test.describe('events', () => {
       loginUser(page, name),
       (async () => {
         await apiCreateRepo(request, {name, headers});
-        await apiCreateIssue(request, name, name, {title: 'sidebar start timer test', headers});
+        await apiCreateIssue(request, {owner: name, repo: name, title: 'sidebar start timer test', headers});
       })(),
     ]);
     await page.goto(`/${name}/${name}/issues/1`);

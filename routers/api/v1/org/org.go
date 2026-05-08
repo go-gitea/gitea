@@ -258,7 +258,7 @@ func Create(ctx *context.APIContext) {
 
 	visibility := api.VisibleTypePublic
 	if form.Visibility != "" {
-		visibility = api.VisibilityModes[form.Visibility]
+		visibility = api.VisibilityModes[string(form.Visibility)]
 	}
 
 	org := &organization.Organization{
@@ -402,7 +402,7 @@ func Edit(ctx *context.APIContext) {
 		Description:               optional.FromPtr(form.Description),
 		Website:                   optional.FromPtr(form.Website),
 		Location:                  optional.FromPtr(form.Location),
-		Visibility:                optional.FromMapLookup(api.VisibilityModes, optional.FromPtr(form.Visibility).Value()),
+		Visibility:                optional.FromMapLookup(api.VisibilityModes, string(optional.FromPtr(form.Visibility).Value())),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {

@@ -6,7 +6,7 @@ package v1_26
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/require"
@@ -38,7 +38,7 @@ func Test_FixMissedRepoIDWhenMigrateAttachments(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferrable := base.PrepareTestEnv(t, 0, new(Attachment), new(Issue), new(Release))
+	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(Attachment), new(Issue), new(Release))
 	defer deferrable()
 
 	require.NoError(t, FixMissedRepoIDWhenMigrateAttachments(x))

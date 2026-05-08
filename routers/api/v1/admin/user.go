@@ -123,7 +123,7 @@ func CreateUser(ctx *context.APIContext) {
 	}
 
 	if form.Visibility != "" {
-		visibility := api.VisibilityModes[form.Visibility]
+		visibility := api.VisibilityModes[string(form.Visibility)]
 		overwriteDefault.Visibility = &visibility
 	}
 
@@ -239,7 +239,7 @@ func EditUser(ctx *context.APIContext) {
 		Description:             optional.FromPtr(form.Description),
 		IsActive:                optional.FromPtr(form.Active),
 		IsAdmin:                 user_service.UpdateOptionFieldFromPtr(form.Admin),
-		Visibility:              optional.FromMapLookup(api.VisibilityModes, form.Visibility),
+		Visibility:              optional.FromMapLookup(api.VisibilityModes, string(form.Visibility)),
 		AllowGitHook:            optional.FromPtr(form.AllowGitHook),
 		AllowImportLocal:        optional.FromPtr(form.AllowImportLocal),
 		MaxRepoCreation:         optional.FromPtr(form.MaxRepoCreation),

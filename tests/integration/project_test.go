@@ -90,6 +90,26 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	assert.NoError(t, project_model.DeleteProjectByID(t.Context(), project1.ID))
 }
 
+func TestUpdateIssueProject(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	sess := loginUser(t, "user2")
+
+	t.Run("AssignAndRemove", func(t *testing.T) {
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
+			"id": "1",
+		})
+		sess.MakeRequest(t, req, http.StatusOK)
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
+
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
+			"id": "",
+		})
+		sess.MakeRequest(t, req, http.StatusOK)
+		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
+	})
+}
+
 func TestUpdateIssueProjectColumn(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -160,13 +180,13 @@ func TestIssueSidebarProjectColumn(t *testing.T) {
 	resp := sess.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	cards := htmlDoc.Find(".sidebar-project-card")
+	cards := htmlDoc.Find(".flex-relaxed-list > .item.sidebar-project-card")
 	assert.Equal(t, 1, cards.Length())
 
-	title := cards.Find(".sidebar-project-card a.suppressed .gt-ellipsis")
+	title := cards.Find("a span.gt-ellipsis")
 	assert.Contains(t, strings.TrimSpace(title.Text()), "First project")
 
-	columnCombo := cards.Find(".sidebar-project-column-combo")
+	columnCombo := cards.Find(".issue-sidebar-combo.sidebar-project-column-combo")
 	assert.Equal(t, 1, columnCombo.Length())
 
 	defaultItem := columnCombo.Find(`.menu .item[data-value="1"]`)
@@ -181,16 +201,14 @@ func TestIssueSidebarProjectColumn(t *testing.T) {
 	assert.True(t, exists)
 	assert.Equal(t, "3", comboVal)
 
-	req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=5", map[string]string{
-		"id": "0",
-	})
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=5", map[string]string{"id": ""})
 	sess.MakeRequest(t, req, http.StatusOK)
 
 	req = NewRequest(t, "GET", "/user2/repo1/issues/4")
 	resp = sess.MakeRequest(t, req, http.StatusOK)
 	htmlDoc = NewHTMLParser(t, resp.Body)
 
-	cards = htmlDoc.Find(".sidebar-project-card")
+	cards = htmlDoc.Find(".flex-relaxed-list > .item.sidebar-project-card")
 	assert.Equal(t, 0, cards.Length())
 }
 
@@ -293,15 +311,9 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 	}
 	require.NoError(t, project_model.NewProject(t.Context(), &project))
 
-	// Get the default column
-	columns, err := project.GetColumns(t.Context())
-	require.NoError(t, err)
-	require.NotEmpty(t, columns)
-	defaultColumnID := columns[0].ID
-
 	// Add issues to the project
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user1, project.ID, defaultColumnID))
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue17, user1, project.ID, defaultColumnID))
+	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user1, []int64{project.ID}))
+	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue17, user1, []int64{project.ID}))
 
 	sess := loginUser(t, "user1")
 	projectURL := fmt.Sprintf("/org3/-/projects/%d", project.ID)

@@ -265,8 +265,13 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		handleSettingRemoteAddrError(ctx, err, form)
 		return
 	}
-	if u.User != nil && form.MirrorPassword == "" && form.MirrorUsername == u.User.Username() {
-		form.MirrorPassword, _ = u.User.Password()
+	if u.User != nil {
+		if form.MirrorUsername == "" {
+			form.MirrorUsername = u.User.Username()
+		}
+		if form.MirrorPassword == "" && form.MirrorUsername == u.User.Username() {
+			form.MirrorPassword, _ = u.User.Password()
+		}
 	}
 
 	address, err := git.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
@@ -724,7 +729,7 @@ func handleSettingsPostAdminIndex(ctx *context.Context) {
 func handleSettingsPostConvert(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
-	if !ctx.Repo.IsOwner() {
+	if !ctx.Repo.Permission.IsOwner() {
 		ctx.JSONErrorNotFound()
 		return
 	}
@@ -754,7 +759,7 @@ func handleSettingsPostConvert(ctx *context.Context) {
 func handleSettingsPostConvertFork(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
-	if !ctx.Repo.IsOwner() {
+	if !ctx.Repo.Permission.IsOwner() {
 		ctx.JSONErrorNotFound()
 		return
 	}
@@ -794,7 +799,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 func handleSettingsPostTransfer(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
-	if !ctx.Repo.IsOwner() {
+	if !ctx.Repo.Permission.IsOwner() {
 		ctx.JSONErrorNotFound()
 		return
 	}
@@ -857,7 +862,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 
 func handleSettingsPostCancelTransfer(ctx *context.Context) {
 	repo := ctx.Repo.Repository
-	if !ctx.Repo.IsOwner() {
+	if !ctx.Repo.Permission.IsOwner() {
 		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
@@ -886,7 +891,7 @@ func handleSettingsPostCancelTransfer(ctx *context.Context) {
 func handleSettingsPostDelete(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
-	if !ctx.Repo.IsOwner() {
+	if !ctx.Repo.Permission.IsOwner() {
 		ctx.JSONErrorNotFound()
 		return
 	}
@@ -913,7 +918,7 @@ func handleSettingsPostDelete(ctx *context.Context) {
 func handleSettingsPostDeleteWiki(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
-	if !ctx.Repo.IsOwner() {
+	if !ctx.Repo.Permission.IsOwner() {
 		ctx.JSONErrorNotFound()
 		return
 	}
@@ -934,7 +939,7 @@ func handleSettingsPostDeleteWiki(ctx *context.Context) {
 
 func handleSettingsPostArchive(ctx *context.Context) {
 	repo := ctx.Repo.Repository
-	if !ctx.Repo.IsOwner() {
+	if !ctx.Repo.Permission.IsOwner() {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
@@ -967,7 +972,7 @@ func handleSettingsPostArchive(ctx *context.Context) {
 
 func handleSettingsPostUnarchive(ctx *context.Context) {
 	repo := ctx.Repo.Repository
-	if !ctx.Repo.IsOwner() {
+	if !ctx.Repo.Permission.IsOwner() {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}

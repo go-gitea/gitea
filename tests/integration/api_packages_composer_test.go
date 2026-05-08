@@ -64,8 +64,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result composer.ServiceIndexResponse
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &composer.ServiceIndexResponse{})
 
 		assert.Equal(t, url+"/search.json?q=%query%&type=%type%", result.SearchTemplate)
 		assert.Equal(t, url+"/p2/%package%.json", result.MetadataTemplate)
@@ -167,8 +166,7 @@ func TestPackageComposer(t *testing.T) {
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result composer.SearchResultResponse
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &composer.SearchResultResponse{})
 
 			assert.Equal(t, c.ExpectedTotal, result.Total, "case %d: unexpected total hits", i)
 			assert.Len(t, result.Results, c.ExpectedResults, "case %d: unexpected result count", i)
@@ -182,8 +180,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result map[string][]string
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, map[string][]string{})
 
 		assert.Contains(t, result, "packageNames")
 		names := result["packageNames"]
@@ -198,8 +195,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result composer.PackageMetadataResponse
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
 
 		assert.Contains(t, result.Packages, packageName)
 		pkgs := result.Packages[packageName]
@@ -229,8 +225,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		result = composer.PackageMetadataResponse{}
-		DecodeJSON(t, resp, &result)
+		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
 
 		assert.Contains(t, result.Packages, packageName)
 		pkgs = result.Packages[packageName]
