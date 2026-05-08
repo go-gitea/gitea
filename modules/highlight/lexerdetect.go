@@ -58,6 +58,7 @@ var chromaLexers = sync.OnceValue(func() (ret struct {
 		".inc":     "PHP",          // ObjectPascal, POVRay, SourcePawn, PHTML
 		".m":       "Objective-C",  // Matlab, Mathematica, Mason
 		".mc":      "Mason",        // MonkeyC
+		".mod":     "AMPL",         // Modula-2
 		".network": "SYSTEMD",      // INI
 		".php":     "PHP",          // PHTML
 		".php3":    "PHP",          // PHTML

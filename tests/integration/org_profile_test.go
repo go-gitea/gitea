@@ -66,7 +66,7 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	createTestProfile(t, "org3", user.RepoNameProfilePrivate, contentPrivateReadme)
 
 	// Anonymous User
-	req := NewRequest(t, "GET", "org3")
+	req := NewRequest(t, "GET", "/org3")
 	resp := MakeRequest(t, req, http.StatusOK)
 	bodyString := util.UnsafeBytesToString(resp.Body.Bytes())
 	assert.Contains(t, bodyString, contentPublicReadme)
@@ -74,7 +74,7 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 
 	// Logged in but not member
 	session := loginUser(t, "user24")
-	req = NewRequest(t, "GET", "org3")
+	req = NewRequest(t, "GET", "/org3")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	bodyString = util.UnsafeBytesToString(resp.Body.Bytes())
 	assert.Contains(t, bodyString, contentPublicReadme)

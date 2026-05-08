@@ -339,18 +339,25 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 
 	objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 
-	// Get the commit from BaseBranch where the pull request got merged
+	// Get the commit from BaseBranch where the pull request got merged.
+	// When several PRs targeting the same base are merged in a single push,
+	// rev-list returns one line per merge commit on the ancestry path; we
+	// only want the first one (the oldest, with --reverse, i.e. the merge
+	// commit that actually introduced this PR).
 	mergeCommit, _, err := gitrepo.RunCmdString(ctx, pr.BaseRepo,
 		gitcmd.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse").
 			AddDynamicArguments(prHeadCommitID+".."+pr.BaseBranch))
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
-	} else if len(mergeCommit) < objectFormat.FullLength() {
+	}
+
+	// only use the latest commit as merge commit if the output contains multiple commits
+	mergeCommit = strings.TrimSpace(mergeCommit)
+	mergeCommit, _, _ = strings.Cut(mergeCommit, "\n")
+	if len(mergeCommit) < objectFormat.FullLength() {
 		// PR was maybe fast-forwarded, so just use last commit of PR
 		mergeCommit = prHeadCommitID
 	}
-	mergeCommit = strings.TrimSpace(mergeCommit)
-
 	commit, err := gitRepo.GetCommit(mergeCommit)
 	if err != nil {
 		return nil, fmt.Errorf("GetMergeCommit[%s]: %w", mergeCommit, err)

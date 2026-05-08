@@ -134,7 +134,7 @@ func PrepareConsoleLoggerLevel(defaultLevel log.Level) func(context.Context, *cl
 		if globalBool(c, "debug") || globalBool(c, "verbose") {
 			level = log.TRACE
 		}
-		log.SetConsoleLogger(log.DEFAULT, "console-default", level)
+		log.SetupStderrLogger(log.DEFAULT, "console-stderr", level)
 		return ctx, nil
 	}
 }

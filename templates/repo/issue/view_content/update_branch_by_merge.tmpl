@@ -1,36 +1,24 @@
-{{if and (gt $.Issue.PullRequest.CommitsBehind 0) (not $.Issue.IsClosed) (not $.Issue.PullRequest.IsChecking) (not $.IsPullFilesConflicted) (not $.IsPullRequestBroken)}}
-	<div class="divider"></div>
-	<div class="item item-section">
-		<div class="item-section-left flex-text-inline">
-			{{svg "octicon-alert"}}
-			{{ctx.Locale.Tr "repo.pulls.outdated_with_base_branch"}}
-		</div>
-		<div class="item-section-right">
-			{{if and $.UpdateAllowed $.UpdateByRebaseAllowed}}
-				<div class="tw-inline-block">
-					<div id="update-pr-branch-with-base" class="ui buttons">
-						<button class="ui button" data-do="{{$.Issue.Link}}/update">
-							<span class="button-text">
-								{{ctx.Locale.Tr "repo.pulls.update_branch"}}
-							</span>
-						</button>
-						<div class="ui dropdown icon button">
-							{{svg "octicon-triangle-down"}}
-							<div class="menu">
-								<a class="item active selected" data-do="{{$.Issue.Link}}/update">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</a>
-								<a class="item" data-do="{{$.Issue.Link}}/update?style=rebase">{{ctx.Locale.Tr "repo.pulls.update_branch_rebase"}}</a>
-							</div>
-						</div>
-					</div>
-				</div>
-			{{end}}
-			{{if and $.UpdateAllowed (not $.UpdateByRebaseAllowed)}}
-				<form action="{{$.Issue.Link}}/update" method="post" class="ui update-branch-form">
-					<button class="ui compact button">
-						<span class="ui text">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</span>
-					</button>
-				</form>
-			{{end}}
-		</div>
+{{$data := $.MergeBoxData}}
+{{$issueLink := $.IssueLink}}
+<div class="tw-w-full flex-left-right">
+	<div class="flex-text-block">
+		{{svg "octicon-alert"}}
+		{{ctx.Locale.Tr "repo.pulls.outdated_with_base_branch"}}
 	</div>
-{{end}}
+	{{if $data.UpdateAllowed}}
+	<div class="ui buttons" data-global-init="initRepoPullRequestUpdate">
+		<button class="ui button link-action" data-url="{{$issueLink}}/update">
+			{{ctx.Locale.Tr "repo.pulls.update_branch"}}
+		</button>
+		{{if $data.UpdateByRebaseAllowed}}
+		<div class="ui dropdown icon button">
+			{{svg "octicon-triangle-down"}}
+			<div class="menu">
+				<a class="item selected" data-update-url="{{$issueLink}}/update">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</a>
+				<a class="item" data-update-url="{{$issueLink}}/update?style=rebase">{{ctx.Locale.Tr "repo.pulls.update_branch_rebase"}}</a>
+			</div>
+		</div>
+		{{end}}
+	</div>
+	{{end}}
+</div>

@@ -38,13 +38,10 @@ ifneq ($(findstring test-,$(MAKECMDGOALS)),)
 endif
 
 TAGS ?=
-ifeq ($(GITEA_TEST_DATABASE),sqlite)
-	TAGS += sqlite sqlite_unlock_notify
-endif
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 CGO_ENABLED ?= 0
-ifneq (,$(findstring sqlite,$(TAGS))$(findstring pam,$(TAGS)))
+ifneq (,$(findstring sqlite_mattn,$(TAGS))$(findstring pam,$(TAGS)))
 	CGO_ENABLED = 1
 endif
 
@@ -164,7 +161,7 @@ TEST_PGSQL_PASSWORD ?= postgres
 TEST_PGSQL_SCHEMA ?= gtestschema
 TEST_MINIO_ENDPOINT ?= minio:9000
 TEST_MSSQL_HOST ?= mssql:1433
-TEST_MSSQL_DBNAME ?= gitea
+TEST_MSSQL_DBNAME ?= testgitea
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
@@ -320,6 +317,10 @@ lint-md: node_modules ## lint markdown files
 .PHONY: lint-md-fix
 lint-md-fix: node_modules ## lint markdown files and fix issues
 	pnpm exec markdownlint --fix *.md
+
+.PHONY: lint-pr-title
+lint-pr-title: ## lint PR title against Conventional Commits (set PR_TITLE=...)
+	@node ./tools/lint-pr-title.js
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
@@ -606,6 +607,11 @@ update-js: node_modules ## update js dependencies
 	pnpm exec updates -u -f package.json
 	rm -rf node_modules pnpm-lock.yaml
 	pnpm install
+	@touch node_modules
+	$(MAKE) --no-print-directory nolyfill
+
+.PHONY: nolyfill
+nolyfill: node_modules ## apply nolyfill overrides to package.json and relock
 	pnpm exec nolyfill install
 	pnpm install
 	@touch node_modules

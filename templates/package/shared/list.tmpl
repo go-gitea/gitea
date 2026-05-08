@@ -16,14 +16,14 @@
 {{end}}
 <div>
 	{{range .PackageDescriptors}}
-	<div class="flex-list">
-		<div class="flex-item">
-			<div class="flex-item-main">
-				<div class="flex-item-title">
+	<div class="flex-divided-list items-with-main">
+		<div class="item">
+			<div class="item-main">
+				<div class="item-title">
 					<a href="{{.VersionWebLink}}">{{.Package.Name}}</a>
 					<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
 				</div>
-				<div class="flex-item-body">
+				<div class="item-body">
 					{{$timeStr := DateUtils.TimeSince .Version.CreatedUnix}}
 					{{$hasRepositoryAccess := false}}
 					{{if .Repository}}
