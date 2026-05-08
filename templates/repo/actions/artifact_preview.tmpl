@@ -1,0 +1,12 @@
+{{template "base/head" .}}
+
+<div class="page-content repository actions">
+	{{template "repo/header" .}}
+
+	<div class="ui fluid container artifact-preview-page">
+		{{template "base/alert" .}}
+		{{template "shared/actions/artifact_preview_content" .}}
+	</div>
+</div>
+
+{{template "base/footer" .}}

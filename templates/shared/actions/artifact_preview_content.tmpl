@@ -1,0 +1,59 @@
+<style>
+.artifact-preview-page {
+	margin-top: 1rem;
+}
+
+.artifact-preview-title {
+	min-width: 0;
+}
+
+.artifact-preview-frame {
+	width: 100%;
+	min-height: 70vh;
+	border: 1px solid var(--color-secondary);
+	border-radius: var(--border-radius);
+}
+</style>
+
+<div class="ui top attached header tw-flex tw-items-center tw-justify-between">
+	<div class="artifact-preview-title">
+		<span class="tw-text-base tw-font-semibold">{{ctx.Locale.Tr "preview"}}: <span class="gt-ellipsis">{{.ArtifactName}}</span></span>
+	</div>
+	<div class="tw-flex tw-items-center tw-gap-2">
+		<a class="ui basic button" href="{{.RunURL}}">
+			{{svg "octicon-arrow-left"}}
+			{{ctx.Locale.Tr "go_back"}}
+		</a>
+		<a class="ui button" href="{{.DownloadURL}}">
+			{{svg "octicon-download"}}
+			{{ctx.Locale.Tr "repo.download_file"}}
+		</a>
+	</div>
+</div>
+
+<div class="ui attached segment">
+	<div class="ui stackable grid">
+		<div class="four wide column">
+			<div class="ui fluid vertical menu">
+				<div class="item">
+					<b>{{ctx.Locale.Tr "files"}}</b>
+				</div>
+				{{range .PreviewFiles}}
+					<a class="item gt-ellipsis {{if .Selected}}active{{end}}" href="{{$.PreviewURL}}?path={{QueryEscape .Path}}" title="{{.Path}}">
+						{{.Path}}
+					</a>
+				{{else}}
+					<div class="item disabled">{{ctx.Locale.Tr "none"}}</div>
+				{{end}}
+			</div>
+		</div>
+		<div class="twelve wide column">
+			{{if .SelectedPath}}
+				{{/* iframe sandbox="" matches the response CSP `sandbox` directive: opaque origin, no scripts, no forms, no popups. */}}
+				<iframe class="artifact-preview-frame" src="{{.PreviewRawURL}}/{{PathEscapeSegments .SelectedPath}}" sandbox="" referrerpolicy="no-referrer"></iframe>
+			{{else}}
+				<div class="ui attached segment">{{ctx.Locale.Tr "none"}}</div>
+			{{end}}
+		</div>
+	</div>
+</div>
