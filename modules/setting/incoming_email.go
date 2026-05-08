@@ -12,10 +12,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+const IncomingEmailTokenPlaceholder = "%{token}"
+
 var IncomingEmail = struct {
 	Enabled              bool
 	ReplyToAddress       string
-	TokenPlaceholder     string `ini:"-"`
 	Host                 string
 	Port                 int
 	UseTLS               bool `ini:"USE_TLS"`
@@ -28,7 +29,6 @@ var IncomingEmail = struct {
 }{
 	Mailbox:              "INBOX",
 	DeleteHandledMessage: true,
-	TokenPlaceholder:     "%{token}",
 	MaximumMessageSize:   10485760,
 }
 
@@ -54,19 +54,10 @@ func checkReplyToAddress() error {
 		return errors.New("name must not be set")
 	}
 
-	c := strings.Count(IncomingEmail.ReplyToAddress, IncomingEmail.TokenPlaceholder)
-	switch c {
-	case 0:
-		return fmt.Errorf("%s must appear in the user part of the address (before the @)", IncomingEmail.TokenPlaceholder)
-	case 1:
-	default:
-		return fmt.Errorf("%s must appear only once", IncomingEmail.TokenPlaceholder)
+	placeholderCount := strings.Count(IncomingEmail.ReplyToAddress, IncomingEmailTokenPlaceholder)
+	userPart, _, _ := strings.Cut(IncomingEmail.ReplyToAddress, "@")
+	if placeholderCount != 1 || !strings.Contains(userPart, IncomingEmailTokenPlaceholder) {
+		return fmt.Errorf("%s must appear in the user part of the address (before the @)", IncomingEmailTokenPlaceholder)
 	}
-
-	parts := strings.Split(IncomingEmail.ReplyToAddress, "@")
-	if !strings.Contains(parts[0], IncomingEmail.TokenPlaceholder) {
-		return fmt.Errorf("%s must appear in the user part of the address (before the @)", IncomingEmail.TokenPlaceholder)
-	}
-
 	return nil
 }
