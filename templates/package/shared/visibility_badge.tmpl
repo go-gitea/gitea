@@ -1,5 +1,5 @@
 {{if .Package.IsInternal}}
-	<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+	<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
 {{else if .Owner.Visibility.IsPrivate}}
 	<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
 {{else if .Owner.Visibility.IsLimited}}

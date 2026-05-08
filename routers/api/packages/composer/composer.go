@@ -145,15 +145,11 @@ func PackageMetadata(ctx *context.Context) {
 		return
 	}
 
-	resp, err := createPackageMetadataResponse(
+	resp := createPackageMetadataResponse(
 		ctx,
 		setting.AppURL+"api/packages/"+ctx.Package.Owner.Name+"/composer",
 		pds,
 	)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
 
 	ctx.JSON(http.StatusOK, resp)
 }

@@ -10,6 +10,7 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/modules/log"
 	composer_module "code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/services/context"
 )
@@ -93,7 +94,7 @@ type Source struct {
 	Reference string `json:"reference"`
 }
 
-func createPackageMetadataResponse(ctx *context.Context, registryURL string, pds []*packages_model.PackageDescriptor) (*PackageMetadataResponse, error) {
+func createPackageMetadataResponse(ctx *context.Context, registryURL string, pds []*packages_model.PackageDescriptor) *PackageMetadataResponse {
 	versions := make([]*PackageVersionMetadata, 0, len(pds))
 
 	for _, pd := range pds {
@@ -120,10 +121,8 @@ func createPackageMetadataResponse(ctx *context.Context, registryURL string, pds
 		if pd.Repository != nil {
 			permission, err := access_model.GetDoerRepoPermission(ctx, pd.Repository, ctx.Doer)
 			if err != nil {
-				return nil, err
-			}
-
-			if permission.HasAnyUnitAccess() {
+				log.Error("GetDoerRepoPermission[%d]: %v", pd.Repository.ID, err)
+			} else if permission.HasAnyUnitAccessOrPublicAccess() {
 				pkg.Source = Source{
 					URL:       pd.Repository.HTMLURL(),
 					Type:      "git",
@@ -140,5 +139,5 @@ func createPackageMetadataResponse(ctx *context.Context, registryURL string, pds
 		Packages: map[string][]*PackageVersionMetadata{
 			pds[0].Package.Name: versions,
 		},
-	}, nil
+	}
 }

@@ -28,6 +28,7 @@ func TestPackageComposer(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	otherUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31})
 
 	vendorName := "gitea"
 	projectName := "composer-package"
@@ -288,5 +289,39 @@ func TestPackageComposer(t *testing.T) {
 		viewResp := MakeRequest(t, viewReq, http.StatusOK)
 		viewDoc := NewHTMLParser(t, bytes.NewReader(viewResp.Body.Bytes()))
 		assert.Equal(t, 0, viewDoc.Find(".issue-title-header .ui.basic.label").Length())
+
+		privatePackageName := privateUser.Name + "/private-composer-package"
+		privatePackageVersion := "1.0.0"
+		privateContent := test.WriteZipArchive(map[string]string{
+			"composer.json": `{
+				"name": "` + privatePackageName + `",
+				"description": "Private Package",
+				"type": "` + packageType + `",
+				"license": "` + packageLicense + `",
+				"authors": [
+					{
+						"name": "` + packageAuthor + `"
+					}
+				]
+			}`,
+		}).Bytes()
+		privateUploadURL := fmt.Sprintf("%sapi/packages/%s/composer?version=%s", setting.AppURL, privateUser.Name, privatePackageVersion)
+
+		uploadReq := NewRequestWithBody(t, "PUT", privateUploadURL, bytes.NewReader(privateContent)).
+			AddBasicAuth(privateUser.Name)
+		MakeRequest(t, uploadReq, http.StatusCreated)
+		privateSession := loginUser(t, privateUser.Name)
+
+		privateListReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages", privateUser.Name))
+		privateListResp := privateSession.MakeRequest(t, privateListReq, http.StatusOK)
+		privateListDoc := NewHTMLParser(t, bytes.NewReader(privateListResp.Body.Bytes()))
+		assert.Equal(t, 1, privateListDoc.Find(".item-title .ui.basic.label").Length())
+		assert.Equal(t, "Private", privateListDoc.Find(".item-title .ui.basic.label").First().Text())
+
+		privateViewReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/composer/%s/%s", privateUser.Name, neturl.PathEscape(privatePackageName), neturl.PathEscape(privatePackageVersion)))
+		privateViewResp := privateSession.MakeRequest(t, privateViewReq, http.StatusOK)
+		privateViewDoc := NewHTMLParser(t, bytes.NewReader(privateViewResp.Body.Bytes()))
+		assert.Equal(t, 1, privateViewDoc.Find(".issue-title-header .ui.basic.label").Length())
+		assert.Equal(t, "Private", privateViewDoc.Find(".issue-title-header .ui.basic.label").First().Text())
 	})
 }
