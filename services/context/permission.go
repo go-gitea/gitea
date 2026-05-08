@@ -57,14 +57,14 @@ func RequireUnitReader(unitTypes ...unit.Type) func(ctx *Context) {
 	}
 }
 
-// CheckRepoScopedToken check whether personal access token has repo scope
+// CheckRepoScopedToken checks whether the authenticated API token has repo scope.
 func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, level auth_model.AccessTokenScopeLevel) {
-	if !ctx.IsBasicAuth || ctx.Data["IsApiToken"] != true {
+	if ctx.Data["IsApiToken"] != true {
 		return
 	}
 
 	scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-	if ok { // it's a personal access token but not oauth2 token
+	if ok {
 		var scopeMatched bool
 
 		requiredScopes := auth_model.GetRequiredScopes(level, auth_model.AccessTokenScopeCategoryRepository)
@@ -76,7 +76,7 @@ func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, level auth_
 			return
 		}
 
-		if publicOnly && repo.IsPrivate {
+		if publicOnly && repo != nil && repo.IsPrivate {
 			ctx.HTTPError(http.StatusForbidden)
 			return
 		}

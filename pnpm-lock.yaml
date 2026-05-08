@@ -3818,6 +3818,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  semver@7.8.0:
+    resolution: {integrity: sha512-AcM7dV/5ul4EekoQ29Agm5vri8JNqRyj39o0qpX6vDF2GZrtutZl5RwgD1XnZjiTAfncsJhMI48QQH3sN87YNA==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   seroval-plugins@1.5.3:
     resolution: {integrity: sha512-LhVh4KjjkKmCxOUjoaUwtqbDjyMfnA535yEmmGDuwZcIYtw8ns6tZmeszNTECeUg/3sJpnEjsz/KhQrcPXPw1Q==}
     engines: {node: '>=10'}
@@ -8198,6 +8203,8 @@ snapshots:
 
   semver@7.7.4: {}
 
+  semver@7.8.0: {}
+
   seroval-plugins@1.5.3(seroval@1.5.3):
     dependencies:
       seroval: 1.5.3
@@ -8694,7 +8701,7 @@ snapshots:
       eslint-visitor-keys: 5.0.1
       espree: 11.2.0
       esquery: 1.7.0
-      semver: 7.7.4
+      semver: 7.8.0
     transitivePeerDependencies:
       - supports-color
 
