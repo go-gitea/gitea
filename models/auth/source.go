@@ -100,7 +100,7 @@ var registeredConfigs = map[Type]func() Config{}
 
 // RegisterTypeConfig register a config for a provided type
 func RegisterTypeConfig(typ Type, exemplar Config) {
-	if reflect.TypeOf(exemplar).Kind() == reflect.Ptr {
+	if reflect.TypeOf(exemplar).Kind() == reflect.Pointer {
 		// Pointer:
 		registeredConfigs[typ] = func() Config {
 			return reflect.New(reflect.ValueOf(exemplar).Elem().Type()).Interface().(Config)
