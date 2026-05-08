@@ -41,7 +41,6 @@ func CheckPrincipalKeyString(ctx context.Context, user *user_model.User, content
 				if !email.IsActivated {
 					continue
 				}
-				// EmailAddress.Email preserves the user-input case; only LowerEmail is normalised.
 				if lowerContent == email.LowerEmail {
 					return content, nil
 				}
