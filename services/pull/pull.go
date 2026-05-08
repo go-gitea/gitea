@@ -847,7 +847,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		// commits list is in reverse chronological order
 		maxMsgSize := setting.Repository.PullRequest.DefaultMergeMessageSize
 		for _, commit := range slices.Backward(commits) {
-			msg := strings.TrimSpace(commit.CommitMessage)
+			msg := strings.TrimSpace(commit.MessageUTF8())
 			if msg == "" {
 				continue
 			}
@@ -1074,7 +1074,7 @@ func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user
 		}
 
 		commits = append(commits, CommitInfo{
-			Summary:               commit.Summary(),
+			Summary:               commit.MessageTitle(),
 			CommitterOrAuthorName: committerOrAuthorName,
 			ID:                    commit.ID.String(),
 			ShortSha:              base.ShortSha(commit.ID.String()),
