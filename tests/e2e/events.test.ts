@@ -54,11 +54,14 @@ test.describe('events', () => {
     const headers = apiUserHeaders(name);
 
     await apiCreateUser(request, name);
-    await apiCreateRepo(request, {name, headers});
-    await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch push test', headers});
-
+    await Promise.all([
+      loginUser(page, name),
+      (async () => {
+        await apiCreateRepo(request, {name, headers});
+        await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch push test', headers});
+      })(),
+    ]);
     // Page loads before the stopwatch starts — the icon is hidden in the rendered HTML
-    await loginUser(page, name);
     await page.goto('/');
     const stopwatch = page.locator('.active-stopwatch.not-mobile');
     // Element must exist in the DOM (just hidden); otherwise the push has nothing to reveal.
@@ -78,11 +81,14 @@ test.describe('events', () => {
     const headers = apiUserHeaders(name);
 
     await apiCreateUser(request, name);
-    await apiCreateRepo(request, {name, headers});
-    await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch stop test', headers});
-    await apiStartStopwatch(request, name, name, 1, {headers});
-
-    await loginUser(page, name);
+    await Promise.all([
+      loginUser(page, name),
+      (async () => {
+        await apiCreateRepo(request, {name, headers});
+        await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch stop test', headers});
+        await apiStartStopwatch(request, name, name, 1, {headers});
+      })(),
+    ]);
     await page.goto('/');
     const stopwatch = page.locator('.active-stopwatch.not-mobile');
     await expect(stopwatch).toBeVisible();
