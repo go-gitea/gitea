@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	net_mail "net/mail"
-	"regexp"
 	"strings"
 	"time"
 
@@ -24,33 +23,10 @@ import (
 	"github.com/jhillyerd/enmime/v2"
 )
 
-var (
-	addressTokenRegex   *regexp.Regexp
-	referenceTokenRegex *regexp.Regexp
-)
-
 func Init(ctx context.Context) error {
 	if !setting.IncomingEmail.Enabled {
 		return nil
 	}
-
-	// Match case-insensitively: MTAs are permitted to alter the case of the local-part
-	// (RFC 5321 §2.4) and the domain is case-insensitive (RFC 1035).
-	var err error
-	addressTokenRegex, err = regexp.Compile(
-		fmt.Sprintf(
-			`(?i)\A%s\z`,
-			strings.Replace(regexp.QuoteMeta(setting.IncomingEmail.ReplyToAddress), regexp.QuoteMeta(setting.IncomingEmail.TokenPlaceholder), "(.+)", 1),
-		),
-	)
-	if err != nil {
-		return err
-	}
-	referenceTokenRegex, err = regexp.Compile(fmt.Sprintf(`(?i)\Areply-(.+)@%s\z`, regexp.QuoteMeta(setting.Domain)))
-	if err != nil {
-		return err
-	}
-
 	go func() {
 		ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Incoming Email", process.SystemProcessType, true)
 		defer finished()
@@ -294,22 +270,31 @@ func isAutomaticReply(env *enmime.Envelope) bool {
 	return autoRespond != ""
 }
 
+func extractToken(s, tokenPrefix, tokenSuffix string) string {
+	if len(s) <= len(tokenPrefix)+len(tokenSuffix) {
+		return ""
+	}
+	prefix, suffix := s[0:len(tokenPrefix)], s[len(s)-len(tokenSuffix):]
+	if strings.EqualFold(prefix, tokenPrefix) && strings.EqualFold(suffix, tokenSuffix) {
+		return s[len(tokenPrefix) : len(s)-len(tokenSuffix)]
+	}
+	return ""
+}
+
 // searchTokenInHeaders looks for the token in To, Delivered-To and References
 func searchTokenInHeaders(env *enmime.Envelope) string {
-	if addressTokenRegex != nil {
-		to, _ := env.AddressList("To")
+	to, _ := env.AddressList("To")
 
-		token := searchTokenInAddresses(to)
-		if token != "" {
-			return token
-		}
+	token := searchTokenInAddresses(to)
+	if token != "" {
+		return token
+	}
 
-		deliveredTo, _ := env.AddressList("Delivered-To")
+	deliveredTo, _ := env.AddressList("Delivered-To")
 
-		token = searchTokenInAddresses(deliveredTo)
-		if token != "" {
-			return token
-		}
+	token = searchTokenInAddresses(deliveredTo)
+	if token != "" {
+		return token
 	}
 
 	references := env.GetHeader("References")
@@ -324,10 +309,9 @@ func searchTokenInHeaders(env *enmime.Envelope) string {
 		if end == -1 || begin > end {
 			break
 		}
-
-		match := referenceTokenRegex.FindStringSubmatch(references[begin:end])
-		if len(match) == 2 {
-			return match[1]
+		t := extractToken(references[begin:end], "reply-", "@"+setting.Domain)
+		if t != "" {
+			return t
 		}
 
 		references = references[end+1:]
@@ -338,15 +322,15 @@ func searchTokenInHeaders(env *enmime.Envelope) string {
 
 // searchTokenInAddresses looks for the token in an address
 func searchTokenInAddresses(addresses []*net_mail.Address) string {
-	for _, address := range addresses {
-		match := addressTokenRegex.FindStringSubmatch(address.Address)
-		if len(match) != 2 {
-			continue
-		}
-
-		return match[1]
+	tokenPrefix, tokenSuffix, _ := strings.Cut(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmailTokenPlaceholder)
+	if tokenSuffix == "" {
+		return ""
 	}
-
+	for _, address := range addresses {
+		if t := extractToken(address.Address, tokenPrefix, tokenSuffix); t != "" {
+			return t
+		}
+	}
 	return ""
 }
 

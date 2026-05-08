@@ -196,7 +196,7 @@ func TestIncomingEmail(t *testing.T) {
 				assert.NoError(t, err)
 
 				msg := sender_service.NewMessageFrom(
-					strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1),
+					strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmailTokenPlaceholder, token, 1),
 					"",
 					user.Email,
 					"",
