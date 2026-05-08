@@ -98,7 +98,7 @@ func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	assert.Equal(t, commitstatus.CommitStatusSuccess, statuses[2].State)
 }
 
-func TestGetCommitStatusInfo(t *testing.T) {
+func TestGetCommitActionsStatusMap(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})

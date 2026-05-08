@@ -57,7 +57,7 @@ func GetCommitActionsStatusMap(ctx context.Context, statuses []*git_model.Commit
 	}
 	jobs := make(map[int64]*actions_model.ActionRunJob, len(statusByJobID))
 	if err := db.GetEngine(ctx).In("id", slices.Collect(maps.Keys(statusByJobID))).Cols("id", "status").Find(&jobs); err != nil {
-		log.Error("GetCommitStatusInfo: find action run jobs: %v", err)
+		log.Error("db.Find: failed to find action run jobs: %v", err)
 		return nil
 	}
 	info := make(CommitActionsStatusMap, len(jobs))

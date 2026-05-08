@@ -3,11 +3,11 @@
 * StatusCheckData: optional, additional status check data, see backend pullCommitStatusCheckData struct
 */}}
 {{$statusCheckData := $.StatusCheckData}}
-{{$commitActionsStatus := $statusCheckData.CommitActionsStatusMap}}
+{{$commitActionsStatuses :=  ctx.ActionsUtils.CommitStatusesToActionsStatuses $.CommitStatuses}}
 {{range $cs := $.CommitStatuses}}
 	<div class="item commit-status-item">
 		<div class="flex-text-block">
-			{{$actionStatus := $commitActionsStatus.IconStatus $cs}}
+			{{$actionStatus := $commitActionsStatuses.IconStatus $cs}}
 			{{if $actionStatus}}
 				{{template "repo/icons/action_status" (dict "Status" $actionStatus "Size" 18 "ClassName" "commit-status icon")}}
 			{{else}}
