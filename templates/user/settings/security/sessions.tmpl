@@ -6,7 +6,6 @@
 	{{if gt .OtherActiveCount 0}}
 	<div class="ui right">
 		<form class="tw-inline" action="{{AppSubUrl}}/user/settings/security/sessions/revoke_all" method="post">
-			{{.CsrfTokenHtml}}
 			<button class="ui red tiny button">{{ctx.Locale.Tr "settings.sessions.revoke_all"}}</button>
 		</form>
 	</div>
@@ -49,7 +48,6 @@
 				{{if and (not .LogoutUnix) (ne .ID $.CurrentSessionID)}}
 				<div class="flex-item-trailing">
 					<form action="{{AppSubUrl}}/user/settings/security/sessions/revoke" method="post">
-						{{$.CsrfTokenHtml}}
 						<input type="hidden" name="session_id" value="{{.ID}}">
 						<button class="ui red tiny button">{{ctx.Locale.Tr "settings.sessions.revoke"}}</button>
 					</form>

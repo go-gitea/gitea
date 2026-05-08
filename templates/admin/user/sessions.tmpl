@@ -6,7 +6,6 @@
 		<div class="ui right">
 			{{if gt .ActiveCount 0}}
 			<form class="tw-inline" action="{{AppSubUrl}}/-/admin/users/{{.User.ID}}/sessions/revoke_all" method="post">
-				{{.CsrfTokenHtml}}
 				<button class="ui red tiny button">{{ctx.Locale.Tr "admin.settings.sessions.revoke_all"}}</button>
 			</form>
 			{{end}}
@@ -48,7 +47,6 @@
 					{{if not .LogoutUnix}}
 					<div class="flex-item-trailing">
 						<form action="{{AppSubUrl}}/-/admin/users/{{$.User.ID}}/sessions/revoke" method="post">
-							{{$.CsrfTokenHtml}}
 							<input type="hidden" name="session_id" value="{{.ID}}">
 							<button class="ui red tiny button">{{ctx.Locale.Tr "settings.sessions.revoke"}}</button>
 						</form>
