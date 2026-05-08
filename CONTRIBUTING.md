@@ -195,7 +195,7 @@ PR titles must follow the [Conventional Commits](https://www.conventionalcommits
 type(scope)!: subject
 ```
 
-The allowed types are `build`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, and `test`. The generic `chore` type is intentionally not accepted; pick a more descriptive type instead.
+The allowed types are `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, and `test`. The generic `chore` type is intentionally not accepted; pick a more descriptive type instead.
 
 Examples:
 

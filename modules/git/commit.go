@@ -11,19 +11,28 @@ import (
 	"os/exec"
 	"strings"
 
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/util"
 )
+
+type CommitMessage struct {
+	MessageRaw   string
+	messageUTF8  *string
+	messageTitle *string
+	messageBody  *string
+}
 
 // Commit represents a git commit.
 type Commit struct {
 	Tree // FIXME: bad design, this field can be nil if the commit is from "last commit cache"
 
-	ID            ObjectID
-	Author        *Signature // never nil
-	Committer     *Signature // never nil
-	CommitMessage string
-	Signature     *CommitSignature
+	CommitMessage
+
+	ID        ObjectID
+	Author    *Signature // never nil
+	Committer *Signature // never nil
+	Signature *CommitSignature
 
 	Parents        []ObjectID // ID strings
 	submoduleCache *ObjectCache[*SubModule]
@@ -35,19 +44,28 @@ type CommitSignature struct {
 	Payload   string
 }
 
-// Message returns the commit message. Same as retrieving CommitMessage directly.
-func (c *Commit) Message() string {
-	// FIXME: GIT-COMMIT-MESSAGE-ENCODING: this logic is not right
-	// * When need to use commit message in templates/database, it should be valid UTF-8
-	// * When need to get the original commit message, it should just use "c.CommitMessage"
-	// It's not easy to refactor at the moment, many templates need to be updated and tested
-	return c.CommitMessage
+func (c *CommitMessage) MessageUTF8() string {
+	if c.messageUTF8 == nil {
+		bs := charset.ToUTF8(util.UnsafeStringToBytes(c.MessageRaw), charset.ConvertOpts{ErrorReplacement: []byte{'?'}})
+		c.messageUTF8 = new(util.UnsafeBytesToString(bs))
+	}
+	return *c.messageUTF8
 }
 
-// Summary returns first line of commit message.
-// The string is forced to be valid UTF8
-func (c *Commit) Summary() string {
-	return strings.ToValidUTF8(strings.Split(strings.TrimSpace(c.CommitMessage), "\n")[0], "?")
+func (c *CommitMessage) MessageTitle() string {
+	if c.messageTitle == nil {
+		s, _, _ := strings.Cut(strings.TrimSpace(c.MessageUTF8()), "\n")
+		c.messageTitle = new(strings.TrimSpace(s))
+	}
+	return *c.messageTitle
+}
+
+func (c *CommitMessage) MessageBody() string {
+	if c.messageBody == nil {
+		_, s, _ := strings.Cut(strings.TrimSpace(c.MessageUTF8()), "\n")
+		c.messageBody = new(strings.TrimSpace(s))
+	}
+	return *c.messageBody
 }
 
 // ParentID returns oid of n-th parent (0-based index).
