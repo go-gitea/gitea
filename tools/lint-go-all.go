@@ -78,8 +78,13 @@ func main() {
 	// 'go run' can not have distinct GOOS/GOARCH for its build and run steps,
 	// so install a pre-compiled binary and run it for different target platforms.
 	_, _ = os.Unsetenv("GOOS"), os.Unsetenv("GOARCH")
+
 	envGolangciLintPackage := os.Getenv("GOLANGCI_LINT_PACKAGE")
 	envGo := os.Getenv("GO")
+	if envGo == "" || envGolangciLintPackage == "" {
+		_, _ = fmt.Fprintln(os.Stderr, "Environment variables GO and GOLANGCI_LINT_PACKAGE must be set")
+		os.Exit(1)
+	}
 	if !runCmd(nil, envGo, []string{"install", envGolangciLintPackage}) {
 		os.Exit(1)
 	}
