@@ -27,6 +27,7 @@ func TestPackageComposer(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	otherUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
 	vendorName := "gitea"
 	projectName := "composer-package"
@@ -243,5 +244,49 @@ func TestPackageComposer(t *testing.T) {
 		assert.Equal(t, repo1.HTMLURL(), pkgs[0].Source.URL)
 		assert.Equal(t, "git", pkgs[0].Source.Type)
 		assert.Equal(t, packageVersion, pkgs[0].Source.Reference)
+
+		// Private repository links remain visible to callers who can access the repository.
+		repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		err = packages.SetRepositoryLink(t.Context(), userPkgs[0].ID, repo2.ID)
+		assert.NoError(t, err)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
+			AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
+		pkgs = result.Packages[packageName]
+		assert.Len(t, pkgs, 1)
+		assert.Equal(t, repo2.HTMLURL(), pkgs[0].Source.URL)
+		assert.Equal(t, "git", pkgs[0].Source.Type)
+		assert.Equal(t, packageVersion, pkgs[0].Source.Reference)
+
+		// Callers without repository access still get the package metadata, but not the private source URL.
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
+			AddBasicAuth(otherUser.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
+		pkgs = result.Packages[packageName]
+		assert.Len(t, pkgs, 1)
+		assert.Empty(t, pkgs[0].Source.URL)
+		assert.Empty(t, pkgs[0].Source.Type)
+		assert.Empty(t, pkgs[0].Source.Reference)
+	})
+
+	t.Run("WebVisibilityBadge", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		listReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages", user.Name)).
+			AddBasicAuth(user.Name)
+		listResp := MakeRequest(t, listReq, http.StatusOK)
+		listDoc := NewHTMLParser(t, bytes.NewReader(listResp.Body.Bytes()))
+		assert.Equal(t, 0, listDoc.Find(".item-title .ui.basic.label").Length())
+
+		viewReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/composer/%s/%s", user.Name, neturl.PathEscape(packageName), neturl.PathEscape(packageVersion))).
+			AddBasicAuth(user.Name)
+		viewResp := MakeRequest(t, viewReq, http.StatusOK)
+		viewDoc := NewHTMLParser(t, bytes.NewReader(viewResp.Body.Bytes()))
+		assert.Equal(t, 0, viewDoc.Find(".issue-title-header .ui.basic.label").Length())
 	})
 }

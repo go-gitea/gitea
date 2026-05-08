@@ -10,7 +10,13 @@
 			{{template "user/overview/header" .}}
 		{{end}}
 		{{template "base/alert" .}}
-		<p><a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a> / <strong>{{ctx.Locale.Tr "repo.settings"}}</strong></p>
+		<p>
+			<a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a>
+			<span class="label-list">
+				{{template "package/shared/visibility_badge" dict "Package" .PackageDescriptor.Package "Owner" .PackageDescriptor.Owner}}
+			</span>
+			/ <strong>{{ctx.Locale.Tr "repo.settings"}}</strong>
+		</p>
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "packages.settings.link"}}
 		</h4>
