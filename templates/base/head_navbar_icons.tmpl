@@ -4,7 +4,7 @@
 	{{- $activeStopwatch := call $data.GetActiveStopwatch -}}
 	{{- $notificationUnreadCount := call $data.GetNotificationUnreadCount -}}
 	{{/* always rendered so a real-time push can reveal it without a reload */}}
-	<a class="item active-stopwatch{{if not $activeStopwatch}} tw-hidden{{end}} {{$itemExtraClass}}" {{if $activeStopwatch}}href="{{$activeStopwatch.IssueLink}}" data-seconds="{{$activeStopwatch.Seconds}}"{{end}} title="{{ctx.Locale.Tr "active_stopwatch"}}">
+	<a class="item active-stopwatch{{if not $activeStopwatch}} tw-hidden{{end}} {{$itemExtraClass}}" {{if $activeStopwatch}}data-seconds="{{$activeStopwatch.Seconds}}"{{end}} title="{{ctx.Locale.Tr "active_stopwatch"}}">
 		<div class="tw-relative flex-text-block">
 			{{svg "octicon-stopwatch"}}
 			<span class="header-stopwatch-dot"></span>

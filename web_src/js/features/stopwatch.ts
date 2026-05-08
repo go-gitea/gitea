@@ -24,8 +24,6 @@ export function initStopwatch() {
   }
 
   for (const stopwatchEl of stopwatchEls) {
-    stopwatchEl.removeAttribute('href'); // intended for noscript mode only
-
     createTippy(stopwatchEl, {
       content: stopwatchPopup.cloneNode(true) as Element,
       placement: 'bottom-end',
