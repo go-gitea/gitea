@@ -6,7 +6,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -21,6 +23,7 @@ var skipDirs = map[string]bool{
 	".venv":        true,
 	"node_modules": true,
 	"public":       true,
+	"vendor":       true,
 	"web_src":      true,
 }
 
@@ -48,9 +51,12 @@ func main() {
 		if err != nil {
 			return err
 		}
+		defer f.Close()
 		buf := make([]byte, 1024)
-		n, _ := f.Read(buf)
-		f.Close()
+		n, err := f.Read(buf)
+		if err != nil && !errors.Is(err, io.EOF) {
+			return fmt.Errorf("%s: %w", path, err)
+		}
 		if !headerRE.Match(buf[:n]) {
 			fmt.Printf("%s: missing or invalid copyright header\n", path)
 			bad++
