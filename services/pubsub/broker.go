@@ -30,22 +30,25 @@ func (b *Broker) Subscribe(topic string) (<-chan []byte, func()) {
 	b.subs[topic] = append(b.subs[topic], ch)
 	b.mu.Unlock()
 
+	var once sync.Once
 	cancel := func() {
-		b.mu.Lock()
-		defer b.mu.Unlock()
-		subs := b.subs[topic]
-		for i, sub := range subs {
-			if sub == ch {
-				subs = append(subs[:i], subs[i+1:]...)
-				break
+		once.Do(func() {
+			b.mu.Lock()
+			defer b.mu.Unlock()
+			subs := b.subs[topic]
+			for i, sub := range subs {
+				if sub == ch {
+					subs = append(subs[:i], subs[i+1:]...)
+					break
+				}
 			}
-		}
-		if len(subs) == 0 {
-			delete(b.subs, topic)
-		} else {
-			b.subs[topic] = subs
-		}
-		close(ch)
+			if len(subs) == 0 {
+				delete(b.subs, topic)
+			} else {
+				b.subs[topic] = subs
+			}
+			close(ch)
+		})
 	}
 	return ch, cancel
 }
