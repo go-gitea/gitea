@@ -21,10 +21,12 @@ import (
 const (
 	pingInterval = 30 * time.Second
 	pingTimeout  = 10 * time.Second
+	writeTimeout = 10 * time.Second
 
-	// IANA-registered "Unauthorized" close code. Sent so the SharedWorker
-	// can tell "your cookie is gone" apart from a transient network
-	// failure and stop reconnecting in a tight loop.
+	// First code in the IANA library/framework reserved range (3000–3999).
+	// Sentinel for an unauthenticated session so the SharedWorker can tell
+	// "your cookie is gone" apart from a transient network failure and stop
+	// reconnecting in a tight loop.
 	closeCodeUnauthenticated gitea_ws.StatusCode = 3000
 )
 
@@ -105,7 +107,12 @@ func Serve(ctx *context.Context) {
 				return
 			}
 			msg = rewriteLogout(msg, sessionID)
-			if err := conn.Write(wsCtx, gitea_ws.MessageText, msg); err != nil {
+			// Bound the write so a stalled/slow peer can't block this goroutine
+			// indefinitely and starve the ping ticker.
+			writeCtx, cancelWrite := gocontext.WithTimeout(wsCtx, writeTimeout)
+			err := conn.Write(writeCtx, gitea_ws.MessageText, msg)
+			cancelWrite()
+			if err != nil {
 				log.Trace("websocket: write failed: %v", err)
 				return
 			}
