@@ -102,16 +102,11 @@ func TestGetCommitStatusInfo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
-	require.NoError(t, err)
-	defer gitRepo.Close()
-	commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
-	require.NoError(t, err)
-	sha := commit.ID.String()
+	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: repo.DefaultBranch})
 
 	run := &actions_model.ActionRun{
 		RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID, TriggerUserID: repo.OwnerID,
-		WorkflowID: "test.yaml", CommitSHA: sha,
+		WorkflowID: "test.yaml", CommitSHA: branch.CommitID,
 	}
 	require.NoError(t, db.Insert(t.Context(), run))
 
@@ -128,10 +123,10 @@ func TestGetCommitStatusInfo(t *testing.T) {
 			RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID, Name: tc.jobName, Status: tc.status,
 		}
 		require.NoError(t, db.Insert(t.Context(), job))
-		require.NoError(t, createCommitStatus(t.Context(), repo, "push", sha, run, job))
+		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, run, job))
 	}
 
-	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
+	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, branch.CommitID, db.ListOptionsAll)
 	require.NoError(t, err)
 
 	info := actions_module.GetCommitActionsStatusMap(t.Context(), statuses)
@@ -142,9 +137,6 @@ func TestGetCommitStatusInfo(t *testing.T) {
 	for _, tc := range cases {
 		key := "test.yaml / " + tc.jobName + " (push)"
 		want := tc.status.String()
-		if tc.status.IsUnknown() {
-			want = "" // unknown jobs are skipped, caller falls back to the basic icon
-		}
 		assert.Equal(t, want, got[key], "icon status for %s", tc.jobName)
 	}
 
