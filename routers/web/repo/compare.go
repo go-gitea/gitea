@@ -190,7 +190,7 @@ func setCsvCompareContext(ctx *context.Context) {
 }
 
 // ParseCompareInfo parse compare info between two commit for preparing comparing references
-func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
+func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	baseRepo := ctx.Repo.Repository
 	fileOnly := ctx.FormBool("file-only")
 
@@ -200,7 +200,7 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 	// remove the check when we support compare with carets
 	if compareReq.BaseOriRefSuffix != "" {
 		ctx.HTTPError(http.StatusBadRequest, "Unsupported comparison syntax: ref with suffix")
-		return nil, false
+		return nil
 	}
 
 	// 2 get repository and owner for head
@@ -208,13 +208,13 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 	switch {
 	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.HTTPError(http.StatusBadRequest, err.Error())
-		return nil, false
+		return nil
 	case errors.Is(err, util.ErrNotExist):
 		ctx.NotFound(nil)
-		return nil, false
+		return nil
 	case err != nil:
 		ctx.ServerError("GetHeadOwnerAndRepo", err)
-		return nil, false
+		return nil
 	}
 
 	isSameRepo := baseRepo.ID == headRepo.ID
@@ -229,7 +229,7 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 		permHead, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetDoerRepoPermission", err)
-			return nil, false
+			return nil
 		}
 		if !permHead.CanRead(unit.TypeCode) {
 			if log.IsTrace() {
@@ -239,7 +239,7 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 					permHead)
 			}
 			ctx.NotFound(nil)
-			return nil, false
+			return nil
 		}
 		ctx.Data["CanWriteToHeadRepo"] = permHead.CanWrite(unit.TypeCode)
 	}
@@ -251,7 +251,7 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefName)
 	if baseRef == "" {
 		ctx.NotFound(nil)
-		return nil, false
+		return nil
 	}
 	var headGitRepo *git.Repository
 	if isSameRepo {
@@ -260,14 +260,14 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 		headGitRepo, err = gitrepo.OpenRepository(ctx, headRepo)
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
-			return nil, false
+			return nil
 		}
 		defer headGitRepo.Close()
 	}
 	headRef := headGitRepo.UnstableGuessRefByShortName(headRefName)
 	if headRef == "" {
 		ctx.NotFound(nil)
-		return nil, false
+		return nil
 	}
 
 	ctx.Data["BaseName"] = baseRepo.OwnerName
@@ -294,7 +294,7 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 		if err != nil {
 			if !repo_model.IsErrRepoNotExist(err) {
 				ctx.ServerError("Unable to find root repo", err)
-				return nil, false
+				return nil
 			}
 		} else {
 			rootRepo = baseRepo.BaseRepo
@@ -362,7 +362,7 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 				branches, tags, err := getBranchesAndTagsForRepo(ctx, rootRepo)
 				if err != nil {
 					ctx.ServerError("GetBranchesForRepo", err)
-					return nil, false
+					return nil
 				}
 
 				ctx.Data["RootRepoBranches"] = branches
@@ -387,7 +387,7 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 				branches, tags, err := getBranchesAndTagsForRepo(ctx, ownForkRepo)
 				if err != nil {
 					ctx.ServerError("GetBranchesForRepo", err)
-					return nil, false
+					return nil
 				}
 				ctx.Data["OwnForkRepoBranches"] = branches
 				ctx.Data["OwnForkRepoTags"] = tags
@@ -408,24 +408,25 @@ func ParseCompareInfo(ctx *context.Context) (*git_service.CompareInfo, bool) {
 				permBase)
 		}
 		ctx.NotFound(nil)
-		return nil, false
+		return nil
 	}
 
 	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), fileOnly)
 	if err != nil {
 		var noMergeBase gitrepo.ErrNoMergeBase
 		if errors.As(err, &noMergeBase) {
-			return compareInfo, true
+			ctx.Data["IsNoMergeBase"] = true
+			return compareInfo
 		}
 		ctx.ServerError("GetCompareInfo", err)
-		return nil, false
+		return nil
 	}
 	if compareReq.DirectComparison() {
 		ctx.Data["BeforeCommitID"] = compareInfo.BaseCommitID
 	} else {
 		ctx.Data["BeforeCommitID"] = compareInfo.MergeBase
 	}
-	return compareInfo, false
+	return compareInfo
 }
 
 func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses) (title, content string) {
@@ -597,7 +598,7 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
-	ci, noMergeBase := ParseCompareInfo(ctx)
+	ci := ParseCompareInfo(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -606,6 +607,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["CompareInfo"] = ci
 
+	noMergeBase, _ := ctx.Data["IsNoMergeBase"].(bool)
 	nothingToCompare := true
 	if noMergeBase {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
