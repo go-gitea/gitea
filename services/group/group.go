@@ -27,19 +27,49 @@ func NewGroup(ctx context.Context, g *group_model.Group) error {
 	if len(g.Name) == 0 {
 		return util.NewInvalidArgumentErrorf("empty group name")
 	}
-	has, err := db.ExistByID[user_model.User](ctx, g.OwnerID)
+	owner, has, err := db.GetByID[user_model.User](ctx, g.OwnerID)
 	if err != nil {
 		return err
 	}
 	if !has {
 		return organization.ErrOrgNotExist{ID: g.OwnerID}
 	}
+	g.OwnerName = owner.Name
 	g.LowerName = strings.ToLower(g.Name)
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
+
+	if g.ParentGroupID > 0 {
+		ngrp, err := group_model.GetGroupByID(ctx, g.ParentGroupID)
+		if err != nil {
+			return err
+		}
+		if err = ngrp.LoadSubgroups(ctx, false); err != nil {
+			return err
+		}
+		g.SortOrder = len(ngrp.Subgroups)
+		gidChain, err := group_model.GetParentGroupIDChain(ctx, g.ParentGroupID)
+		if err != nil {
+			return err
+		}
+		if len(gidChain) >= 20 {
+			return group_model.ErrGroupTooDeep{
+				ID: g.ParentGroupID,
+			}
+		}
+	} else {
+		siblings, err := group_model.FindGroups(ctx, &group_model.FindGroupsOptions{
+			ParentGroupID: 0,
+			OwnerID:       g.OwnerID,
+		})
+		if err != nil {
+			return err
+		}
+		g.SortOrder = len(siblings)
+	}
 
 	if err = db.Insert(ctx, g); err != nil {
 		return err
