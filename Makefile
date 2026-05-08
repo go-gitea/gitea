@@ -347,7 +347,7 @@ lint-go-fix: ## lint go files and fix issues
 .PHONY: lint-go-windows
 lint-go-windows:
 	@GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
-	@$(GO) run tools/lint-go-header.go; header=$$?; \
+	@GOOS= GOARCH= $(GO) run tools/lint-go-header.go; header=$$?; \
 	golangci-lint run; lint=$$?; \
 	exit $$((lint ? lint : header))
 
