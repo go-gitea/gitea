@@ -7,15 +7,11 @@
 
 if [ -n "$LINT_GO_INSTALL" ]; then
 	GOOS= GOARCH= go install "$GOLANGCI_LINT_PACKAGE"
-	GOOS= GOARCH= go run tools/lint-go-header.go
-	header=$?
-	golangci-lint run "$@"
-	lint=$?
+	GOOS= GOARCH= go run tools/lint-go-header.go; header=$?
+	golangci-lint run "$@"; lint=$?
 else
-	go run tools/lint-go-header.go
-	header=$?
-	go run "$GOLANGCI_LINT_PACKAGE" run "$@"
-	lint=$?
+	go run tools/lint-go-header.go; header=$?
+	go run "$GOLANGCI_LINT_PACKAGE" run "$@"; lint=$?
 fi
 
 exit $((lint ? lint : header))
