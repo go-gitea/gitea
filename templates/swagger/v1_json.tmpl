@@ -22201,17 +22201,17 @@
           "type": "string",
           "x-go-name": "Path"
         },
+        "previous_attempt_url": {
+          "description": "PreviousAttemptURL is the API URL of the previous attempt of this run, e.g. \".../actions/runs/{run_id}/attempts/{attempt-1}\".\nIt is set only when the current attempt is \u003e 1 (i.e. a rerun). For the first attempt, or for legacy runs that pre-date ActionRunAttempt, it is null.",
+          "type": "string",
+          "x-go-name": "PreviousAttemptURL"
+        },
         "pull_requests": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/PullRequestMinimal"
           },
           "x-go-name": "PullRequests"
-        },
-        "previous_attempt_url": {
-          "description": "PreviousAttemptURL is the API URL of the previous attempt of this run, e.g. \".../actions/runs/{run_id}/attempts/{attempt-1}\".\nIt is set only when the current attempt is \u003e 1 (i.e. a rerun). For the first attempt, or for legacy runs that pre-date ActionRunAttempt, it is null.",
-          "type": "string",
-          "x-go-name": "PreviousAttemptURL"
         },
         "repository": {
           "$ref": "#/definitions/Repository"
