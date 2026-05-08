@@ -14,5 +14,8 @@ func (mirrorWithLastSyncUnix) TableName() string {
 }
 
 func AddLastSyncUnixToMirror(x *xorm.Engine) error {
-	return x.Sync(new(mirrorWithLastSyncUnix))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(mirrorWithLastSyncUnix))
+	return err
 }
