@@ -120,6 +120,11 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, handle
 		handleOtherError("error checking group access", err)
 		return
 	}
+	privateBecauseOfParent, err := group.IsPrivateBecauseOfParentPermissions(ctx, doer)
+	if err != nil {
+		handleOtherError("error checking group access", err)
+		return
+	}
 	if group.Owner == nil {
 		err = group.LoadOwner(ctx)
 		if err != nil {
@@ -255,6 +260,9 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, handle
 		}
 		repoGroup.IsGroupAdmin = repoGroup.IsGroupAdmin || isAdmin
 	}
+	if !repoGroup.IsOwner && !repoGroup.IsGroupAdmin {
+		canAccess = canAccess && !privateBecauseOfParent
+	}
 	assign(repoGroup, canAccess)
 }
 
@@ -296,7 +304,7 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 				is, _ := organization.IsPublicMembership(ctx, ctx.Org.Organization.ID, uid)
 				return is
 			}
-			ctx.Data["CanReadProjects"] = repoGroup.CanReadUnit(ctx, unit.TypeProjects)
+			ctx.Data["CanReadProjects"] = repoGroup.CanReadUnit(ctx, ctx.Doer, unit.TypeProjects)
 			ctx.Data["CanCreateOrgRepo"] = repoGroup.CanCreateRepoOrGroup
 
 			ctx.Data["IsGroupAdmin"] = repoGroup.IsGroupAdmin
@@ -356,10 +364,14 @@ func GroupAssignmentAPI() func(ctx *APIContext) {
 				ctx.APIErrorNotFound(nil)
 				return
 			}
-
-			if !canAccess && group.Visibility != structs.VisibleTypePublic {
+			if ctx.IsSigned {
+				if !canAccess && group.Visibility != structs.VisibleTypePublic {
+					ctx.APIErrorNotFound(nil)
+					return
+				}
+			}
+			if !canAccess {
 				ctx.APIErrorNotFound(nil)
-				return
 			}
 			ctx.RepoGroup = repoGroup
 		})
