@@ -52,7 +52,8 @@ jobs:
           cache-name: pgsql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
-      - run: make deps-backend generate-go
+      - run: make deps-backend
+      - run: make backend
         env:
           TAGS: bindata
       - name: run migration tests
@@ -80,7 +81,8 @@ jobs:
       - uses: ./.github/actions/go-cache
         with:
           cache-name: sqlite
-      - run: make deps-backend generate-go
+      - run: make deps-backend
+      - run: make backend
         env:
           TAGS: bindata gogit
           GOEXPERIMENT:
@@ -207,7 +209,8 @@ jobs:
           cache-name: mysql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
-      - run: make deps-backend generate-go
+      - run: make deps-backend
+      - run: make backend
         env:
           TAGS: bindata
       - name: run migration tests
@@ -247,7 +250,8 @@ jobs:
           cache-name: mssql
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
-      - run: make deps-backend generate-go
+      - run: make deps-backend
+      - run: make backend
         env:
           TAGS: bindata
       - run: GITEA_TEST_DATABASE=mssql make test-migration
