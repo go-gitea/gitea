@@ -332,12 +332,11 @@ lint-spell-fix: ## lint spelling and fix issues
 
 .PHONY: lint-go
 lint-go: ## lint go files
-	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) ./tools/lint-go-all.sh
+	GOOS= GOARCH= GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go
 
 .PHONY: lint-go-fix
 lint-go-fix: ## lint go files and fix issues
-	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
-	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) ./tools/lint-go-all.sh
+	GOOS= GOARCH= GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go --fix
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
