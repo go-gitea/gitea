@@ -24,6 +24,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/fileicon"
@@ -422,6 +423,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	combinedCommitStatus := git_model.CalcCommitStatus(commitStatuses)
 	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", ctx.Repo.Repository.Link(), headCommitID)
 	statusCheckData.PullCommitStatuses = commitStatuses
+	statusCheckData.CommitActionsStatusMap = actions.GetCommitActionsStatusMap(ctx, commitStatuses)
 	if combinedCommitStatus != nil {
 		statusCheckData.pullCommitStatusState = combinedCommitStatus.State
 	}
@@ -506,8 +508,9 @@ type pullCommitStatusCheckData struct {
 	ApproveLink             string            // link to approve all checks
 	RequiredChecksState     commitstatus.CommitStatusState
 
-	pullCommitStatusState commitstatus.CommitStatusState
-	PullCommitStatuses    []*git_model.CommitStatus
+	pullCommitStatusState  commitstatus.CommitStatusState
+	PullCommitStatuses     []*git_model.CommitStatus
+	CommitActionsStatusMap actions.CommitActionsStatusMap
 }
 
 func (d *pullCommitStatusCheckData) CommitStatusCheckPrompt(locale translation.Locale) string {

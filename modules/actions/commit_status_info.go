@@ -15,25 +15,23 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// CommitStatusInfo maps CommitStatus.ID to the live ActionRunJob status
+// CommitActionsStatusMap maps CommitStatus.ID to the live ActionRunJob status
 // for Gitea Actions rows.
-type CommitStatusInfo map[int64]actions_model.Status
+type CommitActionsStatusMap map[int64]actions_model.Status
 
 // IconStatus returns the action status name to route the icon through
 // repo/icons/action_status, or "" when the row isn't from Gitea Actions.
-func (m CommitStatusInfo) IconStatus(s *git_model.CommitStatus) string {
+func (m CommitActionsStatusMap) IconStatus(s *git_model.CommitStatus) string {
 	if status, ok := m[s.ID]; ok {
 		return status.String()
 	}
 	return ""
 }
 
-// GetCommitStatusInfo resolves the live ActionRunJob.Status for every
+// GetCommitActionsStatusMap resolves the live ActionRunJob.Status for every
 // CommitStatus row backed by Gitea Actions. Rows from other sources (external
 // CIs, API) are left untouched and rendered from their stored State.
-//
-// Mutates status.Repo for inputs whose Repo is nil — ParseGiteaActionsTargetURL needs it loaded.
-func GetCommitStatusInfo(ctx context.Context, statuses []*git_model.CommitStatus) CommitStatusInfo {
+func GetCommitActionsStatusMap(ctx context.Context, statuses []*git_model.CommitStatus) CommitActionsStatusMap {
 	if len(statuses) == 0 {
 		return nil
 	}
@@ -62,9 +60,9 @@ func GetCommitStatusInfo(ctx context.Context, statuses []*git_model.CommitStatus
 		log.Error("GetCommitStatusInfo: find action run jobs: %v", err)
 		return nil
 	}
-	info := make(CommitStatusInfo, len(jobs))
+	info := make(CommitActionsStatusMap, len(jobs))
 	for jobID, status := range statusByJobID {
-		if job, ok := jobs[jobID]; ok && !job.Status.IsUnknown() {
+		if job, ok := jobs[jobID]; ok {
 			info[status.ID] = job.Status
 		}
 	}

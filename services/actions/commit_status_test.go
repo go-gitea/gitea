@@ -134,7 +134,7 @@ func TestGetCommitStatusInfo(t *testing.T) {
 	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
 	require.NoError(t, err)
 
-	info := actions_module.GetCommitStatusInfo(t.Context(), statuses)
+	info := actions_module.GetCommitActionsStatusMap(t.Context(), statuses)
 	got := map[string]string{}
 	for _, s := range statuses {
 		got[s.Context] = info.IconStatus(s)
@@ -149,7 +149,7 @@ func TestGetCommitStatusInfo(t *testing.T) {
 	}
 
 	// Nil receiver returns "" without panicking — used by callers that skip enrichment.
-	var nilInfo actions_module.CommitStatusInfo
+	var nilInfo actions_module.CommitActionsStatusMap
 	assert.Empty(t, nilInfo.IconStatus(statuses[0]))
 }
 
