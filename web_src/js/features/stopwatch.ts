@@ -45,7 +45,6 @@ export function initStopwatch() {
     setTimeout(() => updateStopwatchWithCallback(startPeriodicPoller, timeout), timeout);
   };
 
-  // Fall back to periodic polling if the worker can't establish the WebSocket.
   let pollerStarted = false;
   onUserEvent('stopwatches', (msg) => updateStopwatchData(msg.data));
   onUserEvent('push-unavailable', () => {

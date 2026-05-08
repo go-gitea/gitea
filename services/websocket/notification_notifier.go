@@ -33,7 +33,7 @@ func (n *wsNotifier) NotificationCountChange(ctx context.Context, userID int64) 
 		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
 	})
 	if err != nil {
-		log.Error("websocket: NotificationCountChange count %d: %v", userID, err)
+		log.Error("websocket: count notifications for user %d: %v", userID, err)
 		return
 	}
 	publishUserEvent(userID, notificationCountEvent{

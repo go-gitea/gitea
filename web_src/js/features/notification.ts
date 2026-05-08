@@ -24,7 +24,6 @@ export function initNotificationCount() {
     }, timeout);
   };
 
-  // Fall back to periodic polling if the worker can't establish the WebSocket.
   let pollerStarted = false;
   onUserEvent('notification-count', (msg) => { receiveUpdateCount(msg.count) }); // no await
   onUserEvent('push-unavailable', () => {
