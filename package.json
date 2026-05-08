@@ -1,9 +1,9 @@
 {
   "type": "module",
-  "packageManager": "pnpm@10.33.2",
+  "packageManager": "pnpm@11.0.8",
   "engines": {
     "node": ">= 22.18.0",
-    "pnpm": ">= 10.0.0"
+    "pnpm": ">= 11.0.0"
   },
   "dependencies": {
     "@citation-js/core": "0.7.21",
@@ -124,34 +124,5 @@
     "updates": "17.16.8",
     "vitest": "4.1.5",
     "vue-tsc": "3.2.8"
-  },
-  "pnpm": {
-    "peerDependencyRules": {
-      "allowedVersions": {
-        "eslint-plugin-github>eslint": ">=9"
-      }
-    },
-    "overrides": {
-      "array-includes": "npm:@nolyfill/array-includes@^1",
-      "array.prototype.findlastindex": "npm:@nolyfill/array.prototype.findlastindex@^1",
-      "array.prototype.flat": "npm:@nolyfill/array.prototype.flat@^1",
-      "array.prototype.flatmap": "npm:@nolyfill/array.prototype.flatmap@^1",
-      "es-aggregate-error": "npm:@nolyfill/es-aggregate-error@^1",
-      "hasown": "npm:@nolyfill/hasown@^1",
-      "is-core-module": "npm:@nolyfill/is-core-module@^1",
-      "object.assign": "npm:@nolyfill/object.assign@^1",
-      "object.fromentries": "npm:@nolyfill/object.fromentries@^1",
-      "object.groupby": "npm:@nolyfill/object.groupby@^1",
-      "object.values": "npm:@nolyfill/object.values@^1",
-      "safe-buffer": "npm:@nolyfill/safe-buffer@^1",
-      "safe-regex-test": "npm:@nolyfill/safe-regex-test@^1",
-      "safer-buffer": "npm:@nolyfill/safer-buffer@^1",
-      "string.prototype.includes": "npm:@nolyfill/string.prototype.includes@^1",
-      "string.prototype.trimend": "npm:@nolyfill/string.prototype.trimend@^1",
-      "object-keys": "npm:@nolyfill/object-keys@^1",
-      "object.entries": "npm:@nolyfill/object.entries@^1",
-      "abab": "npm:@nolyfill/abab@^1",
-      "es-set-tostringtag": "npm:@nolyfill/es-set-tostringtag@^1"
-    }
   }
 }

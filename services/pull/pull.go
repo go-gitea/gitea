@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -845,8 +846,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		// use PR's commit messages as squash commit message
 		// commits list is in reverse chronological order
 		maxMsgSize := setting.Repository.PullRequest.DefaultMergeMessageSize
-		for i := len(commits) - 1; i >= 0; i-- {
-			commit := commits[i]
+		for _, commit := range slices.Backward(commits) {
 			msg := strings.TrimSpace(commit.MessageUTF8())
 			if msg == "" {
 				continue
