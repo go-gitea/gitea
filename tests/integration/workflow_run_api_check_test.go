@@ -55,7 +55,7 @@ func testAPIWorkflowRunsPullRequestsField(t *testing.T) {
 		Ref:           "refs/pull/3/head",
 		CommitSHA:     "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
 		Event:         webhook_module.HookEventPullRequest,
-		TriggerEvent:  string(webhook_module.HookEventPullRequest),
+		TriggerEvent:  "pull_request_target",
 		Status:        actions_model.StatusSuccess,
 	}
 	require.NoError(t, db.Insert(ctx, run))

@@ -329,13 +329,9 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 func loadPullRequestsForRun(ctx context.Context, run *actions_model.ActionRun) ([]*api.PullRequestMinimal, error) {
 	result := []*api.PullRequestMinimal{}
 	refName := git.RefName(run.Ref)
-	event := webhook_module.HookEventType(run.TriggerEvent)
-	if event == "" {
-		event = run.Event
-	}
 	var prs issues_model.PullRequestList
 	switch {
-	case event.IsPullRequest() || event.IsPullRequestReview():
+	case run.Event.IsPullRequest() || run.Event.IsPullRequestReview():
 		index, err := strconv.ParseInt(refName.PullName(), 10, 64)
 		if err != nil {
 			return result, nil
@@ -348,7 +344,7 @@ func loadPullRequestsForRun(ctx context.Context, run *actions_model.ActionRun) (
 			return nil, err
 		}
 		prs = issues_model.PullRequestList{pr}
-	case event == webhook_module.HookEventPush:
+	case run.Event == webhook_module.HookEventPush:
 		branch := refName.BranchName()
 		if branch == "" {
 			return result, nil
