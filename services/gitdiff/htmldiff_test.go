@@ -25,40 +25,40 @@ func TestHTMLDiff(t *testing.T) {
 		// old bundles to `<p>hello</p>`, new cannot bundle (space in body) so the two sides
 		// share no tokens; the diff degrades to a full replacement, which is still valid HTML.
 		out := HTMLDiff("<p>hello</p>", "<p>hello world</p>")
-		assert.Equal(t, `<span class="removed-code"><p>hello</p></span><p><span class="added-code">hello world</span></p>`, string(out))
+		assert.Equal(t, `<del class="removed-code"><p>hello</p></del><p><span class="added-code">hello world</span></p>`, string(out))
 	})
 
 	t.Run("word deletion", func(t *testing.T) {
 		out := HTMLDiff("<p>hello world</p>", "<p>hello</p>")
-		assert.Equal(t, `<p><span class="removed-code">hello world</span></p><span class="added-code"><p>hello</p></span>`, string(out))
+		assert.Equal(t, `<p><span class="removed-code">hello world</span></p><ins class="added-code"><p>hello</p></ins>`, string(out))
 	})
 
 	t.Run("word replacement", func(t *testing.T) {
 		out := HTMLDiff("<p>hello</p>", "<p>world</p>")
-		assert.Equal(t, `<span class="removed-code"><p>hello</p></span><span class="added-code"><p>world</p></span>`, string(out))
+		assert.Equal(t, `<del class="removed-code"><p>hello</p></del><ins class="added-code"><p>world</p></ins>`, string(out))
 	})
 
 	t.Run("insert only", func(t *testing.T) {
 		out := HTMLDiff("", "<p>hello</p>")
-		assert.Equal(t, `<span class="added-code"><p>hello</p></span>`, string(out))
+		assert.Equal(t, `<ins class="added-code"><p>hello</p></ins>`, string(out))
 	})
 
 	t.Run("delete only", func(t *testing.T) {
 		out := HTMLDiff("<p>hello</p>", "")
-		assert.Equal(t, `<span class="removed-code"><p>hello</p></span>`, string(out))
+		assert.Equal(t, `<del class="removed-code"><p>hello</p></del>`, string(out))
 	})
 
 	t.Run("heading id change", func(t *testing.T) {
 		// Auto-generated heading ids change between revisions. Each side becomes its own bundled
 		// token so the output is a full replacement rather than hiding the attribute change.
 		out := HTMLDiff(`<h2 id="bar">bar</h2>`, `<h2 id="baz">baz</h2>`)
-		assert.Equal(t, `<span class="removed-code"><h2 id="bar">bar</h2></span><span class="added-code"><h2 id="baz">baz</h2></span>`, string(out))
+		assert.Equal(t, `<del class="removed-code"><h2 id="bar">bar</h2></del><ins class="added-code"><h2 id="baz">baz</h2></ins>`, string(out))
 	})
 
 	t.Run("href change is visible", func(t *testing.T) {
 		// Pure attribute changes must not be silently dropped: both sides are emitted.
 		out := HTMLDiff(`<a href="/old">content</a>`, `<a href="/new">content</a>`)
-		assert.Equal(t, `<span class="removed-code"><a href="/old">content</a></span><span class="added-code"><a href="/new">content</a></span>`, string(out))
+		assert.Equal(t, `<del class="removed-code"><a href="/old">content</a></del><ins class="added-code"><a href="/new">content</a></ins>`, string(out))
 	})
 
 	t.Run("nested inline tags", func(t *testing.T) {
@@ -76,7 +76,7 @@ func TestHTMLDiff(t *testing.T) {
 
 	t.Run("replace paragraph with image", func(t *testing.T) {
 		out := HTMLDiff(`<p>foo</p>`, `<img src="bar">`)
-		assert.Equal(t, `<span class="removed-code"><p>foo</p></span><span class="added-code"><img src="bar"/></span>`, string(out))
+		assert.Equal(t, `<del class="removed-code"><p>foo</p></del><ins class="added-code"><img src="bar"/></ins>`, string(out))
 	})
 
 	// The cases below use the actual HTML shapes produced by the Markdown renderer for
@@ -137,7 +137,7 @@ func TestHTMLDiff(t *testing.T) {
 			`<p>first paragraph</p><p>second paragraph</p>`,
 			`<p>second paragraph</p><p>first paragraph</p>`,
 		)
-		assert.Equal(t, `<span class="removed-code"><p>first paragraph</p></span><p>second paragraph</p><span class="added-code"><p>first paragraph</p></span>`, string(out))
+		assert.Equal(t, `<del class="removed-code"><p>first paragraph</p></del><p>second paragraph</p><ins class="added-code"><p>first paragraph</p></ins>`, string(out))
 	})
 
 	t.Run("paragraph replaced by list is a whole-block change", func(t *testing.T) {
@@ -145,7 +145,7 @@ func TestHTMLDiff(t *testing.T) {
 		// produce broken nesting. The root-tag guard must fall back to whole-block
 		// delete+insert in this case.
 		out := HTMLDiff(`<p>item one and item two</p>`, `<ul><li>item one</li><li>item two</li></ul>`)
-		assert.Equal(t, `<span class="removed-code"><p>item one and item two</p></span><span class="added-code"><ul><li>item one</li><li>item two</li></ul></span>`, string(out))
+		assert.Equal(t, `<del class="removed-code"><p>item one and item two</p></del><ins class="added-code"><ul><li>item one</li><li>item two</li></ul></ins>`, string(out))
 	})
 
 	t.Run("mermaid body change", func(t *testing.T) {

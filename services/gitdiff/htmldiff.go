@@ -137,14 +137,14 @@ func renderBlockDiff(oldBlocks, newBlocks []topLevelBlock) template.HTML {
 	diffs = dmp.DiffCleanupSemantic(diffs)
 
 	wrapRemoved := func(sb *strings.Builder, block topLevelBlock) {
-		sb.WriteString(`<span class="removed-code">`)
+		sb.WriteString(`<del class="removed-code">`)
 		sb.WriteString(block.html)
-		sb.WriteString(`</span>`)
+		sb.WriteString(`</del>`)
 	}
 	wrapAdded := func(sb *strings.Builder, block topLevelBlock) {
-		sb.WriteString(`<span class="added-code">`)
+		sb.WriteString(`<ins class="added-code">`)
 		sb.WriteString(block.html)
-		sb.WriteString(`</span>`)
+		sb.WriteString(`</ins>`)
 	}
 
 	var out strings.Builder
