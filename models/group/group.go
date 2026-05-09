@@ -98,7 +98,7 @@ func (g *Group) LoadSubgroups(ctx context.Context, recursive bool) error {
 }
 
 func (g *Group) LoadAccessibleSubgroups(ctx context.Context, recursive bool, doer *user_model.User) error {
-	return g.doLoadSubgroups(ctx, recursive, AccessibleGroupCondition(doer, g.OwnerID, unit.TypeInvalid, perm.AccessModeRead), 0)
+	return g.doLoadSubgroups(ctx, recursive, AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead), 0)
 }
 
 func (g *Group) LoadAttributes(ctx context.Context) error {
@@ -151,7 +151,7 @@ func (g *Group) CanAccessUnitAtLevel(ctx context.Context, user *user_model.User,
 			return true, nil
 		}
 	}
-	orCond := builder.Or(AccessibleGroupCondition(user, g.OwnerID, u, level))
+	orCond := builder.Or(AccessibleGroupCondition(user, u, level))
 	if level == perm.AccessModeRead {
 		orCond = orCond.Or(builder.Eq{"`repo_group`.visibility": structs.VisibleTypePublic})
 	}
@@ -162,8 +162,8 @@ func (g *Group) IsOwnedBy(ctx context.Context, userID int64) (bool, error) {
 	return db.GetEngine(ctx).
 		Where(
 			builder.Or(
-				UserOrgTeamPermCond("`repo_group`.id", userID, g.OwnerID, perm.AccessModeOwner),
-				universalGroupPermBuilder("`repo_group`.id", userID, g.OwnerID, false)).
+				UserOrgTeamPermCond("`repo_group`.id", userID, perm.AccessModeOwner),
+				universalGroupPermBuilder("`repo_group`.id", userID, false)).
 				And(builder.Eq{"`repo_group`.id": g.ID})).
 		Table(g.TableName()).
 		Exist()
@@ -196,8 +196,8 @@ func (g *Group) IsAdminOf(ctx context.Context, userID int64) (bool, error) {
 	return db.GetEngine(ctx).
 		Where(
 			builder.Or(
-				UserOrgTeamPermCond("`repo_group`.id", userID, g.OwnerID, perm.AccessModeAdmin),
-				universalGroupPermBuilder("`repo_group`.id", userID, g.OwnerID, false)).
+				UserOrgTeamPermCond("`repo_group`.id", userID, perm.AccessModeAdmin),
+				universalGroupPermBuilder("`repo_group`.id", userID, false)).
 				And(builder.Eq{"`repo_group`.id": g.ID})).
 		Table(g.TableName()).
 		Exist()
@@ -208,7 +208,7 @@ func (g *Group) ShortName(length int) string {
 }
 
 func (g *Group) IsPrivateBecauseOfParentPermissions(ctx context.Context, user *user_model.User) (bool, error) {
-	cond := AccessibleParentGroupCond(ctx, "`repo_group`.`id`", g.ID, user)
+	cond := AccessibleParentGroupCond("`repo_group`.`id`", g.ID, user)
 	has, err := db.GetEngine(ctx).Where(cond.And(builder.Eq{
 		"`repo_group`.id": g.ID,
 	})).Table(g.TableName()).Exist()
@@ -379,28 +379,14 @@ func groupHierarchyCTEBuilder(cond builder.Cond) builder.Cond {
 	return builder.Expr(firstSql + " UNION ALL " + secondSql)
 }
 
-func AccessibleParentGroupCond(ctx context.Context, idStr string, groupID int64, user *user_model.User) builder.Cond {
-	owner, err := GetOwnerByGroupID(ctx, groupID)
-	if err != nil {
-		return builder.Exists(builder.Select("1 as dummy").Where(builder.Eq{
-			"dummy": 1,
-		}))
-	}
-	accessibleCond := AccessibleGroupCondition(user, owner.ID, unit.TypeInvalid, perm.AccessModeRead)
+func AccessibleParentGroupCond(idStr string, groupID int64, user *user_model.User) builder.Cond {
+	accessibleCond := AccessibleGroupCondition(user, unit.TypeInvalid, perm.AccessModeRead)
 	unionBldr := groupHierarchyCTEBuilder(accessibleCond)
 	unionSql, err := builder.ToBoundSQL(unionBldr)
 	if err != nil {
 
 	}
-	s := db.GetEngine(ctx)
-	s.SQL("WITH RECURSIVE group_hierarchy AS ("+unionSql+") SELECT id from group_hierarchy", unionSql)
-	var g []*Group
-	err = s.Find(&g)
-	if err != nil {
-		log.Info("%s", err.Error())
-	}
 	return builder.In(idStr, builder.Expr("(WITH RECURSIVE group_hierarchy AS ("+unionSql+") SELECT id from group_hierarchy)"))
-	//db.GetEngine(ctx).SQL()
 }
 
 // ParentGroupCond returns a condition matching a group and its ancestors
