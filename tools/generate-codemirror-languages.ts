@@ -4,78 +4,20 @@ import {writeFile} from 'node:fs/promises';
 
 const linguistUrl = 'https://raw.githubusercontent.com/github-linguist/linguist/main/lib/linguist/languages.yml';
 
-// Map github-linguist language names to the names CodeMirror's @codemirror/language-data
-// uses. Only languages that we want to load with extended extension/filename data are
-// listed; everything else falls through to language-data's defaults at runtime.
-const linguistToCm: Record<string, string> = {
-  'C': 'C',
-  'C++': 'C++',
-  'C#': 'C#',
-  'CMake': 'CMake',
-  'COBOL': 'Cobol',
-  'CSS': 'CSS',
-  'Clojure': 'Clojure',
-  'CoffeeScript': 'CoffeeScript',
-  'Common Lisp': 'Common Lisp',
-  'Crystal': 'Crystal',
-  'Cython': 'Cython',
-  'D': 'D',
-  'Dart': 'Dart',
-  'Diff': 'diff',
-  'Dockerfile': 'Dockerfile',
-  'Elm': 'Elm',
-  'Erlang': 'Erlang',
-  'F#': 'F#',
-  'Fortran': 'Fortran',
-  'Go': 'Go',
-  'Groovy': 'Groovy',
-  'HTML': 'HTML',
-  'Haskell': 'Haskell',
-  'INI': 'Properties files',
-  'JSON': 'JSON',
-  'Java': 'Java',
-  'JavaScript': 'JavaScript',
-  'Julia': 'Julia',
-  'Kotlin': 'Kotlin',
-  'Less': 'LESS',
-  'LiveScript': 'LiveScript',
-  'Lua': 'Lua',
-  'Markdown': 'Markdown',
-  'Nginx': 'Nginx',
-  'OCaml': 'OCaml',
-  'PHP': 'PHP',
-  'Pascal': 'Pascal',
-  'Perl': 'Perl',
-  'PowerShell': 'PowerShell',
-  'Protocol Buffer': 'ProtoBuf',
-  'Pug': 'Pug',
-  'Puppet': 'Puppet',
-  'Python': 'Python',
-  'R': 'R',
-  'Ruby': 'Ruby',
-  'Rust': 'Rust',
-  'SCSS': 'SCSS',
-  'SQL': 'SQL',
-  'Sass': 'Sass',
-  'Scala': 'Scala',
-  'Scheme': 'Scheme',
-  'Shell': 'Shell',
-  'Smalltalk': 'Smalltalk',
-  'Stylus': 'Stylus',
-  'Swift': 'Swift',
-  'SystemVerilog': 'SystemVerilog',
-  'TOML': 'TOML',
-  'TSX': 'TSX',
-  'Tcl': 'Tcl',
-  'TeX': 'LaTeX',
-  'TypeScript': 'TypeScript',
-  'VHDL': 'VHDL',
-  'Verilog': 'Verilog',
-  'Vue': 'Vue',
-  'WebAssembly': 'WebAssembly',
-  'XML': 'XML',
-  'YAML': 'YAML',
-};
+// Languages to extract from github-linguist. A bare string means the linguist name
+// matches CodeMirror's @codemirror/language-data name; a tuple is [linguist, cm] when
+// they differ. Anything not listed falls through to language-data's defaults at runtime.
+const languages: Array<string | [string, string]> = [
+  'C', 'C++', 'C#', 'CMake', ['COBOL', 'Cobol'], 'CSS', 'Clojure', 'CoffeeScript',
+  'Common Lisp', 'Crystal', 'Cython', 'D', 'Dart', ['Diff', 'diff'], 'Dockerfile',
+  'Elm', 'Erlang', 'F#', 'Fortran', 'Go', 'Groovy', 'HTML', 'Haskell',
+  ['INI', 'Properties files'], 'JSON', 'Java', 'JavaScript', 'Julia', 'Kotlin',
+  ['Less', 'LESS'], 'LiveScript', 'Lua', 'Markdown', 'Nginx', 'OCaml', 'PHP', 'Pascal',
+  'Perl', 'PowerShell', ['Protocol Buffer', 'ProtoBuf'], 'Pug', 'Puppet', 'Python', 'R',
+  'Ruby', 'Rust', 'SCSS', 'SQL', 'Sass', 'Scala', 'Scheme', 'Shell', 'Smalltalk',
+  'Stylus', 'Swift', 'SystemVerilog', 'TOML', 'TSX', 'Tcl', ['TeX', 'LaTeX'],
+  'TypeScript', 'VHDL', 'Verilog', 'Vue', 'WebAssembly', 'XML', 'YAML',
+];
 
 // Per-language extensions to drop. Use only for extensions that would actively collide
 // with another language (e.g. .inc claimed by both PHP and C++) or where the syntax is
@@ -112,7 +54,8 @@ async function main() {
 
   const out: CmLanguage[] = [];
   const missing: string[] = [];
-  for (const [linguistName, cmName] of Object.entries(linguistToCm)) {
+  for (const lang of languages) {
+    const [linguistName, cmName] = typeof lang === 'string' ? [lang, lang] : lang;
     const entry = linguist[linguistName];
     if (!entry) {
       missing.push(linguistName);
