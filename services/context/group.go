@@ -111,6 +111,10 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, handle
 	if repoGroup.Group == nil {
 		err = getGroupByParams(ctx, repoGroup, handleNotFound, handleOtherError)
 	}
+	if err != nil {
+		handleOtherError("GetGroupByParams", err)
+		return
+	}
 	if ctx.Written() {
 		return
 	}
