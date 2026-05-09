@@ -44,7 +44,7 @@ type CmLanguage = {
 };
 
 async function main() {
-  const res = await fetch(linguistUrl); // eslint-disable-line no-restricted-globals -- node build script, not browser code
+  const res = await fetch(linguistUrl);
   if (!res.ok) throw new Error(`fetch ${linguistUrl} failed: ${res.status}`);
   const linguist = parseYaml(await res.text()) as Record<string, LinguistEntry>;
 
