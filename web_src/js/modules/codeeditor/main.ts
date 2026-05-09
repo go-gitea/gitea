@@ -7,6 +7,7 @@ import type {PaletteCommand} from './command-palette.ts';
 import {contextMenu, collectSymbols, selectAllOccurrences} from './context-menu.ts';
 import {createJsonLinter, createSyntaxErrorLinter} from './linter.ts';
 import {clickableUrls, goToDefinitionAt, trimTrailingWhitespaceFromView} from './utils.ts';
+import linguistLanguages from '../../../../assets/codemirror-languages.json' with {type: 'json'};
 import type {LanguageDescription, LanguageSupport} from '@codemirror/language';
 import type {Compartment, Extension} from '@codemirror/state';
 import type {EditorView, ViewUpdate} from '@codemirror/view';
@@ -43,10 +44,8 @@ export type CodemirrorEditor = {
 
 export type CodemirrorModules = Awaited<ReturnType<typeof importCodemirror>>;
 
-type LinguistLanguage = {name: string; extensions: string[]; filenames: string[]};
-
 async function importCodemirror() {
-  const [autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap, linguistJson] = await Promise.all([
+  const [autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap] = await Promise.all([
     import('@codemirror/autocomplete'),
     import('@codemirror/commands'),
     import('@codemirror/language'),
@@ -58,9 +57,8 @@ async function importCodemirror() {
     import('@lezer/highlight'),
     import('@replit/codemirror-indentation-markers'),
     import('@replit/codemirror-vscode-keymap'),
-    import('../../../../assets/codemirror-languages.json', {with: {type: 'json'}}),
   ]);
-  return {autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap, linguistLanguages: linguistJson.default as LinguistLanguage[]};
+  return {autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap};
 }
 
 const manualFilenames: Record<string, string[]> = {
@@ -81,7 +79,7 @@ function buildBaseLanguages(cm: CodemirrorModules): LanguageDescription[] {
   const loadByName = new Map<string, LanguageDescription['load']>(
     cm.languageData.languages.map((l: LanguageDescription) => [l.name, l.load.bind(l)]),
   );
-  const overrides = cm.linguistLanguages
+  const overrides = linguistLanguages
     .filter((l) => loadByName.has(l.name) && !handledByCustomEntry.has(l.name))
     .map((l) => cm.language.LanguageDescription.of({
       name: l.name,
@@ -121,8 +119,8 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   const previewableExts = new Set(config.previewableExtensions || []);
   const lineWrapExts = config.lineWrapExtensions || [];
   const cm = await importCodemirror();
-  const markdown = cm.linguistLanguages.find((l) => l.name === 'Markdown');
-  const dockerfile = cm.linguistLanguages.find((l) => l.name === 'Dockerfile');
+  const markdown = linguistLanguages.find((l) => l.name === 'Markdown');
+  const dockerfile = linguistLanguages.find((l) => l.name === 'Dockerfile');
 
   const languageDescriptions: LanguageDescription[] = [
     ...buildBaseLanguages(cm),
