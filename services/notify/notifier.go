@@ -82,4 +82,8 @@ type Notifier interface {
 	WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun)
 
 	WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask)
+
+	// Commit comment methods
+	CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commitSHA string, comment *repo_model.CommitComment)
+	DeleteCommitComment(ctx context.Context, doer *user_model.User, comment *repo_model.CommitComment)
 }

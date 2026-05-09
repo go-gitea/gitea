@@ -28,6 +28,7 @@ type Attachment struct {
 	ReleaseID         int64  `xorm:"INDEX"`           // maybe zero when creating
 	UploaderID        int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
 	CommentID         int64  `xorm:"INDEX"`
+	CommitCommentID   int64  `xorm:"INDEX"`
 	Name              string
 	DownloadCount     int64              `xorm:"DEFAULT 0"`
 	Size              int64              `xorm:"DEFAULT 0"`
@@ -226,6 +227,37 @@ func DeleteAttachmentsByComment(ctx context.Context, commentID int64, remove boo
 	return DeleteAttachments(ctx, attachments, remove)
 }
 
+// UpdateAttachmentCommitCommentID updates the commit comment ID for attachments
+func UpdateAttachmentCommitCommentID(ctx context.Context, uuids []string, commitCommentID int64) error {
+	if len(uuids) == 0 {
+		return nil
+	}
+
+	_, err := db.GetEngine(ctx).
+		In("uuid", uuids).
+		Cols("commit_comment_id").
+		Update(&Attachment{CommitCommentID: commitCommentID})
+	return err
+}
+
+// DeleteAttachmentsByCommitComment deletes all attachments associated with the given commit comment.
+func DeleteAttachmentsByCommitComment(ctx context.Context, commitCommentID int64, remove bool) (int, error) {
+	attachments, err := GetAttachmentsByCommitCommentID(ctx, commitCommentID)
+	if err != nil {
+		return 0, err
+	}
+
+	return DeleteAttachments(ctx, attachments, remove)
+}
+
+// GetAttachmentsByCommitCommentID returns all attachments for a commit comment
+func GetAttachmentsByCommitCommentID(ctx context.Context, commitCommentID int64) ([]*Attachment, error) {
+	attachments := make([]*Attachment, 0, 10)
+	return attachments, db.GetEngine(ctx).
+		Where("commit_comment_id = ?", commitCommentID).
+		Find(&attachments)
+}
+
 // UpdateAttachmentByUUID Updates attachment via uuid
 func UpdateAttachmentByUUID(ctx context.Context, attach *Attachment, cols ...string) error {
 	if attach.UUID == "" {
@@ -262,7 +294,11 @@ func CountOrphanedAttachments(ctx context.Context) (int64, error) {
 
 // DeleteOrphanedAttachments delete all bad attachments
 func DeleteOrphanedAttachments(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+	// Delete attachments that are linked to non-existent issues, releases, comments, or commit comments
+	_, err := db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or "+
+		"(release_id > 0 and release_id not in (select id from `release`)) or "+
+		"(comment_id > 0 and comment_id not in (select id from comment)) or "+
+		"(commit_comment_id > 0 and commit_comment_id not in (select id from commit_comment))").
 		Delete(new(Attachment))
 	return err
 }

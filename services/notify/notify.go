@@ -17,6 +17,20 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 )
 
+// NotifyCreateCommitComment notifies subscribers when a commit comment is created
+func NotifyCreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commitSHA string, comment *repo_model.CommitComment) {
+	for _, notifier := range notifiers {
+		notifier.CreateCommitComment(ctx, doer, repo, commitSHA, comment)
+	}
+}
+
+// NotifyDeleteCommitComment notifies subscribers when a commit comment is deleted
+func NotifyDeleteCommitComment(ctx context.Context, doer *user_model.User, comment *repo_model.CommitComment) {
+	for _, notifier := range notifiers {
+		notifier.DeleteCommitComment(ctx, doer, comment)
+	}
+}
+
 var notifiers []Notifier
 
 // RegisterNotifier providers method to receive notify messages
