@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import {nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
-import ActionRunStatus from './ActionRunStatus.vue';
+import ActionStatusIcon from './ActionStatusIcon.vue';
 import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
 import {POST} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
-import type {ActionsArtifact, ActionsRun, ActionsRunStatus} from '../modules/gitea-actions.ts';
+import type {ActionsArtifact, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import {
   type ActionRunViewStore,
   createLogLineMessage,
@@ -26,7 +26,7 @@ function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPor
 type Step = {
   summary: string,
   duration: string,
-  status: ActionsRunStatus,
+  status: ActionsStatus,
 }
 
 type JobStepState = {
@@ -352,11 +352,11 @@ async function loadJob() {
   }
 }
 
-function isDone(status: ActionsRunStatus) {
+function isDone(status: ActionsStatus) {
   return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
 }
 
-function isExpandable(status: ActionsRunStatus) {
+function isExpandable(status: ActionsStatus) {
   return ['success', 'running', 'failure', 'cancelled'].includes(status);
 }
 
@@ -466,7 +466,7 @@ async function hashChangeListener() {
           :name="currentJobStepsStates[stepIdx].expanded ? 'octicon-chevron-down' : 'octicon-chevron-right'"
           :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"
         />
-        <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
+        <ActionStatusIcon :status="jobStep.status" icon-variant="circle-fill" class="tw-mr-2"/>
         <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
         <span class="step-summary-duration">{{ jobStep.duration }}</span>
       </div>
