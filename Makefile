@@ -383,8 +383,9 @@ test-backend: ## test backend files
 
 .PHONY: test-backend-gogit
 test-backend-gogit: ## test packages whose code or tests import the gogit-affected modules
-	@pkgs=$$(./tools/find-gogit-test-pkgs.sh '$(TAGS)'); \
-	echo "Running go test with $(GOTEST_FLAGS) -tags '$(TAGS)' over $$(echo $$pkgs | wc -w) gogit-affected packages..."; \
+	@pkgs=$$(./tools/find-gogit-test-pkgs.sh '$(TAGS)') && \
+	if [ -z "$$pkgs" ]; then echo "no gogit-affected packages found" >&2; exit 1; fi && \
+	echo "Running go test with $(GOTEST_FLAGS) -tags '$(TAGS)' over $$(echo $$pkgs | wc -w) gogit-affected packages..." && \
 	$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $$pkgs
 
 .PHONY: test-frontend
