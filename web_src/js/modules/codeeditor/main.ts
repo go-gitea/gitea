@@ -43,8 +43,10 @@ export type CodemirrorEditor = {
 
 export type CodemirrorModules = Awaited<ReturnType<typeof importCodemirror>>;
 
+type LinguistLanguage = {name: string; extensions: string[]; filenames: string[]};
+
 async function importCodemirror() {
-  const [autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap] = await Promise.all([
+  const [autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap, linguistJson] = await Promise.all([
     import('@codemirror/autocomplete'),
     import('@codemirror/commands'),
     import('@codemirror/language'),
@@ -56,8 +58,42 @@ async function importCodemirror() {
     import('@lezer/highlight'),
     import('@replit/codemirror-indentation-markers'),
     import('@replit/codemirror-vscode-keymap'),
+    import('../../../../assets/codemirror-languages.json', {with: {type: 'json'}}),
   ]);
-  return {autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap};
+  return {autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap, linguistLanguages: linguistJson.default as LinguistLanguage[]};
+}
+
+const manualFilenames: Record<string, string[]> = {
+  'Properties files': ['.editorconfig', '.gitconfig', '.npmrc'],
+  'Python': ['Snakefile'],
+};
+const manualExtensions: Record<string, string[]> = {
+  'Properties files': ['conf'],
+};
+const handledByCustomEntry = new Set(['Dockerfile', 'Markdown']);
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const filenameUnion = (filenames: string[]) =>
+  filenames.length ? new RegExp(`^(${filenames.map(escapeRegex).join('|')})$`) : undefined;
+
+let baseLanguagesCache: LanguageDescription[] | null = null;
+function buildBaseLanguages(cm: CodemirrorModules): LanguageDescription[] {
+  if (baseLanguagesCache) return baseLanguagesCache;
+  const loadByName = new Map<string, LanguageDescription['load']>(
+    cm.languageData.languages.map((l: LanguageDescription) => [l.name, l.load.bind(l)]),
+  );
+  const overrides = cm.linguistLanguages
+    .filter((l) => loadByName.has(l.name) && !handledByCustomEntry.has(l.name))
+    .map((l) => cm.language.LanguageDescription.of({
+      name: l.name,
+      extensions: [...l.extensions, ...(manualExtensions[l.name] ?? [])],
+      filename: filenameUnion([...l.filenames, ...(manualFilenames[l.name] ?? [])]),
+      load: loadByName.get(l.name)!,
+    }));
+  const overrideNames = new Set(overrides.map((o) => o.name));
+  const fallback = cm.languageData.languages.filter(
+    (l: LanguageDescription) => !overrideNames.has(l.name) && !handledByCustomEntry.has(l.name),
+  );
+  return baseLanguagesCache = [...overrides, ...fallback];
 }
 
 function togglePreviewDisplay(previewable: boolean): void {
@@ -85,12 +121,19 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   const previewableExts = new Set(config.previewableExtensions || []);
   const lineWrapExts = config.lineWrapExtensions || [];
   const cm = await importCodemirror();
+  const markdown = cm.linguistLanguages.find((l) => l.name === 'Markdown');
+  const dockerfile = cm.linguistLanguages.find((l) => l.name === 'Dockerfile');
 
   const languageDescriptions: LanguageDescription[] = [
-    ...cm.languageData.languages.filter((l: LanguageDescription) => l.name !== 'Markdown'),
+    ...buildBaseLanguages(cm),
     cm.language.LanguageDescription.of({
-      name: 'Markdown', extensions: ['md', 'markdown', 'mkd'],
+      name: 'Markdown', extensions: markdown?.extensions ?? ['md', 'markdown', 'mkd'],
       load: async () => (await import('@codemirror/lang-markdown')).markdown({codeLanguages: languageDescriptions}),
+    }),
+    cm.language.LanguageDescription.of({
+      name: 'Dockerfile', extensions: dockerfile?.extensions ?? ['dockerfile', 'containerfile'],
+      filename: /^(Containerfile|Dockerfile)(\..+)?$/i,
+      load: async () => new cm.language.LanguageSupport(cm.language.StreamLanguage.define((await import('@codemirror/legacy-modes/mode/dockerfile')).dockerFile)),
     }),
     cm.language.LanguageDescription.of({
       name: 'Elixir', extensions: ['ex', 'exs'],
@@ -105,7 +148,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       load: async () => (await import('@replit/codemirror-lang-svelte')).svelte(),
     }),
     cm.language.LanguageDescription.of({
-      name: 'Makefile', filename: /^(GNUm|M|m)akefile$/,
+      name: 'Makefile', extensions: ['mk', 'mak', 'make'], filename: /^(GNU|BSD)?[Mm]akefile(\..+)?$/,
       load: async () => new cm.language.LanguageSupport(cm.language.StreamLanguage.define((await import('@codemirror/legacy-modes/mode/shell')).shell)),
     }),
     cm.language.LanguageDescription.of({
