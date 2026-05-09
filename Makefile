@@ -384,22 +384,16 @@ test-backend: ## test backend files
 .PHONY: test-backend-gogit
 test-backend-gogit: ## test packages whose code or tests import the gogit-affected modules
 	@pkgs=$$(./tools/find-gogit-test-pkgs.sh '$(TAGS)') && \
-	if [ -z "$$pkgs" ]; then echo "no gogit-affected packages found" >&2; exit 1; fi && \
-	echo "Running go test with $(GOTEST_FLAGS) -tags '$(TAGS)' over $$(echo $$pkgs | wc -w) gogit-affected packages..." && \
 	$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $$pkgs
 
 .PHONY: test-backend-shard
 test-backend-shard: ## run the TEST_SHARD/TEST_TOTAL_SHARDS slice of test-backend
-	@pkgs=$$(echo "$(GO_TEST_PACKAGES)" | tr ' ' '\n' | ./tools/partition-by-shard.sh | tr '\n' ' ') && \
-	if [ -z "$$pkgs" ]; then echo "shard $$TEST_SHARD/$$TEST_TOTAL_SHARDS has no test-backend packages" >&2; exit 1; fi && \
-	echo "Running shard $$TEST_SHARD/$$TEST_TOTAL_SHARDS of test-backend ($$(echo $$pkgs | wc -w) packages)..." && \
+	@pkgs=$$(echo "$(GO_TEST_PACKAGES)" | tr ' ' '\n' | ./tools/partition-by-shard.sh) && \
 	$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $$pkgs
 
 .PHONY: test-backend-gogit-shard
 test-backend-gogit-shard: ## run the TEST_SHARD/TEST_TOTAL_SHARDS slice of test-backend-gogit
 	@pkgs=$$(./tools/find-gogit-test-pkgs.sh '$(TAGS)' | ./tools/partition-by-shard.sh) && \
-	if [ -z "$$pkgs" ]; then echo "shard $$TEST_SHARD/$$TEST_TOTAL_SHARDS has no gogit-affected packages" >&2; exit 1; fi && \
-	echo "Running shard $$TEST_SHARD/$$TEST_TOTAL_SHARDS of test-backend-gogit ($$(echo $$pkgs | wc -w) packages)..." && \
 	$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $$pkgs
 
 .PHONY: test-frontend
@@ -466,6 +460,9 @@ test-integration:
 	@# they mutate the work directory, so cache inputs change between runs.
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c code.gitea.io/gitea/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
 ifdef TEST_SHARD
+ifndef TEST_TOTAL_SHARDS
+	$(error TEST_TOTAL_SHARDS must be set when TEST_SHARD is set)
+endif
 	./tools/test-integration-shard.sh ./test-integration-$(GITEA_TEST_DATABASE).test
 else
 	./test-integration-$(GITEA_TEST_DATABASE).test
