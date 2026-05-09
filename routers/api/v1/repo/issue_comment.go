@@ -73,7 +73,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
 		ctx.APIErrorNotFound()
 		return
 	}
@@ -279,8 +279,8 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	}
 
 	var isPull optional.Option[bool]
-	canReadIssue := ctx.Repo.CanRead(unit.TypeIssues)
-	canReadPull := ctx.Repo.CanRead(unit.TypePullRequests)
+	canReadIssue := ctx.Repo.Permission.CanRead(unit.TypeIssues)
+	canReadPull := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
 	if canReadIssue && canReadPull {
 		isPull = optional.None[bool]()
 	} else if canReadIssue {
@@ -386,12 +386,12 @@ func CreateIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
 		ctx.APIErrorNotFound()
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
+	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.APIError(http.StatusForbidden, errors.New(ctx.Locale.TrString("repo.issues.comment_on_locked")))
 		return
 	}
@@ -455,7 +455,7 @@ func GetIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
 		ctx.APIErrorNotFound()
 		return
 	}
@@ -580,7 +580,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -689,7 +689,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Status(http.StatusForbidden)
 		return
 	} else if !comment.Type.HasContentSupport() {

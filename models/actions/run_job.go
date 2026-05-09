@@ -120,10 +120,6 @@ func (job *ActionRunJob) LoadRepo(ctx context.Context) error {
 
 // LoadAttributes load Run if not loaded
 func (job *ActionRunJob) LoadAttributes(ctx context.Context) error {
-	if job == nil {
-		return nil
-	}
-
 	if err := job.LoadRun(ctx); err != nil {
 		return err
 	}

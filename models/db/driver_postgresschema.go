@@ -18,8 +18,8 @@ var registerOnce sync.Once
 
 func registerPostgresSchemaDriver() {
 	registerOnce.Do(func() {
-		sql.Register("postgresschema", &postgresSchemaDriver{})
-		dialects.RegisterDriver("postgresschema", dialects.QueryDriver("postgres"))
+		sql.Register(sqlDriverPostgresSchema, &postgresSchemaDriver{})
+		dialects.RegisterDriver(sqlDriverPostgresSchema, dialects.QueryDriver("postgres"))
 	})
 }
 

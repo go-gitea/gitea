@@ -192,17 +192,21 @@ func testRenameInvalidUsername(t *testing.T) {
 }
 
 func testRenameReservedUsername(t *testing.T) {
-	reservedUsernames := []string{
-		// ".", "..", ".well-known", // The names are not only reserved but also invalid
+	// ".", "..", ".well-known" are also reserved but invalid as form input.
+	reservedNames := []string{
 		"api",
+		"openapi3.v1.json",
+		"swagger.v1.json",
+	}
+	patternNotAllowedNames := []string{
 		"name.keys",
 	}
 
 	session := loginUser(t, "user2")
 	locale := translation.NewLocale("en-US")
-	for _, reservedUsername := range reservedUsernames {
+	check := func(name, msgKey string) {
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"name":     reservedUsername,
+			"name":     name,
 			"email":    "user2@example.com",
 			"language": "en-US",
 		})
@@ -212,12 +216,14 @@ func testRenameReservedUsername(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		actualMsg := strings.TrimSpace(htmlDoc.doc.Find(".ui.negative.message").Text())
-		expectedMsg := locale.TrString("user.form.name_reserved", reservedUsername)
-		if strings.Contains(reservedUsername, ".") {
-			expectedMsg = locale.TrString("user.form.name_pattern_not_allowed", reservedUsername)
-		}
-		assert.Equal(t, expectedMsg, actualMsg)
-		unittest.AssertNotExistsBean(t, &user_model.User{Name: reservedUsername})
+		assert.Equal(t, locale.TrString(msgKey, name), actualMsg)
+		unittest.AssertNotExistsBean(t, &user_model.User{Name: name})
+	}
+	for _, name := range reservedNames {
+		check(name, "user.form.name_reserved")
+	}
+	for _, name := range patternNotAllowedNames {
+		check(name, "user.form.name_pattern_not_allowed")
 	}
 }
 

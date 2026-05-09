@@ -51,10 +51,6 @@ func (attempt *ActionRunAttempt) Duration() time.Duration {
 }
 
 func (attempt *ActionRunAttempt) LoadAttributes(ctx context.Context) (err error) {
-	if attempt == nil {
-		return nil
-	}
-
 	if attempt.Run == nil {
 		run, err := GetRunByRepoAndID(ctx, attempt.RepoID, attempt.RunID)
 		if err != nil {

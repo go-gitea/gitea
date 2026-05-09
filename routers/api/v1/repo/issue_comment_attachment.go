@@ -358,7 +358,7 @@ func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 		return nil
 	}
 
-	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
 		return nil
 	}
 
@@ -379,7 +379,7 @@ func getIssueCommentAttachmentSafeWrite(ctx *context.APIContext) *repo_model.Att
 }
 
 func canUserWriteIssueCommentAttachment(ctx *context.APIContext, comment *issues_model.Comment) bool {
-	canEditComment := ctx.IsSigned && (ctx.Doer.ID == comment.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()) && ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)
+	canEditComment := ctx.IsSigned && (ctx.Doer.ID == comment.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()) && ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)
 	if !canEditComment {
 		ctx.APIError(http.StatusForbidden, "user should have permission to edit comment")
 		return false

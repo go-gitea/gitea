@@ -56,3 +56,14 @@ func ExtractKeysFromMapString(in map[string]VisibleType) (keys []string) {
 	}
 	return keys
 }
+
+// UserVisibility defines the visibility level of a user or organization as
+// rendered in API payloads. The DB representation is VisibleType (int).
+// swagger:enum UserVisibility
+type UserVisibility string
+
+const (
+	UserVisibilityPublic  UserVisibility = "public"
+	UserVisibilityLimited UserVisibility = "limited"
+	UserVisibilityPrivate UserVisibility = "private"
+)

@@ -38,7 +38,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 
 		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
-		assert.Equal(t, "owner", repoPermission.Permission)
+		assert.Equal(t, api.AccessLevelNameOwner, repoPermission.Permission)
 	})
 
 	t.Run("CollaboratorWithReadAccess", func(t *testing.T) {
@@ -50,7 +50,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 
 		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
-		assert.Equal(t, "read", repoPermission.Permission)
+		assert.Equal(t, api.AccessLevelNameRead, repoPermission.Permission)
 	})
 
 	t.Run("CollaboratorWithWriteAccess", func(t *testing.T) {
@@ -62,7 +62,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 
 		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
-		assert.Equal(t, "write", repoPermission.Permission)
+		assert.Equal(t, api.AccessLevelNameWrite, repoPermission.Permission)
 	})
 
 	t.Run("CollaboratorWithAdminAccess", func(t *testing.T) {
@@ -74,7 +74,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 
 		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
-		assert.Equal(t, "admin", repoPermission.Permission)
+		assert.Equal(t, api.AccessLevelNameAdmin, repoPermission.Permission)
 	})
 
 	t.Run("CollaboratorNotFound", func(t *testing.T) {
@@ -101,7 +101,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 
 		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
-		assert.Equal(t, "read", repoPermission.Permission)
+		assert.Equal(t, api.AccessLevelNameRead, repoPermission.Permission)
 
 		t.Run("CollaboratorCanReadOwnPermission", func(t *testing.T) {
 			session := loginUser(t, user5.Name)
@@ -112,7 +112,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 
 			repoCollPerm := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
-			assert.Equal(t, "read", repoCollPerm.Permission)
+			assert.Equal(t, api.AccessLevelNameRead, repoCollPerm.Permission)
 		})
 	})
 
@@ -128,7 +128,7 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 
 		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
-		assert.Equal(t, "read", repoPermission.Permission)
+		assert.Equal(t, api.AccessLevelNameRead, repoPermission.Permission)
 	})
 
 	t.Run("RepoAdminCanQueryACollaboratorsPermissions", func(t *testing.T) {
@@ -144,6 +144,6 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 
 		repoPermission := DecodeJSON(t, resp, &api.RepoCollaboratorPermission{})
 
-		assert.Equal(t, "read", repoPermission.Permission)
+		assert.Equal(t, api.AccessLevelNameRead, repoPermission.Permission)
 	})
 }

@@ -47,13 +47,6 @@ export async function apiCreateRepo(requestContext: APIRequestContext, {name, au
   }), 'apiCreateRepo');
 }
 
-export async function apiCreateIssue(requestContext: APIRequestContext, owner: string, repo: string, {title, headers}: {title: string; headers?: Record<string, string>}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues`, {
-    headers: headers || apiHeaders(),
-    data: {title},
-  }), 'apiCreateIssue');
-}
-
 export async function apiStartStopwatch(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
   await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}/stopwatch/start`, {
     headers: headers || apiHeaders(),
@@ -133,6 +126,63 @@ export async function apiDeleteUser(requestContext: APIRequestContext, username:
   await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/admin/users/${username}?purge=true`, {
     headers: apiHeaders(),
   }), 'apiDeleteUser');
+}
+
+export async function createProject(
+  page: Page,
+  {owner, repo, title}: {owner: string; repo: string; title: string},
+): Promise<{id: number}> {
+  // Navigate to new project page
+  await page.goto(`/${owner}/${repo}/projects/new`);
+
+  // Fill in project details
+  await page.getByLabel('Title').fill(title);
+
+  // Submit the form
+  await page.getByRole('button', {name: 'Create Project'}).click();
+
+  // Wait for redirect to projects list
+  await page.waitForURL(new RegExp(`/${owner}/${repo}/projects$`));
+
+  // Extract the project ID from the project link in the list
+  const projectLink = page.locator('.milestone-list .milestone-card').filter({hasText: title}).locator('a').first();
+  const href = await projectLink.getAttribute('href');
+  const match = /\/projects\/(\d+)/.exec(href || '');
+  const id = match ? parseInt(match[1]) : 0;
+
+  return {id};
+}
+
+export async function apiCreateIssue(
+  requestContext: APIRequestContext,
+  {owner, repo, title, body, projects, headers}: {
+    owner: string;
+    repo: string;
+    title: string;
+    body?: string;
+    projects?: number[];
+    headers?: Record<string, string>;
+  },
+): Promise<{index: number}> {
+  let result: {index: number} = {index: 0};
+  await apiRetry(async () => {
+    const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues`, {
+      headers: headers || apiHeaders(),
+      data: {title, body: body || '', projects: projects || []},
+    });
+    if (response.ok()) {
+      const json = await response.json();
+      // API returns "number" field for the issue index
+      result = {index: json.number};
+    }
+    return response;
+  }, 'apiCreateIssue');
+  return result;
+}
+
+export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {
+  await trigger.click();
+  await page.getByText(itemText).click();
 }
 
 export async function loginUser(page: Page, username: string) {
