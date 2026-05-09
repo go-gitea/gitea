@@ -388,6 +388,20 @@ test-backend-gogit: ## test packages whose code or tests import the gogit-affect
 	echo "Running go test with $(GOTEST_FLAGS) -tags '$(TAGS)' over $$(echo $$pkgs | wc -w) gogit-affected packages..." && \
 	$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $$pkgs
 
+.PHONY: test-backend-shard
+test-backend-shard: ## run the TEST_SHARD/TEST_TOTAL_SHARDS slice of test-backend
+	@pkgs=$$(echo "$(GO_TEST_PACKAGES)" | tr ' ' '\n' | ./tools/partition-by-shard.sh | tr '\n' ' ') && \
+	if [ -z "$$pkgs" ]; then echo "shard $$TEST_SHARD/$$TEST_TOTAL_SHARDS has no test-backend packages" >&2; exit 1; fi && \
+	echo "Running shard $$TEST_SHARD/$$TEST_TOTAL_SHARDS of test-backend ($$(echo $$pkgs | wc -w) packages)..." && \
+	$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $$pkgs
+
+.PHONY: test-backend-gogit-shard
+test-backend-gogit-shard: ## run the TEST_SHARD/TEST_TOTAL_SHARDS slice of test-backend-gogit
+	@pkgs=$$(./tools/find-gogit-test-pkgs.sh '$(TAGS)' | ./tools/partition-by-shard.sh) && \
+	if [ -z "$$pkgs" ]; then echo "shard $$TEST_SHARD/$$TEST_TOTAL_SHARDS has no gogit-affected packages" >&2; exit 1; fi && \
+	echo "Running shard $$TEST_SHARD/$$TEST_TOTAL_SHARDS of test-backend-gogit ($$(echo $$pkgs | wc -w) packages)..." && \
+	$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $$pkgs
+
 .PHONY: test-frontend
 test-frontend: node_modules ## test frontend files
 	pnpm exec vitest

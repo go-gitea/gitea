@@ -127,10 +127,14 @@ jobs:
     steps:
       - run: '[ "${{ needs.test-sqlite-shards.result }}" = "success" ]'
 
-  test-unit-nogogit:
+  test-unit-shards:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     services:
       elasticsearch:
         image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
@@ -175,57 +179,36 @@ jobs:
       - uses: ./.github/actions/go-cache
         with:
           cache-name: unit
-          build-cache-rotate: "true"
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
-      - run: make backend
+      - run: make generate-go
         env:
           TAGS: bindata
       - name: unit-tests
-        run: make test-backend test-check
+        run: make test-backend-shard test-check
         env:
+          TEST_SHARD: ${{ matrix.shard }}
+          TEST_TOTAL_SHARDS: 3
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
-
-  test-unit-gogit:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
-    needs: files-changed
-    runs-on: ubuntu-latest
-    # the gogit-affected package set (modules/git, modules/gitrepo, modules/lfs and
-    # their direct importers) doesn't touch elasticsearch/meilisearch/redis/minio/
-    # azurite — no services needed.
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-          cache: false
-      - uses: ./.github/actions/go-cache
-        with:
-          cache-name: unit-gogit
-          build-cache-rotate: "true"
-      - run: make deps-backend
-      - run: make backend
-        env:
-          TAGS: bindata gogit
-          GOEXPERIMENT:
       - name: unit-tests-gogit
-        run: make test-backend-gogit test-check
+        run: make test-backend-gogit-shard test-check
         env:
+          TEST_SHARD: ${{ matrix.shard }}
+          TEST_TOTAL_SHARDS: 3
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata gogit
           GOEXPERIMENT:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
   test-unit:
-    needs: [files-changed, test-unit-nogogit, test-unit-gogit]
+    needs: [files-changed, test-unit-shards]
     if: always() && (needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true')
     runs-on: ubuntu-latest
     steps:
-      - run: '[ "${{ needs.test-unit-nogogit.result }}" = "success" ] && [ "${{ needs.test-unit-gogit.result }}" = "success" ]'
+      - run: '[ "${{ needs.test-unit-shards.result }}" = "success" ]'
 
   test-mysql-shards:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
