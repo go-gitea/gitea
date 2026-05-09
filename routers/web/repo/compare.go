@@ -230,7 +230,7 @@ func renderRichDiffBlob(ctx *context.Context, blob *git.Blob, name string, commi
 		refPath = "commit/" + commit.ID.String()
 	}
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-		CurrentRefPath:  refPath,
+		CurrentRefSubURL: refPath,
 		CurrentTreePath: path.Dir(name),
 	}).WithRelativePath(name)
 

@@ -65,7 +65,7 @@ func RenderedDiffPreviewPost(ctx *context.Context) {
 	}
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
+		CurrentRefSubURL: ctx.Repo.RefTypeNameSubURL(),
 		CurrentTreePath: path.Dir(treePath),
 	}).WithRelativePath(treePath).
 		WithMetas(ctx.Repo.Repository.ComposeRepoFileMetas(ctx))
