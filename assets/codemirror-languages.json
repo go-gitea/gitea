@@ -1,5 +1,29 @@
 [
   {
+    "name": "APL",
+    "extensions": [
+      "apl",
+      "dyalog"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "ASN.1",
+    "extensions": [
+      "asn",
+      "asn1"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Brainfuck",
+    "extensions": [
+      "b",
+      "bf"
+    ],
+    "filenames": []
+  },
+  {
     "name": "C",
     "extensions": [
       "c",
@@ -109,6 +133,13 @@
     "filenames": []
   },
   {
+    "name": "CQL",
+    "extensions": [
+      "cql"
+    ],
+    "filenames": []
+  },
+  {
     "name": "Crystal",
     "extensions": [
       "cr"
@@ -119,6 +150,14 @@
     "name": "CSS",
     "extensions": [
       "css"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Cypher",
+    "extensions": [
+      "cyp",
+      "cypher"
     ],
     "filenames": []
   },
@@ -166,6 +205,45 @@
     ]
   },
   {
+    "name": "Dylan",
+    "extensions": [
+      "dylan",
+      "dyl",
+      "intr",
+      "lid"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "EBNF",
+    "extensions": [
+      "ebnf"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "ECL",
+    "extensions": [
+      "ecl",
+      "eclxml"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "edn",
+    "extensions": [
+      "edn"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Eiffel",
+    "extensions": [
+      "e"
+    ],
+    "filenames": []
+  },
+  {
     "name": "Elm",
     "extensions": [
       "elm"
@@ -200,12 +278,44 @@
     "filenames": []
   },
   {
+    "name": "Factor",
+    "extensions": [
+      "factor"
+    ],
+    "filenames": [
+      ".factor-boot-rc",
+      ".factor-rc"
+    ]
+  },
+  {
+    "name": "Forth",
+    "extensions": [
+      "fth",
+      "4th",
+      "f",
+      "for",
+      "forth",
+      "fr",
+      "frt",
+      "fs"
+    ],
+    "filenames": []
+  },
+  {
     "name": "Fortran",
     "extensions": [
       "f",
       "f77",
       "for",
       "fpp"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Gherkin",
+    "extensions": [
+      "feature",
+      "story"
     ],
     "filenames": []
   },
@@ -238,6 +348,14 @@
     "filenames": []
   },
   {
+    "name": "Haxe",
+    "extensions": [
+      "hx",
+      "hxsl"
+    ],
+    "filenames": []
+  },
+  {
     "name": "HTML",
     "extensions": [
       "html",
@@ -246,6 +364,28 @@
       "inc",
       "xht",
       "xhtml"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "HTTP",
+    "extensions": [
+      "http"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "HXML",
+    "extensions": [
+      "hxml"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "IDL",
+    "extensions": [
+      "pro",
+      "dlm"
     ],
     "filenames": []
   },
@@ -269,6 +409,15 @@
     "filenames": [
       "Jakefile"
     ]
+  },
+  {
+    "name": "Jinja",
+    "extensions": [
+      "jinja",
+      "j2",
+      "jinja2"
+    ],
+    "filenames": []
   },
   {
     "name": "JSON",
@@ -358,6 +507,13 @@
     "filenames": []
   },
   {
+    "name": "Liquid",
+    "extensions": [
+      "liquid"
+    ],
+    "filenames": []
+  },
+  {
     "name": "LiveScript",
     "extensions": [
       "ls",
@@ -402,6 +558,13 @@
     ]
   },
   {
+    "name": "Modelica",
+    "extensions": [
+      "mo"
+    ],
+    "filenames": []
+  },
+  {
     "name": "Nginx",
     "extensions": [
       "nginx",
@@ -413,6 +576,29 @@
     ]
   },
   {
+    "name": "NSIS",
+    "extensions": [
+      "nsi",
+      "nsh"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Objective-C",
+    "extensions": [
+      "m",
+      "h"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Objective-C++",
+    "extensions": [
+      "mm"
+    ],
+    "filenames": []
+  },
+  {
     "name": "OCaml",
     "extensions": [
       "ml",
@@ -422,6 +608,13 @@
       "mli",
       "mll",
       "mly"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Oz",
+    "extensions": [
+      "oz"
     ],
     "filenames": []
   },
@@ -477,6 +670,28 @@
       ".php_cs.dist",
       "Phakefile"
     ]
+  },
+  {
+    "name": "PLSQL",
+    "extensions": [
+      "pls",
+      "bdy",
+      "ddl",
+      "fnc",
+      "pck",
+      "pkb",
+      "pks",
+      "plb",
+      "plsql",
+      "prc",
+      "spc",
+      "sql",
+      "tpb",
+      "tps",
+      "trg",
+      "vw"
+    ],
+    "filenames": []
   },
   {
     "name": "PowerShell",
@@ -575,6 +790,13 @@
     ]
   },
   {
+    "name": "RPM Spec",
+    "extensions": [
+      "spec"
+    ],
+    "filenames": []
+  },
+  {
     "name": "Ruby",
     "extensions": [
       "rb",
@@ -628,6 +850,13 @@
     "name": "Rust",
     "extensions": [
       "rs"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "SAS",
+    "extensions": [
+      "sas"
     ],
     "filenames": []
   },
@@ -728,10 +957,25 @@
     ]
   },
   {
+    "name": "Sieve",
+    "extensions": [
+      "sieve"
+    ],
+    "filenames": []
+  },
+  {
     "name": "Smalltalk",
     "extensions": [
       "st",
       "cs"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "SPARQL",
+    "extensions": [
+      "sparql",
+      "rq"
     ],
     "filenames": []
   },
@@ -746,6 +990,13 @@
       "tab",
       "udf",
       "viw"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Squirrel",
+    "extensions": [
+      "nut"
     ],
     "filenames": []
   },
@@ -787,6 +1038,13 @@
     ]
   },
   {
+    "name": "Textile",
+    "extensions": [
+      "textile"
+    ],
+    "filenames": []
+  },
+  {
     "name": "TOML",
     "extensions": [
       "toml"
@@ -811,11 +1069,25 @@
     "filenames": []
   },
   {
+    "name": "Turtle",
+    "extensions": [
+      "ttl"
+    ],
+    "filenames": []
+  },
+  {
     "name": "TypeScript",
     "extensions": [
       "ts",
       "cts",
       "mts"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "VBScript",
+    "extensions": [
+      "vbs"
     ],
     "filenames": []
   },
@@ -977,6 +1249,17 @@
       "Web.config",
       "packages.config"
     ]
+  },
+  {
+    "name": "XQuery",
+    "extensions": [
+      "xquery",
+      "xq",
+      "xql",
+      "xqm",
+      "xqy"
+    ],
+    "filenames": []
   },
   {
     "name": "YAML",

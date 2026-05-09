@@ -1,23 +1,19 @@
 #!/usr/bin/env node
 import {load as parseYaml} from 'js-yaml';
 import {writeFile} from 'node:fs/promises';
+import {languages as cmLanguages} from '@codemirror/language-data';
 
 const linguistUrl = 'https://raw.githubusercontent.com/github-linguist/linguist/main/lib/linguist/languages.yml';
 
-// Languages to extract from github-linguist. A bare string means the linguist name
-// matches CodeMirror's @codemirror/language-data name; a tuple is [linguist, cm] when
-// they differ. Anything not listed falls through to language-data's defaults at runtime.
-const languages: Array<string | [string, string]> = [
-  'C', 'C++', 'C#', 'CMake', ['COBOL', 'Cobol'], 'CSS', 'Clojure', 'CoffeeScript',
-  'Common Lisp', 'Crystal', 'Cython', 'D', 'Dart', ['Diff', 'diff'], 'Dockerfile',
-  'Elm', 'Erlang', 'F#', 'Fortran', 'Go', 'Groovy', 'HTML', 'Haskell',
-  ['INI', 'Properties files'], 'JSON', 'Java', 'JavaScript', 'Julia', 'Kotlin',
-  ['Less', 'LESS'], 'LiveScript', 'Lua', 'Markdown', 'Nginx', 'OCaml', 'PHP', 'Pascal',
-  'Perl', 'PowerShell', ['Protocol Buffer', 'ProtoBuf'], 'Pug', 'Puppet', 'Python', 'R',
-  'Ruby', 'Rust', 'SCSS', 'SQL', 'Sass', 'Scala', 'Scheme', 'Shell', 'Smalltalk',
-  'Stylus', 'Swift', 'SystemVerilog', 'TOML', 'TSX', 'Tcl', ['TeX', 'LaTeX'],
-  'TypeScript', 'VHDL', 'Verilog', 'Vue', 'WebAssembly', 'XML', 'YAML',
-];
+// Linguist names that don't match the corresponding @codemirror/language-data name.
+const renames: Record<string, string> = {
+  'COBOL': 'Cobol',
+  'Diff': 'diff',
+  'INI': 'Properties files',
+  'Less': 'LESS',
+  'Protocol Buffer': 'ProtoBuf',
+  'TeX': 'LaTeX',
+};
 
 // Per-language extensions to drop. Use only for extensions that would actively collide
 // with another language (e.g. .inc claimed by both PHP and C++) or where the syntax is
@@ -52,15 +48,11 @@ async function main() {
   if (!res.ok) throw new Error(`fetch ${linguistUrl} failed: ${res.status}`);
   const linguist = parseYaml(await res.text()) as Record<string, LinguistEntry>;
 
+  const cmNames = new Set(cmLanguages.map((l) => l.name));
   const out: CmLanguage[] = [];
-  const missing: string[] = [];
-  for (const lang of languages) {
-    const [linguistName, cmName] = typeof lang === 'string' ? [lang, lang] : lang;
-    const entry = linguist[linguistName];
-    if (!entry) {
-      missing.push(linguistName);
-      continue;
-    }
+  for (const [linguistName, entry] of Object.entries(linguist)) {
+    const cmName = renames[linguistName] ?? linguistName;
+    if (!cmNames.has(cmName)) continue;
     const exExt = new Set(excludeExt[linguistName]);
     // CodeMirror's matchFilename uses /\.([^.]+)$/ to extract the suffix, so multi-dot
     // extensions like ".cmake.in" cannot match as extensions and are dropped here.
@@ -73,10 +65,6 @@ async function main() {
       extensions: Array.from(new Set(extensions)),
       filenames: Array.from(new Set(filenames)),
     });
-  }
-
-  if (missing.length) {
-    console.warn(`linguist entries not found: ${missing.join(', ')}`);
   }
 
   out.sort((a, b) => a.name.localeCompare(b.name));
