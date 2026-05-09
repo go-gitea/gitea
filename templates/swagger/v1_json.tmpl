@@ -9493,6 +9493,187 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/https_keys": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repository's HTTPS deploy keys",
+        "operationId": "repoListHTTPSKeys",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/HTTPSDeployKeyList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Add an HTTPS deploy key to a repository",
+        "operationId": "repoCreateHTTPSKey",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateHTTPSDeployKeyOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/HTTPSDeployKey"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/https_keys/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a repository's HTTPS deploy key by id",
+        "operationId": "repoGetHTTPSKey",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the key to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/HTTPSDeployKey"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete an HTTPS deploy key from a repository",
+        "operationId": "repoDeleteHTTPSKey",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the key to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issue_config": {
       "get": {
         "produces": [
@@ -23714,6 +23895,27 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateHTTPSDeployKeyOption": {
+      "description": "CreateHTTPSDeployKeyOption options when creating an HTTPS deploy key",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "Name of the key to add",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Name"
+        },
+        "read_only": {
+          "description": "Describe if the key has only read access or read/write",
+          "type": "boolean",
+          "x-go-name": "ReadOnly"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateHookOption": {
       "description": "CreateHookOption options when create a hook",
       "type": "object",
@@ -26455,6 +26657,67 @@
           "description": "Source contains the content of the gitignore template",
           "type": "string",
           "x-go-name": "Source"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "HTTPSDeployKey": {
+      "description": "HTTPSDeployKey an HTTPS deploy key/token",
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "has_recent_activity": {
+          "description": "HasRecentActivity indicates if the key was used in the last 7 days",
+          "type": "boolean",
+          "x-go-name": "HasRecentActivity"
+        },
+        "has_used": {
+          "description": "HasUsed indicates if the key has been used for authentication",
+          "type": "boolean",
+          "x-go-name": "HasUsed"
+        },
+        "id": {
+          "description": "ID is the unique identifier for the deploy key",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "description": "Name is the human-readable name for the key",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "read_only": {
+          "description": "ReadOnly indicates if the key has read-only access",
+          "type": "boolean",
+          "x-go-name": "ReadOnly"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
+        },
+        "token": {
+          "description": "Token is the plaintext token, only returned on creation",
+          "type": "string",
+          "x-go-name": "Token"
+        },
+        "token_last_eight": {
+          "description": "TokenLastEight is the last 8 characters of the token for identification",
+          "type": "string",
+          "x-go-name": "TokenLastEight"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        },
+        "url": {
+          "description": "URL is the API URL for this deploy key",
+          "type": "string",
+          "x-go-name": "URL"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -30657,6 +30920,21 @@
         "type": "array",
         "items": {
           "type": "string"
+        }
+      }
+    },
+    "HTTPSDeployKey": {
+      "description": "HTTPSDeployKey",
+      "schema": {
+        "$ref": "#/definitions/HTTPSDeployKey"
+      }
+    },
+    "HTTPSDeployKeyList": {
+      "description": "HTTPSDeployKeyList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/HTTPSDeployKey"
         }
       }
     },
