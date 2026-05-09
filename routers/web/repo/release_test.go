@@ -151,7 +151,7 @@ func TestCalReleaseNumCommitsBehind(t *testing.T) {
 	t.Cleanup(func() { ctx.Repo.GitRepo.Close() })
 
 	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
-		IncludeDrafts: ctx.Repo.CanWrite(unit.TypeReleases),
+		IncludeDrafts: ctx.Repo.Permission.CanWrite(unit.TypeReleases),
 		RepoID:        ctx.Repo.Repository.ID,
 	})
 	assert.NoError(t, err)

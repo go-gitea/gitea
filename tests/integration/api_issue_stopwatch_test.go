@@ -29,8 +29,7 @@ func TestAPIListStopWatches(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/v1/user/stopwatches").
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var apiWatches []*api.StopWatch
-	DecodeJSON(t, resp, &apiWatches)
+	apiWatches := DecodeJSON(t, resp, []*api.StopWatch{})
 	stopwatch := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: owner.ID})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: stopwatch.IssueID})
 	if assert.Len(t, apiWatches, 1) {

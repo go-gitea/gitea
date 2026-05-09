@@ -5,7 +5,6 @@ import {initMarkupRenderAsciicast} from './asciicast.ts';
 import {initMarkupTasklist} from './tasklist.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initExternalRenderIframe} from './render-iframe.ts';
-import {initMarkupRefIssue} from './refissue.ts';
 import {toggleElemClass} from '../utils/dom.ts';
 
 // code that runs for all markup content
@@ -26,6 +25,5 @@ export function initMarkupContent(): void {
     initMarkupCodeMermaid(el);
     initMarkupCodeMath(el);
     initMarkupRenderAsciicast(el);
-    initMarkupRefIssue(el);
   });
 }

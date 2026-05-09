@@ -1,13 +1,13 @@
-<div class="ui container tw-flex">
-	{{ctx.AvatarUtils.Avatar .Org 100 "org-avatar"}}
-	<div id="org-info" class="tw-flex tw-flex-col tw-flex-1 tw-break-anywhere">
-		<div class="ui header">
-			{{.Org.DisplayName}}
-			<span class="org-visibility">
+<div class="ui container tw-flex tw-gap-4">
+	<div>{{ctx.AvatarUtils.Avatar .Org 100}}</div>
+	<div class="flex-relaxed-list">
+		<div class="ui header flex-left-right tw-m-0">
+			<div class="flex-text-block">
+				<span class="tw-text-2xl">{{.Org.DisplayName}}</span>
 				{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
 				{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
-			</span>
-			<span class="flex-text-block tw-ml-auto tw-text-16 tw-whitespace-nowrap">
+			</div>
+			<div class="flex-text-block">
 				{{if .EnableFeed}}
 					<a class="ui basic label button" href="{{.Org.HomeLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
 						{{svg "octicon-rss" 24}}
@@ -16,14 +16,20 @@
 				{{if .IsSigned}}
 					{{template "org/follow_unfollow" .}}
 				{{end}}
-			</span>
+			</div>
 		</div>
-		{{if .RenderedDescription}}<div class="render-content markup">{{.RenderedDescription}}</div>{{end}}
-		<div class="tw-text-text-light meta tw-mt-1">
-			{{if .Org.Location}}<div class="flex-text-block">{{svg "octicon-location"}} <span>{{.Org.Location}}</span></div>{{end}}
-			{{if .Org.Website}}<div class="flex-text-block">{{svg "octicon-link"}} <a class="muted" target="_blank" rel="me" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
-			{{if .IsSigned}}
-				{{if .Org.Email}}<div class="flex-text-block">{{svg "octicon-mail"}} <a class="muted" href="mailto:{{.Org.Email}}">{{.Org.Email}}</a></div>{{end}}
+		{{if .RenderedDescription}}
+			<div class="render-content markup">{{.RenderedDescription}}</div>
+		{{end}}
+		<div>
+			{{if .Org.Location}}
+				<div class="flex-text-block">{{svg "octicon-location"}} <span>{{.Org.Location}}</span></div>
+			{{end}}
+			{{if .Org.Website}}
+				<div class="flex-text-block">{{svg "octicon-link"}} <a class="muted" target="_blank" rel="me" href="{{.Org.Website}}">{{.Org.Website}}</a></div>
+			{{end}}
+			{{if and .IsSigned .Org.Email}}
+				<div class="flex-text-block">{{svg "octicon-mail"}} <a class="muted" href="mailto:{{.Org.Email}}">{{.Org.Email}}</a></div>
 			{{end}}
 		</div>
 	</div>

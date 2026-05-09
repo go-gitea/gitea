@@ -1,7 +1,7 @@
 {{if not .PageIsWiki}}
 <div class="branch-and-tag-area" data-text-default-branch-tooltip="{{ctx.Locale.Tr "repo.commit.contained_in_default_branch"}}">
 	{{if .MergedPRIssueNumber}}
-	{{$prLink := HTMLFormat `<a href="%s/pulls/%d">#%d</a>` $.RepoLink $.MergedPRIssueNumber $.MergedPRIssueNumber}}
+	{{$prLink := HTMLFormat `<a class="ref-issue" href="%s/pulls/%d">#%d</a>` $.RepoLink $.MergedPRIssueNumber $.MergedPRIssueNumber}}
 	<div>
 		<div class="divider"></div>
 		<div>{{ctx.Locale.Tr "repo.commit.merged_in_pr" $prLink}}</div>

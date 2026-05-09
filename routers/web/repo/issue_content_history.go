@@ -88,7 +88,7 @@ func canSoftDeleteContentHistory(ctx *context.Context, issue *issues_model.Issue
 	history *issues_model.ContentHistory,
 ) (canSoftDelete bool) {
 	// CanWrite means the doer can manage the issue/PR list
-	if ctx.Repo.IsOwner() || ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if ctx.Repo.Permission.IsOwner() || ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		canSoftDelete = true
 	} else if ctx.Doer != nil {
 		// for read-only users, they could still post issues or comments,

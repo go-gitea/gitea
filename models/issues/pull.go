@@ -437,8 +437,8 @@ func (pr *PullRequest) IsChecking() bool {
 	return pr.Status == PullRequestStatusChecking
 }
 
-// CanAutoMerge returns true if this pull request can be merged automatically.
-func (pr *PullRequest) CanAutoMerge() bool {
+// IsStatusMergeable returns true if this pull request is mergeable to its base
+func (pr *PullRequest) IsStatusMergeable() bool {
 	return pr.Status == PullRequestStatusMergeable
 }
 
@@ -475,7 +475,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *Iss
 			LabelIDs:    labelIDs,
 			Attachments: uuids,
 		}); err != nil {
-			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
+			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 				return err
 			}
 			return fmt.Errorf("newIssue: %w", err)

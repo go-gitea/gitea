@@ -12,6 +12,25 @@
   border-radius: var(--border-radius);
 }
 
+details.ui.message {
+  padding: 0;
+}
+
+details.ui.message summary {
+  padding: 1em 1.5em;
+}
+
+details.ui.message pre {
+  margin: -1.25em 0 0;
+  padding: 0.5em 1.5em;
+  white-space: pre-wrap;
+}
+
+details.ui.message:not(:has(pre)) summary {
+  list-style: none;
+  cursor: text;
+}
+
 .ui.message:first-child {
   margin-top: 0;
 }
@@ -51,7 +70,6 @@
 .ui.blue.message,
 .ui.attached.blue.message {
   background: var(--color-info-bg);
-  color: var(--color-info-text);
   border-color: var(--color-info-border);
 }
 
@@ -60,27 +78,21 @@
 .ui.positive.message,
 .ui.attached.positive.message {
   background: var(--color-success-bg);
-  color: var(--color-success-text);
   border-color: var(--color-success-border);
 }
 
 .ui.error.message,
 .ui.attached.error.message,
 .ui.red.message,
-.ui.attached.red.message,
 .ui.negative.message,
 .ui.attached.negative.message {
   background: var(--color-error-bg);
-  color: var(--color-error-text);
   border-color: var(--color-error-border);
 }
 
 .ui.warning.message,
-.ui.attached.warning.message,
-.ui.yellow.message,
-.ui.attached.yellow.message {
+.ui.attached.warning.message {
   background: var(--color-warning-bg);
-  color: var(--color-warning-text);
   border-color: var(--color-warning-border);
 }
 
