@@ -461,20 +461,28 @@ func ParentGroupCond(ctx context.Context, idStr string, groupID int64) builder.C
 }
 
 // ChildGroupCond returns a condition recursively matching a group and its descendants
-func ChildGroupCond(firstParent int64) builder.Cond {
+func ChildGroupCond(firstParent int64, doer *user_model.User) builder.Cond {
 	if firstParent < 0 {
 		firstParent = 0
 	}
-	return builder.Expr(`with recursive groups as (
+	var filter string
+
+	groupFilter := AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead)
+	boundFilter, err := builder.ToBoundSQL(groupFilter)
+	if err == nil {
+		filter = "AND (" + boundFilter + ")"
+	}
+
+	return builder.Expr(fmt.Sprintf(`with recursive groups as (
 		select * from repo_group
-		WHERE parent_group_id = ?
+		WHERE parent_group_id = ? %s
 
 		union all
 
 		select subgroup.*
 		from repo_group subgroup
 		join groups g on g.id = subgroup.parent_group_id
-	) select g.id from groups g`, firstParent)
+	) select g.id from groups g`, filter), firstParent)
 }
 
 func UpdateGroup(ctx context.Context, group *Group) error {
