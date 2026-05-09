@@ -2,7 +2,7 @@
 import {load as parseYaml} from 'js-yaml';
 import {writeFile} from 'node:fs/promises';
 
-const LINGUIST_URL = 'https://raw.githubusercontent.com/github-linguist/linguist/main/lib/linguist/languages.yml';
+const linguistUrl = 'https://raw.githubusercontent.com/github-linguist/linguist/main/lib/linguist/languages.yml';
 
 // Map github-linguist language names to the names CodeMirror's @codemirror/language-data
 // uses. Only languages that we want to load with extended extension/filename data are
@@ -106,8 +106,8 @@ type CmLanguage = {
 };
 
 async function main() {
-  const res = await fetch(LINGUIST_URL); // eslint-disable-line no-restricted-globals -- node build script, not browser code
-  if (!res.ok) throw new Error(`fetch ${LINGUIST_URL} failed: ${res.status}`);
+  const res = await fetch(linguistUrl); // eslint-disable-line no-restricted-globals -- node build script, not browser code
+  if (!res.ok) throw new Error(`fetch ${linguistUrl} failed: ${res.status}`);
   const linguist = parseYaml(await res.text()) as Record<string, LinguistEntry>;
 
   const out: CmLanguage[] = [];

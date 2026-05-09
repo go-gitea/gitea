@@ -662,7 +662,7 @@ generate-images: | node_modules ## generate images
 	cd tools && node generate-images.ts $(TAGS)
 
 .PHONY: generate-codemirror-languages
-generate-codemirror-languages: | node_modules ## refresh assets/codemirror-languages.json from github-linguist
+generate-codemirror-languages: | node_modules ## generate codemirror-languages.json
 	node tools/generate-codemirror-languages.ts
 
 .PHONY: generate-manpage
