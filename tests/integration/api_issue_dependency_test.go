@@ -209,8 +209,12 @@ func TestAPIIssueDependencyIncludes(t *testing.T) {
 		var raw map[string]any
 		DecodeJSON(t, resp, &raw)
 
-		assert.Nil(t, raw["blocked_by"], "blocked_by should be null without includes=dependencies")
-		assert.Nil(t, raw["blocking"], "blocking should be null without includes=dependencies")
+		blockedBy, present := raw["blocked_by"]
+		assert.True(t, present, "blocked_by key should be present in response")
+		assert.Nil(t, blockedBy, "blocked_by should be null without includes=dependencies")
+		blocking, present := raw["blocking"]
+		assert.True(t, present, "blocking key should be present in response")
+		assert.Nil(t, blocking, "blocking should be null without includes=dependencies")
 	})
 
 	t.Run("ListIssuesWithIncludes", func(t *testing.T) {
