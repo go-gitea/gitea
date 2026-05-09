@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -434,11 +435,17 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 		if err = ng.LoadSubgroups(ctx, false); err != nil {
 			return err
 		}
-		siblings = append(append(ng.Subgroups[0:min(newSortOrder, len(ng.Subgroups))], group), ng.Subgroups[newSortOrder:]...)
+		filtered := container.Filter(ng.Subgroups, func(e *Group) bool {
+			return e.ID != group.ID
+		})
+		siblings = append(append(filtered[0:min(newSortOrder, len(ng.Subgroups))], group), filtered[newSortOrder:]...)
 	} else if newParent <= 0 {
 		tmpSiblings, err = FindGroups(ctx, &FindGroupsOptions{
 			OwnerID:       group.OwnerID,
 			ParentGroupID: 0,
+		})
+		tmpSiblings = container.Filter(tmpSiblings, func(e *Group) bool {
+			return group.ID != e.ID
 		})
 		tmpSiblings2 := make(RepoGroupList, newSortOrder)
 		copy(tmpSiblings2, tmpSiblings[0:newSortOrder])
@@ -463,6 +470,7 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 	group.ParentGroupID = newParent
 	group.SortOrder = newSortOrder
 	for i, gg := range siblings {
+		log.Info("ITEM %+v", gg)
 		gg.SortOrder = i
 		if _, err = sess.Table(group.TableName()).
 			ID(gg.ID).
