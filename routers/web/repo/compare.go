@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -230,7 +231,7 @@ func renderRichDiffBlob(ctx *context.Context, blob *git.Blob, name string, commi
 	}
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
 		CurrentRefPath:  refPath,
-		CurrentTreePath: filepath.Dir(name),
+		CurrentTreePath: path.Dir(name),
 	}).WithRelativePath(name)
 
 	var buf strings.Builder
