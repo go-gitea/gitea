@@ -134,7 +134,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     services:
       elasticsearch:
         image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
@@ -189,7 +189,7 @@ jobs:
         run: make test-backend-shard test-check
         env:
           TEST_SHARD: ${{ matrix.shard }}
-          TEST_TOTAL_SHARDS: 3
+          TEST_TOTAL_SHARDS: 4
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
@@ -197,7 +197,7 @@ jobs:
         run: make test-backend-gogit-shard test-check
         env:
           TEST_SHARD: ${{ matrix.shard }}
-          TEST_TOTAL_SHARDS: 3
+          TEST_TOTAL_SHARDS: 4
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata gogit
           GOEXPERIMENT:
