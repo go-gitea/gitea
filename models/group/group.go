@@ -217,7 +217,6 @@ func (g *Group) IsPrivateBecauseOfParentPermissions(ctx context.Context, user *u
 func GetGroupByIDAndCond(ctx context.Context, id int64, cond builder.Cond) (*Group, error) {
 	group := new(Group)
 
-
 	has, err := db.GetEngine(ctx).
 		Where(cond.And(builder.Eq{"`repo_group`.id": id})).Get(group)
 	if err != nil {
@@ -456,7 +455,11 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 			ID: group.ID,
 		}
 	}
-
+	err = group.LoadOwner(ctx)
+	if err != nil {
+		return err
+	}
+	group.OwnerName = group.Owner.Name
 	group.ParentGroupID = newParent
 	group.SortOrder = newSortOrder
 	for i, gg := range siblings {
