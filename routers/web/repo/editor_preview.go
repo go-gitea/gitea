@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/context"
@@ -72,7 +73,13 @@ func RenderedDiffPreviewPost(ctx *context.Context) {
 	var baseHTML template.HTML
 	tooLarge := false
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
-	if err == nil && !entry.IsDir() {
+	if err != nil {
+		log.Error("RenderedDiffPreviewPost: GetTreeEntryByPath %s: %v", treePath, err)
+		ctx.Data["RichDiffError"] = ctx.Locale.TrString("repo.diff.rich_diff_unable_to_render")
+		ctx.HTML(http.StatusOK, tplRenderedDiffPreview)
+		return
+	}
+	if !entry.IsDir() {
 		blob := entry.Blob()
 		// Match the compare view: skip the rich diff for oversized blobs so we
 		// do not hand a multi-megabyte document to diffmatchpatch.
@@ -80,13 +87,21 @@ func RenderedDiffPreviewPost(ctx *context.Context) {
 			tooLarge = true
 		} else {
 			reader, err := blob.DataAsync()
-			if err == nil {
-				defer reader.Close()
-				var buf strings.Builder
-				if err := markup.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err == nil {
-					baseHTML = template.HTML(buf.String())
-				}
+			if err != nil {
+				log.Error("RenderedDiffPreviewPost: DataAsync %s: %v", treePath, err)
+				ctx.Data["RichDiffError"] = ctx.Locale.TrString("repo.diff.rich_diff_unable_to_render")
+				ctx.HTML(http.StatusOK, tplRenderedDiffPreview)
+				return
 			}
+			defer reader.Close()
+			var buf strings.Builder
+			if err := markup.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err != nil {
+				log.Error("RenderedDiffPreviewPost: markup.Render %s: %v", treePath, err)
+				ctx.Data["RichDiffError"] = ctx.Locale.TrString("repo.diff.rich_diff_unable_to_render")
+				ctx.HTML(http.StatusOK, tplRenderedDiffPreview)
+				return
+			}
+			baseHTML = template.HTML(buf.String())
 		}
 	}
 
