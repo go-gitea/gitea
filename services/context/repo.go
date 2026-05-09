@@ -598,6 +598,15 @@ func repoAssignmentPrepareRepo(ctx *Context, data *repoAssignmentPrepareDataStru
 	if repo.GroupID != gid {
 		ctx.NotFound(nil)
 	}
+
+	if gid > 0 {
+		GroupAssignmentWeb(GroupAssignmentOptions{
+			RequireMember: true,
+		})(ctx)
+	}
+	if ctx.Written() {
+		return
+	}
 	repo.Owner = ctx.Repo.Owner
 	data.repo = repo
 }
