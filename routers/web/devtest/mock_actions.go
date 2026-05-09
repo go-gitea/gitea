@@ -505,7 +505,8 @@ func MockActionsArtifactPreview(ctx *context.Context) {
 		return
 	}
 
-	selectedPath := actions.ChoosePreviewPath(mockArtifactFilePaths(files), actions.GetRequestedPreviewPath(ctx))
+	requested := actions.GetRequestedPreviewPath(ctx)
+	selectedPath := actions.ChoosePreviewPath(mockArtifactFilePaths(files), requested)
 	previewFiles := make([]actions.ArtifactPreviewFile, 0, len(files))
 	for _, file := range files {
 		previewFiles = append(previewFiles, actions.ArtifactPreviewFile{
@@ -524,6 +525,9 @@ func MockActionsArtifactPreview(ctx *context.Context) {
 	ctx.Data["PreviewRawURL"] = previewURL + "/raw"
 	ctx.Data["DownloadURL"] = runURL + "/artifacts/" + url.PathEscape(artifactName)
 	ctx.Data["SelectedPath"] = selectedPath
+	ctx.Data["RequestedPathMissing"] = requested != "" && selectedPath == ""
+	ctx.Data["AttemptQuery"] = ""
+	ctx.Data["AttemptAmpQuery"] = ""
 	ctx.HTML(http.StatusOK, "devtest/repo-action-artifact-preview")
 }
 

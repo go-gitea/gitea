@@ -1,0 +1,14 @@
+.artifact-preview-page {
+	margin-top: 1rem;
+}
+
+.artifact-preview-title {
+	min-width: 0;
+}
+
+.artifact-preview-frame {
+	width: 100%;
+	min-height: 70vh;
+	border: 1px solid var(--color-secondary);
+	border-radius: var(--border-radius);
+}

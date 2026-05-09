@@ -1,20 +1,3 @@
-<style>
-.artifact-preview-page {
-	margin-top: 1rem;
-}
-
-.artifact-preview-title {
-	min-width: 0;
-}
-
-.artifact-preview-frame {
-	width: 100%;
-	min-height: 70vh;
-	border: 1px solid var(--color-secondary);
-	border-radius: var(--border-radius);
-}
-</style>
-
 <div class="ui top attached header tw-flex tw-items-center tw-justify-between">
 	<div class="artifact-preview-title">
 		<span class="tw-text-base tw-font-semibold">{{ctx.Locale.Tr "preview"}}: <span class="gt-ellipsis">{{.ArtifactName}}</span></span>
@@ -39,7 +22,7 @@
 					<b>{{ctx.Locale.Tr "files"}}</b>
 				</div>
 				{{range .PreviewFiles}}
-					<a class="item gt-ellipsis {{if .Selected}}active{{end}}" href="{{$.PreviewURL}}?path={{QueryEscape .Path}}" title="{{.Path}}">
+					<a class="item gt-ellipsis {{if .Selected}}active{{end}}" href="{{$.PreviewURL}}?path={{QueryEscape .Path}}{{$.AttemptAmpQuery}}" title="{{.Path}}">
 						{{.Path}}
 					</a>
 				{{else}}
@@ -51,7 +34,9 @@
 			{{if .SelectedPath}}
 				{{/* sandbox="allow-scripts": scripts execute but in a null/opaque origin (no allow-same-origin), so they cannot
 				     access Gitea cookies or the parent frame. The response CSP reinforces this and blocks connect-src. */}}
-				<iframe class="artifact-preview-frame" src="{{.PreviewRawURL}}/{{PathEscapeSegments .SelectedPath}}" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
+				<iframe class="artifact-preview-frame" src="{{.PreviewRawURL}}/{{PathEscapeSegments .SelectedPath}}{{.AttemptQuery}}" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
+			{{else if .RequestedPathMissing}}
+				<div class="ui attached warning message">{{ctx.Locale.Tr "actions.artifacts.preview_file_not_found"}}</div>
 			{{else}}
 				<div class="ui attached segment">{{ctx.Locale.Tr "none"}}</div>
 			{{end}}

@@ -19,7 +19,6 @@ import (
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
@@ -104,12 +103,17 @@ func getCurrentRunAndUploadedArtifacts(ctx *context_module.Context, artifactName
 		return nil, nil, false
 	}
 
-	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
-		RunID:        run.ID,
-		ArtifactName: artifactName,
-	})
+	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
 	if err != nil {
-		ctx.ServerError("FindArtifacts", err)
+		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
+			return errors.Is(err, util.ErrNotExist)
+		}, err)
+		return nil, nil, false
+	}
+
+	artifacts, err := actions_model.GetArtifactsByRunAttemptAndName(ctx, run.ID, resolvedAttemptID, artifactName)
+	if err != nil {
+		ctx.ServerError("GetArtifactsByRunAttemptAndName", err)
 		return nil, nil, false
 	}
 	if len(artifacts) == 0 {
@@ -330,11 +334,19 @@ func WritePreviewRawError(ctx *context_module.Context, status int, msg string) {
 }
 
 func previewArtifactByReader(ctx *context_module.Context, path string, reader io.Reader) {
-	buf := filebuffer.New(int(setting.UI.MaxDisplayFileSize), "")
+	maxSize := setting.UI.MaxDisplayFileSize
+	buf := filebuffer.New(int(maxSize), "")
 	defer buf.Close()
-	if _, err := io.Copy(buf, io.LimitReader(reader, setting.UI.MaxDisplayFileSize)); err != nil {
+	// Copy maxSize+1 bytes so we can detect truncation: if the reader still has
+	// data after the limit, the file is too large to render in the preview.
+	n, err := io.Copy(buf, io.LimitReader(reader, maxSize+1))
+	if err != nil {
 		log.Error("artifact preview io.Copy: %v", err)
 		WritePreviewRawError(ctx, http.StatusInternalServerError, "failed to read artifact")
+		return
+	}
+	if n > maxSize {
+		WritePreviewRawError(ctx, http.StatusRequestEntityTooLarge, "file is too large to preview, please download the artifact instead")
 		return
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
@@ -387,7 +399,8 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 		ctx.ServerError("listPreviewPaths", err)
 		return
 	}
-	selectedPath := ChoosePreviewPath(paths, GetRequestedPreviewPath(ctx))
+	requested := GetRequestedPreviewPath(ctx)
+	selectedPath := ChoosePreviewPath(paths, requested)
 
 	previewFiles := make([]ArtifactPreviewFile, 0, len(paths))
 	for _, path := range paths {
@@ -400,6 +413,12 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 	runURL := run.Link()
 	artifactPath := url.PathEscape(artifactName)
 	previewURL := runURL + "/artifacts/" + artifactPath + "/preview"
+	downloadURL := runURL + "/artifacts/" + artifactPath
+	attemptQuery, attemptAmpQuery := "", ""
+	if attempt := ctx.FormString("attempt"); attempt != "" {
+		attemptQuery = "?attempt=" + url.QueryEscape(attempt)
+		attemptAmpQuery = "&attempt=" + url.QueryEscape(attempt)
+	}
 
 	ctx.Data["Title"] = ctx.Tr("preview")
 	ctx.Data["PageIsActions"] = true
@@ -407,8 +426,11 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 	ctx.Data["ArtifactName"] = artifactName
 	ctx.Data["PreviewURL"] = previewURL
 	ctx.Data["PreviewRawURL"] = previewURL + "/raw"
-	ctx.Data["DownloadURL"] = runURL + "/artifacts/" + artifactPath
+	ctx.Data["DownloadURL"] = downloadURL + attemptQuery
+	ctx.Data["AttemptQuery"] = attemptQuery
+	ctx.Data["AttemptAmpQuery"] = attemptAmpQuery
 	ctx.Data["SelectedPath"] = selectedPath
+	ctx.Data["RequestedPathMissing"] = requested != "" && selectedPath == ""
 	ctx.Data["PreviewFiles"] = previewFiles
 
 	ctx.HTML(http.StatusOK, tplArtifactPreviewAction)
