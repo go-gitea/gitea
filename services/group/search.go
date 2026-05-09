@@ -119,7 +119,15 @@ func (w *WebSearchGroup) doLoadChildren(opts *WebSearchOptions) error {
 		w.LatestCommitStatus = latestCommitStatuses[latestIdx]
 	}
 	w.Subgroups = make([]*WebSearchGroup, 0)
-	groups, err := group_model.FindGroupsByCond(opts.Ctx, opts.GroupOpts, group_model.AccessibleGroupCondition(opts.Actor, unit.TypeInvalid, perm.AccessModeRead, false))
+
+	gcond := group_model.AccessibleGroupCondition(opts.Actor, unit.TypeInvalid, perm.AccessModeRead, false)
+	if w.Group != nil {
+		gcond = gcond.And(group_model.MemberCond("repo_group.id", w.Group.ID, opts.Actor))
+	}
+
+	groups, err := group_model.FindGroupsByCond(opts.Ctx, opts.GroupOpts,
+		gcond,
+	)
 	if err != nil {
 		return err
 	}
