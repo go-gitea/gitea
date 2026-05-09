@@ -16,4 +16,4 @@
 {{$d := .Depth}}
 {{$one := 1}}
 {{$d1 := Eval $d "+" $one}}
-{{template "group/dashboard/submenu" dict "." . "Items" (.Item.Children .SignedUser) "Depth" $d1}}
+{{template "group/dashboard/submenu" dict "." . "Items" (.Item.Children .SignedUser true) "Depth" $d1}}
