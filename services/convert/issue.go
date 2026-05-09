@@ -29,7 +29,7 @@ type ToIssueOptions struct {
 }
 
 func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
-	return toIssue(ctx, doer, issue, WebAssetDownloadURL, mergeOpts(opts))
+	return toIssue(ctx, doer, issue, WebAssetDownloadURL, firstOpt(opts))
 }
 
 // ToAPIIssue converts an Issue to API format
@@ -37,7 +37,7 @@ func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
 func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
-	return toIssue(ctx, doer, issue, APIAssetDownloadURL, mergeOpts(opts))
+	return toIssue(ctx, doer, issue, APIAssetDownloadURL, firstOpt(opts))
 }
 
 func toIssueMetas(refs []issues_model.DependencyRef) []*api.IssueMeta {
@@ -52,7 +52,7 @@ func toIssueMetas(refs []issues_model.DependencyRef) []*api.IssueMeta {
 	return result
 }
 
-func mergeOpts(opts []ToIssueOptions) ToIssueOptions {
+func firstOpt(opts []ToIssueOptions) ToIssueOptions {
 	if len(opts) > 0 {
 		return opts[0]
 	}
@@ -181,7 +181,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 
 // ToIssueList converts an IssueList to API format
 func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
-	o := mergeOpts(opts)
+	o := firstOpt(opts)
 	result := make([]*api.Issue, len(il))
 	_ = il.LoadPinOrder(ctx)
 	if o.IncludeDependencies {
@@ -200,7 +200,7 @@ func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.Iss
 
 // ToAPIIssueList converts an IssueList to API format
 func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
-	o := mergeOpts(opts)
+	o := firstOpt(opts)
 	result := make([]*api.Issue, len(il))
 	_ = il.LoadPinOrder(ctx)
 	if o.IncludeDependencies {
