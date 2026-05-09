@@ -181,17 +181,8 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 
 // ToIssueList converts an IssueList to API format
 func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
-	o := firstOpt(opts)
+	o := prepareIssueListOpts(ctx, doer, il, firstOpt(opts))
 	result := make([]*api.Issue, len(il))
-	_ = il.LoadPinOrder(ctx)
-	if o.IncludeDependencies {
-		deps, err := issue_service.GetFilteredDependencyRefsForList(ctx, doer, il)
-		if err != nil {
-			log.Error("GetFilteredDependencyRefsForList: %v", err)
-		} else {
-			o.filteredDeps = deps
-		}
-	}
 	for i := range il {
 		result[i] = ToIssue(ctx, doer, il[i], o)
 	}
@@ -200,8 +191,15 @@ func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.Iss
 
 // ToAPIIssueList converts an IssueList to API format
 func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
-	o := firstOpt(opts)
+	o := prepareIssueListOpts(ctx, doer, il, firstOpt(opts))
 	result := make([]*api.Issue, len(il))
+	for i := range il {
+		result[i] = ToAPIIssue(ctx, doer, il[i], o)
+	}
+	return result
+}
+
+func prepareIssueListOpts(ctx context.Context, doer *user_model.User, il issues_model.IssueList, o ToIssueOptions) ToIssueOptions {
 	_ = il.LoadPinOrder(ctx)
 	if o.IncludeDependencies {
 		deps, err := issue_service.GetFilteredDependencyRefsForList(ctx, doer, il)
@@ -211,10 +209,7 @@ func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.
 			o.filteredDeps = deps
 		}
 	}
-	for i := range il {
-		result[i] = ToAPIIssue(ctx, doer, il[i], o)
-	}
-	return result
+	return o
 }
 
 // ToTrackedTime converts TrackedTime to API format
