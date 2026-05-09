@@ -19,9 +19,9 @@ async function moveItem({item, from, to, oldIndex}: SortableEvent): Promise<void
   const sortable = Sortable.get(closestUl)!;
   const isGroup = Boolean(item.getAttribute('data-is-group'));
   const strs = sortable.toArray();
-  const newIndex = Math.max(1, strs.filter((a) => isGroup ?
+  const newIndex = Math.max(0, strs.filter((a) => isGroup ?
     a.toLocaleLowerCase().startsWith('group') :
-    a.toLocaleLowerCase().startsWith('repo')).indexOf(item.getAttribute('data-sort-id')!) + 1);
+    a.toLocaleLowerCase().startsWith('repo')).indexOf(item.getAttribute('data-sort-id')!));
   const data = {
     newParent: parseInt(to.closest('ul')?.closest('li')?.getAttribute('data-id') || '0'),
     id: parseInt(item.getAttribute('data-id')!),
@@ -32,6 +32,16 @@ async function moveItem({item, from, to, oldIndex}: SortableEvent): Promise<void
     await POST(`${to.getAttribute('data-url')}/items/move`, {
       data,
     });
+    const fromItem = from.closest('li');
+    const fromLabel = fromItem?.querySelector(':scope > label');
+    if (from.children.length) {
+      fromLabel?.classList?.add('has-children');
+    } else {
+      fromLabel?.classList?.remove('has-children');
+    }
+    const toItem = to.closest('li');
+    toItem?.querySelector(':scope > label')?.classList.add('has-children');
+
   } catch (error) {
     console.error(error);
     from.insertBefore(item, from.children[oldIndex]);
@@ -46,12 +56,12 @@ function onEnd(ev: SortableEvent) {
   const {to} = ev;
   const closestUl = to.nodeName.toLowerCase() === 'ul' ? to : (to.closest('li')?.closest('ul') ?? to.closest('ul'));
   if (!closestUl) return;
-  const sortable = Sortable.get(closestUl)!;
+  /*const sortable = Sortable.get(closestUl)!;
   const strs = sortable.toArray();
   const groups = strs.filter((a) => a.toLocaleLowerCase().startsWith('group'));
   const repos = strs.filter((a) => a.toLocaleLowerCase().startsWith('repo'));
   const newArr = [...groups.toSorted(idSortFn), ...repos.toSorted(idSortFn)];
-  sortable?.sort(newArr, true);
+  sortable?.sort(newArr, true);*/
   moveItem(ev);
 }
 
